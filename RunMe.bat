@@ -124,19 +124,26 @@ echo Make sure to select "Y" (Yes) when asked.
 echo.
 echo Press any key to continue...
 pause >nul
-
+cls
 echo Running Spicetify installation
 runas /trustlevel:0x20000 "powershell iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1 | iex"
-echo Closing Spotify if running...
-taskkill /IM spotify.exe /F >nul 2>&1
 
 pause
-
-cls
 echo Closing Spotify if running...
 taskkill /IM spotify.exe /F >nul 2>&1
 
-timeout /t 8 >nul
+@echo off
+setlocal enabledelayedexpansion
+
+cls
+
+runas /trustlevel:0x20000 "powershell iwr -useb https://raw.githubusercontent.com/NYRI4/Comfy-spicetify/main/install.ps1 | iex"
+timeout /t 5 >nul
+cls
+:: Apply the theme
+echo Applying Comfy theme...
+spicetify config current_theme Comfy --bypass-admin
+spicetify config color_scheme catppuccin-mocha --bypass-admin
 
 @echo off
 echo Launching Spotify
