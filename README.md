@@ -1,6 +1,5 @@
 # 🎵 LibreSpot v2.0  
 A modern, GUI-powered Spotify customization suite featuring **SpotX**, **Spicetify**, **Marketplace**, and the **Comfy Theme**.  
-Rebuilt from the ground up into a unified installer with an elegant WPF interface, multi-threaded backend, and full EXE support.
 
 ---
 
@@ -32,94 +31,48 @@ https://github.com/user-attachments/assets/673b5f9a-7741-4d1e-929d-12102cf32635
 
 ---
 
-## ⭐ Features at a Glance
-### ✨ Beautiful WPF User Interface
-- Fully themed Slate + Neon Green Maven design  
-- Step indicators with animation  
-- Real-time log viewer  
-- Progress bar and status readouts  
-- Hyperlink credits for SpotX, Spicetify, and Comfy
+## Features
+
+### Core
+- Installs **SpotX**
+- Installs **Spicetify CLI**
+- Installs **Spicetify Marketplace**
+- Applies **Comfy theme**
+- Injects XPUI + Comfy CSS patches
+- Resets backups and cleans previous installs
+
+### Engine
+- Full **WPF GUI** (progress bar, log window, step indicator)
+- **Multi-threaded** (UI + background watcher)
+- **EXE or PS1** compatible (auto elevation)
+- GitHub API release fetching for latest versions
+- Error handling with on-screen reporting
 
 ---
 
-### 🔧 Hybrid Engine (EXE + PS1)
-LibreSpot v2.0 automatically adapts itself depending on how it’s launched:
+## Downloads
 
-- **EXE Mode**  
-  Compiled, packaged, no console window, ideal for end-users.
+- **EXE (recommended):**  
+  https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/LibreSpot.exe
 
-- **Script Mode**  
-  Run directly from source for development or troubleshooting.
-
-Both modes contain the same self-elevating engine.
+- **Source Script:**  
+  https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/LibreSpot.ps1
 
 ---
 
-### 🛠️ Full Spotify Customization Pipeline  
-LibreSpot executes a structured 6-step installer:
-
-#### **1. Cleanup Engine**
-- Kills Spotify processes  
-- Runs official Uninstall-Spotify script  
-
-#### **2. SpotX Installer (Isolated Sandbox)**
-- Downloads SpotX with fallback logic  
-- Executes inside an isolated PowerShell session for safety  
-
-#### **3. Prefs Generator**
-- Launches and auto-closes Spotify to force config creation  
-
-#### **4. Spicetify CLI Installer**
-- Pulls latest release from GitHub API  
-- Installs & configures CLI from scratch  
-
-#### **5. Marketplace Installer**
-- Installs Marketplace from latest GitHub release  
-- Enables the Custom App automatically  
-
-#### **6. Comfy Theme + CSS Injection**
-- Downloads theme components  
-- Injects XPUI and Comfy CSS patches  
-- Applies full Spicetify theme configuration  
+## Requirements
+- Windows 10 or 11  
+- Must be run **as Administrator**
 
 ---
 
-### 🧵 Multi-Threaded Architecture
-- Background “Watcher” thread gracefully handles Spotify process control  
-- Main installation thread keeps UI responsive  
-- No more freezing, blocking, or console delays  
-
----
-
-### 🔒 Robust Error Handling
-- Full try/catch wrapping  
-- Fatal errors displayed in GUI  
-- Smart fallbacks for network/download failures  
-- Clean shutdown signaling  
-
----
-
-## 📦 Changelog Summary (v1.0 → v2.0)
-LibreSpot evolved from:
-
-- A plain `.bat` file  
-- ASCII art output  
-- Sequential console output  
-- Manual SpotX behavior  
-- No GUI  
-- No Spicetify automation  
-
-To a complete:
-
-- **WPF Desktop App**
-- **Compiled EXE**
-- **Multi-threaded engine**
-- **Automatic installers**
-- **Dynamic GitHub release fetching**
-- **CSS + theme injectors**
-- **One-line remote launcher**
-
-Read the full changelog inside the `Releases` tab for details.
+## Notes
+- EXE was compiled directly from the PS1 via PS2EXE  
+- Project integrates with:
+  - SpotX  
+  - Spicetify CLI  
+  - Spicetify Marketplace  
+  - Comfy Themes  
 
 ---
 
@@ -133,9 +86,8 @@ LibreSpot integrates with the incredible work from:
 
 ---
 
-## 📜 License
-LibreSpot does not modify copyrighted assets directly.  
-SpotX, Spicetify, and Comfy remain under their respective licenses.
+## License
+All third-party components retain their original licenses. This repo distributes only automation logic and user-applied configuration.
 
 ---
 
