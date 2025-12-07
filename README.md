@@ -1,58 +1,145 @@
-# LibreSpot
+# 🎵 LibreSpot v2.0  
+A modern, GUI-powered Spotify customization suite featuring **SpotX**, **Spicetify**, **Marketplace**, and the **Comfy Theme**.  
+Rebuilt from the ground up into a unified installer with an elegant WPF interface, multi-threaded backend, and full EXE support.
 
-**LibreSpot** is a sophisticated automation tool. It streamlines the process of installing a fully customized, ad-free, and themed Spotify client by orchestrating **SpotX**, **Spicetify**, and the **Comfy** theme into a single, one-click execution.
+---
 
-https://github.com/user-attachments/assets/0871c026-8569-4913-b2e0-dd3ae5e7e4f3
+## ⚠️ Requirements
+- **Must be run as Administrator**  
+  Both the EXE and PS1 versions require elevation to properly uninstall Spotify, install SpotX, apply Spicetify themes, and write system-level changes.
 
-![2025-03-23 06 29 41](https://github.com/user-attachments/assets/91a14a21-4080-464a-a91d-f19b9295ba34)
+- **Windows 10 / 11 recommended**  
+- **Internet access** (for GitHub API, theme downloads, and installers)
 
-## 🚀 Features
+---
 
-  * **Modern GUI:** A clean, dark-themed interface built with WPF/XAML featuring live logging, progress tracking, and valid clickable credits.
-  * **Total Automation:** Handles the entire chain from uninstallation to final patching without user intervention.
-  * **Smart Process Management:** Includes a background "Watcher" thread that ensures Spotify processes do not interfere with the installation.
-  * **Ad-Blocking:** Integrates [SpotX](https://github.com/SpotX-Official/SpotX) to remove banner, video, and audio ads.
-  * **Theming:** Automatically installs [Spicetify CLI](https://github.com/spicetify/cli), the [Marketplace](https://github.com/spicetify/marketplace), and the [Comfy](https://github.com/Comfy-Themes/Spicetify) theme.
-  * **CSS Injection:** Injects custom CSS for glassmorphism effects and UI tweaks specific to the Comfy theme.
+## 🚀 Quick Install (PowerShell One-Liner)
 
-## 📋 Prerequisites
+Paste this into an elevated PowerShell window:
 
-  * **OS:** Windows 10 or Windows 11.
-  * **PowerShell:** Version 5.1 or newer.
-  * **Internet Connection:** Required to download the latest components from GitHub.
+<div class="position-relative">
+  <pre><code>irm "https://tinyurl.com/librespot" | iex</code></pre>
+</div>
 
-## 🛠️ Usage
+This launches LibreSpot directly without downloading the repository.
 
-1.  Download the `LibreSpot.ps1` script.
-2.  Right-click the file and select **Run with PowerShell**.
-3.  **Administrator Privileges:** The script will automatically request administrative privileges if not already running as admin.
-4.  Sit back and wait. The GUI will close automatically upon completion and launch your new Spotify client.
+---
 
-## ⚙️ How It Works
+## 🖥️ Demo
+*(Example from v2.0 WPF Interface)*
 
-1.  **Elevation Check:** Self-elevates to Administrator to ensure write access to Program Files and System directories.
-2.  **Cleanup:** Force kills Spotify and utilizes the `amd64fox/Uninstall-Spotify` script to remove existing installations.
-3.  **SpotX Installation:** Downloads and runs the SpotX installer with the following flags:
-      * `-confirm_uninstall_ms_spoti`
-      * `-podcasts_off`
-      * `-block_update_on`
-      * `-new_theme`
-4.  **Config Generation:** Temporarily launches the new Spotify client to generate the necessary `prefs` files, then kills it.
-5.  **Spicetify Setup:** Installs the Spicetify CLI and the Spicetify Marketplace.
-6.  **Theme Injection:**
-      * Downloads the **Comfy** theme.
-      * Injects custom CSS blobs (defined within the script) into `xpui\user.css` and `Themes\Comfy\user.css`.
-      * Applies the config via Spicetify.
+https://github.com/user-attachments/assets/673b5f9a-7741-4d1e-929d-12102cf32635
 
-## 🔗 Credits & Resources
+---
 
-This project is an automation wrapper that relies on the hard work of the following open-source projects:
+## ⭐ Features at a Glance
+### ✨ Beautiful WPF User Interface
+- Fully themed Slate + Neon Green Maven design  
+- Step indicators with animation  
+- Real-time log viewer  
+- Progress bar and status readouts  
+- Hyperlink credits for SpotX, Spicetify, and Comfy
 
-  * **SpotX:** [github.com/SpotX-Official/SpotX](https://github.com/SpotX-Official/SpotX)
-  * **Spicetify CLI:** [github.com/spicetify](https://github.com/spicetify)
-  * **Comfy Theme:** [github.com/Comfy-Themes/Spicetify](https://github.com/Comfy-Themes/Spicetify)
-  * **Spotify Uninstaller:** [github.com/amd64fox/Uninstall-Spotify](https://github.com/amd64fox/Uninstall-Spotify)
+---
 
-## ⚠️ Disclaimer
+### 🔧 Hybrid Engine (EXE + PS1)
+LibreSpot v2.0 automatically adapts itself depending on how it’s launched:
 
-This tool modifies the Spotify client. While widely used, client modification is technically against Spotify's Terms of Service. Use this software at your own risk. The creators of this script and incorporated scripts are not responsible for banned accounts or software instability.
+- **EXE Mode**  
+  Compiled, packaged, no console window, ideal for end-users.
+
+- **Script Mode**  
+  Run directly from source for development or troubleshooting.
+
+Both modes contain the same self-elevating engine.
+
+---
+
+### 🛠️ Full Spotify Customization Pipeline  
+LibreSpot executes a structured 6-step installer:
+
+#### **1. Cleanup Engine**
+- Kills Spotify processes  
+- Runs official Uninstall-Spotify script  
+
+#### **2. SpotX Installer (Isolated Sandbox)**
+- Downloads SpotX with fallback logic  
+- Executes inside an isolated PowerShell session for safety  
+
+#### **3. Prefs Generator**
+- Launches and auto-closes Spotify to force config creation  
+
+#### **4. Spicetify CLI Installer**
+- Pulls latest release from GitHub API  
+- Installs & configures CLI from scratch  
+
+#### **5. Marketplace Installer**
+- Installs Marketplace from latest GitHub release  
+- Enables the Custom App automatically  
+
+#### **6. Comfy Theme + CSS Injection**
+- Downloads theme components  
+- Injects XPUI and Comfy CSS patches  
+- Applies full Spicetify theme configuration  
+
+---
+
+### 🧵 Multi-Threaded Architecture
+- Background “Watcher” thread gracefully handles Spotify process control  
+- Main installation thread keeps UI responsive  
+- No more freezing, blocking, or console delays  
+
+---
+
+### 🔒 Robust Error Handling
+- Full try/catch wrapping  
+- Fatal errors displayed in GUI  
+- Smart fallbacks for network/download failures  
+- Clean shutdown signaling  
+
+---
+
+## 📦 Changelog Summary (v1.0 → v2.0)
+LibreSpot evolved from:
+
+- A plain `.bat` file  
+- ASCII art output  
+- Sequential console output  
+- Manual SpotX behavior  
+- No GUI  
+- No Spicetify automation  
+
+To a complete:
+
+- **WPF Desktop App**
+- **Compiled EXE**
+- **Multi-threaded engine**
+- **Automatic installers**
+- **Dynamic GitHub release fetching**
+- **CSS + theme injectors**
+- **One-line remote launcher**
+
+Read the full changelog inside the `Releases` tab for details.
+
+---
+
+## ❤️ Credits
+LibreSpot integrates with the incredible work from:
+
+- **SpotX** – https://github.com/SpotX-Official/SpotX  
+- **Spicetify CLI** – https://github.com/spicetify/cli  
+- **Spicetify Marketplace** – https://github.com/spicetify/marketplace  
+- **Comfy Theme** – https://github.com/Comfy-Themes/Spicetify  
+
+---
+
+## 📜 License
+LibreSpot does not modify copyrighted assets directly.  
+SpotX, Spicetify, and Comfy remain under their respective licenses.
+
+---
+
+## 🧩 Contributions
+PRs, feature ideas, and bug reports are welcome.  
+Feel free to open issues or request enhancements.
+
