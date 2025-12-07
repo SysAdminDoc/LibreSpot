@@ -60,6 +60,78 @@ https://github.com/user-attachments/assets/673b5f9a-7741-4d1e-929d-12102cf32635
 
 ---
 
+## Compile LibreSpot Yourself (Optional)
+
+If you prefer to build your own EXE, place this script in the **same folder** as the `LibreSpot.ps1` file and run it.  
+It automatically installs PS2EXE, detects powershell scripts in the same directory, and compiles them into EXE with a gear icon.
+
+```powershell
+<#
+.SYNOPSIS
+    Batch compiles all PS1 files in the current directory to EXEs.
+    Automatically installs PS2EXE and applies a Gear icon.
+#>
+
+$ErrorActionPreference = 'Stop'
+
+Write-Host "Checking for PS2EXE module..." -ForegroundColor Cyan
+
+if (-not (Get-Module -ListAvailable -Name "ps2exe")) {
+    Write-Host "Module not found. Installing PS2EXE..." -ForegroundColor Yellow
+    Install-Module -Name "ps2exe" -Scope CurrentUser -Force -SkipPublisherCheck
+    Import-Module "ps2exe"
+}
+else {
+    Write-Host "PS2EXE is already available." -ForegroundColor Green
+}
+
+$iconUrl  = "https://raw.githubusercontent.com/SysAdminDoc/LibreSpot/refs/heads/main/Images/Settings.ico"
+$iconPath = "$env:TEMP\temp_gear_icon.ico"
+
+try {
+    Invoke-WebRequest -Uri $iconUrl -OutFile $iconPath -UseBasicParsing
+}
+catch {
+    $iconPath = $null
+}
+
+$currentDir = $PSScriptRoot
+if (-not $currentDir) { $currentDir = Get-Location }
+
+$scripts = Get-ChildItem -Path $currentDir -Filter "*.ps1" |
+           Where-Object { $_.Name -ne $MyInvocation.MyCommand.Name }
+
+foreach ($script in $scripts) {
+    Write-Host "`nProcessing: $($script.Name)" -ForegroundColor Magenta
+    $outName = "$($script.BaseName).exe"
+
+    $content = Get-Content -Path $script.FullName -Raw
+    $isGUI = ($content -match "PresentationFramework" -or $content -match "System.Windows.Forms" -or $content -match "WPF")
+
+    $params = @{
+        InputFile  = $script.FullName
+        OutputFile = $outName
+        Title      = $script.BaseName
+        Icon       = $iconPath
+    }
+
+    if ($isGUI) { $params.Add('noConsole', $true) }
+
+    try {
+        Invoke-PS2EXE @params | Out-Null
+        Write-Host "  -> Success! Created $outName" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "  -> Failed: $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+
+if (Test-Path $iconPath) { Remove-Item $iconPath -Force }
+Write-Host "`nAll operations complete." -ForegroundColor Cyan
+```
+
+---
+
 ## Requirements
 - Windows 10 or 11  
 - Must be run **as Administrator**
