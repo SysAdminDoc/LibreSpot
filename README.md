@@ -1,6 +1,9 @@
 # 🎵 LibreSpot v2.0  
 A modern, GUI-powered Spotify customization suite featuring **SpotX**, **Spicetify**, **Marketplace**, and the **Comfy Theme**.  
 
+<img width="900" height="611" alt="image" src="https://github.com/user-attachments/assets/657170ac-4ea7-49c1-879f-00c17049bb35" />
+
+
 ---
 
 ## ⚠️ Requirements
