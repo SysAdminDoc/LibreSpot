@@ -1,19 +1,6 @@
 <#
 .SYNOPSIS
-    Spotify Automation UI (GUI Only - No Theme)
-.DESCRIPTION
-    Executes the core installation logic (Cleanup, SpotX, Spicetify CLI, Marketplace) 
-    from the original SpotX_NoTheme.ps1 script, but uses a WPF GUI and a dedicated
-    background runspace for visual logging. No theming or custom CSS is applied.
-
-    Fully patched:
-    - All helper functions are explicitly injected into a dedicated background runspace
-    - No fragile Get-Command-in-Loaded hacks
-    - Globals (paths, URLs) are injected into the worker runspace
-    - UI remains responsive while the install logic runs
-    - Any runspace failure is surfaced into the GUI log area
-
-    Requires Administrator privileges.
+    LibreSpot - SpotX, Spicetify, Marketplace (No Theme)
 #>
 
 # -----------------------------------------------------------------------------
@@ -815,3 +802,4 @@ $window.Add_Loaded({
 })
 
 [void]$window.ShowDialog()
+
