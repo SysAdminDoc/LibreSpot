@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Spotify Automation UI
+    LibreSpot - SpotX, Spicetify, Marketplace, Comfy Theme
 #>
 
 # -----------------------------------------------------------------------------
@@ -591,5 +591,6 @@ $window.Add_Loaded({
         $logOutput.Text = "FATAL: Could not start PowerShell engine: $($_.Exception.Message)"
     }
 })
+
 
 [void]$window.ShowDialog()
