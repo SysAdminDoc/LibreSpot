@@ -23,6 +23,12 @@ Paste this into an elevated PowerShell window:
   <pre><code>irm "https://tinyurl.com/librespot" | iex</code></pre>
 </div>
 
+For a version without the theme, only SpotX and Spicetify:
+
+<div class="position-relative">
+  <pre><code>irm "https://tinyurl.com/librespotbasic" | iex</code></pre>
+</div>
+
 This launches LibreSpot directly without downloading the repository.
 
 ---
