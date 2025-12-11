@@ -3,6 +3,31 @@ A modern, GUI-powered Spotify customization suite featuring **SpotX**, **Spiceti
 
 <img width="900" height="611" alt="image" src="https://github.com/user-attachments/assets/657170ac-4ea7-49c1-879f-00c17049bb35" />
 
+## Theme
+
+[Comfy is a theme engine](https://github.com/Comfy-Themes/Spicetify) for Spotify, providing a collection of modern UI themes.  
+The default theme applied is **Catppuccin**, which looks like this:
+
+<img width="1714" height="846" alt="image" src="https://github.com/user-attachments/assets/40cef409-bad3-4ede-8347-a17a696ed091" />
+
+Here are the other available [color themes](https://github.com/Comfy-Themes/Spicetify/tree/main/Comfy):
+
+* Catppuccin  
+* Rosé Pine  
+* Mono  
+* Individual  
+* Comfy  
+* Spotify  
+* Nord  
+* Everforest  
+* Kanagawa  
+* Houjicha  
+* Kitty  
+* Lunar  
+* Deep  
+* Velvet  
+* Yami  
+* Hikari
 
 ---
 
