@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    LibreSpot - SpotX, Spicetify, Marketplace, Comfy Theme
+    Spotify Automation UI
 #>
 
 # -----------------------------------------------------------------------------
@@ -10,15 +10,40 @@ Add-Type -AssemblyName PresentationFramework
 $ErrorActionPreference = 'Stop'
 
 # -----------------------------------------------------------------------------
-# ORIGINAL ADMIN CHECK
+# HYBRID ADMIN CHECK (Supports .ps1 and compiled .exe)
 # -----------------------------------------------------------------------------
+# This block detects if we are running as a native PowerShell script or a compiled EXE
+$currentProcess = [System.Diagnostics.Process]::GetCurrentProcess()
+# Simple check: If the process name isn't powershell/pwsh and ends in .exe, it's likely our compiled script
+$isExe = ($currentProcess.MainModule.FileName -match '\.exe$') -and ($currentProcess.ProcessName -notmatch 'powershell|pwsh')
+
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    $currentPath = $MyInvocation.MyCommand.Path
-    if ([string]::IsNullOrEmpty($currentPath)) {
-        Write-Warning "Script must be saved to disk to self-elevate correctly."
+    
+    # 1. Determine the path and arguments for elevation
+    if ($isExe) {
+        # If EXE: We relaunch the EXE file itself
+        $runnerPath = $currentProcess.MainModule.FileName
+        $arguments  = "" 
     }
     else {
-        Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -File `"$currentPath`"" -Verb RunAs
+        # If Script: We launch PowerShell pointing to this script
+        $runnerPath = "powershell.exe"
+        $scriptPath = $MyInvocation.MyCommand.Path
+        
+        if ([string]::IsNullOrEmpty($scriptPath)) {
+            Write-Warning "Script must be saved to disk to self-elevate."
+            Exit
+        }
+        $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
+    }
+
+    # 2. Execute Elevation
+    try {
+        Start-Process -FilePath $runnerPath -ArgumentList $arguments -Verb RunAs -ErrorAction Stop
+    }
+    catch {
+        # User clicked No on UAC
+        Exit
     }
     Exit
 }
@@ -28,15 +53,7 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 # -----------------------------------------------------------------------------
 $cssXpui_Content = @'
 /* INJECTED - XPUI */
-.spotify__container--is-desktop:not(.fullscreen) body::after {
-    content: "";
-    position: absolute;
-    right: 0;
-    z-index: 999;
-    backdrop-filter: brightness(2.12);
-    width: 135px;
-    height: 64px;
-}
+/* NOTE: The absolute positioned body::after element has been removed as it caused a blank header spot. */
 '@
 
 $cssComfy_Content = @'
@@ -70,15 +87,7 @@ $cssComfy_Content = @'
     background-size: auto 100%, 300px var(--tracklist-gradient-height);
     background-repeat: repeat-x;
 }
-.spotify__container--is-desktop:not(.fullscreen) body::after {
-    content: "";
-    position: absolute;
-    right: 0;
-    z-index: 999;
-    backdrop-filter: brightness(2.12);
-    width: 135px;
-    height: 64px;
-}
+/* NOTE: The absolute positioned body::after element has been removed as it caused a blank header spot. */
 '@
 
 # -----------------------------------------------------------------------------
@@ -483,15 +492,20 @@ $logicBlock = [scriptblock]::Create(@'
             # -----------------------------------------------------------------
             # CSS INJECTION (Using Passed Parameters)
             # -----------------------------------------------------------------
-            Write-Host "Injecting Custom CSS Rules..." -ForegroundColor Cyan
+            Write-Host "Injecting Custom CSS Rules (Fix Applied)..." -ForegroundColor Cyan
             
             function Inject-CSS {
                 param($Path, $Content)
                 try {
                     $parent = Split-Path $Path -Parent
                     if (-not (Test-Path $parent)) { New-Item -Path $parent -ItemType Directory -Force | Out-Null }
-                    Add-Content -Path $Path -Value "`n$Content" -Force
-                    Write-Host "  -> Injected: $(Split-Path $Path -Leaf)" -ForegroundColor Gray
+                    # Only inject if content is not empty (e.g., in the case of $cssXpui_Content which is now empty)
+                    if (-not [string]::IsNullOrWhiteSpace($Content)) {
+                        Add-Content -Path $Path -Value "`n$Content" -Force
+                        Write-Host "  -> Injected: $(Split-Path $Path -Leaf)" -ForegroundColor Gray
+                    } else {
+                        Write-Host "  -> Skipped injection for $(Split-Path $Path -Leaf) (Empty Content)" -ForegroundColor Gray
+                    }
                 } catch {
                     Write-Host "  -> Failed to inject $(Split-Path $Path -Leaf): $($_.Exception.Message)" -ForegroundColor Red
                 }
@@ -521,7 +535,6 @@ $logicBlock = [scriptblock]::Create(@'
         # COMPLETION
         Write-Host "`n========================================" -ForegroundColor Cyan
         Write-Host "       Installation Complete!" -ForegroundColor Cyan
-        Write-Host "========================================"
         Write-Host "Launching Spotify..."
 
         if (Test-Path $spotifyExe) { Start-Process $spotifyExe }
@@ -591,6 +604,5 @@ $window.Add_Loaded({
         $logOutput.Text = "FATAL: Could not start PowerShell engine: $($_.Exception.Message)"
     }
 })
-
 
 [void]$window.ShowDialog()
