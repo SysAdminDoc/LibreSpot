@@ -45,12 +45,6 @@ Here are the other available [color themes](https://github.com/Comfy-Themes/Spic
 Paste this into an elevated PowerShell window:
 
 <div class="position-relative">
-  <pre><code>irm "https://tinyurl.com/librespot" | iex</code></pre>
-</div>
-
-For a version without the Comfy theme, only SpotX and Spicetify:
-
-<div class="position-relative">
   <pre><code>irm "https://tinyurl.com/librespotbasic" | iex</code></pre>
 </div>
 
