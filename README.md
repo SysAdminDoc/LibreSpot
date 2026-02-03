@@ -1,197 +1,157 @@
-# 🎵 LibreSpot v2.0  
-A modern, GUI-powered Spotify customization suite featuring **SpotX**, **Spicetify**, **Marketplace**, and the **Comfy Theme**.  
+<div align="center">
 
-<img width="900" height="611" alt="image" src="https://github.com/user-attachments/assets/657170ac-4ea7-49c1-879f-00c17049bb35" />
+# LibreSpot
 
-## Theme
+**SpotX + Spicetify Unified Installer**
 
-[Comfy is a theme engine](https://github.com/Comfy-Themes/Spicetify) for Spotify, providing a collection of modern UI themes.  
-The default theme applied is **Catppuccin**, which looks like this:
+A single-script PowerShell GUI that installs, configures, and maintains ad-free Spotify with themes, extensions, and the Spicetify Marketplace — no command-line knowledge required.
 
-<img width="1714" height="846" alt="image" src="https://github.com/user-attachments/assets/40cef409-bad3-4ede-8347-a17a696ed091" />
+[![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-3.0.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 
-Here are the other available [color themes](https://github.com/Comfy-Themes/Spicetify/tree/main/Comfy):
-
-* Catppuccin  
-* Rosé Pine  
-* Mono  
-* Individual  
-* Comfy  
-* Spotify  
-* Nord  
-* Everforest  
-* Kanagawa  
-* Houjicha  
-* Kitty  
-* Lunar  
-* Deep  
-* Velvet  
-* Yami  
-* Hikari
-
----
-
-## ⚠️ Requirements
-- **Must be run as Administrator**  
-  Both the EXE and PS1 versions require elevation to properly uninstall Spotify, install SpotX, apply Spicetify themes, and write system-level changes.
-
-- **Windows 10 / 11 recommended**  
-- **Internet access** (for GitHub API, theme downloads, and installers)
-
----
-
-## 🚀 Quick Install (PowerShell One-Liner)
-
-Paste this into an elevated PowerShell window:
-
-<div class="position-relative">
-  <pre><code>irm "https://tinyurl.com/librespotbasic" | iex</code></pre>
 </div>
 
-This launches LibreSpot directly without downloading the repository.
-
 ---
 
-## 🖥️ Demo
-*(Example from v2.0 WPF Interface)*
+## What It Does
 
-https://github.com/user-attachments/assets/673b5f9a-7741-4d1e-929d-12102cf32635
+LibreSpot wraps two powerful open-source projects into one polished interface:
+
+- **[SpotX](https://github.com/SpotX-Official/SpotX)** — patches Spotify to remove ads, block telemetry, and enable experimental UI features
+- **[Spicetify](https://github.com/spicetify)** — injects custom themes, extensions, and the in-app Marketplace into Spotify
+
+Instead of running multiple scripts, editing config files, and hoping the versions are compatible, LibreSpot handles the entire workflow: clean uninstall, fresh Spotify install, SpotX patching, Spicetify CLI setup, theme installation, extension configuration, and Marketplace deployment — all in the correct order, with full error handling.
 
 ---
 
 ## Features
 
-### Core
-- Installs **SpotX**
-- Installs **Spicetify CLI**
-- Installs **Spicetify Marketplace**
-- Applies **Comfy theme**
-- Injects XPUI + Comfy CSS patches
-- Resets backups and cleans previous installs
+### Three Modes
 
-### Engine
-- Full **WPF GUI** (progress bar, log window, step indicator)
-- **Multi-threaded** (UI + background watcher)
-- **EXE or PS1** compatible (auto elevation)
-- GitHub API release fetching for latest versions
-- Error handling with on-screen reporting
+**Easy Install** — one click, sensible defaults. Removes any existing installation, applies SpotX ad-blocking with the new UI theme, installs Spicetify CLI with Marketplace, and enables Full App Display, Shuffle+, and Trash Bin extensions.
 
----
+**Custom Install** — full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), pick from 16 official Spicetify themes with per-theme color schemes, select individual extensions, and choose between clean or overlay install.
 
-## Downloads
+**Maintenance** — manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, restore vanilla Spotify, uninstall Spicetify, check for dependency updates, or perform a full system reset.
 
-- **EXE (recommended):**  
-  https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/LibreSpot.exe
+### Supply Chain Integrity
 
-- **Source Script:**  
-  https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/LibreSpot.ps1
+Every dependency is pinned to a specific version with SHA256 hash verification:
 
----
+| Component | Pinned Version |
+|---|---|
+| SpotX | v1.9 |
+| Spicetify CLI | v2.42.8 |
+| Marketplace | v1.0.8 |
+| Themes | Commit `9af41cf` |
 
-## Compile LibreSpot Yourself (Optional)
+Downloads are verified against known hashes before execution. The built-in update checker compares pinned versions against the latest GitHub releases and reports available upgrades — you decide when to update.
 
-If you prefer to build your own EXE, place this script in the **same folder** as the `LibreSpot.ps1` file and run it.  
-It automatically installs PS2EXE, detects powershell scripts in the same directory, and compiles them into EXE with a gear icon.
+### Comprehensive Uninstaller
 
-```powershell
-<#
-.SYNOPSIS
-    Batch compiles all PS1 files in the current directory to EXEs.
-    Automatically installs PS2EXE and applies a Gear icon.
-#>
+The built-in 8-phase uninstaller handles every trace of Spotify and Spicetify:
 
-$ErrorActionPreference = 'Stop'
+1. Process termination (with retry logic)
+2. Microsoft Store / AppX removal
+3. Native silent uninstaller
+4. File system cleanup (Roaming, Local, Temp, cache, shortcuts, glob patterns)
+5. Registry cleanup (uninstall keys, protocol handlers, app paths, startup entries)
+6. Scheduled task removal
+7. Firewall rule removal
+8. Verification sweep with retry
 
-Write-Host "Checking for PS2EXE module..." -ForegroundColor Cyan
+### 16 Themes, 150+ Color Schemes
 
-if (-not (Get-Module -ListAvailable -Name "ps2exe")) {
-    Write-Host "Module not found. Installing PS2EXE..." -ForegroundColor Yellow
-    Install-Module -Name "ps2exe" -Scope CurrentUser -Force -SkipPublisherCheck
-    Import-Module "ps2exe"
-}
-else {
-    Write-Host "PS2EXE is already available." -ForegroundColor Green
-}
+Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntSienna, Default, Dreary, Flow, Matte, Nightlight, Onepunch, and SharkBlue — each with their full set of official color schemes. Or skip the theme and use the Marketplace to browse and install themes from within Spotify.
 
-$iconUrl  = "https://raw.githubusercontent.com/SysAdminDoc/LibreSpot/refs/heads/main/Images/Settings.ico"
-$iconPath = "$env:TEMP\temp_gear_icon.ico"
+### 10 Built-in Extensions
 
-try {
-    Invoke-WebRequest -Uri $iconUrl -OutFile $iconPath -UseBasicParsing
-}
-catch {
-    $iconPath = $null
-}
+| Extension | Description |
+|---|---|
+| Full App Display | Full-screen album art with blur and playback controls |
+| Shuffle+ | True Fisher-Yates shuffle instead of Spotify's weighted algorithm |
+| Trash Bin | Auto-skip songs and artists you've marked as unwanted |
+| Keyboard Shortcuts | Vim-style navigation bindings |
+| Bookmark | Save and recall pages, tracks, albums, and timestamps |
+| Loopy Loop | Set A-B loop points on any track |
+| Pop-up Lyrics | Synchronized lyrics in a separate resizable window |
+| Auto Skip Video | Skip canvas videos and region-locked content |
+| Auto Skip Explicit | Skip tracks marked as explicit |
+| Web Now Playing | Expose now-playing data for Rainmeter widgets |
 
-$currentDir = $PSScriptRoot
-if (-not $currentDir) { $currentDir = Get-Location }
+### Other Details
 
-$scripts = Get-ChildItem -Path $currentDir -Filter "*.ps1" |
-           Where-Object { $_.Name -ne $MyInvocation.MyCommand.Name }
-
-foreach ($script in $scripts) {
-    Write-Host "`nProcessing: $($script.Name)" -ForegroundColor Magenta
-    $outName = "$($script.BaseName).exe"
-
-    $content = Get-Content -Path $script.FullName -Raw
-    $isGUI = ($content -match "PresentationFramework" -or $content -match "System.Windows.Forms" -or $content -match "WPF")
-
-    $params = @{
-        InputFile  = $script.FullName
-        OutputFile = $outName
-        Title      = $script.BaseName
-        Icon       = $iconPath
-    }
-
-    if ($isGUI) { $params.Add('noConsole', $true) }
-
-    try {
-        Invoke-PS2EXE @params | Out-Null
-        Write-Host "  -> Success! Created $outName" -ForegroundColor Green
-    }
-    catch {
-        Write-Host "  -> Failed: $($_.Exception.Message)" -ForegroundColor Red
-    }
-}
-
-if (Test-Path $iconPath) { Remove-Item $iconPath -Force }
-Write-Host "`nAll operations complete." -ForegroundColor Cyan
-```
+- **Threaded UI** — installation runs in background runspaces; the GUI stays responsive with a live log, elapsed timer, and progress bar
+- **Window management** — Spotify and installer windows are automatically hidden during installation; LibreSpot stays on top until finished
+- **Settings persistence** — your Custom Install configuration is saved to `%APPDATA%\LibreSpot\config.json` and restored next launch
+- **Config backup** — up to 5 rotating Spicetify config backups stored in `%USERPROFILE%\LibreSpot_Backups`
+- **Architecture support** — x64, x86, and ARM64 with per-architecture hash verification
+- **Dual download methods** — falls back to BITS transfer if `Invoke-WebRequest` fails
+- **Self-elevating** — auto-requests admin privileges when needed
 
 ---
 
 ## Requirements
-- Windows 10 or 11  
-- Must be run **as Administrator**
+
+- **Windows 10 / 11**
+- **PowerShell 5.1+** (built into Windows)
+- Internet connection for initial download
 
 ---
 
-## Notes
-- EXE was compiled directly from the PS1 via PS2EXE  
-- Project integrates with:
-  - SpotX  
-  - Spicetify CLI  
-  - Spicetify Marketplace  
-  - Comfy Themes  
+## Usage
+
+### Option 1: Direct Run
+
+```powershell
+irm https://raw.githubusercontent.com/SysAdminDoc/LibreSpot/main/LibreSpot.ps1 | iex
+```
+
+### Option 2: Download and Run
+
+1. Download `LibreSpot.ps1` from the [latest release](https://github.com/SysAdminDoc/LibreSpot/releases)
+2. Right-click the file and select **Run with PowerShell**, or open a PowerShell window and run:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\LibreSpot.ps1
+```
+
+The GUI will launch and prompt for administrator privileges if needed.
 
 ---
 
-## ❤️ Credits
-LibreSpot integrates with the incredible work from:
+## FAQ
 
-- **SpotX** – https://github.com/SpotX-Official/SpotX  
-- **Spicetify CLI** – https://github.com/spicetify/cli  
-- **Spicetify Marketplace** – https://github.com/spicetify/marketplace  
-- **Comfy Theme** – https://github.com/Comfy-Themes/Spicetify  
+**Will this break if Spotify updates?**
+SpotX blocks Spotify auto-updates by default. If you manually update Spotify, use Maintenance > Reapply After Update to re-patch.
+
+**Can I use this with a Premium account?**
+Yes. Enable "Premium user (skip ad-blocking)" in Custom Install to skip ad-related patches while keeping all other modifications.
+
+**How do I change my theme later?**
+Use the Spicetify Marketplace (installed by default) to browse and apply themes from within Spotify, or re-run LibreSpot in Custom mode.
+
+**How do I go back to stock Spotify?**
+Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify, and cleans up every trace.
+
+**Is this safe?**
+Every download is verified against pinned SHA256 hashes. LibreSpot doesn't host or redistribute any code — it downloads directly from the official SpotX and Spicetify GitHub repositories.
+
+---
+
+## Credits
+
+LibreSpot is a wrapper and installer — the real work is done by these projects:
+
+- **[SpotX](https://github.com/SpotX-Official/SpotX)** — Spotify ad-blocking and patching
+- **[Spicetify CLI](https://github.com/spicetify/cli)** — Spotify theming and extension framework
+- **[Spicetify Marketplace](https://github.com/spicetify/marketplace)** — In-app store for themes and extensions
+- **[Spicetify Themes](https://github.com/spicetify/spicetify-themes)** — Official community theme collection
 
 ---
 
 ## License
-All third-party components retain their original licenses. This repo distributes only automation logic and user-applied configuration.
 
----
-
-## 🧩 Contributions
-PRs, feature ideas, and bug reports are welcome.  
-Feel free to open issues or request enhancements.
-
+[MIT](LICENSE)
