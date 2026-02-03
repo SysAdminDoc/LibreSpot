@@ -108,7 +108,7 @@ Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntS
 ### Option 1: Direct Run
 
 ```powershell
-irm https://raw.githubusercontent.com/SysAdminDoc/LibreSpot/main/LibreSpot.ps1 | iex
+irm https://raw.githubusercontent.com/SysAdminDoc/LibreSpot/refs/heads/main/LibreSpot.ps1 | iex
 ```
 
 ### Option 2: Download and Run
