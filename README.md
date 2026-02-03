@@ -12,6 +12,9 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 <img width="1150" height="950" alt="2026-02-02 19_59_24-LibreSpot" src="https://github.com/user-attachments/assets/fb3d007b-f28a-4ecc-8a16-b0b866c03a4c" />
 
+<img width="1150" height="950" alt="2026-02-02 20_16_59-LibreSpot" src="https://github.com/user-attachments/assets/83f99ae8-88b8-4f36-a207-4ffa9a163281" />
+
+
 
 </div>
 
