@@ -1,18 +1,15 @@
-<#
-.SYNOPSIS
-    LibreSpot - Comprehensive SpotX + Spicetify Installer
-    Easy Mode | Custom Mode | Maintenance Mode
-.DESCRIPTION
-    All-in-one installer for SpotX (ad-blocking/patching) and Spicetify
-    (themes/extensions/Marketplace) with full GUI configuration.
-.NOTES
-    Credits:
-      SpotX       - github.com/SpotX-Official/SpotX
-      Spicetify   - github.com/spicetify
-      Marketplace - github.com/spicetify/marketplace
-      Themes      - github.com/spicetify/spicetify-themes
-      ohitstom    - github.com/ohitstom/spicetify-extensions
-#>
+# LibreSpot - Comprehensive SpotX + Spicetify Installer
+# Easy Mode | Custom Mode | Maintenance Mode
+#
+# All-in-one installer for SpotX ad-blocking/patching and Spicetify
+# themes, extensions, and Marketplace with full GUI configuration.
+#
+# Credits:
+#   SpotX       - github.com/SpotX-Official/SpotX
+#   Spicetify   - github.com/spicetify
+#   Marketplace - github.com/spicetify/marketplace
+#   Themes      - github.com/spicetify/spicetify-themes
+#   ohitstom    - github.com/ohitstom/spicetify-extensions
 
 # =============================================================================
 # 1. INITIAL SETUP
