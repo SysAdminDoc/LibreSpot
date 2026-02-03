@@ -721,50 +721,154 @@ $ui['BtnBackupConfig'].Add_Click({ try {
     Copy-Item $global:SPICETIFY_CONFIG_DIR -Destination (Join-Path $dest "spicetify") -Recurse -Force
     $all = Get-ChildItem $global:BACKUP_ROOT -Directory | Sort-Object Name -Descending
     if ($all.Count -gt 5) { $all | Select-Object -Skip 5 | ForEach-Object { Remove-Item $_.FullName -Recurse -Force -EA SilentlyContinue } }
-    [System.Windows.MessageBox]::Show("Backup saved: $stamp","Backup Complete","OK","Information"); Update-MaintenanceStatus
-} catch { [System.Windows.MessageBox]::Show("Backup failed: $($_.Exception.Message)","Error","OK","Error") } })
+    Show-ThemedDialog -Message "Backup saved: $stamp" -Title "Backup Complete" -Icon "Information"; Update-MaintenanceStatus
+} catch { Show-ThemedDialog -Message "Backup failed: $($_.Exception.Message)" -Title "Error" -Icon "Error" } })
 
 $ui['BtnRestoreConfig'].Add_Click({ try {
     $all = Get-ChildItem $global:BACKUP_ROOT -Directory | Sort-Object Name -Descending
-    if ($all.Count -eq 0) { [System.Windows.MessageBox]::Show("No backups found.","Error","OK","Error"); return }
+    if ($all.Count -eq 0) { Show-ThemedDialog -Message "No backups found." -Title "Error" -Icon "Error"; return }
     $list = ($all | ForEach-Object { $_.Name }) -join "`n"
-    $r = [System.Windows.MessageBox]::Show("Available backups:`n`n$list`n`nRestore newest ($($all[0].Name))?","Confirm","YesNo","Question")
+    $r = Show-ThemedDialog -Message "Available backups:`n`n$list`n`nRestore newest ($($all[0].Name))?" -Title "Confirm Restore" -Buttons "YesNo" -Icon "Question"
     if ($r -eq 'Yes') {
         $src = Join-Path $all[0].FullName "spicetify"
-        if (-not (Test-Path $src)) { [System.Windows.MessageBox]::Show("Backup data missing.","Error","OK","Error"); return }
+        if (-not (Test-Path $src)) { Show-ThemedDialog -Message "Backup data missing." -Title "Error" -Icon "Error"; return }
         if (Test-Path $global:SPICETIFY_CONFIG_DIR) { Remove-Item $global:SPICETIFY_CONFIG_DIR -Recurse -Force }
         Copy-Item $src -Destination $global:SPICETIFY_CONFIG_DIR -Recurse -Force
         $sExe = Join-Path $global:SPICETIFY_DIR "spicetify.exe"
         if (Test-Path $sExe) { Start-Process -FilePath $sExe -ArgumentList "backup","apply","--bypass-admin" -NoNewWindow -Wait }
-        [System.Windows.MessageBox]::Show("Restored and applied.","Done","OK","Information"); Update-MaintenanceStatus
+        Show-ThemedDialog -Message "Restored and applied." -Title "Done" -Icon "Information"; Update-MaintenanceStatus
     }
-} catch { [System.Windows.MessageBox]::Show("Restore failed: $($_.Exception.Message)","Error","OK","Error") } })
+} catch { Show-ThemedDialog -Message "Restore failed: $($_.Exception.Message)" -Title "Error" -Icon "Error" } })
 
 $ui['BtnCheckUpdates'].Add_Click({
-    if (-not (Test-NetworkReady)) { [System.Windows.MessageBox]::Show("No internet connection.","Network Error","OK","Error"); return }
+    if (-not (Test-NetworkReady)) { Show-ThemedDialog -Message "No internet connection." -Title "Network Error" -Icon "Error"; return }
     Switch-ToInstallPage; Start-MaintenanceJob -Action 'CheckUpdates'
 })
 $ui['BtnReapply'].Add_Click({
-    if (-not (Test-NetworkReady)) { [System.Windows.MessageBox]::Show("No internet connection.","Network Error","OK","Error"); return }
-    $r = [System.Windows.MessageBox]::Show("Reapply SpotX + Spicetify?`nUses saved config if available.","Confirm","YesNo","Question")
+    if (-not (Test-NetworkReady)) { Show-ThemedDialog -Message "No internet connection." -Title "Network Error" -Icon "Error"; return }
+    $r = Show-ThemedDialog -Message "Reapply SpotX + Spicetify?`nUses saved config if available." -Title "Confirm Reapply" -Buttons "YesNo" -Icon "Question"
     if ($r -eq 'Yes') { Switch-ToInstallPage; Start-MaintenanceJob -Action 'Reapply' }
 })
 $ui['BtnSpicetifyRestore'].Add_Click({
-    $r = [System.Windows.MessageBox]::Show("Restore vanilla Spotify?`nRemoves Spicetify mods, keeps SpotX.","Confirm","YesNo","Question")
+    $r = Show-ThemedDialog -Message "Restore vanilla Spotify?`nRemoves Spicetify mods, keeps SpotX." -Title "Confirm Restore" -Buttons "YesNo" -Icon "Question"
     if ($r -eq 'Yes') { Switch-ToInstallPage; Start-MaintenanceJob -Action 'RestoreVanilla' }
 })
 $ui['BtnUninstallSpicetify'].Add_Click({
-    $r = [System.Windows.MessageBox]::Show("Uninstall Spicetify completely?","Confirm","YesNo","Warning")
+    $r = Show-ThemedDialog -Message "Uninstall Spicetify completely?" -Title "Confirm Uninstall" -Buttons "YesNo" -Icon "Warning"
     if ($r -eq 'Yes') { Switch-ToInstallPage; Start-MaintenanceJob -Action 'UninstallSpicetify' }
 })
 $ui['BtnFullReset'].Add_Click({
-    $r = [System.Windows.MessageBox]::Show("FULL RESET:`n- Restore vanilla Spotify`n- Remove Spicetify`n- Remove SpotX`n- Uninstall Spotify`n- Clean all files`n`nContinue?","Full Reset","YesNo","Warning")
+    $r = Show-ThemedDialog -Message "FULL RESET:`n- Restore vanilla Spotify`n- Remove Spicetify`n- Remove SpotX`n- Uninstall Spotify`n- Clean all files`n`nContinue?" -Title "Full Reset" -Buttons "YesNo" -Icon "Warning"
     if ($r -eq 'Yes') { Switch-ToInstallPage; Start-MaintenanceJob -Action 'FullReset' }
 })
 
 # =============================================================================
 # 10. PAGE SWITCH + INSTALL TRIGGER
 # =============================================================================
+function Show-ThemedDialog {
+    param([string]$Message, [string]$Title = "LibreSpot", [string]$Buttons = "OK", [string]$Icon = "Information")
+    $dlgXaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" SizeToContent="WidthAndHeight" MinWidth="380" MaxWidth="500"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Topmost="True">
+    <Border CornerRadius="10" Background="#FF09090b" BorderBrush="#FF27272a" BorderThickness="1" Padding="0" Margin="12">
+        <Border.Effect><DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.5" Direction="270" Color="#000000"/></Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <!-- Title bar -->
+            <Border Grid.Row="0" Background="#FF111113" CornerRadius="10,10,0,0" Padding="16,10">
+                <TextBlock Name="DlgTitle" FontSize="13" FontWeight="SemiBold" Foreground="#FFfafafa" FontFamily="Segoe UI"/>
+            </Border>
+            <!-- Body -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="20,20,20,16">
+                <Canvas Name="IconCanvas" Width="28" Height="28" Margin="0,0,16,0" VerticalAlignment="Top"/>
+                <TextBlock Name="DlgMessage" FontSize="13" Foreground="#FFd4d4d8" FontFamily="Segoe UI" TextWrapping="Wrap" MaxWidth="380" VerticalAlignment="Center"/>
+            </StackPanel>
+            <!-- Buttons -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="20,4,20,18">
+                <Button Name="BtnNo" Content="No" Width="80" Height="32" FontSize="12" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,8,0" Visibility="Collapsed">
+                    <Button.Template><ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#FF18181b" CornerRadius="6" BorderBrush="#FF3f3f46" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#FF27272a"/><Setter TargetName="bd" Property="BorderBrush" Value="#FF52525b"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate></Button.Template>
+                    <Button.Foreground><SolidColorBrush Color="#FFd4d4d8"/></Button.Foreground>
+                </Button>
+                <Button Name="BtnYes" Content="Yes" Width="80" Height="32" FontSize="12" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,0,0" Visibility="Collapsed">
+                    <Button.Template><ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#FF22c55e" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#FF16a34a"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate></Button.Template>
+                    <Button.Foreground><SolidColorBrush Color="#FF052e16"/></Button.Foreground>
+                </Button>
+                <Button Name="BtnOK" Content="OK" Width="80" Height="32" FontSize="12" FontWeight="SemiBold" Cursor="Hand" Visibility="Collapsed">
+                    <Button.Template><ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#FF22c55e" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#FF16a34a"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate></Button.Template>
+                    <Button.Foreground><SolidColorBrush Color="#FF052e16"/></Button.Foreground>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>
+"@
+    $dlgReader = New-Object System.Xml.XmlNodeReader ([xml]$dlgXaml)
+    $dlg = [Windows.Markup.XamlReader]::Load($dlgReader)
+    $dlg.FindName("DlgTitle").Text = $Title
+    $dlg.FindName("DlgMessage").Text = $Message
+    $script:dlgResult = "OK"
+    # Icon
+    $canvas = $dlg.FindName("IconCanvas")
+    $iconColor = "#FF22c55e"
+    switch ($Icon) {
+        "Error"       { $iconColor = "#FFef4444" }
+        "Warning"     { $iconColor = "#FFf59e0b" }
+        "Question"    { $iconColor = "#FF22c55e" }
+        "Information" { $iconColor = "#FF3b82f6" }
+    }
+    $ellipse = New-Object System.Windows.Shapes.Ellipse
+    $ellipse.Width = 28; $ellipse.Height = 28; $ellipse.Fill = [System.Windows.Media.BrushConverter]::new().ConvertFromString($iconColor); $ellipse.Opacity = 0.15
+    $canvas.Children.Add($ellipse) | Out-Null
+    $path = New-Object System.Windows.Shapes.Path
+    $path.Stroke = [System.Windows.Media.BrushConverter]::new().ConvertFromString($iconColor); $path.StrokeThickness = 2
+    switch ($Icon) {
+        "Error"       { $path.Data = [System.Windows.Media.Geometry]::Parse("M 10,10 L 18,18 M 18,10 L 10,18"); [System.Windows.Controls.Canvas]::SetLeft($path,0); [System.Windows.Controls.Canvas]::SetTop($path,0) }
+        "Warning"     { $path.Data = [System.Windows.Media.Geometry]::Parse("M 14,8 L 14,15 M 14,18 L 14,18.5"); $path.StrokeThickness = 2.5; $path.StrokeStartLineCap = "Round"; $path.StrokeEndLineCap = "Round"; [System.Windows.Controls.Canvas]::SetLeft($path,0); [System.Windows.Controls.Canvas]::SetTop($path,0) }
+        "Question"    { $path.Data = [System.Windows.Media.Geometry]::Parse("M 11,10 C 11,7 17,7 17,10 C 17,12.5 14,12.5 14,15 M 14,18 L 14,18.5"); $path.StrokeThickness = 2; $path.StrokeStartLineCap = "Round"; $path.StrokeEndLineCap = "Round"; [System.Windows.Controls.Canvas]::SetLeft($path,0); [System.Windows.Controls.Canvas]::SetTop($path,0) }
+        "Information" { $path.Data = [System.Windows.Media.Geometry]::Parse("M 14,9 L 14,9.5 M 14,12 L 14,19"); $path.StrokeThickness = 2.5; $path.StrokeStartLineCap = "Round"; $path.StrokeEndLineCap = "Round"; [System.Windows.Controls.Canvas]::SetLeft($path,0); [System.Windows.Controls.Canvas]::SetTop($path,0) }
+    }
+    $canvas.Children.Add($path) | Out-Null
+    # Buttons
+    $btnOK = $dlg.FindName("BtnOK"); $btnYes = $dlg.FindName("BtnYes"); $btnNo = $dlg.FindName("BtnNo")
+    if ($Buttons -eq "YesNo") { $btnYes.Visibility = "Visible"; $btnNo.Visibility = "Visible" }
+    else { $btnOK.Visibility = "Visible" }
+    $btnOK.Add_Click({ $script:dlgResult = "OK"; $dlg.Close() })
+    $btnYes.Add_Click({ $script:dlgResult = "Yes"; $dlg.Close() })
+    $btnNo.Add_Click({ $script:dlgResult = "No"; $dlg.Close() })
+    try { $dlg.Owner = $window } catch {}
+    $dlg.Add_MouseLeftButtonDown({ $dlg.DragMove() })
+    $dlg.ShowDialog() | Out-Null
+    return $script:dlgResult
+}
+
 function Test-NetworkReady {
     try {
         $r = [System.Net.WebRequest]::Create("https://raw.githubusercontent.com"); $r.Timeout = 5000; $r.Method = 'HEAD'
@@ -783,13 +887,13 @@ function Switch-ToInstallPage {
 $ui['BtnInstall'].Add_Click({
     if ($ui['BtnInstall'].IsEnabled -eq $false) { return }
     if (-not (Test-NetworkReady)) {
-        [System.Windows.MessageBox]::Show("No internet connection detected.`nPlease check your network and try again.","Network Error","OK","Error")
+        Show-ThemedDialog -Message "No internet connection detected.`nPlease check your network and try again." -Title "Network Error" -Icon "Error"
         return
     }
     $ui['BtnInstall'].IsEnabled = $false
     $isEasy = $ui['ModeEasy'].IsChecked
     if ($isEasy) {
-        $r = [System.Windows.MessageBox]::Show("This will remove any existing Spotify/Spicetify installation`nand perform a fresh setup with default settings.`n`nContinue?","Confirm Easy Install","YesNo","Question")
+        $r = Show-ThemedDialog -Message "This will remove any existing Spotify/Spicetify installation`nand perform a fresh setup with default settings.`n`nContinue?" -Title "Confirm Easy Install" -Buttons "YesNo" -Icon "Question"
         if ($r -ne 'Yes') { $ui['BtnInstall'].IsEnabled = $true; return }
     }
     $script:InstallConfig = Get-InstallConfig -EasyMode $isEasy
