@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     LibreSpot - Comprehensive SpotX + Spicetify Installer
     Easy Mode | Custom Mode | Maintenance Mode
