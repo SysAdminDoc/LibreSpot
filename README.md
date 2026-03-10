@@ -31,6 +31,25 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 ---
 
+## Spotify Compatibility
+
+> **Note:** Spotify frequently updates its client, which can break SpotX and Spicetify patches. LibreSpot blocks Spotify auto-updates by default (via SpotX) to keep your installation stable.
+>
+> If you manually update Spotify and patches stop working, use **Maintenance → Reapply After Update** to re-patch.
+>
+> Check the [releases page](https://github.com/SysAdminDoc/LibreSpot/releases) for the latest tested Spotify version and any compatibility notes.
+
+**Pinned dependency versions (v3.0.0):**
+
+| Component | Pinned Version |
+|---|---|
+| SpotX | v1.9 |
+| Spicetify CLI | v2.42.8 |
+| Marketplace | v1.0.8 |
+| Themes | Commit `9af41cf` |
+
+---
+
 ## Features
 
 ### Three Modes
@@ -40,19 +59,6 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 **Custom Install** — full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), pick from 16 official Spicetify themes with per-theme color schemes, select individual extensions, and choose between clean or overlay install.
 
 **Maintenance** — manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, restore vanilla Spotify, uninstall Spicetify, check for dependency updates, or perform a full system reset.
-
-### Supply Chain Integrity
-
-Every dependency is pinned to a specific version with SHA256 hash verification:
-
-| Component | Pinned Version |
-|---|---|
-| SpotX | v1.9 |
-| Spicetify CLI | v2.42.8 |
-| Marketplace | v1.0.8 |
-| Themes | Commit `9af41cf` |
-
-Downloads are verified against known hashes before execution. The built-in update checker compares pinned versions against the latest GitHub releases and reports available upgrades — you decide when to update.
 
 ### Comprehensive Uninstaller
 
@@ -111,7 +117,7 @@ Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntS
 ### Option 1: Direct Run
 
 ```powershell
-irm https://raw.githubusercontent.com/SysAdminDoc/LibreSpot/refs/heads/main/LibreSpot.ps1 | iex
+irm https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/LibreSpot.ps1 | iex
 ```
 
 ### Option 2: Download and Run
