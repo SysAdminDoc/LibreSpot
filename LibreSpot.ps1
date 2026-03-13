@@ -61,7 +61,7 @@ $global:PinnedReleases = @{
 
 # Computed URLs (derived from pinned versions, do not edit directly)
 $global:URL_SPOTX         = $global:PinnedReleases.SpotX.Url
-$global:URL_SPOTIFY_FULL  = 'https://download.spotify.com/SpotifyFullSetup.exe'
+$global:URL_SPOTIFY_SETUP = 'https://download.spotify.com/SpotifySetup.exe'
 $global:URL_MARKETPLACE   = $global:PinnedReleases.Marketplace.Url
 $global:URL_THEMES_REPO   = "https://github.com/spicetify/spicetify-themes/archive/$($global:PinnedReleases.Themes.Commit).zip"
 $global:URL_SPICETIFY_FMT = 'https://github.com/spicetify/cli/releases/download/v{0}/spicetify-{0}-windows-{1}.zip'
@@ -1247,48 +1247,47 @@ function Module-NukeSpotify {
 # =============================================================================
 function Module-PreInstallSpotify { param($SyncHash)
     Write-Log "Pre-installing Spotify via official installer..." -Level 'STEP'
-    $installer = Join-Path $global:TEMP_DIR "SpotifyFullSetup.exe"
-    Download-FileSafe -Uri $global:URL_SPOTIFY_FULL -OutFile $installer
-    Write-Log "Running SpotifyFullSetup.exe silently..."
+    $installer = Join-Path $global:TEMP_DIR "SpotifySetup.exe"
+    Download-FileSafe -Uri $global:URL_SPOTIFY_SETUP -OutFile $installer
+    Write-Log "Running SpotifySetup.exe (de-elevated, silent)..."
     if ($SyncHash) { $SyncHash.AllowSpotify = $true }
-    # Use Start-Process with -PassThru; UseShellExecute is needed for the installer to spawn child processes
-    $p = Start-Process -FilePath $installer -ArgumentList "/silent" -WindowStyle Hidden -PassThru
+    # Spotify's per-user installer refuses to run elevated (exit code 23).
+    # Use runas /trustlevel:0x20000 to drop back to standard user context.
+    $p = Start-Process -FilePath "runas.exe" -ArgumentList "/trustlevel:0x20000 `"$installer /silent`"" -WindowStyle Hidden -PassThru
     $timeout = 300; $waited = 0
-    # Wait for the launcher to exit
-    while (-not $p.HasExited -and $waited -lt 120) {
+    # Wait for runas launcher to exit
+    while (-not $p.HasExited -and $waited -lt 30) {
         Start-Sleep -Seconds 2; $waited += 2
-        Hide-SpotifyWindows
     }
-    $exitCode = $p.ExitCode
-    Write-Log "Launcher exited after ${waited}s (code: $exitCode). Waiting for installation..."
-    # Poll for Spotify.exe to appear - the real install runs as a child process
+    Write-Log "Launcher started. Waiting for Spotify installation..."
+    # Poll for Spotify.exe to appear - the stub downloads and installs Spotify
     while ($waited -lt $timeout) {
         Hide-SpotifyWindows
         if (Test-Path $global:SPOTIFY_EXE_PATH) {
-            Start-Sleep -Seconds 5
+            # Spotify.exe exists - wait for install to finalize (file locks released)
+            Start-Sleep -Seconds 8
             Write-Log "Spotify.exe detected."
             break
         }
         # Check if any installer or Spotify processes are still running
         $setupProcs = Get-Process -Name "SpotifySetup","SpotifyFullSetup","Spotify","SpotifyMigrator" -EA SilentlyContinue
         if ($setupProcs) {
-            Write-Log "  Installer running: $($setupProcs.Name -join ', ')... (${waited}s)"
-        } elseif ($waited -gt 60) {
+            if ($waited % 15 -eq 0) { Write-Log "  Installer running: $($setupProcs.Name -join ', ')... (${waited}s)" }
+        } elseif ($waited -gt 90) {
             Write-Log "No installer processes found after ${waited}s." -Level 'WARN'
             break
         }
         Start-Sleep -Seconds 3; $waited += 3
     }
     if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
-        # Log what's in the Spotify directory to help debug
         $spotDir = Split-Path $global:SPOTIFY_EXE_PATH
         if (Test-Path $spotDir) {
-            $files = Get-ChildItem $spotDir -EA SilentlyContinue | Select-Object -First 10 -ExpandProperty Name
-            Write-Log "  Spotify dir exists with files: $($files -join ', ')" -Level 'WARN'
+            $files = Get-ChildItem $spotDir -EA SilentlyContinue | Select-Object -First 15 -ExpandProperty Name
+            Write-Log "  Spotify dir contents: $($files -join ', ')" -Level 'WARN'
         } else {
             Write-Log "  Spotify directory does not exist: $spotDir" -Level 'WARN'
         }
-        throw "Spotify.exe not found after running official installer (waited ${waited}s). The installer may require running without admin elevation - try right-clicking LibreSpot and choosing 'Run with PowerShell' instead of 'Run as Administrator'."
+        throw "Spotify.exe not found after official installer (waited ${waited}s). Check network connection and disk space."
     }
     # Kill Spotify if it auto-launched
     Stop-SpotifyProcesses -maxAttempts 3
@@ -1478,7 +1477,7 @@ $installBlock = { param($sh,$cfg)
             }
         }
         # Cleanup temp files
-        @("spotx_run.ps1","SpotifyFullSetup.exe","spicetify.zip","themes.zip","mp.zip") | ForEach-Object {
+        @("spotx_run.ps1","SpotifySetup.exe","spicetify.zip","themes.zip","mp.zip") | ForEach-Object {
             $tf = Join-Path $global:TEMP_DIR $_; if (Test-Path $tf) { Remove-Item $tf -Force -EA SilentlyContinue }
         }
         @("themes-unpack","mp_unpack") | ForEach-Object {
@@ -1586,7 +1585,7 @@ foreach ($fname in $functionNamesForWorker) {
 }
 
 $varNamesForWorker = @(
-    'URL_SPOTX','URL_SPOTIFY_FULL','URL_MARKETPLACE','URL_THEMES_REPO','URL_SPICETIFY_FMT','PinnedReleases',
+    'URL_SPOTX','URL_SPOTIFY_SETUP','URL_MARKETPLACE','URL_THEMES_REPO','URL_SPICETIFY_FMT','PinnedReleases',
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR',
     'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
