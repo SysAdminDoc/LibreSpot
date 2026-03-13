@@ -1566,7 +1566,7 @@ foreach ($fname in $functionNamesForWorker) {
 }
 
 $varNamesForWorker = @(
-    'URL_SPOTX','URL_MARKETPLACE','URL_THEMES_REPO','URL_SPICETIFY_FMT','PinnedReleases',
+    'URL_SPOTX','URL_SPOTIFY_FULL','URL_MARKETPLACE','URL_THEMES_REPO','URL_SPICETIFY_FMT','PinnedReleases',
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR',
     'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
