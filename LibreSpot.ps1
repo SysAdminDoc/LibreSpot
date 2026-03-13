@@ -1251,38 +1251,44 @@ function Module-PreInstallSpotify { param($SyncHash)
     Download-FileSafe -Uri $global:URL_SPOTIFY_FULL -OutFile $installer
     Write-Log "Running SpotifyFullSetup.exe silently..."
     if ($SyncHash) { $SyncHash.AllowSpotify = $true }
-    $pi = New-Object System.Diagnostics.ProcessStartInfo
-    $pi.FileName = $installer; $pi.Arguments = "/silent"
-    $pi.UseShellExecute = $false; $pi.CreateNoWindow = $true
-    $p = New-Object System.Diagnostics.Process; $p.StartInfo = $pi; $null = $p.Start()
-    # The launcher process exits quickly - wait for it then poll for child processes
+    # Use Start-Process with -PassThru; UseShellExecute is needed for the installer to spawn child processes
+    $p = Start-Process -FilePath $installer -ArgumentList "/silent" -WindowStyle Hidden -PassThru
     $timeout = 300; $waited = 0
-    while (-not $p.HasExited -and $waited -lt 60) {
+    # Wait for the launcher to exit
+    while (-not $p.HasExited -and $waited -lt 120) {
         Start-Sleep -Seconds 2; $waited += 2
         Hide-SpotifyWindows
     }
-    # Wait for SpotifySetup/Spotify child processes to finish the actual installation
-    Write-Log "Waiting for Spotify installation to complete..."
+    $exitCode = $p.ExitCode
+    Write-Log "Launcher exited after ${waited}s (code: $exitCode). Waiting for installation..."
+    # Poll for Spotify.exe to appear - the real install runs as a child process
     while ($waited -lt $timeout) {
         Hide-SpotifyWindows
         if (Test-Path $global:SPOTIFY_EXE_PATH) {
-            # Spotify.exe exists - wait a few more seconds for install to finalize
             Start-Sleep -Seconds 5
             Write-Log "Spotify.exe detected."
             break
         }
-        # Check if any installer processes are still running
-        $setupProcs = Get-Process -Name "SpotifySetup","SpotifyFullSetup","Spotify" -EA SilentlyContinue
-        if (-not $setupProcs -and $waited -gt 30) {
-            # No installer processes and no Spotify.exe after 30s - something went wrong
+        # Check if any installer or Spotify processes are still running
+        $setupProcs = Get-Process -Name "SpotifySetup","SpotifyFullSetup","Spotify","SpotifyMigrator" -EA SilentlyContinue
+        if ($setupProcs) {
+            Write-Log "  Installer running: $($setupProcs.Name -join ', ')... (${waited}s)"
+        } elseif ($waited -gt 60) {
             Write-Log "No installer processes found after ${waited}s." -Level 'WARN'
             break
         }
         Start-Sleep -Seconds 3; $waited += 3
-        if ($waited % 15 -eq 0) { Write-Log "  Still installing... (${waited}s)" }
     }
     if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
-        throw "Spotify.exe not found after running official installer (waited ${waited}s). Check disk space and permissions."
+        # Log what's in the Spotify directory to help debug
+        $spotDir = Split-Path $global:SPOTIFY_EXE_PATH
+        if (Test-Path $spotDir) {
+            $files = Get-ChildItem $spotDir -EA SilentlyContinue | Select-Object -First 10 -ExpandProperty Name
+            Write-Log "  Spotify dir exists with files: $($files -join ', ')" -Level 'WARN'
+        } else {
+            Write-Log "  Spotify directory does not exist: $spotDir" -Level 'WARN'
+        }
+        throw "Spotify.exe not found after running official installer (waited ${waited}s). The installer may require running without admin elevation - try right-clicking LibreSpot and choosing 'Run with PowerShell' instead of 'Run as Administrator'."
     }
     # Kill Spotify if it auto-launched
     Stop-SpotifyProcesses -maxAttempts 3
