@@ -1247,9 +1247,25 @@ function Module-InstallSpotX { param($Config,$SyncHash)
     Write-Log "Installing SpotX v$($global:PinnedReleases.SpotX.Version)..." -Level 'STEP'
     $dest = Join-Path $global:TEMP_DIR "spotx_run.ps1"; Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
     Confirm-FileHash -Path $dest -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label "SpotX run.ps1"
+    # Patch broken CDN domain (download.scdn.co -> upgrade.scdn.co, fixed in SpotX main but not in v1.9 tag)
+    $content = Get-Content $dest -Raw -Encoding UTF8
+    if ($content -match 'download\.scdn\.co') {
+        $content = $content -replace 'download\.scdn\.co', 'upgrade.scdn.co'
+        Set-Content -Path $dest -Value $content -Encoding UTF8 -Force
+        Write-Log "Patched SpotX CDN URL (download.scdn.co -> upgrade.scdn.co)"
+    }
     $params = Build-SpotXParams -Config $Config; Write-Log "Params: $params"
     if ($SyncHash) { $SyncHash.AllowSpotify = $true }
     Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $params
+    # Verify SpotX actually installed Spotify
+    if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
+        throw "SpotX failed to install Spotify - Spotify.exe not found at $global:SPOTIFY_EXE_PATH. Check the log above for download errors."
+    }
+    $elfDll = Join-Path (Split-Path $global:SPOTIFY_EXE_PATH) "chrome_elf.dll"
+    if (-not (Test-Path $elfDll)) {
+        throw "Spotify installation is incomplete - chrome_elf.dll is missing. This usually means the Spotify download failed or was corrupted."
+    }
+    Write-Log "Spotify installation verified." -Level 'SUCCESS'
     Write-Log "Launching Spotify (hidden) to generate config files..."
     if (Test-Path $global:SPOTIFY_EXE_PATH) {
         $sp = Start-Process $global:SPOTIFY_EXE_PATH -WindowStyle Minimized -PassThru
@@ -1430,6 +1446,8 @@ $maintBlock = { param($sh,$action)
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Step 1/2: SpotX"; $sh.ProgressBar.Value=25 })
             $dest=Join-Path $global:TEMP_DIR "spotx_run.ps1"; Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
             Confirm-FileHash -Path $dest -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label "SpotX run.ps1"
+            $rc = Get-Content $dest -Raw -Encoding UTF8
+            if ($rc -match 'download\.scdn\.co') { Set-Content -Path $dest -Value ($rc -replace 'download\.scdn\.co','upgrade.scdn.co') -Encoding UTF8 -Force; Write-Log "Patched SpotX CDN URL" }
             $saved=$null; try { if (Test-Path $global:CONFIG_PATH) { $j=Get-Content $global:CONFIG_PATH -Raw -Encoding UTF8|ConvertFrom-Json; $saved=@{}
                 foreach($p in $j.PSObject.Properties){$saved[$p.Name]=$p.Value} } } catch {}
             if ($saved) { $sp=Build-SpotXParams -Config $saved; Write-Log "Using saved config" } else { $sp=Build-SpotXParams -Config $global:EasyDefaults; Write-Log "Using defaults (no saved config)" -Level 'WARN' }
