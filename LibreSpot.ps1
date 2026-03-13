@@ -30,7 +30,7 @@ public class Win32 {
 
 $ErrorActionPreference = 'Stop'
 
-$global:VERSION = '3.0.1'
+$global:VERSION = '3.0.2'
 
 # --- Pinned dependency versions with SHA256 verification ---
 # Update these when new versions are tested. Use Maintenance > Check for Updates.
@@ -61,6 +61,7 @@ $global:PinnedReleases = @{
 
 # Computed URLs (derived from pinned versions, do not edit directly)
 $global:URL_SPOTX         = $global:PinnedReleases.SpotX.Url
+$global:URL_SPOTIFY_FULL  = 'https://download.spotify.com/SpotifyFullSetup.exe'
 $global:URL_MARKETPLACE   = $global:PinnedReleases.Marketplace.Url
 $global:URL_THEMES_REPO   = "https://github.com/spicetify/spicetify-themes/archive/$($global:PinnedReleases.Themes.Commit).zip"
 $global:URL_SPICETIFY_FMT = 'https://github.com/spicetify/cli/releases/download/v{0}/spicetify-{0}-windows-{1}.zip'
@@ -1244,22 +1245,69 @@ function Module-NukeSpotify {
 # =============================================================================
 # 15. INSTALL MODULES
 # =============================================================================
+function Module-PreInstallSpotify { param($SyncHash)
+    Write-Log "Pre-installing Spotify via official installer..." -Level 'STEP'
+    $installer = Join-Path $global:TEMP_DIR "SpotifyFullSetup.exe"
+    Download-FileSafe -Uri $global:URL_SPOTIFY_FULL -OutFile $installer
+    Write-Log "Running SpotifyFullSetup.exe silently..."
+    if ($SyncHash) { $SyncHash.AllowSpotify = $true }
+    $pi = New-Object System.Diagnostics.ProcessStartInfo
+    $pi.FileName = $installer; $pi.Arguments = "/silent"
+    $pi.UseShellExecute = $false; $pi.CreateNoWindow = $true
+    $p = New-Object System.Diagnostics.Process; $p.StartInfo = $pi; $null = $p.Start()
+    $timeout = 180; $waited = 0
+    while (-not $p.HasExited -and $waited -lt $timeout) {
+        Start-Sleep -Seconds 2; $waited += 2
+        Hide-SpotifyWindows
+    }
+    if (-not $p.HasExited) { $p.Kill(); throw "Spotify installer timed out after ${timeout}s" }
+    # Wait for Spotify.exe to appear (installer may extract async)
+    $exeWait = 0
+    while ($exeWait -lt 30) {
+        if (Test-Path $global:SPOTIFY_EXE_PATH) { break }
+        Start-Sleep -Seconds 2; $exeWait += 2
+    }
+    if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
+        throw "Spotify.exe not found after running official installer. Check disk space and permissions."
+    }
+    # Kill Spotify if it auto-launched
+    Stop-SpotifyProcesses -maxAttempts 3
+    if ($SyncHash) { $SyncHash.AllowSpotify = $false }
+    $ver = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
+    Write-Log "Spotify $ver installed successfully." -Level 'SUCCESS'
+    Remove-Item $installer -Force -EA SilentlyContinue
+}
+
+function Get-SpotifyInstalledVersion {
+    if (Test-Path $global:SPOTIFY_EXE_PATH) {
+        return (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
+    }
+    return $null
+}
+
 function Module-InstallSpotX { param($Config,$SyncHash)
     Write-Log "Installing SpotX v$($global:PinnedReleases.SpotX.Version)..." -Level 'STEP'
     $dest = Join-Path $global:TEMP_DIR "spotx_run.ps1"; Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
     Confirm-FileHash -Path $dest -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label "SpotX run.ps1"
-    $params = Build-SpotXParams -Config $Config; Write-Log "Params: $params"
+    $params = Build-SpotXParams -Config $Config
+    # Detect installed Spotify version and tell SpotX to use it (bypass broken CDN download)
+    $installedVer = Get-SpotifyInstalledVersion
+    if ($installedVer) {
+        $params += " -version $installedVer"
+        Write-Log "Spotify $installedVer detected - SpotX will patch in-place (skip CDN download)"
+    }
+    Write-Log "Params: $params"
     if ($SyncHash) { $SyncHash.AllowSpotify = $true }
     Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $params
-    # Verify SpotX actually installed Spotify
+    # Verify SpotX patching succeeded
     if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
-        throw "SpotX failed to install Spotify - Spotify.exe not found at $global:SPOTIFY_EXE_PATH. Check the log above for download errors."
+        throw "SpotX failed - Spotify.exe not found at $global:SPOTIFY_EXE_PATH. Check the log above for errors."
     }
     $elfDll = Join-Path (Split-Path $global:SPOTIFY_EXE_PATH) "chrome_elf.dll"
     if (-not (Test-Path $elfDll)) {
         throw "Spotify installation is incomplete - chrome_elf.dll is missing. This usually means the Spotify download failed or was corrupted."
     }
-    Write-Log "Spotify installation verified." -Level 'SUCCESS'
+    Write-Log "Spotify patched successfully." -Level 'SUCCESS'
     Write-Log "Launching Spotify (hidden) to generate config files..."
     if (Test-Path $global:SPOTIFY_EXE_PATH) {
         $sp = Start-Process $global:SPOTIFY_EXE_PATH -WindowStyle Minimized -PassThru
@@ -1393,13 +1441,14 @@ $installBlock = { param($sh,$cfg)
     $ErrorActionPreference = 'Stop'
     try {
         Write-Log "--- LibreSpot Installation Started ---" -Level 'HEADER'; Write-Log "Mode: $($cfg.Mode)"
-        $steps = @('SpotX','SpicetifyCLI','Themes','Extensions','Marketplace','Apply')
+        $steps = @('Spotify','SpotX','SpicetifyCLI','Themes','Extensions','Marketplace','Apply')
         if ($cfg.CleanInstall) { $steps = @('Cleanup') + $steps }
         $total = $steps.Count; $n = 0
         foreach ($s in $steps) { $n++
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text = "Step $n of $total : $s"; $sh.ProgressBar.Value = [int]((($n-1)/$total)*100) })
             switch ($s) {
                 'Cleanup'      { Module-NukeSpotify }
+                'Spotify'      { Module-PreInstallSpotify -SyncHash $sh }
                 'SpotX'        { Module-InstallSpotX -Config $cfg -SyncHash $sh }
                 'SpicetifyCLI' { Module-InstallSpicetifyCLI }
                 'Themes'       { Module-InstallThemes -Config $cfg }
@@ -1409,7 +1458,7 @@ $installBlock = { param($sh,$cfg)
             }
         }
         # Cleanup temp files
-        @("spotx_run.ps1","spicetify.zip","themes.zip","mp.zip") | ForEach-Object {
+        @("spotx_run.ps1","SpotifyFullSetup.exe","spicetify.zip","themes.zip","mp.zip") | ForEach-Object {
             $tf = Join-Path $global:TEMP_DIR $_; if (Test-Path $tf) { Remove-Item $tf -Force -EA SilentlyContinue }
         }
         @("themes-unpack","mp_unpack") | ForEach-Object {
@@ -1443,6 +1492,8 @@ $maintBlock = { param($sh,$action)
             $saved=$null; try { if (Test-Path $global:CONFIG_PATH) { $j=Get-Content $global:CONFIG_PATH -Raw -Encoding UTF8|ConvertFrom-Json; $saved=@{}
                 foreach($p in $j.PSObject.Properties){$saved[$p.Name]=$p.Value} } } catch {}
             if ($saved) { $sp=Build-SpotXParams -Config $saved; Write-Log "Using saved config" } else { $sp=Build-SpotXParams -Config $global:EasyDefaults; Write-Log "Using defaults (no saved config)" -Level 'WARN' }
+            $installedVer = Get-SpotifyInstalledVersion
+            if ($installedVer) { $sp += " -version $installedVer"; Write-Log "Spotify $installedVer detected - patching in-place" }
             $sh.AllowSpotify=$true; Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $sp; $sh.AllowSpotify=$false
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Step 2/2: Spicetify"; $sh.ProgressBar.Value=70 })
             $se=Join-Path $global:SPICETIFY_DIR "spicetify.exe"
@@ -1501,7 +1552,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Test-NetworkReady','Check-ForUpdates',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Remove-PathSafely',
-    'Module-NukeSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
+    'Module-NukeSpotify','Module-PreInstallSpotify','Get-SpotifyInstalledVersion','Module-InstallSpotX','Module-InstallSpicetifyCLI',
     'Module-InstallThemes','Module-InstallExtensions',
     'Module-InstallMarketplace','Module-ApplySpicetify',
     'Build-SpotXParams','Load-LibreSpotConfig'
