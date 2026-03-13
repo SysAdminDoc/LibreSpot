@@ -1311,11 +1311,12 @@ function Module-InstallSpotX { param($Config,$SyncHash)
     $dest = Join-Path $global:TEMP_DIR "spotx_run.ps1"; Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
     Confirm-FileHash -Path $dest -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label "SpotX run.ps1"
     $params = Build-SpotXParams -Config $Config
-    # Detect installed Spotify version and tell SpotX to use it (bypass broken CDN download)
-    $installedVer = Get-SpotifyInstalledVersion
-    if ($installedVer) {
-        $params += " -version $installedVer"
-        Write-Log "Spotify $installedVer detected - SpotX will patch in-place (skip CDN download)"
+    # Point SpotX at existing Spotify install to bypass version check and broken CDN download
+    $spotDir = Split-Path $global:SPOTIFY_EXE_PATH
+    if (Test-Path $global:SPOTIFY_EXE_PATH) {
+        $params += " -SpotifyPath `"$spotDir`""
+        $ver = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
+        Write-Log "Spotify $ver detected - SpotX will patch in-place via -SpotifyPath"
     }
     Write-Log "Params: $params"
     if ($SyncHash) { $SyncHash.AllowSpotify = $true }
@@ -1513,8 +1514,8 @@ $maintBlock = { param($sh,$action)
             $saved=$null; try { if (Test-Path $global:CONFIG_PATH) { $j=Get-Content $global:CONFIG_PATH -Raw -Encoding UTF8|ConvertFrom-Json; $saved=@{}
                 foreach($p in $j.PSObject.Properties){$saved[$p.Name]=$p.Value} } } catch {}
             if ($saved) { $sp=Build-SpotXParams -Config $saved; Write-Log "Using saved config" } else { $sp=Build-SpotXParams -Config $global:EasyDefaults; Write-Log "Using defaults (no saved config)" -Level 'WARN' }
-            $installedVer = Get-SpotifyInstalledVersion
-            if ($installedVer) { $sp += " -version $installedVer"; Write-Log "Spotify $installedVer detected - patching in-place" }
+            $spotDir = Split-Path $global:SPOTIFY_EXE_PATH
+            if (Test-Path $global:SPOTIFY_EXE_PATH) { $sp += " -SpotifyPath `"$spotDir`""; Write-Log "Patching in-place via -SpotifyPath" }
             $sh.AllowSpotify=$true; Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $sp; $sh.AllowSpotify=$false
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Step 2/2: Spicetify"; $sh.ProgressBar.Value=70 })
             $se=Join-Path $global:SPICETIFY_DIR "spicetify.exe"
