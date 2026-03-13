@@ -30,7 +30,7 @@ public class Win32 {
 
 $ErrorActionPreference = 'Stop'
 
-$global:VERSION = '3.0.0'
+$global:VERSION = '3.0.1'
 
 # --- Pinned dependency versions with SHA256 verification ---
 # Update these when new versions are tested. Use Maintenance > Check for Updates.
@@ -41,11 +41,10 @@ $global:PinnedReleases = @{
         SHA256  = '46e0a1314f18a8ae07eb7e4b66052ef558fe850d5041089c71ae85d4b64afca8'
     }
     SpicetifyCLI = @{
-        Version = '2.42.8'
+        Version = '2.42.14'
         SHA256  = @{
-            x64   = '677437a2bfd57a07c609fd4c398c71932c2d507e3e726fdd0124d4619782d3f5'
-            x32   = '0a4aacaacf0e4f8562db6f81b8e6739c8f0739be96a261003fb3ab59ee0e9a02'
-            arm64 = '9b9eb7abcf944f7e4c91c76fa91e3c046c4841d5506864c42e7a9286380b8f2c'
+            x64   = '7b36540def8ef6a6249411326a9672a4e3a5eb22a7f9e363b77515c984271cfe'
+            arm64 = '9baa06d993852ca6b8820da6ea0c639ab4ffddc24e82dff07beecb5088ac1b62'
         }
     }
     Marketplace = @{
@@ -131,8 +130,8 @@ $global:BuiltInExtensions = [ordered]@{
 $global:EasyDefaults = @{
     SpotX_NewTheme=$true; SpotX_PodcastsOff=$true; SpotX_BlockUpdate=$true; SpotX_AdSectionsOff=$true
     SpotX_Premium=$false; SpotX_LyricsEnabled=$true; SpotX_LyricsTheme="spotify"
-    SpotX_TopSearch=$false; SpotX_NewFullscreen=$false; SpotX_RightSidebarOff=$false; SpotX_RightSidebarClr=$false
-    SpotX_CanvasHomeOff=$false; SpotX_HomeSubOff=$false; SpotX_DisableStartup=$true; SpotX_NoShortcut=$false; SpotX_CacheLimit=0
+    SpotX_TopSearch=$false; SpotX_RightSidebarOff=$false; SpotX_RightSidebarClr=$false
+    SpotX_CanvasHome=$false; SpotX_HomeSubOff=$false; SpotX_DisableStartup=$true; SpotX_NoShortcut=$false; SpotX_CacheLimit=0
     Spicetify_Theme="(None - Marketplace Only)"; Spicetify_Scheme="Default"; Spicetify_Marketplace=$true
     Spicetify_Extensions=@("fullAppDisplay.js","shuffle+.js","trashbin.js")
     CleanInstall=$true; LaunchAfter=$true
@@ -372,10 +371,9 @@ $xaml = @"
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,14,0,8"><Ellipse Width="5" Height="5" Fill="#FF22c55e" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBlock Text="UI EXPERIMENTS" Foreground="#FF52525b" FontSize="10" FontWeight="Bold"/></StackPanel>
                                         <CheckBox Name="ChkTopSearch" Content="Top search bar" Style="{StaticResource DarkCheckBox}" ToolTip="Move search bar to top of window"/>
-                                        <CheckBox Name="ChkNewFullscreen" Content="New fullscreen mode" Style="{StaticResource DarkCheckBox}" ToolTip="Enable experimental fullscreen display"/>
                                         <CheckBox Name="ChkRightSidebarOff" Content="Disable right sidebar" Style="{StaticResource DarkCheckBox}" ToolTip="Remove the Now Playing sidebar panel"/>
                                         <CheckBox Name="ChkRightSidebarColor" Content="Right sidebar color matching" Style="{StaticResource DarkCheckBox}" ToolTip="Tint sidebar to match album cover"/>
-                                        <CheckBox Name="ChkCanvasHomeOff" Content="Disable canvas on homepage" Style="{StaticResource DarkCheckBox}" ToolTip="Turn off animated canvas art on home"/>
+                                        <CheckBox Name="ChkCanvasHome" Content="Enable big cards on homepage" Style="{StaticResource DarkCheckBox}" ToolTip="Show large card artwork on the homepage"/>
                                         <CheckBox Name="ChkHomeSubOff" Content="Disable home subfeed chips" Style="{StaticResource DarkCheckBox}" ToolTip="Hide genre filter chips on home page"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,14,0,8"><Ellipse Width="5" Height="5" Fill="#FF22c55e" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBlock Text="SYSTEM" Foreground="#FF52525b" FontSize="10" FontWeight="Bold"/></StackPanel>
                                         <CheckBox Name="ChkDisableStartup" Content="Disable Spotify on Windows startup" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
@@ -495,7 +493,7 @@ $ui = @{}
 @('LinkSpotX','LinkSpicetify','LinkGitHub','MinimizeBtn','CloseTitleBtn','PageConfig','PageInstall',
   'ModeEasy','ModeCustom','ModeMaint','PanelEasy','PanelCustom','PanelMaint','BtnInstall','LyricsThemePanel',
   'ChkNewTheme','ChkPodcastsOff','ChkAdSectionsOff','ChkBlockUpdate','ChkPremium','ChkLyrics','CmbLyricsTheme',
-  'ChkTopSearch','ChkNewFullscreen','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHomeOff','ChkHomeSubOff',
+  'ChkTopSearch','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHome','ChkHomeSubOff',
   'ChkDisableStartup','ChkNoShortcut','TxtCacheLimit','CmbTheme','CmbScheme','ChkMarketplace',
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
@@ -570,10 +568,9 @@ if ($savedCfg) { try {
         for ($i=0; $i -lt $ui['CmbLyricsTheme'].Items.Count; $i++) { if ($ui['CmbLyricsTheme'].Items[$i].Content -eq $lt) { $ui['CmbLyricsTheme'].SelectedIndex = $i; break } }
     }
     if ($savedCfg.ContainsKey('SpotX_TopSearch'))       { $ui['ChkTopSearch'].IsChecked       = [bool]$savedCfg.SpotX_TopSearch }
-    if ($savedCfg.ContainsKey('SpotX_NewFullscreen'))   { $ui['ChkNewFullscreen'].IsChecked   = [bool]$savedCfg.SpotX_NewFullscreen }
     if ($savedCfg.ContainsKey('SpotX_RightSidebarOff')) { $ui['ChkRightSidebarOff'].IsChecked = [bool]$savedCfg.SpotX_RightSidebarOff }
     if ($savedCfg.ContainsKey('SpotX_RightSidebarClr')) { $ui['ChkRightSidebarColor'].IsChecked = [bool]$savedCfg.SpotX_RightSidebarClr }
-    if ($savedCfg.ContainsKey('SpotX_CanvasHomeOff'))   { $ui['ChkCanvasHomeOff'].IsChecked   = [bool]$savedCfg.SpotX_CanvasHomeOff }
+    if ($savedCfg.ContainsKey('SpotX_CanvasHome'))       { $ui['ChkCanvasHome'].IsChecked      = [bool]$savedCfg.SpotX_CanvasHome }
     if ($savedCfg.ContainsKey('SpotX_HomeSubOff'))      { $ui['ChkHomeSubOff'].IsChecked      = [bool]$savedCfg.SpotX_HomeSubOff }
     if ($savedCfg.ContainsKey('Spicetify_Marketplace')){ $ui['ChkMarketplace'].IsChecked    = [bool]$savedCfg.Spicetify_Marketplace }
     if ($savedCfg.ContainsKey('CleanInstall'))         { $ui['ChkCleanInstall'].IsChecked   = [bool]$savedCfg.CleanInstall }
@@ -636,9 +633,9 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
         SpotX_Premium=[bool]$ui['ChkPremium'].IsChecked; SpotX_DisableStartup=[bool]$ui['ChkDisableStartup'].IsChecked
         SpotX_NoShortcut=[bool]$ui['ChkNoShortcut'].IsChecked
         SpotX_LyricsEnabled=[bool]$ui['ChkLyrics'].IsChecked; SpotX_LyricsTheme=$lTheme
-        SpotX_TopSearch=[bool]$ui['ChkTopSearch'].IsChecked; SpotX_NewFullscreen=[bool]$ui['ChkNewFullscreen'].IsChecked
+        SpotX_TopSearch=[bool]$ui['ChkTopSearch'].IsChecked
         SpotX_RightSidebarOff=[bool]$ui['ChkRightSidebarOff'].IsChecked; SpotX_RightSidebarClr=[bool]$ui['ChkRightSidebarColor'].IsChecked
-        SpotX_CanvasHomeOff=[bool]$ui['ChkCanvasHomeOff'].IsChecked; SpotX_HomeSubOff=[bool]$ui['ChkHomeSubOff'].IsChecked
+        SpotX_CanvasHome=[bool]$ui['ChkCanvasHome'].IsChecked; SpotX_HomeSubOff=[bool]$ui['ChkHomeSubOff'].IsChecked
         SpotX_CacheLimit=$cacheVal
         Spicetify_Theme=$sTheme; Spicetify_Scheme=$sScheme
         Spicetify_Marketplace=[bool]$ui['ChkMarketplace'].IsChecked; Spicetify_Extensions=$exts
@@ -657,10 +654,9 @@ function Build-SpotXParams { param($Config)
     if ($Config.SpotX_NoShortcut)      { $p += "-no_shortcut" }
     if ($Config.SpotX_LyricsEnabled)   { $p += "-lyrics_stat $($Config.SpotX_LyricsTheme)" }
     if ($Config.SpotX_TopSearch)       { $p += "-topsearchbar" }
-    if ($Config.SpotX_NewFullscreen)   { $p += "-newFullscreenMode" }
     if ($Config.SpotX_RightSidebarOff) { $p += "-rightsidebar_off" }
     if ($Config.SpotX_RightSidebarClr) { $p += "-rightsidebarcolor" }
-    if ($Config.SpotX_CanvasHomeOff)   { $p += "-canvashome_off" }
+    if ($Config.SpotX_CanvasHome)       { $p += "-canvasHome" }
     if ($Config.SpotX_HomeSubOff)      { $p += "-homesub_off" }
     if ($Config.SpotX_CacheLimit -ge 500) { $p += "-cache_limit $($Config.SpotX_CacheLimit)" }
     return ($p -join " ")
@@ -671,9 +667,17 @@ function Build-SpotXParams { param($Config)
 # =============================================================================
 function Update-MaintenanceStatus {
     if (Test-Path $global:SPOTIFY_EXE_PATH) {
-        try { $v = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion; $ui['StatusSpotify'].Text = "Spotify: Installed (v$v)" }
-        catch { $ui['StatusSpotify'].Text = "Spotify: Installed" }
-        $ui['StatusSpotify'].Foreground = $global:BrushGreen
+        try {
+            $v = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
+            $ui['StatusSpotify'].Text = "Spotify: Installed (v$v)"
+            # Warn if 1.2.70+ (SpotX patches broken by CEF signature protection)
+            if ($v -match '^1\.2\.(\d+)' -and [int]$Matches[1] -ge 70) {
+                $ui['StatusSpotify'].Text = "Spotify: v$v (SpotX incompatible - use Clean Install)"
+                $ui['StatusSpotify'].Foreground = $global:BrushError
+                $ui['StatusSpotify'].ToolTip = "SpotX ad-blocking does not work on Spotify 1.2.70+ due to CEF signature protection. Use Easy/Custom Install for a clean setup with a compatible version."
+            } else { $ui['StatusSpotify'].Foreground = $global:BrushGreen }
+        }
+        catch { $ui['StatusSpotify'].Text = "Spotify: Installed"; $ui['StatusSpotify'].Foreground = $global:BrushGreen }
     } else { $ui['StatusSpotify'].Text = "Spotify: Not installed"; $ui['StatusSpotify'].Foreground = $global:BrushRed }
 
     $spotxFound = $false
@@ -746,7 +750,17 @@ $ui['BtnCheckUpdates'].Add_Click({
 })
 $ui['BtnReapply'].Add_Click({
     if (-not (Test-NetworkReady)) { Show-ThemedDialog -Message "No internet connection." -Title "Network Error" -Icon "Error"; return }
-    $r = Show-ThemedDialog -Message "Reapply SpotX + Spicetify?`nUses saved config if available." -Title "Confirm Reapply" -Buttons "YesNo" -Icon "Question"
+    # Warn if Spotify 1.2.70+ detected (SpotX binary patches fail due to CEF signature protection)
+    $spotxWarn = ""
+    if (Test-Path $global:SPOTIFY_EXE_PATH) {
+        try {
+            $sv = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
+            if ($sv -match '^1\.2\.(\d+)' -and [int]$Matches[1] -ge 70) {
+                $spotxWarn = "`n`nWARNING: Spotify $sv detected. SpotX ad-blocking`npatches do not work on Spotify 1.2.70+ due to`nCEF signature protection. A clean install with`nSpotX (which installs a compatible version) is`nrecommended instead."
+            }
+        } catch {}
+    }
+    $r = Show-ThemedDialog -Message "Reapply SpotX + Spicetify?`nUses saved config if available.$spotxWarn" -Title "Confirm Reapply" -Buttons "YesNo" -Icon "Question"
     if ($r -eq 'Yes') { Switch-ToInstallPage; Start-MaintenanceJob -Action 'Reapply' }
 })
 $ui['BtnSpicetifyRestore'].Add_Click({
@@ -1260,7 +1274,7 @@ function Module-InstallSpicetifyCLI {
     $ver = $global:PinnedReleases.SpicetifyCLI.Version
     Write-Log "Installing Spicetify CLI v$ver..." -Level 'STEP'
     New-Item -Path $global:SPICETIFY_DIR -ItemType Directory -Force | Out-Null
-    $arch = switch ($env:PROCESSOR_ARCHITECTURE) { 'AMD64' {'x64'} 'ARM64' {'arm64'} default {'x32'} }
+    $arch = switch ($env:PROCESSOR_ARCHITECTURE) { 'ARM64' {'arm64'} default {'x64'} }
     $zip = $global:URL_SPICETIFY_FMT -f $ver, $arch
     $zp = Join-Path $global:TEMP_DIR "spicetify.zip"; Download-FileSafe -Uri $zip -OutFile $zp
     $expectedHash = $global:PinnedReleases.SpicetifyCLI.SHA256[$arch]
