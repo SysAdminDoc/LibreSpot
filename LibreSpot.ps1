@@ -1249,17 +1249,18 @@ function Module-PreInstallSpotify { param($SyncHash)
     Write-Log "Pre-installing Spotify via official installer..." -Level 'STEP'
     $installer = Join-Path $global:TEMP_DIR "SpotifySetup.exe"
     Download-FileSafe -Uri $global:URL_SPOTIFY_SETUP -OutFile $installer
-    Write-Log "Running SpotifySetup.exe (de-elevated, silent)..."
+    Write-Log "Running SpotifySetup.exe (de-elevated via scheduled task)..."
     if ($SyncHash) { $SyncHash.AllowSpotify = $true }
-    # Spotify's per-user installer refuses to run elevated (exit code 23).
-    # Use runas /trustlevel:0x20000 to drop back to standard user context.
-    $p = Start-Process -FilePath "runas.exe" -ArgumentList "/trustlevel:0x20000 `"$installer /silent`"" -WindowStyle Hidden -PassThru
+    # Spotify's per-user installer refuses to run from admin context.
+    # Launch as the logged-in user via a temporary scheduled task.
+    $taskName = "LibreSpot_SpotifyInstall"
+    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -EA SilentlyContinue
+    $action = New-ScheduledTaskAction -Execute $installer -Argument "/silent"
+    $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
+    Register-ScheduledTask -TaskName $taskName -Action $action -Principal $principal -Force | Out-Null
+    Start-ScheduledTask -TaskName $taskName
+    Write-Log "Scheduled task launched. Waiting for Spotify installation..."
     $timeout = 300; $waited = 0
-    # Wait for runas launcher to exit
-    while (-not $p.HasExited -and $waited -lt 30) {
-        Start-Sleep -Seconds 2; $waited += 2
-    }
-    Write-Log "Launcher started. Waiting for Spotify installation..."
     # Poll for Spotify.exe to appear - the stub downloads and installs Spotify
     while ($waited -lt $timeout) {
         Hide-SpotifyWindows
@@ -1289,7 +1290,8 @@ function Module-PreInstallSpotify { param($SyncHash)
         }
         throw "Spotify.exe not found after official installer (waited ${waited}s). Check network connection and disk space."
     }
-    # Kill Spotify if it auto-launched
+    # Cleanup scheduled task and kill Spotify if it auto-launched
+    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -EA SilentlyContinue
     Stop-SpotifyProcesses -maxAttempts 3
     if ($SyncHash) { $SyncHash.AllowSpotify = $false }
     $ver = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
