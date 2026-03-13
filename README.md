@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-3.0.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-3.0.1-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 
 <img width="1150" height="950" alt="2026-02-02 19_59_24-LibreSpot" src="https://github.com/user-attachments/assets/fb3d007b-f28a-4ecc-8a16-b0b866c03a4c" />
 
@@ -39,12 +39,12 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 >
 > Check the [releases page](https://github.com/SysAdminDoc/LibreSpot/releases) for the latest tested Spotify version and any compatibility notes.
 
-**Pinned dependency versions (v3.0.0):**
+**Pinned dependency versions (v3.0.1):**
 
 | Component | Pinned Version |
 |---|---|
 | SpotX | v1.9 |
-| Spicetify CLI | v2.42.8 |
+| Spicetify CLI | v2.42.14 |
 | Marketplace | v1.0.8 |
 | Themes | Commit `9af41cf` |
 
@@ -98,7 +98,7 @@ Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntS
 - **Window management** — Spotify and installer windows are automatically hidden during installation; LibreSpot stays on top until finished
 - **Settings persistence** — your Custom Install configuration is saved to `%APPDATA%\LibreSpot\config.json` and restored next launch
 - **Config backup** — up to 5 rotating Spicetify config backups stored in `%USERPROFILE%\LibreSpot_Backups`
-- **Architecture support** — x64, x86, and ARM64 with per-architecture hash verification
+- **Architecture support** — x64 and ARM64 with per-architecture hash verification
 - **Dual download methods** — falls back to BITS transfer if `Invoke-WebRequest` fails
 - **Self-elevating** — auto-requests admin privileges when needed
 
