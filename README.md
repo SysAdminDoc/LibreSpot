@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-3.0.1-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-3.0.2-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 
 <img width="1150" height="950" alt="2026-02-02 19_59_24-LibreSpot" src="https://github.com/user-attachments/assets/fb3d007b-f28a-4ecc-8a16-b0b866c03a4c" />
 
@@ -39,11 +39,11 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 >
 > Check the [releases page](https://github.com/SysAdminDoc/LibreSpot/releases) for the latest tested Spotify version and any compatibility notes.
 
-**Pinned dependency versions (v3.0.1):**
+**Pinned dependency versions (v3.0.2):**
 
 | Component | Pinned Version |
 |---|---|
-| SpotX | v1.9 |
+| SpotX | main (`393d660d`) |
 | Spicetify CLI | v2.42.14 |
 | Marketplace | v1.0.8 |
 | Themes | Commit `9af41cf` |
