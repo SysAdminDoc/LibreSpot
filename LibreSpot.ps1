@@ -36,9 +36,10 @@ $global:VERSION = '3.0.1'
 # Update these when new versions are tested. Use Maintenance > Check for Updates.
 $global:PinnedReleases = @{
     SpotX = @{
-        Version = '1.9'
-        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/refs/tags/1.9/run.ps1'
-        SHA256  = '46e0a1314f18a8ae07eb7e4b66052ef558fe850d5041089c71ae85d4b64afca8'
+        Version = '1.9+'
+        Commit  = '393d660d886b2c95a7764da334c37954cdfd1cbe'
+        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/393d660d886b2c95a7764da334c37954cdfd1cbe/run.ps1'
+        SHA256  = '6af4236d43e0babe465725278e8e60e13364e2bb6a4c573543714b01f1f9fffe'
     }
     SpicetifyCLI = @{
         Version = '2.42.14'
@@ -131,7 +132,7 @@ $global:EasyDefaults = @{
     SpotX_NewTheme=$true; SpotX_PodcastsOff=$true; SpotX_BlockUpdate=$true; SpotX_AdSectionsOff=$true
     SpotX_Premium=$false; SpotX_LyricsEnabled=$true; SpotX_LyricsTheme="spotify"
     SpotX_TopSearch=$false; SpotX_RightSidebarOff=$false; SpotX_RightSidebarClr=$false
-    SpotX_CanvasHome=$false; SpotX_HomeSubOff=$false; SpotX_DisableStartup=$true; SpotX_NoShortcut=$false; SpotX_CacheLimit=0
+    SpotX_CanvasHomeOff=$false; SpotX_HomeSubOff=$false; SpotX_DisableStartup=$true; SpotX_NoShortcut=$false; SpotX_CacheLimit=0
     Spicetify_Theme="(None - Marketplace Only)"; Spicetify_Scheme="Default"; Spicetify_Marketplace=$true
     Spicetify_Extensions=@("fullAppDisplay.js","shuffle+.js","trashbin.js")
     CleanInstall=$true; LaunchAfter=$true
@@ -373,7 +374,7 @@ $xaml = @"
                                         <CheckBox Name="ChkTopSearch" Content="Top search bar" Style="{StaticResource DarkCheckBox}" ToolTip="Move search bar to top of window"/>
                                         <CheckBox Name="ChkRightSidebarOff" Content="Disable right sidebar" Style="{StaticResource DarkCheckBox}" ToolTip="Remove the Now Playing sidebar panel"/>
                                         <CheckBox Name="ChkRightSidebarColor" Content="Right sidebar color matching" Style="{StaticResource DarkCheckBox}" ToolTip="Tint sidebar to match album cover"/>
-                                        <CheckBox Name="ChkCanvasHome" Content="Enable big cards on homepage" Style="{StaticResource DarkCheckBox}" ToolTip="Show large card artwork on the homepage"/>
+                                        <CheckBox Name="ChkCanvasHomeOff" Content="Disable canvas on homepage" Style="{StaticResource DarkCheckBox}" ToolTip="Disable canvas artwork on the homepage"/>
                                         <CheckBox Name="ChkHomeSubOff" Content="Disable home subfeed chips" Style="{StaticResource DarkCheckBox}" ToolTip="Hide genre filter chips on home page"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,14,0,8"><Ellipse Width="5" Height="5" Fill="#FF22c55e" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBlock Text="SYSTEM" Foreground="#FF52525b" FontSize="10" FontWeight="Bold"/></StackPanel>
                                         <CheckBox Name="ChkDisableStartup" Content="Disable Spotify on Windows startup" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
@@ -493,7 +494,7 @@ $ui = @{}
 @('LinkSpotX','LinkSpicetify','LinkGitHub','MinimizeBtn','CloseTitleBtn','PageConfig','PageInstall',
   'ModeEasy','ModeCustom','ModeMaint','PanelEasy','PanelCustom','PanelMaint','BtnInstall','LyricsThemePanel',
   'ChkNewTheme','ChkPodcastsOff','ChkAdSectionsOff','ChkBlockUpdate','ChkPremium','ChkLyrics','CmbLyricsTheme',
-  'ChkTopSearch','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHome','ChkHomeSubOff',
+  'ChkTopSearch','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHomeOff','ChkHomeSubOff',
   'ChkDisableStartup','ChkNoShortcut','TxtCacheLimit','CmbTheme','CmbScheme','ChkMarketplace',
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
@@ -570,7 +571,7 @@ if ($savedCfg) { try {
     if ($savedCfg.ContainsKey('SpotX_TopSearch'))       { $ui['ChkTopSearch'].IsChecked       = [bool]$savedCfg.SpotX_TopSearch }
     if ($savedCfg.ContainsKey('SpotX_RightSidebarOff')) { $ui['ChkRightSidebarOff'].IsChecked = [bool]$savedCfg.SpotX_RightSidebarOff }
     if ($savedCfg.ContainsKey('SpotX_RightSidebarClr')) { $ui['ChkRightSidebarColor'].IsChecked = [bool]$savedCfg.SpotX_RightSidebarClr }
-    if ($savedCfg.ContainsKey('SpotX_CanvasHome'))       { $ui['ChkCanvasHome'].IsChecked      = [bool]$savedCfg.SpotX_CanvasHome }
+    if ($savedCfg.ContainsKey('SpotX_CanvasHomeOff'))     { $ui['ChkCanvasHomeOff'].IsChecked   = [bool]$savedCfg.SpotX_CanvasHomeOff }
     if ($savedCfg.ContainsKey('SpotX_HomeSubOff'))      { $ui['ChkHomeSubOff'].IsChecked      = [bool]$savedCfg.SpotX_HomeSubOff }
     if ($savedCfg.ContainsKey('Spicetify_Marketplace')){ $ui['ChkMarketplace'].IsChecked    = [bool]$savedCfg.Spicetify_Marketplace }
     if ($savedCfg.ContainsKey('CleanInstall'))         { $ui['ChkCleanInstall'].IsChecked   = [bool]$savedCfg.CleanInstall }
@@ -635,7 +636,7 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
         SpotX_LyricsEnabled=[bool]$ui['ChkLyrics'].IsChecked; SpotX_LyricsTheme=$lTheme
         SpotX_TopSearch=[bool]$ui['ChkTopSearch'].IsChecked
         SpotX_RightSidebarOff=[bool]$ui['ChkRightSidebarOff'].IsChecked; SpotX_RightSidebarClr=[bool]$ui['ChkRightSidebarColor'].IsChecked
-        SpotX_CanvasHome=[bool]$ui['ChkCanvasHome'].IsChecked; SpotX_HomeSubOff=[bool]$ui['ChkHomeSubOff'].IsChecked
+        SpotX_CanvasHomeOff=[bool]$ui['ChkCanvasHomeOff'].IsChecked; SpotX_HomeSubOff=[bool]$ui['ChkHomeSubOff'].IsChecked
         SpotX_CacheLimit=$cacheVal
         Spicetify_Theme=$sTheme; Spicetify_Scheme=$sScheme
         Spicetify_Marketplace=[bool]$ui['ChkMarketplace'].IsChecked; Spicetify_Extensions=$exts
@@ -656,7 +657,7 @@ function Build-SpotXParams { param($Config)
     if ($Config.SpotX_TopSearch)       { $p += "-topsearchbar" }
     if ($Config.SpotX_RightSidebarOff) { $p += "-rightsidebar_off" }
     if ($Config.SpotX_RightSidebarClr) { $p += "-rightsidebarcolor" }
-    if ($Config.SpotX_CanvasHome)       { $p += "-canvasHome" }
+    if ($Config.SpotX_CanvasHomeOff)   { $p += "-canvashome_off" }
     if ($Config.SpotX_HomeSubOff)      { $p += "-homesub_off" }
     if ($Config.SpotX_CacheLimit -ge 500) { $p += "-cache_limit $($Config.SpotX_CacheLimit)" }
     return ($p -join " ")
@@ -1247,13 +1248,6 @@ function Module-InstallSpotX { param($Config,$SyncHash)
     Write-Log "Installing SpotX v$($global:PinnedReleases.SpotX.Version)..." -Level 'STEP'
     $dest = Join-Path $global:TEMP_DIR "spotx_run.ps1"; Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
     Confirm-FileHash -Path $dest -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label "SpotX run.ps1"
-    # Patch broken CDN domain (download.scdn.co -> upgrade.scdn.co, fixed in SpotX main but not in v1.9 tag)
-    $content = Get-Content $dest -Raw -Encoding UTF8
-    if ($content -match 'download\.scdn\.co') {
-        $content = $content -replace 'download\.scdn\.co', 'upgrade.scdn.co'
-        Set-Content -Path $dest -Value $content -Encoding UTF8 -Force
-        Write-Log "Patched SpotX CDN URL (download.scdn.co -> upgrade.scdn.co)"
-    }
     $params = Build-SpotXParams -Config $Config; Write-Log "Params: $params"
     if ($SyncHash) { $SyncHash.AllowSpotify = $true }
     Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $params
@@ -1446,8 +1440,6 @@ $maintBlock = { param($sh,$action)
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Step 1/2: SpotX"; $sh.ProgressBar.Value=25 })
             $dest=Join-Path $global:TEMP_DIR "spotx_run.ps1"; Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
             Confirm-FileHash -Path $dest -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label "SpotX run.ps1"
-            $rc = Get-Content $dest -Raw -Encoding UTF8
-            if ($rc -match 'download\.scdn\.co') { Set-Content -Path $dest -Value ($rc -replace 'download\.scdn\.co','upgrade.scdn.co') -Encoding UTF8 -Force; Write-Log "Patched SpotX CDN URL" }
             $saved=$null; try { if (Test-Path $global:CONFIG_PATH) { $j=Get-Content $global:CONFIG_PATH -Raw -Encoding UTF8|ConvertFrom-Json; $saved=@{}
                 foreach($p in $j.PSObject.Properties){$saved[$p.Name]=$p.Value} } } catch {}
             if ($saved) { $sp=Build-SpotXParams -Config $saved; Write-Log "Using saved config" } else { $sp=Build-SpotXParams -Config $global:EasyDefaults; Write-Log "Using defaults (no saved config)" -Level 'WARN' }
