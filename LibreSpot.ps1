@@ -23,14 +23,34 @@ public class Win32 {
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool FlashWindowEx(ref FLASHWINFO pwfi);
     public const int SW_HIDE = 0;
     public const int SW_MINIMIZE = 6;
+    [StructLayout(LayoutKind.Sequential)]
+    public struct FLASHWINFO {
+        public uint cbSize;
+        public IntPtr hwnd;
+        public uint dwFlags;
+        public uint uCount;
+        public uint dwTimeout;
+    }
+    public const uint FLASHW_ALL = 3;
+    public const uint FLASHW_TIMERNOFG = 12;
+    public static void FlashTaskbar(IntPtr hwnd) {
+        FLASHWINFO fw = new FLASHWINFO();
+        fw.cbSize = (uint)Marshal.SizeOf(typeof(FLASHWINFO));
+        fw.hwnd = hwnd;
+        fw.dwFlags = FLASHW_ALL | FLASHW_TIMERNOFG;
+        fw.uCount = 5;
+        fw.dwTimeout = 0;
+        FlashWindowEx(ref fw);
+    }
 }
 '@ -ErrorAction SilentlyContinue
 
 $ErrorActionPreference = 'Stop'
 
-$global:VERSION = '3.0.2'
+$global:VERSION = '3.0.3'
 
 # --- Pinned dependency versions with SHA256 verification ---
 # Update these when new versions are tested. Use Maintenance > Check for Updates.
@@ -73,6 +93,7 @@ $global:SPICETIFY_CONFIG_DIR   = "$env:APPDATA\spicetify"
 $global:BACKUP_ROOT            = "$env:USERPROFILE\LibreSpot_Backups"
 $global:CONFIG_DIR             = "$env:APPDATA\LibreSpot"
 $global:CONFIG_PATH            = "$env:APPDATA\LibreSpot\config.json"
+$global:LOG_PATH               = "$env:APPDATA\LibreSpot\install.log"
 
 $global:BrushGreen = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString("#FF22c55e"))
 $global:BrushRed   = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString("#FFef4444"))
@@ -147,7 +168,7 @@ function Save-LibreSpotConfig { param([hashtable]$Config)
         if (-not (Test-Path $global:CONFIG_DIR)) { New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null }
         $json = @{}; foreach ($k in $Config.Keys) { $json[$k] = $Config[$k] }
         $json | ConvertTo-Json -Depth 3 | Set-Content -Path $global:CONFIG_PATH -Encoding UTF8 -Force
-    } catch { }
+    } catch { try { Write-Log "Config save failed: $($_.Exception.Message)" -Level 'WARN' } catch {} }
 }
 
 function Load-LibreSpotConfig {
@@ -615,7 +636,7 @@ $ui['ModeMaint'].Add_Checked({
 })
 $ui['CloseBtn'].Add_Click({ $window.Close() })
 $ui['BtnBackToConfig'].Add_Click({ $ui['PageInstall'].Visibility='Collapsed'; $ui['PageConfig'].Visibility='Visible'; $ui['BtnInstall'].IsEnabled=$true; $ui['BtnCopyLog'].Content='COPY LOG'; $ui['BtnCopyLog'].Visibility='Collapsed'; $window.Topmost=$false })
-$window.Add_Closing({ foreach ($rs in $script:openRunspaces) { try { $rs.Dispose() } catch {} }; $script:openRunspaces.Clear() })
+$window.Add_Closing({ if ($script:activeSyncHash) { $script:activeSyncHash.IsRunning = $false }; foreach ($rs in $script:openRunspaces) { try { $rs.Dispose() } catch {} }; $script:openRunspaces.Clear() })
 
 # =============================================================================
 # 8. CONFIG BUILDER
@@ -672,12 +693,7 @@ function Update-MaintenanceStatus {
         try {
             $v = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
             $ui['StatusSpotify'].Text = "Spotify: Installed (v$v)"
-            # Warn if 1.2.70+ (SpotX patches broken by CEF signature protection)
-            if ($v -match '^1\.2\.(\d+)' -and [int]$Matches[1] -ge 70) {
-                $ui['StatusSpotify'].Text = "Spotify: v$v (SpotX incompatible - use Clean Install)"
-                $ui['StatusSpotify'].Foreground = $global:BrushError
-                $ui['StatusSpotify'].ToolTip = "SpotX ad-blocking does not work on Spotify 1.2.70+ due to CEF signature protection. Use Easy/Custom Install for a clean setup with a compatible version."
-            } else { $ui['StatusSpotify'].Foreground = $global:BrushGreen }
+            $ui['StatusSpotify'].Foreground = $global:BrushGreen
         }
         catch { $ui['StatusSpotify'].Text = "Spotify: Installed"; $ui['StatusSpotify'].Foreground = $global:BrushGreen }
     } else { $ui['StatusSpotify'].Text = "Spotify: Not installed"; $ui['StatusSpotify'].Foreground = $global:BrushRed }
@@ -752,17 +768,7 @@ $ui['BtnCheckUpdates'].Add_Click({
 })
 $ui['BtnReapply'].Add_Click({
     if (-not (Test-NetworkReady)) { Show-ThemedDialog -Message "No internet connection." -Title "Network Error" -Icon "Error"; return }
-    # Warn if Spotify 1.2.70+ detected (SpotX binary patches fail due to CEF signature protection)
-    $spotxWarn = ""
-    if (Test-Path $global:SPOTIFY_EXE_PATH) {
-        try {
-            $sv = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
-            if ($sv -match '^1\.2\.(\d+)' -and [int]$Matches[1] -ge 70) {
-                $spotxWarn = "`n`nWARNING: Spotify $sv detected. SpotX ad-blocking`npatches do not work on Spotify 1.2.70+ due to`nCEF signature protection. A clean install with`nSpotX (which installs a compatible version) is`nrecommended instead."
-            }
-        } catch {}
-    }
-    $r = Show-ThemedDialog -Message "Reapply SpotX + Spicetify?`nUses saved config if available.$spotxWarn" -Title "Confirm Reapply" -Buttons "YesNo" -Icon "Question"
+    $r = Show-ThemedDialog -Message "Reapply SpotX + Spicetify?`nUses saved config if available." -Title "Confirm Reapply" -Buttons "YesNo" -Icon "Question"
     if ($r -eq 'Yes') { Switch-ToInstallPage; Start-MaintenanceJob -Action 'Reapply' }
 })
 $ui['BtnSpicetifyRestore'].Add_Click({
@@ -893,6 +899,7 @@ function Test-NetworkReady {
 }
 
 function Switch-ToInstallPage {
+    try { if ($global:LOG_PATH) { if (-not (Test-Path $global:CONFIG_DIR)) { New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null }; Set-Content -Path $global:LOG_PATH -Value "--- LibreSpot v$global:VERSION $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ---`n" -Encoding UTF8 -Force } } catch {}
     $ui['PageConfig'].Visibility='Collapsed'; $ui['PageInstall'].Visibility='Visible'
     $ui['LogOutput'].Text=''; $ui['StatusText'].Text='Initializing...'; $ui['StepIndicator'].Text='Processing...'
     $ui['ElapsedTime'].Text=''; $ui['MainProgress'].Value=0; $ui['MainProgress'].Foreground=$global:BrushGreen
@@ -938,6 +945,10 @@ $timer.Add_Tick({
 # =============================================================================
 function Update-UI { param([string]$Message,[string]$Level="INFO",[bool]$IsHeader=$false,[string]$StepText=$null)
     $ts = Get-Date -Format "HH:mm:ss"; $lt = "[$ts] [$Level] $Message`n"; $sh = $script:syncHash
+    try { if ($global:LOG_PATH) {
+        if (-not (Test-Path $global:CONFIG_DIR)) { New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null }
+        [System.IO.File]::AppendAllText($global:LOG_PATH, $lt)
+    } } catch {}
     try { if ($sh) { $sh.Dispatcher.Invoke([Action]{
         $sh.LogBlock.Text += $lt; $sh.Scroller.ScrollToBottom()
         if ($IsHeader -or $Level -eq 'STEP') { $sh.StatusLabel.Text = $Message }
@@ -948,7 +959,7 @@ function Write-Log { param([string]$Message,[string]$Level='INFO'); Update-UI -M
 
 function Download-FileSafe { param([string]$Uri,[string]$OutFile)
     Write-Log "Downloading: $Uri"
-    $headers = @{'User-Agent'='LibreSpot/3.0'}
+    $headers = @{'User-Agent'="LibreSpot/$global:VERSION"}
     try { Invoke-WebRequest -Uri $Uri -OutFile $OutFile -UseBasicParsing -Headers $headers -TimeoutSec 120 -ErrorAction Stop }
     catch { Write-Log "Web request failed, trying BITS..." -Level 'WARN'
         try {
@@ -1003,16 +1014,20 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
 # =============================================================================
 function Check-ForUpdates {
     Write-Log '=== Checking for dependency updates ===' -Level 'STEP'
-    $headers = @{'User-Agent'='LibreSpot/3.0'}
+    $headers = @{'User-Agent'="LibreSpot/$global:VERSION"}
     $updates = @()
 
-    # SpotX
+    # SpotX (pinned to a specific commit on main, check for newer commits)
     try {
-        $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/SpotX-Official/SpotX/releases/latest' -Headers $headers -TimeoutSec 15
-        $latest = $rel.tag_name -replace '^v',''
-        $pinned = $global:PinnedReleases.SpotX.Version
-        if ($latest -ne $pinned) { $updates += "SpotX: $pinned -> $latest"; Write-Log "  SpotX: $pinned -> $latest available" -Level 'WARN' }
-        else { Write-Log "  SpotX: v$pinned (up to date)" }
+        $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/SpotX-Official/SpotX/commits/main' -Headers $headers -TimeoutSec 15
+        $latestSha = $rel.sha
+        $pinnedSha = $global:PinnedReleases.SpotX.Commit
+        if ($latestSha -ne $pinnedSha) {
+            $short = $latestSha.Substring(0,10)
+            $msg = ($rel.commit.message -split "`n")[0]
+            $updates += "SpotX: new commit $short"
+            Write-Log "  SpotX: new commit $short ($msg)" -Level 'WARN'
+        } else { Write-Log "  SpotX: $($pinnedSha.Substring(0,10)) (up to date)" }
     } catch { Write-Log "  SpotX: check failed ($($_.Exception.Message))" -Level 'WARN' }
 
     # Spicetify CLI
@@ -1045,6 +1060,14 @@ function Check-ForUpdates {
             Write-Log "  Themes: new commit $short ($msg)" -Level 'WARN'
         } else { Write-Log "  Themes: $($pinned.Substring(0,10)) (up to date)" }
     } catch { Write-Log "  Themes: check failed ($($_.Exception.Message))" -Level 'WARN' }
+
+    # LibreSpot itself
+    try {
+        $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest' -Headers $headers -TimeoutSec 15
+        $latest = $rel.tag_name -replace '^v',''
+        if ($latest -ne $global:VERSION) { $updates += "LibreSpot: $global:VERSION -> $latest"; Write-Log "  LibreSpot: $global:VERSION -> $latest available" -Level 'WARN' }
+        else { Write-Log "  LibreSpot: v$global:VERSION (up to date)" }
+    } catch { Write-Log "  LibreSpot: check failed ($($_.Exception.Message))" -Level 'WARN' }
 
     if ($updates.Count -eq 0) {
         Write-Log "All dependencies are up to date." -Level 'SUCCESS'
@@ -1246,6 +1269,11 @@ function Module-NukeSpotify {
 # 15. INSTALL MODULES
 # =============================================================================
 function Module-PreInstallSpotify { param($SyncHash)
+    if (Test-Path $global:SPOTIFY_EXE_PATH) {
+        $ver = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
+        Write-Log "Spotify $ver already installed, skipping pre-install." -Level 'STEP'
+        return
+    }
     Write-Log "Pre-installing Spotify via official installer..." -Level 'STEP'
     $installer = Join-Path $global:TEMP_DIR "SpotifySetup.exe"
     Download-FileSafe -Uri $global:URL_SPOTIFY_SETUP -OutFile $installer
@@ -1299,13 +1327,6 @@ function Module-PreInstallSpotify { param($SyncHash)
     Remove-Item $installer -Force -EA SilentlyContinue
 }
 
-function Get-SpotifyInstalledVersion {
-    if (Test-Path $global:SPOTIFY_EXE_PATH) {
-        return (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
-    }
-    return $null
-}
-
 function Module-InstallSpotX { param($Config,$SyncHash)
     Write-Log "Installing SpotX v$($global:PinnedReleases.SpotX.Version)..." -Level 'STEP'
     $dest = Join-Path $global:TEMP_DIR "spotx_run.ps1"; Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
@@ -1320,34 +1341,37 @@ function Module-InstallSpotX { param($Config,$SyncHash)
     }
     Write-Log "Params: $params"
     if ($SyncHash) { $SyncHash.AllowSpotify = $true }
-    Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $params
-    # Verify SpotX patching succeeded
-    if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
-        throw "SpotX failed - Spotify.exe not found at $global:SPOTIFY_EXE_PATH. Check the log above for errors."
-    }
-    $elfDll = Join-Path (Split-Path $global:SPOTIFY_EXE_PATH) "chrome_elf.dll"
-    if (-not (Test-Path $elfDll)) {
-        throw "Spotify installation is incomplete - chrome_elf.dll is missing. This usually means the Spotify download failed or was corrupted."
-    }
-    Write-Log "Spotify patched successfully." -Level 'SUCCESS'
-    Write-Log "Launching Spotify (hidden) to generate config files..."
-    if (Test-Path $global:SPOTIFY_EXE_PATH) {
-        $sp = Start-Process $global:SPOTIFY_EXE_PATH -WindowStyle Minimized -PassThru
-        Start-Sleep -Milliseconds 800
-        Hide-SpotifyWindows
-    }
-    $prefsPath = Join-Path $env:APPDATA "Spotify\prefs"
-    $waited = 0; $maxWait = 45
-    while ($waited -lt $maxWait) {
-        if ((Test-Path $prefsPath) -and ((Get-Item $prefsPath).Length -gt 10)) {
-            Write-Log "Config files detected after ${waited}s."; break
+    try {
+        Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $params
+        # Verify SpotX patching succeeded
+        if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
+            throw "SpotX failed - Spotify.exe not found at $global:SPOTIFY_EXE_PATH. Check the log above for errors."
         }
-        Hide-SpotifyWindows
-        Start-Sleep -Seconds 2; $waited += 2
+        $elfDll = Join-Path (Split-Path $global:SPOTIFY_EXE_PATH) "chrome_elf.dll"
+        if (-not (Test-Path $elfDll)) {
+            throw "Spotify installation is incomplete - chrome_elf.dll is missing. This usually means the Spotify download failed or was corrupted."
+        }
+        Write-Log "Spotify patched successfully." -Level 'SUCCESS'
+        Write-Log "Launching Spotify (hidden) to generate config files..."
+        if (Test-Path $global:SPOTIFY_EXE_PATH) {
+            $sp = Start-Process $global:SPOTIFY_EXE_PATH -WindowStyle Minimized -PassThru
+            Start-Sleep -Milliseconds 800
+            Hide-SpotifyWindows
+        }
+        $prefsPath = Join-Path $env:APPDATA "Spotify\prefs"
+        $waited = 0; $maxWait = 45
+        while ($waited -lt $maxWait) {
+            if ((Test-Path $prefsPath) -and ((Get-Item $prefsPath).Length -gt 10)) {
+                Write-Log "Config files detected after ${waited}s."; break
+            }
+            Hide-SpotifyWindows
+            Start-Sleep -Seconds 2; $waited += 2
+        }
+        if ($waited -ge $maxWait) { Write-Log "Timed out waiting for config (${maxWait}s). Continuing..." -Level 'WARN' }
+        Start-Sleep -Seconds 3; Stop-SpotifyProcesses -maxAttempts 3
+    } finally {
+        if ($SyncHash) { $SyncHash.AllowSpotify = $false }
     }
-    if ($waited -ge $maxWait) { Write-Log "Timed out waiting for config (${maxWait}s). Continuing..." -Level 'WARN' }
-    Start-Sleep -Seconds 3; Stop-SpotifyProcesses -maxAttempts 3
-    if ($SyncHash) { $SyncHash.AllowSpotify = $false }
 }
 
 function Module-InstallSpicetifyCLI {
@@ -1368,7 +1392,9 @@ function Module-InstallSpicetifyCLI {
         [Environment]::SetEnvironmentVariable('PATH', "$userPath;$global:SPICETIFY_DIR", 'User')
         Write-Log "Added Spicetify to user PATH."
     }
-    Write-Log "Generating config..."; & "$global:SPICETIFY_DIR\spicetify.exe" config --bypass-admin | Out-Null
+    Write-Log "Generating config..."
+    $out = & "$global:SPICETIFY_DIR\spicetify.exe" config --bypass-admin 2>&1
+    if ($out) { Write-Log "  spicetify config: $($out -join ' ')" }
     Write-Log "Spicetify CLI v$ver installed."
 }
 
@@ -1387,17 +1413,17 @@ function Module-InstallThemes { param($Config)
     Remove-Item $tz -Force -EA SilentlyContinue; Remove-Item $tu -Recurse -Force -EA SilentlyContinue
     if (-not (Test-Path (Join-Path $td $tn))) { return }
     $sc = $Config.Spicetify_Scheme; Write-Log "Setting theme=$tn, scheme=$sc"
-    & "$global:SPICETIFY_DIR\spicetify.exe" config current_theme $tn --bypass-admin
-    if ($sc -ne 'Default' -and -not [string]::IsNullOrWhiteSpace($sc)) { & "$global:SPICETIFY_DIR\spicetify.exe" config color_scheme $sc --bypass-admin }
+    $out = & "$global:SPICETIFY_DIR\spicetify.exe" config current_theme $tn --bypass-admin 2>&1; if ($out) { Write-Log "  $($out -join ' ')" }
+    if ($sc -ne 'Default' -and -not [string]::IsNullOrWhiteSpace($sc)) { $out = & "$global:SPICETIFY_DIR\spicetify.exe" config color_scheme $sc --bypass-admin 2>&1; if ($out) { Write-Log "  $($out -join ' ')" } }
     $needsThemeJs = @("Dribbblish","StarryNight","Turntable") -contains $tn
     $jsVal = if ($needsThemeJs) { "1" } else { "0" }
-    & "$global:SPICETIFY_DIR\spicetify.exe" config inject_css 1 replace_colors 1 overwrite_assets 1 inject_theme_js $jsVal --bypass-admin
+    $out = & "$global:SPICETIFY_DIR\spicetify.exe" config inject_css 1 replace_colors 1 overwrite_assets 1 inject_theme_js $jsVal --bypass-admin 2>&1; if ($out) { Write-Log "  $($out -join ' ')" }
 }
 
 function Module-InstallExtensions { param($Config)
     $exts = $Config.Spicetify_Extensions; if ($exts.Count -eq 0) { Write-Log "No extensions."; return }
     Write-Log "Extensions: $($exts -join ', ')..." -Level 'STEP'
-    foreach ($e in $exts) { & "$global:SPICETIFY_DIR\spicetify.exe" config extensions $e --bypass-admin; Write-Log "Enabled: $e" }
+    foreach ($e in $exts) { $out = & "$global:SPICETIFY_DIR\spicetify.exe" config extensions $e --bypass-admin 2>&1; if ($out) { Write-Log "  $($out -join ' ')" }; Write-Log "Enabled: $e" }
 }
 
 function Module-InstallMarketplace { param($Config)
@@ -1411,7 +1437,7 @@ function Module-InstallMarketplace { param($Config)
     if (Test-Path $mu) { Remove-Item $mu -Recurse -Force }; Expand-Archive -Path $mz -DestinationPath $mu -Force
     $sp = if (Test-Path (Join-Path $mu "marketplace-dist")) { Join-Path $mu "marketplace-dist\*" } else { Join-Path $mu "*" }
     Copy-Item -Path $sp -Destination $md -Recurse -Force; Remove-Item $mz -Force; Remove-Item $mu -Recurse -Force
-    & "$global:SPICETIFY_DIR\spicetify.exe" config custom_apps marketplace --bypass-admin; Write-Log "Marketplace enabled."
+    $out = & "$global:SPICETIFY_DIR\spicetify.exe" config custom_apps marketplace --bypass-admin 2>&1; if ($out) { Write-Log "  $($out -join ' ')" }; Write-Log "Marketplace enabled."
 }
 
 function Module-ApplySpicetify { param($Config)
@@ -1489,10 +1515,10 @@ $installBlock = { param($sh,$cfg)
         Write-Log "Temp files cleaned up."
         if ($cfg.LaunchAfter -and (Test-Path $global:SPOTIFY_EXE_PATH)) { Write-Log "Launching Spotify..." -Level 'SUCCESS'; Start-Process $global:SPOTIFY_EXE_PATH }
         Write-Log "--- Installation Complete ---" -Level 'SUCCESS'; $sh.IsRunning=$false
-        $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text="Installation Complete"; $sh.StepLabel.Text="Done"; $sh.CloseBtn.Visibility="Visible"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate() })
+        $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text="Installation Complete"; $sh.StepLabel.Text="Done"; $sh.CloseBtn.Visibility="Visible"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     } catch { $sh.IsRunning=$false; $em=$_.Exception.Message; $st=$_.ScriptStackTrace
         $sh.Dispatcher.Invoke([Action]{ if($sh.Timer){$sh.Timer.Stop()}; $sh.LogBlock.Text+="`n[FATAL] $em`n$st"; $sh.StatusLabel.Text="Error"
-            $sh.StepLabel.Text="Failed"; $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Visibility="Visible"; $sh.Window.Topmost=$false; $sh.Window.Activate() })
+            $sh.StepLabel.Text="Failed"; $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Visibility="Visible"; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     }
 }
 
@@ -1516,7 +1542,7 @@ $maintBlock = { param($sh,$action)
             if ($saved) { $sp=Build-SpotXParams -Config $saved; Write-Log "Using saved config" } else { $sp=Build-SpotXParams -Config $global:EasyDefaults; Write-Log "Using defaults (no saved config)" -Level 'WARN' }
             $spotDir = Split-Path $global:SPOTIFY_EXE_PATH
             if (Test-Path $global:SPOTIFY_EXE_PATH) { $sp += " -SpotifyPath `"$spotDir`""; Write-Log "Patching in-place via -SpotifyPath" }
-            $sh.AllowSpotify=$true; Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $sp; $sh.AllowSpotify=$false
+            $sh.AllowSpotify=$true; try { Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $sp } finally { $sh.AllowSpotify=$false }
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Step 2/2: Spicetify"; $sh.ProgressBar.Value=70 })
             $se=Join-Path $global:SPICETIFY_DIR "spicetify.exe"
             if (Test-Path $se) { $pr=Start-Process -FilePath $se -ArgumentList "backup","apply","--bypass-admin" -NoNewWindow -PassThru -Wait
@@ -1561,10 +1587,10 @@ $maintBlock = { param($sh,$action)
         }
         $sh.IsRunning=$false
         $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text="Complete"; $sh.StepLabel.Text="Done"
-            $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate() })
+            $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     } catch { $sh.IsRunning=$false; $em=$_.Exception.Message; $st=$_.ScriptStackTrace
         $sh.Dispatcher.Invoke([Action]{ if($sh.Timer){$sh.Timer.Stop()}; $sh.LogBlock.Text+="`n[FATAL] $em`n$st"; $sh.StatusLabel.Text="Error"
-            $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Visibility="Visible"; $sh.Window.Topmost=$false; $sh.Window.Activate() })
+            $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Visibility="Visible"; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     }
 }
 
@@ -1574,7 +1600,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Test-NetworkReady','Check-ForUpdates',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Remove-PathSafely',
-    'Module-NukeSpotify','Module-PreInstallSpotify','Get-SpotifyInstalledVersion','Module-InstallSpotX','Module-InstallSpicetifyCLI',
+    'Module-NukeSpotify','Module-PreInstallSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
     'Module-InstallThemes','Module-InstallExtensions',
     'Module-InstallMarketplace','Module-ApplySpicetify',
     'Build-SpotXParams','Load-LibreSpotConfig'
@@ -1590,7 +1616,7 @@ foreach ($fname in $functionNamesForWorker) {
 $varNamesForWorker = @(
     'URL_SPOTX','URL_SPOTIFY_SETUP','URL_MARKETPLACE','URL_THEMES_REPO','URL_SPICETIFY_FMT','PinnedReleases',
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR',
-    'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH',
+    'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
     'EasyDefaults','VERSION'
 )
@@ -1605,13 +1631,15 @@ $script:WorkerInitialState = $issMain
 # 18. JOB LAUNCHERS
 # =============================================================================
 function New-SyncHash {
-    return [hashtable]::Synchronized(@{
+    $wih = New-Object System.Windows.Interop.WindowInteropHelper($window)
+    $script:activeSyncHash = [hashtable]::Synchronized(@{
         Dispatcher=$window.Dispatcher; LogBlock=$ui['LogOutput']; Scroller=$ui['LogScroller']
         StatusLabel=$ui['StatusText']; StepLabel=$ui['StepIndicator']; ProgressBar=$ui['MainProgress']
         CloseBtn=$ui['CloseBtn']; BackBtn=$ui['BtnBackToConfig']; CopyLogBtn=$ui['BtnCopyLog']; Timer=$timer
-        Window=$window
+        Window=$window; WindowHandle=$wih.Handle
         IsRunning=$true; AllowSpotify=$false; Errors=[System.Collections.Generic.List[string]]::new()
     })
+    return $script:activeSyncHash
 }
 
 function Start-InstallJob { param($Config)
