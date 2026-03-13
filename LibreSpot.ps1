@@ -1255,20 +1255,34 @@ function Module-PreInstallSpotify { param($SyncHash)
     $pi.FileName = $installer; $pi.Arguments = "/silent"
     $pi.UseShellExecute = $false; $pi.CreateNoWindow = $true
     $p = New-Object System.Diagnostics.Process; $p.StartInfo = $pi; $null = $p.Start()
-    $timeout = 180; $waited = 0
-    while (-not $p.HasExited -and $waited -lt $timeout) {
+    # The launcher process exits quickly - wait for it then poll for child processes
+    $timeout = 300; $waited = 0
+    while (-not $p.HasExited -and $waited -lt 60) {
         Start-Sleep -Seconds 2; $waited += 2
         Hide-SpotifyWindows
     }
-    if (-not $p.HasExited) { $p.Kill(); throw "Spotify installer timed out after ${timeout}s" }
-    # Wait for Spotify.exe to appear (installer may extract async)
-    $exeWait = 0
-    while ($exeWait -lt 30) {
-        if (Test-Path $global:SPOTIFY_EXE_PATH) { break }
-        Start-Sleep -Seconds 2; $exeWait += 2
+    # Wait for SpotifySetup/Spotify child processes to finish the actual installation
+    Write-Log "Waiting for Spotify installation to complete..."
+    while ($waited -lt $timeout) {
+        Hide-SpotifyWindows
+        if (Test-Path $global:SPOTIFY_EXE_PATH) {
+            # Spotify.exe exists - wait a few more seconds for install to finalize
+            Start-Sleep -Seconds 5
+            Write-Log "Spotify.exe detected."
+            break
+        }
+        # Check if any installer processes are still running
+        $setupProcs = Get-Process -Name "SpotifySetup","SpotifyFullSetup","Spotify" -EA SilentlyContinue
+        if (-not $setupProcs -and $waited -gt 30) {
+            # No installer processes and no Spotify.exe after 30s - something went wrong
+            Write-Log "No installer processes found after ${waited}s." -Level 'WARN'
+            break
+        }
+        Start-Sleep -Seconds 3; $waited += 3
+        if ($waited % 15 -eq 0) { Write-Log "  Still installing... (${waited}s)" }
     }
     if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
-        throw "Spotify.exe not found after running official installer. Check disk space and permissions."
+        throw "Spotify.exe not found after running official installer (waited ${waited}s). Check disk space and permissions."
     }
     # Kill Spotify if it auto-launched
     Stop-SpotifyProcesses -maxAttempts 3
