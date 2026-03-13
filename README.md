@@ -10,11 +10,25 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-3.0.2-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 
+</div>
+
+## Quick Start
+
+**One-liner install** — paste into PowerShell and hit Enter:
+
+```powershell
+irm https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/LibreSpot.ps1 | iex
+```
+
+Or [download LibreSpot.ps1](https://github.com/SysAdminDoc/LibreSpot/releases/latest) and right-click **Run with PowerShell**.
+
+> **Requirements:** Windows 10/11, PowerShell 5.1+ (built-in), internet connection
+
+<div align="center">
+
 <img width="1150" height="950" alt="2026-02-02 19_59_24-LibreSpot" src="https://github.com/user-attachments/assets/fb3d007b-f28a-4ecc-8a16-b0b866c03a4c" />
 
 <img width="1150" height="950" alt="2026-02-02 20_16_59-LibreSpot" src="https://github.com/user-attachments/assets/83f99ae8-88b8-4f36-a207-4ffa9a163281" />
-
-
 
 </div>
 
@@ -35,9 +49,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 > **Note:** Spotify frequently updates its client, which can break SpotX and Spicetify patches. LibreSpot blocks Spotify auto-updates by default (via SpotX) to keep your installation stable.
 >
-> If you manually update Spotify and patches stop working, use **Maintenance → Reapply After Update** to re-patch.
->
-> Check the [releases page](https://github.com/SysAdminDoc/LibreSpot/releases) for the latest tested Spotify version and any compatibility notes.
+> If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch.
 
 **Pinned dependency versions (v3.0.2):**
 
@@ -101,36 +113,6 @@ Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntS
 - **Architecture support** — x64 and ARM64 with per-architecture hash verification
 - **Dual download methods** — falls back to BITS transfer if `Invoke-WebRequest` fails
 - **Self-elevating** — auto-requests admin privileges when needed
-
----
-
-## Requirements
-
-- **Windows 10 / 11**
-- **PowerShell 5.1+** (built into Windows)
-- Internet connection for initial download
-
----
-
-## Usage
-
-### Option 1: Direct Run
-
-```powershell
-irm https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/LibreSpot.ps1 | iex
-```
-
-### Option 2: Download and Run
-
-1. Download `LibreSpot.ps1` from the [latest release](https://github.com/SysAdminDoc/LibreSpot/releases)
-2. Right-click the file and select **Run with PowerShell**, or open a PowerShell window and run:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\LibreSpot.ps1
-```
-
-The GUI will launch and prompt for administrator privileges if needed.
 
 ---
 
