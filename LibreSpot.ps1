@@ -14,7 +14,7 @@
 # =============================================================================
 # 1. INITIAL SETUP
 # =============================================================================
-Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Windows.Forms
+Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Windows.Forms, System.IO.Compression.FileSystem
 
 Add-Type @'
 using System;
@@ -50,7 +50,7 @@ public class Win32 {
 
 $ErrorActionPreference = 'Stop'
 
-$global:VERSION = '3.0.3'
+$global:VERSION = '3.0.5'
 
 # --- Pinned dependency versions with SHA256 verification ---
 # Update these when new versions are tested. Use Maintenance > Check for Updates.
@@ -571,6 +571,8 @@ if ($ui['CmbScheme'].Items.Count -eq 0 -and $ui['CmbTheme'].SelectedItem) {
 $ui['ChkLyrics'].Add_Checked({   $ui['LyricsThemePanel'].Visibility = 'Visible' })
 $ui['ChkLyrics'].Add_Unchecked({ $ui['LyricsThemePanel'].Visibility = 'Collapsed' })
 
+$ui['TxtCacheLimit'].Add_PreviewTextInput({ param($s,$e); $e.Handled = $e.Text -notmatch '^\d+$' })
+
 $premiumDependents = @('ChkPodcastsOff','ChkAdSectionsOff')
 $ui['ChkPremium'].Add_Checked({   foreach ($n in $premiumDependents) { $ui[$n].IsEnabled = $false; $ui[$n].Opacity = 0.4 } })
 $ui['ChkPremium'].Add_Unchecked({ foreach ($n in $premiumDependents) { $ui[$n].IsEnabled = $true;  $ui[$n].Opacity = 1.0 } })
@@ -892,10 +894,12 @@ function Show-ThemedDialog {
 }
 
 function Test-NetworkReady {
+    $resp = $null
     try {
         $r = [System.Net.WebRequest]::Create("https://raw.githubusercontent.com"); $r.Timeout = 5000; $r.Method = 'HEAD'
-        $resp = $r.GetResponse(); $resp.Close(); return $true
+        $resp = $r.GetResponse(); return $true
     } catch { return $false }
+    finally { if ($resp) { $resp.Close() } }
 }
 
 function Switch-ToInstallPage {
@@ -966,13 +970,15 @@ function Download-FileSafe { param([string]$Uri,[string]$OutFile)
             Import-Module BitsTransfer -EA SilentlyContinue
             $bitsJob = Start-BitsTransfer -Source $Uri -Destination $OutFile -Asynchronous -EA Stop
             $deadline = (Get-Date).AddSeconds(120)
-            while ($bitsJob.JobState -eq 'Transferring' -or $bitsJob.JobState -eq 'Connecting') {
+            while ($bitsJob.JobState -in @('Transferring','Connecting','Queued','TransientError')) {
                 if ((Get-Date) -gt $deadline) { Remove-BitsTransfer $bitsJob -EA SilentlyContinue; throw "BITS transfer timed out (120s)" }
                 Start-Sleep -Milliseconds 500
             }
             if ($bitsJob.JobState -ne 'Transferred') { $js=$bitsJob.JobState; Remove-BitsTransfer $bitsJob -EA SilentlyContinue; throw "BITS state: $js" }
             Complete-BitsTransfer $bitsJob
         } catch { throw "Download failed: $($_.Exception.Message)" } }
+    if (-not (Test-Path $OutFile)) { throw "Download produced no file: $OutFile" }
+    if ((Get-Item $OutFile).Length -eq 0) { Remove-Item $OutFile -Force -EA SilentlyContinue; throw "Download produced empty file: $OutFile" }
 }
 function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]$Label)
     if ([string]::IsNullOrWhiteSpace($ExpectedHash)) {
@@ -1111,6 +1117,7 @@ function Unlock-SpotifyUpdateFolder {
 function Get-DesktopPath {
     try {
         $shell = (Get-ItemProperty "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -EA Stop).Desktop
+        if ($shell) { $shell = [Environment]::ExpandEnvironmentVariables($shell) }
         if ($shell -and (Test-Path $shell)) { return $shell }
     } catch {}
     return [Environment]::GetFolderPath('Desktop')
@@ -1383,7 +1390,8 @@ function Module-InstallSpicetifyCLI {
     $zp = Join-Path $global:TEMP_DIR "spicetify.zip"; Download-FileSafe -Uri $zip -OutFile $zp
     $expectedHash = $global:PinnedReleases.SpicetifyCLI.SHA256[$arch]
     Confirm-FileHash -Path $zp -ExpectedHash $expectedHash -Label "Spicetify CLI ($arch)"
-    Expand-Archive -Path $zp -DestinationPath $global:SPICETIFY_DIR -Force; Remove-Item $zp -Force
+    if (Test-Path $global:SPICETIFY_DIR) { Remove-Item "$global:SPICETIFY_DIR\*" -Recurse -Force -EA SilentlyContinue }
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($zp, $global:SPICETIFY_DIR); Remove-Item $zp -Force
     $sExe = Join-Path $global:SPICETIFY_DIR "spicetify.exe"
     if (-not (Test-Path $sExe)) { throw "spicetify.exe not found after extraction - ZIP may be corrupted" }
     $env:PATH = "$env:PATH;$global:SPICETIFY_DIR"
@@ -1405,7 +1413,7 @@ function Module-InstallThemes { param($Config)
     if (-not (Test-Path $td)) { New-Item -Path $td -ItemType Directory -Force | Out-Null }
     Download-FileSafe -Uri $global:URL_THEMES_REPO -OutFile $tz
     Confirm-FileHash -Path $tz -ExpectedHash $global:PinnedReleases.Themes.SHA256 -Label "Themes archive"
-    if (Test-Path $tu) { Remove-Item $tu -Recurse -Force }; Expand-Archive -Path $tz -DestinationPath $tu -Force
+    if (Test-Path $tu) { Remove-Item $tu -Recurse -Force }; [System.IO.Compression.ZipFile]::ExtractToDirectory($tz, $tu)
     $root = Get-ChildItem $tu -Directory | Select-Object -First 1; $src = Join-Path $root.FullName $tn
     if (Test-Path $src) { $dst=Join-Path $td $tn; if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
         Copy-Item $src -Destination $dst -Recurse -Force; Write-Log "Theme copied to $dst"
@@ -1434,7 +1442,7 @@ function Module-InstallMarketplace { param($Config)
     if (Test-Path $md) { Remove-Item $md -Recurse -Force -EA SilentlyContinue }; New-Item -Path $md -ItemType Directory -Force | Out-Null
     Download-FileSafe -Uri $global:URL_MARKETPLACE -OutFile $mz
     Confirm-FileHash -Path $mz -ExpectedHash $global:PinnedReleases.Marketplace.SHA256 -Label "Marketplace"
-    if (Test-Path $mu) { Remove-Item $mu -Recurse -Force }; Expand-Archive -Path $mz -DestinationPath $mu -Force
+    if (Test-Path $mu) { Remove-Item $mu -Recurse -Force }; [System.IO.Compression.ZipFile]::ExtractToDirectory($mz, $mu)
     $sp = if (Test-Path (Join-Path $mu "marketplace-dist")) { Join-Path $mu "marketplace-dist\*" } else { Join-Path $mu "*" }
     Copy-Item -Path $sp -Destination $md -Recurse -Force; Remove-Item $mz -Force; Remove-Item $mu -Recurse -Force
     $out = & "$global:SPICETIFY_DIR\spicetify.exe" config custom_apps marketplace --bypass-admin 2>&1; if ($out) { Write-Log "  $($out -join ' ')" }; Write-Log "Marketplace enabled."
@@ -1537,8 +1545,7 @@ $maintBlock = { param($sh,$action)
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Step 1/2: SpotX"; $sh.ProgressBar.Value=25 })
             $dest=Join-Path $global:TEMP_DIR "spotx_run.ps1"; Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
             Confirm-FileHash -Path $dest -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label "SpotX run.ps1"
-            $saved=$null; try { if (Test-Path $global:CONFIG_PATH) { $j=Get-Content $global:CONFIG_PATH -Raw -Encoding UTF8|ConvertFrom-Json; $saved=@{}
-                foreach($p in $j.PSObject.Properties){$saved[$p.Name]=$p.Value} } } catch {}
+            $saved=$null; try { $saved = Load-LibreSpotConfig } catch {}
             if ($saved) { $sp=Build-SpotXParams -Config $saved; Write-Log "Using saved config" } else { $sp=Build-SpotXParams -Config $global:EasyDefaults; Write-Log "Using defaults (no saved config)" -Level 'WARN' }
             $spotDir = Split-Path $global:SPOTIFY_EXE_PATH
             if (Test-Path $global:SPOTIFY_EXE_PATH) { $sp += " -SpotifyPath `"$spotDir`""; Write-Log "Patching in-place via -SpotifyPath" }
@@ -1607,6 +1614,7 @@ $functionNamesForWorker = @(
 )
 
 $issMain = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+$issMain.Assemblies.Add([System.Management.Automation.Runspaces.SessionStateAssemblyEntry]::new("System.IO.Compression.FileSystem"))
 foreach ($fname in $functionNamesForWorker) {
     $cmd = Get-Command -Name $fname -CommandType Function -ErrorAction Stop
     $entry = New-Object System.Management.Automation.Runspaces.SessionStateFunctionEntry($cmd.Name, $cmd.Definition)
