@@ -12,6 +12,9 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 </div>
 
+
+![Screenshot](screenshot.png)
+
 ## Quick Start
 
 **One-liner install** — paste into PowerShell and hit Enter:
