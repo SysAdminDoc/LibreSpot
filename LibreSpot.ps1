@@ -583,23 +583,28 @@ function Update-ThemePreview {
         $ui['ThemePreviewImg'].Source = $script:previewCache[$url]; $ui['PreviewLabel'].Visibility = 'Collapsed'; return
     }
     $ui['ThemePreviewImg'].Source = $null; $ui['PreviewLabel'].Visibility = 'Visible'; $ui['PreviewLabel'].Text = 'Loading preview...'
-    $wc = New-Object System.Net.WebClient
-    $wc.Headers.Add('User-Agent', "LibreSpot/$global:VERSION")
+    # Download on background thread to keep UI responsive; TLS 1.2 required for GitHub
     $capturedUrl = $url
-    $wc.Add_DownloadDataCompleted({
-        param($sender, $e)
-        $window.Dispatcher.Invoke([Action]{
-            try {
-                if ($e.Error) { $ui['PreviewLabel'].Text = 'Preview unavailable'; return }
-                $ms = New-Object System.IO.MemoryStream(,$e.Result)
-                $bmp = New-Object System.Windows.Media.Imaging.BitmapImage
-                $bmp.BeginInit(); $bmp.StreamSource = $ms; $bmp.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad; $bmp.EndInit(); $bmp.Freeze()
-                $script:previewCache[$capturedUrl] = $bmp
-                $ui['ThemePreviewImg'].Source = $bmp; $ui['PreviewLabel'].Visibility = 'Collapsed'
-            } catch { $ui['PreviewLabel'].Text = 'Preview unavailable' }
-        })
-    })
-    try { $wc.DownloadDataAsync([Uri]$url) } catch { $ui['PreviewLabel'].Text = 'Preview unavailable' }
+    $disp = $window.Dispatcher
+    [System.Threading.ThreadPool]::QueueUserWorkItem([System.Threading.WaitCallback]{
+        try {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+            $wc = New-Object System.Net.WebClient
+            $wc.Headers.Add('User-Agent', 'LibreSpot')
+            $data = $wc.DownloadData($capturedUrl)
+            $disp.Invoke([Action]{
+                try {
+                    $ms = New-Object System.IO.MemoryStream(,$data)
+                    $bmp = New-Object System.Windows.Media.Imaging.BitmapImage
+                    $bmp.BeginInit(); $bmp.StreamSource = $ms; $bmp.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad; $bmp.EndInit(); $bmp.Freeze()
+                    $script:previewCache[$capturedUrl] = $bmp
+                    $ui['ThemePreviewImg'].Source = $bmp; $ui['PreviewLabel'].Visibility = 'Collapsed'
+                } catch { $ui['PreviewLabel'].Text = 'Preview unavailable' }
+            })
+        } catch {
+            $disp.Invoke([Action]{ $ui['PreviewLabel'].Text = 'Preview unavailable' })
+        }
+    }) | Out-Null
 }
 
 $ui['CmbTheme'].Add_SelectionChanged({
