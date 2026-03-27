@@ -1339,12 +1339,13 @@ function Module-InstallSpotX { param($Config,$SyncHash)
     $dest = Join-Path $global:TEMP_DIR "spotx_run.ps1"; Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
     Confirm-FileHash -Path $dest -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label "SpotX run.ps1"
     $params = Build-SpotXParams -Config $Config
-    # Point SpotX at existing Spotify install to bypass version check and broken CDN download
-    $spotDir = Split-Path $global:SPOTIFY_EXE_PATH
+    # Let SpotX manage Spotify version - auto-overwrite if installed version is unsupported
+    $params += " -confirm_spoti_recomended_over"
     if (Test-Path $global:SPOTIFY_EXE_PATH) {
-        $params += " -SpotifyPath `"$spotDir`""
         $ver = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
-        Write-Log "Spotify $ver detected - SpotX will patch in-place via -SpotifyPath"
+        Write-Log "Spotify $ver detected - SpotX will verify version compatibility"
+    } else {
+        Write-Log "Spotify not installed - SpotX will download recommended version"
     }
     Write-Log "Params: $params"
     if ($SyncHash) { $SyncHash.AllowSpotify = $true }
@@ -1497,14 +1498,13 @@ $installBlock = { param($sh,$cfg)
     $ErrorActionPreference = 'Stop'
     try {
         Write-Log "--- LibreSpot Installation Started ---" -Level 'HEADER'; Write-Log "Mode: $($cfg.Mode)"
-        $steps = @('Spotify','SpotX','SpicetifyCLI','Themes','Extensions','Marketplace','Apply')
+        $steps = @('SpotX','SpicetifyCLI','Themes','Extensions','Marketplace','Apply')
         if ($cfg.CleanInstall) { $steps = @('Cleanup') + $steps }
         $total = $steps.Count; $n = 0
         foreach ($s in $steps) { $n++
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text = "Step $n of $total : $s"; $sh.ProgressBar.Value = [int]((($n-1)/$total)*100) })
             switch ($s) {
                 'Cleanup'      { Module-NukeSpotify }
-                'Spotify'      { Module-PreInstallSpotify -SyncHash $sh }
                 'SpotX'        { Module-InstallSpotX -Config $cfg -SyncHash $sh }
                 'SpicetifyCLI' { Module-InstallSpicetifyCLI }
                 'Themes'       { Module-InstallThemes -Config $cfg }
@@ -1547,8 +1547,8 @@ $maintBlock = { param($sh,$action)
             Confirm-FileHash -Path $dest -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label "SpotX run.ps1"
             $saved=$null; try { $saved = Load-LibreSpotConfig } catch {}
             if ($saved) { $sp=Build-SpotXParams -Config $saved; Write-Log "Using saved config" } else { $sp=Build-SpotXParams -Config $global:EasyDefaults; Write-Log "Using defaults (no saved config)" -Level 'WARN' }
-            $spotDir = Split-Path $global:SPOTIFY_EXE_PATH
-            if (Test-Path $global:SPOTIFY_EXE_PATH) { $sp += " -SpotifyPath `"$spotDir`""; Write-Log "Patching in-place via -SpotifyPath" }
+            $sp += " -confirm_spoti_recomended_over"
+            Write-Log "SpotX will verify version compatibility and overwrite if needed"
             $sh.AllowSpotify=$true; try { Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $sp } finally { $sh.AllowSpotify=$false }
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Step 2/2: Spicetify"; $sh.ProgressBar.Value=70 })
             $se=Join-Path $global:SPICETIFY_DIR "spicetify.exe"
