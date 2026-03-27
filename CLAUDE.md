@@ -5,7 +5,7 @@ SpotX + Spicetify unified installer. Single PowerShell script (~1600 lines) with
 Three modes: Easy Install, Custom Install, Maintenance.
 
 ## Version
-v3.1.0
+v3.2.0
 
 ## Tech Stack
 - PowerShell 5.1+ with WPF GUI (XamlReader::Parse, single-quoted here-string)
@@ -39,6 +39,7 @@ v3.1.0
 - `Module-InstallSpicetifyCLI` (~line 1384) — CLI zip extract + PATH setup
 - `Module-InstallThemes` (~line 1409) — theme archive extract + config
 - `Module-InstallMarketplace` (~line 1437) — marketplace zip into CustomApps
+- `Module-InstallCustomApps` (~line 1472) — built-in apps (lyrics-plus, new-releases, reddit) + third-party (Stats, Visualizer)
 
 ## Gotchas
 - **NEVER use `-SpotifyPath` with SpotX.** It bypasses SpotX's version compatibility check, allowing patches meant for version X to be applied to version Y — causing blank screen. Use `-confirm_spoti_recomended_over` instead so SpotX manages versions.
@@ -57,6 +58,7 @@ No build system — single .ps1 file. The .exe is compiled via PS2EXE separately
 Version string is at `$global:VERSION` (~line 53). README badge must match.
 
 ## Version History
+- v3.2.0 — Custom Apps + Extension Packs: 5 custom apps (Lyrics Plus, New Releases, Reddit, Statistics, Audio Visualizer), 4 pack presets (Essentials, Power User, Fun, Streamer), Module-InstallCustomApps for built-in + third-party apps.
 - v3.1.0 — Audit release: anti-hang (-confirm_uninstall_ms_spoti), Spicetify apply failure recovery (auto-restore), 27 lyrics themes, old lyrics/collab icon options, removed dead pre-install code, fixed duplicate ComboBox population.
 - v3.0.6 — Fixed blank screen: removed `-SpotifyPath` (bypassed version check), added `-confirm_spoti_recomended_over`, let SpotX manage Spotify version. Updated SpotX pin to `6070bbcf`. Fixes #5.
 - v3.0.5 — Bug fixes, edge cases, hardening
