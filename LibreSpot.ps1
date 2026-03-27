@@ -78,10 +78,6 @@ $global:PinnedReleases = @{
         SHA256  = 'fd55e443e88302dfd45e201f35ec67db5f51c4346b58fab5da90faf7b1a66f28'
     }
     # Third-party custom apps (installed to CustomApps/ directory)
-    AppStats = @{
-        Url    = 'https://github.com/harbassan/spicetify-apps/releases/latest/download/spicetify-stats.release.zip'
-        Folder = 'stats'
-    }
     AppVisualizer = @{
         Url    = 'https://github.com/Konsl/spicetify-visualizer/archive/refs/heads/dist.zip'
         Folder = 'visualizer'
@@ -183,8 +179,7 @@ $global:EasyDefaults = @{
     SpotX_CanvasHomeOff=$false; SpotX_HomeSubOff=$false; SpotX_DisableStartup=$true; SpotX_NoShortcut=$false; SpotX_CacheLimit=0
     Spicetify_Theme="(None - Marketplace Only)"; Spicetify_Scheme="Default"; Spicetify_Marketplace=$true
     Spicetify_Extensions=@("fullAppDisplay.js","shuffle+.js","trashbin.js")
-    App_LyricsPlus=$true; App_NewReleases=$true; App_Reddit=$false
-    App_Stats=$false; App_Visualizer=$false
+    App_NewReleases=$true; App_Reddit=$false; App_Visualizer=$false
     CleanInstall=$true; LaunchAfter=$true
 }
 
@@ -192,19 +187,19 @@ $global:EasyDefaults = @{
 $global:ExtensionPacks = @{
     Essentials = @{
         Extensions = @("fullAppDisplay.js","shuffle+.js","trashbin.js","loopyLoop.js","bookmark.js")
-        Apps = @{ LyricsPlus=$true; NewReleases=$true; Reddit=$false; Stats=$false; Visualizer=$false }
+        Apps = @{ NewReleases=$true; Reddit=$false; Visualizer=$false }
     }
     PowerUser = @{
         Extensions = @("fullAppDisplay.js","shuffle+.js","trashbin.js","keyboardShortcut.js","bookmark.js","loopyLoop.js","webnowplaying.js")
-        Apps = @{ LyricsPlus=$true; NewReleases=$true; Reddit=$true; Stats=$true; Visualizer=$false }
+        Apps = @{ NewReleases=$true; Reddit=$true; Visualizer=$false }
     }
     Fun = @{
         Extensions = @("fullAppDisplay.js","shuffle+.js","trashbin.js","loopyLoop.js","popupLyrics.js")
-        Apps = @{ LyricsPlus=$true; NewReleases=$true; Reddit=$true; Stats=$true; Visualizer=$true }
+        Apps = @{ NewReleases=$true; Reddit=$true; Visualizer=$true }
     }
     Streamer = @{
         Extensions = @("fullAppDisplay.js","shuffle+.js","webnowplaying.js","popupLyrics.js")
-        Apps = @{ LyricsPlus=$true; NewReleases=$false; Reddit=$false; Stats=$false; Visualizer=$true }
+        Apps = @{ NewReleases=$false; Reddit=$false; Visualizer=$true }
     }
 }
 
@@ -417,7 +412,7 @@ $xaml = @"
                                         <StackPanel Orientation="Horizontal" Margin="0,6"><Border Width="20" Height="20" CornerRadius="10" Background="#FF0a2618"><Path Data="M 5 9 L 8 12 L 14 5" Stroke="#FF22c55e" StrokeThickness="1.5" Margin="1,0,0,0"/></Border>
                                             <TextBlock Text="Extensions: Full App Display, Shuffle+, Trash Bin" Foreground="#FFd4d4d8" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/></StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,6"><Border Width="20" Height="20" CornerRadius="10" Background="#FF0a2618"><Path Data="M 5 9 L 8 12 L 14 5" Stroke="#FF22c55e" StrokeThickness="1.5" Margin="1,0,0,0"/></Border>
-                                            <TextBlock Text="Lyrics Plus + New Releases custom apps" Foreground="#FFd4d4d8" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/></StackPanel>
+                                            <TextBlock Text="New Releases custom app for album discovery" Foreground="#FFd4d4d8" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/></StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,6"><Border Width="20" Height="20" CornerRadius="10" Background="#FF0a2618"><Path Data="M 5 9 L 8 12 L 14 5" Stroke="#FF22c55e" StrokeThickness="1.5" Margin="1,0,0,0"/></Border>
                                             <TextBlock Text="Lyrics with static theme enabled" Foreground="#FFd4d4d8" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/></StackPanel>
                                     </StackPanel></Border>
@@ -492,10 +487,8 @@ $xaml = @"
                                         <CheckBox Name="ChkExt_autoSkipExplicit" Content="Auto Skip Explicit" Style="{StaticResource DarkCheckBox}"/>
                                         <CheckBox Name="ChkExt_webNowPlaying" Content="Web Now Playing (Rainmeter)" Style="{StaticResource DarkCheckBox}"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,14,0,8"><Ellipse Width="5" Height="5" Fill="#FF3b82f6" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBlock Text="CUSTOM APPS" Foreground="#FF52525b" FontSize="10" FontWeight="Bold"/></StackPanel>
-                                        <CheckBox Name="ChkAppLyricsPlus" Content="Lyrics Plus (multi-provider synced lyrics)" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Musixmatch, Genius, LRCLIB, Netease — better than native lyrics"/>
                                         <CheckBox Name="ChkAppNewReleases" Content="New Releases (album discovery)" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="New albums from artists you follow"/>
                                         <CheckBox Name="ChkAppReddit" Content="Reddit (music subreddits)" Style="{StaticResource DarkCheckBox}" ToolTip="Browse music subreddits directly in Spotify"/>
-                                        <CheckBox Name="ChkAppStats" Content="Statistics (listening analytics)" Style="{StaticResource DarkCheckBox}" ToolTip="Top artists, tracks, genres, library analysis — Spotify Wrapped year-round"/>
                                         <CheckBox Name="ChkAppVisualizer" Content="Audio Visualizer (real-time)" Style="{StaticResource DarkCheckBox}" ToolTip="NCS-style audio spectrum visualizer synced to playback"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,14,0,8"><Ellipse Width="5" Height="5" Fill="#FFa855f7" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBlock Text="EXTENSION PACKS" Foreground="#FF52525b" FontSize="10" FontWeight="Bold"/></StackPanel>
                                         <WrapPanel Margin="0,0,0,4">
@@ -606,7 +599,7 @@ $ui = @{}
   'ChkDisableStartup','ChkNoShortcut','TxtCacheLimit','CmbTheme','CmbScheme','PreviewBorder','ThemePreviewImg','PreviewLabel','ChkMarketplace',
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
-  'ChkAppLyricsPlus','ChkAppNewReleases','ChkAppReddit','ChkAppStats','ChkAppVisualizer',
+  'ChkAppNewReleases','ChkAppReddit','ChkAppVisualizer',
   'BtnPackEssentials','BtnPackPowerUser','BtnPackFun','BtnPackStreamer',
   'ChkCleanInstall','ChkLaunchAfter',
   'StatusSpotify','StatusSpotX','StatusSpicetify','StatusMarketplace','StatusTheme',
@@ -697,7 +690,7 @@ $ui['ChkPremium'].Add_Checked({   foreach ($n in $premiumDependents) { $ui[$n].I
 $ui['ChkPremium'].Add_Unchecked({ foreach ($n in $premiumDependents) { $ui[$n].IsEnabled = $true;  $ui[$n].Opacity = 1.0 } })
 
 # Pack preset button handlers
-$appCheckboxMap = @{ LyricsPlus='ChkAppLyricsPlus'; NewReleases='ChkAppNewReleases'; Reddit='ChkAppReddit'; Stats='ChkAppStats'; Visualizer='ChkAppVisualizer' }
+$appCheckboxMap = @{ NewReleases='ChkAppNewReleases'; Reddit='ChkAppReddit'; Visualizer='ChkAppVisualizer' }
 function Apply-Pack { param([string]$PackName)
     $pack = $global:ExtensionPacks[$PackName]; if (-not $pack) { return }
     foreach ($ck in $extCheckboxMap.Keys) { $ui[$ck].IsChecked = ($pack.Extensions -contains $extCheckboxMap[$ck]) }
@@ -730,10 +723,8 @@ if ($savedCfg) { try {
     if ($savedCfg.ContainsKey('SpotX_HomeSubOff'))      { $ui['ChkHomeSubOff'].IsChecked      = [bool]$savedCfg.SpotX_HomeSubOff }
     if ($savedCfg.ContainsKey('SpotX_OldLyrics'))       { $ui['ChkOldLyrics'].IsChecked       = [bool]$savedCfg.SpotX_OldLyrics }
     if ($savedCfg.ContainsKey('SpotX_HideColIconOff'))  { $ui['ChkHideColIconOff'].IsChecked  = [bool]$savedCfg.SpotX_HideColIconOff }
-    if ($savedCfg.ContainsKey('App_LyricsPlus'))       { $ui['ChkAppLyricsPlus'].IsChecked   = [bool]$savedCfg.App_LyricsPlus }
     if ($savedCfg.ContainsKey('App_NewReleases'))     { $ui['ChkAppNewReleases'].IsChecked  = [bool]$savedCfg.App_NewReleases }
     if ($savedCfg.ContainsKey('App_Reddit'))           { $ui['ChkAppReddit'].IsChecked       = [bool]$savedCfg.App_Reddit }
-    if ($savedCfg.ContainsKey('App_Stats'))             { $ui['ChkAppStats'].IsChecked        = [bool]$savedCfg.App_Stats }
     if ($savedCfg.ContainsKey('App_Visualizer'))       { $ui['ChkAppVisualizer'].IsChecked   = [bool]$savedCfg.App_Visualizer }
     if ($savedCfg.ContainsKey('Spicetify_Marketplace')){ $ui['ChkMarketplace'].IsChecked    = [bool]$savedCfg.Spicetify_Marketplace }
     if ($savedCfg.ContainsKey('CleanInstall'))         { $ui['ChkCleanInstall'].IsChecked   = [bool]$savedCfg.CleanInstall }
@@ -803,9 +794,8 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
         SpotX_CacheLimit=$cacheVal
         Spicetify_Theme=$sTheme; Spicetify_Scheme=$sScheme
         Spicetify_Marketplace=[bool]$ui['ChkMarketplace'].IsChecked; Spicetify_Extensions=$exts
-        App_LyricsPlus=[bool]$ui['ChkAppLyricsPlus'].IsChecked; App_NewReleases=[bool]$ui['ChkAppNewReleases'].IsChecked
-        App_Reddit=[bool]$ui['ChkAppReddit'].IsChecked; App_Stats=[bool]$ui['ChkAppStats'].IsChecked
-        App_Visualizer=[bool]$ui['ChkAppVisualizer'].IsChecked
+        App_NewReleases=[bool]$ui['ChkAppNewReleases'].IsChecked
+        App_Reddit=[bool]$ui['ChkAppReddit'].IsChecked; App_Visualizer=[bool]$ui['ChkAppVisualizer'].IsChecked
     }
     return $c
 }
@@ -1545,7 +1535,6 @@ function Module-InstallCustomApps { param($Config)
 
     # Built-in custom apps (ship with Spicetify CLI, just enable them)
     $builtIn = @()
-    if ($Config.App_LyricsPlus)  { $builtIn += 'lyrics-plus' }
     if ($Config.App_NewReleases) { $builtIn += 'new-releases' }
     if ($Config.App_Reddit)      { $builtIn += 'reddit' }
     if ($builtIn.Count -gt 0) {
@@ -1554,25 +1543,6 @@ function Module-InstallCustomApps { param($Config)
             $out = & $sExe config custom_apps $app --bypass-admin 2>&1; if ($out) { Write-Log "  $($out -join ' ')" }
             $installed += $app; Write-Log "Enabled: $app"
         }
-    }
-
-    # Third-party: Statistics (harbassan/spicetify-apps)
-    if ($Config.App_Stats) {
-        Write-Log "Installing Statistics custom app..." -Level 'STEP'
-        $info = $global:PinnedReleases.AppStats
-        $zp = Join-Path $global:TEMP_DIR "stats_app.zip"; $dest = Join-Path $caDir $info.Folder
-        Download-FileSafe -Uri $info.Url -OutFile $zp
-        if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
-        $tmp = Join-Path $global:TEMP_DIR "stats_unpack"
-        if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($zp, $tmp)
-        # Stats zip extracts to stats/ directly
-        $inner = Join-Path $tmp $info.Folder
-        if (Test-Path $inner) { Move-Item $inner -Destination $dest -Force }
-        else { Move-Item (Join-Path $tmp "*") -Destination $dest -Force }
-        Remove-Item $zp -Force -EA SilentlyContinue; Remove-Item $tmp -Recurse -Force -EA SilentlyContinue
-        $out = & $sExe config custom_apps $info.Folder --bypass-admin 2>&1; if ($out) { Write-Log "  $($out -join ' ')" }
-        $installed += 'stats'; Write-Log "Statistics app installed."
     }
 
     # Third-party: Audio Visualizer (Konsl/spicetify-visualizer)
