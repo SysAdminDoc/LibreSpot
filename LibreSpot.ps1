@@ -50,16 +50,16 @@ public class Win32 {
 
 $ErrorActionPreference = 'Stop'
 
-$global:VERSION = '3.0.5'
+$global:VERSION = '3.0.6'
 
 # --- Pinned dependency versions with SHA256 verification ---
 # Update these when new versions are tested. Use Maintenance > Check for Updates.
 $global:PinnedReleases = @{
     SpotX = @{
         Version = '1.9+'
-        Commit  = '393d660d886b2c95a7764da334c37954cdfd1cbe'
-        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/393d660d886b2c95a7764da334c37954cdfd1cbe/run.ps1'
-        SHA256  = '6af4236d43e0babe465725278e8e60e13364e2bb6a4c573543714b01f1f9fffe'
+        Commit  = '6070bbcf1b18fd701f3da09481bf06e8b46a4d80'
+        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/6070bbcf1b18fd701f3da09481bf06e8b46a4d80/run.ps1'
+        SHA256  = 'f47557713336b5d84e70c45528f0324c2348c575b1d473379ba7f1048e8d1f13'
     }
     SpicetifyCLI = @{
         Version = '2.42.14'
