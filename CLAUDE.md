@@ -41,8 +41,9 @@ v3.0.6
 - `Module-InstallMarketplace` (~line 1437) — marketplace zip into CustomApps
 
 ## Gotchas
-- **Blank screen = outdated SpotX pin.** SpotX patches target specific Spotify versions. When Spotify's installer updates past the pinned version, patches corrupt the UI. Fix: update SpotX commit + SHA256 hash.
-- `-SpotifyPath` bypasses SpotX's version check — LibreSpot assumes the just-downloaded Spotify matches the SpotX pin. If they drift, blank screen.
+- **NEVER use `-SpotifyPath` with SpotX.** It bypasses SpotX's version compatibility check, allowing patches meant for version X to be applied to version Y — causing blank screen. Use `-confirm_spoti_recomended_over` instead so SpotX manages versions.
+- **Blank screen = version mismatch.** SpotX patches target specific Spotify versions. If the installed version doesn't match, patches corrupt the UI. SpotX must control the Spotify download to ensure compatibility.
+- **Don't pre-install Spotify separately.** SpotX downloads the correct version itself via its own CDN (`broad-pine-bbc0.amd64fox1.workers.dev`). Pre-installing from `download.spotify.com` gets the latest (possibly unsupported) version.
 - `spicetify backup apply` must run AFTER SpotX patching, not before.
 - Themes needing JS injection: Dribbblish, StarryNight, Turntable (`inject_theme_js 1`).
 - Settings persist to `%APPDATA%\LibreSpot\config.json`.
@@ -53,6 +54,6 @@ No build system — single .ps1 file. The .exe is compiled via PS2EXE separately
 Version string is at `$global:VERSION` (~line 53). README badge must match.
 
 ## Version History
-- v3.0.6 — Updated SpotX pin to `6070bbcf` (supports Spotify 1.2.85.519). Fixes blank screen (issue #5).
+- v3.0.6 — Fixed blank screen: removed `-SpotifyPath` (bypassed version check), added `-confirm_spoti_recomended_over`, let SpotX manage Spotify version. Updated SpotX pin to `6070bbcf`. Fixes #5.
 - v3.0.5 — Bug fixes, edge cases, hardening
 - v3.0.3 — Bug fixes, logging, polish
