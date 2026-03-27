@@ -50,13 +50,13 @@ public class Win32 {
 
 $ErrorActionPreference = 'Stop'
 
-$global:VERSION = '3.0.6'
+$global:VERSION = '3.1.0'
 
 # --- Pinned dependency versions with SHA256 verification ---
 # Update these when new versions are tested. Use Maintenance > Check for Updates.
 $global:PinnedReleases = @{
     SpotX = @{
-        Version = '1.9+'
+        Version = '2.0'
         Commit  = '6070bbcf1b18fd701f3da09481bf06e8b46a4d80'
         Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/6070bbcf1b18fd701f3da09481bf06e8b46a4d80/run.ps1'
         SHA256  = 'f47557713336b5d84e70c45528f0324c2348c575b1d473379ba7f1048e8d1f13'
@@ -81,7 +81,6 @@ $global:PinnedReleases = @{
 
 # Computed URLs (derived from pinned versions, do not edit directly)
 $global:URL_SPOTX         = $global:PinnedReleases.SpotX.Url
-$global:URL_SPOTIFY_SETUP = 'https://download.spotify.com/SpotifySetup.exe'
 $global:URL_MARKETPLACE   = $global:PinnedReleases.Marketplace.Url
 $global:URL_THEMES_REPO   = "https://github.com/spicetify/spicetify-themes/archive/$($global:PinnedReleases.Themes.Commit).zip"
 $global:URL_SPICETIFY_FMT = 'https://github.com/spicetify/cli/releases/download/v{0}/spicetify-{0}-windows-{1}.zip'
@@ -390,7 +389,13 @@ $xaml = @"
                                         <StackPanel Name="LyricsThemePanel" Orientation="Horizontal" Margin="28,4,0,0">
                                             <TextBlock Text="Theme:" Foreground="#FF71717a" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                             <ComboBox Name="CmbLyricsTheme" Width="140" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}" SelectedIndex="0">
-                                                <ComboBoxItem Content="spotify"/><ComboBoxItem Content="blueberry"/></ComboBox>
+                                                <ComboBoxItem Content="spotify"/><ComboBoxItem Content="blueberry"/><ComboBoxItem Content="blue"/><ComboBoxItem Content="discord"/>
+                                                <ComboBoxItem Content="forest"/><ComboBoxItem Content="fresh"/><ComboBoxItem Content="github"/><ComboBoxItem Content="lavender"/>
+                                                <ComboBoxItem Content="orange"/><ComboBoxItem Content="pumpkin"/><ComboBoxItem Content="purple"/><ComboBoxItem Content="red"/>
+                                                <ComboBoxItem Content="strawberry"/><ComboBoxItem Content="turquoise"/><ComboBoxItem Content="yellow"/><ComboBoxItem Content="oceano"/>
+                                                <ComboBoxItem Content="royal"/><ComboBoxItem Content="krux"/><ComboBoxItem Content="pinkle"/><ComboBoxItem Content="zing"/>
+                                                <ComboBoxItem Content="radium"/><ComboBoxItem Content="sandbar"/><ComboBoxItem Content="postlight"/><ComboBoxItem Content="relish"/>
+                                                <ComboBoxItem Content="drot"/><ComboBoxItem Content="default"/><ComboBoxItem Content="spotify#2"/></ComboBox>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,14,0,8"><Ellipse Width="5" Height="5" Fill="#FF22c55e" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBlock Text="UI EXPERIMENTS" Foreground="#FF52525b" FontSize="10" FontWeight="Bold"/></StackPanel>
                                         <CheckBox Name="ChkTopSearch" Content="Top search bar" Style="{StaticResource DarkCheckBox}" ToolTip="Move search bar to top of window"/>
@@ -398,6 +403,8 @@ $xaml = @"
                                         <CheckBox Name="ChkRightSidebarColor" Content="Right sidebar color matching" Style="{StaticResource DarkCheckBox}" ToolTip="Tint sidebar to match album cover"/>
                                         <CheckBox Name="ChkCanvasHomeOff" Content="Disable canvas on homepage" Style="{StaticResource DarkCheckBox}" ToolTip="Disable canvas artwork on the homepage"/>
                                         <CheckBox Name="ChkHomeSubOff" Content="Disable home subfeed chips" Style="{StaticResource DarkCheckBox}" ToolTip="Hide genre filter chips on home page"/>
+                                        <CheckBox Name="ChkOldLyrics" Content="Restore old lyrics UI" Style="{StaticResource DarkCheckBox}" ToolTip="Revert to previous lyrics interface"/>
+                                        <CheckBox Name="ChkHideColIconOff" Content="Show collaboration icons" Style="{StaticResource DarkCheckBox}" ToolTip="Keep collaboration icons visible in playlists"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,14,0,8"><Ellipse Width="5" Height="5" Fill="#FF22c55e" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBlock Text="SYSTEM" Foreground="#FF52525b" FontSize="10" FontWeight="Bold"/></StackPanel>
                                         <CheckBox Name="ChkDisableStartup" Content="Disable Spotify on Windows startup" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
                                         <CheckBox Name="ChkNoShortcut" Content="Don't create desktop shortcut" Style="{StaticResource DarkCheckBox}"/>
@@ -516,7 +523,7 @@ $ui = @{}
 @('LinkSpotX','LinkSpicetify','LinkGitHub','MinimizeBtn','CloseTitleBtn','PageConfig','PageInstall',
   'ModeEasy','ModeCustom','ModeMaint','PanelEasy','PanelCustom','PanelMaint','BtnInstall','LyricsThemePanel',
   'ChkNewTheme','ChkPodcastsOff','ChkAdSectionsOff','ChkBlockUpdate','ChkPremium','ChkLyrics','CmbLyricsTheme',
-  'ChkTopSearch','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHomeOff','ChkHomeSubOff',
+  'ChkTopSearch','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHomeOff','ChkHomeSubOff','ChkOldLyrics','ChkHideColIconOff',
   'ChkDisableStartup','ChkNoShortcut','TxtCacheLimit','CmbTheme','CmbScheme','ChkMarketplace',
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
@@ -543,8 +550,6 @@ foreach ($theme in $global:ThemeData.Keys) {
     $item = New-Object System.Windows.Controls.ComboBoxItem; $item.Content = $theme
     $item.Style = $window.FindResource("DarkComboBoxItem"); $ui['CmbTheme'].Items.Add($item) | Out-Null
 }
-$ui['CmbTheme'].SelectedIndex = 0
-
 $ui['CmbTheme'].Add_SelectionChanged({
     [void]$ui['CmbScheme'].Items.Clear()
     $sel = $ui['CmbTheme'].SelectedItem; if ($sel -eq $null) { return }
@@ -556,17 +561,8 @@ $ui['CmbTheme'].Add_SelectionChanged({
         }; $ui['CmbScheme'].SelectedIndex = 0
     }
 })
-
+# Trigger initial scheme population via SelectedIndex assignment
 $ui['CmbTheme'].SelectedIndex = 0
-if ($ui['CmbScheme'].Items.Count -eq 0 -and $ui['CmbTheme'].SelectedItem) {
-    $tn = $ui['CmbTheme'].SelectedItem.Content
-    if ($tn -and $global:ThemeData.Contains($tn)) {
-        foreach ($s in $global:ThemeData[$tn].Schemes) {
-            $i = New-Object System.Windows.Controls.ComboBoxItem; $i.Content = $s
-            $i.Style = $window.FindResource("DarkComboBoxItem"); $ui['CmbScheme'].Items.Add($i) | Out-Null
-        }; $ui['CmbScheme'].SelectedIndex = 0
-    }
-}
 
 $ui['ChkLyrics'].Add_Checked({   $ui['LyricsThemePanel'].Visibility = 'Visible' })
 $ui['ChkLyrics'].Add_Unchecked({ $ui['LyricsThemePanel'].Visibility = 'Collapsed' })
@@ -597,6 +593,8 @@ if ($savedCfg) { try {
     if ($savedCfg.ContainsKey('SpotX_RightSidebarClr')) { $ui['ChkRightSidebarColor'].IsChecked = [bool]$savedCfg.SpotX_RightSidebarClr }
     if ($savedCfg.ContainsKey('SpotX_CanvasHomeOff'))     { $ui['ChkCanvasHomeOff'].IsChecked   = [bool]$savedCfg.SpotX_CanvasHomeOff }
     if ($savedCfg.ContainsKey('SpotX_HomeSubOff'))      { $ui['ChkHomeSubOff'].IsChecked      = [bool]$savedCfg.SpotX_HomeSubOff }
+    if ($savedCfg.ContainsKey('SpotX_OldLyrics'))       { $ui['ChkOldLyrics'].IsChecked       = [bool]$savedCfg.SpotX_OldLyrics }
+    if ($savedCfg.ContainsKey('SpotX_HideColIconOff'))  { $ui['ChkHideColIconOff'].IsChecked  = [bool]$savedCfg.SpotX_HideColIconOff }
     if ($savedCfg.ContainsKey('Spicetify_Marketplace')){ $ui['ChkMarketplace'].IsChecked    = [bool]$savedCfg.Spicetify_Marketplace }
     if ($savedCfg.ContainsKey('CleanInstall'))         { $ui['ChkCleanInstall'].IsChecked   = [bool]$savedCfg.CleanInstall }
     if ($savedCfg.ContainsKey('LaunchAfter'))          { $ui['ChkLaunchAfter'].IsChecked    = [bool]$savedCfg.LaunchAfter }
@@ -661,6 +659,7 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
         SpotX_TopSearch=[bool]$ui['ChkTopSearch'].IsChecked
         SpotX_RightSidebarOff=[bool]$ui['ChkRightSidebarOff'].IsChecked; SpotX_RightSidebarClr=[bool]$ui['ChkRightSidebarColor'].IsChecked
         SpotX_CanvasHomeOff=[bool]$ui['ChkCanvasHomeOff'].IsChecked; SpotX_HomeSubOff=[bool]$ui['ChkHomeSubOff'].IsChecked
+        SpotX_OldLyrics=[bool]$ui['ChkOldLyrics'].IsChecked; SpotX_HideColIconOff=[bool]$ui['ChkHideColIconOff'].IsChecked
         SpotX_CacheLimit=$cacheVal
         Spicetify_Theme=$sTheme; Spicetify_Scheme=$sScheme
         Spicetify_Marketplace=[bool]$ui['ChkMarketplace'].IsChecked; Spicetify_Extensions=$exts
@@ -670,6 +669,8 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
 
 function Build-SpotXParams { param($Config)
     $p = @()
+    # Always auto-remove MS Store Spotify without prompt (prevents stdin hang)
+    $p += "-confirm_uninstall_ms_spoti"
     if ($Config.SpotX_NewTheme)        { $p += "-new_theme" }
     if ($Config.SpotX_PodcastsOff)     { $p += "-podcasts_off" } else { $p += "-podcasts_on" }
     if ($Config.SpotX_AdSectionsOff)   { $p += "-adsections_off" }
@@ -683,6 +684,8 @@ function Build-SpotXParams { param($Config)
     if ($Config.SpotX_RightSidebarClr) { $p += "-rightsidebarcolor" }
     if ($Config.SpotX_CanvasHomeOff)   { $p += "-canvashome_off" }
     if ($Config.SpotX_HomeSubOff)      { $p += "-homesub_off" }
+    if ($Config.SpotX_OldLyrics)       { $p += "-old_lyrics" }
+    if ($Config.SpotX_HideColIconOff)  { $p += "-hide_col_icon_off" }
     if ($Config.SpotX_CacheLimit -ge 500) { $p += "-cache_limit $($Config.SpotX_CacheLimit)" }
     return ($p -join " ")
 }
@@ -1275,65 +1278,6 @@ function Module-NukeSpotify {
 # =============================================================================
 # 15. INSTALL MODULES
 # =============================================================================
-function Module-PreInstallSpotify { param($SyncHash)
-    if (Test-Path $global:SPOTIFY_EXE_PATH) {
-        $ver = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
-        Write-Log "Spotify $ver already installed, skipping pre-install." -Level 'STEP'
-        return
-    }
-    Write-Log "Pre-installing Spotify via official installer..." -Level 'STEP'
-    $installer = Join-Path $global:TEMP_DIR "SpotifySetup.exe"
-    Download-FileSafe -Uri $global:URL_SPOTIFY_SETUP -OutFile $installer
-    Write-Log "Running SpotifySetup.exe (de-elevated via scheduled task)..."
-    if ($SyncHash) { $SyncHash.AllowSpotify = $true }
-    # Spotify's per-user installer refuses to run from admin context.
-    # Launch as the logged-in user via a temporary scheduled task.
-    $taskName = "LibreSpot_SpotifyInstall"
-    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -EA SilentlyContinue
-    $action = New-ScheduledTaskAction -Execute $installer -Argument "/silent"
-    $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
-    Register-ScheduledTask -TaskName $taskName -Action $action -Principal $principal -Force | Out-Null
-    Start-ScheduledTask -TaskName $taskName
-    Write-Log "Scheduled task launched. Waiting for Spotify installation..."
-    $timeout = 300; $waited = 0
-    # Poll for Spotify.exe to appear - the stub downloads and installs Spotify
-    while ($waited -lt $timeout) {
-        Hide-SpotifyWindows
-        if (Test-Path $global:SPOTIFY_EXE_PATH) {
-            # Spotify.exe exists - wait for install to finalize (file locks released)
-            Start-Sleep -Seconds 8
-            Write-Log "Spotify.exe detected."
-            break
-        }
-        # Check if any installer or Spotify processes are still running
-        $setupProcs = Get-Process -Name "SpotifySetup","SpotifyFullSetup","Spotify","SpotifyMigrator" -EA SilentlyContinue
-        if ($setupProcs) {
-            if ($waited % 15 -eq 0) { Write-Log "  Installer running: $($setupProcs.Name -join ', ')... (${waited}s)" }
-        } elseif ($waited -gt 90) {
-            Write-Log "No installer processes found after ${waited}s." -Level 'WARN'
-            break
-        }
-        Start-Sleep -Seconds 3; $waited += 3
-    }
-    if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
-        $spotDir = Split-Path $global:SPOTIFY_EXE_PATH
-        if (Test-Path $spotDir) {
-            $files = Get-ChildItem $spotDir -EA SilentlyContinue | Select-Object -First 15 -ExpandProperty Name
-            Write-Log "  Spotify dir contents: $($files -join ', ')" -Level 'WARN'
-        } else {
-            Write-Log "  Spotify directory does not exist: $spotDir" -Level 'WARN'
-        }
-        throw "Spotify.exe not found after official installer (waited ${waited}s). Check network connection and disk space."
-    }
-    # Cleanup scheduled task and kill Spotify if it auto-launched
-    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -EA SilentlyContinue
-    Stop-SpotifyProcesses -maxAttempts 3
-    if ($SyncHash) { $SyncHash.AllowSpotify = $false }
-    $ver = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
-    Write-Log "Spotify $ver installed successfully." -Level 'SUCCESS'
-    Remove-Item $installer -Force -EA SilentlyContinue
-}
-
 function Module-InstallSpotX { param($Config,$SyncHash)
     Write-Log "Installing SpotX v$($global:PinnedReleases.SpotX.Version)..." -Level 'STEP'
     $dest = Join-Path $global:TEMP_DIR "spotx_run.ps1"; Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
@@ -1359,7 +1303,8 @@ function Module-InstallSpotX { param($Config,$SyncHash)
         if (-not (Test-Path $elfDll)) {
             throw "Spotify installation is incomplete - chrome_elf.dll is missing. This usually means the Spotify download failed or was corrupted."
         }
-        Write-Log "Spotify patched successfully." -Level 'SUCCESS'
+        $patchedVer = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
+        Write-Log "Spotify $patchedVer patched successfully." -Level 'SUCCESS'
         Write-Log "Launching Spotify (hidden) to generate config files..."
         if (Test-Path $global:SPOTIFY_EXE_PATH) {
             $sp = Start-Process $global:SPOTIFY_EXE_PATH -WindowStyle Minimized -PassThru
@@ -1455,7 +1400,12 @@ function Module-ApplySpicetify { param($Config)
         & "$global:SPICETIFY_DIR\spicetify.exe" config inject_css 0 replace_colors 0 overwrite_assets 0 inject_theme_js 0 --bypass-admin
     }
     $proc = Start-Process -FilePath "$global:SPICETIFY_DIR\spicetify.exe" -ArgumentList "backup","apply","--bypass-admin" -NoNewWindow -PassThru -Wait
-    if ($proc.ExitCode -ne 0) { Write-Log "Apply exited with code $($proc.ExitCode)." -Level 'WARN' }
+    if ($proc.ExitCode -ne 0) {
+        Write-Log "Apply failed (code $($proc.ExitCode)). Rolling back to prevent blank screen..." -Level 'WARN'
+        $restoreProc = Start-Process -FilePath "$global:SPICETIFY_DIR\spicetify.exe" -ArgumentList "restore","--bypass-admin" -NoNewWindow -PassThru -Wait
+        if ($restoreProc.ExitCode -eq 0) { Write-Log "Spicetify restored to vanilla. Themes/extensions will not be active." -Level 'WARN' }
+        else { Write-Log "Restore also failed (code $($restoreProc.ExitCode)). Spotify may show a blank screen - use Maintenance > Full Reset." -Level 'WARN' }
+    }
     else { Write-Log "Spicetify applied successfully." }
     # Do NOT delete Backup folder - needed for spicetify restore
 }
@@ -1607,7 +1557,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Test-NetworkReady','Check-ForUpdates',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Remove-PathSafely',
-    'Module-NukeSpotify','Module-PreInstallSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
+    'Module-NukeSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
     'Module-InstallThemes','Module-InstallExtensions',
     'Module-InstallMarketplace','Module-ApplySpicetify',
     'Build-SpotXParams','Load-LibreSpotConfig'
@@ -1622,7 +1572,7 @@ foreach ($fname in $functionNamesForWorker) {
 }
 
 $varNamesForWorker = @(
-    'URL_SPOTX','URL_SPOTIFY_SETUP','URL_MARKETPLACE','URL_THEMES_REPO','URL_SPICETIFY_FMT','PinnedReleases',
+    'URL_SPOTX','URL_MARKETPLACE','URL_THEMES_REPO','URL_SPICETIFY_FMT','PinnedReleases',
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR',
     'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
