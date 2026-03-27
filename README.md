@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-3.0.6-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-3.1.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 
 </div>
 
@@ -51,7 +51,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 >
 > If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch.
 
-**Pinned dependency versions (v3.0.6):**
+**Pinned dependency versions (v3.1.0):**
 
 | Component | Pinned Version |
 |---|---|
@@ -84,6 +84,10 @@ The built-in 8-phase uninstaller handles every trace of Spotify and Spicetify:
 6. Scheduled task removal
 7. Firewall rule removal
 8. Verification sweep with retry
+
+### 27 Lyrics Color Themes
+
+Custom Install exposes all 27 SpotX static lyrics color options: spotify, blueberry, blue, discord, forest, fresh, github, lavender, orange, pumpkin, purple, red, strawberry, turquoise, yellow, oceano, royal, krux, pinkle, zing, radium, sandbar, postlight, relish, drot, default, and spotify#2.
 
 ### 16 Themes, 150+ Color Schemes
 
