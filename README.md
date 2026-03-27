@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-3.2.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-3.1.1-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 
 </div>
 
@@ -51,7 +51,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 >
 > If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch.
 
-**Pinned dependency versions (v3.2.0):**
+**Pinned dependency versions (v3.1.1):**
 
 | Component | Pinned Version |
 |---|---|
@@ -85,32 +85,13 @@ The built-in 8-phase uninstaller handles every trace of Spotify and Spicetify:
 7. Firewall rule removal
 8. Verification sweep with retry
 
-### 5 Custom Apps
-
-| App | Source | Description |
-|---|---|---|
-| Lyrics Plus | Spicetify built-in | Multi-provider synced lyrics (Musixmatch, Genius, LRCLIB, Netease) |
-| New Releases | Spicetify built-in | New albums from artists you follow |
-| Reddit | Spicetify built-in | Browse music subreddits directly in Spotify |
-| Statistics | [harbassan/spicetify-apps](https://github.com/harbassan/spicetify-apps) | Top artists, tracks, genres, library analysis |
-| Audio Visualizer | [Konsl/spicetify-visualizer](https://github.com/Konsl/spicetify-visualizer) | Real-time NCS-style audio spectrum visualizer |
-
-### 4 Extension Packs
-
-One-click presets that auto-select extension and app combinations:
-
-- **Essentials** — Core extensions + Lyrics Plus + New Releases
-- **Power User** — Everything in Essentials + Stats + Reddit + keyboard shortcuts
-- **Fun** — Everything + Visualizer + all extensions enabled
-- **Streamer** — Web Now Playing + Visualizer + Pop-up Lyrics (for OBS/Rainmeter)
-
 ### 27 Lyrics Color Themes
 
-Custom Install exposes all 27 SpotX static lyrics color options.
+Custom Install exposes all 27 SpotX static lyrics color options: spotify, blueberry, blue, discord, forest, fresh, github, lavender, orange, pumpkin, purple, red, strawberry, turquoise, yellow, oceano, royal, krux, pinkle, zing, radium, sandbar, postlight, relish, drot, default, and spotify#2.
 
 ### 16 Themes, 150+ Color Schemes
 
-Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntSienna, Default, Dreary, Flow, Matte, Nightlight, Onepunch, and SharkBlue — each with their full set of official color schemes. Or skip the theme and use the Marketplace to browse and install themes from within Spotify.
+Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntSienna, Default, Dreary, Flow, Matte, Nightlight, Onepunch, and SharkBlue — each with their full set of official color schemes. **Live theme previews** load inline when selecting a theme in Custom Install. Or skip the theme and use the Marketplace to browse and install themes from within Spotify.
 
 ### 10 Built-in Extensions
 

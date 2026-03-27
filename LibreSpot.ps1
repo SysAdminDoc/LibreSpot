@@ -50,7 +50,7 @@ public class Win32 {
 
 $ErrorActionPreference = 'Stop'
 
-$global:VERSION = '3.2.0'
+$global:VERSION = '3.1.1'
 
 # --- Pinned dependency versions with SHA256 verification ---
 # Update these when new versions are tested. Use Maintenance > Check for Updates.
@@ -76,12 +76,6 @@ $global:PinnedReleases = @{
     Themes = @{
         Commit  = '9af41cf91af6f6093c0e060d57264f08f6bb161c'
         SHA256  = 'fd55e443e88302dfd45e201f35ec67db5f51c4346b58fab5da90faf7b1a66f28'
-    }
-    # Third-party custom apps (installed to CustomApps/ directory)
-    AppVisualizer = @{
-        Url    = 'https://github.com/Konsl/spicetify-visualizer/archive/refs/heads/dist.zip'
-        Folder = 'visualizer'
-        Inner  = 'spicetify-visualizer-dist'
     }
 }
 
@@ -135,28 +129,20 @@ $global:ThemeData = [ordered]@{
                        Preview = @{ _default="text/screenshots/Spotify.png" } }
     "StarryNight" = @{ Schemes = @("Base","Cotton-candy","Forest","Galaxy","Orange","Sky","Sunrise")
                        Preview = @{ _default="StarryNight/images/base.png"; "Base"="StarryNight/images/base.png"; "Cotton-candy"="StarryNight/images/cotton-candy.png"; "Forest"="StarryNight/images/forest.png"; "Galaxy"="StarryNight/images/galaxy.png"; "Orange"="StarryNight/images/orange.png" } }
-    "Turntable"   = @{ Schemes = @("turntable")
-                       Preview = @{ _default="Turntable/screenshots/turntable.png" } }
-    "Blackout"    = @{ Schemes = @("def")
-                       Preview = @{ _default="Blackout/images/home.png" } }
-    "Blossom"     = @{ Schemes = @("dark")
-                       Preview = @{ _default="Blossom/images/home.png" } }
-    "BurntSienna" = @{ Schemes = @("Base")
-                       Preview = @{ _default="BurntSienna/screenshot.png" } }
-    "Default"     = @{ Schemes = @("Ocean")
-                       Preview = @{ _default="Default/ocean.png" } }
+    "Turntable"   = @{ Schemes = @("turntable"); Preview = @{ _default="Turntable/screenshots/turntable.png" } }
+    "Blackout"    = @{ Schemes = @("def"); Preview = @{ _default="Blackout/images/home.png" } }
+    "Blossom"     = @{ Schemes = @("dark"); Preview = @{ _default="Blossom/images/home.png" } }
+    "BurntSienna" = @{ Schemes = @("Base"); Preview = @{ _default="BurntSienna/screenshot.png" } }
+    "Default"     = @{ Schemes = @("Ocean"); Preview = @{ _default="Default/ocean.png" } }
     "Dreary"      = @{ Schemes = @("Psycho","Deeper","BIB","Mono","Golden","Graytone-Blue")
                        Preview = @{ _default="Dreary/deeper.png"; "Deeper"="Dreary/deeper.png"; "BIB"="Dreary/bib.png"; "Golden"="Dreary/golden.png" } }
     "Flow"        = @{ Schemes = @("Pink","Green","Silver","Violet","Ocean")
                        Preview = @{ _default="Flow/screenshots/ocean.png"; "Pink"="Flow/screenshots/pink.png"; "Silver"="Flow/screenshots/silver.png"; "Violet"="Flow/screenshots/violet.png"; "Ocean"="Flow/screenshots/ocean.png" } }
     "Matte"       = @{ Schemes = @("matte","periwinkle","periwinkle-dark","porcelain","rose-pine-moon","gray-dark1","gray-dark2","gray-dark3","gray","gray-light")
                        Preview = @{ _default="Matte/screenshots/ylx-gray-dark1.png" } }
-    "Nightlight"  = @{ Schemes = @("Nightlight Colors")
-                       Preview = @{ _default="Nightlight/screenshots/nightlight.png" } }
-    "Onepunch"    = @{ Schemes = @("dark","light","legacy")
-                       Preview = @{ _default="Onepunch/screenshots/dark_home.png"; "dark"="Onepunch/screenshots/dark_home.png" } }
-    "SharkBlue"   = @{ Schemes = @("Base")
-                       Preview = @{ _default="SharkBlue/screenshot.png" } }
+    "Nightlight"  = @{ Schemes = @("Nightlight Colors"); Preview = @{ _default="Nightlight/screenshots/nightlight.png" } }
+    "Onepunch"    = @{ Schemes = @("dark","light","legacy"); Preview = @{ _default="Onepunch/screenshots/dark_home.png" } }
+    "SharkBlue"   = @{ Schemes = @("Base"); Preview = @{ _default="SharkBlue/screenshot.png" } }
 }
 
 $global:BuiltInExtensions = [ordered]@{
@@ -179,28 +165,7 @@ $global:EasyDefaults = @{
     SpotX_CanvasHomeOff=$false; SpotX_HomeSubOff=$false; SpotX_DisableStartup=$true; SpotX_NoShortcut=$false; SpotX_CacheLimit=0
     Spicetify_Theme="(None - Marketplace Only)"; Spicetify_Scheme="Default"; Spicetify_Marketplace=$true
     Spicetify_Extensions=@("fullAppDisplay.js","shuffle+.js","trashbin.js")
-    App_NewReleases=$true; App_Reddit=$false; App_Visualizer=$false
     CleanInstall=$true; LaunchAfter=$true
-}
-
-# Extension pack presets (used by pack buttons in Custom Install)
-$global:ExtensionPacks = @{
-    Essentials = @{
-        Extensions = @("fullAppDisplay.js","shuffle+.js","trashbin.js","loopyLoop.js","bookmark.js")
-        Apps = @{ NewReleases=$true; Reddit=$false; Visualizer=$false }
-    }
-    PowerUser = @{
-        Extensions = @("fullAppDisplay.js","shuffle+.js","trashbin.js","keyboardShortcut.js","bookmark.js","loopyLoop.js","webnowplaying.js")
-        Apps = @{ NewReleases=$true; Reddit=$true; Visualizer=$false }
-    }
-    Fun = @{
-        Extensions = @("fullAppDisplay.js","shuffle+.js","trashbin.js","loopyLoop.js","popupLyrics.js")
-        Apps = @{ NewReleases=$true; Reddit=$true; Visualizer=$true }
-    }
-    Streamer = @{
-        Extensions = @("fullAppDisplay.js","shuffle+.js","webnowplaying.js","popupLyrics.js")
-        Apps = @{ NewReleases=$false; Reddit=$false; Visualizer=$true }
-    }
 }
 
 # =============================================================================
@@ -412,8 +377,6 @@ $xaml = @"
                                         <StackPanel Orientation="Horizontal" Margin="0,6"><Border Width="20" Height="20" CornerRadius="10" Background="#FF0a2618"><Path Data="M 5 9 L 8 12 L 14 5" Stroke="#FF22c55e" StrokeThickness="1.5" Margin="1,0,0,0"/></Border>
                                             <TextBlock Text="Extensions: Full App Display, Shuffle+, Trash Bin" Foreground="#FFd4d4d8" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/></StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,6"><Border Width="20" Height="20" CornerRadius="10" Background="#FF0a2618"><Path Data="M 5 9 L 8 12 L 14 5" Stroke="#FF22c55e" StrokeThickness="1.5" Margin="1,0,0,0"/></Border>
-                                            <TextBlock Text="New Releases custom app for album discovery" Foreground="#FFd4d4d8" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/></StackPanel>
-                                        <StackPanel Orientation="Horizontal" Margin="0,6"><Border Width="20" Height="20" CornerRadius="10" Background="#FF0a2618"><Path Data="M 5 9 L 8 12 L 14 5" Stroke="#FF22c55e" StrokeThickness="1.5" Margin="1,0,0,0"/></Border>
                                             <TextBlock Text="Lyrics with static theme enabled" Foreground="#FFd4d4d8" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/></StackPanel>
                                     </StackPanel></Border>
                                     <TextBlock Text="Removes any existing installation first." Foreground="#FF52525b" FontSize="10" HorizontalAlignment="Center" Margin="0,14,0,0"/>
@@ -486,27 +449,7 @@ $xaml = @"
                                         <CheckBox Name="ChkExt_autoSkipVideo" Content="Auto Skip Video" Style="{StaticResource DarkCheckBox}"/>
                                         <CheckBox Name="ChkExt_autoSkipExplicit" Content="Auto Skip Explicit" Style="{StaticResource DarkCheckBox}"/>
                                         <CheckBox Name="ChkExt_webNowPlaying" Content="Web Now Playing (Rainmeter)" Style="{StaticResource DarkCheckBox}"/>
-                                        <StackPanel Orientation="Horizontal" Margin="0,14,0,8"><Ellipse Width="5" Height="5" Fill="#FF3b82f6" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBlock Text="CUSTOM APPS" Foreground="#FF52525b" FontSize="10" FontWeight="Bold"/></StackPanel>
-                                        <CheckBox Name="ChkAppNewReleases" Content="New Releases (album discovery)" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="New albums from artists you follow"/>
-                                        <CheckBox Name="ChkAppReddit" Content="Reddit (music subreddits)" Style="{StaticResource DarkCheckBox}" ToolTip="Browse music subreddits directly in Spotify"/>
-                                        <CheckBox Name="ChkAppVisualizer" Content="Audio Visualizer (real-time)" Style="{StaticResource DarkCheckBox}" ToolTip="NCS-style audio spectrum visualizer synced to playback"/>
-                                        <StackPanel Orientation="Horizontal" Margin="0,14,0,8"><Ellipse Width="5" Height="5" Fill="#FFa855f7" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBlock Text="EXTENSION PACKS" Foreground="#FF52525b" FontSize="10" FontWeight="Bold"/></StackPanel>
-                                        <WrapPanel Margin="0,0,0,4">
-                                            <Button Name="BtnPackEssentials" Content="Essentials" Width="88" Height="26" FontSize="10" Cursor="Hand" Margin="0,0,4,4" Foreground="#FFd4d4d8" BorderThickness="0">
-                                                <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="#FF18181b" CornerRadius="5" BorderBrush="#FF27272a" BorderThickness="1"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                                    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="BorderBrush" Value="#FF22c55e"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
-                                            <Button Name="BtnPackPowerUser" Content="Power User" Width="88" Height="26" FontSize="10" Cursor="Hand" Margin="0,0,4,4" Foreground="#FFd4d4d8" BorderThickness="0">
-                                                <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="#FF18181b" CornerRadius="5" BorderBrush="#FF27272a" BorderThickness="1"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                                    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="BorderBrush" Value="#FF3b82f6"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
-                                            <Button Name="BtnPackFun" Content="Fun" Width="56" Height="26" FontSize="10" Cursor="Hand" Margin="0,0,4,4" Foreground="#FFd4d4d8" BorderThickness="0">
-                                                <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="#FF18181b" CornerRadius="5" BorderBrush="#FF27272a" BorderThickness="1"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                                    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="BorderBrush" Value="#FFa855f7"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
-                                            <Button Name="BtnPackStreamer" Content="Streamer" Width="76" Height="26" FontSize="10" Cursor="Hand" Margin="0,0,4,4" Foreground="#FFd4d4d8" BorderThickness="0">
-                                                <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="#FF18181b" CornerRadius="5" BorderBrush="#FF27272a" BorderThickness="1"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                                    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="BorderBrush" Value="#FFf59e0b"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
-                                        </WrapPanel>
-                                        <TextBlock Text="Packs auto-select extensions + apps above" Foreground="#FF52525b" FontSize="9" Margin="0,0,0,4"/>
-                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,8"><Ellipse Width="5" Height="5" Fill="#FF22c55e" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBlock Text="INSTALL OPTIONS" Foreground="#FF52525b" FontSize="10" FontWeight="Bold"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,14,0,8"><Ellipse Width="5" Height="5" Fill="#FF22c55e" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBlock Text="INSTALL OPTIONS" Foreground="#FF52525b" FontSize="10" FontWeight="Bold"/></StackPanel>
                                         <CheckBox Name="ChkCleanInstall" Content="Full clean install (remove existing)" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
                                         <CheckBox Name="ChkLaunchAfter" Content="Launch Spotify when finished" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
                                     </StackPanel>
@@ -599,8 +542,6 @@ $ui = @{}
   'ChkDisableStartup','ChkNoShortcut','TxtCacheLimit','CmbTheme','CmbScheme','PreviewBorder','ThemePreviewImg','PreviewLabel','ChkMarketplace',
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
-  'ChkAppNewReleases','ChkAppReddit','ChkAppVisualizer',
-  'BtnPackEssentials','BtnPackPowerUser','BtnPackFun','BtnPackStreamer',
   'ChkCleanInstall','ChkLaunchAfter',
   'StatusSpotify','StatusSpotX','StatusSpicetify','StatusMarketplace','StatusTheme',
   'BtnBackupConfig','BtnRestoreConfig','BtnCheckUpdates','BtnReapply','BtnSpicetifyRestore','BtnUninstallSpicetify','BtnFullReset',
@@ -638,13 +579,10 @@ function Update-ThemePreview {
     if (-not $imgPath) { $ui['PreviewBorder'].Visibility = 'Collapsed'; return }
     $url = "$global:THEMES_RAW_BASE/$imgPath"
     $ui['PreviewBorder'].Visibility = 'Visible'
-    # Check cache
     if ($script:previewCache.ContainsKey($url)) {
         $ui['ThemePreviewImg'].Source = $script:previewCache[$url]; $ui['PreviewLabel'].Visibility = 'Collapsed'; return
     }
-    # Show loading state
     $ui['ThemePreviewImg'].Source = $null; $ui['PreviewLabel'].Visibility = 'Visible'; $ui['PreviewLabel'].Text = 'Loading preview...'
-    # Async download
     $wc = New-Object System.Net.WebClient
     $wc.Headers.Add('User-Agent', "LibreSpot/$global:VERSION")
     $capturedUrl = $url
@@ -689,18 +627,6 @@ $premiumDependents = @('ChkPodcastsOff','ChkAdSectionsOff')
 $ui['ChkPremium'].Add_Checked({   foreach ($n in $premiumDependents) { $ui[$n].IsEnabled = $false; $ui[$n].Opacity = 0.4 } })
 $ui['ChkPremium'].Add_Unchecked({ foreach ($n in $premiumDependents) { $ui[$n].IsEnabled = $true;  $ui[$n].Opacity = 1.0 } })
 
-# Pack preset button handlers
-$appCheckboxMap = @{ NewReleases='ChkAppNewReleases'; Reddit='ChkAppReddit'; Visualizer='ChkAppVisualizer' }
-function Apply-Pack { param([string]$PackName)
-    $pack = $global:ExtensionPacks[$PackName]; if (-not $pack) { return }
-    foreach ($ck in $extCheckboxMap.Keys) { $ui[$ck].IsChecked = ($pack.Extensions -contains $extCheckboxMap[$ck]) }
-    foreach ($ak in $appCheckboxMap.Keys) { $ui[$appCheckboxMap[$ak]].IsChecked = [bool]$pack.Apps[$ak] }
-}
-$ui['BtnPackEssentials'].Add_Click({ Apply-Pack 'Essentials' })
-$ui['BtnPackPowerUser'].Add_Click({ Apply-Pack 'PowerUser' })
-$ui['BtnPackFun'].Add_Click({ Apply-Pack 'Fun' })
-$ui['BtnPackStreamer'].Add_Click({ Apply-Pack 'Streamer' })
-
 $savedCfg = Load-LibreSpotConfig
 if ($savedCfg) { try {
     if ($savedCfg.ContainsKey('SpotX_NewTheme'))       { $ui['ChkNewTheme'].IsChecked       = [bool]$savedCfg.SpotX_NewTheme }
@@ -723,9 +649,6 @@ if ($savedCfg) { try {
     if ($savedCfg.ContainsKey('SpotX_HomeSubOff'))      { $ui['ChkHomeSubOff'].IsChecked      = [bool]$savedCfg.SpotX_HomeSubOff }
     if ($savedCfg.ContainsKey('SpotX_OldLyrics'))       { $ui['ChkOldLyrics'].IsChecked       = [bool]$savedCfg.SpotX_OldLyrics }
     if ($savedCfg.ContainsKey('SpotX_HideColIconOff'))  { $ui['ChkHideColIconOff'].IsChecked  = [bool]$savedCfg.SpotX_HideColIconOff }
-    if ($savedCfg.ContainsKey('App_NewReleases'))     { $ui['ChkAppNewReleases'].IsChecked  = [bool]$savedCfg.App_NewReleases }
-    if ($savedCfg.ContainsKey('App_Reddit'))           { $ui['ChkAppReddit'].IsChecked       = [bool]$savedCfg.App_Reddit }
-    if ($savedCfg.ContainsKey('App_Visualizer'))       { $ui['ChkAppVisualizer'].IsChecked   = [bool]$savedCfg.App_Visualizer }
     if ($savedCfg.ContainsKey('Spicetify_Marketplace')){ $ui['ChkMarketplace'].IsChecked    = [bool]$savedCfg.Spicetify_Marketplace }
     if ($savedCfg.ContainsKey('CleanInstall'))         { $ui['ChkCleanInstall'].IsChecked   = [bool]$savedCfg.CleanInstall }
     if ($savedCfg.ContainsKey('LaunchAfter'))          { $ui['ChkLaunchAfter'].IsChecked    = [bool]$savedCfg.LaunchAfter }
@@ -794,8 +717,6 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
         SpotX_CacheLimit=$cacheVal
         Spicetify_Theme=$sTheme; Spicetify_Scheme=$sScheme
         Spicetify_Marketplace=[bool]$ui['ChkMarketplace'].IsChecked; Spicetify_Extensions=$exts
-        App_NewReleases=[bool]$ui['ChkAppNewReleases'].IsChecked
-        App_Reddit=[bool]$ui['ChkAppReddit'].IsChecked; App_Visualizer=[bool]$ui['ChkAppVisualizer'].IsChecked
     }
     return $c
 }
@@ -1527,47 +1448,6 @@ function Module-InstallMarketplace { param($Config)
     $out = & "$global:SPICETIFY_DIR\spicetify.exe" config custom_apps marketplace --bypass-admin 2>&1; if ($out) { Write-Log "  $($out -join ' ')" }; Write-Log "Marketplace enabled."
 }
 
-function Module-InstallCustomApps { param($Config)
-    $sExe = Join-Path $global:SPICETIFY_DIR "spicetify.exe"
-    $caDir = Join-Path $global:SPICETIFY_CONFIG_DIR "CustomApps"
-    if (-not (Test-Path $caDir)) { New-Item -Path $caDir -ItemType Directory -Force | Out-Null }
-    $installed = @()
-
-    # Built-in custom apps (ship with Spicetify CLI, just enable them)
-    $builtIn = @()
-    if ($Config.App_NewReleases) { $builtIn += 'new-releases' }
-    if ($Config.App_Reddit)      { $builtIn += 'reddit' }
-    if ($builtIn.Count -gt 0) {
-        Write-Log "Enabling built-in custom apps: $($builtIn -join ', ')..." -Level 'STEP'
-        foreach ($app in $builtIn) {
-            $out = & $sExe config custom_apps $app --bypass-admin 2>&1; if ($out) { Write-Log "  $($out -join ' ')" }
-            $installed += $app; Write-Log "Enabled: $app"
-        }
-    }
-
-    # Third-party: Audio Visualizer (Konsl/spicetify-visualizer)
-    if ($Config.App_Visualizer) {
-        Write-Log "Installing Audio Visualizer custom app..." -Level 'STEP'
-        $info = $global:PinnedReleases.AppVisualizer
-        $zp = Join-Path $global:TEMP_DIR "viz_app.zip"; $dest = Join-Path $caDir $info.Folder
-        Download-FileSafe -Uri $info.Url -OutFile $zp
-        if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
-        $tmp = Join-Path $global:TEMP_DIR "viz_unpack"
-        if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($zp, $tmp)
-        # Visualizer dist zip extracts to spicetify-visualizer-dist/
-        $inner = Join-Path $tmp $info.Inner
-        if (Test-Path $inner) { Move-Item $inner -Destination $dest -Force }
-        else { New-Item -Path $dest -ItemType Directory -Force | Out-Null; Copy-Item (Join-Path $tmp "*") -Destination $dest -Recurse -Force }
-        Remove-Item $zp -Force -EA SilentlyContinue; Remove-Item $tmp -Recurse -Force -EA SilentlyContinue
-        $out = & $sExe config custom_apps $info.Folder --bypass-admin 2>&1; if ($out) { Write-Log "  $($out -join ' ')" }
-        $installed += 'visualizer'; Write-Log "Audio Visualizer app installed."
-    }
-
-    if ($installed.Count -eq 0) { Write-Log "No custom apps selected." }
-    else { Write-Log "$($installed.Count) custom app(s) configured: $($installed -join ', ')" -Level 'SUCCESS' }
-}
-
 function Module-ApplySpicetify { param($Config)
     Write-Log "Applying Spicetify (backup + apply)..." -Level 'STEP'
     if ($Config.Spicetify_Theme -eq '(None - Marketplace Only)') {
@@ -1622,7 +1502,7 @@ $installBlock = { param($sh,$cfg)
     $ErrorActionPreference = 'Stop'
     try {
         Write-Log "--- LibreSpot Installation Started ---" -Level 'HEADER'; Write-Log "Mode: $($cfg.Mode)"
-        $steps = @('SpotX','SpicetifyCLI','Themes','Extensions','Marketplace','CustomApps','Apply')
+        $steps = @('SpotX','SpicetifyCLI','Themes','Extensions','Marketplace','Apply')
         if ($cfg.CleanInstall) { $steps = @('Cleanup') + $steps }
         $total = $steps.Count; $n = 0
         foreach ($s in $steps) { $n++
@@ -1634,7 +1514,6 @@ $installBlock = { param($sh,$cfg)
                 'Themes'       { Module-InstallThemes -Config $cfg }
                 'Extensions'   { Module-InstallExtensions -Config $cfg }
                 'Marketplace'  { Module-InstallMarketplace -Config $cfg }
-                'CustomApps'   { Module-InstallCustomApps -Config $cfg }
                 'Apply'        { Module-ApplySpicetify -Config $cfg }
             }
         }
@@ -1734,7 +1613,7 @@ $functionNamesForWorker = @(
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Remove-PathSafely',
     'Module-NukeSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
     'Module-InstallThemes','Module-InstallExtensions',
-    'Module-InstallMarketplace','Module-InstallCustomApps','Module-ApplySpicetify',
+    'Module-InstallMarketplace','Module-ApplySpicetify',
     'Build-SpotXParams','Load-LibreSpotConfig'
 )
 
@@ -1751,7 +1630,7 @@ $varNamesForWorker = @(
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR',
     'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
-    'EasyDefaults','ExtensionPacks','VERSION'
+    'EasyDefaults','VERSION'
 )
 foreach ($vname in $varNamesForWorker) {
     $val = (Get-Variable -Name $vname -Scope Global -ErrorAction Stop).Value
