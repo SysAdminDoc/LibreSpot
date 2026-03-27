@@ -126,24 +126,41 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 # =============================================================================
 # 3. DATA
 # =============================================================================
+$global:THEMES_RAW_BASE = "https://raw.githubusercontent.com/spicetify/spicetify-themes/$($global:PinnedReleases.Themes.Commit)"
 $global:ThemeData = [ordered]@{
-    "(None - Marketplace Only)" = @{ Schemes = @("Default") }
-    "Sleek"       = @{ Schemes = @("Wealthy","Cherry","Coral","Deep","Greener","Deeper","Psycho","UltraBlack","Nord","Futura","Elementary","BladeRunner","Dracula","VantaBlack","RosePine","Eldritch","Catppuccin","AyuDark","TokyoNight") }
-    "Dribbblish"  = @{ Schemes = @("base","white","dark","dracula","nord-light","nord-dark","purple","samurai","beach-sunset","gruvbox","gruvbox-material-dark","rosepine","lunar","catppuccin-latte","catppuccin-frappe","catppuccin-macchiato","catppuccin-mocha","tokyo-night","kanagawa") }
-    "Ziro"        = @{ Schemes = @("blue-dark","blue-light","gray-dark","gray-light","green-dark","green-light","orange-dark","orange-light","purple-dark","purple-light","red-dark","red-light","rose-pine","rose-pine-moon","rose-pine-dawn","tokyo-night") }
-    "text"        = @{ Schemes = @("Spotify","Spicetify","CatppuccinMocha","CatppuccinMacchiato","CatppuccinLatte","Dracula","Gruvbox","Kanagawa","Nord","Rigel","RosePine","RosePineMoon","RosePineDawn","Solarized","TokyoNight","TokyoNightStorm","ForestGreen","EverforestDarkHard","EverforestDarkMedium","EverforestDarkSoft") }
-    "StarryNight" = @{ Schemes = @("Base","Cotton-candy","Forest","Galaxy","Orange","Sky","Sunrise") }
-    "Turntable"   = @{ Schemes = @("turntable") }
-    "Blackout"    = @{ Schemes = @("def") }
-    "Blossom"     = @{ Schemes = @("dark") }
-    "BurntSienna" = @{ Schemes = @("Base") }
-    "Default"     = @{ Schemes = @("Ocean") }
-    "Dreary"      = @{ Schemes = @("Psycho","Deeper","BIB","Mono","Golden","Graytone-Blue") }
-    "Flow"        = @{ Schemes = @("Pink","Green","Silver","Violet","Ocean") }
-    "Matte"       = @{ Schemes = @("matte","periwinkle","periwinkle-dark","porcelain","rose-pine-moon","gray-dark1","gray-dark2","gray-dark3","gray","gray-light") }
-    "Nightlight"  = @{ Schemes = @("Nightlight Colors") }
-    "Onepunch"    = @{ Schemes = @("dark","light","legacy") }
-    "SharkBlue"   = @{ Schemes = @("Base") }
+    "(None - Marketplace Only)" = @{ Schemes = @("Default"); Preview = @{} }
+    "Sleek"       = @{ Schemes = @("Wealthy","Cherry","Coral","Deep","Greener","Deeper","Psycho","UltraBlack","Nord","Futura","Elementary","BladeRunner","Dracula","VantaBlack","RosePine","Eldritch","Catppuccin","AyuDark","TokyoNight")
+                       Preview = @{ _default="Sleek/catppuccin.png"; "BladeRunner"="Sleek/bladerunner.png"; "AyuDark"="Sleek/ayudark.png"; "Catppuccin"="Sleek/catppuccin.png" } }
+    "Dribbblish"  = @{ Schemes = @("base","white","dark","dracula","nord-light","nord-dark","purple","samurai","beach-sunset","gruvbox","gruvbox-material-dark","rosepine","lunar","catppuccin-latte","catppuccin-frappe","catppuccin-macchiato","catppuccin-mocha","tokyo-night","kanagawa")
+                       Preview = @{ _default="Dribbblish/base.png"; "base"="Dribbblish/base.png"; "beach-sunset"="Dribbblish/beach-sunset.png"; "catppuccin-frappe"="Dribbblish/catppuccin-frappe.png" } }
+    "Ziro"        = @{ Schemes = @("blue-dark","blue-light","gray-dark","gray-light","green-dark","green-light","orange-dark","orange-light","purple-dark","purple-light","red-dark","red-light","rose-pine","rose-pine-moon","rose-pine-dawn","tokyo-night")
+                       Preview = @{ _default="Ziro/screenshots/rose-pine.jpg"; "rose-pine"="Ziro/screenshots/rose-pine.jpg"; "rose-pine-moon"="Ziro/screenshots/rose-pine-moon.jpg"; "rose-pine-dawn"="Ziro/screenshots/rose-pine-dawn.jpg" } }
+    "text"        = @{ Schemes = @("Spotify","Spicetify","CatppuccinMocha","CatppuccinMacchiato","CatppuccinLatte","Dracula","Gruvbox","Kanagawa","Nord","Rigel","RosePine","RosePineMoon","RosePineDawn","Solarized","TokyoNight","TokyoNightStorm","ForestGreen","EverforestDarkHard","EverforestDarkMedium","EverforestDarkSoft")
+                       Preview = @{ _default="text/screenshots/Spotify.png" } }
+    "StarryNight" = @{ Schemes = @("Base","Cotton-candy","Forest","Galaxy","Orange","Sky","Sunrise")
+                       Preview = @{ _default="StarryNight/images/base.png"; "Base"="StarryNight/images/base.png"; "Cotton-candy"="StarryNight/images/cotton-candy.png"; "Forest"="StarryNight/images/forest.png"; "Galaxy"="StarryNight/images/galaxy.png"; "Orange"="StarryNight/images/orange.png" } }
+    "Turntable"   = @{ Schemes = @("turntable")
+                       Preview = @{ _default="Turntable/screenshots/turntable.png" } }
+    "Blackout"    = @{ Schemes = @("def")
+                       Preview = @{ _default="Blackout/images/home.png" } }
+    "Blossom"     = @{ Schemes = @("dark")
+                       Preview = @{ _default="Blossom/images/home.png" } }
+    "BurntSienna" = @{ Schemes = @("Base")
+                       Preview = @{ _default="BurntSienna/screenshot.png" } }
+    "Default"     = @{ Schemes = @("Ocean")
+                       Preview = @{ _default="Default/ocean.png" } }
+    "Dreary"      = @{ Schemes = @("Psycho","Deeper","BIB","Mono","Golden","Graytone-Blue")
+                       Preview = @{ _default="Dreary/deeper.png"; "Deeper"="Dreary/deeper.png"; "BIB"="Dreary/bib.png"; "Golden"="Dreary/golden.png" } }
+    "Flow"        = @{ Schemes = @("Pink","Green","Silver","Violet","Ocean")
+                       Preview = @{ _default="Flow/screenshots/ocean.png"; "Pink"="Flow/screenshots/pink.png"; "Silver"="Flow/screenshots/silver.png"; "Violet"="Flow/screenshots/violet.png"; "Ocean"="Flow/screenshots/ocean.png" } }
+    "Matte"       = @{ Schemes = @("matte","periwinkle","periwinkle-dark","porcelain","rose-pine-moon","gray-dark1","gray-dark2","gray-dark3","gray","gray-light")
+                       Preview = @{ _default="Matte/screenshots/ylx-gray-dark1.png" } }
+    "Nightlight"  = @{ Schemes = @("Nightlight Colors")
+                       Preview = @{ _default="Nightlight/screenshots/nightlight.png" } }
+    "Onepunch"    = @{ Schemes = @("dark","light","legacy")
+                       Preview = @{ _default="Onepunch/screenshots/dark_home.png"; "dark"="Onepunch/screenshots/dark_home.png" } }
+    "SharkBlue"   = @{ Schemes = @("Base")
+                       Preview = @{ _default="SharkBlue/screenshot.png" } }
 }
 
 $global:BuiltInExtensions = [ordered]@{
@@ -454,6 +471,12 @@ $xaml = @"
                                             <ComboBox Name="CmbTheme" Width="200" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}"/></StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6"><TextBlock Text="Color Scheme:" Foreground="#FF71717a" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                             <ComboBox Name="CmbScheme" Width="180" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}"/></StackPanel>
+                                        <Border Name="PreviewBorder" CornerRadius="8" Background="#FF0d0d10" BorderBrush="#FF1a1a1e" BorderThickness="1" Margin="0,8,0,0" MaxHeight="140" Visibility="Collapsed" ClipToBounds="True">
+                                            <Grid>
+                                                <Image Name="ThemePreviewImg" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                <TextBlock Name="PreviewLabel" Text="Loading preview..." Foreground="#FF52525b" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                            </Grid>
+                                        </Border>
                                         <StackPanel Orientation="Horizontal" Margin="0,14,0,8"><Ellipse Width="5" Height="5" Fill="#FF22c55e" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBlock Text="MARKETPLACE" Foreground="#FF52525b" FontSize="10" FontWeight="Bold"/></StackPanel>
                                         <CheckBox Name="ChkMarketplace" Content="Install Spicetify Marketplace" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="In-app store for themes and extensions"/>
                                         <TextBlock Text="Browse and install themes/extensions from within Spotify" Foreground="#FF52525b" FontSize="10" Margin="28,2,0,0"/>
@@ -580,7 +603,7 @@ $ui = @{}
   'ModeEasy','ModeCustom','ModeMaint','PanelEasy','PanelCustom','PanelMaint','BtnInstall','LyricsThemePanel',
   'ChkNewTheme','ChkPodcastsOff','ChkAdSectionsOff','ChkBlockUpdate','ChkPremium','ChkLyrics','CmbLyricsTheme',
   'ChkTopSearch','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHomeOff','ChkHomeSubOff','ChkOldLyrics','ChkHideColIconOff',
-  'ChkDisableStartup','ChkNoShortcut','TxtCacheLimit','CmbTheme','CmbScheme','ChkMarketplace',
+  'ChkDisableStartup','ChkNoShortcut','TxtCacheLimit','CmbTheme','CmbScheme','PreviewBorder','ThemePreviewImg','PreviewLabel','ChkMarketplace',
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
   'ChkAppLyricsPlus','ChkAppNewReleases','ChkAppReddit','ChkAppStats','ChkAppVisualizer',
@@ -608,6 +631,46 @@ foreach ($theme in $global:ThemeData.Keys) {
     $item = New-Object System.Windows.Controls.ComboBoxItem; $item.Content = $theme
     $item.Style = $window.FindResource("DarkComboBoxItem"); $ui['CmbTheme'].Items.Add($item) | Out-Null
 }
+# Theme preview image cache and loader
+$script:previewCache = @{}
+function Update-ThemePreview {
+    $themeName = if ($ui['CmbTheme'].SelectedItem) { $ui['CmbTheme'].SelectedItem.Content } else { $null }
+    $schemeName = if ($ui['CmbScheme'].SelectedItem) { $ui['CmbScheme'].SelectedItem.Content } else { $null }
+    if (-not $themeName -or $themeName -eq '(None - Marketplace Only)') {
+        $ui['PreviewBorder'].Visibility = 'Collapsed'; return
+    }
+    $td = $global:ThemeData[$themeName]; if (-not $td -or -not $td.Preview -or $td.Preview.Count -eq 0) { $ui['PreviewBorder'].Visibility = 'Collapsed'; return }
+    $imgPath = if ($schemeName -and $td.Preview.ContainsKey($schemeName)) { $td.Preview[$schemeName] }
+               elseif ($td.Preview.ContainsKey('_default')) { $td.Preview['_default'] } else { $null }
+    if (-not $imgPath) { $ui['PreviewBorder'].Visibility = 'Collapsed'; return }
+    $url = "$global:THEMES_RAW_BASE/$imgPath"
+    $ui['PreviewBorder'].Visibility = 'Visible'
+    # Check cache
+    if ($script:previewCache.ContainsKey($url)) {
+        $ui['ThemePreviewImg'].Source = $script:previewCache[$url]; $ui['PreviewLabel'].Visibility = 'Collapsed'; return
+    }
+    # Show loading state
+    $ui['ThemePreviewImg'].Source = $null; $ui['PreviewLabel'].Visibility = 'Visible'; $ui['PreviewLabel'].Text = 'Loading preview...'
+    # Async download
+    $wc = New-Object System.Net.WebClient
+    $wc.Headers.Add('User-Agent', "LibreSpot/$global:VERSION")
+    $capturedUrl = $url
+    $wc.Add_DownloadDataCompleted({
+        param($sender, $e)
+        $window.Dispatcher.Invoke([Action]{
+            try {
+                if ($e.Error) { $ui['PreviewLabel'].Text = 'Preview unavailable'; return }
+                $ms = New-Object System.IO.MemoryStream(,$e.Result)
+                $bmp = New-Object System.Windows.Media.Imaging.BitmapImage
+                $bmp.BeginInit(); $bmp.StreamSource = $ms; $bmp.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad; $bmp.EndInit(); $bmp.Freeze()
+                $script:previewCache[$capturedUrl] = $bmp
+                $ui['ThemePreviewImg'].Source = $bmp; $ui['PreviewLabel'].Visibility = 'Collapsed'
+            } catch { $ui['PreviewLabel'].Text = 'Preview unavailable' }
+        })
+    })
+    try { $wc.DownloadDataAsync([Uri]$url) } catch { $ui['PreviewLabel'].Text = 'Preview unavailable' }
+}
+
 $ui['CmbTheme'].Add_SelectionChanged({
     [void]$ui['CmbScheme'].Items.Clear()
     $sel = $ui['CmbTheme'].SelectedItem; if ($sel -eq $null) { return }
@@ -618,7 +681,9 @@ $ui['CmbTheme'].Add_SelectionChanged({
             $i.Style = $window.FindResource("DarkComboBoxItem"); $ui['CmbScheme'].Items.Add($i) | Out-Null
         }; $ui['CmbScheme'].SelectedIndex = 0
     }
+    Update-ThemePreview
 })
+$ui['CmbScheme'].Add_SelectionChanged({ Update-ThemePreview })
 # Trigger initial scheme population via SelectedIndex assignment
 $ui['CmbTheme'].SelectedIndex = 0
 
