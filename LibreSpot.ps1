@@ -519,12 +519,12 @@ $xaml = @"
         </ControlTemplate>
         <!-- ComboBox -->
         <Style x:Key="DarkComboBox" TargetType="ComboBox">
-            <Setter Property="Foreground" Value="#FFF8FAFC"/><Setter Property="Background" Value="#FF0c131c"/><Setter Property="Height" Value="36"/><Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Foreground" Value="#FFF8FAFC"/><Setter Property="Background" Value="#FF0d151f"/><Setter Property="Height" Value="40"/><Setter Property="FontSize" Value="12.75"/><Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox"><Grid>
                 <ToggleButton Template="{StaticResource DarkComboBoxToggle}" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" Focusable="False" ClickMode="Press"/>
                 <ContentPresenter IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}" Margin="12,0,34,0" VerticalAlignment="Center" HorizontalAlignment="Left"/>
                 <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" Focusable="False" AllowsTransparency="True">
-                    <Border Background="#FF091019" BorderBrush="#FF32465b" BorderThickness="1" CornerRadius="10" MaxHeight="320" Margin="0,6,0,0">
+                    <Border Background="#FF091019" BorderBrush="#FF32465b" BorderThickness="1" CornerRadius="12" MaxHeight="320" Margin="0,8,0,0">
                         <Border.Effect><DropShadowEffect BlurRadius="24" ShadowDepth="6" Opacity="0.42" Direction="270"/></Border.Effect>
                         <ScrollViewer><StackPanel IsItemsHost="True"/></ScrollViewer></Border>
                 </Popup>
@@ -544,34 +544,36 @@ $xaml = @"
         </Style>
         <!-- CheckBox -->
         <Style x:Key="DarkCheckBox" TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#FFE2E8F0"/><Setter Property="FontSize" Value="12.5"/><Setter Property="Margin" Value="0,8,0,0"/><Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="#FFE2E8F0"/><Setter Property="FontSize" Value="12.5"/><Setter Property="Margin" Value="0,8,0,0"/><Setter Property="Cursor" Value="Hand"/><Setter Property="MinHeight" Value="24"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox"><StackPanel Orientation="Horizontal">
-                <Border x:Name="box" Width="20" Height="20" CornerRadius="6" Background="#FF0c131c" BorderBrush="#FF334155" BorderThickness="1.5" Margin="0,0,12,0">
+                <Border x:Name="box" Width="20" Height="20" CornerRadius="6" Background="#FF0d151f" BorderBrush="#FF334155" BorderThickness="1.5" Margin="0,0,12,0">
                     <Path x:Name="check" Data="M 4 10 L 8 14 L 15 5" Stroke="#FF4ade80" StrokeThickness="2.1" Visibility="Collapsed" Margin="0.5,0.5,0,0"/></Border>
                 <ContentPresenter VerticalAlignment="Center"/>
             </StackPanel><ControlTemplate.Triggers>
                 <Trigger Property="IsChecked" Value="True"><Setter TargetName="check" Property="Visibility" Value="Visible"/><Setter TargetName="box" Property="Background" Value="#FF0c2018"/><Setter TargetName="box" Property="BorderBrush" Value="#FF4ade80"/></Trigger>
                 <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="box" Property="BorderBrush" Value="#FF64748b"/></Trigger>
                 <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="box" Property="BorderBrush" Value="#FF86efac"/></Trigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.52"/></Trigger>
             </ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
         </Style>
         <!-- TextBox -->
         <Style x:Key="DarkTextBox" TargetType="TextBox">
-            <Setter Property="Foreground" Value="#FFF8FAFC"/><Setter Property="Background" Value="#FF0c131c"/><Setter Property="BorderBrush" Value="#FF223042"/><Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="FontSize" Value="12.5"/><Setter Property="Padding" Value="10,6"/><Setter Property="Height" Value="36"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="CaretBrush" Value="#FF4ade80"/>
+            <Setter Property="Foreground" Value="#FFF8FAFC"/><Setter Property="Background" Value="#FF0d151f"/><Setter Property="BorderBrush" Value="#FF253548"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="12.75"/><Setter Property="Padding" Value="10,6"/><Setter Property="Height" Value="40"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="CaretBrush" Value="#FF4ade80"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#FF3b4d63"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#FF4ade80"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.45"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
         </Style>
         <!-- Action Button -->
         <Style x:Key="ActionButton" TargetType="Button">
-            <Setter Property="Height" Value="42"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontSize" Value="13.5"/><Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Foreground" Value="#FFF8FAFC"/><Setter Property="BorderThickness" Value="1"/><Setter Property="BorderBrush" Value="#FF2b3b4e"/>
+            <Setter Property="Height" Value="44"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontSize" Value="13.5"/><Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="#FFF8FAFC"/><Setter Property="BorderThickness" Value="1"/><Setter Property="BorderBrush" Value="#FF304458"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-                <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="10" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="22,0">
+                <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="12" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="22,0">
                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="border" Property="Opacity" Value="0.95"/><Setter TargetName="border" Property="BorderBrush" Value="#FF4b6078"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="border" Property="BorderBrush" Value="#FF86efac"/></Trigger>
-                    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="border" Property="Opacity" Value="0.35"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="border" Property="Opacity" Value="0.97"/><Setter TargetName="border" Property="BorderBrush" Value="#FF5b738c"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="border" Property="BorderBrush" Value="#FFBAE6FD"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="border" Property="Opacity" Value="0.88"/></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="border" Property="Opacity" Value="0.38"/></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
@@ -579,26 +581,26 @@ $xaml = @"
         <Style x:Key="ModeRadio" TargetType="RadioButton">
             <Setter Property="Foreground" Value="#FF94a3b8"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Margin" Value="0,0,10,0"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RadioButton">
-                <Grid><Border x:Name="bd" Background="#140c131c" CornerRadius="12" BorderBrush="#1c2938" BorderThickness="1" Padding="18,10">
+                <Grid><Border x:Name="bd" Background="#140c131c" CornerRadius="12" BorderBrush="#1c2938" BorderThickness="1" Padding="20,11">
                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></Grid>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsChecked" Value="True"><Setter TargetName="bd" Property="Background" Value="#FF122030"/><Setter Property="Foreground" Value="#FFF8FAFC"/><Setter TargetName="bd" Property="BorderBrush" Value="#FF28583e"/></Trigger>
+                    <Trigger Property="IsChecked" Value="True"><Setter TargetName="bd" Property="Background" Value="#FF101925"/><Setter Property="Foreground" Value="#FFF8FAFC"/><Setter TargetName="bd" Property="BorderBrush" Value="#FF2f5e84"/></Trigger>
                     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#FF0f1823"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="#FF86efac"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="#FFBAE6FD"/></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
         <!-- Maintenance Button -->
         <Style x:Key="MaintButton" TargetType="Button">
-            <Setter Property="MinHeight" Value="78"/><Setter Property="Background" Value="#FF0b1118"/><Setter Property="Foreground" Value="#FFF8FAFC"/><Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontWeight" Value="Normal"/><Setter Property="Cursor" Value="Hand"/><Setter Property="BorderThickness" Value="1"/><Setter Property="BorderBrush" Value="#FF2a5038"/><Setter Property="Margin" Value="0,8,0,0"/>
+            <Setter Property="MinHeight" Value="78"/><Setter Property="Background" Value="#FF0d141d"/><Setter Property="Foreground" Value="#FFF8FAFC"/><Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Normal"/><Setter Property="Cursor" Value="Hand"/><Setter Property="BorderThickness" Value="1"/><Setter Property="BorderBrush" Value="#FF294d61"/><Setter Property="Margin" Value="0,8,0,0"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
                 <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="14" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"><Grid>
                     <Rectangle x:Name="accent" Fill="{TemplateBinding BorderBrush}" Width="4" HorizontalAlignment="Left" RadiusX="2" RadiusY="2" Margin="10,16" Opacity="0.6"/>
                     <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="24,18,20,18"/></Grid></Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="border" Property="Background" Value="#FF111a24"/><Setter TargetName="border" Property="BorderBrush" Value="#FF3d6e4d"/><Setter TargetName="accent" Property="Opacity" Value="1"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="border" Property="BorderBrush" Value="#FF86efac"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="border" Property="Background" Value="#FF121b25"/><Setter TargetName="border" Property="BorderBrush" Value="#FF3f708d"/><Setter TargetName="accent" Property="Opacity" Value="1"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="border" Property="BorderBrush" Value="#FFBAE6FD"/></Trigger>
                     <Trigger Property="IsEnabled" Value="False"><Setter TargetName="border" Property="Opacity" Value="0.36"/></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
@@ -607,7 +609,13 @@ $xaml = @"
             <Setter Property="Background" Value="#FF150d11"/><Setter Property="BorderBrush" Value="#FF7f1d1d"/><Setter Property="Foreground" Value="#FFFFF1F2"/>
         </Style>
         <Style x:Key="SurfaceCard" TargetType="Border">
-            <Setter Property="Background" Value="#FF0a1119"/><Setter Property="BorderBrush" Value="#FF182331"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="14"/><Setter Property="Padding" Value="18"/>
+            <Setter Property="Background" Value="#FF0b131c"/><Setter Property="BorderBrush" Value="#FF1b2a38"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="16"/><Setter Property="Padding" Value="18"/>
+        </Style>
+        <Style x:Key="InsetPanel" TargetType="Border">
+            <Setter Property="Background" Value="#FF091019"/><Setter Property="BorderBrush" Value="#FF1a2634"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="14"/><Setter Property="Padding" Value="16"/>
+        </Style>
+        <Style x:Key="StatusCard" TargetType="Border" BasedOn="{StaticResource SurfaceCard}">
+            <Setter Property="Padding" Value="16"/>
         </Style>
         <!-- Tooltip -->
         <Style TargetType="ToolTip">
@@ -743,98 +751,165 @@ $xaml = @"
 
                                 <!-- ===== CUSTOM PANEL ===== -->
                                 <ScrollViewer Name="PanelCustom" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"><StackPanel Margin="4,6,4,0">
-                                    <TextBlock Text="Custom install, dialed in" Foreground="#FFF8FAFC" FontSize="21" FontWeight="Bold"/>
-                                    <TextBlock Text="Choose exactly how much cleanup, theming, Marketplace support, and extension prep you want before Spotify opens." Foreground="#FF94A3B8" FontSize="12.5" Margin="0,8,0,18" TextWrapping="Wrap"/>
+                                    <Grid Margin="0,0,0,18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="Custom install, dialed in" Foreground="#FFF8FAFC" FontSize="21" FontWeight="Bold"/>
+                                            <TextBlock Text="Choose exactly how much cleanup, theming, Marketplace support, and extension prep you want before Spotify opens." Foreground="#FF94A3B8" FontSize="12.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Name="BtnResetCustomDefaults" Content="Load recommended defaults" Background="#FF0b1118" Style="{StaticResource ActionButton}" Width="192" Height="40" Margin="18,2,0,0" VerticalAlignment="Top" ToolTip="Apply the Easy Install defaults here so you can keep customizing from a known-good baseline."/>
+                                    </Grid>
+                                    <Border Style="{StaticResource SurfaceCard}" Margin="0,0,0,18">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" Style="{StaticResource InsetPanel}">
+                                                <StackPanel>
+                                                    <TextBlock Text="Install plan" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/>
+                                                    <TextBlock Name="CustomSnapshotPlanValue" Text="Clean install" Foreground="#FFF8FAFC" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Column="2" Style="{StaticResource InsetPanel}">
+                                                <StackPanel>
+                                                    <TextBlock Text="Theme" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/>
+                                                    <TextBlock Name="CustomSnapshotThemeValue" Text="Marketplace only" Foreground="#FFF8FAFC" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Column="4" Style="{StaticResource InsetPanel}">
+                                                <StackPanel>
+                                                    <TextBlock Text="Extensions" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/>
+                                                    <TextBlock Name="CustomSnapshotExtensionsValue" Text="3 extensions" Foreground="#FFF8FAFC" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Column="6" Style="{StaticResource InsetPanel}">
+                                                <StackPanel>
+                                                    <TextBlock Text="Memory" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/>
+                                                    <TextBlock Name="CustomSnapshotMemoryValue" Text="Will save on install" Foreground="#FFF8FAFC" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
                                     <Grid>
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Border Grid.Column="0" Style="{StaticResource SurfaceCard}">
                                             <StackPanel>
                                                 <TextBlock Text="Spotify behavior" Foreground="#FFF8FAFC" FontSize="15" FontWeight="Bold"/>
                                                 <TextBlock Text="LibreSpot uses SpotX to handle cleanup, patching, interface tweaks, and a few system-level quality-of-life options." Foreground="#FF94A3B8" FontSize="12" Margin="0,8,0,14" TextWrapping="Wrap"/>
-                                                <TextBlock Text="Core cleanup" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
-                                                <TextBlock Text="Best for trimming Spotify's default clutter and keeping the setup stable after updates." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
-                                                <CheckBox Name="ChkNewTheme" Content="Enable the new Spotify interface" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Activates Spotify new sidebar and cover art layout"/>
-                                                <CheckBox Name="ChkPodcastsOff" Content="Remove podcasts from Home" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Hides podcast sections from home feed"/>
-                                                <CheckBox Name="ChkAdSectionsOff" Content="Hide ad-like Home sections" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Removes promotional sections"/>
-                                                <CheckBox Name="ChkBlockUpdate" Content="Block Spotify auto-updates" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Prevents Spotify from overwriting patches"/>
-                                                <CheckBox Name="ChkPremium" Content="Premium account (skip ad-blocking)" Style="{StaticResource DarkCheckBox}" ToolTip="For paid users: skip ad-blocking, keep other mods"/>
+                                                <Border Style="{StaticResource InsetPanel}">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Core cleanup" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Trim Spotify's default clutter and keep the patched setup stable after future updates." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <CheckBox Name="ChkNewTheme" Content="Enable the new Spotify interface" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Activates Spotify new sidebar and cover art layout"/>
+                                                        <CheckBox Name="ChkPodcastsOff" Content="Remove podcasts from Home" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Hides podcast sections from home feed"/>
+                                                        <CheckBox Name="ChkAdSectionsOff" Content="Hide ad-like Home sections" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Removes promotional sections"/>
+                                                        <CheckBox Name="ChkBlockUpdate" Content="Block Spotify auto-updates" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Prevents Spotify from overwriting patches"/>
+                                                        <CheckBox Name="ChkPremium" Content="Premium account (skip ad-blocking)" Style="{StaticResource DarkCheckBox}" ToolTip="For paid users: skip ad-blocking, keep other mods"/>
+                                                    </StackPanel>
+                                                </Border>
 
-                                                <TextBlock Text="Lyrics" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold" Margin="0,18,0,0"/>
-                                                <TextBlock Text="Use the static lyrics layer if you prefer a cleaner, more themeable reading experience." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
-                                                <CheckBox Name="ChkLyrics" Content="Enable a static lyrics theme" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
-                                                <StackPanel Name="LyricsThemePanel" Orientation="Horizontal" Margin="28,4,0,0">
-                                                    <TextBlock Text="Theme:" Foreground="#FFCBD5E1" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                    <ComboBox Name="CmbLyricsTheme" Width="170" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}" SelectedIndex="0">
-                                                        <ComboBoxItem Content="spotify"/><ComboBoxItem Content="blueberry"/><ComboBoxItem Content="blue"/><ComboBoxItem Content="discord"/>
-                                                        <ComboBoxItem Content="forest"/><ComboBoxItem Content="fresh"/><ComboBoxItem Content="github"/><ComboBoxItem Content="lavender"/>
-                                                        <ComboBoxItem Content="orange"/><ComboBoxItem Content="pumpkin"/><ComboBoxItem Content="purple"/><ComboBoxItem Content="red"/>
-                                                        <ComboBoxItem Content="strawberry"/><ComboBoxItem Content="turquoise"/><ComboBoxItem Content="yellow"/><ComboBoxItem Content="oceano"/>
-                                                        <ComboBoxItem Content="royal"/><ComboBoxItem Content="krux"/><ComboBoxItem Content="pinkle"/><ComboBoxItem Content="zing"/>
-                                                        <ComboBoxItem Content="radium"/><ComboBoxItem Content="sandbar"/><ComboBoxItem Content="postlight"/><ComboBoxItem Content="relish"/>
-                                                        <ComboBoxItem Content="drot"/><ComboBoxItem Content="default"/><ComboBoxItem Content="spotify#2"/></ComboBox>
-                                                </StackPanel>
+                                                <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Lyrics" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Use the static lyrics layer if you want cleaner reading and easier theme matching." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <CheckBox Name="ChkLyrics" Content="Enable a static lyrics theme" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
+                                                        <StackPanel Name="LyricsThemePanel" Orientation="Horizontal" Margin="28,6,0,0">
+                                                            <TextBlock Text="Theme:" Foreground="#FFCBD5E1" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                            <ComboBox Name="CmbLyricsTheme" Width="170" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}" SelectedIndex="0">
+                                                                <ComboBoxItem Content="spotify"/><ComboBoxItem Content="blueberry"/><ComboBoxItem Content="blue"/><ComboBoxItem Content="discord"/>
+                                                                <ComboBoxItem Content="forest"/><ComboBoxItem Content="fresh"/><ComboBoxItem Content="github"/><ComboBoxItem Content="lavender"/>
+                                                                <ComboBoxItem Content="orange"/><ComboBoxItem Content="pumpkin"/><ComboBoxItem Content="purple"/><ComboBoxItem Content="red"/>
+                                                                <ComboBoxItem Content="strawberry"/><ComboBoxItem Content="turquoise"/><ComboBoxItem Content="yellow"/><ComboBoxItem Content="oceano"/>
+                                                                <ComboBoxItem Content="royal"/><ComboBoxItem Content="krux"/><ComboBoxItem Content="pinkle"/><ComboBoxItem Content="zing"/>
+                                                                <ComboBoxItem Content="radium"/><ComboBoxItem Content="sandbar"/><ComboBoxItem Content="postlight"/><ComboBoxItem Content="relish"/>
+                                                                <ComboBoxItem Content="drot"/><ComboBoxItem Content="default"/><ComboBoxItem Content="spotify#2"/></ComboBox>
+                                                        </StackPanel>
+                                                        <CheckBox Name="ChkOldLyrics" Content="Restore the old lyrics interface" Style="{StaticResource DarkCheckBox}" ToolTip="Revert to previous lyrics interface"/>
+                                                    </StackPanel>
+                                                </Border>
 
-                                                <TextBlock Text="Interface experiments" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold" Margin="0,18,0,0"/>
-                                                <TextBlock Text="Optional switches for layout details and sidebar behavior. Keep these light if you want the safest install possible." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
-                                                <CheckBox Name="ChkTopSearch" Content="Move search to the top bar" Style="{StaticResource DarkCheckBox}" ToolTip="Move search bar to top of window"/>
-                                                <CheckBox Name="ChkRightSidebarOff" Content="Disable the right sidebar" Style="{StaticResource DarkCheckBox}" ToolTip="Remove the Now Playing sidebar panel"/>
-                                                <CheckBox Name="ChkRightSidebarColor" Content="Match right sidebar colors to album art" Style="{StaticResource DarkCheckBox}" ToolTip="Tint sidebar to match album cover"/>
-                                                <CheckBox Name="ChkCanvasHomeOff" Content="Disable canvas on Home" Style="{StaticResource DarkCheckBox}" ToolTip="Disable canvas artwork on the homepage"/>
-                                                <CheckBox Name="ChkHomeSubOff" Content="Hide Home subfeed chips" Style="{StaticResource DarkCheckBox}" ToolTip="Hide genre filter chips on home page"/>
-                                                <CheckBox Name="ChkOldLyrics" Content="Restore the old lyrics interface" Style="{StaticResource DarkCheckBox}" ToolTip="Revert to previous lyrics interface"/>
-                                                <CheckBox Name="ChkHideColIconOff" Content="Show collaboration icons in playlists" Style="{StaticResource DarkCheckBox}" ToolTip="Keep collaboration icons visible in playlists"/>
+                                                <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Interface experiments" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Optional layout tweaks. Keep this section conservative if you want the safest possible install." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <CheckBox Name="ChkTopSearch" Content="Move search to the top bar" Style="{StaticResource DarkCheckBox}" ToolTip="Move search bar to top of window"/>
+                                                        <CheckBox Name="ChkRightSidebarOff" Content="Disable the right sidebar" Style="{StaticResource DarkCheckBox}" ToolTip="Remove the Now Playing sidebar panel"/>
+                                                        <CheckBox Name="ChkRightSidebarColor" Content="Match right sidebar colors to album art" Style="{StaticResource DarkCheckBox}" ToolTip="Tint sidebar to match album cover"/>
+                                                        <CheckBox Name="ChkCanvasHomeOff" Content="Disable canvas on Home" Style="{StaticResource DarkCheckBox}" ToolTip="Disable canvas artwork on the homepage"/>
+                                                        <CheckBox Name="ChkHomeSubOff" Content="Hide Home subfeed chips" Style="{StaticResource DarkCheckBox}" ToolTip="Hide genre filter chips on home page"/>
+                                                        <CheckBox Name="ChkHideColIconOff" Content="Show collaboration icons in playlists" Style="{StaticResource DarkCheckBox}" ToolTip="Keep collaboration icons visible in playlists"/>
+                                                    </StackPanel>
+                                                </Border>
 
-                                                <TextBlock Text="System behavior" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold" Margin="0,18,0,0"/>
-                                                <TextBlock Text="These controls affect startup behavior, shortcuts, and the cache-size override SpotX can apply." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
-                                                <CheckBox Name="ChkDisableStartup" Content="Disable Spotify on Windows startup" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
-                                                <CheckBox Name="ChkNoShortcut" Content="Skip the desktop shortcut" Style="{StaticResource DarkCheckBox}"/>
-                                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                                    <TextBlock Text="Cache limit (MB):" Foreground="#FFE2E8F0" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                    <TextBox Name="TxtCacheLimit" Width="96" Text="0" Style="{StaticResource DarkTextBox}"/>
-                                                </StackPanel>
-                                                <TextBlock Text="Use 0 to keep Spotify's default behavior. LibreSpot only forwards values at 500 MB or above, matching SpotX's safer override range." Foreground="#FF64748B" FontSize="10.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                                <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
+                                                    <StackPanel>
+                                                        <TextBlock Text="System behavior" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Set startup behavior, shortcut handling, and the cache-size override SpotX can apply." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <CheckBox Name="ChkDisableStartup" Content="Disable Spotify on Windows startup" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
+                                                        <CheckBox Name="ChkNoShortcut" Content="Skip the desktop shortcut" Style="{StaticResource DarkCheckBox}"/>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                            <TextBlock Text="Cache limit (MB):" Foreground="#FFE2E8F0" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                            <TextBox Name="TxtCacheLimit" Width="96" Text="0" Style="{StaticResource DarkTextBox}" ToolTip="Use 0 or a value of 500 MB and above."/>
+                                                        </StackPanel>
+                                                        <TextBlock Text="Use 0 to keep Spotify's default behavior. LibreSpot treats any value from 1 to 499 as 500 MB so the override stays in SpotX's safer range." Foreground="#FF64748B" FontSize="10.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Border>
                                             </StackPanel>
                                         </Border>
                                         <Border Grid.Column="2" Style="{StaticResource SurfaceCard}">
                                             <StackPanel>
                                                 <TextBlock Text="Themes, Marketplace, and extensions" Foreground="#FFF8FAFC" FontSize="15" FontWeight="Bold"/>
                                                 <TextBlock Text="Shape the first-run look and decide what should already be installed before Spotify opens." Foreground="#FF94A3B8" FontSize="12" Margin="0,8,0,14" TextWrapping="Wrap"/>
-                                                <TextBlock Text="Theme" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
-                                                <TextBlock Text="Pick a bundled theme now, or stay Marketplace-only and browse from inside Spotify later." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
-                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6"><TextBlock Text="Theme:" Foreground="#FFCBD5E1" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                    <ComboBox Name="CmbTheme" Width="220" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}"/></StackPanel>
-                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6"><TextBlock Text="Color Scheme:" Foreground="#FFCBD5E1" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                    <ComboBox Name="CmbScheme" Width="190" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}"/></StackPanel>
-                                                <Border Name="PreviewBorder" CornerRadius="12" Background="#FF081018" BorderBrush="#FF1a2634" BorderThickness="1" Margin="0,10,0,0" Height="184" ClipToBounds="True">
-                                                    <Grid>
-                                                        <Image Name="ThemePreviewImg" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                        <Border Background="#CC081018"><TextBlock Name="PreviewLabel" Text="Select a bundled theme to preview it here." Foreground="#FFCBD5E1" FontSize="11.5" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="240"/></Border>
-                                                    </Grid>
+                                                <Border Style="{StaticResource InsetPanel}">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Theme" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Pick a bundled theme now, or stay Marketplace-only and browse from inside Spotify later." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6"><TextBlock Text="Theme:" Foreground="#FFCBD5E1" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                            <ComboBox Name="CmbTheme" Width="220" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}"/></StackPanel>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6"><TextBlock Text="Color Scheme:" Foreground="#FFCBD5E1" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                            <ComboBox Name="CmbScheme" Width="190" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}" ToolTip="Choose the color scheme for the selected bundled theme."/></StackPanel>
+                                                        <Border Name="PreviewBorder" CornerRadius="12" Background="#FF081018" BorderBrush="#FF1a2634" BorderThickness="1" Margin="0,10,0,0" Height="184" ClipToBounds="True">
+                                                            <Grid>
+                                                                <Image Name="ThemePreviewImg" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                <Border Background="#CC081018"><TextBlock Name="PreviewLabel" Text="Select a bundled theme to preview it here." Foreground="#FFCBD5E1" FontSize="11.5" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="240"/></Border>
+                                                            </Grid>
+                                                        </Border>
+                                                    </StackPanel>
                                                 </Border>
 
-                                                <TextBlock Text="Marketplace" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold" Margin="0,18,0,0"/>
-                                                <TextBlock Text="Keep the in-app browser if you want to add more themes or extensions after the guided install." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
-                                                <CheckBox Name="ChkMarketplace" Content="Install the Spicetify Marketplace" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="In-app store for themes and extensions"/>
-                                                <TextBlock Text="Browse and install themes or extensions from inside Spotify after setup." Foreground="#FF64748B" FontSize="10.5" Margin="28,2,0,0" TextWrapping="Wrap"/>
+                                                <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Marketplace" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Keep the in-app browser if you want to add more themes or extensions after the guided install." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <CheckBox Name="ChkMarketplace" Content="Install the Spicetify Marketplace" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="In-app store for themes and extensions"/>
+                                                        <TextBlock Text="Browse and install themes or extensions from inside Spotify after setup." Foreground="#FF64748B" FontSize="10.5" Margin="28,4,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Border>
 
-                                                <TextBlock Text="Built-in extensions" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold" Margin="0,18,0,0"/>
-                                                <TextBlock Text="Easy Install ships with Full App Display, Shuffle+, and Trash Bin enabled. Custom Install lets you fine-tune the rest." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
-                                                <CheckBox Name="ChkExt_fullAppDisplay" Content="Full App Display" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
-                                                <CheckBox Name="ChkExt_shuffle" Content="Shuffle+" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
-                                                <CheckBox Name="ChkExt_trashbin" Content="Trash Bin" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
-                                                <CheckBox Name="ChkExt_keyboard" Content="Keyboard Shortcuts" Style="{StaticResource DarkCheckBox}"/>
-                                                <CheckBox Name="ChkExt_bookmark" Content="Bookmark" Style="{StaticResource DarkCheckBox}"/>
-                                                <CheckBox Name="ChkExt_loopyLoop" Content="Loopy Loop" Style="{StaticResource DarkCheckBox}"/>
-                                                <CheckBox Name="ChkExt_popupLyrics" Content="Pop-up Lyrics" Style="{StaticResource DarkCheckBox}"/>
-                                                <CheckBox Name="ChkExt_autoSkipVideo" Content="Auto Skip Video" Style="{StaticResource DarkCheckBox}"/>
-                                                <CheckBox Name="ChkExt_autoSkipExplicit" Content="Auto Skip Explicit" Style="{StaticResource DarkCheckBox}"/>
-                                                <CheckBox Name="ChkExt_webNowPlaying" Content="Web Now Playing (Rainmeter)" Style="{StaticResource DarkCheckBox}"/>
+                                                <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Built-in extensions" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Easy Install ships with Full App Display, Shuffle+, and Trash Bin enabled. Custom Install lets you fine-tune the rest." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <CheckBox Name="ChkExt_fullAppDisplay" Content="Full App Display" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
+                                                        <CheckBox Name="ChkExt_shuffle" Content="Shuffle+" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
+                                                        <CheckBox Name="ChkExt_trashbin" Content="Trash Bin" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
+                                                        <CheckBox Name="ChkExt_keyboard" Content="Keyboard Shortcuts" Style="{StaticResource DarkCheckBox}"/>
+                                                        <CheckBox Name="ChkExt_bookmark" Content="Bookmark" Style="{StaticResource DarkCheckBox}"/>
+                                                        <CheckBox Name="ChkExt_loopyLoop" Content="Loopy Loop" Style="{StaticResource DarkCheckBox}"/>
+                                                        <CheckBox Name="ChkExt_popupLyrics" Content="Pop-up Lyrics" Style="{StaticResource DarkCheckBox}"/>
+                                                        <CheckBox Name="ChkExt_autoSkipVideo" Content="Auto Skip Video" Style="{StaticResource DarkCheckBox}"/>
+                                                        <CheckBox Name="ChkExt_autoSkipExplicit" Content="Auto Skip Explicit" Style="{StaticResource DarkCheckBox}"/>
+                                                        <CheckBox Name="ChkExt_webNowPlaying" Content="Web Now Playing (Rainmeter)" Style="{StaticResource DarkCheckBox}"/>
+                                                    </StackPanel>
+                                                </Border>
 
-                                                <TextBlock Text="Install behavior" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold" Margin="0,18,0,0"/>
-                                                <TextBlock Text="These choices affect how aggressively LibreSpot resets the current install and what happens when the work is done." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
-                                                <CheckBox Name="ChkCleanInstall" Content="Remove the existing setup first" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
-                                                <CheckBox Name="ChkLaunchAfter" Content="Launch Spotify when finished" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
-                                                <TextBlock Text="Custom choices are saved and restored next time so follow-up installs are faster." Foreground="#FF64748B" FontSize="10.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                                <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Install behavior" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Control how aggressively LibreSpot resets the current install and whether Spotify opens when the run is done." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <CheckBox Name="ChkCleanInstall" Content="Remove the existing setup first" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
+                                                        <CheckBox Name="ChkLaunchAfter" Content="Launch Spotify when finished" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
+                                                        <TextBlock Text="LibreSpot remembers these custom choices after setup starts, so future reapply runs stay consistent." Foreground="#FF64748B" FontSize="10.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Border>
                                             </StackPanel>
                                         </Border>
                                     </Grid>
@@ -844,14 +919,27 @@ $xaml = @"
                                 <ScrollViewer Name="PanelMaint" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"><StackPanel Margin="4,6,4,0">
                                     <TextBlock Text="Maintenance and recovery" Foreground="#FFF8FAFC" FontSize="21" FontWeight="Bold"/>
                                     <TextBlock Text="Check the current install, back up what matters, reapply patches after Spotify updates, or remove everything cleanly when you want to start over." Foreground="#FF94A3B8" FontSize="12.5" Margin="0,8,0,18" TextWrapping="Wrap"/>
+                                    <Border Style="{StaticResource SurfaceCard}" Margin="0,0,0,18">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Name="MaintenanceOverviewTitle" Text="Scanning the current setup..." Foreground="#FFF8FAFC" FontSize="15.5" FontWeight="Bold"/>
+                                                <TextBlock Name="MaintenanceOverviewText" Text="LibreSpot is checking which parts of the Spotify stack are installed so recovery actions can stay predictable." Foreground="#FF94A3B8" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap" MaxWidth="620"/>
+                                            </StackPanel>
+                                            <WrapPanel Grid.Column="1" VerticalAlignment="Top" Margin="20,0,0,0">
+                                                <Border Background="#120f1b12" BorderBrush="#1f3d2b" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,10,10"><TextBlock Text="Safer recovery" Foreground="#FF86efac" FontSize="10.5" FontWeight="SemiBold"/></Border>
+                                                <Border Background="#11101d2a" BorderBrush="#1d3347" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,0,10"><TextBlock Text="Pinned versions" Foreground="#FF7dd3fc" FontSize="10.5" FontWeight="SemiBold"/></Border>
+                                            </WrapPanel>
+                                        </Grid>
+                                    </Border>
 
                                     <Grid Margin="0,0,0,20">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <Border Grid.Column="0" Style="{StaticResource SurfaceCard}" Padding="14"><StackPanel><TextBlock Text="Spotify" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusSpotify" Text="Checking…" Foreground="#FFE2E8F0" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,8,0,0"/></StackPanel></Border>
-                                        <Border Grid.Column="2" Style="{StaticResource SurfaceCard}" Padding="14"><StackPanel><TextBlock Text="SpotX" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusSpotX" Text="Checking…" Foreground="#FFE2E8F0" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,8,0,0"/></StackPanel></Border>
-                                        <Border Grid.Column="4" Style="{StaticResource SurfaceCard}" Padding="14"><StackPanel><TextBlock Text="Spicetify" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusSpicetify" Text="Checking…" Foreground="#FFE2E8F0" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,8,0,0"/></StackPanel></Border>
-                                        <Border Grid.Column="6" Style="{StaticResource SurfaceCard}" Padding="14"><StackPanel><TextBlock Text="Marketplace" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusMarketplace" Text="Checking…" Foreground="#FFE2E8F0" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,8,0,0"/></StackPanel></Border>
-                                        <Border Grid.Column="8" Style="{StaticResource SurfaceCard}" Padding="14"><StackPanel><TextBlock Text="Theme" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusTheme" Text="Checking…" Foreground="#FFE2E8F0" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,8,0,0"/></StackPanel></Border>
+                                        <Border Name="StatusCardSpotify" Grid.Column="0" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="Spotify" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusSpotify" Text="Checking…" Foreground="#FFE2E8F0" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
+                                        <Border Name="StatusCardSpotX" Grid.Column="2" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="SpotX" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusSpotX" Text="Checking…" Foreground="#FFE2E8F0" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
+                                        <Border Name="StatusCardSpicetify" Grid.Column="4" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="Spicetify" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusSpicetify" Text="Checking…" Foreground="#FFE2E8F0" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
+                                        <Border Name="StatusCardMarketplace" Grid.Column="6" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="Marketplace" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusMarketplace" Text="Checking…" Foreground="#FFE2E8F0" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
+                                        <Border Name="StatusCardTheme" Grid.Column="8" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="Theme" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusTheme" Text="Checking…" Foreground="#FFE2E8F0" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
                                     </Grid>
 
                                     <Border Style="{StaticResource SurfaceCard}" Margin="0,0,0,20">
@@ -883,28 +971,60 @@ $xaml = @"
                                 </StackPanel></ScrollViewer>
                             </Grid></Border>
                             <Grid Grid.Row="3" Margin="0,18,0,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                <TextBlock Name="SelectionSummary" Foreground="#FF94A3B8" FontSize="12.5" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,20,0"/>
-                                <Button Name="BtnInstall" Content="Install recommended setup" Foreground="#FF04130a" BorderBrush="#FF3dd06f" Style="{StaticResource ActionButton}" Width="260" HorizontalAlignment="Right">
-                                    <Button.Background><LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
-                                        <GradientStop Color="#FF22c55e" Offset="0"/><GradientStop Color="#FF86efac" Offset="1"/>
-                                    </LinearGradientBrush></Button.Background></Button>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Style="{StaticResource SurfaceCard}" Padding="18,14">
+                                    <StackPanel>
+                                        <TextBlock Text="Install snapshot" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/>
+                                        <TextBlock Name="SelectionSummary" Foreground="#FFE2E8F0" FontSize="12.75" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                        <Grid Margin="0,10,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Border Name="SelectionStateBadge" Background="#11101d2a" BorderBrush="#1d3347" BorderThickness="1" CornerRadius="999" Padding="10,4" VerticalAlignment="Top">
+                                                <TextBlock Name="SelectionStateBadgeText" Text="Ready" Foreground="#FF7dd3fc" FontSize="10.5" FontWeight="SemiBold"/>
+                                            </Border>
+                                            <TextBlock Grid.Column="2" Name="SelectionStateDetail" Foreground="#FF64748B" FontSize="11.25" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <StackPanel Grid.Column="2" Name="FooterActionPanel" HorizontalAlignment="Right">
+                                    <Button Name="BtnInstall" Content="Install recommended setup" Foreground="#FF04130a" BorderBrush="#FF3dd06f" Style="{StaticResource ActionButton}" Width="280" HorizontalAlignment="Right">
+                                        <Button.Background><LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                            <GradientStop Color="#FF22c55e" Offset="0"/><GradientStop Color="#FF86efac" Offset="1"/>
+                                        </LinearGradientBrush></Button.Background></Button>
+                                    <TextBlock Name="ActionFooterNote" Text="Settings save when setup begins." Foreground="#FF64748B" FontSize="11" Margin="0,8,0,0" HorizontalAlignment="Right"/>
+                                </StackPanel>
                             </Grid>
                         </Grid>
-
                         <!-- ===== INSTALL PAGE ===== -->
                         <Grid Name="PageInstall" Visibility="Collapsed"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                             <Border Grid.Row="0" Style="{StaticResource SurfaceCard}" Margin="0,0,0,16">
                                 <Grid>
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Name="InstallTitle" Text="Preparing setup" Foreground="#FFF8FAFC" FontSize="20" FontWeight="Bold"/>
-                                        <TextBlock Name="InstallContext" Text="LibreSpot keeps the interface responsive while it downloads, patches, and applies your selection." Foreground="#FF94A3B8" FontSize="12.5" TextWrapping="Wrap" Margin="0,8,0,0" MaxWidth="700"/>
-                                    </StackPanel>
-                                    <WrapPanel Grid.Column="1" VerticalAlignment="Top" Margin="20,0,0,0">
-                                        <Border Background="#120f1b12" BorderBrush="#1f3d2b" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,10,10"><TextBlock Text="Live log" Foreground="#FF86efac" FontSize="10.5" FontWeight="SemiBold"/></Border>
-                                        <Border Background="#11101d2a" BorderBrush="#1d3347" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,0,10"><TextBlock Text="Safe to leave open" Foreground="#FF7dd3fc" FontSize="10.5" FontWeight="SemiBold"/></Border>
-                                    </WrapPanel>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Name="InstallTitle" Text="Preparing setup" Foreground="#FFF8FAFC" FontSize="20" FontWeight="Bold"/>
+                                            <TextBlock Name="InstallContext" Text="LibreSpot keeps the interface responsive while it downloads, patches, and applies your selection." Foreground="#FF94A3B8" FontSize="12.5" TextWrapping="Wrap" Margin="0,8,0,0" MaxWidth="700"/>
+                                        </StackPanel>
+                                        <WrapPanel Grid.Column="1" VerticalAlignment="Top" Margin="20,0,0,0">
+                                            <Border Background="#120f1b12" BorderBrush="#1f3d2b" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,10,10"><TextBlock Text="Live log" Foreground="#FF86efac" FontSize="10.5" FontWeight="SemiBold"/></Border>
+                                            <Border Background="#11101d2a" BorderBrush="#1d3347" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,0,10"><TextBlock Text="Safe to leave open" Foreground="#FF7dd3fc" FontSize="10.5" FontWeight="SemiBold"/></Border>
+                                        </WrapPanel>
+                                    </Grid>
+                                    <Grid Grid.Row="1" Margin="0,18,0,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Name="InstallStagePrepare" Grid.Column="0" Style="{StaticResource InsetPanel}" Padding="14,12">
+                                            <TextBlock Name="InstallStagePrepareText" Text="Prepare" Foreground="#FFE2E8F0" FontSize="11.5" FontWeight="SemiBold"/>
+                                        </Border>
+                                        <Border Name="InstallStageRun" Grid.Column="2" Style="{StaticResource InsetPanel}" Padding="14,12">
+                                            <TextBlock Name="InstallStageRunText" Text="Run" Foreground="#FF94A3B8" FontSize="11.5" FontWeight="SemiBold"/>
+                                        </Border>
+                                        <Border Name="InstallStageVerify" Grid.Column="4" Style="{StaticResource InsetPanel}" Padding="14,12">
+                                            <TextBlock Name="InstallStageVerifyText" Text="Verify" Foreground="#FF94A3B8" FontSize="11.5" FontWeight="SemiBold"/>
+                                        </Border>
+                                        <Border Name="InstallStageComplete" Grid.Column="6" Style="{StaticResource InsetPanel}" Padding="14,12">
+                                            <TextBlock Name="InstallStageCompleteText" Text="Complete" Foreground="#FF94A3B8" FontSize="11.5" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </Grid>
                                 </Grid>
                             </Border>
                             <Border Grid.Row="1" CornerRadius="14" BorderBrush="#FF17212c" BorderThickness="1" ClipToBounds="True"><Grid>
@@ -913,24 +1033,24 @@ $xaml = @"
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <Ellipse Width="8" Height="8" Fill="#FF253242" Margin="0,0,6,0"/><Ellipse Width="8" Height="8" Fill="#FF253242" Margin="0,0,6,0"/><Ellipse Width="8" Height="8" Fill="#FF253242" Margin="0,0,14,0"/>
-                                        <TextBlock Text="Live activity log" Foreground="#FFE2E8F0" FontSize="11.5" FontWeight="SemiBold"/></StackPanel>
-                                    <TextBlock Grid.Column="1" Text="Detailed steps and any recovery warnings appear here." Foreground="#FF64748B" FontSize="11" VerticalAlignment="Center"/></Grid></Border>
+                                        <TextBlock Text="Live setup log" Foreground="#FFE2E8F0" FontSize="11.5" FontWeight="SemiBold"/></StackPanel>
+                                    <TextBlock Grid.Column="1" Text="The UI may trim older lines, but the full log always stays copyable." Foreground="#FF64748B" FontSize="11" VerticalAlignment="Center"/></Grid></Border>
                                 <Border Grid.Row="1" Background="#FF05090f" Padding="16,14">
                                     <ScrollViewer Name="LogScroller" VerticalScrollBarVisibility="Auto">
-                                        <TextBlock Name="LogOutput" Foreground="#FFB7C4D4" FontFamily="Cascadia Mono, Consolas, Courier New" FontSize="11.5" TextWrapping="Wrap"/>
+                                        <TextBlock Name="LogOutput" Foreground="#FFB7C4D4" FontFamily="Cascadia Mono, Consolas, Courier New" FontSize="11.75" TextWrapping="Wrap"/>
                                     </ScrollViewer></Border>
                             </Grid></Border>
                             <Border Grid.Row="2" Style="{StaticResource SurfaceCard}" Margin="0,16,0,0"><StackPanel><Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                    <TextBlock Name="StatusText" Text="Preparing setup..." Foreground="#FFF8FAFC" FontSize="13.5" FontWeight="SemiBold"/>
+                                    <TextBlock Name="StatusText" Text="Preparing workspace..." Foreground="#FFF8FAFC" FontSize="13.5" FontWeight="SemiBold"/>
                                     <TextBlock Name="ElapsedTime" Text="" Foreground="#FF64748B" FontSize="11.5" VerticalAlignment="Center" Margin="14,0,0,0"/></StackPanel>
                                 <TextBlock Name="StepIndicator" Text="Waiting to start" Foreground="#FF4ade80" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right"/></Grid>
                                 <ProgressBar Name="MainProgress" Height="8" Margin="0,12,0,0" Template="{StaticResource RoundProgress}" Background="#FF1f2937" Foreground="#FF4ade80" Minimum="0" Maximum="100" Value="0"/>
-                                <TextBlock Text="LibreSpot will surface fatal errors, recovery fallbacks, and the exact step that was running if something goes wrong." Foreground="#FF64748B" FontSize="11.5" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
+                                <TextBlock Text="Stage markers above adapt to the action you started, so you can tell at a glance where the run is even while the detailed log keeps scrolling." Foreground="#FF64748B" FontSize="11.5" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
                             <StackPanel Grid.Row="3" Margin="0,16,0,0" Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Name="BtnCopyLog" Content="Copy details" Background="#FF0f1720" Style="{StaticResource ActionButton}" Width="120" Margin="0,0,8,0" Visibility="Collapsed"/>
-                                <Button Name="BtnBackToConfig" Content="Back to setup" Background="#FF0b1118" Style="{StaticResource ActionButton}" Width="120" Margin="0,0,8,0" Visibility="Collapsed"/>
+                                <Button Name="BtnCopyLog" Content="Copy full log" Background="#FF0f1720" Style="{StaticResource ActionButton}" Width="132" Margin="0,0,8,0" Visibility="Collapsed"/>
+                                <Button Name="BtnBackToConfig" Content="Return to setup" Background="#FF0b1118" Style="{StaticResource ActionButton}" Width="140" Margin="0,0,8,0" Visibility="Collapsed"/>
                                 <Button Name="CloseBtn" Content="Close" Background="#FF0b1118" Style="{StaticResource ActionButton}" Width="110" Visibility="Collapsed"/></StackPanel>
                         </Grid>
                     </Grid>
@@ -956,18 +1076,23 @@ try {
 
 $ui = @{}
 @('LinkSpotX','LinkSpicetify','LinkGitHub','MinimizeBtn','CloseTitleBtn','PageConfig','PageInstall',
-  'ModeHeadline','ModeSummaryText','SelectionSummary','InstallTitle','InstallContext',
-  'ModeEasy','ModeCustom','ModeMaint','PanelEasy','PanelCustom','PanelMaint','BtnInstall','LyricsThemePanel',
+  'ModeHeadline','ModeSummaryText','SelectionSummary','SelectionStateBadge','SelectionStateBadgeText','SelectionStateDetail','InstallTitle','InstallContext',
+  'ModeEasy','ModeCustom','ModeMaint','PanelEasy','PanelCustom','PanelMaint','BtnInstall','BtnResetCustomDefaults','LyricsThemePanel',
+  'CustomSnapshotPlanValue','CustomSnapshotThemeValue','CustomSnapshotExtensionsValue','CustomSnapshotMemoryValue',
   'ChkNewTheme','ChkPodcastsOff','ChkAdSectionsOff','ChkBlockUpdate','ChkPremium','ChkLyrics','CmbLyricsTheme',
   'ChkTopSearch','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHomeOff','ChkHomeSubOff','ChkOldLyrics','ChkHideColIconOff',
   'ChkDisableStartup','ChkNoShortcut','TxtCacheLimit','CmbTheme','CmbScheme','PreviewBorder','ThemePreviewImg','PreviewLabel','ChkMarketplace',
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
   'ChkCleanInstall','ChkLaunchAfter',
+  'MaintenanceOverviewTitle','MaintenanceOverviewText',
+  'StatusCardSpotify','StatusCardSpotX','StatusCardSpicetify','StatusCardMarketplace','StatusCardTheme',
   'StatusSpotify','StatusSpotX','StatusSpicetify','StatusMarketplace','StatusTheme',
   'BtnBackupConfig','BtnRestoreConfig','BtnCheckUpdates','BtnReapply','BtnSpicetifyRestore','BtnUninstallSpicetify','BtnFullReset',
+  'InstallStagePrepare','InstallStageRun','InstallStageVerify','InstallStageComplete',
+  'InstallStagePrepareText','InstallStageRunText','InstallStageVerifyText','InstallStageCompleteText',
   'LogScroller','LogOutput','StatusText','ElapsedTime','StepIndicator','MainProgress','BtnCopyLog','BtnBackToConfig','CloseBtn',
-  'TitleText'
+  'FooterActionPanel','ActionFooterNote','TitleText'
 ) | ForEach-Object { $el = $window.FindName($_); if ($el) { $ui[$_] = $el } }
 
 $extCheckboxMap = [ordered]@{
@@ -1046,19 +1171,45 @@ $ui['CmbTheme'].Add_SelectionChanged({
         }; $ui['CmbScheme'].SelectedIndex = 0
     }
     Update-ThemePreview
+    Update-DependentControlState
 })
 $ui['CmbScheme'].Add_SelectionChanged({ Update-ThemePreview })
 # Trigger initial scheme population via SelectedIndex assignment
 $ui['CmbTheme'].SelectedIndex = 0
 
-$ui['ChkLyrics'].Add_Checked({   $ui['LyricsThemePanel'].Visibility = 'Visible' })
-$ui['ChkLyrics'].Add_Unchecked({ $ui['LyricsThemePanel'].Visibility = 'Collapsed' })
+$ui['ChkLyrics'].Add_Checked({ Update-DependentControlState })
+$ui['ChkLyrics'].Add_Unchecked({ Update-DependentControlState })
+$ui['ChkRightSidebarOff'].Add_Checked({ Update-DependentControlState })
+$ui['ChkRightSidebarOff'].Add_Unchecked({ Update-DependentControlState })
 
 $ui['TxtCacheLimit'].Add_PreviewTextInput({ param($s,$e); $e.Handled = $e.Text -notmatch '^\d+$' })
+$ui['TxtCacheLimit'].Add_LostFocus({
+    $raw = [string]$ui['TxtCacheLimit'].Text
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        $ui['TxtCacheLimit'].Text = '0'
+        return
+    }
+    $parsed = 0
+    if (-not [int]::TryParse($raw, [ref]$parsed)) {
+        $ui['TxtCacheLimit'].Text = '0'
+        return
+    }
+    if ($parsed -gt 0 -and $parsed -lt 500) {
+        $ui['TxtCacheLimit'].Text = '500'
+    } else {
+        $ui['TxtCacheLimit'].Text = [string]$parsed
+    }
+})
 
 $premiumDependents = @('ChkPodcastsOff','ChkAdSectionsOff')
-$ui['ChkPremium'].Add_Checked({   foreach ($n in $premiumDependents) { $ui[$n].IsEnabled = $false; $ui[$n].Opacity = 0.4 } })
-$ui['ChkPremium'].Add_Unchecked({ foreach ($n in $premiumDependents) { $ui[$n].IsEnabled = $true;  $ui[$n].Opacity = 1.0 } })
+$ui['ChkPremium'].Add_Checked({
+    foreach ($n in $premiumDependents) { $ui[$n].IsEnabled = $false; $ui[$n].Opacity = 0.4 }
+    Update-DependentControlState
+})
+$ui['ChkPremium'].Add_Unchecked({
+    foreach ($n in $premiumDependents) { $ui[$n].IsEnabled = $true;  $ui[$n].Opacity = 1.0 }
+    Update-DependentControlState
+})
 
 $savedCfg = Load-LibreSpotConfig
 if ($savedCfg) { try {
@@ -1106,13 +1257,186 @@ $script:SavedConfigStamp = if ($script:HasSavedConfig -and (Test-Path $global:CO
 $script:MaintenanceComponentCount = 0
 $script:MaintenanceBackupCount = 0
 $script:BaselineCustomConfig = $null
-
+Update-DependentControlState
 function Get-ComboSelectionText {
     param([string]$Name, [string]$Fallback = '')
     if ($ui.ContainsKey($Name) -and $ui[$Name].SelectedItem) {
         return [string]$ui[$Name].SelectedItem.Content
     }
     return $Fallback
+}
+
+function Set-UiEnabledState {
+    param(
+        [string]$Name,
+        [bool]$Enabled,
+        [string]$EnabledToolTip = $null,
+        [string]$DisabledToolTip = $null
+    )
+    if (-not $ui.ContainsKey($Name)) { return }
+    $control = $ui[$Name]
+    $control.IsEnabled = $Enabled
+    $control.Opacity = if ($Enabled) { 1.0 } else { 0.48 }
+    if ($Enabled -and $EnabledToolTip) {
+        $control.ToolTip = $EnabledToolTip
+    } elseif (-not $Enabled -and $DisabledToolTip) {
+        $control.ToolTip = $DisabledToolTip
+    }
+}
+
+function Set-MaintenanceCardTone {
+    param(
+        [string]$CardName,
+        [ValidateSet('success','info','muted','danger')]
+        [string]$Tone = 'muted'
+    )
+    if (-not $ui.ContainsKey($CardName)) { return }
+    $palette = switch ($Tone) {
+        'success' { @{ Background = '#FF0f1b16'; Border = '#FF24563b' } }
+        'info'    { @{ Background = '#FF0d1621'; Border = '#FF2d5e87' } }
+        'danger'  { @{ Background = '#FF1a0f12'; Border = '#FF7f1d1d' } }
+        default   { @{ Background = '#FF0c1219'; Border = '#FF23303d' } }
+    }
+    $brushConverter = [System.Windows.Media.BrushConverter]::new()
+    $ui[$CardName].Background = $brushConverter.ConvertFromString($palette.Background)
+    $ui[$CardName].BorderBrush = $brushConverter.ConvertFromString($palette.Border)
+}
+
+function Set-SelectionSnapshotState {
+    param(
+        [ValidateSet('success','info','warning','muted','danger')]
+        [string]$Tone = 'info',
+        [string]$BadgeText = 'Ready',
+        [string]$DetailText = ''
+    )
+    if (-not ($ui.ContainsKey('SelectionStateBadge') -and $ui.ContainsKey('SelectionStateBadgeText') -and $ui.ContainsKey('SelectionStateDetail'))) { return }
+    $palette = switch ($Tone) {
+        'success' { @{ Background = '#120f1b12'; Border = '#1f3d2b'; Foreground = '#FF86efac'; Detail = '#FF94A3B8' } }
+        'warning' { @{ Background = '#FF191409'; Border = '#FF7c5a15'; Foreground = '#FFFCD34D'; Detail = '#FF94A3B8' } }
+        'danger'  { @{ Background = '#FF1a0f12'; Border = '#FF7f1d1d'; Foreground = '#FFFDA4AF'; Detail = '#FF94A3B8' } }
+        'muted'   { @{ Background = '#11111220'; Border = '#1b2433'; Foreground = '#FFCBD5E1'; Detail = '#FF64748B' } }
+        default   { @{ Background = '#11101d2a'; Border = '#1d3347'; Foreground = '#FF7dd3fc'; Detail = '#FF94A3B8' } }
+    }
+    $brushConverter = [System.Windows.Media.BrushConverter]::new()
+    $ui['SelectionStateBadge'].Background = $brushConverter.ConvertFromString($palette.Background)
+    $ui['SelectionStateBadge'].BorderBrush = $brushConverter.ConvertFromString($palette.Border)
+    $ui['SelectionStateBadgeText'].Foreground = $brushConverter.ConvertFromString($palette.Foreground)
+    $ui['SelectionStateBadgeText'].Text = [string]$BadgeText
+    $ui['SelectionStateDetail'].Foreground = $brushConverter.ConvertFromString($palette.Detail)
+    $ui['SelectionStateDetail'].Text = [string]$DetailText
+    $ui['SelectionStateDetail'].Visibility = if ([string]::IsNullOrWhiteSpace($DetailText)) { 'Collapsed' } else { 'Visible' }
+}
+
+function Set-InstallStageState {
+    param(
+        [string]$BorderName,
+        [string]$TextName,
+        [ValidateSet('pending','active','complete','attention')]
+        [string]$State = 'pending'
+    )
+    if (-not ($ui.ContainsKey($BorderName) -and $ui.ContainsKey($TextName))) { return }
+    $palette = switch ($State) {
+        'active'    { @{ Background = '#FF101d2a'; Border = '#FF2d5e87'; Foreground = '#FFE2F4FF' } }
+        'complete'  { @{ Background = '#FF122015'; Border = '#FF24563b'; Foreground = '#FF86efac' } }
+        'attention' { @{ Background = '#FF2a1115'; Border = '#FF7f1d1d'; Foreground = '#FFFECDD3' } }
+        default     { @{ Background = '#FF091019'; Border = '#FF1a2634'; Foreground = '#FF94A3B8' } }
+    }
+    $brushConverter = [System.Windows.Media.BrushConverter]::new()
+    $ui[$BorderName].Background = $brushConverter.ConvertFromString($palette.Background)
+    $ui[$BorderName].BorderBrush = $brushConverter.ConvertFromString($palette.Border)
+    $ui[$TextName].Foreground = $brushConverter.ConvertFromString($palette.Foreground)
+}
+
+function Set-InstallStageLabels {
+    param(
+        [string]$Prepare = 'Prepare',
+        [string]$Run = 'Run',
+        [string]$Verify = 'Verify',
+        [string]$Complete = 'Complete'
+    )
+    $labelMap = @{
+        InstallStagePrepareText  = $Prepare
+        InstallStageRunText      = $Run
+        InstallStageVerifyText   = $Verify
+        InstallStageCompleteText = $Complete
+    }
+    foreach ($name in $labelMap.Keys) {
+        if ($ui.ContainsKey($name)) {
+            $ui[$name].Text = [string]$labelMap[$name]
+        }
+    }
+}
+
+function Update-InstallStageVisual {
+    if (-not $ui.ContainsKey('PageInstall')) { return }
+    if ($ui['PageInstall'].Visibility -ne 'Visible') {
+        Set-InstallStageState -BorderName 'InstallStagePrepare' -TextName 'InstallStagePrepareText' -State 'pending'
+        Set-InstallStageState -BorderName 'InstallStageRun' -TextName 'InstallStageRunText' -State 'pending'
+        Set-InstallStageState -BorderName 'InstallStageVerify' -TextName 'InstallStageVerifyText' -State 'pending'
+        Set-InstallStageState -BorderName 'InstallStageComplete' -TextName 'InstallStageCompleteText' -State 'pending'
+        return
+    }
+
+    $progress = [double]$ui['MainProgress'].Value
+    $statusText = [string]$ui['StatusText'].Text
+    $stepText = [string]$ui['StepIndicator'].Text
+    $isAttention = ($statusText -match 'stopped|needs attention') -or ($stepText -match 'Needs attention')
+
+    if ($isAttention) {
+        Set-InstallStageState -BorderName 'InstallStagePrepare' -TextName 'InstallStagePrepareText' -State 'complete'
+        Set-InstallStageState -BorderName 'InstallStageRun' -TextName 'InstallStageRunText' -State 'complete'
+        Set-InstallStageState -BorderName 'InstallStageVerify' -TextName 'InstallStageVerifyText' -State 'complete'
+        Set-InstallStageState -BorderName 'InstallStageComplete' -TextName 'InstallStageCompleteText' -State 'attention'
+        return
+    }
+
+    $activeIndex = if ($progress -ge 100) {
+        3
+    } elseif ($progress -ge 70) {
+        2
+    } elseif ($progress -ge 30) {
+        1
+    } else {
+        0
+    }
+
+    $stages = @(
+        @{ Border = 'InstallStagePrepare'; Text = 'InstallStagePrepareText' }
+        @{ Border = 'InstallStageRun'; Text = 'InstallStageRunText' }
+        @{ Border = 'InstallStageVerify'; Text = 'InstallStageVerifyText' }
+        @{ Border = 'InstallStageComplete'; Text = 'InstallStageCompleteText' }
+    )
+
+    for ($index = 0; $index -lt $stages.Count; $index++) {
+        $state = if ($progress -ge 100) {
+            'complete'
+        } elseif ($index -lt $activeIndex) {
+            'complete'
+        } elseif ($index -eq $activeIndex) {
+            'active'
+        } else {
+            'pending'
+        }
+        Set-InstallStageState -BorderName $stages[$index].Border -TextName $stages[$index].Text -State $state
+    }
+}
+
+function Update-DependentControlState {
+    $lyricsEnabled = [bool]$ui['ChkLyrics'].IsChecked
+    $ui['LyricsThemePanel'].Visibility = if ($lyricsEnabled) { 'Visible' } else { 'Collapsed' }
+    if (-not $lyricsEnabled -and [bool]$ui['ChkOldLyrics'].IsChecked) { $ui['ChkOldLyrics'].IsChecked = $false }
+    Set-UiEnabledState -Name 'ChkOldLyrics' -Enabled $lyricsEnabled -EnabledToolTip 'Revert to Spotify''s previous lyrics interface.' -DisabledToolTip 'Requires the lyrics layer to be enabled.'
+
+    $sidebarEnabled = -not [bool]$ui['ChkRightSidebarOff'].IsChecked
+    if (-not $sidebarEnabled -and [bool]$ui['ChkRightSidebarColor'].IsChecked) { $ui['ChkRightSidebarColor'].IsChecked = $false }
+    Set-UiEnabledState -Name 'ChkRightSidebarColor' -Enabled $sidebarEnabled -EnabledToolTip 'Tint the Now Playing sidebar to the current album art.' -DisabledToolTip 'Unavailable while the right sidebar is disabled.'
+
+    $themeName = Get-ComboSelectionText -Name 'CmbTheme' -Fallback '(None - Marketplace Only)'
+    $hasBundledTheme = ($themeName -ne '(None - Marketplace Only)')
+    Set-UiEnabledState -Name 'CmbScheme' -Enabled $hasBundledTheme -EnabledToolTip 'Choose the color scheme for the selected bundled theme.' -DisabledToolTip 'Pick a bundled theme first to unlock color schemes.'
+    if ($ui.ContainsKey('PreviewBorder')) {
+        $ui['PreviewBorder'].Opacity = if ($hasBundledTheme) { 1.0 } else { 0.82 }
+    }
 }
 
 function Get-ConfigFingerprint {
@@ -1169,6 +1493,95 @@ function Test-HasUnsavedCustomChanges {
     }
 }
 
+function Apply-ConfigToUi {
+    param(
+        [hashtable]$Config,
+        [switch]$ForceCustomMode
+    )
+    if (-not $Config) { return }
+    $normalized = Normalize-LibreSpotConfig -Config $Config
+
+    $checkboxMap = @{
+        'ChkNewTheme'          = 'SpotX_NewTheme'
+        'ChkPodcastsOff'       = 'SpotX_PodcastsOff'
+        'ChkAdSectionsOff'     = 'SpotX_AdSectionsOff'
+        'ChkBlockUpdate'       = 'SpotX_BlockUpdate'
+        'ChkPremium'           = 'SpotX_Premium'
+        'ChkLyrics'            = 'SpotX_LyricsEnabled'
+        'ChkTopSearch'         = 'SpotX_TopSearch'
+        'ChkRightSidebarOff'   = 'SpotX_RightSidebarOff'
+        'ChkRightSidebarColor' = 'SpotX_RightSidebarClr'
+        'ChkCanvasHomeOff'     = 'SpotX_CanvasHomeOff'
+        'ChkHomeSubOff'        = 'SpotX_HomeSubOff'
+        'ChkOldLyrics'         = 'SpotX_OldLyrics'
+        'ChkHideColIconOff'    = 'SpotX_HideColIconOff'
+        'ChkDisableStartup'    = 'SpotX_DisableStartup'
+        'ChkNoShortcut'        = 'SpotX_NoShortcut'
+        'ChkMarketplace'       = 'Spicetify_Marketplace'
+        'ChkCleanInstall'      = 'CleanInstall'
+        'ChkLaunchAfter'       = 'LaunchAfter'
+    }
+    foreach ($name in $checkboxMap.Keys) {
+        if ($ui.ContainsKey($name)) {
+            $ui[$name].IsChecked = [bool]$normalized[$checkboxMap[$name]]
+        }
+    }
+
+    if ($ui.ContainsKey('TxtCacheLimit')) {
+        $ui['TxtCacheLimit'].Text = [string][int]$normalized.SpotX_CacheLimit
+    }
+
+    if ($ui.ContainsKey('CmbLyricsTheme')) {
+        for ($i = 0; $i -lt $ui['CmbLyricsTheme'].Items.Count; $i++) {
+            if ($ui['CmbLyricsTheme'].Items[$i].Content -eq $normalized.SpotX_LyricsTheme) {
+                $ui['CmbLyricsTheme'].SelectedIndex = $i
+                break
+            }
+        }
+    }
+
+    if ($ui.ContainsKey('CmbTheme')) {
+        $themeIndex = 0
+        for ($i = 0; $i -lt $ui['CmbTheme'].Items.Count; $i++) {
+            if ($ui['CmbTheme'].Items[$i].Content -eq $normalized.Spicetify_Theme) {
+                $themeIndex = $i
+                break
+            }
+        }
+        if ($ui['CmbTheme'].Items.Count -gt 0) {
+            $ui['CmbTheme'].SelectedIndex = $themeIndex
+        }
+    }
+
+    if ($ui.ContainsKey('CmbScheme')) {
+        $schemeIndex = 0
+        for ($i = 0; $i -lt $ui['CmbScheme'].Items.Count; $i++) {
+            if ($ui['CmbScheme'].Items[$i].Content -eq $normalized.Spicetify_Scheme) {
+                $schemeIndex = $i
+                break
+            }
+        }
+        if ($ui['CmbScheme'].Items.Count -gt 0) {
+            $ui['CmbScheme'].SelectedIndex = $schemeIndex
+        }
+    }
+
+    $selectedExtensions = @($normalized.Spicetify_Extensions)
+    foreach ($key in $extCheckboxMap.Keys) {
+        if ($ui.ContainsKey($key)) {
+            $ui[$key].IsChecked = ($selectedExtensions -contains $extCheckboxMap[$key])
+        }
+    }
+
+    if ($ForceCustomMode -and $ui.ContainsKey('ModeCustom')) {
+        $ui['ModeCustom'].IsChecked = $true
+    }
+
+    Update-DependentControlState
+    Update-ThemePreview
+    Update-ModePresentation
+}
+
 function Update-ModePresentation {
     $isEasy = [bool]$ui['ModeEasy'].IsChecked
     $isCustom = [bool]$ui['ModeCustom'].IsChecked
@@ -1178,12 +1591,15 @@ function Update-ModePresentation {
     $ui['PanelCustom'].Visibility = if ($isCustom) { 'Visible' } else { 'Collapsed' }
     $ui['PanelMaint'].Visibility = if ($isMaint) { 'Visible' } else { 'Collapsed' }
     $ui['BtnInstall'].Visibility = if ($isMaint) { 'Collapsed' } else { 'Visible' }
+    if ($ui.ContainsKey('FooterActionPanel')) { $ui['FooterActionPanel'].Visibility = if ($isMaint) { 'Collapsed' } else { 'Visible' } }
 
     if ($isEasy) {
         $ui['ModeHeadline'].Text = 'Recommended path for a first install'
         $ui['ModeSummaryText'].Text = 'LibreSpot handles cleanup, verified downloads, Spotify patching, Marketplace, and a reliable default extension set with recovery-friendly defaults.'
-        $ui['SelectionSummary'].Text = 'Default preset: clean install, Marketplace included, 3 extensions, and Spotify launches when setup finishes.'
-        $ui['BtnInstall'].Content = 'Install recommended setup'
+        $ui['SelectionSummary'].Text = 'Recommended setup: clean install, Marketplace included, three starter extensions, and Spotify opens when everything is ready.'
+        Set-SelectionSnapshotState -Tone 'success' -BadgeText 'Pinned default stack' -DetailText 'Easy Install uses the verified cleanup path and saves the default recovery baseline when setup begins.'
+        if ($ui.ContainsKey('ActionFooterNote')) { $ui['ActionFooterNote'].Text = 'Recommended defaults save when setup begins.' }
+        $ui['BtnInstall'].Content = 'Start recommended setup'
         return
     }
 
@@ -1197,6 +1613,7 @@ function Update-ModePresentation {
         $marketplaceLabel = if ($ui['ChkMarketplace'].IsChecked) { 'Marketplace included' } else { 'Marketplace skipped' }
         $launchLabel = if ($ui['ChkLaunchAfter'].IsChecked) { 'launches Spotify when finished' } else { 'keeps Spotify closed when finished' }
         $savedStampText = if ($script:SavedConfigStamp) { $script:SavedConfigStamp.ToString('MMM d, yyyy h:mm tt') } else { $null }
+        $hasUnsavedCustomChanges = Test-HasUnsavedCustomChanges
         $memoryNote = if ($script:HasSavedCustomConfig) {
             if ($savedStampText) { " Your previous custom choices were restored from disk. Last saved $savedStampText." } else { ' Your previous custom choices were restored from disk.' }
         } elseif ($script:SavedConfigMode -eq 'Easy') {
@@ -1204,12 +1621,52 @@ function Update-ModePresentation {
         } else {
             ' LibreSpot will remember these choices after your first custom setup run.'
         }
-        $unsavedNote = if (Test-HasUnsavedCustomChanges) { ' Not saved yet.' } else { '' }
+        $unsavedNote = if ($hasUnsavedCustomChanges) { ' Not saved yet.' } else { '' }
+        $memorySnapshot = if ($hasUnsavedCustomChanges) {
+            'Unsaved edits'
+        } elseif ($script:HasSavedCustomConfig) {
+            'Saved to disk'
+        } elseif ($script:SavedConfigMode -eq 'Easy') {
+            'Ready after first run'
+        } else {
+            'Will save on install'
+        }
+
+        if ($ui.ContainsKey('CustomSnapshotPlanValue')) { $ui['CustomSnapshotPlanValue'].Text = if ($ui['ChkCleanInstall'].IsChecked) { 'Clean install' } else { 'Overlay current setup' } }
+        if ($ui.ContainsKey('CustomSnapshotThemeValue')) { $ui['CustomSnapshotThemeValue'].Text = $themeLabel }
+        if ($ui.ContainsKey('CustomSnapshotExtensionsValue')) { $ui['CustomSnapshotExtensionsValue'].Text = $extLabel }
+        if ($ui.ContainsKey('CustomSnapshotMemoryValue')) { $ui['CustomSnapshotMemoryValue'].Text = $memorySnapshot }
+
+        $snapshotTone = 'info'
+        $snapshotBadge = 'Will save on install'
+        $snapshotDetail = 'Custom choices become the remembered recovery baseline when setup begins.'
+        if ($hasUnsavedCustomChanges) {
+            $snapshotTone = 'warning'
+            $snapshotBadge = 'Unsaved edits'
+            $snapshotDetail = 'These changes are only in this window until you start setup.'
+        } elseif ($script:HasSavedCustomConfig) {
+            $snapshotTone = 'success'
+            $snapshotBadge = 'Saved custom setup'
+            $snapshotDetail = if ($savedStampText) { "Restored from disk. Last saved $savedStampText." } else { 'Restored from disk so reapply and recovery actions stay aligned.' }
+        } elseif ($script:SavedConfigMode -eq 'Easy') {
+            $snapshotBadge = 'Switching from Easy'
+            $snapshotDetail = 'Start one custom run and LibreSpot will remember this tailored setup afterward.'
+        }
+        $dependencyNotes = @()
+        if ([bool]$ui['ChkPremium'].IsChecked) { $dependencyNotes += 'Premium mode keeps ad-filter toggles off.' }
+        if ($theme -eq '(None - Marketplace Only)') { $dependencyNotes += 'Pick a bundled theme if you want color schemes unlocked.' }
+        if ($dependencyNotes.Count -gt 0) {
+            $snapshotDetail = "{0} {1}" -f $snapshotDetail.TrimEnd('.'), ($dependencyNotes -join ' ')
+        }
 
         $ui['ModeHeadline'].Text = 'Tune the experience without guesswork'
         $ui['ModeSummaryText'].Text = "Adjust Spotify cleanup, interface tweaks, themes, and extensions so follow-up installs stay fast and predictable.$memoryNote"
-        $ui['SelectionSummary'].Text = "Custom preset: $installLabel, theme: $themeLabel, $marketplaceLabel, $extLabel, and $launchLabel.$unsavedNote"
-        $ui['BtnInstall'].Content = 'Review and install'
+        $ui['SelectionSummary'].Text = "Custom setup: $installLabel, $themeLabel, $marketplaceLabel, $extLabel, and $launchLabel.$unsavedNote"
+        Set-SelectionSnapshotState -Tone $snapshotTone -BadgeText $snapshotBadge -DetailText $snapshotDetail
+        if ($ui.ContainsKey('ActionFooterNote')) {
+            $ui['ActionFooterNote'].Text = if ($hasUnsavedCustomChanges) { 'Custom edits save when setup begins.' } else { 'Starting setup refreshes the remembered custom baseline.' }
+        }
+        $ui['BtnInstall'].Content = 'Install this setup'
         return
     }
 
@@ -1218,7 +1675,7 @@ function Update-ModePresentation {
     $componentLabel = if ($script:MaintenanceComponentCount -eq 1) { '1 core component detected' } else { "$($script:MaintenanceComponentCount) core components detected" }
     $backupLabel = if ($script:MaintenanceBackupCount -eq 0) { 'no backups saved yet' } elseif ($script:MaintenanceBackupCount -eq 1) { '1 backup ready' } else { "$($script:MaintenanceBackupCount) backups ready" }
     $ui['ModeSummaryText'].Text = 'Inspect what is installed, restore backups, reapply pinned patches after Spotify updates, or roll the setup back cleanly.'
-    $ui['SelectionSummary'].Text = "Maintenance overview: $componentLabel, $backupLabel, and destructive actions stay behind confirmation."
+    $ui['SelectionSummary'].Text = "Maintenance snapshot: $componentLabel, $backupLabel, and destructive actions stay behind confirmation."
 }
 
 function Clear-CompletedRunspaceResources {
@@ -1248,24 +1705,33 @@ $script:copyResetTimer = $null
 $ui['BtnCopyLog'].Add_Click({
     try {
         [System.Windows.Clipboard]::SetText($ui['LogOutput'].Text)
-        $ui['BtnCopyLog'].Content = 'Copied'
+        $ui['BtnCopyLog'].Content = 'Copied log'
         if ($script:copyResetTimer) { $script:copyResetTimer.Stop() }
         $script:copyResetTimer = New-Object System.Windows.Threading.DispatcherTimer
         $script:copyResetTimer.Interval = [TimeSpan]::FromSeconds(1.8)
         $script:copyResetTimer.Add_Tick({
             $script:copyResetTimer.Stop()
-            $ui['BtnCopyLog'].Content = 'Copy details'
+            $ui['BtnCopyLog'].Content = 'Copy full log'
         })
         $script:copyResetTimer.Start()
     } catch {}
 })
+if ($ui.ContainsKey('BtnResetCustomDefaults')) {
+    $ui['BtnResetCustomDefaults'].Add_Click({
+        $result = Show-ThemedDialog -Title 'Load recommended defaults' -Message 'LibreSpot will load the Easy Install defaults into Custom Install so you can keep tweaking from a known-good baseline.' -Buttons 'YesNo' -Icon 'Question' -PrimaryText 'Load defaults' -SecondaryText 'Cancel'
+        if ($result -ne 'Yes') { return }
+        $preset = @{ Mode = 'Custom' }
+        foreach ($key in $global:EasyDefaults.Keys) { $preset[$key] = $global:EasyDefaults[$key] }
+        Apply-ConfigToUi -Config $preset -ForceCustomMode
+    })
+}
 $window.Add_MouseLeftButtonDown({ $window.DragMove() })
 $ui['CloseTitleBtn'].Add_Click({ $window.Close() })
 $ui['MinimizeBtn'].Add_Click({ $window.WindowState = 'Minimized' })
-
 $ui['ModeEasy'].Add_Checked({ Update-ModePresentation })
 $ui['ModeCustom'].Add_Checked({ Update-ModePresentation })
 $ui['ModeMaint'].Add_Checked({ Update-ModePresentation })
+$ui['MainProgress'].Add_ValueChanged({ Update-InstallStageVisual })
 
 $summaryToggleControls = @(
     'ChkNewTheme','ChkPodcastsOff','ChkAdSectionsOff','ChkBlockUpdate','ChkPremium','ChkLyrics',
@@ -1291,9 +1757,10 @@ $ui['BtnBackToConfig'].Add_Click({
     $ui['PageConfig'].Visibility='Visible'
     $ui['BtnInstall'].IsEnabled=$true
     if ($script:copyResetTimer) { $script:copyResetTimer.Stop() }
-    $ui['BtnCopyLog'].Content='Copy details'
+    $ui['BtnCopyLog'].Content='Copy full log'
     $ui['BtnCopyLog'].Visibility='Collapsed'
     $window.Topmost=$false
+    Update-InstallStageVisual
     Update-ModePresentation
 })
 $window.Add_Closing({
@@ -1551,14 +2018,31 @@ function Update-MaintenanceStatus {
             $ui['StatusSpotify'].Foreground = $global:BrushGreen
         }
         catch { $ui['StatusSpotify'].Text = 'Installed'; $ui['StatusSpotify'].Foreground = $global:BrushGreen }
-    } else { $ui['StatusSpotify'].Text = 'Not installed'; $ui['StatusSpotify'].Foreground = $global:BrushRed }
+        Set-MaintenanceCardTone -CardName 'StatusCardSpotify' -Tone 'success'
+    } else {
+        $ui['StatusSpotify'].Text = 'Not installed'
+        $ui['StatusSpotify'].Foreground = $global:BrushRed
+        Set-MaintenanceCardTone -CardName 'StatusCardSpotify' -Tone 'danger'
+    }
 
     $spotxFound = $false
     if (Test-Path "$env:APPDATA\Spotify\Apps\xpui.spa.bak") { $spotxFound = $true }
     if (-not $spotxFound) { try { if (Get-ChildItem (Join-Path $global:TEMP_DIR "SpotX_Temp*") -EA SilentlyContinue) { $spotxFound = $true } } catch {} }
-    if ($spotxFound) { $ui['StatusSpotX'].Text = 'Patched'; $ui['StatusSpotX'].Foreground = $global:BrushGreen }
-    elseif (Test-Path $global:SPOTIFY_EXE_PATH) { $ui['StatusSpotX'].Text = 'Vanilla'; $ui['StatusSpotX'].Foreground = $global:BrushMuted }
-    else { $ui['StatusSpotX'].Text = 'Unavailable'; $ui['StatusSpotX'].Foreground = $global:BrushMuted }
+    if ($spotxFound) {
+        $ui['StatusSpotX'].Text = 'Patched'
+        $ui['StatusSpotX'].Foreground = $global:BrushGreen
+        Set-MaintenanceCardTone -CardName 'StatusCardSpotX' -Tone 'success'
+    }
+    elseif (Test-Path $global:SPOTIFY_EXE_PATH) {
+        $ui['StatusSpotX'].Text = 'Vanilla'
+        $ui['StatusSpotX'].Foreground = $global:BrushMuted
+        Set-MaintenanceCardTone -CardName 'StatusCardSpotX' -Tone 'info'
+    }
+    else {
+        $ui['StatusSpotX'].Text = 'Unavailable'
+        $ui['StatusSpotX'].Foreground = $global:BrushMuted
+        Set-MaintenanceCardTone -CardName 'StatusCardSpotX' -Tone 'muted'
+    }
 
     $sExe = Join-Path $global:SPICETIFY_DIR "spicetify.exe"
     if (Test-Path $sExe) {
@@ -1570,13 +2054,26 @@ function Update-MaintenanceStatus {
             if ($vo) { $ui['StatusSpicetify'].Text = "Installed`n$vo" } else { $ui['StatusSpicetify'].Text = 'Installed' }
         } catch { $ui['StatusSpicetify'].Text = 'Installed' }
         $ui['StatusSpicetify'].Foreground = $global:BrushGreen
-    } else { $ui['StatusSpicetify'].Text = 'Not installed'; $ui['StatusSpicetify'].Foreground = $global:BrushMuted }
+        Set-MaintenanceCardTone -CardName 'StatusCardSpicetify' -Tone 'success'
+    } else {
+        $ui['StatusSpicetify'].Text = 'Not installed'
+        $ui['StatusSpicetify'].Foreground = $global:BrushMuted
+        Set-MaintenanceCardTone -CardName 'StatusCardSpicetify' -Tone 'muted'
+    }
 
     $mp = Join-Path $global:SPICETIFY_CONFIG_DIR "CustomApps\marketplace"
     if (-not (Test-Path $mp)) { $mp = Join-Path $global:SPICETIFY_DIR "CustomApps\marketplace" }
     $marketplaceInstalled = (Test-Path $mp) -or (@(Get-SpicetifyConfigListValue -Key 'custom_apps') -contains 'marketplace')
-    if ($marketplaceInstalled) { $ui['StatusMarketplace'].Text = 'Installed'; $ui['StatusMarketplace'].Foreground = $global:BrushGreen }
-    else { $ui['StatusMarketplace'].Text = 'Not installed'; $ui['StatusMarketplace'].Foreground = $global:BrushMuted }
+    if ($marketplaceInstalled) {
+        $ui['StatusMarketplace'].Text = 'Installed'
+        $ui['StatusMarketplace'].Foreground = $global:BrushGreen
+        Set-MaintenanceCardTone -CardName 'StatusCardMarketplace' -Tone 'success'
+    }
+    else {
+        $ui['StatusMarketplace'].Text = 'Not installed'
+        $ui['StatusMarketplace'].Foreground = $global:BrushMuted
+        Set-MaintenanceCardTone -CardName 'StatusCardMarketplace' -Tone 'muted'
+    }
 
     $tn = if ($spicetifyConfig.ContainsKey('current_theme')) { [string]$spicetifyConfig['current_theme'] } else { '' }
     $injectCss = if ($spicetifyConfig.ContainsKey('inject_css')) { [string]$spicetifyConfig['inject_css'] } else { '0' }
@@ -1588,9 +2085,11 @@ function Update-MaintenanceStatus {
     if ($themeInstalled) {
         $ui['StatusTheme'].Text = $tn
         $ui['StatusTheme'].Foreground = $global:BrushGreen
+        Set-MaintenanceCardTone -CardName 'StatusCardTheme' -Tone 'success'
     } else {
         $ui['StatusTheme'].Text = 'None'
         $ui['StatusTheme'].Foreground = $global:BrushMuted
+        Set-MaintenanceCardTone -CardName 'StatusCardTheme' -Tone 'muted'
     }
 
     $si = Test-Path $sExe; $sp = Test-Path $global:SPOTIFY_EXE_PATH
@@ -1604,10 +2103,62 @@ function Update-MaintenanceStatus {
     $hasConfigSnapshot = Test-Path -LiteralPath (Join-Path $global:SPICETIFY_CONFIG_DIR 'config-xpui.ini')
     $ui['BtnBackupConfig'].IsEnabled=($si -and $hasConfigSnapshot); $ui['BtnRestoreConfig'].IsEnabled=($bk -and $si); $ui['BtnReapply'].IsEnabled=$sp
     $ui['BtnSpicetifyRestore'].IsEnabled=$si; $ui['BtnUninstallSpicetify'].IsEnabled=$si; $ui['BtnFullReset'].IsEnabled=($sp -or $si)
+    $ui['BtnBackupConfig'].ToolTip = if ($ui['BtnBackupConfig'].IsEnabled) { 'Create a timestamped backup of the active Spicetify configuration.' } elseif (-not $si) { 'Install Spicetify before backing up its configuration.' } else { 'Run a setup first so LibreSpot has a clean Spicetify config to back up.' }
+    $ui['BtnRestoreConfig'].ToolTip = if ($ui['BtnRestoreConfig'].IsEnabled) { 'Restore the newest saved Spicetify backup and apply it immediately.' } elseif (-not $si) { 'Install Spicetify before restoring a backup.' } else { 'Create at least one backup before restoring.' }
+    $ui['BtnCheckUpdates'].ToolTip = 'Compare LibreSpot''s pinned versions against the latest upstream releases.'
+    $ui['BtnReapply'].ToolTip = if ($ui['BtnReapply'].IsEnabled) { 'Run SpotX again and then reapply Spicetify with the saved LibreSpot configuration.' } else { 'Spotify needs to be installed before LibreSpot can reapply anything.' }
+    $ui['BtnSpicetifyRestore'].ToolTip = if ($ui['BtnSpicetifyRestore'].IsEnabled) { 'Remove active Spicetify customizations and restore vanilla Spotify while leaving SpotX in place.' } else { 'Install Spicetify before using this restore action.' }
+    $ui['BtnUninstallSpicetify'].ToolTip = if ($ui['BtnUninstallSpicetify'].IsEnabled) { 'Remove the Spicetify CLI, configuration, and PATH entry after restoring vanilla Spotify.' } else { 'Install Spicetify before uninstalling it.' }
+    $ui['BtnFullReset'].ToolTip = if ($ui['BtnFullReset'].IsEnabled) { 'Remove the full Spotify customization stack and clean leftover files.' } else { 'Nothing is installed yet, so there is nothing to reset.' }
+
+    if ($ui.ContainsKey('MaintenanceOverviewTitle') -and $ui.ContainsKey('MaintenanceOverviewText')) {
+        if (-not $sp -and -not $si) {
+            $ui['MaintenanceOverviewTitle'].Text = 'Nothing looks installed yet'
+            $ui['MaintenanceOverviewText'].Text = 'LibreSpot did not detect Spotify or Spicetify. You can still review versions here, but backup and restore actions will stay unavailable until a setup has been applied.'
+        } elseif ($sp -and $spotxFound -and $si -and $marketplaceInstalled -and $themeInstalled) {
+            $ui['MaintenanceOverviewTitle'].Text = 'Current setup looks complete'
+            $ui['MaintenanceOverviewText'].Text = 'Spotify, SpotX, Spicetify, Marketplace, and a theme are all present. Create a backup before making deeper changes so you have a quick way back.'
+        } elseif ($sp -and ($spotxFound -or $si)) {
+            $ui['MaintenanceOverviewTitle'].Text = 'Partial setup detected'
+            $ui['MaintenanceOverviewText'].Text = 'LibreSpot found some of the Spotify customization stack, but not all of it. Reapply or the lighter restore actions should help you get back to a known-good state.'
+        } else {
+            $ui['MaintenanceOverviewTitle'].Text = 'Spotify is present, but customization is limited'
+            $ui['MaintenanceOverviewText'].Text = 'LibreSpot can repair missing pieces from here or remove the rest of the modification stack if you want a clean baseline again.'
+        }
+    }
     if ($ui.ContainsKey('ModeMaint') -and [bool]$ui['ModeMaint'].IsChecked) {
-        $componentLabel = if ($script:MaintenanceComponentCount -eq 1) { '1 core component detected' } else { "$($script:MaintenanceComponentCount) core components detected" }
+        $componentLabel = if ($script:MaintenanceComponentCount -eq 1) { '1 of 5 core components detected' } else { "$($script:MaintenanceComponentCount) of 5 core components detected" }
         $backupLabel = if ($script:MaintenanceBackupCount -eq 0) { 'no backups saved yet' } elseif ($script:MaintenanceBackupCount -eq 1) { '1 backup ready' } else { "$($script:MaintenanceBackupCount) backups ready" }
-        $ui['SelectionSummary'].Text = "Maintenance overview: $componentLabel, $backupLabel, and destructive actions stay behind confirmation."
+        $ui['SelectionSummary'].Text = "Maintenance snapshot: $componentLabel, $backupLabel, and destructive actions stay behind confirmation."
+
+        $selectionTone = if (-not $sp -and -not $si) {
+            'muted'
+        } elseif ($backupCount -gt 0 -and $script:MaintenanceComponentCount -ge 3) {
+            'success'
+        } elseif ($script:MaintenanceComponentCount -ge 2) {
+            'info'
+        } else {
+            'warning'
+        }
+        $selectionBadge = if (-not $sp -and -not $si) {
+            'Waiting for first setup'
+        } elseif ($backupCount -gt 0) {
+            'Recovery ready'
+        } elseif ($script:MaintenanceComponentCount -ge 3) {
+            'Setup detected'
+        } else {
+            'Needs attention'
+        }
+        $selectionDetail = if (-not $sp -and -not $si) {
+            'Backup and restore actions unlock after LibreSpot applies a setup for the first time.'
+        } elseif ($backupCount -gt 0) {
+            "Detected $($script:MaintenanceComponentCount) of 5 core components and $backupLabel."
+        } elseif ($script:MaintenanceComponentCount -ge 3) {
+            "Detected $($script:MaintenanceComponentCount) of 5 core components. Create a backup before making deeper changes."
+        } else {
+            "Detected $($script:MaintenanceComponentCount) of 5 core components. Reapply or the lighter restore actions can help rebuild a stable state."
+        }
+        Set-SelectionSnapshotState -Tone $selectionTone -BadgeText $selectionBadge -DetailText $selectionDetail
     }
 }
 
@@ -1736,7 +2287,7 @@ $ui['BtnRestoreConfig'].Add_Click({ try {
 $ui['BtnCheckUpdates'].Add_Click({
     if (-not (Test-NetworkReady)) { Show-ThemedDialog -Message "LibreSpot could not reach GitHub to compare pinned versions. Check the connection, then try again." -Title "No Internet Connection" -Icon "Error" -PrimaryText "Close"; return }
     try {
-        Switch-ToInstallPage -Title 'Checking pinned versions' -Context 'LibreSpot is comparing the pinned LibreSpot, SpotX, Spicetify, Marketplace, and theme versions against upstream releases.'
+        Switch-ToInstallPage -Title 'Checking pinned versions' -Context 'LibreSpot is comparing the pinned LibreSpot, SpotX, Spicetify, Marketplace, and theme versions against upstream releases.' -PrepareLabel 'Prepare' -RunLabel 'Compare' -VerifyLabel 'Review' -CompleteLabel 'Complete'
         Start-MaintenanceJob -Action 'CheckUpdates'
     } catch {
         Reset-UiAfterLaunchFailure -Title 'Could not start maintenance' -Message "LibreSpot couldn't start the update check.`n`n$($_.Exception.Message)"
@@ -1747,7 +2298,7 @@ $ui['BtnReapply'].Add_Click({
     $r = Show-ThemedDialog -Message "LibreSpot will run SpotX again and then reapply Spicetify. Your saved LibreSpot settings will be used when available." -Title "Reapply Setup" -Buttons "YesNo" -Icon "Question" -PrimaryText "Reapply now" -SecondaryText "Cancel"
     if ($r -eq 'Yes') {
         try {
-            Switch-ToInstallPage -Title 'Reapplying your setup' -Context 'LibreSpot is refreshing SpotX first, then reapplying Spicetify so you can recover quickly after a Spotify update.'
+            Switch-ToInstallPage -Title 'Reapplying your setup' -Context 'LibreSpot is refreshing SpotX first, then reapplying Spicetify so you can recover quickly after a Spotify update.' -PrepareLabel 'Prepare' -RunLabel 'Refresh' -VerifyLabel 'Apply' -CompleteLabel 'Complete'
             Start-MaintenanceJob -Action 'Reapply'
         } catch {
             Reset-UiAfterLaunchFailure -Title 'Could not start maintenance' -Message "LibreSpot couldn't start the reapply flow.`n`n$($_.Exception.Message)"
@@ -1758,7 +2309,7 @@ $ui['BtnSpicetifyRestore'].Add_Click({
     $r = Show-ThemedDialog -Message "LibreSpot will remove Spicetify themes and extensions, then restore vanilla Spotify while keeping SpotX in place." -Title "Restore Vanilla Spotify" -Buttons "YesNo" -Icon "Question" -PrimaryText "Restore Spotify" -SecondaryText "Cancel"
     if ($r -eq 'Yes') {
         try {
-            Switch-ToInstallPage -Title 'Restoring vanilla Spotify' -Context 'LibreSpot is removing Spicetify customizations and returning Spotify to its vanilla interface while leaving SpotX untouched.'
+            Switch-ToInstallPage -Title 'Restoring vanilla Spotify' -Context 'LibreSpot is removing Spicetify customizations and returning Spotify to its vanilla interface while leaving SpotX untouched.' -PrepareLabel 'Prepare' -RunLabel 'Restore' -VerifyLabel 'Verify' -CompleteLabel 'Complete'
             Start-MaintenanceJob -Action 'RestoreVanilla'
         } catch {
             Reset-UiAfterLaunchFailure -Title 'Could not start maintenance' -Message "LibreSpot couldn't start the restore flow.`n`n$($_.Exception.Message)"
@@ -1769,7 +2320,7 @@ $ui['BtnUninstallSpicetify'].Add_Click({
     $r = Show-ThemedDialog -Message "LibreSpot will restore vanilla Spotify first, then remove the Spicetify CLI, configuration folder, and PATH entry." -Title "Uninstall Spicetify" -Buttons "YesNo" -Icon "Warning" -PrimaryText "Uninstall" -SecondaryText "Cancel" -PrimaryIsDestructive
     if ($r -eq 'Yes') {
         try {
-            Switch-ToInstallPage -Title 'Removing Spicetify' -Context 'LibreSpot is restoring Spotify first, then cleaning out the Spicetify CLI, configuration, and PATH changes.'
+            Switch-ToInstallPage -Title 'Removing Spicetify' -Context 'LibreSpot is restoring Spotify first, then cleaning out the Spicetify CLI, configuration, and PATH changes.' -PrepareLabel 'Prepare' -RunLabel 'Restore' -VerifyLabel 'Remove' -CompleteLabel 'Complete'
             Start-MaintenanceJob -Action 'UninstallSpicetify'
         } catch {
             Reset-UiAfterLaunchFailure -Title 'Could not start maintenance' -Message "LibreSpot couldn't start the uninstall flow.`n`n$($_.Exception.Message)"
@@ -1780,7 +2331,7 @@ $ui['BtnFullReset'].Add_Click({
     $r = Show-ThemedDialog -Message "LibreSpot will restore vanilla Spotify, remove SpotX and Spicetify, uninstall Spotify, and clean leftover files. This is the deepest reset available." -Title "Full Reset" -Buttons "YesNo" -Icon "Warning" -PrimaryText "Reset everything" -SecondaryText "Cancel" -PrimaryIsDestructive
     if ($r -eq 'Yes') {
         try {
-            Switch-ToInstallPage -Title 'Preparing full reset' -Context 'LibreSpot is rolling the setup all the way back: restoring vanilla Spotify, removing patches, uninstalling Spotify, and cleaning leftover files.'
+            Switch-ToInstallPage -Title 'Preparing full reset' -Context 'LibreSpot is rolling the setup all the way back: restoring vanilla Spotify, removing patches, uninstalling Spotify, and cleaning leftover files.' -PrepareLabel 'Prepare' -RunLabel 'Restore' -VerifyLabel 'Clean' -CompleteLabel 'Complete'
             Start-MaintenanceJob -Action 'FullReset'
         } catch {
             Reset-UiAfterLaunchFailure -Title 'Could not start maintenance' -Message "LibreSpot couldn't start the full reset flow.`n`n$($_.Exception.Message)"
@@ -1987,24 +2538,29 @@ function Reset-UiAfterLaunchFailure {
     $ui['PageConfig'].Visibility='Visible'
     $ui['BtnInstall'].IsEnabled=$true
     $ui['BtnCopyLog'].Visibility='Collapsed'
-    $ui['BtnCopyLog'].Content='Copy details'
+    $ui['BtnCopyLog'].Content='Copy full log'
     $window.Topmost=$false
     Update-ModePresentation
     Show-ThemedDialog -Title $Title -Message $Message -Icon 'Error' -PrimaryText 'Close' | Out-Null
 }
-
 function Switch-ToInstallPage {
     param(
         [string]$Title = 'Preparing setup',
-        [string]$Context = 'LibreSpot keeps the interface responsive while it downloads, patches, and applies your selection.'
+        [string]$Context = 'LibreSpot keeps the interface responsive while it downloads, patches, and applies your selection.',
+        [string]$PrepareLabel = 'Prepare',
+        [string]$RunLabel = 'Run',
+        [string]$VerifyLabel = 'Verify',
+        [string]$CompleteLabel = 'Complete'
     )
     try { if ($global:LOG_PATH) { if (-not (Test-Path $global:CONFIG_DIR)) { New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null }; Set-Content -Path $global:LOG_PATH -Value "--- LibreSpot v$global:VERSION $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ---`n" -Encoding UTF8 -Force } } catch {}
     $ui['PageConfig'].Visibility='Collapsed'; $ui['PageInstall'].Visibility='Visible'
-    $ui['LogOutput'].Text=''; $ui['StatusText'].Text='Preparing setup...'; $ui['StepIndicator'].Text='Waiting to start'
+    $ui['LogOutput'].Text=''; $ui['StatusText'].Text='Preparing workspace...'; $ui['StepIndicator'].Text='Waiting to start'
     $ui['InstallTitle'].Text = $Title; $ui['InstallContext'].Text = $Context
     $ui['ElapsedTime'].Text=''; $ui['MainProgress'].Value=0; $ui['MainProgress'].Foreground=$global:BrushGreen
-    $ui['CloseBtn'].Visibility='Collapsed'; $ui['BtnBackToConfig'].Visibility='Collapsed'; $ui['BtnCopyLog'].Visibility='Collapsed'; $ui['BtnCopyLog'].Content='Copy details'
+    $ui['CloseBtn'].Visibility='Collapsed'; $ui['BtnBackToConfig'].Visibility='Collapsed'; $ui['BtnCopyLog'].Visibility='Collapsed'; $ui['BtnCopyLog'].Content='Copy full log'
     $window.Topmost = $true
+    Set-InstallStageLabels -Prepare $PrepareLabel -Run $RunLabel -Verify $VerifyLabel -Complete $CompleteLabel
+    Update-InstallStageVisual
 }
 
 $ui['BtnInstall'].Add_Click({
@@ -2045,7 +2601,7 @@ $ui['BtnInstall'].Add_Click({
         'LibreSpot is validating your selected Spotify tweaks, theme, Marketplace choice, and extension set before it applies them in one pass.'
     }
     try {
-        Switch-ToInstallPage -Title $installTitle -Context $installContext
+        Switch-ToInstallPage -Title $installTitle -Context $installContext -PrepareLabel 'Prepare' -RunLabel 'Build' -VerifyLabel 'Apply' -CompleteLabel 'Complete'
         Start-InstallJob -Config $script:InstallConfig
     } catch {
         Reset-UiAfterLaunchFailure -Title 'Could not start setup' -Message "LibreSpot couldn't start the setup run.`n`n$($_.Exception.Message)"
@@ -2064,6 +2620,7 @@ $timer.Add_Tick({
     if ($ui['PageInstall'].Visibility -eq 'Visible') {
         $cur = $ui['StepIndicator'].Text
         if ($cur -match '^Processing') { $ui['StepIndicator'].Text = $stepStates[$script:stepIndex] }
+        Update-InstallStageVisual
     }
     if ($script:installStartTime) { $ui['ElapsedTime'].Text = "Elapsed: {0:mm\:ss}" -f ((Get-Date) - $script:installStartTime) }
 })
@@ -2080,7 +2637,7 @@ function Update-UI { param([string]$Message,[string]$Level="INFO",[bool]$IsHeade
     try { if ($sh) { $sh.Dispatcher.Invoke([Action]{
         $existingText = [string]$sh.LogBlock.Text
         $maxUiLogChars = 60000
-        $trimNotice = "[UI] Earlier log lines were trimmed here. Use 'Copy details' for the full saved log.`n"
+        $trimNotice = "[UI] Earlier log lines were trimmed here. Use 'Copy full log' for the full saved log.`n"
         if ($existingText.StartsWith($trimNotice)) {
             $existingText = $existingText.Substring($trimNotice.Length)
         }
