@@ -53,22 +53,22 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
 
-$global:VERSION = '3.2.0'
+$global:VERSION = '3.3.0'
 
 # --- Pinned dependency versions with SHA256 verification ---
 # Update these when new versions are tested. Use Maintenance > Check for Updates.
 $global:PinnedReleases = @{
     SpotX = @{
         Version = '2.0'
-        Commit  = '6070bbcf1b18fd701f3da09481bf06e8b46a4d80'
-        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/6070bbcf1b18fd701f3da09481bf06e8b46a4d80/run.ps1'
-        SHA256  = 'f47557713336b5d84e70c45528f0324c2348c575b1d473379ba7f1048e8d1f13'
+        Commit  = '0abf98a36be501740d774a56d54d5f7fbbafc35c'
+        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/0abf98a36be501740d774a56d54d5f7fbbafc35c/run.ps1'
+        SHA256  = '38d4205a2afc2050781bbfe28c6713edd6b0aef2c084304b58d92308b081f569'
     }
     SpicetifyCLI = @{
-        Version = '2.42.14'
+        Version = '2.43.1'
         SHA256  = @{
-            x64   = '7b36540def8ef6a6249411326a9672a4e3a5eb22a7f9e363b77515c984271cfe'
-            arm64 = '9baa06d993852ca6b8820da6ea0c639ab4ffddc24e82dff07beecb5088ac1b62'
+            x64   = 'c9b5e677d5b3046d14da09a3f713bd7b864b67b0c4c4b7ea2ab53c261e63b491'
+            arm64 = '4cc793a947678ededaa244899c216d60230f535cb8ccaadf683e99c4ae741e13'
         }
     }
     Marketplace = @{
@@ -104,6 +104,7 @@ $global:BrushError = [System.Windows.Media.SolidColorBrush]::new([System.Windows
 foreach ($b in @($global:BrushGreen,$global:BrushRed,$global:BrushMuted,$global:BrushError)) { $b.Freeze() }
 
 $script:openRunspaces = [System.Collections.Generic.List[object]]::new()
+$script:BrushConverter = [System.Windows.Media.BrushConverter]::new()
 $script:EntryInvocation = $MyInvocation
 $script:EntryCommandPath = $PSCommandPath
 $script:ConfigLoadWarning = $null
@@ -259,6 +260,7 @@ $global:EasyDefaults = @{
     SpotX_Premium=$false; SpotX_LyricsEnabled=$true; SpotX_LyricsTheme="spotify"
     SpotX_TopSearch=$false; SpotX_RightSidebarOff=$false; SpotX_RightSidebarClr=$false
     SpotX_CanvasHomeOff=$false; SpotX_HomeSubOff=$false; SpotX_DisableStartup=$true; SpotX_NoShortcut=$false; SpotX_CacheLimit=0
+    SpotX_Plus=$false; SpotX_NewFullscreen=$false; SpotX_FunnyProgress=$false; SpotX_ExpSpotify=$false; SpotX_LyricsBlock=$false
     Spicetify_Theme="(None - Marketplace Only)"; Spicetify_Scheme="Default"; Spicetify_Marketplace=$true
     Spicetify_Extensions=@("fullAppDisplay.js","shuffle+.js","trashbin.js")
     CleanInstall=$true; LaunchAfter=$true
@@ -346,6 +348,7 @@ function Normalize-LibreSpotConfig {
         'SpotX_Premium','SpotX_LyricsEnabled','SpotX_TopSearch','SpotX_RightSidebarOff',
         'SpotX_RightSidebarClr','SpotX_CanvasHomeOff','SpotX_HomeSubOff',
         'SpotX_DisableStartup','SpotX_NoShortcut','SpotX_OldLyrics','SpotX_HideColIconOff',
+        'SpotX_Plus','SpotX_NewFullscreen','SpotX_FunnyProgress','SpotX_ExpSpotify','SpotX_LyricsBlock',
         'Spicetify_Marketplace'
     )
     foreach ($key in $booleanKeys) {
@@ -460,10 +463,16 @@ function Save-LibreSpotConfig { param([hashtable]$Config)
         $utf8 = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::WriteAllText($tempPath, ($json | ConvertTo-Json -Depth 4), $utf8)
         if (Test-Path -LiteralPath $global:CONFIG_PATH) {
-            [System.IO.File]::Replace($tempPath, $global:CONFIG_PATH, $backupPath, $true)
-            Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
+            try {
+                [System.IO.File]::Replace($tempPath, $global:CONFIG_PATH, $backupPath, $true)
+                Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
+            } catch {
+                # Replace() can fail on some filesystems; fall back to atomic Move
+                Remove-Item -LiteralPath $global:CONFIG_PATH -Force -ErrorAction Stop
+                [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)
+            }
         } else {
-            Move-Item -LiteralPath $tempPath -Destination $global:CONFIG_PATH -Force
+            [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)
         }
         return $true
     } catch {
@@ -650,7 +659,7 @@ $xaml = @"
                 <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 
                     <!-- ===== TITLE BAR ===== -->
-                    <Border Grid.Row="0" Background="#05080d" Padding="28,22,28,0">
+                    <Border Name="TitleBar" Grid.Row="0" Background="#05080d" Padding="28,22,28,0">
                         <Grid>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
                                 <Ellipse Width="10" Height="10" Fill="#FF4ade80" Margin="0,1,12,0" VerticalAlignment="Center">
@@ -765,25 +774,25 @@ $xaml = @"
                                             <Border Grid.Column="0" Style="{StaticResource InsetPanel}">
                                                 <StackPanel>
                                                     <TextBlock Text="Install plan" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/>
-                                                    <TextBlock Name="CustomSnapshotPlanValue" Text="Clean install" Foreground="#FFF8FAFC" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                    <TextBlock Name="CustomSnapshotPlanValue" Text="Clean install" Foreground="#FFF8FAFC" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                                 </StackPanel>
                                             </Border>
                                             <Border Grid.Column="2" Style="{StaticResource InsetPanel}">
                                                 <StackPanel>
                                                     <TextBlock Text="Theme" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/>
-                                                    <TextBlock Name="CustomSnapshotThemeValue" Text="Marketplace only" Foreground="#FFF8FAFC" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                    <TextBlock Name="CustomSnapshotThemeValue" Text="Marketplace only" Foreground="#FFF8FAFC" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                                 </StackPanel>
                                             </Border>
                                             <Border Grid.Column="4" Style="{StaticResource InsetPanel}">
                                                 <StackPanel>
                                                     <TextBlock Text="Extensions" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/>
-                                                    <TextBlock Name="CustomSnapshotExtensionsValue" Text="3 extensions" Foreground="#FFF8FAFC" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                    <TextBlock Name="CustomSnapshotExtensionsValue" Text="3 extensions" Foreground="#FFF8FAFC" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                                 </StackPanel>
                                             </Border>
                                             <Border Grid.Column="6" Style="{StaticResource InsetPanel}">
                                                 <StackPanel>
                                                     <TextBlock Text="Memory" Foreground="#FF94A3B8" FontSize="11" FontWeight="SemiBold"/>
-                                                    <TextBlock Name="CustomSnapshotMemoryValue" Text="Will save on install" Foreground="#FFF8FAFC" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                    <TextBlock Name="CustomSnapshotMemoryValue" Text="Will save on install" Foreground="#FFF8FAFC" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
@@ -836,6 +845,18 @@ $xaml = @"
                                                         <CheckBox Name="ChkCanvasHomeOff" Content="Disable canvas on Home" Style="{StaticResource DarkCheckBox}" ToolTip="Disable canvas artwork on the homepage"/>
                                                         <CheckBox Name="ChkHomeSubOff" Content="Hide Home subfeed chips" Style="{StaticResource DarkCheckBox}" ToolTip="Hide genre filter chips on home page"/>
                                                         <CheckBox Name="ChkHideColIconOff" Content="Show collaboration icons in playlists" Style="{StaticResource DarkCheckBox}" ToolTip="Keep collaboration icons visible in playlists"/>
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Experimental features" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="These features are newer or experimental. They may change behavior with future Spotify updates." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <CheckBox Name="ChkPlus" Content="Enhanced save and destination features" Style="{StaticResource DarkCheckBox}" ToolTip="Enable enhanced save/destination features in Spotify"/>
+                                                        <CheckBox Name="ChkNewFullscreen" Content="Experimental fullscreen mode" Style="{StaticResource DarkCheckBox}" ToolTip="Enable the new experimental fullscreen mode"/>
+                                                        <CheckBox Name="ChkFunnyProgress" Content="Humorous progress bar" Style="{StaticResource DarkCheckBox}" ToolTip="Replace the standard progress bar with a humorous variant"/>
+                                                        <CheckBox Name="ChkExpSpotify" Content="Enable experimental Spotify features" Style="{StaticResource DarkCheckBox}" ToolTip="Unlock experimental features that Spotify is testing but has not yet released"/>
+                                                        <CheckBox Name="ChkLyricsBlock" Content="Disable native lyrics entirely" Style="{StaticResource DarkCheckBox}" ToolTip="Block Spotify's built-in lyrics feature completely"/>
                                                     </StackPanel>
                                                 </Border>
 
@@ -1081,6 +1102,7 @@ $ui = @{}
   'CustomSnapshotPlanValue','CustomSnapshotThemeValue','CustomSnapshotExtensionsValue','CustomSnapshotMemoryValue',
   'ChkNewTheme','ChkPodcastsOff','ChkAdSectionsOff','ChkBlockUpdate','ChkPremium','ChkLyrics','CmbLyricsTheme',
   'ChkTopSearch','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHomeOff','ChkHomeSubOff','ChkOldLyrics','ChkHideColIconOff',
+  'ChkPlus','ChkNewFullscreen','ChkFunnyProgress','ChkExpSpotify','ChkLyricsBlock',
   'ChkDisableStartup','ChkNoShortcut','TxtCacheLimit','CmbTheme','CmbScheme','PreviewBorder','ThemePreviewImg','PreviewLabel','ChkMarketplace',
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
@@ -1092,7 +1114,7 @@ $ui = @{}
   'InstallStagePrepare','InstallStageRun','InstallStageVerify','InstallStageComplete',
   'InstallStagePrepareText','InstallStageRunText','InstallStageVerifyText','InstallStageCompleteText',
   'LogScroller','LogOutput','StatusText','ElapsedTime','StepIndicator','MainProgress','BtnCopyLog','BtnBackToConfig','CloseBtn',
-  'FooterActionPanel','ActionFooterNote','TitleText'
+  'FooterActionPanel','ActionFooterNote','TitleText','TitleBar'
 ) | ForEach-Object { $el = $window.FindName($_); if ($el) { $ui[$_] = $el } }
 
 $extCheckboxMap = [ordered]@{
@@ -1113,7 +1135,9 @@ foreach ($theme in $global:ThemeData.Keys) {
 }
 # Theme preview image cache and loader
 $script:previewCache = @{}
+$script:previewLoading = $false
 function Update-ThemePreview {
+    if ($script:previewLoading) { return }  # re-entrancy guard
     $themeName = if ($ui['CmbTheme'].SelectedItem) { $ui['CmbTheme'].SelectedItem.Content } else { $null }
     $schemeName = if ($ui['CmbScheme'].SelectedItem) { $ui['CmbScheme'].SelectedItem.Content } else { $null }
     if (-not $themeName -or $themeName -eq '(None - Marketplace Only)') {
@@ -1143,11 +1167,14 @@ function Update-ThemePreview {
     $ui['ThemePreviewImg'].Source = $null; $ui['PreviewLabel'].Visibility = 'Visible'; $ui['PreviewLabel'].Text = "Loading $themeName preview…"
     # Force UI update before blocking download
     [System.Windows.Forms.Application]::DoEvents()
+    $script:previewLoading = $true
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
         $wc = New-Object System.Net.WebClient
-        $wc.Headers.Add('User-Agent', 'LibreSpot')
-        $data = $wc.DownloadData($url)
+        try {
+            $wc.Headers.Add('User-Agent', 'LibreSpot')
+            $data = $wc.DownloadData($url)
+        } finally { $wc.Dispose() }
         $ms = New-Object System.IO.MemoryStream(,$data)
         $bmp = New-Object System.Windows.Media.Imaging.BitmapImage
         $bmp.BeginInit(); $bmp.StreamSource = $ms; $bmp.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad; $bmp.EndInit(); $bmp.Freeze()
@@ -1157,6 +1184,8 @@ function Update-ThemePreview {
         $ui['ThemePreviewImg'].Source = $null
         $ui['PreviewLabel'].Visibility = 'Visible'
         $ui['PreviewLabel'].Text = "Preview unavailable for $themeName."
+    } finally {
+        $script:previewLoading = $false
     }
 }
 
@@ -1179,6 +1208,10 @@ $ui['CmbTheme'].SelectedIndex = 0
 
 $ui['ChkLyrics'].Add_Checked({ Update-DependentControlState })
 $ui['ChkLyrics'].Add_Unchecked({ Update-DependentControlState })
+$ui['ChkOldLyrics'].Add_Checked({ Update-DependentControlState })
+$ui['ChkOldLyrics'].Add_Unchecked({ Update-DependentControlState })
+$ui['ChkLyricsBlock'].Add_Checked({ Update-DependentControlState })
+$ui['ChkLyricsBlock'].Add_Unchecked({ Update-DependentControlState })
 $ui['ChkRightSidebarOff'].Add_Checked({ Update-DependentControlState })
 $ui['ChkRightSidebarOff'].Add_Unchecked({ Update-DependentControlState })
 
@@ -1233,6 +1266,11 @@ if ($savedCfg) { try {
     if ($savedCfg.ContainsKey('SpotX_HomeSubOff'))      { $ui['ChkHomeSubOff'].IsChecked      = [bool]$savedCfg.SpotX_HomeSubOff }
     if ($savedCfg.ContainsKey('SpotX_OldLyrics'))       { $ui['ChkOldLyrics'].IsChecked       = [bool]$savedCfg.SpotX_OldLyrics }
     if ($savedCfg.ContainsKey('SpotX_HideColIconOff'))  { $ui['ChkHideColIconOff'].IsChecked  = [bool]$savedCfg.SpotX_HideColIconOff }
+    if ($savedCfg.ContainsKey('SpotX_Plus'))            { $ui['ChkPlus'].IsChecked            = [bool]$savedCfg.SpotX_Plus }
+    if ($savedCfg.ContainsKey('SpotX_NewFullscreen'))   { $ui['ChkNewFullscreen'].IsChecked   = [bool]$savedCfg.SpotX_NewFullscreen }
+    if ($savedCfg.ContainsKey('SpotX_FunnyProgress'))   { $ui['ChkFunnyProgress'].IsChecked   = [bool]$savedCfg.SpotX_FunnyProgress }
+    if ($savedCfg.ContainsKey('SpotX_ExpSpotify'))      { $ui['ChkExpSpotify'].IsChecked      = [bool]$savedCfg.SpotX_ExpSpotify }
+    if ($savedCfg.ContainsKey('SpotX_LyricsBlock'))     { $ui['ChkLyricsBlock'].IsChecked     = [bool]$savedCfg.SpotX_LyricsBlock }
     if ($savedCfg.ContainsKey('Spicetify_Marketplace')){ $ui['ChkMarketplace'].IsChecked    = [bool]$savedCfg.Spicetify_Marketplace }
     if ($savedCfg.ContainsKey('CleanInstall'))         { $ui['ChkCleanInstall'].IsChecked   = [bool]$savedCfg.CleanInstall }
     if ($savedCfg.ContainsKey('LaunchAfter'))          { $ui['ChkLaunchAfter'].IsChecked    = [bool]$savedCfg.LaunchAfter }
@@ -1297,9 +1335,8 @@ function Set-MaintenanceCardTone {
         'danger'  { @{ Background = '#FF1a0f12'; Border = '#FF7f1d1d' } }
         default   { @{ Background = '#FF0c1219'; Border = '#FF23303d' } }
     }
-    $brushConverter = [System.Windows.Media.BrushConverter]::new()
-    $ui[$CardName].Background = $brushConverter.ConvertFromString($palette.Background)
-    $ui[$CardName].BorderBrush = $brushConverter.ConvertFromString($palette.Border)
+    $ui[$CardName].Background = $script:BrushConverter.ConvertFromString($palette.Background)
+    $ui[$CardName].BorderBrush = $script:BrushConverter.ConvertFromString($palette.Border)
 }
 
 function Set-SelectionSnapshotState {
@@ -1317,12 +1354,11 @@ function Set-SelectionSnapshotState {
         'muted'   { @{ Background = '#11111220'; Border = '#1b2433'; Foreground = '#FFCBD5E1'; Detail = '#FF64748B' } }
         default   { @{ Background = '#11101d2a'; Border = '#1d3347'; Foreground = '#FF7dd3fc'; Detail = '#FF94A3B8' } }
     }
-    $brushConverter = [System.Windows.Media.BrushConverter]::new()
-    $ui['SelectionStateBadge'].Background = $brushConverter.ConvertFromString($palette.Background)
-    $ui['SelectionStateBadge'].BorderBrush = $brushConverter.ConvertFromString($palette.Border)
-    $ui['SelectionStateBadgeText'].Foreground = $brushConverter.ConvertFromString($palette.Foreground)
+    $ui['SelectionStateBadge'].Background = $script:BrushConverter.ConvertFromString($palette.Background)
+    $ui['SelectionStateBadge'].BorderBrush = $script:BrushConverter.ConvertFromString($palette.Border)
+    $ui['SelectionStateBadgeText'].Foreground = $script:BrushConverter.ConvertFromString($palette.Foreground)
     $ui['SelectionStateBadgeText'].Text = [string]$BadgeText
-    $ui['SelectionStateDetail'].Foreground = $brushConverter.ConvertFromString($palette.Detail)
+    $ui['SelectionStateDetail'].Foreground = $script:BrushConverter.ConvertFromString($palette.Detail)
     $ui['SelectionStateDetail'].Text = [string]$DetailText
     $ui['SelectionStateDetail'].Visibility = if ([string]::IsNullOrWhiteSpace($DetailText)) { 'Collapsed' } else { 'Visible' }
 }
@@ -1341,10 +1377,9 @@ function Set-InstallStageState {
         'attention' { @{ Background = '#FF2a1115'; Border = '#FF7f1d1d'; Foreground = '#FFFECDD3' } }
         default     { @{ Background = '#FF091019'; Border = '#FF1a2634'; Foreground = '#FF94A3B8' } }
     }
-    $brushConverter = [System.Windows.Media.BrushConverter]::new()
-    $ui[$BorderName].Background = $brushConverter.ConvertFromString($palette.Background)
-    $ui[$BorderName].BorderBrush = $brushConverter.ConvertFromString($palette.Border)
-    $ui[$TextName].Foreground = $brushConverter.ConvertFromString($palette.Foreground)
+    $ui[$BorderName].Background = $script:BrushConverter.ConvertFromString($palette.Background)
+    $ui[$BorderName].BorderBrush = $script:BrushConverter.ConvertFromString($palette.Border)
+    $ui[$TextName].Foreground = $script:BrushConverter.ConvertFromString($palette.Foreground)
 }
 
 function Set-InstallStageLabels {
@@ -1425,7 +1460,11 @@ function Update-DependentControlState {
     $lyricsEnabled = [bool]$ui['ChkLyrics'].IsChecked
     $ui['LyricsThemePanel'].Visibility = if ($lyricsEnabled) { 'Visible' } else { 'Collapsed' }
     if (-not $lyricsEnabled -and [bool]$ui['ChkOldLyrics'].IsChecked) { $ui['ChkOldLyrics'].IsChecked = $false }
-    Set-UiEnabledState -Name 'ChkOldLyrics' -Enabled $lyricsEnabled -EnabledToolTip 'Revert to Spotify''s previous lyrics interface.' -DisabledToolTip 'Requires the lyrics layer to be enabled.'
+    if (-not $lyricsEnabled -and [bool]$ui['ChkLyricsBlock'].IsChecked) { $ui['ChkLyricsBlock'].IsChecked = $false }
+    $oldLyricsOn = [bool]$ui['ChkOldLyrics'].IsChecked
+    $lyricsBlockOn = [bool]$ui['ChkLyricsBlock'].IsChecked
+    Set-UiEnabledState -Name 'ChkOldLyrics' -Enabled ($lyricsEnabled -and -not $lyricsBlockOn) -EnabledToolTip 'Revert to Spotify''s previous lyrics interface.' -DisabledToolTip $(if (-not $lyricsEnabled) { 'Requires the lyrics layer to be enabled.' } else { 'Cannot combine with lyrics block.' })
+    Set-UiEnabledState -Name 'ChkLyricsBlock' -Enabled ($lyricsEnabled -and -not $oldLyricsOn) -EnabledToolTip 'Completely disable native lyrics functionality.' -DisabledToolTip $(if (-not $lyricsEnabled) { 'Requires the lyrics layer to be enabled.' } else { 'Cannot combine with old lyrics.' })
 
     $sidebarEnabled = -not [bool]$ui['ChkRightSidebarOff'].IsChecked
     if (-not $sidebarEnabled -and [bool]$ui['ChkRightSidebarColor'].IsChecked) { $ui['ChkRightSidebarColor'].IsChecked = $false }
@@ -1462,6 +1501,11 @@ function Get-ConfigFingerprint {
         SpotX_HomeSubOff       = [bool]$Config.SpotX_HomeSubOff
         SpotX_OldLyrics        = [bool]$Config.SpotX_OldLyrics
         SpotX_HideColIconOff   = [bool]$Config.SpotX_HideColIconOff
+        SpotX_Plus             = [bool]$Config.SpotX_Plus
+        SpotX_NewFullscreen    = [bool]$Config.SpotX_NewFullscreen
+        SpotX_FunnyProgress    = [bool]$Config.SpotX_FunnyProgress
+        SpotX_ExpSpotify       = [bool]$Config.SpotX_ExpSpotify
+        SpotX_LyricsBlock      = [bool]$Config.SpotX_LyricsBlock
         SpotX_CacheLimit       = [int]$Config.SpotX_CacheLimit
         Spicetify_Theme        = [string]$Config.Spicetify_Theme
         Spicetify_Scheme       = [string]$Config.Spicetify_Scheme
@@ -1517,6 +1561,11 @@ function Apply-ConfigToUi {
         'ChkHideColIconOff'    = 'SpotX_HideColIconOff'
         'ChkDisableStartup'    = 'SpotX_DisableStartup'
         'ChkNoShortcut'        = 'SpotX_NoShortcut'
+        'ChkPlus'              = 'SpotX_Plus'
+        'ChkNewFullscreen'     = 'SpotX_NewFullscreen'
+        'ChkFunnyProgress'     = 'SpotX_FunnyProgress'
+        'ChkExpSpotify'        = 'SpotX_ExpSpotify'
+        'ChkLyricsBlock'       = 'SpotX_LyricsBlock'
         'ChkMarketplace'       = 'Spicetify_Marketplace'
         'ChkCleanInstall'      = 'CleanInstall'
         'ChkLaunchAfter'       = 'LaunchAfter'
@@ -1704,7 +1753,13 @@ if ($ui['TitleText']) { $ui['TitleText'].Text = "LibreSpot v$global:VERSION" }
 $script:copyResetTimer = $null
 $ui['BtnCopyLog'].Add_Click({
     try {
-        [System.Windows.Clipboard]::SetText($ui['LogOutput'].Text)
+        $logText = $null
+        if ($global:LOG_PATH -and (Test-Path -LiteralPath $global:LOG_PATH -PathType Leaf)) {
+            try { $logText = Get-Content -LiteralPath $global:LOG_PATH -Raw -Encoding UTF8 -ErrorAction Stop } catch {}
+        }
+        if ([string]::IsNullOrWhiteSpace($logText)) { $logText = $ui['LogOutput'].Text }
+        if ([string]::IsNullOrWhiteSpace($logText)) { $logText = '(No log content available)' }
+        [System.Windows.Clipboard]::SetText($logText)
         $ui['BtnCopyLog'].Content = 'Copied log'
         if ($script:copyResetTimer) { $script:copyResetTimer.Stop() }
         $script:copyResetTimer = New-Object System.Windows.Threading.DispatcherTimer
@@ -1714,7 +1769,17 @@ $ui['BtnCopyLog'].Add_Click({
             $ui['BtnCopyLog'].Content = 'Copy full log'
         })
         $script:copyResetTimer.Start()
-    } catch {}
+    } catch {
+        $ui['BtnCopyLog'].Content = 'Copy failed'
+        if ($script:copyResetTimer) { $script:copyResetTimer.Stop() }
+        $script:copyResetTimer = New-Object System.Windows.Threading.DispatcherTimer
+        $script:copyResetTimer.Interval = [TimeSpan]::FromSeconds(2.5)
+        $script:copyResetTimer.Add_Tick({
+            $script:copyResetTimer.Stop()
+            $ui['BtnCopyLog'].Content = 'Copy full log'
+        })
+        $script:copyResetTimer.Start()
+    }
 })
 if ($ui.ContainsKey('BtnResetCustomDefaults')) {
     $ui['BtnResetCustomDefaults'].Add_Click({
@@ -1725,7 +1790,7 @@ if ($ui.ContainsKey('BtnResetCustomDefaults')) {
         Apply-ConfigToUi -Config $preset -ForceCustomMode
     })
 }
-$window.Add_MouseLeftButtonDown({ $window.DragMove() })
+$ui['TitleBar'].Add_MouseLeftButtonDown({ $window.DragMove() })
 $ui['CloseTitleBtn'].Add_Click({ $window.Close() })
 $ui['MinimizeBtn'].Add_Click({ $window.WindowState = 'Minimized' })
 $ui['ModeEasy'].Add_Checked({ Update-ModePresentation })
@@ -1736,7 +1801,7 @@ $ui['MainProgress'].Add_ValueChanged({ Update-InstallStageVisual })
 $summaryToggleControls = @(
     'ChkNewTheme','ChkPodcastsOff','ChkAdSectionsOff','ChkBlockUpdate','ChkPremium','ChkLyrics',
     'ChkTopSearch','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHomeOff','ChkHomeSubOff','ChkOldLyrics',
-    'ChkHideColIconOff','ChkDisableStartup','ChkNoShortcut','ChkMarketplace','ChkCleanInstall','ChkLaunchAfter'
+    'ChkHideColIconOff','ChkDisableStartup','ChkNoShortcut','ChkPlus','ChkNewFullscreen','ChkFunnyProgress','ChkExpSpotify','ChkLyricsBlock','ChkMarketplace','ChkCleanInstall','ChkLaunchAfter'
 ) + @($extCheckboxMap.Keys)
 foreach ($controlName in $summaryToggleControls) {
     if ($ui.ContainsKey($controlName)) {
@@ -1753,14 +1818,25 @@ foreach ($controlName in @('CmbLyricsTheme','CmbTheme','CmbScheme')) {
 $ui['CloseBtn'].Add_Click({ $window.Close() })
 $ui['BtnBackToConfig'].Add_Click({
     Clear-CompletedRunspaceResources | Out-Null
+    $script:installStartTime = $null
+    if ($timer) { $timer.Stop() }
     $ui['PageInstall'].Visibility='Collapsed'
     $ui['PageConfig'].Visibility='Visible'
     $ui['BtnInstall'].IsEnabled=$true
+    $ui['LogOutput'].Text=''
+    $ui['StatusText'].Text='Preparing workspace...'
+    $ui['StepIndicator'].Text='Waiting to start'
+    $ui['ElapsedTime'].Text=''
+    $ui['MainProgress'].Value=0
+    $ui['MainProgress'].Foreground=$global:BrushGreen
     if ($script:copyResetTimer) { $script:copyResetTimer.Stop() }
     $ui['BtnCopyLog'].Content='Copy full log'
     $ui['BtnCopyLog'].Visibility='Collapsed'
+    $ui['CloseBtn'].Visibility='Collapsed'
+    $ui['BtnBackToConfig'].Visibility='Collapsed'
     $window.Topmost=$false
     Update-InstallStageVisual
+    Update-MaintenanceStatus
     Update-ModePresentation
 })
 $window.Add_Closing({
@@ -1800,6 +1876,9 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
         SpotX_RightSidebarOff=[bool]$ui['ChkRightSidebarOff'].IsChecked; SpotX_RightSidebarClr=[bool]$ui['ChkRightSidebarColor'].IsChecked
         SpotX_CanvasHomeOff=[bool]$ui['ChkCanvasHomeOff'].IsChecked; SpotX_HomeSubOff=[bool]$ui['ChkHomeSubOff'].IsChecked
         SpotX_OldLyrics=[bool]$ui['ChkOldLyrics'].IsChecked; SpotX_HideColIconOff=[bool]$ui['ChkHideColIconOff'].IsChecked
+        SpotX_Plus=[bool]$ui['ChkPlus'].IsChecked; SpotX_NewFullscreen=[bool]$ui['ChkNewFullscreen'].IsChecked
+        SpotX_FunnyProgress=[bool]$ui['ChkFunnyProgress'].IsChecked; SpotX_ExpSpotify=[bool]$ui['ChkExpSpotify'].IsChecked
+        SpotX_LyricsBlock=[bool]$ui['ChkLyricsBlock'].IsChecked
         SpotX_CacheLimit=$cacheVal
         Spicetify_Theme=$sTheme; Spicetify_Scheme=$sScheme
         Spicetify_Marketplace=[bool]$ui['ChkMarketplace'].IsChecked; Spicetify_Extensions=$exts
@@ -1814,6 +1893,8 @@ function Build-SpotXParams { param($Config)
     $p = @()
     # Always auto-remove MS Store Spotify without prompt (prevents stdin hang)
     $p += "-confirm_uninstall_ms_spoti"
+    # Let SpotX manage Spotify version compatibility (auto-overwrite unsupported versions)
+    $p += "-confirm_spoti_recomended_over"
     if ($Config.SpotX_NewTheme)        { $p += "-new_theme" }
     if ($Config.SpotX_PodcastsOff)     { $p += "-podcasts_off" } else { $p += "-podcasts_on" }
     if ($Config.SpotX_AdSectionsOff)   { $p += "-adsections_off" }
@@ -1829,6 +1910,11 @@ function Build-SpotXParams { param($Config)
     if ($Config.SpotX_HomeSubOff)      { $p += "-homesub_off" }
     if ($Config.SpotX_OldLyrics)       { $p += "-old_lyrics" }
     if ($Config.SpotX_HideColIconOff)  { $p += "-hide_col_icon_off" }
+    if ($Config.SpotX_Plus)             { $p += "-plus" }
+    if ($Config.SpotX_NewFullscreen)    { $p += "-new_fullscreen_mode" }
+    if ($Config.SpotX_FunnyProgress)    { $p += "-funnyprogressBar" }
+    if ($Config.SpotX_ExpSpotify)       { $p += "-exp_spotify" }
+    if ($Config.SpotX_LyricsBlock)      { $p += "-lyrics_block" }
     if ($Config.SpotX_CacheLimit -ge 500) { $p += "-cache_limit $($Config.SpotX_CacheLimit)" }
     return ($p -join " ")
 }
@@ -2046,13 +2132,16 @@ function Update-MaintenanceStatus {
 
     $sExe = Join-Path $global:SPICETIFY_DIR "spicetify.exe"
     if (Test-Path $sExe) {
+        $tmpOut = Join-Path $global:TEMP_DIR "spicetify_ver.txt"
         try {
-            $tmpOut = Join-Path $global:TEMP_DIR "spicetify_ver.txt"
-            $pr = Start-Process -FilePath $sExe -ArgumentList "-v" -NoNewWindow -Wait -PassThru -RedirectStandardOutput $tmpOut -EA Stop
+            $pr = Start-Process -FilePath $sExe -ArgumentList "-v" -NoNewWindow -PassThru -RedirectStandardOutput $tmpOut -EA Stop
+            if (-not $pr.WaitForExit(5000)) {
+                try { $pr.Kill() } catch {}
+            }
             $vo = if (Test-Path $tmpOut) { (Get-Content $tmpOut -Raw -EA SilentlyContinue).Trim() } else { $null }
-            Remove-Item $tmpOut -Force -EA SilentlyContinue
             if ($vo) { $ui['StatusSpicetify'].Text = "Installed`n$vo" } else { $ui['StatusSpicetify'].Text = 'Installed' }
         } catch { $ui['StatusSpicetify'].Text = 'Installed' }
+        finally { Remove-Item $tmpOut -Force -EA SilentlyContinue }
         $ui['StatusSpicetify'].Foreground = $global:BrushGreen
         Set-MaintenanceCardTone -CardName 'StatusCardSpicetify' -Tone 'success'
     } else {
@@ -2438,35 +2527,35 @@ function Show-ThemedDialog {
     $iconHost = $dlg.FindName("IconHost")
     $canvas = $dlg.FindName("IconCanvas")
     $iconColor = "#FF4ade80"
-    $iconHost.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#190c2018')
-    $iconHost.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#553dd06f')
+    $iconHost.Background = $script:BrushConverter.ConvertFromString('#190c2018')
+    $iconHost.BorderBrush = $script:BrushConverter.ConvertFromString('#553dd06f')
     switch ($Icon) {
         "Error" {
             $iconColor = "#FFf87171"
-            $iconHost.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#19f87171')
-            $iconHost.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#55f87171')
+            $iconHost.Background = $script:BrushConverter.ConvertFromString('#19f87171')
+            $iconHost.BorderBrush = $script:BrushConverter.ConvertFromString('#55f87171')
         }
         "Warning" {
             $iconColor = "#FFfbbf24"
-            $iconHost.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#19f59e0b')
-            $iconHost.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#55f59e0b')
+            $iconHost.Background = $script:BrushConverter.ConvertFromString('#19f59e0b')
+            $iconHost.BorderBrush = $script:BrushConverter.ConvertFromString('#55f59e0b')
         }
         "Question" {
             $iconColor = "#FF4ade80"
-            $iconHost.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#190c2018')
-            $iconHost.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#553dd06f')
+            $iconHost.Background = $script:BrushConverter.ConvertFromString('#190c2018')
+            $iconHost.BorderBrush = $script:BrushConverter.ConvertFromString('#553dd06f')
         }
         "Information" {
             $iconColor = "#FF7dd3fc"
-            $iconHost.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#190f1d2a')
-            $iconHost.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#5538bdf8')
+            $iconHost.Background = $script:BrushConverter.ConvertFromString('#190f1d2a')
+            $iconHost.BorderBrush = $script:BrushConverter.ConvertFromString('#5538bdf8')
         }
     }
     $ellipse = New-Object System.Windows.Shapes.Ellipse
-    $ellipse.Width = 24; $ellipse.Height = 24; $ellipse.Fill = [System.Windows.Media.BrushConverter]::new().ConvertFromString($iconColor); $ellipse.Opacity = 0.16
+    $ellipse.Width = 24; $ellipse.Height = 24; $ellipse.Fill = $script:BrushConverter.ConvertFromString($iconColor); $ellipse.Opacity = 0.16
     $canvas.Children.Add($ellipse) | Out-Null
     $path = New-Object System.Windows.Shapes.Path
-    $path.Stroke = [System.Windows.Media.BrushConverter]::new().ConvertFromString($iconColor); $path.StrokeThickness = 2
+    $path.Stroke = $script:BrushConverter.ConvertFromString($iconColor); $path.StrokeThickness = 2
     switch ($Icon) {
         "Error"       { $path.Data = [System.Windows.Media.Geometry]::Parse("M 7.5,7.5 L 16.5,16.5 M 16.5,7.5 L 7.5,16.5"); [System.Windows.Controls.Canvas]::SetLeft($path,0); [System.Windows.Controls.Canvas]::SetTop($path,0) }
         "Warning"     { $path.Data = [System.Windows.Media.Geometry]::Parse("M 12,5.5 L 12,12.5 M 12,16.5 L 12,17"); $path.StrokeThickness = 2.5; $path.StrokeStartLineCap = "Round"; $path.StrokeEndLineCap = "Round"; [System.Windows.Controls.Canvas]::SetLeft($path,0); [System.Windows.Controls.Canvas]::SetTop($path,0) }
@@ -2480,9 +2569,9 @@ function Show-ThemedDialog {
     $primaryBorder = if ($PrimaryIsDestructive) { '#FFb91c1c' } else { '#FF3dd06f' }
     $primaryForeground = if ($PrimaryIsDestructive) { '#FFFFF1F2' } else { '#FF04130a' }
     foreach ($btn in @($btnYes, $btnOK)) {
-        $btn.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString($primaryBackground)
-        $btn.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString($primaryBorder)
-        $btn.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString($primaryForeground)
+        $btn.Background = $script:BrushConverter.ConvertFromString($primaryBackground)
+        $btn.BorderBrush = $script:BrushConverter.ConvertFromString($primaryBorder)
+        $btn.Foreground = $script:BrushConverter.ConvertFromString($primaryForeground)
     }
     $btnNo.Content = $SecondaryText
     $btnYes.Content = $PrimaryText
@@ -2552,7 +2641,7 @@ function Switch-ToInstallPage {
         [string]$VerifyLabel = 'Verify',
         [string]$CompleteLabel = 'Complete'
     )
-    try { if ($global:LOG_PATH) { if (-not (Test-Path $global:CONFIG_DIR)) { New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null }; Set-Content -Path $global:LOG_PATH -Value "--- LibreSpot v$global:VERSION $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ---`n" -Encoding UTF8 -Force } } catch {}
+    try { if ($global:LOG_PATH) { if (-not (Test-Path $global:CONFIG_DIR)) { New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null }; $utf8NoBom = New-Object System.Text.UTF8Encoding($false); [System.IO.File]::WriteAllText($global:LOG_PATH, "--- LibreSpot v$global:VERSION $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ---`n", $utf8NoBom) } } catch {}
     $ui['PageConfig'].Visibility='Collapsed'; $ui['PageInstall'].Visibility='Visible'
     $ui['LogOutput'].Text=''; $ui['StatusText'].Text='Preparing workspace...'; $ui['StepIndicator'].Text='Waiting to start'
     $ui['InstallTitle'].Text = $Title; $ui['InstallContext'].Text = $Context
@@ -2642,9 +2731,10 @@ function Update-UI { param([string]$Message,[string]$Level="INFO",[bool]$IsHeade
             $existingText = $existingText.Substring($trimNotice.Length)
         }
         $combinedText = if ([string]::IsNullOrEmpty($existingText)) { $lt } else { $existingText + $lt }
+        $trimBudget = $maxUiLogChars - $trimNotice.Length
+        if ($trimBudget -lt 1000) { $trimBudget = 1000 }
         if ($combinedText.Length -gt $maxUiLogChars) {
-            $tailLength = [Math]::Min($maxUiLogChars, $combinedText.Length)
-            $tail = $combinedText.Substring($combinedText.Length - $tailLength)
+            $tail = $combinedText.Substring($combinedText.Length - $trimBudget)
             $combinedText = $trimNotice + $tail
         }
         $sh.LogBlock.Text = $combinedText
@@ -2669,13 +2759,15 @@ function Read-ProcessOutputDelta {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $result }
     try {
         $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        $reader = $null
         try {
             if ($result.Offset -gt $stream.Length) { $result.Offset = 0; $result.Remainder = '' }
             $null = $stream.Seek($result.Offset, [System.IO.SeekOrigin]::Begin)
-            $reader = New-Object System.IO.StreamReader($stream)
+            $reader = New-Object System.IO.StreamReader($stream, [System.Text.Encoding]::UTF8, $true, 4096, $true)
             $chunk = $reader.ReadToEnd()
             $result.Offset = $stream.Position
         } finally {
+            if ($reader) { try { $reader.Dispose() } catch {} }
             try { $stream.Dispose() } catch {}
         }
         if ([string]::IsNullOrEmpty($chunk)) { return $result }
@@ -2740,7 +2832,7 @@ function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]
         Write-Log "  Hash verification skipped for $Label (no hash pinned)" -Level 'WARN'
         return
     }
-    $actual = (Get-FileHash -Path $Path -Algorithm SHA256).Hash.ToLower()
+    $actual = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLower()
     $expected = $ExpectedHash.ToLower()
     if ($actual -ne $expected) {
         throw "SHA256 mismatch for ${Label}`n  Expected: $expected`n  Actual:   $actual`n  File may be corrupted or tampered with. Update pinned hash if this is a legitimate new version."
@@ -2756,16 +2848,24 @@ function Hide-SpotifyWindows {
     }
 }
 
-function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Arguments)
+function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Arguments,[int]$TimeoutSeconds=600)
     Write-Log "Spawning: $FilePath"
     $stdoutPath = Join-Path $global:TEMP_DIR ("LibreSpot-stdout-" + [Guid]::NewGuid().ToString('N') + '.log')
     $stderrPath = Join-Path $global:TEMP_DIR ("LibreSpot-stderr-" + [Guid]::NewGuid().ToString('N') + '.log')
     $stdoutState = @{ Offset = 0L; Remainder = '' }
     $stderrState = @{ Offset = 0L; Remainder = '' }
+    $p = $null
     try {
         $argString = "-NoProfile -ExecutionPolicy Bypass -File `"$FilePath`" $Arguments"
         $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $argString -NoNewWindow -PassThru -Wait:$false -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -ErrorAction Stop
+        $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
         while (-not $p.HasExited) {
+            if ((Get-Date) -gt $deadline) {
+                Write-Log "Process exceeded ${TimeoutSeconds}s timeout - terminating." -Level 'WARN'
+                try { $p.Kill() } catch {}
+                try { $p.WaitForExit(5000) } catch {}
+                throw "External process timed out after ${TimeoutSeconds} seconds. It may have hung or entered an interactive prompt."
+            }
             $stdoutRead = Read-ProcessOutputDelta -Path $stdoutPath -Offset $stdoutState.Offset -Remainder $stdoutState.Remainder
             $stdoutState = @{ Offset = $stdoutRead.Offset; Remainder = $stdoutRead.Remainder }
             foreach ($line in $stdoutRead.Lines) { Write-Log $line -Level 'OUT' }
@@ -2788,7 +2888,7 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
 
         if ($p.ExitCode -ne 0) { throw "Process exited with code $($p.ExitCode)" }
     } finally {
-        try { $p.Dispose() } catch {}
+        if ($p) { try { $p.Dispose() } catch {} }
         Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
     }
@@ -3108,8 +3208,6 @@ function Module-InstallSpotX { param($Config,$SyncHash)
     $dest = Join-Path $global:TEMP_DIR "spotx_run.ps1"; Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
     Confirm-FileHash -Path $dest -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label "SpotX run.ps1"
     $params = Build-SpotXParams -Config $Config
-    # Let SpotX manage Spotify version - auto-overwrite if installed version is unsupported
-    $params += " -confirm_spoti_recomended_over"
     if (Test-Path $global:SPOTIFY_EXE_PATH) {
         $ver = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
         Write-Log "Spotify $ver detected - SpotX will verify version compatibility"
@@ -3375,12 +3473,16 @@ $maintBlock = { param($sh,$action)
             Confirm-FileHash -Path $dest -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label "SpotX run.ps1"
             $saved=$null; try { $saved = Load-LibreSpotConfig } catch {}
             if ($saved) { $sp=Build-SpotXParams -Config $saved; Write-Log "Using saved config" } else { $sp=Build-SpotXParams -Config $global:EasyDefaults; Write-Log "Using defaults (no saved config)" -Level 'WARN' }
-            $sp += " -confirm_spoti_recomended_over"
             Write-Log "SpotX will verify version compatibility and overwrite if needed"
             $sh.AllowSpotify=$true; try { Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $sp } finally { $sh.AllowSpotify=$false }
-            $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Reapplying Spicetify"; $sh.ProgressBar.Value=70 })
-            Invoke-SpicetifyCli -Arguments @('backup','apply','--bypass-admin') -FailureMessage 'Could not reapply the saved Spicetify setup.'
-            Write-Log "Spicetify reapplied."
+            $sExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
+            if (Test-Path -LiteralPath $sExe) {
+                $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Reapplying Spicetify"; $sh.ProgressBar.Value=70 })
+                Invoke-SpicetifyCli -Arguments @('backup','apply','--bypass-admin') -FailureMessage 'Could not reapply the saved Spicetify setup.'
+                Write-Log "Spicetify reapplied."
+            } else {
+                Write-Log "Spicetify CLI not found - skipping reapply (SpotX-only refresh)." -Level 'WARN'
+            }
             Write-Log "--- Reapply Complete ---" -Level 'SUCCESS'
         } elseif ($action -eq 'RestoreVanilla') {
             Write-Log "--- Restore Vanilla Spotify ---" -Level 'HEADER'
@@ -3457,7 +3559,7 @@ $maintBlock = { param($sh,$action)
 # =============================================================================
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
-    'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Test-NetworkReady','Check-ForUpdates',
+    'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Check-ForUpdates',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Get-NormalizedPathString','Get-PathEntries','Set-PathEntries','Add-PathEntry','Remove-PathEntry',
