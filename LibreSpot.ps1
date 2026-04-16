@@ -53,7 +53,7 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
 
-$global:VERSION = '3.1.1'
+$global:VERSION = '3.2.0'
 
 # --- Pinned dependency versions with SHA256 verification ---
 # Update these when new versions are tested. Use Maintenance > Check for Updates.
@@ -1875,15 +1875,12 @@ function Show-ThemedDialog {
 "@
     $dlgReader = New-Object System.Xml.XmlNodeReader ([xml]$dlgXaml)
     $dlg = [Windows.Markup.XamlReader]::Load($dlgReader)
-# codex-branding:start
-                try {
-                    $brandingIconPath = Join-Path $PSScriptRoot 'icon.ico'
-                    if (Test-Path $brandingIconPath) {
-                        $dlg.Icon = [System.Windows.Media.Imaging.BitmapFrame]::Create((New-Object System.Uri($brandingIconPath)))
-                    }
-                } catch {
-                }
-                # codex-branding:end
+    try {
+        $brandingIconPath = Join-Path $PSScriptRoot 'icon.ico'
+        if (Test-Path $brandingIconPath) {
+            $dlg.Icon = [System.Windows.Media.Imaging.BitmapFrame]::Create((New-Object System.Uri($brandingIconPath)))
+        }
+    } catch {}
     $dlg.FindName("DlgTitle").Text = $Title
     $dlg.FindName("DlgMessage").Text = $Message
     $script:dlgResult = if ($Buttons -eq 'YesNo') { 'No' } else { 'OK' }
