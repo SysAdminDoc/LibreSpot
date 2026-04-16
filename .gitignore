@@ -3,3 +3,10 @@
 *.tmp
 .vs/
 CLAUDE.md
+
+# .NET / WPF build outputs
+bin/
+obj/
+publish/
+tmp/
+*.user

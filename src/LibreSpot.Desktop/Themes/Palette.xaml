@@ -1,0 +1,186 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+  <!--
+    LibreSpot Desktop design tokens.
+    Dark-first, warm graphite surfaces with a confident Spotify-green accent.
+    Layered backgrounds (0 = lowest, 3 = highest elevation) provide depth
+    without relying on hard drop shadows, which read poorly on dark canvases.
+
+    Token shape:
+      Color / Brush  → semantic surfaces, text, accents
+      CornerRadius   → Sm (8), Md (12), Lg (16), Xl (20), Pill
+      Thickness      → 4-based spacing scale (SpaceXs..SpaceXxl)
+      Motion         → Fast (90ms) / Med (150ms) / Slow (220ms), all cubic-out
+  -->
+
+  <!-- ═══ Typography ═══ -->
+  <FontFamily x:Key="HeadingFont">Bahnschrift</FontFamily>
+  <FontFamily x:Key="BodyFont">Segoe UI Variable Text, Segoe UI</FontFamily>
+  <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
+
+  <!-- ═══ Surfaces (darkest → lightest) ═══ -->
+  <Color x:Key="CanvasColor">#0B0F0D</Color>
+  <Color x:Key="CanvasShadeColor">#101613</Color>
+  <Color x:Key="Surface1Color">#141A17</Color>
+  <Color x:Key="Surface2Color">#1A221E</Color>
+  <Color x:Key="Surface3Color">#202A25</Color>
+  <Color x:Key="SurfaceRaisedColor">#25302B</Color>
+  <Color x:Key="RailColor">#0D1311</Color>
+
+  <!-- ═══ Strokes ═══ -->
+  <Color x:Key="StrokeColor">#2A3630</Color>
+  <Color x:Key="StrokeSoftColor">#222D28</Color>
+  <Color x:Key="StrokeStrongColor">#36463E</Color>
+
+  <!-- ═══ Text ═══ -->
+  <Color x:Key="TextColor">#EAF2ED</Color>
+  <Color x:Key="TextMutedColor">#A7B4AD</Color>
+  <Color x:Key="TextSubtleColor">#7B8780</Color>
+  <Color x:Key="TextOnAccentColor">#07110C</Color>
+
+  <!-- ═══ Brand / accent — Spotify-green, calibrated for dark canvas ═══ -->
+  <Color x:Key="AccentColor">#1DB954</Color>
+  <Color x:Key="AccentHoverColor">#1ED760</Color>
+  <Color x:Key="AccentDeepColor">#169443</Color>
+  <Color x:Key="AccentSoftColor">#1A241E</Color>
+  <Color x:Key="AccentMistColor">#261DB954</Color>
+  <Color x:Key="AccentRingColor">#801DB954</Color>
+
+  <!-- ═══ Semantic intent ═══ -->
+  <Color x:Key="DangerColor">#E5484D</Color>
+  <Color x:Key="DangerDeepColor">#C9343A</Color>
+  <Color x:Key="DangerSoftColor">#261414</Color>
+  <Color x:Key="WarningColor">#F5A524</Color>
+  <Color x:Key="SuccessColor">#1DB954</Color>
+  <Color x:Key="SuccessSoftColor">#132419</Color>
+  <Color x:Key="InfoColor">#6AA9FF</Color>
+
+  <!-- ═══ Overlays / scrim ═══ -->
+  <Color x:Key="OverlayColor">#C2060A08</Color>
+  <Color x:Key="ScrimColor">#66000000</Color>
+  <Color x:Key="SheenColor">#0AFFFFFF</Color>
+
+  <!-- ═══ Brushes ═══ -->
+  <SolidColorBrush x:Key="CanvasBrush" Color="{StaticResource CanvasColor}" />
+  <SolidColorBrush x:Key="RailBrush" Color="{StaticResource RailColor}" />
+
+  <SolidColorBrush x:Key="PanelBrush" Color="{StaticResource Surface1Color}" />
+  <SolidColorBrush x:Key="PanelStrongBrush" Color="{StaticResource Surface2Color}" />
+  <SolidColorBrush x:Key="Surface1Brush" Color="{StaticResource Surface1Color}" />
+  <SolidColorBrush x:Key="Surface2Brush" Color="{StaticResource Surface2Color}" />
+  <SolidColorBrush x:Key="Surface3Brush" Color="{StaticResource Surface3Color}" />
+  <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="{StaticResource SurfaceRaisedColor}" />
+  <SolidColorBrush x:Key="CanvasShadeBrush" Color="{StaticResource CanvasShadeColor}" />
+
+  <SolidColorBrush x:Key="StrokeBrush" Color="{StaticResource StrokeColor}" />
+  <SolidColorBrush x:Key="StrokeSoftBrush" Color="{StaticResource StrokeSoftColor}" />
+  <SolidColorBrush x:Key="StrokeStrongBrush" Color="{StaticResource StrokeStrongColor}" />
+
+  <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}" />
+  <SolidColorBrush x:Key="MutedTextBrush" Color="{StaticResource TextMutedColor}" />
+  <SolidColorBrush x:Key="SubtleTextBrush" Color="{StaticResource TextSubtleColor}" />
+  <SolidColorBrush x:Key="TextOnAccentBrush" Color="{StaticResource TextOnAccentColor}" />
+
+  <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+  <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}" />
+  <SolidColorBrush x:Key="AccentDeepBrush" Color="{StaticResource AccentDeepColor}" />
+  <SolidColorBrush x:Key="AccentSoftBrush" Color="{StaticResource AccentSoftColor}" />
+  <SolidColorBrush x:Key="AccentMistBrush" Color="{StaticResource AccentMistColor}" />
+  <SolidColorBrush x:Key="AccentRingBrush" Color="{StaticResource AccentRingColor}" />
+
+  <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
+  <SolidColorBrush x:Key="DangerDeepBrush" Color="{StaticResource DangerDeepColor}" />
+  <SolidColorBrush x:Key="DangerSoftBrush" Color="{StaticResource DangerSoftColor}" />
+  <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
+  <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
+  <SolidColorBrush x:Key="SuccessSoftBrush" Color="{StaticResource SuccessSoftColor}" />
+  <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}" />
+
+  <SolidColorBrush x:Key="OverlayBrush" Color="{StaticResource OverlayColor}" />
+  <SolidColorBrush x:Key="ScrimBrush" Color="{StaticResource ScrimColor}" />
+  <SolidColorBrush x:Key="SheenBrush" Color="{StaticResource SheenColor}" />
+
+  <!-- ═══ Radius rhythm ═══ -->
+  <CornerRadius x:Key="RadiusSm">8</CornerRadius>
+  <CornerRadius x:Key="RadiusMd">12</CornerRadius>
+  <CornerRadius x:Key="RadiusLg">16</CornerRadius>
+  <CornerRadius x:Key="RadiusXl">20</CornerRadius>
+  <CornerRadius x:Key="RadiusPill">999</CornerRadius>
+
+  <!-- ═══ Spacing (4-based) ═══ -->
+  <Thickness x:Key="SpaceXs">4</Thickness>
+  <Thickness x:Key="SpaceSm">8</Thickness>
+  <Thickness x:Key="SpaceMd">12</Thickness>
+  <Thickness x:Key="SpaceLg">16</Thickness>
+  <Thickness x:Key="SpaceXl">24</Thickness>
+  <Thickness x:Key="SpaceXxl">32</Thickness>
+
+  <!-- Soft radial highlight used behind rail logo and top hero edge -->
+  <RadialGradientBrush x:Key="RailGlowBrush"
+                       GradientOrigin="0.5,0.25"
+                       Center="0.5,0.25"
+                       RadiusX="0.95"
+                       RadiusY="0.65">
+    <GradientStop Color="#2B1DB954" Offset="0" />
+    <GradientStop Color="#000B0F0D" Offset="1" />
+  </RadialGradientBrush>
+
+  <LinearGradientBrush x:Key="SurfaceSheenBrush" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#18FFFFFF" Offset="0" />
+    <GradientStop Color="#00FFFFFF" Offset="1" />
+  </LinearGradientBrush>
+
+  <LinearGradientBrush x:Key="AccentGradientBrush" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Color="#1ED760" Offset="0" />
+    <GradientStop Color="#169443" Offset="1" />
+  </LinearGradientBrush>
+
+  <!-- Shimmer sweep used on progress bars during indeterminate runs -->
+  <LinearGradientBrush x:Key="ShimmerBrush" StartPoint="0,0.5" EndPoint="1,0.5">
+    <GradientStop Color="#001ED760" Offset="0.0" />
+    <GradientStop Color="#661ED760" Offset="0.5" />
+    <GradientStop Color="#001ED760" Offset="1.0" />
+  </LinearGradientBrush>
+
+  <!-- ═══ Elevation ═══ -->
+  <DropShadowEffect x:Key="CardShadow"
+                    BlurRadius="48"
+                    ShadowDepth="0"
+                    Direction="270"
+                    Opacity="0.55"
+                    Color="#05070A" />
+
+  <DropShadowEffect x:Key="OverlayShadow"
+                    BlurRadius="72"
+                    ShadowDepth="0"
+                    Direction="270"
+                    Opacity="0.75"
+                    Color="#02030A" />
+
+  <DropShadowEffect x:Key="AccentGlow"
+                    BlurRadius="22"
+                    ShadowDepth="0"
+                    Opacity="0.45"
+                    Color="#1DB954" />
+
+  <DropShadowEffect x:Key="TabSelectedGlow"
+                    BlurRadius="18"
+                    ShadowDepth="0"
+                    Opacity="0.35"
+                    Color="#1DB954" />
+
+  <!-- ═══ Motion tokens ═══ -->
+  <Duration x:Key="MotionFastDuration">0:0:0.090</Duration>
+  <Duration x:Key="MotionMedDuration">0:0:0.150</Duration>
+  <Duration x:Key="MotionSlowDuration">0:0:0.220</Duration>
+
+  <!-- Expressive but restrained ease-out (no overshoot) -->
+  <CubicEase x:Key="StandardEase" EasingMode="EaseOut" />
+  <QuadraticEase x:Key="SoftEase" EasingMode="EaseOut" />
+
+  <!-- Legacy numeric aliases retained for compatibility -->
+  <sys:Double x:Key="MotionFast">90</sys:Double>
+  <sys:Double x:Key="MotionMed">150</sys:Double>
+  <sys:Double x:Key="MotionSlow">220</sys:Double>
+</ResourceDictionary>
