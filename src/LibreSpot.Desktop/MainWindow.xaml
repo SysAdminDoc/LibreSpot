@@ -27,13 +27,53 @@
     <DataTemplate DataType="{x:Type viewModels:OptionToggleViewModel}" x:Key="OptionTemplate">
       <CheckBox Style="{StaticResource SettingCheckBoxStyle}"
                 IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                AutomationProperties.Name="{Binding Title}"
+                AutomationProperties.HelpText="{Binding Description}"
+                ToolTip="{Binding Description}"
                 Margin="0,0,10,10">
         <StackPanel>
-          <TextBlock Text="{Binding Title}"
-                     Foreground="{StaticResource TextBrush}"
-                     FontWeight="SemiBold"
-                     FontSize="13"
-                     Margin="0,0,0,3" />
+          <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding Title}"
+                       Foreground="{StaticResource TextBrush}"
+                       FontWeight="SemiBold"
+                       FontSize="13"
+                       Margin="0,0,10,0" />
+            <Border Grid.Column="1"
+                    Padding="8,3"
+                    CornerRadius="999"
+                    BorderThickness="1">
+              <Border.Style>
+                <Style TargetType="Border">
+                  <Setter Property="Background" Value="{StaticResource Surface3Brush}" />
+                  <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True">
+                      <Setter Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                      <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
+              <TextBlock FontSize="10.5" FontWeight="SemiBold">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="Text" Value="Optional" />
+                    <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True">
+                        <Setter Property="Text" Value="Enabled" />
+                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+            </Border>
+          </Grid>
           <TextBlock Text="{Binding Description}"
                      Style="{StaticResource CaptionTextStyle}" />
         </StackPanel>
@@ -43,13 +83,53 @@
     <DataTemplate DataType="{x:Type viewModels:ExtensionToggleViewModel}" x:Key="ExtensionTemplate">
       <CheckBox Style="{StaticResource SettingCheckBoxStyle}"
                 IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                AutomationProperties.Name="{Binding Title}"
+                AutomationProperties.HelpText="{Binding Description}"
+                ToolTip="{Binding Description}"
                 Margin="0,0,10,10">
         <StackPanel>
-          <TextBlock Text="{Binding Title}"
-                     Foreground="{StaticResource TextBrush}"
-                     FontWeight="SemiBold"
-                     FontSize="13"
-                     Margin="0,0,0,3" />
+          <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding Title}"
+                       Foreground="{StaticResource TextBrush}"
+                       FontWeight="SemiBold"
+                       FontSize="13"
+                       Margin="0,0,10,0" />
+            <Border Grid.Column="1"
+                    Padding="8,3"
+                    CornerRadius="999"
+                    BorderThickness="1">
+              <Border.Style>
+                <Style TargetType="Border">
+                  <Setter Property="Background" Value="{StaticResource Surface3Brush}" />
+                  <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True">
+                      <Setter Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                      <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
+              <TextBlock FontSize="10.5" FontWeight="SemiBold">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="Text" Value="Skipped" />
+                    <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True">
+                        <Setter Property="Text" Value="Included" />
+                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+            </Border>
+          </Grid>
           <TextBlock Text="{Binding Description}"
                      Style="{StaticResource CaptionTextStyle}" />
         </StackPanel>
@@ -57,9 +137,18 @@
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type viewModels:MaintenanceActionCardViewModel}" x:Key="MaintenanceTemplate">
-      <Border BorderBrush="{StaticResource StrokeSoftBrush}"
-              BorderThickness="0,0,0,1"
-              Padding="0,16,0,16">
+      <Border Margin="0,0,0,12">
+        <Border.Style>
+          <Style TargetType="Border" BasedOn="{StaticResource SubtleCardStyle}">
+            <Setter Property="Padding" Value="18" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding IsDestructive}" Value="True">
+                <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Border.Style>
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
@@ -67,20 +156,68 @@
           </Grid.ColumnDefinitions>
 
           <StackPanel Margin="0,0,18,0">
-            <TextBlock Text="{Binding Title}"
-                       Foreground="{StaticResource TextBrush}"
-                       FontWeight="SemiBold"
-                       FontSize="14" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+              <TextBlock Text="{Binding Title}"
+                         Foreground="{StaticResource TextBrush}"
+                         FontWeight="SemiBold"
+                         FontSize="14"
+                         Margin="0,0,10,0" />
+              <Border Padding="8,3"
+                      CornerRadius="999"
+                      BorderThickness="1"
+                      HorizontalAlignment="Left">
+                <Border.Style>
+                  <Style TargetType="Border">
+                    <Setter Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                    <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsDestructive}" Value="True">
+                        <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                        <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Border.Style>
+                <TextBlock FontSize="10.5" FontWeight="SemiBold">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="Text" Value="Safer path" />
+                      <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsDestructive}" Value="True">
+                          <Setter Property="Text" Value="Reset path" />
+                          <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+              </Border>
+            </StackPanel>
             <TextBlock Text="{Binding Description}"
                        Style="{StaticResource BodyTextStyle}"
                        Margin="0,6,0,0" />
+            <TextBlock Margin="0,10,0,0">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
+                  <Setter Property="Text" Value="Runs in this window and keeps the maintenance flow visible while LibreSpot works." />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsDestructive}" Value="True">
+                      <Setter Property="Text" Value="Use only when you are ready to clear the current customization state and rebuild from a cleaner baseline." />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
           </StackPanel>
 
           <Button Grid.Column="1"
                   MinWidth="150"
-                  Height="40"
+                  Height="42"
                   Padding="16,0"
                   Content="{Binding ButtonText}"
+                  AutomationProperties.Name="{Binding ButtonText}"
+                  AutomationProperties.HelpText="{Binding Description}"
                   Command="{Binding Command}">
             <Button.Style>
               <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
@@ -95,6 +232,66 @@
             </Button.Style>
           </Button>
         </Grid>
+      </Border>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type viewModels:SelectionInsightViewModel}" x:Key="SelectionInsightTemplate">
+      <Border Margin="0,0,0,10"
+              Padding="14,12"
+              BorderThickness="1"
+              CornerRadius="14">
+        <Border.Style>
+          <Style TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource StrokeSoftBrush}" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Tone}" Value="accent">
+                <Setter Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
+              </DataTrigger>
+              <DataTrigger Binding="{Binding Tone}" Value="warning">
+                <Setter Property="Background" Value="{StaticResource WarningSoftBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource WarningRingBrush}" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Border.Style>
+        <StackPanel>
+          <TextBlock Text="{Binding Title}"
+                     FontWeight="SemiBold"
+                     FontSize="12.5"
+                     Margin="0,0,0,4">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Tone}" Value="accent">
+                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding Tone}" Value="warning">
+                    <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+          <TextBlock Text="{Binding Detail}"
+                     Style="{StaticResource CaptionTextStyle}" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="SelectionBadgeTemplate">
+      <Border Margin="0,0,8,8"
+              Padding="10,5"
+              Background="{StaticResource Surface3Brush}"
+              BorderBrush="{StaticResource StrokeBrush}"
+              BorderThickness="1"
+              CornerRadius="999">
+        <TextBlock Text="{Binding}"
+                   Foreground="{StaticResource TextBrush}"
+                   FontSize="11.5"
+                   FontWeight="SemiBold" />
       </Border>
     </DataTemplate>
 
@@ -426,84 +623,192 @@
                                  Margin="0,10,0,0" />
 
                       <ItemsControl ItemsSource="{Binding RecommendedHighlights}" Margin="0,20,0,0">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <WrapPanel />
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                           <DataTemplate>
-                            <Grid Margin="0,0,0,10">
-                              <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                              </Grid.ColumnDefinitions>
-                              <Border Width="22"
-                                      Height="22"
-                                      CornerRadius="11"
-                                      Background="{StaticResource AccentSoftBrush}"
-                                      BorderBrush="{StaticResource AccentRingBrush}"
-                                      BorderThickness="1"
-                                      Margin="0,0,12,0"
-                                      VerticalAlignment="Top">
-                                <Path Width="10" Height="10"
-                                      Stretch="Uniform"
-                                      Data="M 1 5 L 4.5 8.5 L 10 2"
-                                      Stroke="{StaticResource AccentBrush}"
-                                      StrokeThickness="2"
-                                      StrokeStartLineCap="Round"
-                                      StrokeEndLineCap="Round" />
-                              </Border>
-                              <TextBlock Grid.Column="1" Text="{Binding}" Style="{StaticResource BodyTextStyle}" VerticalAlignment="Center" />
-                            </Grid>
+                            <Border Style="{StaticResource SubtleCardStyle}"
+                                    Width="250"
+                                    Margin="0,0,12,12"
+                                    Background="{StaticResource Surface1Brush}">
+                              <StackPanel>
+                                <Border Width="26"
+                                        Height="26"
+                                        CornerRadius="13"
+                                        Background="{StaticResource AccentSoftBrush}"
+                                        BorderBrush="{StaticResource AccentRingBrush}"
+                                        BorderThickness="1"
+                                        VerticalAlignment="Top">
+                                  <Path Width="10"
+                                        Height="10"
+                                        Stretch="Uniform"
+                                        Data="M 1 5 L 4.5 8.5 L 10 2"
+                                        Stroke="{StaticResource AccentBrush}"
+                                        StrokeThickness="2"
+                                        StrokeStartLineCap="Round"
+                                        StrokeEndLineCap="Round" />
+                                </Border>
+                                <TextBlock Text="Included in recommended"
+                                           Style="{StaticResource LabelTextStyle}"
+                                           Foreground="{StaticResource AccentBrush}"
+                                           Margin="0,12,0,6" />
+                                <TextBlock Text="{Binding}"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Foreground="{StaticResource TextBrush}" />
+                              </StackPanel>
+                            </Border>
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
                     </StackPanel>
 
-                    <Border Grid.Column="1" Style="{StaticResource SectionFrameStyle}">
+                    <Border Grid.Column="1"
+                            Style="{StaticResource SectionFrameStyle}"
+                            Background="{StaticResource Surface1Brush}">
                       <StackPanel>
-                        <TextBlock Text="What you get"
+                        <TextBlock Text="BEST NEXT STEP"
+                                   Style="{StaticResource LabelTextStyle}"
+                                   Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="{Binding WorkspaceRecommendationTitle}"
                                    Style="{StaticResource SectionTitleTextStyle}"
-                                   FontSize="17" />
-                        <TextBlock Text="A fresh SpotX pass, Spicetify CLI, Marketplace, starter extensions, and a saved profile for future upkeep."
+                                   FontSize="19"
+                                   Margin="0,8,0,0" />
+                        <TextBlock Text="{Binding WorkspaceRecommendationDetail}"
                                    Style="{StaticResource BodyTextStyle}"
-                                   Margin="0,8,0,20" />
-                        <Button Content="Apply recommended setup"
+                                   Margin="0,8,0,14" />
+
+                        <ItemsControl Margin="0,0,0,18">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <WrapPanel />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <Border Background="{StaticResource Surface3Brush}"
+                                  BorderBrush="{StaticResource StrokeBrush}"
+                                  BorderThickness="1"
+                                  CornerRadius="999"
+                                  Padding="10,5"
+                                  Margin="0,0,8,8">
+                            <TextBlock Text="Clean install"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontSize="11.5"
+                                       FontWeight="SemiBold" />
+                          </Border>
+                          <Border Background="{StaticResource Surface3Brush}"
+                                  BorderBrush="{StaticResource StrokeBrush}"
+                                  BorderThickness="1"
+                                  CornerRadius="999"
+                                  Padding="10,5"
+                                  Margin="0,0,8,8">
+                            <TextBlock Text="Pinned versions"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontSize="11.5"
+                                       FontWeight="SemiBold" />
+                          </Border>
+                          <Border Background="{StaticResource Surface3Brush}"
+                                  BorderBrush="{StaticResource StrokeBrush}"
+                                  BorderThickness="1"
+                                  CornerRadius="999"
+                                  Padding="10,5"
+                                  Margin="0,0,8,8">
+                            <TextBlock Text="Saved profile"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontSize="11.5"
+                                       FontWeight="SemiBold" />
+                          </Border>
+                        </ItemsControl>
+
+                        <Button Content="Run recommended setup"
                                 Height="46"
                                 Style="{StaticResource PrimaryButtonStyle}"
+                                AutomationProperties.Name="Run recommended setup"
+                                AutomationProperties.HelpText="Runs LibreSpot's most reliable install path with the saved default profile."
                                 Command="{Binding ApplyRecommendedCommand}" />
-                        <TextBlock Text="Takes 2–4 minutes. You can cancel mid-run from this window."
+                        <TextBlock Text="{Binding RecommendedRunDuration}"
                                    Style="{StaticResource CaptionTextStyle}"
                                    Margin="0,10,0,0"
-                                   HorizontalAlignment="Center" />
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center" />
+                        <Border Style="{StaticResource SubtleCardStyle}"
+                                Margin="0,16,0,0"
+                                Background="{StaticResource AccentSoftBrush}"
+                                BorderBrush="{StaticResource AccentRingBrush}">
+                          <StackPanel>
+                            <TextBlock Text="Why this stays dependable"
+                                       Style="{StaticResource LabelTextStyle}"
+                                       Foreground="{StaticResource AccentBrush}" />
+                            <TextBlock Text="{Binding RecommendedFollowUpText}"
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Margin="0,6,0,0" />
+                          </StackPanel>
+                        </Border>
                       </StackPanel>
                     </Border>
                   </Grid>
 
                   <Border Style="{StaticResource SectionFrameStyle}">
-                    <Grid>
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="1" />
-                        <ColumnDefinition Width="*" />
-                      </Grid.ColumnDefinitions>
+                    <StackPanel>
+                      <TextBlock Text="What happens during the run"
+                                 Style="{StaticResource SectionTitleTextStyle}"
+                                 FontSize="15" />
+                      <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="12" />
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="12" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
 
-                      <StackPanel Margin="0,0,22,0">
-                        <TextBlock Text="Why this path works best"
-                                   Style="{StaticResource SectionTitleTextStyle}"
-                                   FontSize="15" />
-                        <TextBlock Text="It removes leftover conflicts, keeps the stack recognizable, and gives you a trustworthy baseline before any deeper customization."
-                                   Style="{StaticResource BodyTextStyle}"
-                                   Margin="0,8,0,0" />
-                      </StackPanel>
+                        <Border Style="{StaticResource SubtleCardStyle}">
+                          <StackPanel>
+                            <TextBlock Text="01"
+                                       Style="{StaticResource LabelTextStyle}"
+                                       Foreground="{StaticResource AccentBrush}" />
+                            <TextBlock Text="Prepare"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       Margin="0,6,0,6" />
+                            <TextBlock Text="LibreSpot saves the profile, checks the current environment, and lines up the PowerShell runtime."
+                                       Style="{StaticResource CaptionTextStyle}" />
+                          </StackPanel>
+                        </Border>
 
-                      <Border Grid.Column="1" Background="{StaticResource StrokeSoftBrush}" Margin="0,4" />
+                        <Border Grid.Column="2" Style="{StaticResource SubtleCardStyle}">
+                          <StackPanel>
+                            <TextBlock Text="02"
+                                       Style="{StaticResource LabelTextStyle}"
+                                       Foreground="{StaticResource AccentBrush}" />
+                            <TextBlock Text="Patch"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       Margin="0,6,0,6" />
+                            <TextBlock Text="SpotX and Spicetify are reapplied in the tested order so Spotify stays easier to recover later."
+                                       Style="{StaticResource CaptionTextStyle}" />
+                          </StackPanel>
+                        </Border>
 
-                      <StackPanel Grid.Column="2" Margin="22,0,0,0">
-                        <TextBlock Text="When Custom makes more sense"
-                                   Style="{StaticResource SectionTitleTextStyle}"
-                                   FontSize="15" />
-                        <TextBlock Text="Switch to Custom when you already know which Spotify tweaks, theme packs, or extensions you want LibreSpot to preserve."
-                                   Style="{StaticResource BodyTextStyle}"
-                                   Margin="0,8,0,0" />
-                      </StackPanel>
-                    </Grid>
+                        <Border Grid.Column="4" Style="{StaticResource SubtleCardStyle}">
+                          <StackPanel>
+                            <TextBlock Text="03"
+                                       Style="{StaticResource LabelTextStyle}"
+                                       Foreground="{StaticResource AccentBrush}" />
+                            <TextBlock Text="Restore"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       Margin="0,6,0,6" />
+                            <TextBlock Text="LibreSpot restores your visual stack, starter extensions, and maintenance-ready config for future runs."
+                                       Style="{StaticResource CaptionTextStyle}" />
+                          </StackPanel>
+                        </Border>
+                      </Grid>
+                    </StackPanel>
                   </Border>
                 </StackPanel>
               </ScrollViewer>
@@ -559,32 +864,46 @@
 
                           <TextBlock Text="THEME PACK" Style="{StaticResource LabelTextStyle}" />
                           <ComboBox ItemsSource="{Binding ThemeNames}"
-                                    SelectedItem="{Binding SelectedTheme, Mode=TwoWay}"
-                                    Style="{StaticResource ComboBoxStylePremium}"
-                                    Margin="0,6,0,14" />
+                                     SelectedItem="{Binding SelectedTheme, Mode=TwoWay}"
+                                     Style="{StaticResource ComboBoxStylePremium}"
+                                     AutomationProperties.Name="Theme pack"
+                                     AutomationProperties.HelpText="Select the Spicetify theme pack LibreSpot should restore."
+                                     Margin="0,6,0,14" />
 
                           <TextBlock Text="COLOR SCHEME" Style="{StaticResource LabelTextStyle}" />
                           <ComboBox ItemsSource="{Binding SchemeOptions}"
-                                    SelectedItem="{Binding SelectedScheme, Mode=TwoWay}"
-                                    Style="{StaticResource ComboBoxStylePremium}"
-                                    Margin="0,6,0,14">
+                                     SelectedItem="{Binding SelectedScheme, Mode=TwoWay}"
+                                     Style="{StaticResource ComboBoxStylePremium}"
+                                     IsEnabled="{Binding IsThemeSchemeAvailable}"
+                                     AutomationProperties.Name="Color scheme"
+                                     AutomationProperties.HelpText="{Binding ThemeSchemeHint}"
+                                     Margin="0,6,0,6">
                             <ComboBox.ItemTemplate>
                               <DataTemplate>
                                 <TextBlock Text="{Binding Converter={StaticResource PrettifyConverter}}" />
                               </DataTemplate>
                             </ComboBox.ItemTemplate>
                           </ComboBox>
+                          <TextBlock Text="{Binding ThemeSchemeHint}"
+                                     Style="{StaticResource CaptionTextStyle}"
+                                     Margin="0,0,0,14" />
 
                           <TextBlock Text="LYRICS THEME" Style="{StaticResource LabelTextStyle}" />
                           <ComboBox ItemsSource="{Binding LyricsThemes}"
-                                    SelectedItem="{Binding SelectedLyricsTheme, Mode=TwoWay}"
-                                    Style="{StaticResource ComboBoxStylePremium}">
+                                     SelectedItem="{Binding SelectedLyricsTheme, Mode=TwoWay}"
+                                     Style="{StaticResource ComboBoxStylePremium}"
+                                     IsEnabled="{Binding IsLyricsThemeAvailable}"
+                                     AutomationProperties.Name="Lyrics theme"
+                                     AutomationProperties.HelpText="{Binding LyricsThemeHint}"
+                                     Margin="0,6,0,6">
                             <ComboBox.ItemTemplate>
                               <DataTemplate>
                                 <TextBlock Text="{Binding Converter={StaticResource PrettifyConverter}}" />
                               </DataTemplate>
                             </ComboBox.ItemTemplate>
                           </ComboBox>
+                          <TextBlock Text="{Binding LyricsThemeHint}"
+                                     Style="{StaticResource CaptionTextStyle}" />
                         </StackPanel>
 
                         <Border Grid.Column="1"
@@ -593,12 +912,31 @@
                                 BorderBrush="{StaticResource AccentRingBrush}">
                           <StackPanel>
                             <TextBlock Text="CACHE LIMIT" Style="{StaticResource LabelTextStyle}" Foreground="{StaticResource AccentBrush}" />
-                            <TextBox Text="{Binding CacheLimitText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource TextBoxStylePremium}"
-                                     Margin="0,6,0,8"
-                                     MaxLength="6"
-                                     DataObject.Pasting="CacheLimitTextBox_OnPasting"
-                                     PreviewTextInput="CacheLimitTextBox_OnPreviewTextInput" />
+                            <Grid Margin="0,6,0,8">
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                              </Grid.ColumnDefinitions>
+                              <TextBox Text="{Binding CacheLimitText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                       Style="{StaticResource TextBoxStylePremium}"
+                                       MaxLength="6"
+                                       AutomationProperties.Name="Cache limit in megabytes"
+                                       AutomationProperties.HelpText="Set a cache ceiling in megabytes, or leave zero to use LibreSpot's default."
+                                       DataObject.Pasting="CacheLimitTextBox_OnPasting"
+                                       PreviewTextInput="CacheLimitTextBox_OnPreviewTextInput" />
+                              <Border Grid.Column="1"
+                                      Margin="10,0,0,0"
+                                      Padding="10,0"
+                                      CornerRadius="12"
+                                      Background="{StaticResource Surface3Brush}"
+                                      BorderBrush="{StaticResource StrokeBrush}"
+                                      BorderThickness="1">
+                                <TextBlock Text="MB"
+                                           Foreground="{StaticResource MutedTextBrush}"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center" />
+                              </Border>
+                            </Grid>
                             <TextBlock Text="Megabytes. Leave 0 for LibreSpot's default. A hard ceiling keeps Spotify's media cache predictable."
                                        Style="{StaticResource CaptionTextStyle}" />
                           </StackPanel>
@@ -668,22 +1006,99 @@
 
                 <!-- Sticky selection summary -->
                 <Border Grid.Column="1" Style="{StaticResource SectionFrameStyle}">
-                  <Grid>
-                    <Grid.RowDefinitions>
-                      <RowDefinition Height="Auto" />
-                      <RowDefinition Height="*" />
-                      <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+                    <Grid>
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                      </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Margin="0,0,0,14">
-                      <TextBlock Text="Selection summary" Style="{StaticResource SectionTitleTextStyle}" FontSize="16" />
-                      <TextBlock Text="{Binding CustomSelectionSummary}"
-                                 Style="{StaticResource BodyTextStyle}"
-                                 Margin="0,6,0,0" />
+                      <TextBlock Text="PROFILE SNAPSHOT" Style="{StaticResource LabelTextStyle}" Foreground="{StaticResource AccentBrush}" />
+                      <TextBlock Text="Configuration profile" Style="{StaticResource SectionTitleTextStyle}" FontSize="16" Margin="0,6,0,0" />
+                      <TextBlock Text="{Binding CustomProfileTitle}"
+                                 Foreground="{StaticResource TextBrush}"
+                                 FontWeight="SemiBold"
+                                 FontSize="18"
+                                 Margin="0,10,0,4" />
+                      <TextBlock Text="{Binding CustomProfileDetail}"
+                                 Style="{StaticResource BodyTextStyle}" />
+                      <Grid Margin="0,16,0,0">
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="Auto" />
+                          <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Style="{StaticResource MetricCardStyle}" Margin="0,0,8,8">
+                          <StackPanel>
+                            <TextBlock Text="POSTURE" Style="{StaticResource LabelTextStyle}" />
+                            <TextBlock Text="{Binding InstallPostureLabel}"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="13"
+                                       Margin="0,6,0,0" />
+                          </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="1" Style="{StaticResource MetricCardStyle}" Margin="8,0,0,8">
+                          <StackPanel>
+                            <TextBlock Text="TOGGLES" Style="{StaticResource LabelTextStyle}" />
+                            <TextBlock Text="{Binding EnabledToggleCountLabel}"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="13"
+                                       Margin="0,6,0,0" />
+                          </StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="1" Style="{StaticResource MetricCardStyle}" Margin="0,8,8,0">
+                          <StackPanel>
+                            <TextBlock Text="EXTENSIONS" Style="{StaticResource LabelTextStyle}" />
+                            <TextBlock Text="{Binding SelectedExtensionCountLabel}"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="13"
+                                       Margin="0,6,0,0" />
+                          </StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource MetricCardStyle}" Margin="8,8,0,0">
+                          <StackPanel>
+                            <TextBlock Text="ACCESS" Style="{StaticResource LabelTextStyle}" />
+                            <TextBlock Text="{Binding AccessPostureLabel}"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="13"
+                                       Margin="0,6,0,0" />
+                          </StackPanel>
+                        </Border>
+                      </Grid>
                     </StackPanel>
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                       <StackPanel>
+                        <Border Style="{StaticResource SubtleCardStyle}"
+                                Background="{StaticResource AccentSoftBrush}"
+                                BorderBrush="{StaticResource AccentRingBrush}"
+                                Margin="0,0,0,10">
+                          <StackPanel>
+                            <TextBlock Text="READINESS" Style="{StaticResource LabelTextStyle}" Foreground="{StaticResource AccentBrush}" />
+                            <TextBlock Text="{Binding CustomRunReadinessTitle}"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       Margin="0,4,0,6"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding CustomRunReadinessDetail}"
+                                       Style="{StaticResource CaptionTextStyle}" />
+                          </StackPanel>
+                        </Border>
+
                         <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,10">
                           <StackPanel>
                             <TextBlock Text="VISUAL STACK" Style="{StaticResource LabelTextStyle}" />
@@ -694,21 +1109,73 @@
                                        Margin="0,4,0,8"
                                        TextWrapping="Wrap" />
                             <TextBlock Text="{Binding LyricsSummary}" Style="{StaticResource CaptionTextStyle}" Margin="0,0,0,4" />
-                            <TextBlock Text="{Binding CacheSummary}" Style="{StaticResource CaptionTextStyle}" />
+                            <TextBlock Text="{Binding CacheSummary}" Style="{StaticResource CaptionTextStyle}" Margin="0,0,0,4" />
+                            <TextBlock Text="{Binding CustomSelectionSummary}" Style="{StaticResource CaptionTextStyle}" />
                           </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,10">
                           <StackPanel>
-                            <TextBlock Text="EXTENSIONS" Style="{StaticResource LabelTextStyle}" />
+                            <TextBlock Text="SMART GUIDANCE" Style="{StaticResource LabelTextStyle}" />
+                            <ItemsControl ItemsSource="{Binding SelectionInsights}"
+                                          ItemTemplate="{StaticResource SelectionInsightTemplate}"
+                                          Margin="0,10,0,0" />
+                          </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,10">
+                          <StackPanel>
+                            <TextBlock Text="SELECTED EXTENSIONS" Style="{StaticResource LabelTextStyle}" />
                             <TextBlock Text="{Binding ExtensionSummary}"
                                        Foreground="{StaticResource TextBrush}"
                                        FontWeight="SemiBold"
                                        FontSize="13"
-                                       Margin="0,4,0,6"
+                                       Margin="0,4,0,10"
                                        TextWrapping="Wrap" />
+                            <Grid>
+                              <ItemsControl ItemsSource="{Binding SelectedExtensionLabels}"
+                                            ItemTemplate="{StaticResource SelectionBadgeTemplate}">
+                                <ItemsControl.Style>
+                                  <Style TargetType="ItemsControl">
+                                    <Style.Triggers>
+                                      <DataTrigger Binding="{Binding HasSelectedExtensions}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                      </DataTrigger>
+                                    </Style.Triggers>
+                                  </Style>
+                                </ItemsControl.Style>
+                                <ItemsControl.ItemsPanel>
+                                  <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                  </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                              </ItemsControl>
+                              <Border Background="{StaticResource Surface1Brush}"
+                                      BorderBrush="{StaticResource StrokeSoftBrush}">
+                                <Border.Style>
+                                  <Style TargetType="Border" BasedOn="{StaticResource SubtleCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                      <DataTrigger Binding="{Binding HasSelectedExtensions}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                      </DataTrigger>
+                                    </Style.Triggers>
+                                  </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                  <TextBlock Text="No extensions selected yet"
+                                             Foreground="{StaticResource TextBrush}"
+                                             FontWeight="SemiBold"
+                                             FontSize="12.5" />
+                                  <TextBlock Text="Leave it lean, or add a few deliberate helpers when you want more than the base visual stack."
+                                             Style="{StaticResource CaptionTextStyle}"
+                                             Margin="0,6,0,0" />
+                                </StackPanel>
+                              </Border>
+                            </Grid>
                             <TextBlock Text="Saved to the same config file the original backend uses."
-                                       Style="{StaticResource CaptionTextStyle}" />
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Margin="0,4,0,0" />
                           </StackPanel>
                         </Border>
 
@@ -726,12 +1193,19 @@
                       </StackPanel>
                     </ScrollViewer>
 
-                    <Button Grid.Row="2"
-                            Content="Apply custom setup"
-                            Height="48"
-                            Margin="0,16,0,0"
-                            Style="{StaticResource PrimaryButtonStyle}"
-                            Command="{Binding ApplyCustomCommand}" />
+                     <Button Grid.Row="2"
+                              Content="Save and apply custom setup"
+                              Height="48"
+                              Margin="0,16,0,0"
+                              Style="{StaticResource PrimaryButtonStyle}"
+                              AutomationProperties.Name="Save and apply custom setup"
+                              AutomationProperties.HelpText="Saves this custom LibreSpot profile and runs it through the backend installer."
+                              Command="{Binding ApplyCustomCommand}" />
+                    <TextBlock Grid.Row="3"
+                               Text="{Binding CustomApplyCaption}"
+                               Style="{StaticResource CaptionTextStyle}"
+                               Margin="0,10,0,0"
+                               TextAlignment="Center" />
                   </Grid>
                 </Border>
               </Grid>
@@ -807,6 +1281,38 @@
                       </StackPanel>
                     </Border>
                   </Grid>
+
+                  <Grid Margin="0,18,0,0">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">
+                      <StackPanel>
+                        <TextBlock Text="Before you run maintenance"
+                                   Style="{StaticResource SectionTitleTextStyle}"
+                                   FontSize="15" />
+                        <TextBlock Text="Close Spotify if it is mid-playback, keep the saved profile if you want reapply to feel consistent, and copy the log afterward if anything looks unusual."
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,8,0,0" />
+                      </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            Style="{StaticResource SubtleCardStyle}"
+                            Margin="10,0,0,0"
+                            Background="{StaticResource Surface1Brush}">
+                      <StackPanel>
+                        <TextBlock Text="Why the reset lane is separate"
+                                   Style="{StaticResource SectionTitleTextStyle}"
+                                   FontSize="15" />
+                        <TextBlock Text="Those actions can remove Spotify state, Spicetify files, and recovery shortcuts. Keeping them isolated reduces accidental cleanup and makes the safer tools easier to trust."
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,8,0,0" />
+                      </StackPanel>
+                    </Border>
+                  </Grid>
                 </StackPanel>
               </ScrollViewer>
             </TabItem>
@@ -816,7 +1322,8 @@
     </Grid>
 
     <!-- ═══ Activity overlay ═══ -->
-    <Grid Visibility="{Binding IsActivityVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+    <Grid Visibility="{Binding IsActivityVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+          KeyboardNavigation.TabNavigation="Cycle">
       <!-- Scrim -->
       <Border x:Name="ActivityScrim"
               Background="{StaticResource OverlayBrush}">
@@ -921,7 +1428,10 @@
                   </StackPanel>
                 </Border>
                 <TextBlock Text="{Binding ActivityTitle}" Style="{StaticResource SectionTitleTextStyle}" FontSize="24" />
-                <TextBlock Text="{Binding ActivityStatus}" Style="{StaticResource BodyTextStyle}" Margin="0,6,0,0" />
+                <TextBlock Text="{Binding ActivityStatus}"
+                           Style="{StaticResource BodyTextStyle}"
+                           AutomationProperties.LiveSetting="Polite"
+                           Margin="0,6,0,0" />
               </StackPanel>
             </Grid>
 
@@ -996,11 +1506,16 @@
                   <ColumnDefinition Width="*" />
                   <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                  <TextBlock Text="BACKEND LOG" Style="{StaticResource LabelTextStyle}" VerticalAlignment="Center" />
-                  <Border Background="{StaticResource Surface3Brush}" CornerRadius="999" Padding="8,2" Margin="10,0,0,0">
-                    <TextBlock Text="{Binding LogLineCountText}" Style="{StaticResource CaptionTextStyle}" Foreground="{StaticResource MutedTextBrush}" />
-                  </Border>
+                <StackPanel VerticalAlignment="Center">
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="BACKEND LOG" Style="{StaticResource LabelTextStyle}" VerticalAlignment="Center" />
+                    <Border Background="{StaticResource Surface3Brush}" CornerRadius="999" Padding="8,2" Margin="10,0,0,0">
+                      <TextBlock Text="{Binding LogLineCountText}" Style="{StaticResource CaptionTextStyle}" Foreground="{StaticResource MutedTextBrush}" />
+                    </Border>
+                  </StackPanel>
+                  <TextBlock Text="Live output from the original PowerShell backend, kept here so you can troubleshoot or share the run confidently."
+                             Style="{StaticResource CaptionTextStyle}"
+                             Margin="0,6,0,0" />
                 </StackPanel>
                 <Button Grid.Column="1"
                         Content="Copy log"
@@ -1061,7 +1576,7 @@
                                FontFamily="{StaticResource MonoFont}"
                                FontSize="12"
                                HorizontalAlignment="Center" />
-                    <TextBlock Text="Progress and diagnostics appear here while LibreSpot runs."
+                    <TextBlock Text="Progress, warnings, and recovery clues appear here as soon as the backend begins emitting output."
                                Foreground="{StaticResource SubtleTextBrush}"
                                FontSize="11"
                                Margin="0,6,0,0"
@@ -1071,6 +1586,7 @@
                   <ScrollViewer x:Name="LogScrollViewer"
                                 VerticalScrollBarVisibility="Auto"
                                 HorizontalScrollBarVisibility="Disabled"
+                                AutomationProperties.Name="Backend log"
                                 Padding="14,12">
                     <ItemsControl ItemsSource="{Binding LogEntries}">
                       <ItemsControl.ItemTemplate>
@@ -1110,37 +1626,71 @@
               </Border>
             </Grid>
 
-            <StackPanel Grid.Row="4"
-                        Orientation="Horizontal"
-                        HorizontalAlignment="Right"
-                        Margin="0,18,0,0">
-              <TextBlock VerticalAlignment="Center" Margin="0,0,16,0">
-                <TextBlock.Style>
-                  <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
-                    <Setter Property="Text" Value="Press Esc to dismiss" />
-                    <Setter Property="Visibility" Value="Visible" />
-                    <Style.Triggers>
-                      <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                      </DataTrigger>
-                    </Style.Triggers>
-                  </Style>
-                </TextBlock.Style>
-              </TextBlock>
-              <Button Content="Close"
-                      MinWidth="140"
-                      Height="42"
-                      Padding="18,0"
-                      Style="{StaticResource PrimaryButtonStyle}"
-                      Command="{Binding DismissActivityCommand}" />
-            </StackPanel>
+            <Grid Grid.Row="4" Margin="0,18,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+
+              <StackPanel Margin="0,0,20,0">
+                <TextBlock Text="{Binding ActivityAssistiveText}"
+                           Style="{StaticResource CaptionTextStyle}"
+                           MaxWidth="430" />
+                <TextBlock Text="{Binding ActivityLogPathText}"
+                           Style="{StaticResource CaptionTextStyle}"
+                           Foreground="{StaticResource SubtleTextBrush}"
+                           Margin="0,6,0,0" />
+              </StackPanel>
+
+              <StackPanel Grid.Column="1"
+                          Orientation="Horizontal"
+                          HorizontalAlignment="Right">
+                <Button Content="Copy log"
+                        MinWidth="120"
+                        Height="42"
+                        Padding="18,0"
+                        Margin="0,0,10,0"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        AutomationProperties.Name="Copy backend log"
+                        AutomationProperties.HelpText="Copies the visible backend log to the clipboard."
+                        Command="{Binding CopyLogCommand}" />
+                <Button Content="Cancel run"
+                        MinWidth="140"
+                        Height="42"
+                        Padding="18,0"
+                        Margin="0,0,10,0"
+                        Style="{StaticResource DestructiveButtonStyle}"
+                        AutomationProperties.Name="Cancel current run"
+                        AutomationProperties.HelpText="Stops the active LibreSpot backend run."
+                        Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibilityConverter}}"
+                        Command="{Binding CancelRunCommand}" />
+                <Button Content="Close"
+                        MinWidth="140"
+                        Height="42"
+                        Padding="18,0"
+                        AutomationProperties.Name="Close activity panel"
+                        AutomationProperties.HelpText="Dismisses the activity panel after the run is finished."
+                        Command="{Binding DismissActivityCommand}">
+                  <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                          <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </Button.Style>
+                </Button>
+              </StackPanel>
+            </Grid>
           </Grid>
         </Border>
       </Grid>
     </Grid>
 
     <!-- ═══ Prompt overlay ═══ -->
-    <Grid Visibility="{Binding IsPromptVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+    <Grid Visibility="{Binding IsPromptVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+          KeyboardNavigation.TabNavigation="Cycle">
       <Border Background="{StaticResource OverlayBrush}">
         <Border.Style>
           <Style TargetType="Border">
@@ -1212,6 +1762,43 @@
 
             <TextBlock Text="{Binding PromptTitle}" Style="{StaticResource SectionTitleTextStyle}" FontSize="22" />
             <TextBlock Text="{Binding PromptBody}" Style="{StaticResource BodyTextStyle}" Margin="0,12,0,0" />
+            <Border Margin="0,18,0,0">
+              <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource SubtleCardStyle}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsPromptDestructive}" Value="True">
+                      <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                      <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
+              <StackPanel>
+                <TextBlock Text="What happens next">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource LabelTextStyle}">
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsPromptDestructive}" Value="True">
+                          <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Margin="0,6,0,0">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
+                      <Setter Property="Text" Value="LibreSpot will keep the window open, stream progress here, and leave the result easy to review afterward." />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsPromptDestructive}" Value="True">
+                          <Setter Property="Text" Value="LibreSpot will clear the current customization layer before you rebuild, so confirm only when you are ready for that reset." />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+              </StackPanel>
+            </Border>
 
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Right"
@@ -1222,11 +1809,13 @@
                       Padding="18,0"
                       Margin="0,0,10,0"
                       Style="{StaticResource SecondaryButtonStyle}"
+                      AutomationProperties.Name="{Binding PromptCancelText}"
                       Command="{Binding CancelPromptCommand}" />
               <Button MinWidth="200"
                       Height="42"
                       Padding="18,0"
                       Content="{Binding PromptConfirmText}"
+                      AutomationProperties.Name="{Binding PromptConfirmText}"
                       Command="{Binding ConfirmPromptCommand}">
                 <Button.Style>
                   <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">

@@ -40,6 +40,22 @@ public partial class MainWindow : Window
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
     {
+        if (_viewModel.IsRunning)
+        {
+            var result = MessageBox.Show(
+                "LibreSpot is still modifying Spotify.\n\nClosing now will cancel the current run and close the live progress window before the backend finishes cleaning up.\n\nClose anyway?",
+                "Cancel Current Run?",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            if (result != MessageBoxResult.Yes)
+            {
+                e.Cancel = true;
+                return;
+            }
+        }
+
         // Cancel any in-flight backend run so we don't orphan a powershell.exe process.
         // The CancellationToken chain tears down the child process tree cleanly.
         _viewModel.CancelRunningBackend();
