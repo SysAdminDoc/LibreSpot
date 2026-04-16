@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="LibreSpot">
+    <defs>
+        <linearGradient id="bg" x1="52" y1="40" x2="442" y2="478" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#111827" />
+            <stop offset="54%" stop-color="#0D1320" />
+            <stop offset="100%" stop-color="#0A0E17" />
+        </linearGradient>
+        <linearGradient id="panel" x1="86" y1="82" x2="424" y2="438" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#151E2F" />
+            <stop offset="56%" stop-color="#0E1626" />
+            <stop offset="100%" stop-color="#0A1220" />
+        </linearGradient>
+        <linearGradient id="primaryGrad" x1="150" y1="126" x2="364" y2="386" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#97CEFF" />
+            <stop offset="55%" stop-color="#58A6FF" />
+            <stop offset="100%" stop-color="#2F74E5" />
+        </linearGradient>
+        <linearGradient id="secondaryGrad" x1="184" y1="214" x2="334" y2="362" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#78F5B0" />
+            <stop offset="100%" stop-color="#4ADE80" />
+        </linearGradient>
+        <filter id="glow" x="-36%" y="-36%" width="172%" height="172%">
+            <feGaussianBlur stdDeviation="18" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+        <filter id="supportGlow" x="-36%" y="-36%" width="172%" height="172%">
+            <feGaussianBlur stdDeviation="12" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+        <filter id="softGlow" x="-36%" y="-36%" width="172%" height="172%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+        <filter id="softShadow" x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#02060C" flood-opacity="0.42" />
+        </filter>
+        <filter id="halo" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="28" />
+        </filter>
+        <clipPath id="clip">
+            <rect x="24" y="24" width="464" height="464" rx="116" />
+        </clipPath>
+    </defs>
+    <g clip-path="url(#clip)">
+        <rect x="24" y="24" width="464" height="464" rx="116" fill="url(#bg)" />
+        <circle cx="214" cy="178" r="110" fill="#58A6FF" opacity="0.15" filter="url(#halo)" />
+        <circle cx="256" cy="360" r="96" fill="#4ADE80" opacity="0.10" filter="url(#halo)" />
+        <rect x="56" y="56" width="400" height="400" rx="96" fill="url(#panel)" stroke="#22324B" stroke-width="3" />
+        <path d="M136 112 C174 100 216 94 252 94" stroke="#203754" stroke-width="7" stroke-linecap="round" opacity="0.30" /><path d="M332 116 H406" stroke="#203754" stroke-width="7" stroke-linecap="round" opacity="0.28" /><path d="M332 396 H406" stroke="#244C41" stroke-width="7" stroke-linecap="round" opacity="0.26" />
+        <path d="M112 404 H196" stroke="#244C41" stroke-width="7" stroke-linecap="round" opacity="0.40" />
+        <g filter="url(#softShadow)">
+        
+        <g opacity="0.98">
+            <circle cx="256" cy="224" r="104" fill="#0B1220" stroke="#24405E" stroke-width="16" opacity="0.94" />
+            <circle cx="256" cy="224" r="76" fill="#09111B" stroke="#18314C" stroke-width="4" opacity="0.96" />
+            <path d="M170 320 H342 C360 320 374 334 374 352 V370 C374 388 360 402 342 402 H170 C152 402 138 388 138 370 V352 C138 334 152 320 170 320 Z" fill="#0C1422" stroke="#274667" stroke-width="12" />
+            <path d="M184 352 H328" stroke="#17293E" stroke-width="12" stroke-linecap="round" />
+        </g>
+        
+        </g>
+        <g filter="url(#supportGlow)"><g transform="translate(0 88) rotate(-12 256 256) translate(256 256) scale(0.48) translate(-256 -256)" opacity="0.90">
+            <path d="M316 126 L386 196 L238 344 L168 274 Z" stroke="url(#primaryGrad)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+            <path d="M160 348 C146 362 146 392 168 414 C190 436 220 436 234 422 L284 372 L210 298 Z" stroke="url(#secondaryGrad)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        </g></g>
+        <g filter="url(#glow)">
+        <g transform="rotate(4 256 256) translate(256 256) scale(0.86) translate(-256 -256)">
+            <path d="M256 120 V300" stroke="url(#primaryGrad)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+            <path d="M184 232 L256 304 L328 232" stroke="url(#primaryGrad)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+            <path d="M156 364 H356" stroke="url(#secondaryGrad)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        </g>
+        </g>
+    </g>
+    <rect x="24" y="24" width="464" height="464" rx="116" fill="none" stroke="#26344F" stroke-width="4" />
+</svg>
