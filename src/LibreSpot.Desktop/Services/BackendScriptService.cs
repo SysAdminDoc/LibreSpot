@@ -166,6 +166,7 @@ public sealed class BackendScriptService
     private static async Task<string> EnsureBackendScriptAsync(CancellationToken cancellationToken)
     {
         var destination = Path.Combine(RuntimeDirectory, "LibreSpot.Backend.ps1");
+        var tempPath = Path.Combine(RuntimeDirectory, $"LibreSpot.Backend.{Guid.NewGuid():N}.tmp");
 
         await using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName)
             ?? throw new InvalidOperationException("LibreSpot backend resource was not found.");
@@ -192,9 +193,22 @@ public sealed class BackendScriptService
             }
         }
 
-        await using var fileStream = File.Create(destination);
-        await resourceStream.CopyToAsync(fileStream, cancellationToken);
-        return destination;
+        try
+        {
+            await using (var fileStream = File.Create(tempPath))
+            {
+                await resourceStream.CopyToAsync(fileStream, cancellationToken);
+                await fileStream.FlushAsync(cancellationToken);
+            }
+
+            File.Move(tempPath, destination, overwrite: true);
+            return destination;
+        }
+        catch
+        {
+            try { File.Delete(tempPath); } catch { }
+            throw;
+        }
     }
 
     private static string ComputeHash(Stream stream)

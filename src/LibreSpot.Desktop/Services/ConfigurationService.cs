@@ -31,7 +31,7 @@ public sealed class ConfigurationService
         {
             await using var stream = File.Open(ConfigPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             var config = await JsonSerializer.DeserializeAsync<InstallConfiguration>(stream, SerializerOptions, cancellationToken);
-            return config ?? AppCatalog.CreateRecommendedConfiguration();
+            return AppCatalog.NormalizeConfiguration(config);
         }
         catch (OperationCanceledException)
         {
@@ -52,10 +52,11 @@ public sealed class ConfigurationService
         await _saveLock.WaitAsync(cancellationToken);
         try
         {
+            var normalizedConfiguration = AppCatalog.NormalizeConfiguration(configuration);
             var tempPath = ConfigPath + ".tmp";
             await using (var stream = File.Create(tempPath))
             {
-                await JsonSerializer.SerializeAsync(stream, configuration, SerializerOptions, cancellationToken);
+                await JsonSerializer.SerializeAsync(stream, normalizedConfiguration, SerializerOptions, cancellationToken);
                 // Ensure contents hit disk before we swap over the real file.
                 await stream.FlushAsync(cancellationToken);
             }

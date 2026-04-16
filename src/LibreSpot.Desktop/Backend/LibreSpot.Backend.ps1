@@ -290,7 +290,58 @@ function Normalize-LibreSpotConfig {
     }
     $normalized.Spicetify_Extensions = @($extensions)
 
+    if ($normalized.SpotX_RightSidebarOff) {
+        $normalized.SpotX_RightSidebarClr = $false
+    }
+
+    if ($Config -and -not $Config.ContainsKey('Mode')) {
+        foreach ($key in $global:EasyDefaults.Keys) {
+            $defaultValue = $global:EasyDefaults[$key]
+            $currentValue = $normalized[$key]
+            $isEnumerableDefault = ($defaultValue -is [System.Collections.IEnumerable] -and $defaultValue -isnot [string])
+            if ($isEnumerableDefault) {
+                if ((@($currentValue) -join '|') -ne (@($defaultValue) -join '|')) {
+                    $normalized.Mode = 'Custom'
+                    break
+                }
+                continue
+            }
+            if ([string]$currentValue -ne [string]$defaultValue) {
+                $normalized.Mode = 'Custom'
+                break
+            }
+        }
+    }
+
     return $normalized
+}
+
+function Move-ConfigFileToQuarantine {
+    param([string]$Reason)
+
+    $configDirectory = Split-Path -Path $ConfigPath -Parent
+    if ([string]::IsNullOrWhiteSpace($configDirectory)) {
+        $configDirectory = $global:CONFIG_DIR
+    }
+
+    try {
+        if (-not (Test-Path -LiteralPath $configDirectory)) {
+            New-Item -Path $configDirectory -ItemType Directory -Force | Out-Null
+        }
+
+        if (Test-Path -LiteralPath $ConfigPath) {
+            $stamp = Get-Date -Format 'yyyyMMdd-HHmmssfff'
+            $quarantinePath = Join-Path $configDirectory "config.corrupt.$stamp.json"
+            Move-Item -LiteralPath $ConfigPath -Destination $quarantinePath -Force
+            Write-Log "Saved config was moved to $(Split-Path -Path $quarantinePath -Leaf) after a read failure." -Level 'WARN'
+        }
+    } catch {
+        Write-Log 'LibreSpot could not move the unreadable config aside automatically.' -Level 'WARN'
+    }
+
+    if ($Reason) {
+        Write-Log "Config reset: $Reason" -Level 'WARN'
+    }
 }
 
 function Load-LibreSpotConfig {
@@ -302,6 +353,7 @@ function Load-LibreSpotConfig {
         return (Normalize-LibreSpotConfig -Config (ConvertTo-PlainHashtable -InputObject $json))
     } catch {
         Write-Log "Saved config was unreadable, so LibreSpot is falling back to recommended defaults." -Level 'WARN'
+        Move-ConfigFileToQuarantine -Reason $_.Exception.Message
         return (Normalize-LibreSpotConfig -Config @{})
     }
 }
@@ -313,6 +365,30 @@ function Ensure-Admin {
     if (-not $isAdmin) {
         throw 'LibreSpot needs administrator permission to modify Spotify. Launch the desktop app as administrator and try again.'
     }
+}
+
+function Get-LibreSpotTempRoot {
+    $root = Join-Path $global:TEMP_DIR 'LibreSpot'
+    if (-not (Test-Path -LiteralPath $root)) {
+        New-Item -Path $root -ItemType Directory -Force | Out-Null
+    }
+    return $root
+}
+
+function New-LibreSpotTempFile {
+    param([string]$Name)
+
+    $fileName = if ([string]::IsNullOrWhiteSpace($Name)) { 'artifact.tmp' } else { $Name }
+    return (Join-Path (Get-LibreSpotTempRoot) ("{0}-{1}" -f [Guid]::NewGuid().ToString('N'), $fileName))
+}
+
+function New-LibreSpotTempDirectory {
+    param([string]$Name = 'workspace')
+
+    $directoryName = if ([string]::IsNullOrWhiteSpace($Name)) { 'workspace' } else { $Name }
+    $path = Join-Path (Get-LibreSpotTempRoot) ("{0}-{1}" -f [Guid]::NewGuid().ToString('N'), $directoryName)
+    New-Item -Path $path -ItemType Directory -Force | Out-Null
+    return $path
 }
 
 function Read-ProcessOutputDelta {
@@ -805,6 +881,28 @@ function Invoke-SpicetifyCli {
     # propagation in outer catch blocks (making $_.Exception.Message look empty).
 }
 
+function Test-SpicetifyCliInstalled {
+    $spicetifyExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
+    return (Test-Path -LiteralPath $spicetifyExe)
+}
+
+function Restore-SpotifyIfSpicetifyPresent {
+    param(
+        [string]$FailureMessage,
+        [string]$MissingMessage
+    )
+
+    if (-not (Test-SpicetifyCliInstalled)) {
+        if ($MissingMessage) {
+            Write-Log $MissingMessage -Level 'WARN'
+        }
+        return $false
+    }
+
+    Invoke-SpicetifyCli -Arguments @('restore', '--bypass-admin') -FailureMessage $FailureMessage
+    return $true
+}
+
 function Sync-SpicetifyListSetting {
     param(
         [string]$Key,
@@ -988,33 +1086,37 @@ function Build-SpotXParams {
 function Module-InstallSpotX {
     param($Config)
     Write-Log "Installing SpotX v$($global:PinnedReleases.SpotX.Version)..." -Level 'STEP'
-    $destination = Join-Path $global:TEMP_DIR 'spotx_run.ps1'
-    Download-FileSafe -Uri $global:URL_SPOTX -OutFile $destination
-    Confirm-FileHash -Path $destination -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label 'SpotX run.ps1'
+    $destination = New-LibreSpotTempFile -Name 'spotx_run.ps1'
+    try {
+        Download-FileSafe -Uri $global:URL_SPOTX -OutFile $destination
+        Confirm-FileHash -Path $destination -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label 'SpotX run.ps1'
 
-    $params = Build-SpotXParams -Config $Config
-    if (Test-Path $global:SPOTIFY_EXE_PATH) {
-        Write-Log "Existing Spotify installation detected: $((Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion)"
-    } else {
-        Write-Log 'Spotify is not installed yet, so SpotX will download the recommended build.'
+        $params = Build-SpotXParams -Config $Config
+        if (Test-Path $global:SPOTIFY_EXE_PATH) {
+            Write-Log "Existing Spotify installation detected: $((Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion)"
+        } else {
+            Write-Log 'Spotify is not installed yet, so SpotX will download the recommended build.'
+        }
+
+        Invoke-ExternalScriptIsolated -FilePath $destination -Arguments $params
+        if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
+            throw "SpotX finished but Spotify.exe was not found at $global:SPOTIFY_EXE_PATH."
+        }
+
+        $spotifyDir = Split-Path $global:SPOTIFY_EXE_PATH -Parent
+        if (-not (Test-Path (Join-Path $spotifyDir 'chrome_elf.dll'))) {
+            throw 'Spotify installation looks incomplete because chrome_elf.dll is missing.'
+        }
+
+        Write-Log 'SpotX patching completed successfully.' -Level 'SUCCESS'
+        Write-Log 'Launching Spotify once to generate its base config files...'
+        $process = Start-Process -FilePath $global:SPOTIFY_EXE_PATH -WindowStyle Minimized -PassThru
+        Start-Sleep -Seconds 6
+        try { if ($process -and -not $process.HasExited) { $process.CloseMainWindow() | Out-Null } } catch {}
+        Stop-SpotifyProcesses -MaxAttempts 3
+    } finally {
+        Remove-Item -LiteralPath $destination -Force -ErrorAction SilentlyContinue
     }
-
-    Invoke-ExternalScriptIsolated -FilePath $destination -Arguments $params
-    if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
-        throw "SpotX finished but Spotify.exe was not found at $global:SPOTIFY_EXE_PATH."
-    }
-
-    $spotifyDir = Split-Path $global:SPOTIFY_EXE_PATH -Parent
-    if (-not (Test-Path (Join-Path $spotifyDir 'chrome_elf.dll'))) {
-        throw 'Spotify installation looks incomplete because chrome_elf.dll is missing.'
-    }
-
-    Write-Log 'SpotX patching completed successfully.' -Level 'SUCCESS'
-    Write-Log 'Launching Spotify once to generate its base config files...'
-    $process = Start-Process -FilePath $global:SPOTIFY_EXE_PATH -WindowStyle Minimized -PassThru
-    Start-Sleep -Seconds 6
-    try { if ($process -and -not $process.HasExited) { $process.CloseMainWindow() | Out-Null } } catch {}
-    Stop-SpotifyProcesses -MaxAttempts 3
 }
 
 function Module-InstallSpicetifyCLI {
@@ -1023,30 +1125,33 @@ function Module-InstallSpicetifyCLI {
     New-Item -Path $global:SPICETIFY_DIR -ItemType Directory -Force | Out-Null
     $arch = switch ($env:PROCESSOR_ARCHITECTURE) { 'ARM64' { 'arm64' } default { 'x64' } }
     $zipUri = $global:URL_SPICETIFY_FMT -f $version, $arch
-    $zipPath = Join-Path $global:TEMP_DIR 'spicetify.zip'
-    Download-FileSafe -Uri $zipUri -OutFile $zipPath
-    Confirm-FileHash -Path $zipPath -ExpectedHash $global:PinnedReleases.SpicetifyCLI.SHA256[$arch] -Label "Spicetify CLI ($arch)"
+    $zipPath = New-LibreSpotTempFile -Name 'spicetify.zip'
+    try {
+        Download-FileSafe -Uri $zipUri -OutFile $zipPath
+        Confirm-FileHash -Path $zipPath -ExpectedHash $global:PinnedReleases.SpicetifyCLI.SHA256[$arch] -Label "Spicetify CLI ($arch)"
 
-    if (Test-Path -LiteralPath $global:SPICETIFY_DIR) {
-        Get-ChildItem -LiteralPath $global:SPICETIFY_DIR -Force -ErrorAction SilentlyContinue | ForEach-Object {
-            $null = Remove-PathSafely -Path $_.FullName -Label "Spicetify CLI: $($_.Name)"
+        if (Test-Path -LiteralPath $global:SPICETIFY_DIR) {
+            Get-ChildItem -LiteralPath $global:SPICETIFY_DIR -Force -ErrorAction SilentlyContinue | ForEach-Object {
+                $null = Remove-PathSafely -Path $_.FullName -Label "Spicetify CLI: $($_.Name)"
+            }
         }
-    }
 
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $global:SPICETIFY_DIR)
-    Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $global:SPICETIFY_DIR)
 
-    if (-not (Test-Path (Join-Path $global:SPICETIFY_DIR 'spicetify.exe'))) {
-        throw 'Spicetify CLI archive extracted without spicetify.exe.'
-    }
+        if (-not (Test-Path (Join-Path $global:SPICETIFY_DIR 'spicetify.exe'))) {
+            throw 'Spicetify CLI archive extracted without spicetify.exe.'
+        }
 
-    $null = Add-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'Process'
-    if (Add-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'User') {
-        Write-Log 'Added Spicetify CLI to the user PATH.'
+        $null = Add-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'Process'
+        if (Add-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'User') {
+            Write-Log 'Added Spicetify CLI to the user PATH.'
+        }
+        Invoke-SpicetifyCli -Arguments @('config', '--bypass-admin') -FailureMessage 'Could not generate the initial Spicetify config.'
+        Write-Log 'Spicetify CLI installed successfully.' -Level 'SUCCESS'
+    } finally {
+        Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
     }
-    Invoke-SpicetifyCli -Arguments @('config', '--bypass-admin') -FailureMessage 'Could not generate the initial Spicetify config.'
-    Write-Log 'Spicetify CLI installed successfully.' -Level 'SUCCESS'
 }
 
 function Module-InstallThemes {
@@ -1057,8 +1162,8 @@ function Module-InstallThemes {
         return
     }
     Write-Log "Installing theme: $themeName..." -Level 'STEP'
-    $zipPath = Join-Path $global:TEMP_DIR 'themes.zip'
-    $unpackPath = Join-Path $global:TEMP_DIR 'themes-unpack'
+    $zipPath = New-LibreSpotTempFile -Name 'themes.zip'
+    $unpackPath = New-LibreSpotTempDirectory -Name 'themes-unpack'
     $themesDir = Join-Path $global:SPICETIFY_CONFIG_DIR 'Themes'
 
     if (-not (Test-Path -LiteralPath $themesDir)) {
@@ -1069,7 +1174,6 @@ function Module-InstallThemes {
         Download-FileSafe -Uri $global:URL_THEMES_REPO -OutFile $zipPath
         Confirm-FileHash -Path $zipPath -ExpectedHash $global:PinnedReleases.Themes.SHA256 -Label 'Themes archive'
 
-        if (Test-Path -LiteralPath $unpackPath) { Remove-Item -LiteralPath $unpackPath -Recurse -Force }
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $unpackPath)
 
@@ -1136,8 +1240,8 @@ function Module-InstallMarketplace {
     New-Item -Path $customAppsDir -ItemType Directory -Force | Out-Null
 
     $marketplaceDir = Join-Path $customAppsDir 'marketplace'
-    $zipPath = Join-Path $global:TEMP_DIR 'marketplace.zip'
-    $unpackPath = Join-Path $global:TEMP_DIR 'marketplace-unpack'
+    $zipPath = New-LibreSpotTempFile -Name 'marketplace.zip'
+    $unpackPath = New-LibreSpotTempDirectory -Name 'marketplace-unpack'
 
     if (Test-Path -LiteralPath $marketplaceDir) {
         $null = Remove-PathSafely -Path $marketplaceDir -Label 'Marketplace app'
@@ -1148,7 +1252,6 @@ function Module-InstallMarketplace {
         Download-FileSafe -Uri $global:URL_MARKETPLACE -OutFile $zipPath
         Confirm-FileHash -Path $zipPath -ExpectedHash $global:PinnedReleases.Marketplace.SHA256 -Label 'Marketplace archive'
 
-        if (Test-Path -LiteralPath $unpackPath) { Remove-Item -LiteralPath $unpackPath -Recurse -Force }
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $unpackPath)
         $source = if (Test-Path -LiteralPath (Join-Path $unpackPath 'marketplace-dist')) { Join-Path $unpackPath 'marketplace-dist\*' } else { Join-Path $unpackPath '*' }
@@ -1244,6 +1347,20 @@ function Module-ApplySpicetify {
     }
 }
 
+function Reapply-SavedSpicetifySetup {
+    param($Config)
+
+    if (-not (Test-SpicetifyCliInstalled)) {
+        Write-Log 'Spicetify CLI is missing, so LibreSpot will reinstall it before restoring your saved setup.' -Level 'WARN'
+        Module-InstallSpicetifyCLI
+    }
+
+    Module-InstallThemes -Config $Config
+    Module-InstallExtensions -Config $Config
+    Module-InstallMarketplace -Config $Config
+    Module-ApplySpicetify -Config $Config
+}
+
 function Invoke-LibreSpotInstall {
     $config = Load-LibreSpotConfig
     Write-Log "--- LibreSpot installation started ($($config.Mode)) ---" -Level 'HEADER'
@@ -1293,30 +1410,32 @@ function Invoke-LibreSpotMaintenance {
         }
         'Reapply' {
             Update-BackendState -Progress 15 -Status 'Refreshing SpotX' -Step 'Downloading pinned SpotX'
-            $destination = Join-Path $global:TEMP_DIR 'spotx_run.ps1'
-            Download-FileSafe -Uri $global:URL_SPOTX -OutFile $destination
-            Confirm-FileHash -Path $destination -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label 'SpotX run.ps1'
             $savedConfig = Load-LibreSpotConfig
-            $params = Build-SpotXParams -Config $savedConfig
-            Invoke-ExternalScriptIsolated -FilePath $destination -Arguments $params
-
-            $spicetifyExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
-            if (Test-Path -LiteralPath $spicetifyExe) {
-                Update-BackendState -Progress 65 -Status 'Reapplying Spicetify' -Step 'Restoring theme and extension state'
-                Invoke-SpicetifyCli -Arguments @('backup', 'apply', '--bypass-admin') -FailureMessage 'Could not reapply the saved Spicetify setup.'
-                Write-Log 'Spicetify reapplied successfully.' -Level 'SUCCESS'
-            } else {
-                Write-Log 'Spicetify CLI was not found, so LibreSpot only refreshed SpotX.' -Level 'WARN'
+            $destination = New-LibreSpotTempFile -Name 'spotx_run.ps1'
+            try {
+                Download-FileSafe -Uri $global:URL_SPOTX -OutFile $destination
+                Confirm-FileHash -Path $destination -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label 'SpotX run.ps1'
+                $params = Build-SpotXParams -Config $savedConfig
+                Invoke-ExternalScriptIsolated -FilePath $destination -Arguments $params
+            } finally {
+                Remove-Item -LiteralPath $destination -Force -ErrorAction SilentlyContinue
             }
+
+            Update-BackendState -Progress 60 -Status 'Restoring saved Spicetify state' -Step 'Rebuilding CLI, themes, extensions, and Marketplace'
+            Reapply-SavedSpicetifySetup -Config $savedConfig
+            Write-Log 'Saved Spicetify setup restored successfully.' -Level 'SUCCESS'
         }
         'RestoreVanilla' {
             Update-BackendState -Progress 35 -Status 'Restoring vanilla Spotify' -Step 'Removing active Spicetify customizations'
-            Invoke-SpicetifyCli -Arguments @('restore', '--bypass-admin') -FailureMessage 'Could not restore vanilla Spotify.'
-            Write-Log 'Vanilla Spotify restored successfully.' -Level 'SUCCESS'
+            if (Restore-SpotifyIfSpicetifyPresent -FailureMessage 'Could not restore vanilla Spotify.' -MissingMessage 'Spicetify CLI was not found, so LibreSpot cannot run a restore. Spotify may already be vanilla.') {
+                Write-Log 'Vanilla Spotify restored successfully.' -Level 'SUCCESS'
+            }
         }
         'UninstallSpicetify' {
             Update-BackendState -Progress 15 -Status 'Restoring Spotify first' -Step 'Removing active customizations'
-            Invoke-SpicetifyCli -Arguments @('restore', '--bypass-admin') -FailureMessage 'Could not restore Spotify before uninstalling Spicetify.'
+            if (Restore-SpotifyIfSpicetifyPresent -FailureMessage 'Could not restore Spotify before uninstalling Spicetify.' -MissingMessage 'Spicetify CLI was already missing, so LibreSpot will remove any leftover files and PATH entries directly.') {
+                Write-Log 'Spotify restored successfully before removing Spicetify.' -Level 'SUCCESS'
+            }
             Update-BackendState -Progress 45 -Status 'Removing Spicetify files' -Step 'Cleaning local tools and config'
             $null = Remove-PathSafely -Path $global:SPICETIFY_CONFIG_DIR -Label 'Spicetify config directory'
             $null = Remove-PathSafely -Path $global:SPICETIFY_DIR -Label 'Spicetify CLI directory'

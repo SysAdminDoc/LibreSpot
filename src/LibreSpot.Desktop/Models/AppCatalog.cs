@@ -67,7 +67,7 @@ public sealed class InstallConfiguration
             Spicetify_Theme = Spicetify_Theme,
             Spicetify_Scheme = Spicetify_Scheme,
             Spicetify_Marketplace = Spicetify_Marketplace,
-            Spicetify_Extensions = new List<string>(Spicetify_Extensions)
+            Spicetify_Extensions = new List<string>(Spicetify_Extensions ?? [])
         };
 }
 
@@ -176,13 +176,13 @@ public static class AppCatalog
 
     public static IReadOnlyList<OptionDefinition> OptionDefinitions { get; } = new ReadOnlyCollection<OptionDefinition>(new[]
     {
-        new OptionDefinition(nameof(InstallConfiguration.CleanInstall), "Start clean", "Remove the old Spotify stack before applying the new setup.", "Install"),
-        new OptionDefinition(nameof(InstallConfiguration.LaunchAfter), "Launch when finished", "Open Spotify automatically after LibreSpot completes.", "Install"),
+        new OptionDefinition(nameof(InstallConfiguration.CleanInstall), "Remove current stack first", "Clear old Spotify and customization remnants before LibreSpot rebuilds the setup.", "Install"),
+        new OptionDefinition(nameof(InstallConfiguration.LaunchAfter), "Open Spotify when finished", "Launch Spotify automatically after LibreSpot completes.", "Install"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_NewTheme), "Enable SpotX new theme", "Apply the newer SpotX shell tweaks for a cleaner Spotify frame.", "Core"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_PodcastsOff), "Hide podcasts", "Reduce podcast surfaces across Spotify for a music-first setup.", "Core"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_BlockUpdate), "Block Spotify updates", "Keep Spotify pinned so your setup is less likely to break unexpectedly.", "Core"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_AdSectionsOff), "Remove ad sections", "Strip ad-promoted sections from key Spotify views.", "Core"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_Premium), "Premium patch", "Enable the SpotX premium patch layer where it still applies.", "Core"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_Premium), "Premium account mode", "Skip ad-focused patching while keeping the rest of the LibreSpot stack.", "Core"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_DisableStartup), "Disable startup launch", "Stop Spotify from auto-launching with Windows.", "Core"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_NoShortcut), "Skip shortcut creation", "Avoid desktop shortcut clutter during install.", "Core"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_LyricsEnabled), "Enable lyrics patch", "Turn on patched lyrics support and choose a lyrics skin.", "Interface"),
@@ -193,9 +193,9 @@ public static class AppCatalog
         new OptionDefinition(nameof(InstallConfiguration.SpotX_HomeSubOff), "Hide home suggestions", "Remove some of Spotify's recommendation-heavy home modules.", "Interface"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_OldLyrics), "Old lyrics layout", "Switch back to the earlier lyrics layout treatment.", "Interface"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_HideColIconOff), "Keep collection icon visible", "Prevent SpotX from hiding collection affordances.", "Interface"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_Plus), "SpotX plus mode", "Apply the broader SpotX tweak bundle for a more modified Spotify shell.", "Advanced"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_NewFullscreen), "New fullscreen mode", "Enable the alternative fullscreen playback experience.", "Advanced"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_FunnyProgress), "Funny progress bar", "Swap in the novelty progress bar variant.", "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_Plus), "Expanded SpotX tweaks", "Apply the broader SpotX tweak bundle for a more heavily modified Spotify shell.", "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_NewFullscreen), "Alternative fullscreen layout", "Enable SpotX's alternate fullscreen playback experience.", "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_FunnyProgress), "Novelty progress bar", "Swap in SpotX's playful progress bar variant.", "Advanced"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_ExpSpotify), "Experimental Spotify features", "Allow experimental Spotify flags when SpotX supports them.", "Advanced"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_LyricsBlock), "Block lyric overlays", "Disable some lyric-related overlays in patched states.", "Advanced"),
         new OptionDefinition(nameof(InstallConfiguration.Spicetify_Marketplace), "Install Marketplace", "Include the Spicetify Marketplace custom app by default.", "Experience")
@@ -226,11 +226,72 @@ public static class AppCatalog
 
     public static IReadOnlyList<string> RecommendedHighlights { get; } = new ReadOnlyCollection<string>(new[]
     {
-        "Starts from a clean Spotify state to avoid leftover conflicts.",
-        "Applies the pinned SpotX patch stack with lyrics enabled.",
-        "Installs Spicetify, Marketplace, and the recommended starter extensions.",
-        "Launches Spotify when the setup is finished."
+        "Starts from a clean Spotify state so older patches do not leak into the new stack.",
+        "Applies the pinned SpotX profile with lyrics enabled and update blocking turned on.",
+        "Restores Spicetify, Marketplace, and the starter extensions LibreSpot manages best.",
+        "Saves a predictable profile for future reapply, recovery, and maintenance runs."
     });
 
     public static InstallConfiguration CreateRecommendedConfiguration() => new();
+
+    public static InstallConfiguration NormalizeConfiguration(InstallConfiguration? source)
+    {
+        var normalized = CreateRecommendedConfiguration().Clone();
+        if (source is null)
+        {
+            return normalized;
+        }
+
+        normalized.Mode = source.Mode is "Easy" or "Custom" ? source.Mode : normalized.Mode;
+        normalized.CleanInstall = source.CleanInstall;
+        normalized.LaunchAfter = source.LaunchAfter;
+
+        normalized.SpotX_NewTheme = source.SpotX_NewTheme;
+        normalized.SpotX_PodcastsOff = source.SpotX_PodcastsOff;
+        normalized.SpotX_BlockUpdate = source.SpotX_BlockUpdate;
+        normalized.SpotX_AdSectionsOff = source.SpotX_AdSectionsOff;
+        normalized.SpotX_Premium = source.SpotX_Premium;
+        normalized.SpotX_LyricsEnabled = source.SpotX_LyricsEnabled;
+        normalized.SpotX_TopSearch = source.SpotX_TopSearch;
+        normalized.SpotX_RightSidebarOff = source.SpotX_RightSidebarOff;
+        normalized.SpotX_RightSidebarClr = source.SpotX_RightSidebarClr && !source.SpotX_RightSidebarOff;
+        normalized.SpotX_CanvasHomeOff = source.SpotX_CanvasHomeOff;
+        normalized.SpotX_HomeSubOff = source.SpotX_HomeSubOff;
+        normalized.SpotX_DisableStartup = source.SpotX_DisableStartup;
+        normalized.SpotX_NoShortcut = source.SpotX_NoShortcut;
+        normalized.SpotX_CacheLimit = Math.Clamp(source.SpotX_CacheLimit, 0, 50_000);
+        normalized.SpotX_Plus = source.SpotX_Plus;
+        normalized.SpotX_NewFullscreen = source.SpotX_NewFullscreen;
+        normalized.SpotX_FunnyProgress = source.SpotX_FunnyProgress;
+        normalized.SpotX_ExpSpotify = source.SpotX_ExpSpotify;
+        normalized.SpotX_LyricsBlock = source.SpotX_LyricsBlock;
+        normalized.SpotX_OldLyrics = source.SpotX_OldLyrics;
+        normalized.SpotX_HideColIconOff = source.SpotX_HideColIconOff;
+
+        normalized.SpotX_LyricsTheme = !string.IsNullOrWhiteSpace(source.SpotX_LyricsTheme) && LyricsThemes.Contains(source.SpotX_LyricsTheme)
+            ? source.SpotX_LyricsTheme
+            : normalized.SpotX_LyricsTheme;
+
+        normalized.Spicetify_Theme = !string.IsNullOrWhiteSpace(source.Spicetify_Theme) && ThemeSchemes.ContainsKey(source.Spicetify_Theme)
+            ? source.Spicetify_Theme
+            : normalized.Spicetify_Theme;
+
+        var validSchemes = ThemeSchemes.TryGetValue(normalized.Spicetify_Theme, out var schemes)
+            ? schemes
+            : ThemeSchemes[normalized.Spicetify_Theme];
+
+        normalized.Spicetify_Scheme = validSchemes.Contains(source.Spicetify_Scheme)
+            ? source.Spicetify_Scheme
+            : validSchemes.First();
+
+        normalized.Spicetify_Marketplace = source.Spicetify_Marketplace;
+
+        var validExtensions = ExtensionDefinitions.Select(def => def.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        normalized.Spicetify_Extensions = (source.Spicetify_Extensions ?? [])
+            .Where(item => !string.IsNullOrWhiteSpace(item) && validExtensions.Contains(item))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return normalized;
+    }
 }
