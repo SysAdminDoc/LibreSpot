@@ -108,6 +108,7 @@
   <Style x:Key="MetricCardStyle" TargetType="Border" BasedOn="{StaticResource SubtleCardStyle}">
     <Setter Property="Background" Value="{StaticResource Surface3Brush}" />
     <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
+    <Setter Property="Padding" Value="20" />
   </Style>
 
   <Style x:Key="SectionFrameStyle" TargetType="Border">
@@ -115,7 +116,7 @@
     <Setter Property="BorderBrush" Value="{StaticResource StrokeSoftBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="18" />
-    <Setter Property="Padding" Value="22" />
+    <Setter Property="Padding" Value="24" />
   </Style>
 
   <!--
@@ -440,12 +441,19 @@
                                 VerticalAlignment="Center"
                                 TextElement.Foreground="{TemplateBinding Foreground}" />
             </Border>
+            <Border x:Name="HoverTint"
+                    Margin="2,0"
+                    Background="{StaticResource SurfaceSheenBrush}"
+                    CornerRadius="10"
+                    Opacity="0"
+                    IsHitTestVisible="False" />
           </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsSelected" Value="True">
-              <Setter TargetName="Root" Property="Background" Value="{StaticResource AccentBrush}" />
+              <Setter TargetName="Root" Property="Background" Value="{StaticResource AccentGradientBrush}" />
               <Setter TargetName="Root" Property="Effect" Value="{StaticResource TabSelectedGlow}" />
               <Setter Property="Foreground" Value="{StaticResource TextOnAccentBrush}" />
+              <Setter TargetName="HoverTint" Property="Opacity" Value="0" />
             </Trigger>
             <MultiTrigger>
               <MultiTrigger.Conditions>
@@ -453,6 +461,7 @@
                 <Condition Property="IsSelected" Value="False" />
               </MultiTrigger.Conditions>
               <Setter TargetName="Root" Property="Background" Value="{StaticResource Surface3Brush}" />
+              <Setter TargetName="HoverTint" Property="Opacity" Value="1" />
               <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             </MultiTrigger>
             <Trigger Property="IsKeyboardFocusWithin" Value="True">
@@ -473,9 +482,12 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="CheckBox">
-          <Grid>
+          <Grid RenderTransformOrigin="0.5,0.5">
+            <Grid.RenderTransform>
+              <ScaleTransform x:Name="RootScale" ScaleX="1" ScaleY="1" />
+            </Grid.RenderTransform>
             <Border x:Name="FocusRing"
-                    Margin="-2"
+                    Margin="-3"
                     CornerRadius="16"
                     BorderBrush="{StaticResource AccentRingBrush}"
                     BorderThickness="2"
@@ -485,42 +497,51 @@
                     BorderBrush="{StaticResource StrokeSoftBrush}"
                     BorderThickness="1"
                     CornerRadius="14"
-                    Padding="16,13">
-              <Grid>
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="20" />
-                  <ColumnDefinition Width="14" />
-                  <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid VerticalAlignment="Top" Margin="0,2,0,0">
-                  <Border x:Name="Box"
-                          Width="18"
-                          Height="18"
-                          CornerRadius="5"
-                          Background="{StaticResource Surface3Brush}"
-                          BorderBrush="{StaticResource StrokeStrongBrush}"
-                          BorderThickness="1.2" />
-                  <Path x:Name="Mark"
-                        Width="11"
-                        Height="10"
-                        Stretch="Uniform"
-                        Data="M 1 5 L 4.5 8.5 L 10 2"
-                        Stroke="{StaticResource TextOnAccentBrush}"
-                        StrokeThickness="2"
-                        StrokeStartLineCap="Round"
-                        StrokeEndLineCap="Round"
-                        Opacity="0" />
-                </Grid>
-                <ContentPresenter Grid.Column="2"
-                                  VerticalAlignment="Center"
-                                  TextElement.Foreground="{TemplateBinding Foreground}" />
+                    Padding="0" />
+            <Border x:Name="HoverTint"
+                    Background="{StaticResource SurfaceSheenBrush}"
+                    CornerRadius="14"
+                    Opacity="0"
+                    IsHitTestVisible="False" />
+            <Border x:Name="PressTint"
+                    Background="#16000000"
+                    CornerRadius="14"
+                    Opacity="0"
+                    IsHitTestVisible="False" />
+            <Grid Margin="16,13">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Grid VerticalAlignment="Top" Margin="0,2,0,0">
+                <Border x:Name="Box"
+                        Width="18"
+                        Height="18"
+                        CornerRadius="5"
+                        Background="{StaticResource Surface3Brush}"
+                        BorderBrush="{StaticResource StrokeStrongBrush}"
+                        BorderThickness="1.2" />
+                <Path x:Name="Mark"
+                      Width="11"
+                      Height="10"
+                      Stretch="Uniform"
+                      Data="M 1 5 L 4.5 8.5 L 10 2"
+                      Stroke="{StaticResource TextOnAccentBrush}"
+                      StrokeThickness="2"
+                      StrokeStartLineCap="Round"
+                      StrokeEndLineCap="Round"
+                      Opacity="0" />
               </Grid>
-            </Border>
+              <ContentPresenter Grid.Column="2"
+                                VerticalAlignment="Center"
+                                TextElement.Foreground="{TemplateBinding Foreground}" />
+            </Grid>
           </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsChecked" Value="True">
               <Setter TargetName="Root" Property="Background" Value="{StaticResource AccentSoftBrush}" />
-              <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+              <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
               <Setter TargetName="Box" Property="Background" Value="{StaticResource AccentBrush}" />
               <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
               <Trigger.EnterActions>
@@ -544,6 +565,42 @@
             </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource StrokeStrongBrush}" />
+              <Trigger.EnterActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="HoverTint"
+                                     Storyboard.TargetProperty="Opacity"
+                                     To="1"
+                                     Duration="0:0:0.150" />
+                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     Storyboard.TargetProperty="ScaleX"
+                                     To="1.01"
+                                     Duration="0:0:0.150" />
+                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     Storyboard.TargetProperty="ScaleY"
+                                     To="1.01"
+                                     Duration="0:0:0.150" />
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.EnterActions>
+              <Trigger.ExitActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="HoverTint"
+                                     Storyboard.TargetProperty="Opacity"
+                                     To="0"
+                                     Duration="0:0:0.180" />
+                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     Storyboard.TargetProperty="ScaleX"
+                                     To="1"
+                                     Duration="0:0:0.180" />
+                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     Storyboard.TargetProperty="ScaleY"
+                                     To="1"
+                                     Duration="0:0:0.180" />
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.ExitActions>
             </Trigger>
             <MultiTrigger>
               <MultiTrigger.Conditions>
@@ -552,6 +609,36 @@
               </MultiTrigger.Conditions>
               <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" />
             </MultiTrigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Trigger.EnterActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="PressTint"
+                                     Storyboard.TargetProperty="Opacity"
+                                     To="1"
+                                     Duration="0:0:0.080" />
+                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     Storyboard.TargetProperty="ScaleX"
+                                     To="0.992"
+                                     Duration="0:0:0.080" />
+                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     Storyboard.TargetProperty="ScaleY"
+                                     To="0.992"
+                                     Duration="0:0:0.080" />
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.EnterActions>
+              <Trigger.ExitActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="PressTint"
+                                     Storyboard.TargetProperty="Opacity"
+                                     To="0"
+                                     Duration="0:0:0.140" />
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.ExitActions>
+            </Trigger>
             <Trigger Property="IsKeyboardFocused" Value="True">
               <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
             </Trigger>

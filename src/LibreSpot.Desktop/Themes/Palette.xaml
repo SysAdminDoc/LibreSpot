@@ -15,7 +15,7 @@
   -->
 
   <!-- ═══ Typography ═══ -->
-  <FontFamily x:Key="HeadingFont">Bahnschrift</FontFamily>
+  <FontFamily x:Key="HeadingFont">Segoe UI Variable Display, Segoe UI Variable Text, Segoe UI</FontFamily>
   <FontFamily x:Key="BodyFont">Segoe UI Variable Text, Segoe UI</FontFamily>
   <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
 
@@ -52,6 +52,8 @@
   <Color x:Key="DangerDeepColor">#C9343A</Color>
   <Color x:Key="DangerSoftColor">#261414</Color>
   <Color x:Key="WarningColor">#F5A524</Color>
+  <Color x:Key="WarningSoftColor">#241A0D</Color>
+  <Color x:Key="WarningRingColor">#66F5A524</Color>
   <Color x:Key="SuccessColor">#1DB954</Color>
   <Color x:Key="SuccessSoftColor">#132419</Color>
   <Color x:Key="InfoColor">#6AA9FF</Color>
@@ -93,6 +95,8 @@
   <SolidColorBrush x:Key="DangerDeepBrush" Color="{StaticResource DangerDeepColor}" />
   <SolidColorBrush x:Key="DangerSoftBrush" Color="{StaticResource DangerSoftColor}" />
   <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
+  <SolidColorBrush x:Key="WarningSoftBrush" Color="{StaticResource WarningSoftColor}" />
+  <SolidColorBrush x:Key="WarningRingBrush" Color="{StaticResource WarningRingColor}" />
   <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
   <SolidColorBrush x:Key="SuccessSoftBrush" Color="{StaticResource SuccessSoftColor}" />
   <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}" />
