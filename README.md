@@ -1,3 +1,5 @@
+<p align="center"><img src="icon.png" width="128" alt="LibreSpot"></p>
+
 <div align="center">
 
 # LibreSpot
@@ -8,7 +10,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-3.1.1-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-3.2.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 
 </div>
 
