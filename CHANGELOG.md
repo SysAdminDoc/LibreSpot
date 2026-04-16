@@ -2,6 +2,38 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
+## [v4.0.0-preview.1] - 2026-04-16 (pre-release)
+
+### Added
+- Native WPF desktop shell (.NET 8, MVVM) replacing the PS2EXE GUI wrapper
+- Token-based design system: surface elevation, semantic intent, motion, easing, radius, and spacing scales read from a single source of truth
+- Focus rings as overlay borders (no 1px layout jitter on keyboard focus)
+- Button hover-tint via Opacity animation + tactile 0.985× press-scale
+- Indeterminate progress shimmer, rotating ComboBox chevron, fade-in checkbox checkmarks
+- Overlay cards (activity + prompt) fade + scale-in on every show via DataTrigger EnterActions
+- State-aware activity badge — accent pulse while running, Danger + "Needs attention" on failure, "Run complete" on success, "Working…" during indeterminate runs
+- Staggered accent-dot empty state for the log panel
+- Structured stdout protocol between WPF shell and embedded PowerShell backend
+- Embedded backend script extracted to LocalAppData and SHA-verified before each run
+- Action allow-list validation before any PowerShell dispatch
+- Cancellation chain tears down the child process tree on window close
+
+### Changed
+- Backend flows hardened for the new shell integration (install/maintenance pipelines preserved)
+- Desktop UX polish across controls, states, and transitions
+- Single-file self-contained .NET 8 executable (no runtime dependency)
+
+## [v3.3.0] - 2026-04-05
+
+### Added
+- Five new SpotX GUI options: Plus features (`-plus`), experimental fullscreen (`-new_fullscreen_mode`), humorous progress bar (`-funnyprogressBar`), experimental Spotify features (`-exp_spotify`), lyrics block (`-lyrics_block`)
+- Full config pipeline wiring for new options: XAML, load/save, normalization, fingerprint, Build-SpotXParams, summary toggles
+- Mutual-exclusivity enforcement between `-lyrics_block` and `-old_lyrics` via dependency-aware UI
+
+### Changed
+- SpotX pinned to `0abf98a3` (targets Spotify 1.2.86.502)
+- Spicetify CLI bumped to v2.43.1
+
 ## [v3.2.0] - 2026-04-15
 
 ### Added
