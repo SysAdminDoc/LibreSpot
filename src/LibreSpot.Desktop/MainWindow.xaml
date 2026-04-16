@@ -1,0 +1,1250 @@
+<Window x:Class="LibreSpot.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
+        mc:Ignorable="d"
+        Title="LibreSpot"
+        Width="1440"
+        Height="920"
+        MinWidth="1200"
+        MinHeight="820"
+        Icon="pack://application:,,,/Assets/LibreSpot.ico"
+        WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        Background="{StaticResource CanvasBrush}"
+        Style="{StaticResource WindowChromeStyle}">
+  <Window.InputBindings>
+    <KeyBinding Key="Escape" Command="{Binding EscapeCommand}" />
+    <KeyBinding Key="F5" Command="{Binding RefreshSnapshotCommand}" />
+  </Window.InputBindings>
+
+  <Window.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+
+    <DataTemplate DataType="{x:Type viewModels:OptionToggleViewModel}" x:Key="OptionTemplate">
+      <CheckBox Style="{StaticResource SettingCheckBoxStyle}"
+                IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                Margin="0,0,10,10">
+        <StackPanel>
+          <TextBlock Text="{Binding Title}"
+                     Foreground="{StaticResource TextBrush}"
+                     FontWeight="SemiBold"
+                     FontSize="13"
+                     Margin="0,0,0,3" />
+          <TextBlock Text="{Binding Description}"
+                     Style="{StaticResource CaptionTextStyle}" />
+        </StackPanel>
+      </CheckBox>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type viewModels:ExtensionToggleViewModel}" x:Key="ExtensionTemplate">
+      <CheckBox Style="{StaticResource SettingCheckBoxStyle}"
+                IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                Margin="0,0,10,10">
+        <StackPanel>
+          <TextBlock Text="{Binding Title}"
+                     Foreground="{StaticResource TextBrush}"
+                     FontWeight="SemiBold"
+                     FontSize="13"
+                     Margin="0,0,0,3" />
+          <TextBlock Text="{Binding Description}"
+                     Style="{StaticResource CaptionTextStyle}" />
+        </StackPanel>
+      </CheckBox>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type viewModels:MaintenanceActionCardViewModel}" x:Key="MaintenanceTemplate">
+      <Border BorderBrush="{StaticResource StrokeSoftBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="0,16,0,16">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+
+          <StackPanel Margin="0,0,18,0">
+            <TextBlock Text="{Binding Title}"
+                       Foreground="{StaticResource TextBrush}"
+                       FontWeight="SemiBold"
+                       FontSize="14" />
+            <TextBlock Text="{Binding Description}"
+                       Style="{StaticResource BodyTextStyle}"
+                       Margin="0,6,0,0" />
+          </StackPanel>
+
+          <Button Grid.Column="1"
+                  MinWidth="150"
+                  Height="40"
+                  Padding="16,0"
+                  Content="{Binding ButtonText}"
+                  Command="{Binding Command}">
+            <Button.Style>
+              <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding IsDestructive}" Value="True">
+                    <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                    <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+                    <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Button.Style>
+          </Button>
+        </Grid>
+      </Border>
+    </DataTemplate>
+
+    <!--
+      Overlay card style: fade + subtle scale-in when the bound IsVisible flag
+      transitions False→True. DataTrigger EnterActions run on every transition,
+      unlike EventTrigger RoutedEvent="Loaded" which fires only on first tree
+      attachment — a Visibility toggle doesn't re-fire Loaded.
+    -->
+    <Style x:Key="ActivityCardStyle" TargetType="Border" BasedOn="{StaticResource SurfaceCardStyle}">
+      <Setter Property="Background" Value="{StaticResource PanelStrongBrush}" />
+      <Setter Property="Effect" Value="{StaticResource OverlayShadow}" />
+      <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="RenderTransform">
+        <Setter.Value>
+          <ScaleTransform ScaleX="0.97" ScaleY="0.97" />
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsActivityVisible}" Value="True">
+          <DataTrigger.EnterActions>
+            <BeginStoryboard>
+              <Storyboard>
+                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                 From="0" To="1" Duration="0:0:0.220">
+                  <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+                <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleX)"
+                                 From="0.97" To="1" Duration="0:0:0.260">
+                  <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+                <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleY)"
+                                 From="0.97" To="1" Duration="0:0:0.260">
+                  <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+              </Storyboard>
+            </BeginStoryboard>
+          </DataTrigger.EnterActions>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="PromptCardStyle" TargetType="Border" BasedOn="{StaticResource SurfaceCardStyle}">
+      <Setter Property="Background" Value="{StaticResource PanelStrongBrush}" />
+      <Setter Property="Effect" Value="{StaticResource OverlayShadow}" />
+      <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="RenderTransform">
+        <Setter.Value>
+          <ScaleTransform ScaleX="0.97" ScaleY="0.97" />
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsPromptVisible}" Value="True">
+          <DataTrigger.EnterActions>
+            <BeginStoryboard>
+              <Storyboard>
+                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                 From="0" To="1" Duration="0:0:0.200">
+                  <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+                <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleX)"
+                                 From="0.97" To="1" Duration="0:0:0.240">
+                  <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+                <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleY)"
+                                 From="0.97" To="1" Duration="0:0:0.240">
+                  <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+              </Storyboard>
+            </BeginStoryboard>
+          </DataTrigger.EnterActions>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </Window.Resources>
+
+  <Grid Background="{StaticResource CanvasBrush}">
+    <!-- Ambient accent glow, anchored top-right. Soft so it doesn't steal focus. -->
+    <Ellipse Width="640"
+             Height="640"
+             Fill="{StaticResource RailGlowBrush}"
+             Opacity="0.32"
+             HorizontalAlignment="Right"
+             VerticalAlignment="Top"
+             Margin="0,-220,-220,0"
+             IsHitTestVisible="False" />
+
+    <Grid Margin="24">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="300" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <!-- ═══ Sidebar ═══ -->
+      <Border Grid.Column="0"
+              Background="{StaticResource RailBrush}"
+              BorderBrush="{StaticResource StrokeSoftBrush}"
+              BorderThickness="1"
+              CornerRadius="22"
+              Padding="24">
+        <DockPanel LastChildFill="True">
+          <StackPanel DockPanel.Dock="Top">
+            <!-- Brand lockup -->
+            <StackPanel Orientation="Horizontal">
+              <Border Width="48"
+                      Height="48"
+                      Background="{StaticResource Surface3Brush}"
+                      CornerRadius="14"
+                      BorderBrush="{StaticResource StrokeBrush}"
+                      BorderThickness="1">
+                <Image Source="pack://application:,,,/Assets/LibreSpot.ico"
+                       Width="30"
+                       Height="30"
+                       Stretch="Uniform" />
+              </Border>
+              <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="LibreSpot" Style="{StaticResource RailTitleTextStyle}" />
+                <TextBlock Text="SpotX + Spicetify, one shell."
+                           Style="{StaticResource CaptionTextStyle}"
+                           Margin="0,2,0,0" />
+              </StackPanel>
+            </StackPanel>
+
+            <Border Height="1"
+                    Background="{StaticResource StrokeSoftBrush}"
+                    Margin="0,24,0,22" />
+
+            <!-- Environment card -->
+            <TextBlock Text="ENVIRONMENT" Style="{StaticResource SectionEyebrowTextStyle}" />
+            <Border Style="{StaticResource MetricCardStyle}">
+              <StackPanel>
+                <TextBlock Text="{Binding Snapshot.StatusTitle}"
+                           Foreground="{StaticResource TextBrush}"
+                           FontFamily="{StaticResource HeadingFont}"
+                           FontSize="17"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Snapshot.StatusDetail}"
+                           Style="{StaticResource CaptionTextStyle}"
+                           Margin="0,6,0,14" />
+
+                <!-- Status rows -->
+                <Grid Margin="0,0,0,6">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Ellipse Margin="0,0,10,0">
+                    <Ellipse.Style>
+                      <Style TargetType="Ellipse" BasedOn="{StaticResource StatusDotStyle}">
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding Snapshot.SpotifyInstalled}" Value="True">
+                            <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Ellipse.Style>
+                  </Ellipse>
+                  <TextBlock Grid.Column="1" Text="{Binding SpotifyStatusLine}" Style="{StaticResource CaptionTextStyle}" Foreground="{StaticResource MutedTextBrush}" />
+                </Grid>
+                <Grid Margin="0,0,0,6">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Ellipse Margin="0,0,10,0">
+                    <Ellipse.Style>
+                      <Style TargetType="Ellipse" BasedOn="{StaticResource StatusDotStyle}">
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding Snapshot.SpicetifyInstalled}" Value="True">
+                            <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Ellipse.Style>
+                  </Ellipse>
+                  <TextBlock Grid.Column="1" Text="{Binding CustomizationStatusLine}" Style="{StaticResource CaptionTextStyle}" Foreground="{StaticResource MutedTextBrush}" />
+                </Grid>
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Ellipse Margin="0,0,10,0">
+                    <Ellipse.Style>
+                      <Style TargetType="Ellipse" BasedOn="{StaticResource StatusDotStyle}">
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding Snapshot.SavedConfigExists}" Value="True">
+                            <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Ellipse.Style>
+                  </Ellipse>
+                  <TextBlock Grid.Column="1" Text="{Binding ProfileStatusLine}" Style="{StaticResource CaptionTextStyle}" Foreground="{StaticResource MutedTextBrush}" />
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <!-- Suggested action -->
+            <TextBlock Text="SUGGESTED" Style="{StaticResource SectionEyebrowTextStyle}" Margin="0,22,0,10" />
+            <StackPanel>
+              <TextBlock Text="{Binding WorkspaceRecommendationTitle}"
+                         Foreground="{StaticResource TextBrush}"
+                         FontFamily="{StaticResource HeadingFont}"
+                         FontSize="17"
+                         FontWeight="SemiBold" />
+              <TextBlock Text="{Binding WorkspaceRecommendationDetail}"
+                         Style="{StaticResource CaptionTextStyle}"
+                         Margin="0,6,0,0" />
+            </StackPanel>
+          </StackPanel>
+
+          <StackPanel DockPanel.Dock="Bottom" Margin="0,24,0,0">
+            <Button Content="Refresh status"
+                    Style="{StaticResource GhostButtonStyle}"
+                    Height="40"
+                    ToolTip="F5"
+                    Command="{Binding RefreshSnapshotCommand}" />
+            <TextBlock Text="{Binding LastRefreshedText}"
+                       Style="{StaticResource CaptionTextStyle}"
+                       Foreground="{StaticResource SubtleTextBrush}"
+                       HorizontalAlignment="Center"
+                       Margin="0,10,0,0" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <!-- ═══ Main content ═══ -->
+      <Border Grid.Column="1"
+              Margin="22,0,0,0"
+              Style="{StaticResource SurfaceCardStyle}"
+              Padding="32">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+
+          <!-- Hero -->
+          <Grid Grid.Row="0" Margin="0,0,0,24">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="340" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Margin="0,0,24,0">
+              <Border Style="{StaticResource PillBadgeStyle}" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal">
+                  <Ellipse Width="7" Height="7" Fill="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <TextBlock Text="LibreSpot Desktop"
+                             Foreground="{StaticResource AccentBrush}"
+                             FontWeight="SemiBold"
+                             FontSize="11" />
+                </StackPanel>
+              </Border>
+              <TextBlock Text="Set up, refine, and recover Spotify — from one calm workspace."
+                         Style="{StaticResource HeadlineTextStyle}"
+                         Margin="0,14,0,10" />
+              <TextBlock Text="LibreSpot still runs the trusted PowerShell backend underneath. This shell just makes every decision faster to read and easier to trust."
+                         Style="{StaticResource BodyTextStyle}"
+                         MaxWidth="620"
+                         HorizontalAlignment="Left" />
+            </StackPanel>
+
+            <!-- Session access -->
+            <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}">
+              <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                  <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <Ellipse.Style>
+                      <Style TargetType="Ellipse">
+                        <Setter Property="Fill" Value="{StaticResource WarningBrush}" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsAdministratorSession}" Value="True">
+                            <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Ellipse.Style>
+                  </Ellipse>
+                  <TextBlock Text="{Binding SessionAccessTitle}"
+                             Foreground="{StaticResource TextBrush}"
+                             FontWeight="SemiBold"
+                             FontSize="14" />
+                </StackPanel>
+                <TextBlock Text="{Binding SessionAccessDetail}"
+                           Style="{StaticResource CaptionTextStyle}"
+                           Margin="0,4,0,14" />
+
+                <Button Content="Relaunch as administrator"
+                        Height="40"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Visibility="{Binding NeedsAdministratorRelaunch, Converter={StaticResource BoolToVisibilityConverter}}"
+                        Command="{Binding RelaunchAsAdministratorCommand}" />
+
+                <TextBlock Text="Settings save to %APPDATA%\LibreSpot\config.json so this shell stays in lockstep with the original backend."
+                           Style="{StaticResource CaptionTextStyle}"
+                           Margin="0,12,0,0" />
+              </StackPanel>
+            </Border>
+          </Grid>
+
+          <!-- Workspace tabs -->
+          <TabControl Grid.Row="1"
+                      Style="{StaticResource WorkspaceTabControlStyle}"
+                      SelectedIndex="{Binding SelectedWorkspaceIndex}">
+            <TabControl.ItemContainerStyle>
+              <Style TargetType="TabItem" BasedOn="{StaticResource WorkspaceTabItemStyle}" />
+            </TabControl.ItemContainerStyle>
+
+            <!-- ═══ Recommended ═══ -->
+            <TabItem Header="Recommended">
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                  <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="1.2*" />
+                      <ColumnDefinition Width="0.8*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Margin="0,0,24,0">
+                      <TextBlock Text="The cleanest route to a stable premium setup"
+                                 Style="{StaticResource SectionTitleTextStyle}"
+                                 FontSize="24" />
+                      <TextBlock Text="Recommended starts from a known-good state, applies LibreSpot's balanced defaults, and leaves Spotify easier to maintain after future updates."
+                                 Style="{StaticResource BodyTextStyle}"
+                                 Margin="0,10,0,0" />
+
+                      <ItemsControl ItemsSource="{Binding RecommendedHighlights}" Margin="0,20,0,0">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Grid Margin="0,0,0,10">
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                              </Grid.ColumnDefinitions>
+                              <Border Width="22"
+                                      Height="22"
+                                      CornerRadius="11"
+                                      Background="{StaticResource AccentSoftBrush}"
+                                      BorderBrush="{StaticResource AccentRingBrush}"
+                                      BorderThickness="1"
+                                      Margin="0,0,12,0"
+                                      VerticalAlignment="Top">
+                                <Path Width="10" Height="10"
+                                      Stretch="Uniform"
+                                      Data="M 1 5 L 4.5 8.5 L 10 2"
+                                      Stroke="{StaticResource AccentBrush}"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round" />
+                              </Border>
+                              <TextBlock Grid.Column="1" Text="{Binding}" Style="{StaticResource BodyTextStyle}" VerticalAlignment="Center" />
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+
+                    <Border Grid.Column="1" Style="{StaticResource SectionFrameStyle}">
+                      <StackPanel>
+                        <TextBlock Text="What you get"
+                                   Style="{StaticResource SectionTitleTextStyle}"
+                                   FontSize="17" />
+                        <TextBlock Text="A fresh SpotX pass, Spicetify CLI, Marketplace, starter extensions, and a saved profile for future upkeep."
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,8,0,20" />
+                        <Button Content="Apply recommended setup"
+                                Height="46"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Command="{Binding ApplyRecommendedCommand}" />
+                        <TextBlock Text="Takes 2–4 minutes. You can cancel mid-run from this window."
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,10,0,0"
+                                   HorizontalAlignment="Center" />
+                      </StackPanel>
+                    </Border>
+                  </Grid>
+
+                  <Border Style="{StaticResource SectionFrameStyle}">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="1" />
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+
+                      <StackPanel Margin="0,0,22,0">
+                        <TextBlock Text="Why this path works best"
+                                   Style="{StaticResource SectionTitleTextStyle}"
+                                   FontSize="15" />
+                        <TextBlock Text="It removes leftover conflicts, keeps the stack recognizable, and gives you a trustworthy baseline before any deeper customization."
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,8,0,0" />
+                      </StackPanel>
+
+                      <Border Grid.Column="1" Background="{StaticResource StrokeSoftBrush}" Margin="0,4" />
+
+                      <StackPanel Grid.Column="2" Margin="22,0,0,0">
+                        <TextBlock Text="When Custom makes more sense"
+                                   Style="{StaticResource SectionTitleTextStyle}"
+                                   FontSize="15" />
+                        <TextBlock Text="Switch to Custom when you already know which Spotify tweaks, theme packs, or extensions you want LibreSpot to preserve."
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,8,0,0" />
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+
+            <!-- ═══ Custom ═══ -->
+            <TabItem Header="Custom">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="340" />
+                </Grid.ColumnDefinitions>
+
+                <ScrollViewer Grid.Column="0"
+                              VerticalScrollBarVisibility="Auto"
+                              Margin="0,0,22,0">
+                  <StackPanel>
+                    <StackPanel Margin="0,0,0,20">
+                      <TextBlock Text="Tailor the stack without losing clarity"
+                                 Style="{StaticResource SectionTitleTextStyle}"
+                                 FontSize="24" />
+                      <TextBlock Text="Every original setting is here, grouped into calmer sections so you can scan fast and understand the tradeoff before you apply."
+                                 Style="{StaticResource BodyTextStyle}"
+                                 Margin="0,8,0,0" />
+                    </StackPanel>
+
+                    <Border Style="{StaticResource SectionFrameStyle}" Margin="0,0,0,16">
+                      <StackPanel>
+                        <TextBlock Text="Install posture" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="Whether LibreSpot starts from a clean state, and whether Spotify reopens when the run finishes."
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,6,0,14" />
+                        <ItemsControl ItemsSource="{Binding InstallOptions}" ItemTemplate="{StaticResource OptionTemplate}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                      </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SectionFrameStyle}" Margin="0,0,0,16">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="1.15*" />
+                          <ColumnDefinition Width="0.85*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Margin="0,0,20,0">
+                          <TextBlock Text="Visual identity" Style="{StaticResource SectionTitleTextStyle}" />
+                          <TextBlock Text="Pick the Spicetify theme pack, color scheme, lyrics skin, and cache posture LibreSpot should restore after the run finishes."
+                                     Style="{StaticResource BodyTextStyle}"
+                                     Margin="0,6,0,16" />
+
+                          <TextBlock Text="THEME PACK" Style="{StaticResource LabelTextStyle}" />
+                          <ComboBox ItemsSource="{Binding ThemeNames}"
+                                    SelectedItem="{Binding SelectedTheme, Mode=TwoWay}"
+                                    Style="{StaticResource ComboBoxStylePremium}"
+                                    Margin="0,6,0,14" />
+
+                          <TextBlock Text="COLOR SCHEME" Style="{StaticResource LabelTextStyle}" />
+                          <ComboBox ItemsSource="{Binding SchemeOptions}"
+                                    SelectedItem="{Binding SelectedScheme, Mode=TwoWay}"
+                                    Style="{StaticResource ComboBoxStylePremium}"
+                                    Margin="0,6,0,14">
+                            <ComboBox.ItemTemplate>
+                              <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource PrettifyConverter}}" />
+                              </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                          </ComboBox>
+
+                          <TextBlock Text="LYRICS THEME" Style="{StaticResource LabelTextStyle}" />
+                          <ComboBox ItemsSource="{Binding LyricsThemes}"
+                                    SelectedItem="{Binding SelectedLyricsTheme, Mode=TwoWay}"
+                                    Style="{StaticResource ComboBoxStylePremium}">
+                            <ComboBox.ItemTemplate>
+                              <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource PrettifyConverter}}" />
+                              </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                          </ComboBox>
+                        </StackPanel>
+
+                        <Border Grid.Column="1"
+                                Style="{StaticResource SubtleCardStyle}"
+                                Background="{StaticResource AccentSoftBrush}"
+                                BorderBrush="{StaticResource AccentRingBrush}">
+                          <StackPanel>
+                            <TextBlock Text="CACHE LIMIT" Style="{StaticResource LabelTextStyle}" Foreground="{StaticResource AccentBrush}" />
+                            <TextBox Text="{Binding CacheLimitText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource TextBoxStylePremium}"
+                                     Margin="0,6,0,8"
+                                     MaxLength="6"
+                                     DataObject.Pasting="CacheLimitTextBox_OnPasting"
+                                     PreviewTextInput="CacheLimitTextBox_OnPreviewTextInput" />
+                            <TextBlock Text="Megabytes. Leave 0 for LibreSpot's default. A hard ceiling keeps Spotify's media cache predictable."
+                                       Style="{StaticResource CaptionTextStyle}" />
+                          </StackPanel>
+                        </Border>
+                      </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource SectionFrameStyle}" Margin="0,0,0,16">
+                      <StackPanel>
+                        <TextBlock Text="Playback and shell behavior" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="These settings shape the day-to-day Spotify experience once SpotX and Spicetify finish patching."
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,6,0,14" />
+
+                        <TextBlock Text="CORE BEHAVIOR" Style="{StaticResource LabelTextStyle}" Margin="0,0,0,8" />
+                        <ItemsControl ItemsSource="{Binding CoreOptions}" ItemTemplate="{StaticResource OptionTemplate}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+
+                        <Border Height="1" Background="{StaticResource StrokeSoftBrush}" Margin="0,8,0,14" />
+
+                        <TextBlock Text="INTERFACE TUNING" Style="{StaticResource LabelTextStyle}" Margin="0,0,0,8" />
+                        <ItemsControl ItemsSource="{Binding InterfaceOptions}" ItemTemplate="{StaticResource OptionTemplate}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                      </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SectionFrameStyle}" Margin="0,0,0,16">
+                      <StackPanel>
+                        <TextBlock Text="Advanced adjustments" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="Opinionated and experimental toggles. Leave these off for the most conservative setup."
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,6,0,14" />
+                        <ItemsControl ItemsSource="{Binding AdvancedOptions}" ItemTemplate="{StaticResource OptionTemplate}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+
+                        <Border Height="1" Background="{StaticResource StrokeSoftBrush}" Margin="0,8,0,14" />
+
+                        <TextBlock Text="EXPERIENCE EXTRAS" Style="{StaticResource LabelTextStyle}" Margin="0,0,0,8" />
+                        <ItemsControl ItemsSource="{Binding ExperienceOptions}" ItemTemplate="{StaticResource OptionTemplate}" />
+                      </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SectionFrameStyle}">
+                      <StackPanel>
+                        <TextBlock Text="Built-in extensions" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="Choose which Spicetify extensions LibreSpot should manage as part of this run."
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,6,0,14" />
+                        <ItemsControl ItemsSource="{Binding Extensions}" ItemTemplate="{StaticResource ExtensionTemplate}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </ScrollViewer>
+
+                <!-- Sticky selection summary -->
+                <Border Grid.Column="1" Style="{StaticResource SectionFrameStyle}">
+                  <Grid>
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="*" />
+                      <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,14">
+                      <TextBlock Text="Selection summary" Style="{StaticResource SectionTitleTextStyle}" FontSize="16" />
+                      <TextBlock Text="{Binding CustomSelectionSummary}"
+                                 Style="{StaticResource BodyTextStyle}"
+                                 Margin="0,6,0,0" />
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                      <StackPanel>
+                        <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,10">
+                          <StackPanel>
+                            <TextBlock Text="VISUAL STACK" Style="{StaticResource LabelTextStyle}" />
+                            <TextBlock Text="{Binding ThemeSummary}"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="13"
+                                       Margin="0,4,0,8"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding LyricsSummary}" Style="{StaticResource CaptionTextStyle}" Margin="0,0,0,4" />
+                            <TextBlock Text="{Binding CacheSummary}" Style="{StaticResource CaptionTextStyle}" />
+                          </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,10">
+                          <StackPanel>
+                            <TextBlock Text="EXTENSIONS" Style="{StaticResource LabelTextStyle}" />
+                            <TextBlock Text="{Binding ExtensionSummary}"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="13"
+                                       Margin="0,4,0,6"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="Saved to the same config file the original backend uses."
+                                       Style="{StaticResource CaptionTextStyle}" />
+                          </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SubtleCardStyle}"
+                                Background="{StaticResource AccentSoftBrush}"
+                                BorderBrush="{StaticResource AccentRingBrush}"
+                                Visibility="{Binding NeedsAdministratorRelaunch, Converter={StaticResource BoolToVisibilityConverter}}">
+                          <StackPanel>
+                            <TextBlock Text="ADMIN REQUIRED" Style="{StaticResource LabelTextStyle}" Foreground="{StaticResource AccentBrush}" />
+                            <TextBlock Text="LibreSpot will prompt for elevation before it patches Spotify."
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Margin="0,4,0,0" />
+                          </StackPanel>
+                        </Border>
+                      </StackPanel>
+                    </ScrollViewer>
+
+                    <Button Grid.Row="2"
+                            Content="Apply custom setup"
+                            Height="48"
+                            Margin="0,16,0,0"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding ApplyCustomCommand}" />
+                  </Grid>
+                </Border>
+              </Grid>
+            </TabItem>
+
+            <!-- ═══ Maintenance ═══ -->
+            <TabItem Header="Maintenance">
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                  <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="1.05*" />
+                      <ColumnDefinition Width="0.95*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Margin="0,0,22,0">
+                      <TextBlock Text="Recovery and upkeep"
+                                 Style="{StaticResource SectionTitleTextStyle}"
+                                 FontSize="24" />
+                      <TextBlock Text="Use maintenance when Spotify updates, when the interface needs to roll back, or when you want to clear the current customization layer safely."
+                                 Style="{StaticResource BodyTextStyle}"
+                                 Margin="0,8,0,0" />
+                    </StackPanel>
+
+                    <Border Grid.Column="1"
+                            Style="{StaticResource SectionFrameStyle}"
+                            Background="{StaticResource SuccessSoftBrush}"
+                            BorderBrush="{StaticResource AccentRingBrush}">
+                      <StackPanel>
+                        <TextBlock Text="{Binding MaintenanceGuidanceTitle}"
+                                   Style="{StaticResource SectionTitleTextStyle}"
+                                   FontSize="17" />
+                        <TextBlock Text="{Binding MaintenanceGuidanceDetail}"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,6,0,0" />
+                      </StackPanel>
+                    </Border>
+                  </Grid>
+
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Style="{StaticResource SectionFrameStyle}" Margin="0,0,10,0">
+                      <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                          <Ellipse Width="8" Height="8" Fill="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                          <TextBlock Text="Refresh and recover" Style="{StaticResource SectionTitleTextStyle}" />
+                        </StackPanel>
+                        <TextBlock Text="Lower-risk tools for checking the stack, reapplying your saved setup, and backing out visible customization."
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,0,0,6" />
+                        <ItemsControl ItemsSource="{Binding SafeMaintenanceActions}" ItemTemplate="{StaticResource MaintenanceTemplate}" />
+                      </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            Style="{StaticResource SectionFrameStyle}"
+                            Margin="10,0,0,0"
+                            Background="{StaticResource DangerSoftBrush}"
+                            BorderBrush="{StaticResource DangerBrush}">
+                      <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                          <Ellipse Width="8" Height="8" Fill="{StaticResource DangerBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                          <TextBlock Text="Reset lane" Style="{StaticResource SectionTitleTextStyle}" Foreground="{StaticResource DangerBrush}" />
+                        </StackPanel>
+                        <TextBlock Text="Use only when you want to remove the current customization state and start over with a cleaner baseline."
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,0,0,6" />
+                        <ItemsControl ItemsSource="{Binding DestructiveMaintenanceActions}" ItemTemplate="{StaticResource MaintenanceTemplate}" />
+                      </StackPanel>
+                    </Border>
+                  </Grid>
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+          </TabControl>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <!-- ═══ Activity overlay ═══ -->
+    <Grid Visibility="{Binding IsActivityVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+      <!-- Scrim -->
+      <Border x:Name="ActivityScrim"
+              Background="{StaticResource OverlayBrush}">
+        <Border.Style>
+          <Style TargetType="Border">
+            <Setter Property="Opacity" Value="0" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding IsActivityVisible}" Value="True">
+                <DataTrigger.EnterActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                       From="0" To="1" Duration="0:0:0.180">
+                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                      </DoubleAnimation>
+                    </Storyboard>
+                  </BeginStoryboard>
+                </DataTrigger.EnterActions>
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Border.Style>
+      </Border>
+      <Grid Margin="64">
+        <Border Width="900"
+                MaxHeight="720"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Padding="32"
+                Style="{StaticResource ActivityCardStyle}">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <!-- Badge changes tone based on the run's outcome: accent while running
+                     or completed, danger when the backend reported an error. -->
+                <Border HorizontalAlignment="Left" Margin="0,0,0,10">
+                  <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource PillBadgeStyle}">
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsActivityError}" Value="True">
+                          <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                          <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </Border.Style>
+                  <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,8,0">
+                      <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                          <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                              <DataTrigger.EnterActions>
+                                <BeginStoryboard x:Name="PulseAccent">
+                                  <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                     From="1" To="0.35"
+                                                     Duration="0:0:1.1">
+                                      <DoubleAnimation.EasingFunction>
+                                        <SineEase EasingMode="EaseInOut" />
+                                      </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                  </Storyboard>
+                                </BeginStoryboard>
+                              </DataTrigger.EnterActions>
+                              <DataTrigger.ExitActions>
+                                <StopStoryboard BeginStoryboardName="PulseAccent" />
+                              </DataTrigger.ExitActions>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsActivityError}" Value="True">
+                              <Setter Property="Fill" Value="{StaticResource DangerBrush}" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Ellipse.Style>
+                    </Ellipse>
+                    <TextBlock Text="{Binding ActivityBadgeText}" FontWeight="SemiBold" FontSize="11">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                          <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsActivityError}" Value="True">
+                              <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                  </StackPanel>
+                </Border>
+                <TextBlock Text="{Binding ActivityTitle}" Style="{StaticResource SectionTitleTextStyle}" FontSize="24" />
+                <TextBlock Text="{Binding ActivityStatus}" Style="{StaticResource BodyTextStyle}" Margin="0,6,0,0" />
+              </StackPanel>
+            </Grid>
+
+            <!-- Progress -->
+            <Border Grid.Row="1" Style="{StaticResource SubtleCardStyle}" Margin="0,20,0,0">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ProgressBar Height="8"
+                             Maximum="100"
+                             Value="{Binding ProgressValue, Mode=OneWay}"
+                             IsIndeterminate="{Binding IsBusyIndeterminate, Mode=OneWay}"
+                             Style="{StaticResource ProgressBarStylePremium}"
+                             VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Margin="14,0,0,0"
+                            VerticalAlignment="Center">
+                  <Ellipse Width="8" Height="8"
+                           Margin="0,0,10,0"
+                           Fill="{StaticResource AccentBrush}"
+                           VerticalAlignment="Center"
+                           Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Ellipse.Triggers>
+                      <EventTrigger RoutedEvent="Ellipse.Loaded">
+                        <BeginStoryboard>
+                          <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                             From="1.0" To="0.25"
+                                             Duration="0:0:0.85" />
+                          </Storyboard>
+                        </BeginStoryboard>
+                      </EventTrigger>
+                    </Ellipse.Triggers>
+                  </Ellipse>
+                  <TextBlock Text="{Binding ProgressLabel}"
+                             VerticalAlignment="Center"
+                             FontFamily="{StaticResource MonoFont}"
+                             FontWeight="SemiBold"
+                             Foreground="{StaticResource TextBrush}"
+                             MinWidth="72" />
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <!-- Current step -->
+            <Border Grid.Row="2"
+                    Style="{StaticResource SubtleCardStyle}"
+                    Background="{StaticResource AccentSoftBrush}"
+                    BorderBrush="{StaticResource AccentRingBrush}"
+                    Margin="0,14,0,0">
+              <StackPanel>
+                <TextBlock Text="CURRENT STEP" Style="{StaticResource LabelTextStyle}" Foreground="{StaticResource AccentBrush}" />
+                <TextBlock Text="{Binding ActivityStep}"
+                           Margin="0,4,0,0"
+                           Foreground="{StaticResource TextBrush}"
+                           FontWeight="SemiBold"
+                           FontSize="13" />
+              </StackPanel>
+            </Border>
+
+            <!-- Log -->
+            <Grid Grid.Row="3" Margin="0,20,0,0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <Grid Grid.Row="0" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                  <TextBlock Text="BACKEND LOG" Style="{StaticResource LabelTextStyle}" VerticalAlignment="Center" />
+                  <Border Background="{StaticResource Surface3Brush}" CornerRadius="999" Padding="8,2" Margin="10,0,0,0">
+                    <TextBlock Text="{Binding LogLineCountText}" Style="{StaticResource CaptionTextStyle}" Foreground="{StaticResource MutedTextBrush}" />
+                  </Border>
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Content="Copy log"
+                        MinWidth="110"
+                        Height="36"
+                        Padding="14,0"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Command="{Binding CopyLogCommand}" />
+              </Grid>
+              <Border Grid.Row="1"
+                      MinHeight="220"
+                      Background="#080B0A"
+                      BorderBrush="{StaticResource StrokeBrush}"
+                      BorderThickness="1"
+                      CornerRadius="12">
+                <Grid>
+                  <!-- Empty state -->
+                  <StackPanel HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Visibility="{Binding IsLogEmpty, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                      <Ellipse Width="6" Height="6" Fill="{StaticResource AccentBrush}" Margin="0,0,6,0" Opacity="0.85">
+                        <Ellipse.Triggers>
+                          <EventTrigger RoutedEvent="Ellipse.Loaded">
+                            <BeginStoryboard>
+                              <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.85" To="0.2" Duration="0:0:0.9" BeginTime="0:0:0" />
+                              </Storyboard>
+                            </BeginStoryboard>
+                          </EventTrigger>
+                        </Ellipse.Triggers>
+                      </Ellipse>
+                      <Ellipse Width="6" Height="6" Fill="{StaticResource AccentBrush}" Margin="0,0,6,0" Opacity="0.55">
+                        <Ellipse.Triggers>
+                          <EventTrigger RoutedEvent="Ellipse.Loaded">
+                            <BeginStoryboard>
+                              <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.55" To="0.15" Duration="0:0:0.9" BeginTime="0:0:0.3" />
+                              </Storyboard>
+                            </BeginStoryboard>
+                          </EventTrigger>
+                        </Ellipse.Triggers>
+                      </Ellipse>
+                      <Ellipse Width="6" Height="6" Fill="{StaticResource AccentBrush}" Opacity="0.35">
+                        <Ellipse.Triggers>
+                          <EventTrigger RoutedEvent="Ellipse.Loaded">
+                            <BeginStoryboard>
+                              <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.35" To="0.1" Duration="0:0:0.9" BeginTime="0:0:0.6" />
+                              </Storyboard>
+                            </BeginStoryboard>
+                          </EventTrigger>
+                        </Ellipse.Triggers>
+                      </Ellipse>
+                    </StackPanel>
+                    <TextBlock Text="Waiting for backend output"
+                               Foreground="{StaticResource MutedTextBrush}"
+                               FontFamily="{StaticResource MonoFont}"
+                               FontSize="12"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="Progress and diagnostics appear here while LibreSpot runs."
+                               Foreground="{StaticResource SubtleTextBrush}"
+                               FontSize="11"
+                               Margin="0,6,0,0"
+                               HorizontalAlignment="Center" />
+                  </StackPanel>
+
+                  <ScrollViewer x:Name="LogScrollViewer"
+                                VerticalScrollBarVisibility="Auto"
+                                HorizontalScrollBarVisibility="Disabled"
+                                Padding="14,12">
+                    <ItemsControl ItemsSource="{Binding LogEntries}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Grid Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="Auto" />
+                              <ColumnDefinition Width="Auto" />
+                              <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding TimestampDisplay}"
+                                       FontFamily="{StaticResource MonoFont}"
+                                       FontSize="11.5"
+                                       Foreground="{StaticResource SubtleTextBrush}"
+                                       Margin="0,0,12,0" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding Level}"
+                                       FontFamily="{StaticResource MonoFont}"
+                                       FontSize="11.5"
+                                       FontWeight="SemiBold"
+                                       Foreground="{Binding Level, Converter={StaticResource LogLevelToBrushConverter}}"
+                                       MinWidth="58"
+                                       Margin="0,0,12,0" />
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding Message}"
+                                       FontFamily="{StaticResource MonoFont}"
+                                       FontSize="11.5"
+                                       Foreground="#D6E4DB"
+                                       TextWrapping="Wrap" />
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </ScrollViewer>
+                </Grid>
+              </Border>
+            </Grid>
+
+            <StackPanel Grid.Row="4"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,18,0,0">
+              <TextBlock VerticalAlignment="Center" Margin="0,0,16,0">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
+                    <Setter Property="Text" Value="Press Esc to dismiss" />
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+              <Button Content="Close"
+                      MinWidth="140"
+                      Height="42"
+                      Padding="18,0"
+                      Style="{StaticResource PrimaryButtonStyle}"
+                      Command="{Binding DismissActivityCommand}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <!-- ═══ Prompt overlay ═══ -->
+    <Grid Visibility="{Binding IsPromptVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+      <Border Background="{StaticResource OverlayBrush}">
+        <Border.Style>
+          <Style TargetType="Border">
+            <Setter Property="Opacity" Value="0" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding IsPromptVisible}" Value="True">
+                <DataTrigger.EnterActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                       From="0" To="1" Duration="0:0:0.160">
+                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                      </DoubleAnimation>
+                    </Storyboard>
+                  </BeginStoryboard>
+                </DataTrigger.EnterActions>
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Border.Style>
+      </Border>
+      <Grid Margin="64">
+        <Border Width="560"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Padding="30"
+                Style="{StaticResource PromptCardStyle}">
+          <StackPanel>
+            <Border HorizontalAlignment="Left" Margin="0,0,0,16">
+              <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource PillBadgeStyle}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsPromptDestructive}" Value="True">
+                      <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                      <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
+              <StackPanel Orientation="Horizontal">
+                <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,8,0">
+                  <Ellipse.Style>
+                    <Style TargetType="Ellipse">
+                      <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsPromptDestructive}" Value="True">
+                          <Setter Property="Fill" Value="{StaticResource DangerBrush}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </Ellipse.Style>
+                </Ellipse>
+                <TextBlock FontWeight="SemiBold" FontSize="11">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="Text" Value="Decision required" />
+                      <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsPromptDestructive}" Value="True">
+                          <Setter Property="Text" Value="Destructive action" />
+                          <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Text="{Binding PromptTitle}" Style="{StaticResource SectionTitleTextStyle}" FontSize="22" />
+            <TextBlock Text="{Binding PromptBody}" Style="{StaticResource BodyTextStyle}" Margin="0,12,0,0" />
+
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,26,0,0">
+              <Button Content="{Binding PromptCancelText}"
+                      MinWidth="160"
+                      Height="42"
+                      Padding="18,0"
+                      Margin="0,0,10,0"
+                      Style="{StaticResource SecondaryButtonStyle}"
+                      Command="{Binding CancelPromptCommand}" />
+              <Button MinWidth="200"
+                      Height="42"
+                      Padding="18,0"
+                      Content="{Binding PromptConfirmText}"
+                      Command="{Binding ConfirmPromptCommand}">
+                <Button.Style>
+                  <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsPromptDestructive}" Value="True">
+                        <Setter Property="Background" Value="{StaticResource DangerBrush}" />
+                        <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+                        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                        <Setter Property="Tag" Value="{StaticResource DangerHoverTintBrush}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Button.Style>
+              </Button>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Grid>
+  </Grid>
+</Window>
