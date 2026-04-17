@@ -24,9 +24,18 @@ public partial class MainWindow : Window
             new EnvironmentSnapshotService());
 
         DataContext = _viewModel;
+        SourceInitialized += MainWindow_SourceInitialized;
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
         Closed += MainWindow_Closed;
+    }
+
+    private void MainWindow_SourceInitialized(object? sender, EventArgs e)
+    {
+        SourceInitialized -= MainWindow_SourceInitialized;
+        // Dark title bar + Win11 Mica must be applied once the HWND exists but
+        // before the window becomes visible, or the chrome flashes in light mode.
+        Win11ShellIntegration.ApplyMicaAndDarkChrome(this);
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)

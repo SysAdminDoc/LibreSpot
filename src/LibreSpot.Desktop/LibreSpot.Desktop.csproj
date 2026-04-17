@@ -9,10 +9,18 @@
     <ApplicationIcon>..\..\icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <Version>4.0.0-preview.5</Version>
+    <AssemblyVersion>4.0.0.5</AssemblyVersion>
+    <FileVersion>4.0.0.5</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <Resource Include="..\..\icon.ico" Link="Assets\LibreSpot.ico" />
     <EmbeddedResource Include="Backend\LibreSpot.Backend.ps1" LogicalName="LibreSpot.Desktop.Backend.LibreSpot.Backend.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Serilog" Version="4.2.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
   </ItemGroup>
 </Project>

@@ -53,7 +53,19 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
 
-$global:VERSION = '3.3.0'
+$global:VERSION = '3.5.0'
+
+# CLI argument detection. Supports `irm URL | iex -clean` (PowerShell passes
+# trailing args to `iex` as $args inside the invoked script) and also
+# `powershell.exe -File LibreSpot.ps1 -clean` via the same $args.
+$script:CliClean = $false
+try {
+    if ($args -and $args.Count -gt 0) {
+        foreach ($a in $args) {
+            if ([string]$a -match '^-{1,2}clean$') { $script:CliClean = $true }
+        }
+    }
+} catch {}
 
 # --- Pinned dependency versions with SHA256 verification ---
 # Update these when new versions are tested. Use Maintenance > Check for Updates.
@@ -261,6 +273,9 @@ $global:EasyDefaults = @{
     SpotX_TopSearch=$false; SpotX_RightSidebarOff=$false; SpotX_RightSidebarClr=$false
     SpotX_CanvasHomeOff=$false; SpotX_HomeSubOff=$false; SpotX_DisableStartup=$true; SpotX_NoShortcut=$false; SpotX_CacheLimit=0
     SpotX_Plus=$false; SpotX_NewFullscreen=$false; SpotX_FunnyProgress=$false; SpotX_ExpSpotify=$false; SpotX_LyricsBlock=$false
+    SpotX_SendVersionOff=$true; SpotX_StartSpoti=$false
+    SpotX_DevTools=$false; SpotX_Mirror=$false; SpotX_DownloadMethod=""; SpotX_ConfirmUninstall=$false
+    SpotX_SpotifyVersionId="auto"
     Spicetify_Theme="(None - Marketplace Only)"; Spicetify_Scheme="Default"; Spicetify_Marketplace=$true
     Spicetify_Extensions=@("fullAppDisplay.js","shuffle+.js","trashbin.js")
     CleanInstall=$true; LaunchAfter=$true
@@ -272,6 +287,18 @@ $global:SpotXLyricsThemes = @(
     'royal','krux','pinkle','zing','radium','sandbar','postlight','relish',
     'drot','default','spotify#2'
 )
+
+# Curated manifest of Spotify client versions SpotX currently knows how to
+# patch cleanly. `Version = ''` means "let SpotX pick the default". Keep this
+# list tight — every entry is an explicit compatibility promise.
+$global:SpotifyVersionManifest = @(
+    @{ Id='auto';            Label='Auto (use SpotX default)';         Version='';                        Notes='Recommended. Lets SpotX pick the most compatible build.' }
+    @{ Id='1.2.86.502';      Label='1.2.86.502 (current pinned)';      Version='1.2.86.502.g8cd7fb22';    Notes='Best match for our pinned SpotX commit.' }
+    @{ Id='1.2.85.519';      Label='1.2.85.519 (previous stable)';     Version='1.2.85.519.g7c42e2e8';    Notes='Last Windows release before Canvas-home changes.' }
+    @{ Id='1.2.53.440.x86';  Label='1.2.53.440 (x86 / 32-bit only)';   Version='1.2.53.440.g7b2f582a';    Notes='For 32-bit Windows. Do not pick on x64.' }
+    @{ Id='1.2.5.1006.win7'; Label='1.2.5.1006 (Windows 7 / 8.1)';     Version='1.2.5.1006.g22820f93';    Notes='Last build supported on legacy Windows.' }
+)
+$global:SpotifyVersionIds = @($global:SpotifyVersionManifest | ForEach-Object { $_.Id })
 
 # =============================================================================
 # 4. SETTINGS PERSISTENCE
@@ -349,6 +376,7 @@ function Normalize-LibreSpotConfig {
         'SpotX_RightSidebarClr','SpotX_CanvasHomeOff','SpotX_HomeSubOff',
         'SpotX_DisableStartup','SpotX_NoShortcut','SpotX_OldLyrics','SpotX_HideColIconOff',
         'SpotX_Plus','SpotX_NewFullscreen','SpotX_FunnyProgress','SpotX_ExpSpotify','SpotX_LyricsBlock',
+        'SpotX_SendVersionOff','SpotX_StartSpoti','SpotX_DevTools','SpotX_Mirror','SpotX_ConfirmUninstall',
         'Spicetify_Marketplace'
     )
     foreach ($key in $booleanKeys) {
@@ -360,6 +388,15 @@ function Normalize-LibreSpotConfig {
     if ($Config -and $Config.ContainsKey('SpotX_CacheLimit')) {
         $normalized.SpotX_CacheLimit = ConvertTo-ConfigInt -Value $Config.SpotX_CacheLimit -Default ([int]$normalized.SpotX_CacheLimit) -Minimum 0 -Maximum 50000
     }
+
+    $dm = if ($Config -and $Config.ContainsKey('SpotX_DownloadMethod')) { [string]$Config.SpotX_DownloadMethod } else { [string]$normalized.SpotX_DownloadMethod }
+    $dm = $dm.Trim().ToLowerInvariant()
+    if ($dm -notin @('','curl','webclient')) { $dm = '' }
+    $normalized.SpotX_DownloadMethod = $dm
+
+    $svid = if ($Config -and $Config.ContainsKey('SpotX_SpotifyVersionId')) { [string]$Config.SpotX_SpotifyVersionId } else { [string]$normalized.SpotX_SpotifyVersionId }
+    if ([string]::IsNullOrWhiteSpace($svid) -or $svid -notin $global:SpotifyVersionIds) { $svid = 'auto' }
+    $normalized.SpotX_SpotifyVersionId = $svid
 
     $lyricsTheme = if ($Config -and $Config.ContainsKey('SpotX_LyricsTheme')) { [string]$Config.SpotX_LyricsTheme } else { [string]$normalized.SpotX_LyricsTheme }
     if ([string]::IsNullOrWhiteSpace($lyricsTheme) -or $lyricsTheme -notin $global:SpotXLyricsThemes) {
@@ -728,6 +765,7 @@ $xaml = @"
                                 </StackPanel>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock Name="UpdateBanner" VerticalAlignment="Center" Margin="0,0,16,0" Visibility="Collapsed" ToolTip="A newer LibreSpot release is available on GitHub."><Hyperlink Name="LinkUpdate" Foreground="#FF22c55e" TextDecorations="None" FontSize="10.75" FontWeight="SemiBold" Cursor="Hand">Update available &#x2192;</Hyperlink></TextBlock>
                                     <TextBlock VerticalAlignment="Center" Margin="0,0,16,0"><Hyperlink Name="LinkSpotX" NavigateUri="https://github.com/SpotX-Official/SpotX" Foreground="#FF94a3b8" TextDecorations="None" FontSize="10.75" Cursor="Hand">SpotX</Hyperlink></TextBlock>
                                     <TextBlock VerticalAlignment="Center" Margin="0,0,16,0"><Hyperlink Name="LinkSpicetify" NavigateUri="https://github.com/spicetify" Foreground="#FF94a3b8" TextDecorations="None" FontSize="10.75" Cursor="Hand">Spicetify</Hyperlink></TextBlock>
                                     <Button Name="LinkGitHub" Width="30" Height="30" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="View on GitHub" VerticalAlignment="Center" Margin="0,0,12,0">
@@ -926,11 +964,43 @@ $xaml = @"
                                                         <TextBlock Text="Set startup behavior, shortcut handling, and the cache-size override SpotX can apply." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <CheckBox Name="ChkDisableStartup" Content="Disable Spotify on Windows startup" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
                                                         <CheckBox Name="ChkNoShortcut" Content="Skip the desktop shortcut" Style="{StaticResource DarkCheckBox}"/>
+                                                        <CheckBox Name="ChkStartSpoti" Content="Launch Spotify automatically after install" Style="{StaticResource DarkCheckBox}" ToolTip="Let SpotX start Spotify right after the patch finishes"/>
                                                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                                             <TextBlock Text="Cache limit (MB):" Foreground="#FFE2E8F0" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                             <TextBox Name="TxtCacheLimit" Width="96" Text="0" Style="{StaticResource DarkTextBox}" ToolTip="Use 0 or a value of 500 MB and above."/>
                                                         </StackPanel>
                                                         <TextBlock Text="Use 0 to keep Spotify's default behavior. LibreSpot treats any value from 1 to 499 as 500 MB so the override stays in SpotX's safer range." Foreground="#FF64748B" FontSize="10.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Privacy" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Limit what SpotX and Spotify can report back. Recommended defaults trim outbound telemetry without breaking patches." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <CheckBox Name="ChkSendVersionOff" Content="Disable SpotX version reporting" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Blocks SpotX's outbound version notification (added in SpotX April 2026)"/>
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Advanced" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Power-user overrides. Leave defaults unless you have a specific reason to change them." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <CheckBox Name="ChkDevTools" Content="Enable Spotify Developer Tools" Style="{StaticResource DarkCheckBox}" ToolTip="Unlocks the Chromium DevTools hotkey inside Spotify (useful for Spicetify extension authors)"/>
+                                                        <CheckBox Name="ChkMirror" Content="Use GitHub.io mirror for SpotX assets" Style="{StaticResource DarkCheckBox}" ToolTip="Falls back to the github.io mirror if raw.githubusercontent.com is blocked on your network"/>
+                                                        <CheckBox Name="ChkConfirmUninstall" Content="Force a clean Spotify uninstall before patching" Style="{StaticResource DarkCheckBox}" ToolTip="Runs SpotX's uninstall-then-reinstall flow even when the current version would otherwise be kept"/>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                            <TextBlock Text="Download method:" Foreground="#FFE2E8F0" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                            <ComboBox Name="CmbDownloadMethod" Width="140" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}" SelectedIndex="0" ToolTip="Force SpotX to use a specific downloader when the auto-selected one fails.">
+                                                                <ComboBoxItem Content="auto"/>
+                                                                <ComboBoxItem Content="curl"/>
+                                                                <ComboBoxItem Content="webclient"/>
+                                                            </ComboBox>
+                                                        </StackPanel>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                            <TextBlock Text="Spotify version:" Foreground="#FFE2E8F0" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                            <ComboBox Name="CmbSpotifyVersion" Width="260" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}" SelectedIndex="0" ToolTip="Pin a specific Spotify client version. Leave on 'Auto' unless you know a specific build works better for your system."/>
+                                                        </StackPanel>
+                                                        <TextBlock Name="SpotifyVersionHint" Text="Lets SpotX pick the most compatible build." Foreground="#FF64748B" FontSize="10.5" Margin="0,6,0,0" TextWrapping="Wrap"/>
                                                     </StackPanel>
                                                 </Border>
                                             </StackPanel>
@@ -1224,14 +1294,15 @@ try {
 } catch {}
 
 $ui = @{}
-@('LinkSpotX','LinkSpicetify','LinkGitHub','MinimizeBtn','CloseTitleBtn','PageConfig','PageInstall',
+@('LinkSpotX','LinkSpicetify','LinkGitHub','UpdateBanner','LinkUpdate','MinimizeBtn','CloseTitleBtn','PageConfig','PageInstall',
   'ModeHeadline','ModeSummaryText','SelectionSummary','SelectionStateBadge','SelectionStateBadgeText','SelectionStateDetail','InstallTitle','InstallContext',
   'ModeEasy','ModeCustom','ModeMaint','PanelEasy','PanelCustom','PanelMaint','BtnInstall','BtnResetCustomDefaults','LyricsThemePanel',
   'CustomSnapshotPlanValue','CustomSnapshotThemeValue','CustomSnapshotExtensionsValue','CustomSnapshotMemoryValue',
   'ChkNewTheme','ChkPodcastsOff','ChkAdSectionsOff','ChkBlockUpdate','ChkPremium','ChkLyrics','CmbLyricsTheme',
   'ChkTopSearch','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHomeOff','ChkHomeSubOff','ChkOldLyrics','ChkHideColIconOff',
   'ChkPlus','ChkNewFullscreen','ChkFunnyProgress','ChkExpSpotify','ChkLyricsBlock',
-  'ChkDisableStartup','ChkNoShortcut','TxtCacheLimit','CmbTheme','CmbScheme','PreviewBorder','ThemePreviewImg','PreviewLabel','ChkMarketplace',
+  'ChkDisableStartup','ChkNoShortcut','ChkStartSpoti','TxtCacheLimit','CmbTheme','CmbScheme','PreviewBorder','ThemePreviewImg','PreviewLabel','ChkMarketplace',
+  'ChkSendVersionOff','ChkDevTools','ChkMirror','ChkConfirmUninstall','CmbDownloadMethod','CmbSpotifyVersion','SpotifyVersionHint',
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
   'ChkCleanInstall','ChkLaunchAfter',
@@ -1642,6 +1713,13 @@ function Get-ConfigFingerprint {
         SpotX_ExpSpotify       = [bool]$Config.SpotX_ExpSpotify
         SpotX_LyricsBlock      = [bool]$Config.SpotX_LyricsBlock
         SpotX_CacheLimit       = [int]$Config.SpotX_CacheLimit
+        SpotX_SendVersionOff   = [bool]$Config.SpotX_SendVersionOff
+        SpotX_StartSpoti       = [bool]$Config.SpotX_StartSpoti
+        SpotX_DevTools         = [bool]$Config.SpotX_DevTools
+        SpotX_Mirror           = [bool]$Config.SpotX_Mirror
+        SpotX_ConfirmUninstall = [bool]$Config.SpotX_ConfirmUninstall
+        SpotX_DownloadMethod   = [string]$Config.SpotX_DownloadMethod
+        SpotX_SpotifyVersionId = [string]$Config.SpotX_SpotifyVersionId
         Spicetify_Theme        = [string]$Config.Spicetify_Theme
         Spicetify_Scheme       = [string]$Config.Spicetify_Scheme
         Spicetify_Marketplace  = [bool]$Config.Spicetify_Marketplace
@@ -1696,11 +1774,16 @@ function Apply-ConfigToUi {
         'ChkHideColIconOff'    = 'SpotX_HideColIconOff'
         'ChkDisableStartup'    = 'SpotX_DisableStartup'
         'ChkNoShortcut'        = 'SpotX_NoShortcut'
+        'ChkStartSpoti'        = 'SpotX_StartSpoti'
         'ChkPlus'              = 'SpotX_Plus'
         'ChkNewFullscreen'     = 'SpotX_NewFullscreen'
         'ChkFunnyProgress'     = 'SpotX_FunnyProgress'
         'ChkExpSpotify'        = 'SpotX_ExpSpotify'
         'ChkLyricsBlock'       = 'SpotX_LyricsBlock'
+        'ChkSendVersionOff'    = 'SpotX_SendVersionOff'
+        'ChkDevTools'          = 'SpotX_DevTools'
+        'ChkMirror'            = 'SpotX_Mirror'
+        'ChkConfirmUninstall'  = 'SpotX_ConfirmUninstall'
         'ChkMarketplace'       = 'Spicetify_Marketplace'
         'ChkCleanInstall'      = 'CleanInstall'
         'ChkLaunchAfter'       = 'LaunchAfter'
@@ -1719,6 +1802,26 @@ function Apply-ConfigToUi {
         for ($i = 0; $i -lt $ui['CmbLyricsTheme'].Items.Count; $i++) {
             if ($ui['CmbLyricsTheme'].Items[$i].Content -eq $normalized.SpotX_LyricsTheme) {
                 $ui['CmbLyricsTheme'].SelectedIndex = $i
+                break
+            }
+        }
+    }
+
+    if ($ui.ContainsKey('CmbDownloadMethod')) {
+        $target = if ([string]::IsNullOrWhiteSpace([string]$normalized.SpotX_DownloadMethod)) { 'auto' } else { [string]$normalized.SpotX_DownloadMethod }
+        for ($i = 0; $i -lt $ui['CmbDownloadMethod'].Items.Count; $i++) {
+            if ($ui['CmbDownloadMethod'].Items[$i].Content -eq $target) {
+                $ui['CmbDownloadMethod'].SelectedIndex = $i
+                break
+            }
+        }
+    }
+
+    if ($ui.ContainsKey('CmbSpotifyVersion')) {
+        $target = [string]$normalized.SpotX_SpotifyVersionId
+        for ($i = 0; $i -lt $ui['CmbSpotifyVersion'].Items.Count; $i++) {
+            if ([string]$ui['CmbSpotifyVersion'].Items[$i].Tag -eq $target) {
+                $ui['CmbSpotifyVersion'].SelectedIndex = $i
                 break
             }
         }
@@ -1884,6 +1987,14 @@ function Clear-CompletedRunspaceResources {
 $lh = { param($s,$e); try { $psi = New-Object System.Diagnostics.ProcessStartInfo $e.Uri.AbsoluteUri; $psi.UseShellExecute = $true; [System.Diagnostics.Process]::Start($psi) | Out-Null } catch {} }
 $ui['LinkSpotX'].Add_RequestNavigate($lh); $ui['LinkSpicetify'].Add_RequestNavigate($lh)
 $ui['LinkGitHub'].Add_Click({ try { $psi = New-Object System.Diagnostics.ProcessStartInfo 'https://github.com/SysAdminDoc/LibreSpot'; $psi.UseShellExecute = $true; [System.Diagnostics.Process]::Start($psi) | Out-Null } catch {} })
+$ui['LinkUpdate'].Add_Click({
+    try {
+        $target = if ($script:SelfUpdateTarget) { $script:SelfUpdateTarget } else { 'https://github.com/SysAdminDoc/LibreSpot/releases/latest' }
+        $psi = New-Object System.Diagnostics.ProcessStartInfo $target
+        $psi.UseShellExecute = $true
+        [System.Diagnostics.Process]::Start($psi) | Out-Null
+    } catch {}
+})
 if ($ui['TitleText']) { $ui['TitleText'].Text = "LibreSpot v$global:VERSION" }
 $script:copyResetTimer = $null
 $ui['BtnCopyLog'].Add_Click({
@@ -1936,7 +2047,8 @@ $ui['MainProgress'].Add_ValueChanged({ Update-InstallStageVisual })
 $summaryToggleControls = @(
     'ChkNewTheme','ChkPodcastsOff','ChkAdSectionsOff','ChkBlockUpdate','ChkPremium','ChkLyrics',
     'ChkTopSearch','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHomeOff','ChkHomeSubOff','ChkOldLyrics',
-    'ChkHideColIconOff','ChkDisableStartup','ChkNoShortcut','ChkPlus','ChkNewFullscreen','ChkFunnyProgress','ChkExpSpotify','ChkLyricsBlock','ChkMarketplace','ChkCleanInstall','ChkLaunchAfter'
+    'ChkHideColIconOff','ChkDisableStartup','ChkNoShortcut','ChkStartSpoti','ChkPlus','ChkNewFullscreen','ChkFunnyProgress','ChkExpSpotify','ChkLyricsBlock',
+    'ChkSendVersionOff','ChkDevTools','ChkMirror','ChkConfirmUninstall','ChkMarketplace','ChkCleanInstall','ChkLaunchAfter'
 ) + @($extCheckboxMap.Keys)
 foreach ($controlName in $summaryToggleControls) {
     if ($ui.ContainsKey($controlName)) {
@@ -1944,10 +2056,35 @@ foreach ($controlName in $summaryToggleControls) {
         $ui[$controlName].Add_Unchecked({ Update-ModePresentation })
     }
 }
-foreach ($controlName in @('CmbLyricsTheme','CmbTheme','CmbScheme')) {
+foreach ($controlName in @('CmbLyricsTheme','CmbTheme','CmbScheme','CmbDownloadMethod','CmbSpotifyVersion')) {
     if ($ui.ContainsKey($controlName)) {
         $ui[$controlName].Add_SelectionChanged({ Update-ModePresentation })
     }
+}
+
+# Populate the Spotify version combo from the manifest and wire a hint text
+# that updates as the user switches entries. We do this at runtime rather than
+# in XAML so the manifest remains a single source of truth.
+if ($ui.ContainsKey('CmbSpotifyVersion')) {
+    $ui['CmbSpotifyVersion'].Items.Clear()
+    foreach ($entry in $global:SpotifyVersionManifest) {
+        $item = New-Object System.Windows.Controls.ComboBoxItem
+        $item.Content = $entry.Label
+        $item.Tag     = $entry.Id
+        $null = $ui['CmbSpotifyVersion'].Items.Add($item)
+    }
+    $ui['CmbSpotifyVersion'].SelectedIndex = 0
+    $ui['CmbSpotifyVersion'].Add_SelectionChanged({
+        try {
+            $sel = $ui['CmbSpotifyVersion'].SelectedItem
+            if (-not $sel) { return }
+            $id = [string]$sel.Tag
+            $entry = $global:SpotifyVersionManifest | Where-Object { $_.Id -eq $id } | Select-Object -First 1
+            if ($entry -and $ui.ContainsKey('SpotifyVersionHint')) {
+                $ui['SpotifyVersionHint'].Text = [string]$entry.Notes
+            }
+        } catch {}
+    })
 }
 
 $ui['CloseBtn'].Add_Click({ $window.Close() })
@@ -1990,6 +2127,16 @@ $window.Add_Closing({
 })
 Update-ModePresentation
 
+# Apply -Clean CLI flag: pre-tick Easy mode + CleanInstall so users get a
+# single-click "nuke and rebuild" experience without touching Custom Install.
+if ($script:CliClean) {
+    try {
+        if ($ui.ContainsKey('ChkCleanInstall')) { $ui['ChkCleanInstall'].IsChecked = $true }
+        if ($ui.ContainsKey('ModeEasy')) { $ui['ModeEasy'].IsChecked = $true }
+        Update-ModePresentation
+    } catch {}
+}
+
 # =============================================================================
 # 8. CONFIG BUILDER
 # =============================================================================
@@ -1998,6 +2145,9 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
     $lTheme = if($ui['CmbLyricsTheme'].SelectedItem){$ui['CmbLyricsTheme'].SelectedItem.Content}else{'spotify'}
     $sTheme = if($ui['CmbTheme'].SelectedItem){$ui['CmbTheme'].SelectedItem.Content}else{'(None - Marketplace Only)'}
     $sScheme = if($ui['CmbScheme'].SelectedItem){$ui['CmbScheme'].SelectedItem.Content}else{'Default'}
+    $dlMethod = if($ui.ContainsKey('CmbDownloadMethod') -and $ui['CmbDownloadMethod'].SelectedItem){[string]$ui['CmbDownloadMethod'].SelectedItem.Content}else{'auto'}
+    if ($dlMethod -eq 'auto') { $dlMethod = '' }
+    $spotifyVerId = if ($ui.ContainsKey('CmbSpotifyVersion') -and $ui['CmbSpotifyVersion'].SelectedItem) { [string]$ui['CmbSpotifyVersion'].SelectedItem.Tag } else { 'auto' }
     $cacheVal = 0; try { $cacheVal = [int]$ui['TxtCacheLimit'].Text } catch {}
     if ($cacheVal -lt 0) { $cacheVal = 0 }
     $exts = @(); foreach ($k in $extCheckboxMap.Keys) { if ($ui[$k].IsChecked) { $exts += $extCheckboxMap[$k] } }
@@ -2007,6 +2157,7 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
         SpotX_AdSectionsOff=[bool]$ui['ChkAdSectionsOff'].IsChecked; SpotX_BlockUpdate=[bool]$ui['ChkBlockUpdate'].IsChecked
         SpotX_Premium=[bool]$ui['ChkPremium'].IsChecked; SpotX_DisableStartup=[bool]$ui['ChkDisableStartup'].IsChecked
         SpotX_NoShortcut=[bool]$ui['ChkNoShortcut'].IsChecked
+        SpotX_StartSpoti=[bool]$ui['ChkStartSpoti'].IsChecked
         SpotX_LyricsEnabled=[bool]$ui['ChkLyrics'].IsChecked; SpotX_LyricsTheme=$lTheme
         SpotX_TopSearch=[bool]$ui['ChkTopSearch'].IsChecked
         SpotX_RightSidebarOff=[bool]$ui['ChkRightSidebarOff'].IsChecked; SpotX_RightSidebarClr=[bool]$ui['ChkRightSidebarColor'].IsChecked
@@ -2016,6 +2167,12 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
         SpotX_FunnyProgress=[bool]$ui['ChkFunnyProgress'].IsChecked; SpotX_ExpSpotify=[bool]$ui['ChkExpSpotify'].IsChecked
         SpotX_LyricsBlock=[bool]$ui['ChkLyricsBlock'].IsChecked
         SpotX_CacheLimit=$cacheVal
+        SpotX_SendVersionOff=[bool]$ui['ChkSendVersionOff'].IsChecked
+        SpotX_DevTools=[bool]$ui['ChkDevTools'].IsChecked
+        SpotX_Mirror=[bool]$ui['ChkMirror'].IsChecked
+        SpotX_ConfirmUninstall=[bool]$ui['ChkConfirmUninstall'].IsChecked
+        SpotX_DownloadMethod=$dlMethod
+        SpotX_SpotifyVersionId=$spotifyVerId
         Spicetify_Theme=$sTheme; Spicetify_Scheme=$sScheme
         Spicetify_Marketplace=[bool]$ui['ChkMarketplace'].IsChecked; Spicetify_Extensions=$exts
     }
@@ -2024,6 +2181,17 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
 
 Capture-CustomConfigBaseline
 Update-ModePresentation
+
+# Async self-update check + foreign-patch detection. Both deferred to
+# ApplicationIdle so a slow GitHub API response never blocks the UI and the
+# warning dialog doesn't appear before the main window is visible.
+try {
+    $postLoadAction = [System.Action]{
+        try { Show-SelfUpdateBannerIfNeeded } catch {}
+        try { Test-ForeignPatchWarningIfNeeded } catch {}
+    }
+    $null = $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::ApplicationIdle, $postLoadAction)
+} catch {}
 
 function Build-SpotXParams { param($Config)
     $p = @()
@@ -2038,6 +2206,7 @@ function Build-SpotXParams { param($Config)
     if ($Config.SpotX_Premium)         { $p += "-premium" }
     if ($Config.SpotX_DisableStartup)  { $p += "-DisableStartup" }
     if ($Config.SpotX_NoShortcut)      { $p += "-no_shortcut" }
+    if ($Config.SpotX_StartSpoti)      { $p += "-start_spoti" }
     if ($Config.SpotX_LyricsEnabled)   { $p += "-lyrics_stat $($Config.SpotX_LyricsTheme)" }
     if ($Config.SpotX_TopSearch)       { $p += "-topsearchbar" }
     if ($Config.SpotX_RightSidebarOff) { $p += "-rightsidebar_off" }
@@ -2047,10 +2216,24 @@ function Build-SpotXParams { param($Config)
     if ($Config.SpotX_OldLyrics)       { $p += "-old_lyrics" }
     if ($Config.SpotX_HideColIconOff)  { $p += "-hide_col_icon_off" }
     if ($Config.SpotX_Plus)             { $p += "-plus" }
-    if ($Config.SpotX_NewFullscreen)    { $p += "-new_fullscreen_mode" }
+    if ($Config.SpotX_NewFullscreen)    { $p += "-newFullscreenMode" }
     if ($Config.SpotX_FunnyProgress)    { $p += "-funnyprogressBar" }
     if ($Config.SpotX_ExpSpotify)       { $p += "-exp_spotify" }
     if ($Config.SpotX_LyricsBlock)      { $p += "-lyrics_block" }
+    if ($Config.SpotX_SendVersionOff)   { $p += "-sendversion_off" }
+    if ($Config.SpotX_DevTools)         { $p += "-devtools" }
+    if ($Config.SpotX_Mirror)           { $p += "-mirror" }
+    if ($Config.SpotX_ConfirmUninstall) { $p += "-confirm_spoti_recomended_uninstall" }
+    if (-not [string]::IsNullOrWhiteSpace([string]$Config.SpotX_DownloadMethod)) {
+        $p += "-download_method $($Config.SpotX_DownloadMethod)"
+    }
+    $versionId = [string]$Config.SpotX_SpotifyVersionId
+    if (-not [string]::IsNullOrWhiteSpace($versionId) -and $versionId -ne 'auto') {
+        $entry = $global:SpotifyVersionManifest | Where-Object { $_.Id -eq $versionId } | Select-Object -First 1
+        if ($entry -and -not [string]::IsNullOrWhiteSpace([string]$entry.Version)) {
+            $p += "-version $($entry.Version)"
+        }
+    }
     if ($Config.SpotX_CacheLimit -ge 500) { $p += "-cache_limit $($Config.SpotX_CacheLimit)" }
     return ($p -join " ")
 }
@@ -2252,6 +2435,105 @@ function Remove-PathEntry {
 # =============================================================================
 # 9. MAINTENANCE
 # =============================================================================
+
+# Self-update check: compare $global:VERSION against the latest GitHub release.
+# Result is cached for 24h under $env:APPDATA\LibreSpot\update-check.json to
+# stay under the 60 req/hr anonymous GitHub API limit even if users open/close
+# LibreSpot frequently. No telemetry — a single GET and nothing else.
+$global:SelfUpdateCachePath = Join-Path $global:CONFIG_DIR 'update-check.json'
+$global:SelfUpdateCacheMaxAgeHours = 24
+
+function Test-LibreSpotSelfUpdate {
+    param([bool]$ForceRefresh = $false)
+
+    $result = @{ UpdateAvailable = $false; LatestTag = $null; LatestUrl = $null }
+
+    try {
+        if (-not $ForceRefresh -and (Test-Path -LiteralPath $global:SelfUpdateCachePath)) {
+            $cacheAge = (Get-Date) - (Get-Item -LiteralPath $global:SelfUpdateCachePath).LastWriteTime
+            if ($cacheAge.TotalHours -lt $global:SelfUpdateCacheMaxAgeHours) {
+                $cached = Get-Content -LiteralPath $global:SelfUpdateCachePath -Raw -ErrorAction Stop | ConvertFrom-Json
+                $result.LatestTag = [string]$cached.LatestTag
+                $result.LatestUrl = [string]$cached.LatestUrl
+                $result.UpdateAvailable = [bool]$cached.UpdateAvailable
+                return $result
+            }
+        }
+
+        $headers = @{ 'User-Agent' = "LibreSpot/$($global:VERSION)"; 'Accept' = 'application/vnd.github+json' }
+        $response = Invoke-RestMethod -Uri 'https://api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest' -Headers $headers -TimeoutSec 5 -ErrorAction Stop
+        $tag = [string]$response.tag_name
+        $url = [string]$response.html_url
+        $latest = $tag -replace '^v',''
+
+        $isNewer = $false
+        try {
+            $latestVer = [Version]($latest -replace '-preview.*','' -replace '-rc.*','')
+            $currentVer = [Version]($global:VERSION -replace '-preview.*','' -replace '-rc.*','')
+            $isNewer = ($latestVer -gt $currentVer)
+        } catch { $isNewer = ($latest -ne $global:VERSION) }
+
+        $result.UpdateAvailable = $isNewer
+        $result.LatestTag = $tag
+        $result.LatestUrl = $url
+
+        try {
+            if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) { New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null }
+            $result | ConvertTo-Json -Compress | Set-Content -LiteralPath $global:SelfUpdateCachePath -Encoding UTF8
+        } catch {}
+    } catch {
+        # Offline, rate-limited, or GitHub hiccup — stay silent; the banner just won't appear.
+        Write-Log "Self-update check skipped: $($_.Exception.Message)" -Level 'DEBUG' -ErrorAction SilentlyContinue
+    }
+
+    return $result
+}
+
+function Show-SelfUpdateBannerIfNeeded {
+    if (-not $ui.ContainsKey('UpdateBanner')) { return }
+    $check = Test-LibreSpotSelfUpdate
+    if (-not $check.UpdateAvailable) { return }
+
+    $ui['UpdateBanner'].Visibility = 'Visible'
+    if ($check.LatestTag) {
+        $ui['UpdateBanner'].ToolTip = "New release $($check.LatestTag) — click to open GitHub."
+    }
+    $script:SelfUpdateTarget = if ($check.LatestUrl) { $check.LatestUrl } else { 'https://github.com/SysAdminDoc/LibreSpot/releases/latest' }
+}
+
+# Detect non-LibreSpot Spotify modifications so we can warn the user before
+# patching on top. We check for telltale files dropped by BlockTheSpot, older
+# SpotX runs, and other community patchers. Returns a display label or $null.
+function Get-ExistingSpotifyPatchSignature {
+    if (-not (Test-Path -LiteralPath $global:SPOTIFY_EXE_PATH)) { return $null }
+    $spotifyDir = Split-Path -LiteralPath $global:SPOTIFY_EXE_PATH -Parent
+
+    $signatures = @(
+        @{ Path = (Join-Path $spotifyDir 'dpapi.dll');             Label = 'BlockTheSpot (dpapi.dll injected)' }
+        @{ Path = (Join-Path $spotifyDir 'chrome_elf.dll');        Label = 'CEF/BlockTheSpot-style (chrome_elf.dll injected)' }
+        @{ Path = (Join-Path $spotifyDir 'config.ini');            Label = 'BlockTheSpot config.ini detected' }
+        @{ Path = (Join-Path $spotifyDir 'Apps\xpui.spa.bak');     Label = 'SpotX patch previously applied (xpui.spa.bak present)' }
+    )
+    foreach ($sig in $signatures) {
+        if (Test-Path -LiteralPath $sig.Path) { return [string]$sig.Label }
+    }
+    return $null
+}
+
+# Shown once per session when Spotify looks like it was patched outside of
+# LibreSpot. SpotX can recover, but the user deserves an explicit heads-up.
+function Test-ForeignPatchWarningIfNeeded {
+    if ($script:ForeignPatchWarningShown) { return }
+    $signature = Get-ExistingSpotifyPatchSignature
+    if (-not $signature) { return }
+    $script:ForeignPatchWarningShown = $true
+
+    $message = "Spotify at $global:SPOTIFY_EXE_PATH looks like it was already patched by another tool.`n`nDetected: $signature`n`nLibreSpot can safely overwrite this during install, but you may want to run Maintenance > Full Reset first if you see blank screens or failed playback after patching."
+    try {
+        Show-ThemedDialog -Title 'Third-party Spotify patch detected' -Message $message -Buttons 'OK' -Icon 'Warning' -PrimaryText 'Got it' | Out-Null
+    } catch {}
+}
+
 function Update-MaintenanceStatus {
     $spicetifyConfig = Get-SpicetifyConfigEntries
     $themeInstalled = $false
