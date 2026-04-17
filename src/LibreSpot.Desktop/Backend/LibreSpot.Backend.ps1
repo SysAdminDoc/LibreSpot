@@ -104,6 +104,13 @@ $global:EasyDefaults = @{
     SpotX_LyricsBlock = $false
     SpotX_OldLyrics = $false
     SpotX_HideColIconOff = $false
+    SpotX_SendVersionOff = $true
+    SpotX_StartSpoti = $false
+    SpotX_DevTools = $false
+    SpotX_Mirror = $false
+    SpotX_DownloadMethod = ''
+    SpotX_ConfirmUninstall = $false
+    SpotX_SpotifyVersionId = 'auto'
     Spicetify_Theme = '(None - Marketplace Only)'
     Spicetify_Scheme = 'Default'
     Spicetify_Marketplace = $true
@@ -118,6 +125,15 @@ $global:SpotXLyricsThemes = @(
     'royal', 'krux', 'pinkle', 'zing', 'radium', 'sandbar', 'postlight', 'relish',
     'drot', 'default', 'spotify#2'
 )
+
+$global:SpotifyVersionManifest = @(
+    @{ Id = 'auto';            Version = '' }
+    @{ Id = '1.2.86.502';      Version = '1.2.86.502.g8cd7fb22' }
+    @{ Id = '1.2.85.519';      Version = '1.2.85.519.g7c42e2e8' }
+    @{ Id = '1.2.53.440.x86';  Version = '1.2.53.440.g7b2f582a' }
+    @{ Id = '1.2.5.1006.win7'; Version = '1.2.5.1006.g22820f93' }
+)
+$global:SpotifyVersionIds = @($global:SpotifyVersionManifest | ForEach-Object { $_.Id })
 
 function Write-EventLine {
     param(
@@ -235,6 +251,7 @@ function Normalize-LibreSpotConfig {
         'SpotX_RightSidebarClr', 'SpotX_CanvasHomeOff', 'SpotX_HomeSubOff', 'SpotX_DisableStartup',
         'SpotX_NoShortcut', 'SpotX_OldLyrics', 'SpotX_HideColIconOff', 'SpotX_Plus',
         'SpotX_NewFullscreen', 'SpotX_FunnyProgress', 'SpotX_ExpSpotify', 'SpotX_LyricsBlock',
+        'SpotX_SendVersionOff', 'SpotX_StartSpoti', 'SpotX_DevTools', 'SpotX_Mirror', 'SpotX_ConfirmUninstall',
         'Spicetify_Marketplace'
     )
     foreach ($key in $booleanKeys) {
@@ -246,6 +263,15 @@ function Normalize-LibreSpotConfig {
     if ($Config -and $Config.ContainsKey('SpotX_CacheLimit')) {
         $normalized.SpotX_CacheLimit = ConvertTo-ConfigInt -Value $Config.SpotX_CacheLimit -Default ([int]$normalized.SpotX_CacheLimit) -Minimum 0 -Maximum 50000
     }
+
+    $dm = if ($Config -and $Config.ContainsKey('SpotX_DownloadMethod')) { [string]$Config.SpotX_DownloadMethod } else { [string]$normalized.SpotX_DownloadMethod }
+    $dm = $dm.Trim().ToLowerInvariant()
+    if ($dm -notin @('','curl','webclient')) { $dm = '' }
+    $normalized.SpotX_DownloadMethod = $dm
+
+    $svid = if ($Config -and $Config.ContainsKey('SpotX_SpotifyVersionId')) { [string]$Config.SpotX_SpotifyVersionId } else { [string]$normalized.SpotX_SpotifyVersionId }
+    if ([string]::IsNullOrWhiteSpace($svid) -or $svid -notin $global:SpotifyVersionIds) { $svid = 'auto' }
+    $normalized.SpotX_SpotifyVersionId = $svid
 
     $lyricsTheme = if ($Config -and $Config.ContainsKey('SpotX_LyricsTheme')) { [string]$Config.SpotX_LyricsTheme } else { [string]$normalized.SpotX_LyricsTheme }
     if ([string]::IsNullOrWhiteSpace($lyricsTheme) -or $lyricsTheme -notin $global:SpotXLyricsThemes) {
@@ -365,6 +391,70 @@ function Ensure-Admin {
     if (-not $isAdmin) {
         throw 'LibreSpot needs administrator permission to modify Spotify. Launch the desktop app as administrator and try again.'
     }
+}
+
+# Background watcher that keeps any Spotify / SpotifyInstaller window hidden while
+# SpotX and Spicetify run. Several stages briefly launch Spotify (SpotX patching,
+# first-run config generation, Spicetify backup) and those windows would otherwise
+# pop up over the LibreSpot desktop shell and steal focus. The watcher runs in a
+# dedicated runspace and polls every ~250ms for new MainWindowHandles so we catch
+# the window the moment Spotify creates it.
+function Start-SpotifyWindowWatcher {
+    $iss = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+    $runspace = [runspacefactory]::CreateRunspace($iss)
+    $runspace.ApartmentState = 'STA'
+    $runspace.ThreadOptions  = 'ReuseThread'
+    $runspace.Open()
+
+    # Shared hashtable is how we signal "stop" from the main thread.
+    $control = [hashtable]::Synchronized(@{ Running = $true })
+    $runspace.SessionStateProxy.SetVariable('Control', $control)
+
+    $ps = [PowerShell]::Create()
+    $ps.Runspace = $runspace
+    $null = $ps.AddScript({
+        try {
+            Add-Type -ErrorAction SilentlyContinue -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public class LibreSpotWin32 {
+    [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+    public const int SW_HIDE = 0;
+}
+'@
+        } catch {}
+
+        while ($Control.Running) {
+            try {
+                $procs = Get-Process -Name 'Spotify', 'SpotifyInstaller', 'SpotifySetup' -ErrorAction SilentlyContinue
+                foreach ($p in $procs) {
+                    $handle = $p.MainWindowHandle
+                    if ($handle -ne [IntPtr]::Zero) {
+                        try { [LibreSpotWin32]::ShowWindowAsync($handle, [LibreSpotWin32]::SW_HIDE) | Out-Null } catch {}
+                    }
+                }
+            } catch {}
+            Start-Sleep -Milliseconds 250
+        }
+    })
+
+    $handle = $ps.BeginInvoke()
+    return [pscustomobject]@{
+        Control  = $control
+        Runspace = $runspace
+        PowerShell = $ps
+        AsyncHandle = $handle
+    }
+}
+
+function Stop-SpotifyWindowWatcher {
+    param($Watcher)
+    if (-not $Watcher) { return }
+    try { $Watcher.Control.Running = $false } catch {}
+    try { $null = $Watcher.PowerShell.EndInvoke($Watcher.AsyncHandle) } catch {}
+    try { $Watcher.PowerShell.Dispose() } catch {}
+    try { $Watcher.Runspace.Close() } catch {}
+    try { $Watcher.Runspace.Dispose() } catch {}
 }
 
 function Get-LibreSpotTempRoot {
@@ -866,19 +956,56 @@ function Invoke-SpicetifyCli {
     if (-not (Test-Path -LiteralPath $spicetifyExe)) {
         throw 'Spicetify CLI is not installed.'
     }
-    $output = & $spicetifyExe @Arguments 2>&1
-    $exitCode = $LASTEXITCODE
-    if ($output) {
-        foreach ($line in @($output)) { Write-Log "  $line" }
+
+    # CRITICAL: the script-wide `$ErrorActionPreference = 'Stop'` turns any stderr line
+    # from a native command (and Spicetify writes warnings to stderr) into an immediate
+    # terminating error — thrown BEFORE we can log the output or read $LASTEXITCODE.
+    # The resulting RuntimeException has an empty Message, which is why earlier runs
+    # surfaced "Unknown Spicetify apply error." with no context.
+    #
+    # Switch to 'Continue' locally so `& spicetify.exe ... 2>&1` captures both streams
+    # into $output, then we decide success/failure based on $LASTEXITCODE.
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $output = $null
+    $exitCode = 0
+    try {
+        $output = & $spicetifyExe @Arguments 2>&1
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousPreference
     }
+
+    $outputLines = @()
+    if ($output) {
+        foreach ($item in @($output)) {
+            $line = if ($item -is [System.Management.Automation.ErrorRecord]) {
+                [string]$item.Exception.Message
+            } else {
+                [string]$item
+            }
+            if (-not [string]::IsNullOrWhiteSpace($line)) {
+                $outputLines += $line
+                Write-Log "  $line"
+            }
+        }
+    }
+
     if ($exitCode -ne 0) {
-        throw "$FailureMessage Exit code: $exitCode."
+        # Attach the last few output lines to the exception so a silent exit-1
+        # surfaces whatever Spicetify actually reported instead of a bare exit code.
+        $tail = if ($outputLines.Count -gt 0) {
+            $slice = if ($outputLines.Count -le 4) { $outputLines } else { $outputLines[-4..-1] }
+            ' Output: ' + (($slice -replace '\s+', ' ') -join ' | ')
+        } else {
+            ''
+        }
+        throw "$FailureMessage Exit code: $exitCode.$tail"
     }
     # Deliberately do NOT `return $output`. Returning it emits the captured CLI
     # stream to the caller's pipeline, which then bubbles up to [Console]::Out
     # and the C# side re-ingests every line as an un-prefixed INFO log — causing
-    # every Spicetify message to appear twice, and can also clobber $_.Exception
-    # propagation in outer catch blocks (making $_.Exception.Message look empty).
+    # every Spicetify message to appear twice.
 }
 
 function Test-SpicetifyCliInstalled {
@@ -1075,10 +1202,25 @@ function Build-SpotXParams {
     if ($Config.SpotX_OldLyrics) { $params += '-old_lyrics' }
     if ($Config.SpotX_HideColIconOff) { $params += '-hide_col_icon_off' }
     if ($Config.SpotX_Plus) { $params += '-plus' }
-    if ($Config.SpotX_NewFullscreen) { $params += '-new_fullscreen_mode' }
+    if ($Config.SpotX_NewFullscreen) { $params += '-newFullscreenMode' }
     if ($Config.SpotX_FunnyProgress) { $params += '-funnyprogressBar' }
     if ($Config.SpotX_ExpSpotify) { $params += '-exp_spotify' }
     if ($Config.SpotX_LyricsBlock) { $params += '-lyrics_block' }
+    if ($Config.SpotX_SendVersionOff) { $params += '-sendversion_off' }
+    if ($Config.SpotX_StartSpoti) { $params += '-start_spoti' }
+    if ($Config.SpotX_DevTools) { $params += '-devtools' }
+    if ($Config.SpotX_Mirror) { $params += '-mirror' }
+    if ($Config.SpotX_ConfirmUninstall) { $params += '-confirm_spoti_recomended_uninstall' }
+    if (-not [string]::IsNullOrWhiteSpace([string]$Config.SpotX_DownloadMethod)) {
+        $params += "-download_method $($Config.SpotX_DownloadMethod)"
+    }
+    $versionId = [string]$Config.SpotX_SpotifyVersionId
+    if (-not [string]::IsNullOrWhiteSpace($versionId) -and $versionId -ne 'auto') {
+        $entry = $global:SpotifyVersionManifest | Where-Object { $_.Id -eq $versionId } | Select-Object -First 1
+        if ($entry -and -not [string]::IsNullOrWhiteSpace([string]$entry.Version)) {
+            $params += "-version $($entry.Version)"
+        }
+    }
     if ($Config.SpotX_CacheLimit -ge 500) { $params += "-cache_limit $($Config.SpotX_CacheLimit)" }
     return ($params -join ' ')
 }
@@ -1304,27 +1446,25 @@ function Module-ApplySpicetify {
         Write-Log "  diag: $key = $($diag[$key])"
     }
 
-    # Split backup and apply into two calls so we can localize which step failed.
-    # `spicetify backup apply` in one call makes silent failures undiagnosable.
-    $backupSucceeded = $false
-    try {
-        Invoke-SpicetifyCli -Arguments @('backup', '--bypass-admin') -FailureMessage 'Could not create Spicetify backup.'
-        $backupSucceeded = $true
-    } catch {
-        Write-Log "Spicetify backup step reported: $($_.Exception.Message)" -Level 'WARN'
-        # Not necessarily fatal — a backup may already exist from a prior run.
-    }
+    # Make sure Spotify isn't holding any xpui.spa handles before Spicetify tries to
+    # back it up. The earlier brief launch to generate configs should have been killed
+    # already, but one final sweep is cheap insurance against "Spotify client is in
+    # stock state" errors caused by a stale process still running.
+    Stop-SpotifyProcesses -MaxAttempts 3
 
+    # Run `spicetify backup apply` as a single combined command. Splitting it into two
+    # invocations breaks on Spicetify CLI 2.43.1: the standalone `backup` subcommand
+    # exits non-zero on fresh installs (reporting "Spotify version and backup version
+    # are mismatched" with no prior backup present), leaving `apply` with nothing to
+    # work from. The combined form matches the legacy LibreSpot.ps1 behavior and the
+    # CLI's own "Please run 'spicetify backup apply'" hint.
     $applyError = $null
     try {
-        Invoke-SpicetifyCli -Arguments @('apply', '--bypass-admin') -FailureMessage 'Could not apply Spicetify changes.'
+        Invoke-SpicetifyCli -Arguments @('backup', 'apply', '--bypass-admin') -FailureMessage 'Could not backup and apply Spicetify changes.'
         Write-Log 'Spicetify applied successfully.' -Level 'SUCCESS'
         return
     } catch {
         $applyError = if ($_.Exception -and $_.Exception.Message) { [string]$_.Exception.Message } else { 'Unknown Spicetify apply error.' }
-        if (-not $backupSucceeded) {
-            $applyError = "$applyError (Backup step also failed, which usually means Spotify's xpui.spa is missing or unreadable.)"
-        }
         Write-Log "Spicetify apply failed: $applyError" -Level 'WARN'
     }
 
@@ -1377,25 +1517,36 @@ function Invoke-LibreSpotInstall {
         Apply = 'Applying your setup'
     }
 
-    $count = $steps.Count
-    for ($index = 0; $index -lt $count; $index++) {
-        $step = $steps[$index]
-        $progress = [int](($index / [double]$count) * 100)
-        Update-BackendState -Progress $progress -Status $labels[$step] -Step ("Step {0} of {1}" -f ($index + 1), $count)
-        switch ($step) {
-            'Cleanup' { Module-NukeSpotify }
-            'SpotX' { Module-InstallSpotX -Config $config }
-            'SpicetifyCLI' { Module-InstallSpicetifyCLI }
-            'Themes' { Module-InstallThemes -Config $config }
-            'Extensions' { Module-InstallExtensions -Config $config }
-            'Marketplace' { Module-InstallMarketplace -Config $config }
-            'Apply' { Module-ApplySpicetify -Config $config }
+    # Hide any Spotify windows that SpotX/Spicetify briefly surface during patching
+    # so the desktop shell stays in focus and Spotify never flashes over this window.
+    $watcher = Start-SpotifyWindowWatcher
+    try {
+        $count = $steps.Count
+        for ($index = 0; $index -lt $count; $index++) {
+            $step = $steps[$index]
+            $progress = [int](($index / [double]$count) * 100)
+            Update-BackendState -Progress $progress -Status $labels[$step] -Step ("Step {0} of {1}" -f ($index + 1), $count)
+            switch ($step) {
+                'Cleanup' { Module-NukeSpotify }
+                'SpotX' { Module-InstallSpotX -Config $config }
+                'SpicetifyCLI' { Module-InstallSpicetifyCLI }
+                'Themes' { Module-InstallThemes -Config $config }
+                'Extensions' { Module-InstallExtensions -Config $config }
+                'Marketplace' { Module-InstallMarketplace -Config $config }
+                'Apply' { Module-ApplySpicetify -Config $config }
+            }
         }
+    } finally {
+        Stop-SpotifyWindowWatcher -Watcher $watcher
     }
 
     if ($config.LaunchAfter -and (Test-Path -LiteralPath $global:SPOTIFY_EXE_PATH)) {
         Write-Log 'Launching Spotify...' -Level 'SUCCESS'
-        Start-Process -FilePath $global:SPOTIFY_EXE_PATH
+        # Launch via explorer.exe so Spotify starts in the desktop user context instead of
+        # inheriting our elevated token. A directly-started Spotify would run as Administrator,
+        # which Spotify explicitly warns against and which breaks drag-and-drop from Explorer
+        # and some web-auth flows.
+        Start-Process -FilePath 'explorer.exe' -ArgumentList $global:SPOTIFY_EXE_PATH
     }
 
     Update-BackendState -Progress 100 -Status 'Setup complete' -Step 'Spotify is ready'
@@ -1412,18 +1563,20 @@ function Invoke-LibreSpotMaintenance {
             Update-BackendState -Progress 15 -Status 'Refreshing SpotX' -Step 'Downloading pinned SpotX'
             $savedConfig = Load-LibreSpotConfig
             $destination = New-LibreSpotTempFile -Name 'spotx_run.ps1'
+            $watcher = Start-SpotifyWindowWatcher
             try {
                 Download-FileSafe -Uri $global:URL_SPOTX -OutFile $destination
                 Confirm-FileHash -Path $destination -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label 'SpotX run.ps1'
                 $params = Build-SpotXParams -Config $savedConfig
                 Invoke-ExternalScriptIsolated -FilePath $destination -Arguments $params
+
+                Update-BackendState -Progress 60 -Status 'Restoring saved Spicetify state' -Step 'Rebuilding CLI, themes, extensions, and Marketplace'
+                Reapply-SavedSpicetifySetup -Config $savedConfig
+                Write-Log 'Saved Spicetify setup restored successfully.' -Level 'SUCCESS'
             } finally {
+                Stop-SpotifyWindowWatcher -Watcher $watcher
                 Remove-Item -LiteralPath $destination -Force -ErrorAction SilentlyContinue
             }
-
-            Update-BackendState -Progress 60 -Status 'Restoring saved Spicetify state' -Step 'Rebuilding CLI, themes, extensions, and Marketplace'
-            Reapply-SavedSpicetifySetup -Config $savedConfig
-            Write-Log 'Saved Spicetify setup restored successfully.' -Level 'SUCCESS'
         }
         'RestoreVanilla' {
             Update-BackendState -Progress 35 -Status 'Restoring vanilla Spotify' -Step 'Removing active Spicetify customizations'

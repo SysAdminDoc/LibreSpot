@@ -1,0 +1,155 @@
+name: Release
+
+# Triggered when a version tag is pushed, e.g. `git tag v3.4.0 && git push --tags`.
+# Builds both the PS2EXE PowerShell .exe and the .NET 8 WPF self-contained .exe,
+# emits SHA256 checksums + CycloneDX SBOM, and attests provenance (SLSA L3 via
+# GitHub's built-in in-toto attestation generator) so consumers can verify with
+# `gh attestation verify <asset> -R SysAdminDoc/LibreSpot`.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag name for manual release (e.g. v3.4.0)"
+        required: true
+
+permissions:
+  contents: write
+  id-token: write    # required by actions/attest-build-provenance
+  attestations: write
+
+jobs:
+  build-powershell:
+    name: Build PowerShell EXE (PS2EXE)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PS2EXE module
+        shell: pwsh
+        run: Install-Module -Name ps2exe -Force -Scope CurrentUser -AllowClobber
+
+      - name: Compile LibreSpot.exe (PowerShell monolith)
+        shell: pwsh
+        run: |
+          Invoke-PS2EXE `
+            -InputFile LibreSpot.ps1 `
+            -OutputFile LibreSpot.exe `
+            -IconFile icon.ico `
+            -Title LibreSpot `
+            -NoConsole `
+            -RequireAdmin
+
+      - name: Upload PS2EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: librespot-powershell
+          path: LibreSpot.exe
+
+  build-wpf:
+    name: Build WPF self-contained (.NET 8)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore src/LibreSpot.Desktop/LibreSpot.Desktop.csproj
+
+      - name: Publish WPF shell (win-x64, self-contained, single-file)
+        run: >
+          dotnet publish src/LibreSpot.Desktop/LibreSpot.Desktop.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -o publish/wpf
+
+      - name: Install CycloneDX tool
+        run: dotnet tool install --global CycloneDX
+
+      - name: Generate SBOM (CycloneDX)
+        run: dotnet CycloneDX src/LibreSpot.Desktop/LibreSpot.Desktop.csproj -o publish/sbom --json
+
+      - name: Rename SBOM
+        shell: pwsh
+        run: |
+          $sbom = Get-ChildItem publish/sbom -Filter '*.json' | Select-Object -First 1
+          if ($sbom) { Move-Item $sbom.FullName publish/wpf/LibreSpot.sbom.cdx.json }
+
+      - name: Rename WPF artifact
+        shell: pwsh
+        run: Move-Item publish/wpf/LibreSpot.exe publish/wpf/LibreSpot-Desktop.exe
+
+      - name: Upload WPF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: librespot-wpf
+          path: publish/wpf/
+
+  release:
+    name: Assemble release
+    needs: [build-powershell, build-wpf]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download PowerShell artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: librespot-powershell
+          path: release
+
+      - name: Download WPF artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: librespot-wpf
+          path: release
+
+      - name: Generate SHA256 checksums
+        run: |
+          cd release
+          sha256sum *.exe *.json > checksums.txt
+          cat checksums.txt
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            release/LibreSpot.exe
+            release/LibreSpot-Desktop.exe
+
+      - name: Attest SBOM
+        uses: actions/attest-sbom@v2
+        with:
+          subject-path: release/LibreSpot-Desktop.exe
+          sbom-path: release/LibreSpot.sbom.cdx.json
+
+      - name: Resolve tag name
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.name }}
+        run: |
+          gh release upload "$TAG" \
+            release/LibreSpot.exe \
+            release/LibreSpot-Desktop.exe \
+            release/LibreSpot.sbom.cdx.json \
+            release/checksums.txt \
+            --clobber

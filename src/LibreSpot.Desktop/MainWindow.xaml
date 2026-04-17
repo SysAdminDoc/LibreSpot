@@ -21,6 +21,13 @@
     <KeyBinding Key="F5" Command="{Binding RefreshSnapshotCommand}" />
   </Window.InputBindings>
 
+  <Window.TaskbarItemInfo>
+    <!-- Mirror run state onto the taskbar icon so users see progress at a glance
+         even when LibreSpot is minimized during a patch run. -->
+    <TaskbarItemInfo ProgressState="{Binding TaskbarProgressState}"
+                     ProgressValue="{Binding TaskbarProgressFraction}" />
+  </Window.TaskbarItemInfo>
+
   <Window.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
 
@@ -396,31 +403,6 @@
               Padding="24">
         <DockPanel LastChildFill="True">
           <StackPanel DockPanel.Dock="Top">
-            <!-- Brand lockup -->
-            <StackPanel Orientation="Horizontal">
-              <Border Width="48"
-                      Height="48"
-                      Background="{StaticResource Surface3Brush}"
-                      CornerRadius="14"
-                      BorderBrush="{StaticResource StrokeBrush}"
-                      BorderThickness="1">
-                <Image Source="pack://application:,,,/Assets/LibreSpot.ico"
-                       Width="30"
-                       Height="30"
-                       Stretch="Uniform" />
-              </Border>
-              <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                <TextBlock Text="LibreSpot" Style="{StaticResource RailTitleTextStyle}" />
-                <TextBlock Text="SpotX + Spicetify, one shell."
-                           Style="{StaticResource CaptionTextStyle}"
-                           Margin="0,2,0,0" />
-              </StackPanel>
-            </StackPanel>
-
-            <Border Height="1"
-                    Background="{StaticResource StrokeSoftBrush}"
-                    Margin="0,24,0,22" />
-
             <!-- Environment card -->
             <TextBlock Text="ENVIRONMENT" Style="{StaticResource SectionEyebrowTextStyle}" />
             <Border Style="{StaticResource MetricCardStyle}">
@@ -511,6 +493,8 @@
                     Style="{StaticResource GhostButtonStyle}"
                     Height="40"
                     ToolTip="F5"
+                    AutomationProperties.Name="Refresh environment status"
+                    AutomationProperties.HelpText="Re-checks whether Spotify and Spicetify are installed. Shortcut: F5."
                     Command="{Binding RefreshSnapshotCommand}" />
             <TextBlock Text="{Binding LastRefreshedText}"
                        Style="{StaticResource CaptionTextStyle}"
@@ -532,31 +516,12 @@
             <RowDefinition Height="*" />
           </Grid.RowDefinitions>
 
-          <!-- Hero -->
-          <Grid Grid.Row="0" Margin="0,0,0,24">
+          <!-- Hero (session access only — site title intentionally omitted for a condensed shell) -->
+          <Grid Grid.Row="0" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="340" />
             </Grid.ColumnDefinitions>
-
-            <StackPanel Margin="0,0,24,0">
-              <Border Style="{StaticResource PillBadgeStyle}" HorizontalAlignment="Left">
-                <StackPanel Orientation="Horizontal">
-                  <Ellipse Width="7" Height="7" Fill="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <TextBlock Text="LibreSpot Desktop"
-                             Foreground="{StaticResource AccentBrush}"
-                             FontWeight="SemiBold"
-                             FontSize="11" />
-                </StackPanel>
-              </Border>
-              <TextBlock Text="Set up, refine, and recover Spotify — from one calm workspace."
-                         Style="{StaticResource HeadlineTextStyle}"
-                         Margin="0,14,0,10" />
-              <TextBlock Text="LibreSpot still runs the trusted PowerShell backend underneath. This shell just makes every decision faster to read and easier to trust."
-                         Style="{StaticResource BodyTextStyle}"
-                         MaxWidth="620"
-                         HorizontalAlignment="Left" />
-            </StackPanel>
 
             <!-- Session access -->
             <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}">
@@ -604,212 +569,61 @@
               <Style TargetType="TabItem" BasedOn="{StaticResource WorkspaceTabItemStyle}" />
             </TabControl.ItemContainerStyle>
 
-            <!-- ═══ Recommended ═══ -->
+            <!-- ═══ Recommended (condensed: big apply button first, everything else below) ═══ -->
             <TabItem Header="Recommended">
               <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel>
-                  <Grid Margin="0,0,0,20">
-                    <Grid.ColumnDefinitions>
-                      <ColumnDefinition Width="1.2*" />
-                      <ColumnDefinition Width="0.8*" />
-                    </Grid.ColumnDefinitions>
+                <StackPanel HorizontalAlignment="Center" MaxWidth="560" Margin="0,12,0,0">
 
-                    <StackPanel Margin="0,0,24,0">
-                      <TextBlock Text="The cleanest route to a stable premium setup"
-                                 Style="{StaticResource SectionTitleTextStyle}"
-                                 FontSize="24" />
-                      <TextBlock Text="Recommended starts from a known-good state, applies LibreSpot's balanced defaults, and leaves Spotify easier to maintain after future updates."
-                                 Style="{StaticResource BodyTextStyle}"
-                                 Margin="0,10,0,0" />
+                  <!-- Primary action: the big power button -->
+                  <Button Height="96"
+                          FontSize="18"
+                          Style="{StaticResource PrimaryButtonStyle}"
+                          AutomationProperties.Name="Run recommended setup"
+                          AutomationProperties.HelpText="Runs LibreSpot's most reliable install path with the saved default profile."
+                          Command="{Binding ApplyRecommendedCommand}">
+                    <StackPanel Orientation="Horizontal">
+                      <Path Width="22" Height="22"
+                            Stretch="Uniform"
+                            VerticalAlignment="Center"
+                            Margin="0,0,12,0"
+                            Stroke="{StaticResource TextOnAccentBrush}"
+                            StrokeThickness="2.2"
+                            StrokeStartLineCap="Round"
+                            StrokeEndLineCap="Round"
+                            Data="M 12 2 L 12 11 M 5 6 A 9 9 0 1 0 19 6" />
+                      <TextBlock Text="Run recommended setup" VerticalAlignment="Center" />
+                    </StackPanel>
+                  </Button>
 
-                      <ItemsControl ItemsSource="{Binding RecommendedHighlights}" Margin="0,20,0,0">
-                        <ItemsControl.ItemsPanel>
-                          <ItemsPanelTemplate>
-                            <WrapPanel />
-                          </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
+                  <TextBlock Text="{Binding RecommendedRunDuration}"
+                             Style="{StaticResource CaptionTextStyle}"
+                             Margin="0,12,0,0"
+                             HorizontalAlignment="Center"
+                             TextAlignment="Center" />
+
+                  <!-- Secondary detail collapses below the primary action -->
+                  <Expander Header="Details"
+                            Margin="0,20,0,0"
+                            Foreground="{StaticResource MutedTextBrush}">
+                    <StackPanel Margin="0,12,0,0">
+                      <TextBlock Text="{Binding WorkspaceRecommendationTitle}"
+                                 Foreground="{StaticResource TextBrush}"
+                                 FontWeight="SemiBold"
+                                 FontSize="14" />
+                      <TextBlock Text="{Binding WorkspaceRecommendationDetail}"
+                                 Style="{StaticResource CaptionTextStyle}"
+                                 Margin="0,6,0,12" />
+                      <ItemsControl ItemsSource="{Binding RecommendedHighlights}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate>
-                            <Border Style="{StaticResource SubtleCardStyle}"
-                                    Width="250"
-                                    Margin="0,0,12,12"
-                                    Background="{StaticResource Surface1Brush}">
-                              <StackPanel>
-                                <Border Width="26"
-                                        Height="26"
-                                        CornerRadius="13"
-                                        Background="{StaticResource AccentSoftBrush}"
-                                        BorderBrush="{StaticResource AccentRingBrush}"
-                                        BorderThickness="1"
-                                        VerticalAlignment="Top">
-                                  <Path Width="10"
-                                        Height="10"
-                                        Stretch="Uniform"
-                                        Data="M 1 5 L 4.5 8.5 L 10 2"
-                                        Stroke="{StaticResource AccentBrush}"
-                                        StrokeThickness="2"
-                                        StrokeStartLineCap="Round"
-                                        StrokeEndLineCap="Round" />
-                                </Border>
-                                <TextBlock Text="Included in recommended"
-                                           Style="{StaticResource LabelTextStyle}"
-                                           Foreground="{StaticResource AccentBrush}"
-                                           Margin="0,12,0,6" />
-                                <TextBlock Text="{Binding}"
-                                           Style="{StaticResource BodyTextStyle}"
-                                           Foreground="{StaticResource TextBrush}" />
-                              </StackPanel>
-                            </Border>
+                            <TextBlock Text="{Binding}"
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Margin="0,0,0,4" />
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
                     </StackPanel>
-
-                    <Border Grid.Column="1"
-                            Style="{StaticResource SectionFrameStyle}"
-                            Background="{StaticResource Surface1Brush}">
-                      <StackPanel>
-                        <TextBlock Text="BEST NEXT STEP"
-                                   Style="{StaticResource LabelTextStyle}"
-                                   Foreground="{StaticResource AccentBrush}" />
-                        <TextBlock Text="{Binding WorkspaceRecommendationTitle}"
-                                   Style="{StaticResource SectionTitleTextStyle}"
-                                   FontSize="19"
-                                   Margin="0,8,0,0" />
-                        <TextBlock Text="{Binding WorkspaceRecommendationDetail}"
-                                   Style="{StaticResource BodyTextStyle}"
-                                   Margin="0,8,0,14" />
-
-                        <ItemsControl Margin="0,0,0,18">
-                          <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                              <WrapPanel />
-                            </ItemsPanelTemplate>
-                          </ItemsControl.ItemsPanel>
-                          <Border Background="{StaticResource Surface3Brush}"
-                                  BorderBrush="{StaticResource StrokeBrush}"
-                                  BorderThickness="1"
-                                  CornerRadius="999"
-                                  Padding="10,5"
-                                  Margin="0,0,8,8">
-                            <TextBlock Text="Clean install"
-                                       Foreground="{StaticResource TextBrush}"
-                                       FontSize="11.5"
-                                       FontWeight="SemiBold" />
-                          </Border>
-                          <Border Background="{StaticResource Surface3Brush}"
-                                  BorderBrush="{StaticResource StrokeBrush}"
-                                  BorderThickness="1"
-                                  CornerRadius="999"
-                                  Padding="10,5"
-                                  Margin="0,0,8,8">
-                            <TextBlock Text="Pinned versions"
-                                       Foreground="{StaticResource TextBrush}"
-                                       FontSize="11.5"
-                                       FontWeight="SemiBold" />
-                          </Border>
-                          <Border Background="{StaticResource Surface3Brush}"
-                                  BorderBrush="{StaticResource StrokeBrush}"
-                                  BorderThickness="1"
-                                  CornerRadius="999"
-                                  Padding="10,5"
-                                  Margin="0,0,8,8">
-                            <TextBlock Text="Saved profile"
-                                       Foreground="{StaticResource TextBrush}"
-                                       FontSize="11.5"
-                                       FontWeight="SemiBold" />
-                          </Border>
-                        </ItemsControl>
-
-                        <Button Content="Run recommended setup"
-                                Height="46"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                AutomationProperties.Name="Run recommended setup"
-                                AutomationProperties.HelpText="Runs LibreSpot's most reliable install path with the saved default profile."
-                                Command="{Binding ApplyRecommendedCommand}" />
-                        <TextBlock Text="{Binding RecommendedRunDuration}"
-                                   Style="{StaticResource CaptionTextStyle}"
-                                   Margin="0,10,0,0"
-                                   HorizontalAlignment="Center"
-                                   TextAlignment="Center" />
-                        <Border Style="{StaticResource SubtleCardStyle}"
-                                Margin="0,16,0,0"
-                                Background="{StaticResource AccentSoftBrush}"
-                                BorderBrush="{StaticResource AccentRingBrush}">
-                          <StackPanel>
-                            <TextBlock Text="Why this stays dependable"
-                                       Style="{StaticResource LabelTextStyle}"
-                                       Foreground="{StaticResource AccentBrush}" />
-                            <TextBlock Text="{Binding RecommendedFollowUpText}"
-                                       Style="{StaticResource CaptionTextStyle}"
-                                       Margin="0,6,0,0" />
-                          </StackPanel>
-                        </Border>
-                      </StackPanel>
-                    </Border>
-                  </Grid>
-
-                  <Border Style="{StaticResource SectionFrameStyle}">
-                    <StackPanel>
-                      <TextBlock Text="What happens during the run"
-                                 Style="{StaticResource SectionTitleTextStyle}"
-                                 FontSize="15" />
-                      <Grid Margin="0,16,0,0">
-                        <Grid.ColumnDefinitions>
-                          <ColumnDefinition Width="*" />
-                          <ColumnDefinition Width="12" />
-                          <ColumnDefinition Width="*" />
-                          <ColumnDefinition Width="12" />
-                          <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <Border Style="{StaticResource SubtleCardStyle}">
-                          <StackPanel>
-                            <TextBlock Text="01"
-                                       Style="{StaticResource LabelTextStyle}"
-                                       Foreground="{StaticResource AccentBrush}" />
-                            <TextBlock Text="Prepare"
-                                       Foreground="{StaticResource TextBrush}"
-                                       FontWeight="SemiBold"
-                                       FontSize="14"
-                                       Margin="0,6,0,6" />
-                            <TextBlock Text="LibreSpot saves the profile, checks the current environment, and lines up the PowerShell runtime."
-                                       Style="{StaticResource CaptionTextStyle}" />
-                          </StackPanel>
-                        </Border>
-
-                        <Border Grid.Column="2" Style="{StaticResource SubtleCardStyle}">
-                          <StackPanel>
-                            <TextBlock Text="02"
-                                       Style="{StaticResource LabelTextStyle}"
-                                       Foreground="{StaticResource AccentBrush}" />
-                            <TextBlock Text="Patch"
-                                       Foreground="{StaticResource TextBrush}"
-                                       FontWeight="SemiBold"
-                                       FontSize="14"
-                                       Margin="0,6,0,6" />
-                            <TextBlock Text="SpotX and Spicetify are reapplied in the tested order so Spotify stays easier to recover later."
-                                       Style="{StaticResource CaptionTextStyle}" />
-                          </StackPanel>
-                        </Border>
-
-                        <Border Grid.Column="4" Style="{StaticResource SubtleCardStyle}">
-                          <StackPanel>
-                            <TextBlock Text="03"
-                                       Style="{StaticResource LabelTextStyle}"
-                                       Foreground="{StaticResource AccentBrush}" />
-                            <TextBlock Text="Restore"
-                                       Foreground="{StaticResource TextBrush}"
-                                       FontWeight="SemiBold"
-                                       FontSize="14"
-                                       Margin="0,6,0,6" />
-                            <TextBlock Text="LibreSpot restores your visual stack, starter extensions, and maintenance-ready config for future runs."
-                                       Style="{StaticResource CaptionTextStyle}" />
-                          </StackPanel>
-                        </Border>
-                      </Grid>
-                    </StackPanel>
-                  </Border>
+                  </Expander>
                 </StackPanel>
               </ScrollViewer>
             </TabItem>
@@ -1413,7 +1227,11 @@
                         </Style>
                       </Ellipse.Style>
                     </Ellipse>
-                    <TextBlock Text="{Binding ActivityBadgeText}" FontWeight="SemiBold" FontSize="11">
+                    <TextBlock Text="{Binding ActivityBadgeText}"
+                               FontWeight="SemiBold"
+                               FontSize="11"
+                               AutomationProperties.Name="Run status"
+                               AutomationProperties.LiveSetting="Polite">
                       <TextBlock.Style>
                         <Style TargetType="TextBlock">
                           <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
@@ -1523,6 +1341,8 @@
                         Height="36"
                         Padding="14,0"
                         Style="{StaticResource SecondaryButtonStyle}"
+                        AutomationProperties.Name="Copy backend log"
+                        AutomationProperties.HelpText="Copies the visible backend log to the clipboard."
                         Command="{Binding CopyLogCommand}" />
               </Grid>
               <Border Grid.Row="1"

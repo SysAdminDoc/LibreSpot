@@ -10,7 +10,8 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.1-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.5-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Stable](https://img.shields.io/badge/Stable-3.5.0-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 
 </div>
 
@@ -53,12 +54,12 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 >
 > If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch.
 
-**Pinned dependency versions (v3.1.1):**
+**Pinned dependency versions (v3.5.0):**
 
 | Component | Pinned Version |
 |---|---|
-| SpotX | main (`6070bbcf`) |
-| Spicetify CLI | v2.42.14 |
+| SpotX | `0abf98a3` (Spotify 1.2.86.502) |
+| Spicetify CLI | v2.43.1 |
 | Marketplace | v1.0.8 |
 | Themes | Commit `9af41cf` |
 

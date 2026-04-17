@@ -30,6 +30,13 @@ public sealed class InstallConfiguration
     public bool SpotX_LyricsBlock { get; set; }
     public bool SpotX_OldLyrics { get; set; }
     public bool SpotX_HideColIconOff { get; set; }
+    public bool SpotX_SendVersionOff { get; set; } = true;
+    public bool SpotX_StartSpoti { get; set; }
+    public bool SpotX_DevTools { get; set; }
+    public bool SpotX_Mirror { get; set; }
+    public string SpotX_DownloadMethod { get; set; } = "";
+    public bool SpotX_ConfirmUninstall { get; set; }
+    public string SpotX_SpotifyVersionId { get; set; } = "auto";
 
     public string Spicetify_Theme { get; set; } = "(None - Marketplace Only)";
     public string Spicetify_Scheme { get; set; } = "Default";
@@ -64,6 +71,13 @@ public sealed class InstallConfiguration
             SpotX_LyricsBlock = SpotX_LyricsBlock,
             SpotX_OldLyrics = SpotX_OldLyrics,
             SpotX_HideColIconOff = SpotX_HideColIconOff,
+            SpotX_SendVersionOff = SpotX_SendVersionOff,
+            SpotX_StartSpoti = SpotX_StartSpoti,
+            SpotX_DevTools = SpotX_DevTools,
+            SpotX_Mirror = SpotX_Mirror,
+            SpotX_DownloadMethod = SpotX_DownloadMethod,
+            SpotX_ConfirmUninstall = SpotX_ConfirmUninstall,
+            SpotX_SpotifyVersionId = SpotX_SpotifyVersionId,
             Spicetify_Theme = Spicetify_Theme,
             Spicetify_Scheme = Spicetify_Scheme,
             Spicetify_Marketplace = Spicetify_Marketplace,
@@ -152,6 +166,17 @@ public static class AppCatalog
         "drot", "default", "spotify#2"
     });
 
+    public sealed record SpotifyVersionEntry(string Id, string Label, string Version, string Notes);
+
+    public static IReadOnlyList<SpotifyVersionEntry> SpotifyVersionManifest { get; } = new ReadOnlyCollection<SpotifyVersionEntry>(new[]
+    {
+        new SpotifyVersionEntry("auto",            "Auto (use SpotX default)",          "",                          "Recommended. Lets SpotX pick the most compatible build."),
+        new SpotifyVersionEntry("1.2.86.502",      "1.2.86.502 (current pinned)",       "1.2.86.502.g8cd7fb22",      "Best match for our pinned SpotX commit."),
+        new SpotifyVersionEntry("1.2.85.519",      "1.2.85.519 (previous stable)",      "1.2.85.519.g7c42e2e8",      "Last Windows release before Canvas-home changes."),
+        new SpotifyVersionEntry("1.2.53.440.x86",  "1.2.53.440 (x86 / 32-bit only)",    "1.2.53.440.g7b2f582a",      "For 32-bit Windows. Do not pick on x64."),
+        new SpotifyVersionEntry("1.2.5.1006.win7", "1.2.5.1006 (Windows 7 / 8.1)",      "1.2.5.1006.g22820f93",      "Last build supported on legacy Windows."),
+    });
+
     public static IReadOnlyDictionary<string, IReadOnlyList<string>> ThemeSchemes { get; } =
         new Dictionary<string, IReadOnlyList<string>>
         {
@@ -185,6 +210,7 @@ public static class AppCatalog
         new OptionDefinition(nameof(InstallConfiguration.SpotX_Premium), "Premium account mode", "Skip ad-focused patching while keeping the rest of the LibreSpot stack.", "Core"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_DisableStartup), "Disable startup launch", "Stop Spotify from auto-launching with Windows.", "Core"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_NoShortcut), "Skip shortcut creation", "Avoid desktop shortcut clutter during install.", "Core"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_StartSpoti), "Launch Spotify after install", "Let SpotX start Spotify the moment patching finishes.", "Core"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_LyricsEnabled), "Enable lyrics patch", "Turn on patched lyrics support and choose a lyrics skin.", "Interface"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_TopSearch), "Top search bar", "Move Spotify search into a more always-available position.", "Interface"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_RightSidebarOff), "Hide right sidebar", "Reduce secondary chrome for a more focused playback layout.", "Interface"),
@@ -198,6 +224,10 @@ public static class AppCatalog
         new OptionDefinition(nameof(InstallConfiguration.SpotX_FunnyProgress), "Novelty progress bar", "Swap in SpotX's playful progress bar variant.", "Advanced"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_ExpSpotify), "Experimental Spotify features", "Allow experimental Spotify flags when SpotX supports them.", "Advanced"),
         new OptionDefinition(nameof(InstallConfiguration.SpotX_LyricsBlock), "Block lyric overlays", "Disable some lyric-related overlays in patched states.", "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_SendVersionOff), "Disable SpotX version reporting", "Blocks SpotX's outbound version notification (introduced April 2026). Recommended on.", "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_DevTools), "Enable Spotify Developer Tools", "Unlocks the Chromium DevTools hotkey inside Spotify for extension authors.", "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_Mirror), "Use GitHub.io mirror", "Falls back to the github.io mirror when raw.githubusercontent.com is blocked.", "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_ConfirmUninstall), "Force clean uninstall before patching", "Runs SpotX's uninstall-and-reinstall flow even when the current version would otherwise be kept.", "Advanced"),
         new OptionDefinition(nameof(InstallConfiguration.Spicetify_Marketplace), "Install Marketplace", "Include the Spicetify Marketplace custom app by default.", "Experience")
     });
 
@@ -267,6 +297,19 @@ public static class AppCatalog
         normalized.SpotX_LyricsBlock = source.SpotX_LyricsBlock;
         normalized.SpotX_OldLyrics = source.SpotX_OldLyrics;
         normalized.SpotX_HideColIconOff = source.SpotX_HideColIconOff;
+        normalized.SpotX_SendVersionOff = source.SpotX_SendVersionOff;
+        normalized.SpotX_StartSpoti = source.SpotX_StartSpoti;
+        normalized.SpotX_DevTools = source.SpotX_DevTools;
+        normalized.SpotX_Mirror = source.SpotX_Mirror;
+        normalized.SpotX_ConfirmUninstall = source.SpotX_ConfirmUninstall;
+
+        var rawDm = (source.SpotX_DownloadMethod ?? string.Empty).Trim().ToLowerInvariant();
+        normalized.SpotX_DownloadMethod = rawDm is "curl" or "webclient" ? rawDm : "";
+
+        var validVersionIds = SpotifyVersionManifest.Select(v => v.Id).ToHashSet(StringComparer.Ordinal);
+        normalized.SpotX_SpotifyVersionId = !string.IsNullOrWhiteSpace(source.SpotX_SpotifyVersionId) && validVersionIds.Contains(source.SpotX_SpotifyVersionId)
+            ? source.SpotX_SpotifyVersionId
+            : "auto";
 
         normalized.SpotX_LyricsTheme = !string.IsNullOrWhiteSpace(source.SpotX_LyricsTheme) && LyricsThemes.Contains(source.SpotX_LyricsTheme)
             ? source.SpotX_LyricsTheme
@@ -276,9 +319,12 @@ public static class AppCatalog
             ? source.Spicetify_Theme
             : normalized.Spicetify_Theme;
 
+        // normalized.Spicetify_Theme is guaranteed to be a ThemeSchemes key above, but use
+        // TryGetValue defensively so a future rename of the default theme can't turn this
+        // into a KeyNotFoundException.
         var validSchemes = ThemeSchemes.TryGetValue(normalized.Spicetify_Theme, out var schemes)
             ? schemes
-            : ThemeSchemes[normalized.Spicetify_Theme];
+            : ThemeSchemes["(None - Marketplace Only)"];
 
         normalized.Spicetify_Scheme = validSchemes.Contains(source.Spicetify_Scheme)
             ? source.Spicetify_Scheme

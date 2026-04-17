@@ -547,6 +547,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 RaisePropertyChanged(nameof(IsActivityCanceled));
                 RaisePropertyChanged(nameof(ActivityBadgeText));
                 RaisePropertyChanged(nameof(ActivityAssistiveText));
+                RaisePropertyChanged(nameof(TaskbarProgressState));
+                RaisePropertyChanged(nameof(TaskbarProgressFraction));
             }
         }
     }
@@ -563,6 +565,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 RaisePropertyChanged(nameof(IsActivityCanceled));
                 RaisePropertyChanged(nameof(ActivityBadgeText));
                 RaisePropertyChanged(nameof(ActivityAssistiveText));
+                RaisePropertyChanged(nameof(TaskbarProgressState));
             }
         }
     }
@@ -579,11 +582,40 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 RaisePropertyChanged(nameof(IsActivityCanceled));
                 RaisePropertyChanged(nameof(ActivityBadgeText));
                 RaisePropertyChanged(nameof(ActivityAssistiveText));
+                RaisePropertyChanged(nameof(TaskbarProgressState));
+                RaisePropertyChanged(nameof(TaskbarProgressFraction));
             }
         }
     }
 
     public bool IsBusyIndeterminate => _isRunning && _progressValue <= 0.0;
+
+    // Mirror run state onto the taskbar icon so LibreSpot feels like a real
+    // long-running Windows app even when the window is minimized.
+    public System.Windows.Shell.TaskbarItemProgressState TaskbarProgressState
+    {
+        get
+        {
+            if (IsActivityError)
+            {
+                return System.Windows.Shell.TaskbarItemProgressState.Error;
+            }
+            if (IsCancelRequested)
+            {
+                return System.Windows.Shell.TaskbarItemProgressState.Paused;
+            }
+            if (!_isRunning)
+            {
+                return System.Windows.Shell.TaskbarItemProgressState.None;
+            }
+            return IsBusyIndeterminate
+                ? System.Windows.Shell.TaskbarItemProgressState.Indeterminate
+                : System.Windows.Shell.TaskbarItemProgressState.Normal;
+        }
+    }
+
+    // TaskbarItemInfo.ProgressValue expects 0.0..1.0, but our ProgressValue is 0..100.
+    public double TaskbarProgressFraction => Math.Clamp(_progressValue / 100.0, 0.0, 1.0);
 
     // "— %" reads like a broken UI. When we don't yet have a real percentage
     // from the backend, say what is actually happening: we're working.
@@ -635,6 +667,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 RaisePropertyChanged(nameof(IsActivityCanceled));
                 RaisePropertyChanged(nameof(ActivityBadgeText));
                 RaisePropertyChanged(nameof(ActivityAssistiveText));
+                RaisePropertyChanged(nameof(TaskbarProgressState));
             }
         }
     }
