@@ -65,6 +65,9 @@
 
   <!-- ═══ Brushes ═══ -->
   <SolidColorBrush x:Key="CanvasBrush" Color="{StaticResource CanvasColor}" />
+  <!-- Transparent variant used only when Mica is successfully applied via DWM.
+       Win11 22621+ composites the backdrop under transparent window surfaces. -->
+  <SolidColorBrush x:Key="MicaCanvasBrush" Color="Transparent" />
   <SolidColorBrush x:Key="RailBrush" Color="{StaticResource RailColor}" />
 
   <SolidColorBrush x:Key="PanelBrush" Color="{StaticResource Surface1Color}" />
