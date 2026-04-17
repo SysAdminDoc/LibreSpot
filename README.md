@@ -1,6 +1,4 @@
-<p align="center"><img src="icon.png" width="128" alt="LibreSpot"></p>
 
-<div align="center">
 
 # LibreSpot
 
