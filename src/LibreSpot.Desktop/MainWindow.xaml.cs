@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -13,6 +14,9 @@ public partial class MainWindow : Window
 {
     private static readonly Regex NumericInput = new("^[0-9]+$", RegexOptions.Compiled);
     private readonly MainViewModel _viewModel;
+    private bool _allowCloseWhileRunning;
+    private IInputElement? _focusBeforeActivity;
+    private IInputElement? _focusBeforePrompt;
 
     public MainWindow()
     {
@@ -43,26 +47,24 @@ public partial class MainWindow : Window
         Loaded -= MainWindow_Loaded;
 
         _viewModel.LogEntries.CollectionChanged += OnLogEntriesChanged;
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
         await _viewModel.InitializeAsync();
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
     {
-        if (_viewModel.IsRunning)
+        if (_viewModel.IsRunning && !_allowCloseWhileRunning)
         {
-            var result = MessageBox.Show(
-                "LibreSpot is still modifying Spotify.\n\nClosing now will cancel the current run and close the live progress window before the backend finishes cleaning up.\n\nClose anyway?",
-                "Cancel Current Run?",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning,
-                MessageBoxResult.No);
-
-            if (result != MessageBoxResult.Yes)
+            e.Cancel = true;
+            _viewModel.PresentCloseWhileRunningPrompt(() =>
             {
-                e.Cancel = true;
-                return;
-            }
+                _allowCloseWhileRunning = true;
+                _viewModel.CancelRunningBackend();
+                Dispatcher.BeginInvoke(Close, DispatcherPriority.Background);
+                return Task.CompletedTask;
+            });
+            return;
         }
 
         // Cancel any in-flight backend run so we don't orphan a powershell.exe process.
@@ -76,7 +78,22 @@ public partial class MainWindow : Window
         {
             _viewModel.LogEntries.CollectionChanged -= OnLogEntriesChanged;
         }
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _viewModel.Dispose();
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(MainViewModel.IsPromptVisible) or nameof(MainViewModel.IsPromptDestructive))
+        {
+            Dispatcher.BeginInvoke(UpdatePromptFocus, DispatcherPriority.Input);
+            return;
+        }
+
+        if (e.PropertyName is nameof(MainViewModel.IsActivityVisible) or nameof(MainViewModel.IsRunning))
+        {
+            Dispatcher.BeginInvoke(UpdateActivityFocus, DispatcherPriority.Input);
+        }
     }
 
     private void OnLogEntriesChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -109,6 +126,79 @@ public partial class MainWindow : Window
         if (!NumericInput.IsMatch(pasted))
         {
             e.CancelCommand();
+        }
+    }
+
+    private void UpdatePromptFocus()
+    {
+        if (_viewModel.IsPromptVisible)
+        {
+            _focusBeforePrompt ??= Keyboard.FocusedElement;
+            FocusElement(_viewModel.IsPromptDestructive ? PromptCancelButton : PromptConfirmButton, PromptDialogRoot);
+            return;
+        }
+
+        RestoreFocus(ref _focusBeforePrompt);
+    }
+
+    private void UpdateActivityFocus()
+    {
+        if (_viewModel.IsPromptVisible)
+        {
+            return;
+        }
+
+        if (_viewModel.IsActivityVisible)
+        {
+            _focusBeforeActivity ??= Keyboard.FocusedElement;
+
+            if (_viewModel.IsRunning)
+            {
+                FocusElement(ActivityDialogRoot);
+                return;
+            }
+
+            if (FocusElement(ActivityCloseButton, ActivityCopyLogButton, ActivityOpenLibreSpotFolderButton, ActivityDialogRoot))
+            {
+                return;
+            }
+        }
+        else
+        {
+            RestoreFocus(ref _focusBeforeActivity);
+        }
+    }
+
+    private static bool FocusElement(params IInputElement?[] candidates)
+    {
+        foreach (var candidate in candidates)
+        {
+            switch (candidate)
+            {
+                case UIElement element when element.IsVisible && element.IsEnabled && element.Focus():
+                    return true;
+                case ContentElement contentElement when contentElement.IsEnabled && contentElement.Focus():
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void RestoreFocus(ref IInputElement? previousFocus)
+    {
+        if (previousFocus is null)
+        {
+            return;
+        }
+
+        try
+        {
+            FocusElement(previousFocus);
+        }
+        finally
+        {
+            previousFocus = null;
         }
     }
 }

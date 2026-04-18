@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Security.Principal;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Threading;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
@@ -15,16 +16,18 @@ public sealed class OptionToggleViewModel : ObservableObject
 {
     private bool _isSelected;
 
-    public OptionToggleViewModel(string key, string title, string description)
+    public OptionToggleViewModel(string key, string title, string description, bool isRecommendedDefault)
     {
         Key = key;
         Title = title;
         Description = description;
+        IsRecommendedDefault = isRecommendedDefault;
     }
 
     public string Key { get; }
     public string Title { get; }
     public string Description { get; }
+    public bool IsRecommendedDefault { get; }
 
     public bool IsSelected
     {
@@ -37,16 +40,18 @@ public sealed class ExtensionToggleViewModel : ObservableObject
 {
     private bool _isSelected;
 
-    public ExtensionToggleViewModel(string key, string title, string description)
+    public ExtensionToggleViewModel(string key, string title, string description, bool isRecommendedDefault)
     {
         Key = key;
         Title = title;
         Description = description;
+        IsRecommendedDefault = isRecommendedDefault;
     }
 
     public string Key { get; }
     public string Title { get; }
     public string Description { get; }
+    public bool IsRecommendedDefault { get; }
 
     public bool IsSelected
     {
@@ -108,12 +113,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly EnvironmentSnapshotService _snapshotService;
     private readonly Dispatcher _dispatcher;
     private readonly bool _isAdministratorSession;
+    private readonly InstallConfiguration _recommendedBaseline;
+    private readonly Stopwatch _runStopwatch = new();
+    private readonly DispatcherTimer _runElapsedTimer;
+    private readonly DispatcherTimer _snapshotFreshnessTimer;
     private CancellationTokenSource? _runCts;
 
     private string _selectedTheme = "(None - Marketplace Only)";
     private string _selectedScheme = "Default";
     private string _selectedLyricsTheme = "spotify";
+    private string _selectedSpotifyVersionId = "auto";
+    private string _selectedDownloadMethod = string.Empty;
     private string _cacheLimitText = "0";
+    private string _settingsSearchText = string.Empty;
     private int _selectedWorkspaceIndex;
     private bool _isActivityVisible;
     private bool _isRunning;
@@ -128,8 +140,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _promptBody = string.Empty;
     private string _promptConfirmText = "Continue";
     private string _promptCancelText = "Cancel";
+    private string _promptSummaryTitle = string.Empty;
+    private string _promptSummaryBody = string.Empty;
     private bool _isPromptDestructive;
     private bool _isCancelRequested;
+    private ConfigurationLoadState _configurationLoadState = ConfigurationLoadState.Loaded;
+    private string? _recoveredConfigurationPath;
     private Func<Task>? _pendingPromptAction;
 
     public MainViewModel(
@@ -142,11 +158,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _snapshotService = snapshotService;
         _dispatcher = Application.Current.Dispatcher;
         _isAdministratorSession = IsAdministrator();
+        _recommendedBaseline = AppCatalog.CreateRecommendedConfiguration();
+        _runElapsedTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher)
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        _runElapsedTimer.Tick += (_, _) => RaisePropertyChanged(nameof(RunElapsedText));
+        _snapshotFreshnessTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher)
+        {
+            Interval = TimeSpan.FromSeconds(30)
+        };
+        _snapshotFreshnessTimer.Tick += (_, _) => RaiseSnapshotFreshnessChanged();
+        _snapshotFreshnessTimer.Start();
 
         RecommendedHighlights = new ObservableCollection<string>(AppCatalog.RecommendedHighlights);
         ThemeNames = new ObservableCollection<string>(AppCatalog.ThemeSchemes.Keys);
         SchemeOptions = new ObservableCollection<string>(AppCatalog.ThemeSchemes[_selectedTheme]);
         LyricsThemes = new ObservableCollection<string>(AppCatalog.LyricsThemes);
+        SpotifyVersionOptions = new ObservableCollection<AppCatalog.SpotifyVersionEntry>(AppCatalog.SpotifyVersionManifest);
+        DownloadMethodOptions = new ObservableCollection<AppCatalog.DownloadMethodEntry>(AppCatalog.DownloadMethods);
         SelectionInsights = new ObservableCollection<SelectionInsightViewModel>();
         SelectedExtensionLabels = new ObservableCollection<string>();
 
@@ -156,7 +186,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         AdvancedOptions = CreateOptions("Advanced");
         ExperienceOptions = CreateOptions("Experience");
         Extensions = new ObservableCollection<ExtensionToggleViewModel>(
-            AppCatalog.ExtensionDefinitions.Select(def => new ExtensionToggleViewModel(def.Key, def.Title, def.Description)));
+            AppCatalog.ExtensionDefinitions.Select(def => new ExtensionToggleViewModel(
+                def.Key,
+                def.Title,
+                def.Description,
+                _recommendedBaseline.Spicetify_Extensions.Contains(def.Key, StringComparer.OrdinalIgnoreCase))));
 
         var maintenanceCards = AppCatalog.MaintenanceActions
             .Select(def => new MaintenanceActionCardViewModel
@@ -178,12 +212,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CancelRunCommand = new RelayCommand(PresentCancelRunPrompt, () => IsRunning && !IsCancelRequested);
         DismissActivityCommand = new RelayCommand(DismissActivity, () => IsActivityVisible && !IsRunning);
         CopyLogCommand = new RelayCommand(CopyLog, () => LogEntries.Count > 0);
+        OpenLibreSpotFolderCommand = new RelayCommand(OpenLibreSpotFolder);
         RefreshSnapshotCommand = new RelayCommand(RefreshSnapshot);
+        ClearSettingsSearchCommand = new RelayCommand(() => SettingsSearchText = string.Empty, () => HasSettingsSearchText);
         RelaunchAsAdministratorCommand = new RelayCommand(PresentAdministratorPrompt, () => NeedsAdministratorRelaunch && !IsRunning);
         ConfirmPromptCommand = new RelayCommand(() => _ = ConfirmPromptAsync(), () => IsPromptVisible);
         CancelPromptCommand = new RelayCommand(CancelPrompt, () => IsPromptVisible);
         EscapeCommand = new RelayCommand(HandleEscape);
 
+        ConfigureSettingsSearchFilters();
         RegisterOptionStateObservers();
         RaiseSelectionInsightsChanged();
         RaiseSnapshotInsightsChanged();
@@ -193,6 +230,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<string> ThemeNames { get; }
     public ObservableCollection<string> SchemeOptions { get; }
     public ObservableCollection<string> LyricsThemes { get; }
+    public ObservableCollection<AppCatalog.SpotifyVersionEntry> SpotifyVersionOptions { get; }
+    public ObservableCollection<AppCatalog.DownloadMethodEntry> DownloadMethodOptions { get; }
     public ObservableCollection<SelectionInsightViewModel> SelectionInsights { get; }
     public ObservableCollection<string> SelectedExtensionLabels { get; }
 
@@ -211,7 +250,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand CancelRunCommand { get; }
     public RelayCommand DismissActivityCommand { get; }
     public RelayCommand CopyLogCommand { get; }
+    public RelayCommand OpenLibreSpotFolderCommand { get; }
     public RelayCommand RefreshSnapshotCommand { get; }
+    public RelayCommand ClearSettingsSearchCommand { get; }
     public RelayCommand RelaunchAsAdministratorCommand { get; }
     public RelayCommand ConfirmPromptCommand { get; }
     public RelayCommand CancelPromptCommand { get; }
@@ -227,12 +268,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool NeedsAdministratorRelaunch => !_isAdministratorSession;
 
     public string SessionAccessTitle =>
-        IsAdministratorSession ? "Administrator session" : "Standard session";
+        IsAdministratorSession ? "Ready to run" : "Admin step needed";
 
     public string SessionAccessDetail =>
         IsAdministratorSession
-            ? "Install, reapply, and recovery can run without another prompt."
-            : "You can browse settings here, but any action that modifies Spotify needs elevation.";
+            ? "LibreSpot can patch and recover without another Windows prompt."
+            : "You can review settings now. LibreSpot asks for elevation only when you start.";
 
     public string SpotifyStatusLine =>
         Snapshot.SpotifyInstalled
@@ -244,35 +285,62 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? "Spicetify detected"
             : "Spicetify not installed";
 
+    public bool HasConfigurationRecoveryNotice =>
+        _configurationLoadState == ConfigurationLoadState.RecoveredFromCorrupt;
+
+    public string ConfigurationRecoveryTitle => "Unreadable profile was recovered";
+
+    public string ConfigurationRecoveryDetail =>
+        !HasConfigurationRecoveryNotice
+            ? string.Empty
+            : string.IsNullOrWhiteSpace(_recoveredConfigurationPath)
+                ? "LibreSpot reopened with safe defaults because config.json could not be read. Apply Recommended or Custom to save a fresh profile."
+                : $"LibreSpot moved the unreadable config.json aside and reopened with safe defaults. Apply Recommended or Custom to save a fresh profile. Backup kept as {Path.GetFileName(_recoveredConfigurationPath)}.";
+
     public string ProfileStatusLine =>
-        Snapshot.SavedConfigExists
+        HasConfigurationRecoveryNotice
+            ? "Recovered defaults loaded"
+            : Snapshot.SavedConfigExists
             ? "Saved LibreSpot profile found"
             : "No saved profile yet";
 
     public string WorkspaceRecommendationTitle =>
-        Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-            ? "Refine or recover"
+        HasConfigurationRecoveryNotice
+            ? "Save a fresh baseline"
+            : Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
+            ? "Stabilize or fine-tune"
             : Snapshot.SpotifyInstalled
-                ? "Finish the customization layer"
-                : "Start with the recommended setup";
+                ? "Finish setup"
+                : "Start here";
 
     public string WorkspaceRecommendationDetail =>
-        Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-            ? "Recommended is still the cleanest way to stabilize the stack. Switch to Custom once you know the tweaks you want to keep."
+        HasConfigurationRecoveryNotice
+            ? "LibreSpot recovered from an unreadable profile. Recommended writes a clean baseline again, or you can inspect the backup first."
+            : Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
+            ? "Recommended is still the fastest way back to a clean baseline. Move to Custom once you know what you want to keep."
             : Snapshot.SpotifyInstalled
-                ? "Spotify is already installed — Recommended is the fastest way to restore a balanced setup."
-                : "No Spotify customization stack yet. Recommended is the safest starting point.";
+                ? "Spotify is already installed. Recommended restores the supported customization layer with the least friction."
+                : "No Spotify stack yet. Recommended is the safest starting point.";
+
+    public string WorkspaceRecommendationBrief =>
+        HasConfigurationRecoveryNotice
+            ? "Best way to save a clean profile again."
+            : Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
+                ? "Safest path before fine-tuning."
+                : Snapshot.SpotifyInstalled
+                    ? "Fastest way to restore the supported layer."
+                    : "Fastest way to lay down the known-good baseline.";
 
     public string CustomSelectionSummary
     {
         get
         {
-            var enabledCount = EnumerateAllOptions().Count(option => option.IsSelected);
-            return enabledCount switch
+            var changeCount = CountProfileDifferencesFromRecommended();
+            return changeCount switch
             {
-                0 => "No toggles enabled. LibreSpot will fall back to the calmest baseline.",
-                1 => "1 toggle enabled beyond the base preset.",
-                _ => $"{enabledCount} toggles enabled across install, behavior, and interface."
+                0 => "Still aligned with the stable Recommended baseline.",
+                1 => "1 deliberate change from the default stable profile.",
+                _ => $"{changeCount} deliberate changes from the default stable profile."
             };
         }
     }
@@ -284,6 +352,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string EnabledToggleCountLabel =>
         $"{EnumerateAllOptions().Count(option => option.IsSelected)} enabled";
+
+    public string CustomChangeCountLabel
+    {
+        get
+        {
+            var changeCount = CountProfileDifferencesFromRecommended();
+            return changeCount switch
+            {
+                0 => "Matches Recommended",
+                1 => "1 change",
+                _ => $"{changeCount} changes"
+            };
+        }
+    }
 
     public string SelectedExtensionCountLabel
     {
@@ -332,6 +414,77 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? $"Cache ceiling: {parsed} MB"
             : "Cache: default";
 
+    public string SpotifyVersionSummary => CurrentSpotifyVersionEntry.Label;
+
+    public string SpotifyVersionNotes => CurrentSpotifyVersionEntry.Notes;
+
+    public string DownloadMethodSummary => CurrentDownloadMethodEntry.Label;
+
+    public string DownloadMethodDetail => CurrentDownloadMethodEntry.Detail;
+
+    public string SettingsSearchText
+    {
+        get => _settingsSearchText;
+        set
+        {
+            if (SetProperty(ref _settingsSearchText, value))
+            {
+                RefreshSettingsSearch();
+            }
+        }
+    }
+
+    public bool HasSettingsSearchText => !string.IsNullOrWhiteSpace(SettingsSearchText);
+
+    public bool HasVisibleInstallOptions => HasVisibleOptions(InstallOptions);
+
+    public bool HasVisibleAppearanceSettings => CountAppearanceMatches() > 0;
+
+    public bool HasVisibleCoreOptions => HasVisibleOptions(CoreOptions);
+
+    public bool HasVisibleInterfaceOptions => HasVisibleOptions(InterfaceOptions);
+
+    public bool HasVisibleBehaviorSection => HasVisibleCoreOptions || HasVisibleInterfaceOptions;
+
+    public bool HasVisibleAdvancedOptions => HasVisibleOptions(AdvancedOptions);
+
+    public bool HasVisibleExperienceOptions => HasVisibleOptions(ExperienceOptions);
+
+    public bool HasVisibleAdvancedSection => HasVisibleAdvancedOptions || HasVisibleExperienceOptions;
+
+    public bool HasVisibleExtensions => Extensions.Any(extension => MatchesSettingsSearch(extension.Title, extension.Description));
+
+    public int CustomSearchMatchCount =>
+        CountMatchingOptions(InstallOptions) +
+        CountAppearanceMatches() +
+        CountMatchingOptions(CoreOptions) +
+        CountMatchingOptions(InterfaceOptions) +
+        CountMatchingOptions(AdvancedOptions) +
+        CountMatchingOptions(ExperienceOptions) +
+        Extensions.Count(extension => MatchesSettingsSearch(extension.Title, extension.Description));
+
+    public bool HasAnyCustomSearchMatches => !HasSettingsSearchText || CustomSearchMatchCount > 0;
+
+    public bool ShowCustomSearchEmptyState => HasSettingsSearchText && !HasAnyCustomSearchMatches;
+
+    public string CustomSearchSummary =>
+        HasSettingsSearchText
+            ? CustomSearchMatchCount switch
+            {
+                0 => $"No matches for \"{SettingsSearchText.Trim()}\".",
+                1 => $"1 match for \"{SettingsSearchText.Trim()}\".",
+                _ => $"{CustomSearchMatchCount} matches for \"{SettingsSearchText.Trim()}\"."
+            }
+            : "Search titles and descriptions across Custom.";
+
+    private AppCatalog.SpotifyVersionEntry CurrentSpotifyVersionEntry =>
+        SpotifyVersionOptions.FirstOrDefault(entry => string.Equals(entry.Id, SelectedSpotifyVersionId, StringComparison.Ordinal))
+        ?? SpotifyVersionOptions.First();
+
+    private AppCatalog.DownloadMethodEntry CurrentDownloadMethodEntry =>
+        DownloadMethodOptions.FirstOrDefault(entry => string.Equals(entry.Id, SelectedDownloadMethod, StringComparison.Ordinal))
+        ?? DownloadMethodOptions.First();
+
     public string ExtensionSummary
     {
         get
@@ -348,27 +501,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string MaintenanceGuidanceTitle =>
         Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-            ? "Safe to refresh, roll back, or reset"
+            ? "Ready for upkeep or reset"
             : Snapshot.SpotifyInstalled
                 ? "Customization layer is incomplete"
-                : "Recovery tools are ready when you need them";
+                : "Maintenance tools are standing by";
 
     public string MaintenanceGuidanceDetail =>
         Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-            ? "Use the left column for low-risk upkeep. Use the reset lane only when you want to clear the stack and rebuild."
+            ? "Start with the safer actions. Use reset only when you want to clear the stack and rebuild."
             : Snapshot.SpotifyInstalled
                 ? "Reapply becomes useful once the customization layer is back in place. Until then, Recommended is usually the better path."
-                : "You can still inspect versions or prepare a clean reset. Most maintenance actions unlock once Spotify is installed.";
+                : "You can still inspect versions or prepare a clean reset. Most repair actions matter after Spotify is installed.";
 
     public string RecommendedRunDuration =>
         Snapshot.SpotifyInstalled
-            ? "Usually about 2-3 minutes, depending on whether Spotify needs to restart."
-            : "Usually about 3-4 minutes because LibreSpot may need to lay down the full stack first.";
+            ? "Usually 2-3 minutes, depending on whether Spotify restarts."
+            : "Usually 3-4 minutes because LibreSpot may need to lay down the full stack first.";
 
     public string RecommendedFollowUpText =>
-        Snapshot.SavedConfigExists
-            ? "The saved LibreSpot profile stays aligned with this run, so reapply and maintenance remain predictable later."
-            : "LibreSpot will create the first saved profile during this run so maintenance has a dependable recovery baseline.";
+        HasConfigurationRecoveryNotice
+            ? "This run writes a fresh config.json and keeps the recovered backup in the LibreSpot folder for reference."
+            : Snapshot.SavedConfigExists
+            ? "The saved LibreSpot profile stays aligned with this run, so reapply and maintenance stay predictable later."
+            : "LibreSpot will create the first saved profile during this run so maintenance has a dependable baseline.";
 
     public string CustomProfileTitle
     {
@@ -379,9 +534,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
             return advancedCount switch
             {
-                0 when selectedExtensions <= 3 => "Balanced Daily Driver",
-                <= 2 => "Tailored Setup",
-                _ => "High-Customization Profile"
+                0 when selectedExtensions <= 3 => "Near default",
+                <= 2 => "Balanced custom",
+                _ => "Heavy custom"
             };
         }
     }
@@ -395,15 +550,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
             if (advancedCount == 0 && selectedExtensions <= 3)
             {
-                return "This stays close to LibreSpot's most reliable baseline, with room for a few deliberate preferences.";
+                return "This stays close to LibreSpot's supported baseline with room for a few deliberate preferences.";
             }
 
             if (advancedCount <= 2)
             {
-                return "You are personalizing the stack without pushing too far beyond what is usually easy to reapply after updates.";
+                return "You are personalizing the stack without moving far beyond what is usually easy to reapply after updates.";
             }
 
-            return "Several advanced or novelty toggles are active. Expect a more distinctive shell and a little more upkeep after Spotify changes.";
+            return "Several advanced toggles are active, so expect more upkeep after Spotify changes.";
         }
     }
 
@@ -413,20 +568,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (NeedsAdministratorRelaunch)
             {
-                return "Ready After Elevation";
+                return "Admin step first";
+            }
+
+            if (HasConfigurationRecoveryNotice)
+            {
+                return "Fresh profile ready";
             }
 
             if (HasConflictingSidebarOptions())
             {
-                return "One Overlap To Review";
+                return "Review one conflict";
             }
 
             if (!IsOptionSelected(nameof(InstallConfiguration.CleanInstall)) && !Snapshot.SpotifyInstalled)
             {
-                return "Overlay Mode On A Fresh Machine";
+                return "Best on an existing install";
             }
 
-            return "Ready To Apply";
+            return "Ready";
         }
     }
 
@@ -436,7 +596,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (NeedsAdministratorRelaunch)
             {
-                return "LibreSpot will ask Windows for administrator access before it can patch Spotify and write the runtime files it manages.";
+                return "LibreSpot asks Windows for administrator access before it patches Spotify.";
+            }
+
+            if (HasConfigurationRecoveryNotice)
+            {
+                return "Applying now writes a fresh config.json and keeps the recovered backup untouched for reference.";
             }
 
             if (HasConflictingSidebarOptions())
@@ -446,24 +611,58 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
             if (!IsOptionSelected(nameof(InstallConfiguration.CleanInstall)) && !Snapshot.SpotifyInstalled)
             {
-                return "Skipping a clean start usually helps only when a previous Spotify install is already present. Recommended is often safer on a blank machine.";
+                return "Skipping a clean start usually helps only when Spotify is already installed. Recommended is safer on a blank machine.";
             }
 
-            return "LibreSpot will save this profile first, then hand it to the PowerShell backend so maintenance and reapply stay in sync.";
+            return "LibreSpot saves this profile first, then applies it so maintenance and reapply stay in sync.";
         }
     }
 
     public string CustomApplyCaption =>
         NeedsAdministratorRelaunch
-            ? "LibreSpot will relaunch with administrator access before it touches Spotify."
+            ? "LibreSpot relaunches with administrator access before it touches Spotify."
+            : HasConfigurationRecoveryNotice
+                ? "LibreSpot replaces the unreadable config.json with this profile and keeps the recovered copy in the LibreSpot folder."
             : HasConflictingSidebarOptions()
                 ? "You can still apply this profile, but the overlapping right-sidebar toggles are worth simplifying first."
                 : "LibreSpot saves this profile to config.json, then applies it through the original backend.";
 
+    public bool IsOverviewWorkspaceSelected => SelectedWorkspaceIndex == 0;
+
+    public string WorkspaceHeroEyebrow => SelectedWorkspaceIndex switch
+    {
+        1 => "CUSTOM PROFILE",
+        2 => "RECOVERY LANE",
+        _ => "DESKTOP SHELL"
+    };
+
+    public string WorkspaceHeroTitle => SelectedWorkspaceIndex switch
+    {
+        1 => "Custom settings",
+        2 => "Maintenance",
+        _ => "Recommended setup"
+    };
+
+    public string WorkspaceHeroBody => SelectedWorkspaceIndex switch
+    {
+        1 => "Adjust supported options without losing track of the baseline.",
+        2 => "Use repair, rollback, and reset tools when the stack needs attention.",
+        _ => "Start with the quickest stable path, then move to Custom only when you know what to change."
+    };
+
     public int SelectedWorkspaceIndex
     {
         get => _selectedWorkspaceIndex;
-        set => SetProperty(ref _selectedWorkspaceIndex, value);
+        set
+        {
+            if (SetProperty(ref _selectedWorkspaceIndex, value))
+            {
+                RaisePropertyChanged(nameof(IsOverviewWorkspaceSelected));
+                RaisePropertyChanged(nameof(WorkspaceHeroEyebrow));
+                RaisePropertyChanged(nameof(WorkspaceHeroTitle));
+                RaisePropertyChanged(nameof(WorkspaceHeroBody));
+            }
+        }
     }
 
     public string SelectedTheme
@@ -497,6 +696,30 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         set
         {
             if (SetProperty(ref _selectedLyricsTheme, value))
+            {
+                RaiseSelectionInsightsChanged();
+            }
+        }
+    }
+
+    public string SelectedSpotifyVersionId
+    {
+        get => _selectedSpotifyVersionId;
+        set
+        {
+            if (SetProperty(ref _selectedSpotifyVersionId, value))
+            {
+                RaiseSelectionInsightsChanged();
+            }
+        }
+    }
+
+    public string SelectedDownloadMethod
+    {
+        get => _selectedDownloadMethod;
+        set
+        {
+            if (SetProperty(ref _selectedDownloadMethod, value))
             {
                 RaiseSelectionInsightsChanged();
             }
@@ -546,7 +769,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 RaisePropertyChanged(nameof(IsActivityError));
                 RaisePropertyChanged(nameof(IsActivityCanceled));
                 RaisePropertyChanged(nameof(ActivityBadgeText));
+                RaisePropertyChanged(nameof(ActivityDetailLabel));
                 RaisePropertyChanged(nameof(ActivityAssistiveText));
+                RaisePropertyChanged(nameof(ActivitySummaryTitle));
                 RaisePropertyChanged(nameof(TaskbarProgressState));
                 RaisePropertyChanged(nameof(TaskbarProgressFraction));
             }
@@ -564,7 +789,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 RaisePropertyChanged(nameof(ProgressLabel));
                 RaisePropertyChanged(nameof(IsActivityCanceled));
                 RaisePropertyChanged(nameof(ActivityBadgeText));
+                RaisePropertyChanged(nameof(ActivityDetailLabel));
                 RaisePropertyChanged(nameof(ActivityAssistiveText));
+                RaisePropertyChanged(nameof(ActivitySummaryTitle));
                 RaisePropertyChanged(nameof(TaskbarProgressState));
             }
         }
@@ -581,7 +808,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 RaisePropertyChanged(nameof(IsBusyIndeterminate));
                 RaisePropertyChanged(nameof(IsActivityCanceled));
                 RaisePropertyChanged(nameof(ActivityBadgeText));
+                RaisePropertyChanged(nameof(ActivityDetailLabel));
                 RaisePropertyChanged(nameof(ActivityAssistiveText));
+                RaisePropertyChanged(nameof(ActivitySummaryTitle));
                 RaisePropertyChanged(nameof(TaskbarProgressState));
                 RaisePropertyChanged(nameof(TaskbarProgressFraction));
             }
@@ -643,12 +872,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _activityStatus.Contains("canceled", StringComparison.OrdinalIgnoreCase);
 
     public string ActivityBadgeText =>
-        IsCancelRequested ? "Stopping…"
-        : _isRunning ? "Live run"
+        IsCancelRequested ? "Stopping"
+        : _isRunning ? "In progress"
         : IsActivityCanceled ? "Canceled"
-        : IsActivityError ? "Needs attention"
-        : _progressValue >= 100 ? "Run complete"
+        : IsActivityError ? "Needs review"
+        : _progressValue >= 100 ? "Complete"
         : "Ready";
+
+    public string ActivityDetailLabel =>
+        IsRunning || IsCancelRequested
+            ? "CURRENT STEP"
+            : "RUN STATUS";
 
     public string ActivityTitle
     {
@@ -666,7 +900,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 RaisePropertyChanged(nameof(IsActivityError));
                 RaisePropertyChanged(nameof(IsActivityCanceled));
                 RaisePropertyChanged(nameof(ActivityBadgeText));
+                RaisePropertyChanged(nameof(ActivityDetailLabel));
                 RaisePropertyChanged(nameof(ActivityAssistiveText));
+                RaisePropertyChanged(nameof(ActivitySummaryTitle));
                 RaisePropertyChanged(nameof(TaskbarProgressState));
             }
         }
@@ -682,16 +918,32 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         IsCancelRequested
             ? "LibreSpot is stopping the backend and preserving the log gathered so far."
             : IsRunning
-                ? "You can cancel from here if you need to stop early. LibreSpot keeps the live log and current diagnostics on disk."
+                ? "LibreSpot keeps the live log and diagnostics on disk while this runs. You can cancel here if you need to stop early."
                 : IsActivityCanceled
-                    ? "LibreSpot stopped early. The current log is still available, and reapply is usually the cleanest next step."
+                    ? "LibreSpot stopped early. Review the log, then rerun Recommended or Reapply if Spotify looks inconsistent."
                 : IsActivityError
-                    ? "Review the log before you retry so the next run starts with better context."
+                    ? "Open the LibreSpot folder or copy the log before retrying so the next run starts with better context."
                     : _progressValue >= 100
                         ? "Your saved profile and maintenance tools are ready for the next pass."
                         : "You can dismiss this panel or copy the log for reference.";
 
+    public string ActivitySummaryTitle =>
+        IsCancelRequested
+            ? "Stopping safely"
+            : IsRunning
+                ? "While this runs"
+                : IsActivityCanceled || IsActivityError
+                    ? "Recommended next step"
+                    : _progressValue >= 100
+                        ? "Next step"
+                        : "Session details";
+
     public string ActivityLogPathText => $"Log file: {_configurationService.LogPath}";
+
+    public string RunElapsedText =>
+        _runStopwatch.Elapsed.TotalHours >= 1
+            ? _runStopwatch.Elapsed.ToString(@"hh\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture)
+            : _runStopwatch.Elapsed.ToString(@"mm\:ss", System.Globalization.CultureInfo.InvariantCulture);
 
     public string LogLineCountText =>
         LogEntries.Count switch
@@ -707,6 +959,50 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _snapshotRefreshedAt is null
             ? string.Empty
             : $"Last refreshed {_snapshotRefreshedAt.Value.ToString("h:mm:ss tt", System.Globalization.CultureInfo.InvariantCulture)}";
+
+    public bool IsSnapshotStale =>
+        _snapshotRefreshedAt is not null &&
+        DateTime.Now - _snapshotRefreshedAt.Value >= TimeSpan.FromMinutes(5);
+
+    public string SnapshotFreshnessTitle
+    {
+        get
+        {
+            if (_snapshotRefreshedAt is null)
+            {
+                return "Status not checked yet";
+            }
+
+            var age = DateTime.Now - _snapshotRefreshedAt.Value;
+            if (age < TimeSpan.FromMinutes(1))
+            {
+                return "Environment checked just now";
+            }
+
+            if (age < TimeSpan.FromMinutes(3))
+            {
+                return "Environment checked recently";
+            }
+
+            return IsSnapshotStale ? "Refresh recommended" : "Environment may have changed";
+        }
+    }
+
+    public string SnapshotFreshnessDetail
+    {
+        get
+        {
+            if (_snapshotRefreshedAt is null)
+            {
+                return "Use Refresh environment before you decide whether Spotify, Spicetify, or the saved profile need repair.";
+            }
+
+            var refreshedAt = _snapshotRefreshedAt.Value.ToString("h:mm:ss tt", System.Globalization.CultureInfo.InvariantCulture);
+            return IsSnapshotStale
+                ? $"Last checked at {refreshedAt}. Recheck before you repair or reset if anything changed outside LibreSpot."
+                : $"Last checked at {refreshedAt}. Use F5 or Refresh environment after you change Spotify outside LibreSpot.";
+        }
+    }
 
     public bool IsPromptVisible
     {
@@ -745,6 +1041,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _promptCancelText, value);
     }
 
+    public string PromptSummaryTitle
+    {
+        get => _promptSummaryTitle;
+        private set => SetProperty(ref _promptSummaryTitle, value);
+    }
+
+    public string PromptSummaryBody
+    {
+        get => _promptSummaryBody;
+        private set => SetProperty(ref _promptSummaryBody, value);
+    }
+
     public bool IsPromptDestructive
     {
         get => _isPromptDestructive;
@@ -753,15 +1061,98 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public async Task InitializeAsync()
     {
-        var config = await _configurationService.LoadAsync();
-        ApplyConfigurationToEditor(config);
+        var loadResult = await _configurationService.LoadResultAsync();
+        _configurationLoadState = loadResult.State;
+        _recoveredConfigurationPath = loadResult.RecoveredFilePath;
+        ApplyConfigurationToEditor(loadResult.Configuration);
         RefreshSnapshot();
     }
 
     private ObservableCollection<OptionToggleViewModel> CreateOptions(string section) =>
         new(AppCatalog.OptionDefinitions
             .Where(def => def.Section == section)
-            .Select(def => new OptionToggleViewModel(def.Key, def.Title, def.Description)));
+            .Select(def => new OptionToggleViewModel(
+                def.Key,
+                def.Title,
+                def.Description,
+                typeof(InstallConfiguration).GetProperty(def.Key, BindingFlags.Public | BindingFlags.Instance)?.GetValue(_recommendedBaseline) is bool value && value)));
+
+    private void ConfigureSettingsSearchFilters()
+    {
+        ConfigureOptionFilter(InstallOptions);
+        ConfigureOptionFilter(CoreOptions);
+        ConfigureOptionFilter(InterfaceOptions);
+        ConfigureOptionFilter(AdvancedOptions);
+        ConfigureOptionFilter(ExperienceOptions);
+        CollectionViewSource.GetDefaultView(Extensions).Filter = item =>
+            item is ExtensionToggleViewModel extension &&
+            MatchesSettingsSearch(extension.Title, extension.Description);
+    }
+
+    private void ConfigureOptionFilter(ObservableCollection<OptionToggleViewModel> options) =>
+        CollectionViewSource.GetDefaultView(options).Filter = item =>
+            item is OptionToggleViewModel option &&
+            MatchesSettingsSearch(option.Title, option.Description);
+
+    private void RefreshSettingsSearch()
+    {
+        CollectionViewSource.GetDefaultView(InstallOptions).Refresh();
+        CollectionViewSource.GetDefaultView(CoreOptions).Refresh();
+        CollectionViewSource.GetDefaultView(InterfaceOptions).Refresh();
+        CollectionViewSource.GetDefaultView(AdvancedOptions).Refresh();
+        CollectionViewSource.GetDefaultView(ExperienceOptions).Refresh();
+        CollectionViewSource.GetDefaultView(Extensions).Refresh();
+        ClearSettingsSearchCommand.RaiseCanExecuteChanged();
+        RaiseCustomSearchChanged();
+    }
+
+    private void RaiseCustomSearchChanged()
+    {
+        RaisePropertyChanged(nameof(HasSettingsSearchText));
+        RaisePropertyChanged(nameof(HasVisibleInstallOptions));
+        RaisePropertyChanged(nameof(HasVisibleAppearanceSettings));
+        RaisePropertyChanged(nameof(HasVisibleCoreOptions));
+        RaisePropertyChanged(nameof(HasVisibleInterfaceOptions));
+        RaisePropertyChanged(nameof(HasVisibleBehaviorSection));
+        RaisePropertyChanged(nameof(HasVisibleAdvancedOptions));
+        RaisePropertyChanged(nameof(HasVisibleExperienceOptions));
+        RaisePropertyChanged(nameof(HasVisibleAdvancedSection));
+        RaisePropertyChanged(nameof(HasVisibleExtensions));
+        RaisePropertyChanged(nameof(CustomSearchMatchCount));
+        RaisePropertyChanged(nameof(HasAnyCustomSearchMatches));
+        RaisePropertyChanged(nameof(ShowCustomSearchEmptyState));
+        RaisePropertyChanged(nameof(CustomSearchSummary));
+    }
+
+    private int CountMatchingOptions(IEnumerable<OptionToggleViewModel> options) =>
+        options.Count(option => MatchesSettingsSearch(option.Title, option.Description));
+
+    private bool HasVisibleOptions(IEnumerable<OptionToggleViewModel> options) =>
+        options.Any(option => MatchesSettingsSearch(option.Title, option.Description));
+
+    private int CountAppearanceMatches()
+    {
+        var count = 0;
+        count += MatchesSettingsSearch("Theme pack", "Choose the Spicetify theme pack LibreSpot restores.") ? 1 : 0;
+        count += MatchesSettingsSearch("Color scheme", ThemeSchemeHint) ? 1 : 0;
+        count += MatchesSettingsSearch("Lyrics theme", LyricsThemeHint) ? 1 : 0;
+        count += MatchesSettingsSearch("Cache limit", "Leave 0 for the default cache behavior.") ? 1 : 0;
+        count += MatchesSettingsSearch("Spotify build", SpotifyVersionNotes) ? 1 : 0;
+        count += MatchesSettingsSearch("Download path", DownloadMethodDetail) ? 1 : 0;
+        return count;
+    }
+
+    private bool MatchesSettingsSearch(string title, string description)
+    {
+        if (!HasSettingsSearchText)
+        {
+            return true;
+        }
+
+        var query = SettingsSearchText.Trim();
+        return title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+               description.Contains(query, StringComparison.OrdinalIgnoreCase);
+    }
 
     private void RegisterOptionStateObservers()
     {
@@ -826,10 +1217,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(LyricsThemeHint));
         RaisePropertyChanged(nameof(LyricsSummary));
         RaisePropertyChanged(nameof(CacheSummary));
+        RaisePropertyChanged(nameof(SpotifyVersionSummary));
+        RaisePropertyChanged(nameof(SpotifyVersionNotes));
+        RaisePropertyChanged(nameof(DownloadMethodSummary));
+        RaisePropertyChanged(nameof(DownloadMethodDetail));
         RaisePropertyChanged(nameof(ExtensionSummary));
         RaisePropertyChanged(nameof(SelectedExtensionCountLabel));
         RaisePropertyChanged(nameof(HasSelectedExtensions));
         RaisePropertyChanged(nameof(AccessPostureLabel));
+        RaisePropertyChanged(nameof(CustomChangeCountLabel));
         RaisePropertyChanged(nameof(CustomProfileTitle));
         RaisePropertyChanged(nameof(CustomProfileDetail));
         RaisePropertyChanged(nameof(CustomRunReadinessTitle));
@@ -843,9 +1239,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(SessionAccessDetail));
         RaisePropertyChanged(nameof(SpotifyStatusLine));
         RaisePropertyChanged(nameof(CustomizationStatusLine));
+        RaisePropertyChanged(nameof(HasConfigurationRecoveryNotice));
+        RaisePropertyChanged(nameof(ConfigurationRecoveryTitle));
+        RaisePropertyChanged(nameof(ConfigurationRecoveryDetail));
         RaisePropertyChanged(nameof(ProfileStatusLine));
         RaisePropertyChanged(nameof(WorkspaceRecommendationTitle));
         RaisePropertyChanged(nameof(WorkspaceRecommendationDetail));
+        RaisePropertyChanged(nameof(WorkspaceRecommendationBrief));
         RaisePropertyChanged(nameof(MaintenanceGuidanceTitle));
         RaisePropertyChanged(nameof(MaintenanceGuidanceDetail));
         RaisePropertyChanged(nameof(AccessPostureLabel));
@@ -885,6 +1285,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var body = definition.IsDestructive
             ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}This is a deeper reset path and may remove the current customization state. Continue only when you are ready to rebuild."
             : $"{definition.Description}{Environment.NewLine}{Environment.NewLine}LibreSpot will keep this window open and stream backend progress while the action runs.";
+        var (summaryTitle, summaryBody) = BuildMaintenancePromptSummary(definition);
 
         ShowPrompt(
             definition.Title,
@@ -892,7 +1293,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             definition.ButtonText,
             definition.IsDestructive ? "Keep current setup" : "Cancel",
             definition.IsDestructive,
-            () => StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2));
+            () => StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2),
+            summaryTitle,
+            summaryBody);
 
         return Task.CompletedTask;
     }
@@ -925,6 +1328,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ClearLog();
         ProgressValue = 0;
         IsActivityVisible = true;
+        _runStopwatch.Restart();
+        _runElapsedTimer.Start();
+        RaisePropertyChanged(nameof(RunElapsedText));
         IsRunning = true;
         IsCancelRequested = false;
 
@@ -939,6 +1345,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 try
                 {
                     await _configurationService.SaveAsync(configuration, token);
+                    _configurationLoadState = ConfigurationLoadState.Loaded;
+                    _recoveredConfigurationPath = null;
                 }
                 catch (OperationCanceledException)
                 {
@@ -972,6 +1380,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         finally
         {
+            _runStopwatch.Stop();
+            _runElapsedTimer.Stop();
+            RaisePropertyChanged(nameof(RunElapsedText));
             IsRunning = false;
             IsCancelRequested = false;
             RefreshSnapshot();
@@ -987,6 +1398,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         try { _runCts?.Cancel(); } catch { }
+        _runElapsedTimer.Stop();
+        _snapshotFreshnessTimer.Stop();
         _runCts?.Dispose();
         _runCts = null;
     }
@@ -1065,7 +1478,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Snapshot = _snapshotService.GetSnapshot(_configurationService.ConfigPath);
         _snapshotRefreshedAt = DateTime.Now;
         RaisePropertyChanged(nameof(LastRefreshedText));
+        RaiseSnapshotFreshnessChanged();
         RaiseSnapshotInsightsChanged();
+    }
+
+    private void RaiseSnapshotFreshnessChanged()
+    {
+        RaisePropertyChanged(nameof(IsSnapshotStale));
+        RaisePropertyChanged(nameof(SnapshotFreshnessTitle));
+        RaisePropertyChanged(nameof(SnapshotFreshnessDetail));
     }
 
     private void PresentCancelRunPrompt()
@@ -1090,7 +1511,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ActivityStep = "Cancel requested";
                 _runCts?.Cancel();
                 return Task.CompletedTask;
-            });
+            },
+            "If you stop here",
+            "LibreSpot keeps the current log. Review it first, then rerun Recommended or Reapply if Spotify looks inconsistent.");
+    }
+
+    public void PresentCloseWhileRunningPrompt(Func<Task> confirmAction)
+    {
+        if (!IsRunning)
+        {
+            return;
+        }
+
+        ShowPrompt(
+            "Close LibreSpot now?",
+            "LibreSpot is still modifying Spotify." +
+            Environment.NewLine + Environment.NewLine +
+            "Closing now will stop the active backend run, dismiss the live progress shell, and leave any partial changes for a later reapply pass if you need one.",
+            "Close and stop run",
+            "Keep LibreSpot open",
+            true,
+            confirmAction,
+            "Safer choice",
+            "Keep LibreSpot open if you want the current backend step to finish and the final result to stay visible here.");
     }
 
     private void DismissActivity()
@@ -1135,6 +1578,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         AppendLog("Clipboard was unavailable. Log is still saved to install.log.", "WARN");
     }
 
+    private void OpenLibreSpotFolder()
+    {
+        try
+        {
+            Directory.CreateDirectory(_configurationService.ConfigDirectory);
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = _configurationService.ConfigDirectory,
+                UseShellExecute = true,
+                WorkingDirectory = _configurationService.ConfigDirectory
+            });
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"Couldn't open the LibreSpot folder: {ex.Message}", "WARN");
+        }
+    }
+
     private void PresentAdministratorPrompt()
     {
         ShowPrompt(
@@ -1149,7 +1610,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             {
                 RelaunchAsAdministrator();
                 return Task.CompletedTask;
-            });
+            },
+            "Before you continue",
+            "Nothing changes until Windows approves the relaunch. You can stay here and keep reviewing settings if you are not ready.");
     }
 
     private void RelaunchAsAdministrator()
@@ -1210,12 +1673,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         string confirmText,
         string cancelText,
         bool isDestructive,
-        Func<Task> confirmAction)
+        Func<Task> confirmAction,
+        string? summaryTitle = null,
+        string? summaryBody = null)
     {
         PromptTitle = title;
         PromptBody = body;
         PromptConfirmText = confirmText;
         PromptCancelText = cancelText;
+        PromptSummaryTitle = summaryTitle ?? "What happens next";
+        PromptSummaryBody = summaryBody ??
+            (isDestructive
+                ? "LibreSpot will make the requested change and leave the result visible here so you can review it afterward."
+                : "LibreSpot will keep the window open, stream progress here, and leave the result easy to review afterward.");
         IsPromptDestructive = isDestructive;
         _pendingPromptAction = confirmAction;
         IsPromptVisible = true;
@@ -1258,17 +1728,35 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         PromptBody = string.Empty;
         PromptConfirmText = "Continue";
         PromptCancelText = "Cancel";
+        PromptSummaryTitle = string.Empty;
+        PromptSummaryBody = string.Empty;
         IsPromptDestructive = false;
         _pendingPromptAction = null;
     }
 
+    private static (string Title, string Body) BuildMaintenancePromptSummary(MaintenanceActionDefinition definition) =>
+        definition.Action switch
+        {
+            "CheckUpdates" => ("What this does", "LibreSpot compares pinned versions and writes the result to the live log before you decide whether to update."),
+            "Reapply" => ("What this does", "LibreSpot refreshes SpotX first, then restores the saved Spicetify layer so the stack returns to its last known profile."),
+            "RestoreVanilla" => ("What this does", "This removes the visible Spicetify layer while leaving SpotX in place, so Spotify returns to a calmer default look."),
+            "UninstallSpicetify" => ("What this removes", "LibreSpot restores Spotify first, then removes the Spicetify CLI, config folder, and PATH entry from this machine."),
+            "FullReset" => ("What this removes", "LibreSpot clears Spotify customization state and related leftovers so the next install can start from a truly clean baseline."),
+            _ => definition.IsDestructive
+                ? ("What this removes", "LibreSpot will make a deeper cleanup pass and leave the result visible here afterward.")
+                : ("What this does", "LibreSpot will keep the window open, stream progress here, and leave the result easy to review afterward.")
+        };
+
     private void ShowNotice(string title, string status, string step)
     {
+        _runStopwatch.Reset();
+        _runElapsedTimer.Stop();
         ActivityTitle = title;
         ActivityStatus = status;
         ActivityStep = step;
         ProgressValue = 0;
         IsActivityVisible = true;
+        RaisePropertyChanged(nameof(RunElapsedText));
     }
 
     private static bool IsAdministrator()
@@ -1306,6 +1794,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SelectedLyricsTheme = AppCatalog.LyricsThemes.Contains(configuration.SpotX_LyricsTheme)
             ? configuration.SpotX_LyricsTheme
             : "spotify";
+        SelectedSpotifyVersionId = AppCatalog.SpotifyVersionManifest.Any(entry => string.Equals(entry.Id, configuration.SpotX_SpotifyVersionId, StringComparison.Ordinal))
+            ? configuration.SpotX_SpotifyVersionId
+            : "auto";
+        SelectedDownloadMethod = AppCatalog.DownloadMethods.Any(entry => string.Equals(entry.Id, configuration.SpotX_DownloadMethod, StringComparison.Ordinal))
+            ? configuration.SpotX_DownloadMethod
+            : string.Empty;
         CacheLimitText = configuration.SpotX_CacheLimit.ToString(System.Globalization.CultureInfo.InvariantCulture);
         SelectedScheme = AppCatalog.ThemeSchemes[SelectedTheme].Contains(configuration.Spicetify_Scheme)
             ? configuration.Spicetify_Scheme
@@ -1341,6 +1835,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ApplyOptionsToConfiguration(ExperienceOptions, configuration);
 
         configuration.SpotX_LyricsTheme = SelectedLyricsTheme;
+        configuration.SpotX_SpotifyVersionId = SelectedSpotifyVersionId;
+        configuration.SpotX_DownloadMethod = SelectedDownloadMethod;
         configuration.Spicetify_Theme = SelectedTheme;
         configuration.Spicetify_Scheme = SelectedScheme;
         configuration.SpotX_CacheLimit = int.TryParse(
@@ -1456,6 +1952,74 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 "Minimal Spicetify Layer",
                 "Marketplace, theme pack, and built-in extensions are all pared back. This keeps the shell lean, but removes most of LibreSpot's customization layer."));
         }
+
+        if (!string.Equals(SelectedSpotifyVersionId, "auto", StringComparison.Ordinal))
+        {
+            var versionTone =
+                SelectedSpotifyVersionId.Contains("win7", StringComparison.OrdinalIgnoreCase) ||
+                SelectedSpotifyVersionId.Contains(".x86", StringComparison.OrdinalIgnoreCase)
+                    ? "warning"
+                    : "accent";
+
+            SelectionInsights.Add(new SelectionInsightViewModel(
+                versionTone,
+                "Pinned Compatibility Target",
+                CurrentSpotifyVersionEntry.Notes));
+        }
+
+        if (!string.IsNullOrWhiteSpace(SelectedDownloadMethod))
+        {
+            SelectionInsights.Add(new SelectionInsightViewModel(
+                "muted",
+                CurrentDownloadMethodEntry.Label,
+                CurrentDownloadMethodEntry.Detail));
+        }
+    }
+
+    private int CountProfileDifferencesFromRecommended()
+    {
+        var differences = EnumerateAllOptions().Count(option => option.IsSelected != option.IsRecommendedDefault);
+        differences += Extensions.Count(extension => extension.IsSelected != extension.IsRecommendedDefault);
+
+        if (!string.Equals(SelectedTheme, _recommendedBaseline.Spicetify_Theme, StringComparison.Ordinal))
+        {
+            differences++;
+        }
+
+        if (!string.Equals(SelectedScheme, _recommendedBaseline.Spicetify_Scheme, StringComparison.Ordinal))
+        {
+            differences++;
+        }
+
+        if (!string.Equals(SelectedLyricsTheme, _recommendedBaseline.SpotX_LyricsTheme, StringComparison.Ordinal))
+        {
+            differences++;
+        }
+
+        var cacheLimit = int.TryParse(
+            CacheLimitText,
+            System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var parsed)
+            ? Math.Clamp(parsed, 0, 50_000)
+            : 0;
+
+        if (cacheLimit != _recommendedBaseline.SpotX_CacheLimit)
+        {
+            differences++;
+        }
+
+        if (!string.Equals(SelectedSpotifyVersionId, _recommendedBaseline.SpotX_SpotifyVersionId, StringComparison.Ordinal))
+        {
+            differences++;
+        }
+
+        if (!string.Equals(SelectedDownloadMethod, _recommendedBaseline.SpotX_DownloadMethod, StringComparison.Ordinal))
+        {
+            differences++;
+        }
+
+        return differences;
     }
 
     private bool IsOptionSelected(string key) =>
