@@ -53,16 +53,31 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
 
-$global:VERSION = '3.5.1'
+$global:VERSION = '3.6.0'
+
 
 # CLI argument detection. Supports `irm URL | iex -clean` (PowerShell passes
 # trailing args to `iex` as $args inside the invoked script) and also
 # `powershell.exe -File LibreSpot.ps1 -clean` via the same $args.
-$script:CliClean = $false
+#
+# Recognized flags:
+#   -clean              Pre-tick Easy mode + CleanInstall for a one-shot rebuild.
+#   -watch              Headless auto-reapply check. No UI. Scheduled task uses this.
+#   -installwatcher     Register the scheduled task that calls `-watch` and exit.
+#   -uninstallwatcher   Remove that scheduled task and exit.
+$script:CliClean           = $false
+$script:CliWatch           = $false
+$script:CliInstallWatcher  = $false
+$script:CliUninstallWatcher = $false
 try {
     if ($args -and $args.Count -gt 0) {
         foreach ($a in $args) {
-            if ([string]$a -match '^-{1,2}clean$') { $script:CliClean = $true }
+            switch -Regex ([string]$a) {
+                '^-{1,2}clean$'              { $script:CliClean = $true }
+                '^-{1,2}watch$'              { $script:CliWatch = $true }
+                '^-{1,2}installwatcher$'     { $script:CliInstallWatcher = $true }
+                '^-{1,2}uninstallwatcher$'   { $script:CliUninstallWatcher = $true }
+            }
         }
     }
 } catch {}
@@ -108,6 +123,9 @@ $global:BACKUP_ROOT            = "$env:USERPROFILE\LibreSpot_Backups"
 $global:CONFIG_DIR             = "$env:APPDATA\LibreSpot"
 $global:CONFIG_PATH            = "$env:APPDATA\LibreSpot\config.json"
 $global:LOG_PATH               = "$env:APPDATA\LibreSpot\install.log"
+$global:WATCHER_STATE_PATH     = "$env:APPDATA\LibreSpot\watcher-state.json"
+$global:WATCHER_LOG_PATH       = "$env:APPDATA\LibreSpot\watcher.log"
+$global:WATCHER_TASK_NAME      = 'LibreSpot\ReapplyWatcher'
 
 $global:BrushGreen = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString("#FF22c55e"))
 $global:BrushRed   = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString("#FFef4444"))
@@ -120,6 +138,351 @@ $script:BrushConverter = [System.Windows.Media.BrushConverter]::new()
 $script:EntryInvocation = $MyInvocation
 $script:EntryCommandPath = $PSCommandPath
 $script:ConfigLoadWarning = $null
+
+# =============================================================================
+# 1b. AUTO-REAPPLY WATCHER (Track 4.2)
+# =============================================================================
+# Headless mode invoked by a scheduled task that detects Spotify.exe version
+# bumps and re-runs the saved SpotX config. No UI is loaded in this path —
+# anything requiring $window, $ui, or a WPF dispatcher is off-limits.
+
+function Write-WatcherLog {
+    param([string]$Message, [string]$Level = 'INFO')
+    try {
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
+            New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null
+        }
+        $line = "[{0}] [{1}] {2}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Level, $Message
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::AppendAllText($global:WATCHER_LOG_PATH, $line + [Environment]::NewLine, $utf8NoBom)
+        # Trim the watcher log when it exceeds ~1 MB so an unattended machine
+        # can't fill the disk with 15-minute polling entries.
+        if ((Get-Item -LiteralPath $global:WATCHER_LOG_PATH).Length -gt 1048576) {
+            $keep = Get-Content -LiteralPath $global:WATCHER_LOG_PATH -Tail 500
+            [System.IO.File]::WriteAllLines($global:WATCHER_LOG_PATH, $keep, $utf8NoBom)
+        }
+    } catch {}
+}
+
+function Get-WatcherState {
+    if (-not (Test-Path -LiteralPath $global:WATCHER_STATE_PATH)) {
+        return @{ LastKnownVersion = $null; LastRunAt = $null; LastOutcome = $null }
+    }
+    try {
+        $raw = Get-Content -LiteralPath $global:WATCHER_STATE_PATH -Raw -ErrorAction Stop | ConvertFrom-Json
+        return @{
+            LastKnownVersion = [string]$raw.LastKnownVersion
+            LastRunAt        = [string]$raw.LastRunAt
+            LastOutcome      = [string]$raw.LastOutcome
+        }
+    } catch {
+        return @{ LastKnownVersion = $null; LastRunAt = $null; LastOutcome = $null }
+    }
+}
+
+function Set-WatcherState {
+    param([hashtable]$State)
+    try {
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
+            New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null
+        }
+        $State | ConvertTo-Json -Compress | Set-Content -LiteralPath $global:WATCHER_STATE_PATH -Encoding UTF8
+    } catch {
+        Write-WatcherLog "State save failed: $($_.Exception.Message)" -Level 'WARN'
+    }
+}
+
+function Get-InstalledSpotifyVersion {
+    if (-not (Test-Path -LiteralPath $global:SPOTIFY_EXE_PATH)) { return $null }
+    try { return (Get-Item -LiteralPath $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion }
+    catch { return $null }
+}
+
+function Test-SpotifyRunning {
+    try { return [bool](Get-Process -Name 'Spotify' -ErrorAction SilentlyContinue) }
+    catch { return $false }
+}
+
+function Get-WatcherLaunchCommand {
+    # Returns a [string[]]{ FileName, ArgumentList... } suitable for schtasks.exe's
+    # /TR value. Prefers the compiled LibreSpot.exe when the user launched from it;
+    # falls back to powershell.exe + -File when launched from the raw .ps1. Returns
+    # $null when neither path is usable (e.g. `irm | iex`) so the caller can surface
+    # a helpful error instead of registering a broken task.
+    $entry = [string]$script:EntryCommandPath
+    if ([string]::IsNullOrWhiteSpace($entry)) { return $null }
+    if (-not (Test-Path -LiteralPath $entry)) { return $null }
+
+    $ext = [System.IO.Path]::GetExtension($entry).ToLowerInvariant()
+    if ($ext -eq '.exe') {
+        return @{ Command = "`"$entry`" -Watch"; Entry = $entry }
+    }
+    if ($ext -eq '.ps1') {
+        $ps = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+        if (-not (Test-Path -LiteralPath $ps)) { $ps = 'powershell.exe' }
+        return @{ Command = "`"$ps`" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$entry`" -Watch"; Entry = $entry }
+    }
+    return $null
+}
+
+function Test-AutoReapplyTaskRegistered {
+    try {
+        $out = & schtasks.exe /Query /TN $global:WATCHER_TASK_NAME 2>$null
+        return ($LASTEXITCODE -eq 0) -and ($out -and $out.Length -gt 0)
+    } catch { return $false }
+}
+
+function Register-AutoReapplyTask {
+    # Creates a per-user scheduled task that fires at logon, then again every
+    # 30 minutes, invoking LibreSpot in -Watch mode. Returns $true on success.
+    $launch = Get-WatcherLaunchCommand
+    if (-not $launch) {
+        Write-WatcherLog 'Register: no usable LibreSpot entry path (iex launch?). Watcher not registered.' -Level 'ERROR'
+        return $false
+    }
+
+    # Unregister first so we don't get "task already exists" failures when the
+    # user toggles the setting. schtasks /Create /F also overwrites, but the
+    # explicit delete keeps the semantics obvious.
+    try { Unregister-AutoReapplyTask | Out-Null } catch {}
+
+    # Build an inline XML task definition. schtasks.exe's flag syntax can't
+    # express "logon trigger + repetition every 30 minutes for 1 day" cleanly,
+    # but the XML schema can. Repetition Duration=PT0S means "forever" per
+    # MS-TSCH 2.3.5.2; Interval=PT30M is every 30 minutes.
+    $escapedCommand = [System.Security.SecurityElement]::Escape($launch.Command)
+    $userId = [System.Security.SecurityElement]::Escape($env:USERNAME)
+    $xml = @"
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Author>LibreSpot</Author>
+    <Description>LibreSpot reapplies SpotX automatically when Spotify updates itself. Toggle from Maintenance inside the app.</Description>
+    <URI>\LibreSpot\ReapplyWatcher</URI>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+      <Delay>PT2M</Delay>
+      <Repetition>
+        <Interval>PT30M</Interval>
+        <Duration>PT0S</Duration>
+        <StopAtDurationEnd>false</StopAtDurationEnd>
+      </Repetition>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>$userId</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT30M</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>$escapedCommand</Command>
+    </Exec>
+  </Actions>
+</Task>
+"@
+
+    $xmlPath = Join-Path $global:CONFIG_DIR "watcher-task.xml"
+    try {
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
+            New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null
+        }
+        # schtasks /Create /XML requires UTF-16 LE with BOM to match the XML header.
+        [System.IO.File]::WriteAllText($xmlPath, $xml, [System.Text.Encoding]::Unicode)
+
+        $output = & schtasks.exe /Create /TN $global:WATCHER_TASK_NAME /XML $xmlPath /F 2>&1
+        $ok = ($LASTEXITCODE -eq 0)
+        if ($ok) {
+            Write-WatcherLog "Register: scheduled task created for $($launch.Entry)"
+        } else {
+            Write-WatcherLog "Register failed (exit $LASTEXITCODE): $($output -join ' ')" -Level 'ERROR'
+        }
+        return $ok
+    } catch {
+        Write-WatcherLog "Register exception: $($_.Exception.Message)" -Level 'ERROR'
+        return $false
+    } finally {
+        try { if (Test-Path -LiteralPath $xmlPath) { Remove-Item -LiteralPath $xmlPath -Force -ErrorAction SilentlyContinue } } catch {}
+    }
+}
+
+function Unregister-AutoReapplyTask {
+    try {
+        $null = & schtasks.exe /Delete /TN $global:WATCHER_TASK_NAME /F 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-WatcherLog "Unregister: scheduled task removed"
+            return $true
+        }
+        return $false
+    } catch { return $false }
+}
+
+function Invoke-HeadlessReapply {
+    # Minimal reapply pipeline — runs SpotX synchronously with the saved config
+    # and reapplies Spicetify if the CLI is present. Intentionally does NOT use
+    # any UI / runspace plumbing. Caller runs on the main thread from -Watch.
+    param([hashtable]$Config)
+    if (-not $Config) { throw 'Invoke-HeadlessReapply: missing config' }
+
+    $tempDir = Join-Path $global:TEMP_DIR ("LibreSpot_Watcher_" + [guid]::NewGuid().ToString('N').Substring(0,8))
+    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+    try {
+        $spotxRun = Join-Path $tempDir 'spotx_run.ps1'
+
+        # Download + hash-verify SpotX. We DON'T fall back to BITS here because
+        # the watcher runs unattended and we'd rather silently skip than use a
+        # different download backend than the user-triggered install path.
+        Write-WatcherLog "Downloading SpotX run.ps1"
+        Invoke-WebRequest -Uri $global:URL_SPOTX -OutFile $spotxRun -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+        $actualHash = (Get-FileHash -LiteralPath $spotxRun -Algorithm SHA256).Hash.ToLowerInvariant()
+        $expectedHash = [string]$global:PinnedReleases.SpotX.SHA256
+        if ($actualHash -ne $expectedHash.ToLowerInvariant()) {
+            throw "SpotX hash mismatch. Expected $expectedHash, got $actualHash. Refusing to run."
+        }
+
+        $spotxArgs = Build-SpotXParams -Config $Config
+        Write-WatcherLog "Invoking SpotX with: $spotxArgs"
+        $spotxArgList = $spotxArgs -split ' '
+
+        # Use powershell.exe isolation so SpotX can't leak runtime state into our
+        # own script scope. Exit code is the only signal we care about.
+        $psExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+        if (-not (Test-Path -LiteralPath $psExe)) { $psExe = 'powershell.exe' }
+        $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+        $pinfo.FileName = $psExe
+        $pinfo.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$spotxRun`" $spotxArgs"
+        $pinfo.RedirectStandardOutput = $true
+        $pinfo.RedirectStandardError  = $true
+        $pinfo.UseShellExecute = $false
+        $pinfo.CreateNoWindow = $true
+        $proc = [System.Diagnostics.Process]::Start($pinfo)
+        if (-not $proc.WaitForExit(20 * 60 * 1000)) {
+            try { $proc.Kill() } catch {}
+            throw "SpotX timed out after 20 minutes."
+        }
+        if ($proc.ExitCode -ne 0) {
+            throw "SpotX exited with code $($proc.ExitCode)."
+        }
+        Write-WatcherLog "SpotX completed successfully" -Level 'SUCCESS'
+
+        # Reapply Spicetify when it's installed. Missing CLI is fine — it just
+        # means the user only patches with SpotX and that part is already done.
+        $spicetifyExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
+        if (Test-Path -LiteralPath $spicetifyExe) {
+            try {
+                & $spicetifyExe 'backup' 'apply' 2>&1 | Out-Null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-WatcherLog "Spicetify reapplied" -Level 'SUCCESS'
+                } else {
+                    Write-WatcherLog "Spicetify apply exited $LASTEXITCODE" -Level 'WARN'
+                }
+            } catch {
+                Write-WatcherLog "Spicetify apply failed: $($_.Exception.Message)" -Level 'WARN'
+            }
+        }
+    } finally {
+        try { Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue } catch {}
+    }
+}
+
+function Invoke-AutoReapplyWatcher {
+    # -Watch entry point. Returns an exit code to satisfy schtasks reporting.
+    Write-WatcherLog "--- Watcher tick ---"
+
+    $currentVersion = Get-InstalledSpotifyVersion
+    if (-not $currentVersion) {
+        Write-WatcherLog "Spotify not installed — skipping."
+        return 0
+    }
+
+    $state = Get-WatcherState
+
+    # First-ever run: record the version and do nothing. Reapplying on the
+    # first tick would clobber a freshly-installed unconfigured Spotify.
+    if (-not $state.LastKnownVersion) {
+        Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'Initialized' }
+        Write-WatcherLog "Initialized last-known version to $currentVersion (no reapply this tick)"
+        return 0
+    }
+
+    if ($currentVersion -eq $state.LastKnownVersion) {
+        Write-WatcherLog "Spotify still at $currentVersion — nothing to do"
+        Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'UpToDate' }
+        return 0
+    }
+
+    Write-WatcherLog "Spotify version bump: $($state.LastKnownVersion) -> $currentVersion" -Level 'STEP'
+
+    if (Test-SpotifyRunning) {
+        Write-WatcherLog "Spotify is running — deferring reapply to next tick"
+        Set-WatcherState -State @{ LastKnownVersion = $state.LastKnownVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'DeferredSpotifyRunning' }
+        return 0
+    }
+
+    $saved = $null
+    try { $saved = Load-LibreSpotConfig } catch { Write-WatcherLog "Config load failed: $($_.Exception.Message)" -Level 'ERROR' }
+    if (-not $saved) {
+        Write-WatcherLog "No saved LibreSpot config — cannot reapply automatically" -Level 'WARN'
+        Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'NoConfig' }
+        return 0
+    }
+    $saved = Normalize-LibreSpotConfig -Config $saved
+
+    try {
+        Invoke-HeadlessReapply -Config $saved
+        Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'Reapplied' }
+        return 0
+    } catch {
+        Write-WatcherLog "Reapply failed: $($_.Exception.Message)" -Level 'ERROR'
+        # Keep LastKnownVersion unchanged so we'll retry next tick.
+        Set-WatcherState -State @{ LastKnownVersion = $state.LastKnownVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = "Error: $($_.Exception.Message)" }
+        return 1
+    }
+}
+
+# -InstallWatcher / -UninstallWatcher don't depend on Build-SpotXParams or the
+# config pipeline, so they can exit immediately. The -Watch entry point runs
+# AFTER Build-SpotXParams is defined (search for "CliWatch" later in this file).
+if ($script:CliInstallWatcher) {
+    Write-WatcherLog "CLI: -installwatcher"
+    $ok = Register-AutoReapplyTask
+    if ($ok) {
+        Write-Host "LibreSpot auto-reapply watcher registered."
+        exit 0
+    }
+    Write-Warning "LibreSpot watcher registration failed; see $($global:WATCHER_LOG_PATH)."
+    exit 1
+}
+
+if ($script:CliUninstallWatcher) {
+    Write-WatcherLog "CLI: -uninstallwatcher"
+    $ok = Unregister-AutoReapplyTask
+    if ($ok) { Write-Host "LibreSpot auto-reapply watcher removed." } else { Write-Host "LibreSpot watcher was not registered." }
+    exit 0
+}
 
 # =============================================================================
 # 2. ADMIN CHECK
@@ -279,6 +642,9 @@ $global:EasyDefaults = @{
     Spicetify_Theme="(None - Marketplace Only)"; Spicetify_Scheme="Default"; Spicetify_Marketplace=$true
     Spicetify_Extensions=@("fullAppDisplay.js","shuffle+.js","trashbin.js")
     CleanInstall=$true; LaunchAfter=$true
+    # Auto-reapply after Spotify updates (Track 4.2). Off by default — we won't
+    # register a scheduled task until the user explicitly opts in from Maintenance.
+    AutoReapply_Enabled=$false
 }
 
 $global:SpotXLyricsThemes = @(
@@ -377,7 +743,7 @@ function Normalize-LibreSpotConfig {
         'SpotX_DisableStartup','SpotX_NoShortcut','SpotX_OldLyrics','SpotX_HideColIconOff',
         'SpotX_Plus','SpotX_NewFullscreen','SpotX_FunnyProgress','SpotX_ExpSpotify','SpotX_LyricsBlock',
         'SpotX_SendVersionOff','SpotX_StartSpoti','SpotX_DevTools','SpotX_Mirror','SpotX_ConfirmUninstall',
-        'Spicetify_Marketplace'
+        'Spicetify_Marketplace','AutoReapply_Enabled'
     )
     foreach ($key in $booleanKeys) {
         if ($Config -and $Config.ContainsKey($key)) {
@@ -1147,6 +1513,13 @@ $xaml = @"
                                                 <Button Name="BtnRestoreConfig" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Restore the newest backup" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Bring back the latest saved Spicetify configuration and apply it immediately." Foreground="#FF94A3B8" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Button Name="BtnCheckUpdates" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Check pinned versions" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Compare LibreSpot's pinned releases against the latest upstream versions." Foreground="#FF94A3B8" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Button Name="BtnReapply" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Reapply after a Spotify update" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Run SpotX again and reapply Spicetify without rebuilding your preferences from scratch." Foreground="#FF94A3B8" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
+                                                <Border Background="#FF0b1118" BorderBrush="#FF1c2a3c" BorderThickness="1" CornerRadius="10" Padding="14,12" Margin="0,10,0,0">
+                                                    <StackPanel>
+                                                        <CheckBox Name="ChkAutoReapply" Content="Auto-reapply when Spotify updates itself" Style="{StaticResource DarkCheckBox}" ToolTip="Registers a per-user scheduled task that watches Spotify.exe's version number and reruns the saved SpotX config silently whenever it changes."/>
+                                                        <TextBlock Name="AutoReapplyStatusText" Text="Scheduled task: not installed" Foreground="#FF94A3B8" FontSize="11" Margin="28,4,0,0" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="The watcher only runs when Spotify is closed, skips automatically if no saved LibreSpot config exists, and writes every action to watcher.log next to the install log." Foreground="#FF64748B" FontSize="10.5" Margin="28,4,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Border>
                                             </StackPanel>
                                         </Border>
                                         <Border Grid.Column="2" Style="{StaticResource SurfaceCard}">
@@ -1311,6 +1684,7 @@ $ui = @{}
   'StatusCardSpotify','StatusCardSpotX','StatusCardSpicetify','StatusCardMarketplace','StatusCardTheme',
   'StatusSpotify','StatusSpotX','StatusSpicetify','StatusMarketplace','StatusTheme',
   'BtnBackupConfig','BtnRestoreConfig','BtnCheckUpdates','BtnReapply','BtnSpicetifyRestore','BtnUninstallSpicetify','BtnFullReset',
+  'ChkAutoReapply','AutoReapplyStatusText',
   'InstallStagePrepare','InstallStageRun','InstallStageVerify','InstallStageComplete',
   'InstallStagePrepareText','InstallStageRunText','InstallStageVerifyText','InstallStageCompleteText',
   'LogScroller','LogOutput','StatusText','ElapsedTime','ProgressPercentText','StepIndicator','MainProgress','BtnCopyLog','BtnBackToConfig','CloseBtn',
@@ -1724,6 +2098,7 @@ function Get-ConfigFingerprint {
         Spicetify_Scheme       = [string]$Config.Spicetify_Scheme
         Spicetify_Marketplace  = [bool]$Config.Spicetify_Marketplace
         Spicetify_Extensions   = @($Config.Spicetify_Extensions)
+        AutoReapply_Enabled    = [bool]$Config.AutoReapply_Enabled
     }
     return ($normalized | ConvertTo-Json -Depth 4 -Compress)
 }
@@ -1787,6 +2162,7 @@ function Apply-ConfigToUi {
         'ChkMarketplace'       = 'Spicetify_Marketplace'
         'ChkCleanInstall'      = 'CleanInstall'
         'ChkLaunchAfter'       = 'LaunchAfter'
+        'ChkAutoReapply'       = 'AutoReapply_Enabled'
     }
     foreach ($name in $checkboxMap.Keys) {
         if ($ui.ContainsKey($name)) {
@@ -2178,6 +2554,9 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
         SpotX_SpotifyVersionId=$spotifyVerId
         Spicetify_Theme=$sTheme; Spicetify_Scheme=$sScheme
         Spicetify_Marketplace=[bool]$ui['ChkMarketplace'].IsChecked; Spicetify_Extensions=$exts
+        # Maintenance-mode control but persisted in the shared config so both
+        # Easy and Custom saves carry the preference forward.
+        AutoReapply_Enabled = if ($ui.ContainsKey('ChkAutoReapply')) { [bool]$ui['ChkAutoReapply'].IsChecked } else { $false }
     }
     return $c
 }
@@ -2239,6 +2618,19 @@ function Build-SpotXParams { param($Config)
     }
     if ($Config.SpotX_CacheLimit -ge 500) { $p += "-cache_limit $($Config.SpotX_CacheLimit)" }
     return ($p -join " ")
+}
+
+# -Watch CLI exit point. Placed here (not at the top of the file) because
+# Invoke-AutoReapplyWatcher depends on Build-SpotXParams / Load-LibreSpotConfig /
+# Normalize-LibreSpotConfig — all of which must already be defined when the call
+# fires. PowerShell resolves function names lazily, but they still have to exist
+# by the time the call is reached. No WPF has been instantiated at this point
+# (XamlReader::Load runs much further down), so the watcher stays truly headless.
+if ($script:CliWatch) {
+    $code = 0
+    try { $code = Invoke-AutoReapplyWatcher }
+    catch { Write-WatcherLog "Fatal: $($_.Exception.Message)" -Level 'ERROR'; $code = 1 }
+    exit $code
 }
 
 function Get-SpicetifyConfigEntries {
@@ -2977,6 +3369,65 @@ $ui['BtnReapply'].Add_Click({
         }
     }
 })
+function Update-AutoReapplyStatusLabel {
+    if (-not $ui.ContainsKey('AutoReapplyStatusText')) { return }
+    try {
+        if (Test-AutoReapplyTaskRegistered) {
+            $ui['AutoReapplyStatusText'].Text = 'Scheduled task: active (runs at logon and every 30 minutes)'
+            $ui['AutoReapplyStatusText'].Foreground = $global:BrushGreen
+        } else {
+            $ui['AutoReapplyStatusText'].Text = 'Scheduled task: not installed'
+            $ui['AutoReapplyStatusText'].Foreground = $global:BrushMuted
+        }
+    } catch {}
+}
+
+# Wire the Maintenance auto-reapply toggle. Checked -> register the scheduled
+# task and persist the preference. Unchecked -> unregister and persist.
+# We suppress the checked/unchecked handler during programmatic assignment
+# (applying the saved config at launch) to avoid a spurious register call.
+$script:SuppressAutoReapplyHandler = $false
+if ($ui.ContainsKey('ChkAutoReapply')) {
+    $onToggle = {
+        if ($script:SuppressAutoReapplyHandler) { return }
+        $wantOn = [bool]$ui['ChkAutoReapply'].IsChecked
+        try {
+            if ($wantOn) {
+                $ok = Register-AutoReapplyTask
+                if (-not $ok) {
+                    $script:SuppressAutoReapplyHandler = $true
+                    try { $ui['ChkAutoReapply'].IsChecked = $false } finally { $script:SuppressAutoReapplyHandler = $false }
+                    Show-ThemedDialog -Title 'Could not install the watcher' -Message "LibreSpot couldn't create the scheduled task that watches Spotify for updates. See the watcher log for details.`n`n$($global:WATCHER_LOG_PATH)" -Icon 'Warning' -PrimaryText 'Close' | Out-Null
+                }
+            } else {
+                $null = Unregister-AutoReapplyTask
+            }
+        } catch {
+            Show-ThemedDialog -Title 'Could not update the watcher' -Message "LibreSpot hit an error toggling the auto-reapply task.`n`n$($_.Exception.Message)" -Icon 'Error' -PrimaryText 'Close' | Out-Null
+        } finally {
+            Update-AutoReapplyStatusLabel
+            # Persist to disk so the preference survives a restart and so the WPF
+            # shell sees the same value. Saving a fresh config snapshot here runs
+            # in Custom mode if the user was editing — that matches what Save-
+            # LibreSpotConfig does elsewhere.
+            try {
+                $current = Get-InstallConfig -EasyMode ([bool]$ui['ModeEasy'].IsChecked)
+                $null = Save-LibreSpotConfig -Config (Normalize-LibreSpotConfig -Config $current)
+            } catch {}
+        }
+    }
+    $ui['ChkAutoReapply'].Add_Checked($onToggle)
+    $ui['ChkAutoReapply'].Add_Unchecked($onToggle)
+
+    # Initial sync: reflect the actual on-disk task state in the checkbox, even
+    # if config.json has gone stale. The task wins — it's what actually fires.
+    try {
+        $script:SuppressAutoReapplyHandler = $true
+        $ui['ChkAutoReapply'].IsChecked = (Test-AutoReapplyTaskRegistered)
+    } finally { $script:SuppressAutoReapplyHandler = $false }
+    Update-AutoReapplyStatusLabel
+}
+
 $ui['BtnSpicetifyRestore'].Add_Click({
     $r = Show-ThemedDialog -Message "LibreSpot will remove Spicetify themes and extensions, then restore vanilla Spotify while keeping SpotX in place." -Title "Restore Vanilla Spotify" -Buttons "YesNo" -Icon "Question" -PrimaryText "Restore Spotify" -SecondaryText "Cancel"
     if ($r -eq 'Yes') {
