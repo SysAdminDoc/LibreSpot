@@ -2,6 +2,38 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
+## [v3.6.0] / [v4.0.0-preview.6] - 2026-04-17
+
+**Track 4.2 — auto-reapply watcher.** LibreSpot now notices when Spotify auto-updates itself and silently re-runs the saved SpotX patch so you don't come back to ads. Off by default — enable it from Maintenance > Protect and repair.
+
+### Added
+- **"Auto-reapply when Spotify updates itself"** toggle in Maintenance. Checking it registers a per-user scheduled task (`\LibreSpot\ReapplyWatcher`) that fires at logon, then every 30 minutes. Unchecking it removes the task. Status label underneath reflects the actual task state from `schtasks.exe /Query`, so the UI stays honest even if the task was deleted out-of-band.
+- **Headless `-Watch` entry point.** The scheduled task invokes LibreSpot with `-Watch`. That path skips all WPF/XAML loading and runs only:
+  1. Read `%APPDATA%\LibreSpot\watcher-state.json` for last-known Spotify version.
+  2. On first ever run, just record the current version and exit (never clobber a fresh Spotify).
+  3. If the version is unchanged, log "nothing to do" and exit.
+  4. If Spotify is currently running, defer to next tick (reapplying while audio is playing would kill the session).
+  5. If there's no saved LibreSpot config, exit with a message in the log.
+  6. Otherwise download + **SHA256-verify** the pinned SpotX script, run it under the saved config, and silently reapply Spicetify if the CLI is present.
+- **CLI flags**: `-InstallWatcher` and `-UninstallWatcher` for users who prefer to manage the scheduled task from a script without opening the GUI. Both exit with a useful message.
+- **`AutoReapply_Enabled`** config key wired end-to-end (defaults → normalization → fingerprint → `Get-InstallConfig` → `Apply-ConfigToUi` → WPF backend Backend.ps1 → C# `InstallConfiguration` with Clone + Normalize). Preference round-trips between PowerShell and WPF saves.
+- **`watcher.log`** under `%APPDATA%\LibreSpot\` captures every tick (skip, reapply, defer, error). Auto-trims at ~1 MB to the last 500 lines so an unattended machine can't fill disk.
+- **Regression tests** (`PowerShellRegressionTests.cs`) lock in the critical invariants:
+  - `-Watch` exit branch is placed AFTER `Build-SpotXParams` definition.
+  - Every CLI entry point explicitly `exit`s.
+  - Scheduled task XML uses the correct Task Scheduler namespace and UTF-16 encoding.
+  - `Invoke-HeadlessReapply` verifies the SpotX hash before running.
+  - First-run initialization doesn't immediately reapply.
+  - Running Spotify defers instead of clobbering.
+  - `AutoReapply_Enabled` is on the boolean-normalization list.
+
+### Changed
+- PowerShell script: v3.5.1 → **v3.6.0**.
+- WPF desktop shell: v4.0.0-preview.5 → **v4.0.0-preview.6**.
+
+### Differentiator
+None of the other Spicetify/SpotX installers ship this — BlockTheSpot-Installer, SpotX-Spicetify-Universal-Installer, and Spicetify Manager all require the user to manually click "Reapply After Update" after every Spotify auto-update. This closes that loop.
+
 ## [v3.5.1] - 2026-04-17
 
 Hardening + release-pipeline pass. Fixes bugs introduced in v3.5.0, tightens the release workflow, and adds regression guards so the issues we just fixed can't silently creep back.
