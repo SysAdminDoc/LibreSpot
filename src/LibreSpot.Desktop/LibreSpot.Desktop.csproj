@@ -9,9 +9,9 @@
     <ApplicationIcon>..\..\icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <Version>4.0.0-preview.5</Version>
-    <AssemblyVersion>4.0.0.5</AssemblyVersion>
-    <FileVersion>4.0.0.5</FileVersion>
+    <Version>4.0.0-preview.6</Version>
+    <AssemblyVersion>4.0.0.6</AssemblyVersion>
+    <FileVersion>4.0.0.6</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

@@ -12,7 +12,7 @@ try {
 
 # Keep this aligned with LibreSpot.ps1:$global:VERSION and the WPF shell's
 # csproj <Version>. The release workflow fails the build if these drift.
-$global:VERSION = '3.5.1'
+$global:VERSION = '3.6.0'
 $global:PinnedReleases = @{
     SpotX = @{
         Version = '2.0'
@@ -119,6 +119,10 @@ $global:EasyDefaults = @{
     Spicetify_Extensions = @('fullAppDisplay.js', 'shuffle+.js', 'trashbin.js')
     CleanInstall = $true
     LaunchAfter = $true
+    # Track 4.2 auto-reapply watcher preference. The backend reads this so it
+    # knows whether to honor a user's saved "keep the watcher on" choice when
+    # re-saving the config from the WPF shell.
+    AutoReapply_Enabled = $false
 }
 
 $global:SpotXLyricsThemes = @(
@@ -254,7 +258,7 @@ function Normalize-LibreSpotConfig {
         'SpotX_NoShortcut', 'SpotX_OldLyrics', 'SpotX_HideColIconOff', 'SpotX_Plus',
         'SpotX_NewFullscreen', 'SpotX_FunnyProgress', 'SpotX_ExpSpotify', 'SpotX_LyricsBlock',
         'SpotX_SendVersionOff', 'SpotX_StartSpoti', 'SpotX_DevTools', 'SpotX_Mirror', 'SpotX_ConfirmUninstall',
-        'Spicetify_Marketplace'
+        'Spicetify_Marketplace', 'AutoReapply_Enabled'
     )
     foreach ($key in $booleanKeys) {
         if ($Config -and $Config.ContainsKey($key)) {

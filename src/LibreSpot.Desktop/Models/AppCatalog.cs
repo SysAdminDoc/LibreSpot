@@ -43,6 +43,11 @@ public sealed class InstallConfiguration
     public bool Spicetify_Marketplace { get; set; } = true;
     public List<string> Spicetify_Extensions { get; set; } = new() { "fullAppDisplay.js", "shuffle+.js", "trashbin.js" };
 
+    // Track 4.2 auto-reapply watcher. The PowerShell side owns the scheduled
+    // task; the WPF shell round-trips the preference so toggling from either
+    // UI stays consistent after a save/reload.
+    public bool AutoReapply_Enabled { get; set; }
+
     public InstallConfiguration Clone() =>
         new()
         {
@@ -81,7 +86,8 @@ public sealed class InstallConfiguration
             Spicetify_Theme = Spicetify_Theme,
             Spicetify_Scheme = Spicetify_Scheme,
             Spicetify_Marketplace = Spicetify_Marketplace,
-            Spicetify_Extensions = new List<string>(Spicetify_Extensions ?? [])
+            Spicetify_Extensions = new List<string>(Spicetify_Extensions ?? []),
+            AutoReapply_Enabled = AutoReapply_Enabled
         };
 }
 
@@ -340,6 +346,7 @@ public static class AppCatalog
             : validSchemes.First();
 
         normalized.Spicetify_Marketplace = source.Spicetify_Marketplace;
+        normalized.AutoReapply_Enabled = source.AutoReapply_Enabled;
 
         var validExtensions = ExtensionDefinitions.Select(def => def.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         normalized.Spicetify_Extensions = (source.Spicetify_Extensions ?? [])

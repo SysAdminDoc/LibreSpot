@@ -8,8 +8,8 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.5-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
-[![Stable](https://img.shields.io/badge/Stable-3.5.1-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.6-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Stable](https://img.shields.io/badge/Stable-3.6.0-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 
 </div>
 
@@ -52,7 +52,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 >
 > If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch.
 
-**Pinned dependency versions (v3.5.1):**
+**Pinned dependency versions (v3.6.0):**
 
 | Component | Pinned Version |
 |---|---|
@@ -108,6 +108,20 @@ Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntS
 | Auto Skip Video | Skip canvas videos and region-locked content |
 | Auto Skip Explicit | Skip tracks marked as explicit |
 | Web Now Playing | Expose now-playing data for Rainmeter widgets |
+
+### Auto-Reapply (new in v3.6.0)
+
+Spotify auto-updates roughly every 1-2 weeks and overwrites the SpotX patches every time. Manually reapplying after every update gets old fast.
+
+**Maintenance > Protect and repair > "Auto-reapply when Spotify updates itself"** registers a per-user scheduled task that fires at logon and every 30 minutes. It silently does nothing unless Spotify's version actually changed; when it changes, it hash-verifies the pinned SpotX script and reruns your saved config — but only when Spotify is closed, so it never interrupts playback. Every action gets logged to `%APPDATA%\LibreSpot\watcher.log` for audit.
+
+You can also manage the task from the command line if you prefer:
+
+```powershell
+LibreSpot.ps1 -InstallWatcher      # register the scheduled task
+LibreSpot.ps1 -UninstallWatcher    # remove it
+LibreSpot.ps1 -Watch               # run one tick manually (what the task invokes)
+```
 
 ### Other Details
 

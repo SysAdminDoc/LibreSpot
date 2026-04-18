@@ -88,7 +88,7 @@ Stolen from BlockTheSpot-Installer, SpotX-Spicetify-Universal-Installer, and Spi
 | # | Feature | Source of idea | Status |
 |---|---|---|---|
 | 4.1 | **Spotify version dropdown** — inline manifest of 5 known-good Spotify builds; emits SpotX `-version <string>` when non-default. Config key `SpotX_SpotifyVersionId`. | BlockTheSpot-Installer | ✅ **v3.5.0** |
-| 4.2 | **Auto-reapply watcher** — scheduled task detects `Spotify.exe` version bump, silently re-runs patch pipeline. | Spicetify Manager | ⏳ Pending (needs Win32 TaskScheduler + headless `--watch` flag) |
+| 4.2 | **Auto-reapply watcher** — scheduled task detects `Spotify.exe` version bump, silently re-runs patch pipeline. | Spicetify Manager | ✅ **v3.6.0** — Maintenance toggle, `\LibreSpot\ReapplyWatcher` task (logon + 30 min), headless `-Watch` CLI, hash-verified SpotX replay, defers while Spotify is running, first-tick initializes without reapplying. CLI: `-InstallWatcher` / `-UninstallWatcher`. |
 | 4.3 | **"Status at a glance" dashboard** — on launch show Spotify version, Spicetify version, SpotX state, last patch timestamp, backup count. | Spicetify Manager | ⏳ Pending |
 | 4.4 | **Self-update check** — title-bar "Update available →" banner, 24h cache in `%APPDATA%\LibreSpot\update-check.json`. Zero telemetry. | BlockTheSpot-Installer | ✅ **v3.5.0** |
 | 4.5 | **Repair / diagnostic button** — inspects installation health with per-issue fix buttons. | Spicetify Manager | ⏳ Pending |
@@ -201,7 +201,9 @@ Zero-server infrastructure. Every share carries branding; every install surfaces
 | **v3.4.0** ✅ | SpotX flag expansion (6 new flags) | Track 2 | ~4h |
 | **v4.0.0-preview.4** ✅ | Mica + taskbar progress + Serilog + a11y + release CI | 5.1, 5.3, 5.6, 5.7, 7.2 | ~9h |
 | **v3.5.0 / v4.0.0-preview.5** ✅ | Self-update + pre-patched warning + version dropdown + `-Clean` | 4.1, 4.4, 4.7, 4.8 | ~7h |
-| **v4.0.0** (stable) | Wpf.Ui + toasts + undo pane + Velopack + signing + winget + remaining Track 4 | 5.2, 5.4, 5.5, 7.1, 7.3–7.5, 4.2, 4.3, 4.5 | ~25h |
+| **v3.5.1** ✅ | Hardening + release pipeline | Track-1 follow-ups, release.yml preflight | ~4h |
+| **v3.6.0 / v4.0.0-preview.6** ✅ | Auto-reapply watcher | 4.2 | ~5h |
+| **v4.0.0** (stable) | Wpf.Ui + toasts + undo pane + Velopack + signing + winget + remaining Track 4 | 5.2, 5.4, 5.5, 7.1, 7.3–7.5, 4.3, 4.5 | ~20h |
 | **v4.2.0** | Spicetify ecosystem expansion | 3.A–3.C | ~8h |
 | **v4.3.0** | Competitor parity + differentiators | 4.1–4.8 | ~21h |
 | **v4.4.0** | Windows 11 shell integration | 6.1–6.8 | ~5.75h |
