@@ -53,7 +53,7 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
 
-$global:VERSION = '3.5.0'
+$global:VERSION = '3.5.1'
 
 # CLI argument detection. Supports `irm URL | iex -clean` (PowerShell passes
 # trailing args to `iex` as $args inside the invoked script) and also
@@ -2113,7 +2113,10 @@ $ui['BtnBackToConfig'].Add_Click({
     Update-ModePresentation
 })
 $window.Add_Closing({
-    param($sender, $e)
+    # Do NOT name the first parameter `$sender` — it shadows PowerShell's
+    # automatic `$Sender` variable and PSScriptAnalyzer flags it as a latent
+    # bug in every lint run.
+    param($closingSource, $e)
     if ($script:activeSyncHash -and $script:activeSyncHash.IsRunning) {
         $result = Show-ThemedDialog -Title 'Setup still running' -Message 'LibreSpot is still working. Closing now can interrupt cleanup, downloads, or patching and may leave Spotify in a partial state.' -Buttons 'YesNo' -Icon 'Warning' -PrimaryText 'Exit anyway' -SecondaryText 'Keep running' -PrimaryIsDestructive
         if ($result -ne 'Yes') { $e.Cancel = $true; return }
@@ -2182,15 +2185,15 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
 Capture-CustomConfigBaseline
 Update-ModePresentation
 
-# Async self-update check + foreign-patch detection. Both deferred to
-# ApplicationIdle so a slow GitHub API response never blocks the UI and the
-# warning dialog doesn't appear before the main window is visible.
+# Post-launch housekeeping. Self-update runs truly async (ThreadPool) so a
+# slow GitHub API response never freezes the UI; foreign-patch detection is
+# filesystem-only and stays on the dispatcher at idle priority so the warning
+# dialog doesn't appear before the main window has finished painting.
 try {
-    $postLoadAction = [System.Action]{
-        try { Show-SelfUpdateBannerIfNeeded } catch {}
+    Start-SelfUpdateBannerRefresh
+    $null = $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::ApplicationIdle, [System.Action]{
         try { Test-ForeignPatchWarningIfNeeded } catch {}
-    }
-    $null = $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::ApplicationIdle, $postLoadAction)
+    })
 } catch {}
 
 function Build-SpotXParams { param($Config)
@@ -2443,76 +2446,168 @@ function Remove-PathEntry {
 $global:SelfUpdateCachePath = Join-Path $global:CONFIG_DIR 'update-check.json'
 $global:SelfUpdateCacheMaxAgeHours = 24
 
-function Test-LibreSpotSelfUpdate {
-    param([bool]$ForceRefresh = $false)
-
-    $result = @{ UpdateAvailable = $false; LatestTag = $null; LatestUrl = $null }
-
+function Read-SelfUpdateCache {
+    # Returns the cached result hashtable if fresh, otherwise $null.
+    # Split out so both the sync (cache-only) and async (network) paths share it.
+    if (-not (Test-Path -LiteralPath $global:SelfUpdateCachePath)) { return $null }
     try {
-        if (-not $ForceRefresh -and (Test-Path -LiteralPath $global:SelfUpdateCachePath)) {
-            $cacheAge = (Get-Date) - (Get-Item -LiteralPath $global:SelfUpdateCachePath).LastWriteTime
-            if ($cacheAge.TotalHours -lt $global:SelfUpdateCacheMaxAgeHours) {
-                $cached = Get-Content -LiteralPath $global:SelfUpdateCachePath -Raw -ErrorAction Stop | ConvertFrom-Json
-                $result.LatestTag = [string]$cached.LatestTag
-                $result.LatestUrl = [string]$cached.LatestUrl
-                $result.UpdateAvailable = [bool]$cached.UpdateAvailable
-                return $result
-            }
+        $cacheAge = (Get-Date) - (Get-Item -LiteralPath $global:SelfUpdateCachePath).LastWriteTime
+        if ($cacheAge.TotalHours -ge $global:SelfUpdateCacheMaxAgeHours) { return $null }
+        $cached = Get-Content -LiteralPath $global:SelfUpdateCachePath -Raw -ErrorAction Stop | ConvertFrom-Json
+        return @{
+            UpdateAvailable = [bool]$cached.UpdateAvailable
+            LatestTag       = [string]$cached.LatestTag
+            LatestUrl       = [string]$cached.LatestUrl
         }
-
-        $headers = @{ 'User-Agent' = "LibreSpot/$($global:VERSION)"; 'Accept' = 'application/vnd.github+json' }
-        $response = Invoke-RestMethod -Uri 'https://api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest' -Headers $headers -TimeoutSec 5 -ErrorAction Stop
-        $tag = [string]$response.tag_name
-        $url = [string]$response.html_url
-        $latest = $tag -replace '^v',''
-
-        $isNewer = $false
-        try {
-            $latestVer = [Version]($latest -replace '-preview.*','' -replace '-rc.*','')
-            $currentVer = [Version]($global:VERSION -replace '-preview.*','' -replace '-rc.*','')
-            $isNewer = ($latestVer -gt $currentVer)
-        } catch { $isNewer = ($latest -ne $global:VERSION) }
-
-        $result.UpdateAvailable = $isNewer
-        $result.LatestTag = $tag
-        $result.LatestUrl = $url
-
-        try {
-            if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) { New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null }
-            $result | ConvertTo-Json -Compress | Set-Content -LiteralPath $global:SelfUpdateCachePath -Encoding UTF8
-        } catch {}
-    } catch {
-        # Offline, rate-limited, or GitHub hiccup — stay silent; the banner just won't appear.
-        Write-Log "Self-update check skipped: $($_.Exception.Message)" -Level 'DEBUG' -ErrorAction SilentlyContinue
-    }
-
-    return $result
+    } catch { return $null }
 }
 
-function Show-SelfUpdateBannerIfNeeded {
-    if (-not $ui.ContainsKey('UpdateBanner')) { return }
-    $check = Test-LibreSpotSelfUpdate
-    if (-not $check.UpdateAvailable) { return }
+function Save-SelfUpdateCache {
+    param([hashtable]$Result)
+    try {
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
+            New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null
+        }
+        $Result | ConvertTo-Json -Compress | Set-Content -LiteralPath $global:SelfUpdateCachePath -Encoding UTF8
+    } catch {}
+}
 
-    $ui['UpdateBanner'].Visibility = 'Visible'
-    if ($check.LatestTag) {
-        $ui['UpdateBanner'].ToolTip = "New release $($check.LatestTag) — click to open GitHub."
+function Compare-LibreSpotVersions {
+    # Semver-ish compare that tolerates `-preview.N` / `-rc.N` suffixes and
+    # string-compare them as a tie-breaker when the numeric prefixes match.
+    # Returns $true iff $Latest is strictly newer than $Current.
+    param([string]$Latest, [string]$Current)
+    if ([string]::IsNullOrWhiteSpace($Latest)) { return $false }
+    if ([string]::IsNullOrWhiteSpace($Current)) { return $true }
+    $stripLatest  = ($Latest  -replace '-preview.*','' -replace '-rc.*','')
+    $stripCurrent = ($Current -replace '-preview.*','' -replace '-rc.*','')
+    try {
+        $l = [Version]$stripLatest
+        $c = [Version]$stripCurrent
+        if ($l -gt $c) { return $true }
+        if ($l -lt $c) { return $false }
+        # Numeric prefixes equal: the one WITHOUT a pre-release suffix is newer.
+        $latestIsStable  = ($Latest  -eq $stripLatest)
+        $currentIsStable = ($Current -eq $stripCurrent)
+        if ($latestIsStable -and -not $currentIsStable) { return $true }
+        if (-not $latestIsStable -and $currentIsStable) { return $false }
+        # Both stable or both pre-release: fall back to direct string inequality.
+        return ($Latest -ne $Current)
+    } catch {
+        return ($Latest -ne $Current)
     }
-    $script:SelfUpdateTarget = if ($check.LatestUrl) { $check.LatestUrl } else { 'https://github.com/SysAdminDoc/LibreSpot/releases/latest' }
+}
+
+function Invoke-SelfUpdateHttp {
+    # Pure-.NET GET + pure-regex JSON extract so the caller can run us on a
+    # ThreadPool thread without contending with the main PowerShell runspace.
+    # We deliberately avoid every PS cmdlet (ConvertFrom-Json, Compare-*, etc.)
+    # because they serialize against the main thread via the shared runspace.
+    # Returns the parsed hashtable on success or $null on any failure.
+    try {
+        $req = [System.Net.HttpWebRequest]::Create('https://api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest')
+        $req.Method = 'GET'
+        $req.Timeout = 5000
+        $req.ReadWriteTimeout = 5000
+        $req.UserAgent = "LibreSpot/$($global:VERSION)"
+        $req.Accept = 'application/vnd.github+json'
+        $resp = $req.GetResponse()
+        try {
+            $stream = $resp.GetResponseStream()
+            $reader = New-Object System.IO.StreamReader($stream)
+            try { $json = $reader.ReadToEnd() } finally { $reader.Dispose() }
+        } finally { $resp.Dispose() }
+
+        # GitHub's releases endpoint returns tag_name and html_url as top-level
+        # string fields. A lenient regex is enough — we don't need to interpret
+        # the rest of the payload.
+        $tagMatch = [regex]::Match($json, '"tag_name"\s*:\s*"([^"]+)"')
+        $urlMatch = [regex]::Match($json, '"html_url"\s*:\s*"([^"]+)"')
+        if (-not $tagMatch.Success) { return $null }
+        $tag = $tagMatch.Groups[1].Value
+        $url = if ($urlMatch.Success) { $urlMatch.Groups[1].Value } else { 'https://github.com/SysAdminDoc/LibreSpot/releases/latest' }
+        $latest = $tag -replace '^v',''
+
+        # Inline the compare instead of calling Compare-LibreSpotVersions so we
+        # never cross the runspace boundary from this thread.
+        $isNewer = $false
+        try {
+            $latestVer  = [Version](($latest          -replace '-preview.*','') -replace '-rc.*','')
+            $currentVer = [Version](($global:VERSION  -replace '-preview.*','') -replace '-rc.*','')
+            if     ($latestVer -gt $currentVer) { $isNewer = $true }
+            elseif ($latestVer -lt $currentVer) { $isNewer = $false }
+            else {
+                $latestIsStable  = ($latest         -eq (($latest          -replace '-preview.*','') -replace '-rc.*',''))
+                $currentIsStable = ($global:VERSION -eq (($global:VERSION  -replace '-preview.*','') -replace '-rc.*',''))
+                if     ($latestIsStable -and -not $currentIsStable) { $isNewer = $true }
+                elseif (-not $latestIsStable -and $currentIsStable) { $isNewer = $false }
+                else { $isNewer = ($latest -ne $global:VERSION) }
+            }
+        } catch { $isNewer = ($latest -ne $global:VERSION) }
+
+        return @{
+            UpdateAvailable = $isNewer
+            LatestTag       = $tag
+            LatestUrl       = $url
+        }
+    } catch {
+        return $null
+    }
+}
+
+function Start-SelfUpdateBannerRefresh {
+    # Fire-and-forget async check. If we have a fresh cached result, apply it
+    # immediately on the UI thread; otherwise queue a ThreadPool work item
+    # that hits GitHub and marshals the result back via Dispatcher.BeginInvoke.
+    if (-not $ui.ContainsKey('UpdateBanner')) { return }
+
+    $applyResult = {
+        param($check)
+        if (-not $check -or -not $check.UpdateAvailable) { return }
+        if (-not $ui.ContainsKey('UpdateBanner')) { return }
+        $ui['UpdateBanner'].Visibility = 'Visible'
+        if ($check.LatestTag) {
+            $ui['UpdateBanner'].ToolTip = "New release $($check.LatestTag) — click to open GitHub."
+        }
+        $script:SelfUpdateTarget = if ($check.LatestUrl) { $check.LatestUrl } else { 'https://github.com/SysAdminDoc/LibreSpot/releases/latest' }
+    }
+
+    $cached = Read-SelfUpdateCache
+    if ($cached) { & $applyResult $cached; return }
+
+    try {
+        $null = [System.Threading.ThreadPool]::QueueUserWorkItem([System.Threading.WaitCallback]{
+            param($state)
+            # Invoke-SelfUpdateHttp uses only .NET primitives so it's safe on a
+            # ThreadPool thread. All PowerShell cmdlet work (cache save + UI
+            # update) is marshaled back to the dispatcher to avoid races on
+            # the shared runspace.
+            $check = Invoke-SelfUpdateHttp
+            try {
+                $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::ApplicationIdle, [Action]{
+                    if ($window.Dispatcher.HasShutdownStarted) { return }
+                    if ($check) { Save-SelfUpdateCache -Result $check }
+                    & $applyResult $check
+                }) | Out-Null
+            } catch {}
+        })
+    } catch {}
 }
 
 # Detect non-LibreSpot Spotify modifications so we can warn the user before
-# patching on top. We check for telltale files dropped by BlockTheSpot, older
-# SpotX runs, and other community patchers. Returns a display label or $null.
+# patching on top. Only checks for files that BlockTheSpot / similar third-party
+# modders drop — NOT chrome_elf.dll (ships with every Spotify install; we
+# explicitly require it at install time) and NOT xpui.spa.bak (created by our
+# own SpotX runs). Returns a display label or $null.
 function Get-ExistingSpotifyPatchSignature {
     if (-not (Test-Path -LiteralPath $global:SPOTIFY_EXE_PATH)) { return $null }
     $spotifyDir = Split-Path -LiteralPath $global:SPOTIFY_EXE_PATH -Parent
 
     $signatures = @(
-        @{ Path = (Join-Path $spotifyDir 'dpapi.dll');             Label = 'BlockTheSpot (dpapi.dll injected)' }
-        @{ Path = (Join-Path $spotifyDir 'chrome_elf.dll');        Label = 'CEF/BlockTheSpot-style (chrome_elf.dll injected)' }
-        @{ Path = (Join-Path $spotifyDir 'config.ini');            Label = 'BlockTheSpot config.ini detected' }
-        @{ Path = (Join-Path $spotifyDir 'Apps\xpui.spa.bak');     Label = 'SpotX patch previously applied (xpui.spa.bak present)' }
+        @{ Path = (Join-Path $spotifyDir 'dpapi.dll');      Label = 'BlockTheSpot (dpapi.dll injected next to Spotify.exe)' }
+        @{ Path = (Join-Path $spotifyDir 'config.ini');     Label = 'BlockTheSpot config.ini present in the Spotify install directory' }
+        @{ Path = (Join-Path $spotifyDir 'version.dll');    Label = 'Third-party injector (version.dll hijack)' }
+        @{ Path = (Join-Path $spotifyDir 'winmm.dll');      Label = 'Third-party injector (winmm.dll hijack)' }
     )
     foreach ($sig in $signatures) {
         if (Test-Path -LiteralPath $sig.Path) { return [string]$sig.Label }
@@ -3405,7 +3500,7 @@ function Check-ForUpdates {
         $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest' -Headers $headers -TimeoutSec 15
         $latest = $rel.tag_name -replace '^v',''
         $pinned = $global:PinnedReleases.SpicetifyCLI.Version
-        if ($latest -ne $pinned) { $updates += "CLI: $pinned -> $latest"; Write-Log "  Spicetify CLI: $pinned -> $latest available" -Level 'WARN' }
+        if (Compare-LibreSpotVersions -Latest $latest -Current $pinned) { $updates += "CLI: $pinned -> $latest"; Write-Log "  Spicetify CLI: $pinned -> $latest available" -Level 'WARN' }
         else { Write-Log "  Spicetify CLI: v$pinned (up to date)" }
     } catch { Write-Log "  Spicetify CLI: check failed ($($_.Exception.Message))" -Level 'WARN' }
 
@@ -3414,7 +3509,7 @@ function Check-ForUpdates {
         $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/marketplace/releases/latest' -Headers $headers -TimeoutSec 15
         $latest = $rel.tag_name -replace '^v',''
         $pinned = $global:PinnedReleases.Marketplace.Version
-        if ($latest -ne $pinned) { $updates += "Marketplace: $pinned -> $latest"; Write-Log "  Marketplace: $pinned -> $latest available" -Level 'WARN' }
+        if (Compare-LibreSpotVersions -Latest $latest -Current $pinned) { $updates += "Marketplace: $pinned -> $latest"; Write-Log "  Marketplace: $pinned -> $latest available" -Level 'WARN' }
         else { Write-Log "  Marketplace: v$pinned (up to date)" }
     } catch { Write-Log "  Marketplace: check failed ($($_.Exception.Message))" -Level 'WARN' }
 
@@ -3435,8 +3530,12 @@ function Check-ForUpdates {
     try {
         $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest' -Headers $headers -TimeoutSec 15
         $latest = $rel.tag_name -replace '^v',''
-        if ($latest -ne $global:VERSION) { $updates += "LibreSpot: $global:VERSION -> $latest"; Write-Log "  LibreSpot: $global:VERSION -> $latest available" -Level 'WARN' }
-        else { Write-Log "  LibreSpot: v$global:VERSION (up to date)" }
+        if (Compare-LibreSpotVersions -Latest $latest -Current $global:VERSION) {
+            $updates += "LibreSpot: $($global:VERSION) -> $latest"
+            Write-Log "  LibreSpot: $($global:VERSION) -> $latest available" -Level 'WARN'
+        } else {
+            Write-Log "  LibreSpot: v$($global:VERSION) (up to date)"
+        }
     } catch { Write-Log "  LibreSpot: check failed ($($_.Exception.Message))" -Level 'WARN' }
 
     if ($updates.Count -eq 0) {
@@ -4133,7 +4232,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Check-ForUpdates',
+    'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Check-ForUpdates','Compare-LibreSpotVersions',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
