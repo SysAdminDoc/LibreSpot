@@ -10,7 +10,9 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
 
-$global:VERSION = '3.3.0'
+# Keep this aligned with LibreSpot.ps1:$global:VERSION and the WPF shell's
+# csproj <Version>. The release workflow fails the build if these drift.
+$global:VERSION = '3.5.1'
 $global:PinnedReleases = @{
     SpotX = @{
         Version = '2.0'
