@@ -67,4 +67,34 @@ public sealed class AppCatalogTests
         Assert.NotNull(normalized.Spicetify_Extensions);
         Assert.Empty(normalized.Spicetify_Extensions);
     }
+
+    [Fact]
+    public void NormalizeConfiguration_CanonicalizesAdvancedCompatibilitySelections()
+    {
+        var configuration = new InstallConfiguration
+        {
+            SpotX_DownloadMethod = " CURL ",
+            SpotX_SpotifyVersionId = " 1.2.53.440.X86 "
+        };
+
+        var normalized = AppCatalog.NormalizeConfiguration(configuration);
+
+        Assert.Equal("curl", normalized.SpotX_DownloadMethod);
+        Assert.Equal("1.2.53.440.x86", normalized.SpotX_SpotifyVersionId);
+    }
+
+    [Fact]
+    public void NormalizeConfiguration_FallsBackWhenAdvancedCompatibilitySelectionsAreUnknown()
+    {
+        var configuration = new InstallConfiguration
+        {
+            SpotX_DownloadMethod = "bits",
+            SpotX_SpotifyVersionId = "future-build"
+        };
+
+        var normalized = AppCatalog.NormalizeConfiguration(configuration);
+
+        Assert.Equal(string.Empty, normalized.SpotX_DownloadMethod);
+        Assert.Equal("auto", normalized.SpotX_SpotifyVersionId);
+    }
 }
