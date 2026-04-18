@@ -1391,13 +1391,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Requests cancellation of an in-flight backend run. Safe to call during window
-    /// shutdown — if no run is active this is a no-op.
+    /// shutdown — if no run is active or the CTS has already been disposed this is a no-op.
     /// </summary>
-    public void CancelRunningBackend() => _runCts?.Cancel();
+    public void CancelRunningBackend()
+    {
+        // ObjectDisposedException is possible if Dispose() already ran; treat the same
+        // as "nothing to cancel." Any other exception here would indicate a programming
+        // bug worth surfacing, so we don't blanket-catch.
+        try { _runCts?.Cancel(); }
+        catch (ObjectDisposedException) { }
+    }
 
     public void Dispose()
     {
-        try { _runCts?.Cancel(); } catch { }
+        try { _runCts?.Cancel(); }
+        catch (ObjectDisposedException) { }
+        catch { }
         _runElapsedTimer.Stop();
         _snapshotFreshnessTimer.Stop();
         _runCts?.Dispose();
@@ -1509,7 +1518,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 IsCancelRequested = true;
                 ActivityStatus = "Stopping backend…";
                 ActivityStep = "Cancel requested";
-                _runCts?.Cancel();
+                try { _runCts?.Cancel(); }
+                catch (ObjectDisposedException) { }
                 return Task.CompletedTask;
             },
             "If you stop here",

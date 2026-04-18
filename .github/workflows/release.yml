@@ -1,10 +1,10 @@
 name: Release
 
-# Triggered when a version tag is pushed, e.g. `git tag v3.4.0 && git push --tags`.
-# Builds both the PS2EXE PowerShell .exe and the .NET 8 WPF self-contained .exe,
-# emits SHA256 checksums + CycloneDX SBOM, and attests provenance (SLSA L3 via
-# GitHub's built-in in-toto attestation generator) so consumers can verify with
-# `gh attestation verify <asset> -R SysAdminDoc/LibreSpot`.
+# Triggered when a version tag is pushed, e.g. `git tag v3.5.1 && git push --tags`.
+# Builds the PS2EXE PowerShell .exe, the .NET 8 WPF self-contained .exe, uploads
+# the raw LibreSpot.ps1 so `irm .../LibreSpot.ps1 | iex` works, emits SHA256
+# checksums + CycloneDX SBOM, and attests provenance + SBOM via GitHub's built-in
+# in-toto signer. Consumers verify with `gh attestation verify <asset> -R SysAdminDoc/LibreSpot`.
 
 on:
   push:
@@ -13,26 +13,143 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag name for manual release (e.g. v3.4.0)"
+        description: "Tag name for manual release (e.g. v3.5.1)"
         required: true
 
 permissions:
   contents: write
-  id-token: write    # required by actions/attest-build-provenance
+  id-token: write    # actions/attest-build-provenance
   attestations: write
 
 jobs:
+  # Runs before anything else. Cheap sanity checks catch the biggest foot-guns
+  # (version drift, syntax errors) before we spend minutes on PS2EXE + dotnet publish.
+  preflight:
+    name: Preflight checks
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      tag: ${{ steps.resolve.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve tag and expected version
+        id: resolve
+        shell: pwsh
+        run: |
+          $tag = if ('${{ inputs.tag }}') { '${{ inputs.tag }}' } else { '${{ github.ref_name }}' }
+          if ([string]::IsNullOrWhiteSpace($tag)) { throw 'Release workflow could not resolve a tag.' }
+          $version = $tag -replace '^v',''
+          Write-Host "Tag:     $tag"
+          Write-Host "Version: $version"
+          "tag=$tag"         | Out-File -Append $env:GITHUB_OUTPUT
+          "version=$version" | Out-File -Append $env:GITHUB_OUTPUT
+
+      - name: Assert versions match the tag
+        shell: pwsh
+        env:
+          EXPECTED: ${{ steps.resolve.outputs.version }}
+        run: |
+          $expected = $env:EXPECTED
+          $isPreviewTag = ($expected -match '-preview\.\d+$') -or ($expected -match '-rc\.\d+$')
+
+          # Read all three version sources once.
+          $ps1Match = Select-String -Path LibreSpot.ps1 -Pattern "^\$global:VERSION\s*=\s*'([^']+)'" -List
+          if (-not $ps1Match) { throw 'Could not locate $global:VERSION in LibreSpot.ps1' }
+          $ps1Version = $ps1Match.Matches[0].Groups[1].Value
+
+          $backendMatch = Select-String -Path 'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1' -Pattern "^\$global:VERSION\s*=\s*'([^']+)'" -List
+          if (-not $backendMatch) { throw 'Could not locate $global:VERSION in Backend.ps1' }
+          $backendVersion = $backendMatch.Matches[0].Groups[1].Value
+
+          [xml]$csproj = Get-Content 'src/LibreSpot.Desktop/LibreSpot.Desktop.csproj'
+          $csprojVersion = [string]$csproj.Project.PropertyGroup.Version
+          if ([string]::IsNullOrWhiteSpace($csprojVersion)) {
+              throw 'LibreSpot.Desktop.csproj is missing a <Version> property.'
+          }
+
+          Write-Host "Tag:             v$expected"
+          Write-Host "LibreSpot.ps1:   $ps1Version"
+          Write-Host "Backend.ps1:     $backendVersion"
+          Write-Host "csproj Version:  $csprojVersion"
+
+          # Invariant that's ALWAYS true: the embedded Backend.ps1 is the exact
+          # same logical artifact as LibreSpot.ps1 shipped by a given release,
+          # so they must agree. The v3.5.1 hardening pass exists because these
+          # drifted silently from 3.3.0 to 3.5.0 on the backend side.
+          if ($ps1Version -ne $backendVersion) {
+              throw "Backend.ps1 VERSION ($backendVersion) does not match LibreSpot.ps1 VERSION ($ps1Version). Sync them before tagging a release."
+          }
+
+          # The two release tracks:
+          #   * v<major>.<minor>.<patch>           — stable PowerShell track. PS1 version must match the tag.
+          #                                          csproj can be any preview and we leave it alone.
+          #   * v<major>.<minor>.<patch>-preview.N — WPF preview track. csproj Version must match the tag.
+          #                                          PS1 version can be any stable.
+          if ($isPreviewTag) {
+              if ($csprojVersion -ne $expected) {
+                  throw "Preview tag $expected does not match csproj Version ($csprojVersion). Bump LibreSpot.Desktop.csproj before tagging."
+              }
+          } else {
+              if ($ps1Version -ne $expected) {
+                  throw "Stable tag $expected does not match LibreSpot.ps1 VERSION ($ps1Version). Bump the PowerShell script before tagging."
+              }
+          }
+
+      - name: PowerShell syntax check (LibreSpot.ps1 + Backend.ps1)
+        shell: pwsh
+        run: |
+          $files = @('LibreSpot.ps1', 'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1')
+          $parseErrors = $null
+          foreach ($file in $files) {
+              $tokens = $null
+              $parseErrors = $null
+              $null = [System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$parseErrors)
+              if ($parseErrors -and $parseErrors.Count -gt 0) {
+                  $parseErrors | ForEach-Object { Write-Host "  $($_.Message) at $($_.Extent.StartLineNumber):$($_.Extent.StartColumnNumber)" }
+                  throw "$file has $($parseErrors.Count) parse error(s)."
+              }
+              Write-Host "  $file parsed cleanly"
+          }
+
+      - name: Regression guard — foreign-patch signatures
+        shell: pwsh
+        run: |
+          # These files are part of every legitimate Spotify install (chrome_elf.dll)
+          # or produced by LibreSpot's own SpotX runs (xpui.spa.bak). If they ever
+          # come back into Get-ExistingSpotifyPatchSignature we warn on every launch.
+          # See CHANGELOG v3.5.1 for context.
+          $content = Get-Content LibreSpot.ps1 -Raw
+          $signatureBlockPattern = '(?s)function Get-ExistingSpotifyPatchSignature.+?\n\}'
+          $match = [regex]::Match($content, $signatureBlockPattern)
+          if (-not $match.Success) {
+              throw 'Could not locate Get-ExistingSpotifyPatchSignature in LibreSpot.ps1.'
+          }
+          $block = $match.Value
+          foreach ($forbidden in 'chrome_elf.dll','xpui.spa.bak') {
+              # Allow mentions in the comment block (intentional historical note) but
+              # reject any Test-Path style reference elsewhere in the function.
+              $bodyOnly = ($block -split '\r?\n' | Where-Object { $_ -notmatch '^\s*#' }) -join "`n"
+              if ($bodyOnly -match [regex]::Escape($forbidden)) {
+                  throw "Get-ExistingSpotifyPatchSignature must not reference $forbidden — it produces a false positive on every run."
+              }
+          }
+          Write-Host 'Foreign-patch signature list looks safe.'
+
   build-powershell:
     name: Build PowerShell EXE (PS2EXE)
+    needs: preflight
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install PS2EXE module
+      - name: Install PS2EXE module (pinned)
         shell: pwsh
-        run: Install-Module -Name ps2exe -Force -Scope CurrentUser -AllowClobber
+        # Pin so a breaking PS2EXE release can't silently corrupt a tag build.
+        # Bump alongside a tested local run when updating.
+        run: Install-Module -Name ps2exe -RequiredVersion 1.0.15 -Force -Scope CurrentUser -AllowClobber
 
-      - name: Compile LibreSpot.exe (PowerShell monolith)
+      - name: Compile LibreSpot.exe
         shell: pwsh
         run: |
           Invoke-PS2EXE `
@@ -42,15 +159,21 @@ jobs:
             -Title LibreSpot `
             -NoConsole `
             -RequireAdmin
+          if (-not (Test-Path LibreSpot.exe)) { throw 'PS2EXE did not produce LibreSpot.exe' }
 
-      - name: Upload PS2EXE artifact
+      - name: Upload PS2EXE + raw script
         uses: actions/upload-artifact@v4
         with:
           name: librespot-powershell
-          path: LibreSpot.exe
+          # Ship the raw .ps1 too so the `irm .../LibreSpot.ps1 | iex` one-liner
+          # in the README resolves to an actual asset.
+          path: |
+            LibreSpot.exe
+            LibreSpot.ps1
 
   build-wpf:
     name: Build WPF self-contained (.NET 8)
+    needs: preflight
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +185,11 @@ jobs:
 
       - name: Restore
         run: dotnet restore src/LibreSpot.Desktop/LibreSpot.Desktop.csproj
+
+      - name: Run unit tests
+        # Stops a broken regression from shipping. AppCatalogTests +
+        # ConfigurationServiceTests already cover the config surface.
+        run: dotnet test tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj -c Release --nologo
 
       - name: Publish WPF shell (win-x64, self-contained, single-file)
         run: >
@@ -79,15 +207,15 @@ jobs:
       - name: Generate SBOM (CycloneDX)
         run: dotnet CycloneDX src/LibreSpot.Desktop/LibreSpot.Desktop.csproj -o publish/sbom --json
 
-      - name: Rename SBOM
+      - name: Rename SBOM + WPF artifact
         shell: pwsh
         run: |
           $sbom = Get-ChildItem publish/sbom -Filter '*.json' | Select-Object -First 1
-          if ($sbom) { Move-Item $sbom.FullName publish/wpf/LibreSpot.sbom.cdx.json }
+          if (-not $sbom) { throw 'CycloneDX did not produce a JSON SBOM.' }
+          Move-Item $sbom.FullName publish/wpf/LibreSpot.sbom.cdx.json
 
-      - name: Rename WPF artifact
-        shell: pwsh
-        run: Move-Item publish/wpf/LibreSpot.exe publish/wpf/LibreSpot-Desktop.exe
+          if (-not (Test-Path 'publish/wpf/LibreSpot.exe')) { throw 'dotnet publish did not produce publish/wpf/LibreSpot.exe' }
+          Move-Item publish/wpf/LibreSpot.exe publish/wpf/LibreSpot-Desktop.exe
 
       - name: Upload WPF artifact
         uses: actions/upload-artifact@v4
@@ -97,7 +225,7 @@ jobs:
 
   release:
     name: Assemble release
-    needs: [build-powershell, build-wpf]
+    needs: [preflight, build-powershell, build-wpf]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -115,9 +243,16 @@ jobs:
           path: release
 
       - name: Generate SHA256 checksums
+        working-directory: release
         run: |
-          cd release
-          sha256sum *.exe *.json > checksums.txt
+          set -euo pipefail
+          # Explicit list — glob expansion can silently hide a missing file.
+          sha256sum \
+            LibreSpot.exe \
+            LibreSpot.ps1 \
+            LibreSpot-Desktop.exe \
+            LibreSpot.sbom.cdx.json \
+            > checksums.txt
           cat checksums.txt
 
       - name: Attest build provenance
@@ -125,6 +260,7 @@ jobs:
         with:
           subject-path: |
             release/LibreSpot.exe
+            release/LibreSpot.ps1
             release/LibreSpot-Desktop.exe
 
       - name: Attest SBOM
@@ -133,23 +269,22 @@ jobs:
           subject-path: release/LibreSpot-Desktop.exe
           sbom-path: release/LibreSpot.sbom.cdx.json
 
-      - name: Resolve tag name
-        id: tag
-        run: |
-          if [ -n "${{ inputs.tag }}" ]; then
-            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "name=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Upload to GitHub Release
+      - name: Ensure release exists, then upload assets
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.tag.outputs.name }}
+          TAG: ${{ needs.preflight.outputs.tag }}
         run: |
+          set -euo pipefail
+          # Create the release if it doesn't already exist. --generate-notes
+          # auto-populates the body from commits since the previous tag so we
+          # always have at least a draft description before assets upload.
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+              gh release create "$TAG" --title "$TAG" --generate-notes
+          fi
           gh release upload "$TAG" \
-            release/LibreSpot.exe \
-            release/LibreSpot-Desktop.exe \
-            release/LibreSpot.sbom.cdx.json \
-            release/checksums.txt \
-            --clobber
+              release/LibreSpot.exe \
+              release/LibreSpot.ps1 \
+              release/LibreSpot-Desktop.exe \
+              release/LibreSpot.sbom.cdx.json \
+              release/checksums.txt \
+              --clobber
