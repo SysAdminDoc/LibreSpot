@@ -161,6 +161,44 @@ jobs:
             -RequireAdmin
           if (-not (Test-Path LibreSpot.exe)) { throw 'PS2EXE did not produce LibreSpot.exe' }
 
+      # SignPath Foundation signing — fires only when the repo has both the
+      # API token (secret) and the identifiers (variables) configured. See
+      # SIGNPATH.md for enrollment steps. Until set up, every release ships
+      # unsigned exactly as it did before v3.6.0, with SBOM + SLSA attestations.
+      - name: Upload PS2EXE artifact for SignPath
+        id: upload-unsigned-ps
+        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: librespot-ps-unsigned
+          path: LibreSpot.exe
+
+      - name: Submit LibreSpot.exe to SignPath
+        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_RELEASE_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned-ps.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - name: Swap in signed LibreSpot.exe
+        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        shell: pwsh
+        run: |
+          if (-not (Test-Path signed/LibreSpot.exe)) {
+            throw 'SignPath did not return a signed LibreSpot.exe in the output directory.'
+          }
+          Copy-Item signed/LibreSpot.exe LibreSpot.exe -Force
+          $sig = Get-AuthenticodeSignature LibreSpot.exe
+          if ($sig.Status -ne 'Valid') {
+            throw "Signed LibreSpot.exe has an invalid Authenticode status: $($sig.Status) ($($sig.StatusMessage))"
+          }
+          Write-Host "Signed by: $($sig.SignerCertificate.Subject)"
+
       - name: Upload PS2EXE + raw script
         uses: actions/upload-artifact@v4
         with:
@@ -216,6 +254,42 @@ jobs:
 
           if (-not (Test-Path 'publish/wpf/LibreSpot.exe')) { throw 'dotnet publish did not produce publish/wpf/LibreSpot.exe' }
           Move-Item publish/wpf/LibreSpot.exe publish/wpf/LibreSpot-Desktop.exe
+
+      # SignPath Foundation signing for the WPF shell. Mirrors the PS2EXE path;
+      # see SIGNPATH.md for enrollment.
+      - name: Upload WPF EXE artifact for SignPath
+        id: upload-unsigned-wpf
+        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: librespot-wpf-unsigned
+          path: publish/wpf/LibreSpot-Desktop.exe
+
+      - name: Submit LibreSpot-Desktop.exe to SignPath
+        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_RELEASE_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned-wpf.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - name: Swap in signed LibreSpot-Desktop.exe
+        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        shell: pwsh
+        run: |
+          if (-not (Test-Path signed/LibreSpot-Desktop.exe)) {
+            throw 'SignPath did not return a signed LibreSpot-Desktop.exe in the output directory.'
+          }
+          Copy-Item signed/LibreSpot-Desktop.exe publish/wpf/LibreSpot-Desktop.exe -Force
+          $sig = Get-AuthenticodeSignature publish/wpf/LibreSpot-Desktop.exe
+          if ($sig.Status -ne 'Valid') {
+            throw "Signed LibreSpot-Desktop.exe has an invalid Authenticode status: $($sig.Status) ($($sig.StatusMessage))"
+          }
+          Write-Host "Signed by: $($sig.SignerCertificate.Subject)"
 
       - name: Upload WPF artifact
         uses: actions/upload-artifact@v4
