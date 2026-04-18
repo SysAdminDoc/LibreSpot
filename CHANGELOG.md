@@ -4,7 +4,27 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [v3.5.1] - 2026-04-17
 
-Hardening pass. Fixes bugs introduced in v3.5.0 plus some latent issues uncovered during the audit.
+Hardening + release-pipeline pass. Fixes bugs introduced in v3.5.0, tightens the release workflow, and adds regression guards so the issues we just fixed can't silently creep back.
+
+### Release pipeline (.github/workflows/release.yml)
+- **Preflight job** runs before build. Resolves the tag, asserts `LibreSpot.ps1:$global:VERSION == Backend.ps1:$global:VERSION` (the exact invariant v3.5.1 breaks), asserts the right version file matches the tag (`PS1` for stable tags, `csproj` for `-preview.N` tags), parses both PowerShell files with `[Parser]::ParseFile` so a syntax error fails the tag before PS2EXE runs, and enforces a regression guard that forbids `chrome_elf.dll` / `xpui.spa.bak` from re-entering `Get-ExistingSpotifyPatchSignature`.
+- **PS2EXE pinned** to `1.0.15` so a breaking upstream release can't corrupt a tagged build.
+- **Unit tests run before WPF publish**. A red AppCatalog/Configuration/PowerShellRegression test fails the tag.
+- **Release assets now include raw `LibreSpot.ps1`** — the README's `irm .../releases/latest/download/LibreSpot.ps1 | iex` one-liner was 404'ing because only the `.exe` was ever uploaded. Also attested for provenance.
+- **`gh release create` fallback** — if the release doesn't exist yet for the tag, one is auto-created with generated notes before assets upload.
+- **Explicit checksum list** replaces the previous `sha256sum *.exe *.json` glob that would silently skip a missing asset.
+
+### Regression tests (tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs)
+- Parses `LibreSpot.ps1` as text and asserts `Get-ExistingSpotifyPatchSignature`'s function body does not reference `chrome_elf.dll` or `xpui.spa.bak`.
+- Asserts `LibreSpot.ps1:$global:VERSION` and `Backend.ps1:$global:VERSION` stay in sync.
+- Asserts `Compare-LibreSpotVersions` still uses `[Version]` parsing and strips `-preview.*` / `-rc.*` suffixes.
+- Asserts `Compare-LibreSpotVersions` remains on the worker-runspace export list (or `Check-ForUpdates` hits a "command not found" at runtime).
+- Asserts `Start-SelfUpdateBannerRefresh` uses `ThreadPool.QueueUserWorkItem` — catches any revert that would reintroduce the 5-second UI freeze on launch.
+
+### Defensive fixes (src/LibreSpot.Desktop/ViewModels/MainViewModel.cs)
+- `CancelRunningBackend()` and the cancel-prompt confirm handler now swallow `ObjectDisposedException` explicitly. Other exceptions still propagate — they'd indicate a real programming bug. `Dispose()` stays idempotent.
+
+### Fixes carried over from the earlier v3.5.1 commit
 
 ### Fixed
 - **Foreign-patch detection fired on every launch** (introduced in v3.5.0). The previous signature list checked for `chrome_elf.dll` (part of every Spotify install — LibreSpot itself throws if it is *missing*) and `xpui.spa.bak` (created by SpotX's own backup step on every successful run). Revised to only match files BlockTheSpot-style injectors drop: `dpapi.dll`, `config.ini`, `version.dll`, `winmm.dll` next to `Spotify.exe`.
@@ -16,6 +36,12 @@ Hardening pass. Fixes bugs introduced in v3.5.0 plus some latent issues uncovere
 ### Changed
 - Exported `Compare-LibreSpotVersions` into the worker runspace so `Check-ForUpdates` (which runs there) can call it.
 - `Save-SelfUpdateCache` is invoked only from the dispatcher thread so `ConvertTo-Json` / `Set-Content` never run concurrently with the main runspace from a ThreadPool thread.
+- `Invoke-SelfUpdateHttp` parses the GitHub response with pure regex (no `ConvertFrom-Json`) and inlines the version compare, so the ThreadPool path never re-enters the main runspace.
+
+### Out of scope for this pass (tracked for later)
+- ~35 PSScriptAnalyzer `PSUseApprovedVerbs` warnings on private helpers (`Normalize-`, `Module-*`, `Load-`, `Apply-`, `Capture-`, `Build-`, `Download-`, `Check-`, `Reapply-`). Renaming cascades across the worker-runspace function-export list.
+- Monolith → module extraction for the ~400 lines of config logic duplicated between `LibreSpot.ps1` and `Backend.ps1`.
+- Maintenance action dispatch table (currently a ~300-line `if/elseif` chain in the worker block).
 
 ## [v3.5.0] / [v4.0.0-preview.5] - 2026-04-17
 
