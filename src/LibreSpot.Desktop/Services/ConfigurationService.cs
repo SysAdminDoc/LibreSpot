@@ -1,8 +1,21 @@
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using LibreSpot.Desktop.Models;
 
 namespace LibreSpot.Desktop.Services;
+
+public enum ConfigurationLoadState
+{
+    Loaded,
+    Missing,
+    RecoveredFromCorrupt
+}
+
+public sealed record ConfigurationLoadResult(
+    InstallConfiguration Configuration,
+    ConfigurationLoadState State,
+    string? RecoveredFilePath = null);
 
 public sealed class ConfigurationService
 {
@@ -15,23 +28,41 @@ public sealed class ConfigurationService
     // Serializes concurrent Save calls so the on-disk config is never torn.
     // Concurrent saves are unlikely but cheap to defend against.
     private readonly SemaphoreSlim _saveLock = new(1, 1);
+    private readonly string _configDirectory;
 
-    public string ConfigDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LibreSpot");
+    public ConfigurationService(string? configDirectory = null)
+    {
+        _configDirectory = string.IsNullOrWhiteSpace(configDirectory)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LibreSpot")
+            : Path.GetFullPath(configDirectory);
+    }
+
+    public string ConfigDirectory => _configDirectory;
     public string ConfigPath => Path.Combine(ConfigDirectory, "config.json");
     public string LogPath => Path.Combine(ConfigDirectory, "install.log");
 
-    public async Task<InstallConfiguration> LoadAsync(CancellationToken cancellationToken = default)
+    public async Task<InstallConfiguration> LoadAsync(CancellationToken cancellationToken = default) =>
+        (await LoadResultAsync(cancellationToken)).Configuration;
+
+    public async Task<ConfigurationLoadResult> LoadResultAsync(CancellationToken cancellationToken = default)
     {
         if (!File.Exists(ConfigPath))
         {
-            return AppCatalog.CreateRecommendedConfiguration();
+            return new ConfigurationLoadResult(
+                AppCatalog.CreateRecommendedConfiguration(),
+                ConfigurationLoadState.Missing);
         }
 
         try
         {
             await using var stream = File.Open(ConfigPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             var config = await JsonSerializer.DeserializeAsync<InstallConfiguration>(stream, SerializerOptions, cancellationToken);
-            return AppCatalog.NormalizeConfiguration(config);
+            if (config is not null)
+            {
+                return new ConfigurationLoadResult(
+                    AppCatalog.NormalizeConfiguration(config),
+                    ConfigurationLoadState.Loaded);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -41,9 +72,18 @@ public sealed class ConfigurationService
         {
             // Preserve the corrupt file for forensics rather than silently overwriting
             // user state with defaults. The PS backend has similar quarantine behavior.
-            QuarantineCorruptConfig();
-            return AppCatalog.CreateRecommendedConfiguration();
+            var recoveredFilePath = QuarantineCorruptConfig();
+            return new ConfigurationLoadResult(
+                AppCatalog.CreateRecommendedConfiguration(),
+                ConfigurationLoadState.RecoveredFromCorrupt,
+                recoveredFilePath);
         }
+
+        var nullPayloadRecoveryPath = QuarantineCorruptConfig();
+        return new ConfigurationLoadResult(
+            AppCatalog.CreateRecommendedConfiguration(),
+            ConfigurationLoadState.RecoveredFromCorrupt,
+            nullPayloadRecoveryPath);
     }
 
     public async Task SaveAsync(InstallConfiguration configuration, CancellationToken cancellationToken = default)
@@ -78,17 +118,19 @@ public sealed class ConfigurationService
         }
     }
 
-    private void QuarantineCorruptConfig()
+    private string? QuarantineCorruptConfig()
     {
         try
         {
-            var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
+            var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
             var quarantinePath = Path.Combine(ConfigDirectory, $"config.corrupt-{timestamp}.json");
             File.Move(ConfigPath, quarantinePath, overwrite: false);
+            return quarantinePath;
         }
         catch
         {
             // Quarantine is best-effort. If we can't move it, the next Save will overwrite anyway.
+            return null;
         }
     }
 }

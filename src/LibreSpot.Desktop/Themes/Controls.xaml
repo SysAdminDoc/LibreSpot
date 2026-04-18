@@ -136,7 +136,7 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="FontSize" Value="13" />
-    <Setter Property="Padding" Value="18,10" />
+    <Setter Property="Padding" Value="12,6" />
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="SnapsToDevicePixels" Value="True" />
     <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -250,7 +250,7 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="FontSize" Value="13" />
-    <Setter Property="Padding" Value="18,10" />
+    <Setter Property="Padding" Value="12,6" />
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="SnapsToDevicePixels" Value="True" />
     <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -433,7 +433,7 @@
             <Border x:Name="Root"
                     Background="Transparent"
                     CornerRadius="10"
-                    Padding="18,9"
+                    Padding="12,6"
                     Margin="2,0">
               <ContentPresenter x:Name="Content"
                                 ContentSource="Header"

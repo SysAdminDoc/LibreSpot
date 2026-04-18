@@ -167,6 +167,7 @@ public static class AppCatalog
     });
 
     public sealed record SpotifyVersionEntry(string Id, string Label, string Version, string Notes);
+    public sealed record DownloadMethodEntry(string Id, string Label, string Detail);
 
     public static IReadOnlyList<SpotifyVersionEntry> SpotifyVersionManifest { get; } = new ReadOnlyCollection<SpotifyVersionEntry>(new[]
     {
@@ -175,6 +176,13 @@ public static class AppCatalog
         new SpotifyVersionEntry("1.2.85.519",      "1.2.85.519 (previous stable)",      "1.2.85.519.g7c42e2e8",      "Last Windows release before Canvas-home changes."),
         new SpotifyVersionEntry("1.2.53.440.x86",  "1.2.53.440 (x86 / 32-bit only)",    "1.2.53.440.g7b2f582a",      "For 32-bit Windows. Do not pick on x64."),
         new SpotifyVersionEntry("1.2.5.1006.win7", "1.2.5.1006 (Windows 7 / 8.1)",      "1.2.5.1006.g22820f93",      "Last build supported on legacy Windows."),
+    });
+
+    public static IReadOnlyList<DownloadMethodEntry> DownloadMethods { get; } = new ReadOnlyCollection<DownloadMethodEntry>(new[]
+    {
+        new DownloadMethodEntry("", "Automatic (recommended)", "LibreSpot uses the backend's default download flow and falls back only when it needs to."),
+        new DownloadMethodEntry("curl", "Force cURL", "Useful when the default web stack is flaky, filtered, or noticeably slower on your network."),
+        new DownloadMethodEntry("webclient", "Force WebClient", "Legacy .NET transfer path for older or tightly managed Windows environments."),
     });
 
     public static IReadOnlyDictionary<string, IReadOnlyList<string>> ThemeSchemes { get; } =
@@ -256,10 +264,10 @@ public static class AppCatalog
 
     public static IReadOnlyList<string> RecommendedHighlights { get; } = new ReadOnlyCollection<string>(new[]
     {
-        "Starts from a clean Spotify state so older patches do not leak into the new stack.",
-        "Applies the pinned SpotX profile with lyrics enabled and update blocking turned on.",
-        "Restores Spicetify, Marketplace, and the starter extensions LibreSpot manages best.",
-        "Saves a predictable profile for future reapply, recovery, and maintenance runs."
+        "Starts from a clean Spotify state.",
+        "Applies the pinned SpotX baseline with updates blocked.",
+        "Restores Spicetify, Marketplace, and the starter extensions.",
+        "Saves a dependable profile for reapply, recovery, and future maintenance."
     });
 
     public static InstallConfiguration CreateRecommendedConfiguration() => new();
@@ -306,9 +314,10 @@ public static class AppCatalog
         var rawDm = (source.SpotX_DownloadMethod ?? string.Empty).Trim().ToLowerInvariant();
         normalized.SpotX_DownloadMethod = rawDm is "curl" or "webclient" ? rawDm : "";
 
-        var validVersionIds = SpotifyVersionManifest.Select(v => v.Id).ToHashSet(StringComparer.Ordinal);
-        normalized.SpotX_SpotifyVersionId = !string.IsNullOrWhiteSpace(source.SpotX_SpotifyVersionId) && validVersionIds.Contains(source.SpotX_SpotifyVersionId)
-            ? source.SpotX_SpotifyVersionId
+        var rawVersionId = (source.SpotX_SpotifyVersionId ?? string.Empty).Trim();
+        var canonicalVersionId = SpotifyVersionManifest.FirstOrDefault(entry => string.Equals(entry.Id, rawVersionId, StringComparison.OrdinalIgnoreCase))?.Id;
+        normalized.SpotX_SpotifyVersionId = !string.IsNullOrWhiteSpace(canonicalVersionId)
+            ? canonicalVersionId
             : "auto";
 
         normalized.SpotX_LyricsTheme = !string.IsNullOrWhiteSpace(source.SpotX_LyricsTheme) && LyricsThemes.Contains(source.SpotX_LyricsTheme)
