@@ -94,7 +94,7 @@ Stolen from BlockTheSpot-Installer, SpotX-Spicetify-Universal-Installer, and Spi
 | 4.5 | **Repair / diagnostic button** — inspects installation health with per-issue fix buttons. | Spicetify Manager | ⏳ Pending |
 | 4.6 | **Crash dump** to local folder + dialog on fatal. | BlockTheSpot-Installer | ✅ Shipped as Serilog crash reporter (v4.0.0-preview.4) |
 | 4.7 | **`-Clean` CLI flag** — `irm ... \| iex -clean` pre-ticks Easy + CleanInstall for one-shot rebuild. | yodaluca23 | ✅ **v3.5.0** |
-| 4.8 | **Pre-patched Spotify warning** — detects BlockTheSpot/SpotX leftovers (`dpapi.dll`, `chrome_elf.dll`, `config.ini`, `xpui.spa.bak`), shows themed dialog once per session. | Fluent-Modded-Spotify issue | ✅ **v3.5.0** |
+| 4.8 | **Pre-patched Spotify warning** — detects BlockTheSpot-style injector files (`dpapi.dll`, `config.ini`, `version.dll`, `winmm.dll` next to `Spotify.exe`), shows themed dialog once per session. | Fluent-Modded-Spotify issue | ✅ **v3.5.0** (signature list tightened in v3.5.1 to remove `chrome_elf.dll` / `xpui.spa.bak` false positives) |
 
 ---
 
