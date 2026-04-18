@@ -154,6 +154,22 @@ Every download is verified against pinned SHA256 hashes. LibreSpot doesn't host 
 
 ---
 
+## Signing & verification
+
+Releases ship unsigned today. [SignPath Foundation](https://signpath.org/) OSS enrollment is pending — see [SIGNPATH.md](SIGNPATH.md) for the application draft and the operator guide. Once the cert arrives, every tagged release will Authenticode-sign both `LibreSpot.exe` and `LibreSpot-Desktop.exe` via the workflow in [.github/workflows/release.yml](.github/workflows/release.yml) and users will stop seeing the "Unknown publisher" SmartScreen warning.
+
+Independent of signing, every release already ships:
+- `checksums.txt` — SHA256 for every asset
+- CycloneDX SBOM — `LibreSpot.sbom.cdx.json`
+- SLSA L3 build-provenance attestations via [`actions/attest-build-provenance`](https://github.com/actions/attest-build-provenance)
+
+Verify provenance of any downloaded asset:
+
+```powershell
+gh attestation verify .\LibreSpot.exe          -R SysAdminDoc/LibreSpot
+gh attestation verify .\LibreSpot-Desktop.exe  -R SysAdminDoc/LibreSpot
+```
+
 ## Credits
 
 LibreSpot is a wrapper and installer — the real work is done by these projects:
