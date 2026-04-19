@@ -9,7 +9,7 @@ public sealed class EnvironmentSnapshotService
     {
         var spotifyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Spotify", "Spotify.exe");
         var spicetifyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "spicetify", "spicetify.exe");
-        var configDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LibreSpot");
+        var configDirectory = ResolveConfigDirectory(configPath);
 
         return new EnvironmentSnapshot
         {
@@ -18,5 +18,26 @@ public sealed class EnvironmentSnapshotService
             SavedConfigExists = File.Exists(configPath),
             ConfigFolderExists = Directory.Exists(configDirectory)
         };
+    }
+
+    private static string ResolveConfigDirectory(string configPath)
+    {
+        if (!string.IsNullOrWhiteSpace(configPath))
+        {
+            try
+            {
+                var directory = Path.GetDirectoryName(Path.GetFullPath(configPath));
+                if (!string.IsNullOrWhiteSpace(directory))
+                {
+                    return directory;
+                }
+            }
+            catch
+            {
+                // Fall back to the production profile location below.
+            }
+        }
+
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LibreSpot");
     }
 }

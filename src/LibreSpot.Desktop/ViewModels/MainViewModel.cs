@@ -144,6 +144,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _promptSummaryBody = string.Empty;
     private bool _isPromptDestructive;
     private bool _isCancelRequested;
+    private bool _isApplyingSelectionDependencyRules;
     private ConfigurationLoadState _configurationLoadState = ConfigurationLoadState.Loaded;
     private string? _recoveredConfigurationPath;
     private Func<Task>? _pendingPromptAction;
@@ -156,7 +157,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _configurationService = configurationService;
         _backendScriptService = backendScriptService;
         _snapshotService = snapshotService;
-        _dispatcher = Application.Current.Dispatcher;
+        _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _isAdministratorSession = IsAdministrator();
         _recommendedBaseline = AppCatalog.CreateRecommendedConfiguration();
         _runElapsedTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher)
@@ -1000,7 +1001,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var refreshedAt = _snapshotRefreshedAt.Value.ToString("h:mm:ss tt", System.Globalization.CultureInfo.InvariantCulture);
             return IsSnapshotStale
                 ? $"Last checked at {refreshedAt}. Recheck before you repair or reset if anything changed outside LibreSpot."
-                : $"Last checked at {refreshedAt}. Use F5 or Refresh environment after you change Spotify outside LibreSpot.";
+                : $"Last checked at {refreshedAt}. Refresh after you change Spotify outside LibreSpot.";
         }
     }
 
@@ -1172,7 +1173,68 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (e.PropertyName == nameof(OptionToggleViewModel.IsSelected) ||
             e.PropertyName == nameof(ExtensionToggleViewModel.IsSelected))
         {
+            if (_isApplyingSelectionDependencyRules)
+            {
+                return;
+            }
+
+            ApplySelectionDependencyRules(sender as OptionToggleViewModel);
             RaiseSelectionInsightsChanged();
+        }
+    }
+
+    private void ApplySelectionDependencyRules(OptionToggleViewModel? changedOption)
+    {
+        _isApplyingSelectionDependencyRules = true;
+        try
+        {
+            var lyricsEnabled = FindOption(nameof(InstallConfiguration.SpotX_LyricsEnabled));
+            var lyricsBlock = FindOption(nameof(InstallConfiguration.SpotX_LyricsBlock));
+            var oldLyrics = FindOption(nameof(InstallConfiguration.SpotX_OldLyrics));
+
+            if (lyricsEnabled?.IsSelected == false)
+            {
+                if (lyricsBlock is not null)
+                {
+                    lyricsBlock.IsSelected = false;
+                }
+
+                if (oldLyrics is not null)
+                {
+                    oldLyrics.IsSelected = false;
+                }
+            }
+            else if (IsChangedOption(changedOption, nameof(InstallConfiguration.SpotX_LyricsBlock)) &&
+                     lyricsBlock?.IsSelected == true)
+            {
+                if (oldLyrics is not null)
+                {
+                    oldLyrics.IsSelected = false;
+                }
+            }
+            else if (IsChangedOption(changedOption, nameof(InstallConfiguration.SpotX_OldLyrics)) &&
+                     oldLyrics?.IsSelected == true)
+            {
+                if (lyricsBlock is not null)
+                {
+                    lyricsBlock.IsSelected = false;
+                }
+            }
+            else if (lyricsBlock?.IsSelected == true && oldLyrics?.IsSelected == true)
+            {
+                oldLyrics.IsSelected = false;
+            }
+
+            var rightSidebarOff = FindOption(nameof(InstallConfiguration.SpotX_RightSidebarOff));
+            var rightSidebarColor = FindOption(nameof(InstallConfiguration.SpotX_RightSidebarClr));
+            if (rightSidebarOff?.IsSelected == true && rightSidebarColor?.IsSelected == true)
+            {
+                rightSidebarColor.IsSelected = false;
+            }
+        }
+        finally
+        {
+            _isApplyingSelectionDependencyRules = false;
         }
     }
 
@@ -1351,11 +1413,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 catch (OperationCanceledException)
                 {
                     AppendLog("Configuration save was canceled.", "WARN");
+                    ActivityStatus = "Canceled";
+                    ActivityStep = "Configuration save canceled";
                     return;
                 }
                 catch (Exception ex)
                 {
-                    AppendLog($"Could not save configuration: {ex.Message}", "WARN");
+                    AppendLog($"Could not save configuration: {ex.Message}", "ERROR");
+                    ActivityStatus = "Run needs attention";
+                    ActivityStep = "Configuration save failed";
+                    ProgressValue = 100;
+                    return;
                 }
 
                 ApplyConfigurationToEditor(configuration);
@@ -1792,6 +1860,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void ApplyConfigurationToEditor(InstallConfiguration configuration)
     {
+        configuration = AppCatalog.NormalizeConfiguration(configuration);
+
         ApplyOptionValues(InstallOptions, configuration);
         ApplyOptionValues(CoreOptions, configuration);
         ApplyOptionValues(InterfaceOptions, configuration);
@@ -2032,8 +2102,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         return differences;
     }
 
+    private OptionToggleViewModel? FindOption(string key) =>
+        EnumerateAllOptions().FirstOrDefault(option => string.Equals(option.Key, key, StringComparison.Ordinal));
+
     private bool IsOptionSelected(string key) =>
-        EnumerateAllOptions().FirstOrDefault(option => string.Equals(option.Key, key, StringComparison.Ordinal))?.IsSelected == true;
+        FindOption(key)?.IsSelected == true;
+
+    private static bool IsChangedOption(OptionToggleViewModel? option, string key) =>
+        option is not null && string.Equals(option.Key, key, StringComparison.Ordinal);
 
     private bool HasConflictingSidebarOptions() =>
         IsOptionSelected(nameof(InstallConfiguration.SpotX_RightSidebarOff)) &&

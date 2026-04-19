@@ -91,8 +91,7 @@ public static class CrashReporter
     {
         try
         {
-            var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-            var path = Path.Combine(CrashRoot, $"crash-{stamp}-{source}.log");
+            var path = CreateCrashReportPath(source);
 
             var body = new StringBuilder();
             body.AppendLine($"LibreSpot crash report");
@@ -117,6 +116,32 @@ public static class CrashReporter
         {
             // Crash-while-crashing. Nothing useful we can do; avoid rethrowing and taking down the process faster.
         }
+    }
+
+    private static string CreateCrashReportPath(string source)
+    {
+        var safeSource = string.Join(
+            "_",
+            (string.IsNullOrWhiteSpace(source) ? "Unknown" : source)
+                .Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(safeSource))
+        {
+            safeSource = "Unknown";
+        }
+
+        var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss-fff");
+
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var suffix = attempt == 0 ? string.Empty : $"-{attempt}";
+            var candidate = Path.Combine(CrashRoot, $"crash-{stamp}-{safeSource}{suffix}.log");
+            if (!File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return Path.Combine(CrashRoot, $"crash-{Guid.NewGuid():N}-{safeSource}.log");
     }
 
     private static void ShowCrashDialog(string crashPath, Exception exception, string source, bool isTerminating)

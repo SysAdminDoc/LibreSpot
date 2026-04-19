@@ -13,6 +13,7 @@ public sealed class BackendScriptService
 {
     private const string ResourceName = "LibreSpot.Desktop.Backend.LibreSpot.Backend.ps1";
     private const string Prefix = "@@LS@@|";
+    private static readonly SemaphoreSlim RuntimeScriptLock = new(1, 1);
 
     // Validated backend action names. Anything else is rejected before it reaches the
     // shell so a caller mistake can't turn into a "powershell.exe -Action $malicious" call.
@@ -21,8 +22,16 @@ public sealed class BackendScriptService
         "Install", "CheckUpdates", "Reapply", "RestoreVanilla", "UninstallSpicetify", "FullReset"
     };
 
-    private static string RuntimeDirectory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibreSpot", "Runtime");
+    private readonly string _runtimeDirectory;
+
+    public BackendScriptService(string? runtimeDirectory = null)
+    {
+        _runtimeDirectory = string.IsNullOrWhiteSpace(runtimeDirectory)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibreSpot", "Runtime")
+            : Path.GetFullPath(runtimeDirectory);
+    }
+
+    private string RuntimeDirectory => _runtimeDirectory;
 
     public async Task<BackendRunResult> RunAsync(string action, string configPath, Action<BackendMessage> onMessage, CancellationToken cancellationToken = default)
     {
@@ -36,11 +45,46 @@ public sealed class BackendScriptService
             return new BackendRunResult(false, "LibreSpot could not resolve the configuration path.");
         }
 
-        Directory.CreateDirectory(RuntimeDirectory);
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return new BackendRunResult(false, "LibreSpot canceled the backend run.");
+        }
+
+        try
+        {
+            Directory.CreateDirectory(RuntimeDirectory);
+        }
+        catch (Exception ex)
+        {
+            return new BackendRunResult(false, $"LibreSpot could not prepare the backend runtime folder: {ex.Message}");
+        }
+
+        Exception? messageDeliveryException = null;
+        var messageDeliveryLock = new object();
+
+        void Notify(BackendMessage message)
+        {
+            try
+            {
+                onMessage(message);
+            }
+            catch (Exception ex)
+            {
+                lock (messageDeliveryLock)
+                {
+                    messageDeliveryException ??= ex;
+                }
+            }
+        }
+
         string scriptPath;
         try
         {
             scriptPath = await EnsureBackendScriptAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return new BackendRunResult(false, "LibreSpot canceled the backend run.");
         }
         catch (Exception ex)
         {
@@ -80,7 +124,7 @@ public sealed class BackendScriptService
         {
             if (!string.IsNullOrWhiteSpace(ev.Data))
             {
-                Publish(ev.Data, onMessage);
+                Publish(ev.Data, Notify);
             }
         };
 
@@ -88,7 +132,7 @@ public sealed class BackendScriptService
         {
             if (!string.IsNullOrWhiteSpace(ev.Data))
             {
-                onMessage(new BackendMessage("log", "WARN", ev.Data));
+                Notify(new BackendMessage("log", "WARN", ev.Data));
             }
         };
 
@@ -112,25 +156,37 @@ public sealed class BackendScriptService
         }
         catch (OperationCanceledException)
         {
-            TryKillTree(process);
+            TryKillTree(process, waitForExit: true);
             return new BackendRunResult(false, "LibreSpot canceled the backend run.");
         }
 
         // Give the async output pumps a final drain so we don't drop the last few lines.
         try { await Task.Run(process.WaitForExit, CancellationToken.None); } catch { }
 
+        lock (messageDeliveryLock)
+        {
+            if (messageDeliveryException is not null)
+            {
+                return new BackendRunResult(false, $"LibreSpot could not update the desktop shell while the backend was running: {messageDeliveryException.Message}");
+            }
+        }
+
         return process.ExitCode == 0
             ? new BackendRunResult(true)
             : new BackendRunResult(false, $"LibreSpot backend exited with code {process.ExitCode}.");
     }
 
-    private static void TryKillTree(Process process)
+    private static void TryKillTree(Process process, bool waitForExit = false)
     {
         try
         {
             if (!process.HasExited)
             {
                 process.Kill(entireProcessTree: true);
+                if (waitForExit)
+                {
+                    process.WaitForExit(5000);
+                }
             }
         }
         catch
@@ -163,51 +219,59 @@ public sealed class BackendScriptService
         return File.Exists(systemPath) ? systemPath : "powershell.exe";
     }
 
-    private static async Task<string> EnsureBackendScriptAsync(CancellationToken cancellationToken)
+    private async Task<string> EnsureBackendScriptAsync(CancellationToken cancellationToken)
     {
         var destination = Path.Combine(RuntimeDirectory, "LibreSpot.Backend.ps1");
         var tempPath = Path.Combine(RuntimeDirectory, $"LibreSpot.Backend.{Guid.NewGuid():N}.tmp");
 
-        await using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName)
-            ?? throw new InvalidOperationException("LibreSpot backend resource was not found.");
-
-        // Compute the embedded script's hash once, then only re-extract when the
-        // on-disk copy is missing or stale. Avoids gratuitous file writes on every
-        // run and removes a race against any stray file handle left by an earlier run.
-        var expectedHash = ComputeHash(resourceStream);
-        resourceStream.Position = 0;
-
-        if (File.Exists(destination))
+        await RuntimeScriptLock.WaitAsync(cancellationToken);
+        try
         {
+            await using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName)
+                ?? throw new InvalidOperationException("LibreSpot backend resource was not found.");
+
+            // Compute the embedded script's hash once, then only re-extract when the
+            // on-disk copy is missing or stale. Avoids gratuitous file writes on every
+            // run and removes a race against any stray file handle left by an earlier run.
+            var expectedHash = ComputeHash(resourceStream);
+            resourceStream.Position = 0;
+
+            if (File.Exists(destination))
+            {
+                try
+                {
+                    await using var existing = File.Open(destination, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    if (ComputeHash(existing) == expectedHash)
+                    {
+                        return destination;
+                    }
+                }
+                catch
+                {
+                    // If we can't read it for any reason, fall through and rewrite it.
+                }
+            }
+
             try
             {
-                await using var existing = File.Open(destination, FileMode.Open, FileAccess.Read, FileShare.Read);
-                if (ComputeHash(existing) == expectedHash)
+                await using (var fileStream = File.Create(tempPath))
                 {
-                    return destination;
+                    await resourceStream.CopyToAsync(fileStream, cancellationToken);
+                    await fileStream.FlushAsync(cancellationToken);
                 }
+
+                File.Move(tempPath, destination, overwrite: true);
+                return destination;
             }
             catch
             {
-                // If we can't read it for any reason, fall through and rewrite it.
+                try { File.Delete(tempPath); } catch { }
+                throw;
             }
         }
-
-        try
+        finally
         {
-            await using (var fileStream = File.Create(tempPath))
-            {
-                await resourceStream.CopyToAsync(fileStream, cancellationToken);
-                await fileStream.FlushAsync(cancellationToken);
-            }
-
-            File.Move(tempPath, destination, overwrite: true);
-            return destination;
-        }
-        catch
-        {
-            try { File.Delete(tempPath); } catch { }
-            throw;
+            RuntimeScriptLock.Release();
         }
     }
 

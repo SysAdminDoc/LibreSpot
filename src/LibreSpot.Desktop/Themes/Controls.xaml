@@ -87,6 +87,39 @@
     <Setter Property="Margin" Value="0,0,0,10" />
   </Style>
 
+  <Style x:Key="MicroBadgeStyle" TargetType="Border">
+    <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource StrokeSoftBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+    <Setter Property="Padding" Value="9,3" />
+    <Setter Property="MinHeight" Value="22" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+  </Style>
+
+  <Style x:Key="MicroBadgeTextStyle" TargetType="TextBlock" BasedOn="{StaticResource LabelTextStyle}">
+    <Setter Property="FontSize" Value="10.5" />
+    <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style x:Key="EmptyStateTitleTextStyle" TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="FontFamily" Value="{StaticResource HeadingFont}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <Style x:Key="EmptyStateBodyTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
+    <Setter Property="Foreground" Value="{StaticResource SubtleTextBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="LineHeight" Value="18" />
+  </Style>
+
   <!-- ═══ Cards / Surfaces ═══ -->
   <Style x:Key="SurfaceCardStyle" TargetType="Border">
     <Setter Property="Background" Value="{StaticResource Surface2Brush}" />

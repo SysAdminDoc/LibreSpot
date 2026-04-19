@@ -308,8 +308,8 @@ public static class AppCatalog
         normalized.SpotX_NewFullscreen = source.SpotX_NewFullscreen;
         normalized.SpotX_FunnyProgress = source.SpotX_FunnyProgress;
         normalized.SpotX_ExpSpotify = source.SpotX_ExpSpotify;
-        normalized.SpotX_LyricsBlock = source.SpotX_LyricsBlock;
-        normalized.SpotX_OldLyrics = source.SpotX_OldLyrics;
+        normalized.SpotX_LyricsBlock = source.SpotX_LyricsEnabled && source.SpotX_LyricsBlock;
+        normalized.SpotX_OldLyrics = source.SpotX_LyricsEnabled && source.SpotX_OldLyrics && !source.SpotX_LyricsBlock;
         normalized.SpotX_HideColIconOff = source.SpotX_HideColIconOff;
         normalized.SpotX_SendVersionOff = source.SpotX_SendVersionOff;
         normalized.SpotX_StartSpoti = source.SpotX_StartSpoti;

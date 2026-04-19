@@ -326,6 +326,13 @@ function Normalize-LibreSpotConfig {
         $normalized.SpotX_RightSidebarClr = $false
     }
 
+    if (-not $normalized.SpotX_LyricsEnabled) {
+        $normalized.SpotX_OldLyrics = $false
+        $normalized.SpotX_LyricsBlock = $false
+    } elseif ($normalized.SpotX_LyricsBlock) {
+        $normalized.SpotX_OldLyrics = $false
+    }
+
     if ($Config -and -not $Config.ContainsKey('Mode')) {
         foreach ($key in $global:EasyDefaults.Keys) {
             $defaultValue = $global:EasyDefaults[$key]
@@ -363,8 +370,20 @@ function Move-ConfigFileToQuarantine {
 
         if (Test-Path -LiteralPath $ConfigPath) {
             $stamp = Get-Date -Format 'yyyyMMdd-HHmmssfff'
-            $quarantinePath = Join-Path $configDirectory "config.corrupt.$stamp.json"
-            Move-Item -LiteralPath $ConfigPath -Destination $quarantinePath -Force
+            $quarantinePath = $null
+            for ($attempt = 0; $attempt -lt 10; $attempt++) {
+                $suffix = if ($attempt -eq 0) { '' } else { "-$attempt" }
+                $candidatePath = Join-Path $configDirectory "config.corrupt.$stamp$suffix.json"
+                if (-not (Test-Path -LiteralPath $candidatePath)) {
+                    $quarantinePath = $candidatePath
+                    break
+                }
+            }
+            if (-not $quarantinePath) {
+                $quarantinePath = Join-Path $configDirectory ("config.corrupt.{0}.json" -f [Guid]::NewGuid().ToString('N'))
+            }
+
+            Move-Item -LiteralPath $ConfigPath -Destination $quarantinePath -ErrorAction Stop
             Write-Log "Saved config was moved to $(Split-Path -Path $quarantinePath -Leaf) after a read failure." -Level 'WARN'
         }
     } catch {
@@ -465,8 +484,12 @@ function Stop-SpotifyWindowWatcher {
 
 function Get-LibreSpotTempRoot {
     $root = Join-Path $global:TEMP_DIR 'LibreSpot'
-    if (-not (Test-Path -LiteralPath $root)) {
-        New-Item -Path $root -ItemType Directory -Force | Out-Null
+    if (Test-Path -LiteralPath $root -PathType Leaf) {
+        $root = Join-Path $global:TEMP_DIR ("LibreSpot-{0}" -f [System.Diagnostics.Process]::GetCurrentProcess().Id)
+    }
+
+    if (-not (Test-Path -LiteralPath $root -PathType Container)) {
+        New-Item -Path $root -ItemType Directory -Force -ErrorAction Stop | Out-Null
     }
     return $root
 }
@@ -1199,19 +1222,24 @@ function Build-SpotXParams {
     if ($Config.SpotX_Premium) { $params += '-premium' }
     if ($Config.SpotX_DisableStartup) { $params += '-DisableStartup' }
     if ($Config.SpotX_NoShortcut) { $params += '-no_shortcut' }
-    if ($Config.SpotX_LyricsEnabled) { $params += "-lyrics_stat $($Config.SpotX_LyricsTheme)" }
+    if ($Config.SpotX_LyricsEnabled) {
+        $params += "-lyrics_stat $($Config.SpotX_LyricsTheme)"
+        if ($Config.SpotX_LyricsBlock) {
+            $params += '-lyrics_block'
+        } elseif ($Config.SpotX_OldLyrics) {
+            $params += '-old_lyrics'
+        }
+    }
     if ($Config.SpotX_TopSearch) { $params += '-topsearchbar' }
     if ($Config.SpotX_RightSidebarOff) { $params += '-rightsidebar_off' }
     if ($Config.SpotX_RightSidebarClr) { $params += '-rightsidebarcolor' }
     if ($Config.SpotX_CanvasHomeOff) { $params += '-canvashome_off' }
     if ($Config.SpotX_HomeSubOff) { $params += '-homesub_off' }
-    if ($Config.SpotX_OldLyrics) { $params += '-old_lyrics' }
     if ($Config.SpotX_HideColIconOff) { $params += '-hide_col_icon_off' }
     if ($Config.SpotX_Plus) { $params += '-plus' }
     if ($Config.SpotX_NewFullscreen) { $params += '-newFullscreenMode' }
     if ($Config.SpotX_FunnyProgress) { $params += '-funnyprogressBar' }
     if ($Config.SpotX_ExpSpotify) { $params += '-exp_spotify' }
-    if ($Config.SpotX_LyricsBlock) { $params += '-lyrics_block' }
     if ($Config.SpotX_SendVersionOff) { $params += '-sendversion_off' }
     if ($Config.SpotX_StartSpoti) { $params += '-start_spoti' }
     if ($Config.SpotX_DevTools) { $params += '-devtools' }
@@ -1258,9 +1286,8 @@ function Module-InstallSpotX {
 
         Write-Log 'SpotX patching completed successfully.' -Level 'SUCCESS'
         Write-Log 'Launching Spotify once to generate its base config files...'
-        $process = Start-Process -FilePath $global:SPOTIFY_EXE_PATH -WindowStyle Minimized -PassThru
+        Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
         Start-Sleep -Seconds 6
-        try { if ($process -and -not $process.HasExited) { $process.CloseMainWindow() | Out-Null } } catch {}
         Stop-SpotifyProcesses -MaxAttempts 3
     } finally {
         Remove-Item -LiteralPath $destination -Force -ErrorAction SilentlyContinue
@@ -1552,7 +1579,7 @@ function Invoke-LibreSpotInstall {
         # inheriting our elevated token. A directly-started Spotify would run as Administrator,
         # which Spotify explicitly warns against and which breaks drag-and-drop from Explorer
         # and some web-auth flows.
-        Start-Process -FilePath 'explorer.exe' -ArgumentList $global:SPOTIFY_EXE_PATH
+        Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
     }
 
     Update-BackendState -Progress 100 -Status 'Setup complete' -Step 'Spotify is ready'

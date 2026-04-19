@@ -67,43 +67,72 @@
                        FontSize="13"
                        TextWrapping="Wrap"
                        Margin="0,0,10,0" />
-            <TextBlock Grid.Column="1"
-                       FontSize="10.5"
-                       FontWeight="SemiBold"
-                       VerticalAlignment="Top">
-              <TextBlock.Style>
-                <Style TargetType="TextBlock">
-                  <Setter Property="Text" Value="Optional" />
-                  <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+            <Border Grid.Column="1"
+                    MinWidth="86">
+              <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource MicroBadgeStyle}">
                   <Style.Triggers>
                     <MultiDataTrigger>
                       <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
                         <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
                       </MultiDataTrigger.Conditions>
-                      <Setter Property="Text" Value="Recommended" />
-                      <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                      <Setter Property="Background" Value="{StaticResource AccentMistBrush}" />
+                      <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
                     </MultiDataTrigger>
                     <MultiDataTrigger>
                       <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding IsRecommendedDefault}" Value="False" />
                         <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
                       </MultiDataTrigger.Conditions>
-                      <Setter Property="Text" Value="Added" />
-                      <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                      <Setter Property="Background" Value="{StaticResource AccentMistBrush}" />
+                      <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
                     </MultiDataTrigger>
                     <MultiDataTrigger>
                       <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
                         <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="False" />
                       </MultiDataTrigger.Conditions>
-                      <Setter Property="Text" Value="Removed" />
-                      <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                      <Setter Property="Background" Value="{StaticResource WarningSoftBrush}" />
+                      <Setter Property="BorderBrush" Value="{StaticResource WarningRingBrush}" />
                     </MultiDataTrigger>
                   </Style.Triggers>
                 </Style>
-              </TextBlock.Style>
-            </TextBlock>
+              </Border.Style>
+              <TextBlock>
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock" BasedOn="{StaticResource MicroBadgeTextStyle}">
+                    <Setter Property="Text" Value="Optional" />
+                    <Style.Triggers>
+                      <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                          <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
+                          <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Text" Value="Recommended" />
+                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                      </MultiDataTrigger>
+                      <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                          <Condition Binding="{Binding IsRecommendedDefault}" Value="False" />
+                          <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Text" Value="Added" />
+                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                      </MultiDataTrigger>
+                      <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                          <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
+                          <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="False" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Text" Value="Removed" />
+                        <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                      </MultiDataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+            </Border>
           </Grid>
           <TextBlock Text="{Binding Description}"
                      Style="{StaticResource CaptionTextStyle}" />
@@ -130,43 +159,72 @@
                        FontSize="13"
                        TextWrapping="Wrap"
                        Margin="0,0,10,0" />
-            <TextBlock Grid.Column="1"
-                       FontSize="10.5"
-                       FontWeight="SemiBold"
-                       VerticalAlignment="Top">
-              <TextBlock.Style>
-                <Style TargetType="TextBlock">
-                  <Setter Property="Text" Value="Available" />
-                  <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+            <Border Grid.Column="1"
+                    MinWidth="76">
+              <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource MicroBadgeStyle}">
                   <Style.Triggers>
                     <MultiDataTrigger>
                       <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
                         <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
                       </MultiDataTrigger.Conditions>
-                      <Setter Property="Text" Value="Starter" />
-                      <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                      <Setter Property="Background" Value="{StaticResource AccentMistBrush}" />
+                      <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
                     </MultiDataTrigger>
                     <MultiDataTrigger>
                       <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding IsRecommendedDefault}" Value="False" />
                         <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
                       </MultiDataTrigger.Conditions>
-                      <Setter Property="Text" Value="Added" />
-                      <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                      <Setter Property="Background" Value="{StaticResource AccentMistBrush}" />
+                      <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
                     </MultiDataTrigger>
                     <MultiDataTrigger>
                       <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
                         <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="False" />
                       </MultiDataTrigger.Conditions>
-                      <Setter Property="Text" Value="Removed" />
-                      <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                      <Setter Property="Background" Value="{StaticResource WarningSoftBrush}" />
+                      <Setter Property="BorderBrush" Value="{StaticResource WarningRingBrush}" />
                     </MultiDataTrigger>
                   </Style.Triggers>
                 </Style>
-              </TextBlock.Style>
-            </TextBlock>
+              </Border.Style>
+              <TextBlock>
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock" BasedOn="{StaticResource MicroBadgeTextStyle}">
+                    <Setter Property="Text" Value="Available" />
+                    <Style.Triggers>
+                      <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                          <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
+                          <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Text" Value="Default" />
+                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                      </MultiDataTrigger>
+                      <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                          <Condition Binding="{Binding IsRecommendedDefault}" Value="False" />
+                          <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Text" Value="Added" />
+                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                      </MultiDataTrigger>
+                      <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                          <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
+                          <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="False" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Text" Value="Removed" />
+                        <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                      </MultiDataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+            </Border>
           </Grid>
           <TextBlock Text="{Binding Description}"
                      Style="{StaticResource CaptionTextStyle}" />
@@ -293,11 +351,14 @@
     </DataTemplate>
 
     <DataTemplate x:Key="SelectionBadgeTemplate">
-      <TextBlock Text="{Binding StringFormat=• {0}}"
-                 Foreground="{StaticResource TextBrush}"
-                 FontSize="11.5"
-                 FontWeight="SemiBold"
-                 Margin="0,0,14,6" />
+      <Border Style="{StaticResource MicroBadgeStyle}"
+              Background="{StaticResource Surface3Brush}"
+              BorderBrush="{StaticResource StrokeBrush}"
+              Margin="0,0,8,8">
+        <TextBlock Text="{Binding}"
+                   Style="{StaticResource MicroBadgeTextStyle}"
+                   Foreground="{StaticResource TextBrush}" />
+      </Border>
     </DataTemplate>
 
     <!--
@@ -394,11 +455,11 @@
             <TextBlock Text="LIBRESPOT"
                        Style="{StaticResource SectionEyebrowTextStyle}"
                        Foreground="{StaticResource AccentBrush}" />
-            <TextBlock Text="Patch and recover Spotify in one place"
+            <TextBlock Text="Spotify setup, repair, and recovery"
                        Style="{StaticResource RailTitleTextStyle}"
                        FontSize="21"
                        Margin="0,8,0,0" />
-            <TextBlock Text="Start with Recommended. Use Custom only for deliberate changes. Keep Maintenance for repair work."
+            <TextBlock Text="Recommended handles the stable path, Custom keeps deliberate changes visible, and Maintenance stays reserved for recovery work."
                        Style="{StaticResource CaptionTextStyle}"
                        Margin="0,10,0,0" />
 
@@ -526,9 +587,9 @@
             <Button Content="Refresh environment"
                     Style="{StaticResource GhostButtonStyle}"
                     Height="40"
-                    ToolTip="F5"
+                    ToolTip="Recheck Spotify, Spicetify, and saved profile state."
                     AutomationProperties.Name="Refresh environment"
-                    AutomationProperties.HelpText="Rechecks the current Spotify, Spicetify, and saved profile state. Shortcut: F5."
+                    AutomationProperties.HelpText="Rechecks the current Spotify, Spicetify, and saved profile state."
                     Command="{Binding RefreshSnapshotCommand}" />
             <Border Margin="0,12,0,0">
               <Border.Style>
@@ -560,20 +621,18 @@
                            FontWeight="SemiBold"
                            FontSize="13"
                            Margin="0,6,0,0"
-                           TextAlignment="Center"
                            TextWrapping="Wrap" />
                 <TextBlock Text="{Binding SnapshotFreshnessDetail}"
                            Style="{StaticResource CaptionTextStyle}"
                            Foreground="{StaticResource SubtleTextBrush}"
-                           TextAlignment="Center"
                            TextWrapping="Wrap"
                            Margin="0,6,0,0" />
               </StackPanel>
             </Border>
-            <TextBlock Text="F5 refreshes the environment. Esc closes overlays and prompts."
+            <TextBlock Text="Refresh after changing Spotify outside LibreSpot so recommendations stay accurate."
                        Style="{StaticResource CaptionTextStyle}"
                        Foreground="{StaticResource SubtleTextBrush}"
-                       TextAlignment="Center"
+                       TextAlignment="Left"
                        Margin="0,10,0,0" />
           </StackPanel>
         </DockPanel>
@@ -627,10 +686,12 @@
                          TextWrapping="Wrap"
                          Width="260"
                          Margin="0,6,0,0" />
-              <Button Content="Continue as administrator"
+              <Button Content="Relaunch as administrator"
                       Height="40"
                       Margin="0,14,0,0"
                       Style="{StaticResource SecondaryButtonStyle}"
+                      AutomationProperties.Name="Relaunch LibreSpot as administrator"
+                      AutomationProperties.HelpText="Restarts LibreSpot with administrator access before applying changes."
                       Visibility="{Binding NeedsAdministratorRelaunch, Converter={StaticResource BoolToVisibilityConverter}}"
                       Command="{Binding RelaunchAsAdministratorCommand}" />
             </StackPanel>
@@ -785,17 +846,28 @@
                                TextWrapping="Wrap" />
 
                     <Border Style="{StaticResource SubtleCardStyle}"
+                            Background="{StaticResource Surface1Brush}"
                             Margin="0,0,0,18"
                             Visibility="{Binding ShowCustomSearchEmptyState, Converter={StaticResource BoolToVisibilityConverter}}">
-                      <StackPanel>
-                        <TextBlock Text="No settings match this search"
-                                   Foreground="{StaticResource TextBrush}"
-                                   FontWeight="SemiBold"
-                                   FontSize="14" />
-                        <TextBlock Text="Try a broader term, or clear the search to browse the full profile again."
-                                   Style="{StaticResource CaptionTextStyle}"
-                                   Margin="0,6,0,0" />
-                      </StackPanel>
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="Auto" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="4"
+                                Height="38"
+                                CornerRadius="2"
+                                Background="{StaticResource StrokeStrongBrush}"
+                                Margin="0,2,12,0"
+                                VerticalAlignment="Top" />
+                        <StackPanel Grid.Column="1">
+                          <TextBlock Text="No matching settings"
+                                     Style="{StaticResource EmptyStateTitleTextStyle}" />
+                          <TextBlock Text="Try a broader term, or clear the search to browse the full profile again."
+                                     Style="{StaticResource EmptyStateBodyTextStyle}"
+                                     Margin="0,6,0,0" />
+                        </StackPanel>
+                      </Grid>
                     </Border>
 
                     <Border Style="{StaticResource MinimalSectionStyle}"
@@ -1617,15 +1689,15 @@
                   <!-- Empty state -->
                   <StackPanel HorizontalAlignment="Center"
                               VerticalAlignment="Center"
+                              MaxWidth="420"
                               Visibility="{Binding IsLogEmpty, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <TextBlock Text="Waiting for backend output"
-                               Foreground="{StaticResource MutedTextBrush}"
-                               FontFamily="{StaticResource MonoFont}"
-                               FontSize="12"
+                    <TextBlock Text="Backend output will appear here"
+                               Style="{StaticResource EmptyStateTitleTextStyle}"
+                               TextAlignment="Center"
                                HorizontalAlignment="Center" />
-                    <TextBlock Text="Progress, warnings, and recovery clues appear here as soon as the backend begins emitting output."
-                               Foreground="{StaticResource SubtleTextBrush}"
-                               FontSize="11"
+                    <TextBlock Text="Progress, warnings, and recovery clues are captured as soon as the backend begins emitting output."
+                               Style="{StaticResource EmptyStateBodyTextStyle}"
+                               TextAlignment="Center"
                                Margin="0,6,0,0"
                                HorizontalAlignment="Center" />
                   </StackPanel>
@@ -1690,7 +1762,9 @@
                 <TextBlock Text="{Binding ActivityLogPathText}"
                            Style="{StaticResource CaptionTextStyle}"
                            Foreground="{StaticResource SubtleTextBrush}"
-                           Margin="0,8,0,0" />
+                           Margin="0,8,0,0"
+                           MaxWidth="430"
+                           TextWrapping="Wrap" />
               </StackPanel>
 
               <StackPanel Grid.Column="1"
@@ -1706,9 +1780,9 @@
                         AutomationProperties.Name="Copy backend log"
                         AutomationProperties.HelpText="Copies the visible backend log to the clipboard."
                         Command="{Binding CopyLogCommand}" />
-                <Button Content="Open LibreSpot folder"
+                <Button Content="Open folder"
                         x:Name="ActivityOpenLibreSpotFolderButton"
-                        MinWidth="176"
+                        MinWidth="132"
                         Height="42"
                         Padding="18,0"
                         Margin="0,0,10,0"
