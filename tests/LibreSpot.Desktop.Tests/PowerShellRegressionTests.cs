@@ -285,4 +285,122 @@ public sealed class PowerShellRegressionTests
         Assert.True(booleanBlock.Success, "Could not locate $booleanKeys block.");
         Assert.Contains("AutoReapply_Enabled", booleanBlock.Groups["body"].Value);
     }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void PowerShellNormalizer_ResolvesLyricsModeConflicts(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Normalize-LibreSpotConfig\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Normalize-LibreSpotConfig function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("-not $normalized.SpotX_LyricsEnabled", body);
+        Assert.Contains("$normalized.SpotX_LyricsBlock = $false", body);
+        Assert.Contains("$normalized.SpotX_OldLyrics = $false", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void BuildSpotXParams_GatesMutuallyExclusiveLyricsFlags(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Build-SpotXParams\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Build-SpotXParams function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("if ($Config.SpotX_LyricsEnabled)", body);
+        Assert.Contains("elseif ($Config.SpotX_OldLyrics)", body);
+        Assert.DoesNotMatch(@"(?m)^\s*if\s+\(\$Config\.SpotX_OldLyrics\)", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void ExternalScriptRunner_ToleratesUnavailableExitCode(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Invoke-ExternalScriptIsolated\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Invoke-ExternalScriptIsolated function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("$null -eq $exitCode", body);
+        Assert.Contains("ExitCode was unavailable", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void LaunchAfter_HandsSpotifyToExplorerInsteadOfElevatedProcess(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        Assert.Contains("Start-Process -FilePath 'explorer.exe'", script);
+        Assert.DoesNotContain("Start-Process $global:SPOTIFY_EXE_PATH", script);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void ConfigQuarantine_UsesCollisionResistantNames(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Move-ConfigFileToQuarantine\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Move-ConfigFileToQuarantine function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("for ($attempt = 0; $attempt -lt 10; $attempt++)", body);
+        Assert.Contains("[Guid]::NewGuid()", body);
+        Assert.Contains("-ErrorAction Stop", body);
+    }
+
+    [Fact]
+    public void PowerShellConfigSave_UsesUniqueTempAndBackupPaths()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Save-LibreSpotConfig\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, "Save-LibreSpotConfig function block not found.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("config.{0}.tmp", body);
+        Assert.Contains("config.{0}.bak", body);
+        Assert.Contains("[Guid]::NewGuid()", body);
+        Assert.DoesNotContain("$global:CONFIG_PATH.tmp", body);
+        Assert.DoesNotContain("$global:CONFIG_PATH.bak", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void TempRootHelper_HandlesFileCollisionAtDefaultRoot(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Get-LibreSpotTempRoot\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Get-LibreSpotTempRoot function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("-PathType Leaf", body);
+        Assert.Contains("GetCurrentProcess().Id", body);
+        Assert.Contains("-PathType Container", body);
+        Assert.Contains("-ErrorAction Stop", body);
+    }
 }
