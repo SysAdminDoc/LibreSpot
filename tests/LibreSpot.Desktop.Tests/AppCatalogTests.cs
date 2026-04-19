@@ -97,4 +97,37 @@ public sealed class AppCatalogTests
         Assert.Equal(string.Empty, normalized.SpotX_DownloadMethod);
         Assert.Equal("auto", normalized.SpotX_SpotifyVersionId);
     }
+
+    [Fact]
+    public void NormalizeConfiguration_DisablesLyricsVariantsWhenLyricsPatchIsDisabled()
+    {
+        var configuration = new InstallConfiguration
+        {
+            SpotX_LyricsEnabled = false,
+            SpotX_LyricsBlock = true,
+            SpotX_OldLyrics = true
+        };
+
+        var normalized = AppCatalog.NormalizeConfiguration(configuration);
+
+        Assert.False(normalized.SpotX_LyricsEnabled);
+        Assert.False(normalized.SpotX_LyricsBlock);
+        Assert.False(normalized.SpotX_OldLyrics);
+    }
+
+    [Fact]
+    public void NormalizeConfiguration_ResolvesMutuallyExclusiveLyricsVariants()
+    {
+        var configuration = new InstallConfiguration
+        {
+            SpotX_LyricsEnabled = true,
+            SpotX_LyricsBlock = true,
+            SpotX_OldLyrics = true
+        };
+
+        var normalized = AppCatalog.NormalizeConfiguration(configuration);
+
+        Assert.True(normalized.SpotX_LyricsBlock);
+        Assert.False(normalized.SpotX_OldLyrics);
+    }
 }
