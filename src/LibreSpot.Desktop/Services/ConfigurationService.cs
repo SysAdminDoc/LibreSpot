@@ -90,11 +90,12 @@ public sealed class ConfigurationService
     {
         Directory.CreateDirectory(ConfigDirectory);
         await _saveLock.WaitAsync(cancellationToken);
+        string? tempPath = null;
         try
         {
             var normalizedConfiguration = AppCatalog.NormalizeConfiguration(configuration);
-            var tempPath = ConfigPath + ".tmp";
-            await using (var stream = File.Create(tempPath))
+            tempPath = Path.Combine(ConfigDirectory, $"config.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp");
+            await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             {
                 await JsonSerializer.SerializeAsync(stream, normalizedConfiguration, SerializerOptions, cancellationToken);
                 // Ensure contents hit disk before we swap over the real file.
@@ -105,11 +106,19 @@ public sealed class ConfigurationService
             // volume, which APPDATA always is. This prevents torn writes if the process
             // is killed mid-save — either the old config or the new one remains intact.
             File.Move(tempPath, ConfigPath, overwrite: true);
+            tempPath = null;
         }
         catch
         {
             // Best-effort cleanup of the temp file; if the move already consumed it this is a no-op.
-            try { File.Delete(ConfigPath + ".tmp"); } catch { }
+            try
+            {
+                if (!string.IsNullOrEmpty(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+            catch { }
             throw;
         }
         finally
@@ -122,10 +131,23 @@ public sealed class ConfigurationService
     {
         try
         {
-            var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
-            var quarantinePath = Path.Combine(ConfigDirectory, $"config.corrupt-{timestamp}.json");
-            File.Move(ConfigPath, quarantinePath, overwrite: false);
-            return quarantinePath;
+            var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture);
+            for (var attempt = 0; attempt < 10; attempt++)
+            {
+                var suffix = attempt == 0 ? string.Empty : $"-{attempt}";
+                var quarantinePath = Path.Combine(ConfigDirectory, $"config.corrupt-{timestamp}{suffix}.json");
+                if (File.Exists(quarantinePath))
+                {
+                    continue;
+                }
+
+                File.Move(ConfigPath, quarantinePath, overwrite: false);
+                return quarantinePath;
+            }
+
+            var fallbackPath = Path.Combine(ConfigDirectory, $"config.corrupt-{Guid.NewGuid():N}.json");
+            File.Move(ConfigPath, fallbackPath, overwrite: false);
+            return fallbackPath;
         }
         catch
         {

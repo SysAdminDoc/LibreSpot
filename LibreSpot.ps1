@@ -814,6 +814,13 @@ function Normalize-LibreSpotConfig {
         $normalized.SpotX_RightSidebarClr = $false
     }
 
+    if (-not $normalized.SpotX_LyricsEnabled) {
+        $normalized.SpotX_OldLyrics = $false
+        $normalized.SpotX_LyricsBlock = $false
+    } elseif ($normalized.SpotX_LyricsBlock) {
+        $normalized.SpotX_OldLyrics = $false
+    }
+
     if ($Config -and -not $Config.ContainsKey('Mode')) {
         foreach ($key in $global:EasyDefaults.Keys) {
             $defaultValue = $global:EasyDefaults[$key]
@@ -844,9 +851,22 @@ function Move-ConfigFileToQuarantine {
         }
         if (Test-Path -LiteralPath $global:CONFIG_PATH) {
             $stamp = Get-Date -Format 'yyyyMMdd-HHmmssfff'
-            $quarantineName = "config.corrupt.$stamp.json"
-            $quarantinePath = Join-Path $global:CONFIG_DIR $quarantineName
-            Move-Item -LiteralPath $global:CONFIG_PATH -Destination $quarantinePath -Force
+            $quarantinePath = $null
+            for ($attempt = 0; $attempt -lt 10; $attempt++) {
+                $suffix = if ($attempt -eq 0) { '' } else { "-$attempt" }
+                $candidateName = "config.corrupt.$stamp$suffix.json"
+                $candidatePath = Join-Path $global:CONFIG_DIR $candidateName
+                if (-not (Test-Path -LiteralPath $candidatePath)) {
+                    $quarantinePath = $candidatePath
+                    break
+                }
+            }
+            if (-not $quarantinePath) {
+                $quarantinePath = Join-Path $global:CONFIG_DIR ("config.corrupt.{0}.json" -f [Guid]::NewGuid().ToString('N'))
+            }
+
+            Move-Item -LiteralPath $global:CONFIG_PATH -Destination $quarantinePath -ErrorAction Stop
+            $quarantineName = Split-Path -Path $quarantinePath -Leaf
             $script:ConfigLoadWarning = "LibreSpot reset the saved settings because the config file could not be read safely. The previous file was moved to $quarantineName."
         } else {
             $script:ConfigLoadWarning = 'LibreSpot reset the saved settings because the config file could not be read safely.'
@@ -860,10 +880,12 @@ function Move-ConfigFileToQuarantine {
 }
 
 function Save-LibreSpotConfig { param([hashtable]$Config)
-    $tempPath = "$global:CONFIG_PATH.tmp"
-    $backupPath = "$global:CONFIG_PATH.bak"
+    $tempPath = $null
+    $backupPath = $null
     try {
         if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) { New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null }
+        $tempPath = Join-Path $global:CONFIG_DIR ("config.{0}.tmp" -f [Guid]::NewGuid().ToString('N'))
+        $backupPath = Join-Path $global:CONFIG_DIR ("config.{0}.bak" -f [Guid]::NewGuid().ToString('N'))
         $normalizedConfig = Normalize-LibreSpotConfig -Config $Config
         $json = [ordered]@{}
         foreach ($key in $normalizedConfig.Keys) { $json[$key] = $normalizedConfig[$key] }
@@ -884,7 +906,8 @@ function Save-LibreSpotConfig { param([hashtable]$Config)
         return $true
     } catch {
         try { Write-Log "Config save failed: $($_.Exception.Message)" -Level 'WARN' } catch {}
-        Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue
+        if ($tempPath) { Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue }
+        if ($backupPath) { Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue }
         return $false
     }
 }
@@ -904,8 +927,12 @@ function Load-LibreSpotConfig {
 
 function Get-LibreSpotTempRoot {
     $root = Join-Path $global:TEMP_DIR 'LibreSpot'
-    if (-not (Test-Path -LiteralPath $root)) {
-        New-Item -Path $root -ItemType Directory -Force | Out-Null
+    if (Test-Path -LiteralPath $root -PathType Leaf) {
+        $root = Join-Path $global:TEMP_DIR ("LibreSpot-{0}" -f [System.Diagnostics.Process]::GetCurrentProcess().Id)
+    }
+
+    if (-not (Test-Path -LiteralPath $root -PathType Container)) {
+        New-Item -Path $root -ItemType Directory -Force -ErrorAction Stop | Out-Null
     }
     return $root
 }
@@ -2589,19 +2616,24 @@ function Build-SpotXParams { param($Config)
     if ($Config.SpotX_DisableStartup)  { $p += "-DisableStartup" }
     if ($Config.SpotX_NoShortcut)      { $p += "-no_shortcut" }
     if ($Config.SpotX_StartSpoti)      { $p += "-start_spoti" }
-    if ($Config.SpotX_LyricsEnabled)   { $p += "-lyrics_stat $($Config.SpotX_LyricsTheme)" }
+    if ($Config.SpotX_LyricsEnabled) {
+        $p += "-lyrics_stat $($Config.SpotX_LyricsTheme)"
+        if ($Config.SpotX_LyricsBlock) {
+            $p += "-lyrics_block"
+        } elseif ($Config.SpotX_OldLyrics) {
+            $p += "-old_lyrics"
+        }
+    }
     if ($Config.SpotX_TopSearch)       { $p += "-topsearchbar" }
     if ($Config.SpotX_RightSidebarOff) { $p += "-rightsidebar_off" }
     if ($Config.SpotX_RightSidebarClr) { $p += "-rightsidebarcolor" }
     if ($Config.SpotX_CanvasHomeOff)   { $p += "-canvashome_off" }
     if ($Config.SpotX_HomeSubOff)      { $p += "-homesub_off" }
-    if ($Config.SpotX_OldLyrics)       { $p += "-old_lyrics" }
     if ($Config.SpotX_HideColIconOff)  { $p += "-hide_col_icon_off" }
     if ($Config.SpotX_Plus)             { $p += "-plus" }
     if ($Config.SpotX_NewFullscreen)    { $p += "-newFullscreenMode" }
     if ($Config.SpotX_FunnyProgress)    { $p += "-funnyprogressBar" }
     if ($Config.SpotX_ExpSpotify)       { $p += "-exp_spotify" }
-    if ($Config.SpotX_LyricsBlock)      { $p += "-lyrics_block" }
     if ($Config.SpotX_SendVersionOff)   { $p += "-sendversion_off" }
     if ($Config.SpotX_DevTools)         { $p += "-devtools" }
     if ($Config.SpotX_Mirror)           { $p += "-mirror" }
@@ -3917,7 +3949,16 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
             Write-Log "[STDERR] $line" -Level 'WARN'
         }
 
-        if ($p.ExitCode -ne 0) { throw "Process exited with code $($p.ExitCode)" }
+        # Capture ExitCode defensively. Windows PowerShell can occasionally lose
+        # the Process handle when Start-Process is combined with redirected output.
+        $exitCode = $null
+        try { $exitCode = $p.ExitCode } catch { $exitCode = $null }
+
+        if ($null -eq $exitCode) {
+            Write-Log 'External process finished but ExitCode was unavailable; treating as success.' -Level 'WARN'
+        } elseif ($exitCode -ne 0) {
+            throw "Process exited with code $exitCode"
+        }
     } finally {
         if ($p) { try { $p.Dispose() } catch {} }
         Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
@@ -4267,7 +4308,7 @@ function Module-InstallSpotX { param($Config,$SyncHash)
             Write-Log "Spotify $patchedVer patched successfully." -Level 'SUCCESS'
             Write-Log "Launching Spotify (hidden) to generate config files..."
             if (Test-Path $global:SPOTIFY_EXE_PATH) {
-                $sp = Start-Process $global:SPOTIFY_EXE_PATH -WindowStyle Minimized -PassThru
+                Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
                 Start-Sleep -Milliseconds 800
                 Hide-SpotifyWindows
             }
@@ -4555,7 +4596,7 @@ $installBlock = { param($sh,$cfg)
         }
         Write-Log "Temp files cleaned up."
         $finalStep = 'Ready when you are'
-        if ($cfg.LaunchAfter -and (Test-Path $global:SPOTIFY_EXE_PATH)) { Write-Log "Launching Spotify..." -Level 'SUCCESS'; Start-Process $global:SPOTIFY_EXE_PATH; $finalStep = 'Spotify is opening' }
+        if ($cfg.LaunchAfter -and (Test-Path $global:SPOTIFY_EXE_PATH)) { Write-Log "Launching Spotify..." -Level 'SUCCESS'; Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""; $finalStep = 'Spotify is opening' }
         Write-Log "--- Installation Complete ---" -Level 'SUCCESS'; $sh.IsRunning=$false
         $installDoneContext = if ($cfg.LaunchAfter -and (Test-Path $global:SPOTIFY_EXE_PATH)) {
             'LibreSpot finished applying your selected setup and is handing off to Spotify now.'
