@@ -210,7 +210,13 @@ public static class AppCatalog
             ["Matte"] = new[] { "matte", "periwinkle", "periwinkle-dark", "porcelain", "rose-pine-moon", "gray-dark1", "gray-dark2", "gray-dark3", "gray", "gray-light" },
             ["Nightlight"] = new[] { "Nightlight Colors" },
             ["Onepunch"] = new[] { "dark", "light", "legacy" },
-            ["SharkBlue"] = new[] { "Base" }
+            ["SharkBlue"] = new[] { "Base" },
+            // Community themes — downloaded from individual GitHub repos
+            ["Catppuccin"] = new[] { "mocha", "macchiato", "frappe", "latte" },
+            ["Comfy"] = new[] { "Comfy", "Mono", "Chromatic" },
+            ["Bloom"] = new[] { "dark", "light", "darkMono", "darkGreen", "coffee", "comfy", "violet" },
+            ["Lucid"] = new[] { "dark", "light", "dark-green", "coffee", "comfy", "dark-fluent", "greenland", "biscuit", "macos", "rosepine", "dracula", "dracula-pro" },
+            ["Hazy"] = new[] { "dark", "light" }
         };
 
     public static IReadOnlyList<OptionDefinition> OptionDefinitions { get; } = new ReadOnlyCollection<OptionDefinition>(new[]
@@ -256,7 +262,13 @@ public static class AppCatalog
         new ExtensionDefinition("popupLyrics.js", "Popup Lyrics", "Open synchronized lyrics in a separate resizable window."),
         new ExtensionDefinition("autoSkipVideo.js", "Skip Video", "Automatically skip canvas videos and unsupported visual content."),
         new ExtensionDefinition("autoSkipExplicit.js", "Skip Explicit", "Automatically skip tracks flagged as explicit."),
-        new ExtensionDefinition("webnowplaying.js", "WebNowPlaying", "Expose now-playing data for desktop integrations and widgets.")
+        new ExtensionDefinition("webnowplaying.js", "WebNowPlaying", "Expose now-playing data for desktop integrations and widgets."),
+        // Community extensions — downloaded from GitHub during install
+        new ExtensionDefinition("hidePodcasts.js", "Hide Podcasts", "Remove podcast, episode, and audiobook UI elements."),
+        new ExtensionDefinition("beautifulLyrics.js", "Beautiful Lyrics", "Immersive synced lyrics with dynamic backgrounds and blur."),
+        new ExtensionDefinition("playlistIcons.js", "Playlist Icons", "Add custom icons and folder images to playlists."),
+        new ExtensionDefinition("songStats.js", "Song Stats", "Show play count, popularity, and release date per track."),
+        new ExtensionDefinition("volumePercentage.js", "Volume Percentage", "Display exact volume percentage next to the slider.")
     });
 
     public static IReadOnlyList<MaintenanceActionDefinition> MaintenanceActions { get; } = new ReadOnlyCollection<MaintenanceActionDefinition>(new[]
