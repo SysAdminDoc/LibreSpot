@@ -21,19 +21,32 @@ public static class CrashReporter
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "LibreSpot", "crashes");
 
-    private static bool _initialized;
+    private static int _initialized;
     private static int _crashDialogOpen;
 
     public static void Initialize()
     {
-        if (_initialized)
+        // Atomic check-and-set to prevent double-initialization from concurrent callers.
+        if (Interlocked.Exchange(ref _initialized, 1) == 1)
         {
             return;
         }
-        _initialized = true;
 
         Directory.CreateDirectory(LogRoot);
         Directory.CreateDirectory(CrashRoot);
+
+        // Clean up crash reports older than 30 days to prevent unbounded growth.
+        try
+        {
+            foreach (var file in Directory.GetFiles(CrashRoot, "crash-*.log"))
+            {
+                if (File.GetLastWriteTime(file) < DateTime.Now.AddDays(-30))
+                {
+                    try { File.Delete(file); } catch { /* best-effort cleanup */ }
+                }
+            }
+        }
+        catch { /* non-critical */ }
 
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Is(LogEventLevel.Information)
@@ -159,7 +172,10 @@ public static class CrashReporter
             return;
         }
 
-        dispatcher.Invoke(() =>
+        // Use BeginInvoke to avoid re-entrancy deadlock: if the crash occurred during
+        // a dispatcher frame (binding update, converter), synchronous Invoke would push
+        // a nested message loop that can cascade into secondary exceptions.
+        dispatcher.BeginInvoke(() =>
         {
             try
             {
@@ -212,12 +228,13 @@ public static class CrashReporter
             SizeToContent = SizeToContent.Height,
             MinHeight = 390,
             ResizeMode = ResizeMode.NoResize,
-            WindowStartupLocation = owner is not null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
-            Owner = owner,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
             ShowInTaskbar = false,
             Background = canvasBrush,
             Foreground = textBrush
         };
+        // Setting Owner on a closing/disposed window throws InvalidOperationException.
+        try { if (owner is { IsVisible: true }) dialog.Owner = owner; } catch { /* fall back to CenterScreen */ }
 
         var root = new Border
         {
