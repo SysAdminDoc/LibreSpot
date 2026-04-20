@@ -1633,9 +1633,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var text = string.Join(Environment.NewLine, LogEntries.Select(e => e.CopyLine));
 
         // Clipboard is shared with other processes and can be briefly unavailable.
-        // Try twice with a tiny delay before giving up so transient contention
+        // Try three times with a short yield before giving up so transient contention
         // (Office, clipboard managers, RDP) doesn't surface as a crash.
-        for (var attempt = 0; attempt < 2; attempt++)
+        for (var attempt = 0; attempt < 3; attempt++)
         {
             try
             {
@@ -1644,9 +1644,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
             catch (System.Runtime.InteropServices.COMException)
             {
-                if (attempt == 0)
+                if (attempt < 2)
                 {
-                    System.Threading.Thread.Sleep(60);
+                    // Yield to the dispatcher instead of blocking the UI thread.
+                    // This lets WPF process pending messages while we wait.
+                    _dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => { }));
                     continue;
                 }
             }
@@ -1728,7 +1730,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 Verb = "runas"
             };
 
-            Process.Start(startInfo);
+            var process = Process.Start(startInfo);
+            if (process is null)
+            {
+                ShowNotice("Relaunch failed", "The elevated process could not be started. Try right-clicking LibreSpot.exe and selecting 'Run as administrator' manually.", "Stay in standard mode");
+                return;
+            }
             Application.Current.Shutdown();
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
