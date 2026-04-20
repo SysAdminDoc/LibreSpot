@@ -19,6 +19,10 @@ on:
 permissions:
   contents: read     # default for all jobs; release job escalates per-job
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false   # never cancel an in-flight release; queue instead
+
 jobs:
   # Runs before anything else. Cheap sanity checks catch the biggest foot-guns
   # (version drift, syntax errors) before we spend minutes on PS2EXE + dotnet publish.
@@ -30,6 +34,8 @@ jobs:
       tag: ${{ steps.resolve.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Resolve tag and expected version
         id: resolve
@@ -147,6 +153,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install PS2EXE module (pinned)
         shell: pwsh
@@ -220,6 +228,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
@@ -245,7 +255,8 @@ jobs:
           -o publish/wpf
 
       - name: Install CycloneDX tool
-        run: dotnet tool install --global CycloneDX
+        # Pin version to prevent breaking SBOM format changes from upstream.
+        run: dotnet tool install --global CycloneDX --version 3.0.8
 
       - name: Generate SBOM (CycloneDX)
         run: dotnet CycloneDX src/LibreSpot.Desktop/LibreSpot.Desktop.csproj -o publish/sbom --json
@@ -312,6 +323,8 @@ jobs:
       attestations: write    # actions/attest-build-provenance
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Download PowerShell artifact
         uses: actions/download-artifact@v4
