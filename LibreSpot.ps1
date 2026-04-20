@@ -1052,10 +1052,10 @@ $ErrorActionPreference = 'Continue'  # WPF internals generate non-terminating er
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="LibreSpot" Height="860" Width="1168"
-        WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True"
+        Title="LibreSpot" MinHeight="680" MinWidth="920" MaxWidth="1400"
+        WindowStyle="None" ResizeMode="CanResize" AllowsTransparency="True"
         Background="#00000000" WindowStartupLocation="CenterScreen"
-        FontFamily="Segoe UI" UseLayoutRounding="True" SnapsToDevicePixels="True"
+        FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif" UseLayoutRounding="True" SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display">
     <Window.Resources>
         <!-- Rounded ProgressBar -->
@@ -1220,18 +1220,6 @@ $xaml = @"
         <Border CornerRadius="16" Background="#FF06090f" BorderBrush="#FF17202b" BorderThickness="1" ClipToBounds="False">
             <Border.Effect><DropShadowEffect BlurRadius="32" ShadowDepth="0" Opacity="0.58" Color="#000000"/></Border.Effect>
             <Grid ClipToBounds="True">
-                <Ellipse Width="380" Height="380" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-150,-110,0">
-                    <Ellipse.Fill><RadialGradientBrush GradientOrigin="0.35,0.35"><GradientStop Color="#221E3A5A" Offset="0"/><GradientStop Color="#00000000" Offset="1"/></RadialGradientBrush></Ellipse.Fill>
-                </Ellipse>
-                <Ellipse Width="240" Height="240" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-80,0,0,-110">
-                    <Ellipse.Fill><RadialGradientBrush GradientOrigin="0.55,0.45"><GradientStop Color="#16152938" Offset="0"/><GradientStop Color="#00000000" Offset="1"/></RadialGradientBrush></Ellipse.Fill>
-                </Ellipse>
-                <Border Height="1" VerticalAlignment="Top" CornerRadius="16,16,0,0" Panel.ZIndex="2"><Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                        <GradientStop Color="#00000000" Offset="0"/><GradientStop Color="#665BA4D6" Offset="0.18"/>
-                        <GradientStop Color="#AA93C5FD" Offset="0.5"/><GradientStop Color="#665BA4D6" Offset="0.82"/>
-                        <GradientStop Color="#00000000" Offset="1"/>
-                    </LinearGradientBrush></Border.Background></Border>
 
                 <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 
@@ -4681,25 +4669,17 @@ function Module-ApplySpicetify { param($Config)
         Write-Log "  diag: $key = $($diag[$key])"
     }
 
-    $backupSucceeded = $false
-    try {
-        Invoke-SpicetifyCli -Arguments @('backup', '--bypass-admin') -FailureMessage 'Could not create a Spicetify backup.'
-        $backupSucceeded = $true
-    } catch {
-        Write-Log "Spicetify backup step reported: $($_.Exception.Message)" -Level 'WARN'
-    }
-
+    # Spicetify expects `backup apply` as a combined invocation — especially after
+    # SpotX has patched the client (version mismatch between Spotify and any prior
+    # backup). Running them separately causes "version mismatch" failures.
     $applyError = $null
     try {
-        Invoke-SpicetifyCli -Arguments @('apply', '--bypass-admin') -FailureMessage 'Could not apply the selected Spicetify setup.'
+        Invoke-SpicetifyCli -Arguments @('backup', 'apply', '--bypass-admin') -FailureMessage 'Could not apply the selected Spicetify setup.'
         Write-Log "Spicetify applied successfully."
         return
     } catch {
         $applyError = if ($_.Exception -and $_.Exception.Message) { [string]$_.Exception.Message } else { 'Unknown Spicetify apply error.' }
-        if (-not $backupSucceeded) {
-            $applyError = "$applyError (Backup step also failed, which usually means Spotify's xpui.spa is missing or unreadable.)"
-        }
-        Write-Log "Spicetify apply failed: $applyError" -Level 'WARN'
+        Write-Log "Spicetify backup apply failed: $applyError" -Level 'WARN'
     }
 
     Write-Log "Apply failed. Rolling back to prevent a blank screen..." -Level 'WARN'
@@ -5027,4 +5007,16 @@ function Start-MaintenanceJob { param([string]$Action)
 # =============================================================================
 # 19. LAUNCH
 # =============================================================================
+# DPI-aware window sizing: scale to 80% of the primary screen work area so the
+# window looks proportional on 1080p, 1440p, 4K, and ultrawide monitors.
+# Also respects display scaling (125%, 150%, etc.) via WPF's built-in DPI virtua-
+# lization — we just need to set sensible device-independent dimensions.
+try {
+    $workArea = [System.Windows.SystemParameters]::WorkArea
+    $targetW  = [math]::Min([math]::Round($workArea.Width * 0.78), 1400)
+    $targetH  = [math]::Min([math]::Round($workArea.Height * 0.85), 960)
+    # Enforce minimums so the layout doesn't collapse on very small screens
+    $window.Width  = [math]::Max($targetW, 920)
+    $window.Height = [math]::Max($targetH, 680)
+} catch {}
 $null = $window.ShowDialog()
