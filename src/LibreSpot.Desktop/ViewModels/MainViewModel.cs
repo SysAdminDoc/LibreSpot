@@ -1483,12 +1483,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void HandleBackendMessage(BackendMessage message)
     {
-        _dispatcher.Invoke(() =>
+        // Use BeginInvoke (fire-and-forget) instead of synchronous Invoke to
+        // prevent deadlock during shutdown: if the dispatcher thread is blocked
+        // waiting for the backend process to exit while the process output
+        // callback tries to Invoke back onto the dispatcher, both threads block.
+        _dispatcher.BeginInvoke(() =>
         {
             switch (message.Kind)
             {
                 case "progress":
-                    if (double.TryParse(message.Payload, out var value))
+                    if (double.TryParse(message.Payload, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var value))
                     {
                         ProgressValue = Math.Clamp(value, 0, 100);
                     }
@@ -1847,9 +1851,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void RebuildSchemes()
     {
         SchemeOptions.Clear();
-        foreach (var scheme in AppCatalog.ThemeSchemes[SelectedTheme])
+        if (AppCatalog.ThemeSchemes.TryGetValue(SelectedTheme, out var schemes))
         {
-            SchemeOptions.Add(scheme);
+            foreach (var scheme in schemes)
+            {
+                SchemeOptions.Add(scheme);
+            }
         }
 
         if (!SchemeOptions.Contains(SelectedScheme))
@@ -1881,9 +1888,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? configuration.SpotX_DownloadMethod
             : string.Empty;
         CacheLimitText = configuration.SpotX_CacheLimit.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        SelectedScheme = AppCatalog.ThemeSchemes[SelectedTheme].Contains(configuration.Spicetify_Scheme)
+        var themeSchemes = AppCatalog.ThemeSchemes.TryGetValue(SelectedTheme, out var s) ? s : Array.Empty<string>();
+        SelectedScheme = themeSchemes.Contains(configuration.Spicetify_Scheme)
             ? configuration.Spicetify_Scheme
-            : AppCatalog.ThemeSchemes[SelectedTheme].First();
+            : themeSchemes.FirstOrDefault() ?? "Default";
 
         var extensionLookup = configuration.Spicetify_Extensions.ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var extension in Extensions)
