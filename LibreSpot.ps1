@@ -436,7 +436,7 @@ function Invoke-AutoReapplyWatcher {
 
     $currentVersion = Get-InstalledSpotifyVersion
     if (-not $currentVersion) {
-        Write-WatcherLog "Spotify not installed — skipping."
+        Write-WatcherLog "Spotify not installed - skipping."
         return 0
     }
 
@@ -451,7 +451,7 @@ function Invoke-AutoReapplyWatcher {
     }
 
     if ($currentVersion -eq $state.LastKnownVersion) {
-        Write-WatcherLog "Spotify still at $currentVersion — nothing to do"
+        Write-WatcherLog "Spotify still at $currentVersion - nothing to do"
         Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'UpToDate' }
         return 0
     }
@@ -459,7 +459,7 @@ function Invoke-AutoReapplyWatcher {
     Write-WatcherLog "Spotify version bump: $($state.LastKnownVersion) -> $currentVersion" -Level 'STEP'
 
     if (Test-SpotifyRunning) {
-        Write-WatcherLog "Spotify is running — deferring reapply to next tick"
+        Write-WatcherLog "Spotify is running - deferring reapply to next tick"
         Set-WatcherState -State @{ LastKnownVersion = $state.LastKnownVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'DeferredSpotifyRunning' }
         return 0
     }
@@ -467,7 +467,7 @@ function Invoke-AutoReapplyWatcher {
     $saved = $null
     try { $saved = Load-LibreSpotConfig } catch { Write-WatcherLog "Config load failed: $($_.Exception.Message)" -Level 'ERROR' }
     if (-not $saved) {
-        Write-WatcherLog "No saved LibreSpot config — cannot reapply automatically" -Level 'WARN'
+        Write-WatcherLog "No saved LibreSpot config - cannot reapply automatically" -Level 'WARN'
         Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'NoConfig' }
         return 0
     }
@@ -3108,7 +3108,7 @@ function Start-SelfUpdateBannerRefresh {
         if (-not $ui.ContainsKey('UpdateBanner')) { return }
         $ui['UpdateBanner'].Visibility = 'Visible'
         if ($check.LatestTag) {
-            $ui['UpdateBanner'].ToolTip = "New release $($check.LatestTag) — click to open GitHub."
+            $ui['UpdateBanner'].ToolTip = "New release $($check.LatestTag) - click to open GitHub."
         }
         $script:SelfUpdateTarget = if ($check.LatestUrl) { $check.LatestUrl } else { 'https://github.com/SysAdminDoc/LibreSpot/releases/latest' }
     }
