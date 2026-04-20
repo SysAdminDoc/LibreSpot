@@ -69,7 +69,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 **Easy Install** — one click, sensible defaults. Removes any existing installation, applies SpotX ad-blocking with the new UI theme, installs Spicetify CLI with Marketplace, and enables Full App Display, Shuffle+, and Trash Bin extensions.
 
-**Custom Install** — full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), pick from 16 official Spicetify themes with per-theme color schemes, select individual extensions, and choose between clean or overlay install.
+**Custom Install** — full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), pick from 21 themes (16 official + 5 community) with per-theme color schemes, select from 15 extensions (10 built-in + 5 community), and choose between clean or overlay install.
 
 **Maintenance** — manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, restore vanilla Spotify, uninstall Spicetify, check for dependency updates, or perform a full system reset.
 
@@ -90,11 +90,17 @@ The built-in 8-phase uninstaller handles every trace of Spotify and Spicetify:
 
 Custom Install exposes all 27 SpotX static lyrics color options: spotify, blueberry, blue, discord, forest, fresh, github, lavender, orange, pumpkin, purple, red, strawberry, turquoise, yellow, oceano, royal, krux, pinkle, zing, radium, sandbar, postlight, relish, drot, default, and spotify#2.
 
-### 16 Themes, 150+ Color Schemes
+### 21 Themes, 200+ Color Schemes
 
-Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntSienna, Default, Dreary, Flow, Matte, Nightlight, Onepunch, and SharkBlue — each with their full set of official color schemes. **Live theme previews** load inline when selecting a theme in Custom Install. Or skip the theme and use the Marketplace to browse and install themes from within Spotify.
+**16 official themes:** Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntSienna, Default, Dreary, Flow, Matte, Nightlight, Onepunch, and SharkBlue.
 
-### 10 Built-in Extensions
+**5 community themes:** Catppuccin (4 flavors), Comfy, Bloom (Fluent Design), Lucid (dynamic album-art backgrounds), and Hazy (glassmorphism). Downloaded directly from their GitHub repos.
+
+Each theme ships with its full set of color schemes. **Live theme previews** load inline when selecting a theme in Custom Install. Or skip the theme and use the Marketplace to browse and install themes from within Spotify.
+
+### 15 Extensions (10 Built-in + 5 Community)
+
+**Built-in** (ship with Spicetify CLI):
 
 | Extension | Description |
 |---|---|
@@ -108,6 +114,16 @@ Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntS
 | Auto Skip Video | Skip canvas videos and region-locked content |
 | Auto Skip Explicit | Skip tracks marked as explicit |
 | Web Now Playing | Expose now-playing data for Rainmeter widgets |
+
+**Community** (downloaded from GitHub during install):
+
+| Extension | Description |
+|---|---|
+| [Hide Podcasts](https://github.com/theRealPadster/spicetify-hide-podcasts) | Remove podcast, episode, and audiobook UI elements |
+| [Beautiful Lyrics](https://github.com/surfbryce/beautiful-lyrics) | Immersive synced lyrics with dynamic backgrounds and blur |
+| [Playlist Icons](https://github.com/jeroentvb/spicetify-playlist-icons) | Custom icons and folder images for playlists |
+| [Song Stats](https://github.com/Shinyhero36/spicetify-song-stats) | Play count, popularity score, and release date per track |
+| [Volume Percentage](https://github.com/daksh2k/spicetify-stuff) | Exact volume percentage next to the slider |
 
 ### Auto-Reapply (new in v3.6.0)
 

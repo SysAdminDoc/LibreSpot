@@ -186,7 +186,11 @@ function Set-WatcherState {
         if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
             New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null
         }
-        $State | ConvertTo-Json -Compress | Set-Content -LiteralPath $global:WATCHER_STATE_PATH -Encoding UTF8
+        # Use [UTF8Encoding]($false) to avoid the BOM that PS 5.1's
+        # `-Encoding UTF8` produces, which can trip up ConvertFrom-Json.
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        $json = $State | ConvertTo-Json -Compress
+        [System.IO.File]::WriteAllText($global:WATCHER_STATE_PATH, $json, $utf8NoBom)
     } catch {
         Write-WatcherLog "State save failed: $($_.Exception.Message)" -Level 'WARN'
     }
@@ -251,7 +255,19 @@ function Register-AutoReapplyTask {
     # but the XML schema can. Repetition Duration=PT0S means "forever" per
     # MS-TSCH 2.3.5.2; Interval=PT30M is every 30 minutes.
     $escapedCommand = [System.Security.SecurityElement]::Escape($launch.Command)
-    $userId = [System.Security.SecurityElement]::Escape($env:USERNAME)
+    # Use the current user's SID for domain-joined machines where bare USERNAME
+    # may not resolve.  Fall back to USERDOMAIN\USERNAME, then bare USERNAME.
+    $userId = $null
+    try {
+        $currentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+        $userId = $currentIdentity.User.Value   # SID string, e.g. S-1-5-21-...
+    } catch {}
+    if ([string]::IsNullOrWhiteSpace($userId)) {
+        $userId = if ($env:USERDOMAIN -and $env:USERDOMAIN -ne $env:COMPUTERNAME) {
+            "$env:USERDOMAIN\$env:USERNAME"
+        } else { $env:USERNAME }
+    }
+    $userId = [System.Security.SecurityElement]::Escape($userId)
     $xml = @"
 <?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
@@ -365,7 +381,6 @@ function Invoke-HeadlessReapply {
 
         $spotxArgs = Build-SpotXParams -Config $Config
         Write-WatcherLog "Invoking SpotX with: $spotxArgs"
-        $spotxArgList = $spotxArgs -split ' '
 
         # Use powershell.exe isolation so SpotX can't leak runtime state into our
         # own script scope. Exit code is the only signal we care about.
@@ -379,12 +394,19 @@ function Invoke-HeadlessReapply {
         $pinfo.UseShellExecute = $false
         $pinfo.CreateNoWindow = $true
         $proc = [System.Diagnostics.Process]::Start($pinfo)
+        # Drain stdout/stderr asynchronously to prevent buffer deadlock.
+        # If SpotX writes more than the OS pipe buffer (~4KB) the process
+        # hangs forever waiting for the buffer to be read.
+        $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
+        $stderrTask = $proc.StandardError.ReadToEndAsync()
         if (-not $proc.WaitForExit(20 * 60 * 1000)) {
             try { $proc.Kill() } catch {}
             throw "SpotX timed out after 20 minutes."
         }
+        $proc.WaitForExit()  # Ensure async streams are fully flushed
         if ($proc.ExitCode -ne 0) {
-            throw "SpotX exited with code $($proc.ExitCode)."
+            $stderrText = if ($stderrTask.IsCompleted) { $stderrTask.Result } else { '(not available)' }
+            throw "SpotX exited with code $($proc.ExitCode). Stderr: $stderrText"
         }
         Write-WatcherLog "SpotX completed successfully" -Level 'SUCCESS'
 
@@ -615,7 +637,35 @@ $global:ThemeData = [ordered]@{
     "Nightlight"  = @{ Schemes = @("Nightlight Colors"); Preview = @{ _default="Nightlight/screenshots/nightlight.png" } }
     "Onepunch"    = @{ Schemes = @("dark","light","legacy"); Preview = @{ _default="Onepunch/screenshots/dark_home.png" } }
     "SharkBlue"   = @{ Schemes = @("Base"); Preview = @{ _default="SharkBlue/screenshot.png" } }
+    # --- Community themes (downloaded from individual GitHub repos) ---
+    "Catppuccin"  = @{ Schemes = @("mocha","macchiato","frappe","latte")
+                       Preview = @{ _default="https://raw.githubusercontent.com/catppuccin/spicetify/main/assets/mocha.webp"; "latte"="https://raw.githubusercontent.com/catppuccin/spicetify/main/assets/latte.webp"; "frappe"="https://raw.githubusercontent.com/catppuccin/spicetify/main/assets/frappe.webp"; "macchiato"="https://raw.githubusercontent.com/catppuccin/spicetify/main/assets/macchiato.webp"; "mocha"="https://raw.githubusercontent.com/catppuccin/spicetify/main/assets/mocha.webp" } }
+    "Comfy"       = @{ Schemes = @("Comfy","Mono","Chromatic")
+                       Preview = @{ _default="https://raw.githubusercontent.com/Comfy-Themes/Spicetify/main/screenshots/Comfy.png"; "Mono"="https://raw.githubusercontent.com/Comfy-Themes/Spicetify/main/screenshots/Mono.png"; "Chromatic"="https://raw.githubusercontent.com/Comfy-Themes/Spicetify/main/screenshots/Chromatic.png" } }
+    "Bloom"       = @{ Schemes = @("dark","light","darkMono","darkGreen","coffee","comfy","violet")
+                       Preview = @{ _default="https://raw.githubusercontent.com/nimsandu/spicetify-bloom/main/screenshots/dark.png"; "light"="https://raw.githubusercontent.com/nimsandu/spicetify-bloom/main/screenshots/light.png" } }
+    "Lucid"       = @{ Schemes = @("dark","light","dark-green","coffee","comfy","dark-fluent","greenland","biscuit","macos","rosepine","dracula","dracula-pro")
+                       Preview = @{ _default="https://raw.githubusercontent.com/sanoojes/Spicetify-Lucid/main/screenshots/dark.webp"; "light"="https://raw.githubusercontent.com/sanoojes/Spicetify-Lucid/main/screenshots/light.webp" } }
+    "Hazy"        = @{ Schemes = @("dark","light")
+                       Preview = @{ _default="https://raw.githubusercontent.com/Astromations/Hazy/main/screenshots/dark.png" } }
 }
+
+# Community themes are hosted in individual GitHub repos, not the official
+# spicetify-themes collection.  Each entry maps a theme name (matching a key
+# in $ThemeData above) to its repo owner/name and the subfolder inside the
+# archive that contains color.ini + user.css.  Module-InstallThemes checks
+# this table to decide whether to pull from the official themes archive or
+# from the community repo.
+$global:CommunityThemeRepos = @{
+    "Catppuccin" = @{ Owner="catppuccin"; Repo="spicetify"; Branch="main"; ThemeFolder="." }
+    "Comfy"      = @{ Owner="Comfy-Themes"; Repo="Spicetify"; Branch="main"; ThemeFolder="." }
+    "Bloom"      = @{ Owner="nimsandu"; Repo="spicetify-bloom"; Branch="main"; ThemeFolder="." }
+    "Lucid"      = @{ Owner="sanoojes"; Repo="Spicetify-Lucid"; Branch="main"; ThemeFolder="." }
+    "Hazy"       = @{ Owner="Astromations"; Repo="Hazy"; Branch="main"; ThemeFolder="." }
+}
+
+# Themes that require inject_theme_js = 1 (they ship a theme.js file).
+$global:ThemesNeedingJS = @("Dribbblish","StarryNight","Turntable","Catppuccin","Comfy","Bloom","Lucid","Hazy")
 
 $global:BuiltInExtensions = [ordered]@{
     "fullAppDisplay.js"    = "Full-screen album art display with blur effect and playback controls"
@@ -628,6 +678,38 @@ $global:BuiltInExtensions = [ordered]@{
     "autoSkipVideo.js"     = "Automatically skip canvas videos and region-locked content"
     "autoSkipExplicit.js"  = "Automatically skip tracks marked as explicit"
     "webnowplaying.js"     = "Expose now-playing data for Rainmeter widgets and desktop integrations"
+}
+
+# Community extensions are downloaded from GitHub repos to the Spicetify
+# Extensions folder before being registered.  Each entry maps a filename to
+# its description and a raw download URL.  These are NOT bundled with the
+# Spicetify CLI — LibreSpot fetches them on demand.
+$global:CommunityExtensions = [ordered]@{
+    "hidePodcasts.js"   = @{
+        Description = "Remove podcast, episode, and audiobook UI elements from the Spotify interface"
+        Url         = "https://raw.githubusercontent.com/theRealPadster/spicetify-hide-podcasts/main/dist/hidePodcasts.js"
+        Source      = "theRealPadster/spicetify-hide-podcasts"
+    }
+    "beautifulLyrics.js" = @{
+        Description = "Immersive synced lyrics with dynamic backgrounds, romanization, and blur effects"
+        Url         = "https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/main/dist/beautifulLyrics.js"
+        Source      = "surfbryce/beautiful-lyrics"
+    }
+    "playlistIcons.js"  = @{
+        Description = "Add custom icons and folder images to your playlists and library"
+        Url         = "https://raw.githubusercontent.com/jeroentvb/spicetify-playlist-icons/main/dist/playlistIcons.js"
+        Source      = "jeroentvb/spicetify-playlist-icons"
+    }
+    "songStats.js"      = @{
+        Description = "Show play count, popularity score, and release date next to each track"
+        Url         = "https://raw.githubusercontent.com/Shinyhero36/spicetify-song-stats/main/dist/songStats.js"
+        Source      = "Shinyhero36/spicetify-song-stats"
+    }
+    "volumePercentage.js" = @{
+        Description = "Display the exact volume percentage next to the volume slider"
+        Url         = "https://raw.githubusercontent.com/daksh2k/spicetify-stuff/main/Extensions/volumePercentage.js"
+        Source      = "daksh2k/spicetify-stuff"
+    }
 }
 
 $global:EasyDefaults = @{
@@ -805,7 +887,7 @@ function Normalize-LibreSpotConfig {
     foreach ($extension in $rawExtensions) {
         $name = [string]$extension
         if ([string]::IsNullOrWhiteSpace($name)) { continue }
-        if (-not $global:BuiltInExtensions.Contains($name)) { continue }
+        if (-not $global:BuiltInExtensions.Contains($name) -and -not $global:CommunityExtensions.Contains($name)) { continue }
         if (-not $extensions.Contains($name)) { $extensions.Add($name) }
     }
     $normalized.Spicetify_Extensions = @($extensions)
@@ -1464,6 +1546,30 @@ $xaml = @"
 
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
                                                     <StackPanel>
+                                                        <TextBlock Text="Community extensions" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Popular third-party extensions downloaded from GitHub. These are not bundled with Spicetify and may need manual updates." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <Grid Margin="0,6,0,0">
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                            <StackPanel Grid.Column="0">
+                                                                <CheckBox Name="ChkExt_hidePodcasts" Content="Hide Podcasts" Style="{StaticResource DarkCheckBox}" Margin="0"/>
+                                                                <TextBlock Text="Remove podcast, episode, and audiobook sections from the UI." Style="{StaticResource HelperText}" Margin="34,4,0,8"/>
+                                                                <CheckBox Name="ChkExt_beautifulLyrics" Content="Beautiful Lyrics" Style="{StaticResource DarkCheckBox}" Margin="0"/>
+                                                                <TextBlock Text="Immersive synced lyrics with dynamic backgrounds and blur." Style="{StaticResource HelperText}" Margin="34,4,0,8"/>
+                                                                <CheckBox Name="ChkExt_playlistIcons" Content="Playlist Icons" Style="{StaticResource DarkCheckBox}" Margin="0"/>
+                                                                <TextBlock Text="Add custom icons and folder images to playlists." Style="{StaticResource HelperText}" Margin="34,4,0,0"/>
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="2">
+                                                                <CheckBox Name="ChkExt_songStats" Content="Song Stats" Style="{StaticResource DarkCheckBox}" Margin="0"/>
+                                                                <TextBlock Text="Show play count, popularity, and release date per track." Style="{StaticResource HelperText}" Margin="34,4,0,8"/>
+                                                                <CheckBox Name="ChkExt_volumePercentage" Content="Volume Percentage" Style="{StaticResource DarkCheckBox}" Margin="0"/>
+                                                                <TextBlock Text="Display exact volume percentage next to the slider." Style="{StaticResource HelperText}" Margin="34,4,0,0"/>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
+                                                    <StackPanel>
                                                         <TextBlock Text="Install behavior" Foreground="#FFE2E8F0" FontSize="12.5" FontWeight="SemiBold"/>
                                                         <TextBlock Text="Control how aggressively LibreSpot resets the current install and whether Spotify opens when the run is done." Foreground="#FF64748B" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <CheckBox Name="ChkCleanInstall" Content="Remove the existing setup first" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
@@ -1705,6 +1811,7 @@ $ui = @{}
   'ChkSendVersionOff','ChkDevTools','ChkMirror','ChkConfirmUninstall','CmbDownloadMethod','CmbSpotifyVersion','SpotifyVersionHint',
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
+  'ChkExt_hidePodcasts','ChkExt_beautifulLyrics','ChkExt_playlistIcons','ChkExt_songStats','ChkExt_volumePercentage',
   'ChkCleanInstall','ChkLaunchAfter',
   'MaintenanceOverviewTitle','MaintenanceOverviewText',
   'MaintenanceMetricStackValue','MaintenanceMetricStackDetail','MaintenanceMetricBackupValue','MaintenanceMetricBackupDetail','MaintenanceMetricNextStepValue','MaintenanceMetricNextStepDetail',
@@ -1727,11 +1834,15 @@ $extCheckboxMap = [ordered]@{
     'ChkExt_keyboard'='keyboardShortcut.js'; 'ChkExt_bookmark'='bookmark.js'; 'ChkExt_loopyLoop'='loopyLoop.js'
     'ChkExt_popupLyrics'='popupLyrics.js'; 'ChkExt_autoSkipVideo'='autoSkipVideo.js'
     'ChkExt_autoSkipExplicit'='autoSkipExplicit.js'; 'ChkExt_webNowPlaying'='webnowplaying.js'
+    'ChkExt_hidePodcasts'='hidePodcasts.js'; 'ChkExt_beautifulLyrics'='beautifulLyrics.js'
+    'ChkExt_playlistIcons'='playlistIcons.js'; 'ChkExt_songStats'='songStats.js'
+    'ChkExt_volumePercentage'='volumePercentage.js'
 }
 
 foreach ($ck in $extCheckboxMap.Keys) {
     $ef = $extCheckboxMap[$ck]
     if ($ui[$ck] -and $global:BuiltInExtensions.Contains($ef)) { $ui[$ck].ToolTip = $global:BuiltInExtensions[$ef] }
+    if ($ui[$ck] -and $global:CommunityExtensions.Contains($ef)) { $ui[$ck].ToolTip = $global:CommunityExtensions[$ef].Description }
 }
 
 foreach ($theme in $global:ThemeData.Keys) {
@@ -1765,7 +1876,7 @@ function Update-ThemePreview {
         $ui['PreviewLabel'].Text = "No bundled preview is available for $themeName."
         return
     }
-    $url = "$global:THEMES_RAW_BASE/$imgPath"
+    $url = if ($imgPath -match '^https?://') { $imgPath } else { "$global:THEMES_RAW_BASE/$imgPath" }
     if ($script:previewCache.ContainsKey($url)) {
         $ui['ThemePreviewImg'].Source = $script:previewCache[$url]; $ui['PreviewLabel'].Visibility = 'Collapsed'; return
     }
@@ -2915,10 +3026,16 @@ function Compare-LibreSpotVersions {
         $currentIsStable = ($Current -eq $stripCurrent)
         if ($latestIsStable -and -not $currentIsStable) { return $true }
         if (-not $latestIsStable -and $currentIsStable) { return $false }
-        # Both stable or both pre-release: fall back to direct string inequality.
-        return ($Latest -ne $Current)
+        # Both stable or both pre-release with same numeric prefix: compare the
+        # full suffix lexically. E.g. `-preview.5` > `-preview.4`. If the
+        # suffixes are identical the versions are equal (not "newer").
+        if ($Latest -eq $Current) { return $false }
+        return ([string]::CompareOrdinal($Latest, $Current) -gt 0)
     } catch {
-        return ($Latest -ne $Current)
+        # Non-parseable versions: lexical compare is better than claiming all
+        # non-equal versions are "newer".
+        if ($Latest -eq $Current) { return $false }
+        return ([string]::CompareOrdinal($Latest, $Current) -gt 0)
     }
 }
 
@@ -4363,36 +4480,112 @@ function Module-InstallSpicetifyCLI {
 function Module-InstallThemes { param($Config)
     $tn = $Config.Spicetify_Theme; if ($tn -eq '(None - Marketplace Only)') { Write-Log "No theme selected."; return }
     Write-Log "Installing theme: $tn..." -Level 'STEP'
-    $tz = New-LibreSpotTempFile -Name 'themes.zip'
-    $tu = New-LibreSpotTempDirectory -Name 'themes-unpack'
-    $td=Join-Path $global:SPICETIFY_CONFIG_DIR "Themes"
+    $td = Join-Path $global:SPICETIFY_CONFIG_DIR "Themes"
     if (-not (Test-Path $td)) { New-Item -Path $td -ItemType Directory -Force | Out-Null }
-    try {
-        Download-FileSafe -Uri $global:URL_THEMES_REPO -OutFile $tz
-        Confirm-FileHash -Path $tz -ExpectedHash $global:PinnedReleases.Themes.SHA256 -Label "Themes archive"
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($tz, $tu)
-        $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
-        if (-not $root) { throw "Theme archive did not contain an unpacked root folder." }
-        $src = Join-Path $root.FullName $tn
-        if (-not (Test-Path -LiteralPath $src -PathType Container)) {
-            throw "Theme '$tn' was not found in the pinned theme archive."
+
+    $isCommunity = $global:CommunityThemeRepos.ContainsKey($tn)
+
+    if ($isCommunity) {
+        # Community theme — download from its own GitHub repo
+        $repo = $global:CommunityThemeRepos[$tn]
+        $archiveUrl = "https://github.com/$($repo.Owner)/$($repo.Repo)/archive/refs/heads/$($repo.Branch).zip"
+        $safeName = ($tn -replace '[^a-zA-Z0-9_-]','_')
+        $tz = New-LibreSpotTempFile -Name "community-theme-$safeName.zip"
+        $tu = New-LibreSpotTempDirectory -Name "community-theme-$safeName-unpack"
+        try {
+            Write-Log "Downloading community theme from $($repo.Owner)/$($repo.Repo)..."
+            Download-FileSafe -Uri $archiveUrl -OutFile $tz
+            [System.IO.Compression.ZipFile]::ExtractToDirectory($tz, $tu)
+            $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $root) { throw "Community theme archive for '$tn' did not contain a root folder." }
+            $src = if ($repo.ThemeFolder -eq '.') { $root.FullName } else { Join-Path $root.FullName $repo.ThemeFolder }
+            if (-not (Test-Path -LiteralPath $src -PathType Container)) {
+                throw "Theme folder '$($repo.ThemeFolder)' was not found in the $($repo.Owner)/$($repo.Repo) archive."
+            }
+            # Verify the archive actually contains Spicetify theme files
+            $hasColorIni = Test-Path (Join-Path $src 'color.ini')
+            $hasUserCss  = Test-Path (Join-Path $src 'user.css')
+            if (-not ($hasColorIni -or $hasUserCss)) {
+                throw "Community theme '$tn' archive does not contain color.ini or user.css - not a valid Spicetify theme."
+            }
+            $dst = Join-Path $td $tn
+            if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+            # Copy only theme-relevant files, not repo metadata (.git, .github, etc.)
+            New-Item -Path $dst -ItemType Directory -Force | Out-Null
+            $themeFiles = @('color.ini','user.css','theme.js','theme.script.js','assets','README.md')
+            foreach ($tf in $themeFiles) {
+                $tfSrc = Join-Path $src $tf
+                if (Test-Path -LiteralPath $tfSrc) {
+                    Copy-Item $tfSrc -Destination (Join-Path $dst $tf) -Recurse -Force
+                }
+            }
+            Write-Log "Community theme '$tn' copied to $dst"
+        } catch {
+            Write-Log "Community theme '$tn' failed to install: $($_.Exception.Message). The install will continue without this theme." -Level 'WARN'
+            return
+        } finally {
+            Remove-Item -LiteralPath $tz -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $tu -Recurse -Force -ErrorAction SilentlyContinue
         }
-        $dst=Join-Path $td $tn
-        if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
-        Copy-Item $src -Destination $dst -Recurse -Force
-        Write-Log "Theme copied to $dst"
-        if (-not (Test-Path (Join-Path $td $tn))) { return }
-        $sc = $Config.Spicetify_Scheme; Write-Log "Setting theme=$tn, scheme=$sc"
-        Invoke-SpicetifyCli -Arguments @('config', 'current_theme', $tn, '--bypass-admin') -FailureMessage "Could not set Spicetify theme '$tn'."
-        if (-not [string]::IsNullOrWhiteSpace($sc)) {
-            Invoke-SpicetifyCli -Arguments @('config', 'color_scheme', $sc, '--bypass-admin') -FailureMessage "Could not set color scheme '$sc'."
+    } else {
+        # Official theme — extract from the pinned spicetify-themes archive
+        $tz = New-LibreSpotTempFile -Name 'themes.zip'
+        $tu = New-LibreSpotTempDirectory -Name 'themes-unpack'
+        try {
+            Download-FileSafe -Uri $global:URL_THEMES_REPO -OutFile $tz
+            Confirm-FileHash -Path $tz -ExpectedHash $global:PinnedReleases.Themes.SHA256 -Label "Themes archive"
+            [System.IO.Compression.ZipFile]::ExtractToDirectory($tz, $tu)
+            $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $root) { throw "Theme archive did not contain an unpacked root folder." }
+            $src = Join-Path $root.FullName $tn
+            if (-not (Test-Path -LiteralPath $src -PathType Container)) {
+                throw "Theme '$tn' was not found in the pinned theme archive."
+            }
+            $dst = Join-Path $td $tn
+            if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+            Copy-Item $src -Destination $dst -Recurse -Force
+            Write-Log "Theme copied to $dst"
+        } finally {
+            Remove-Item -LiteralPath $tz -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $tu -Recurse -Force -ErrorAction SilentlyContinue
         }
-        $needsThemeJs = @("Dribbblish","StarryNight","Turntable") -contains $tn
-        $jsVal = if ($needsThemeJs) { "1" } else { "0" }
-        Invoke-SpicetifyCli -Arguments @('config', 'inject_css', '1', 'replace_colors', '1', 'overwrite_assets', '1', 'inject_theme_js', $jsVal, '--bypass-admin') -FailureMessage 'Could not enable the selected theme assets.'
-    } finally {
-        Remove-Item -LiteralPath $tz -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $tu -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    if (-not (Test-Path (Join-Path $td $tn))) { return }
+    $sc = $Config.Spicetify_Scheme; Write-Log "Setting theme=$tn, scheme=$sc"
+    Invoke-SpicetifyCli -Arguments @('config', 'current_theme', $tn, '--bypass-admin') -FailureMessage "Could not set Spicetify theme '$tn'."
+    if (-not [string]::IsNullOrWhiteSpace($sc)) {
+        Invoke-SpicetifyCli -Arguments @('config', 'color_scheme', $sc, '--bypass-admin') -FailureMessage "Could not set color scheme '$sc'."
+    }
+    $needsThemeJs = $global:ThemesNeedingJS -contains $tn
+    $jsVal = if ($needsThemeJs) { "1" } else { "0" }
+    Invoke-SpicetifyCli -Arguments @('config', 'inject_css', '1', 'replace_colors', '1', 'overwrite_assets', '1', 'inject_theme_js', $jsVal, '--bypass-admin') -FailureMessage 'Could not enable the selected theme assets.'
+}
+
+function Download-CommunityExtensions { param($Config)
+    $exts = @($Config.Spicetify_Extensions)
+    $extDir = Join-Path $global:SPICETIFY_CONFIG_DIR "Extensions"
+    if (-not (Test-Path $extDir)) { New-Item -Path $extDir -ItemType Directory -Force | Out-Null }
+    foreach ($ext in $exts) {
+        if (-not $global:CommunityExtensions.Contains($ext)) { continue }
+        $info = $global:CommunityExtensions[$ext]
+        $destFile = Join-Path $extDir $ext
+        try {
+            Write-Log "Downloading community extension: $ext from $($info.Source)..."
+            Download-FileSafe -Uri $info.Url -OutFile $destFile
+            # Sanity check: make sure we got JavaScript, not a 404 HTML page.
+            # Read just the first 512 bytes to avoid loading a huge file.
+            $head = Get-Content -LiteralPath $destFile -TotalCount 5 -ErrorAction SilentlyContinue
+            $headStr = ($head -join "`n").TrimStart()
+            if ($headStr -match '^<(!DOCTYPE|html)' -or $headStr -match '^404:') {
+                Remove-Item -LiteralPath $destFile -Force -ErrorAction SilentlyContinue
+                Write-Log "Community extension '$ext' downloaded but appears to be an HTML error page, not JavaScript. The URL may have changed. Skipping." -Level 'WARN'
+                continue
+            }
+            Write-Log "Community extension '$ext' saved to $destFile"
+        } catch {
+            Write-Log "Could not download community extension '$ext': $($_.Exception.Message). Skipping." -Level 'WARN'
+        }
     }
 }
 
@@ -4403,7 +4596,10 @@ function Module-InstallExtensions { param($Config)
     } else {
         Write-Log "Extensions: $($exts -join ', ')..." -Level 'STEP'
     }
-    Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems $exts -ManagedItems @($global:BuiltInExtensions.Keys)
+    # Download any selected community extensions to the Extensions folder first
+    Download-CommunityExtensions -Config $Config
+    $allManaged = @($global:BuiltInExtensions.Keys) + @($global:CommunityExtensions.Keys)
+    Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems $exts -ManagedItems $allManaged
 }
 
 function Module-InstallMarketplace { param($Config)
@@ -4730,7 +4926,7 @@ $functionNamesForWorker = @(
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
     'Get-NormalizedPathString','Get-PathEntries','Set-PathEntries','Add-PathEntry','Remove-PathEntry',
     'Module-NukeSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
-    'Module-InstallThemes','Module-InstallExtensions',
+    'Module-InstallThemes','Download-CommunityExtensions','Module-InstallExtensions',
     'Module-InstallMarketplace','Module-ApplySpicetify',
     'Build-SpotXParams','Load-LibreSpotConfig'
 )
@@ -4748,7 +4944,7 @@ $varNamesForWorker = @(
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR',
     'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
-    'EasyDefaults','ThemeData','BuiltInExtensions','SpotXLyricsThemes','VERSION'
+    'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityThemeRepos','ThemesNeedingJS','SpotXLyricsThemes','VERSION'
 )
 foreach ($vname in $varNamesForWorker) {
     $val = (Get-Variable -Name $vname -Scope Global -ErrorAction Stop).Value
