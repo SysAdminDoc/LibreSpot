@@ -137,6 +137,15 @@ $script:openRunspaces = [System.Collections.Generic.List[object]]::new()
 $script:BrushConverter = [System.Windows.Media.BrushConverter]::new()
 $script:EntryInvocation = $MyInvocation
 $script:EntryCommandPath = $PSCommandPath
+# PS2EXE leaves $PSScriptRoot empty. Compute a reliable script root for both
+# .ps1 (where $PSScriptRoot works) and .exe (where we use the process path).
+$script:ScriptRoot = if (-not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
+    $PSScriptRoot
+} elseif (-not [string]::IsNullOrWhiteSpace($PSCommandPath)) {
+    Split-Path -Parent $PSCommandPath
+} else {
+    try { Split-Path -Parent ([System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName) } catch { $PWD.Path }
+}
 $script:ConfigLoadWarning = $null
 
 # =============================================================================
@@ -1769,9 +1778,9 @@ catch { Write-Error "XAML Failed: $($_.Exception.Message)"; Exit }
 $ErrorActionPreference = 'Stop'
 function Get-LibreSpotBrandFrame {
     $candidatePaths = @(
-        (Join-Path $PSScriptRoot 'LibreSpot.ico'),
-        (Join-Path $PSScriptRoot 'icon.ico')
-    ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }
+        (Join-Path $script:ScriptRoot 'LibreSpot.ico'),
+        (Join-Path $script:ScriptRoot 'icon.ico')
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }
 
     foreach ($candidate in $candidatePaths) {
         try {
