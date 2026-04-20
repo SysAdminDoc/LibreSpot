@@ -49,7 +49,17 @@ public partial class MainWindow : Window
         _viewModel.LogEntries.CollectionChanged += OnLogEntriesChanged;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
-        await _viewModel.InitializeAsync();
+        try
+        {
+            await _viewModel.InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            // Prevent async void exception from crashing the app on startup.
+            // Log the error; the CrashReporter will also catch it if it propagates,
+            // but catching here avoids the unhandled-exception termination path.
+            Serilog.Log.Error(ex, "InitializeAsync failed during window load");
+        }
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)

@@ -141,7 +141,9 @@ public sealed class ConfigurationService
                     continue;
                 }
 
-                File.Move(ConfigPath, quarantinePath, overwrite: false);
+                // Use overwrite:true to handle the TOCTOU race where another process
+                // creates the file between the Exists check and the Move call.
+                File.Move(ConfigPath, quarantinePath, overwrite: true);
                 return quarantinePath;
             }
 
