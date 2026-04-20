@@ -17,9 +17,7 @@ on:
         required: true
 
 permissions:
-  contents: write
-  id-token: write    # actions/attest-build-provenance
-  attestations: write
+  contents: read     # default for all jobs; release job escalates per-job
 
 jobs:
   # Runs before anything else. Cheap sanity checks catch the biggest foot-guns
@@ -36,9 +34,16 @@ jobs:
       - name: Resolve tag and expected version
         id: resolve
         shell: pwsh
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          $tag = if ('${{ inputs.tag }}') { '${{ inputs.tag }}' } else { '${{ github.ref_name }}' }
+          # Use environment variables instead of direct ${{ }} interpolation to
+          # prevent script injection via the workflow_dispatch input.
+          $tag = if ($env:INPUT_TAG) { $env:INPUT_TAG } else { $env:REF_NAME }
           if ([string]::IsNullOrWhiteSpace($tag)) { throw 'Release workflow could not resolve a tag.' }
+          # Validate tag format to reject anything that is not a version tag.
+          if ($tag -notmatch '^v\d+\.\d+') { throw "Tag '$tag' does not match expected vN.N format." }
           $version = $tag -replace '^v',''
           Write-Host "Tag:     $tag"
           Write-Host "Version: $version"
@@ -301,6 +306,10 @@ jobs:
     name: Assemble release
     needs: [preflight, build-powershell, build-wpf]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write        # create/upload release assets
+      id-token: write        # OIDC for attestation signing
+      attestations: write    # actions/attest-build-provenance
     steps:
       - uses: actions/checkout@v4
 

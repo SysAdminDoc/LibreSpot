@@ -83,6 +83,26 @@ $global:BuiltInExtensionNames = @(
     'webnowplaying.js'
 )
 
+$global:CommunityExtensions = @{
+    'hidePodcasts.js'     = @{ Url = 'https://raw.githubusercontent.com/theRealPadster/spicetify-hide-podcasts/main/dist/hidePodcasts.js';   Source = 'theRealPadster/spicetify-hide-podcasts' }
+    'beautifulLyrics.js'  = @{ Url = 'https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/main/dist/beautifulLyrics.js';           Source = 'surfbryce/beautiful-lyrics' }
+    'playlistIcons.js'    = @{ Url = 'https://raw.githubusercontent.com/jeroentvb/spicetify-playlist-icons/main/dist/playlistIcons.js';     Source = 'jeroentvb/spicetify-playlist-icons' }
+    'songStats.js'        = @{ Url = 'https://raw.githubusercontent.com/Shinyhero36/spicetify-song-stats/main/dist/songStats.js';           Source = 'Shinyhero36/spicetify-song-stats' }
+    'volumePercentage.js' = @{ Url = 'https://raw.githubusercontent.com/daksh2k/spicetify-stuff/main/Extensions/volumePercentage.js';       Source = 'daksh2k/spicetify-stuff' }
+}
+$global:CommunityExtensionNames = @($global:CommunityExtensions.Keys)
+$global:AllManagedExtensionNames = $global:BuiltInExtensionNames + $global:CommunityExtensionNames
+
+$global:CommunityThemeRepos = @{
+    'Catppuccin' = @{ Owner = 'catppuccin'; Repo = 'spicetify';       Branch = 'main'; ThemeFolder = '.' }
+    'Comfy'      = @{ Owner = 'Comfy-Themes'; Repo = 'Spicetify';    Branch = 'main'; ThemeFolder = '.' }
+    'Bloom'      = @{ Owner = 'nimsandu'; Repo = 'spicetify-bloom';   Branch = 'main'; ThemeFolder = '.' }
+    'Lucid'      = @{ Owner = 'sanoojes'; Repo = 'Spicetify-Lucid';   Branch = 'main'; ThemeFolder = '.' }
+    'Hazy'       = @{ Owner = 'Astromations'; Repo = 'Hazy';          Branch = 'main'; ThemeFolder = '.' }
+}
+
+$global:ThemesNeedingJS = @('Dribbblish', 'StarryNight', 'Turntable', 'Catppuccin', 'Comfy', 'Bloom', 'Lucid', 'Hazy')
+
 $global:EasyDefaults = @{
     SpotX_NewTheme = $true
     SpotX_PodcastsOff = $true
@@ -317,7 +337,7 @@ function Normalize-LibreSpotConfig {
     foreach ($extension in $rawExtensions) {
         $name = [string]$extension
         if ([string]::IsNullOrWhiteSpace($name)) { continue }
-        if ($name -notin $global:BuiltInExtensionNames) { continue }
+        if ($name -notin $global:AllManagedExtensionNames) { continue }
         if (-not $extensions.Contains($name)) { $extensions.Add($name) }
     }
     $normalized.Spicetify_Extensions = @($extensions)
@@ -1337,45 +1357,107 @@ function Module-InstallThemes {
         return
     }
     Write-Log "Installing theme: $themeName..." -Level 'STEP'
-    $zipPath = New-LibreSpotTempFile -Name 'themes.zip'
-    $unpackPath = New-LibreSpotTempDirectory -Name 'themes-unpack'
     $themesDir = Join-Path $global:SPICETIFY_CONFIG_DIR 'Themes'
-
     if (-not (Test-Path -LiteralPath $themesDir)) {
         New-Item -Path $themesDir -ItemType Directory -Force | Out-Null
     }
 
-    try {
-        Download-FileSafe -Uri $global:URL_THEMES_REPO -OutFile $zipPath
-        Confirm-FileHash -Path $zipPath -ExpectedHash $global:PinnedReleases.Themes.SHA256 -Label 'Themes archive'
+    $isCommunity = $global:CommunityThemeRepos.ContainsKey($themeName)
 
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $unpackPath)
-
-        $root = Get-ChildItem -LiteralPath $unpackPath -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
-        if (-not $root) { throw 'Pinned themes archive could not be unpacked safely.' }
-        $sourcePath = Join-Path $root.FullName $themeName
-        if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
-            throw "Theme '$themeName' was not found in the pinned theme archive."
+    if ($isCommunity) {
+        $repo = $global:CommunityThemeRepos[$themeName]
+        $archiveUrl = "https://github.com/$($repo.Owner)/$($repo.Repo)/archive/refs/heads/$($repo.Branch).zip"
+        $safeName = ($themeName -replace '[^a-zA-Z0-9_-]','_')
+        $zipPath = New-LibreSpotTempFile -Name "community-theme-$safeName.zip"
+        $unpackPath = New-LibreSpotTempDirectory -Name "community-theme-$safeName-unpack"
+        try {
+            Write-Log "Downloading community theme from $($repo.Owner)/$($repo.Repo)..."
+            Download-FileSafe -Uri $archiveUrl -OutFile $zipPath
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $unpackPath)
+            $root = Get-ChildItem -LiteralPath $unpackPath -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $root) { throw "Community theme archive for '$themeName' did not contain a root folder." }
+            $sourcePath = if ($repo.ThemeFolder -eq '.') { $root.FullName } else { Join-Path $root.FullName $repo.ThemeFolder }
+            if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
+                throw "Theme folder '$($repo.ThemeFolder)' not found in $($repo.Owner)/$($repo.Repo) archive."
+            }
+            $hasColorIni = Test-Path (Join-Path $sourcePath 'color.ini')
+            $hasUserCss  = Test-Path (Join-Path $sourcePath 'user.css')
+            if (-not ($hasColorIni -or $hasUserCss)) {
+                throw "Community theme '$themeName' archive does not contain color.ini or user.css."
+            }
+            $destination = Join-Path $themesDir $themeName
+            if (Test-Path -LiteralPath $destination) { Remove-Item -LiteralPath $destination -Recurse -Force }
+            New-Item -Path $destination -ItemType Directory -Force | Out-Null
+            $themeFiles = @('color.ini','user.css','theme.js','theme.script.js','assets','README.md')
+            foreach ($tf in $themeFiles) {
+                $tfSrc = Join-Path $sourcePath $tf
+                if (Test-Path -LiteralPath $tfSrc) {
+                    Copy-Item $tfSrc -Destination (Join-Path $destination $tf) -Recurse -Force
+                }
+            }
+            Write-Log "Community theme '$themeName' copied to $destination"
+        } finally {
+            Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $unpackPath -Recurse -Force -ErrorAction SilentlyContinue
         }
+    } else {
+        $zipPath = New-LibreSpotTempFile -Name 'themes.zip'
+        $unpackPath = New-LibreSpotTempDirectory -Name 'themes-unpack'
+        try {
+            Download-FileSafe -Uri $global:URL_THEMES_REPO -OutFile $zipPath
+            Confirm-FileHash -Path $zipPath -ExpectedHash $global:PinnedReleases.Themes.SHA256 -Label 'Themes archive'
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $unpackPath)
+            $root = Get-ChildItem -LiteralPath $unpackPath -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $root) { throw 'Pinned themes archive could not be unpacked safely.' }
+            $sourcePath = Join-Path $root.FullName $themeName
+            if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
+                throw "Theme '$themeName' was not found in the pinned theme archive."
+            }
+            $destination = Join-Path $themesDir $themeName
+            if (Test-Path -LiteralPath $destination) { Remove-Item -LiteralPath $destination -Recurse -Force }
+            Copy-Item -Path $sourcePath -Destination $destination -Recurse -Force
+            Write-Log "Theme copied to $destination"
+        } finally {
+            Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $unpackPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
 
-        $destination = Join-Path $themesDir $themeName
-        if (Test-Path -LiteralPath $destination) { Remove-Item -LiteralPath $destination -Recurse -Force }
-        Copy-Item -Path $sourcePath -Destination $destination -Recurse -Force
+    Invoke-SpicetifyCli -Arguments @('config', 'current_theme', $themeName, '--bypass-admin') -FailureMessage "Could not set Spicetify theme '$themeName'."
+    Invoke-SpicetifyCli -Arguments @('config', 'color_scheme', $Config.Spicetify_Scheme, '--bypass-admin') -FailureMessage "Could not set color scheme '$($Config.Spicetify_Scheme)'."
 
-        Invoke-SpicetifyCli -Arguments @('config', 'current_theme', $themeName, '--bypass-admin') -FailureMessage "Could not set Spicetify theme '$themeName'."
-        Invoke-SpicetifyCli -Arguments @('config', 'color_scheme', $Config.Spicetify_Scheme, '--bypass-admin') -FailureMessage "Could not set color scheme '$($Config.Spicetify_Scheme)'."
+    $needsThemeJs = $global:ThemesNeedingJS -contains $themeName
+    $themeJs = if ($needsThemeJs) { '1' } else { '0' }
+    Invoke-SpicetifyCli -Arguments @('config', 'inject_css', '1', 'replace_colors', '1', 'overwrite_assets', '1', 'inject_theme_js', $themeJs, '--bypass-admin') -FailureMessage 'Could not enable theme assets.'
 
-        $needsThemeJs = @('Dribbblish', 'StarryNight', 'Turntable') -contains $themeName
-        $themeJs = if ($needsThemeJs) { '1' } else { '0' }
-        Invoke-SpicetifyCli -Arguments @('config', 'inject_css', '1', 'replace_colors', '1', 'overwrite_assets', '1', 'inject_theme_js', $themeJs, '--bypass-admin') -FailureMessage 'Could not enable theme assets.'
+    Write-Log 'Theme assets copied and configured.' -Level 'SUCCESS'
+}
 
-        Write-Log 'Theme assets copied and configured.' -Level 'SUCCESS'
-    } finally {
-        # Always clean up temp artifacts even on throw, so we do not leave tens of
-        # megabytes of unpacked themes in %TEMP% each time theme install fails.
-        Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $unpackPath -Recurse -Force -ErrorAction SilentlyContinue
+function Download-CommunityExtensions {
+    param($Config)
+    $exts = @($Config.Spicetify_Extensions)
+    $extDir = Join-Path $global:SPICETIFY_CONFIG_DIR 'Extensions'
+    if (-not (Test-Path -LiteralPath $extDir)) { New-Item -Path $extDir -ItemType Directory -Force | Out-Null }
+    foreach ($ext in $exts) {
+        if (-not $global:CommunityExtensions.ContainsKey($ext)) { continue }
+        $info = $global:CommunityExtensions[$ext]
+        $destFile = Join-Path $extDir $ext
+        try {
+            Write-Log "Downloading community extension: $ext from $($info.Source)..."
+            Download-FileSafe -Uri $info.Url -OutFile $destFile
+            $head = Get-Content -LiteralPath $destFile -TotalCount 5 -ErrorAction SilentlyContinue
+            $headStr = ($head -join "`n").TrimStart()
+            if ($headStr -match '^<(!DOCTYPE|html)' -or $headStr -match '^404:') {
+                Remove-Item -LiteralPath $destFile -Force -ErrorAction SilentlyContinue
+                Write-Log "Community extension '$ext' appears to be an HTML error page. Skipping." -Level 'WARN'
+                continue
+            }
+            Write-Log "Community extension '$ext' saved to $destFile"
+        } catch {
+            Write-Log "Could not download community extension '$ext': $($_.Exception.Message). Skipping." -Level 'WARN'
+        }
     }
 }
 
@@ -1383,11 +1465,12 @@ function Module-InstallExtensions {
     param($Config)
     $extensions = @($Config.Spicetify_Extensions)
     if ($extensions.Count -eq 0) {
-        Write-Log 'No built-in extensions selected. LibreSpot will remove previously managed extension toggles.' -Level 'STEP'
+        Write-Log 'No extensions selected. LibreSpot will remove previously managed extension toggles.' -Level 'STEP'
     } else {
         Write-Log "Enabling extensions: $($extensions -join ', ')." -Level 'STEP'
     }
-    Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems $extensions -ManagedItems $global:BuiltInExtensionNames
+    Download-CommunityExtensions -Config $Config
+    Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems $extensions -ManagedItems $global:AllManagedExtensionNames
 }
 
 function Module-InstallMarketplace {
