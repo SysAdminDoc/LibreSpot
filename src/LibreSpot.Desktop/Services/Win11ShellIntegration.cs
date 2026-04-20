@@ -18,8 +18,13 @@ public static class Win11ShellIntegration
     {
         var hwnd = new WindowInteropHelper(window).EnsureHandle();
 
+        // Attribute 20 works on Win10 1903+ and all Win11. On Win10 1809-1903, the
+        // correct attribute is 19 (undocumented). Try 20 first, fall back to 19.
         var useDark = 1;
-        DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int));
+        if (DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int)) != 0)
+        {
+            DwmSetWindowAttribute(hwnd, 19, ref useDark, sizeof(int));
+        }
 
         if (Environment.OSVersion.Version.Build < 22621)
         {

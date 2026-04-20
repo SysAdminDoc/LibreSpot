@@ -11,6 +11,9 @@ namespace LibreSpot.Desktop.Converters;
 /// </summary>
 public sealed class LogLevelToBrushConverter : IValueConverter
 {
+    private static readonly Brush FallbackBrush = CreateFrozenBrush(Colors.Gray);
+    private static Brush CreateFrozenBrush(Color color) { var b = new SolidColorBrush(color); b.Freeze(); return b; }
+
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var level = (value as string ?? string.Empty).Trim().ToUpperInvariant();
@@ -24,7 +27,7 @@ public sealed class LogLevelToBrushConverter : IValueConverter
         };
 
         return (Application.Current?.TryFindResource(key) as Brush)
-               ?? (Brush)new SolidColorBrush(Colors.Gray);
+               ?? FallbackBrush;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
