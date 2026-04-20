@@ -68,6 +68,12 @@ $global:ThemeSchemes = [ordered]@{
     'Nightlight'  = @('Nightlight Colors')
     'Onepunch'    = @('dark', 'light', 'legacy')
     'SharkBlue'   = @('Base')
+    # Community themes (downloaded from individual GitHub repos)
+    'Catppuccin'  = @('mocha', 'macchiato', 'frappe', 'latte')
+    'Comfy'       = @('Comfy', 'Mono', 'Chromatic')
+    'Bloom'       = @('dark', 'light', 'darkMono', 'darkGreen', 'coffee', 'comfy', 'violet')
+    'Lucid'       = @('dark', 'light', 'dark-green', 'coffee', 'comfy', 'dark-fluent', 'greenland', 'biscuit', 'macos', 'rosepine', 'dracula', 'dracula-pro')
+    'Hazy'        = @('dark', 'light')
 }
 
 $global:BuiltInExtensionNames = @(
