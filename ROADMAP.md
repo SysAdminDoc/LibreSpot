@@ -341,3 +341,34 @@ UI: card per client with capability matrix — Unlimited skips / 320kbps / Offli
 ---
 
 *Last updated: 2026-04-17 (consolidated from 8 research passes — SpotX upstream, Spicetify ecosystem, competitors, WPF UX, distribution, Windows 11 shell, power-user CLI, community patterns, custom patches internals, localization, feedback primitives, alternative clients)*
+
+## Open-Source Research (Round 2)
+
+### Related OSS Projects
+- SpotX-Official/SpotX — https://github.com/SpotX-Official/SpotX — PowerShell patcher for Windows Spotify desktop client; 20.6k stars; blocks banner/video/audio ads
+- SpotX-Official/SpotX-Bash — https://github.com/SpotX-Official/SpotX-Bash — Bash equivalent for macOS/Linux, 5.2k stars
+- spicetify/spicetify-cli — https://github.com/spicetify/spicetify-cli — theme/extension toolkit; marketplace of community themes & extensions
+- spicetify/marketplace — https://github.com/spicetify/marketplace — one-click theme/extension installer inside Spotify
+- yodaluca23/SpotX-Spicetify-Universal-Installer — https://github.com/yodaluca23/SpotX-Spicetify-Universal-Installer — PS universal installer combining both (closest direct competitor)
+- sterlingrohit/SpotX_sterling — https://github.com/sterlingrohit/SpotX_sterling — SpotX fork, reference for custom patch variants
+- Spicetify community extensions (Genius Lyrics Plus, Full App Display, History Shuffle) — reference extension catalog to bundle by default
+- librespot-org/librespot — https://github.com/librespot-org/librespot — Rust Spotify Connect server (if LibreSpot ever wants to go beyond patching)
+- spotify-downloader/spotDL — https://github.com/spotDL/spotify-downloader — OSS Spotify → local MP3 via YouTube Music matching
+
+### Features to Borrow
+- **Combined installer in one script** (yodaluca23's universal installer) — user's project already does this; match feature parity on macOS/Linux via WSL or native Bash fallback
+- **SpotX config file with granular patch toggles** — individual patches (ads off, podcast hide, experimental features, telemetry off) are independently selectable; user picks via GUI checkboxes
+- **Spicetify Marketplace auto-install** — one-checkbox default enables Marketplace; no CLI required
+- **Curated preset extension bundle** — ship "LibreSpot defaults": Marketplace + Genius Lyrics Plus + a dark theme; user can swap
+- **Spotify version detection + auto-downgrade** — warn when Spotify auto-updated past a compatible version, offer to re-install last known-good (SpotX already does version detection)
+- **Update-block enforcement** (SpotX optional patch) — block `Spotify\Update\` writes so auto-update can't re-add ads after patching
+- **Microsoft Store edition warning** — both SpotX and Spicetify require the desktop installer, not the Store version; surface this early with a "convert to desktop installer" walkthrough
+- **Telemetry/Sentry removal toggle** (SpotX) — some users want it, some don't; expose rather than forcing
+- **Rollback / restore original Spotify** — if user wants the stock client back, single-click restore from `.bak`
+
+### Patterns & Architectures Worth Studying
+- SpotX's **patch-target discovery** — locates `xpui.spa` in Spotify's Apps dir and patches JS/CSS inside; resilient to install path variants (AppData vs. Program Files vs. Store)
+- Spicetify's **xpui.spa overlay** — instead of in-place patching, overlay a modified xpui that re-applies on Spotify update (complementary vs. conflicting with SpotX)
+- SpotX-Bash's **sha-check + idempotent apply** — don't re-patch an already-patched xpui; detect markers
+- Marketplace's **in-app extension installer** — downloads to Spicetify's extensions dir, registers via `config-xpui.ini`
+- **Respect user's Spotify version pin** — some users intentionally stay on older builds; the installer should not blindly "upgrade to latest supported"
