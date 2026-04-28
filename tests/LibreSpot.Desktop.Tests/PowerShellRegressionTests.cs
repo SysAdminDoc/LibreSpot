@@ -422,9 +422,32 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("produced no output", body);
         Assert.Contains("No output from Spicetify", body);
         Assert.Contains("Output:", body);
-        Assert.Contains("Update-SpicetifyCliProgress", body);
+        Assert.Contains("Write-SpicetifyCliOutputLine", body);
+        Assert.Contains("LastPatchBucket", body);
         Assert.DoesNotContain("& $spicetifyExe @Arguments", body);
+        Assert.DoesNotContain("Write-Log \"  $line\"", body);
         Assert.DoesNotMatch(@"(?m)^\s*return\s+\$output\b", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SpicetifyOutputWriter_CompactsNativeProgressFrames(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Write-SpicetifyCliOutputLine\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Write-SpicetifyCliOutputLine function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("Remove-ConsoleEscapeSequences", body);
+        Assert.Contains("LastPatchBucket", body);
+        Assert.Contains("Patching files: $done/$total", body);
+        Assert.Contains("LastStage", body);
+        Assert.Contains("Extracting backup", body);
+        Assert.Contains("Refreshing custom apps", body);
     }
 
     [Theory]
