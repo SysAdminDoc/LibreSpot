@@ -367,6 +367,39 @@ public sealed class PowerShellRegressionTests
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SpicetifyCliPin_UsesCurrentTestedRelease(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("Version = '2.43.2'", script);
+        Assert.Contains("fc6ed7b67f15a8e49e6f676ca0511b63ef74736c05593966abf20a90e06aa80d", script);
+        Assert.Contains("ed90e11d82affdcf7ae2968a886c8b9500c08f521c271598f13d6d9414110473", script);
+        Assert.DoesNotContain("Version = '2.43.1'", script);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void MarketplaceInstaller_UsesSpicetifyConfigCustomApps(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Module-InstallMarketplace\s*(?:\{\s*param\(\$Config\)|\{\s*\r?\n\s*param\(\$Config\))(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Module-InstallMarketplace function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps'", body);
+        Assert.DoesNotContain("Join-Path $global:SPICETIFY_DIR 'CustomApps'", body);
+        Assert.Contains("extension.js", body);
+        Assert.Contains("manifest.json", body);
+        Assert.Contains("Marketplace archive did not produce expected Spicetify custom app files.", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
     public void SpicetifyCliRunner_StreamsNativeOutputAndTimesOut(string relativePath)
     {
         var script = ReadFile(relativePath.Split('/'));

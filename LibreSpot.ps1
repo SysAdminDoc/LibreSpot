@@ -92,10 +92,10 @@ $global:PinnedReleases = @{
         SHA256  = '38d4205a2afc2050781bbfe28c6713edd6b0aef2c084304b58d92308b081f569'
     }
     SpicetifyCLI = @{
-        Version = '2.43.1'
+        Version = '2.43.2'
         SHA256  = @{
-            x64   = 'c9b5e677d5b3046d14da09a3f713bd7b864b67b0c4c4b7ea2ab53c261e63b491'
-            arm64 = '4cc793a947678ededaa244899c216d60230f535cb8ccaadf683e99c4ae741e13'
+            x64   = 'fc6ed7b67f15a8e49e6f676ca0511b63ef74736c05593966abf20a90e06aa80d'
+            arm64 = 'ed90e11d82affdcf7ae2968a886c8b9500c08f521c271598f13d6d9414110473'
         }
     }
     Marketplace = @{
@@ -3406,7 +3406,6 @@ function Update-MaintenanceStatus {
     }
 
     $mp = Join-Path $global:SPICETIFY_CONFIG_DIR "CustomApps\marketplace"
-    if (-not (Test-Path $mp)) { $mp = Join-Path $global:SPICETIFY_DIR "CustomApps\marketplace" }
     $marketplaceInstalled = (Test-Path $mp) -or (@(Get-SpicetifyConfigListValue -Key 'custom_apps') -contains 'marketplace')
     if ($marketplaceInstalled) {
         $ui['StatusMarketplace'].Text = 'Installed'
@@ -4798,12 +4797,13 @@ function Module-InstallMarketplace { param($Config)
 
     Write-Log "Installing Marketplace..." -Level 'STEP'
     $ca = Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps'
-    if (-not (Test-Path -LiteralPath $ca)) { $ca = Join-Path $global:SPICETIFY_DIR 'CustomApps' }
     New-Item -Path $ca -ItemType Directory -Force | Out-Null
     $md=Join-Path $ca "marketplace"
     $mz = New-LibreSpotTempFile -Name 'marketplace.zip'
     $mu = New-LibreSpotTempDirectory -Name 'marketplace-unpack'
-    if (Test-Path -LiteralPath $md) { $null = Remove-PathSafely -Path $md -Label 'Marketplace app' }
+    foreach ($dir in $marketplaceDirs) {
+        $null = Remove-PathSafely -Path $dir -Label 'Marketplace app'
+    }
     New-Item -Path $md -ItemType Directory -Force | Out-Null
     try {
         Download-FileSafe -Uri $global:URL_MARKETPLACE -OutFile $mz
@@ -4811,6 +4811,11 @@ function Module-InstallMarketplace { param($Config)
         [System.IO.Compression.ZipFile]::ExtractToDirectory($mz, $mu)
         $sp = if (Test-Path (Join-Path $mu "marketplace-dist")) { Join-Path $mu "marketplace-dist\*" } else { Join-Path $mu "*" }
         Copy-Item -Path $sp -Destination $md -Recurse -Force
+        $hasExtension = Test-Path -LiteralPath (Join-Path $md 'extension.js')
+        $hasManifest = Test-Path -LiteralPath (Join-Path $md 'manifest.json')
+        if (-not ($hasExtension -and $hasManifest)) {
+            throw 'Marketplace archive did not produce expected Spicetify custom app files.'
+        }
         Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @('marketplace') -ManagedItems $managedApps
         Write-Log "Marketplace enabled."
     } finally {
