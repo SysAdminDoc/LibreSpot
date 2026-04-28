@@ -1333,10 +1333,10 @@ $xaml = @"
                                     <Button Name="LinkGitHub" Width="36" Height="34" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="View on GitHub" VerticalAlignment="Center" Margin="0,0,8,0">
                                     <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="Transparent" CornerRadius="8"><Path x:Name="ico" Fill="#FFA7B4AD" Data="M8,0 C3.58,0 0,3.58 0,8 c0,3.54 2.29,6.53 5.47,7.59 c.4,.07 .55,-.17 .55,-.38 c0,-.19 -.01,-.82 -.01,-1.49 c-2.01,.37 -2.53,-.49 -2.69,-.94 c-.09,-.23 -.48,-.94 -.82,-1.13 c-.28,-.15 -.68,-.52 -.01,-.53 c.63,-.01 1.08,.58 1.23,.82 c.72,1.21 1.87,.87 2.33,.66 c.07,-.52 .28,-.87 .51,-1.07 c-1.78,-.2 -3.64,-.89 -3.64,-3.95 c0,-.87 .31,-1.59 .82,-2.15 c-.08,-.2 -.36,-1.02 .08,-2.12 c0,0 .67,-.21 2.2,.82 c.64,-.18 1.32,-.27 2,-.27 c.68,0 1.36,.09 2,.27 c1.53,-1.04 2.2,-.82 2.2,-.82 c.44,1.1 .16,1.92 .08,2.12 c.51,.56 .82,1.27 .82,2.15 c0,3.07 -1.87,3.75 -3.65,3.95 c.29,.25 .54,.73 .54,1.48 c0,1.07 -.01,1.93 -.01,2.2 c0,.21 .15,.46 .55,.38 A8.013,8.013,0,0,0,16,8 c0,-4.42 -3.58,-8 -8,-8z" Stretch="Uniform" Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                                         <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#FF1A221E"/><Setter TargetName="ico" Property="Fill" Value="#FFEAF2ED"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
-                                    <Button Name="MinimizeBtn" Content="&#x2013;" Width="38" Height="34" Background="Transparent" Foreground="#FFA7B4AD" BorderThickness="0" FontSize="14" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,6,0">
+                                    <Button Name="MinimizeBtn" Content="&#x2013;" Width="38" Height="34" Background="Transparent" Foreground="#FFA7B4AD" BorderThickness="0" FontSize="14" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,6,0" ToolTip="Minimize">
                                     <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="Transparent" CornerRadius="8"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                                         <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#FF1A221E"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
-                                    <Button Name="CloseTitleBtn" Content="&#x2715;" Width="38" Height="34" Background="Transparent" Foreground="#FFA7B4AD" BorderThickness="0" FontSize="11" Cursor="Hand">
+                                    <Button Name="CloseTitleBtn" Content="&#x2715;" Width="38" Height="34" Background="Transparent" Foreground="#FFA7B4AD" BorderThickness="0" FontSize="11" Cursor="Hand" ToolTip="Close">
                                     <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="Transparent" CornerRadius="8"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                                         <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#FFE5484D"/><Setter Property="Foreground" Value="#FFFFFFFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
                             </StackPanel>
@@ -1794,7 +1794,7 @@ $xaml = @"
                                         </StackPanel>
                                         <WrapPanel Grid.Column="1" VerticalAlignment="Top" Margin="20,0,0,0">
                                             <Border Background="#FF132419" BorderBrush="#FF315F42" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,10,10"><TextBlock Text="Live log" Foreground="#FFB6F4C8" FontSize="10.5" FontWeight="SemiBold"/></Border>
-                                            <Border Background="#FF171E24" BorderBrush="#FF31465A" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,0,10"><TextBlock Text="Safe to leave open" Foreground="#FF8CC7FF" FontSize="10.5" FontWeight="SemiBold"/></Border>
+                                            <Border Background="#FF171E24" BorderBrush="#FF31465A" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,0,10"><TextBlock Text="Safe to minimize" Foreground="#FF8CC7FF" FontSize="10.5" FontWeight="SemiBold"/></Border>
                                         </WrapPanel>
                                     </Grid>
                                     <Grid Grid.Row="1" Margin="0,16,0,0">
@@ -1837,7 +1837,7 @@ $xaml = @"
                                     <TextBlock Name="StepIndicator" Text="Ready when you are" Foreground="#FF1ED760" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right"/>
                                 </StackPanel></Grid>
                                 <ProgressBar Name="MainProgress" Height="8" Margin="0,12,0,0" Template="{StaticResource RoundProgress}" Background="#FF222D28" Foreground="#FF1ED760" Minimum="0" Maximum="100" Value="0"/>
-                                <TextBlock Text="Stage markers update with the selected action, and Spicetify emits detailed progress while patching Spotify files." Foreground="#FF7B8780" FontSize="11.5" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
+                                <TextBlock Text="Stage markers update with the selected action. You can minimize LibreSpot while setup runs; it will return focus when action is needed or complete." Foreground="#FF7B8780" FontSize="11.5" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
                             <StackPanel Grid.Row="3" Margin="0,16,0,0" Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button Name="BtnCopyLog" Content="Copy full log" Background="#FF111713" Style="{StaticResource ActionButton}" Width="132" Margin="0,0,8,0" Visibility="Collapsed"/>
                                 <Button Name="BtnBackToConfig" Content="Return to setup" Background="#FF111713" Style="{StaticResource ActionButton}" Width="140" Margin="0,0,8,0" Visibility="Collapsed"/>
@@ -4161,7 +4161,7 @@ function Switch-ToInstallPage {
     $ui['InstallTitle'].Text = $Title; $ui['InstallContext'].Text = $Context
     $ui['ElapsedTime'].Text=''; if ($ui.ContainsKey('ProgressPercentText')) { $ui['ProgressPercentText'].Text='0%' }; $ui['MainProgress'].Value=0; $ui['MainProgress'].Foreground=$global:BrushGreen
     $ui['CloseBtn'].Visibility='Collapsed'; $ui['BtnBackToConfig'].Visibility='Collapsed'; $ui['BtnCopyLog'].Visibility='Collapsed'; $ui['BtnCopyLog'].Content='Copy full log'
-    $window.Topmost = $true
+    $window.Topmost = $false
     Set-InstallStageLabels -Prepare $PrepareLabel -Run $RunLabel -Verify $VerifyLabel -Complete $CompleteLabel
     Update-InstallStageVisual
 }
