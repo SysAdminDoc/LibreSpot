@@ -112,7 +112,7 @@ public sealed class PowerShellRegressionTests
     }
 
     [Fact]
-    public void CompareLibreSpotVersions_IsExportedIntoWorkerRunspace()
+    public void RequiredHelpers_AreExportedIntoWorkerRunspace()
     {
         // The maintenance worker runspace runs with an explicit allow-list of function
         // names. Check-ForUpdates calls Compare-LibreSpotVersions at runtime, so the
@@ -124,6 +124,47 @@ public sealed class PowerShellRegressionTests
             RegexOptions.Singleline);
         Assert.True(listMatch.Success, "Worker function export list not found.");
         Assert.Contains("Compare-LibreSpotVersions", listMatch.Value);
+        Assert.Contains("Write-SpicetifyCliOutputLine", listMatch.Value);
+    }
+
+    [Fact]
+    public void CleanCliFlag_StartsEasyCleanInstall()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var blockMatch = Regex.Match(
+            script,
+            @"if\s*\(\$script:CliClean\)\s*\{(?<body>.+?)# =============================================================================\s*\r?\n# 19\. LAUNCH",
+            RegexOptions.Singleline);
+
+        Assert.True(blockMatch.Success, "CliClean startup block not found.");
+        var body = blockMatch.Groups["body"].Value;
+        Assert.Contains("Add_ContentRendered", body);
+        Assert.Contains("Get-InstallConfig -EasyMode $true", body);
+        Assert.Contains("$script:InstallConfig.CleanInstall = $true", body);
+        Assert.Contains("$window.WindowState = 'Minimized'", body);
+        Assert.Contains("Start-InstallJob -Config $script:InstallConfig", body);
+    }
+
+    [Fact]
+    public void SelfElevation_PreservesCliFlags()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var blockMatch = Regex.Match(
+            script,
+            @"\$elevationArgs\s*=\s*@\(\)(?<body>.+?)Start-Process\s+-FilePath\s+'powershell\.exe'",
+            RegexOptions.Singleline);
+
+        Assert.True(blockMatch.Success, "Self-elevation CLI flag preservation block not found.");
+        var body = blockMatch.Groups["body"].Value;
+        Assert.Contains("$script:CliClean", body);
+        Assert.Contains("'-clean'", body);
+        Assert.Contains("$script:CliWatch", body);
+        Assert.Contains("'-watch'", body);
+        Assert.Contains("$script:CliInstallWatcher", body);
+        Assert.Contains("'-installwatcher'", body);
+        Assert.Contains("$script:CliUninstallWatcher", body);
+        Assert.Contains("'-uninstallwatcher'", body);
+        Assert.Contains("ArgumentList", body);
     }
 
     // ---------------------------------------------------------------------
@@ -175,14 +216,29 @@ public sealed class PowerShellRegressionTests
         // the scheduled task stalls waiting for XAML that never renders.
         var script = ReadFile("LibreSpot.ps1");
 
-        foreach (var flag in new[] { "CliWatch", "CliInstallWatcher", "CliUninstallWatcher" })
+        foreach (var entry in new (string Flag, string? Log)[]
         {
-            var branch = Regex.Match(
+            ("CliWatch", null),
+            ("CliInstallWatcher", "CLI: -installwatcher"),
+            ("CliUninstallWatcher", "CLI: -uninstallwatcher")
+        })
+        {
+            var branches = Regex.Matches(
                 script,
-                @"if\s*\(\s*\$script:" + flag + @"\s*\)\s*\{(?<body>.+?)^\}",
+                @"if\s*\(\s*\$script:" + entry.Flag + @"\s*\)\s*\{(?<body>.+?)^\}",
                 RegexOptions.Singleline | RegexOptions.Multiline);
-            Assert.True(branch.Success, $"Could not locate if-branch for $script:{flag}.");
-            Assert.Contains("exit", branch.Groups["body"].Value);
+
+            var foundExitBranch = false;
+            foreach (Match branch in branches)
+            {
+                var body = branch.Groups["body"].Value;
+                if (!body.Contains("exit")) { continue; }
+                if (entry.Log is not null && !body.Contains(entry.Log)) { continue; }
+                foundExitBranch = true;
+                break;
+            }
+
+            Assert.True(foundExitBranch, $"Could not locate explicit-exit CLI entry branch for $script:{entry.Flag}.");
         }
     }
 
@@ -412,19 +468,22 @@ public sealed class PowerShellRegressionTests
         var body = fnBody.Groups["body"].Value;
         Assert.Contains("$previousPreference = $ErrorActionPreference", body);
         Assert.Contains("$ErrorActionPreference = 'Continue'", body);
-        Assert.Contains("Start-Process", body);
+        Assert.Contains("System.Diagnostics.ProcessStartInfo", body);
+        Assert.Contains("ReadToEndAsync", body);
+        Assert.Contains("WaitForExit(250)", body);
         Assert.Contains("RedirectStandardOutput", body);
         Assert.Contains("RedirectStandardError", body);
-        Assert.Contains("Read-ProcessOutputDelta", body);
+        Assert.Contains("CreateNoWindow", body);
         Assert.Contains("TimeoutSeconds", body);
-        Assert.Contains("IdleTimeoutSeconds", body);
-        Assert.Contains("$lastOutputAt", body);
-        Assert.Contains("produced no output", body);
-        Assert.Contains("No output from Spicetify", body);
+        Assert.Contains("statusIntervalSeconds", body);
         Assert.Contains("Output:", body);
         Assert.Contains("Write-SpicetifyCliOutputLine", body);
+        Assert.Contains("Update-SpicetifyCliProgress", body);
         Assert.Contains("LastPatchBucket", body);
         Assert.DoesNotContain("& $spicetifyExe @Arguments", body);
+        Assert.DoesNotContain("Start-Process", body);
+        Assert.DoesNotContain("$process.HasExited", body);
+        Assert.DoesNotContain("Read-ProcessOutputDelta", body);
         Assert.DoesNotContain("Write-Log \"  $line\"", body);
         Assert.DoesNotMatch(@"(?m)^\s*return\s+\$output\b", body);
     }
