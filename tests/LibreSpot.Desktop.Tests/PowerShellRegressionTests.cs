@@ -384,6 +384,10 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("RedirectStandardError", body);
         Assert.Contains("Read-ProcessOutputDelta", body);
         Assert.Contains("TimeoutSeconds", body);
+        Assert.Contains("IdleTimeoutSeconds", body);
+        Assert.Contains("$lastOutputAt", body);
+        Assert.Contains("produced no output", body);
+        Assert.Contains("No output from Spicetify", body);
         Assert.Contains("Output:", body);
         Assert.Contains("Update-SpicetifyCliProgress", body);
         Assert.DoesNotContain("& $spicetifyExe @Arguments", body);
@@ -407,6 +411,9 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("$done", body);
         Assert.Contains("$total", body);
         Assert.Contains("$percent", body);
+        Assert.Contains("Extracting backup", body);
+        Assert.Contains("Preprocessing", body);
+        Assert.Contains("Fetching remote CSS map", body);
     }
 
     [Theory]
