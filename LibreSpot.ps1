@@ -1187,8 +1187,8 @@ $xaml = @"
                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <Border x:Name="dot" Width="7" Height="7" CornerRadius="3.5" Background="#FF36463E" VerticalAlignment="Top" Margin="0,6,0,0"/>
                         <StackPanel Grid.Column="2">
-                            <TextBlock x:Name="title" Text="{TemplateBinding Content}" FontSize="13.25" FontWeight="SemiBold" Foreground="#FFEAF2ED"/>
-                            <TextBlock x:Name="description" Text="{TemplateBinding Tag}" Foreground="#FF7B8780" FontSize="10.75" Margin="0,5,0,0" TextWrapping="Wrap" MaxWidth="230"/>
+                            <TextBlock x:Name="title" Text="{TemplateBinding Content}" FontSize="13.25" FontWeight="SemiBold" Foreground="#FFEAF2ED" HorizontalAlignment="Left"/>
+                            <TextBlock x:Name="description" Text="{TemplateBinding Tag}" Foreground="#FF7B8780" FontSize="10.75" Margin="0,5,0,0" TextWrapping="Wrap" MaxWidth="300" HorizontalAlignment="Left"/>
                         </StackPanel>
                     </Grid>
                 </Border></Grid>
@@ -1255,7 +1255,7 @@ $xaml = @"
                     <ContentPresenter/></Border>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
-        <Style TargetType="ScrollBar">
+        <Style x:Key="LibreSpotScrollBar" TargetType="ScrollBar">
             <Setter Property="Width" Value="10"/>
             <Setter Property="MinWidth" Value="10"/>
             <Setter Property="Background" Value="#FF0B0F0D"/>
@@ -1280,6 +1280,20 @@ $xaml = @"
                                 </Track.Thumb>
                                 <Track.IncreaseRepeatButton><RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0"/></Track.IncreaseRepeatButton>
                             </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource LibreSpotScrollBar}"/>
+        <Style x:Key="DarkScrollViewer" TargetType="ScrollViewer">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid Background="{TemplateBinding Background}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/></Grid.ColumnDefinitions>
+                            <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Grid.Column="0" CanContentScroll="{TemplateBinding CanContentScroll}" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" ContentStringFormat="{TemplateBinding ContentStringFormat}"/>
+                            <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Column="1" Orientation="Vertical" Value="{TemplateBinding VerticalOffset}" Maximum="{TemplateBinding ScrollableHeight}" ViewportSize="{TemplateBinding ViewportHeight}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Style="{StaticResource LibreSpotScrollBar}"/>
                         </Grid>
                     </ControlTemplate>
                 </Setter.Value>
@@ -1348,16 +1362,17 @@ $xaml = @"
                                 </StackPanel>
                             </Grid>
                             <Border Grid.Row="1" Background="#FF101613" BorderBrush="#FF222D28" BorderThickness="1" CornerRadius="10" Padding="8" Margin="0,0,0,14">
-                            <StackPanel Orientation="Horizontal">
-                                <RadioButton Name="ModeEasy" Content="Easy Install" Tag="Fastest clean setup with the recommended Spotify, SpotX, and Marketplace baseline." IsChecked="True" Style="{StaticResource ModeRadio}" GroupName="Mode"/>
-                                <RadioButton Name="ModeCustom" Content="Custom Install" Tag="Tune cleanup, theming, lyrics, extensions, and launch behavior before anything runs." Style="{StaticResource ModeRadio}" GroupName="Mode"/>
-                                <RadioButton Name="ModeMaint" Content="Maintenance" Tag="Inspect the current stack, restore backups, reapply patches, or remove modifications safely." Style="{StaticResource ModeRadio}" GroupName="Mode"/>
-                            </StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <RadioButton Grid.Column="0" Name="ModeEasy" Content="Easy Install" Tag="Fastest clean setup with the recommended Spotify, SpotX, and Marketplace baseline." IsChecked="True" Style="{StaticResource ModeRadio}" GroupName="Mode" Margin="0,0,8,0"/>
+                                <RadioButton Grid.Column="1" Name="ModeCustom" Content="Custom Install" Tag="Tune cleanup, theming, lyrics, extensions, and launch behavior before anything runs." Style="{StaticResource ModeRadio}" GroupName="Mode" Margin="4,0,4,0"/>
+                                <RadioButton Grid.Column="2" Name="ModeMaint" Content="Maintenance" Tag="Inspect the current stack, restore backups, reapply patches, or remove modifications safely." Style="{StaticResource ModeRadio}" GroupName="Mode" Margin="8,0,0,0"/>
+                            </Grid>
                             </Border>
                             <Border Grid.Row="2" Background="#FF101613" CornerRadius="10" Padding="22" BorderBrush="#FF222D28" BorderThickness="1"><Grid>
 
                                 <!-- ===== EASY PANEL ===== -->
-                                <StackPanel Name="PanelEasy" Visibility="Visible" VerticalAlignment="Center" HorizontalAlignment="Stretch">
+                                <ScrollViewer Name="PanelEasy" Visibility="Visible" VerticalScrollBarVisibility="Auto" Style="{StaticResource DarkScrollViewer}"><StackPanel Margin="4,6,4,0">
                                     <Grid Margin="0,0,0,20">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="1.15*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="0.85*"/></Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0">
@@ -1404,17 +1419,17 @@ $xaml = @"
                                             </StackPanel>
                                         </Border>
                                     </Grid>
-                                </StackPanel>
+                                </StackPanel></ScrollViewer>
 
                                 <!-- ===== CUSTOM PANEL ===== -->
-                                <ScrollViewer Name="PanelCustom" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"><StackPanel Margin="4,6,4,0">
+                                <ScrollViewer Name="PanelCustom" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Style="{StaticResource DarkScrollViewer}"><StackPanel Margin="4,6,4,0">
                                     <Grid Margin="0,0,0,18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                         <StackPanel>
-                                            <TextBlock Text="Custom install, dialed in" Foreground="#FFEAF2ED" FontSize="21" FontWeight="Bold"/>
+                                            <TextBlock Text="Custom install, dialed in" Foreground="#FFEAF2ED" FontSize="21" FontWeight="SemiBold"/>
                                             <TextBlock Text="Choose exactly how much cleanup, theming, Marketplace support, and extension prep you want before Spotify opens." Foreground="#FFA7B4AD" FontSize="12.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                         </StackPanel>
-                                        <Button Grid.Column="1" Name="BtnResetCustomDefaults" Content="Load recommended defaults" Background="#FF111713" Style="{StaticResource ActionButton}" Width="192" Height="40" Margin="18,2,0,0" VerticalAlignment="Top" ToolTip="Apply the Easy Install defaults here so you can keep customizing from a known-good baseline."/>
+                                        <Button Grid.Column="1" Name="BtnResetCustomDefaults" Content="Recommended defaults" Background="#FF111713" Style="{StaticResource ActionButton}" Width="216" Height="40" Margin="18,2,0,0" VerticalAlignment="Top" ToolTip="Apply the Easy Install defaults here so you can keep customizing from a known-good baseline."/>
                                     </Grid>
                                     <Border Style="{StaticResource SurfaceCard}" Margin="0,0,0,18">
                                         <Grid>
@@ -1449,7 +1464,7 @@ $xaml = @"
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Border Grid.Column="0" Style="{StaticResource SurfaceCard}">
                                             <StackPanel>
-                                                <TextBlock Text="Spotify behavior" Foreground="#FFEAF2ED" FontSize="15" FontWeight="Bold"/>
+                                                <TextBlock Text="Spotify behavior" Foreground="#FFEAF2ED" FontSize="15" FontWeight="SemiBold"/>
                                                 <TextBlock Text="LibreSpot uses SpotX to handle cleanup, patching, interface tweaks, and a few system-level quality-of-life options." Foreground="#FFA7B4AD" FontSize="12" Margin="0,8,0,14" TextWrapping="Wrap"/>
                                                 <Border Style="{StaticResource InsetPanel}">
                                                     <StackPanel>
@@ -1557,7 +1572,7 @@ $xaml = @"
                                         </Border>
                                         <Border Grid.Column="2" Style="{StaticResource SurfaceCard}">
                                             <StackPanel>
-                                                <TextBlock Text="Themes, Marketplace, and extensions" Foreground="#FFEAF2ED" FontSize="15" FontWeight="Bold"/>
+                                                <TextBlock Text="Themes, Marketplace, and extensions" Foreground="#FFEAF2ED" FontSize="15" FontWeight="SemiBold"/>
                                                 <TextBlock Text="Shape the first-run look and decide what should already be installed before Spotify opens." Foreground="#FFA7B4AD" FontSize="12" Margin="0,8,0,14" TextWrapping="Wrap"/>
                                                 <Border Style="{StaticResource InsetPanel}">
                                                     <StackPanel>
@@ -1658,14 +1673,14 @@ $xaml = @"
                                 </StackPanel></ScrollViewer>
 
                                 <!-- ===== MAINTENANCE PANEL ===== -->
-                                <ScrollViewer Name="PanelMaint" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"><StackPanel Margin="4,6,4,0">
-                                    <TextBlock Text="Maintenance and recovery" Foreground="#FFEAF2ED" FontSize="21" FontWeight="Bold"/>
+                                <ScrollViewer Name="PanelMaint" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Style="{StaticResource DarkScrollViewer}"><StackPanel Margin="4,6,4,0">
+                                    <TextBlock Text="Maintenance and recovery" Foreground="#FFEAF2ED" FontSize="21" FontWeight="SemiBold"/>
                                     <TextBlock Text="Check the current install, back up what matters, reapply patches after Spotify updates, or remove everything cleanly when you want to start over." Foreground="#FFA7B4AD" FontSize="12.5" Margin="0,8,0,18" TextWrapping="Wrap"/>
                                     <Border Style="{StaticResource SurfaceCard}" Margin="0,0,0,18">
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                             <StackPanel>
-                                                <TextBlock Name="MaintenanceOverviewTitle" Text="Scanning the current setup..." Foreground="#FFEAF2ED" FontSize="15.5" FontWeight="Bold"/>
+                                                <TextBlock Name="MaintenanceOverviewTitle" Text="Scanning the current setup..." Foreground="#FFEAF2ED" FontSize="15.5" FontWeight="SemiBold"/>
                                                 <TextBlock Name="MaintenanceOverviewText" Text="LibreSpot is checking which parts of the Spotify stack are installed so recovery actions can stay predictable." Foreground="#FFA7B4AD" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap" MaxWidth="620"/>
                                             </StackPanel>
                                             <WrapPanel Grid.Column="1" VerticalAlignment="Top" Margin="20,0,0,0">
@@ -1715,7 +1730,7 @@ $xaml = @"
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Border Grid.Column="0" Style="{StaticResource SurfaceCard}">
                                             <StackPanel>
-                                                <TextBlock Text="Protect and repair" Foreground="#FFEAF2ED" FontSize="15" FontWeight="Bold"/>
+                                                <TextBlock Text="Protect and repair" Foreground="#FFEAF2ED" FontSize="15" FontWeight="SemiBold"/>
                                                 <TextBlock Text="Keep your current setup recoverable, compare pinned versions, or reapply patches after an update." Foreground="#FFA7B4AD" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,6"/>
                                                 <Button Name="BtnBackupConfig" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Create configuration backup" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Save themes, extensions, and Spicetify settings before making a change." Foreground="#FFA7B4AD" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Button Name="BtnRestoreConfig" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Restore the newest backup" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Bring back the latest saved Spicetify configuration and apply it immediately." Foreground="#FFA7B4AD" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
@@ -1732,7 +1747,7 @@ $xaml = @"
                                         </Border>
                                         <Border Grid.Column="2" Style="{StaticResource SurfaceCard}">
                                             <StackPanel>
-                                                <TextBlock Text="Restore or remove modifications" Foreground="#FFEAF2ED" FontSize="15" FontWeight="Bold"/>
+                                                <TextBlock Text="Restore or remove modifications" Foreground="#FFEAF2ED" FontSize="15" FontWeight="SemiBold"/>
                                                 <TextBlock Text="Use the lighter recovery option first. Full Reset is intentionally destructive and best when you want to start clean." Foreground="#FFA7B4AD" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,6"/>
                                                 <Button Name="BtnSpicetifyRestore" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Restore vanilla Spotify" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Remove Spicetify themes and extensions while keeping SpotX patching in place." Foreground="#FFA7B4AD" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Button Name="BtnUninstallSpicetify" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Uninstall Spicetify only" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Remove the Spicetify CLI and configuration but leave Spotify and SpotX in place." Foreground="#FFA7B4AD" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
@@ -1808,7 +1823,7 @@ $xaml = @"
                                         <TextBlock Text="Live setup log" Foreground="#FFEAF2ED" FontSize="11.5" FontWeight="SemiBold"/></StackPanel>
                                     <TextBlock Grid.Column="1" Text="Full log is saved and copyable." Foreground="#FF7B8780" FontSize="11" VerticalAlignment="Center"/></Grid></Border>
                                 <Border Grid.Row="1" Background="#FF070A09" Padding="14,12">
-                                    <ScrollViewer Name="LogScroller" VerticalScrollBarVisibility="Auto">
+                                    <ScrollViewer Name="LogScroller" VerticalScrollBarVisibility="Auto" Style="{StaticResource DarkScrollViewer}">
                                         <TextBlock Name="LogOutput" Foreground="#FFC2D0C8" FontFamily="Cascadia Mono, Consolas, Courier New" FontSize="11.75" TextWrapping="Wrap" LineHeight="17"/>
                                     </ScrollViewer></Border>
                             </Grid></Border>
