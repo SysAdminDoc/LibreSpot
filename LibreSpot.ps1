@@ -1837,7 +1837,14 @@ $xaml = @"
                                     <TextBlock Name="StepIndicator" Text="Ready when you are" Foreground="#FF1ED760" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right"/>
                                 </StackPanel></Grid>
                                 <ProgressBar Name="MainProgress" Height="8" Margin="0,12,0,0" Template="{StaticResource RoundProgress}" Background="#FF222D28" Foreground="#FF1ED760" Minimum="0" Maximum="100" Value="0"/>
-                                <TextBlock Text="Stage markers update with the selected action. You can minimize LibreSpot while setup runs; it will return focus when action is needed or complete." Foreground="#FF7B8780" FontSize="11.5" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Border Background="#FF171E24" BorderBrush="#FF31465A" BorderThickness="1" CornerRadius="999" Padding="9,3" VerticalAlignment="Top">
+                                        <TextBlock Text="Last event" Foreground="#FF8CC7FF" FontSize="10.5" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <TextBlock Name="LastLogEventText" Grid.Column="1" Text="Waiting for setup to start." Foreground="#FFA7B4AD" FontSize="11.5" TextWrapping="Wrap" Margin="10,2,0,0"/>
+                                </Grid>
+                                <TextBlock Text="Stage markers update with the selected action. You can minimize LibreSpot while setup runs; it will return focus when action is needed or complete." Foreground="#FF7B8780" FontSize="11.5" TextWrapping="Wrap" Margin="0,8,0,0"/></StackPanel></Border>
                             <StackPanel Grid.Row="3" Margin="0,16,0,0" Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button Name="BtnCopyLog" Content="Copy full log" Background="#FF111713" Style="{StaticResource ActionButton}" Width="132" Margin="0,0,8,0" Visibility="Collapsed"/>
                                 <Button Name="BtnBackToConfig" Content="Return to setup" Background="#FF111713" Style="{StaticResource ActionButton}" Width="140" Margin="0,0,8,0" Visibility="Collapsed"/>
@@ -1911,7 +1918,7 @@ $ui = @{}
   'ChkAutoReapply','AutoReapplyStatusText',
   'InstallStagePrepare','InstallStageRun','InstallStageVerify','InstallStageComplete',
   'InstallStagePrepareText','InstallStageRunText','InstallStageVerifyText','InstallStageCompleteText',
-  'LogScroller','LogOutput','StatusText','ElapsedTime','ProgressPercentText','StepIndicator','MainProgress','BtnCopyLog','BtnBackToConfig','CloseBtn',
+  'LogScroller','LogOutput','StatusText','ElapsedTime','ProgressPercentText','StepIndicator','LastLogEventText','MainProgress','BtnCopyLog','BtnBackToConfig','CloseBtn',
   'FooterActionPanel','ActionFooterNote','TitleText','TitleLogo','TitleBar'
 ) | ForEach-Object { $el = $window.FindName($_); if ($el) { $ui[$_] = $el } }
 
@@ -2707,6 +2714,7 @@ $ui['BtnBackToConfig'].Add_Click({
     $ui['LogOutput'].Text=''
     $ui['StatusText'].Text='Checking prerequisites...'
     $ui['StepIndicator'].Text='Ready when you are'
+    if ($ui.ContainsKey('LastLogEventText')) { $ui['LastLogEventText'].Text='Waiting for setup to start.' }
     $ui['ElapsedTime'].Text=''
     if ($ui.ContainsKey('ProgressPercentText')) { $ui['ProgressPercentText'].Text='0%' }
     $ui['MainProgress'].Value=0
@@ -4163,6 +4171,7 @@ function Switch-ToInstallPage {
     try { if ($global:LOG_PATH) { if (-not (Test-Path $global:CONFIG_DIR)) { New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null }; $utf8NoBom = New-Object System.Text.UTF8Encoding($false); [System.IO.File]::WriteAllText($global:LOG_PATH, "--- LibreSpot v$global:VERSION $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ---`n", $utf8NoBom) } } catch {}
     $ui['PageConfig'].Visibility='Collapsed'; $ui['PageInstall'].Visibility='Visible'
     $ui['LogOutput'].Text=''; $ui['StatusText'].Text='Checking prerequisites...'; $ui['StepIndicator'].Text='Ready when you are'
+    if ($ui.ContainsKey('LastLogEventText')) { $ui['LastLogEventText'].Text='Waiting for setup to start.' }
     $ui['InstallTitle'].Text = $Title; $ui['InstallContext'].Text = $Context
     $ui['ElapsedTime'].Text=''; if ($ui.ContainsKey('ProgressPercentText')) { $ui['ProgressPercentText'].Text='0%' }; $ui['MainProgress'].Value=0; $ui['MainProgress'].Foreground=$global:BrushGreen
     $ui['CloseBtn'].Visibility='Collapsed'; $ui['BtnBackToConfig'].Visibility='Collapsed'; $ui['BtnCopyLog'].Visibility='Collapsed'; $ui['BtnCopyLog'].Content='Copy full log'
@@ -4238,6 +4247,18 @@ $timer.Add_Tick({
 # =============================================================================
 function Update-UI { param([string]$Message,[string]$Level="INFO",[bool]$IsHeader=$false,[string]$StepText=$null)
     $ts = Get-Date -Format "HH:mm:ss"; $lt = "[$ts] [$Level] $Message`n"; $sh = $script:syncHash
+    $eventText = ''
+    try {
+        $eventText = Remove-ConsoleEscapeSequences -Text $Message
+        $eventText = [regex]::Replace($eventText, '[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '')
+        $eventText = [regex]::Replace($eventText, '\s+', ' ').Trim()
+        if (-not [string]::IsNullOrWhiteSpace($eventText) -and $eventText.Length -gt 180) {
+            $eventText = $eventText.Substring(0,177).TrimEnd() + '...'
+        }
+        if (-not [string]::IsNullOrWhiteSpace($eventText) -and $Level -in @('WARN','ERROR','SUCCESS')) {
+            $eventText = "${Level}: $eventText"
+        }
+    } catch {}
     try { if ($global:LOG_PATH) {
         if (-not (Test-Path $global:CONFIG_DIR)) { New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null }
         [System.IO.File]::AppendAllText($global:LOG_PATH, $lt)
@@ -4258,6 +4279,9 @@ function Update-UI { param([string]$Message,[string]$Level="INFO",[bool]$IsHeade
         }
         $sh.LogBlock.Text = $combinedText
         $sh.Scroller.ScrollToBottom()
+        if ($sh.ContainsKey('LastLogEventLabel') -and $sh.LastLogEventLabel -and -not [string]::IsNullOrWhiteSpace($eventText)) {
+            $sh.LastLogEventLabel.Text = "$ts  $eventText"
+        }
         if ($IsHeader -or $Level -eq 'STEP') { $sh.StatusLabel.Text = $Message }
         if ($StepText) { $sh.StepLabel.Text = $StepText }
     }) } } catch {}
@@ -5302,7 +5326,7 @@ function New-SyncHash {
     $wih = New-Object System.Windows.Interop.WindowInteropHelper($window)
     $script:activeSyncHash = [hashtable]::Synchronized(@{
         Dispatcher=$window.Dispatcher; LogBlock=$ui['LogOutput']; Scroller=$ui['LogScroller']
-        StatusLabel=$ui['StatusText']; StepLabel=$ui['StepIndicator']; ProgressBar=$ui['MainProgress']
+        StatusLabel=$ui['StatusText']; StepLabel=$ui['StepIndicator']; LastLogEventLabel=$ui['LastLogEventText']; ProgressBar=$ui['MainProgress']
         InstallTitle=$ui['InstallTitle']; InstallContext=$ui['InstallContext']
         CloseBtn=$ui['CloseBtn']; BackBtn=$ui['BtnBackToConfig']; CopyLogBtn=$ui['BtnCopyLog']; Timer=$timer
         Window=$window; WindowHandle=$wih.Handle
