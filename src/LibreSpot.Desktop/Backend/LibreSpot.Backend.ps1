@@ -1442,18 +1442,20 @@ function Invoke-SpicetifyCli {
     }
 
     $progressState = @{ LastPatchBucket = -1; LastUiPatchPercent = -1; LastStage = '' }
-    $outputLines = @()
+    $outputLines = [System.Collections.Generic.List[string]]::new()
+    $outputQueue = [System.Collections.Concurrent.ConcurrentQueue[string]]::new()
     $process = $null
-    $stdoutTask = $null
-    $stderrTask = $null
+    $stdoutHandler = $null
+    $stderrHandler = $null
 
     # Keep PowerShell from turning redirected native stderr into its own
     # terminating error. The .NET process object avoids PowerShell handle
-    # bugs seen with redirected files while still draining both streams.
+    # bugs seen with redirected files while still draining both streams live.
     $previousPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
         $argumentString = ConvertTo-NativeArgumentString -Arguments $Arguments
+        $displayArguments = ($Arguments | ForEach-Object { [string]$_ }) -join ' '
         $startInfo = New-Object System.Diagnostics.ProcessStartInfo
         $startInfo.FileName = $spicetifyExe
         $startInfo.Arguments = $argumentString
@@ -1465,67 +1467,98 @@ function Invoke-SpicetifyCli {
 
         $process = New-Object System.Diagnostics.Process
         $process.StartInfo = $startInfo
-        $null = $process.Start()
-        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
-        $stderrTask = $process.StandardError.ReadToEndAsync()
+        $stdoutHandler = [System.Diagnostics.DataReceivedEventHandler]{
+            param($sender, $eventArgs)
+            if ($null -ne $eventArgs.Data) { $outputQueue.Enqueue([string]$eventArgs.Data) }
+        }
+        $stderrHandler = [System.Diagnostics.DataReceivedEventHandler]{
+            param($sender, $eventArgs)
+            if ($null -ne $eventArgs.Data) { $outputQueue.Enqueue([string]$eventArgs.Data) }
+        }
+        $process.add_OutputDataReceived($stdoutHandler)
+        $process.add_ErrorDataReceived($stderrHandler)
 
+        $null = $process.Start()
+        Write-Log "  Spicetify command: spicetify $displayArguments"
+        Write-Log "  Spicetify PID: $($process.Id)"
+        $process.BeginOutputReadLine()
+        $process.BeginErrorReadLine()
+
+        $startedAt = Get-Date
+        $lastOutputAt = $startedAt
+        $lastHeartbeatAt = $startedAt
         $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
         $statusIntervalSeconds = if ($IdleTimeoutSeconds -gt 0) { [Math]::Min([Math]::Max($IdleTimeoutSeconds, 5), 15) } else { 15 }
-        $nextStatusAt = (Get-Date).AddSeconds($statusIntervalSeconds)
+        $heartbeatSeconds = [Math]::Min($statusIntervalSeconds, 10)
+
+        $drainOutput = {
+            $count = 0
+            [string]$queuedLine = $null
+            while ($outputQueue.TryDequeue([ref]$queuedLine)) {
+                if (-not [string]::IsNullOrWhiteSpace($queuedLine)) {
+                    $processed = Write-SpicetifyCliOutputLine -Line $queuedLine -ProgressState $progressState
+                    if ($processed) { [void]$outputLines.Add($processed) }
+                    $count++
+                }
+                $queuedLine = $null
+            }
+            return $count
+        }
+
+        $getTail = {
+            if ($outputLines.Count -le 0) { return '' }
+            $start = [Math]::Max(0, $outputLines.Count - 4)
+            $slice = for ($i = $start; $i -lt $outputLines.Count; $i++) { $outputLines[$i] }
+            return ' Output: ' + ((($slice | ForEach-Object { Remove-ConsoleEscapeSequences -Text $_ }) -replace '\s+', ' ') -join ' | ')
+        }
 
         while (-not $process.WaitForExit(250)) {
-            if ((Get-Date) -gt $deadline) {
+            $drained = & $drainOutput
+            if ($drained -gt 0) { $lastOutputAt = Get-Date }
+
+            $now = Get-Date
+            if ($now -gt $deadline) {
                 Write-Log "Spicetify command exceeded ${TimeoutSeconds}s timeout and will be terminated." -Level 'WARN'
                 try { $process.Kill() } catch {}
-                $tail = if ($outputLines.Count -gt 0) {
-                    $slice = if ($outputLines.Count -le 4) { $outputLines } else { $outputLines[-4..-1] }
-                    ' Output: ' + ((($slice | ForEach-Object { Remove-ConsoleEscapeSequences -Text $_ }) -replace '\s+', ' ') -join ' | ')
-                } else {
-                    ''
-                }
+                $tail = & $getTail
                 throw "$FailureMessage Timed out after $TimeoutSeconds seconds.$tail"
             }
 
-            if ((Get-Date) -ge $nextStatusAt) {
+            if ($IdleTimeoutSeconds -gt 0 -and $now -ge $lastOutputAt.AddSeconds($IdleTimeoutSeconds)) {
+                $idleSeconds = [int]($now - $lastOutputAt).TotalSeconds
+                Write-Log "  Spicetify has not emitted a new line for ${idleSeconds}s; still waiting until the ${TimeoutSeconds}s hard timeout." -Level 'WARN'
+                $lastOutputAt = $now
+            }
+
+            if ($now -ge $lastHeartbeatAt.AddSeconds($heartbeatSeconds)) {
+                $elapsedSeconds = [int]($now - $startedAt).TotalSeconds
+                $idleSeconds = [int]($now - $lastOutputAt).TotalSeconds
+                Write-Log "  Spicetify still running (${elapsedSeconds}s elapsed, ${idleSeconds}s since last output)."
                 Update-SpicetifyCliProgress -Line 'Patching files'
-                $nextStatusAt = (Get-Date).AddSeconds($statusIntervalSeconds)
+                $lastHeartbeatAt = $now
             }
         }
 
-        foreach ($task in @($stdoutTask, $stderrTask)) {
-            if ($task -and -not $task.IsCompleted) {
-                try { $null = $task.Wait(5000) } catch {}
-            }
-        }
-
-        foreach ($text in @(
-            $(if ($stdoutTask -and $stdoutTask.IsCompleted) { $stdoutTask.Result } else { '' }),
-            $(if ($stderrTask -and $stderrTask.IsCompleted) { $stderrTask.Result } else { '' })
-        )) {
-            if ([string]::IsNullOrEmpty($text)) { continue }
-            foreach ($line in ($text -split "\r\n|\n|\r")) {
-                if ([string]::IsNullOrWhiteSpace($line)) { continue }
-                $processed = Write-SpicetifyCliOutputLine -Line $line -ProgressState $progressState
-                if ($processed) { $outputLines += $processed }
-            }
-        }
+        Start-Sleep -Milliseconds 200
+        $null = & $drainOutput
 
         $exitCode = $null
         try { $exitCode = $process.ExitCode } catch { $exitCode = $null }
         if ($null -eq $exitCode) {
             Write-Log 'Spicetify process finished but ExitCode was unavailable; treating as success.' -Level 'WARN'
         } elseif ($exitCode -ne 0) {
-            $tail = if ($outputLines.Count -gt 0) {
-                $slice = if ($outputLines.Count -le 4) { $outputLines } else { $outputLines[-4..-1] }
-                ' Output: ' + ((($slice | ForEach-Object { Remove-ConsoleEscapeSequences -Text $_ }) -replace '\s+', ' ') -join ' | ')
-            } else {
-                ''
-            }
+            $tail = & $getTail
             throw "$FailureMessage Exit code: $exitCode.$tail"
+        } else {
+            Write-Log "  Spicetify exited with code 0."
         }
     } finally {
         $ErrorActionPreference = $previousPreference
-        if ($process) { try { $process.Dispose() } catch {} }
+        if ($process) {
+            if ($stdoutHandler) { try { $process.remove_OutputDataReceived($stdoutHandler) } catch {} }
+            if ($stderrHandler) { try { $process.remove_ErrorDataReceived($stderrHandler) } catch {} }
+            try { $process.Dispose() } catch {}
+        }
     }
 }
 
