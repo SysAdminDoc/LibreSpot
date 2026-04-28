@@ -215,6 +215,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CopyLogCommand = new RelayCommand(CopyLog, () => LogEntries.Count > 0);
         OpenLibreSpotFolderCommand = new RelayCommand(OpenLibreSpotFolder);
         RefreshSnapshotCommand = new RelayCommand(RefreshSnapshot);
+        EnableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: true), () => !IsRunning && !Snapshot.AutoReapplyTaskRegistered);
+        DisableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: false), () => !IsRunning && Snapshot.AutoReapplyTaskRegistered);
         ClearSettingsSearchCommand = new RelayCommand(() => SettingsSearchText = string.Empty, () => HasSettingsSearchText);
         RelaunchAsAdministratorCommand = new RelayCommand(PresentAdministratorPrompt, () => NeedsAdministratorRelaunch && !IsRunning);
         ConfirmPromptCommand = new RelayCommand(() => _ = ConfirmPromptAsync(), () => IsPromptVisible);
@@ -253,6 +255,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand CopyLogCommand { get; }
     public RelayCommand OpenLibreSpotFolderCommand { get; }
     public RelayCommand RefreshSnapshotCommand { get; }
+    public RelayCommand EnableAutoReapplyCommand { get; }
+    public RelayCommand DisableAutoReapplyCommand { get; }
     public RelayCommand ClearSettingsSearchCommand { get; }
     public RelayCommand RelaunchAsAdministratorCommand { get; }
     public RelayCommand ConfirmPromptCommand { get; }
@@ -262,7 +266,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public EnvironmentSnapshot Snapshot
     {
         get => _snapshot;
-        private set => SetProperty(ref _snapshot, value);
+        private set
+        {
+            if (SetProperty(ref _snapshot, value))
+            {
+                RaiseAutoReapplyStateChanged();
+            }
+        }
     }
 
     public bool IsAdministratorSession => _isAdministratorSession;
@@ -304,6 +314,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             : Snapshot.SavedConfigExists
             ? "Saved LibreSpot profile found"
             : "No saved profile yet";
+
+    public string AutoReapplyStatusTitle =>
+        Snapshot.AutoReapplyTaskRegistered
+            ? "Auto-reapply watcher active"
+            : "Auto-reapply watcher off";
+
+    public string AutoReapplyStatusDetail =>
+        Snapshot.AutoReapplyTaskRegistered
+            ? "LibreSpot checks after Windows sign-in and every 30 minutes, then reapplies only after Spotify updates while Spotify is closed."
+            : "Enable the watcher to restore your saved SpotX and Spicetify setup after Spotify updates itself.";
+
+    public string AutoReapplyTaskLine =>
+        Snapshot.AutoReapplyTaskRegistered
+            ? @"Task: LibreSpot\ReapplyWatcher registered"
+            : @"Task: LibreSpot\ReapplyWatcher not registered";
+
+    public string AutoReapplyLogLine =>
+        $"Log: {Path.Combine(_configurationService.ConfigDirectory, "watcher.log")}";
 
     public string WorkspaceRecommendationTitle =>
         HasConfigurationRecoveryNotice
@@ -762,6 +790,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ApplyCustomCommand.RaiseCanExecuteChanged();
                 CancelRunCommand.RaiseCanExecuteChanged();
                 DismissActivityCommand.RaiseCanExecuteChanged();
+                EnableAutoReapplyCommand.RaiseCanExecuteChanged();
+                DisableAutoReapplyCommand.RaiseCanExecuteChanged();
                 RelaunchAsAdministratorCommand.RaiseCanExecuteChanged();
                 ConfirmPromptCommand.RaiseCanExecuteChanged();
                 CancelPromptCommand.RaiseCanExecuteChanged();
@@ -1310,6 +1340,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(WorkspaceRecommendationBrief));
         RaisePropertyChanged(nameof(MaintenanceGuidanceTitle));
         RaisePropertyChanged(nameof(MaintenanceGuidanceDetail));
+        RaiseAutoReapplyStateChanged();
         RaisePropertyChanged(nameof(AccessPostureLabel));
         RaisePropertyChanged(nameof(RecommendedRunDuration));
         RaisePropertyChanged(nameof(RecommendedFollowUpText));
@@ -1317,6 +1348,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(CustomRunReadinessDetail));
         RaisePropertyChanged(nameof(CustomApplyCaption));
         RebuildSelectionInsights();
+    }
+
+    private void RaiseAutoReapplyStateChanged()
+    {
+        RaisePropertyChanged(nameof(AutoReapplyStatusTitle));
+        RaisePropertyChanged(nameof(AutoReapplyStatusDetail));
+        RaisePropertyChanged(nameof(AutoReapplyTaskLine));
+        RaisePropertyChanged(nameof(AutoReapplyLogLine));
+        EnableAutoReapplyCommand.RaiseCanExecuteChanged();
+        DisableAutoReapplyCommand.RaiseCanExecuteChanged();
     }
 
     private async Task ApplyRecommendedAsync()
@@ -1362,12 +1403,41 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         return Task.CompletedTask;
     }
 
+    private void PresentAutoReapplyPrompt(bool enable)
+    {
+        if (IsRunning)
+        {
+            return;
+        }
+
+        var action = enable ? "EnableAutoReapply" : "DisableAutoReapply";
+        var title = enable ? "Enable auto-reapply watcher" : "Disable auto-reapply watcher";
+        var status = enable ? "Registering the auto-reapply watcher" : "Removing the auto-reapply watcher";
+        var body = enable
+            ? "LibreSpot will create a per-user scheduled task that runs after Windows sign-in and every 30 minutes. The watcher records the first Spotify version it sees, then reapplies your saved SpotX and Spicetify setup only after a version change while Spotify is closed."
+            : "LibreSpot will remove the scheduled task and keep your saved profile untouched. Manual Reapply will still restore the same saved setup from Maintenance.";
+        var summaryBody = enable
+            ? "Creates LibreSpot\\ReapplyWatcher, writes watcher.log in the LibreSpot profile folder, and saves AutoReapply_Enabled in config.json."
+            : "Deletes LibreSpot\\ReapplyWatcher if present and saves AutoReapply_Enabled=false in config.json.";
+
+        ShowPrompt(
+            title,
+            body,
+            enable ? "Enable watcher" : "Disable watcher",
+            "Cancel",
+            false,
+            () => StartBackendRunAsync(action, null, title, status, 2, requiresAdministrator: false),
+            "What this does",
+            summaryBody);
+    }
+
     private async Task StartBackendRunAsync(
         string action,
         InstallConfiguration? configuration,
         string title,
         string status,
-        int targetWorkspaceIndex)
+        int targetWorkspaceIndex,
+        bool requiresAdministrator = true)
     {
         // Critical: flip IsRunning synchronously *before* any await so the
         // Apply button's CanExecute immediately returns false. Without this
@@ -1377,7 +1447,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (!IsAdministratorSession)
+        if (requiresAdministrator && !IsAdministratorSession)
         {
             PresentAdministratorPrompt();
             return;

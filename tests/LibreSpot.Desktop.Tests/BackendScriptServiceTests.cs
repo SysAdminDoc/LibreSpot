@@ -32,6 +32,22 @@ public sealed class BackendScriptServiceTests
         Assert.False(Directory.Exists(runtimeDirectory));
     }
 
+    [Theory]
+    [InlineData("EnableAutoReapply")]
+    [InlineData("DisableAutoReapply")]
+    [InlineData("WatchAutoReapply")]
+    public async Task RunAsync_AcceptsAutoReapplyActionsBeforeConfigPathValidation(string action)
+    {
+        var runtimeDirectory = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
+        var service = new BackendScriptService(runtimeDirectory);
+
+        var result = await service.RunAsync(action, " ", _ => { });
+
+        Assert.False(result.Success);
+        Assert.Contains("configuration path", result.ErrorMessage);
+        Assert.False(Directory.Exists(runtimeDirectory));
+    }
+
     [Fact]
     public async Task RunAsync_HonorsPreCanceledTokenBeforePreparingRuntime()
     {

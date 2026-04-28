@@ -146,6 +146,7 @@ public sealed class EnvironmentSnapshot
     public bool SpicetifyInstalled { get; init; }
     public bool SavedConfigExists { get; init; }
     public bool ConfigFolderExists { get; init; }
+    public bool AutoReapplyTaskRegistered { get; init; }
 
     public string StatusTitle =>
         SpotifyInstalled && SpicetifyInstalled
