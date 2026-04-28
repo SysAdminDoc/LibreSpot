@@ -1759,9 +1759,9 @@ $xaml = @"
                             </Grid></Border>
                             <Grid Grid.Row="3" Margin="0,18,0,0">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Style="{StaticResource SurfaceCard}" Padding="18,14">
+                                <Border Grid.Column="0" Name="SelectionSummaryCard" Style="{StaticResource SurfaceCard}" Padding="18,14">
                                     <StackPanel>
-                                        <TextBlock Text="Install snapshot" Foreground="#FFA7B4AD" FontSize="11" FontWeight="SemiBold"/>
+                                        <TextBlock Name="SelectionSummaryTitle" Text="Install snapshot" Foreground="#FFA7B4AD" FontSize="11" FontWeight="SemiBold"/>
                                         <TextBlock Name="SelectionSummary" Foreground="#FFEAF2ED" FontSize="12.75" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,0"/>
                                         <Grid Margin="0,10,0,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -1891,7 +1891,7 @@ try {
 
 $ui = @{}
 @('LinkSpotX','LinkSpicetify','LinkGitHub','UpdateBanner','LinkUpdate','MinimizeBtn','CloseTitleBtn','PageConfig','PageInstall',
-  'ModeHeadline','ModeSummaryText','SelectionSummary','SelectionStateBadge','SelectionStateBadgeText','SelectionStateDetail','InstallTitle','InstallContext',
+  'ModeHeadline','ModeSummaryText','SelectionSummaryCard','SelectionSummaryTitle','SelectionSummary','SelectionStateBadge','SelectionStateBadgeText','SelectionStateDetail','InstallTitle','InstallContext',
   'ModeEasy','ModeCustom','ModeMaint','PanelEasy','PanelCustom','PanelMaint','BtnInstall','BtnResetCustomDefaults','LyricsThemePanel',
   'CustomSnapshotPlanValue','CustomSnapshotThemeValue','CustomSnapshotExtensionsValue','CustomSnapshotMemoryValue',
   'ChkNewTheme','ChkPodcastsOff','ChkAdSectionsOff','ChkBlockUpdate','ChkPremium','ChkLyrics','CmbLyricsTheme',
@@ -2483,8 +2483,11 @@ function Update-ModePresentation {
     $ui['PanelMaint'].Visibility = if ($isMaint) { 'Visible' } else { 'Collapsed' }
     $ui['BtnInstall'].Visibility = if ($isMaint) { 'Collapsed' } else { 'Visible' }
     if ($ui.ContainsKey('FooterActionPanel')) { $ui['FooterActionPanel'].Visibility = if ($isMaint) { 'Collapsed' } else { 'Visible' } }
+    $selectionSummarySpan = if ($isMaint) { 3 } else { 1 }
+    if ($ui.ContainsKey('SelectionSummaryCard')) { [System.Windows.Controls.Grid]::SetColumnSpan($ui['SelectionSummaryCard'], $selectionSummarySpan) }
 
     if ($isEasy) {
+        if ($ui.ContainsKey('SelectionSummaryTitle')) { $ui['SelectionSummaryTitle'].Text = 'Install snapshot' }
         $ui['ModeHeadline'].Text = 'Recommended path for a first install'
         $ui['ModeSummaryText'].Text = 'LibreSpot handles cleanup, verified downloads, Spotify patching, Marketplace, and a reliable default extension set with recovery-friendly defaults.'
         $ui['SelectionSummary'].Text = 'Recommended setup: clean install, Marketplace included, three starter extensions, and Spotify opens when everything is ready.'
@@ -2495,6 +2498,7 @@ function Update-ModePresentation {
     }
 
     if ($isCustom) {
+        if ($ui.ContainsKey('SelectionSummaryTitle')) { $ui['SelectionSummaryTitle'].Text = 'Custom snapshot' }
         $theme = Get-ComboSelectionText -Name 'CmbTheme' -Fallback '(None - Marketplace Only)'
         $scheme = Get-ComboSelectionText -Name 'CmbScheme' -Fallback 'Default'
         $themeLabel = if ($theme -eq '(None - Marketplace Only)') { 'Marketplace only' } elseif ($scheme -and $scheme -ne 'Default') { "$theme / $scheme" } else { $theme }
@@ -2562,11 +2566,12 @@ function Update-ModePresentation {
     }
 
     $ui['ModeHeadline'].Text = 'Recover, reapply, or clean up'
+    if ($ui.ContainsKey('SelectionSummaryTitle')) { $ui['SelectionSummaryTitle'].Text = 'Maintenance snapshot' }
     Update-MaintenanceStatus
     $componentLabel = if ($script:MaintenanceComponentCount -eq 1) { '1 core component detected' } else { "$($script:MaintenanceComponentCount) core components detected" }
     $backupLabel = if ($script:MaintenanceBackupCount -eq 0) { 'no backups saved yet' } elseif ($script:MaintenanceBackupCount -eq 1) { '1 backup ready' } else { "$($script:MaintenanceBackupCount) backups ready" }
     $ui['ModeSummaryText'].Text = 'Inspect what is installed, restore backups, reapply pinned patches after Spotify updates, or roll the setup back cleanly.'
-    $ui['SelectionSummary'].Text = "Maintenance snapshot: $componentLabel, $backupLabel, and destructive actions stay behind confirmation."
+    $ui['SelectionSummary'].Text = "Current state: $componentLabel, $backupLabel, and destructive actions stay behind confirmation."
 }
 
 function Clear-CompletedRunspaceResources {
@@ -3676,7 +3681,7 @@ function Update-MaintenanceStatus {
     if ($ui.ContainsKey('ModeMaint') -and [bool]$ui['ModeMaint'].IsChecked) {
         $componentLabel = if ($script:MaintenanceComponentCount -eq 1) { '1 of 5 core components detected' } else { "$($script:MaintenanceComponentCount) of 5 core components detected" }
         $backupLabel = if ($script:MaintenanceBackupCount -eq 0) { 'no backups saved yet' } elseif ($script:MaintenanceBackupCount -eq 1) { '1 backup ready' } else { "$($script:MaintenanceBackupCount) backups ready" }
-        $ui['SelectionSummary'].Text = "Maintenance snapshot: $componentLabel, $backupLabel, and destructive actions stay behind confirmation."
+        $ui['SelectionSummary'].Text = "Current state: $componentLabel, $backupLabel, and destructive actions stay behind confirmation."
 
         $selectionTone = if (-not $sp -and -not $si) {
             'muted'
