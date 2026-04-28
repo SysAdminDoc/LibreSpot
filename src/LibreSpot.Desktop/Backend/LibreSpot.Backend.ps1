@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset')]
+    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')]
     [string]$Action = 'Install',
     [string]$ConfigPath = "$env:APPDATA\LibreSpot\config.json"
 )
@@ -47,8 +47,17 @@ $global:TEMP_DIR             = $env:TEMP
 $global:SPOTIFY_EXE_PATH     = "$env:APPDATA\Spotify\Spotify.exe"
 $global:SPICETIFY_DIR        = "$env:LOCALAPPDATA\spicetify"
 $global:SPICETIFY_CONFIG_DIR = "$env:APPDATA\spicetify"
-$global:CONFIG_DIR           = "$env:APPDATA\LibreSpot"
-$global:LOG_PATH             = "$env:APPDATA\LibreSpot\install.log"
+$resolvedConfigDirectory = $null
+try { $resolvedConfigDirectory = Split-Path -Path $ConfigPath -Parent } catch {}
+if ([string]::IsNullOrWhiteSpace($resolvedConfigDirectory)) {
+    $resolvedConfigDirectory = "$env:APPDATA\LibreSpot"
+}
+$global:CONFIG_DIR           = $resolvedConfigDirectory
+$global:CONFIG_PATH          = $ConfigPath
+$global:LOG_PATH             = Join-Path $global:CONFIG_DIR 'install.log'
+$global:WATCHER_STATE_PATH   = Join-Path $global:CONFIG_DIR 'watcher-state.json'
+$global:WATCHER_LOG_PATH     = Join-Path $global:CONFIG_DIR 'watcher.log'
+$global:WATCHER_TASK_NAME    = 'LibreSpot\ReapplyWatcher'
 
 $global:ThemeSchemes = [ordered]@{
     '(None - Marketplace Only)' = @('Default')
@@ -441,6 +450,310 @@ function Ensure-Admin {
     )
     if (-not $isAdmin) {
         throw 'LibreSpot needs administrator permission to modify Spotify. Launch the desktop app as administrator and try again.'
+    }
+}
+
+function Write-WatcherLog {
+    param([string]$Message, [string]$Level = 'INFO')
+    try {
+        Ensure-LogDirectory
+        $line = "[{0}] [{1}] {2}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Level, $Message
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::AppendAllText($global:WATCHER_LOG_PATH, $line + [Environment]::NewLine, $utf8NoBom)
+        if ((Test-Path -LiteralPath $global:WATCHER_LOG_PATH) -and (Get-Item -LiteralPath $global:WATCHER_LOG_PATH).Length -gt 1048576) {
+            $keep = Get-Content -LiteralPath $global:WATCHER_LOG_PATH -Tail 500
+            [System.IO.File]::WriteAllLines($global:WATCHER_LOG_PATH, $keep, $utf8NoBom)
+        }
+    } catch {}
+}
+
+function Get-WatcherState {
+    if (-not (Test-Path -LiteralPath $global:WATCHER_STATE_PATH)) {
+        return @{ LastKnownVersion = $null; LastRunAt = $null; LastOutcome = $null }
+    }
+
+    try {
+        $raw = Get-Content -LiteralPath $global:WATCHER_STATE_PATH -Raw -ErrorAction Stop | ConvertFrom-Json
+        return @{
+            LastKnownVersion = [string]$raw.LastKnownVersion
+            LastRunAt        = [string]$raw.LastRunAt
+            LastOutcome      = [string]$raw.LastOutcome
+        }
+    } catch {
+        return @{ LastKnownVersion = $null; LastRunAt = $null; LastOutcome = $null }
+    }
+}
+
+function Set-WatcherState {
+    param([hashtable]$State)
+    try {
+        Ensure-LogDirectory
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        $json = $State | ConvertTo-Json -Compress
+        [System.IO.File]::WriteAllText($global:WATCHER_STATE_PATH, $json, $utf8NoBom)
+    } catch {
+        Write-WatcherLog "State save failed: $($_.Exception.Message)" -Level 'WARN'
+    }
+}
+
+function Get-InstalledSpotifyVersion {
+    if (-not (Test-Path -LiteralPath $global:SPOTIFY_EXE_PATH)) { return $null }
+    try { return (Get-Item -LiteralPath $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion }
+    catch { return $null }
+}
+
+function Test-SpotifyRunning {
+    try { return [bool](Get-Process -Name 'Spotify' -ErrorAction SilentlyContinue) }
+    catch { return $false }
+}
+
+function Get-WatcherLaunchCommand {
+    $entry = [string]$PSCommandPath
+    if ([string]::IsNullOrWhiteSpace($entry)) {
+        try { $entry = [string]$MyInvocation.MyCommand.Path } catch {}
+    }
+    if ([string]::IsNullOrWhiteSpace($entry) -or -not (Test-Path -LiteralPath $entry -PathType Leaf)) {
+        return $null
+    }
+
+    $ps = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    if (-not (Test-Path -LiteralPath $ps -PathType Leaf)) { $ps = 'powershell.exe' }
+
+    return @{
+        Command   = $ps
+        Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$entry`" -Action WatchAutoReapply -ConfigPath `"$global:CONFIG_PATH`""
+        Entry     = $entry
+    }
+}
+
+function Test-AutoReapplyTaskRegistered {
+    try {
+        $out = & schtasks.exe /Query /TN $global:WATCHER_TASK_NAME 2>$null
+        return ($LASTEXITCODE -eq 0) -and ($out -and $out.Length -gt 0)
+    } catch { return $false }
+}
+
+function Register-AutoReapplyTask {
+    $launch = Get-WatcherLaunchCommand
+    if (-not $launch) {
+        Write-WatcherLog 'Register: no usable backend script path. Watcher not registered.' -Level 'ERROR'
+        return $false
+    }
+
+    try { Unregister-AutoReapplyTask | Out-Null } catch {}
+
+    $escapedCommand = [System.Security.SecurityElement]::Escape($launch.Command)
+    $escapedArguments = [System.Security.SecurityElement]::Escape($launch.Arguments)
+    $userId = $null
+    try {
+        $currentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+        $userId = $currentIdentity.User.Value
+    } catch {}
+    if ([string]::IsNullOrWhiteSpace($userId)) {
+        $userId = if ($env:USERDOMAIN -and $env:USERDOMAIN -ne $env:COMPUTERNAME) {
+            "$env:USERDOMAIN\$env:USERNAME"
+        } else { $env:USERNAME }
+    }
+    $userId = [System.Security.SecurityElement]::Escape($userId)
+
+    $xml = @"
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Author>LibreSpot</Author>
+    <Description>LibreSpot reapplies SpotX automatically when Spotify updates itself.</Description>
+    <URI>\LibreSpot\ReapplyWatcher</URI>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+      <Delay>PT2M</Delay>
+      <Repetition>
+        <Interval>PT30M</Interval>
+        <Duration>PT0S</Duration>
+        <StopAtDurationEnd>false</StopAtDurationEnd>
+      </Repetition>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>$userId</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT30M</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>$escapedCommand</Command>
+      <Arguments>$escapedArguments</Arguments>
+    </Exec>
+  </Actions>
+</Task>
+"@
+
+    $xmlPath = Join-Path $global:CONFIG_DIR "watcher-task.xml"
+    try {
+        Ensure-LogDirectory
+        [System.IO.File]::WriteAllText($xmlPath, $xml, [System.Text.Encoding]::Unicode)
+        $output = & schtasks.exe /Create /TN $global:WATCHER_TASK_NAME /XML $xmlPath /F 2>&1
+        $ok = ($LASTEXITCODE -eq 0)
+        if ($ok) {
+            Write-WatcherLog "Register: scheduled task created for $($launch.Entry)"
+        } else {
+            Write-WatcherLog "Register failed (exit $LASTEXITCODE): $($output -join ' ')" -Level 'ERROR'
+        }
+        return $ok
+    } catch {
+        Write-WatcherLog "Register exception: $($_.Exception.Message)" -Level 'ERROR'
+        return $false
+    } finally {
+        try { if (Test-Path -LiteralPath $xmlPath) { Remove-Item -LiteralPath $xmlPath -Force -ErrorAction SilentlyContinue } } catch {}
+    }
+}
+
+function Unregister-AutoReapplyTask {
+    try {
+        $null = & schtasks.exe /Delete /TN $global:WATCHER_TASK_NAME /F 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-WatcherLog 'Unregister: scheduled task removed'
+            return $true
+        }
+        return $false
+    } catch { return $false }
+}
+
+function Save-LibreSpotConfig {
+    param([hashtable]$Config)
+
+    $tempPath = $null
+    $backupPath = $null
+    try {
+        Ensure-LogDirectory
+        $tempPath = Join-Path $global:CONFIG_DIR ("config.{0}.tmp" -f [Guid]::NewGuid().ToString('N'))
+        $backupPath = Join-Path $global:CONFIG_DIR ("config.{0}.bak" -f [Guid]::NewGuid().ToString('N'))
+        $normalizedConfig = Normalize-LibreSpotConfig -Config $Config
+        $json = [ordered]@{}
+        foreach ($key in $normalizedConfig.Keys) { $json[$key] = $normalizedConfig[$key] }
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($tempPath, ($json | ConvertTo-Json -Depth 4), $utf8)
+
+        if (Test-Path -LiteralPath $global:CONFIG_PATH) {
+            try {
+                [System.IO.File]::Replace($tempPath, $global:CONFIG_PATH, $backupPath, $true)
+                Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
+            } catch {
+                Remove-Item -LiteralPath $global:CONFIG_PATH -Force -ErrorAction Stop
+                [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)
+            }
+        } else {
+            [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)
+        }
+        return $true
+    } catch {
+        Write-Log "Config save failed: $($_.Exception.Message)" -Level 'WARN'
+        if ($tempPath) { Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue }
+        if ($backupPath) { Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue }
+        return $false
+    }
+}
+
+function Set-AutoReapplyConfigPreference {
+    param([bool]$Enabled)
+
+    $config = Load-LibreSpotConfig
+    if (-not $config) {
+        $config = Normalize-LibreSpotConfig -Config @{}
+    }
+    $config['AutoReapply_Enabled'] = $Enabled
+    if (-not (Save-LibreSpotConfig -Config $config)) {
+        throw 'LibreSpot could not save the auto-reapply preference.'
+    }
+}
+
+function Invoke-HeadlessReapply {
+    param([hashtable]$Config)
+    if (-not $Config) { throw 'Invoke-HeadlessReapply: missing config.' }
+
+    $destination = New-LibreSpotTempFile -Name 'spotx_watcher.ps1'
+    $watcher = Start-SpotifyWindowWatcher
+    try {
+        Write-WatcherLog 'Downloading pinned SpotX for watcher reapply'
+        Download-FileSafe -Uri $global:URL_SPOTX -OutFile $destination
+        Confirm-FileHash -Path $destination -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label 'SpotX run.ps1'
+        $params = Build-SpotXParams -Config $Config
+        Write-WatcherLog "Invoking SpotX with: $params"
+        Invoke-ExternalScriptIsolated -FilePath $destination -Arguments $params
+        Reapply-SavedSpicetifySetup -Config $Config
+        Write-WatcherLog 'Auto-reapply completed successfully.' -Level 'SUCCESS'
+    } finally {
+        Stop-SpotifyWindowWatcher -Watcher $watcher
+        Remove-Item -LiteralPath $destination -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Invoke-AutoReapplyWatcher {
+    Write-WatcherLog '--- Watcher tick ---'
+
+    $saved = $null
+    try { $saved = Load-LibreSpotConfig } catch { Write-WatcherLog "Config load failed: $($_.Exception.Message)" -Level 'ERROR' }
+    if (-not $saved -or -not (ConvertTo-ConfigBoolean -Value $saved['AutoReapply_Enabled'] -Default $false)) {
+        Write-WatcherLog 'Auto-reapply preference is off; skipping.'
+        return 0
+    }
+
+    $currentVersion = Get-InstalledSpotifyVersion
+    if (-not $currentVersion) {
+        Write-WatcherLog 'Spotify not installed; skipping.'
+        return 0
+    }
+
+    $state = Get-WatcherState
+    if (-not $state.LastKnownVersion) {
+        Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'Initialized' }
+        Write-WatcherLog "Initialized last-known version to $currentVersion; no reapply on first tick."
+        return 0
+    }
+
+    if ($currentVersion -eq $state.LastKnownVersion) {
+        Write-WatcherLog "Spotify still at $currentVersion; nothing to do."
+        Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'UpToDate' }
+        return 0
+    }
+
+    Write-WatcherLog "Spotify version bump: $($state.LastKnownVersion) -> $currentVersion" -Level 'STEP'
+    if (Test-SpotifyRunning) {
+        Write-WatcherLog 'Spotify is running; deferring reapply to the next tick.'
+        Set-WatcherState -State @{ LastKnownVersion = $state.LastKnownVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'DeferredSpotifyRunning' }
+        return 0
+    }
+
+    try {
+        Invoke-HeadlessReapply -Config $saved
+        Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'Reapplied' }
+        return 0
+    } catch {
+        Write-WatcherLog "Reapply failed: $($_.Exception.Message)" -Level 'ERROR'
+        Set-WatcherState -State @{ LastKnownVersion = $state.LastKnownVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = "Error: $($_.Exception.Message)" }
+        return 1
     }
 }
 
@@ -1734,6 +2047,26 @@ function Invoke-LibreSpotMaintenance {
             $null = Remove-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'Process'
             $null = Remove-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'User'
         }
+        'EnableAutoReapply' {
+            Update-BackendState -Progress 25 -Status 'Registering watcher' -Step 'Creating scheduled task'
+            if (-not (Register-AutoReapplyTask)) {
+                throw "LibreSpot could not register the auto-reapply watcher. See $global:WATCHER_LOG_PATH."
+            }
+            Update-BackendState -Progress 70 -Status 'Saving watcher preference' -Step 'Updating config.json'
+            Set-AutoReapplyConfigPreference -Enabled $true
+            Write-Log 'Auto-reapply watcher enabled.' -Level 'SUCCESS'
+        }
+        'DisableAutoReapply' {
+            Update-BackendState -Progress 25 -Status 'Removing watcher' -Step 'Deleting scheduled task'
+            if (Unregister-AutoReapplyTask) {
+                Write-Log 'Auto-reapply scheduled task removed.'
+            } else {
+                Write-Log 'Auto-reapply scheduled task was not registered.'
+            }
+            Update-BackendState -Progress 70 -Status 'Saving watcher preference' -Step 'Updating config.json'
+            Set-AutoReapplyConfigPreference -Enabled $false
+            Write-Log 'Auto-reapply watcher disabled.' -Level 'SUCCESS'
+        }
     }
 
     Update-BackendState -Progress 100 -Status 'Maintenance complete' -Step 'LibreSpot is ready'
@@ -1741,9 +2074,17 @@ function Invoke-LibreSpotMaintenance {
 }
 
 try {
-    Ensure-Admin
     Ensure-LogDirectory
+    if ($Action -eq 'WatchAutoReapply') {
+        $code = Invoke-AutoReapplyWatcher
+        exit $code
+    }
+
     Write-EventLine -Kind 'action' -Payload $Action
+    if ($Action -notin @('EnableAutoReapply', 'DisableAutoReapply')) {
+        Ensure-Admin
+    }
+
     if ($Action -eq 'Install') {
         Invoke-LibreSpotInstall
     } else {

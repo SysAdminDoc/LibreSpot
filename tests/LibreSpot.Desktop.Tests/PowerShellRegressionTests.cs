@@ -271,6 +271,31 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("DeferredSpotifyRunning", fn.Groups["body"].Value);
     }
 
+    [Theory]
+    [InlineData("EnableAutoReapply")]
+    [InlineData("DisableAutoReapply")]
+    [InlineData("WatchAutoReapply")]
+    public void DesktopBackend_ExposesAutoReapplyActions(string action)
+    {
+        var backend = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+        Assert.Contains($"'{action}'", backend);
+    }
+
+    [Fact]
+    public void DesktopBackend_CanRegisterAndRunAutoReapplyWatcher()
+    {
+        var backend = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+
+        Assert.Contains("function Register-AutoReapplyTask", backend);
+        Assert.Contains("function Unregister-AutoReapplyTask", backend);
+        Assert.Contains("function Invoke-AutoReapplyWatcher", backend);
+        Assert.Contains("function Invoke-HeadlessReapply", backend);
+        Assert.Contains("-Action WatchAutoReapply", backend);
+        Assert.Contains("<Arguments>$escapedArguments</Arguments>", backend);
+        Assert.Contains("System.Text.Encoding]::Unicode", backend);
+        Assert.Contains("AutoReapply_Enabled", backend);
+    }
+
     [Fact]
     public void AutoReapply_IsPartOfBooleanNormalization()
     {

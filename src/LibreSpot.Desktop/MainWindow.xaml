@@ -1409,6 +1409,94 @@
                           Margin="0,18,0,18" />
 
                   <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,14">
+                    <Grid>
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                      </Grid.RowDefinitions>
+
+                      <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                          <TextBlock Text="Auto-reapply after Spotify updates"
+                                     Style="{StaticResource SectionTitleTextStyle}"
+                                     FontSize="18" />
+                          <TextBlock Text="{Binding AutoReapplyStatusDetail}"
+                                     Style="{StaticResource CaptionTextStyle}"
+                                     Foreground="{StaticResource TextBrush}"
+                                     Margin="0,8,0,0"
+                                     MaxWidth="760"
+                                     TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Border Grid.Column="1"
+                                Style="{StaticResource MicroBadgeStyle}"
+                                Margin="18,0,0,0">
+                          <TextBlock Text="{Binding AutoReapplyStatusTitle}"
+                                     Style="{StaticResource MicroBadgeTextStyle}" />
+                        </Border>
+                      </Grid>
+
+                      <Grid Grid.Row="1" Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="4" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0"
+                                CornerRadius="2">
+                          <Border.Style>
+                            <Style TargetType="Border">
+                              <Setter Property="Background" Value="{StaticResource WarningBrush}" />
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding Snapshot.AutoReapplyTaskRegistered}" Value="True">
+                                  <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </Border.Style>
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                          <TextBlock Text="{Binding AutoReapplyTaskLine}"
+                                     Foreground="{StaticResource TextBrush}"
+                                     FontWeight="SemiBold"
+                                     TextWrapping="Wrap" />
+                          <TextBlock Text="{Binding AutoReapplyLogLine}"
+                                     Style="{StaticResource CaptionTextStyle}"
+                                     Foreground="{StaticResource SubtleTextBrush}"
+                                     Margin="0,4,0,0"
+                                     TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Grid>
+
+                      <WrapPanel Grid.Row="2"
+                                 Margin="0,18,0,0"
+                                 HorizontalAlignment="Right">
+                        <Button Content="Enable watcher"
+                                MinWidth="136"
+                                Height="38"
+                                Padding="16,0"
+                                Margin="0,0,10,0"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                AutomationProperties.Name="Enable auto-reapply watcher"
+                                AutomationProperties.HelpText="Registers the scheduled task that reapplies LibreSpot after Spotify updates."
+                                Command="{Binding EnableAutoReapplyCommand}" />
+                        <Button Content="Disable watcher"
+                                MinWidth="136"
+                                Height="38"
+                                Padding="16,0"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                AutomationProperties.Name="Disable auto-reapply watcher"
+                                AutomationProperties.HelpText="Removes the scheduled auto-reapply watcher task."
+                                Command="{Binding DisableAutoReapplyCommand}" />
+                      </WrapPanel>
+                    </Grid>
+                  </Border>
+
+                  <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,14">
                     <StackPanel>
                       <TextBlock Text="Refresh and recover"
                                  Style="{StaticResource SectionTitleTextStyle}"
