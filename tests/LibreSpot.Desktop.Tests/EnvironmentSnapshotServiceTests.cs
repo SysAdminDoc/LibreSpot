@@ -35,4 +35,28 @@ public sealed class EnvironmentSnapshotServiceTests
             }
         }
     }
+
+    [Fact]
+    public void GetSnapshot_ReportsAutoReapplyTaskProbeState()
+    {
+        var configDirectory = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(configDirectory, "config.json");
+
+        try
+        {
+            Directory.CreateDirectory(configDirectory);
+            var service = new EnvironmentSnapshotService(autoReapplyTaskProbe: () => true);
+
+            var snapshot = service.GetSnapshot(configPath);
+
+            Assert.True(snapshot.AutoReapplyTaskRegistered);
+        }
+        finally
+        {
+            if (Directory.Exists(configDirectory))
+            {
+                Directory.Delete(configDirectory, recursive: true);
+            }
+        }
+    }
 }
