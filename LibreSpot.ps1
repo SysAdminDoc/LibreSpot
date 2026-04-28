@@ -18,6 +18,8 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
 
 Add-Type @'
 using System;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 public class Win32 {
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
@@ -44,6 +46,34 @@ public class Win32 {
         fw.uCount = 5;
         fw.dwTimeout = 0;
         FlashWindowEx(ref fw);
+    }
+}
+public sealed class LibreSpotNativeOutputCollector {
+    private readonly ConcurrentQueue<string> lines = new ConcurrentQueue<string>();
+    private readonly DataReceivedEventHandler handler;
+
+    public LibreSpotNativeOutputCollector() {
+        handler = OnDataReceived;
+    }
+
+    public void Attach(Process process) {
+        process.OutputDataReceived += handler;
+        process.ErrorDataReceived += handler;
+    }
+
+    public void Detach(Process process) {
+        process.OutputDataReceived -= handler;
+        process.ErrorDataReceived -= handler;
+    }
+
+    public bool TryDequeue(out string line) {
+        return lines.TryDequeue(out line);
+    }
+
+    private void OnDataReceived(object sender, DataReceivedEventArgs eventArgs) {
+        if (eventArgs != null && eventArgs.Data != null) {
+            lines.Enqueue(eventArgs.Data);
+        }
     }
 }
 '@ -ErrorAction SilentlyContinue
@@ -2969,14 +2999,13 @@ function Invoke-SpicetifyCli {
 
     $progressState = @{ LastPatchBucket = -1; LastUiPatchPercent = -1; LastStage = '' }
     $outputLines = [System.Collections.Generic.List[string]]::new()
-    $outputQueue = [System.Collections.Concurrent.ConcurrentQueue[string]]::new()
     $process = $null
-    $stdoutHandler = $null
-    $stderrHandler = $null
+    $collector = $null
 
     # Keep PowerShell from turning redirected native stderr into its own
     # terminating error. The .NET process object avoids PowerShell handle
-    # bugs seen with redirected files while still draining both streams live.
+    # bugs seen with redirected files while a C# collector drains both streams
+    # without running PowerShell scriptblocks on process output threads.
     $previousPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
@@ -2993,16 +3022,8 @@ function Invoke-SpicetifyCli {
 
         $process = New-Object System.Diagnostics.Process
         $process.StartInfo = $startInfo
-        $stdoutHandler = [System.Diagnostics.DataReceivedEventHandler]{
-            param($sender, $eventArgs)
-            if ($null -ne $eventArgs.Data) { $outputQueue.Enqueue([string]$eventArgs.Data) }
-        }
-        $stderrHandler = [System.Diagnostics.DataReceivedEventHandler]{
-            param($sender, $eventArgs)
-            if ($null -ne $eventArgs.Data) { $outputQueue.Enqueue([string]$eventArgs.Data) }
-        }
-        $process.add_OutputDataReceived($stdoutHandler)
-        $process.add_ErrorDataReceived($stderrHandler)
+        $collector = New-Object LibreSpotNativeOutputCollector
+        $collector.Attach($process)
 
         $null = $process.Start()
         Write-Log "  Spicetify command: spicetify $displayArguments"
@@ -3020,7 +3041,7 @@ function Invoke-SpicetifyCli {
         $drainOutput = {
             $count = 0
             [string]$queuedLine = $null
-            while ($outputQueue.TryDequeue([ref]$queuedLine)) {
+            while ($collector.TryDequeue([ref]$queuedLine)) {
                 if (-not [string]::IsNullOrWhiteSpace($queuedLine)) {
                     $processed = Write-SpicetifyCliOutputLine -Line $queuedLine -ProgressState $progressState
                     if ($processed) { [void]$outputLines.Add($processed) }
@@ -3081,8 +3102,9 @@ function Invoke-SpicetifyCli {
     } finally {
         $ErrorActionPreference = $previousPreference
         if ($process) {
-            if ($stdoutHandler) { try { $process.remove_OutputDataReceived($stdoutHandler) } catch {} }
-            if ($stderrHandler) { try { $process.remove_ErrorDataReceived($stderrHandler) } catch {} }
+            if ($collector) { try { $collector.Detach($process) } catch {} }
+            try { $process.CancelOutputRead() } catch {}
+            try { $process.CancelErrorRead() } catch {}
             try { $process.Dispose() } catch {}
         }
     }
