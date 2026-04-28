@@ -1210,12 +1210,47 @@ $xaml = @"
                 <ControlTemplate.Triggers>
                     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="border" Property="Background" Value="#FF141A17"/><Setter TargetName="border" Property="BorderBrush" Value="#FF1DB954"/><Setter TargetName="accent" Property="Opacity" Value="1"/></Trigger>
                     <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="border" Property="BorderBrush" Value="#FF1ED760"/></Trigger>
+                    <MultiTrigger>
+                        <MultiTrigger.Conditions>
+                            <Condition Property="Tag" Value="Warning"/>
+                            <Condition Property="IsMouseOver" Value="True"/>
+                        </MultiTrigger.Conditions>
+                        <Setter TargetName="border" Property="Background" Value="#FF211B12"/>
+                        <Setter TargetName="border" Property="BorderBrush" Value="#FFF5A524"/>
+                        <Setter TargetName="accent" Property="Opacity" Value="1"/>
+                    </MultiTrigger>
+                    <MultiTrigger>
+                        <MultiTrigger.Conditions>
+                            <Condition Property="Tag" Value="Warning"/>
+                            <Condition Property="IsKeyboardFocused" Value="True"/>
+                        </MultiTrigger.Conditions>
+                        <Setter TargetName="border" Property="BorderBrush" Value="#FFF5A524"/>
+                    </MultiTrigger>
+                    <MultiTrigger>
+                        <MultiTrigger.Conditions>
+                            <Condition Property="Tag" Value="Danger"/>
+                            <Condition Property="IsMouseOver" Value="True"/>
+                        </MultiTrigger.Conditions>
+                        <Setter TargetName="border" Property="Background" Value="#FF2A1115"/>
+                        <Setter TargetName="border" Property="BorderBrush" Value="#FFE5484D"/>
+                        <Setter TargetName="accent" Property="Opacity" Value="1"/>
+                    </MultiTrigger>
+                    <MultiTrigger>
+                        <MultiTrigger.Conditions>
+                            <Condition Property="Tag" Value="Danger"/>
+                            <Condition Property="IsKeyboardFocused" Value="True"/>
+                        </MultiTrigger.Conditions>
+                        <Setter TargetName="border" Property="BorderBrush" Value="#FFE5484D"/>
+                    </MultiTrigger>
                     <Trigger Property="IsEnabled" Value="False"><Setter TargetName="border" Property="Opacity" Value="0.36"/></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
+        <Style x:Key="WarningMaintButton" TargetType="Button" BasedOn="{StaticResource MaintButton}">
+            <Setter Property="Tag" Value="Warning"/><Setter Property="Background" Value="#FF1B1711"/><Setter Property="BorderBrush" Value="#FFF5A524"/><Setter Property="Foreground" Value="#FFFFE8B0"/>
+        </Style>
         <Style x:Key="DangerMaintButton" TargetType="Button" BasedOn="{StaticResource MaintButton}">
-            <Setter Property="Background" Value="#FF150d11"/><Setter Property="BorderBrush" Value="#FFE5484D"/><Setter Property="Foreground" Value="#FFFFF1F2"/>
+            <Setter Property="Tag" Value="Danger"/><Setter Property="Background" Value="#FF150D11"/><Setter Property="BorderBrush" Value="#FFE5484D"/><Setter Property="Foreground" Value="#FFFFF1F2"/>
         </Style>
         <Style x:Key="SurfaceCard" TargetType="Border">
             <Setter Property="Background" Value="#FF141A17"/><Setter Property="BorderBrush" Value="#FF222D28"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="8"/><Setter Property="Padding" Value="20"/>
@@ -1750,7 +1785,7 @@ $xaml = @"
                                                 <TextBlock Text="Restore or remove modifications" Foreground="#FFEAF2ED" FontSize="15" FontWeight="SemiBold"/>
                                                 <TextBlock Text="Use the lighter recovery option first. Full Reset is intentionally destructive and best when you want to start clean." Foreground="#FFA7B4AD" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,6"/>
                                                 <Button Name="BtnSpicetifyRestore" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Restore vanilla Spotify" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Remove Spicetify themes and extensions while keeping SpotX patching in place." Foreground="#FFA7B4AD" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
-                                                <Button Name="BtnUninstallSpicetify" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Uninstall Spicetify only" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Remove the Spicetify CLI and configuration but leave Spotify and SpotX in place." Foreground="#FFA7B4AD" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
+                                                <Button Name="BtnUninstallSpicetify" Style="{StaticResource WarningMaintButton}"><StackPanel><TextBlock Text="Uninstall Spicetify" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Restore vanilla first, then remove the CLI, config, and PATH entry while leaving Spotify and SpotX in place." Foreground="#FFE8BE75" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Button Name="BtnFullReset" Style="{StaticResource DangerMaintButton}"><StackPanel><TextBlock Text="Full Reset" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Restore vanilla Spotify, remove SpotX and Spicetify, uninstall Spotify, and clean leftover files." Foreground="#FFFDA4AF" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                             </StackPanel>
                                         </Border>
