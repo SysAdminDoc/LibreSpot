@@ -469,8 +469,10 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("$previousPreference = $ErrorActionPreference", body);
         Assert.Contains("$ErrorActionPreference = 'Continue'", body);
         Assert.Contains("System.Diagnostics.ProcessStartInfo", body);
-        Assert.Contains("System.Collections.Concurrent.ConcurrentQueue[string]", body);
-        Assert.Contains("System.Diagnostics.DataReceivedEventHandler", body);
+        Assert.Contains("LibreSpotNativeOutputCollector", body);
+        Assert.Contains("$collector.Attach($process)", body);
+        Assert.Contains("$collector.TryDequeue", body);
+        Assert.Contains("$collector.Detach($process)", body);
         Assert.Contains("BeginOutputReadLine", body);
         Assert.Contains("BeginErrorReadLine", body);
         Assert.Contains("WaitForExit(250)", body);
@@ -490,10 +492,25 @@ public sealed class PowerShellRegressionTests
         Assert.DoesNotContain("& $spicetifyExe @Arguments", body);
         Assert.DoesNotContain("Start-Process", body);
         Assert.DoesNotContain("$process.HasExited", body);
+        Assert.DoesNotContain("System.Diagnostics.DataReceivedEventHandler", body);
+        Assert.DoesNotContain("add_OutputDataReceived", body);
         Assert.DoesNotContain("Read-ProcessOutputDelta", body);
         Assert.DoesNotContain("ReadToEndAsync", body);
         Assert.DoesNotContain("Write-Log \"  $line\"", body);
         Assert.DoesNotMatch(@"(?m)^\s*return\s+\$output\b", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SpicetifyOutputCollector_AvoidsPowerShellCallbacksOnNativeOutputThreads(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("public sealed class LibreSpotNativeOutputCollector", script);
+        Assert.Contains("ConcurrentQueue<string>", script);
+        Assert.Contains("DataReceivedEventHandler handler", script);
+        Assert.DoesNotContain("[System.Diagnostics.DataReceivedEventHandler]{", script);
     }
 
     [Theory]
