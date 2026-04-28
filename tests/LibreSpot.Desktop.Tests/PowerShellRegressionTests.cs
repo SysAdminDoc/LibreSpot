@@ -367,6 +367,46 @@ public sealed class PowerShellRegressionTests
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SpicetifyCliRunner_CapturesNativeStderrBeforeCheckingExitCode(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Invoke-SpicetifyCli\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Invoke-SpicetifyCli function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("$previousPreference = $ErrorActionPreference", body);
+        Assert.Contains("$ErrorActionPreference = 'Continue'", body);
+        Assert.Contains("2>&1", body);
+        Assert.Contains("$LASTEXITCODE", body);
+        Assert.Contains("[System.Management.Automation.ErrorRecord]", body);
+        Assert.Contains("Output:", body);
+        Assert.DoesNotMatch(@"(?m)^\s*return\s+\$output\b", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SpicetifyApplyRollback_ReportsApplyAndRollbackErrorsSeparately(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Module-ApplySpicetify\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Module-ApplySpicetify function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("Attempting rollback to keep Spotify usable", body);
+        Assert.Contains("Apply error: $applyError", body);
+        Assert.Contains("Rollback error: $restoreError", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
     public void LaunchAfter_HandsSpotifyToExplorerInsteadOfElevatedProcess(string relativePath)
     {
         var script = ReadFile(relativePath.Split('/'));
