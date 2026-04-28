@@ -1359,12 +1359,9 @@ $xaml = @"
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                                     <TextBlock Name="UpdateBanner" VerticalAlignment="Center" Margin="0,0,18,0" Visibility="Collapsed" ToolTip="A newer LibreSpot release is available on GitHub."><Hyperlink Name="LinkUpdate" Foreground="#FF1ED760" TextDecorations="None" FontSize="11" FontWeight="SemiBold" Cursor="Hand">Update available &#x2192;</Hyperlink></TextBlock>
-                                    <Border Background="#FF101613" BorderBrush="#FF222D28" BorderThickness="1" CornerRadius="999" Padding="10,5" Margin="0,0,10,0">
-                                        <TextBlock><Hyperlink Name="LinkSpotX" NavigateUri="https://github.com/SpotX-Official/SpotX" Foreground="#FFA7B4AD" TextDecorations="None" FontSize="10.75" Cursor="Hand">SpotX</Hyperlink></TextBlock>
-                                    </Border>
-                                    <Border Background="#FF101613" BorderBrush="#FF222D28" BorderThickness="1" CornerRadius="999" Padding="10,5" Margin="0,0,12,0">
-                                        <TextBlock><Hyperlink Name="LinkSpicetify" NavigateUri="https://github.com/spicetify" Foreground="#FFA7B4AD" TextDecorations="None" FontSize="10.75" Cursor="Hand">Spicetify</Hyperlink></TextBlock>
-                                    </Border>
+                                    <TextBlock VerticalAlignment="Center" Margin="0,0,14,0"><Hyperlink Name="LinkSpotX" NavigateUri="https://github.com/SpotX-Official/SpotX" Foreground="#FFA7B4AD" TextDecorations="None" FontSize="10.75" Cursor="Hand">SpotX</Hyperlink></TextBlock>
+                                    <Border Width="1" Height="14" Background="#FF2A3630" Margin="0,0,14,0"/>
+                                    <TextBlock VerticalAlignment="Center" Margin="0,0,14,0"><Hyperlink Name="LinkSpicetify" NavigateUri="https://github.com/spicetify" Foreground="#FFA7B4AD" TextDecorations="None" FontSize="10.75" Cursor="Hand">Spicetify</Hyperlink></TextBlock>
                                     <Button Name="LinkGitHub" Width="36" Height="34" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="View on GitHub" VerticalAlignment="Center" Margin="0,0,8,0">
                                     <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="Transparent" CornerRadius="8"><Path x:Name="ico" Fill="#FFA7B4AD" Data="M8,0 C3.58,0 0,3.58 0,8 c0,3.54 2.29,6.53 5.47,7.59 c.4,.07 .55,-.17 .55,-.38 c0,-.19 -.01,-.82 -.01,-1.49 c-2.01,.37 -2.53,-.49 -2.69,-.94 c-.09,-.23 -.48,-.94 -.82,-1.13 c-.28,-.15 -.68,-.52 -.01,-.53 c.63,-.01 1.08,.58 1.23,.82 c.72,1.21 1.87,.87 2.33,.66 c.07,-.52 .28,-.87 .51,-1.07 c-1.78,-.2 -3.64,-.89 -3.64,-3.95 c0,-.87 .31,-1.59 .82,-2.15 c-.08,-.2 -.36,-1.02 .08,-2.12 c0,0 .67,-.21 2.2,.82 c.64,-.18 1.32,-.27 2,-.27 c.68,0 1.36,.09 2,.27 c1.53,-1.04 2.2,-.82 2.2,-.82 c.44,1.1 .16,1.92 .08,2.12 c.51,.56 .82,1.27 .82,2.15 c0,3.07 -1.87,3.75 -3.65,3.95 c.29,.25 .54,.73 .54,1.48 c0,1.07 -.01,1.93 -.01,2.2 c0,.21 .15,.46 .55,.38 A8.013,8.013,0,0,0,16,8 c0,-4.42 -3.58,-8 -8,-8z" Stretch="Uniform" Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                                         <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#FF1A221E"/><Setter TargetName="ico" Property="Fill" Value="#FFEAF2ED"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
@@ -1390,10 +1387,8 @@ $xaml = @"
                                     <TextBlock Name="ModeSummaryText" Text="LibreSpot handles cleanup, verified downloads, Spotify patching, Marketplace, and a reliable default extension set." Style="{StaticResource SectionLead}" Margin="0,10,0,0" MaxWidth="690"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" HorizontalAlignment="Right" Margin="24,4,0,0" MaxWidth="280">
-                                    <Border Background="#FF132419" BorderBrush="#FF315F42" BorderThickness="1" CornerRadius="999" Padding="12,6" HorizontalAlignment="Right">
-                                        <TextBlock Text="Pinned downloads • recovery aware" Foreground="#FFB6F4C8" FontSize="10.5" FontWeight="SemiBold"/>
-                                    </Border>
-                                    <TextBlock Text="Built to keep Spotify predictable after updates." Foreground="#FF7B8780" FontSize="11" Margin="0,8,0,0" HorizontalAlignment="Right" TextAlignment="Right" TextWrapping="Wrap"/>
+                                    <TextBlock Text="Verified downloads" Foreground="#FF1ED760" FontSize="10.75" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="Recovery-aware setup for predictable Spotify updates." Foreground="#FF7B8780" FontSize="11" Margin="0,6,0,0" HorizontalAlignment="Right" TextAlignment="Right" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Grid>
                             <Border Grid.Row="1" Background="#FF101613" BorderBrush="#FF222D28" BorderThickness="1" CornerRadius="10" Padding="8" Margin="0,0,0,14">
@@ -1414,10 +1409,10 @@ $xaml = @"
                                             <TextBlock Text="A clean, reliable Spotify setup in one pass" Foreground="#FFEAF2ED" FontSize="22" FontWeight="SemiBold"/>
                                             <TextBlock Text="Easy Install applies the stable default stack: Spotify cleanup, SpotX patching, Spicetify, Marketplace, and a curated extension set with recovery-focused defaults." Foreground="#FFA7B4AD" FontSize="13" TextWrapping="Wrap" Margin="0,10,0,0"/>
                                             <WrapPanel Margin="0,18,0,0">
-                                                <Border Background="#FF132419" BorderBrush="#FF315F42" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,10,10"><TextBlock Text="Clean install" Foreground="#FFB6F4C8" FontSize="10.5" FontWeight="SemiBold"/></Border>
-                                                <Border Background="#FF132419" BorderBrush="#FF315F42" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,10,10"><TextBlock Text="Marketplace included" Foreground="#FFB6F4C8" FontSize="10.5" FontWeight="SemiBold"/></Border>
-                                                <Border Background="#FF171E24" BorderBrush="#FF31465A" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,10,10"><TextBlock Text="3 default extensions" Foreground="#FF8CC7FF" FontSize="10.5" FontWeight="SemiBold"/></Border>
-                                                <Border Background="#FF1B1711" BorderBrush="#FF4A3820" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,0,10"><TextBlock Text="Launch when finished" Foreground="#FFFFDFA3" FontSize="10.5" FontWeight="SemiBold"/></Border>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,18,10"><Rectangle Width="3" Height="14" Fill="#FF1ED760" RadiusX="1.5" RadiusY="1.5" VerticalAlignment="Center"/><TextBlock Text="Clean install" Foreground="#FFB6F4C8" FontSize="10.75" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,18,10"><Rectangle Width="3" Height="14" Fill="#FF1ED760" RadiusX="1.5" RadiusY="1.5" VerticalAlignment="Center"/><TextBlock Text="Marketplace included" Foreground="#FFB6F4C8" FontSize="10.75" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,18,10"><Rectangle Width="3" Height="14" Fill="#FF8CC7FF" RadiusX="1.5" RadiusY="1.5" VerticalAlignment="Center"/><TextBlock Text="3 default extensions" Foreground="#FF8CC7FF" FontSize="10.75" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Rectangle Width="3" Height="14" Fill="#FFFFDFA3" RadiusX="1.5" RadiusY="1.5" VerticalAlignment="Center"/><TextBlock Text="Launch when finished" Foreground="#FFFFDFA3" FontSize="10.75" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
                                             </WrapPanel>
                                         </StackPanel>
                                         <Border Grid.Column="2" Style="{StaticResource SurfaceCard}">
@@ -1718,10 +1713,10 @@ $xaml = @"
                                                 <TextBlock Name="MaintenanceOverviewTitle" Text="Scanning the current setup..." Foreground="#FFEAF2ED" FontSize="15.5" FontWeight="SemiBold"/>
                                                 <TextBlock Name="MaintenanceOverviewText" Text="LibreSpot is checking which parts of the Spotify stack are installed so recovery actions can stay predictable." Foreground="#FFA7B4AD" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap" MaxWidth="620"/>
                                             </StackPanel>
-                                            <WrapPanel Grid.Column="1" VerticalAlignment="Top" Margin="20,0,0,0">
-                                                <Border Background="#FF132419" BorderBrush="#FF315F42" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,10,10"><TextBlock Text="Safer recovery" Foreground="#FFB6F4C8" FontSize="10.5" FontWeight="SemiBold"/></Border>
-                                                <Border Background="#FF171E24" BorderBrush="#FF31465A" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,0,10"><TextBlock Text="Pinned versions" Foreground="#FF8CC7FF" FontSize="10.5" FontWeight="SemiBold"/></Border>
-                                            </WrapPanel>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="20,0,0,0" HorizontalAlignment="Right">
+                                                <TextBlock Text="Safer recovery" Foreground="#FFB6F4C8" FontSize="10.75" FontWeight="SemiBold" TextAlignment="Right"/>
+                                                <TextBlock Text="Pinned versions" Foreground="#FF8CC7FF" FontSize="10.75" FontWeight="SemiBold" Margin="0,5,0,0" TextAlignment="Right"/>
+                                            </StackPanel>
                                         </Grid>
                                     </Border>
 
@@ -1800,7 +1795,7 @@ $xaml = @"
                                         <TextBlock Name="SelectionSummary" Foreground="#FFEAF2ED" FontSize="12.75" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,0"/>
                                         <Grid Margin="0,10,0,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <Border Name="SelectionStateBadge" Background="#FF171E24" BorderBrush="#FF31465A" BorderThickness="1" CornerRadius="999" Padding="10,4" VerticalAlignment="Top">
+                                            <Border Name="SelectionStateBadge" Background="#FF171E24" BorderBrush="#FF31465A" BorderThickness="1" CornerRadius="6" Padding="9,4" VerticalAlignment="Top">
                                                 <TextBlock Name="SelectionStateBadgeText" Text="Ready" Foreground="#FF8CC7FF" FontSize="10.5" FontWeight="SemiBold"/>
                                             </Border>
                                             <TextBlock Grid.Column="2" Name="SelectionStateDetail" Foreground="#FF7B8780" FontSize="11.25" TextWrapping="Wrap" VerticalAlignment="Center"/>
@@ -1827,10 +1822,10 @@ $xaml = @"
                                             <TextBlock Name="InstallTitle" Text="Preparing setup" Foreground="#FFEAF2ED" FontSize="20" FontWeight="SemiBold"/>
                                             <TextBlock Name="InstallContext" Text="LibreSpot keeps the interface responsive while it downloads, patches, and applies your selection." Foreground="#FFA7B4AD" FontSize="12.5" TextWrapping="Wrap" Margin="0,8,0,0" MaxWidth="760"/>
                                         </StackPanel>
-                                        <WrapPanel Grid.Column="1" VerticalAlignment="Top" Margin="20,0,0,0">
-                                            <Border Background="#FF132419" BorderBrush="#FF315F42" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,10,10"><TextBlock Text="Live log" Foreground="#FFB6F4C8" FontSize="10.5" FontWeight="SemiBold"/></Border>
-                                            <Border Background="#FF171E24" BorderBrush="#FF31465A" BorderThickness="1" CornerRadius="999" Padding="12,6" Margin="0,0,0,10"><TextBlock Text="Safe to minimize" Foreground="#FF8CC7FF" FontSize="10.5" FontWeight="SemiBold"/></Border>
-                                        </WrapPanel>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="20,0,0,0" HorizontalAlignment="Right">
+                                            <TextBlock Text="Live log" Foreground="#FFB6F4C8" FontSize="10.75" FontWeight="SemiBold" TextAlignment="Right"/>
+                                            <TextBlock Text="Safe to minimize" Foreground="#FF8CC7FF" FontSize="10.75" FontWeight="SemiBold" Margin="0,5,0,0" TextAlignment="Right"/>
+                                        </StackPanel>
                                     </Grid>
                                     <Grid Grid.Row="1" Margin="0,16,0,0">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -1874,7 +1869,7 @@ $xaml = @"
                                 <ProgressBar Name="MainProgress" Height="8" Margin="0,12,0,0" Template="{StaticResource RoundProgress}" Background="#FF222D28" Foreground="#FF1ED760" Minimum="0" Maximum="100" Value="0"/>
                                 <Grid Margin="0,10,0,0">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                    <Border Background="#FF171E24" BorderBrush="#FF31465A" BorderThickness="1" CornerRadius="999" Padding="9,3" VerticalAlignment="Top">
+                                    <Border Background="#FF171E24" BorderBrush="#FF31465A" BorderThickness="1" CornerRadius="6" Padding="9,3" VerticalAlignment="Top">
                                         <TextBlock Text="Last event" Foreground="#FF8CC7FF" FontSize="10.5" FontWeight="SemiBold"/>
                                     </Border>
                                     <TextBlock Name="LastLogEventText" Grid.Column="1" Text="Waiting for setup to start." Foreground="#FFA7B4AD" FontSize="11.5" TextWrapping="Wrap" Margin="10,2,0,0"/>
