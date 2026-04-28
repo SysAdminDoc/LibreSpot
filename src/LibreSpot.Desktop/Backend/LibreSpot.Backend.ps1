@@ -1385,7 +1385,8 @@ function Invoke-SpicetifyCli {
     param(
         [string[]]$Arguments,
         [string]$FailureMessage = 'Spicetify command failed.',
-        [int]$TimeoutSeconds = 900
+        [int]$TimeoutSeconds = 900,
+        [int]$IdleTimeoutSeconds = 90
     )
     $spicetifyExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
     if (-not (Test-Path -LiteralPath $spicetifyExe)) {
@@ -1407,10 +1408,13 @@ function Invoke-SpicetifyCli {
         $argumentString = ConvertTo-NativeArgumentString -Arguments $Arguments
         $process = Start-Process -FilePath $spicetifyExe -ArgumentList $argumentString -PassThru -Wait:$false -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -WindowStyle Hidden -ErrorAction Stop
         $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+        $lastOutputAt = Get-Date
 
         while (-not $process.HasExited) {
+            $previousStdoutOffset = $stdoutState.Offset
             $stdoutRead = Read-ProcessOutputDelta -Path $stdoutPath -Offset $stdoutState.Offset -Remainder $stdoutState.Remainder
             $stdoutState = @{ Offset = $stdoutRead.Offset; Remainder = $stdoutRead.Remainder }
+            if ($stdoutRead.Offset -gt $previousStdoutOffset) { $lastOutputAt = Get-Date }
             foreach ($line in @($stdoutRead.Lines)) {
                 if ([string]::IsNullOrWhiteSpace($line)) { continue }
                 $outputLines += $line
@@ -1418,8 +1422,10 @@ function Invoke-SpicetifyCli {
                 Update-SpicetifyCliProgress -Line $line
             }
 
+            $previousStderrOffset = $stderrState.Offset
             $stderrRead = Read-ProcessOutputDelta -Path $stderrPath -Offset $stderrState.Offset -Remainder $stderrState.Remainder
             $stderrState = @{ Offset = $stderrRead.Offset; Remainder = $stderrRead.Remainder }
+            if ($stderrRead.Offset -gt $previousStderrOffset) { $lastOutputAt = Get-Date }
             foreach ($line in @($stderrRead.Lines)) {
                 if ([string]::IsNullOrWhiteSpace($line)) { continue }
                 $outputLines += $line
@@ -1427,7 +1433,8 @@ function Invoke-SpicetifyCli {
                 Update-SpicetifyCliProgress -Line $line
             }
 
-            if ((Get-Date) -gt $deadline) {
+            $now = Get-Date
+            if ($now -gt $deadline) {
                 Write-Log "Spicetify command exceeded ${TimeoutSeconds}s timeout and will be terminated." -Level 'WARN'
                 try { $process.Kill() } catch {}
                 try { $process.WaitForExit(5000) } catch {}
@@ -1438,6 +1445,18 @@ function Invoke-SpicetifyCli {
                     ''
                 }
                 throw "$FailureMessage Timed out after $TimeoutSeconds seconds.$tail"
+            }
+            if ($IdleTimeoutSeconds -gt 0 -and $now -gt $lastOutputAt.AddSeconds($IdleTimeoutSeconds)) {
+                Write-Log "Spicetify produced no output for ${IdleTimeoutSeconds}s and will be terminated." -Level 'WARN'
+                try { $process.Kill() } catch {}
+                try { $process.WaitForExit(5000) } catch {}
+                $tail = if ($outputLines.Count -gt 0) {
+                    $slice = if ($outputLines.Count -le 4) { $outputLines } else { $outputLines[-4..-1] }
+                    ' Output: ' + ((($slice | ForEach-Object { Remove-ConsoleEscapeSequences -Text $_ }) -replace '\s+', ' ') -join ' | ')
+                } else {
+                    ''
+                }
+                throw "$FailureMessage No output from Spicetify for $IdleTimeoutSeconds seconds.$tail"
             }
 
             Start-Sleep -Milliseconds 200
