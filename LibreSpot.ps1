@@ -2237,6 +2237,24 @@ function Set-InstallStageLabels {
     }
 }
 
+function Set-WindowChromeHints {
+    param(
+        [ValidateSet('Idle','Running','Complete')]
+        [string]$State = 'Idle'
+    )
+
+    if ($ui.ContainsKey('MinimizeBtn')) {
+        $ui['MinimizeBtn'].ToolTip = if ($State -eq 'Running') { 'Minimize LibreSpot while the current action continues.' } else { 'Minimize' }
+    }
+    if ($ui.ContainsKey('CloseTitleBtn')) {
+        $ui['CloseTitleBtn'].ToolTip = switch ($State) {
+            'Running'  { 'Setup is running. Closing will ask before interrupting it.' }
+            'Complete' { 'Close LibreSpot' }
+            default    { 'Close' }
+        }
+    }
+}
+
 function Update-InstallStageVisual {
     if (-not $ui.ContainsKey('PageInstall')) { return }
     if ($ui['PageInstall'].Visibility -ne 'Visible') {
@@ -2728,10 +2746,12 @@ $ui['BtnBackToConfig'].Add_Click({
     $ui['CloseBtn'].Visibility='Collapsed'
     $ui['BtnBackToConfig'].Visibility='Collapsed'
     $window.Topmost=$false
+    Set-WindowChromeHints -State 'Idle'
     Update-InstallStageVisual
     Update-MaintenanceStatus
     Update-ModePresentation
 })
+Set-WindowChromeHints -State 'Idle'
 $window.Add_Closing({
     # Do NOT name the first parameter `$sender` — it shadows PowerShell's
     # automatic `$Sender` variable and PSScriptAnalyzer flags it as a latent
@@ -4161,6 +4181,7 @@ function Reset-UiAfterLaunchFailure {
     $ui['BtnCopyLog'].Tag=$script:copyLogDefaultText
     $ui['BtnCopyLog'].Content=$script:copyLogDefaultText
     $window.Topmost=$false
+    Set-WindowChromeHints -State 'Idle'
     Update-ModePresentation
     Show-ThemedDialog -Title $Title -Message $Message -Icon 'Error' -PrimaryText 'Close' | Out-Null
 }
@@ -4183,6 +4204,7 @@ function Switch-ToInstallPage {
     $ui['BtnCopyLog'].Tag=$script:copyLogDefaultText
     $ui['CloseBtn'].Visibility='Collapsed'; $ui['BtnBackToConfig'].Visibility='Collapsed'; $ui['BtnCopyLog'].Visibility='Visible'; $ui['BtnCopyLog'].Content=$script:copyLogDefaultText
     $window.Topmost = $false
+    Set-WindowChromeHints -State 'Running'
     Set-InstallStageLabels -Prepare $PrepareLabel -Run $RunLabel -Verify $VerifyLabel -Complete $CompleteLabel
     Update-InstallStageVisual
 }
@@ -5170,11 +5192,11 @@ $installBlock = { param($sh,$cfg)
         } else {
             'LibreSpot finished applying your selected setup. You can close the window or copy the detailed log for reference.'
         }
-        $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text="Setup complete"; $sh.StepLabel.Text=$finalStep; $sh.InstallTitle.Text='Setup complete'; $sh.InstallContext.Text=$installDoneContext; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
+        $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text="Setup complete"; $sh.StepLabel.Text=$finalStep; $sh.InstallTitle.Text='Setup complete'; $sh.InstallContext.Text=$installDoneContext; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     } catch { $sh.IsRunning=$false; $em=$_.Exception.Message; $st=$_.ScriptStackTrace
         try { Write-Log "[FATAL] $em`n$st" -Level 'ERROR' } catch {}
         $sh.Dispatcher.Invoke([Action]{ if($sh.Timer){$sh.Timer.Stop()}; $sh.LogBlock.Text+="`n[FATAL] $em`n$st"; $sh.StatusLabel.Text="Setup stopped"
-            $sh.StepLabel.Text="Needs attention"; $sh.InstallTitle.Text='Setup needs attention'; $sh.InstallContext.Text='LibreSpot stopped before the install finished. Review the log below, then go back to setup or copy the details if you want to troubleshoot.'; $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
+            $sh.StepLabel.Text="Needs attention"; $sh.InstallTitle.Text='Setup needs attention'; $sh.InstallContext.Text='LibreSpot stopped before the install finished. Review the log below, then go back to setup or copy the details if you want to troubleshoot.'; $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     }
 }
 
@@ -5279,11 +5301,11 @@ $maintBlock = { param($sh,$action)
             default { 'LibreSpot finished the requested maintenance action.' }
         }
         $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text=$doneStatus; $sh.StepLabel.Text=$doneStep; $sh.InstallTitle.Text=$doneStatus; $sh.InstallContext.Text=$doneContext
-            $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
+            $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     } catch { $sh.IsRunning=$false; $em=$_.Exception.Message; $st=$_.ScriptStackTrace
         try { Write-Log "[FATAL] $em`n$st" -Level 'ERROR' } catch {}
         $sh.Dispatcher.Invoke([Action]{ if($sh.Timer){$sh.Timer.Stop()}; $sh.LogBlock.Text+="`n[FATAL] $em`n$st"; $sh.StatusLabel.Text="Maintenance stopped"; $sh.StepLabel.Text="Needs attention"; $sh.InstallTitle.Text='Maintenance needs attention'; $sh.InstallContext.Text='LibreSpot stopped before the maintenance action finished. Review the live log below, then go back when you are ready to try again.'
-            $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
+            $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     }
 }
 
@@ -5335,7 +5357,7 @@ function New-SyncHash {
         Dispatcher=$window.Dispatcher; LogBlock=$ui['LogOutput']; Scroller=$ui['LogScroller']
         StatusLabel=$ui['StatusText']; StepLabel=$ui['StepIndicator']; LastLogEventLabel=$ui['LastLogEventText']; ProgressBar=$ui['MainProgress']
         InstallTitle=$ui['InstallTitle']; InstallContext=$ui['InstallContext']
-        CloseBtn=$ui['CloseBtn']; BackBtn=$ui['BtnBackToConfig']; CopyLogBtn=$ui['BtnCopyLog']; Timer=$timer
+        CloseBtn=$ui['CloseBtn']; BackBtn=$ui['BtnBackToConfig']; CopyLogBtn=$ui['BtnCopyLog']; TitleCloseBtn=$ui['CloseTitleBtn']; MinimizeBtn=$ui['MinimizeBtn']; Timer=$timer
         Window=$window; WindowHandle=$wih.Handle
         IsRunning=$true; AllowSpotify=$false; Errors=[System.Collections.Generic.List[string]]::new()
     })
