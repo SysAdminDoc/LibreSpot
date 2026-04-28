@@ -2814,13 +2814,44 @@ function Invoke-SpicetifyCli {
     if (-not (Test-Path -LiteralPath $spicetifyExe)) {
         throw 'Spicetify CLI is not installed.'
     }
-    $output = & $spicetifyExe @Arguments 2>&1
-    $exitCode = $LASTEXITCODE
-    if ($output) { Write-Log "  $($output -join ' ')" }
-    if ($exitCode -ne 0) {
-        throw "$FailureMessage Exit code: $exitCode."
+
+    # Keep native stderr from becoming a terminating PowerShell error before
+    # we can log the output and read the real process exit code.
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $output = $null
+    $exitCode = 0
+    try {
+        $output = & $spicetifyExe @Arguments 2>&1
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousPreference
     }
-    return $output
+
+    $outputLines = @()
+    if ($output) {
+        foreach ($item in @($output)) {
+            $line = if ($item -is [System.Management.Automation.ErrorRecord]) {
+                [string]$item.Exception.Message
+            } else {
+                [string]$item
+            }
+            if (-not [string]::IsNullOrWhiteSpace($line)) {
+                $outputLines += $line
+                Write-Log "  $line"
+            }
+        }
+    }
+
+    if ($exitCode -ne 0) {
+        $tail = if ($outputLines.Count -gt 0) {
+            $slice = if ($outputLines.Count -le 4) { $outputLines } else { $outputLines[-4..-1] }
+            ' Output: ' + (($slice -replace '\s+', ' ') -join ' | ')
+        } else {
+            ''
+        }
+        throw "$FailureMessage Exit code: $exitCode.$tail"
+    }
 }
 
 function Sync-SpicetifyListSetting {
@@ -4682,7 +4713,7 @@ function Module-ApplySpicetify { param($Config)
         Write-Log "Spicetify backup apply failed: $applyError" -Level 'WARN'
     }
 
-    Write-Log "Apply failed. Rolling back to prevent a blank screen..." -Level 'WARN'
+    Write-Log "Attempting rollback to keep Spotify usable..." -Level 'WARN'
     $restoreError = $null
     try {
         Invoke-SpicetifyCli -Arguments @('restore', '--bypass-admin') -FailureMessage 'Could not restore Spotify after the failed apply.'
@@ -4691,10 +4722,10 @@ function Module-ApplySpicetify { param($Config)
     }
 
     if ([string]::IsNullOrWhiteSpace($restoreError)) {
-        throw "Spicetify apply failed, but LibreSpot restored Spotify to vanilla to keep the app usable. $applyError"
+        throw "Spicetify apply failed but LibreSpot restored Spotify to a usable state. Apply error: $applyError"
     }
 
-    throw "Spicetify apply failed and the automatic restore also failed. Spotify may show a blank screen until you run Maintenance > Full Reset. Apply error: $applyError Restore error: $restoreError"
+    throw "Spicetify apply failed and rollback also failed. Apply error: $applyError | Rollback error: $restoreError"
 }
 
 function Reapply-SavedSpicetifySetup { param($Config)
