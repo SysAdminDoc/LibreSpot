@@ -367,7 +367,7 @@ public sealed class PowerShellRegressionTests
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
-    public void SpicetifyCliRunner_CapturesNativeStderrBeforeCheckingExitCode(string relativePath)
+    public void SpicetifyCliRunner_StreamsNativeOutputAndTimesOut(string relativePath)
     {
         var script = ReadFile(relativePath.Split('/'));
         var fnBody = Regex.Match(
@@ -379,11 +379,49 @@ public sealed class PowerShellRegressionTests
         var body = fnBody.Groups["body"].Value;
         Assert.Contains("$previousPreference = $ErrorActionPreference", body);
         Assert.Contains("$ErrorActionPreference = 'Continue'", body);
-        Assert.Contains("2>&1", body);
-        Assert.Contains("$LASTEXITCODE", body);
-        Assert.Contains("[System.Management.Automation.ErrorRecord]", body);
+        Assert.Contains("Start-Process", body);
+        Assert.Contains("RedirectStandardOutput", body);
+        Assert.Contains("RedirectStandardError", body);
+        Assert.Contains("Read-ProcessOutputDelta", body);
+        Assert.Contains("TimeoutSeconds", body);
         Assert.Contains("Output:", body);
+        Assert.Contains("Update-SpicetifyCliProgress", body);
+        Assert.DoesNotContain("& $spicetifyExe @Arguments", body);
         Assert.DoesNotMatch(@"(?m)^\s*return\s+\$output\b", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SpicetifyProgressParser_RecognizesPatchCounts(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Update-SpicetifyCliProgress\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Update-SpicetifyCliProgress function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("Patching files", body);
+        Assert.Contains("$done", body);
+        Assert.Contains("$total", body);
+        Assert.Contains("$percent", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void ProcessOutputReader_FlushesCarriageReturnProgressLines(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Read-ProcessOutputDelta\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Read-ProcessOutputDelta function block not found in {relativePath}.");
+        Assert.Matches(@"-split\s+[""`'](?:\\r\\n\|\\n\|\\r|`r`n\|`n\|`r)[""`']", fnBody.Groups["body"].Value);
     }
 
     [Theory]
@@ -399,6 +437,7 @@ public sealed class PowerShellRegressionTests
 
         Assert.True(fnBody.Success, $"Module-ApplySpicetify function block not found in {relativePath}.");
         var body = fnBody.Groups["body"].Value;
+        Assert.Contains("Stop-SpotifyProcesses -MaxAttempts 3", body);
         Assert.Contains("Attempting rollback to keep Spotify usable", body);
         Assert.Contains("Apply error: $applyError", body);
         Assert.Contains("Rollback error: $restoreError", body);

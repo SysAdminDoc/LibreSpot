@@ -2805,52 +2805,184 @@ function Get-SpicetifyConfigListValue {
     )
 }
 
+function ConvertTo-NativeArgumentString {
+    param([string[]]$Arguments)
+
+    $parts = @()
+    foreach ($argument in @($Arguments)) {
+        $value = if ($null -eq $argument) { '' } else { [string]$argument }
+        if ($value.Length -gt 0 -and $value -notmatch '[\s"]') {
+            $parts += $value
+            continue
+        }
+
+        $builder = New-Object System.Text.StringBuilder
+        [void]$builder.Append('"')
+        $backslashes = 0
+        foreach ($character in $value.ToCharArray()) {
+            if ($character -eq [char]92) {
+                $backslashes++
+                continue
+            }
+            if ($character -eq [char]34) {
+                if ($backslashes -gt 0) {
+                    [void]$builder.Append(('\' * ($backslashes * 2)))
+                    $backslashes = 0
+                }
+                [void]$builder.Append('\"')
+                continue
+            }
+            if ($backslashes -gt 0) {
+                [void]$builder.Append(('\' * $backslashes))
+                $backslashes = 0
+            }
+            [void]$builder.Append($character)
+        }
+        if ($backslashes -gt 0) {
+            [void]$builder.Append(('\' * ($backslashes * 2)))
+        }
+        [void]$builder.Append('"')
+        $parts += $builder.ToString()
+    }
+
+    return ($parts -join ' ')
+}
+
+function Remove-ConsoleEscapeSequences {
+    param([string]$Text)
+
+    if ($null -eq $Text) { return '' }
+    $escapePattern = [regex]::Escape([string][char]27) + '\[[0-?]*[ -/]*[@-~]'
+    return [regex]::Replace([string]$Text, $escapePattern, '')
+}
+
+function Update-SpicetifyCliProgress {
+    param([string]$Line)
+
+    $plain = Remove-ConsoleEscapeSequences -Text $Line
+    if ($plain -match 'Patching files\s*\[\s*(\d+)\s*/\s*(\d+)\s*\]') {
+        $done = [int]$matches[1]
+        $total = [Math]::Max(1, [int]$matches[2])
+        $percent = [int][Math]::Min(99, [Math]::Floor(($done / $total) * 100))
+        $progressValue = [int][Math]::Min(99, 86 + [Math]::Floor(($done / $total) * 12))
+        $sh = $script:syncHash
+        try {
+            if ($sh) {
+                $sh.Dispatcher.BeginInvoke([Action]{
+                    if ($sh.ProgressBar.Value -lt $progressValue) { $sh.ProgressBar.Value = $progressValue }
+                    $sh.StatusLabel.Text = "Spicetify is patching Spotify files ($percent%)"
+                    $sh.StepLabel.Text = "Applying setup: patching file $done of $total"
+                    $sh.InstallContext.Text = "Spicetify is rebuilding Spotify's UI package. This can take several minutes on slower disks."
+                }) | Out-Null
+            }
+        } catch {}
+    } elseif ($plain -match 'Extracting backup|Preprocessing|Fetching remote CSS map|Patching files') {
+        $sh = $script:syncHash
+        try {
+            if ($sh) {
+                $sh.Dispatcher.BeginInvoke([Action]{
+                    $sh.StatusLabel.Text = 'Spicetify is preparing Spotify files'
+                    $sh.InstallContext.Text = "Spicetify is rebuilding Spotify's UI package. This can take several minutes on slower disks."
+                }) | Out-Null
+            }
+        } catch {}
+    }
+}
+
 function Invoke-SpicetifyCli {
     param(
         [string[]]$Arguments,
-        [string]$FailureMessage = 'Spicetify command failed.'
+        [string]$FailureMessage = 'Spicetify command failed.',
+        [int]$TimeoutSeconds = 900
     )
     $spicetifyExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
     if (-not (Test-Path -LiteralPath $spicetifyExe)) {
         throw 'Spicetify CLI is not installed.'
     }
 
-    # Keep native stderr from becoming a terminating PowerShell error before
-    # we can log the output and read the real process exit code.
+    $stdoutPath = New-LibreSpotTempFile -Name 'spicetify-stdout.log'
+    $stderrPath = New-LibreSpotTempFile -Name 'spicetify-stderr.log'
+    $stdoutState = @{ Offset = 0L; Remainder = '' }
+    $stderrState = @{ Offset = 0L; Remainder = '' }
+    $outputLines = @()
+    $process = $null
+
+    # Keep PowerShell from turning redirected native stderr into its own
+    # terminating error. We stream both files and decide success from ExitCode.
     $previousPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    $output = $null
-    $exitCode = 0
     try {
-        $output = & $spicetifyExe @Arguments 2>&1
-        $exitCode = $LASTEXITCODE
-    } finally {
-        $ErrorActionPreference = $previousPreference
-    }
+        $argumentString = ConvertTo-NativeArgumentString -Arguments $Arguments
+        $process = Start-Process -FilePath $spicetifyExe -ArgumentList $argumentString -PassThru -Wait:$false -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -WindowStyle Hidden -ErrorAction Stop
+        $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 
-    $outputLines = @()
-    if ($output) {
-        foreach ($item in @($output)) {
-            $line = if ($item -is [System.Management.Automation.ErrorRecord]) {
-                [string]$item.Exception.Message
-            } else {
-                [string]$item
-            }
-            if (-not [string]::IsNullOrWhiteSpace($line)) {
+        while (-not $process.HasExited) {
+            $stdoutRead = Read-ProcessOutputDelta -Path $stdoutPath -Offset $stdoutState.Offset -Remainder $stdoutState.Remainder
+            $stdoutState = @{ Offset = $stdoutRead.Offset; Remainder = $stdoutRead.Remainder }
+            foreach ($line in @($stdoutRead.Lines)) {
+                if ([string]::IsNullOrWhiteSpace($line)) { continue }
                 $outputLines += $line
                 Write-Log "  $line"
+                Update-SpicetifyCliProgress -Line $line
+            }
+
+            $stderrRead = Read-ProcessOutputDelta -Path $stderrPath -Offset $stderrState.Offset -Remainder $stderrState.Remainder
+            $stderrState = @{ Offset = $stderrRead.Offset; Remainder = $stderrRead.Remainder }
+            foreach ($line in @($stderrRead.Lines)) {
+                if ([string]::IsNullOrWhiteSpace($line)) { continue }
+                $outputLines += $line
+                Write-Log "  $line"
+                Update-SpicetifyCliProgress -Line $line
+            }
+
+            if ((Get-Date) -gt $deadline) {
+                Write-Log "Spicetify command exceeded ${TimeoutSeconds}s timeout and will be terminated." -Level 'WARN'
+                try { $process.Kill() } catch {}
+                try { $process.WaitForExit(5000) } catch {}
+                $tail = if ($outputLines.Count -gt 0) {
+                    $slice = if ($outputLines.Count -le 4) { $outputLines } else { $outputLines[-4..-1] }
+                    ' Output: ' + ((($slice | ForEach-Object { Remove-ConsoleEscapeSequences -Text $_ }) -replace '\s+', ' ') -join ' | ')
+                } else {
+                    ''
+                }
+                throw "$FailureMessage Timed out after $TimeoutSeconds seconds.$tail"
+            }
+
+            Start-Sleep -Milliseconds 200
+        }
+        $process.WaitForExit()
+
+        foreach ($streamState in @(
+            @{ Path = $stdoutPath; State = $stdoutState },
+            @{ Path = $stderrPath; State = $stderrState }
+        )) {
+            $read = Read-ProcessOutputDelta -Path $streamState.Path -Offset $streamState.State.Offset -Remainder $streamState.State.Remainder
+            foreach ($line in @($read.Lines) + @($read.Remainder)) {
+                if ([string]::IsNullOrWhiteSpace($line)) { continue }
+                $outputLines += $line
+                Write-Log "  $line"
+                Update-SpicetifyCliProgress -Line $line
             }
         }
-    }
 
-    if ($exitCode -ne 0) {
-        $tail = if ($outputLines.Count -gt 0) {
-            $slice = if ($outputLines.Count -le 4) { $outputLines } else { $outputLines[-4..-1] }
-            ' Output: ' + (($slice -replace '\s+', ' ') -join ' | ')
-        } else {
-            ''
+        $exitCode = $null
+        try { $exitCode = $process.ExitCode } catch { $exitCode = $null }
+        if ($null -eq $exitCode) {
+            Write-Log 'Spicetify process finished but ExitCode was unavailable; treating as success.' -Level 'WARN'
+        } elseif ($exitCode -ne 0) {
+            $tail = if ($outputLines.Count -gt 0) {
+                $slice = if ($outputLines.Count -le 4) { $outputLines } else { $outputLines[-4..-1] }
+                ' Output: ' + ((($slice | ForEach-Object { Remove-ConsoleEscapeSequences -Text $_ }) -replace '\s+', ' ') -join ' | ')
+            } else {
+                ''
+            }
+            throw "$FailureMessage Exit code: $exitCode.$tail"
         }
-        throw "$FailureMessage Exit code: $exitCode.$tail"
+    } finally {
+        $ErrorActionPreference = $previousPreference
+        if ($process) { try { $process.Dispose() } catch {} }
+        Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -3980,7 +4112,7 @@ function Read-ProcessOutputDelta {
         }
         if ([string]::IsNullOrEmpty($chunk)) { return $result }
         $text = [string]$result.Remainder + $chunk
-        $parts = $text -split "\r?\n"
+        $parts = $text -split "\r\n|\n|\r"
         $hasTrailingNewline = $text.EndsWith("`n") -or $text.EndsWith("`r")
         if ($hasTrailingNewline) {
             $result.Remainder = ''
@@ -4700,6 +4832,9 @@ function Module-ApplySpicetify { param($Config)
         Write-Log "  diag: $key = $($diag[$key])"
     }
 
+    Write-Log "Ensuring Spotify is fully closed before patching files..."
+    Stop-SpotifyProcesses -MaxAttempts 3
+
     # Spicetify expects `backup apply` as a combined invocation — especially after
     # SpotX has patched the client (version mismatch between Spotify and any prior
     # backup). Running them separately causes "version mismatch" failures.
@@ -4942,7 +5077,7 @@ $functionNamesForWorker = @(
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
     'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Check-ForUpdates','Compare-LibreSpotVersions',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
-    'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
+    'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
     'Get-NormalizedPathString','Get-PathEntries','Set-PathEntries','Add-PathEntry','Remove-PathEntry',
     'Module-NukeSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
