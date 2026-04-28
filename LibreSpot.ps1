@@ -588,14 +588,26 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     if ($launchTarget) {
         try {
             $workingDir = Split-Path -Path $launchTarget.Path -Parent
+            $elevationArgs = @()
+            if ($script:CliClean) { $elevationArgs += '-clean' }
+            if ($script:CliWatch) { $elevationArgs += '-watch' }
+            if ($script:CliInstallWatcher) { $elevationArgs += '-installwatcher' }
+            if ($script:CliUninstallWatcher) { $elevationArgs += '-uninstallwatcher' }
             if ($launchTarget.Kind -eq 'Exe') {
-                Start-Process -FilePath $launchTarget.Path -Verb RunAs -WorkingDirectory $workingDir
+                $startArgs = @{
+                    FilePath = $launchTarget.Path
+                    Verb = 'RunAs'
+                    WorkingDirectory = $workingDir
+                }
+                if ($elevationArgs.Count -gt 0) { $startArgs.ArgumentList = $elevationArgs }
+                Start-Process @startArgs
             } else {
-                Start-Process -FilePath 'powershell.exe' -ArgumentList @(
+                $scriptArgs = @(
                     '-NoProfile',
                     '-ExecutionPolicy', 'Bypass',
                     '-File', $launchTarget.Path
-                ) -Verb RunAs -WorkingDirectory $workingDir
+                ) + $elevationArgs
+                Start-Process -FilePath 'powershell.exe' -ArgumentList $scriptArgs -Verb RunAs -WorkingDirectory $workingDir
             }
         } catch {
             [System.Windows.MessageBox]::Show(
@@ -2949,50 +2961,42 @@ function Invoke-SpicetifyCli {
         throw 'Spicetify CLI is not installed.'
     }
 
-    $stdoutPath = New-LibreSpotTempFile -Name 'spicetify-stdout.log'
-    $stderrPath = New-LibreSpotTempFile -Name 'spicetify-stderr.log'
-    $stdoutState = @{ Offset = 0L; Remainder = '' }
-    $stderrState = @{ Offset = 0L; Remainder = '' }
     $progressState = @{ LastPatchBucket = -1; LastUiPatchPercent = -1; LastStage = '' }
     $outputLines = @()
     $process = $null
+    $stdoutTask = $null
+    $stderrTask = $null
 
     # Keep PowerShell from turning redirected native stderr into its own
-    # terminating error. We stream both files and decide success from ExitCode.
+    # terminating error. The .NET process object avoids PowerShell handle
+    # bugs seen with redirected files while still draining both streams.
     $previousPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
         $argumentString = ConvertTo-NativeArgumentString -Arguments $Arguments
-        $process = Start-Process -FilePath $spicetifyExe -ArgumentList $argumentString -PassThru -Wait:$false -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -WindowStyle Hidden -ErrorAction Stop
+        $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+        $startInfo.FileName = $spicetifyExe
+        $startInfo.Arguments = $argumentString
+        $startInfo.WorkingDirectory = Split-Path -Path $spicetifyExe -Parent
+        $startInfo.UseShellExecute = $false
+        $startInfo.RedirectStandardOutput = $true
+        $startInfo.RedirectStandardError = $true
+        $startInfo.CreateNoWindow = $true
+
+        $process = New-Object System.Diagnostics.Process
+        $process.StartInfo = $startInfo
+        $null = $process.Start()
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+
         $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
-        $lastOutputAt = Get-Date
+        $statusIntervalSeconds = if ($IdleTimeoutSeconds -gt 0) { [Math]::Min([Math]::Max($IdleTimeoutSeconds, 5), 15) } else { 15 }
+        $nextStatusAt = (Get-Date).AddSeconds($statusIntervalSeconds)
 
-        while (-not $process.HasExited) {
-            $previousStdoutOffset = $stdoutState.Offset
-            $stdoutRead = Read-ProcessOutputDelta -Path $stdoutPath -Offset $stdoutState.Offset -Remainder $stdoutState.Remainder
-            $stdoutState = @{ Offset = $stdoutRead.Offset; Remainder = $stdoutRead.Remainder }
-            if ($stdoutRead.Offset -gt $previousStdoutOffset) { $lastOutputAt = Get-Date }
-            foreach ($line in @($stdoutRead.Lines)) {
-                if ([string]::IsNullOrWhiteSpace($line)) { continue }
-                $processed = Write-SpicetifyCliOutputLine -Line $line -ProgressState $progressState
-                if ($processed) { $outputLines += $processed }
-            }
-
-            $previousStderrOffset = $stderrState.Offset
-            $stderrRead = Read-ProcessOutputDelta -Path $stderrPath -Offset $stderrState.Offset -Remainder $stderrState.Remainder
-            $stderrState = @{ Offset = $stderrRead.Offset; Remainder = $stderrRead.Remainder }
-            if ($stderrRead.Offset -gt $previousStderrOffset) { $lastOutputAt = Get-Date }
-            foreach ($line in @($stderrRead.Lines)) {
-                if ([string]::IsNullOrWhiteSpace($line)) { continue }
-                $processed = Write-SpicetifyCliOutputLine -Line $line -ProgressState $progressState
-                if ($processed) { $outputLines += $processed }
-            }
-
-            $now = Get-Date
-            if ($now -gt $deadline) {
+        while (-not $process.WaitForExit(250)) {
+            if ((Get-Date) -gt $deadline) {
                 Write-Log "Spicetify command exceeded ${TimeoutSeconds}s timeout and will be terminated." -Level 'WARN'
                 try { $process.Kill() } catch {}
-                try { $process.WaitForExit(5000) } catch {}
                 $tail = if ($outputLines.Count -gt 0) {
                     $slice = if ($outputLines.Count -le 4) { $outputLines } else { $outputLines[-4..-1] }
                     ' Output: ' + ((($slice | ForEach-Object { Remove-ConsoleEscapeSequences -Text $_ }) -replace '\s+', ' ') -join ' | ')
@@ -3001,29 +3005,25 @@ function Invoke-SpicetifyCli {
                 }
                 throw "$FailureMessage Timed out after $TimeoutSeconds seconds.$tail"
             }
-            if ($IdleTimeoutSeconds -gt 0 -and $now -gt $lastOutputAt.AddSeconds($IdleTimeoutSeconds)) {
-                Write-Log "Spicetify produced no output for ${IdleTimeoutSeconds}s and will be terminated." -Level 'WARN'
-                try { $process.Kill() } catch {}
-                try { $process.WaitForExit(5000) } catch {}
-                $tail = if ($outputLines.Count -gt 0) {
-                    $slice = if ($outputLines.Count -le 4) { $outputLines } else { $outputLines[-4..-1] }
-                    ' Output: ' + ((($slice | ForEach-Object { Remove-ConsoleEscapeSequences -Text $_ }) -replace '\s+', ' ') -join ' | ')
-                } else {
-                    ''
-                }
-                throw "$FailureMessage No output from Spicetify for $IdleTimeoutSeconds seconds.$tail"
+
+            if ((Get-Date) -ge $nextStatusAt) {
+                Update-SpicetifyCliProgress -Line 'Patching files'
+                $nextStatusAt = (Get-Date).AddSeconds($statusIntervalSeconds)
             }
-
-            Start-Sleep -Milliseconds 200
         }
-        $process.WaitForExit()
 
-        foreach ($streamState in @(
-            @{ Path = $stdoutPath; State = $stdoutState },
-            @{ Path = $stderrPath; State = $stderrState }
+        foreach ($task in @($stdoutTask, $stderrTask)) {
+            if ($task -and -not $task.IsCompleted) {
+                try { $null = $task.Wait(5000) } catch {}
+            }
+        }
+
+        foreach ($text in @(
+            $(if ($stdoutTask -and $stdoutTask.IsCompleted) { $stdoutTask.Result } else { '' }),
+            $(if ($stderrTask -and $stderrTask.IsCompleted) { $stderrTask.Result } else { '' })
         )) {
-            $read = Read-ProcessOutputDelta -Path $streamState.Path -Offset $streamState.State.Offset -Remainder $streamState.State.Remainder
-            foreach ($line in @($read.Lines) + @($read.Remainder)) {
+            if ([string]::IsNullOrEmpty($text)) { continue }
+            foreach ($line in ($text -split "\r\n|\n|\r")) {
                 if ([string]::IsNullOrWhiteSpace($line)) { continue }
                 $processed = Write-SpicetifyCliOutputLine -Line $line -ProgressState $progressState
                 if ($processed) { $outputLines += $processed }
@@ -3046,8 +3046,6 @@ function Invoke-SpicetifyCli {
     } finally {
         $ErrorActionPreference = $previousPreference
         if ($process) { try { $process.Dispose() } catch {} }
-        Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -5026,6 +5024,7 @@ $installBlock = { param($sh,$cfg)
         }
         $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text="Setup complete"; $sh.StepLabel.Text=$finalStep; $sh.InstallTitle.Text='Setup complete'; $sh.InstallContext.Text=$installDoneContext; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     } catch { $sh.IsRunning=$false; $em=$_.Exception.Message; $st=$_.ScriptStackTrace
+        try { Write-Log "[FATAL] $em`n$st" -Level 'ERROR' } catch {}
         $sh.Dispatcher.Invoke([Action]{ if($sh.Timer){$sh.Timer.Stop()}; $sh.LogBlock.Text+="`n[FATAL] $em`n$st"; $sh.StatusLabel.Text="Setup stopped"
             $sh.StepLabel.Text="Needs attention"; $sh.InstallTitle.Text='Setup needs attention'; $sh.InstallContext.Text='LibreSpot stopped before the install finished. Review the log below, then go back to setup or copy the details if you want to troubleshoot.'; $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Visibility="Visible"; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     }
@@ -5134,6 +5133,7 @@ $maintBlock = { param($sh,$action)
         $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text=$doneStatus; $sh.StepLabel.Text=$doneStep; $sh.InstallTitle.Text=$doneStatus; $sh.InstallContext.Text=$doneContext
             $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     } catch { $sh.IsRunning=$false; $em=$_.Exception.Message; $st=$_.ScriptStackTrace
+        try { Write-Log "[FATAL] $em`n$st" -Level 'ERROR' } catch {}
         $sh.Dispatcher.Invoke([Action]{ if($sh.Timer){$sh.Timer.Stop()}; $sh.LogBlock.Text+="`n[FATAL] $em`n$st"; $sh.StatusLabel.Text="Maintenance stopped"; $sh.StepLabel.Text="Needs attention"; $sh.InstallTitle.Text='Maintenance needs attention'; $sh.InstallContext.Text='LibreSpot stopped before the maintenance action finished. Review the live log below, then go back when you are ready to try again.'
             $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Visibility="Visible"; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     }
@@ -5147,7 +5147,7 @@ $functionNamesForWorker = @(
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
     'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Check-ForUpdates','Compare-LibreSpotVersions',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
-    'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
+    'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
     'Get-NormalizedPathString','Get-PathEntries','Set-PathEntries','Add-PathEntry','Remove-PathEntry',
     'Module-NukeSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
@@ -5238,6 +5238,43 @@ function Start-MaintenanceJob { param([string]$Action)
         Clear-CompletedRunspaceResources | Out-Null
         throw
     }
+}
+
+if ($script:CliClean) {
+    $window.Add_ContentRendered({
+        if ($script:CliCleanAutoStarted) { return }
+        $script:CliCleanAutoStarted = $true
+        try {
+            if (-not (Test-NetworkReady)) {
+                Show-ThemedDialog -Message "LibreSpot could not reach the download sources it needs. Check the connection, then run the clean setup again." -Title "No Internet Connection" -Icon "Error" -PrimaryText "Close"
+                return
+            }
+
+            if ($ui.ContainsKey('BtnInstall')) { $ui['BtnInstall'].IsEnabled = $false }
+            if ($ui.ContainsKey('ModeEasy')) { $ui['ModeEasy'].IsChecked = $true }
+            if ($ui.ContainsKey('ChkCleanInstall')) { $ui['ChkCleanInstall'].IsChecked = $true }
+            Update-ModePresentation
+
+            $script:InstallConfig = Normalize-LibreSpotConfig -Config (Get-InstallConfig -EasyMode $true)
+            $script:InstallConfig.CleanInstall = $true
+            $saveSucceeded = Save-LibreSpotConfig -Config $script:InstallConfig
+            if ($saveSucceeded) {
+                $script:HasSavedConfig = $true
+                $script:SavedConfigMode = [string]$script:InstallConfig.Mode
+                $script:HasSavedCustomConfig = $false
+                Capture-CustomConfigBaseline
+            } else {
+                Write-Log 'Could not save clean CLI settings before setup. Continuing with the in-memory defaults.' -Level 'WARN'
+            }
+
+            Switch-ToInstallPage -Title 'Preparing recommended setup' -Context 'LibreSpot is refreshing Spotify, applying the pinned default stack, and installing the Marketplace-ready extension set.' -PrepareLabel 'Prepare' -RunLabel 'Build' -VerifyLabel 'Apply' -CompleteLabel 'Complete'
+            $window.Topmost = $false
+            $window.WindowState = 'Minimized'
+            Start-InstallJob -Config $script:InstallConfig
+        } catch {
+            Reset-UiAfterLaunchFailure -Title 'Could not start clean setup' -Message "LibreSpot couldn't start the clean setup run.`n`n$($_.Exception.Message)"
+        }
+    })
 }
 
 # =============================================================================
