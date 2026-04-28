@@ -469,13 +469,20 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("$previousPreference = $ErrorActionPreference", body);
         Assert.Contains("$ErrorActionPreference = 'Continue'", body);
         Assert.Contains("System.Diagnostics.ProcessStartInfo", body);
-        Assert.Contains("ReadToEndAsync", body);
+        Assert.Contains("System.Collections.Concurrent.ConcurrentQueue[string]", body);
+        Assert.Contains("System.Diagnostics.DataReceivedEventHandler", body);
+        Assert.Contains("BeginOutputReadLine", body);
+        Assert.Contains("BeginErrorReadLine", body);
         Assert.Contains("WaitForExit(250)", body);
         Assert.Contains("RedirectStandardOutput", body);
         Assert.Contains("RedirectStandardError", body);
         Assert.Contains("CreateNoWindow", body);
         Assert.Contains("TimeoutSeconds", body);
         Assert.Contains("statusIntervalSeconds", body);
+        Assert.Contains("Spicetify command: spicetify", body);
+        Assert.Contains("Spicetify PID", body);
+        Assert.Contains("Spicetify still running", body);
+        Assert.Contains("hard timeout", body);
         Assert.Contains("Output:", body);
         Assert.Contains("Write-SpicetifyCliOutputLine", body);
         Assert.Contains("Update-SpicetifyCliProgress", body);
@@ -484,6 +491,7 @@ public sealed class PowerShellRegressionTests
         Assert.DoesNotContain("Start-Process", body);
         Assert.DoesNotContain("$process.HasExited", body);
         Assert.DoesNotContain("Read-ProcessOutputDelta", body);
+        Assert.DoesNotContain("ReadToEndAsync", body);
         Assert.DoesNotContain("Write-Log \"  $line\"", body);
         Assert.DoesNotMatch(@"(?m)^\s*return\s+\$output\b", body);
     }
@@ -529,6 +537,23 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("Extracting backup", body);
         Assert.Contains("Preprocessing", body);
         Assert.Contains("Fetching remote CSS map", body);
+    }
+
+    [Fact]
+    public void WpfSpicetifyProgress_UsesGuardedDispatcherInvoke()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Update-SpicetifyCliProgress\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, "Update-SpicetifyCliProgress function block not found.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("$sh.Dispatcher.Invoke", body);
+        Assert.Contains("try {", body);
+        Assert.Contains("if ($statusLabel)", body);
+        Assert.DoesNotContain("BeginInvoke", body);
     }
 
     [Theory]
