@@ -2,6 +2,19 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
+## [v3.7.2] - 2026-04-28
+
+**Hotfix.** The Easy-mode confirmation dialog was crashing the script the moment users clicked **Install recommended setup**.
+
+### Fixed
+- `Show-ThemedDialog` runs as a separate `Window` with its own here-string XAML, so it does NOT inherit the main window's resource dictionary. v3.7.0's blanket `Foreground="#FFE7EDF3"` → `Foreground="{StaticResource FgPrimaryBrush}"` sweep caught three references inside that dialog markup. When the install button fired the "Start Recommended Setup" confirmation, `XamlReader::Load` threw `Cannot find resource named 'FgPrimaryBrush'`, which propagated out of `Show-ThemedDialog` and tore down the install flow before any work started. Reverted those three to inline hex (`#FFE7EDF3`) — the dialog renders as before and Easy/Custom installs proceed.
+- Logged the rule in `CLAUDE.md` Gotchas: every standalone XAML here-string (`$dlgXaml`, scheduled-task templates, future popouts) defines its own resource scope. Resource-token sweeps must explicitly skip them.
+
+### Why this slipped past v3.7.0/v3.7.1 validation
+`XamlReader::Load` ran clean on the main `$xaml` because the main window declares those brushes inline. The dialog only loads at click time — never exercised by my static checks. Lesson: when the script holds multiple XAML strings, each one needs its own `[XamlReader]::Load` round-trip in pre-flight validation.
+
+---
+
 ## [v3.7.1] - 2026-04-28
 
 **Density pass + logo.png brand source.** Cuts the vertical footprint of every panel so the configuration options fit without scrolling on a 1080-tall window. Brand image now sources `logo.png` for crisper rendering at the sidebar's 44-px tile and dialog headers.

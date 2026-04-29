@@ -49,7 +49,7 @@ public sealed class LibreSpotNativeOutputCollector {
 
 # Keep this aligned with LibreSpot.ps1:$global:VERSION and the WPF shell's
 # csproj <Version>. The release workflow fails the build if these drift.
-$global:VERSION = '3.7.1'
+$global:VERSION = '3.7.2'
 $global:PinnedReleases = @{
     SpotX = @{
         Version = '2.0'
