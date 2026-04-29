@@ -2,6 +2,29 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
+## [v3.7.1] - 2026-04-28
+
+**Density pass + logo.png brand source.** Cuts the vertical footprint of every panel so the configuration options fit without scrolling on a 1080-tall window. Brand image now sources `logo.png` for crisper rendering at the sidebar's 44-px tile and dialog headers.
+
+### Changed
+- **Brand source**: `Get-LibreSpotBrandFrame` now prefers `logo.png` (BitmapImage) over the multi-resolution `.ico`. PNG renders crisper at the actual draw sizes used in the UI. `.ico` remains a fallback when `logo.png` is absent.
+- **Default font sizes**: Hero headlines 22 → 17, sub-headlines 21 → 16, card titles 15 → 13.5, tile values 14.5 → 13. CheckBox font 13 → 12.5. ActionButton font 13.25 → 12.5. ComboBox/TextBox font 13 → 12.5.
+- **Control heights**: ActionButton 48 → 40, ComboBox 40 → 32, TextBox 42 → 32, MaintButton min-height 82 → 58.
+- **Card padding**: SurfaceCard 20 → 14, InsetPanel 16 → 12, StatusCard 16 → 12 + min-height 92 → 68. Panel container Border padding 26 → 16, corner radius 14 → 12.
+- **CheckBox**: spacing 8 → 5 above each, min-height 28 → 22, indicator box 22×22 → 18×18, check-mark path resized accordingly.
+- **Inter-section gaps** (replace-all sweeps): `0,14,0,0` → `0,8,0,0`, `0,8,0,14` → `0,4,0,8`, `0,0,0,18` → `0,0,0,10`, `0,0,0,20` → `0,0,0,12`, `34,4,0,8` → `30,2,0,4`, `34,4,0,0` → `30,2,0,0`. Two-column gap lanes `Width="20"` → `Width="14"`.
+- **Title bar**: Padding 32,22,18,16 → 28,12,16,10. Mode-headline FontSize matches the new Hero-down-tier (18). Summary FontSize 12.25 → 11.75 with 6-px → 3-px gap above.
+- **PageContainer outer margin**: 32,0,32,28 → 24,0,24,16.
+- **Footer Grid above Install button**: top margin 18 → 10, summary card padding 18,14 → 14,10, gap column 20 → 14.
+
+### Net result
+Easy panel hero card + "What we take care of" + "Before you start" cards now fit a 980-px tall content area without scrolling. Custom panel snapshot bar + Spotify-behavior + Themes/Extensions all visible above the fold on a 1080-px screen at default Windows scaling. Maintenance dashboard (status row + metric tiles + actions) fits the same envelope.
+
+### Why
+v3.7.0 nailed the chrome but the original v3.6.0 paddings carried over into the panels. With the sidebar eating 252 px of horizontal space, vertical needed to give back. Going 30-40% tighter on padding/margin/font without dropping below readable thresholds (12.5-px body remains comfortable at 100% scale) recovers ~250 px of vertical content per panel.
+
+---
+
 ## [v3.7.0] - 2026-04-28
 
 **Premium UI overhaul.** The setup script keeps every behavior from v3.6.0 but now reads as polished product instead of dev tool. Sidebar navigation, Win11 Mica backdrop, semantic design tokens, hover-lift micro-interactions, and a shimmering install progress bar.
