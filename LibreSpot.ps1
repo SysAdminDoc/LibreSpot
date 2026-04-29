@@ -26,6 +26,14 @@ public class Win32 {
     [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool FlashWindowEx(ref FLASHWINFO pwfi);
+    [DllImport("dwmapi.dll", PreserveSig = true)]
+    public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+    public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+    public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    public const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
+    public const int DWMWCP_ROUND = 2;
+    public const int DWMSBT_MAINWINDOW = 2;
+    public const int DWMSBT_TRANSIENTWINDOW = 3;
     public const int SW_HIDE = 0;
     public const int SW_MINIMIZE = 6;
     [StructLayout(LayoutKind.Sequential)]
@@ -46,6 +54,17 @@ public class Win32 {
         fw.uCount = 5;
         fw.dwTimeout = 0;
         FlashWindowEx(ref fw);
+    }
+    public static bool TryEnableMicaBackdrop(IntPtr hwnd) {
+        try {
+            int dark = 1;
+            DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
+            int corner = DWMWCP_ROUND;
+            DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref corner, sizeof(int));
+            int backdrop = DWMSBT_MAINWINDOW;
+            int hr = DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ref backdrop, sizeof(int));
+            return hr == 0;
+        } catch { return false; }
     }
 }
 public sealed class LibreSpotNativeOutputCollector {
@@ -83,7 +102,7 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
 
-$global:VERSION = '3.6.0'
+$global:VERSION = '3.7.0'
 
 
 # CLI argument detection. Supports `irm URL | iex -clean` (PowerShell passes
@@ -1094,17 +1113,148 @@ $ErrorActionPreference = 'Continue'  # WPF internals generate non-terminating er
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="LibreSpot" MinHeight="720" MinWidth="980" MaxWidth="1440"
-        WindowStyle="None" ResizeMode="CanResize" AllowsTransparency="True"
-        Background="#00000000" WindowStartupLocation="CenterScreen"
-        FontFamily="Segoe UI Variable Text, Segoe UI, sans-serif" UseLayoutRounding="True" SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Display">
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="LibreSpot" MinHeight="720" MinWidth="1120" MaxWidth="1520"
+        WindowStyle="None" ResizeMode="CanResize" AllowsTransparency="False"
+        Background="#FF0B0E14" WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI Variable Display, Segoe UI Variable, Segoe UI, sans-serif" UseLayoutRounding="True" SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0" GlassFrameThickness="0" ResizeBorderThickness="6" UseAeroCaptionButtons="False" CornerRadius="0"/>
+    </shell:WindowChrome.WindowChrome>
     <Window.Resources>
-        <!-- Rounded ProgressBar -->
+        <!-- ============================================================
+             DESIGN TOKENS  (v3.7.0 premium UI overhaul)
+             Surfaces ascend from base to overlay. Accents and semantic
+             tones are aligned to the brushes used by Set-MaintenanceCardTone,
+             Set-SelectionSnapshotState, and Set-InstallStageState in PS,
+             so changing them here updates both static and dynamic chrome.
+             ============================================================ -->
+        <Color x:Key="SurfaceBaseColor">#FF0B0E14</Color>
+        <Color x:Key="SurfaceElevatedColor">#FF111722</Color>
+        <Color x:Key="SurfaceElevated2Color">#FF182030</Color>
+        <Color x:Key="SurfaceOverlayColor">#FF1F2937</Color>
+        <Color x:Key="SurfaceSidebarColor">#FF0A0D13</Color>
+        <Color x:Key="BorderSubtleColor">#FF1F2A37</Color>
+        <Color x:Key="BorderStrongColor">#FF2D3A47</Color>
+        <Color x:Key="BorderHoverColor">#FF3A4654</Color>
+        <Color x:Key="AccentColor">#FF22C55E</Color>
+        <Color x:Key="AccentHoverColor">#FF34D376</Color>
+        <Color x:Key="AccentPressedColor">#FF16A34A</Color>
+        <Color x:Key="AccentSoftBgColor">#FF111A22</Color>
+        <Color x:Key="AccentSoftBorderColor">#FF2D5A3F</Color>
+        <Color x:Key="AccentMutedColor">#FF86EFAC</Color>
+        <Color x:Key="InfoColor">#FF93C5FD</Color>
+        <Color x:Key="InfoSoftBgColor">#FF111C2A</Color>
+        <Color x:Key="InfoSoftBorderColor">#FF2E4964</Color>
+        <Color x:Key="WarningColor">#FFFCD34D</Color>
+        <Color x:Key="WarningSoftBgColor">#FF211A0E</Color>
+        <Color x:Key="WarningSoftBorderColor">#FF6B4E16</Color>
+        <Color x:Key="DangerColor">#FFEF4444</Color>
+        <Color x:Key="DangerSoftBgColor">#FF2B1117</Color>
+        <Color x:Key="FgPrimaryColor">#FFE7EDF3</Color>
+        <Color x:Key="FgSecondaryColor">#FFA6B0BB</Color>
+        <Color x:Key="FgMutedColor">#FF778390</Color>
+        <Color x:Key="FgInverseColor">#FF04130A</Color>
+        <Color x:Key="ShimmerHighlightColor">#3322C55E</Color>
+
+        <SolidColorBrush x:Key="SurfaceBaseBrush" Color="{StaticResource SurfaceBaseColor}"/>
+        <SolidColorBrush x:Key="SurfaceElevatedBrush" Color="{StaticResource SurfaceElevatedColor}"/>
+        <SolidColorBrush x:Key="SurfaceElevated2Brush" Color="{StaticResource SurfaceElevated2Color}"/>
+        <SolidColorBrush x:Key="SurfaceOverlayBrush" Color="{StaticResource SurfaceOverlayColor}"/>
+        <SolidColorBrush x:Key="SurfaceSidebarBrush" Color="{StaticResource SurfaceSidebarColor}"/>
+        <SolidColorBrush x:Key="BorderSubtleBrush" Color="{StaticResource BorderSubtleColor}"/>
+        <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}"/>
+        <SolidColorBrush x:Key="BorderHoverBrush" Color="{StaticResource BorderHoverColor}"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}"/>
+        <SolidColorBrush x:Key="AccentPressedBrush" Color="{StaticResource AccentPressedColor}"/>
+        <SolidColorBrush x:Key="AccentSoftBgBrush" Color="{StaticResource AccentSoftBgColor}"/>
+        <SolidColorBrush x:Key="AccentSoftBorderBrush" Color="{StaticResource AccentSoftBorderColor}"/>
+        <SolidColorBrush x:Key="AccentMutedBrush" Color="{StaticResource AccentMutedColor}"/>
+        <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
+        <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
+        <SolidColorBrush x:Key="FgPrimaryBrush" Color="{StaticResource FgPrimaryColor}"/>
+        <SolidColorBrush x:Key="FgSecondaryBrush" Color="{StaticResource FgSecondaryColor}"/>
+        <SolidColorBrush x:Key="FgMutedBrush" Color="{StaticResource FgMutedColor}"/>
+        <SolidColorBrush x:Key="FgInverseBrush" Color="{StaticResource FgInverseColor}"/>
+
+        <!-- Inverted-direction shimmer brush for the install progress bar -->
+        <LinearGradientBrush x:Key="ShimmerOverlayBrush" StartPoint="0,0.5" EndPoint="1,0.5">
+            <GradientStop Color="#0022C55E" Offset="0.0"/>
+            <GradientStop Color="{StaticResource ShimmerHighlightColor}" Offset="0.45"/>
+            <GradientStop Color="#88FFFFFF" Offset="0.5"/>
+            <GradientStop Color="{StaticResource ShimmerHighlightColor}" Offset="0.55"/>
+            <GradientStop Color="#0022C55E" Offset="1.0"/>
+        </LinearGradientBrush>
+
+        <!-- Type tokens -->
+        <Style x:Key="TypeHeroH1" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource FgPrimaryBrush}"/>
+            <Setter Property="FontSize" Value="32"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="LineHeight" Value="38"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="TypeH1" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource FgPrimaryBrush}"/>
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="TypeH2" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource FgPrimaryBrush}"/>
+            <Setter Property="FontSize" Value="15.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="TypeBody" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource FgPrimaryBrush}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="LineHeight" Value="20"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="TypeCaption" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource FgMutedBrush}"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <!-- Lucide icon paths shared across nav and content -->
+        <Geometry x:Key="IconHome">M3 9.75 12 2l9 7.75V20a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2V9.75z</Geometry>
+        <Geometry x:Key="IconSliders">M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M1 14h6 M9 8h6 M17 16h6</Geometry>
+        <Geometry x:Key="IconWrench">M14.7 6.3a4 4 0 0 1 5.4 5.4L13 19a3 3 0 0 1-4.2 0l-4-4A3 3 0 0 1 5 11l8-8 4 4-2.3 2.3a1.5 1.5 0 0 0 0 2.1l1.5 1.5a1.5 1.5 0 0 0 2.1 0L20.1 11.7</Geometry>
+        <Geometry x:Key="IconShield">M12 2 4 5v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V5l-8-3z</Geometry>
+        <Geometry x:Key="IconSparkle">M12 3l1.6 4.6 4.6 1.6-4.6 1.6L12 15.4l-1.6-4.6L5.8 9.2l4.6-1.6L12 3z</Geometry>
+        <Geometry x:Key="IconCheck">M5 12.5l4.5 4.5L20 6.5</Geometry>
+        <Geometry x:Key="IconDownload">M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3</Geometry>
+        <Geometry x:Key="IconClock">M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 6v6l4 2</Geometry>
+        <Geometry x:Key="IconExternal">M14 3h7v7 M21 3l-9 9 M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6</Geometry>
+        <Geometry x:Key="IconDot">M12 12m-3 0a3 3 0 1 0 6 0 3 3 0 1 0-6 0</Geometry>
+        <Geometry x:Key="IconRefresh">M3 12a9 9 0 0 1 14.5-7L21 8 M21 4v4h-4 M21 12a9 9 0 0 1-14.5 7L3 16 M3 20v-4h4</Geometry>
+
+        <!-- Rounded ProgressBar with shimmer -->
         <ControlTemplate x:Key="RoundProgress" TargetType="ProgressBar">
             <Grid>
                 <Border x:Name="PART_Track" CornerRadius="4" Background="{TemplateBinding Background}" Height="8"/>
-                <Border x:Name="PART_Indicator" CornerRadius="4" HorizontalAlignment="Left" Height="8" Background="{TemplateBinding Foreground}"/>
+                <Border x:Name="PART_Indicator" CornerRadius="4" HorizontalAlignment="Left" Height="8" Background="{TemplateBinding Foreground}" ClipToBounds="True">
+                    <Border.Effect><DropShadowEffect BlurRadius="14" ShadowDepth="0" Opacity="0.55" Color="{StaticResource AccentColor}"/></Border.Effect>
+                </Border>
+                <Border x:Name="ShimmerHost" CornerRadius="4" HorizontalAlignment="Left" Height="8" IsHitTestVisible="False" ClipToBounds="True" Width="{Binding ActualWidth, ElementName=PART_Indicator}">
+                    <Border Width="120" HorizontalAlignment="Left" Background="{StaticResource ShimmerOverlayBrush}">
+                        <Border.RenderTransform><TranslateTransform x:Name="ShimmerXform" X="-140"/></Border.RenderTransform>
+                        <Border.Triggers>
+                            <EventTrigger RoutedEvent="Border.Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard RepeatBehavior="Forever">
+                                        <DoubleAnimation Storyboard.TargetName="ShimmerXform" Storyboard.TargetProperty="X" From="-140" To="900" Duration="0:0:1.6"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Border.Triggers>
+                    </Border>
+                </Border>
             </Grid>
         </ControlTemplate>
         <!-- ComboBox Toggle -->
@@ -1164,38 +1314,67 @@ $xaml = @"
             <Setter Property="FontSize" Value="13"/><Setter Property="Padding" Value="12,7"/><Setter Property="Height" Value="42"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="CaretBrush" Value="#FF22C55E"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#FF465564"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#FF22C55E"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.45"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
         </Style>
-        <!-- Action Button -->
+        <!-- Action Button (with hover-lift micro-interaction) -->
         <Style x:Key="ActionButton" TargetType="Button">
             <Setter Property="Height" Value="48"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontSize" Value="13.25"/><Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Foreground" Value="#FFE7EDF3"/><Setter Property="BorderThickness" Value="1"/><Setter Property="BorderBrush" Value="#FF2D3A47"/>
+            <Setter Property="Foreground" Value="{StaticResource FgPrimaryBrush}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform"><Setter.Value><TranslateTransform Y="0"/></Setter.Value></Setter>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
                 <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="24,0">
                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="border" Property="Opacity" Value="0.96"/><Setter TargetName="border" Property="BorderBrush" Value="#FF22C55E"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="border" Property="BorderBrush" Value="#FF22C55E"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                        <Setter TargetName="border" Property="Effect"><Setter.Value><DropShadowEffect BlurRadius="14" ShadowDepth="0" Opacity="0.4" Color="{StaticResource AccentColor}"/></Setter.Value></Setter>
+                    </Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True">
+                        <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                        <Setter TargetName="border" Property="Effect"><Setter.Value><DropShadowEffect BlurRadius="14" ShadowDepth="0" Opacity="0.55" Color="{StaticResource AccentColor}"/></Setter.Value></Setter>
+                    </Trigger>
                     <Trigger Property="IsPressed" Value="True"><Setter TargetName="border" Property="Opacity" Value="0.84"/></Trigger>
                     <Trigger Property="IsEnabled" Value="False"><Setter TargetName="border" Property="Opacity" Value="0.38"/></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Trigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" To="-1.5" Duration="0:0:0.12"/></Storyboard></BeginStoryboard></Trigger.EnterActions>
+                    <Trigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" To="0" Duration="0:0:0.12"/></Storyboard></BeginStoryboard></Trigger.ExitActions>
+                </Trigger>
+            </Style.Triggers>
         </Style>
-        <!-- Mode Radio Tab -->
+        <!-- Sidebar Nav Item (RadioButton) -->
         <Style x:Key="ModeRadio" TargetType="RadioButton">
-            <Setter Property="Foreground" Value="#FFE7EDF3"/><Setter Property="FontSize" Value="12.75"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Margin" Value="0,0,8,0"/><Setter Property="MinWidth" Value="216"/>
+            <Setter Property="Foreground" Value="{StaticResource FgPrimaryBrush}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0,2,0,2"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RadioButton">
-                <Grid><Border x:Name="bd" Background="#FF111821" CornerRadius="8" BorderBrush="#FF25313D" BorderThickness="1" Padding="16,13">
-                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="3"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <Rectangle x:Name="accent" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="#FF3A4654" Opacity="0.74"/>
-                        <StackPanel Grid.Column="2">
-                            <TextBlock x:Name="title" Text="{TemplateBinding Content}" FontSize="13.5" FontWeight="SemiBold" Foreground="#FFE7EDF3" HorizontalAlignment="Left"/>
-                            <TextBlock x:Name="description" Text="{TemplateBinding Tag}" Foreground="#FF778390" FontSize="10.75" Margin="0,6,0,0" TextWrapping="Wrap" MaxWidth="300" HorizontalAlignment="Left"/>
-                        </StackPanel>
+                <Border x:Name="bd" Background="Transparent" CornerRadius="10" BorderBrush="Transparent" BorderThickness="1" Padding="14,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3"/>
+                            <ColumnDefinition Width="14"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Rectangle x:Name="accent" Grid.Column="0" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource AccentBrush}" Opacity="0" HorizontalAlignment="Left" Margin="-14,4,0,4"/>
+                        <ContentPresenter Grid.Column="2" VerticalAlignment="Center"/>
                     </Grid>
-                </Border></Grid>
+                </Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsChecked" Value="True"><Setter TargetName="bd" Property="Background" Value="#FF121E27"/><Setter TargetName="bd" Property="BorderBrush" Value="#FF22C55E"/><Setter TargetName="title" Property="Foreground" Value="#FFFFFFFF"/><Setter TargetName="description" Property="Foreground" Value="#FFA6B0BB"/><Setter TargetName="accent" Property="Fill" Value="#FF22C55E"/><Setter TargetName="accent" Property="Opacity" Value="1"/></Trigger>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#FF151C24"/><Setter TargetName="bd" Property="BorderBrush" Value="#FF465564"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="#FF22C55E"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="bd" Property="Background" Value="{StaticResource SurfaceElevatedBrush}"/>
+                    </Trigger>
+                    <Trigger Property="IsChecked" Value="True">
+                        <Setter TargetName="bd" Property="Background" Value="{StaticResource SurfaceElevated2Brush}"/>
+                        <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource AccentSoftBorderBrush}"/>
+                        <Setter TargetName="accent" Property="Opacity" Value="1"/>
+                    </Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True">
+                        <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                    </Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
@@ -1336,78 +1515,145 @@ $xaml = @"
         </Style>
     </Window.Resources>
 
-    <!-- Outer margin gives room for window shadow -->
-    <Grid Margin="14">
-        <Border CornerRadius="10" Background="#FF090D13" BorderBrush="#FF25313D" BorderThickness="1" ClipToBounds="False">
-            <Border.Effect><DropShadowEffect BlurRadius="34" ShadowDepth="0" Opacity="0.48" Color="#05070A"/></Border.Effect>
-            <Grid ClipToBounds="True">
+    <!-- Root: 2-col layout. Sidebar carries nav. Main content carries title bar, panels, footer. -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="252"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <!-- ===== SIDEBAR ===== -->
+        <Border Grid.Column="0" Background="{StaticResource SurfaceSidebarBrush}" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="0,0,1,0">
+            <Grid Margin="22,28,22,22">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                    <!-- ===== TITLE BAR ===== -->
-                    <Border Name="TitleBar" Grid.Row="0" Background="#FF0C1118" BorderBrush="#FF1D2733" BorderThickness="0,0,0,1" Padding="24,18,24,14">
+                <!-- Brand block -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                    <Border Width="44" Height="44" CornerRadius="11" Background="{StaticResource SurfaceElevatedBrush}" BorderBrush="{StaticResource AccentSoftBorderBrush}" BorderThickness="1" Padding="6">
+                        <Image Name="TitleLogo" Stretch="Uniform"/>
+                    </Border>
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Name="TitleText" Foreground="{StaticResource FgPrimaryBrush}" FontSize="16.5" FontWeight="SemiBold"/>
+                        <TextBlock Name="TitleSubtext" Text="Premium Spotify toolkit" Foreground="{StaticResource FgMutedBrush}" FontSize="10.75" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Nav header -->
+                <TextBlock Grid.Row="1" Text="WORKFLOW" Foreground="{StaticResource FgMutedBrush}" FontSize="10" FontWeight="SemiBold" Margin="4,30,0,10">
+                    <TextBlock.RenderTransform><TranslateTransform/></TextBlock.RenderTransform>
+                </TextBlock>
+
+                <!-- Nav items -->
+                <StackPanel Grid.Row="2">
+                    <RadioButton Name="ModeEasy" Style="{StaticResource ModeRadio}" GroupName="Mode" IsChecked="True" Tag="Fastest clean setup with the recommended Spotify, SpotX, and Marketplace baseline." ToolTip="Fastest clean setup with the recommended baseline.">
                         <Grid>
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                <Border Width="48" Height="48" CornerRadius="10" Background="#FF101720" BorderBrush="#FF2B3F35" BorderThickness="1" Padding="7">
-                                    <Image Name="TitleLogo" Stretch="Uniform"/>
-                                </Border>
-                                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Name="TitleText" Foreground="#FFE7EDF3" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                    <TextBlock Name="TitleSubtext" Text="Pinned SpotX + Spicetify setup and recovery for Spotify." Foreground="#FF778390" FontSize="11.75" Margin="0,4,0,0"/>
-                                </StackPanel>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                    <TextBlock Name="UpdateBanner" VerticalAlignment="Center" Margin="0,0,18,0" Visibility="Collapsed" ToolTip="A newer LibreSpot release is available on GitHub."><Hyperlink Name="LinkUpdate" Foreground="#FF22C55E" TextDecorations="None" FontSize="11" FontWeight="SemiBold" Cursor="Hand">Update available &#x2192;</Hyperlink></TextBlock>
-                                    <TextBlock VerticalAlignment="Center" Margin="0,0,14,0"><Hyperlink Name="LinkSpotX" NavigateUri="https://github.com/SpotX-Official/SpotX" Foreground="#FFA6B0BB" TextDecorations="None" FontSize="10.75" Cursor="Hand">SpotX</Hyperlink></TextBlock>
-                                    <Border Width="1" Height="14" Background="#FF2D3A47" Margin="0,0,14,0"/>
-                                    <TextBlock VerticalAlignment="Center" Margin="0,0,14,0"><Hyperlink Name="LinkSpicetify" NavigateUri="https://github.com/spicetify" Foreground="#FFA6B0BB" TextDecorations="None" FontSize="10.75" Cursor="Hand">Spicetify</Hyperlink></TextBlock>
-                                    <Button Name="LinkGitHub" Width="36" Height="34" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="View on GitHub" VerticalAlignment="Center" Margin="0,0,8,0">
-                                    <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="Transparent" CornerRadius="8"><Path x:Name="ico" Fill="#FFA6B0BB" Data="M8,0 C3.58,0 0,3.58 0,8 c0,3.54 2.29,6.53 5.47,7.59 c.4,.07 .55,-.17 .55,-.38 c0,-.19 -.01,-.82 -.01,-1.49 c-2.01,.37 -2.53,-.49 -2.69,-.94 c-.09,-.23 -.48,-.94 -.82,-1.13 c-.28,-.15 -.68,-.52 -.01,-.53 c.63,-.01 1.08,.58 1.23,.82 c.72,1.21 1.87,.87 2.33,.66 c.07,-.52 .28,-.87 .51,-1.07 c-1.78,-.2 -3.64,-.89 -3.64,-3.95 c0,-.87 .31,-1.59 .82,-2.15 c-.08,-.2 -.36,-1.02 .08,-2.12 c0,0 .67,-.21 2.2,.82 c.64,-.18 1.32,-.27 2,-.27 c.68,0 1.36,.09 2,.27 c1.53,-1.04 2.2,-.82 2.2,-.82 c.44,1.1 .16,1.92 .08,2.12 c.51,.56 .82,1.27 .82,2.15 c0,3.07 -1.87,3.75 -3.65,3.95 c.29,.25 .54,.73 .54,1.48 c0,1.07 -.01,1.93 -.01,2.2 c0,.21 .15,.46 .55,.38 A8.013,8.013,0,0,0,16,8 c0,-4.42 -3.58,-8 -8,-8z" Stretch="Uniform" Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                        <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#FF17202A"/><Setter TargetName="ico" Property="Fill" Value="#FFE7EDF3"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
-                                    <Button Name="MinimizeBtn" Content="&#x2013;" Width="38" Height="34" Background="Transparent" Foreground="#FFA6B0BB" BorderThickness="0" FontSize="14" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,6,0" ToolTip="Minimize">
-                                    <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="Transparent" CornerRadius="8"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                        <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#FF17202A"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
-                                    <Button Name="CloseTitleBtn" Content="&#x2715;" Width="38" Height="34" Background="Transparent" Foreground="#FFA6B0BB" BorderThickness="0" FontSize="11" Cursor="Hand" ToolTip="Close">
-                                    <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="Transparent" CornerRadius="8"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                        <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#FFEF4444"/><Setter Property="Foreground" Value="#FFFFFFFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Path Grid.Column="0" Data="{StaticResource IconSparkle}" Stroke="{StaticResource AccentBrush}" Fill="{StaticResource AccentSoftBgBrush}" StrokeThickness="1.6" Stretch="Uniform" Width="20" Height="20"/>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Easy Install" Foreground="{StaticResource FgPrimaryBrush}" FontSize="13" FontWeight="SemiBold"/>
+                                <TextBlock Text="Recommended baseline" Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Grid>
-                    </Border>
+                    </RadioButton>
+                    <RadioButton Name="ModeCustom" Style="{StaticResource ModeRadio}" GroupName="Mode" Tag="Tune cleanup, theming, lyrics, extensions, and launch behavior before anything runs." ToolTip="Tune every option before installing.">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Path Grid.Column="0" Data="{StaticResource IconSliders}" Stroke="{StaticResource FgPrimaryBrush}" StrokeThickness="1.6" Stretch="Uniform" Width="20" Height="20"/>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Custom Install" Foreground="{StaticResource FgPrimaryBrush}" FontSize="13" FontWeight="SemiBold"/>
+                                <TextBlock Text="Per-option control" Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </RadioButton>
+                    <RadioButton Name="ModeMaint" Style="{StaticResource ModeRadio}" GroupName="Mode" Tag="Inspect the current stack, restore backups, reapply patches, or remove modifications safely." ToolTip="Inspect, back up, reapply, or reset.">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Path Grid.Column="0" Data="{StaticResource IconWrench}" Stroke="{StaticResource FgPrimaryBrush}" StrokeThickness="1.6" Stretch="Uniform" Width="20" Height="20"/>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Maintenance" Foreground="{StaticResource FgPrimaryBrush}" FontSize="13" FontWeight="SemiBold"/>
+                                <TextBlock Text="Repair and recover" Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </RadioButton>
+                </StackPanel>
 
-                    <!-- ===== CONTENT ===== -->
-                    <Grid Name="PageContainer" Grid.Row="1" Margin="26,20,26,26">
-                        <!-- ===== CONFIG PAGE ===== -->
-                        <Grid Name="PageConfig" Visibility="Visible"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                            <Grid Grid.Row="0" Margin="0,0,0,14">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="Choose your workflow" Style="{StaticResource SectionEyebrow}"/>
-                                    <TextBlock Name="ModeHeadline" Text="Recommended path for a first install" Foreground="#FFE7EDF3" FontSize="26" FontWeight="SemiBold" Margin="0,7,0,0"/>
-                                    <TextBlock Name="ModeSummaryText" Text="LibreSpot handles cleanup, verified downloads, Spotify patching, Marketplace, and a reliable default extension set." Style="{StaticResource SectionLead}" Margin="0,10,0,0" MaxWidth="690"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" HorizontalAlignment="Right" Margin="24,4,0,0" MaxWidth="280">
-                                    <TextBlock Text="Verified downloads" Foreground="#FF22C55E" FontSize="10.75" FontWeight="SemiBold" HorizontalAlignment="Right"/>
-                                    <TextBlock Text="Recovery-aware setup for predictable Spotify updates." Foreground="#FF778390" FontSize="11" Margin="0,6,0,0" HorizontalAlignment="Right" TextAlignment="Right" TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Grid>
-                            <Border Grid.Row="1" Background="#FF0F151D" BorderBrush="#FF25313D" BorderThickness="1" CornerRadius="10" Padding="8" Margin="0,0,0,14">
-                            <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <RadioButton Grid.Column="0" Name="ModeEasy" Content="Easy Install" Tag="Fastest clean setup with the recommended Spotify, SpotX, and Marketplace baseline." IsChecked="True" Style="{StaticResource ModeRadio}" GroupName="Mode" Margin="0,0,8,0"/>
-                                <RadioButton Grid.Column="1" Name="ModeCustom" Content="Custom Install" Tag="Tune cleanup, theming, lyrics, extensions, and launch behavior before anything runs." Style="{StaticResource ModeRadio}" GroupName="Mode" Margin="4,0,4,0"/>
-                                <RadioButton Grid.Column="2" Name="ModeMaint" Content="Maintenance" Tag="Inspect the current stack, restore backups, reapply patches, or remove modifications safely." Style="{StaticResource ModeRadio}" GroupName="Mode" Margin="8,0,0,0"/>
-                            </Grid>
-                            </Border>
-                            <Border Grid.Row="2" Background="#FF0F151D" CornerRadius="10" Padding="24" BorderBrush="#FF25313D" BorderThickness="1"><Grid>
+                <!-- Update banner (slot 3) -->
+                <Border Grid.Row="3" Name="UpdateBanner" Background="{StaticResource AccentSoftBgBrush}" BorderBrush="{StaticResource AccentSoftBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="14,11" Margin="0,0,0,14" Visibility="Collapsed" ToolTip="A newer LibreSpot release is available on GitHub.">
+                    <StackPanel>
+                        <TextBlock Text="UPDATE AVAILABLE" Foreground="{StaticResource AccentMutedBrush}" FontSize="9.75" FontWeight="SemiBold"/>
+                        <TextBlock Margin="0,4,0,0"><Hyperlink Name="LinkUpdate" Foreground="{StaticResource FgPrimaryBrush}" TextDecorations="None" FontSize="12" FontWeight="SemiBold" Cursor="Hand">View latest release &#x2192;</Hyperlink></TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <!-- Sidebar footer links -->
+                <StackPanel Grid.Row="4">
+                    <Border Height="1" Background="{StaticResource BorderSubtleBrush}" Margin="0,0,0,14"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                        <Button Name="LinkGitHub" Width="34" Height="34" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="View LibreSpot on GitHub" Margin="0,0,4,0">
+                            <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="Transparent" CornerRadius="8"><Path x:Name="ico" Fill="{StaticResource FgSecondaryBrush}" Data="M8,0 C3.58,0 0,3.58 0,8 c0,3.54 2.29,6.53 5.47,7.59 c.4,.07 .55,-.17 .55,-.38 c0,-.19 -.01,-.82 -.01,-1.49 c-2.01,.37 -2.53,-.49 -2.69,-.94 c-.09,-.23 -.48,-.94 -.82,-1.13 c-.28,-.15 -.68,-.52 -.01,-.53 c.63,-.01 1.08,.58 1.23,.82 c.72,1.21 1.87,.87 2.33,.66 c.07,-.52 .28,-.87 .51,-1.07 c-1.78,-.2 -3.64,-.89 -3.64,-3.95 c0,-.87 .31,-1.59 .82,-2.15 c-.08,-.2 -.36,-1.02 .08,-2.12 c0,0 .67,-.21 2.2,.82 c.64,-.18 1.32,-.27 2,-.27 c.68,0 1.36,.09 2,.27 c1.53,-1.04 2.2,-.82 2.2,-.82 c.44,1.1 .16,1.92 .08,2.12 c.51,.56 .82,1.27 .82,2.15 c0,3.07 -1.87,3.75 -3.65,3.95 c.29,.25 .54,.73 .54,1.48 c0,1.07 -.01,1.93 -.01,2.2 c0,.21 .15,.46 .55,.38 A8.013,8.013,0,0,0,16,8 c0,-4.42 -3.58,-8 -8,-8z" Stretch="Uniform" Width="15" Height="15" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource SurfaceElevatedBrush}"/><Setter TargetName="ico" Property="Fill" Value="{StaticResource FgPrimaryBrush}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template>
+                        </Button>
+                        <TextBlock VerticalAlignment="Center" Margin="6,0,0,0"><Hyperlink Name="LinkSpotX" NavigateUri="https://github.com/SpotX-Official/SpotX" Foreground="{StaticResource FgMutedBrush}" TextDecorations="None" FontSize="10.5" Cursor="Hand">SpotX</Hyperlink></TextBlock>
+                        <Border Width="1" Height="10" Background="{StaticResource BorderSubtleBrush}" Margin="10,0"/>
+                        <TextBlock VerticalAlignment="Center"><Hyperlink Name="LinkSpicetify" NavigateUri="https://github.com/spicetify" Foreground="{StaticResource FgMutedBrush}" TextDecorations="None" FontSize="10.5" Cursor="Hand">Spicetify</Hyperlink></TextBlock>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ===== MAIN COLUMN ===== -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Title bar: drag handle + mode headline + window controls -->
+            <Border Name="TitleBar" Grid.Row="0" Background="Transparent" Padding="32,22,18,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="LIBRESPOT" Foreground="{StaticResource FgMutedBrush}" FontSize="9.75" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Name="ModeHeadline" Text="Recommended path for a first install" Style="{StaticResource TypeH1}"/>
+                        <TextBlock Name="ModeSummaryText" Text="LibreSpot handles cleanup, verified downloads, Spotify patching, Marketplace, and a reliable default extension set." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12.25" Margin="0,6,0,0" MaxWidth="780" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="20,2,0,0">
+                        <Button Name="MinimizeBtn" Content="&#x2013;" Width="38" Height="34" Background="Transparent" Foreground="{StaticResource FgSecondaryBrush}" BorderThickness="0" FontSize="14" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,4,0" ToolTip="Minimize">
+                            <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="Transparent" CornerRadius="8"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource SurfaceElevatedBrush}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template>
+                        </Button>
+                        <Button Name="CloseTitleBtn" Content="&#x2715;" Width="38" Height="34" Background="Transparent" Foreground="{StaticResource FgSecondaryBrush}" BorderThickness="0" FontSize="11" Cursor="Hand" ToolTip="Close">
+                            <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="b" Background="Transparent" CornerRadius="8"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource DangerBrush}"/><Setter Property="Foreground" Value="#FFFFFFFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ===== CONTENT ===== -->
+            <Grid Name="PageContainer" Grid.Row="1" Margin="32,0,32,28">
+                <!-- ===== CONFIG PAGE ===== -->
+                <Grid Name="PageConfig" Visibility="Visible"><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="{StaticResource SurfaceElevatedBrush}" CornerRadius="14" Padding="26" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1">
+                        <Border.Effect><DropShadowEffect BlurRadius="22" ShadowDepth="0" Opacity="0.32" Color="#FF000000"/></Border.Effect>
+                        <Grid>
 
                                 <!-- ===== EASY PANEL ===== -->
                                 <ScrollViewer Name="PanelEasy" Visibility="Visible" VerticalScrollBarVisibility="Auto" Style="{StaticResource DarkScrollViewer}"><StackPanel Margin="4,6,4,0">
                                     <Grid Margin="0,0,0,20">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="1.15*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="0.85*"/></Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0">
-                                            <TextBlock Text="A clean, reliable Spotify setup in one pass" Foreground="#FFE7EDF3" FontSize="22" FontWeight="SemiBold"/>
-                                            <TextBlock Text="Easy Install applies the stable default stack: Spotify cleanup, SpotX patching, Spicetify, Marketplace, and a curated extension set with recovery-focused defaults." Foreground="#FFA6B0BB" FontSize="13" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                                            <TextBlock Text="A clean, reliable Spotify setup in one pass" Foreground="{StaticResource FgPrimaryBrush}" FontSize="22" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Easy Install applies the stable default stack: Spotify cleanup, SpotX patching, Spicetify, Marketplace, and a curated extension set with recovery-focused defaults." Foreground="{StaticResource FgSecondaryBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,10,0,0"/>
                                             <WrapPanel Margin="0,18,0,0">
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,18,10"><Rectangle Width="3" Height="14" Fill="#FF22C55E" RadiusX="1.5" RadiusY="1.5" VerticalAlignment="Center"/><TextBlock Text="Clean install" Foreground="#FF86EFAC" FontSize="10.75" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,18,10"><Rectangle Width="3" Height="14" Fill="#FF22C55E" RadiusX="1.5" RadiusY="1.5" VerticalAlignment="Center"/><TextBlock Text="Marketplace included" Foreground="#FF86EFAC" FontSize="10.75" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
@@ -1417,12 +1663,12 @@ $xaml = @"
                                         </StackPanel>
                                         <Border Grid.Column="2" Style="{StaticResource SurfaceCard}">
                                             <StackPanel>
-                                                <TextBlock Text="Default preset" Foreground="#FFE7EDF3" FontSize="14.5" FontWeight="SemiBold"/>
-                                                <TextBlock Text="Best when you want Spotify working quickly without tuning every option." Foreground="#FFA6B0BB" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,14"/>
-                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="#FF22C55E" Margin="0,6,12,0"/><TextBlock Grid.Column="1" Text="Fresh Spotify with SpotX patching and the new UI theme" Foreground="#FFE7EDF3" FontSize="12.5" TextWrapping="Wrap"/></Grid>
-                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="#FF22C55E" Margin="0,6,12,0"/><TextBlock Grid.Column="1" Text="Podcasts removed, ad-like sections hidden, and auto-updates blocked" Foreground="#FFE7EDF3" FontSize="12.5" TextWrapping="Wrap"/></Grid>
-                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="#FF22C55E" Margin="0,6,12,0"/><TextBlock Grid.Column="1" Text="Marketplace plus Full App Display, Shuffle+, and Trash Bin" Foreground="#FFE7EDF3" FontSize="12.5" TextWrapping="Wrap"/></Grid>
-                                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="#FF93C5FD" Margin="0,6,12,0"/><TextBlock Grid.Column="1" Text="Settings are saved so the same defaults are ready next time" Foreground="#FFE7EDF3" FontSize="12.5" TextWrapping="Wrap"/></Grid>
+                                                <TextBlock Text="Default preset" Foreground="{StaticResource FgPrimaryBrush}" FontSize="14.5" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Best when you want Spotify working quickly without tuning every option." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,14"/>
+                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="#FF22C55E" Margin="0,6,12,0"/><TextBlock Grid.Column="1" Text="Fresh Spotify with SpotX patching and the new UI theme" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/></Grid>
+                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="#FF22C55E" Margin="0,6,12,0"/><TextBlock Grid.Column="1" Text="Podcasts removed, ad-like sections hidden, and auto-updates blocked" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/></Grid>
+                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="#FF22C55E" Margin="0,6,12,0"/><TextBlock Grid.Column="1" Text="Marketplace plus Full App Display, Shuffle+, and Trash Bin" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/></Grid>
+                                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="#FF93C5FD" Margin="0,6,12,0"/><TextBlock Grid.Column="1" Text="Settings are saved so the same defaults are ready next time" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/></Grid>
                                             </StackPanel>
                                         </Border>
                                     </Grid>
@@ -1430,22 +1676,22 @@ $xaml = @"
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Border Grid.Column="0" Style="{StaticResource SurfaceCard}">
                                             <StackPanel>
-                                                <TextBlock Text="What LibreSpot takes care of" Foreground="#FFE7EDF3" FontSize="15" FontWeight="SemiBold"/>
-                                                <TextBlock Text="The goal is a dependable install, not just a pretty wrapper." Foreground="#FFA6B0BB" FontSize="12" Margin="0,8,0,14"/>
-                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="22" Height="22" CornerRadius="6" Background="#FF111A22" BorderBrush="#FF2D5A3F" BorderThickness="1"><Path Data="M 5 10 L 9 14 L 16 6" Stroke="#FF22C55E" StrokeThickness="1.8" Margin="0.5,0,0,0"/></Border><TextBlock Grid.Column="1" Margin="12,0,0,0" Text="Verifies pinned downloads before applying anything" Foreground="#FFE7EDF3" FontSize="12.5" TextWrapping="Wrap"/></Grid>
-                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="22" Height="22" CornerRadius="6" Background="#FF111C2A" BorderBrush="#FF2E4964" BorderThickness="1"><Path Data="M 5 10 L 9 14 L 16 6" Stroke="#FF93C5FD" StrokeThickness="1.8" Margin="0.5,0,0,0"/></Border><TextBlock Grid.Column="1" Margin="12,0,0,0" Text="Runs cleanup first so stale Spotify and Spicetify files do not conflict" Foreground="#FFE7EDF3" FontSize="12.5" TextWrapping="Wrap"/></Grid>
-                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="22" Height="22" CornerRadius="6" Background="#FF211A0E" BorderBrush="#FF6B4E16" BorderThickness="1"><Path Data="M 5 10 L 9 14 L 16 6" Stroke="#FFFCD34D" StrokeThickness="1.8" Margin="0.5,0,0,0"/></Border><TextBlock Grid.Column="1" Margin="12,0,0,0" Text="Installs themes, extensions, and Marketplace in a safe order" Foreground="#FFE7EDF3" FontSize="12.5" TextWrapping="Wrap"/></Grid>
-                                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="22" Height="22" CornerRadius="6" Background="#FF111A22" BorderBrush="#FF2D5A3F" BorderThickness="1"><Path Data="M 5 10 L 9 14 L 16 6" Stroke="#FF22C55E" StrokeThickness="1.8" Margin="0.5,0,0,0"/></Border><TextBlock Grid.Column="1" Margin="12,0,0,0" Text="Keeps recovery tools close by if Spotify updates later" Foreground="#FFE7EDF3" FontSize="12.5" TextWrapping="Wrap"/></Grid>
+                                                <TextBlock Text="What LibreSpot takes care of" Foreground="{StaticResource FgPrimaryBrush}" FontSize="15" FontWeight="SemiBold"/>
+                                                <TextBlock Text="The goal is a dependable install, not just a pretty wrapper." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12" Margin="0,8,0,14"/>
+                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="22" Height="22" CornerRadius="6" Background="#FF111A22" BorderBrush="#FF2D5A3F" BorderThickness="1"><Path Data="M 5 10 L 9 14 L 16 6" Stroke="#FF22C55E" StrokeThickness="1.8" Margin="0.5,0,0,0"/></Border><TextBlock Grid.Column="1" Margin="12,0,0,0" Text="Verifies pinned downloads before applying anything" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/></Grid>
+                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="22" Height="22" CornerRadius="6" Background="#FF111C2A" BorderBrush="#FF2E4964" BorderThickness="1"><Path Data="M 5 10 L 9 14 L 16 6" Stroke="#FF93C5FD" StrokeThickness="1.8" Margin="0.5,0,0,0"/></Border><TextBlock Grid.Column="1" Margin="12,0,0,0" Text="Runs cleanup first so stale Spotify and Spicetify files do not conflict" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/></Grid>
+                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="22" Height="22" CornerRadius="6" Background="#FF211A0E" BorderBrush="#FF6B4E16" BorderThickness="1"><Path Data="M 5 10 L 9 14 L 16 6" Stroke="#FFFCD34D" StrokeThickness="1.8" Margin="0.5,0,0,0"/></Border><TextBlock Grid.Column="1" Margin="12,0,0,0" Text="Installs themes, extensions, and Marketplace in a safe order" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/></Grid>
+                                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="22" Height="22" CornerRadius="6" Background="#FF111A22" BorderBrush="#FF2D5A3F" BorderThickness="1"><Path Data="M 5 10 L 9 14 L 16 6" Stroke="#FF22C55E" StrokeThickness="1.8" Margin="0.5,0,0,0"/></Border><TextBlock Grid.Column="1" Margin="12,0,0,0" Text="Keeps recovery tools close by if Spotify updates later" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/></Grid>
                                             </StackPanel>
                                         </Border>
                                         <Border Grid.Column="2" Style="{StaticResource SurfaceCard}">
                                             <StackPanel>
-                                                <TextBlock Text="Before you start" Foreground="#FFE7EDF3" FontSize="15" FontWeight="SemiBold"/>
-                                                <TextBlock Text="A few expectations up front make the whole flow feel more predictable." Foreground="#FFA6B0BB" FontSize="12" Margin="0,8,0,14"/>
-                                                <TextBlock Text="LibreSpot requests administrator permission because it modifies Spotify files and Windows settings." Foreground="#FFE7EDF3" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,10"/>
-                                                <TextBlock Text="A network connection is required for GitHub downloads, preview images, and update checks." Foreground="#FFE7EDF3" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,10"/>
-                                                <TextBlock Text="Easy Install removes any existing Spotify and Spicetify setup first so the result is consistent." Foreground="#FFE7EDF3" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,10"/>
-                                                <TextBlock Text="If you prefer to keep a current install in place, switch to Custom Install and disable full cleanup." Foreground="#FFE7EDF3" FontSize="12.5" TextWrapping="Wrap"/>
+                                                <TextBlock Text="Before you start" Foreground="{StaticResource FgPrimaryBrush}" FontSize="15" FontWeight="SemiBold"/>
+                                                <TextBlock Text="A few expectations up front make the whole flow feel more predictable." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12" Margin="0,8,0,14"/>
+                                                <TextBlock Text="LibreSpot requests administrator permission because it modifies Spotify files and Windows settings." Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                                <TextBlock Text="A network connection is required for GitHub downloads, preview images, and update checks." Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                                <TextBlock Text="Easy Install removes any existing Spotify and Spicetify setup first so the result is consistent." Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                                <TextBlock Text="If you prefer to keep a current install in place, switch to Custom Install and disable full cleanup." Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/>
                                             </StackPanel>
                                         </Border>
                                     </Grid>
@@ -1456,8 +1702,8 @@ $xaml = @"
                                     <Grid Margin="0,0,0,18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                         <StackPanel>
-                                            <TextBlock Text="Custom install, dialed in" Foreground="#FFE7EDF3" FontSize="21" FontWeight="SemiBold"/>
-                                            <TextBlock Text="Choose exactly how much cleanup, theming, Marketplace support, and extension prep you want before Spotify opens." Foreground="#FFA6B0BB" FontSize="12.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                            <TextBlock Text="Custom install, dialed in" Foreground="{StaticResource FgPrimaryBrush}" FontSize="21" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Choose exactly how much cleanup, theming, Marketplace support, and extension prep you want before Spotify opens." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                         </StackPanel>
                                         <Button Grid.Column="1" Name="BtnResetCustomDefaults" Content="Recommended defaults" Background="#FF111821" Style="{StaticResource ActionButton}" Width="216" Height="40" Margin="18,2,0,0" VerticalAlignment="Top" ToolTip="Apply the Easy Install defaults here so you can keep customizing from a known-good baseline."/>
                                     </Grid>
@@ -1466,26 +1712,26 @@ $xaml = @"
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Border Grid.Column="0" Style="{StaticResource InsetPanel}">
                                                 <StackPanel>
-                                                    <TextBlock Text="Install plan" Foreground="#FFA6B0BB" FontSize="11" FontWeight="SemiBold"/>
-                                                    <TextBlock Name="CustomSnapshotPlanValue" Text="Clean install" Foreground="#FFE7EDF3" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="Install plan" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11" FontWeight="SemiBold"/>
+                                                    <TextBlock Name="CustomSnapshotPlanValue" Text="Clean install" Foreground="{StaticResource FgPrimaryBrush}" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                                 </StackPanel>
                                             </Border>
                                             <Border Grid.Column="2" Style="{StaticResource InsetPanel}">
                                                 <StackPanel>
-                                                    <TextBlock Text="Theme" Foreground="#FFA6B0BB" FontSize="11" FontWeight="SemiBold"/>
-                                                    <TextBlock Name="CustomSnapshotThemeValue" Text="Marketplace only" Foreground="#FFE7EDF3" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="Theme" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11" FontWeight="SemiBold"/>
+                                                    <TextBlock Name="CustomSnapshotThemeValue" Text="Marketplace only" Foreground="{StaticResource FgPrimaryBrush}" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                                 </StackPanel>
                                             </Border>
                                             <Border Grid.Column="4" Style="{StaticResource InsetPanel}">
                                                 <StackPanel>
-                                                    <TextBlock Text="Extensions" Foreground="#FFA6B0BB" FontSize="11" FontWeight="SemiBold"/>
-                                                    <TextBlock Name="CustomSnapshotExtensionsValue" Text="3 extensions" Foreground="#FFE7EDF3" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="Extensions" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11" FontWeight="SemiBold"/>
+                                                    <TextBlock Name="CustomSnapshotExtensionsValue" Text="3 extensions" Foreground="{StaticResource FgPrimaryBrush}" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                                 </StackPanel>
                                             </Border>
                                             <Border Grid.Column="6" Style="{StaticResource InsetPanel}">
                                                 <StackPanel>
-                                                    <TextBlock Text="Remembered state" Foreground="#FFA6B0BB" FontSize="11" FontWeight="SemiBold"/>
-                                                    <TextBlock Name="CustomSnapshotMemoryValue" Text="Will save on install" Foreground="#FFE7EDF3" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="Remembered state" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11" FontWeight="SemiBold"/>
+                                                    <TextBlock Name="CustomSnapshotMemoryValue" Text="Will save on install" Foreground="{StaticResource FgPrimaryBrush}" FontSize="14.5" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
@@ -1494,12 +1740,12 @@ $xaml = @"
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Border Grid.Column="0" Style="{StaticResource SurfaceCard}">
                                             <StackPanel>
-                                                <TextBlock Text="Spotify behavior" Foreground="#FFE7EDF3" FontSize="15" FontWeight="SemiBold"/>
-                                                <TextBlock Text="LibreSpot uses SpotX to handle cleanup, patching, interface tweaks, and a few system-level quality-of-life options." Foreground="#FFA6B0BB" FontSize="12" Margin="0,8,0,14" TextWrapping="Wrap"/>
+                                                <TextBlock Text="Spotify behavior" Foreground="{StaticResource FgPrimaryBrush}" FontSize="15" FontWeight="SemiBold"/>
+                                                <TextBlock Text="LibreSpot uses SpotX to handle cleanup, patching, interface tweaks, and a few system-level quality-of-life options." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12" Margin="0,8,0,14" TextWrapping="Wrap"/>
                                                 <Border Style="{StaticResource InsetPanel}">
                                                     <StackPanel>
-                                                        <TextBlock Text="Core cleanup" Foreground="#FFE7EDF3" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="Trim Spotify's default clutter and keep the patched setup stable after future updates." Foreground="#FF778390" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Core cleanup" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Trim Spotify's default clutter and keep the patched setup stable after future updates." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <CheckBox Name="ChkNewTheme" Content="Enable the new Spotify interface" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Activates Spotify new sidebar and cover art layout"/>
                                                         <CheckBox Name="ChkPodcastsOff" Content="Remove podcasts from Home" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Hides podcast sections from home feed"/>
                                                         <CheckBox Name="ChkAdSectionsOff" Content="Hide ad-like Home sections" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Removes promotional sections"/>
@@ -1510,11 +1756,11 @@ $xaml = @"
 
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
                                                     <StackPanel>
-                                                        <TextBlock Text="Lyrics" Foreground="#FFE7EDF3" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="Use the static lyrics layer if you want cleaner reading and easier theme matching." Foreground="#FF778390" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Lyrics" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Use the static lyrics layer if you want cleaner reading and easier theme matching." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <CheckBox Name="ChkLyrics" Content="Enable a static lyrics theme" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
                                                         <StackPanel Name="LyricsThemePanel" Orientation="Horizontal" Margin="28,6,0,0">
-                                                            <TextBlock Text="Theme:" Foreground="#FFA6B0BB" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                            <TextBlock Text="Theme:" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                             <ComboBox Name="CmbLyricsTheme" Width="170" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}" SelectedIndex="0">
                                                                 <ComboBoxItem Content="spotify"/><ComboBoxItem Content="blueberry"/><ComboBoxItem Content="blue"/><ComboBoxItem Content="discord"/>
                                                                 <ComboBoxItem Content="forest"/><ComboBoxItem Content="fresh"/><ComboBoxItem Content="github"/><ComboBoxItem Content="lavender"/>
@@ -1530,8 +1776,8 @@ $xaml = @"
 
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
                                                     <StackPanel>
-                                                        <TextBlock Text="Interface experiments" Foreground="#FFE7EDF3" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="Optional layout tweaks. Keep this section conservative if you want the safest possible install." Foreground="#FF778390" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Interface experiments" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Optional layout tweaks. Keep this section conservative if you want the safest possible install." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <CheckBox Name="ChkTopSearch" Content="Move search to the top bar" Style="{StaticResource DarkCheckBox}" ToolTip="Move search bar to top of window"/>
                                                         <CheckBox Name="ChkRightSidebarOff" Content="Disable the right sidebar" Style="{StaticResource DarkCheckBox}" ToolTip="Remove the Now Playing sidebar panel"/>
                                                         <CheckBox Name="ChkRightSidebarColor" Content="Match right sidebar colors to album art" Style="{StaticResource DarkCheckBox}" ToolTip="Tint sidebar to match album cover"/>
@@ -1543,8 +1789,8 @@ $xaml = @"
 
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
                                                     <StackPanel>
-                                                        <TextBlock Text="Experimental features" Foreground="#FFE7EDF3" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="These features are newer or experimental. They may change behavior with future Spotify updates." Foreground="#FF778390" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Experimental features" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="These features are newer or experimental. They may change behavior with future Spotify updates." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <CheckBox Name="ChkPlus" Content="Enhanced save and destination features" Style="{StaticResource DarkCheckBox}" ToolTip="Enable enhanced save/destination features in Spotify"/>
                                                         <CheckBox Name="ChkNewFullscreen" Content="Experimental fullscreen mode" Style="{StaticResource DarkCheckBox}" ToolTip="Enable the new experimental fullscreen mode"/>
                                                         <CheckBox Name="ChkFunnyProgress" Content="Humorous progress bar" Style="{StaticResource DarkCheckBox}" ToolTip="Replace the standard progress bar with a humorous variant"/>
@@ -1555,36 +1801,36 @@ $xaml = @"
 
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
                                                     <StackPanel>
-                                                        <TextBlock Text="System behavior" Foreground="#FFE7EDF3" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="Set startup behavior, shortcut handling, and the cache-size override SpotX can apply." Foreground="#FF778390" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="System behavior" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Set startup behavior, shortcut handling, and the cache-size override SpotX can apply." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <CheckBox Name="ChkDisableStartup" Content="Disable Spotify on Windows startup" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
                                                         <CheckBox Name="ChkNoShortcut" Content="Skip the desktop shortcut" Style="{StaticResource DarkCheckBox}"/>
                                                         <CheckBox Name="ChkStartSpoti" Content="Launch Spotify automatically after install" Style="{StaticResource DarkCheckBox}" ToolTip="Let SpotX start Spotify right after the patch finishes"/>
                                                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                                            <TextBlock Text="Cache limit (MB):" Foreground="#FFE7EDF3" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                            <TextBlock Text="Cache limit (MB):" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                             <TextBox Name="TxtCacheLimit" Width="96" Text="0" Style="{StaticResource DarkTextBox}" ToolTip="Use 0 or a value of 500 MB and above."/>
                                                         </StackPanel>
-                                                        <TextBlock Text="Use 0 to keep Spotify's default behavior. LibreSpot treats any value from 1 to 499 as 500 MB so the override stays in SpotX's safer range." Foreground="#FF778390" FontSize="10.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Use 0 to keep Spotify's default behavior. LibreSpot treats any value from 1 to 499 as 500 MB so the override stays in SpotX's safer range." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                                     </StackPanel>
                                                 </Border>
 
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
                                                     <StackPanel>
-                                                        <TextBlock Text="Privacy" Foreground="#FFE7EDF3" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="Limit what SpotX and Spotify can report back. Recommended defaults trim outbound telemetry without breaking patches." Foreground="#FF778390" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Privacy" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Limit what SpotX and Spotify can report back. Recommended defaults trim outbound telemetry without breaking patches." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <CheckBox Name="ChkSendVersionOff" Content="Disable SpotX version reporting" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Blocks SpotX's outbound version notification (added in SpotX April 2026)"/>
                                                     </StackPanel>
                                                 </Border>
 
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
                                                     <StackPanel>
-                                                        <TextBlock Text="Advanced" Foreground="#FFE7EDF3" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="Power-user overrides. Leave defaults unless you have a specific reason to change them." Foreground="#FF778390" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Advanced" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Power-user overrides. Leave defaults unless you have a specific reason to change them." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <CheckBox Name="ChkDevTools" Content="Enable Spotify Developer Tools" Style="{StaticResource DarkCheckBox}" ToolTip="Unlocks the Chromium DevTools hotkey inside Spotify (useful for Spicetify extension authors)"/>
                                                         <CheckBox Name="ChkMirror" Content="Use GitHub.io mirror for SpotX assets" Style="{StaticResource DarkCheckBox}" ToolTip="Falls back to the github.io mirror if raw.githubusercontent.com is blocked on your network"/>
                                                         <CheckBox Name="ChkConfirmUninstall" Content="Force a clean Spotify uninstall before patching" Style="{StaticResource DarkCheckBox}" ToolTip="Runs SpotX's uninstall-then-reinstall flow even when the current version would otherwise be kept"/>
                                                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                                            <TextBlock Text="Download method:" Foreground="#FFE7EDF3" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                            <TextBlock Text="Download method:" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                             <ComboBox Name="CmbDownloadMethod" Width="140" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}" SelectedIndex="0" ToolTip="Force SpotX to use a specific downloader when the auto-selected one fails.">
                                                                 <ComboBoxItem Content="auto"/>
                                                                 <ComboBoxItem Content="curl"/>
@@ -1592,30 +1838,30 @@ $xaml = @"
                                                             </ComboBox>
                                                         </StackPanel>
                                                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                                            <TextBlock Text="Spotify version:" Foreground="#FFE7EDF3" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                            <TextBlock Text="Spotify version:" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                             <ComboBox Name="CmbSpotifyVersion" Width="260" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}" SelectedIndex="0" ToolTip="Pin a specific Spotify client version. Leave on 'Auto' unless you know a specific build works better for your system."/>
                                                         </StackPanel>
-                                                        <TextBlock Name="SpotifyVersionHint" Text="Lets SpotX pick the most compatible build." Foreground="#FF778390" FontSize="10.5" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                                                        <TextBlock Name="SpotifyVersionHint" Text="Lets SpotX pick the most compatible build." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,6,0,0" TextWrapping="Wrap"/>
                                                     </StackPanel>
                                                 </Border>
                                             </StackPanel>
                                         </Border>
                                         <Border Grid.Column="2" Style="{StaticResource SurfaceCard}">
                                             <StackPanel>
-                                                <TextBlock Text="Themes, Marketplace, and extensions" Foreground="#FFE7EDF3" FontSize="15" FontWeight="SemiBold"/>
-                                                <TextBlock Text="Shape the first-run look and decide what should already be installed before Spotify opens." Foreground="#FFA6B0BB" FontSize="12" Margin="0,8,0,14" TextWrapping="Wrap"/>
+                                                <TextBlock Text="Themes, Marketplace, and extensions" Foreground="{StaticResource FgPrimaryBrush}" FontSize="15" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Shape the first-run look and decide what should already be installed before Spotify opens." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12" Margin="0,8,0,14" TextWrapping="Wrap"/>
                                                 <Border Style="{StaticResource InsetPanel}">
                                                     <StackPanel>
-                                                        <TextBlock Text="Theme" Foreground="#FFE7EDF3" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="Pick a bundled theme now, or stay Marketplace-only and browse from inside Spotify later." Foreground="#FF778390" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
-                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6"><TextBlock Text="Theme:" Foreground="#FFA6B0BB" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                        <TextBlock Text="Theme" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Pick a bundled theme now, or stay Marketplace-only and browse from inside Spotify later." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6"><TextBlock Text="Theme:" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                             <ComboBox Name="CmbTheme" Width="220" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}"/></StackPanel>
-                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6"><TextBlock Text="Color Scheme:" Foreground="#FFA6B0BB" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6"><TextBlock Text="Color Scheme:" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                             <ComboBox Name="CmbScheme" Width="190" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}" ToolTip="Choose the color scheme for the selected bundled theme."/></StackPanel>
                                                         <Border Name="PreviewBorder" CornerRadius="12" Background="#FF090D13" BorderBrush="#FF25313D" BorderThickness="1" Margin="0,10,0,0" Height="184" ClipToBounds="True">
                                                             <Grid>
                                                                 <Image Name="ThemePreviewImg" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                                <Border Background="#CC0B0F0D"><TextBlock Name="PreviewLabel" Text="Select a bundled theme to preview it here." Foreground="#FFA6B0BB" FontSize="11.5" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="240"/></Border>
+                                                                <Border Background="#CC0B0F0D"><TextBlock Name="PreviewLabel" Text="Select a bundled theme to preview it here." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="240"/></Border>
                                                             </Grid>
                                                         </Border>
                                                     </StackPanel>
@@ -1623,17 +1869,17 @@ $xaml = @"
 
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
                                                     <StackPanel>
-                                                        <TextBlock Text="Marketplace" Foreground="#FFE7EDF3" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="Keep the in-app browser if you want to add more themes or extensions after the guided install." Foreground="#FF778390" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Marketplace" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Keep the in-app browser if you want to add more themes or extensions after the guided install." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <CheckBox Name="ChkMarketplace" Content="Install the Spicetify Marketplace" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="In-app store for themes and extensions"/>
-                                                        <TextBlock Text="Browse and install themes or extensions from inside Spotify after setup." Foreground="#FF778390" FontSize="10.5" Margin="28,4,0,0" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Browse and install themes or extensions from inside Spotify after setup." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="28,4,0,0" TextWrapping="Wrap"/>
                                                     </StackPanel>
                                                 </Border>
 
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
                                                     <StackPanel>
-                                                        <TextBlock Text="Built-in extensions" Foreground="#FFE7EDF3" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="Easy Install ships with Full App Display, Shuffle+, and Trash Bin enabled. Custom Install lets you fine-tune the rest." Foreground="#FF778390" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Built-in extensions" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Easy Install ships with Full App Display, Shuffle+, and Trash Bin enabled. Custom Install lets you fine-tune the rest." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <Grid Margin="0,6,0,0">
                                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                             <StackPanel Grid.Column="0">
@@ -1666,8 +1912,8 @@ $xaml = @"
 
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
                                                     <StackPanel>
-                                                        <TextBlock Text="Community extensions" Foreground="#FFE7EDF3" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="Popular third-party extensions downloaded from GitHub. These are not bundled with Spicetify and may need manual updates." Foreground="#FF778390" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Community extensions" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Popular third-party extensions downloaded from GitHub. These are not bundled with Spicetify and may need manual updates." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <Grid Margin="0,6,0,0">
                                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                             <StackPanel Grid.Column="0">
@@ -1690,11 +1936,11 @@ $xaml = @"
 
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,14,0,0">
                                                     <StackPanel>
-                                                        <TextBlock Text="Install behavior" Foreground="#FFE7EDF3" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="Control how aggressively LibreSpot resets the current install and whether Spotify opens when the run is done." Foreground="#FF778390" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Install behavior" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Control how aggressively LibreSpot resets the current install and whether Spotify opens when the run is done." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <CheckBox Name="ChkCleanInstall" Content="Remove the existing setup first" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
                                                         <CheckBox Name="ChkLaunchAfter" Content="Launch Spotify when finished" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
-                                                        <TextBlock Text="LibreSpot remembers these custom choices after setup starts, so future reapply runs stay consistent." Foreground="#FF778390" FontSize="10.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="LibreSpot remembers these custom choices after setup starts, so future reapply runs stay consistent." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                                     </StackPanel>
                                                 </Border>
                                             </StackPanel>
@@ -1704,14 +1950,14 @@ $xaml = @"
 
                                 <!-- ===== MAINTENANCE PANEL ===== -->
                                 <ScrollViewer Name="PanelMaint" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Style="{StaticResource DarkScrollViewer}"><StackPanel Margin="4,6,4,0">
-                                    <TextBlock Text="Maintenance and recovery" Foreground="#FFE7EDF3" FontSize="21" FontWeight="SemiBold"/>
-                                    <TextBlock Text="Check the current install, back up what matters, reapply patches after Spotify updates, or remove everything cleanly when you want to start over." Foreground="#FFA6B0BB" FontSize="12.5" Margin="0,8,0,18" TextWrapping="Wrap"/>
+                                    <TextBlock Text="Maintenance and recovery" Foreground="{StaticResource FgPrimaryBrush}" FontSize="21" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Check the current install, back up what matters, reapply patches after Spotify updates, or remove everything cleanly when you want to start over." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12.5" Margin="0,8,0,18" TextWrapping="Wrap"/>
                                     <Border Style="{StaticResource SurfaceCard}" Margin="0,0,0,18">
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                             <StackPanel>
-                                                <TextBlock Name="MaintenanceOverviewTitle" Text="Scanning the current setup..." Foreground="#FFE7EDF3" FontSize="15.5" FontWeight="SemiBold"/>
-                                                <TextBlock Name="MaintenanceOverviewText" Text="LibreSpot is checking which parts of the Spotify stack are installed so recovery actions can stay predictable." Foreground="#FFA6B0BB" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap" MaxWidth="620"/>
+                                                <TextBlock Name="MaintenanceOverviewTitle" Text="Scanning the current setup..." Foreground="{StaticResource FgPrimaryBrush}" FontSize="15.5" FontWeight="SemiBold"/>
+                                                <TextBlock Name="MaintenanceOverviewText" Text="LibreSpot is checking which parts of the Spotify stack are installed so recovery actions can stay predictable." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap" MaxWidth="620"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="20,0,0,0" HorizontalAlignment="Right">
                                                 <TextBlock Text="Safer recovery" Foreground="#FF86EFAC" FontSize="10.75" FontWeight="SemiBold" TextAlignment="Right"/>
@@ -1722,11 +1968,11 @@ $xaml = @"
 
                                     <Grid Margin="0,0,0,20">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <Border Name="StatusCardSpotify" Grid.Column="0" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="Spotify" Foreground="#FFA6B0BB" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusSpotify" Text="Checking…" Foreground="#FFE7EDF3" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
-                                        <Border Name="StatusCardSpotX" Grid.Column="2" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="SpotX" Foreground="#FFA6B0BB" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusSpotX" Text="Checking…" Foreground="#FFE7EDF3" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
-                                        <Border Name="StatusCardSpicetify" Grid.Column="4" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="Spicetify" Foreground="#FFA6B0BB" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusSpicetify" Text="Checking…" Foreground="#FFE7EDF3" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
-                                        <Border Name="StatusCardMarketplace" Grid.Column="6" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="Marketplace" Foreground="#FFA6B0BB" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusMarketplace" Text="Checking…" Foreground="#FFE7EDF3" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
-                                        <Border Name="StatusCardTheme" Grid.Column="8" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="Theme" Foreground="#FFA6B0BB" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusTheme" Text="Checking…" Foreground="#FFE7EDF3" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
+                                        <Border Name="StatusCardSpotify" Grid.Column="0" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="Spotify" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusSpotify" Text="Checking…" Foreground="{StaticResource FgPrimaryBrush}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
+                                        <Border Name="StatusCardSpotX" Grid.Column="2" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="SpotX" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusSpotX" Text="Checking…" Foreground="{StaticResource FgPrimaryBrush}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
+                                        <Border Name="StatusCardSpicetify" Grid.Column="4" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="Spicetify" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusSpicetify" Text="Checking…" Foreground="{StaticResource FgPrimaryBrush}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
+                                        <Border Name="StatusCardMarketplace" Grid.Column="6" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="Marketplace" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusMarketplace" Text="Checking…" Foreground="{StaticResource FgPrimaryBrush}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
+                                        <Border Name="StatusCardTheme" Grid.Column="8" Style="{StaticResource StatusCard}"><StackPanel><TextBlock Text="Theme" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11" FontWeight="SemiBold"/><TextBlock Name="StatusTheme" Text="Checking…" Foreground="{StaticResource FgPrimaryBrush}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/></StackPanel></Border>
                                     </Grid>
 
                                     <Border Style="{StaticResource SurfaceCard}" Margin="0,0,0,20">
@@ -1760,26 +2006,26 @@ $xaml = @"
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Border Grid.Column="0" Style="{StaticResource SurfaceCard}">
                                             <StackPanel>
-                                                <TextBlock Text="Protect and repair" Foreground="#FFE7EDF3" FontSize="15" FontWeight="SemiBold"/>
-                                                <TextBlock Text="Keep your current setup recoverable, compare pinned versions, or reapply patches after an update." Foreground="#FFA6B0BB" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,6"/>
-                                                <Button Name="BtnBackupConfig" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Create configuration backup" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Save themes, extensions, and Spicetify settings before making a change." Foreground="#FFA6B0BB" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
-                                                <Button Name="BtnRestoreConfig" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Restore the newest backup" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Bring back the latest saved Spicetify configuration and apply it immediately." Foreground="#FFA6B0BB" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
-                                                <Button Name="BtnCheckUpdates" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Check pinned versions" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Compare LibreSpot's pinned releases against the latest upstream versions." Foreground="#FFA6B0BB" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
-                                                <Button Name="BtnReapply" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Reapply after a Spotify update" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Run SpotX again and reapply Spicetify without rebuilding your preferences from scratch." Foreground="#FFA6B0BB" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
+                                                <TextBlock Text="Protect and repair" Foreground="{StaticResource FgPrimaryBrush}" FontSize="15" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Keep your current setup recoverable, compare pinned versions, or reapply patches after an update." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,6"/>
+                                                <Button Name="BtnBackupConfig" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Create configuration backup" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Save themes, extensions, and Spicetify settings before making a change." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
+                                                <Button Name="BtnRestoreConfig" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Restore the newest backup" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Bring back the latest saved Spicetify configuration and apply it immediately." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
+                                                <Button Name="BtnCheckUpdates" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Check pinned versions" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Compare LibreSpot's pinned releases against the latest upstream versions." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
+                                                <Button Name="BtnReapply" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Reapply after a Spotify update" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Run SpotX again and reapply Spicetify without rebuilding your preferences from scratch." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Border Background="#FF111821" BorderBrush="#FF25313D" BorderThickness="1" CornerRadius="10" Padding="14,12" Margin="0,10,0,0">
                                                     <StackPanel>
                                                         <CheckBox Name="ChkAutoReapply" Content="Auto-reapply when Spotify updates itself" Style="{StaticResource DarkCheckBox}" ToolTip="Registers a per-user scheduled task that watches Spotify.exe's version number and reruns the saved SpotX config silently whenever it changes."/>
-                                                        <TextBlock Name="AutoReapplyStatusText" Text="Scheduled task: not installed" Foreground="#FFA6B0BB" FontSize="11" Margin="28,4,0,0" TextWrapping="Wrap"/>
-                                                        <TextBlock Text="The watcher only runs when Spotify is closed, skips automatically if no saved LibreSpot config exists, and writes every action to watcher.log next to the install log." Foreground="#FF778390" FontSize="10.5" Margin="28,4,0,0" TextWrapping="Wrap"/>
+                                                        <TextBlock Name="AutoReapplyStatusText" Text="Scheduled task: not installed" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11" Margin="28,4,0,0" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="The watcher only runs when Spotify is closed, skips automatically if no saved LibreSpot config exists, and writes every action to watcher.log next to the install log." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="28,4,0,0" TextWrapping="Wrap"/>
                                                     </StackPanel>
                                                 </Border>
                                             </StackPanel>
                                         </Border>
                                         <Border Grid.Column="2" Style="{StaticResource SurfaceCard}">
                                             <StackPanel>
-                                                <TextBlock Text="Restore or remove modifications" Foreground="#FFE7EDF3" FontSize="15" FontWeight="SemiBold"/>
-                                                <TextBlock Text="Use the lighter recovery option first. Full Reset is intentionally destructive and best when you want to start clean." Foreground="#FFA6B0BB" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,6"/>
-                                                <Button Name="BtnSpicetifyRestore" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Restore vanilla Spotify" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Remove Spicetify themes and extensions while keeping SpotX patching in place." Foreground="#FFA6B0BB" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
+                                                <TextBlock Text="Restore or remove modifications" Foreground="{StaticResource FgPrimaryBrush}" FontSize="15" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Use the lighter recovery option first. Full Reset is intentionally destructive and best when you want to start clean." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,6"/>
+                                                <Button Name="BtnSpicetifyRestore" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Restore vanilla Spotify" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Remove Spicetify themes and extensions while keeping SpotX patching in place." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Button Name="BtnUninstallSpicetify" Style="{StaticResource WarningMaintButton}"><StackPanel><TextBlock Text="Uninstall Spicetify" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Restore vanilla first, then remove the CLI, config, and PATH entry while leaving Spotify and SpotX in place." Foreground="#FFEABF67" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Button Name="BtnFullReset" Style="{StaticResource DangerMaintButton}"><StackPanel><TextBlock Text="Full Reset" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="13.5" FontWeight="SemiBold"/><TextBlock Text="Restore vanilla Spotify, remove SpotX and Spicetify, uninstall Spotify, and clean leftover files." Foreground="#FFFCA5A5" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                             </StackPanel>
@@ -1787,27 +2033,27 @@ $xaml = @"
                                     </Grid>
                                 </StackPanel></ScrollViewer>
                             </Grid></Border>
-                            <Grid Grid.Row="3" Margin="0,18,0,0">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Name="SelectionSummaryCard" Style="{StaticResource SurfaceCard}" Padding="18,14">
-                                    <StackPanel>
-                                        <TextBlock Name="SelectionSummaryTitle" Text="Install snapshot" Foreground="#FFA6B0BB" FontSize="11" FontWeight="SemiBold"/>
-                                        <TextBlock Name="SelectionSummary" Foreground="#FFE7EDF3" FontSize="12.75" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,0"/>
-                                        <Grid Margin="0,10,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <Border Name="SelectionStateBadge" Background="#FF111C2A" BorderBrush="#FF2E4964" BorderThickness="1" CornerRadius="6" Padding="9,4" VerticalAlignment="Top">
-                                                <TextBlock Name="SelectionStateBadgeText" Text="Ready" Foreground="#FF93C5FD" FontSize="10.5" FontWeight="SemiBold"/>
-                                            </Border>
-                                            <TextBlock Grid.Column="2" Name="SelectionStateDetail" Foreground="#FF778390" FontSize="11.25" TextWrapping="Wrap" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
-                                <StackPanel Grid.Column="2" Name="FooterActionPanel" HorizontalAlignment="Right">
-                                    <Button Name="BtnInstall" Content="Install recommended setup" Background="#FF22C55E" Foreground="#FF04130A" BorderBrush="#FF22C55E" Style="{StaticResource ActionButton}" Width="300" HorizontalAlignment="Right"/>
-                                    <TextBlock Name="ActionFooterNote" Text="Settings save when setup begins." Foreground="#FF778390" FontSize="11" Margin="0,10,0,0" HorizontalAlignment="Right" TextWrapping="Wrap" MaxWidth="300" TextAlignment="Right"/>
-                                </StackPanel>
-                            </Grid>
-                        </Grid>
+                    <Grid Grid.Row="1" Margin="0,18,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Name="SelectionSummaryCard" Style="{StaticResource SurfaceCard}" Padding="18,14">
+                            <StackPanel>
+                                <TextBlock Name="SelectionSummaryTitle" Text="Install snapshot" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11" FontWeight="SemiBold"/>
+                                <TextBlock Name="SelectionSummary" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.75" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Border Name="SelectionStateBadge" Background="#FF111C2A" BorderBrush="#FF2E4964" BorderThickness="1" CornerRadius="6" Padding="9,4" VerticalAlignment="Top">
+                                        <TextBlock Name="SelectionStateBadgeText" Text="Ready" Foreground="#FF93C5FD" FontSize="10.5" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="2" Name="SelectionStateDetail" Foreground="{StaticResource FgMutedBrush}" FontSize="11.25" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Grid.Column="2" Name="FooterActionPanel" HorizontalAlignment="Right">
+                            <Button Name="BtnInstall" Content="Install recommended setup" Background="{StaticResource AccentBrush}" Foreground="{StaticResource FgInverseBrush}" BorderBrush="{StaticResource AccentBrush}" Style="{StaticResource ActionButton}" Width="300" HorizontalAlignment="Right"/>
+                            <TextBlock Name="ActionFooterNote" Text="Settings save when setup begins." Foreground="{StaticResource FgMutedBrush}" FontSize="11" Margin="0,10,0,0" HorizontalAlignment="Right" TextWrapping="Wrap" MaxWidth="300" TextAlignment="Right"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
                         <!-- ===== INSTALL PAGE ===== -->
                         <Grid Name="PageInstall" Visibility="Collapsed"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                             <Border Grid.Row="0" Style="{StaticResource SurfaceCard}" Margin="0,0,0,14">
@@ -1816,8 +2062,8 @@ $xaml = @"
                                     <Grid>
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                         <StackPanel>
-                                            <TextBlock Name="InstallTitle" Text="Preparing setup" Foreground="#FFE7EDF3" FontSize="20" FontWeight="SemiBold"/>
-                                            <TextBlock Name="InstallContext" Text="LibreSpot keeps the interface responsive while it downloads, patches, and applies your selection." Foreground="#FFA6B0BB" FontSize="12.5" TextWrapping="Wrap" Margin="0,8,0,0" MaxWidth="760"/>
+                                            <TextBlock Name="InstallTitle" Text="Preparing setup" Foreground="{StaticResource FgPrimaryBrush}" FontSize="20" FontWeight="SemiBold"/>
+                                            <TextBlock Name="InstallContext" Text="LibreSpot keeps the interface responsive while it downloads, patches, and applies your selection." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12.5" TextWrapping="Wrap" Margin="0,8,0,0" MaxWidth="760"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="20,0,0,0" HorizontalAlignment="Right">
                                             <TextBlock Text="Live log" Foreground="#FF86EFAC" FontSize="10.75" FontWeight="SemiBold" TextAlignment="Right"/>
@@ -1827,16 +2073,16 @@ $xaml = @"
                                     <Grid Grid.Row="1" Margin="0,16,0,0">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Border Name="InstallStagePrepare" Grid.Column="0" Style="{StaticResource InsetPanel}" Padding="12,10">
-                                            <TextBlock Name="InstallStagePrepareText" Text="Prepare" Foreground="#FFE7EDF3" FontSize="11.5" FontWeight="SemiBold"/>
+                                            <TextBlock Name="InstallStagePrepareText" Text="Prepare" Foreground="{StaticResource FgPrimaryBrush}" FontSize="11.5" FontWeight="SemiBold"/>
                                         </Border>
                                         <Border Name="InstallStageRun" Grid.Column="2" Style="{StaticResource InsetPanel}" Padding="12,10">
-                                            <TextBlock Name="InstallStageRunText" Text="Run" Foreground="#FFA6B0BB" FontSize="11.5" FontWeight="SemiBold"/>
+                                            <TextBlock Name="InstallStageRunText" Text="Run" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" FontWeight="SemiBold"/>
                                         </Border>
                                         <Border Name="InstallStageVerify" Grid.Column="4" Style="{StaticResource InsetPanel}" Padding="12,10">
-                                            <TextBlock Name="InstallStageVerifyText" Text="Verify" Foreground="#FFA6B0BB" FontSize="11.5" FontWeight="SemiBold"/>
+                                            <TextBlock Name="InstallStageVerifyText" Text="Verify" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" FontWeight="SemiBold"/>
                                         </Border>
                                         <Border Name="InstallStageComplete" Grid.Column="6" Style="{StaticResource InsetPanel}" Padding="12,10">
-                                            <TextBlock Name="InstallStageCompleteText" Text="Complete" Foreground="#FFA6B0BB" FontSize="11.5" FontWeight="SemiBold"/>
+                                            <TextBlock Name="InstallStageCompleteText" Text="Complete" Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" FontWeight="SemiBold"/>
                                         </Border>
                                     </Grid>
                                 </Grid>
@@ -1847,8 +2093,8 @@ $xaml = @"
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <Rectangle Width="3" Height="16" Fill="#FF22C55E" RadiusX="1.5" RadiusY="1.5" Margin="0,0,10,0"/>
-                                        <TextBlock Text="Live setup log" Foreground="#FFE7EDF3" FontSize="11.5" FontWeight="SemiBold"/></StackPanel>
-                                    <TextBlock Grid.Column="1" Text="Full log is saved and copyable." Foreground="#FF778390" FontSize="11" VerticalAlignment="Center"/></Grid></Border>
+                                        <TextBlock Text="Live setup log" Foreground="{StaticResource FgPrimaryBrush}" FontSize="11.5" FontWeight="SemiBold"/></StackPanel>
+                                    <TextBlock Grid.Column="1" Text="Full log is saved and copyable." Foreground="{StaticResource FgMutedBrush}" FontSize="11" VerticalAlignment="Center"/></Grid></Border>
                                 <Border Grid.Row="1" Background="#FF070A0F" Padding="16,14">
                                     <ScrollViewer Name="LogScroller" VerticalScrollBarVisibility="Auto" Style="{StaticResource DarkScrollViewer}">
                                         <TextBlock Name="LogOutput" Foreground="#FFC9D3DD" FontFamily="Cascadia Mono, Consolas, Courier New" FontSize="11.75" TextWrapping="Wrap" LineHeight="17"/>
@@ -1857,10 +2103,10 @@ $xaml = @"
                             <Border Grid.Row="2" Style="{StaticResource SurfaceCard}" Margin="0,14,0,0"><StackPanel><Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                    <TextBlock Name="StatusText" Text="Checking prerequisites..." Foreground="#FFE7EDF3" FontSize="13.5" FontWeight="SemiBold"/>
-                                    <TextBlock Name="ElapsedTime" Text="" Foreground="#FF778390" FontSize="11.5" VerticalAlignment="Center" Margin="14,0,0,0"/></StackPanel>
+                                    <TextBlock Name="StatusText" Text="Checking prerequisites..." Foreground="{StaticResource FgPrimaryBrush}" FontSize="13.5" FontWeight="SemiBold"/>
+                                    <TextBlock Name="ElapsedTime" Text="" Foreground="{StaticResource FgMutedBrush}" FontSize="11.5" VerticalAlignment="Center" Margin="14,0,0,0"/></StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <TextBlock Name="ProgressPercentText" Text="0%" Foreground="#FF778390" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Name="ProgressPercentText" Text="0%" Foreground="{StaticResource FgMutedBrush}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                     <TextBlock Name="StepIndicator" Text="Ready when you are" Foreground="#FF22C55E" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right"/>
                                 </StackPanel></Grid>
                                 <ProgressBar Name="MainProgress" Height="8" Margin="0,12,0,0" Template="{StaticResource RoundProgress}" Background="#FF25313D" Foreground="#FF22C55E" Minimum="0" Maximum="100" Value="0"/>
@@ -1869,9 +2115,9 @@ $xaml = @"
                                     <Border Background="#FF111C2A" BorderBrush="#FF2E4964" BorderThickness="1" CornerRadius="6" Padding="9,3" VerticalAlignment="Top">
                                         <TextBlock Text="Last event" Foreground="#FF93C5FD" FontSize="10.5" FontWeight="SemiBold"/>
                                     </Border>
-                                    <TextBlock Name="LastLogEventText" Grid.Column="1" Text="Waiting for setup to start." Foreground="#FFA6B0BB" FontSize="11.5" TextWrapping="Wrap" Margin="10,2,0,0"/>
+                                    <TextBlock Name="LastLogEventText" Grid.Column="1" Text="Waiting for setup to start." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" TextWrapping="Wrap" Margin="10,2,0,0"/>
                                 </Grid>
-                                <TextBlock Text="Stage markers update with the selected action. You can minimize LibreSpot while setup runs; it will return focus when action is needed or complete." Foreground="#FF778390" FontSize="11.5" TextWrapping="Wrap" Margin="0,8,0,0"/></StackPanel></Border>
+                                <TextBlock Text="Stage markers update with the selected action. You can minimize LibreSpot while setup runs; it will return focus when action is needed or complete." Foreground="{StaticResource FgMutedBrush}" FontSize="11.5" TextWrapping="Wrap" Margin="0,8,0,0"/></StackPanel></Border>
                             <StackPanel Grid.Row="3" Margin="0,16,0,0" Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button Name="BtnCopyLog" Content="Copy log" Tag="Copy log" Background="#FF111821" Style="{StaticResource ActionButton}" Width="132" Margin="0,0,8,0" Visibility="Collapsed"/>
                                 <Button Name="BtnBackToConfig" Content="Return to setup" Background="#FF111821" Style="{StaticResource ActionButton}" Width="140" Margin="0,0,8,0" Visibility="Collapsed"/>
@@ -1880,8 +2126,6 @@ $xaml = @"
                     </Grid>
                 </Grid>
             </Grid>
-        </Border>
-    </Grid>
 </Window>
 "@
 
@@ -1891,6 +2135,23 @@ $xaml = @"
 try { $reader = New-Object System.Xml.XmlNodeReader ([xml]$xaml); $window = [Windows.Markup.XamlReader]::Load($reader) }
 catch { Write-Error "XAML Failed: $($_.Exception.Message)"; Exit }
 $ErrorActionPreference = 'Stop'
+
+# Win11 Mica backdrop + dark titlebar + rounded corners. Quietly degrades to the
+# solid SurfaceBase fallback baked into Window.Background on older Windows.
+$script:MicaEnabled = $false
+$window.Add_SourceInitialized({
+    try {
+        $hwnd = (New-Object System.Windows.Interop.WindowInteropHelper($window)).Handle
+        if ($hwnd -ne [IntPtr]::Zero) {
+            $script:MicaEnabled = [Win32]::TryEnableMicaBackdrop($hwnd)
+            if ($script:MicaEnabled) {
+                # Mica needs the WPF Window background to be transparent so the
+                # DWM-rendered backdrop shows through; we keep cards opaque.
+                $window.Background = [System.Windows.Media.Brushes]::Transparent
+            }
+        }
+    } catch {}
+})
 function Get-LibreSpotBrandFrame {
     $candidatePaths = @(
         (Join-Path $script:ScriptRoot 'LibreSpot.ico'),
@@ -4038,7 +4299,7 @@ function Show-ThemedDialog {
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <Border Grid.Row="0" Background="#FF0C1118" CornerRadius="10,10,0,0" Padding="20,16">
-                <TextBlock Name="DlgTitle" FontSize="14.5" FontWeight="SemiBold" Foreground="#FFE7EDF3" FontFamily="Segoe UI"/>
+                <TextBlock Name="DlgTitle" FontSize="14.5" FontWeight="SemiBold" Foreground="{StaticResource FgPrimaryBrush}" FontFamily="Segoe UI"/>
             </Border>
             <Grid Grid.Row="1" Margin="24,22,24,18">
                 <Grid.ColumnDefinitions>
@@ -4049,10 +4310,10 @@ function Show-ThemedDialog {
                 <Border Name="IconHost" Width="44" Height="44" CornerRadius="22" Background="#FF111A22" BorderBrush="#FF2D5A3F" BorderThickness="1" VerticalAlignment="Top">
                     <Canvas Name="IconCanvas" Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
-                <TextBlock Grid.Column="2" Name="DlgMessage" FontSize="13" LineHeight="19" Foreground="#FFE7EDF3" FontFamily="Segoe UI" TextWrapping="Wrap" MaxWidth="430" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2" Name="DlgMessage" FontSize="13" LineHeight="19" Foreground="{StaticResource FgPrimaryBrush}" FontFamily="Segoe UI" TextWrapping="Wrap" MaxWidth="430" VerticalAlignment="Center"/>
             </Grid>
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="24,0,24,24">
-                <Button Name="BtnNo" Content="Cancel" Width="108" Height="38" FontSize="12.5" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,10,0" Visibility="Collapsed" Background="#FF111821" BorderBrush="#FF2D3A47" BorderThickness="1" Foreground="#FFE7EDF3">
+                <Button Name="BtnNo" Content="Cancel" Width="108" Height="38" FontSize="12.5" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,10,0" Visibility="Collapsed" Background="#FF111821" BorderBrush="#FF2D3A47" BorderThickness="1" Foreground="{StaticResource FgPrimaryBrush}">
                     <Button.Template><ControlTemplate TargetType="Button">
                         <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="10" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="14,0"/>

@@ -2,6 +2,38 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
+## [v3.7.0] - 2026-04-28
+
+**Premium UI overhaul.** The setup script keeps every behavior from v3.6.0 but now reads as polished product instead of dev tool. Sidebar navigation, Win11 Mica backdrop, semantic design tokens, hover-lift micro-interactions, and a shimmering install progress bar.
+
+### Added
+- **Win11 Mica backdrop** via `DwmSetWindowAttribute` P/Invoke (`DWMWA_SYSTEMBACKDROP_TYPE` = 38, `DWMSBT_MAINWINDOW` = 2). Combined with `DWMWA_USE_IMMERSIVE_DARK_MODE` and `DWMWA_WINDOW_CORNER_PREFERENCE` (rounded). Applied at `SourceInitialized`. Quietly degrades to the solid `SurfaceBase` (`#FF0B0E14`) baked into `Window.Background` on Windows 10 / pre-22H2.
+- **Sidebar navigation** replacing the three-radio top tab bar. 252-px rail with brand block, Lucide icon nav items (Sparkles / Sliders / Wrench), update banner slot, and footer link tray (GitHub icon + SpotX/Spicetify hyperlinks).
+- **Compact title bar** in the main column carries the mode headline + summary alongside minimize/close. The drag handle stays scoped to the title bar so ScrollViewer interactions in Custom/Maintenance keep working.
+- **Design token resource dictionary** — `SurfaceBase/Elevated/Elevated2/Overlay/Sidebar`, `Border Subtle/Strong/Hover`, `Accent / AccentHover / AccentPressed / AccentSoft / AccentMuted`, `Info / Warning / Danger` (each with soft bg/border pair), `FgPrimary / FgSecondary / FgMuted / FgInverse`, plus a `ShimmerOverlayBrush`. Inline hex codes for foreground primary/secondary/muted swept to `{StaticResource}` references throughout the panels.
+- **Type tokens**: `TypeHeroH1` (32px), `TypeH1` (22px), `TypeH2` (15.5px), `TypeBody` (13px), `TypeCaption` (11.5px). Default font upgraded to `Segoe UI Variable Display` with Segoe UI Variable / Segoe UI fallbacks. ClearType rendering forced.
+- **Lucide icon set** as XAML `Geometry` resources — Home, Sliders, Wrench, Shield, Sparkle, Check, Download, Clock, External, Dot, Refresh — usable from any `Path`.
+- **Hover-lift micro-interactions** on `ActionButton`: `TranslateTransform.Y` animates to `-1.5` over 120ms on hover, plus accent-colored `DropShadowEffect` glow on focus and hover. Pressed state dims to 0.84 opacity.
+- **Shimmering install progress bar** — `RoundProgress` template now layers an animated `LinearGradientBrush` over the indicator using a forever-repeating `DoubleAnimation` translating from `-140` to `900` X over 1.6s. Indicator itself gets an accent-colored DropShadow for depth.
+
+### Changed
+- PowerShell script: v3.6.0 → **v3.7.0**.
+- Window: `AllowsTransparency=True` + manual rounded Border + drop-shadow → `AllowsTransparency=False` + `WindowChrome` (no caption, 6px resize border) + DWM-managed Mica + DWM-rounded corners. The fake outer shadow is gone; DWM provides the system shadow.
+- `MinWidth` 980 → 1120 to give the sidebar + content layout breathing room.
+- `ModeRadio` style repurposed as `NavItem`: full-width sidebar row, accent rail on left when checked, `SurfaceElevated2` background when active. `ContentPresenter` now renders icon + label/description composed per radio.
+- `PageConfig` row count went from 4 (mode headline / mode bar / panels / footer) to 2 (panels / footer). Mode headline + summary moved into the title bar; mode bar disappeared into the sidebar.
+- `ProgressBar` indicator gains an accent-colored `DropShadowEffect` (BlurRadius 14) for the lift cue.
+
+### Removed
+- Outer 14-px margin Grid + faux drop-shadow rounded Border. Mica + DWM rounded corners replace both.
+- Top mode tab bar (now sidebar nav).
+- The "TitleSubtext" tagline at the top — moved into the sidebar brand block as "Premium Spotify toolkit".
+
+### Why
+v3.6.0's UI was already dark, card-based, and accent-tinted, but read as "developer tool" because of flat 1px borders, scattered hex codes, text-bullet lists, and a top tab bar that felt like a form control. Premium installers (Linear, Vercel, 1Password) lean on Mica/Acrylic backdrops, sidebar nav, semantic color tokens, and motion. v3.7.0 picks up all four without changing a single install behavior or breaking any existing PowerShell-side `$ui[name]` reference.
+
+---
+
 ## [v3.6.0] / [v4.0.0-preview.6] - 2026-04-17
 
 **Track 4.2 — auto-reapply watcher.** LibreSpot now notices when Spotify auto-updates itself and silently re-runs the saved SpotX patch so you don't come back to ads. Off by default — enable it from Maintenance > Protect and repair.
