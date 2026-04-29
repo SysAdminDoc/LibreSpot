@@ -102,7 +102,7 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
 
-$global:VERSION = '3.7.1'
+$global:VERSION = '3.7.2'
 
 
 # CLI argument detection. Supports `irm URL | iex -clean` (PowerShell passes
@@ -4315,7 +4315,7 @@ function Show-ThemedDialog {
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <Border Grid.Row="0" Background="#FF0C1118" CornerRadius="10,10,0,0" Padding="20,16">
-                <TextBlock Name="DlgTitle" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource FgPrimaryBrush}" FontFamily="Segoe UI"/>
+                <TextBlock Name="DlgTitle" FontSize="13" FontWeight="SemiBold" Foreground="#FFE7EDF3" FontFamily="Segoe UI"/>
             </Border>
             <Grid Grid.Row="1" Margin="24,22,24,18">
                 <Grid.ColumnDefinitions>
@@ -4326,10 +4326,10 @@ function Show-ThemedDialog {
                 <Border Name="IconHost" Width="44" Height="44" CornerRadius="22" Background="#FF111A22" BorderBrush="#FF2D5A3F" BorderThickness="1" VerticalAlignment="Top">
                     <Canvas Name="IconCanvas" Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
-                <TextBlock Grid.Column="2" Name="DlgMessage" FontSize="13" LineHeight="19" Foreground="{StaticResource FgPrimaryBrush}" FontFamily="Segoe UI" TextWrapping="Wrap" MaxWidth="430" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2" Name="DlgMessage" FontSize="13" LineHeight="19" Foreground="#FFE7EDF3" FontFamily="Segoe UI" TextWrapping="Wrap" MaxWidth="430" VerticalAlignment="Center"/>
             </Grid>
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="24,0,24,24">
-                <Button Name="BtnNo" Content="Cancel" Width="108" Height="38" FontSize="12.5" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,10,0" Visibility="Collapsed" Background="#FF111821" BorderBrush="#FF2D3A47" BorderThickness="1" Foreground="{StaticResource FgPrimaryBrush}">
+                <Button Name="BtnNo" Content="Cancel" Width="108" Height="38" FontSize="12.5" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,10,0" Visibility="Collapsed" Background="#FF111821" BorderBrush="#FF2D3A47" BorderThickness="1" Foreground="#FFE7EDF3">
                     <Button.Template><ControlTemplate TargetType="Button">
                         <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="10" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="14,0"/>
