@@ -2,6 +2,11 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- Consolidated planning docs: active work now lives in `ROADMAP.md`, shipped work in `COMPLETED.md`, research summary in `RESEARCH_REPORT.md`, and the full legacy research pass in `docs/archive/research/RESEARCH.md`.
+
 ## [v3.7.2] - 2026-04-28
 
 **Hotfix.** The Easy-mode confirmation dialog was crashing the script the moment users clicked **Install recommended setup**.
