@@ -192,6 +192,13 @@ gh attestation verify .\LibreSpot.exe          -R SysAdminDoc/LibreSpot
 gh attestation verify .\LibreSpot-Desktop.exe  -R SysAdminDoc/LibreSpot
 ```
 
+## Project planning
+
+- [ROADMAP.md](ROADMAP.md) tracks active and future work.
+- [COMPLETED.md](COMPLETED.md) summarizes shipped roadmap work.
+- [RESEARCH_REPORT.md](RESEARCH_REPORT.md) summarizes product and ecosystem research.
+- [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md) keeps the full archived research pass.
+
 ## Credits
 
 LibreSpot is a wrapper and installer — the real work is done by these projects:
