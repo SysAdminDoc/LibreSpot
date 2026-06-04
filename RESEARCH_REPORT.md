@@ -4,7 +4,7 @@ Research summary for planning. The full April 2026 research corpus is archived
 at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 4.
+Last researched: 2026-06-04, Cycle 5.
 
 ## Executive Summary
 
@@ -322,6 +322,90 @@ vulnerability intake, OS support, elevation, and Windows shell registration.
 - P1 - Define a least-privilege elevation and notification boundary.
 - P2 - Write the shell-integration registration design before implementing
   protocol, toasts, jump lists, or file associations.
+
+## Cycle 5 Delta - Release Governance and Dependency Restore Controls
+
+Cycle 5 audited the release path itself: tag handling, stable vs preview
+channels, public release assets, release notes, NuGet restore repeatability,
+and bad-release response. This does not replace earlier Scorecard/action-pin
+and dependency-refresh work; it adds the missing controls around publishing and
+post-publish verification.
+
+### New Evidence Collected
+
+- `.github/workflows/release.yml` supports both tag pushes and manual
+  `workflow_dispatch` with a `tag` input.
+- Release preflight detects preview/RC tags through `$isPreviewTag`, and uses
+  that value for version checks, but the release creation command does not pass
+  preview/RC state to GitHub.
+- The release job calls `gh release create "$TAG" --title "$TAG"
+  --generate-notes` and later `gh release upload ... --clobber`. It does not
+  pass `--prerelease`, `--latest=false`, `--verify-tag`, or
+  `--fail-on-no-commits`.
+- GitHub CLI docs state that `gh release create` can create a missing tag from
+  the latest state of the default branch unless `--verify-tag` is used, and
+  exposes `--prerelease`, `--latest=false`, and `--fail-on-no-commits`.
+- GitHub REST release docs state `prerelease` defaults to false and
+  `make_latest` defaults to true for newly published releases. The API also
+  exposes release `immutable` state and release asset digests.
+- Public release query on 2026-06-04 shows `v3.7.2` as the latest stable
+  release with assets `checksums.txt`, `LibreSpot.exe`, and `LibreSpot.ps1`;
+  it does not include `LibreSpot-Desktop.exe` or
+  `LibreSpot.sbom.cdx.json`.
+- Public release query on 2026-06-04 shows `v4.0.0-preview.1` as prerelease
+  with one asset, `LibreSpot-v4.0.0-preview.1.exe`.
+- GitHub release API output for current releases reports `immutable=false`.
+- README and planning docs currently describe every release as having
+  checksums, CycloneDX SBOM, WPF assets, and GitHub artifact attestations. That
+  is accurate for the intended current workflow but not for all public
+  historical releases.
+- The repo has no tracked `.github/release.yml`, `.github/dependabot.yml`,
+  `packages.lock.json`, `Directory.Packages.props`, `global.json`, or
+  `.config/dotnet-tools.json`.
+- `dotnet list package --outdated --include-transitive` currently reports
+  newer app packages: Serilog 4.2.0 -> 4.3.1 and Serilog.Sinks.File 6.0.0 ->
+  7.0.0.
+- The test project is further behind: Microsoft.NET.Test.Sdk 17.11.1 ->
+  18.6.0, xUnit 2.9.2 -> 2.9.3, xUnit runner 2.8.2 -> 3.1.5, and
+  coverlet.collector 6.0.2 -> 10.0.1, plus transitive test platform updates.
+- `dotnet list package --vulnerable --include-transitive` reports no current
+  vulnerable NuGet packages from nuget.org for the app or test projects.
+- NuGet documentation supports lock files and `dotnet restore --locked-mode`
+  for CI repeatability. NuGet Audit documentation recommends checking restore
+  output in CI because advisory data changes over time.
+- GitHub automatic release notes can be configured through
+  `.github/release.yml`, including category rules for dependencies and other
+  labels.
+
+### Cycle 5 Conclusions
+
+- Preview-channel safety is currently a release blocker. The workflow knows how
+  to validate preview versions, but it does not tell GitHub that those releases
+  are prereleases or that they should not become latest.
+- Release publication needs a machine-readable artifact contract. Workflow
+  comments and README promises are not enough, especially while historical
+  public releases have smaller asset sets than current docs describe.
+- `--clobber` should be constrained by policy. It is convenient for draft or
+  retry flows, but without post-upload audit and bad-release guidance it makes
+  mutable public releases harder to reason about.
+- Dependency freshness and restore repeatability are separate problems. Earlier
+  roadmap work covers update automation; Cycle 5 adds lock-file restore and
+  NuGet Audit enforcement so dependency graphs cannot silently change at
+  release time.
+- Release notes need structured input before broader distribution. Generated
+  notes are useful, but package users need explicit install impact,
+  verification commands, known issues, signing status, and rollback guidance.
+- Signing needs an incident runbook before the first signed release. The repo
+  already documents SignPath setup, but not what to do when a release, asset,
+  signing token, or SmartScreen outcome goes wrong.
+
+### Cycle 5 Added Roadmap Items
+
+- P0 - Add a release channel and tag verification gate.
+- P0 - Add a release artifact contract and post-upload audit.
+- P1 - Add NuGet lock-file restore and audit enforcement.
+- P1 - Add structured release notes and changelog gating.
+- P2 - Write a bad-release, signing, and rollback runbook.
 
 ## Current Product Map
 
@@ -751,3 +835,17 @@ Cycle 4 distribution-readiness and shell policy sources:
 - https://learn.microsoft.com/en-us/windows/win32/shell/fa-intro
 - https://learn.microsoft.com/en-us/windows/win32/sbscs/application-manifests
 - https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/how-it-works
+
+Cycle 5 release-governance and restore-control sources:
+
+- https://cli.github.com/manual/gh_release_create
+- https://docs.github.com/v3/repos/releases/
+- https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+- https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+- https://learn.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files
+- https://learn.microsoft.com/en-us/nuget/concepts/auditing-packages
+- https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-restore
+- https://api.github.com/repos/SysAdminDoc/LibreSpot/releases
+- https://api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest
+- https://github.com/SysAdminDoc/LibreSpot/releases/tag/v3.7.2
+- https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.0.0-preview.1

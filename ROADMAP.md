@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 4.
+Last researched: 2026-06-04, Cycle 5.
 
 ## Implementer Instructions (for the build machine)
 
@@ -788,3 +788,139 @@ access is required.
   - Verify: implementation checklist has registry/shortcut before-and-after
     captures; uninstall removes only LibreSpot-owned registrations; portable
     mode does not write shell registrations unless the user opts in.
+
+## 🔬 Researcher Queue (Cycle 5 - 2026-06-04)
+
+Cycle 5 audits release operations after the supply-chain and distribution
+research from earlier cycles. It focuses on channel correctness, artifact
+contracts, repeatable restores, release notes, and bad-release response. Tags:
+🔬 = researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
+operator-needed if policy or environment access is required.
+
+- [ ] 🔬 🤖 P0 - Add a release
+  channel and tag verification gate.
+  - Why: the release preflight already detects preview/RC tags, but the release
+    creation step calls `gh release create "$TAG" --title "$TAG"
+    --generate-notes` without `--prerelease`, `--latest=false`,
+    `--verify-tag`, or `--fail-on-no-commits`. GitHub CLI docs state that
+    `gh release create` can create a missing tag from the default branch unless
+    `--verify-tag` is used; GitHub REST docs say releases default to
+    `prerelease=false` and newly published releases default to latest. That can
+    turn a WPF preview tag into a normal/latest release.
+  - Evidence: `.github/workflows/release.yml:65`,
+    `.github/workflows/release.yml:100`,
+    `.github/workflows/release.yml:378`,
+    https://cli.github.com/manual/gh_release_create,
+    https://docs.github.com/v3/repos/releases/
+  - Touches: release workflow, release checklist, README release channel docs.
+  - Acceptance: release job derives channel from the validated tag. Stable
+    tags create normal latest-eligible releases; `-preview.N` and `-rc.N` tags
+    pass `--prerelease --latest=false`; every release uses `--verify-tag` and
+    a no-duplicate/no-empty-release guard. Manual dispatch aborts if the input
+    tag does not exist on the remote or does not point to the intended commit.
+  - Verify: static workflow test covers stable, preview, RC, malformed, and
+    missing-tag inputs; dry-run or disposable-repo run proves preview releases
+    are prerelease and not latest.
+
+- [ ] 🔬 🤖 🔧 P0 - Add a
+  release artifact contract and post-upload audit.
+  - Why: README and planning docs now say releases ship checksums, WPF
+    artifacts, CycloneDX SBOM, and attestations, but the current public latest
+    release `v3.7.2` exposes only `checksums.txt`, `LibreSpot.exe`, and
+    `LibreSpot.ps1`; `v4.0.0-preview.1` exposes only
+    `LibreSpot-v4.0.0-preview.1.exe`. The workflow uploads with `--clobber`,
+    and GitHub release API output reports existing releases as
+    `immutable=false`. The release contract needs to be machine-checked after
+    upload instead of implied by workflow comments.
+  - Evidence: local `gh release view v3.7.2 --json assets,isImmutable` on
+    2026-06-04, local `gh release view v4.0.0-preview.1 --json
+    assets,isImmutable` on 2026-06-04, `.github/workflows/release.yml:341`,
+    `.github/workflows/release.yml:354`,
+    `.github/workflows/release.yml:362`,
+    `.github/workflows/release.yml:380`, `README.md:184`,
+    https://docs.github.com/v3/repos/releases/
+  - Touches: release workflow, README signing/verification docs, release
+    checklist, support docs for historical releases.
+  - Acceptance: repo defines an artifact matrix per release channel and
+    produces a `release-manifest.json` containing expected asset names, sizes,
+    SHA256, GitHub asset digest where available, attestation state, signer
+    state, and channel. After upload, CI reads the GitHub release back and
+    fails if any required asset, checksum entry, SBOM, attestation, or release
+    channel flag is missing. Docs distinguish historical releases from the new
+    contract.
+  - Verify: release workflow post-upload step compares `gh release view
+    --json assets,isPrerelease,isImmutable` to the manifest; checksum file is
+    parsed and every listed asset exists exactly once; no non-draft release is
+    overwritten without an explicit operator override.
+
+- [ ] 🔬 🤖 P1 - Add NuGet
+  lock-file restore and audit enforcement.
+  - Why: Cycle 1 already asks for dependency refresh automation; this item is
+    narrower: repeatable restore and advisory enforcement. The repo has no
+    tracked `packages.lock.json`, `Directory.Packages.props`, `global.json`,
+    or `.config/dotnet-tools.json`. Current `dotnet list package --vulnerable
+    --include-transitive` is clean, but NuGet docs note advisory data changes
+    over time and recommend checking restore output in CI. NuGet lock files and
+    `--locked-mode` are designed for CI restore repeatability.
+  - Evidence: local `git ls-files 'packages.lock.json'
+    '**/packages.lock.json' 'Directory.Packages.props' 'global.json'
+    '.config/dotnet-tools.json'` on 2026-06-04, local `dotnet list package
+    --vulnerable --include-transitive` on 2026-06-04,
+    https://learn.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files,
+    https://learn.microsoft.com/en-us/nuget/concepts/auditing-packages,
+    https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-restore
+  - Touches: project files, lock files or central package management, release
+    workflow, developer docs.
+  - Acceptance: CI restores NuGet dependencies in locked mode, runs NuGet Audit
+    with an explicit severity threshold, and has a documented suppression path
+    for accepted advisories. Dependency updates intentionally refresh lock
+    files in the same PR/commit as the package version changes.
+  - Verify: `dotnet restore --locked-mode` passes on a clean checkout; changing
+    a PackageReference without updating lock files fails CI; vulnerability
+    checks fail at the chosen threshold and show actionable package paths.
+
+- [ ] 🔬 🤖 P1 - Add structured
+  release notes and changelog gating.
+  - Why: the workflow relies on generated notes, but there is no tracked
+    `.github/release.yml` to categorize dependency, security, UX, breaking, or
+    preview changes. `CHANGELOG.md` has an `[Unreleased]` section, but release
+    creation does not verify that user-facing notes, known issues, verification
+    commands, rollback notes, and channel-specific warnings are present before
+    publishing.
+  - Evidence: `.github/workflows/release.yml:378`, `CHANGELOG.md:5`,
+    local `git ls-files '.github/release.yml'` on 2026-06-04,
+    https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+  - Touches: `.github/release.yml`, release checklist, changelog process,
+    release workflow.
+  - Acceptance: generated release notes are configured into stable categories,
+    Dependabot/dependency changes are separated, and the release job prepends
+    operator-authored notes for install impact, known issues, verification
+    commands, signing status, and rollback guidance. Stable releases cannot
+    publish while `[Unreleased]` is empty or still contains placeholder copy.
+  - Verify: generate notes for a test tag and inspect categories; release
+    preflight fails when required release-note sections are missing; published
+    release body includes checksum/attestation verification commands.
+
+- [ ] 🔬 🤖 🔧 P2 - Write a
+  bad-release, signing, and rollback runbook.
+  - Why: SignPath enrollment is pending, existing releases are mutable, and the
+    workflow currently uses `--clobber` for asset upload. There is no documented
+    operator path for a bad checksum, missing asset, compromised token,
+    unsigned fallback, SmartScreen false positive, SignPath failure, or release
+    that must be marked unsafe after publication.
+  - Evidence: `SIGNPATH.md:76`, `SIGNPATH.md:106`,
+    `.github/workflows/release.yml:181`,
+    `.github/workflows/release.yml:286`,
+    `.github/workflows/release.yml:386`,
+    local `gh api repos/SysAdminDoc/LibreSpot/releases` on 2026-06-04,
+    https://cli.github.com/manual/gh_release_create
+  - Touches: release docs, `SECURITY.md`, SignPath docs, release workflow
+    policy comments, support templates.
+  - Acceptance: runbook defines when to yank, mark prerelease, edit release
+    notes, delete assets, revoke/reissue signing credentials, rotate GitHub
+    secrets, publish a superseding hotfix, and notify users. It distinguishes
+    historical mutable releases from future immutable releases and says whether
+    `--clobber` is allowed only for draft releases.
+  - Verify: tabletop exercise against one hypothetical missing-SBOM release and
+    one compromised-signing-token scenario; checklist includes exact `gh` and
+    SignPath dashboard commands without requiring destructive execution.
