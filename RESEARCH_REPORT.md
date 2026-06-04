@@ -4,7 +4,7 @@ Research summary for planning. The full April 2026 research corpus is archived
 at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 3.
+Last researched: 2026-06-04, Cycle 4.
 
 ## Executive Summary
 
@@ -232,6 +232,96 @@ tested without touching real user machines.
 - P1 - Build a Spotify install-source compatibility fixture set.
 - P2 - Add Defender quarantine and antivirus-interference diagnostics.
 - P2 - Add PowerShell static analysis and Pester coverage for the script lane.
+
+## Cycle 4 Delta - Distribution Readiness, Notices, and Shell Policy
+
+Cycle 4 inspected the support surfaces that become binding once LibreSpot is
+installed through package managers, signed updaters, shell integrations, and a
+larger public issue queue. This cycle extends the earlier trust, package
+identity, and catalog work with concrete gates for third-party assets,
+vulnerability intake, OS support, elevation, and Windows shell registration.
+
+### New Evidence Collected
+
+- `git ls-files` shows only `LICENSE` and archived research docs for tracked
+  legal/support files; there is no tracked `NOTICE`, `THIRD_PARTY_NOTICES.md`,
+  `SECURITY.md`, `COPYING`, or `.github/ISSUE_TEMPLATE/*`.
+- `LICENSE` is MIT for LibreSpot itself, but the curated community asset graph
+  contains multiple external license postures that are not represented in a
+  tracked notices manifest.
+- Live HEAD checks on 2026-06-04 returned `404` for every current community
+  extension raw URL in both catalogs:
+  `hidePodcasts.js`, `beautifulLyrics.js`, `playlistIcons.js`,
+  `songStats.js`, and `volumePercentage.js`.
+- GitHub repository metadata collected on 2026-06-04 shows community extension
+  and theme sources with mixed license states: GPL-3.0
+  (`theRealPadster/spicetify-hide-podcasts`), blank/unknown
+  (`surfbryce/beautiful-lyrics`), MIT
+  (`jeroentvb/spicetify-playlist-icons`, `daksh2k/spicetify-stuff`,
+  Catppuccin, Bloom, official `spicetify-themes`), WTFPL
+  (`Comfy-Themes/Spicetify`), AGPL-3.0 (`sanoojes/Spicetify-Lucid`), and
+  blank/unknown (`Astromations/Hazy`). `Shinyhero36/spicetify-song-stats`
+  returns GitHub API `404`.
+- REUSE 3.3 defines a machine-readable licensing method for files, license
+  files, and SPDX expressions; SPDX License List 3.28.0 provides current
+  standardized license identifiers.
+- GitHub security policy documentation expects a `SECURITY.md` file with
+  supported versions and vulnerability reporting instructions. GitHub issue
+  template documentation expects templates under `.github/ISSUE_TEMPLATE` for
+  structured public issue intake.
+- README requirements still state Windows 10/11, while Microsoft says Windows
+  10 Home/Pro reached end of support on 2025-10-14. The WPF pitch also
+  describes Windows 11 Mica with Windows 10 fallback, and the app manifest
+  carries legacy supportedOS GUIDs plus `requestedExecutionLevel
+  level="asInvoker"`.
+- The PowerShell script self-elevates through `Verb = 'RunAs'`, and the PS2EXE
+  release workflow builds an admin-required executable. The WPF shell is
+  `asInvoker` and routes admin-sensitive work through backend commands.
+- Microsoft app notification docs state that app notifications are not
+  supported for elevated apps. That makes the elevation boundary a design
+  dependency for completion toasts and future actionable notifications.
+- Microsoft shell docs cover AppUserModelIDs, shell links, file associations,
+  and desktop app notification activation. The roadmap lists `librespot://`,
+  `.librespot` import association, persistent toasts, jump lists, and taskbar
+  affordances, but no current design doc fixes the registration model.
+
+### Cycle 4 Conclusions
+
+- Community extensions cannot remain live install choices until their source
+  URLs, commit pins, hashes, licenses, and support states are represented in a
+  tracked manifest. Five active `404` URLs mean this is already a release
+  blocker, not just future hardening.
+- The catalog and package/distribution tracks need a third-party notice gate.
+  The repo can remain MIT, but curated/retrieved third-party assets still need
+  SPDX/license data and an operator policy for GPL/AGPL/unknown entries.
+- Security intake should exist before larger distribution. A project that
+  downloads code, runs elevated actions, and modifies a local application needs
+  a clear vulnerability reporting path and issue templates that keep sensitive
+  logs out of public bug reports.
+- Windows support labels need to be separated. Host OS support, best-effort OS
+  compatibility, PowerShell runtime compatibility, and Spotify target-version
+  support are different dimensions and should not be collapsed into "Windows
+  10/11".
+- App notifications and elevation are coupled. If the UI runs elevated by
+  default, notification support is constrained; if WPF stays `asInvoker`,
+  mutating work needs a clean per-action elevation path.
+- Shell integration needs a design record before implementation. App identity,
+  shortcuts, protocol handlers, file associations, uninstall cleanup, and
+  portable-vs-installed behavior all cross package identity and elevation
+  decisions.
+
+### Cycle 4 Added Roadmap Items
+
+- P0 - Add a community asset supply manifest and disable broken catalog
+  entries.
+- P0 - Add a third-party notices and license policy gate.
+- P1 - Add `SECURITY.md` and public intake templates before broader
+  distribution.
+- P1 - Decide the Windows support lifecycle after Windows 10 Home/Pro end of
+  support.
+- P1 - Define a least-privilege elevation and notification boundary.
+- P2 - Write the shell-integration registration design before implementing
+  protocol, toasts, jump lists, or file associations.
 
 ## Current Product Map
 
@@ -629,3 +719,35 @@ Cycle 3 reliability and supportability sources:
 - https://github.com/pester/Pester/releases/tag/5.7.1
 - https://github.com/microsoft/winget-pkgs/tree/master/manifests/s/Spotify/Spotify
 - https://www.spotify.com/download/windows/
+
+Cycle 4 distribution-readiness and shell policy sources:
+
+- https://api.github.com/repos/theRealPadster/spicetify-hide-podcasts
+- https://api.github.com/repos/surfbryce/beautiful-lyrics
+- https://api.github.com/repos/jeroentvb/spicetify-playlist-icons
+- https://api.github.com/repos/Shinyhero36/spicetify-song-stats
+- https://api.github.com/repos/daksh2k/spicetify-stuff
+- https://api.github.com/repos/catppuccin/spicetify
+- https://api.github.com/repos/Comfy-Themes/Spicetify
+- https://api.github.com/repos/nimsandu/spicetify-bloom
+- https://api.github.com/repos/sanoojes/Spicetify-Lucid
+- https://api.github.com/repos/Astromations/Hazy
+- https://api.github.com/repos/spicetify/spicetify-themes
+- https://raw.githubusercontent.com/theRealPadster/spicetify-hide-podcasts/main/dist/hidePodcasts.js
+- https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/main/dist/beautifulLyrics.js
+- https://raw.githubusercontent.com/jeroentvb/spicetify-playlist-icons/main/dist/playlistIcons.js
+- https://raw.githubusercontent.com/Shinyhero36/spicetify-song-stats/main/dist/songStats.js
+- https://raw.githubusercontent.com/daksh2k/spicetify-stuff/main/Extensions/volumePercentage.js
+- https://reuse.software/spec-3.3/
+- https://spdx.org/licenses/
+- https://opensource.guide/legal/
+- https://docs.github.com/en/code-security/getting-started/adding-a-security-policy-to-your-repository
+- https://docs.github.com/articles/creating-an-issue-template-for-your-repository
+- https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro
+- https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/send-local-toast
+- https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/toast-desktop-apps
+- https://learn.microsoft.com/en-us/windows/win32/shell/appids
+- https://learn.microsoft.com/en-us/windows/win32/shell/links
+- https://learn.microsoft.com/en-us/windows/win32/shell/fa-intro
+- https://learn.microsoft.com/en-us/windows/win32/sbscs/application-manifests
+- https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/how-it-works

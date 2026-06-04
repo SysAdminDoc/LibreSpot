@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 3.
+Last researched: 2026-06-04, Cycle 4.
 
 ## Implementer Instructions (for the build machine)
 
@@ -625,3 +625,166 @@ operator-needed if policy or environment access is required.
     host mutation is allowed.
   - Verify: `Invoke-ScriptAnalyzer` passes with known justified suppressions;
     `Invoke-Pester` passes on Windows PowerShell 5.1 and PowerShell 7.6 lanes.
+
+## 🔬 Researcher Queue (Cycle 4 - 2026-06-04)
+
+Cycle 4 focuses on distribution-readiness boundaries that must be explicit
+before package-manager, updater, shell-integration, or public support work
+ships. Tags: 🔬 = researcher-added this cycle; 🤖 =
+implementer-actionable now; 🔧 = operator-needed if policy or environment
+access is required.
+
+- [ ] 🔬 🤖 🔧 P0 - Add a
+  community asset supply manifest and disable broken catalog entries.
+  - Why: both the PowerShell and WPF catalogs download community extensions
+    from branch-based raw GitHub URLs and community themes from branch archive
+    URLs. A live HEAD check on 2026-06-04 returned `404` for all five current
+    community extension URLs: `hidePodcasts.js`, `beautifulLyrics.js`,
+    `playlistIcons.js`, `songStats.js`, and `volumePercentage.js`. Theme repos
+    are also branch-pinned with no per-asset hash, license, or last-verified
+    marker. That is too fragile for a signed installer or package-manager
+    submission.
+  - Evidence: `LibreSpot.ps1:729`, `LibreSpot.ps1:757`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:138`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:148`,
+    live raw URL HEAD checks on 2026-06-04,
+    https://api.github.com/repos/theRealPadster/spicetify-hide-podcasts,
+    https://api.github.com/repos/surfbryce/beautiful-lyrics,
+    https://api.github.com/repos/jeroentvb/spicetify-playlist-icons,
+    https://api.github.com/repos/daksh2k/spicetify-stuff
+  - Touches: catalog model, PowerShell and WPF download helpers, CI release
+    preflight, README feature table, support diagnostics.
+  - Acceptance: every community extension and theme has a tracked manifest row
+    with display name, owner/repo, source URL, commit SHA, asset path, SHA256,
+    SPDX license, support state, last verified date, and fallback behavior.
+    Branch-only raw URLs are not used for install without a matching commit
+    pin and hash. Entries that are `404`, repository-missing, unknown-license,
+    or operator-blocked are hidden or clearly disabled before release.
+  - Verify: CI downloads each enabled community asset from its pinned commit,
+    verifies SHA256, validates SPDX/license policy, and fails if a URL returns
+    non-2xx. Unit tests prove broken entries are not offered in Easy mode or
+    Custom mode.
+
+- [ ] 🔬 🤖 🔧 P0 - Add a
+  third-party notices and license policy gate.
+  - Why: the repo currently tracks only its MIT `LICENSE` plus archived
+    research docs; there is no tracked `NOTICE`, `THIRD_PARTY_NOTICES.md`,
+    `SECURITY.md`, `COPYING`, or license manifest. Current community asset
+    metadata includes GPL-3.0, AGPL-3.0, WTFPL, MIT, and blank/unknown
+    licenses. The earlier trust/legal disclosure item flags the user-facing
+    posture; this item adds the concrete gate required before packaging or
+    redistributing curated third-party assets.
+  - Evidence: local `git ls-files '*LICENSE*' '*NOTICE*' '*SECURITY*'
+    '*COPYING*' '*THIRD*'` on 2026-06-04, `LICENSE:1`,
+    `LibreSpot.ps1:729`, `LibreSpot.ps1:757`,
+    https://reuse.software/spec-3.3/,
+    https://spdx.org/licenses/,
+    https://opensource.guide/legal/
+  - Touches: legal docs, catalog manifest, release checklist, package manager
+    manifests, About dialog / diagnostics export.
+  - Acceptance: repo has a third-party notices document or generated notices
+    artifact covering NuGet packages, bundled/retrieved PowerShell tooling,
+    SpotX/Spicetify dependencies, themes, extensions, icons, and generated
+    assets. Each shipped or curated item has an SPDX expression, source URL,
+    copyright holder where available, redistribution posture, and operator
+    decision for copyleft/unknown licenses.
+  - Verify: release preflight fails when a catalog item lacks SPDX/license
+    data, when license text is missing for a shipped license, or when an
+    operator-blocked license is enabled. Package artifacts include or link the
+    notices output.
+
+- [ ] 🔬 🤖 P1 - Add
+  `SECURITY.md` and public intake templates before broader distribution.
+  - Why: LibreSpot downloads executable/script content, patches local Spotify
+    files, handles elevated actions, and will likely receive package-manager
+    users who need a clear way to report security-sensitive failures. The repo
+    currently has no tracked `SECURITY.md` or `.github/ISSUE_TEMPLATE/*`.
+  - Evidence: local `git ls-files '.github/ISSUE_TEMPLATE/*' '*SECURITY*'`
+    on 2026-06-04,
+    https://docs.github.com/en/code-security/getting-started/adding-a-security-policy-to-your-repository,
+    https://docs.github.com/articles/creating-an-issue-template-for-your-repository
+  - Touches: `SECURITY.md`, issue templates, support docs, release checklist.
+  - Acceptance: `SECURITY.md` defines supported versions, vulnerability report
+    channel, expected response window, non-goals, and policy for Spotify /
+    SpotX / Spicetify upstream issues. Issue forms separate bug reports,
+    compatibility breakage, feature requests, and non-public security reports
+    without asking users to paste secrets or private logs.
+  - Verify: GitHub community health recognizes the security policy and issue
+    templates; maintainer dry-run opens each template and confirms required
+    fields capture OS, Spotify source/version, LibreSpot version, and sanitized
+    diagnostics.
+
+- [ ] 🔬 🤖 🔧 P1 - Decide the
+  Windows support lifecycle after Windows 10 Home/Pro end of support.
+  - Why: README requirements still say Windows 10/11, the WPF pitch promises
+    Windows 10 fallback for Windows 11 Mica, and the app manifest lists legacy
+    supportedOS GUIDs from Vista through Windows 10. Microsoft lifecycle data
+    says Windows 10 Home/Pro reached end of support on 2025-10-14. LibreSpot
+    also exposes legacy Spotify installer choices, so OS support, Spotify
+    target version support, and best-effort compatibility need separate labels.
+  - Evidence: `README.md:26`, `README.md:40`,
+    `src/LibreSpot.Desktop/app.manifest:3`,
+    `src/LibreSpot.Desktop/app.manifest:7`,
+    https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro
+  - Touches: README requirements, compatibility matrix, installer docs,
+    diagnostics, app manifest support notes.
+  - Acceptance: operator records one support policy for Windows 11, Windows 10
+    Home/Pro after 2025-10-14, LTSC/ESU environments, Windows 7/8.1 Spotify
+    target versions, ARM64, and PowerShell 5.1/7 lanes. Docs distinguish
+    "supported host OS", "best-effort host OS", and "Spotify target version".
+  - Verify: compatibility matrix and diagnostics report the same labels; WPF
+    and PowerShell startup warnings do not contradict README/package metadata;
+    release checklist requires one manual smoke test on each supported host OS.
+
+- [ ] 🔬 🤖 P1 - Define a
+  least-privilege elevation and notification boundary.
+  - Why: the PowerShell script self-elevates immediately and the PS2EXE release
+    is built with admin requirements, while the WPF app manifest is
+    `asInvoker` and backend actions throw when admin is required. Microsoft
+    documents that app notifications are not supported for elevated apps. The
+    future WPF shell, protocol activation, repair diagnostics, and package
+    update flow need a single boundary for what runs elevated and what remains
+    usable without elevation.
+  - Evidence: `LibreSpot.ps1:634`, `LibreSpot.ps1:659`,
+    `.github/workflows/release.yml`, `src/LibreSpot.Desktop/app.manifest:7`,
+    `src/LibreSpot.Desktop/Services/BackendScriptService.cs`,
+    https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/send-local-toast,
+    https://learn.microsoft.com/en-us/windows/win32/sbscs/application-manifests,
+    https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/how-it-works
+  - Touches: WPF launcher, backend action contract, PS2EXE settings, updater,
+    diagnostics, notification registration docs.
+  - Acceptance: repo has an action matrix classifying each workflow as
+    no-admin, prompts-for-admin, or admin-only. Non-mutating workflows such as
+    browsing config, checking updates, exporting diagnostics, viewing logs, and
+    receiving notifications run without elevation. Mutating Spotify/Spicetify
+    actions request elevation only when executed and preserve clear cancel
+    recovery.
+  - Verify: automated tests assert non-mutating WPF commands do not require
+    admin; manual run as a standard user can check updates and export
+    diagnostics; elevated sessions do not claim toast support unless the
+    notification path is proven.
+
+- [ ] 🔬 🤖 P2 - Write the
+  shell-integration registration design before implementing protocol, toasts,
+  jump lists, or file associations.
+  - Why: the roadmap already calls for `librespot://`, `.librespot` import
+    association, jump lists, taskbar thumbnail buttons, tray minimize, and
+    persistent toasts. Current planning does not yet define AppUserModelID,
+    Start Menu shortcut ownership, protocol registry keys, package vs portable
+    behavior, toast activation arguments, or uninstall cleanup. Those decisions
+    need to align with the package identity and elevation boundary.
+  - Evidence: `ROADMAP.md:58`, `ROADMAP.md:70`,
+    https://learn.microsoft.com/en-us/windows/win32/shell/appids,
+    https://learn.microsoft.com/en-us/windows/win32/shell/links,
+    https://learn.microsoft.com/en-us/windows/win32/shell/fa-intro,
+    https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/toast-desktop-apps
+  - Touches: design doc, installer/updater, uninstall cleanup, app activation,
+    notification service, diagnostics.
+  - Acceptance: design specifies canonical AppUserModelID, shortcut path,
+    protocol URI, `.librespot` ProgID, toast activation payloads, jump-list
+    categories, portable-mode behavior, and uninstall rollback. It states
+    which registrations are per-user vs machine-wide and how package-manager /
+    Velopack installs differ from portable ZIP usage.
+  - Verify: implementation checklist has registry/shortcut before-and-after
+    captures; uninstall removes only LibreSpot-owned registrations; portable
+    mode does not write shell registrations unless the user opts in.
