@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 1.
+Last researched: 2026-06-04, Cycle 2.
 
 ## Implementer Instructions (for the build machine)
 
@@ -293,3 +293,193 @@ operator-needed where credentials or policy decisions block completion.
     distribution consequences.
   - Verify: review decision against install flow, watcher, package, and support
     burden.
+
+## 🔬 Researcher Queue (Cycle 2 - 2026-06-04)
+
+These items extend Cycle 1 without replacing it. Ownership tags stay the same:
+🔬 = researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
+operator-needed where credentials, naming, or release policy decisions block
+completion.
+
+- [ ] 🔬 🤖 P0 - Add a runtime and
+  build-tool lifecycle gate.
+  - Why: the WPF shell targets `net8.0-windows` and the release workflow uses
+    `actions/setup-dotnet@v4` with `8.0.x`, while .NET 8 is already in
+    maintenance and reaches end of support on 2026-11-10. .NET 10 is the active
+    LTS line through 2028-11-14, and PowerShell 7.6 LTS is aligned to .NET 10.
+    Release build tools are also behind current upstreams: PS2EXE is pinned to
+    1.0.15 while PSGallery reports 1.0.17, and CycloneDX is pinned to 3.0.8
+    while upstream `cyclonedx-dotnet` is 6.2.0.
+  - Evidence: `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:4`,
+    `.github/workflows/release.yml:235`, `.github/workflows/release.yml:259`,
+    https://dotnet.microsoft.com/en-us/platform/support/policy,
+    https://devblogs.microsoft.com/powershell/announcing-powershell-7-6/,
+    https://github.com/MScholtes/PS2EXE,
+    https://github.com/CycloneDX/cyclonedx-dotnet/releases/tag/v6.2.0
+  - Touches: release workflow, WPF csproj, dependency policy docs, roadmap.
+  - Acceptance: CI has a failing gate or release checklist item that names the
+    current .NET target support phase, latest SDK patch, PS2EXE version,
+    CycloneDX version, and the decision to hold or migrate. No tagged WPF
+    release should ship after .NET 8 EOL without either a .NET 10 migration or
+    a documented exception.
+  - Verify: `dotnet --info`; query the .NET releases index; `Find-Module ps2exe`;
+    `dotnet tool search CycloneDX`; `dotnet test ... -c Release --nologo`.
+
+- [ ] 🔬 🤖 P1 - Harden GitHub Actions
+  supply-chain pinning separately from Scorecard.
+  - Why: Cycle 1 already asks for Scorecard reporting, but the release workflow
+    still consumes tag-based action refs such as `actions/checkout@v4`,
+    `actions/setup-dotnet@v4`, `actions/upload-artifact@v4`,
+    `actions/download-artifact@v4`, `actions/attest-build-provenance@v2`, and
+    `actions/attest-sbom@v2`. GitHub's hardening guidance recommends pinning
+    third-party actions to full-length commit SHAs, and current action major
+    streams have moved beyond the pinned tags.
+  - Evidence: `.github/workflows/release.yml:36`,
+    `.github/workflows/release.yml:235`, `.github/workflows/release.yml:355`,
+    https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions,
+    https://github.com/actions/checkout/releases/tag/v6.0.3,
+    https://github.com/actions/upload-artifact/releases/tag/v7.0.1,
+    https://github.com/actions/download-artifact/releases/tag/v8.0.1,
+    https://github.com/actions/attest-build-provenance/releases/tag/v4.1.0
+  - Touches: `.github/workflows/release.yml`, Dependabot or Renovate config,
+    release docs.
+  - Acceptance: every action ref is either pinned to a full commit SHA with a
+    nearby comment naming the human-readable version, or is explicitly exempted
+    in a policy file. Updates are batched through a documented dependency bot
+    workflow and release dry-run.
+  - Verify: add a workflow static check that fails on `uses: .*@v[0-9]`;
+    run release workflow manually on a preview tag in a test branch.
+
+- [ ] 🔬 🤖 P1 - De-risk Wpf.Ui
+  adoption with the correct package identity.
+  - Why: the v4.0 stable scope says to adopt Wpf.Ui `TitleBar`, `Snackbar` /
+    `InfoBar`, `NumberBox`, and `SplitButton`, but the WPF project currently
+    has no Wpf.Ui package reference. The active package line is `WPF-UI` 4.3.0;
+    the similarly named `Wpf.Ui` NuGet ID is on an older 3.4.2.7 line. Adding
+    the wrong ID would create avoidable API and docs drift.
+  - Evidence: `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:23`,
+    https://github.com/lepoco/wpfui/releases/tag/4.3.0,
+    https://www.nuget.org/packages/WPF-UI,
+    https://www.nuget.org/packages/Wpf.Ui
+  - Touches: WPF csproj, `MainWindow.xaml`, theme dictionaries, WPF tests,
+    roadmap v4 scope docs.
+  - Acceptance: a short ADR or implementation note chooses `WPF-UI` 4.3.0 (or
+    deliberately rejects it), lists which local custom controls it replaces,
+    and proves the selected package can render the required controls without
+    breaking the existing Mica, focus, and theme resources.
+  - Verify: `dotnet add package WPF-UI --version 4.3.0` in a spike branch;
+    `dotnet build`; parse XAML; manual light/dark/high-contrast smoke pass.
+
+- [ ] 🔬 🤖 P1 - Add a WPF UI
+  automation and accessibility regression harness.
+  - Why: the WPF shell already has many `AutomationProperties.Name` /
+    `HelpText` bindings, polite live regions, and custom focus restoration, but
+    current tests are unit/regression tests only. Microsoft recommends Windows
+    accessibility testing with tools such as Accessibility Insights and UIA
+    Verify, and FlaUI 5.0.0 is current for UI Automation-based WPF tests.
+  - Evidence: `src/LibreSpot.Desktop/MainWindow.xaml:54`,
+    `src/LibreSpot.Desktop/MainWindow.xaml:1598`,
+    `src/LibreSpot.Desktop/MainWindow.xaml.cs:142`,
+    `tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj`,
+    https://learn.microsoft.com/en-us/windows/apps/design/accessibility/accessibility-testing,
+    https://github.com/microsoft/accessibility-insights-windows,
+    https://github.com/FlaUI/FlaUI/releases/tag/v5.0.0
+  - Touches: WPF test project, CI workflow, app launch/test hooks, UX audit
+    checklist.
+  - Acceptance: an automated smoke test launches the WPF shell in a no-backend
+    test mode, snapshots the UI Automation tree for Recommended, Custom,
+    Maintenance, prompt, and activity states, and fails on unlabeled actionable
+    controls, focus traps, missing live-region announcements, or obvious
+    keyboard navigation regressions.
+  - Verify: `dotnet test` runs the UIA tests on Windows runners or a documented
+    local-only lane; Accessibility Insights manual fast pass produces no
+    critical failures before v4 stable.
+
+- [ ] 🔬 🤖 P1 - Define the Velopack
+  app identity and update feed before packaging.
+  - Why: distribution planning names Velopack, but the repo currently has no
+    Velopack package, app ID, update channel, or `RELEASES` feed. Velopack
+    1.2.0 is current, and its docs make the release feed the discovery point
+    for updates; identity and install location decisions must be settled before
+    the WPF shell moves from portable release asset to installed app.
+  - Evidence: `ROADMAP.md:89`, `.github/workflows/release.yml:242`,
+    `src/LibreSpot.Desktop/app.manifest:3`,
+    https://docs.velopack.io/distributing/overview,
+    https://github.com/velopack/velopack/releases/tag/1.2.0,
+    https://www.nuget.org/packages/Velopack/1.2.0
+  - Touches: packaging docs, release workflow, WPF csproj, app manifest, update
+    check UX, installer/uninstaller docs.
+  - Acceptance: a packaging design note chooses package ID, display name,
+    update channel names, GitHub Releases vs external feed hosting, install
+    root, Start Menu shortcut behavior, state migration from portable builds,
+    and the rule for preserving Authenticode signatures across updates.
+  - Verify: after implementation, run `vpk pack` / `vpk upload` dry-runs in a
+    temp release folder and verify update discovery against a local feed.
+
+- [ ] 🔬 🤖 P1 - Add a Windows
+  PowerShell 5.1 and PowerShell 7 compatibility lane.
+  - Why: README promises PowerShell 5.1+, the script and backend intentionally
+    shell out to Windows PowerShell for SpotX isolation, and some code paths
+    handle PowerShell 7 with `Import-Module Appx -UseWindowsPowerShell`.
+    Release preflight currently parses through `pwsh`, so it does not prove the
+    raw script still runs under the built-in Windows PowerShell host users get
+    by default.
+  - Evidence: `README.md:26`, `LibreSpot.ps1:283`, `LibreSpot.ps1:443`,
+    `LibreSpot.ps1:4965`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:556`,
+    `.github/workflows/release.yml:108`,
+    https://learn.microsoft.com/en-us/powershell/scripting/install/install-powershell-on-windows
+  - Touches: release workflow, PowerShell regression tests, README requirements
+    copy, backend host-selection notes.
+  - Acceptance: CI or a documented local release checklist runs syntax parse and
+    non-mutating smoke commands under both `powershell.exe` 5.1 and current
+    `pwsh` 7.6, with explicit unsupported-host messages for anything else.
+  - Verify: `powershell.exe -NoProfile -File .\LibreSpot.ps1 -?` or equivalent
+    no-op path; `pwsh -NoProfile` parse/import checks; full .NET tests.
+
+- [ ] 🔬 🤖 P2 - Design a
+  privacy-safe diagnostic export bundle.
+  - Why: the WPF shell writes rolling Serilog logs and crash reports under
+    `%LOCALAPPDATA%\LibreSpot`, then lets users copy the report path or open the
+    crash folder. That is useful for support, but before fleet/admin docs ask
+    users to share diagnostics, LibreSpot needs a redaction policy for local
+    usernames, paths, environment details, command output, and future NDJSON
+    logs.
+  - Evidence: `src/LibreSpot.Desktop/Services/CrashReporter.cs:17`,
+    `src/LibreSpot.Desktop/Services/CrashReporter.cs:53`,
+    `src/LibreSpot.Desktop/Services/CrashReporter.cs:110`,
+    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:1703`,
+    `ROADMAP.md:104`
+  - Touches: diagnostics design docs, crash/support UX, logging tests, fleet
+    deployment docs.
+  - Acceptance: a support-bundle spec names included files, excluded files,
+    redaction patterns, retention, preview-before-share behavior, and a "no
+    credentials/no Spotify tokens" invariant. Implementation can follow later.
+  - Verify: once implemented, unit-test redaction patterns with sample logs and
+    confirm exported bundles contain no raw user profile path or access token
+    shaped strings.
+
+- [ ] 🔬 🔧 P0 - Finalize package
+  identity before any public distribution manifest.
+  - Why: `winget search LibreSpot --source winget` found no existing Windows
+    package on 2026-06-04, but the broader `librespot` name is already an
+    established open-source Spotify client/library with distro and crates.io
+    package identity. The existing roadmap has a rebrand decision, but package
+    IDs, display names, executable names, protocol names, and support burden
+    need one concrete decision before winget/Scoop/Chocolatey/Velopack files
+    exist.
+  - Evidence: local `winget search LibreSpot --source winget` on 2026-06-04,
+    https://github.com/librespot-org/librespot,
+    https://crates.io/crates/librespot,
+    https://github.com/microsoft/winget-pkgs,
+    `src/LibreSpot.Desktop/app.manifest:3`,
+    `SIGNPATH.md:3`
+  - Touches: product decision record, package manifests, SignPath docs, README,
+    shell integration docs, future protocol/file associations.
+  - Acceptance: operator records one canonical identity set: display name,
+    package IDs, executable names, publisher string, config folder names,
+    protocol URI, and whether old `%APPDATA%\LibreSpot` paths stay forever or
+    migrate.
+  - Verify: repeat winget search; search Chocolatey and Scoop; check GitHub and
+    crates.io name collision notes; review SignPath and package manifests before
+    first submission.
