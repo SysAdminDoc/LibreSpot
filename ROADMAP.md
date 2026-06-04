@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 11.
+Last researched: 2026-06-04, Cycle 12.
 
 ## Implementer Instructions (for the build machine)
 
@@ -1594,3 +1594,73 @@ operator-needed where release sequencing decisions are required.
     state domain without launching the full window; UI automation snapshots
     prove data context and command bindings still populate all three main tabs,
     activity overlay, and prompt overlay.
+
+## 🔬 Researcher Queue (Cycle 12 - 2026-06-04)
+
+Cycle 12 inspects the stable PowerShell GUI lane separately from the WPF
+preview. The public `releases/latest/download/LibreSpot.ps1` path still opens
+the PowerShell-hosted XAML shell, so it needs a minimum quality and support
+boundary even while v4 moves toward the native WPF shell. Tags: 🔬 =
+researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
+operator-needed where release-channel policy decisions are required.
+
+- [ ] 🔬 🤖 P1 - Add a legacy
+  PowerShell GUI accessibility and contrast gate.
+  - Why: Cycle 7 covers the native WPF shell, but the current stable script UI
+    is still a WPF/XAML surface embedded in `LibreSpot.ps1`. A 2026-06-04 scan
+    found zero `AutomationProperties`, zero `SystemColors`, 44 tooltips, 44
+    checkbox controls, six `BeginStoryboard` blocks, three `DoubleAnimation`
+    blocks, and many hard-coded dark-theme hex colors. The v3.7 shell has focus
+    trigger styling and useful microcopy, but it does not have the explicit
+    screen-reader names, high-contrast mapping, or reduced-motion policy being
+    planned for the native WPF shell.
+  - Evidence: `LibreSpot.ps1:1119`, `LibreSpot.ps1:1249`,
+    `LibreSpot.ps1:1341`, `LibreSpot.ps1:1542`,
+    `LibreSpot.ps1:2011`, `LibreSpot.ps1:2052`,
+    `LibreSpot.ps1:4309`,
+    local `rg`/count scan of `LibreSpot.ps1` on 2026-06-04,
+    https://learn.microsoft.com/en-us/accessibility-tools-docs/items/wpf/control_automationproperties,
+    https://learn.microsoft.com/en-us/windows/apps/design/accessibility/high-contrast-themes,
+    https://learn.microsoft.com/en-us/windows/apps/design/accessibility/accessibility-testing
+  - Touches: `LibreSpot.ps1` XAML resources, themed dialog XAML, manual QA
+    checklist, README support notes.
+  - Acceptance: before another stable script release, the PowerShell GUI has a
+    minimum accessibility checklist covering keyboard traversal, visible focus,
+    named icon-only/titlebar buttons, meaningful checkbox/combo names,
+    high-contrast fallback, non-color-only destructive/warning states, and a
+    reduced-motion/no-shimmer mode or documented exception. If maintainers
+    choose not to backport these fixes, README and release notes explicitly mark
+    the PowerShell shell as legacy and point accessibility-sensitive users to
+    the native WPF track once stable.
+  - Verify: manual keyboard and screen-reader smoke pass covers Easy, Custom,
+    Maintenance, progress, and confirmation dialog; high-contrast screenshots
+    prove text and focus remain visible; static scan fails if new unlabeled
+    icon-only controls are added.
+
+- [ ] 🔬 🤖 🔧 P1 - Define the
+  stable script support and retirement boundary.
+  - Why: README describes LibreSpot as a single-script PowerShell GUI, and the
+    latest stable release is still `v3.7.2` with `LibreSpot.ps1` and
+    `LibreSpot.exe` assets. At the same time, the roadmap makes v4 stable the
+    native WPF shell. Without a channel policy, users will not know whether the
+    PowerShell GUI continues receiving accessibility fixes, security fixes,
+    dependency pin updates, watcher fixes, or only critical hotfixes after WPF
+    stabilizes.
+  - Evidence: `README.md:7`, `README.md:18`,
+    `README.md:38`, `README.md:181`,
+    `gh release view v3.7.2 --json assets,isPrerelease` on 2026-06-04,
+    `gh release view v4.0.0-preview.1 --json assets,isPrerelease` on
+    2026-06-04,
+    https://docs.github.com/articles/about-releases
+  - Touches: README channel table, release notes, roadmap v4 stable scope,
+    support docs, self-update messaging.
+  - Acceptance: repo documents whether the PowerShell GUI is active stable,
+    maintenance-only LTS, or deprecated after WPF stable. The policy names what
+    still lands in the script lane, how long critical fixes are backported, how
+    users migrate saved `config.json`, whether PS2EXE continues shipping, and
+    which release channel `/latest` should point at during and after the v4
+    transition.
+  - Verify: README and release notes show one stable recommendation; release
+    workflow enforces the channel policy; self-update/check-update messaging
+    does not suggest preview WPF builds as stable unless maintainers have made
+    that decision.
