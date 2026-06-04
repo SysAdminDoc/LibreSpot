@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 10.
+Last researched: 2026-06-04, Cycle 11.
 
 ## Implementer Instructions (for the build machine)
 
@@ -1505,3 +1505,92 @@ operator-needed where release/support policy decisions are required.
     a fixture representing `v3.7.2` without WPF assets produces historical
     release wording instead of generic "every release" claims; screenshot
     capture artifacts include viewport, OS theme, app version, and commit SHA.
+
+## 🔬 Researcher Queue (Cycle 11 - 2026-06-04)
+
+Cycle 11 inspects maintainability risks in the PowerShell and WPF code shape.
+It does not implement refactors; it turns measured duplication and file size
+into implementation-ready extraction and quality-gate work. Tags: 🔬 =
+researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
+operator-needed where release sequencing decisions are required.
+
+- [ ] 🔬 🤖 P1 - Extract shared
+  PowerShell core logic into a generated script-module source.
+  - Why: `LibreSpot.ps1` is 5,769 lines, the embedded WPF backend is 2,318
+    lines, and a function inventory on 2026-06-04 found 58 function names shared
+    between them. Shared functions include config normalization, SpotX parameter
+    building, downloads, path management, Spicetify runners, watcher state,
+    archive/install modules, and safety helpers. Hand-copying those functions
+    across two scripts makes every future SpotX flag, download hardening, safe
+    extraction, config migration, and process contract change vulnerable to
+    one-lane drift.
+  - Evidence: local function inventory on 2026-06-04,
+    `LibreSpot.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`,
+    `CHANGELOG.md:148`,
+    `tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs:7`,
+    https://learn.microsoft.com/en-us/powershell/scripting/developer/module/how-to-write-a-powershell-script-module,
+    https://learn.microsoft.com/en-us/powershell/scripting/developer/module/how-to-write-a-powershell-module-manifest
+  - Touches: PowerShell source layout, backend embedding step, release build,
+    regression tests, developer docs.
+  - Acceptance: repo has a shared PowerShell source module or source-fragment
+    layout that generates both `LibreSpot.ps1` and the embedded backend script.
+    Shared functions have one source of truth; lane-specific wrappers own only
+    UI, event protocol, elevation, and host dispatch. Generated outputs are
+    deterministic and include a banner naming their source commit.
+  - Verify: build step regenerates both scripts and fails on dirty generated
+    output; parser tests run against generated scripts; function inventory
+    proves shared functions are not manually duplicated; release workflow uses
+    generated artifacts only after tests pass.
+
+- [ ] 🔬 🤖 P2 - Add source
+  shape metrics and maintainability budgets to CI.
+  - Why: the codebase now has several large coordination files:
+    `LibreSpot.ps1` at 5,769 lines, `MainViewModel.cs` at 2,202 lines,
+    `LibreSpot.Backend.ps1` at 2,318 lines, and `AppCatalog.cs` at 372 lines.
+    Some of that is deliberate because the project ships single-file
+    PowerShell and a self-contained WPF shell, but growth should be visible
+    before it becomes another late-release refactor. The Cycle 8 parity
+    manifest can share the same inventory data.
+  - Evidence: local line/byte measurement on 2026-06-04,
+    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`,
+    `src/LibreSpot.Desktop/Models/AppCatalog.cs`,
+    https://learn.microsoft.com/en-us/powershell/utility-modules/psscriptanalyzer/overview,
+    https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions
+  - Touches: CI workflow, test utilities, roadmap/research reports, developer
+    docs.
+  - Acceptance: CI emits a source-shape summary with line count, function
+    count, public option count, backend action count, shared PowerShell function
+    count, largest XAML dictionaries, and largest C# types. Budgets can start
+    as warnings, but new files crossing agreed thresholds must include a split
+    plan or explicit exception.
+  - Verify: metrics are deterministic on Windows runners; docs-only changes do
+    not trigger misleading code-shape regressions; a fixture or synthetic
+    oversized file proves warning/fail thresholds work.
+
+- [ ] 🔬 🤖 P2 - Split WPF view-model
+  state domains before adding more v4 stable UI.
+  - Why: `MainViewModel.cs` currently coordinates environment snapshots,
+    install/custom option editing, settings search, maintenance commands,
+    activity streaming, prompt state, cancellation, log display, and external
+    folder launching. Upcoming roadmap items add diagnostics, undo actions,
+    toasts, preset sharing, localization, accessibility tests, parity manifests,
+    and shell integration. Without state-domain boundaries, each UI feature
+    increases the risk of broad property-change churn and hard-to-test command
+    interactions.
+  - Evidence: `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:106`,
+    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:1365`,
+    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:1436`,
+    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:1562`,
+    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:1945`,
+    https://learn.microsoft.com/en-us/dotnet/desktop/wpf/data/
+  - Touches: WPF view models, command services, tests, UI automation harness,
+    localization work.
+  - Acceptance: define sub-view-model or service ownership for environment
+    summary, option editor, maintenance actions, activity/log stream, prompts,
+    settings search, and release/update status. `MainViewModel` becomes a
+    coordinator rather than the owner of every state transition. Public
+    properties stay stable for XAML or are migrated with focused tests.
+  - Verify: existing 72 desktop tests still pass; new unit tests cover each
+    state domain without launching the full window; UI automation snapshots
+    prove data context and command bindings still populate all three main tabs,
+    activity overlay, and prompt overlay.
