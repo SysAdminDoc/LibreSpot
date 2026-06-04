@@ -4,7 +4,7 @@ Research summary for planning. The full April 2026 research corpus is archived
 at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 1.
+Last researched: 2026-06-04, Cycle 2.
 
 ## Executive Summary
 
@@ -80,6 +80,85 @@ Areas not verified:
   enrollment are required.
 - No package-manager manifest was submitted to winget, Scoop, or Chocolatey.
 - No UI screenshot audit was run in this research lane.
+
+## Cycle 2 Delta - Release, UI, Packaging, and Identity
+
+Cycle 2 intentionally avoided repeating the Cycle 1 upstream SpotX/Spicetify
+pin research. It focused on implementation prerequisites that can block the
+next build machine even if feature work is otherwise clear.
+
+### New Evidence Collected
+
+- The repo remains current at `8698492 docs: refresh roadmap research cycle`;
+  `git pull --rebase` reported already up to date.
+- The only untracked repo file remains `AGENTS.md`; this research cycle did not
+  stage or edit it.
+- `winget search LibreSpot --source winget` found no matching Windows package
+  on 2026-06-04. Chocolatey and Scoop CLIs were not installed locally, so those
+  package indexes were not live-verified from this machine.
+- WPF project target: `net8.0-windows`; release workflow installs .NET `8.0.x`.
+- Microsoft's current .NET support table shows .NET 8 in maintenance with end
+  of support on 2026-11-10, while .NET 10 is active LTS through 2028-11-14.
+- PowerShell 7.6 is the current LTS line and is built on .NET 10, but LibreSpot
+  still needs Windows PowerShell 5.1 coverage because that is the built-in host
+  promised in README and explicitly selected for SpotX isolation.
+- Release workflow action refs are tag-based (`actions/checkout@v4`,
+  `actions/setup-dotnet@v4`, artifact actions v4, attestation actions v2).
+  GitHub's security guidance recommends full-length commit SHA pinning.
+- Current action release streams have moved: checkout v6.0.3, setup-dotnet
+  v5.3.0, upload-artifact v7.0.1, download-artifact v8.0.1, attestation actions
+  v4.1.0.
+- PS2EXE is pinned at 1.0.15 in CI, while PSGallery reports 1.0.17.
+- CycloneDX is pinned at 3.0.8 in CI, while `cyclonedx-dotnet` reports 6.2.0.
+- The v4.0 scope mentions Wpf.Ui controls, but the WPF project currently has no
+  Wpf.Ui package reference. The active package line is `WPF-UI` 4.3.0; the
+  similarly named `Wpf.Ui` NuGet ID is an older 3.4.2.7 line.
+- The WPF shell has many automation names, help text bindings, live regions, and
+  focus restoration hooks, but no UI Automation or Accessibility Insights test
+  lane.
+- Velopack is current at 1.2.0 and its docs center update discovery on release
+  feed metadata, but LibreSpot has no app identity, installed app layout, update
+  channel, or feed design yet.
+- CrashReporter writes local logs and crash reports and encourages users to copy
+  report paths/open folders; a support-bundle redaction policy does not yet
+  exist.
+
+### Cycle 2 Conclusions
+
+- The next release should not treat .NET 8 as a set-and-forget base. The project
+  can stay on .NET 8 for now, but it needs a visible support-phase gate before
+  November 2026 so v4 stable is not born near an EOL cliff.
+- Release supply-chain posture is strong for checksums, SBOM, and attestations,
+  but tag-based action refs remain a distinct risk from missing Scorecard
+  reporting. SHA pinning and a bot-managed update process are separate
+  implementation work.
+- Wpf.Ui adoption needs a package-ID decision before code work. The correct
+  current package is `WPF-UI`, not the older-looking `Wpf.Ui` ID.
+- The WPF accessibility work is promising but under-verified. A UI Automation
+  smoke harness would turn manual visual/accessibility audit expectations into
+  repeatable evidence.
+- Velopack should start with package identity and state migration design, not
+  with a quick package command. Otherwise package-manager, signing, shortcuts,
+  update feed, and future protocol names can diverge.
+- The name collision risk is broader than package availability. `LibreSpot` has
+  no current winget hit, but `librespot` is already a well-known Spotify client
+  project and crate; distribution work needs canonical package/display/protocol
+  naming before first submission.
+- Diagnostic export should be designed before support/fleet docs tell users to
+  share logs, because local logs and crash reports can include paths and command
+  output that should be reviewed or redacted.
+
+### Cycle 2 Added Roadmap Items
+
+- P0 - Add a runtime and build-tool lifecycle gate.
+- P1 - Harden GitHub Actions supply-chain pinning separately from Scorecard.
+- P1 - De-risk Wpf.Ui adoption with the correct package identity.
+- P1 - Add a WPF UI automation and accessibility regression harness.
+- P1 - Define the Velopack app identity and update feed before packaging.
+- P1 - Add a Windows PowerShell 5.1 and PowerShell 7 compatibility lane.
+- P2 - Design a privacy-safe diagnostic export bundle.
+- P0/operator - Finalize package identity before any public distribution
+  manifest.
 
 ## Current Product Map
 
@@ -437,3 +516,31 @@ Platform and legal:
 - https://www.spotify.com/us/legal/user-guidelines//
 - https://developer.spotify.com/terms/
 - https://developer.spotify.com/policy
+
+Cycle 2 release, UI, and packaging sources:
+
+- https://dotnet.microsoft.com/en-us/platform/support/policy
+- https://learn.microsoft.com/en-us/dotnet/core/releases-and-support
+- https://devblogs.microsoft.com/powershell/announcing-powershell-7-6/
+- https://learn.microsoft.com/en-us/powershell/scripting/install/install-powershell-on-windows
+- https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions
+- https://github.com/actions/checkout/releases/tag/v6.0.3
+- https://github.com/actions/setup-dotnet/releases/tag/v5.3.0
+- https://github.com/actions/upload-artifact/releases/tag/v7.0.1
+- https://github.com/actions/download-artifact/releases/tag/v8.0.1
+- https://github.com/actions/attest-build-provenance/releases/tag/v4.1.0
+- https://github.com/actions/attest-sbom/releases/tag/v4.1.0
+- https://github.com/MScholtes/PS2EXE
+- https://www.powershellgallery.com/packages/ps2exe/
+- https://github.com/CycloneDX/cyclonedx-dotnet/releases/tag/v6.2.0
+- https://github.com/lepoco/wpfui/releases/tag/4.3.0
+- https://www.nuget.org/packages/WPF-UI
+- https://www.nuget.org/packages/Wpf.Ui
+- https://learn.microsoft.com/en-us/windows/apps/design/accessibility/accessibility-testing
+- https://github.com/microsoft/accessibility-insights-windows
+- https://github.com/FlaUI/FlaUI/releases/tag/v5.0.0
+- https://docs.velopack.io/distributing/overview
+- https://github.com/velopack/velopack/releases/tag/1.2.0
+- https://www.nuget.org/packages/Velopack/1.2.0
+- https://github.com/librespot-org/librespot
+- https://crates.io/crates/librespot
