@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 12.
+Last researched: 2026-06-04, Cycle 13.
 
 ## Implementer Instructions (for the build machine)
 
@@ -1664,3 +1664,66 @@ operator-needed where release-channel policy decisions are required.
     workflow enforces the channel policy; self-update/check-update messaging
     does not suggest preview WPF builds as stable unless maintainers have made
     that decision.
+
+## 🔬 Researcher Queue (Cycle 13 - 2026-06-04)
+
+Cycle 13 inspects destructive-operation safety and backup parity beyond the
+broader operation-journal item already in Cycle 3. Tags: 🔬 =
+researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
+operator-needed where user-data or release-channel policy decisions are
+required.
+
+- [ ] 🔬 🤖 P0 - Backport the
+  narrowed scheduled-task cleanup guard to the stable script.
+  - Why: the WPF backend cleanup path already avoids deleting arbitrary
+    scheduled tasks that merely contain "Spotify" in their task name; its
+    comment explicitly calls out a user-authored `MySpotifyBackup` task as the
+    risk. The stable `LibreSpot.ps1` full reset still uses
+    `Where-Object { $_.TaskName -match 'Spotify' }`, so the public stable lane
+    can remove unrelated user automation during a destructive reset while the
+    backend lane is safer.
+  - Evidence: `LibreSpot.ps1:5056`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1743`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1744`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1746`,
+    https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/unregister-scheduledtask
+  - Touches: `LibreSpot.ps1`, backend parity tests, destructive reset tests,
+    support docs.
+  - Acceptance: both script lanes remove only Spotify-owned scheduled tasks
+    using an allow-list or an ownership predicate that includes task path,
+    action executable/arguments, and known Spotify task names. User-authored
+    tasks such as `MySpotifyBackup`, `SpotifyPlaylistExport`, or RMM tasks that
+    mention Spotify are not removed.
+  - Verify: PowerShell regression tests cover Spotify-owned task fixtures and
+    user-authored false positives; full reset dry-run/journal from Cycle 3
+    lists only owned tasks; manual review confirms no broad `TaskName -match
+    'Spotify'` cleanup remains.
+
+- [ ] 🔬 🤖 P1 - Bring backup and
+  restore controls to the native WPF maintenance surface before v4 stable.
+  - Why: the stable PowerShell GUI exposes "Create configuration backup" and
+    "Restore the newest backup" controls, wires enablement/tooltips, and calls
+    backup/restore handlers. The native WPF maintenance catalog currently lists
+    Check Updates, Reapply, Restore Vanilla, Uninstall Spicetify, and Full
+    Reset, but no explicit backup or restore action. Since Spicetify's documented
+    workflow includes backup/apply/restore commands, v4 parity should include
+    first-class backup and restore affordances rather than making users fall
+    back to the legacy shell for recovery work.
+  - Evidence: `LibreSpot.ps1:2011`, `LibreSpot.ps1:2012`,
+    `LibreSpot.ps1:3991`, `LibreSpot.ps1:4135`,
+    `LibreSpot.ps1:4156`,
+    `src/LibreSpot.Desktop/Models/AppCatalog.cs:275`,
+    `src/LibreSpot.Desktop/Models/AppCatalog.cs:277`,
+    `src/LibreSpot.Desktop/Models/AppCatalog.cs:281`,
+    https://spicetify.app/docs/cli/commands
+  - Touches: WPF maintenance catalog, backend action registry, backend script,
+    UI prompts, tests, support docs.
+  - Acceptance: WPF Maintenance has explicit backup and restore actions with
+    enablement based on Spicetify install state and existing backup count.
+    Backup names the destination and does not modify Spotify; restore previews
+    the selected/latest backup, restores through the backend, and reports
+    whether a follow-up apply/reapply happened.
+  - Verify: tests cover backup disabled/missing/available states, restore with
+    no backup, restore success, restore failure, and parity with the stable
+    script's backup location. UI automation snapshots include backup/restore
+    controls and destructive reset remains separately grouped.
