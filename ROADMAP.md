@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 9.
+Last researched: 2026-06-04, Cycle 10.
 
 ## Implementer Instructions (for the build machine)
 
@@ -1434,3 +1434,74 @@ operator-needed where legal/support policy decisions are required.
     allow-list contains only approved upstream URLs; support docs include a
     sample response for users asking LibreSpot to troubleshoot a third-party
     client.
+
+## 🔬 Researcher Queue (Cycle 10 - 2026-06-04)
+
+Cycle 10 inspects the user-facing documentation and source-tree hygiene around
+release channels. Cycle 5 already covers the release artifact contract itself;
+this pass focuses on making README badges, screenshots, tracked files, and
+trust claims consume that contract instead of drifting independently. Tags:
+🔬 = researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
+operator-needed where release/support policy decisions are required.
+
+- [ ] 🔬 🤖 P1 - Separate source
+  assets from generated release artifacts.
+  - Why: the repository currently tracks `LibreSpot.exe`, `LibreSpot.ps1`, and
+    `checksums.txt` at the root. `LibreSpot.ps1` is source, but `LibreSpot.exe`
+    and `checksums.txt` look like generated release outputs that can drift from
+    GitHub Releases and confuse users or automated checks about which binary
+    and checksum are authoritative. GitHub's large-file guidance recommends
+    using Releases to distribute binary files rather than tracking generated
+    binaries in the repository.
+  - Evidence: local `git ls-files checksums.txt LibreSpot.exe LibreSpot.ps1`
+    on 2026-06-04,
+    `gh release view v3.7.2 --json assets` on 2026-06-04,
+    https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github,
+    https://docs.github.com/articles/about-releases
+  - Touches: `.gitignore`, release workflow, README download instructions,
+    support docs, release checklist.
+  - Acceptance: repo defines which root-level binaries or checksum files are
+    source artifacts versus generated release outputs. Generated `.exe`,
+    checksum, SBOM, attestation, and signed-artifact files are ignored or stored
+    only as release assets; if a bootstrap binary is intentionally tracked, it
+    has a documented provenance, version, checksum, and update rule.
+  - Verify: `git status --ignored` after a local release build shows generated
+    artifacts ignored; README download links point to GitHub Releases, not
+    root-tree binaries; a release dry-run proves checksums are generated from
+    fresh build outputs.
+
+- [ ] 🔬 🤖 P1 - Generate README
+  badges, screenshots, and trust claims from release metadata.
+  - Why: README badges advertise `Version 4.0.0-preview.6` and `Stable 3.7.2`,
+    but live GitHub release metadata on 2026-06-04 shows latest stable
+    `v3.7.2` and latest preview release `v4.0.0-preview.1`. README screenshots
+    use February 2026 attachment names, while the v3.7 UI and WPF preview have
+    changed substantially. The signing/verification section also lists
+    `LibreSpot-Desktop.exe`, SBOM, and attestation expectations that depend on
+    the Cycle 5 release-manifest contract rather than the actual latest stable
+    release assets.
+  - Evidence: `README.md:11`, `README.md:12`, `README.md:29`,
+    `README.md:31`, `README.md:181`, `README.md:184`,
+    `README.md:191`, `README.md:192`,
+    `gh release list --limit 10 --json tagName,isPrerelease,isImmutable`
+    on 2026-06-04,
+    `gh release view v3.7.2 --json assets,isPrerelease,isImmutable`
+    on 2026-06-04,
+    `gh release view v4.0.0-preview.1 --json assets,isPrerelease,isImmutable`
+    on 2026-06-04,
+    https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes,
+    https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds,
+    https://cli.github.com/manual/gh_attestation_verify
+  - Touches: README, screenshot capture workflow, release-manifest consumer,
+    docs tests, support/trust docs.
+  - Acceptance: README badges and verification tables are generated from the
+    release manifest or live release metadata, not hand-maintained strings.
+    Stable and preview channels are shown separately with exact asset names,
+    signing state, checksum state, SBOM state, and attestation state. Screenshots
+    come from a dated release-candidate capture run and include stable
+    PowerShell UI, WPF preview, high-contrast, and common error/maintenance
+    states where available.
+  - Verify: docs-generation dry-run updates no files when metadata is current;
+    a fixture representing `v3.7.2` without WPF assets produces historical
+    release wording instead of generic "every release" claims; screenshot
+    capture artifacts include viewport, OS theme, app version, and commit SHA.
