@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 8.
+Last researched: 2026-06-04, Cycle 9.
 
 ## Implementer Instructions (for the build machine)
 
@@ -1334,3 +1334,103 @@ policy decisions are required.
     forms render without schema errors; CODEOWNERS syntax validates; a sample
     bug report contains enough data to reproduce a Spotify version mismatch
     without asking the reporter for basic environment details.
+
+## 🔬 Researcher Queue (Cycle 9 - 2026-06-04)
+
+Cycle 9 narrows the existing Alternative clients row into compliance-first
+ecosystem work. It does not reopen the broader macOS/Linux support decision
+from Cycle 1; it focuses on how LibreSpot should present third-party clients
+without implying official support, unsafe downloads, or policy certainty. Tags:
+🔬 = researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
+operator-needed where legal/support policy decisions are required.
+
+- [ ] 🔬 🤖 🔧 P1 - Build an
+  alternative-client capability and compliance matrix before adding cards.
+  - Why: Spotube, Psst, and Ncspot are not interchangeable alternatives to the
+    patched Windows Spotify flow. Live GitHub checks on 2026-06-04 showed
+    Spotube as active with v5.1.1 published 2026-02-24 and 46k+ stars; Psst as
+    recently pushed but still describing itself as early and requiring Premium;
+    Ncspot as active with v1.3.4 published 2026-05-22 and Premium-only terminal
+    UX. Spotify's February 2026 developer-platform update added Premium and
+    user-count limits for Development Mode, and the Developer Policy restricts
+    streaming, replacement clients, branding, data use, and integrations with
+    content from another service. LibreSpot needs a factual matrix and legal
+    disclaimer before any UI suggests these are safe drop-in replacements.
+  - Evidence: `ROADMAP.md:62`,
+    live GitHub API checks for `KRTirtho/spotube`, `jpochyla/psst`, and
+    `hrkfdn/ncspot` on 2026-06-04,
+    `KRTirtho/spotube` README on 2026-06-04,
+    `jpochyla/psst` README on 2026-06-04,
+    `hrkfdn/ncspot` README on 2026-06-04,
+    https://developer.spotify.com/blog/2026-02-06-update-on-developer-access-and-platform-security,
+    https://developer.spotify.com/policy,
+    https://developer.spotify.com/terms/
+  - Touches: roadmap docs, README comparison table, future WPF cards, support
+    docs, legal/trust copy.
+  - Acceptance: matrix lists each client name, upstream URL, latest release,
+    last push, license/SPDX status, platform support, package-manager channels,
+    Premium requirement, playback source, account/auth model, Spotify Connect
+    support, offline/download claims, lyrics support, telemetry claims, package
+    signatures/checksums, and known policy/support caveats. UI cards link out
+    only after maintainers approve the disclaimer and support boundary.
+  - Verify: regenerate the matrix from GitHub API plus checked README snippets;
+    cards cannot show install buttons until every row has a support state,
+    verified source URL, and policy note; docs state that LibreSpot does not
+    endorse, bundle, modify, or support third-party clients.
+
+- [ ] 🔬 🤖 P2 - Add an
+  ecosystem freshness monitor for alternative-client recommendations.
+  - Why: candidate projects have different release models: Spotube publishes
+    normal releases, Psst's latest release is a rolling tag, and Ncspot has
+    frequent tagged releases. A static README table will go stale quickly,
+    especially while Spotify is changing API access and platform policy. The
+    same monitor can catch archived repos, disabled repos, missing releases,
+    license changes, package channel breakage, and major README claims such as
+    "Premium required" or "downloadable tracks" that should affect LibreSpot's
+    wording.
+  - Evidence: `KRTirtho/spotube` latest release `v5.1.1` on 2026-02-24,
+    `jpochyla/psst` latest release `rolling` on 2025-06-28,
+    `hrkfdn/ncspot` latest release `v1.3.4` on 2026-05-22,
+    `librespot-org/librespot` latest release `v0.8.0` on 2025-11-10,
+    https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions,
+    https://docs.github.com/actions/using-workflows/storing-workflow-data-as-artifacts
+  - Touches: research scripts, CI summaries, README/roadmap data tables,
+    support docs.
+  - Acceptance: scheduled or manual research workflow queries GitHub metadata
+    for approved alternatives and writes a summary with latest release, push
+    date, archive status, star count, license, package channels, and warning
+    flags. Warnings are generated when a repo is archived/disabled, latest
+    release is older than a chosen threshold, license detection changes, README
+    claims shift into higher-risk territory, or Spotify policy pages change.
+  - Verify: dry-run monitor produces deterministic Markdown/JSON output; a
+    fixture with an archived repo and stale release triggers warnings; workflow
+    summary explains whether the public cards remain current.
+
+- [ ] 🔬 🤖 🔧 P2 - Define a
+  safe handoff policy for alternative-client install links.
+  - Why: the current product is a Windows Spotify patcher, while alternative
+    clients may be cross-platform, terminal-only, Premium-only, use different
+    playback sources, or have their own update channels. Automatically
+    installing or deep-linking to binaries would expand LibreSpot's support and
+    legal surface beyond its signed artifacts. A safer first implementation is
+    an informational card with user-controlled external links, source/status
+    metadata, and a clear "not managed by LibreSpot" boundary.
+  - Evidence: `ROADMAP.md:62`, `README.md:7`,
+    `README.md:51`,
+    `KRTirtho/spotube` README installation table on 2026-06-04,
+    `jpochyla/psst` README download table on 2026-06-04,
+    `hrkfdn/ncspot` README installation notes on 2026-06-04,
+    https://developer.spotify.com/policy
+  - Touches: WPF card UI, README, support docs, trust/legal disclosure,
+    telemetry-free external-link handling.
+  - Acceptance: first release of alternative-client cards is docs/link-only:
+    no automatic download, no bundled installer, no package-manager invocation,
+    no account-token handling, and no support promise beyond showing current
+    upstream metadata. Cards open verified upstream project/release/package
+    pages in the browser, include a support boundary, and distinguish GUI,
+    terminal, mobile, desktop, Premium-only, and non-Spotify-audio-source
+    behaviors.
+  - Verify: UI tests prove cards cannot execute installers; external-link
+    allow-list contains only approved upstream URLs; support docs include a
+    sample response for users asking LibreSpot to troubleshoot a third-party
+    client.
