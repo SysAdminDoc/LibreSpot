@@ -4,7 +4,7 @@ Research summary for planning. The full April 2026 research corpus is archived
 at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 5.
+Last researched: 2026-06-04, Cycle 6.
 
 ## Executive Summary
 
@@ -406,6 +406,91 @@ post-publish verification.
 - P1 - Add NuGet lock-file restore and audit enforcement.
 - P1 - Add structured release notes and changelog gating.
 - P2 - Write a bad-release, signing, and rollback runbook.
+
+## Cycle 6 Delta - Elevated Installer Security Boundaries
+
+Cycle 6 inspected the security boundaries around elevated PowerShell execution,
+the WPF backend handoff, scheduled-task persistence, archive extraction, and
+local diagnostic data. A formal Codex Security scan was not completed because
+that workflow requires explicit subagent authorization and full scan artifacts;
+this cycle is a planning-security pass feeding the roadmap.
+
+### New Evidence Collected
+
+- WPF backend action names are allow-listed before reaching PowerShell, and
+  `BackendScriptService` uses `ProcessStartInfo.ArgumentList` for the C# to
+  PowerShell handoff.
+- WPF extracts an embedded backend script into
+  `%LOCALAPPDATA%\LibreSpot\Runtime\LibreSpot.Backend.ps1`, hashes the embedded
+  resource, and reuses the on-disk script if the hash matches.
+- The watcher task action uses `powershell.exe -NoProfile -WindowStyle Hidden
+  -ExecutionPolicy Bypass -File <entry> -Action WatchAutoReapply -ConfigPath
+  <config>`, where `<entry>` is the backend script path resolved at
+  registration time.
+- Scheduled-task XML uses `InteractiveToken` and `LeastPrivilege`, and tests
+  already lock in important XML shape and watcher invariants.
+- PowerShell's own script lane uses `-ExecutionPolicy Bypass` for self
+  elevation, watcher execution, and SpotX invocation. Microsoft documents
+  execution policy as a safety feature rather than a security boundary.
+- Microsoft PowerShell docs say PowerShell can run in ConstrainedLanguage mode
+  when AppLocker or Windows Defender Application Control policy is active, and
+  application-control policy can block untrusted script files or limit .NET /
+  COM API access.
+- The PowerShell backend launches SpotX through a single-string
+  `Start-Process -ArgumentList` because of documented local comments about
+  Windows PowerShell 5.1 redirected-output handle behavior. The comment relies
+  on `Build-SpotXParams` emitting only fixed flags or normalized values.
+- `Build-SpotXParams` currently constrains download method to `curl` /
+  `webclient` / empty, Spotify version to the known manifest, and cache limit
+  to a bounded integer.
+- Direct `[System.IO.Compression.ZipFile]::ExtractToDirectory` calls exist for
+  Spicetify CLI, community themes, official themes, and Marketplace in both
+  script lanes. There is no single safe-extract helper in repo.
+- Core SpotX, Spicetify CLI, Marketplace, and official themes are hash-verified
+  where pins exist, but community theme archives are branch-sourced and Cycle 4
+  already found community extension URL/license/hash gaps.
+- MITRE CWE-23 and OWASP path traversal guidance describe archive path
+  traversal / Zip Slip risks when archive entry names can escape the intended
+  directory.
+- WPF logs roll under `%LOCALAPPDATA%\LibreSpot\logs` for 14 days and crash
+  reports under `%LOCALAPPDATA%\LibreSpot\crashes` are cleaned after 30 days.
+  Crash bodies include full exception strings, which can include local paths.
+- PowerShell writes `config.json`, `install.log`, `watcher-state.json`, and
+  `watcher.log` under the LibreSpot profile. Cycle 2 already asks for a
+  privacy-safe export bundle, but no inventory covers all local data at rest.
+
+### Cycle 6 Conclusions
+
+- Existing mitigations are meaningful: WPF rejects unknown actions before
+  runtime preparation, C# argument passing is tokenized, scheduled tasks run at
+  least privilege, critical downloads are hashed, and deletion helpers block
+  obvious profile/system roots.
+- The highest-risk remaining boundary is elevated execution of user-local script
+  content. Hash-before-run helps, but runtime ACLs, race resistance, and watcher
+  entrypoint validation should become explicit release gates.
+- Archive extraction should be centralized. Even when upstream archives are
+  trusted by hash, one helper with path/size/count/structure checks is easier to
+  audit than direct `ExtractToDirectory` calls scattered across install paths.
+- Execution-policy bypass needs precise wording and diagnostics. LibreSpot can
+  use it for its own launcher model, but enterprise WDAC/AppLocker/CLM behavior
+  should be detected and explained, not treated as a generic install failure.
+- Native/external process execution is currently bounded by configuration
+  normalizers and code comments. Tests should make those assumptions executable
+  before any future free-form flags, custom patch paths, or fleet command
+  inputs land.
+- Local data at rest needs an inventory separate from export redaction. Support
+  bundles are not the only place usernames, paths, logs, and command output can
+  persist.
+
+### Cycle 6 Added Roadmap Items
+
+- P0 - Harden elevated backend runtime extraction and watcher entrypoint
+  integrity.
+- P1 - Add a safe archive extraction helper for every downloaded ZIP.
+- P1 - Add PowerShell execution-policy and WDAC/ConstrainedLanguage
+  compatibility gates.
+- P1 - Add an external process execution contract for SpotX and Spicetify.
+- P2 - Add a local data security and retention inventory.
 
 ## Current Product Map
 
@@ -849,3 +934,15 @@ Cycle 5 release-governance and restore-control sources:
 - https://api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest
 - https://github.com/SysAdminDoc/LibreSpot/releases/tag/v3.7.2
 - https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.0.0-preview.1
+
+Cycle 6 security-boundary sources:
+
+- https://learn.microsoft.com/powershell/module/microsoft.powershell.core/about/about_execution_policies
+- https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_language_modes
+- https://learn.microsoft.com/en-us/powershell/scripting/security/app-control/application-control
+- https://learn.microsoft.com/en-us/windows/win32/taskschd/security-contexts-for-running-tasks
+- https://learn.microsoft.com/en-us/windows/security/identity-protection/user-account-control/how-user-account-control-works
+- https://learn.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.filesystemrights
+- https://learn.microsoft.com/en-us/dotnet/api/system.io.compression.zipfile.extracttodirectory
+- https://cwe.mitre.org/data/definitions/23.html
+- https://owasp.org/www-community/attacks/Path_Traversal

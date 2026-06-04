@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 5.
+Last researched: 2026-06-04, Cycle 6.
 
 ## Implementer Instructions (for the build machine)
 
@@ -924,3 +924,151 @@ operator-needed if policy or environment access is required.
   - Verify: tabletop exercise against one hypothetical missing-SBOM release and
     one compromised-signing-token scenario; checklist includes exact `gh` and
     SignPath dashboard commands without requiring destructive execution.
+
+## 🔬 Researcher Queue (Cycle 6 - 2026-06-04)
+
+Cycle 6 inspects security boundaries created by elevated execution, PowerShell
+script dispatch, archives, scheduled tasks, and local diagnostics. This is a
+planning pass, not a completed formal Codex Security report. Tags: 🔬 =
+researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
+operator-needed if policy or environment access is required.
+
+- [ ] 🔬 🤖 P0 - Harden elevated
+  backend runtime extraction and watcher entrypoint integrity.
+  - Why: WPF extracts the embedded backend script to
+    `%LOCALAPPDATA%\LibreSpot\Runtime\LibreSpot.Backend.ps1`, verifies the file
+    hash before reuse, then executes it with Windows PowerShell. The watcher
+    task registers a persistent `powershell.exe -ExecutionPolicy Bypass -File
+    <entry>` command where `<entry>` is the backend script path. The hash check
+    is a strong mitigation, but an elevated process executing a user-writable
+    script path still deserves a race-resistant runtime directory and a watcher
+    launcher that validates integrity at execution time.
+  - Evidence: `src/LibreSpot.Desktop/Services/BackendScriptService.cs:27`,
+    `src/LibreSpot.Desktop/Services/BackendScriptService.cs:84`,
+    `src/LibreSpot.Desktop/Services/BackendScriptService.cs:223`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:547`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:561`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:573`,
+    https://learn.microsoft.com/en-us/windows/security/identity-protection/user-account-control/how-user-account-control-works,
+    https://learn.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.filesystemrights
+  - Touches: backend runtime extraction, watcher registration, release
+    packaging, tests.
+  - Acceptance: runtime script directory is created with explicit ACLs and
+    inheritance policy suitable for elevated execution; backend execution uses
+    either a per-process immutable temp copy or a post-open verified handle so
+    the file cannot be swapped between validation and execution. Scheduled task
+    action points to a signed installed executable or to a launcher that
+    verifies the backend script hash before every run.
+  - Verify: unit tests reject world-writable runtime directories; watcher XML
+    tests prove task actions do not point at unverified mutable script content;
+    manual standard-user/elevated-user race test cannot replace the script
+    between hash validation and process start.
+
+- [ ] 🔬 🤖 P1 - Add a safe
+  archive extraction helper for every downloaded ZIP.
+  - Why: both the PowerShell monolith and WPF backend call
+    `[System.IO.Compression.ZipFile]::ExtractToDirectory` directly for
+    Spicetify CLI, community themes, official themes, and Marketplace. Core
+    pinned archives are hash-verified, but community theme archives are
+    branch-based, and the code does not have one shared pre-extraction validator
+    for absolute paths, `..` traversal, duplicate entries, oversized entries,
+    symlink/reparse-point surprises, or unexpected top-level structure.
+  - Evidence: `LibreSpot.ps1:5161`, `LibreSpot.ps1:5194`,
+    `LibreSpot.ps1:5233`, `LibreSpot.ps1:5329`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1869`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1911`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1945`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:2045`,
+    https://learn.microsoft.com/en-us/dotnet/api/system.io.compression.zipfile.extracttodirectory,
+    https://cwe.mitre.org/data/definitions/23.html,
+    https://owasp.org/www-community/attacks/Path_Traversal
+  - Touches: archive helper, theme/Marketplace/Spicetify installers, tests,
+    catalog verifier.
+  - Acceptance: all archive extraction flows go through one safe helper that
+    enumerates entries before extraction, rejects paths escaping the target,
+    rejects absolute/rooted paths, enforces max file count and expanded byte
+    limits, extracts into an empty unique directory, and verifies required
+    manifest files before copying to final locations.
+  - Verify: malicious ZIP fixtures with `../`, absolute Windows paths, duplicate
+    names, huge declared sizes, and missing required files are rejected; normal
+    Spicetify CLI, Marketplace, and theme fixtures still extract successfully.
+
+- [ ] 🔬 🤖 P1 - Add PowerShell
+  execution-policy and WDAC/ConstrainedLanguage compatibility gates.
+  - Why: LibreSpot intentionally uses `-ExecutionPolicy Bypass` for its own
+    generated scripts, SpotX, and watcher task. Microsoft documents execution
+    policy as a safety feature rather than a security boundary, and PowerShell
+    can run in ConstrainedLanguage mode under AppLocker or Windows Defender
+    Application Control. LibreSpot should not promise that bypassing execution
+    policy defeats enterprise application control, and it should diagnose CLM /
+    WDAC failures separately from normal script errors.
+  - Evidence: `LibreSpot.ps1:285`, `LibreSpot.ps1:449`,
+    `LibreSpot.ps1:4735`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:561`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1016`,
+    https://learn.microsoft.com/powershell/module/microsoft.powershell.core/about/about_execution_policies,
+    https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_language_modes,
+    https://learn.microsoft.com/en-us/powershell/scripting/security/app-control/application-control
+  - Touches: preflight diagnostics, backend error classifier, FAQ/support docs,
+    enterprise/fleet docs.
+  - Acceptance: startup/preflight records PowerShell edition, version,
+    execution policy scopes, language mode, and App Control/WDAC/AppLocker
+    indicators where available. CLM or policy-blocked script execution produces
+    a clear support message and does not tell users to weaken enterprise
+    controls blindly.
+  - Verify: run in normal FullLanguage, simulated ConstrainedLanguage, and
+    restricted execution-policy scenarios; diagnostics classify each state and
+    tests prove the copy never claims execution policy is a security boundary.
+
+- [ ] 🔬 🤖 P1 - Add an external
+  process execution contract for SpotX and Spicetify.
+  - Why: WPF safely allow-lists backend actions and uses
+    `ProcessStartInfo.ArgumentList`, but the PowerShell backend still launches
+    SpotX through a single-string `Start-Process -ArgumentList` due Windows
+    PowerShell 5.1 redirected-output quirks. The code comments state that this
+    is safe because the file path is generated and arguments come from
+    `Build-SpotXParams`; that guarantee should be locked into tests and a small
+    command-contract table before more dynamic flags, custom patch paths, or
+    fleet CLI inputs are added.
+  - Evidence: `src/LibreSpot.Desktop/Services/BackendScriptService.cs:17`,
+    `src/LibreSpot.Desktop/Services/BackendScriptService.cs:111`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1008`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1016`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1800`,
+    `tests/LibreSpot.Desktop.Tests/BackendScriptServiceTests.cs:9`
+  - Touches: SpotX parameter builder, process helper, tests, fleet CLI design.
+  - Acceptance: repo documents each external executable/script, allowed
+    argument sources, quoting strategy, timeout, output capture, exit-code
+    handling, and security rationale. Tests prove every SpotX argument is from
+    a fixed flag or normalized enum/integer and that future free-form arguments
+    must use tokenized execution or explicit escaping.
+  - Verify: add regression tests for `Build-SpotXParams` covering every
+    user-controlled config field; fuzz path/config values containing quotes,
+    semicolons, pipes, ampersands, and newlines; confirm no payload becomes an
+    extra PowerShell command.
+
+- [ ] 🔬 🤖 P2 - Add a local
+  data security and retention inventory.
+  - Why: Cycle 2 already asks for a privacy-safe diagnostic export bundle; this
+    item covers the data at rest before export. WPF logs roll for 14 days,
+    crash reports persist for 30 days, PowerShell writes `install.log`,
+    `watcher.log`, `config.json`, and `watcher-state.json`, and crash reports
+    include full exception strings that may contain local paths. There is no
+    single inventory naming file locations, sensitivity, ACL expectations,
+    retention, and delete/export behavior.
+  - Evidence: `src/LibreSpot.Desktop/Services/CrashReporter.cs:14`,
+    `src/LibreSpot.Desktop/Services/CrashReporter.cs:30`,
+    `src/LibreSpot.Desktop/Services/CrashReporter.cs:110`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:94`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:500`,
+    `LibreSpot.ps1:230`
+  - Touches: diagnostics docs, support export, settings UI, delete/reset flow,
+    tests.
+  - Acceptance: repo has a data inventory for config, logs, crash reports,
+    watcher state, temp files, backups, release artifacts, and future support
+    bundles. Each row states location, owner, sensitivity, retention, user
+    delete path, whether it is included in exports, and redaction rules.
+  - Verify: tests or script checks confirm retention limits are enforced; Reset
+    and uninstall docs state which LibreSpot data remains; sample support bundle
+    cannot include raw username, home path, tokens, proxy credentials, or full
+    command output without preview.
