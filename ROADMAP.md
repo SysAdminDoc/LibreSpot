@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 14.
+Last researched: 2026-06-04, Cycle 15.
 
 ## Implementer Instructions (for the build machine)
 
@@ -1801,3 +1801,82 @@ support-matrix policy decisions are required.
     and the default `auto` target. UI snapshots show exact warning/blocking
     text in Easy and Custom modes, and logs/support bundles contain the
     architecture fields without exposing unrelated local paths.
+
+## 🔬 Researcher Queue (Cycle 15 - 2026-06-04)
+
+Cycle 15 inspects repository-level release governance around the already
+privileged release workflow. Cycle 5 covers release artifact correctness after a
+tag exists, and Cycle 8 covers community-health intake files; this cycle covers
+who and what is allowed to trigger, sign, tag, and publish. Tags: 🔬 =
+researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
+operator-needed where repository settings or maintainer policy changes are
+required.
+
+- [ ] 🔬 🤖 🔧 P1 - Move
+  signing and publishing through protected GitHub environments.
+  - Why: the release workflow already uses least-privilege defaults and
+    escalates the final release job to `contents: write`, `id-token: write`,
+    and `attestations: write`, but the repo has zero GitHub environments and no
+    workflow job declares an `environment`. SignPath submission steps will use
+    repository secrets/variables once configured, so the signing credential
+    boundary should be explicit before Authenticode signing becomes the normal
+    release path. GitHub environments can hold environment-scoped secrets and
+    add required reviewers or wait timers before jobs access those secrets.
+  - Evidence: `.github/workflows/release.yml:19`,
+    `.github/workflows/release.yml:22`,
+    `.github/workflows/release.yml:183`,
+    `.github/workflows/release.yml:190`,
+    `.github/workflows/release.yml:278`,
+    `.github/workflows/release.yml:285`,
+    `.github/workflows/release.yml:320`,
+    live `gh api repos/SysAdminDoc/LibreSpot/environments` on 2026-06-04
+    returned `total_count: 0`,
+    https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments,
+    https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication
+  - Touches: repository environments, release workflow, SignPath setup docs,
+    operator release checklist, `SIGNPATH.md`.
+  - Acceptance: create named environments such as `release-signing` and
+    `github-release`, move SignPath secrets/variables into the signing
+    environment, require a documented maintainer review before signing or
+    publishing, and attach the relevant workflow jobs to those environments.
+    Manual `workflow_dispatch` releases must resolve an existing validated tag
+    and pass the same environment gates as tag-push releases.
+  - Verify: `gh api repos/SysAdminDoc/LibreSpot/environments` lists the release
+    environments with required reviewers configured; release workflow runs show
+    protected deployment gates before any SignPath or release-upload step; a
+    dry-run or temporary test tag proves the workflow cannot access signing
+    secrets without environment approval.
+
+- [ ] 🔬 🤖 🔧 P1 - Add
+  branch and tag rulesets for release-critical paths.
+  - Why: live GitHub API data shows `main` is protected, admin enforcement and
+    conversation resolution are enabled, force-pushes and deletions are
+    disabled, but required status checks are off, required signatures are off,
+    and repository rulesets are empty. Since the release workflow runs on
+    `v*.*.*` tags and can also be triggered manually, workflow-internal checks
+    should be backed by repository rules that protect `main`, release tags, and
+    high-risk files such as the release workflow, signing docs, backend script,
+    and package manifests.
+  - Evidence: `.github/workflows/release.yml:10`,
+    `.github/workflows/release.yml:13`,
+    live `gh api repos/SysAdminDoc/LibreSpot/branches/main` on 2026-06-04
+    reported `protected: true` with required status check enforcement `off`,
+    live `gh api repos/SysAdminDoc/LibreSpot/branches/main/protection` on
+    2026-06-04 reported `required_signatures.enabled: false`,
+    live `gh api repos/SysAdminDoc/LibreSpot/rulesets` on 2026-06-04 returned
+    `[]`,
+    https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets,
+    https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
+  - Touches: repository rulesets/branch protection, release workflow, future CI
+    workflow from Cycle 8, maintainer docs, release checklist.
+  - Acceptance: define one branch ruleset for `main` and one tag ruleset for
+    `v*.*.*` releases. The `main` ruleset requires the release/CI status checks
+    that matter for changed paths, blocks bypass except documented maintainers,
+    and requires signed commits or a recorded exception policy. The tag ruleset
+    blocks deletion/force movement of release tags and limits who can create
+    tags that match the release pattern. High-risk file changes either require
+    CODEOWNERS once Cycle 8 lands or a temporary manual reviewer policy.
+  - Verify: GitHub API returns non-empty rulesets with the expected branch and
+    tag targets; a test branch cannot merge a release-workflow change without
+    the required checks; a non-authorized actor or test token cannot create,
+    move, or delete a `v*.*.*` tag.
