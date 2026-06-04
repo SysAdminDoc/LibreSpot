@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 6.
+Last researched: 2026-06-04, Cycle 7.
 
 ## Implementer Instructions (for the build machine)
 
@@ -1072,3 +1072,135 @@ operator-needed if policy or environment access is required.
     and uninstall docs state which LibreSpot data remains; sample support bundle
     cannot include raw username, home path, tokens, proxy credentials, or full
     command output without preview.
+
+## 🔬 Researcher Queue (Cycle 7 - 2026-06-04)
+
+Cycle 7 inspects WPF desktop quality gates that should land before a stable
+native shell: contrast themes, reduced motion, localization extraction, release
+publish footprint, and keyboard/focus regression coverage. Tags: 🔬 =
+researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
+operator-needed if policy or release-channel decisions are required.
+
+- [ ] 🔬 🤖 P0 - Add a high-contrast
+  and reduced-motion theme contract for the WPF shell.
+  - Why: the current desktop theme is custom and dark-first, with palette
+    resources in `Themes/Palette.xaml`, many `Storyboard` / `DoubleAnimation`
+    blocks in `MainWindow.xaml` and `Themes/Controls.xaml`, and custom controls
+    that set `FocusVisualStyle` to null before drawing their own focus rings.
+    There is no high-contrast resource dictionary, no `SystemColors` mapping,
+    and no reduced-motion switch for hover, press, overlay, shimmer, or
+    entrance animations.
+  - Evidence: `src/LibreSpot.Desktop/Themes/Palette.xaml`,
+    `src/LibreSpot.Desktop/Themes/Controls.xaml:175`,
+    `src/LibreSpot.Desktop/Themes/Controls.xaml:944`,
+    `src/LibreSpot.Desktop/Themes/Controls.xaml:1073`,
+    `src/LibreSpot.Desktop/MainWindow.xaml:383`,
+    `src/LibreSpot.Desktop/MainWindow.xaml:1556`,
+    https://learn.microsoft.com/en-us/windows/apps/design/accessibility/high-contrast-themes,
+    https://learn.microsoft.com/en-us/windows/apps/design/signature-experiences/motion,
+    https://learn.microsoft.com/en-us/windows/apps/design/accessibility/accessibility
+  - Touches: WPF resource dictionaries, shell integration, custom control
+    styles, theme tests, accessibility docs.
+  - Acceptance: the shell detects Windows high-contrast state, maps semantic UI
+    resources to system foreground/background/highlight/button colors, avoids
+    color-only state changes, and disables or replaces nonessential animations
+    when system animation/reduced-motion settings call for it. Mica, shadows,
+    gradients, shimmer, hover scale, overlay enter animations, and selected
+    states have explicit high-contrast and no-motion behavior.
+  - Verify: Accessibility Insights fast pass plus manual checks in all four
+    built-in contrast themes; keyboard focus remains visible on every command;
+    screenshots compare normal/high-contrast/no-motion states; a test or design
+    token check proves every new storyboard is gated by the motion policy.
+
+- [ ] 🔬 🤖 P1 - Add a desktop
+  publish footprint and cold-start performance budget.
+  - Why: the release workflow publishes the WPF shell as a self-contained
+    win-x64 single-file executable, but it does not record artifact size,
+    startup time, working-set budget, or a ReadyToRun/trimming decision. A
+    local release-equivalent publish on 2026-06-04 produced
+    `LibreSpot.exe` at 162,327,508 bytes (154.81 MiB), so package-manager,
+    Velopack, and portable-download work need a deliberate footprint budget
+    before the asset is treated as stable.
+  - Evidence: `.github/workflows/release.yml:249`,
+    `.github/workflows/release.yml:252`,
+    `.github/workflows/release.yml:253`,
+    `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:1`,
+    local `dotnet publish src/LibreSpot.Desktop/LibreSpot.Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true` on 2026-06-04,
+    https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview,
+    https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/incompatibilities,
+    https://learn.microsoft.com/en-us/dotnet/core/deploying/ready-to-run
+  - Touches: release workflow, WPF publish profile/project settings, release
+    docs, package-manager manifests, startup smoke tests.
+  - Acceptance: release CI records WPF exe size, compressed artifact size,
+    cold-start-to-main-window time, first-refresh time, and baseline working set
+    for win-x64. The repo documents why WPF trimming is disabled unless .NET
+    support changes, evaluates ReadyToRun as a measured startup/size tradeoff,
+    and sets fail/warn thresholds before winget, Scoop, Chocolatey, or Velopack
+    publish the desktop asset.
+  - Verify: CI publish job emits a machine-readable metrics file and fails only
+    on agreed thresholds; local smoke starts the published exe and exits cleanly;
+    any ReadyToRun experiment includes before/after size and startup numbers;
+    release notes state the runtime/size tradeoff for users choosing portable
+    downloads.
+
+- [ ] 🔬 🤖 P1 - Convert the
+  existing localization roadmap row into an extraction-first implementation
+  plan.
+  - Why: the Next Release Queue already calls for localization, but the current
+    WPF shell has no `.resx` or resource files, many hard-coded English XAML
+    strings, hard-coded automation help text/tooltips, and user-facing time or
+    number formatting that sometimes uses `InvariantCulture`. The first
+    implementation slice should extract and gate strings before adding
+    translation vendors or runtime culture switching.
+  - Evidence: `rg --files src/LibreSpot.Desktop | rg "\\.(resx|resources)$"`
+    returned no resource files on 2026-06-04,
+    `src/LibreSpot.Desktop/MainWindow.xaml:455`,
+    `src/LibreSpot.Desktop/MainWindow.xaml:575`,
+    `src/LibreSpot.Desktop/MainWindow.xaml:715`,
+    `src/LibreSpot.Desktop/MainWindow.xaml:1478`,
+    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:992`,
+    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:1967`,
+    https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/wpf-globalization-and-localization-overview
+  - Touches: WPF resources, view models, converters, UI tests, docs,
+    localization contribution workflow.
+  - Acceptance: choose a WPF-compatible resource strategy for .NET WPF
+    satellite assemblies, move visible strings, tooltips, automation names,
+    prompts, status messages, and release-facing copy behind resources, and add
+    a CI check that blocks new hard-coded user-visible strings outside approved
+    exceptions. Culture-sensitive display uses current culture, while file
+    names, machine logs, hashes, and command contracts keep invariant culture.
+  - Verify: pseudo-localized build covers main window, prompts, activity panel,
+    settings search, and maintenance flows without clipping; unit tests cover
+    culture-sensitive formatting; raw-string scanner reports zero unexpected
+    UI literals; translators can update one resource file without touching
+    view-model logic.
+
+- [ ] 🔬 🤖 P2 - Add keyboard,
+  focus, and overlay regression coverage for custom WPF controls.
+  - Why: the shell already has useful accessibility work, including
+    `AutomationProperties` names/help text, Escape handling, focus restoration,
+    and tab cycling for modal overlays. That reduces risk, but custom styles,
+    custom focus visuals, a search box, tabbed pages, command cards, activity
+    panel, and confirmation prompts still need an explicit keyboard contract
+    before the broader UI automation harness from Cycle 2 can catch real
+    regressions.
+  - Evidence: `src/LibreSpot.Desktop/MainWindow.xaml:20`,
+    `src/LibreSpot.Desktop/MainWindow.xaml:1546`,
+    `src/LibreSpot.Desktop/MainWindow.xaml:1919`,
+    `src/LibreSpot.Desktop/MainWindow.xaml.cs:151`,
+    `src/LibreSpot.Desktop/MainWindow.xaml.cs:178`,
+    `src/LibreSpot.Desktop/Themes/Controls.xaml:837`,
+    https://learn.microsoft.com/en-us/accessibility-tools-docs/items/wpf/control_automationproperties,
+    https://learn.microsoft.com/en-us/accessibility-tools-docs/items/wpf/control_iskeyboardfocusable,
+    https://learn.microsoft.com/en-us/windows/apps/design/accessibility/accessibility-testing
+  - Touches: WPF tests, control styles, accessibility documentation, UI
+    automation harness.
+  - Acceptance: define tab order, default/cancel buttons, Escape behavior,
+    focus trap/restoration, disabled-state focusability, and screen-reader
+    names for the main pages, search results, activity overlay, and decision
+    prompt. Every custom control either preserves a visible system focus cue or
+    documents and tests its custom replacement.
+  - Verify: automated or scripted keyboard walks cover Recommended, Custom,
+    Maintenance, activity, and prompt surfaces; Accessibility Insights event
+    monitoring sees focus move predictably; tests fail if a modal opens without
+    initial focus or closes without restoring prior focus.
