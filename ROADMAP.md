@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 13.
+Last researched: 2026-06-04, Cycle 14.
 
 ## Implementer Instructions (for the build machine)
 
@@ -1727,3 +1727,77 @@ required.
     no backup, restore success, restore failure, and parity with the stable
     script's backup location. UI automation snapshots include backup/restore
     controls and destructive reset remains separately grouped.
+
+## 🔬 Researcher Queue (Cycle 14 - 2026-06-04)
+
+Cycle 14 inspects CPU architecture and runtime-identifier claims across the
+stable script, native WPF publish path, Spicetify CLI download mapping, and
+Spotify target picker. Tags: 🔬 = researcher-added this cycle; 🤖 =
+implementer-actionable now; 🔧 = operator-needed where release-channel or
+support-matrix policy decisions are required.
+
+- [ ] 🔬 🤖 🔧 P1 - Define the
+  architecture support matrix and release artifact lanes.
+  - Why: README currently advertises x64 and ARM64 support with
+    per-architecture hash verification, and both PowerShell backends choose
+    Spicetify CLI `arm64` on ARM64 hosts and `x64` otherwise. The native WPF
+    release workflow, however, publishes only one self-contained single-file
+    `win-x64` artifact, and the desktop project has no `RuntimeIdentifiers`
+    matrix. Microsoft documents Windows RIDs such as `win-x64`, `win-x86`, and
+    `win-arm64`, and notes that single-file apps are OS- and
+    architecture-specific, so LibreSpot needs an explicit support matrix before
+    package-manager distribution repeats a broader claim than the release
+    artifacts prove.
+  - Evidence: `README.md:154`,
+    `.github/workflows/release.yml:247`,
+    `.github/workflows/release.yml:251`,
+    `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:3`,
+    `LibreSpot.ps1:5151`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1855`,
+    https://learn.microsoft.com/en-us/dotnet/core/rid-catalog,
+    https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview
+  - Touches: release workflow, README architecture section, package-manager
+    manifests, checksum/SBOM/attestation naming, WPF publish docs, support
+    policy.
+  - Acceptance: document one table that names support status for the stable
+    `.ps1`, PS2EXE, WPF `win-x64`, WPF `win-arm64`, and any `win-x86`
+    decision. For each row, state whether the lane is native, emulated,
+    unsupported, or legacy-only; which artifact name and RID it uses; which
+    Spicetify CLI architecture/hash is expected; whether package-manager
+    manifests may install it; and what manual or automated smoke test proves
+    the claim.
+  - Verify: release CI either builds and uploads every supported RID or fails
+    when docs claim an unsupported RID. Artifact names, checksums, SBOMs, and
+    attestations include the RID where multiple native WPF artifacts exist.
+    README/package-manager manifests no longer imply ARM64 WPF support unless a
+    `win-arm64` artifact is produced and smoke-tested.
+
+- [ ] 🔬 🤖 P2 - Add
+  architecture-aware Spotify target validation.
+  - Why: the Spotify version manifest exposes `1.2.53.440.x86` as "32-bit only"
+    and warns "Do not pick on x64", but both the native WPF shell and stable
+    script currently treat legacy/x86 selections as warning copy rather than a
+    compatibility contract. On ARM64 or x64 hosts, users can still choose an
+    x86 or Windows 7/8.1 target without LibreSpot recording host architecture,
+    process architecture, selected Spotify architecture, or Spicetify CLI
+    architecture in the run summary. That makes support cases ambiguous and can
+    let unsupported combinations reach the patch workflow.
+  - Evidence: `src/LibreSpot.Desktop/Models/AppCatalog.cs:184`,
+    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:2125`,
+    `LibreSpot.ps1:816`,
+    `LibreSpot.ps1:3009`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:211`,
+    https://learn.microsoft.com/en-us/dotnet/core/rid-catalog
+  - Touches: Spotify version manifest, WPF selection insights, stable script
+    picker messaging, backend environment snapshot, config validation, tests.
+  - Acceptance: before patching, LibreSpot records OS architecture, process
+    architecture, selected Spotify target, selected Spicetify CLI architecture,
+    and release artifact RID or script lane. Unsupported combinations block
+    with a clear remediation; maintainers can mark specific legacy combinations
+    as explicit override-only if they still need to support older Windows or
+    32-bit Spotify recovery.
+  - Verify: tests cover x64 host selecting x86 Spotify, ARM64 host selecting
+    x64 Spotify, ARM64 host selecting x86 Spotify, the Windows 7/8.1 target,
+    and the default `auto` target. UI snapshots show exact warning/blocking
+    text in Easy and Custom modes, and logs/support bundles contain the
+    architecture fields without exposing unrelated local paths.
