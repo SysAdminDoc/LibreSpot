@@ -4,7 +4,7 @@ Research summary for planning. The full April 2026 research corpus is archived
 at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 2.
+Last researched: 2026-06-04, Cycle 3.
 
 ## Executive Summary
 
@@ -159,6 +159,79 @@ next build machine even if feature work is otherwise clear.
 - P2 - Design a privacy-safe diagnostic export bundle.
 - P0/operator - Finalize package identity before any public distribution
   manifest.
+
+## Cycle 3 Delta - Reliability Architecture and Supportability
+
+Cycle 3 inspected implementation surfaces that become risky once LibreSpot adds
+fleet deployment, sharing, package updates, and broader diagnostics. The focus
+was not new end-user feature volume; it was evidence that future changes can be
+tested without touching real user machines.
+
+### New Evidence Collected
+
+- `git pull --rebase` again reported already up to date after Cycle 2.
+- `config.json` is normalized in both the PowerShell monolith and WPF code, but
+  no explicit schema version or JSON schema file exists.
+- WPF `ConfigurationService` preserves corrupt config files and writes atomically,
+  while PowerShell has parallel quarantine and normalization behavior.
+- `AppCatalog` is the nearest WPF source of truth for options, Spotify version
+  entries, themes, extensions, and download methods; PowerShell still carries
+  parallel manifests and normalizers.
+- Network readiness is a HEAD request to `https://raw.githubusercontent.com`.
+  Downloads use `Invoke-WebRequest`, then BITS fallback. No current code path
+  exposes proxy-required, GitHub-rate-limited, DNS/TLS, or hash-mismatch states
+  as separate user-facing diagnoses.
+- GitHub REST documentation describes primary and secondary rate limits and the
+  `x-ratelimit-remaining` / `x-ratelimit-reset` headers that LibreSpot could use
+  to avoid blind retries.
+- Microsoft BITS docs expose proxy usage controls, proxy lists, proxy bypass,
+  and proxy credentials; LibreSpot's BITS fallback does not yet surface those
+  dimensions to the user.
+- Destructive operations use safety helpers and Spicetify apply has rollback,
+  but there is no durable per-run operation journal to back future undo or
+  fleet dry-run behavior.
+- `winget show Spotify.Spotify --source winget` currently reports Spotify
+  `1.2.90.451.gb094aab0`, installer type `exe`, URL
+  `https://download.scdn.co/SpotifyFullSetupX64.exe`, SHA256
+  `7701d124417f9c93b2861f5a4904674ab8d49667dc1587f5468f79c25bffd43e`, and
+  offline distribution support.
+- LibreSpot reset/uninstall code handles Microsoft Store package
+  `SpotifyAB.SpotifyMusic`, AppData paths, Start Menu/Desktop shortcuts,
+  registry keys, scheduled tasks, cached installers, and legacy Spotify builds.
+- Microsoft Defender docs describe restoring quarantined files through Windows
+  Security Protection History or `MpCmdRun`; LibreSpot should detect and guide,
+  not disable or bypass AV.
+- PSScriptAnalyzer 1.25.0 and Pester 5.7.1 are current PowerShell testing tools
+  that could complement the existing .NET regression tests.
+
+### Cycle 3 Conclusions
+
+- Config and preset work should become schema-first before fleet JSON, shared
+  profiles, or package migration ship. Without `schemaVersion`, old and future
+  configs cannot be reasoned about precisely.
+- Network failures need typed diagnostics. "No Internet Connection" is too broad
+  for enterprise users behind proxies, users hitting GitHub limits, and users
+  whose downloads succeeded but hashes failed.
+- The future undo-selected-actions pane and `--dry-run` mode need an operation
+  journal before UI work begins. Journaling planned vs actual mutations is the
+  lowest-risk foundation.
+- Spotify install-source handling deserves fixture tests. Current winget Spotify
+  is already newer than LibreSpot's pinned SpotX baseline, and different install
+  sources exercise different cleanup and repair paths.
+- Antivirus and endpoint-security interference is plausible for patching and
+  custom app files. LibreSpot should explain likely causes and manual review
+  steps without weakening the user's security posture.
+- PowerShell-native analysis and tests would catch script-lane regressions that
+  C# text assertions cannot model cleanly.
+
+### Cycle 3 Added Roadmap Items
+
+- P0 - Add a versioned config schema and migration contract.
+- P1 - Add network, proxy, and GitHub rate-limit diagnostics.
+- P1 - Add an operation journal for destructive actions.
+- P1 - Build a Spotify install-source compatibility fixture set.
+- P2 - Add Defender quarantine and antivirus-interference diagnostics.
+- P2 - Add PowerShell static analysis and Pester coverage for the script lane.
 
 ## Current Product Map
 
@@ -544,3 +617,15 @@ Cycle 2 release, UI, and packaging sources:
 - https://www.nuget.org/packages/Velopack/1.2.0
 - https://github.com/librespot-org/librespot
 - https://crates.io/crates/librespot
+
+Cycle 3 reliability and supportability sources:
+
+- https://json-schema.org/draft/2020-12
+- https://json-schema.org/specification
+- https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api
+- https://learn.microsoft.com/en-us/powershell/module/bitstransfer/start-bitstransfer
+- https://learn.microsoft.com/en-us/defender-endpoint/restore-quarantined-files-microsoft-defender-antivirus
+- https://github.com/PowerShell/PSScriptAnalyzer/releases/tag/1.25.0
+- https://github.com/pester/Pester/releases/tag/5.7.1
+- https://github.com/microsoft/winget-pkgs/tree/master/manifests/s/Spotify/Spotify
+- https://www.spotify.com/download/windows/

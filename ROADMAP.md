@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 2.
+Last researched: 2026-06-04, Cycle 3.
 
 ## Implementer Instructions (for the build machine)
 
@@ -483,3 +483,145 @@ completion.
   - Verify: repeat winget search; search Chocolatey and Scoop; check GitHub and
     crates.io name collision notes; review SignPath and package manifests before
     first submission.
+
+## 🔬 Researcher Queue (Cycle 3 - 2026-06-04)
+
+Cycle 3 shifts from upstream/package tooling to reliability architecture. Tags:
+🔬 = researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
+operator-needed if policy or environment access is required.
+
+- [ ] 🔬 🤖 P0 - Add a versioned
+  config schema and migration contract.
+  - Why: PowerShell and WPF both normalize `config.json`, quarantine corrupt
+    files, and silently coerce invalid values back to defaults, but no
+    `SchemaVersion` / `ConfigVersion` key or external JSON schema exists. As
+    fleet presets, shareable profiles, and package migration arrive, implicit
+    best-effort normalization will not be enough to prove old configs upgrade
+    safely.
+  - Evidence: `LibreSpot.ps1:872`, `LibreSpot.ps1:1034`,
+    `src/LibreSpot.Desktop/Models/AppCatalog.cs:4`,
+    `src/LibreSpot.Desktop/Services/ConfigurationService.cs:41`,
+    `tests/LibreSpot.Desktop.Tests/ConfigurationServiceTests.cs:31`,
+    https://json-schema.org/draft/2020-12
+  - Touches: config model, PowerShell normalizer, WPF `InstallConfiguration`,
+    docs for presets/fleet, tests.
+  - Acceptance: `config.json` includes a schema version; repo has a
+    `schemas/librespot-config.schema.json`; old known config samples migrate
+    through explicit version steps; unknown future schema versions fail with a
+    clear recovery message instead of being silently rewritten.
+  - Verify: JSON schema validation against valid/invalid samples; tests for
+    v3.5, v3.6, v3.7, and malformed configs in both PowerShell and WPF lanes.
+
+- [ ] 🔬 🤖 P1 - Add network,
+  proxy, and GitHub rate-limit diagnostics.
+  - Why: the script currently treats network readiness as a 5-second HEAD
+    request to `https://raw.githubusercontent.com`, while downloads use
+    `Invoke-WebRequest` then BITS fallback. BITS supports proxy configuration,
+    and GitHub documents primary/secondary rate limits plus
+    `x-ratelimit-remaining` / `x-ratelimit-reset` headers. LibreSpot should
+    distinguish "offline", "GitHub blocked", "proxy auth required", "rate
+    limited", and "hash mismatch" before telling users only that the internet is
+    unavailable.
+  - Evidence: `LibreSpot.ps1:4461`, `LibreSpot.ps1:4666`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:931`,
+    https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api,
+    https://learn.microsoft.com/en-us/powershell/module/bitstransfer/start-bitstransfer
+  - Touches: network preflight, download helper, maintenance diagnostics, FAQ,
+    fleet CLI status JSON.
+  - Acceptance: Check Updates and install preflight report separate statuses for
+    DNS/TLS failure, raw GitHub blocked, GitHub API rate limit, proxy-required
+    BITS state, download timeout, and hash mismatch. Logs include actionable
+    next steps without printing credentials or proxy secrets.
+  - Verify: mock failing endpoints; force proxy/no-proxy paths; simulate GitHub
+    `403` / `429` headers; confirm UI and headless status JSON differ by cause.
+
+- [ ] 🔬 🤖 P1 - Add an
+  operation journal for destructive actions.
+  - Why: full reset, uninstall, restore vanilla, Marketplace replacement, and
+    Spicetify cleanup already use guard helpers such as `Test-SafeRemovalTarget`
+    and rollback exists for Spicetify apply failures. There is still no durable
+    per-run journal that records what was about to be removed, what was removed,
+    what backup was available, and which operations are reversible. That journal
+    is the missing foundation for the roadmap's undo-selected-actions pane and
+    fleet `--dry-run`.
+  - Evidence: `LibreSpot.ps1:4894`, `LibreSpot.ps1:4936`,
+    `LibreSpot.ps1:4954`, `LibreSpot.ps1:5393`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1174`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:2128`,
+    `ROADMAP.md:72`, `ROADMAP.md:102`
+  - Touches: backend action model, log format, maintenance UI, dry-run/fleet
+    design, tests.
+  - Acceptance: every mutating action writes an operation id and JSONL journal
+    under the LibreSpot profile with planned action, target, safety decision,
+    result, and rollback hint. Dry-run emits the same journal with
+    `wouldChange=true`; undo UI consumes only journal entries marked reversible.
+  - Verify: tests prove unsafe paths are refused and journaled; full reset dry
+    run produces no filesystem mutation; successful/failed Spicetify apply
+    journals rollback status accurately.
+
+- [ ] 🔬 🤖 P1 - Build a
+  Spotify install-source compatibility fixture set.
+  - Why: `winget show Spotify.Spotify --source winget` now reports Spotify
+    `1.2.90.451.gb094aab0` as an EXE installer from
+    `SpotifyFullSetupX64.exe`, while LibreSpot also handles Microsoft Store
+    package `SpotifyAB.SpotifyMusic`, per-user AppData installs, legacy x86 /
+    Windows 7 builds, cached installers, shortcuts, registry keys, and
+    scheduled tasks. Those branches are too important to rely on live machines
+    alone.
+  - Evidence: local `winget show Spotify.Spotify --source winget` on
+    2026-06-04, `LibreSpot.ps1:4963`, `LibreSpot.ps1:4994`,
+    `LibreSpot.ps1:5028`, `LibreSpot.ps1:5054`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1664`,
+    `README.md:86`
+  - Touches: environment snapshot service, reset/uninstall tests, SpotX version
+    picker, support docs.
+  - Acceptance: repo has fixture descriptions or fake filesystem/registry
+    tests for Store/MSIX Spotify, winget EXE Spotify, per-user installer,
+    legacy x86, missing uninstaller, stale shortcuts, and partially removed
+    app state. Diagnostics name the detected source and explain support level.
+  - Verify: run reset/uninstall tests against fixture roots without touching the
+    host; run one manual clean install on the current winget Spotify package
+    before changing default compatibility pins.
+
+- [ ] 🔬 🤖 P2 - Add Defender
+  quarantine and antivirus-interference diagnostics.
+  - Why: the research backlog already calls out antivirus-quarantined extension
+    files. LibreSpot verifies hashes and Marketplace manifests, but it does not
+    yet classify "file disappeared after download/apply" as possible Defender or
+    endpoint-security interference. Microsoft documents Protection History and
+    `MpCmdRun` restoration flows, but LibreSpot should only detect and guide,
+    not auto-restore quarantined files.
+  - Evidence: `ROADMAP.md:118`, `LibreSpot.ps1:5333`,
+    `tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs:452`,
+    https://learn.microsoft.com/en-us/defender-endpoint/restore-quarantined-files-microsoft-defender-antivirus
+  - Touches: install verifier, Marketplace/custom app verifier, diagnostics
+    copy, FAQ/trust docs.
+  - Acceptance: when a verified download later vanishes or a known extension /
+    custom app manifest is missing, diagnostics show a "possible security
+    product quarantine" state with links to Windows Security Protection History
+    and manual restore guidance. LibreSpot never disables AV, creates
+    exclusions, or restores quarantined files automatically.
+  - Verify: simulate missing verified files after download; test wording avoids
+    encouraging users to bypass security products blindly.
+
+- [ ] 🔬 🤖 P2 - Add PowerShell
+  static analysis and Pester coverage for the script lane.
+  - Why: .NET tests parse PowerShell files and enforce critical invariants, but
+    they do not run PSScriptAnalyzer or Pester. PSScriptAnalyzer 1.25.0 is
+    current, Pester 5.7.1 is the latest release, and the monolith still contains
+    high-risk logic for downloads, scheduled tasks, config migration, path
+    removal, and external process execution that would benefit from native
+    PowerShell test semantics.
+  - Evidence: `tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs`,
+    `LibreSpot.ps1:4666`, `LibreSpot.ps1:4894`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:999`,
+    https://github.com/PowerShell/PSScriptAnalyzer/releases/tag/1.25.0,
+    https://github.com/pester/Pester/releases/tag/5.7.1
+  - Touches: test project or `tests/powershell`, release workflow, developer
+    docs.
+  - Acceptance: CI runs PSScriptAnalyzer with a curated rule set and Pester
+    tests for pure/non-mutating PowerShell functions. Mutating functions are
+    covered through mocked filesystem/registry/process wrappers before any real
+    host mutation is allowed.
+  - Verify: `Invoke-ScriptAnalyzer` passes with known justified suppressions;
+    `Invoke-Pester` passes on Windows PowerShell 5.1 and PowerShell 7.6 lanes.
