@@ -6,7 +6,7 @@ Active roadmap for forward-looking work only. Completed release work lives in
 kept at [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md).
 
 Last consolidated: 2026-06-01.
-Last researched: 2026-06-04, Cycle 7.
+Last researched: 2026-06-04, Cycle 8.
 
 ## Implementer Instructions (for the build machine)
 
@@ -1204,3 +1204,133 @@ operator-needed if policy or release-channel decisions are required.
     Maintenance, activity, and prompt surfaces; Accessibility Insights event
     monitoring sees focus move predictably; tests fail if a modal opens without
     initial focus or closes without restoring prior focus.
+
+## 🔬 Researcher Queue (Cycle 8 - 2026-06-04)
+
+Cycle 8 inspects delivery surfaces that decide whether the legacy PowerShell
+script, embedded WPF backend, and native shell can keep moving together:
+parity manifests, backend event contracts, non-release CI visibility, and
+contributor intake. Tags: 🔬 = researcher-added this cycle; 🤖 =
+implementer-actionable now; 🔧 = operator-needed where branch or community
+policy decisions are required.
+
+- [ ] 🔬 🤖 P0 - Generate a
+  script/WPF/backend parity manifest before v4 stable.
+  - Why: v4.0 stable is defined as having parity with the script shell, but
+    parity is not yet a generated artifact. The WPF shell has 37 persisted
+    `InstallConfiguration` properties, while the PowerShell `EasyDefaults`
+    table has 34 explicit keys and leaves `Mode`, `SpotX_HideColIconOff`, and
+    `SpotX_OldLyrics` implicit. The WPF backend service has a nine-action
+    allow-list, while the visible maintenance catalog exposes five maintenance
+    actions. Existing tests assert important hand-picked invariants, but they
+    do not emit a single table showing every script option, backend action,
+    config key, default value, UI control, and test owner.
+  - Evidence: `ROADMAP.md:52`,
+    `src/LibreSpot.Desktop/Models/AppCatalog.cs:5`,
+    `src/LibreSpot.Desktop/Models/AppCatalog.cs:275`,
+    `src/LibreSpot.Desktop/Services/BackendScriptService.cs:20`,
+    `LibreSpot.ps1:786`,
+    `tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs:7`,
+    local config/action comparison on 2026-06-04,
+    https://pester.dev/docs/commands/Invoke-Pester
+  - Touches: generated docs or manifest, AppCatalog, PowerShell defaults,
+    backend action registry, regression tests, v4 release checklist.
+  - Acceptance: repo has a generated parity manifest that lists every
+    user-facing option, default value, JSON key, SpotX flag, Spicetify action,
+    maintenance action, watcher action, script availability, WPF availability,
+    and automated test coverage. The manifest fails CI when a key or action is
+    added in one lane without an owner, migration rule, and explicit parity
+    decision.
+  - Verify: generator output is deterministic; `dotnet test` compares the
+    checked-in manifest to live source; Pester or text-parsing tests compare
+    PowerShell defaults and `Build-SpotXParams`; a v4 stable release checklist
+    links to the manifest and has no `unknown` or `unowned` rows.
+
+- [ ] 🔬 🤖 P1 - Version the
+  backend event protocol and add replay fixtures.
+  - Why: the WPF backend currently streams pipe-delimited messages with the
+    `@@LS@@|` prefix; the desktop service splits each line into kind, level,
+    and payload, while the PowerShell backend emits `progress`, `status`,
+    `step`, `action`, `result`, and fallback `log` messages. This works, but it
+    has no schema, version field, escaping contract beyond newline replacement,
+    replay corpus, or compatibility rule for new message kinds. A stable shell
+    needs backend progress and error text to remain parseable across updates,
+    watcher runs, and future fleet/JSON modes.
+  - Evidence: `src/LibreSpot.Desktop/Services/BackendScriptService.cs:15`,
+    `src/LibreSpot.Desktop/Services/BackendScriptService.cs:187`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:216`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:245`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:2301`,
+    `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:2311`,
+    https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/source-generation-modes,
+    https://docs.github.com/actions/using-workflows/storing-workflow-data-as-artifacts
+  - Touches: backend message writer/parser, event fixtures, tests, release
+    notes, future fleet/diagnostic docs.
+  - Acceptance: backend messages have a documented versioned contract, either
+    by moving to compact JSON lines or by formally specifying the current
+    delimiter format, escaping rules, allowed kinds, severity values, progress
+    range, terminal result semantics, and unknown-kind behavior. CI stores
+    replay fixtures for successful install, canceled run, failed download,
+    watcher deferred, watcher reapplied, and backend exception paths.
+  - Verify: parser tests replay fixtures into `MainViewModel` without starting
+    PowerShell; malformed, unknown, multiline, high-volume, and partial-line
+    messages are handled deterministically; release CI uploads protocol
+    fixtures as artifacts for failed runs.
+
+- [ ] 🔬 🤖 P1 - Add a
+  non-release CI workflow with visible contract summaries.
+  - Why: the only tracked workflow is `Release`, triggered by version tags or
+    manual dispatch. Its WPF job runs `dotnet test`, but ordinary pushes and
+    pull requests do not get a separate CI workflow, job summary, test result
+    artifact, analyzer output, or parity-manifest diff before release time.
+    That pushes routine failures into the tagged release path and makes
+    implementers inspect logs instead of a concise contract summary.
+  - Evidence: `.github/workflows/release.yml:9`,
+    `.github/workflows/release.yml:13`,
+    `.github/workflows/release.yml:245`,
+    `.github/workflows/release.yml:279`,
+    local `.github` tree on 2026-06-04 only contained
+    `.github/workflows/release.yml`,
+    https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions,
+    https://docs.github.com/actions/using-workflows/storing-workflow-data-as-artifacts
+  - Touches: `.github/workflows/ci.yml`, test output configuration, parity
+    manifest generator, artifact retention policy, developer docs.
+  - Acceptance: PR and main-branch pushes run a fast CI workflow separate from
+    release. It reports version sync, parse checks, `dotnet test`, parity
+    manifest status, PowerShell analyzer/Pester lane when that Cycle 3 item is
+    implemented, docs-link checks, and docs-only skip decisions in
+    `GITHUB_STEP_SUMMARY`. Failing jobs upload structured test output,
+    generated manifests, and logs with a documented retention period.
+  - Verify: open a test PR that changes only docs and one that changes a config
+    key; CI summaries show what ran and why; artifacts include test and parity
+    output; release workflow can depend on the same scripts without duplicating
+    logic.
+
+- [ ] 🔬 🤖 🔧 P2 - Add repository
+  community-health and contributor intake files.
+  - Why: GitHub's community-profile API reported 42% health for the repository
+    on 2026-06-04. README and MIT license are present, but code of conduct,
+    contributing guide, issue template, and pull request template are null, and
+    there is no tracked CODEOWNERS file. Cycle 4 already covers security
+    intake; this item covers ordinary bugs, compatibility reports, feature
+    requests, roadmap-only contributions, and ownership routing for sensitive
+    areas such as release, signing, backend scripts, and package manifests.
+  - Evidence: local `.github` tree on 2026-06-04,
+    `gh api repos/SysAdminDoc/LibreSpot/community/profile` on 2026-06-04,
+    https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file,
+    https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+  - Touches: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SUPPORT.md`,
+    `.github/ISSUE_TEMPLATE/*`, `.github/PULL_REQUEST_TEMPLATE.md`,
+    `.github/CODEOWNERS`, roadmap contribution docs.
+  - Acceptance: contributors can file bug, compatibility, release, packaging,
+    feature, and documentation reports with fields for Windows version,
+    Spotify install source/version, Spicetify version, LibreSpot version,
+    selected profile, logs, and reproduction steps. PR template requires scope,
+    risk, tests, screenshots for UI work, release-note impact, and whether
+    roadmap/research docs changed. CODEOWNERS routes release/signing, scripts,
+    WPF shell, docs, and package manifests to explicit maintainers or a
+    documented placeholder until teams exist.
+  - Verify: GitHub community-profile API health rises after files land; issue
+    forms render without schema errors; CODEOWNERS syntax validates; a sample
+    bug report contains enough data to reproduce a Spotify version mismatch
+    without asking the reporter for basic environment details.
