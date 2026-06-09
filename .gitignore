@@ -14,3 +14,7 @@ tmp/
 
 # Runtime caches written to %APPDATA% in production; belt-and-braces here
 update-check.json
+
+# Markdown files local-only (except README)
+*.md
+!README.md
