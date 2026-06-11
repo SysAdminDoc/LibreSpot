@@ -41,7 +41,8 @@ public sealed class ReleaseWorkflowTests
         Assert.Contains("shell: powershell", workflow);
         Assert.Contains("shell: pwsh", workflow);
         Assert.Contains("Restore test graph with locked NuGet audit", workflow);
-        Assert.Contains("dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj --locked-mode -p:AuditPipeline=true", workflow);
+        Assert.Contains("dotnet restore src/LibreSpot.Desktop/LibreSpot.Desktop.csproj --locked-mode -p:AuditPipeline=true", workflow);
+        Assert.Contains("dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj --locked-mode --no-dependencies -p:AuditPipeline=true", workflow);
         Assert.Contains("dotnet test tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj -c Release --nologo --no-restore", workflow);
         Assert.Contains("Restore WPF publish graph with locked NuGet audit", workflow);
         Assert.Contains("dotnet restore src/LibreSpot.Desktop/LibreSpot.Desktop.csproj -r win-x64 --locked-mode -p:AuditPipeline=true", workflow);

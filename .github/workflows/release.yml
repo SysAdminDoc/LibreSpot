@@ -330,7 +330,9 @@ jobs:
           dotnet --info
 
       - name: Restore test graph with locked NuGet audit
-        run: dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj --locked-mode -p:AuditPipeline=true
+        run: |
+          dotnet restore src/LibreSpot.Desktop/LibreSpot.Desktop.csproj --locked-mode -p:AuditPipeline=true
+          dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj --locked-mode --no-dependencies -p:AuditPipeline=true
 
       - name: Run unit tests
         # Stops a broken regression from shipping. AppCatalogTests +

@@ -35,7 +35,8 @@ public sealed class DependencyAutomationTests
         Assert.Contains("shell: powershell", workflow);
         Assert.Contains("shell: pwsh", workflow);
         Assert.Contains("XAML parse smoke", workflow);
-        Assert.Contains("dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj --locked-mode -p:AuditPipeline=true", workflow);
+        Assert.Contains("dotnet restore src/LibreSpot.Desktop/LibreSpot.Desktop.csproj --locked-mode -p:AuditPipeline=true", workflow);
+        Assert.Contains("dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj --locked-mode --no-dependencies -p:AuditPipeline=true", workflow);
         Assert.Contains("dotnet test tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj -c Release --nologo --no-restore", workflow);
         Assert.Contains("NUGET_AUDIT_LEVEL: moderate", workflow);
         Assert.Contains("dotnet list $project package --vulnerable --include-transitive --format json --output-version 1 --no-restore", workflow);

@@ -29,7 +29,9 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore with locked NuGet audit
-        run: dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj --locked-mode -p:AuditPipeline=true
+        run: |
+          dotnet restore src/LibreSpot.Desktop/LibreSpot.Desktop.csproj --locked-mode -p:AuditPipeline=true
+          dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj --locked-mode --no-dependencies -p:AuditPipeline=true
 
       - name: PowerShell syntax check (Windows PowerShell 5.1)
         shell: powershell
