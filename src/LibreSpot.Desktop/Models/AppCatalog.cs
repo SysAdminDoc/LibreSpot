@@ -266,11 +266,16 @@ public static class AppCatalog
         new ExtensionDefinition("webnowplaying.js", "WebNowPlaying", "Expose now-playing data for desktop integrations and widgets."),
         // Community extensions — downloaded from GitHub during install
         new ExtensionDefinition("hidePodcasts.js", "Hide Podcasts", "Remove podcast, episode, and audiobook UI elements."),
-        new ExtensionDefinition("beautifulLyrics.js", "Beautiful Lyrics", "Immersive synced lyrics with dynamic backgrounds and blur."),
-        new ExtensionDefinition("playlistIcons.js", "Playlist Icons", "Add custom icons and folder images to playlists."),
-        new ExtensionDefinition("songStats.js", "Song Stats", "Show play count, popularity, and release date per track."),
+        new ExtensionDefinition("beautiful-lyrics.mjs", "Beautiful Lyrics", "Immersive synced lyrics with dynamic backgrounds and blur."),
+        new ExtensionDefinition("playlist-icons.js", "Playlist Icons", "Add custom icons and folder images to playlists."),
         new ExtensionDefinition("volumePercentage.js", "Volume Percentage", "Display exact volume percentage next to the slider.")
     });
+
+    private static readonly IReadOnlyDictionary<string, string> ExtensionAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["beautifulLyrics.js"] = "beautiful-lyrics.mjs",
+        ["playlistIcons.js"] = "playlist-icons.js"
+    };
 
     public static IReadOnlyList<MaintenanceActionDefinition> MaintenanceActions { get; } = new ReadOnlyCollection<MaintenanceActionDefinition>(new[]
     {
@@ -363,6 +368,11 @@ public static class AppCatalog
 
         var validExtensions = ExtensionDefinitions.Select(def => def.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         normalized.Spicetify_Extensions = (source.Spicetify_Extensions ?? [])
+            .Select(item =>
+            {
+                var name = item ?? string.Empty;
+                return ExtensionAliases.TryGetValue(name, out var currentName) ? currentName : name;
+            })
             .Where(item => !string.IsNullOrWhiteSpace(item) && validExtensions.Contains(item))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();

@@ -47,6 +47,26 @@ public sealed class AppCatalogTests
     }
 
     [Fact]
+    public void NormalizeConfiguration_MigratesRenamedCommunityExtensionsAndDropsDeletedOnes()
+    {
+        var configuration = new InstallConfiguration
+        {
+            Spicetify_Extensions =
+            [
+                "beautifulLyrics.js",
+                "playlistIcons.js",
+                "songStats.js",
+                "beautiful-lyrics.mjs"
+            ]
+        };
+
+        var normalized = AppCatalog.NormalizeConfiguration(configuration);
+
+        Assert.Equal(["beautiful-lyrics.mjs", "playlist-icons.js"], normalized.Spicetify_Extensions);
+        Assert.DoesNotContain(AppCatalog.ExtensionDefinitions, item => item.Key == "songStats.js");
+    }
+
+    [Fact]
     public void NormalizeConfiguration_HandlesNullInputsAndClampsCacheLimit()
     {
         var configuration = new InstallConfiguration

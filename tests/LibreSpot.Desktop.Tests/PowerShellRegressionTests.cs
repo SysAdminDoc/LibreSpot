@@ -436,6 +436,55 @@ public sealed class PowerShellRegressionTests
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void CommunityExtensionCatalog_UsesPinnedWorkingAssetsAndHashVerification(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var catalogStart = script.IndexOf("$global:CommunityExtensions", StringComparison.Ordinal);
+        var catalogEnd = script.IndexOf("$global:CommunityExtensionAliases", StringComparison.Ordinal);
+
+        Assert.True(catalogStart >= 0, $"Community extension catalog not found in {relativePath}.");
+        Assert.True(catalogEnd > catalogStart, $"Community extension catalog terminator not found in {relativePath}.");
+
+        var catalog = script[catalogStart..catalogEnd];
+
+        Assert.Contains("hidePodcasts.js", catalog);
+        Assert.Contains("b89365dd86fba24d610fae65d882d7e14a69f2fa/hidePodcasts.js", catalog);
+        Assert.Contains("727e5a2f9137f4be77eac83d234a0ce858c5d618e7ff56116a6def01793fc3f8", catalog);
+
+        Assert.Contains("beautiful-lyrics.mjs", catalog);
+        Assert.Contains("61ac582da092311e893423269ca7f09003108705/Extension/Builds/Release/beautiful-lyrics.mjs", catalog);
+        Assert.Contains("93c9ecfcb0a83c832c5ee7ca8fe826bcfaeec7cdd129c0bf05bab84b8ba6ba72", catalog);
+
+        Assert.Contains("playlist-icons.js", catalog);
+        Assert.Contains("8f401f923a5c25f530935faaceb39089a25b701a/playlist-icons.js", catalog);
+        Assert.Contains("79bbe2bd6a52a521a382a73ef1c8c7ff0b0b9bd7674c48bb0ed44c5d2c944c8d", catalog);
+
+        Assert.Contains("volumePercentage.js", catalog);
+        Assert.Contains("89e609d933946a888cdff9cc3d7c4f1e9b88cfde/Extensions/volumePercentage.js", catalog);
+        Assert.Contains("b88dcde894f4998abc4473773333015c09f0450ec563d256ed5af45db7129aca", catalog);
+
+        Assert.DoesNotContain("/main/dist/", catalog);
+        Assert.DoesNotContain("Shinyhero36/spicetify-song-stats", catalog);
+        Assert.DoesNotContain("'songStats.js'        = @{", catalog);
+        Assert.Contains("Confirm-FileHash -Path $destFile -ExpectedHash $info.SHA256", script);
+    }
+
+    [Fact]
+    public void PowerShellExtensionUi_UsesCurrentCommunityExtensionIds()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+
+        Assert.DoesNotContain("ChkExt_songStats", script);
+        Assert.DoesNotContain("'ChkExt_beautifulLyrics'='beautifulLyrics.js'", script);
+        Assert.DoesNotContain("'ChkExt_playlistIcons'='playlistIcons.js'", script);
+        Assert.Contains("'ChkExt_beautifulLyrics'='beautiful-lyrics.mjs'", script);
+        Assert.Contains("'ChkExt_playlistIcons'='playlist-icons.js'", script);
+        Assert.Contains("$global:DeprecatedCommunityExtensionNames", script);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
     public void MarketplaceInstaller_UsesSpicetifyConfigCustomApps(string relativePath)
     {
         var script = ReadFile(relativePath.Split('/'));

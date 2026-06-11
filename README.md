@@ -75,7 +75,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 **Easy Install** — one click, sensible defaults. Removes any existing installation, applies SpotX ad-blocking with the new UI theme, installs Spicetify CLI with Marketplace, and enables Full App Display, Shuffle+, and Trash Bin extensions.
 
-**Custom Install** — full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), pick from 21 themes (16 official + 5 community) with per-theme color schemes, select from 15 extensions (10 built-in + 5 community), and choose between clean or overlay install.
+**Custom Install** — full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), pick from 21 themes (16 official + 5 community) with per-theme color schemes, select from 14 extensions (10 built-in + 4 community), and choose between clean or overlay install.
 
 **Maintenance** — manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, restore vanilla Spotify, uninstall Spicetify, check for dependency updates, or perform a full system reset.
 
@@ -104,7 +104,7 @@ Custom Install exposes all 27 SpotX static lyrics color options: spotify, bluebe
 
 Each theme ships with its full set of color schemes. **Live theme previews** load inline when selecting a theme in Custom Install. Or skip the theme and use the Marketplace to browse and install themes from within Spotify.
 
-### 15 Extensions (10 Built-in + 5 Community)
+### 14 Extensions (10 Built-in + 4 Community)
 
 **Built-in** (ship with Spicetify CLI):
 
@@ -128,7 +128,6 @@ Each theme ships with its full set of color schemes. **Live theme previews** loa
 | [Hide Podcasts](https://github.com/theRealPadster/spicetify-hide-podcasts) | Remove podcast, episode, and audiobook UI elements |
 | [Beautiful Lyrics](https://github.com/surfbryce/beautiful-lyrics) | Immersive synced lyrics with dynamic backgrounds and blur |
 | [Playlist Icons](https://github.com/jeroentvb/spicetify-playlist-icons) | Custom icons and folder images for playlists |
-| [Song Stats](https://github.com/Shinyhero36/spicetify-song-stats) | Play count, popularity score, and release date per track |
 | [Volume Percentage](https://github.com/daksh2k/spicetify-stuff) | Exact volume percentage next to the slider |
 
 ### Auto-Reapply (new in v3.6.0)
