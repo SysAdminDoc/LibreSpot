@@ -63,7 +63,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 | Component | Pinned Version |
 |---|---|
 | SpotX | `0abf98a3` (Spotify 1.2.86.502) |
-| Spicetify CLI | v2.43.1 |
+| Spicetify CLI | v2.43.2 |
 | Marketplace | v1.0.8 |
 | Themes | Commit `9af41cf` |
 
@@ -177,14 +177,17 @@ Every download is verified against pinned SHA256 hashes. LibreSpot doesn't host 
 
 ## Signing & verification
 
-Releases ship unsigned today. [SignPath Foundation](https://signpath.org/) OSS enrollment is pending — see [SIGNPATH.md](SIGNPATH.md) for the application draft and the operator guide. Once the cert arrives, every tagged release will Authenticode-sign both `LibreSpot.exe` and `LibreSpot-Desktop.exe` via the workflow in [.github/workflows/release.yml](.github/workflows/release.yml) and users will stop seeing the "Unknown publisher" SmartScreen warning.
+Releases ship unsigned today. [SignPath Foundation](https://signpath.org/) OSS enrollment is pending. Once the cert arrives, tagged releases will Authenticode-sign both `LibreSpot.exe` and `LibreSpot-Desktop.exe` via the workflow in [.github/workflows/release.yml](.github/workflows/release.yml) and users will stop seeing the "Unknown publisher" SmartScreen warning.
 
-Independent of signing, every release already ships:
-- `checksums.txt` — SHA256 for every asset
-- CycloneDX SBOM — `LibreSpot.sbom.cdx.json`
-- SLSA L3 build-provenance attestations via [`actions/attest-build-provenance`](https://github.com/actions/attest-build-provenance)
+The current latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt`. Workflow-built tags are expected to add `LibreSpot-Desktop.exe`, CycloneDX SBOM output, and GitHub provenance attestations.
 
-Verify provenance of any downloaded asset:
+Verify a downloaded v3.7.2 asset against `checksums.txt`:
+
+```powershell
+Get-FileHash .\LibreSpot.exe -Algorithm SHA256
+```
+
+For workflow-built assets that include GitHub attestations, verify provenance with:
 
 ```powershell
 gh attestation verify .\LibreSpot.exe          -R SysAdminDoc/LibreSpot
@@ -193,10 +196,7 @@ gh attestation verify .\LibreSpot-Desktop.exe  -R SysAdminDoc/LibreSpot
 
 ## Project planning
 
-- [ROADMAP.md](ROADMAP.md) tracks active and future work.
-- [COMPLETED.md](COMPLETED.md) summarizes shipped roadmap work.
-- [RESEARCH_REPORT.md](RESEARCH_REPORT.md) summarizes product and ecosystem research.
-- [docs/archive/research/RESEARCH.md](docs/archive/research/RESEARCH.md) keeps the full archived research pass.
+Development planning is maintained in local working-tree docs. `ROADMAP.md` is the only active queue for incomplete work; completed work is represented by Git history and release notes.
 
 ## Credits
 
