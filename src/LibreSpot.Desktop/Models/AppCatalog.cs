@@ -183,8 +183,9 @@ public static class AppCatalog
     public static IReadOnlyList<SpotifyVersionEntry> SpotifyVersionManifest { get; } = new ReadOnlyCollection<SpotifyVersionEntry>(new[]
     {
         new SpotifyVersionEntry("auto",            "Auto (use SpotX default)",          "",                          "Recommended. Lets SpotX pick the most compatible build."),
-        new SpotifyVersionEntry("1.2.86.502",      "1.2.86.502 (current pinned)",       "1.2.86.502.g8cd7fb22",      "Best match for our pinned SpotX commit."),
-        new SpotifyVersionEntry("1.2.85.519",      "1.2.85.519 (previous stable)",      "1.2.85.519.g7c42e2e8",      "Last Windows release before Canvas-home changes."),
+        new SpotifyVersionEntry("1.2.90.451",      "1.2.90.451 (current pinned)",       "1.2.90.451.gb094aab0",      "Best match for our pinned SpotX commit."),
+        new SpotifyVersionEntry("1.2.86.502",      "1.2.86.502 (previous fallback)",    "1.2.86.502.g8cd7fb22",      "Prior pinned build kept for rollback and comparison."),
+        new SpotifyVersionEntry("1.2.85.519",      "1.2.85.519 (older stable)",         "1.2.85.519.g7c42e2e8",      "Last Windows release before Canvas-home changes."),
         new SpotifyVersionEntry("1.2.53.440.x86",  "1.2.53.440 (x86 / 32-bit only)",    "1.2.53.440.g7b2f582a",      "For 32-bit Windows. Do not pick on x64."),
         new SpotifyVersionEntry("1.2.5.1006.win7", "1.2.5.1006 (Windows 7 / 8.1)",      "1.2.5.1006.g22820f93",      "Last build supported on legacy Windows."),
     });

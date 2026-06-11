@@ -62,7 +62,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 | Component | Pinned Version |
 |---|---|
-| SpotX | `0abf98a3` (Spotify 1.2.86.502) |
+| SpotX | `95882aa5` (Spotify 1.2.90.451) |
 | Spicetify CLI | v2.43.2 |
 | Marketplace | v1.0.8 |
 | Themes | Commit `9af41cf` |

@@ -131,6 +131,16 @@ public sealed class AppCatalogTests
     }
 
     [Fact]
+    public void SpotifyVersionManifest_UsesCurrentPinnedSpotXBaseline()
+    {
+        var current = Assert.Single(AppCatalog.SpotifyVersionManifest, entry => entry.Id == "1.2.90.451");
+
+        Assert.Equal("1.2.90.451.gb094aab0", current.Version);
+        Assert.Contains("current pinned", current.Label);
+        Assert.Contains(AppCatalog.SpotifyVersionManifest, entry => entry.Id == "1.2.86.502");
+    }
+
+    [Fact]
     public void NormalizeConfiguration_FallsBackWhenAdvancedCompatibilitySelectionsAreUnknown()
     {
         var configuration = new InstallConfiguration

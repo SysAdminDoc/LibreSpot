@@ -137,9 +137,9 @@ try {
 $global:PinnedReleases = @{
     SpotX = @{
         Version = '2.0'
-        Commit  = '0abf98a36be501740d774a56d54d5f7fbbafc35c'
-        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/0abf98a36be501740d774a56d54d5f7fbbafc35c/run.ps1'
-        SHA256  = '38d4205a2afc2050781bbfe28c6713edd6b0aef2c084304b58d92308b081f569'
+        Commit  = '95882aa5b308832102ac8a206d300bf6f5436bfb'
+        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/95882aa5b308832102ac8a206d300bf6f5436bfb/run.ps1'
+        SHA256  = '67e7ad2ec42531712f33959b1170590d48f7b2940a9a478f956b5770a69b1af3'
     }
     SpicetifyCLI = @{
         Version = '2.43.2'
@@ -816,8 +816,9 @@ $global:SpotXLyricsThemes = @(
 # list tight — every entry is an explicit compatibility promise.
 $global:SpotifyVersionManifest = @(
     @{ Id='auto';            Label='Auto (use SpotX default)';         Version='';                        Notes='Recommended. Lets SpotX pick the most compatible build.' }
-    @{ Id='1.2.86.502';      Label='1.2.86.502 (current pinned)';      Version='1.2.86.502.g8cd7fb22';    Notes='Best match for our pinned SpotX commit.' }
-    @{ Id='1.2.85.519';      Label='1.2.85.519 (previous stable)';     Version='1.2.85.519.g7c42e2e8';    Notes='Last Windows release before Canvas-home changes.' }
+    @{ Id='1.2.90.451';      Label='1.2.90.451 (current pinned)';      Version='1.2.90.451.gb094aab0';    Notes='Best match for our pinned SpotX commit.' }
+    @{ Id='1.2.86.502';      Label='1.2.86.502 (previous fallback)';   Version='1.2.86.502.g8cd7fb22';    Notes='Prior pinned build kept for rollback and comparison.' }
+    @{ Id='1.2.85.519';      Label='1.2.85.519 (older stable)';        Version='1.2.85.519.g7c42e2e8';    Notes='Last Windows release before Canvas-home changes.' }
     @{ Id='1.2.53.440.x86';  Label='1.2.53.440 (x86 / 32-bit only)';   Version='1.2.53.440.g7b2f582a';    Notes='For 32-bit Windows. Do not pick on x64.' }
     @{ Id='1.2.5.1006.win7'; Label='1.2.5.1006 (Windows 7 / 8.1)';     Version='1.2.5.1006.g22820f93';    Notes='Last build supported on legacy Windows.' }
 )
