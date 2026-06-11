@@ -191,6 +191,11 @@ jobs:
     name: Build PowerShell EXE (PS2EXE)
     needs: preflight
     runs-on: windows-latest
+    env:
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+      SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+      SIGNPATH_PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+      SIGNPATH_RELEASE_POLICY_SLUG: ${{ vars.SIGNPATH_RELEASE_POLICY_SLUG }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -220,26 +225,26 @@ jobs:
       # unsigned exactly as it did before v3.6.0, with SBOM + SLSA attestations.
       - name: Upload PS2EXE artifact for SignPath
         id: upload-unsigned-ps
-        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        if: ${{ env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: librespot-ps-unsigned
           path: LibreSpot.exe
 
       - name: Submit LibreSpot.exe to SignPath
-        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        if: ${{ env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != '' }}
         uses: signpath/github-action-submit-signing-request@v2
         with:
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: ${{ vars.SIGNPATH_RELEASE_POLICY_SLUG }}
+          api-token: ${{ env.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_RELEASE_POLICY_SLUG }}
           github-artifact-id: ${{ steps.upload-unsigned-ps.outputs.artifact-id }}
           wait-for-completion: true
           output-artifact-directory: signed
 
       - name: Swap in signed LibreSpot.exe
-        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        if: ${{ env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != '' }}
         shell: pwsh
         run: |
           if (-not (Test-Path signed/LibreSpot.exe)) {
@@ -266,6 +271,11 @@ jobs:
     name: Build WPF self-contained (.NET 8)
     needs: preflight
     runs-on: windows-latest
+    env:
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+      SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+      SIGNPATH_PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+      SIGNPATH_RELEASE_POLICY_SLUG: ${{ vars.SIGNPATH_RELEASE_POLICY_SLUG }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -325,26 +335,26 @@ jobs:
       # see SIGNPATH.md for enrollment.
       - name: Upload WPF EXE artifact for SignPath
         id: upload-unsigned-wpf
-        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        if: ${{ env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: librespot-wpf-unsigned
           path: publish/wpf/LibreSpot-Desktop.exe
 
       - name: Submit LibreSpot-Desktop.exe to SignPath
-        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        if: ${{ env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != '' }}
         uses: signpath/github-action-submit-signing-request@v2
         with:
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: ${{ vars.SIGNPATH_RELEASE_POLICY_SLUG }}
+          api-token: ${{ env.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_RELEASE_POLICY_SLUG }}
           github-artifact-id: ${{ steps.upload-unsigned-wpf.outputs.artifact-id }}
           wait-for-completion: true
           output-artifact-directory: signed
 
       - name: Swap in signed LibreSpot-Desktop.exe
-        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        if: ${{ env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != '' }}
         shell: pwsh
         run: |
           if (-not (Test-Path signed/LibreSpot-Desktop.exe)) {
