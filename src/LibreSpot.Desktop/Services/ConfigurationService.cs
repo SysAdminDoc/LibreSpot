@@ -15,7 +15,8 @@ public enum ConfigurationLoadState
 public sealed record ConfigurationLoadResult(
     InstallConfiguration Configuration,
     ConfigurationLoadState State,
-    string? RecoveredFilePath = null);
+    string? RecoveredFilePath = null,
+    string? RecoveryReason = null);
 
 public sealed class ConfigurationService
 {
@@ -68,7 +69,7 @@ public sealed class ConfigurationService
         {
             throw;
         }
-        catch
+        catch (Exception ex)
         {
             // Preserve the corrupt file for forensics rather than silently overwriting
             // user state with defaults. The PS backend has similar quarantine behavior.
@@ -76,14 +77,16 @@ public sealed class ConfigurationService
             return new ConfigurationLoadResult(
                 AppCatalog.CreateRecommendedConfiguration(),
                 ConfigurationLoadState.RecoveredFromCorrupt,
-                recoveredFilePath);
+                recoveredFilePath,
+                ex.Message);
         }
 
         var nullPayloadRecoveryPath = QuarantineCorruptConfig();
         return new ConfigurationLoadResult(
             AppCatalog.CreateRecommendedConfiguration(),
             ConfigurationLoadState.RecoveredFromCorrupt,
-            nullPayloadRecoveryPath);
+            nullPayloadRecoveryPath,
+            "config.json did not contain a configuration object.");
     }
 
     public async Task SaveAsync(InstallConfiguration configuration, CancellationToken cancellationToken = default)

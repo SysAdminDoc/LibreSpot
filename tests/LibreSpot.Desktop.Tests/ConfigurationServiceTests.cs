@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
 using Xunit;
@@ -41,10 +42,37 @@ public sealed class ConfigurationServiceTests
             var recoveredFilePath = Assert.IsType<string>(result.RecoveredFilePath);
 
             Assert.Equal(ConfigurationLoadState.RecoveredFromCorrupt, result.State);
+            Assert.False(string.IsNullOrWhiteSpace(result.RecoveryReason));
             AssertRecommendedDefaults(result.Configuration);
             Assert.False(File.Exists(service.ConfigPath));
             Assert.True(File.Exists(recoveredFilePath));
             Assert.Equal("{ definitely-not-json", await File.ReadAllTextAsync(recoveredFilePath));
+        }
+        finally
+        {
+            DeleteDirectory(configDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task LoadResultAsync_QuarantinesFutureSchemaVersion()
+    {
+        var configDirectory = CreateTempDirectory();
+        try
+        {
+            var service = new ConfigurationService(configDirectory);
+            Directory.CreateDirectory(configDirectory);
+            await File.WriteAllTextAsync(service.ConfigPath, "{\"ConfigSchemaVersion\":999}");
+
+            var result = await service.LoadResultAsync();
+            var recoveredFilePath = Assert.IsType<string>(result.RecoveredFilePath);
+
+            Assert.Equal(ConfigurationLoadState.RecoveredFromCorrupt, result.State);
+            Assert.Contains("Saved config schema version 999", result.RecoveryReason);
+            AssertRecommendedDefaults(result.Configuration);
+            Assert.False(File.Exists(service.ConfigPath));
+            Assert.True(File.Exists(recoveredFilePath));
+            Assert.Equal("{\"ConfigSchemaVersion\":999}", await File.ReadAllTextAsync(recoveredFilePath));
         }
         finally
         {
@@ -86,6 +114,27 @@ public sealed class ConfigurationServiceTests
     }
 
     [Fact]
+    public async Task SaveAsync_WritesCurrentSchemaVersion()
+    {
+        var configDirectory = CreateTempDirectory();
+        try
+        {
+            var service = new ConfigurationService(configDirectory);
+
+            await service.SaveAsync(new InstallConfiguration { ConfigSchemaVersion = 0 });
+
+            await using var stream = File.OpenRead(service.ConfigPath);
+            using var json = await JsonDocument.ParseAsync(stream);
+            var version = json.RootElement.GetProperty(nameof(InstallConfiguration.ConfigSchemaVersion)).GetInt32();
+            Assert.Equal(AppCatalog.CurrentConfigSchemaVersion, version);
+        }
+        finally
+        {
+            DeleteDirectory(configDirectory);
+        }
+    }
+
+    [Fact]
     public async Task SaveAsync_NormalizesConfigurationAndLeavesNoTempFile()
     {
         var configDirectory = CreateTempDirectory();
@@ -116,6 +165,8 @@ public sealed class ConfigurationServiceTests
     {
         var recommended = AppCatalog.CreateRecommendedConfiguration();
 
+        Assert.Equal(AppCatalog.CurrentConfigSchemaVersion, configuration.ConfigSchemaVersion);
+        Assert.Equal(recommended.ConfigSchemaVersion, configuration.ConfigSchemaVersion);
         Assert.Equal(recommended.Mode, configuration.Mode);
         Assert.Equal(recommended.CleanInstall, configuration.CleanInstall);
         Assert.Equal(recommended.LaunchAfter, configuration.LaunchAfter);

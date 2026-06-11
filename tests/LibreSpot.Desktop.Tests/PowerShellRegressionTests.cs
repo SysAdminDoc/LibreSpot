@@ -716,6 +716,46 @@ public sealed class PowerShellRegressionTests
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void PowerShellNormalizer_StampsAndRejectsConfigSchemaVersions(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Normalize-LibreSpotConfig\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Normalize-LibreSpotConfig function block not found in {relativePath}.");
+        Assert.Contains("$global:CONFIG_SCHEMA_VERSION = 1", script);
+        Assert.Contains("function Get-LibreSpotConfigSchemaVersion", script);
+        Assert.Contains("function Assert-LibreSpotConfigSchemaSupported", script);
+        Assert.Contains("Saved config schema version", script);
+        Assert.Contains("Assert-LibreSpotConfigSchemaSupported", fnBody.Groups["body"].Value);
+        Assert.Contains("ConfigSchemaVersion = $global:CONFIG_SCHEMA_VERSION", fnBody.Groups["body"].Value);
+    }
+
+    [Fact]
+    public void WorkerRunspace_ExportsConfigSchemaHelpers()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var listMatch = Regex.Match(
+            script,
+            @"\$functionNamesForWorker\s*=\s*@\((?<functions>.+?)\)\s*\r?\n\s*\$issMain",
+            RegexOptions.Singleline);
+        var variableListMatch = Regex.Match(
+            script,
+            @"\$varNamesForWorker\s*=\s*@\((?<variables>.+?)\)\s*\r?\nforeach",
+            RegexOptions.Singleline);
+
+        Assert.True(listMatch.Success, "Worker function export list not found.");
+        Assert.True(variableListMatch.Success, "Worker variable export list not found.");
+        Assert.Contains("Get-LibreSpotConfigSchemaVersion", listMatch.Groups["functions"].Value);
+        Assert.Contains("Assert-LibreSpotConfigSchemaSupported", listMatch.Groups["functions"].Value);
+        Assert.Contains("CONFIG_SCHEMA_VERSION", variableListMatch.Groups["variables"].Value);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
     public void TempRootHelper_HandlesFileCollisionAtDefaultRoot(string relativePath)
     {
         var script = ReadFile(relativePath.Split('/'));

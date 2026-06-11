@@ -147,6 +147,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private bool _isApplyingSelectionDependencyRules;
     private ConfigurationLoadState _configurationLoadState = ConfigurationLoadState.Loaded;
     private string? _recoveredConfigurationPath;
+    private string? _configurationRecoveryReason;
     private Func<Task>? _pendingPromptAction;
 
     public MainViewModel(
@@ -301,12 +302,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string ConfigurationRecoveryTitle => "Unreadable profile was recovered";
 
+    private string ConfigurationRecoveryReasonClause =>
+        string.IsNullOrWhiteSpace(_configurationRecoveryReason)
+            ? string.Empty
+            : $" Reason: {_configurationRecoveryReason.Trim()}";
+
     public string ConfigurationRecoveryDetail =>
         !HasConfigurationRecoveryNotice
             ? string.Empty
             : string.IsNullOrWhiteSpace(_recoveredConfigurationPath)
-                ? "LibreSpot reopened with safe defaults because config.json could not be read. Apply Recommended or Custom to save a fresh profile."
-                : $"LibreSpot moved the unreadable config.json aside and reopened with safe defaults. Apply Recommended or Custom to save a fresh profile. Backup kept as {Path.GetFileName(_recoveredConfigurationPath)}.";
+                ? $"LibreSpot reopened with safe defaults because config.json could not be read safely.{ConfigurationRecoveryReasonClause} Apply Recommended or Custom to save a fresh profile."
+                : $"LibreSpot moved the unreadable config.json aside and reopened with safe defaults.{ConfigurationRecoveryReasonClause} Apply Recommended or Custom to save a fresh profile. Backup kept as {Path.GetFileName(_recoveredConfigurationPath)}.";
 
     public string ProfileStatusLine =>
         HasConfigurationRecoveryNotice
@@ -1095,6 +1101,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var loadResult = await _configurationService.LoadResultAsync();
         _configurationLoadState = loadResult.State;
         _recoveredConfigurationPath = loadResult.RecoveredFilePath;
+        _configurationRecoveryReason = loadResult.RecoveryReason;
         ApplyConfigurationToEditor(loadResult.Configuration);
         RefreshSnapshot();
     }

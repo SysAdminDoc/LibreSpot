@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SysAdminDoc/LibreSpot/schemas/librespot-config.schema.json",
+  "title": "LibreSpot install configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ConfigSchemaVersion"
+  ],
+  "properties": {
+    "ConfigSchemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Version of the LibreSpot config schema this file was written against."
+    },
+    "Mode": {
+      "type": "string",
+      "enum": [
+        "Easy",
+        "Custom"
+      ]
+    },
+    "CleanInstall": {
+      "type": "boolean"
+    },
+    "LaunchAfter": {
+      "type": "boolean"
+    },
+    "SpotX_NewTheme": {
+      "type": "boolean"
+    },
+    "SpotX_PodcastsOff": {
+      "type": "boolean"
+    },
+    "SpotX_BlockUpdate": {
+      "type": "boolean"
+    },
+    "SpotX_AdSectionsOff": {
+      "type": "boolean"
+    },
+    "SpotX_Premium": {
+      "type": "boolean"
+    },
+    "SpotX_LyricsEnabled": {
+      "type": "boolean"
+    },
+    "SpotX_LyricsTheme": {
+      "type": "string",
+      "enum": [
+        "spotify",
+        "blueberry",
+        "blue",
+        "discord",
+        "forest",
+        "fresh",
+        "github",
+        "lavender",
+        "orange",
+        "pumpkin",
+        "purple",
+        "red",
+        "strawberry",
+        "turquoise",
+        "yellow",
+        "oceano",
+        "royal",
+        "krux",
+        "pinkle",
+        "zing",
+        "radium",
+        "sandbar",
+        "postlight",
+        "relish",
+        "drot",
+        "default",
+        "spotify#2"
+      ]
+    },
+    "SpotX_TopSearch": {
+      "type": "boolean"
+    },
+    "SpotX_RightSidebarOff": {
+      "type": "boolean"
+    },
+    "SpotX_RightSidebarClr": {
+      "type": "boolean"
+    },
+    "SpotX_CanvasHomeOff": {
+      "type": "boolean"
+    },
+    "SpotX_HomeSubOff": {
+      "type": "boolean"
+    },
+    "SpotX_DisableStartup": {
+      "type": "boolean"
+    },
+    "SpotX_NoShortcut": {
+      "type": "boolean"
+    },
+    "SpotX_CacheLimit": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 50000
+    },
+    "SpotX_Plus": {
+      "type": "boolean"
+    },
+    "SpotX_NewFullscreen": {
+      "type": "boolean"
+    },
+    "SpotX_FunnyProgress": {
+      "type": "boolean"
+    },
+    "SpotX_ExpSpotify": {
+      "type": "boolean"
+    },
+    "SpotX_LyricsBlock": {
+      "type": "boolean"
+    },
+    "SpotX_OldLyrics": {
+      "type": "boolean"
+    },
+    "SpotX_HideColIconOff": {
+      "type": "boolean"
+    },
+    "SpotX_SendVersionOff": {
+      "type": "boolean"
+    },
+    "SpotX_StartSpoti": {
+      "type": "boolean"
+    },
+    "SpotX_DevTools": {
+      "type": "boolean"
+    },
+    "SpotX_Mirror": {
+      "type": "boolean"
+    },
+    "SpotX_DownloadMethod": {
+      "type": "string",
+      "enum": [
+        "",
+        "curl",
+        "webclient"
+      ]
+    },
+    "SpotX_ConfirmUninstall": {
+      "type": "boolean"
+    },
+    "SpotX_SpotifyVersionId": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "1.2.86.502",
+        "1.2.85.519",
+        "1.2.53.440.x86",
+        "1.2.5.1006.win7"
+      ]
+    },
+    "Spicetify_Theme": {
+      "type": "string"
+    },
+    "Spicetify_Scheme": {
+      "type": "string"
+    },
+    "Spicetify_Marketplace": {
+      "type": "boolean"
+    },
+    "Spicetify_Extensions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "fullAppDisplay.js",
+          "shuffle+.js",
+          "trashbin.js",
+          "keyboardShortcut.js",
+          "bookmark.js",
+          "loopyLoop.js",
+          "popupLyrics.js",
+          "autoSkipVideo.js",
+          "autoSkipExplicit.js",
+          "webnowplaying.js",
+          "hidePodcasts.js",
+          "beautiful-lyrics.mjs",
+          "playlist-icons.js",
+          "volumePercentage.js"
+        ]
+      }
+    },
+    "AutoReapply_Enabled": {
+      "type": "boolean"
+    }
+  }
+}
