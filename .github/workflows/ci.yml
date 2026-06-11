@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj
+
+      - name: PowerShell syntax check
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = @('LibreSpot.ps1', 'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1')
+          foreach ($file in $files) {
+              $tokens = $null
+              $parseErrors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$parseErrors) | Out-Null
+              if ($parseErrors.Count -gt 0) {
+                  $parseErrors | ForEach-Object {
+                      Write-Host "  $($_.Message) at $($_.Extent.StartLineNumber):$($_.Extent.StartColumnNumber)"
+                  }
+                  throw "$file has $($parseErrors.Count) parse error(s)."
+              }
+              Write-Host "  $file parsed cleanly"
+          }
+
+      - name: XAML parse smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Add-Type -AssemblyName PresentationFramework
+          $script = Get-Content -Path LibreSpot.ps1 -Raw
+          $xamlBlocks = [regex]::Matches($script, '(?ms)^\s*\$(?:xaml|dlgXaml)\s*=\s*@"\r?\n(?<xaml>.*?)\r?\n"@')
+          if ($xamlBlocks.Count -lt 2) {
+              throw "Expected main and dialog XAML here-strings, found $($xamlBlocks.Count)."
+          }
+          foreach ($block in $xamlBlocks) {
+              $reader = [System.Xml.XmlReader]::Create([System.IO.StringReader]::new($block.Groups['xaml'].Value))
+              [Windows.Markup.XamlReader]::Load($reader) | Out-Null
+          }
+
+      - name: Run unit tests
+        run: dotnet test tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj -c Release --nologo
+
+      - name: NuGet vulnerability audit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $projects = @(
+              'src/LibreSpot.Desktop/LibreSpot.Desktop.csproj',
+              'tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj'
+          )
+          foreach ($project in $projects) {
+              $output = dotnet list $project package --vulnerable --include-transitive 2>&1 | Out-String
+              Write-Host $output
+              if ($LASTEXITCODE -ne 0) {
+                  throw "NuGet vulnerability audit failed for $project."
+              }
+              if ($output -match 'has the following vulnerable packages') {
+                  throw "NuGet vulnerability audit found vulnerable packages in $project."
+              }
+          }
