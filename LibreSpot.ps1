@@ -2040,6 +2040,7 @@ $xaml = @"
                                                 <Button Name="BtnBackupConfig" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Create configuration backup" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="12.75" FontWeight="SemiBold"/><TextBlock Text="Save themes, extensions, and Spicetify settings before making a change." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Button Name="BtnRestoreConfig" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Restore the newest backup" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="12.75" FontWeight="SemiBold"/><TextBlock Text="Bring back the latest saved Spicetify configuration and apply it immediately." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Button Name="BtnCheckUpdates" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Check pinned versions" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="12.75" FontWeight="SemiBold"/><TextBlock Text="Compare LibreSpot's pinned releases against the latest upstream versions." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
+                                                <Button Name="BtnRepairMarketplace" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Repair and open Marketplace" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="12.75" FontWeight="SemiBold"/><TextBlock Text="Reinstall the custom app, enable it in Spicetify, apply changes, then open spotify:app:marketplace." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Button Name="BtnReapply" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Reapply after a Spotify update" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="12.75" FontWeight="SemiBold"/><TextBlock Text="Run SpotX again and reapply Spicetify without rebuilding your preferences from scratch." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Border Background="#FF111821" BorderBrush="#FF25313D" BorderThickness="1" CornerRadius="10" Padding="14,12" Margin="0,10,0,0">
                                                     <StackPanel>
@@ -2247,7 +2248,7 @@ $ui = @{}
   'MaintenanceMetricStackValue','MaintenanceMetricStackDetail','MaintenanceMetricBackupValue','MaintenanceMetricBackupDetail','MaintenanceMetricNextStepValue','MaintenanceMetricNextStepDetail',
   'StatusCardSpotify','StatusCardSpotX','StatusCardSpicetify','StatusCardMarketplace','StatusCardTheme',
   'StatusSpotify','StatusSpotX','StatusSpicetify','StatusMarketplace','StatusTheme',
-  'BtnBackupConfig','BtnRestoreConfig','BtnCheckUpdates','BtnReapply','BtnSpicetifyRestore','BtnUninstallSpicetify','BtnFullReset',
+  'BtnBackupConfig','BtnRestoreConfig','BtnCheckUpdates','BtnRepairMarketplace','BtnReapply','BtnSpicetifyRestore','BtnUninstallSpicetify','BtnFullReset',
   'ChkAutoReapply','AutoReapplyStatusText',
   'InstallStagePrepare','InstallStageRun','InstallStageVerify','InstallStageComplete',
   'InstallStagePrepareText','InstallStageRunText','InstallStageVerifyText','InstallStageCompleteText',
@@ -2493,13 +2494,14 @@ Update-DependentControlState
 function Set-MaintenanceCardTone {
     param(
         [string]$CardName,
-        [ValidateSet('success','info','muted','danger')]
+        [ValidateSet('success','info','warning','muted','danger')]
         [string]$Tone = 'muted'
     )
     if (-not $ui.ContainsKey($CardName)) { return }
     $palette = switch ($Tone) {
         'success' { @{ Background = '#FF111A22'; Border = '#FF2D5A3F' } }
         'info'    { @{ Background = '#FF111C2A'; Border = '#FF2E4964' } }
+        'warning' { @{ Background = '#FF211A0E'; Border = '#FF6B4E16' } }
         'danger'  { @{ Background = '#FF2B1117'; Border = '#FFEF4444' } }
         default   { @{ Background = '#FF111821'; Border = '#FF25313D' } }
     }
@@ -3267,6 +3269,41 @@ function Get-SpicetifyConfigListValue {
     )
 }
 
+function Get-MarketplaceHealth {
+    $configDir = Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps\marketplace'
+    $legacyDir = Join-Path $global:SPICETIFY_DIR 'CustomApps\marketplace'
+    $activeDir = if (Test-Path -LiteralPath $configDir -PathType Container) { $configDir } elseif (Test-Path -LiteralPath $legacyDir -PathType Container) { $legacyDir } else { $configDir }
+    $hasConfigDir = Test-Path -LiteralPath $configDir -PathType Container
+    $hasLegacyDir = Test-Path -LiteralPath $legacyDir -PathType Container
+    $hasExtension = Test-Path -LiteralPath (Join-Path $activeDir 'extension.js') -PathType Leaf
+    $hasManifest = Test-Path -LiteralPath (Join-Path $activeDir 'manifest.json') -PathType Leaf
+    $isEnabled = @(Get-SpicetifyConfigListValue -Key 'custom_apps') -contains 'marketplace'
+    $hasFiles = $hasExtension -and $hasManifest
+
+    $status = if ($hasConfigDir -and $hasFiles -and $isEnabled) {
+        'Ready'
+    } elseif ($hasConfigDir -and $hasFiles -and -not $isEnabled) {
+        'Hidden'
+    } elseif ($isEnabled -and -not $hasFiles) {
+        'FilesMissing'
+    } elseif ($hasLegacyDir -and -not $hasConfigDir) {
+        'LegacyPath'
+    } else {
+        'Missing'
+    }
+
+    return [pscustomobject]@{
+        Status       = $status
+        Path         = $activeDir
+        HasConfigDir = $hasConfigDir
+        HasLegacyDir = $hasLegacyDir
+        HasFiles     = $hasFiles
+        IsEnabled    = $isEnabled
+        IsReady      = ($status -eq 'Ready')
+        NeedsRepair  = ($status -in @('Hidden','FilesMissing','LegacyPath','Missing'))
+    }
+}
+
 function ConvertTo-NativeArgumentString {
     param([string[]]$Arguments)
 
@@ -3975,17 +4012,34 @@ function Update-MaintenanceStatus {
         Set-MaintenanceCardTone -CardName 'StatusCardSpicetify' -Tone 'muted'
     }
 
-    $mp = Join-Path $global:SPICETIFY_CONFIG_DIR "CustomApps\marketplace"
-    $marketplaceInstalled = (Test-Path $mp) -or (@(Get-SpicetifyConfigListValue -Key 'custom_apps') -contains 'marketplace')
-    if ($marketplaceInstalled) {
-        $ui['StatusMarketplace'].Text = 'Installed'
-        $ui['StatusMarketplace'].Foreground = $global:BrushGreen
-        Set-MaintenanceCardTone -CardName 'StatusCardMarketplace' -Tone 'success'
-    }
-    else {
-        $ui['StatusMarketplace'].Text = 'Not installed'
-        $ui['StatusMarketplace'].Foreground = $global:BrushMuted
-        Set-MaintenanceCardTone -CardName 'StatusCardMarketplace' -Tone 'muted'
+    $marketplaceHealth = Get-MarketplaceHealth
+    $marketplaceInstalled = [bool]$marketplaceHealth.IsReady
+    switch ($marketplaceHealth.Status) {
+        'Ready' {
+            $ui['StatusMarketplace'].Text = 'Installed'
+            $ui['StatusMarketplace'].Foreground = $global:BrushGreen
+            Set-MaintenanceCardTone -CardName 'StatusCardMarketplace' -Tone 'success'
+        }
+        'Hidden' {
+            $ui['StatusMarketplace'].Text = "Hidden`nopen URI"
+            $ui['StatusMarketplace'].Foreground = $global:BrushError
+            Set-MaintenanceCardTone -CardName 'StatusCardMarketplace' -Tone 'warning'
+        }
+        'FilesMissing' {
+            $ui['StatusMarketplace'].Text = "Enabled`nfiles missing"
+            $ui['StatusMarketplace'].Foreground = $global:BrushError
+            Set-MaintenanceCardTone -CardName 'StatusCardMarketplace' -Tone 'danger'
+        }
+        'LegacyPath' {
+            $ui['StatusMarketplace'].Text = "Legacy path`nrepair"
+            $ui['StatusMarketplace'].Foreground = $global:BrushError
+            Set-MaintenanceCardTone -CardName 'StatusCardMarketplace' -Tone 'warning'
+        }
+        default {
+            $ui['StatusMarketplace'].Text = 'Not installed'
+            $ui['StatusMarketplace'].Foreground = $global:BrushMuted
+            Set-MaintenanceCardTone -CardName 'StatusCardMarketplace' -Tone 'muted'
+        }
     }
 
     $tn = if ($spicetifyConfig.ContainsKey('current_theme')) { [string]$spicetifyConfig['current_theme'] } else { '' }
@@ -4036,6 +4090,8 @@ function Update-MaintenanceStatus {
     if ($ui.ContainsKey('MaintenanceMetricNextStepValue')) {
         $ui['MaintenanceMetricNextStepValue'].Text = if (-not $sp -and -not $si) {
             'Run Easy Install'
+        } elseif ($si -and $marketplaceHealth.Status -in @('Hidden','FilesMissing','LegacyPath')) {
+            'Repair Marketplace'
         } elseif (-not $bk -and $si) {
             'Create a backup'
         } elseif ($sp -and ($spotxFound -or $si) -and $script:MaintenanceComponentCount -lt 5) {
@@ -4049,6 +4105,8 @@ function Update-MaintenanceStatus {
     if ($ui.ContainsKey('MaintenanceMetricNextStepDetail')) {
         $ui['MaintenanceMetricNextStepDetail'].Text = if (-not $sp -and -not $si) {
             'Start with the recommended setup to give LibreSpot a clean baseline to manage.'
+        } elseif ($si -and $marketplaceHealth.Status -in @('Hidden','FilesMissing','LegacyPath')) {
+            'Use Repair and open Marketplace to reinstall files, re-enable custom_apps, and launch spotify:app:marketplace directly.'
         } elseif (-not $bk -and $si) {
             'Save the current Spicetify configuration before you make deeper changes.'
         } elseif ($sp -and ($spotxFound -or $si) -and $script:MaintenanceComponentCount -lt 5) {
@@ -4063,10 +4121,12 @@ function Update-MaintenanceStatus {
     $ui['StatusSpotX'].ToolTip = "Pinned: SpotX v$($pv.SpotX.Version) | CLI v$($pv.SpicetifyCLI.Version) | Marketplace v$($pv.Marketplace.Version)"
     $hasConfigSnapshot = Test-Path -LiteralPath (Join-Path $global:SPICETIFY_CONFIG_DIR 'config-xpui.ini')
     $ui['BtnBackupConfig'].IsEnabled=($si -and $hasConfigSnapshot); $ui['BtnRestoreConfig'].IsEnabled=($bk -and $si); $ui['BtnReapply'].IsEnabled=$sp
+    if ($ui.ContainsKey('BtnRepairMarketplace')) { $ui['BtnRepairMarketplace'].IsEnabled=$si }
     $ui['BtnSpicetifyRestore'].IsEnabled=$si; $ui['BtnUninstallSpicetify'].IsEnabled=$si; $ui['BtnFullReset'].IsEnabled=($sp -or $si)
     $ui['BtnBackupConfig'].ToolTip = if ($ui['BtnBackupConfig'].IsEnabled) { 'Create a timestamped backup of the active Spicetify configuration.' } elseif (-not $si) { 'Install Spicetify before backing up its configuration.' } else { 'Run a setup first so LibreSpot has a clean Spicetify config to back up.' }
     $ui['BtnRestoreConfig'].ToolTip = if ($ui['BtnRestoreConfig'].IsEnabled) { 'Restore the newest saved Spicetify backup and apply it immediately.' } elseif (-not $si) { 'Install Spicetify before restoring a backup.' } else { 'Create at least one backup before restoring.' }
     $ui['BtnCheckUpdates'].ToolTip = 'Compare LibreSpot''s pinned versions against the latest upstream releases.'
+    if ($ui.ContainsKey('BtnRepairMarketplace')) { $ui['BtnRepairMarketplace'].ToolTip = if ($ui['BtnRepairMarketplace'].IsEnabled) { 'Reinstall Marketplace files, re-enable custom_apps, apply Spicetify, and open spotify:app:marketplace.' } else { 'Install Spicetify before repairing Marketplace.' } }
     $ui['BtnReapply'].ToolTip = if ($ui['BtnReapply'].IsEnabled) { 'Run SpotX again and then reapply Spicetify with the saved LibreSpot configuration.' } else { 'Spotify needs to be installed before LibreSpot can reapply anything.' }
     $ui['BtnSpicetifyRestore'].ToolTip = if ($ui['BtnSpicetifyRestore'].IsEnabled) { 'Remove active Spicetify customizations and restore vanilla Spotify while leaving SpotX in place.' } else { 'Install Spicetify before using this restore action.' }
     $ui['BtnUninstallSpicetify'].ToolTip = if ($ui['BtnUninstallSpicetify'].IsEnabled) { 'Remove the Spicetify CLI, configuration, and PATH entry after restoring vanilla Spotify.' } else { 'Install Spicetify before uninstalling it.' }
@@ -4076,6 +4136,9 @@ function Update-MaintenanceStatus {
         if (-not $sp -and -not $si) {
             $ui['MaintenanceOverviewTitle'].Text = 'Nothing looks installed yet'
             $ui['MaintenanceOverviewText'].Text = 'LibreSpot did not detect Spotify or Spicetify. You can still review versions here, but backup and restore actions will stay unavailable until a setup has been applied.'
+        } elseif ($si -and $marketplaceHealth.Status -in @('Hidden','FilesMissing','LegacyPath')) {
+            $ui['MaintenanceOverviewTitle'].Text = 'Marketplace needs attention'
+            $ui['MaintenanceOverviewText'].Text = 'LibreSpot found Marketplace state that may not appear in Spotify. Use Repair and open Marketplace to reinstall the custom app, reapply Spicetify, and open the direct Marketplace page.'
         } elseif ($sp -and $spotxFound -and $si -and $marketplaceInstalled -and $themeInstalled) {
             $ui['MaintenanceOverviewTitle'].Text = 'Current setup looks complete'
             $ui['MaintenanceOverviewText'].Text = 'Spotify, SpotX, Spicetify, Marketplace, and a theme are all present. Create a backup before making deeper changes so you have a quick way back.'
@@ -4252,6 +4315,18 @@ $ui['BtnCheckUpdates'].Add_Click({
         Start-MaintenanceJob -Action 'CheckUpdates'
     } catch {
         Reset-UiAfterLaunchFailure -Title 'Could not start maintenance' -Message "LibreSpot couldn't start the update check.`n`n$($_.Exception.Message)"
+    }
+})
+$ui['BtnRepairMarketplace'].Add_Click({
+    if (-not (Test-NetworkReady)) { Show-ThemedDialog -Message "LibreSpot needs an internet connection to download the pinned Marketplace archive before it can repair the custom app." -Title "No Internet Connection" -Icon "Error" -PrimaryText "Close"; return }
+    $r = Show-ThemedDialog -Message "LibreSpot will reinstall the pinned Marketplace custom app, re-enable it in Spicetify, apply the change, and open spotify:app:marketplace. Use this when the Marketplace files exist but the sidebar icon is missing or only partial Marketplace content appears." -Title "Repair Marketplace" -Buttons "YesNo" -Icon "Question" -PrimaryText "Repair and open" -SecondaryText "Cancel"
+    if ($r -eq 'Yes') {
+        try {
+            Switch-ToInstallPage -Title 'Repairing Marketplace' -Context 'LibreSpot is reinstalling the Marketplace custom app, reapplying Spicetify, and opening the direct Marketplace URI.' -PrepareLabel 'Prepare' -RunLabel 'Repair' -VerifyLabel 'Open' -CompleteLabel 'Complete'
+            Start-MaintenanceJob -Action 'RepairMarketplace'
+        } catch {
+            Reset-UiAfterLaunchFailure -Title 'Could not start maintenance' -Message "LibreSpot couldn't start the Marketplace repair flow.`n`n$($_.Exception.Message)"
+        }
     }
 })
 $ui['BtnReapply'].Add_Click({
@@ -5417,17 +5492,54 @@ function Module-InstallMarketplace { param($Config)
         [System.IO.Compression.ZipFile]::ExtractToDirectory($mz, $mu)
         $sp = if (Test-Path (Join-Path $mu "marketplace-dist")) { Join-Path $mu "marketplace-dist\*" } else { Join-Path $mu "*" }
         Copy-Item -Path $sp -Destination $md -Recurse -Force
-        $hasExtension = Test-Path -LiteralPath (Join-Path $md 'extension.js')
-        $hasManifest = Test-Path -LiteralPath (Join-Path $md 'manifest.json')
-        if (-not ($hasExtension -and $hasManifest)) {
+        $health = Get-MarketplaceHealth
+        if (-not $health.HasFiles) {
             throw 'Marketplace archive did not produce expected Spicetify custom app files.'
         }
         Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @('marketplace') -ManagedItems $managedApps
-        Write-Log "Marketplace enabled."
+        $health = Get-MarketplaceHealth
+        if ($health.IsReady) {
+            Write-Log "Marketplace enabled. If Spotify hides the sidebar icon, open spotify:app:marketplace directly."
+        } else {
+            Write-Log "Marketplace files were installed but status is '$($health.Status)'. Use Maintenance > Repair and open Marketplace if the sidebar icon is hidden." -Level 'WARN'
+        }
     } finally {
         Remove-Item -LiteralPath $mz -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $mu -Recurse -Force -ErrorAction SilentlyContinue
     }
+}
+
+function Open-SpicetifyMarketplace {
+    try {
+        Start-Process -FilePath 'explorer.exe' -ArgumentList 'spotify:app:marketplace'
+        Write-Log 'Requested Spotify Marketplace via spotify:app:marketplace.'
+    } catch {
+        Write-Log "Could not open spotify:app:marketplace automatically: $($_.Exception.Message)" -Level 'WARN'
+    }
+}
+
+function Repair-Marketplace {
+    param($Config)
+    if (-not (Test-SpicetifyCliInstalled)) {
+        throw 'Spicetify CLI is not installed, so LibreSpot cannot repair Marketplace yet. Run Recommended setup or Reapply first.'
+    }
+    if (-not $Config) {
+        $Config = Normalize-LibreSpotConfig -Config @{}
+    }
+    $Config.Spicetify_Marketplace = $true
+
+    Write-Log 'Repairing Marketplace files and custom_apps registration...' -Level 'STEP'
+    Module-InstallMarketplace -Config $Config
+    Write-Log 'Applying Spicetify so Marketplace is discoverable in Spotify...' -Level 'STEP'
+    Module-ApplySpicetify -Config $Config
+
+    $health = Get-MarketplaceHealth
+    if ($health.IsReady) {
+        Write-Log "Marketplace repair verified at $($health.Path)." -Level 'SUCCESS'
+    } else {
+        Write-Log "Marketplace repair finished, but status is '$($health.Status)'. Open spotify:app:marketplace directly if the sidebar icon remains hidden." -Level 'WARN'
+    }
+    Open-SpicetifyMarketplace
 }
 
 function Get-SpicetifyDiagnosticSnapshot {
@@ -5628,6 +5740,17 @@ $maintBlock = { param($sh,$action)
             Reapply-SavedSpicetifySetup -Config $saved
             Write-Log "Saved Spicetify setup restored."
             Write-Log "--- Reapply Complete ---" -Level 'SUCCESS'
+        } elseif ($action -eq 'RepairMarketplace') {
+            Write-Log "--- Repair Marketplace ---" -Level 'HEADER'
+            $saved = $null
+            try { $saved = Load-LibreSpotConfig } catch {}
+            if (-not $saved) {
+                $saved = Normalize-LibreSpotConfig -Config @{}
+                Write-Log "Using defaults (no saved config)" -Level 'WARN'
+            }
+            $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Repairing Marketplace custom app"; $sh.ProgressBar.Value=35 })
+            Repair-Marketplace -Config $saved
+            Write-Log "--- Marketplace Repair Complete ---" -Level 'SUCCESS'
         } elseif ($action -eq 'RestoreVanilla') {
             Write-Log "--- Restore Vanilla Spotify ---" -Level 'HEADER'
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Restoring vanilla files"; $sh.ProgressBar.Value=30 })
@@ -5670,6 +5793,7 @@ $maintBlock = { param($sh,$action)
         $doneStatus = switch ($action) {
             'CheckUpdates' { 'Version check complete' }
             'Reapply' { 'Setup reapplied' }
+            'RepairMarketplace' { 'Marketplace repaired' }
             'RestoreVanilla' { 'Spotify restored' }
             'UninstallSpicetify' { 'Spicetify removed' }
             'FullReset' { 'Full reset complete' }
@@ -5678,6 +5802,7 @@ $maintBlock = { param($sh,$action)
         $doneStep = switch ($action) {
             'CheckUpdates' { 'Pinned versions reviewed' }
             'Reapply' { 'Ready for Spotify' }
+            'RepairMarketplace' { 'Marketplace opened' }
             'RestoreVanilla' { 'Vanilla interface restored' }
             'UninstallSpicetify' { 'Spotify is back to vanilla' }
             'FullReset' { 'System is ready for a fresh start' }
@@ -5687,6 +5812,7 @@ $maintBlock = { param($sh,$action)
         $doneContext = switch ($action) {
             'CheckUpdates' { 'LibreSpot compared the pinned releases against upstream versions. Review the log for anything newer before you decide to update the script pins.' }
             'Reapply' { 'LibreSpot refreshed the saved SpotX and Spicetify setup so Spotify should be back in sync with your last chosen configuration.' }
+            'RepairMarketplace' { 'LibreSpot reinstalled the Marketplace custom app, re-enabled it in Spicetify, applied the change, and requested the direct Marketplace URI.' }
             'RestoreVanilla' { 'LibreSpot removed the active Spicetify customizations and brought Spotify back to its vanilla interface while leaving SpotX in place.' }
             'UninstallSpicetify' { 'LibreSpot removed the Spicetify CLI, configuration, and PATH changes after restoring vanilla Spotify first.' }
             'FullReset' { 'LibreSpot completed the deepest cleanup path and removed the Spotify customization stack so you can start fresh.' }
@@ -5709,12 +5835,12 @@ $functionNamesForWorker = @(
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
     'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
-    'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
+    'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
     'Get-NormalizedPathString','Get-PathEntries','Set-PathEntries','Add-PathEntry','Remove-PathEntry',
     'Module-NukeSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
     'Module-InstallThemes','Download-CommunityExtensions','Module-InstallExtensions',
-    'Module-InstallMarketplace','Module-ApplySpicetify',
+    'Module-InstallMarketplace','Open-SpicetifyMarketplace','Repair-Marketplace','Module-ApplySpicetify',
     'Build-SpotXParams','Load-LibreSpotConfig'
 )
 

@@ -153,6 +153,16 @@ public sealed class AppCatalogTests
     }
 
     [Fact]
+    public void MaintenanceActions_ExposeMarketplaceRepair()
+    {
+        var action = Assert.Single(AppCatalog.MaintenanceActions, item => item.Action == "RepairMarketplace");
+
+        Assert.Equal("Repair and open Marketplace", action.Title);
+        Assert.False(action.IsDestructive);
+        Assert.Contains("spotify:app:marketplace", action.Description);
+    }
+
+    [Fact]
     public void NormalizeConfiguration_FallsBackWhenAdvancedCompatibilitySelectionsAreUnknown()
     {
         var configuration = new InstallConfiguration

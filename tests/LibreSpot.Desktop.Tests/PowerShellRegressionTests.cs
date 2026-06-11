@@ -572,9 +572,40 @@ public sealed class PowerShellRegressionTests
         var body = fnBody.Groups["body"].Value;
         Assert.Contains("Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps'", body);
         Assert.DoesNotContain("Join-Path $global:SPICETIFY_DIR 'CustomApps'", body);
-        Assert.Contains("extension.js", body);
-        Assert.Contains("manifest.json", body);
+        Assert.Contains("Get-MarketplaceHealth", body);
         Assert.Contains("Marketplace archive did not produce expected Spicetify custom app files.", body);
+        Assert.Contains("spotify:app:marketplace", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void MarketplaceHealthAndRepair_AreWiredInBothPowerShellPaths(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("function Get-MarketplaceHealth", script);
+        Assert.Contains("'Ready'", script);
+        Assert.Contains("'Hidden'", script);
+        Assert.Contains("'FilesMissing'", script);
+        Assert.Contains("'LegacyPath'", script);
+        Assert.Contains("extension.js", script);
+        Assert.Contains("manifest.json", script);
+        Assert.Contains("function Repair-Marketplace", script);
+        Assert.Contains("custom_apps", script);
+        Assert.Contains("spotify:app:marketplace", script);
+    }
+
+    [Fact]
+    public void PowerShellMaintenanceUi_ExposesMarketplaceRepairAction()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+
+        Assert.Contains("BtnRepairMarketplace", script);
+        Assert.Contains("Repair and open Marketplace", script);
+        Assert.Contains("Start-MaintenanceJob -Action 'RepairMarketplace'", script);
+        Assert.Contains("'RepairMarketplace' { 'Marketplace repaired' }", script);
+        Assert.Contains("Repair-Marketplace", script);
     }
 
     [Theory]

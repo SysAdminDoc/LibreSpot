@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')]
+    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')]
     [string]$Action = 'Install',
     [string]$ConfigPath = "$env:APPDATA\LibreSpot\config.json"
 )
@@ -1461,6 +1461,41 @@ function Get-SpicetifyConfigListValue {
     )
 }
 
+function Get-MarketplaceHealth {
+    $configDir = Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps\marketplace'
+    $legacyDir = Join-Path $global:SPICETIFY_DIR 'CustomApps\marketplace'
+    $activeDir = if (Test-Path -LiteralPath $configDir -PathType Container) { $configDir } elseif (Test-Path -LiteralPath $legacyDir -PathType Container) { $legacyDir } else { $configDir }
+    $hasConfigDir = Test-Path -LiteralPath $configDir -PathType Container
+    $hasLegacyDir = Test-Path -LiteralPath $legacyDir -PathType Container
+    $hasExtension = Test-Path -LiteralPath (Join-Path $activeDir 'extension.js') -PathType Leaf
+    $hasManifest = Test-Path -LiteralPath (Join-Path $activeDir 'manifest.json') -PathType Leaf
+    $isEnabled = @(Get-SpicetifyConfigListValue -Key 'custom_apps') -contains 'marketplace'
+    $hasFiles = $hasExtension -and $hasManifest
+
+    $status = if ($hasConfigDir -and $hasFiles -and $isEnabled) {
+        'Ready'
+    } elseif ($hasConfigDir -and $hasFiles -and -not $isEnabled) {
+        'Hidden'
+    } elseif ($isEnabled -and -not $hasFiles) {
+        'FilesMissing'
+    } elseif ($hasLegacyDir -and -not $hasConfigDir) {
+        'LegacyPath'
+    } else {
+        'Missing'
+    }
+
+    return [pscustomobject]@{
+        Status       = $status
+        Path         = $activeDir
+        HasConfigDir = $hasConfigDir
+        HasLegacyDir = $hasLegacyDir
+        HasFiles     = $hasFiles
+        IsEnabled    = $isEnabled
+        IsReady      = ($status -eq 'Ready')
+        NeedsRepair  = ($status -in @('Hidden','FilesMissing','LegacyPath','Missing'))
+    }
+}
+
 function ConvertTo-NativeArgumentString {
     param([string[]]$Arguments)
 
@@ -2156,18 +2191,55 @@ function Module-InstallMarketplace {
         $source = if (Test-Path -LiteralPath (Join-Path $unpackPath 'marketplace-dist')) { Join-Path $unpackPath 'marketplace-dist\*' } else { Join-Path $unpackPath '*' }
         Copy-Item -Path $source -Destination $marketplaceDir -Recurse -Force
 
-        $hasExtension = Test-Path -LiteralPath (Join-Path $marketplaceDir 'extension.js')
-        $hasManifest = Test-Path -LiteralPath (Join-Path $marketplaceDir 'manifest.json')
-        if (-not ($hasExtension -and $hasManifest)) {
+        $health = Get-MarketplaceHealth
+        if (-not $health.HasFiles) {
             throw 'Marketplace archive did not produce expected Spicetify custom app files.'
         }
 
         Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @('marketplace') -ManagedItems $managedApps
-        Write-Log 'Marketplace enabled successfully.' -Level 'SUCCESS'
+        $health = Get-MarketplaceHealth
+        if ($health.IsReady) {
+            Write-Log 'Marketplace enabled successfully. If Spotify hides the sidebar icon, open spotify:app:marketplace directly.' -Level 'SUCCESS'
+        } else {
+            Write-Log "Marketplace files were installed but status is '$($health.Status)'. Use Maintenance > Repair and open Marketplace if the sidebar icon is hidden." -Level 'WARN'
+        }
     } finally {
         Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $unpackPath -Recurse -Force -ErrorAction SilentlyContinue
     }
+}
+
+function Open-SpicetifyMarketplace {
+    try {
+        Start-Process -FilePath 'explorer.exe' -ArgumentList 'spotify:app:marketplace'
+        Write-Log 'Requested Spotify Marketplace via spotify:app:marketplace.'
+    } catch {
+        Write-Log "Could not open spotify:app:marketplace automatically: $($_.Exception.Message)" -Level 'WARN'
+    }
+}
+
+function Repair-Marketplace {
+    param($Config)
+    if (-not (Test-SpicetifyCliInstalled)) {
+        throw 'Spicetify CLI is not installed, so LibreSpot cannot repair Marketplace yet. Run Recommended setup or Reapply first.'
+    }
+    if (-not $Config) {
+        $Config = Normalize-LibreSpotConfig -Config @{}
+    }
+    $Config.Spicetify_Marketplace = $true
+
+    Write-Log 'Repairing Marketplace files and custom_apps registration...' -Level 'STEP'
+    Module-InstallMarketplace -Config $Config
+    Write-Log 'Applying Spicetify so Marketplace is discoverable in Spotify...' -Level 'STEP'
+    Module-ApplySpicetify -Config $Config
+
+    $health = Get-MarketplaceHealth
+    if ($health.IsReady) {
+        Write-Log "Marketplace repair verified at $($health.Path)." -Level 'SUCCESS'
+    } else {
+        Write-Log "Marketplace repair finished, but status is '$($health.Status)'. Open spotify:app:marketplace directly if the sidebar icon remains hidden." -Level 'WARN'
+    }
+    Open-SpicetifyMarketplace
 }
 
 function Get-SpicetifyDiagnosticSnapshot {
@@ -2340,6 +2412,11 @@ function Invoke-LibreSpotMaintenance {
                 Stop-SpotifyWindowWatcher -Watcher $watcher
                 Remove-Item -LiteralPath $destination -Force -ErrorAction SilentlyContinue
             }
+        }
+        'RepairMarketplace' {
+            Update-BackendState -Progress 20 -Status 'Repairing Marketplace' -Step 'Reinstalling the custom app'
+            $savedConfig = Load-LibreSpotConfig
+            Repair-Marketplace -Config $savedConfig
         }
         'RestoreVanilla' {
             Update-BackendState -Progress 35 -Status 'Restoring vanilla Spotify' -Step 'Removing active Spicetify customizations'

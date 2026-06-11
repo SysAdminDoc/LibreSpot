@@ -297,6 +297,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? "Spicetify detected"
             : "Spicetify not installed";
 
+    public string MarketplaceStatusLine =>
+        !Snapshot.SpicetifyInstalled
+            ? "Marketplace unavailable until Spicetify is installed"
+            : Snapshot.MarketplaceReady
+                ? "Marketplace ready"
+                : Snapshot.MarketplaceFilesPresent
+                    ? "Marketplace hidden - repair available"
+                    : Snapshot.MarketplaceRegistered
+                        ? "Marketplace files missing - repair available"
+                        : "Marketplace not enabled";
+
     public bool HasConfigurationRecoveryNotice =>
         _configurationLoadState == ConfigurationLoadState.RecoveredFromCorrupt;
 
@@ -1338,6 +1349,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(SessionAccessDetail));
         RaisePropertyChanged(nameof(SpotifyStatusLine));
         RaisePropertyChanged(nameof(CustomizationStatusLine));
+        RaisePropertyChanged(nameof(MarketplaceStatusLine));
         RaisePropertyChanged(nameof(HasConfigurationRecoveryNotice));
         RaisePropertyChanged(nameof(ConfigurationRecoveryTitle));
         RaisePropertyChanged(nameof(ConfigurationRecoveryDetail));
@@ -1906,6 +1918,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             "CheckUpdates" => ("What this does", "LibreSpot compares pinned versions plus the SpotX, Spicetify CLI, Marketplace, and themes compatibility matrix before you decide whether to update."),
             "Reapply" => ("What this does", "LibreSpot refreshes SpotX first, then restores the saved Spicetify layer so the stack returns to its last known profile."),
+            "RepairMarketplace" => ("What this does", "LibreSpot reinstalls the Marketplace custom app, re-enables it in Spicetify, applies the change, and opens spotify:app:marketplace if Spotify accepts the URI."),
             "RestoreVanilla" => ("What this does", "This removes the visible Spicetify layer while leaving SpotX in place, so Spotify returns to a calmer default look."),
             "UninstallSpicetify" => ("What this removes", "LibreSpot restores Spotify first, then removes the Spicetify CLI, config folder, and PATH entry from this machine."),
             "FullReset" => ("What this removes", "LibreSpot clears Spotify customization state and related leftovers so the next install can start from a truly clean baseline."),

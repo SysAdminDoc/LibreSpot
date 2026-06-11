@@ -19,7 +19,7 @@ public sealed class BackendScriptService
     // shell so a caller mistake can't turn into a "powershell.exe -Action $malicious" call.
     private static readonly HashSet<string> AllowedActions = new(StringComparer.Ordinal)
     {
-        "Install", "CheckUpdates", "Reapply", "RestoreVanilla", "UninstallSpicetify", "FullReset",
+        "Install", "CheckUpdates", "Reapply", "RepairMarketplace", "RestoreVanilla", "UninstallSpicetify", "FullReset",
         "EnableAutoReapply", "DisableAutoReapply", "WatchAutoReapply"
     };
 

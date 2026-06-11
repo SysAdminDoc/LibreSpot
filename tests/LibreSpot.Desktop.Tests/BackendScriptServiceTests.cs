@@ -33,10 +33,11 @@ public sealed class BackendScriptServiceTests
     }
 
     [Theory]
+    [InlineData("RepairMarketplace")]
     [InlineData("EnableAutoReapply")]
     [InlineData("DisableAutoReapply")]
     [InlineData("WatchAutoReapply")]
-    public async Task RunAsync_AcceptsAutoReapplyActionsBeforeConfigPathValidation(string action)
+    public async Task RunAsync_AcceptsMaintenanceActionsBeforeConfigPathValidation(string action)
     {
         var runtimeDirectory = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
         var service = new BackendScriptService(runtimeDirectory);

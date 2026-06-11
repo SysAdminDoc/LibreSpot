@@ -516,6 +516,24 @@
                   </Border>
                   <TextBlock Grid.Column="1" Text="{Binding CustomizationStatusLine}" Style="{StaticResource CaptionTextStyle}" Foreground="{StaticResource MutedTextBrush}" />
                 </Grid>
+                <Grid Margin="0,0,0,6">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Border>
+                    <Border.Style>
+                      <Style TargetType="Border" BasedOn="{StaticResource StatusMarkerStyle}">
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding Snapshot.MarketplaceReady}" Value="True">
+                            <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Border.Style>
+                  </Border>
+                  <TextBlock Grid.Column="1" Text="{Binding MarketplaceStatusLine}" Style="{StaticResource CaptionTextStyle}" Foreground="{StaticResource MutedTextBrush}" />
+                </Grid>
                 <Grid>
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />

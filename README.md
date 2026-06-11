@@ -169,6 +169,9 @@ Yes. Enable "Premium user (skip ad-blocking)" in Custom Install to skip ad-relat
 **How do I change my theme later?**
 Use the Spicetify Marketplace (installed by default) to browse and apply themes from within Spotify, or re-run LibreSpot in Custom mode.
 
+**Marketplace is installed but I do not see it.**
+Use Maintenance > Repair and open Marketplace. LibreSpot reinstalls the custom app, re-enables `custom_apps`, reapplies Spicetify, and opens `spotify:app:marketplace` directly.
+
 **How do I go back to stock Spotify?**
 Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify, and cleans up every trace.
 
