@@ -474,7 +474,7 @@ jobs:
 
       - name: Attest SBOM
         # actions/attest-sbom v2.4.0
-        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e
         with:
           subject-path: release/LibreSpot-Desktop.exe
           sbom-path: release/LibreSpot.sbom.cdx.json
