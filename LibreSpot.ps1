@@ -103,6 +103,7 @@ try {
 } catch {}
 
 $global:VERSION = '3.7.2'
+$global:CONFIG_SCHEMA_VERSION = 1
 
 
 # CLI argument detection. Supports `irm URL | iex -clean` (PowerShell passes
@@ -873,10 +874,30 @@ function ConvertTo-ConfigInt {
     return $parsed
 }
 
+function Get-LibreSpotConfigSchemaVersion {
+    param([hashtable]$Config)
+    if (-not $Config -or -not $Config.ContainsKey('ConfigSchemaVersion')) { return 0 }
+    return (ConvertTo-ConfigInt -Value $Config.ConfigSchemaVersion -Default 0 -Minimum 0 -Maximum [int]::MaxValue)
+}
+
+function Assert-LibreSpotConfigSchemaSupported {
+    param([hashtable]$Config)
+    $schemaVersion = Get-LibreSpotConfigSchemaVersion -Config $Config
+    if ($schemaVersion -gt $global:CONFIG_SCHEMA_VERSION) {
+        throw "Saved config schema version $schemaVersion is newer than this LibreSpot build supports ($global:CONFIG_SCHEMA_VERSION)."
+    }
+    return $schemaVersion
+}
+
 function Normalize-LibreSpotConfig {
     param([hashtable]$Config)
 
-    $normalized = @{ Mode = 'Easy' }
+    $null = Assert-LibreSpotConfigSchemaSupported -Config $Config
+
+    $normalized = @{
+        ConfigSchemaVersion = $global:CONFIG_SCHEMA_VERSION
+        Mode = 'Easy'
+    }
     foreach ($key in $global:EasyDefaults.Keys) {
         $defaultValue = $global:EasyDefaults[$key]
         if ($defaultValue -is [System.Collections.IEnumerable] -and $defaultValue -isnot [string]) {
@@ -1002,6 +1023,7 @@ function Normalize-LibreSpotConfig {
 
 function Move-ConfigFileToQuarantine {
     param([string]$Reason)
+    $reasonSuffix = if ([string]::IsNullOrWhiteSpace($Reason)) { '' } else { " Reason: $Reason" }
     try {
         if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
             New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
@@ -1024,9 +1046,9 @@ function Move-ConfigFileToQuarantine {
 
             Move-Item -LiteralPath $global:CONFIG_PATH -Destination $quarantinePath -ErrorAction Stop
             $quarantineName = Split-Path -Path $quarantinePath -Leaf
-            $script:ConfigLoadWarning = "LibreSpot reset the saved settings because the config file could not be read safely. The previous file was moved to $quarantineName."
+            $script:ConfigLoadWarning = "LibreSpot reset the saved settings because the config file could not be read safely.$reasonSuffix The previous file was moved to $quarantineName."
         } else {
-            $script:ConfigLoadWarning = 'LibreSpot reset the saved settings because the config file could not be read safely.'
+            $script:ConfigLoadWarning = "LibreSpot reset the saved settings because the config file could not be read safely.$reasonSuffix"
         }
     } catch {
         $script:ConfigLoadWarning = 'LibreSpot reset the saved settings because the config file could not be read safely, but it could not move the original file aside automatically.'
@@ -5621,7 +5643,7 @@ $maintBlock = { param($sh,$action)
 # 17. RUNSPACE INFRASTRUCTURE
 # =============================================================================
 $functionNamesForWorker = @(
-    'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
+    'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
     'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Check-ForUpdates','Compare-LibreSpotVersions',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
@@ -5647,7 +5669,7 @@ $varNamesForWorker = @(
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR',
     'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
-    'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityExtensionAliases','DeprecatedCommunityExtensionNames','CommunityThemeRepos','ThemesNeedingJS','SpotXLyricsThemes','VERSION'
+    'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityExtensionAliases','DeprecatedCommunityExtensionNames','CommunityThemeRepos','ThemesNeedingJS','SpotXLyricsThemes','VERSION','CONFIG_SCHEMA_VERSION'
 )
 foreach ($vname in $varNamesForWorker) {
     $val = (Get-Variable -Name $vname -Scope Global -ErrorAction Stop).Value

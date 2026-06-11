@@ -4,6 +4,7 @@ namespace LibreSpot.Desktop.Models;
 
 public sealed class InstallConfiguration
 {
+    public int ConfigSchemaVersion { get; set; } = AppCatalog.CurrentConfigSchemaVersion;
     public string Mode { get; set; } = "Easy";
     public bool CleanInstall { get; set; } = true;
     public bool LaunchAfter { get; set; } = true;
@@ -51,6 +52,7 @@ public sealed class InstallConfiguration
     public InstallConfiguration Clone() =>
         new()
         {
+            ConfigSchemaVersion = ConfigSchemaVersion,
             Mode = Mode,
             CleanInstall = CleanInstall,
             LaunchAfter = LaunchAfter,
@@ -165,6 +167,8 @@ public sealed class EnvironmentSnapshot
 
 public static class AppCatalog
 {
+    public const int CurrentConfigSchemaVersion = 1;
+
     public static IReadOnlyList<string> LyricsThemes { get; } = new ReadOnlyCollection<string>(new[]
     {
         "spotify", "blueberry", "blue", "discord", "forest", "fresh", "github", "lavender",
@@ -304,6 +308,13 @@ public static class AppCatalog
             return normalized;
         }
 
+        if (source.ConfigSchemaVersion > CurrentConfigSchemaVersion)
+        {
+            throw new InvalidOperationException(
+                $"Saved config schema version {source.ConfigSchemaVersion} is newer than this LibreSpot build supports ({CurrentConfigSchemaVersion}).");
+        }
+
+        normalized.ConfigSchemaVersion = CurrentConfigSchemaVersion;
         normalized.Mode = source.Mode is "Easy" or "Custom" ? source.Mode : normalized.Mode;
         normalized.CleanInstall = source.CleanInstall;
         normalized.LaunchAfter = source.LaunchAfter;

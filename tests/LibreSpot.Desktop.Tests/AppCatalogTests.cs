@@ -6,6 +6,33 @@ namespace LibreSpot.Desktop.Tests;
 public sealed class AppCatalogTests
 {
     [Fact]
+    public void NormalizeConfiguration_StampsCurrentSchemaVersion()
+    {
+        var configuration = new InstallConfiguration
+        {
+            ConfigSchemaVersion = 0
+        };
+
+        var normalized = AppCatalog.NormalizeConfiguration(configuration);
+
+        Assert.Equal(AppCatalog.CurrentConfigSchemaVersion, normalized.ConfigSchemaVersion);
+    }
+
+    [Fact]
+    public void NormalizeConfiguration_RejectsFutureSchemaVersion()
+    {
+        var configuration = new InstallConfiguration
+        {
+            ConfigSchemaVersion = AppCatalog.CurrentConfigSchemaVersion + 1
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(() => AppCatalog.NormalizeConfiguration(configuration));
+
+        Assert.Contains("Saved config schema version", ex.Message);
+        Assert.Contains("newer than this LibreSpot build supports", ex.Message);
+    }
+
+    [Fact]
     public void NormalizeConfiguration_DisablesSidebarStylingWhenSidebarIsHidden()
     {
         var configuration = new InstallConfiguration
