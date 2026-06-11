@@ -45,4 +45,14 @@ public sealed class ReleaseWorkflowTests
         Assert.Contains("Install-Module -Name ps2exe -RequiredVersion $env:PS2EXE_VERSION", workflow);
         Assert.Contains("dotnet tool install --global CycloneDX --version $env:CYCLONEDX_VERSION", workflow);
     }
+
+    [Fact]
+    public void ReleaseWorkflow_DoesNotReferenceSecretsDirectlyInIfConditions()
+    {
+        var workflow = ReadWorkflow();
+
+        Assert.Contains("SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}", workflow);
+        Assert.Contains("if: ${{ env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != '' }}", workflow);
+        Assert.DoesNotContain("if: ${{ secrets.", workflow);
+    }
 }
