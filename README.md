@@ -65,7 +65,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 | SpotX | `95882aa5` (Spotify 1.2.90.451) |
 | Spicetify CLI | v2.43.2 |
 | Marketplace | v1.0.8 |
-| Themes | Commit `9af41cf` |
+| Themes | Commit `df033493` |
 
 **Compatibility matrix:** Maintenance > Check matrix reports SpotX, Spicetify CLI, Marketplace, and theme archive status separately. The current SpotX target is Spotify `1.2.90.451`, while Spicetify CLI v2.43.2 declares Windows/Microsoft Store compatibility through Spotify `1.2.88`; LibreSpot warns about that gap so you can distinguish "SpotX can patch this build" from "Spicetify CSS maps are max-tested on this build."
 
