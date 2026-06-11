@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -18,6 +19,8 @@ public sealed class ReleaseWorkflowTests
 
     private static string ReadWorkflow() =>
         File.ReadAllText(Path.Combine(RepoRoot, ".github", "workflows", "release.yml"));
+
+    private const string ReleaseTagPattern = @"^v\d+\.\d+\.\d+(-(preview|rc)\.\d+)?$";
 
     [Fact]
     public void ReleaseWorkflow_HasRuntimeLifecycleGate()
@@ -54,6 +57,47 @@ public sealed class ReleaseWorkflowTests
         Assert.Contains("CYCLONEDX_VERSION: \"6.2.0\"", workflow);
         Assert.Contains("Install-Module -Name ps2exe -RequiredVersion $env:PS2EXE_VERSION", workflow);
         Assert.Contains("dotnet tool install --global CycloneDX --version $env:CYCLONEDX_VERSION", workflow);
+    }
+
+    [Fact]
+    public void ReleaseWorkflow_RequiresVerifiedTagsAndChannelFlags()
+    {
+        var workflow = ReadWorkflow();
+
+        Assert.Contains("fetch-depth: 0", workflow);
+        Assert.Contains("^v\\d+\\.\\d+\\.\\d+(-(preview|rc)\\.\\d+)?$", workflow);
+        Assert.Contains("is_prerelease: ${{ steps.resolve.outputs.is_prerelease }}", workflow);
+        Assert.Contains("git rev-parse \"$tag^{commit}\"", workflow);
+        Assert.Contains("GITHUB_EVENT_NAME", workflow);
+        Assert.Contains("GITHUB_SHA", workflow);
+        Assert.Contains("release_flags=(--verify-tag --fail-on-no-commits)", workflow);
+        Assert.Contains("release_flags+=(--prerelease --latest=false)", workflow);
+        Assert.Contains("gh release create \"$TAG\" --title \"$TAG\" --generate-notes \"${release_flags[@]}\"", workflow);
+        Assert.Contains("existing_prerelease", workflow);
+    }
+
+    [Theory]
+    [InlineData("v3.7.2", false)]
+    [InlineData("v4.0.0-preview.6", true)]
+    [InlineData("v4.0.0-rc.1", true)]
+    public void ReleaseTagPattern_ClassifiesStableAndPrereleaseTags(string tag, bool expectedPrerelease)
+    {
+        Assert.Matches(ReleaseTagPattern, tag);
+
+        var version = tag[1..];
+        var isPrerelease = Regex.IsMatch(version, @"-(preview|rc)\.\d+$");
+        Assert.Equal(expectedPrerelease, isPrerelease);
+    }
+
+    [Theory]
+    [InlineData("v3.7")]
+    [InlineData("v3.7.2-beta.1")]
+    [InlineData("3.7.2")]
+    [InlineData("v3.7.2-preview")]
+    [InlineData("release-v3.7.2")]
+    public void ReleaseTagPattern_RejectsMalformedTags(string tag)
+    {
+        Assert.DoesNotMatch(ReleaseTagPattern, tag);
     }
 
     [Fact]
