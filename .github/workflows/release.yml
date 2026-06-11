@@ -41,10 +41,12 @@ jobs:
     outputs:
       version: ${{ steps.resolve.outputs.version }}
       tag: ${{ steps.resolve.outputs.tag }}
+      is_prerelease: ${{ steps.resolve.outputs.is_prerelease }}
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Resolve tag and expected version
         id: resolve
@@ -58,12 +60,24 @@ jobs:
           $tag = if ($env:INPUT_TAG) { $env:INPUT_TAG } else { $env:REF_NAME }
           if ([string]::IsNullOrWhiteSpace($tag)) { throw 'Release workflow could not resolve a tag.' }
           # Validate tag format to reject anything that is not a version tag.
-          if ($tag -notmatch '^v\d+\.\d+') { throw "Tag '$tag' does not match expected vN.N format." }
+          if ($tag -notmatch '^v\d+\.\d+\.\d+(-(preview|rc)\.\d+)?$') { throw "Tag '$tag' does not match expected vN.N.N, vN.N.N-preview.N, or vN.N.N-rc.N format." }
           $version = $tag -replace '^v',''
+          $isPrerelease = ($version -match '-(preview|rc)\.\d+$')
+          $tagCommit = (git rev-parse "$tag^{commit}" 2>$null)
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagCommit)) {
+              throw "Tag '$tag' does not exist locally after checkout. Push the tag before dispatching the release workflow."
+          }
+          $tagCommit = $tagCommit.Trim()
+          if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch' -and $tagCommit -ne $env:GITHUB_SHA) {
+              throw "Manual release tag '$tag' points to $tagCommit but this workflow is running on $env:GITHUB_SHA. Dispatch the workflow from the exact tagged commit."
+          }
           Write-Host "Tag:     $tag"
           Write-Host "Version: $version"
+          Write-Host "Channel: $(if ($isPrerelease) { 'prerelease' } else { 'stable' })"
+          Write-Host "Tag SHA: $tagCommit"
           "tag=$tag"         | Out-File -Append $env:GITHUB_OUTPUT
           "version=$version" | Out-File -Append $env:GITHUB_OUTPUT
+          "is_prerelease=$($isPrerelease.ToString().ToLowerInvariant())" | Out-File -Append $env:GITHUB_OUTPUT
 
       - name: Assert versions match the tag
         shell: pwsh
@@ -452,13 +466,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.preflight.outputs.tag }}
+          IS_PRERELEASE: ${{ needs.preflight.outputs.is_prerelease }}
         run: |
           set -euo pipefail
           # Create the release if it doesn't already exist. --generate-notes
           # auto-populates the body from commits since the previous tag so we
           # always have at least a draft description before assets upload.
+          release_flags=(--verify-tag --fail-on-no-commits)
+          if [[ "$IS_PRERELEASE" == "true" ]]; then
+              release_flags+=(--prerelease --latest=false)
+          fi
           if ! gh release view "$TAG" >/dev/null 2>&1; then
-              gh release create "$TAG" --title "$TAG" --generate-notes
+              gh release create "$TAG" --title "$TAG" --generate-notes "${release_flags[@]}"
+          else
+              existing_prerelease="$(gh release view "$TAG" --json isPrerelease --jq .isPrerelease)"
+              if [[ "$existing_prerelease" != "$IS_PRERELEASE" ]]; then
+                  echo "Existing release '$TAG' prerelease=$existing_prerelease does not match expected prerelease=$IS_PRERELEASE."
+                  exit 1
+              fi
           fi
           gh release upload "$TAG" \
               release/LibreSpot.exe \
