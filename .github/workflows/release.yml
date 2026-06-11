@@ -43,7 +43,8 @@ jobs:
       tag: ${{ steps.resolve.outputs.tag }}
       is_prerelease: ${{ steps.resolve.outputs.is_prerelease }}
     steps:
-      - uses: actions/checkout@v4
+      # actions/checkout v4.3.1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -230,7 +231,8 @@ jobs:
       SIGNPATH_PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG }}
       SIGNPATH_RELEASE_POLICY_SLUG: ${{ vars.SIGNPATH_RELEASE_POLICY_SLUG }}
     steps:
-      - uses: actions/checkout@v4
+      # actions/checkout v4.3.1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           persist-credentials: false
 
@@ -259,14 +261,16 @@ jobs:
       - name: Upload PS2EXE artifact for SignPath
         id: upload-unsigned-ps
         if: ${{ env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != '' }}
-        uses: actions/upload-artifact@v4
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: librespot-ps-unsigned
           path: LibreSpot.exe
 
       - name: Submit LibreSpot.exe to SignPath
         if: ${{ env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != '' }}
-        uses: signpath/github-action-submit-signing-request@v2
+        # signpath/github-action-submit-signing-request v2
+        uses: signpath/github-action-submit-signing-request@b9d91eadd323de506c0c81cf0c7fe7438f3360fd
         with:
           api-token: ${{ env.SIGNPATH_API_TOKEN }}
           organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
@@ -291,7 +295,8 @@ jobs:
           Write-Host "Signed by: $($sig.SignerCertificate.Subject)"
 
       - name: Upload PS2EXE + raw script
-        uses: actions/upload-artifact@v4
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: librespot-powershell
           # Ship the raw .ps1 too so the `irm .../LibreSpot.ps1 | iex` one-liner
@@ -310,12 +315,14 @@ jobs:
       SIGNPATH_PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG }}
       SIGNPATH_RELEASE_POLICY_SLUG: ${{ vars.SIGNPATH_RELEASE_POLICY_SLUG }}
     steps:
-      - uses: actions/checkout@v4
+      # actions/checkout v4.3.1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           persist-credentials: false
 
       - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+        # actions/setup-dotnet v4.3.1
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
         with:
           dotnet-version: ${{ env.DOTNET_SDK_CHANNEL }}
 
@@ -375,14 +382,16 @@ jobs:
       - name: Upload WPF EXE artifact for SignPath
         id: upload-unsigned-wpf
         if: ${{ env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != '' }}
-        uses: actions/upload-artifact@v4
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: librespot-wpf-unsigned
           path: publish/wpf/LibreSpot-Desktop.exe
 
       - name: Submit LibreSpot-Desktop.exe to SignPath
         if: ${{ env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != '' }}
-        uses: signpath/github-action-submit-signing-request@v2
+        # signpath/github-action-submit-signing-request v2
+        uses: signpath/github-action-submit-signing-request@b9d91eadd323de506c0c81cf0c7fe7438f3360fd
         with:
           api-token: ${{ env.SIGNPATH_API_TOKEN }}
           organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
@@ -407,7 +416,8 @@ jobs:
           Write-Host "Signed by: $($sig.SignerCertificate.Subject)"
 
       - name: Upload WPF artifact
-        uses: actions/upload-artifact@v4
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: librespot-wpf
           path: publish/wpf/
@@ -421,18 +431,21 @@ jobs:
       id-token: write        # OIDC for attestation signing
       attestations: write    # actions/attest-build-provenance
     steps:
-      - uses: actions/checkout@v4
+      # actions/checkout v4.3.1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           persist-credentials: false
 
       - name: Download PowerShell artifact
-        uses: actions/download-artifact@v4
+        # actions/download-artifact v4.3.0
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: librespot-powershell
           path: release
 
       - name: Download WPF artifact
-        uses: actions/download-artifact@v4
+        # actions/download-artifact v4.3.0
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: librespot-wpf
           path: release
@@ -451,7 +464,8 @@ jobs:
           cat checksums.txt
 
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
+        # actions/attest-build-provenance v2.4.0
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be
         with:
           subject-path: |
             release/LibreSpot.exe
@@ -459,7 +473,8 @@ jobs:
             release/LibreSpot-Desktop.exe
 
       - name: Attest SBOM
-        uses: actions/attest-sbom@v2
+        # actions/attest-sbom v2.4.0
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
         with:
           subject-path: release/LibreSpot-Desktop.exe
           sbom-path: release/LibreSpot.sbom.cdx.json

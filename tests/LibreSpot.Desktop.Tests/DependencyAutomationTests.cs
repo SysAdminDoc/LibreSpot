@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -5,6 +6,15 @@ namespace LibreSpot.Desktop.Tests;
 public sealed class DependencyAutomationTests
 {
     private static readonly string RepoRoot = ResolveRepoRoot();
+    private static readonly Regex WorkflowUsesPattern = new(
+        @"^\s*uses:\s*(?<target>[^\s#]+)",
+        RegexOptions.Multiline | RegexOptions.Compiled);
+    private static readonly Regex ShaPinnedActionPattern = new(
+        @"^[^@]+@[0-9a-f]{40}$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex VersionCommentPattern = new(
+        @"\bv\d+(\.\d+){0,2}\b",
+        RegexOptions.Compiled);
 
     [Fact]
     public void Dependabot_CoversRuntimeAndTestNuGetProjects()
@@ -21,6 +31,10 @@ public sealed class DependencyAutomationTests
         Assert.Contains("- \"Microsoft.NET.Test.Sdk\"", config);
         Assert.Contains("- \"xunit*\"", config);
         Assert.Contains("- \"coverlet.collector\"", config);
+        Assert.Contains("package-ecosystem: \"github-actions\"", config);
+        Assert.Contains("directory: \"/\"", config);
+        Assert.Contains("workflow-actions:", config);
+        Assert.Contains("- \"github-actions\"", config);
     }
 
     [Fact]
@@ -60,8 +74,64 @@ public sealed class DependencyAutomationTests
         Assert.Contains("<RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>", testProject);
     }
 
+    [Fact]
+    public void Workflows_PinRemoteActionsToFullCommitShas()
+    {
+        var workflowDirectory = Path.Combine(RepoRoot, ".github", "workflows");
+        var offenders = new List<string>();
+
+        foreach (var workflowPath in Directory.EnumerateFiles(workflowDirectory, "*.yml"))
+        {
+            var workflow = File.ReadAllText(workflowPath);
+            foreach (Match match in WorkflowUsesPattern.Matches(workflow))
+            {
+                var target = match.Groups["target"].Value.Trim('\'', '"');
+                if (target.StartsWith("./", StringComparison.Ordinal) ||
+                    target.StartsWith("../", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var lineNumber = workflow[..match.Index].Count(c => c == '\n') + 1;
+                var relativePath = Path.GetRelativePath(RepoRoot, workflowPath);
+                if (!ShaPinnedActionPattern.IsMatch(target))
+                {
+                    offenders.Add($"{relativePath}:{lineNumber} uses {target}; pin remote actions to a full 40-character commit SHA.");
+                    continue;
+                }
+
+                var actionName = target.Split('@', 2)[0];
+                var versionComment = PreviousNonEmptyLine(workflow, match.Index);
+                if (!versionComment.StartsWith("# ", StringComparison.Ordinal) ||
+                    !versionComment.Contains(actionName, StringComparison.Ordinal) ||
+                    !VersionCommentPattern.IsMatch(versionComment))
+                {
+                    offenders.Add($"{relativePath}:{lineNumber} pins {target} but is missing a preceding '# {actionName} v...' version comment.");
+                }
+            }
+        }
+
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
     private static string ReadRepoFile(params string[] relativeParts) =>
         File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(relativeParts).ToArray()));
+
+    private static string PreviousNonEmptyLine(string content, int index)
+    {
+        var prefix = content[..index].Replace("\r\n", "\n", StringComparison.Ordinal);
+        var lines = prefix.Split('\n');
+        for (var i = lines.Length - 1; i >= 0; i--)
+        {
+            var line = lines[i].Trim();
+            if (line.Length > 0)
+            {
+                return line;
+            }
+        }
+
+        return string.Empty;
+    }
 
     private static string ResolveRepoRoot()
     {
