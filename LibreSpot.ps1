@@ -635,6 +635,99 @@ function Get-SelfElevationLaunchTarget {
     return $null
 }
 
+function Show-BootstrapNotice {
+    param(
+        [string]$Title = 'LibreSpot',
+        [Parameter(Mandatory = $true)][string]$Message
+    )
+
+    try {
+        $surfaceBase = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString('#FF0B0E14'))
+        $surfacePanel = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString('#FF151A24'))
+        $borderBrush = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString('#FF2A3442'))
+        $primaryText = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString('#FFE7EDF3'))
+        $secondaryText = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString('#FFA6B0BB'))
+        $accentBrush = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString('#FF22D3EE'))
+        $buttonText = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.ColorConverter]::ConvertFromString('#FF05131A'))
+        foreach ($brush in @($surfaceBase, $surfacePanel, $borderBrush, $primaryText, $secondaryText, $accentBrush, $buttonText)) {
+            $brush.Freeze()
+        }
+
+        $dialog = [System.Windows.Window]::new()
+        $dialog.Title = $Title
+        $dialog.Width = 460
+        $dialog.SizeToContent = [System.Windows.SizeToContent]::Height
+        $dialog.ResizeMode = [System.Windows.ResizeMode]::NoResize
+        $dialog.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterScreen
+        $dialog.Background = $surfaceBase
+        $dialog.Foreground = $primaryText
+        $dialog.Topmost = $true
+        $dialog.ShowInTaskbar = $true
+        try {
+            $iconPath = Join-Path $script:ScriptRoot 'icon.ico'
+            if (Test-Path -LiteralPath $iconPath -PathType Leaf) {
+                $dialog.Icon = [System.Windows.Media.Imaging.BitmapFrame]::Create([Uri]::new($iconPath))
+            }
+        } catch {}
+        $dialog.Add_SourceInitialized({
+            try {
+                $hwnd = [System.Windows.Interop.WindowInteropHelper]::new($dialog).Handle
+                [Win32]::TryEnableMicaBackdrop($hwnd) | Out-Null
+            } catch {}
+        })
+
+        $shell = [System.Windows.Controls.Border]::new()
+        $shell.Background = $surfacePanel
+        $shell.BorderBrush = $borderBrush
+        $shell.BorderThickness = [System.Windows.Thickness]::new(1)
+        $shell.CornerRadius = [System.Windows.CornerRadius]::new(8)
+        $shell.Padding = [System.Windows.Thickness]::new(22)
+        $dialog.Content = $shell
+
+        $panel = [System.Windows.Controls.StackPanel]::new()
+        $shell.Child = $panel
+
+        $heading = [System.Windows.Controls.TextBlock]::new()
+        $heading.Text = $Title
+        $heading.FontFamily = [System.Windows.Media.FontFamily]::new('Segoe UI Variable Display, Segoe UI')
+        $heading.FontSize = 18
+        $heading.FontWeight = [System.Windows.FontWeights]::SemiBold
+        $heading.Foreground = $primaryText
+        $heading.Margin = [System.Windows.Thickness]::new(0, 0, 0, 10)
+        $panel.Children.Add($heading) | Out-Null
+
+        $body = [System.Windows.Controls.TextBlock]::new()
+        $body.Text = $Message
+        $body.FontFamily = [System.Windows.Media.FontFamily]::new('Segoe UI Variable, Segoe UI')
+        $body.FontSize = 13
+        $body.LineHeight = 20
+        $body.TextWrapping = [System.Windows.TextWrapping]::Wrap
+        $body.Foreground = $secondaryText
+        $panel.Children.Add($body) | Out-Null
+
+        $button = [System.Windows.Controls.Button]::new()
+        $button.Content = 'Close'
+        $button.MinWidth = 108
+        $button.MinHeight = 36
+        $button.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Right
+        $button.Margin = [System.Windows.Thickness]::new(0, 22, 0, 0)
+        $button.Padding = [System.Windows.Thickness]::new(18, 6, 18, 6)
+        $button.Background = $accentBrush
+        $button.Foreground = $buttonText
+        $button.BorderThickness = [System.Windows.Thickness]::new(0)
+        $button.FontWeight = [System.Windows.FontWeights]::SemiBold
+        $button.Add_Click({
+            try { $dialog.DialogResult = $true } catch {}
+            $dialog.Close()
+        })
+        $panel.Children.Add($button) | Out-Null
+
+        $dialog.ShowDialog() | Out-Null
+    } catch {
+        Write-Warning $Message
+    }
+}
+
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator)) {
     $launchTarget = Get-SelfElevationLaunchTarget
@@ -663,20 +756,10 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
                 Start-Process -FilePath 'powershell.exe' -ArgumentList $scriptArgs -Verb RunAs -WorkingDirectory $workingDir
             }
         } catch {
-            [System.Windows.MessageBox]::Show(
-                "LibreSpot needs administrator permission to modify Spotify.`n`nApprove the Windows prompt to continue. If it was dismissed, just launch LibreSpot again.",
-                'LibreSpot',
-                [System.Windows.MessageBoxButton]::OK,
-                [System.Windows.MessageBoxImage]::Warning
-            ) | Out-Null
+            Show-BootstrapNotice -Title 'LibreSpot' -Message "LibreSpot needs administrator permission to modify Spotify.`n`nApprove the Windows prompt to continue. If it was dismissed, launch LibreSpot again."
         }
     } else {
-        [System.Windows.MessageBox]::Show(
-            "LibreSpot could not determine a reusable launch path for self-elevation.`n`nRun the saved LibreSpot.ps1 file or download the latest release and try again.",
-            'LibreSpot',
-            [System.Windows.MessageBoxButton]::OK,
-            [System.Windows.MessageBoxImage]::Warning
-        ) | Out-Null
+        Show-BootstrapNotice -Title 'LibreSpot' -Message "LibreSpot could not determine a reusable launch path for self-elevation.`n`nRun the saved LibreSpot.ps1 file or download the latest release and try again."
     }
     Exit
 }

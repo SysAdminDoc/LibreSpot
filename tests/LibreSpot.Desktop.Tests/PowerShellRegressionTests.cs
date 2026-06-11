@@ -194,6 +194,16 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("ArgumentList", body);
     }
 
+    [Fact]
+    public void SelfElevationFallback_UsesThemedBootstrapNotice()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+
+        Assert.Contains("function Show-BootstrapNotice", script);
+        Assert.Contains("Show-BootstrapNotice -Title 'LibreSpot' -Message", script);
+        Assert.DoesNotContain("System.Windows.MessageBox", script);
+    }
+
     // ---------------------------------------------------------------------
     // Self-update async refactor — locks the UI-freeze fix in place.
     // ---------------------------------------------------------------------
