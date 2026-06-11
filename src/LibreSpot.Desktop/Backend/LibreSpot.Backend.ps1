@@ -60,6 +60,9 @@ $global:PinnedReleases = @{
     }
     SpicetifyCLI = @{
         Version = '2.43.2'
+        WindowsMinSpotify = '1.2.14'
+        WindowsMaxTestedSpotify = '1.2.88'
+        CompatibilityUrl = 'https://github.com/spicetify/cli/releases/tag/v2.43.2'
         SHA256  = @{
             x64   = 'fc6ed7b67f15a8e49e6f676ca0511b63ef74736c05593966abf20a90e06aa80d'
             arm64 = 'ed90e11d82affdcf7ae2968a886c8b9500c08f521c271598f13d6d9414110473'
@@ -1090,10 +1093,79 @@ function Invoke-ExternalScriptIsolated {
     }
 }
 
+function Compare-LibreSpotVersions {
+    param([string]$Latest, [string]$Current)
+    if ([string]::IsNullOrWhiteSpace($Latest)) { return $false }
+    if ([string]::IsNullOrWhiteSpace($Current)) { return $true }
+    $stripLatest  = ($Latest  -replace '-preview.*','' -replace '-rc.*','')
+    $stripCurrent = ($Current -replace '-preview.*','' -replace '-rc.*','')
+    try {
+        $latestVersion = [Version]$stripLatest
+        $currentVersion = [Version]$stripCurrent
+        if ($latestVersion -gt $currentVersion) { return $true }
+        if ($latestVersion -lt $currentVersion) { return $false }
+        $latestIsStable = ($Latest -eq $stripLatest)
+        $currentIsStable = ($Current -eq $stripCurrent)
+        if ($latestIsStable -and -not $currentIsStable) { return $true }
+        if (-not $latestIsStable -and $currentIsStable) { return $false }
+        if ($Latest -eq $Current) { return $false }
+        return ([string]::CompareOrdinal($Latest, $Current) -gt 0)
+    } catch {
+        if ($Latest -eq $Current) { return $false }
+        return ([string]::CompareOrdinal($Latest, $Current) -gt 0)
+    }
+}
+
+function Get-LibreSpotCurrentSpotifyTarget {
+    $entry = $global:SpotifyVersionManifest | Where-Object { $_.Id -ne 'auto' } | Select-Object -First 1
+    if (-not $entry) {
+        return [pscustomobject]@{ Id = 'unknown'; Version = '' }
+    }
+    return [pscustomobject]@{
+        Id      = [string]$entry.Id
+        Version = [string]$entry.Version
+    }
+}
+
+function Get-LibreSpotCompatibilityWarnings {
+    $warnings = @()
+    $spotxTarget = Get-LibreSpotCurrentSpotifyTarget
+    $spicetifyMax = [string]$global:PinnedReleases.SpicetifyCLI.WindowsMaxTestedSpotify
+    if (-not [string]::IsNullOrWhiteSpace($spotxTarget.Id) -and
+        -not [string]::IsNullOrWhiteSpace($spicetifyMax) -and
+        (Compare-LibreSpotVersions -Latest $spotxTarget.Id -Current $spicetifyMax)) {
+        $warnings += "SpotX target Spotify $($spotxTarget.Id) is newer than Spicetify CLI v$($global:PinnedReleases.SpicetifyCLI.Version) max-tested Windows/Microsoft Store Spotify $spicetifyMax; Spicetify CSS maps may need validation after patching."
+    }
+    return $warnings
+}
+
+function Write-LibreSpotCompatibilityMatrix {
+    $spotxTarget = Get-LibreSpotCurrentSpotifyTarget
+    $spotxLabel = if ([string]::IsNullOrWhiteSpace($spotxTarget.Version)) {
+        $spotxTarget.Id
+    } else {
+        "$($spotxTarget.Id) ($($spotxTarget.Version))"
+    }
+    $spicetify = $global:PinnedReleases.SpicetifyCLI
+
+    Write-Log 'Compatibility matrix:'
+    Write-Log "  SpotX: commit $($global:PinnedReleases.SpotX.Commit.Substring(0,10)) targets Spotify $spotxLabel"
+    Write-Log "  Spicetify CLI: v$($spicetify.Version) max-tested Windows/Microsoft Store Spotify $($spicetify.WindowsMinSpotify) -> $($spicetify.WindowsMaxTestedSpotify)"
+    Write-Log "  Marketplace: v$($global:PinnedReleases.Marketplace.Version) checked as a custom app package independent of Spotify CSS-map coverage"
+    Write-Log "  Themes: commit $($global:PinnedReleases.Themes.Commit.Substring(0,10)) checked as a theme archive independent of Spotify CSS-map coverage"
+
+    $warnings = @(Get-LibreSpotCompatibilityWarnings)
+    foreach ($warning in $warnings) {
+        Write-Log "  Compatibility warning: $warning" -Level 'WARN'
+    }
+    return $warnings
+}
+
 function Check-ForUpdates {
     Write-Log 'Checking pinned dependencies against upstream releases...' -Level 'STEP'
     $headers = @{ 'User-Agent' = "LibreSpot/$global:VERSION" }
     $updates = @()
+    $compatWarnings = @()
 
     try {
         $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/SpotX-Official/SpotX/commits/main' -Headers $headers -TimeoutSec 15
@@ -1110,7 +1182,7 @@ function Check-ForUpdates {
     try {
         $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest' -Headers $headers -TimeoutSec 15
         $latest = $rel.tag_name -replace '^v', ''
-        if ($latest -ne $global:PinnedReleases.SpicetifyCLI.Version) {
+        if (Compare-LibreSpotVersions -Latest $latest -Current $global:PinnedReleases.SpicetifyCLI.Version) {
             $updates += 'Spicetify CLI'
             Write-Log "Spicetify CLI update available: $($global:PinnedReleases.SpicetifyCLI.Version) -> $latest" -Level 'WARN'
         } else {
@@ -1123,7 +1195,7 @@ function Check-ForUpdates {
     try {
         $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/marketplace/releases/latest' -Headers $headers -TimeoutSec 15
         $latest = $rel.tag_name -replace '^v', ''
-        if ($latest -ne $global:PinnedReleases.Marketplace.Version) {
+        if (Compare-LibreSpotVersions -Latest $latest -Current $global:PinnedReleases.Marketplace.Version) {
             $updates += 'Marketplace'
             Write-Log "Marketplace update available: $($global:PinnedReleases.Marketplace.Version) -> $latest" -Level 'WARN'
         } else {
@@ -1145,10 +1217,20 @@ function Check-ForUpdates {
         Write-Log "Themes update check failed: $($_.Exception.Message)" -Level 'WARN'
     }
 
-    if ($updates.Count -eq 0) {
-        Write-Log 'All pinned dependencies are current.' -Level 'SUCCESS'
+    $compatWarnings = @(Write-LibreSpotCompatibilityMatrix)
+
+    if ($updates.Count -eq 0 -and $compatWarnings.Count -eq 0) {
+        Write-Log 'All pinned dependencies and compatibility baselines are current.' -Level 'SUCCESS'
     } else {
-        Write-Log "$($updates.Count) dependency update(s) are available." -Level 'WARN'
+        if ($updates.Count -eq 0) {
+            Write-Log 'All pinned dependency versions are current.' -Level 'SUCCESS'
+        }
+        if ($updates.Count -gt 0) {
+            Write-Log "$($updates.Count) dependency update(s) are available." -Level 'WARN'
+        }
+        if ($compatWarnings.Count -gt 0) {
+            Write-Log "$($compatWarnings.Count) compatibility warning(s) detected; review the matrix above before repatching newer Spotify builds." -Level 'WARN'
+        }
     }
 }
 
@@ -2327,7 +2409,7 @@ try {
     }
 
     Write-EventLine -Kind 'action' -Payload $Action
-    if ($Action -notin @('EnableAutoReapply', 'DisableAutoReapply')) {
+    if ($Action -notin @('CheckUpdates', 'EnableAutoReapply', 'DisableAutoReapply')) {
         Ensure-Admin
     }
 

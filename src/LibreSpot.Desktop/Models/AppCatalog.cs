@@ -168,6 +168,11 @@ public sealed class EnvironmentSnapshot
 public static class AppCatalog
 {
     public const int CurrentConfigSchemaVersion = 1;
+    public const string PinnedSpotXSpotifyVersionId = "1.2.90.451";
+    public const string PinnedSpotXSpotifyVersion = "1.2.90.451.gb094aab0";
+    public const string PinnedSpicetifyCliVersion = "2.43.2";
+    public const string SpicetifyWindowsMinTestedSpotify = "1.2.14";
+    public const string SpicetifyWindowsMaxTestedSpotify = "1.2.88";
 
     public static IReadOnlyList<string> LyricsThemes { get; } = new ReadOnlyCollection<string>(new[]
     {
@@ -183,7 +188,7 @@ public static class AppCatalog
     public static IReadOnlyList<SpotifyVersionEntry> SpotifyVersionManifest { get; } = new ReadOnlyCollection<SpotifyVersionEntry>(new[]
     {
         new SpotifyVersionEntry("auto",            "Auto (use SpotX default)",          "",                          "Recommended. Lets SpotX pick the most compatible build."),
-        new SpotifyVersionEntry("1.2.90.451",      "1.2.90.451 (current pinned)",       "1.2.90.451.gb094aab0",      "Best match for our pinned SpotX commit."),
+        new SpotifyVersionEntry(PinnedSpotXSpotifyVersionId, "1.2.90.451 (current pinned)", PinnedSpotXSpotifyVersion, "Best match for our pinned SpotX commit; newer than Spicetify CLI's max-tested Windows CSS-map baseline."),
         new SpotifyVersionEntry("1.2.86.502",      "1.2.86.502 (previous fallback)",    "1.2.86.502.g8cd7fb22",      "Prior pinned build kept for rollback and comparison."),
         new SpotifyVersionEntry("1.2.85.519",      "1.2.85.519 (older stable)",         "1.2.85.519.g7c42e2e8",      "Last Windows release before Canvas-home changes."),
         new SpotifyVersionEntry("1.2.53.440.x86",  "1.2.53.440 (x86 / 32-bit only)",    "1.2.53.440.g7b2f582a",      "For 32-bit Windows. Do not pick on x64."),
@@ -284,7 +289,7 @@ public static class AppCatalog
 
     public static IReadOnlyList<MaintenanceActionDefinition> MaintenanceActions { get; } = new ReadOnlyCollection<MaintenanceActionDefinition>(new[]
     {
-        new MaintenanceActionDefinition("CheckUpdates", "Check pinned versions", "Compare LibreSpot's pinned dependencies against upstream releases before you update the stack.", "Check versions"),
+        new MaintenanceActionDefinition("CheckUpdates", "Check compatibility matrix", "Compare LibreSpot's pinned dependencies and SpotX/Spicetify compatibility baseline before you update the stack.", "Check matrix"),
         new MaintenanceActionDefinition("Reapply", "Reapply your setup", "Refresh SpotX first and then restore the saved Spicetify theme and extension state.", "Reapply"),
         new MaintenanceActionDefinition("RestoreVanilla", "Restore vanilla Spotify", "Remove active Spicetify customizations while leaving SpotX in place.", "Restore"),
         new MaintenanceActionDefinition("UninstallSpicetify", "Uninstall Spicetify", "Restore Spotify and then remove the Spicetify CLI, config folder, and PATH entry.", "Remove Spicetify", true),
