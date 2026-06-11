@@ -60,6 +60,17 @@ public sealed class PowerShellRegressionTests
         Assert.False(string.IsNullOrEmpty(reason));
     }
 
+    [Fact]
+    public void ForeignPatchWarning_UsesBlockTheSpotMigrationCopy()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+
+        Assert.Contains("BlockTheSpot-family legacy patcher", script);
+        Assert.Contains("Legacy BlockTheSpot config.ini", script);
+        Assert.Contains("LibreSpot can cleanly replace BlockTheSpot-family DLL-injection artifacts", script);
+        Assert.DoesNotContain("active foreign patch", script, StringComparison.OrdinalIgnoreCase);
+    }
+
     // ---------------------------------------------------------------------
     // Version sync — v3.5.1 stale-backend-version guard.
     // ---------------------------------------------------------------------

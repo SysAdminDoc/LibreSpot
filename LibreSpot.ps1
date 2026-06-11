@@ -3823,10 +3823,10 @@ function Get-ExistingSpotifyPatchSignature {
     $spotifyDir = Split-Path -LiteralPath $global:SPOTIFY_EXE_PATH -Parent
 
     $signatures = @(
-        @{ Path = (Join-Path $spotifyDir 'dpapi.dll');      Label = 'BlockTheSpot (dpapi.dll injected next to Spotify.exe)' }
-        @{ Path = (Join-Path $spotifyDir 'config.ini');     Label = 'BlockTheSpot config.ini present in the Spotify install directory' }
-        @{ Path = (Join-Path $spotifyDir 'version.dll');    Label = 'Third-party injector (version.dll hijack)' }
-        @{ Path = (Join-Path $spotifyDir 'winmm.dll');      Label = 'Third-party injector (winmm.dll hijack)' }
+        @{ Path = (Join-Path $spotifyDir 'dpapi.dll');      Label = 'BlockTheSpot-family legacy patcher (dpapi.dll injected next to Spotify.exe)' }
+        @{ Path = (Join-Path $spotifyDir 'config.ini');     Label = 'Legacy BlockTheSpot config.ini present in the Spotify install directory' }
+        @{ Path = (Join-Path $spotifyDir 'version.dll');    Label = 'Third-party DLL injector (version.dll hijack)' }
+        @{ Path = (Join-Path $spotifyDir 'winmm.dll');      Label = 'Third-party DLL injector (winmm.dll hijack)' }
     )
     foreach ($sig in $signatures) {
         if (Test-Path -LiteralPath $sig.Path) { return [string]$sig.Label }
@@ -3842,7 +3842,7 @@ function Test-ForeignPatchWarningIfNeeded {
     if (-not $signature) { return }
     $script:ForeignPatchWarningShown = $true
 
-    $message = "Spotify at $global:SPOTIFY_EXE_PATH looks like it was already patched by another tool.`n`nDetected: $signature`n`nLibreSpot can safely overwrite this during install, but you may want to run Maintenance > Full Reset first if you see blank screens or failed playback after patching."
+    $message = "Spotify at $global:SPOTIFY_EXE_PATH looks like it was already patched by another tool.`n`nDetected: $signature`n`nLibreSpot can cleanly replace BlockTheSpot-family DLL-injection artifacts during install. If you see blank screens or failed playback after patching, run Maintenance > Full Reset to remove remaining third-party patch files before reinstalling."
     try {
         Show-ThemedDialog -Title 'Third-party Spotify patch detected' -Message $message -Buttons 'OK' -Icon 'Warning' -PrimaryText 'Got it' | Out-Null
     } catch {}
