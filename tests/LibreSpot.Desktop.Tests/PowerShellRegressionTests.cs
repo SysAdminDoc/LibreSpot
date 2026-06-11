@@ -447,6 +447,20 @@ public sealed class PowerShellRegressionTests
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SpotXPin_UsesCurrentTestedCommitAndSpotifyBaseline(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("95882aa5b308832102ac8a206d300bf6f5436bfb", script);
+        Assert.Contains("67e7ad2ec42531712f33959b1170590d48f7b2940a9a478f956b5770a69b1af3", script);
+        Assert.Contains("1.2.90.451.gb094aab0", script);
+        Assert.DoesNotContain("0abf98a36be501740d774a56d54d5f7fbbafc35c", script);
+        Assert.DoesNotContain("38d4205a2afc2050781bbfe28c6713edd6b0aef2c084304b58d92308b081f569", script);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
     public void CommunityExtensionCatalog_UsesPinnedWorkingAssetsAndHashVerification(string relativePath)
     {
         var script = ReadFile(relativePath.Split('/'));
