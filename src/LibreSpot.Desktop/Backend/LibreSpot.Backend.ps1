@@ -74,8 +74,8 @@ $global:PinnedReleases = @{
         SHA256  = 'ba20cd30896605ec60c272905004673b995162d2c8ca085351971e409cf80ec7'
     }
     Themes = @{
-        Commit  = '9af41cf91af6f6093c0e060d57264f08f6bb161c'
-        SHA256  = 'fd55e443e88302dfd45e201f35ec67db5f51c4346b58fab5da90faf7b1a66f28'
+        Commit  = 'df033493a7dae30ca6e371de9cec1897871dbb0c'
+        SHA256  = 'c837828c71d7a938898f87965b1fe9e5812cec831bd9cb1619bd8feb6020fdc3'
     }
 }
 

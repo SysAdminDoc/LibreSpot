@@ -498,6 +498,19 @@ public sealed class PowerShellRegressionTests
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void ThemeArchivePin_UsesCurrentTestedCommitAndHash(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("df033493a7dae30ca6e371de9cec1897871dbb0c", script);
+        Assert.Contains("c837828c71d7a938898f87965b1fe9e5812cec831bd9cb1619bd8feb6020fdc3", script);
+        Assert.DoesNotContain("9af41cf91af6f6093c0e060d57264f08f6bb161c", script);
+        Assert.DoesNotContain("fd55e443e88302dfd45e201f35ec67db5f51c4346b58fab5da90faf7b1a66f28", script);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
     public void CommunityExtensionCatalog_UsesPinnedWorkingAssetsAndHashVerification(string relativePath)
     {
         var script = ReadFile(relativePath.Split('/'));
