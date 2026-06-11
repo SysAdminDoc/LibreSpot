@@ -106,6 +106,19 @@ public sealed class PowerShellRegressionTests
     }
 
     [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void UpdateChecker_UsesSemverComparisonInBothPowerShellPaths(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("function Compare-LibreSpotVersions", script);
+        Assert.Contains("Compare-LibreSpotVersions -Latest", script);
+        Assert.DoesNotContain("$latest -ne $global:PinnedReleases.SpicetifyCLI.Version", script);
+        Assert.DoesNotContain("$latest -ne $global:PinnedReleases.Marketplace.Version", script);
+    }
+
+    [Theory]
     [InlineData("[Version]")]
     [InlineData("-preview")]
     [InlineData("-rc")]
@@ -135,6 +148,9 @@ public sealed class PowerShellRegressionTests
             RegexOptions.Singleline);
         Assert.True(listMatch.Success, "Worker function export list not found.");
         Assert.Contains("Compare-LibreSpotVersions", listMatch.Value);
+        Assert.Contains("Get-LibreSpotCurrentSpotifyTarget", listMatch.Value);
+        Assert.Contains("Get-LibreSpotCompatibilityWarnings", listMatch.Value);
+        Assert.Contains("Write-LibreSpotCompatibilityMatrix", listMatch.Value);
         Assert.Contains("Write-SpicetifyCliOutputLine", listMatch.Value);
     }
 
@@ -439,9 +455,30 @@ public sealed class PowerShellRegressionTests
         var script = ReadFile(relativePath.Split('/'));
 
         Assert.Contains("Version = '2.43.2'", script);
+        Assert.Contains("WindowsMinSpotify = '1.2.14'", script);
+        Assert.Contains("WindowsMaxTestedSpotify = '1.2.88'", script);
+        Assert.Contains("CompatibilityUrl = 'https://github.com/spicetify/cli/releases/tag/v2.43.2'", script);
         Assert.Contains("fc6ed7b67f15a8e49e6f676ca0511b63ef74736c05593966abf20a90e06aa80d", script);
         Assert.Contains("ed90e11d82affdcf7ae2968a886c8b9500c08f521c271598f13d6d9414110473", script);
         Assert.DoesNotContain("Version = '2.43.1'", script);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void UpdateChecker_ReportsSeparateCompatibilityMatrixStatuses(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("function Get-LibreSpotCurrentSpotifyTarget", script);
+        Assert.Contains("function Get-LibreSpotCompatibilityWarnings", script);
+        Assert.Contains("function Write-LibreSpotCompatibilityMatrix", script);
+        Assert.Contains("Write-LibreSpotCompatibilityMatrix", script);
+        Assert.Contains("SpotX target Spotify", script);
+        Assert.Contains("max-tested Windows/Microsoft Store Spotify", script);
+        Assert.Contains("Spicetify CSS maps may need validation after patching", script);
+        Assert.Contains("Marketplace:", script);
+        Assert.Contains("Themes:", script);
     }
 
     [Theory]
@@ -784,5 +821,16 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("GetCurrentProcess().Id", body);
         Assert.Contains("-PathType Container", body);
         Assert.Contains("-ErrorAction Stop", body);
+    }
+
+    [Fact]
+    public void CheckUpdates_RemainsNonAdminInBackendAndDesktopShell()
+    {
+        var backend = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+        var viewModel = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
+
+        Assert.Contains("@('CheckUpdates', 'EnableAutoReapply', 'DisableAutoReapply')", backend);
+        Assert.Contains("definition.Action, \"CheckUpdates\"", viewModel);
+        Assert.Contains("StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2, requiresAdministrator)", viewModel);
     }
 }

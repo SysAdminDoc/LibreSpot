@@ -133,11 +133,23 @@ public sealed class AppCatalogTests
     [Fact]
     public void SpotifyVersionManifest_UsesCurrentPinnedSpotXBaseline()
     {
-        var current = Assert.Single(AppCatalog.SpotifyVersionManifest, entry => entry.Id == "1.2.90.451");
+        var current = Assert.Single(AppCatalog.SpotifyVersionManifest, entry => entry.Id == AppCatalog.PinnedSpotXSpotifyVersionId);
 
-        Assert.Equal("1.2.90.451.gb094aab0", current.Version);
+        Assert.Equal(AppCatalog.PinnedSpotXSpotifyVersion, current.Version);
         Assert.Contains("current pinned", current.Label);
+        Assert.Contains("max-tested Windows CSS-map baseline", current.Notes);
         Assert.Contains(AppCatalog.SpotifyVersionManifest, entry => entry.Id == "1.2.86.502");
+    }
+
+    [Fact]
+    public void CompatibilityBaseline_FlagsPinnedSpotXNewerThanSpicetifyWindowsMaximum()
+    {
+        Assert.Equal("2.43.2", AppCatalog.PinnedSpicetifyCliVersion);
+        Assert.Equal("1.2.14", AppCatalog.SpicetifyWindowsMinTestedSpotify);
+        Assert.Equal("1.2.88", AppCatalog.SpicetifyWindowsMaxTestedSpotify);
+        Assert.True(
+            Version.Parse(AppCatalog.PinnedSpotXSpotifyVersionId) > Version.Parse(AppCatalog.SpicetifyWindowsMaxTestedSpotify),
+            "Pinned SpotX target should remain visibly newer than Spicetify CLI's Windows max-tested Spotify baseline until upstream support catches up.");
     }
 
     [Fact]

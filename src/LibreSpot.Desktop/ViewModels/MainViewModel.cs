@@ -1396,6 +1396,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}This is a deeper reset path and may remove the current customization state. Continue only when you are ready to rebuild."
             : $"{definition.Description}{Environment.NewLine}{Environment.NewLine}LibreSpot will keep this window open and stream backend progress while the action runs.";
         var (summaryTitle, summaryBody) = BuildMaintenancePromptSummary(definition);
+        var requiresAdministrator = !string.Equals(definition.Action, "CheckUpdates", StringComparison.Ordinal);
 
         ShowPrompt(
             definition.Title,
@@ -1403,7 +1404,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             definition.ButtonText,
             definition.IsDestructive ? "Keep current setup" : "Cancel",
             definition.IsDestructive,
-            () => StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2),
+            () => StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2, requiresAdministrator),
             summaryTitle,
             summaryBody);
 
@@ -1903,7 +1904,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private static (string Title, string Body) BuildMaintenancePromptSummary(MaintenanceActionDefinition definition) =>
         definition.Action switch
         {
-            "CheckUpdates" => ("What this does", "LibreSpot compares pinned versions and writes the result to the live log before you decide whether to update."),
+            "CheckUpdates" => ("What this does", "LibreSpot compares pinned versions plus the SpotX, Spicetify CLI, Marketplace, and themes compatibility matrix before you decide whether to update."),
             "Reapply" => ("What this does", "LibreSpot refreshes SpotX first, then restores the saved Spicetify layer so the stack returns to its last known profile."),
             "RestoreVanilla" => ("What this does", "This removes the visible Spicetify layer while leaving SpotX in place, so Spotify returns to a calmer default look."),
             "UninstallSpicetify" => ("What this removes", "LibreSpot restores Spotify first, then removes the Spicetify CLI, config folder, and PATH entry from this machine."),
