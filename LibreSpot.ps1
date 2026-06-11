@@ -751,36 +751,40 @@ $global:BuiltInExtensions = [ordered]@{
 }
 
 # Community extensions are downloaded from GitHub repos to the Spicetify
-# Extensions folder before being registered.  Each entry maps a filename to
-# its description and a raw download URL.  These are NOT bundled with the
+# Extensions folder before being registered. Each entry maps the registered
+# filename to a commit-pinned raw URL and hash. These are NOT bundled with the
 # Spicetify CLI — LibreSpot fetches them on demand.
 $global:CommunityExtensions = [ordered]@{
     "hidePodcasts.js"   = @{
         Description = "Remove podcast, episode, and audiobook UI elements from the Spotify interface"
-        Url         = "https://raw.githubusercontent.com/theRealPadster/spicetify-hide-podcasts/main/dist/hidePodcasts.js"
+        Url         = "https://raw.githubusercontent.com/theRealPadster/spicetify-hide-podcasts/b89365dd86fba24d610fae65d882d7e14a69f2fa/hidePodcasts.js"
         Source      = "theRealPadster/spicetify-hide-podcasts"
+        SHA256      = "727e5a2f9137f4be77eac83d234a0ce858c5d618e7ff56116a6def01793fc3f8"
     }
-    "beautifulLyrics.js" = @{
+    "beautiful-lyrics.mjs" = @{
         Description = "Immersive synced lyrics with dynamic backgrounds, romanization, and blur effects"
-        Url         = "https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/main/dist/beautifulLyrics.js"
+        Url         = "https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/61ac582da092311e893423269ca7f09003108705/Extension/Builds/Release/beautiful-lyrics.mjs"
         Source      = "surfbryce/beautiful-lyrics"
+        SHA256      = "93c9ecfcb0a83c832c5ee7ca8fe826bcfaeec7cdd129c0bf05bab84b8ba6ba72"
     }
-    "playlistIcons.js"  = @{
+    "playlist-icons.js"  = @{
         Description = "Add custom icons and folder images to your playlists and library"
-        Url         = "https://raw.githubusercontent.com/jeroentvb/spicetify-playlist-icons/main/dist/playlistIcons.js"
+        Url         = "https://raw.githubusercontent.com/jeroentvb/spicetify-playlist-icons/8f401f923a5c25f530935faaceb39089a25b701a/playlist-icons.js"
         Source      = "jeroentvb/spicetify-playlist-icons"
-    }
-    "songStats.js"      = @{
-        Description = "Show play count, popularity score, and release date next to each track"
-        Url         = "https://raw.githubusercontent.com/Shinyhero36/spicetify-song-stats/main/dist/songStats.js"
-        Source      = "Shinyhero36/spicetify-song-stats"
+        SHA256      = "79bbe2bd6a52a521a382a73ef1c8c7ff0b0b9bd7674c48bb0ed44c5d2c944c8d"
     }
     "volumePercentage.js" = @{
         Description = "Display the exact volume percentage next to the volume slider"
-        Url         = "https://raw.githubusercontent.com/daksh2k/spicetify-stuff/main/Extensions/volumePercentage.js"
+        Url         = "https://raw.githubusercontent.com/daksh2k/spicetify-stuff/89e609d933946a888cdff9cc3d7c4f1e9b88cfde/Extensions/volumePercentage.js"
         Source      = "daksh2k/spicetify-stuff"
+        SHA256      = "b88dcde894f4998abc4473773333015c09f0450ec563d256ed5af45db7129aca"
     }
 }
+$global:CommunityExtensionAliases = @{
+    "beautifulLyrics.js" = "beautiful-lyrics.mjs"
+    "playlistIcons.js" = "playlist-icons.js"
+}
+$global:DeprecatedCommunityExtensionNames = @("beautifulLyrics.js", "playlistIcons.js", "songStats.js")
 
 $global:EasyDefaults = @{
     SpotX_NewTheme=$true; SpotX_PodcastsOff=$true; SpotX_BlockUpdate=$true; SpotX_AdSectionsOff=$true
@@ -957,6 +961,7 @@ function Normalize-LibreSpotConfig {
     foreach ($extension in $rawExtensions) {
         $name = [string]$extension
         if ([string]::IsNullOrWhiteSpace($name)) { continue }
+        if ($global:CommunityExtensionAliases.ContainsKey($name)) { $name = [string]$global:CommunityExtensionAliases[$name] }
         if (-not $global:BuiltInExtensions.Contains($name) -and -not $global:CommunityExtensions.Contains($name)) { continue }
         if (-not $extensions.Contains($name)) { $extensions.Add($name) }
     }
@@ -1925,8 +1930,6 @@ $xaml = @"
                                                                 <TextBlock Text="Add custom icons and folder images to playlists." Style="{StaticResource HelperText}" Margin="30,2,0,0"/>
                                                             </StackPanel>
                                                             <StackPanel Grid.Column="2">
-                                                                <CheckBox Name="ChkExt_songStats" Content="Song Stats" Style="{StaticResource DarkCheckBox}" Margin="0"/>
-                                                                <TextBlock Text="Show play count, popularity, and release date per track." Style="{StaticResource HelperText}" Margin="30,2,0,4"/>
                                                                 <CheckBox Name="ChkExt_volumePercentage" Content="Volume Percentage" Style="{StaticResource DarkCheckBox}" Margin="0"/>
                                                                 <TextBlock Text="Display exact volume percentage next to the slider." Style="{StaticResource HelperText}" Margin="30,2,0,0"/>
                                                             </StackPanel>
@@ -2212,7 +2215,7 @@ $ui = @{}
   'ChkSendVersionOff','ChkDevTools','ChkMirror','ChkConfirmUninstall','CmbDownloadMethod','CmbSpotifyVersion','SpotifyVersionHint',
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
-  'ChkExt_hidePodcasts','ChkExt_beautifulLyrics','ChkExt_playlistIcons','ChkExt_songStats','ChkExt_volumePercentage',
+  'ChkExt_hidePodcasts','ChkExt_beautifulLyrics','ChkExt_playlistIcons','ChkExt_volumePercentage',
   'ChkCleanInstall','ChkLaunchAfter',
   'MaintenanceOverviewTitle','MaintenanceOverviewText',
   'MaintenanceMetricStackValue','MaintenanceMetricStackDetail','MaintenanceMetricBackupValue','MaintenanceMetricBackupDetail','MaintenanceMetricNextStepValue','MaintenanceMetricNextStepDetail',
@@ -2235,8 +2238,8 @@ $extCheckboxMap = [ordered]@{
     'ChkExt_keyboard'='keyboardShortcut.js'; 'ChkExt_bookmark'='bookmark.js'; 'ChkExt_loopyLoop'='loopyLoop.js'
     'ChkExt_popupLyrics'='popupLyrics.js'; 'ChkExt_autoSkipVideo'='autoSkipVideo.js'
     'ChkExt_autoSkipExplicit'='autoSkipExplicit.js'; 'ChkExt_webNowPlaying'='webnowplaying.js'
-    'ChkExt_hidePodcasts'='hidePodcasts.js'; 'ChkExt_beautifulLyrics'='beautifulLyrics.js'
-    'ChkExt_playlistIcons'='playlistIcons.js'; 'ChkExt_songStats'='songStats.js'
+    'ChkExt_hidePodcasts'='hidePodcasts.js'; 'ChkExt_beautifulLyrics'='beautiful-lyrics.mjs'
+    'ChkExt_playlistIcons'='playlist-icons.js'
     'ChkExt_volumePercentage'='volumePercentage.js'
 }
 
@@ -5278,6 +5281,7 @@ function Download-CommunityExtensions { param($Config)
                 Write-Log "Community extension '$ext' downloaded but appears to be an HTML error page, not JavaScript. The URL may have changed. Skipping." -Level 'WARN'
                 continue
             }
+            Confirm-FileHash -Path $destFile -ExpectedHash $info.SHA256 -Label "Community extension $ext"
             Write-Log "Community extension '$ext' saved to $destFile"
         } catch {
             Write-Log "Could not download community extension '$ext': $($_.Exception.Message). Skipping." -Level 'WARN'
@@ -5294,7 +5298,7 @@ function Module-InstallExtensions { param($Config)
     }
     # Download any selected community extensions to the Extensions folder first
     Download-CommunityExtensions -Config $Config
-    $allManaged = @($global:BuiltInExtensions.Keys) + @($global:CommunityExtensions.Keys)
+    $allManaged = @($global:BuiltInExtensions.Keys) + @($global:CommunityExtensions.Keys) + @($global:DeprecatedCommunityExtensionNames)
     Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems $exts -ManagedItems $allManaged
 }
 
@@ -5643,7 +5647,7 @@ $varNamesForWorker = @(
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR',
     'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
-    'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityThemeRepos','ThemesNeedingJS','SpotXLyricsThemes','VERSION'
+    'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityExtensionAliases','DeprecatedCommunityExtensionNames','CommunityThemeRepos','ThemesNeedingJS','SpotXLyricsThemes','VERSION'
 )
 foreach ($vname in $varNamesForWorker) {
     $val = (Get-Variable -Name $vname -Scope Global -ErrorAction Stop).Value

@@ -136,14 +136,18 @@ $global:BuiltInExtensionNames = @(
 )
 
 $global:CommunityExtensions = @{
-    'hidePodcasts.js'     = @{ Url = 'https://raw.githubusercontent.com/theRealPadster/spicetify-hide-podcasts/main/dist/hidePodcasts.js';   Source = 'theRealPadster/spicetify-hide-podcasts' }
-    'beautifulLyrics.js'  = @{ Url = 'https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/main/dist/beautifulLyrics.js';           Source = 'surfbryce/beautiful-lyrics' }
-    'playlistIcons.js'    = @{ Url = 'https://raw.githubusercontent.com/jeroentvb/spicetify-playlist-icons/main/dist/playlistIcons.js';     Source = 'jeroentvb/spicetify-playlist-icons' }
-    'songStats.js'        = @{ Url = 'https://raw.githubusercontent.com/Shinyhero36/spicetify-song-stats/main/dist/songStats.js';           Source = 'Shinyhero36/spicetify-song-stats' }
-    'volumePercentage.js' = @{ Url = 'https://raw.githubusercontent.com/daksh2k/spicetify-stuff/main/Extensions/volumePercentage.js';       Source = 'daksh2k/spicetify-stuff' }
+    'hidePodcasts.js'       = @{ Url = 'https://raw.githubusercontent.com/theRealPadster/spicetify-hide-podcasts/b89365dd86fba24d610fae65d882d7e14a69f2fa/hidePodcasts.js';                         Source = 'theRealPadster/spicetify-hide-podcasts'; SHA256 = '727e5a2f9137f4be77eac83d234a0ce858c5d618e7ff56116a6def01793fc3f8' }
+    'beautiful-lyrics.mjs'  = @{ Url = 'https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/61ac582da092311e893423269ca7f09003108705/Extension/Builds/Release/beautiful-lyrics.mjs';      Source = 'surfbryce/beautiful-lyrics'; SHA256 = '93c9ecfcb0a83c832c5ee7ca8fe826bcfaeec7cdd129c0bf05bab84b8ba6ba72' }
+    'playlist-icons.js'     = @{ Url = 'https://raw.githubusercontent.com/jeroentvb/spicetify-playlist-icons/8f401f923a5c25f530935faaceb39089a25b701a/playlist-icons.js';                         Source = 'jeroentvb/spicetify-playlist-icons'; SHA256 = '79bbe2bd6a52a521a382a73ef1c8c7ff0b0b9bd7674c48bb0ed44c5d2c944c8d' }
+    'volumePercentage.js'   = @{ Url = 'https://raw.githubusercontent.com/daksh2k/spicetify-stuff/89e609d933946a888cdff9cc3d7c4f1e9b88cfde/Extensions/volumePercentage.js';                       Source = 'daksh2k/spicetify-stuff'; SHA256 = 'b88dcde894f4998abc4473773333015c09f0450ec563d256ed5af45db7129aca' }
+}
+$global:CommunityExtensionAliases = @{
+    'beautifulLyrics.js' = 'beautiful-lyrics.mjs'
+    'playlistIcons.js' = 'playlist-icons.js'
 }
 $global:CommunityExtensionNames = @($global:CommunityExtensions.Keys)
-$global:AllManagedExtensionNames = $global:BuiltInExtensionNames + $global:CommunityExtensionNames
+$global:DeprecatedCommunityExtensionNames = @('beautifulLyrics.js', 'playlistIcons.js', 'songStats.js')
+$global:AllManagedExtensionNames = $global:BuiltInExtensionNames + $global:CommunityExtensionNames + $global:DeprecatedCommunityExtensionNames
 
 $global:CommunityThemeRepos = @{
     'Catppuccin' = @{ Owner = 'catppuccin'; Repo = 'spicetify';       Branch = 'main'; ThemeFolder = '.' }
@@ -389,6 +393,7 @@ function Normalize-LibreSpotConfig {
     foreach ($extension in $rawExtensions) {
         $name = [string]$extension
         if ([string]::IsNullOrWhiteSpace($name)) { continue }
+        if ($global:CommunityExtensionAliases.ContainsKey($name)) { $name = [string]$global:CommunityExtensionAliases[$name] }
         if ($name -notin $global:AllManagedExtensionNames) { continue }
         if (-not $extensions.Contains($name)) { $extensions.Add($name) }
     }
@@ -1988,6 +1993,7 @@ function Download-CommunityExtensions {
                 Write-Log "Community extension '$ext' appears to be an HTML error page. Skipping." -Level 'WARN'
                 continue
             }
+            Confirm-FileHash -Path $destFile -ExpectedHash $info.SHA256 -Label "Community extension $ext"
             Write-Log "Community extension '$ext' saved to $destFile"
         } catch {
             Write-Log "Could not download community extension '$ext': $($_.Exception.Message). Skipping." -Level 'WARN'
