@@ -30,7 +30,10 @@ public sealed class DependencyAutomationTests
 
         Assert.Contains("pull_request:", workflow);
         Assert.Contains("dotnet-version: 8.0.x", workflow);
-        Assert.Contains("PowerShell syntax check", workflow);
+        Assert.Contains("PowerShell syntax check (Windows PowerShell 5.1)", workflow);
+        Assert.Contains("PowerShell syntax check (PowerShell 7)", workflow);
+        Assert.Contains("shell: powershell", workflow);
+        Assert.Contains("shell: pwsh", workflow);
         Assert.Contains("XAML parse smoke", workflow);
         Assert.Contains("dotnet test tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj -c Release --nologo", workflow);
         Assert.Contains("dotnet list $project package --vulnerable --include-transitive", workflow);

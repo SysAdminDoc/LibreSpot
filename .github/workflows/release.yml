@@ -147,9 +147,28 @@ jobs:
               Write-Warning ".NET target $env:DOTNET_TARGET_FRAMEWORK is within 120 days of end of support. $env:DOTNET_HOLD_DECISION"
           }
 
-      - name: PowerShell syntax check (LibreSpot.ps1 + Backend.ps1)
+      - name: PowerShell syntax check (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "Host: $($PSVersionTable.PSVersion)"
+          $files = @('LibreSpot.ps1', 'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1')
+          foreach ($file in $files) {
+              $tokens = $null
+              $parseErrors = $null
+              $null = [System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$parseErrors)
+              if ($parseErrors -and $parseErrors.Count -gt 0) {
+                  $parseErrors | ForEach-Object { Write-Host "  $($_.Message) at $($_.Extent.StartLineNumber):$($_.Extent.StartColumnNumber)" }
+                  throw "$file has $($parseErrors.Count) parse error(s)."
+              }
+              Write-Host "  $file parsed cleanly"
+          }
+
+      - name: PowerShell syntax check (PowerShell 7)
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "Host: $($PSVersionTable.PSVersion)"
           $files = @('LibreSpot.ps1', 'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1')
           $parseErrors = $null
           foreach ($file in $files) {
