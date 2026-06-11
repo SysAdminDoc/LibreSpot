@@ -55,4 +55,12 @@ public sealed class ReleaseWorkflowTests
         Assert.Contains("if: ${{ env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != '' }}", workflow);
         Assert.DoesNotContain("if: ${{ secrets.", workflow);
     }
+
+    [Fact]
+    public void ReleaseWorkflow_DoesNotContainEmptyExpressionMarkers()
+    {
+        var workflow = ReadWorkflow();
+
+        Assert.DoesNotContain("${{ }}", workflow);
+    }
 }
