@@ -31,10 +31,30 @@ jobs:
       - name: Restore
         run: dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj
 
-      - name: PowerShell syntax check
+      - name: PowerShell syntax check (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "Host: $($PSVersionTable.PSVersion)"
+          $files = @('LibreSpot.ps1', 'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1')
+          foreach ($file in $files) {
+              $tokens = $null
+              $parseErrors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$parseErrors) | Out-Null
+              if ($parseErrors.Count -gt 0) {
+                  $parseErrors | ForEach-Object {
+                      Write-Host "  $($_.Message) at $($_.Extent.StartLineNumber):$($_.Extent.StartColumnNumber)"
+                  }
+                  throw "$file has $($parseErrors.Count) parse error(s)."
+              }
+              Write-Host "  $file parsed cleanly"
+          }
+
+      - name: PowerShell syntax check (PowerShell 7)
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          Write-Host "Host: $($PSVersionTable.PSVersion)"
           $files = @('LibreSpot.ps1', 'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1')
           foreach ($file in $files) {
               $tokens = $null

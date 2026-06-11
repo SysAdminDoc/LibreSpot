@@ -33,6 +33,10 @@ public sealed class ReleaseWorkflowTests
         Assert.Contains("reached end of support", workflow);
         Assert.Contains("Report resolved .NET SDK patch", workflow);
         Assert.Contains("dotnet --version", workflow);
+        Assert.Contains("PowerShell syntax check (Windows PowerShell 5.1)", workflow);
+        Assert.Contains("PowerShell syntax check (PowerShell 7)", workflow);
+        Assert.Contains("shell: powershell", workflow);
+        Assert.Contains("shell: pwsh", workflow);
     }
 
     [Fact]
