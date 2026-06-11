@@ -315,19 +315,23 @@ jobs:
           Write-Host "Resolved .NET SDK patch: $sdkVersion"
           dotnet --info
 
-      - name: Restore
-        run: dotnet restore src/LibreSpot.Desktop/LibreSpot.Desktop.csproj
+      - name: Restore test graph with locked NuGet audit
+        run: dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj --locked-mode -p:AuditPipeline=true
 
       - name: Run unit tests
         # Stops a broken regression from shipping. AppCatalogTests +
         # ConfigurationServiceTests already cover the config surface.
-        run: dotnet test tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj -c Release --nologo
+        run: dotnet test tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj -c Release --nologo --no-restore
+
+      - name: Restore WPF publish graph with locked NuGet audit
+        run: dotnet restore src/LibreSpot.Desktop/LibreSpot.Desktop.csproj -r win-x64 --locked-mode -p:AuditPipeline=true
 
       - name: Publish WPF shell (win-x64, self-contained, single-file)
         run: >
           dotnet publish src/LibreSpot.Desktop/LibreSpot.Desktop.csproj
           -c Release
           -r win-x64
+          --no-restore
           --self-contained true
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true

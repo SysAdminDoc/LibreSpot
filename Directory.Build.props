@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+    <LibreSpotNuGetAuditErrorCodes>NU1902;NU1903;NU1904</LibreSpotNuGetAuditErrorCodes>
+    <WarningsAsErrors Condition="'$(AuditPipeline)' == 'true'">$(WarningsAsErrors);$(LibreSpotNuGetAuditErrorCodes)</WarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- Suppress accepted advisories only with explicit NuGetAuditSuppress items that name the advisory URL. -->
+</Project>

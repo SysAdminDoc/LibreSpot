@@ -35,9 +35,25 @@ public sealed class DependencyAutomationTests
         Assert.Contains("shell: powershell", workflow);
         Assert.Contains("shell: pwsh", workflow);
         Assert.Contains("XAML parse smoke", workflow);
-        Assert.Contains("dotnet test tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj -c Release --nologo", workflow);
-        Assert.Contains("dotnet list $project package --vulnerable --include-transitive", workflow);
-        Assert.Contains("has the following vulnerable packages", workflow);
+        Assert.Contains("dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj --locked-mode -p:AuditPipeline=true", workflow);
+        Assert.Contains("dotnet test tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj -c Release --nologo --no-restore", workflow);
+        Assert.Contains("NUGET_AUDIT_LEVEL: moderate", workflow);
+        Assert.Contains("dotnet list $project package --vulnerable --include-transitive --format json --output-version 1 --no-restore", workflow);
+        Assert.Contains("or-higher finding(s)", workflow);
+    }
+
+    [Fact]
+    public void DirectoryBuildProps_EnablesLockedNuGetAuditPolicy()
+    {
+        var props = ReadRepoFile("Directory.Build.props");
+
+        Assert.Contains("<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>", props);
+        Assert.Contains("<NuGetAudit>true</NuGetAudit>", props);
+        Assert.Contains("<NuGetAuditMode>all</NuGetAuditMode>", props);
+        Assert.Contains("<NuGetAuditLevel>moderate</NuGetAuditLevel>", props);
+        Assert.Contains("NU1902;NU1903;NU1904", props);
+        Assert.Contains("AuditPipeline", props);
+        Assert.Contains("NuGetAuditSuppress", props);
     }
 
     private static string ReadRepoFile(params string[] relativeParts) =>

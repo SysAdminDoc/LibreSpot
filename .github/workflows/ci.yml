@@ -28,8 +28,8 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Restore
-        run: dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj
+      - name: Restore with locked NuGet audit
+        run: dotnet restore tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj --locked-mode -p:AuditPipeline=true
 
       - name: PowerShell syntax check (Windows PowerShell 5.1)
         shell: powershell
@@ -85,23 +85,60 @@ jobs:
           }
 
       - name: Run unit tests
-        run: dotnet test tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj -c Release --nologo
+        run: dotnet test tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj -c Release --nologo --no-restore
 
       - name: NuGet vulnerability audit
         shell: pwsh
+        env:
+          NUGET_AUDIT_LEVEL: moderate
         run: |
           $ErrorActionPreference = 'Stop'
+          $severityRank = @{
+              low = 1
+              moderate = 2
+              high = 3
+              critical = 4
+          }
+          $threshold = $env:NUGET_AUDIT_LEVEL.ToLowerInvariant()
+          if (-not $severityRank.ContainsKey($threshold)) {
+              throw "Unsupported NuGet audit threshold '$($env:NUGET_AUDIT_LEVEL)'."
+          }
           $projects = @(
               'src/LibreSpot.Desktop/LibreSpot.Desktop.csproj',
               'tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj'
           )
           foreach ($project in $projects) {
-              $output = dotnet list $project package --vulnerable --include-transitive 2>&1 | Out-String
-              Write-Host $output
+              $output = dotnet list $project package --vulnerable --include-transitive --format json --output-version 1 --no-restore 2>&1 | Out-String
               if ($LASTEXITCODE -ne 0) {
+                  Write-Host $output
                   throw "NuGet vulnerability audit failed for $project."
               }
-              if ($output -match 'has the following vulnerable packages') {
-                  throw "NuGet vulnerability audit found vulnerable packages in $project."
+              $report = $output | ConvertFrom-Json
+              $findings = @()
+              foreach ($reportedProject in @($report.projects)) {
+                  foreach ($framework in @($reportedProject.frameworks)) {
+                      foreach ($packageSet in @('topLevelPackages', 'transitivePackages')) {
+                          foreach ($package in @($framework.$packageSet)) {
+                              foreach ($vulnerability in @($package.vulnerabilities)) {
+                                  $severity = ([string]$vulnerability.severity).ToLowerInvariant()
+                                  if (-not $severityRank.ContainsKey($severity)) { continue }
+                                  $findings += [pscustomobject]@{
+                                      Project = $reportedProject.path
+                                      Framework = $framework.framework
+                                      Package = $package.id
+                                      Resolved = $package.resolvedVersion
+                                      Severity = $severity
+                                      Advisory = $vulnerability.advisoryUrl
+                                  }
+                              }
+                          }
+                      }
+                  }
               }
+              $blocking = @($findings | Where-Object { $severityRank[$_.Severity] -ge $severityRank[$threshold] })
+              if ($blocking.Count -gt 0) {
+                  $blocking | Format-Table Project, Framework, Package, Resolved, Severity, Advisory -AutoSize | Out-String | Write-Host
+                  throw "NuGet vulnerability audit found $($blocking.Count) $threshold-or-higher finding(s) in $project."
+              }
+              Write-Host "${project}: no $threshold-or-higher NuGet vulnerabilities found."
           }

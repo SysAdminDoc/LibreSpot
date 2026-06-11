@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <AssemblyName>LibreSpot</AssemblyName>
     <ApplicationIcon>..\..\icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
