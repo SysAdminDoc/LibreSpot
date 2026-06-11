@@ -19,6 +19,15 @@ on:
 permissions:
   contents: read     # default for all jobs; release job escalates per-job
 
+env:
+  DOTNET_TARGET_FRAMEWORK: net8.0-windows
+  DOTNET_SDK_CHANNEL: 8.0.x
+  DOTNET_SUPPORT_PHASE: maintenance
+  DOTNET_EOL_DATE: "2026-11-10"
+  DOTNET_HOLD_DECISION: "Hold .NET 8 for preview builds; migrate the WPF shell to .NET 10 before v4 stable or before .NET 8 EOL."
+  PS2EXE_VERSION: "1.0.18"
+  CYCLONEDX_VERSION: "6.2.0"
+
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false   # never cancel an in-flight release; queue instead
@@ -107,6 +116,37 @@ jobs:
               }
           }
 
+      - name: Runtime and build-tool lifecycle gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          [xml]$desktopProject = Get-Content 'src/LibreSpot.Desktop/LibreSpot.Desktop.csproj'
+          $targetFramework = [string]$desktopProject.Project.PropertyGroup.TargetFramework
+          if ($targetFramework -ne $env:DOTNET_TARGET_FRAMEWORK) {
+              throw "WPF TargetFramework is $targetFramework but release policy expects $env:DOTNET_TARGET_FRAMEWORK. Update the lifecycle gate with the migration decision."
+          }
+
+          $eol = [datetime]::ParseExact($env:DOTNET_EOL_DATE, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+          $today = (Get-Date).Date
+          $daysRemaining = ($eol.Date - $today).Days
+
+          Write-Host "WPF TargetFramework:       $env:DOTNET_TARGET_FRAMEWORK"
+          Write-Host ".NET SDK channel:          $env:DOTNET_SDK_CHANNEL"
+          Write-Host ".NET support phase:        $env:DOTNET_SUPPORT_PHASE"
+          Write-Host ".NET support end date:     $($eol.ToString('yyyy-MM-dd'))"
+          Write-Host "Days until support ends:   $daysRemaining"
+          Write-Host "PS2EXE version pin:        $env:PS2EXE_VERSION"
+          Write-Host "CycloneDX version pin:     $env:CYCLONEDX_VERSION"
+          Write-Host "Lifecycle decision:        $env:DOTNET_HOLD_DECISION"
+
+          if ($daysRemaining -lt 0) {
+              throw ".NET target $env:DOTNET_TARGET_FRAMEWORK reached end of support on $($eol.ToString('yyyy-MM-dd')). Retarget to .NET 10 or add an explicit release exception before tagging."
+          }
+          if ($daysRemaining -le 120) {
+              Write-Warning ".NET target $env:DOTNET_TARGET_FRAMEWORK is within 120 days of end of support. $env:DOTNET_HOLD_DECISION"
+          }
+
       - name: PowerShell syntax check (LibreSpot.ps1 + Backend.ps1)
         shell: pwsh
         run: |
@@ -160,7 +200,7 @@ jobs:
         shell: pwsh
         # Pin so a breaking PS2EXE release can't silently corrupt a tag build.
         # Bump alongside a tested local run when updating.
-        run: Install-Module -Name ps2exe -RequiredVersion 1.0.15 -Force -Scope CurrentUser -AllowClobber
+        run: Install-Module -Name ps2exe -RequiredVersion $env:PS2EXE_VERSION -Force -Scope CurrentUser -AllowClobber
 
       - name: Compile LibreSpot.exe
         shell: pwsh
@@ -234,7 +274,17 @@ jobs:
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: ${{ env.DOTNET_SDK_CHANNEL }}
+
+      - name: Report resolved .NET SDK patch
+        shell: pwsh
+        run: |
+          $sdkVersion = (dotnet --version).Trim()
+          if ($sdkVersion -notmatch '^8\.0\.') {
+              throw "Expected an 8.0.x SDK from setup-dotnet but resolved $sdkVersion."
+          }
+          Write-Host "Resolved .NET SDK patch: $sdkVersion"
+          dotnet --info
 
       - name: Restore
         run: dotnet restore src/LibreSpot.Desktop/LibreSpot.Desktop.csproj
@@ -256,7 +306,7 @@ jobs:
 
       - name: Install CycloneDX tool
         # Pin version to prevent breaking SBOM format changes from upstream.
-        run: dotnet tool install --global CycloneDX --version 3.0.8
+        run: dotnet tool install --global CycloneDX --version $env:CYCLONEDX_VERSION
 
       - name: Generate SBOM (CycloneDX)
         run: dotnet CycloneDX src/LibreSpot.Desktop/LibreSpot.Desktop.csproj -o publish/sbom --json
