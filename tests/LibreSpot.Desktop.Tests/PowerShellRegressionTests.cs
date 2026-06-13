@@ -390,6 +390,16 @@ public sealed class PowerShellRegressionTests
     }
 
     [Fact]
+    public void DesktopBackend_WatcherVerifiesIntegrityBeforeRunning()
+    {
+        var backend = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+
+        Assert.Contains("LibreSpot.Backend.ps1.sha256", backend);
+        Assert.Contains("SHA256]::Create()", backend);
+        Assert.Contains("Integrity check failed", backend);
+    }
+
+    [Fact]
     public void AutoReapply_IsPartOfBooleanNormalization()
     {
         // Config round-trips through a hand-maintained boolean-keys list. If

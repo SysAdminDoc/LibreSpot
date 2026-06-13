@@ -1,4 +1,6 @@
 using System.IO;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using LibreSpot.Desktop.Services;
 using Xunit;
 
@@ -87,6 +89,60 @@ public sealed class BackendScriptServiceTests
             {
                 Directory.Delete(tempRoot, recursive: true);
             }
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_HardensRuntimeDirectoryAcls()
+    {
+        var runtimeDirectory = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"), "Runtime");
+        try
+        {
+            var service = new BackendScriptService(runtimeDirectory);
+            await service.RunAsync("Install", "config.json", _ => { });
+
+            Assert.True(Directory.Exists(runtimeDirectory));
+
+            var dirInfo = new DirectoryInfo(runtimeDirectory);
+            var security = dirInfo.GetAccessControl();
+            Assert.True(security.AreAccessRulesProtected, "Runtime directory should have inheritance disabled.");
+
+            var rules = security.GetAccessRules(includeExplicit: true, includeInherited: false, targetType: typeof(SecurityIdentifier));
+            var currentUser = WindowsIdentity.GetCurrent().User!;
+            var hasOwnerRule = false;
+            foreach (FileSystemAccessRule rule in rules)
+            {
+                if (rule.IdentityReference.Value == currentUser.Value && rule.AccessControlType == AccessControlType.Allow)
+                {
+                    hasOwnerRule = true;
+                }
+            }
+            Assert.True(hasOwnerRule, "Runtime directory should grant the current user explicit access.");
+        }
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(runtimeDirectory)!, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void CleanStaleExecutionCopies_RemovesLeftoverRunFiles()
+    {
+        var runtimeDirectory = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(runtimeDirectory);
+        try
+        {
+            var staleFile = Path.Combine(runtimeDirectory, "LibreSpot.Backend.deadbeef.run.ps1");
+            File.WriteAllText(staleFile, "stale");
+            Assert.True(File.Exists(staleFile));
+
+            BackendScriptService.CleanStaleExecutionCopies(runtimeDirectory);
+
+            Assert.False(File.Exists(staleFile));
+        }
+        finally
+        {
+            try { Directory.Delete(runtimeDirectory, recursive: true); } catch { }
         }
     }
 }
