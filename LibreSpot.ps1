@@ -5298,10 +5298,13 @@ function Module-NukeSpotify {
     # --- Phase 6: Scheduled tasks ---
     Write-Log "[Phase 6/8] Removing scheduled tasks..."
     try {
-        Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -match 'Spotify' } | ForEach-Object {
-            try { Unregister-ScheduledTask -TaskName $_.TaskName -Confirm:$false -EA Stop; Write-Log "  Removed task: $($_.TaskName)"; $rc++ }
-            catch {}
-        }
+        $spotifyTaskNames = @('SpotifyMigrator', 'SpotifyUpdateTask', 'Spotify')
+        Get-ScheduledTask -EA SilentlyContinue |
+            Where-Object { $_.TaskName -in $spotifyTaskNames -or $_.TaskName -like 'Spotify-*' } |
+            ForEach-Object {
+                try { Unregister-ScheduledTask -TaskName $_.TaskName -Confirm:$false -EA Stop; Write-Log "  Removed task: $($_.TaskName)"; $rc++ }
+                catch {}
+            }
     } catch { Write-Log "  Task cleanup skipped." }
 
     # --- Phase 7: Firewall rules ---
