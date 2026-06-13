@@ -1,0 +1,148 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+  <!--
+    High-contrast palette for the LibreSpot WPF shell.
+
+    Every resource key from Palette.xaml is present here so StaticResource
+    lookups resolve correctly when ThemeManager swaps dictionaries.  Brushes
+    map to SystemColors so the shell respects whichever high-contrast theme
+    the user chose (HC #1, HC #2, HC Black, HC White).
+
+    Shadows, glows, gradients, and sheens are flattened to transparent or
+    solid equivalents.  Motion durations are set to near-zero so animations
+    complete instantly without being skipped (Duration.Zero can cause WPF
+    animation-engine edge cases).
+  -->
+
+  <!-- ═══ Typography ═══ -->
+  <FontFamily x:Key="HeadingFont">Segoe UI Variable Display, Segoe UI Variable Text, Segoe UI</FontFamily>
+  <FontFamily x:Key="BodyFont">Segoe UI Variable Text, Segoe UI</FontFamily>
+  <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
+
+  <!-- ═══ Surfaces — mapped to system window background ═══ -->
+  <Color x:Key="CanvasColor">{x:Static SystemColors.WindowColor}</Color>
+  <Color x:Key="CanvasShadeColor">{x:Static SystemColors.WindowColor}</Color>
+  <Color x:Key="Surface1Color">{x:Static SystemColors.ControlColor}</Color>
+  <Color x:Key="Surface2Color">{x:Static SystemColors.ControlColor}</Color>
+  <Color x:Key="Surface3Color">{x:Static SystemColors.ControlColor}</Color>
+  <Color x:Key="SurfaceRaisedColor">{x:Static SystemColors.ControlColor}</Color>
+  <Color x:Key="RailColor">{x:Static SystemColors.WindowColor}</Color>
+
+  <!-- ═══ Strokes — mapped to system control border ═══ -->
+  <Color x:Key="StrokeColor">{x:Static SystemColors.ActiveBorderColor}</Color>
+  <Color x:Key="StrokeSoftColor">{x:Static SystemColors.ActiveBorderColor}</Color>
+  <Color x:Key="StrokeStrongColor">{x:Static SystemColors.WindowFrameColor}</Color>
+
+  <!-- ═══ Text — mapped to system text colors ═══ -->
+  <Color x:Key="TextColor">{x:Static SystemColors.WindowTextColor}</Color>
+  <Color x:Key="TextMutedColor">{x:Static SystemColors.GrayTextColor}</Color>
+  <Color x:Key="TextSubtleColor">{x:Static SystemColors.GrayTextColor}</Color>
+  <Color x:Key="TextOnAccentColor">{x:Static SystemColors.HighlightTextColor}</Color>
+
+  <!-- ═══ Brand / accent — mapped to system highlight ═══ -->
+  <Color x:Key="AccentColor">{x:Static SystemColors.HighlightColor}</Color>
+  <Color x:Key="AccentHoverColor">{x:Static SystemColors.HighlightColor}</Color>
+  <Color x:Key="AccentDeepColor">{x:Static SystemColors.HighlightColor}</Color>
+  <Color x:Key="AccentSoftColor">{x:Static SystemColors.ControlColor}</Color>
+  <Color x:Key="AccentMistColor">Transparent</Color>
+  <Color x:Key="AccentRingColor">{x:Static SystemColors.HighlightColor}</Color>
+
+  <!-- ═══ Semantic intent — stronger signal, no alpha ═══ -->
+  <Color x:Key="DangerColor">#FF0000</Color>
+  <Color x:Key="DangerDeepColor">#CC0000</Color>
+  <Color x:Key="DangerSoftColor">{x:Static SystemColors.ControlColor}</Color>
+  <Color x:Key="WarningColor">#FFAA00</Color>
+  <Color x:Key="WarningSoftColor">{x:Static SystemColors.ControlColor}</Color>
+  <Color x:Key="WarningRingColor">#FFAA00</Color>
+  <Color x:Key="SuccessColor">#00CC00</Color>
+  <Color x:Key="SuccessSoftColor">{x:Static SystemColors.ControlColor}</Color>
+  <Color x:Key="InfoColor">{x:Static SystemColors.HotTrackColor}</Color>
+
+  <!-- ═══ Overlays / scrim — opaque for clarity ═══ -->
+  <Color x:Key="OverlayColor">{x:Static SystemColors.WindowColor}</Color>
+  <Color x:Key="ScrimColor">{x:Static SystemColors.WindowColor}</Color>
+  <Color x:Key="SheenColor">Transparent</Color>
+
+  <!-- ═══ Brushes ═══ -->
+  <SolidColorBrush x:Key="CanvasBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+  <SolidColorBrush x:Key="MicaCanvasBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+  <SolidColorBrush x:Key="RailBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+
+  <SolidColorBrush x:Key="PanelBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
+  <SolidColorBrush x:Key="PanelStrongBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
+  <SolidColorBrush x:Key="Surface1Brush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
+  <SolidColorBrush x:Key="Surface2Brush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
+  <SolidColorBrush x:Key="Surface3Brush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
+  <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
+  <SolidColorBrush x:Key="CanvasShadeBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+
+  <SolidColorBrush x:Key="StrokeBrush" Color="{DynamicResource {x:Static SystemColors.ActiveBorderColorKey}}" />
+  <SolidColorBrush x:Key="StrokeSoftBrush" Color="{DynamicResource {x:Static SystemColors.ActiveBorderColorKey}}" />
+  <SolidColorBrush x:Key="StrokeStrongBrush" Color="{DynamicResource {x:Static SystemColors.WindowFrameColorKey}}" />
+
+  <SolidColorBrush x:Key="TextBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+  <SolidColorBrush x:Key="MutedTextBrush" Color="{DynamicResource {x:Static SystemColors.GrayTextColorKey}}" />
+  <SolidColorBrush x:Key="SubtleTextBrush" Color="{DynamicResource {x:Static SystemColors.GrayTextColorKey}}" />
+  <SolidColorBrush x:Key="TextOnAccentBrush" Color="{DynamicResource {x:Static SystemColors.HighlightTextColorKey}}" />
+
+  <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+  <SolidColorBrush x:Key="AccentHoverBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+  <SolidColorBrush x:Key="AccentDeepBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+  <SolidColorBrush x:Key="AccentSoftBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
+  <SolidColorBrush x:Key="AccentMistBrush" Color="Transparent" />
+  <SolidColorBrush x:Key="AccentRingBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+
+  <SolidColorBrush x:Key="DangerBrush" Color="#FF0000" />
+  <SolidColorBrush x:Key="DangerDeepBrush" Color="#CC0000" />
+  <SolidColorBrush x:Key="DangerSoftBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
+  <SolidColorBrush x:Key="WarningBrush" Color="#FFAA00" />
+  <SolidColorBrush x:Key="WarningSoftBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
+  <SolidColorBrush x:Key="WarningRingBrush" Color="#FFAA00" />
+  <SolidColorBrush x:Key="SuccessBrush" Color="#00CC00" />
+  <SolidColorBrush x:Key="SuccessSoftBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
+  <SolidColorBrush x:Key="InfoBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
+
+  <SolidColorBrush x:Key="OverlayBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+  <SolidColorBrush x:Key="ScrimBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+  <SolidColorBrush x:Key="SheenBrush" Color="Transparent" />
+
+  <!-- ═══ Radius rhythm (unchanged) ═══ -->
+  <CornerRadius x:Key="RadiusSm">8</CornerRadius>
+  <CornerRadius x:Key="RadiusMd">12</CornerRadius>
+  <CornerRadius x:Key="RadiusLg">16</CornerRadius>
+  <CornerRadius x:Key="RadiusXl">20</CornerRadius>
+  <CornerRadius x:Key="RadiusPill">999</CornerRadius>
+
+  <!-- ═══ Spacing (unchanged) ═══ -->
+  <Thickness x:Key="SpaceXs">4</Thickness>
+  <Thickness x:Key="SpaceSm">8</Thickness>
+  <Thickness x:Key="SpaceMd">12</Thickness>
+  <Thickness x:Key="SpaceLg">16</Thickness>
+  <Thickness x:Key="SpaceXl">24</Thickness>
+  <Thickness x:Key="SpaceXxl">32</Thickness>
+
+  <!-- ═══ Gradients flattened to solid equivalents ═══ -->
+  <SolidColorBrush x:Key="RailGlowBrush" Color="Transparent" />
+  <SolidColorBrush x:Key="SurfaceSheenBrush" Color="Transparent" />
+  <SolidColorBrush x:Key="AccentGradientBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+  <SolidColorBrush x:Key="ShimmerBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+
+  <!-- ═══ Elevation — shadows disabled (zero opacity) ═══ -->
+  <DropShadowEffect x:Key="CardShadow" BlurRadius="0" ShadowDepth="0" Opacity="0" Color="Black" />
+  <DropShadowEffect x:Key="OverlayShadow" BlurRadius="0" ShadowDepth="0" Opacity="0" Color="Black" />
+  <DropShadowEffect x:Key="AccentGlow" BlurRadius="0" ShadowDepth="0" Opacity="0" Color="Black" />
+  <DropShadowEffect x:Key="TabSelectedGlow" BlurRadius="0" ShadowDepth="0" Opacity="0" Color="Black" />
+
+  <!-- ═══ Motion tokens — near-zero for instant transitions ═══ -->
+  <Duration x:Key="MotionFastDuration">0:0:0.001</Duration>
+  <Duration x:Key="MotionMedDuration">0:0:0.001</Duration>
+  <Duration x:Key="MotionSlowDuration">0:0:0.001</Duration>
+
+  <CubicEase x:Key="StandardEase" EasingMode="EaseOut" />
+  <QuadraticEase x:Key="SoftEase" EasingMode="EaseOut" />
+
+  <sys:Double x:Key="MotionFast">0</sys:Double>
+  <sys:Double x:Key="MotionMed">0</sys:Double>
+  <sys:Double x:Key="MotionSlow">0</sys:Double>
+</ResourceDictionary>
