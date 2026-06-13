@@ -950,4 +950,56 @@ public sealed class PowerShellRegressionTests
         Assert.True(exportBlock.Success, "Worker function export list not found.");
         Assert.Contains("'Expand-ArchiveSafely'", exportBlock.Groups["list"].Value);
     }
+
+    // ---------------------------------------------------------------------
+    // GitHub API rate-limit resilience — update checks use
+    // Invoke-GitHubApiSafe instead of raw Invoke-RestMethod.
+    // ---------------------------------------------------------------------
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void InvokeGitHubApiSafe_ExistsAndHandlesRateLimits(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Invoke-GitHubApiSafe\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Invoke-GitHubApiSafe function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+
+        Assert.Contains("x-ratelimit-remaining", body);
+        Assert.Contains("x-ratelimit-reset", body);
+        Assert.Contains("429", body);
+        Assert.Contains("403", body);
+        Assert.Contains("rate limit", body.ToLowerInvariant());
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void CheckForUpdates_UsesGitHubApiSafeNotRawRestMethod(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Check-ForUpdates\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Check-ForUpdates function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+
+        Assert.Contains("Invoke-GitHubApiSafe", body);
+        Assert.DoesNotContain("Invoke-RestMethod", body);
+    }
+
+    [Fact]
+    public void InvokeGitHubApiSafe_IsExportedToWorkerRunspace()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var exportBlock = Regex.Match(script, @"\$functionNamesForWorker\s*=\s*@\((?<list>.+?)\)", RegexOptions.Singleline);
+        Assert.True(exportBlock.Success, "Worker function export list not found.");
+        Assert.Contains("'Invoke-GitHubApiSafe'", exportBlock.Groups["list"].Value);
+    }
 }
