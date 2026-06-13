@@ -171,8 +171,8 @@ public sealed class EnvironmentSnapshot
 public static class AppCatalog
 {
     public const int CurrentConfigSchemaVersion = 1;
-    public const string PinnedSpotXSpotifyVersionId = "1.2.90.451";
-    public const string PinnedSpotXSpotifyVersion = "1.2.90.451.gb094aab0";
+    public const string PinnedSpotXSpotifyVersionId = "1.2.92";
+    public const string PinnedSpotXSpotifyVersion = "1.2.92";
     public const string PinnedSpicetifyCliVersion = "2.43.2";
     public const string SpicetifyWindowsMinTestedSpotify = "1.2.14";
     public const string SpicetifyWindowsMaxTestedSpotify = "1.2.88";
@@ -191,8 +191,9 @@ public static class AppCatalog
     public static IReadOnlyList<SpotifyVersionEntry> SpotifyVersionManifest { get; } = new ReadOnlyCollection<SpotifyVersionEntry>(new[]
     {
         new SpotifyVersionEntry("auto",            "Auto (use SpotX default)",          "",                          "Recommended. Lets SpotX pick the most compatible build."),
-        new SpotifyVersionEntry(PinnedSpotXSpotifyVersionId, "1.2.90.451 (current pinned)", PinnedSpotXSpotifyVersion, "Best match for our pinned SpotX commit; newer than Spicetify CLI's max-tested Windows CSS-map baseline."),
-        new SpotifyVersionEntry("1.2.86.502",      "1.2.86.502 (previous fallback)",    "1.2.86.502.g8cd7fb22",      "Prior pinned build kept for rollback and comparison."),
+        new SpotifyVersionEntry(PinnedSpotXSpotifyVersionId, "1.2.92 (current pinned)", PinnedSpotXSpotifyVersion, "Best match for our pinned SpotX commit; newer than Spicetify CLI's max-tested Windows CSS-map baseline."),
+        new SpotifyVersionEntry("1.2.90.451",      "1.2.90.451 (previous fallback)",    "1.2.90.451.gb094aab0",      "Prior pinned build kept for rollback and comparison."),
+        new SpotifyVersionEntry("1.2.86.502",      "1.2.86.502 (older stable)",         "1.2.86.502.g8cd7fb22",      "Earlier pinned build kept for rollback and comparison."),
         new SpotifyVersionEntry("1.2.85.519",      "1.2.85.519 (older stable)",         "1.2.85.519.g7c42e2e8",      "Last Windows release before Canvas-home changes."),
         new SpotifyVersionEntry("1.2.53.440.x86",  "1.2.53.440 (x86 / 32-bit only)",    "1.2.53.440.g7b2f582a",      "For 32-bit Windows. Do not pick on x64."),
         new SpotifyVersionEntry("1.2.5.1006.win7", "1.2.5.1006 (Windows 7 / 8.1)",      "1.2.5.1006.g22820f93",      "Last build supported on legacy Windows."),

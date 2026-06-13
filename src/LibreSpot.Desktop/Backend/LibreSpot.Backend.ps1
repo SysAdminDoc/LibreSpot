@@ -54,9 +54,9 @@ $global:CONFIG_SCHEMA_VERSION = 1
 $global:PinnedReleases = @{
     SpotX = @{
         Version = '2.0'
-        Commit  = '95882aa5b308832102ac8a206d300bf6f5436bfb'
-        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/95882aa5b308832102ac8a206d300bf6f5436bfb/run.ps1'
-        SHA256  = '67e7ad2ec42531712f33959b1170590d48f7b2940a9a478f956b5770a69b1af3'
+        Commit  = '3284673df69e276c5c0ee90bb1cc9185cecb9ad4'
+        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/3284673df69e276c5c0ee90bb1cc9185cecb9ad4/run.ps1'
+        SHA256  = '18684432f8b9ec1c6d7d2481192afc0bcad670aa769a306480948a3e690cc823'
     }
     SpicetifyCLI = @{
         Version = '2.43.2'
@@ -214,8 +214,8 @@ $global:SpotXLyricsThemes = @(
 
 $global:SpotifyVersionManifest = @(
     @{ Id = 'auto';            Version = '' }
+    @{ Id = '1.2.92';          Version = '1.2.92' }
     @{ Id = '1.2.90.451';      Version = '1.2.90.451.gb094aab0' }
-    @{ Id = '1.2.86.502';      Version = '1.2.86.502.g8cd7fb22' }
     @{ Id = '1.2.85.519';      Version = '1.2.85.519.g7c42e2e8' }
     @{ Id = '1.2.53.440.x86';  Version = '1.2.53.440.g7b2f582a' }
     @{ Id = '1.2.5.1006.win7'; Version = '1.2.5.1006.g22820f93' }
