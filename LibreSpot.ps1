@@ -4948,6 +4948,42 @@ function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]
     Write-Log "  SHA256 verified: $Label"
 }
 
+function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,[string]$Label='archive',[int]$MaxEntries=10000,[long]$MaxExpandedBytes=500MB)
+    Add-Type -AssemblyName System.IO.Compression
+    $zip = $null
+    try {
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+        if ($zip.Entries.Count -gt $MaxEntries) {
+            throw "Archive '$Label' contains $($zip.Entries.Count) entries (limit $MaxEntries)."
+        }
+        $totalDeclaredBytes = 0L
+        foreach ($entry in $zip.Entries) {
+            $name = $entry.FullName
+            if ([string]::IsNullOrWhiteSpace($name)) { continue }
+            $normalized = $name.Replace('/', '\')
+            if ([System.IO.Path]::IsPathRooted($normalized)) {
+                throw "Archive '$Label' contains an absolute path entry: $name"
+            }
+            if ($normalized.Contains('..\') -or $normalized.StartsWith('..') -or $normalized.EndsWith('..')) {
+                throw "Archive '$Label' contains a path traversal entry: $name"
+            }
+            $fullTarget = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath $normalized))
+            $fullDest = [System.IO.Path]::GetFullPath($DestinationPath)
+            if (-not $fullTarget.StartsWith($fullDest, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "Archive '$Label' entry escapes destination: $name"
+            }
+            $totalDeclaredBytes += $entry.Length
+            if ($totalDeclaredBytes -gt $MaxExpandedBytes) {
+                throw "Archive '$Label' declared expanded size exceeds limit ($([math]::Round($MaxExpandedBytes / 1MB))MB)."
+            }
+        }
+    } finally {
+        if ($zip) { $zip.Dispose() }
+    }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $DestinationPath)
+}
+
 function Hide-SpotifyWindows {
     Get-Process -Name Spotify -EA SilentlyContinue | ForEach-Object {
         if ($_.MainWindowHandle -ne [IntPtr]::Zero) {
@@ -5406,7 +5442,7 @@ function Module-InstallSpicetifyCLI {
         if (Test-Path -LiteralPath $global:SPICETIFY_DIR) {
             $null = Clear-DirectoryContentsSafely -Path $global:SPICETIFY_DIR -Label 'Spicetify CLI'
         }
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($zp, $global:SPICETIFY_DIR)
+        Expand-ArchiveSafely -ZipPath $zp -DestinationPath $global:SPICETIFY_DIR -Label 'Spicetify CLI'
         $sExe = Join-Path $global:SPICETIFY_DIR "spicetify.exe"
         if (-not (Test-Path $sExe)) { throw "spicetify.exe not found after extraction - ZIP may be corrupted" }
         $null = Add-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'Process'
@@ -5439,7 +5475,7 @@ function Module-InstallThemes { param($Config)
         try {
             Write-Log "Downloading community theme from $($repo.Owner)/$($repo.Repo)..."
             Download-FileSafe -Uri $archiveUrl -OutFile $tz
-            [System.IO.Compression.ZipFile]::ExtractToDirectory($tz, $tu)
+            Expand-ArchiveSafely -ZipPath $tz -DestinationPath $tu -Label "Community theme '$tn'"
             $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
             if (-not $root) { throw "Community theme archive for '$tn' did not contain a root folder." }
             $src = if ($repo.ThemeFolder -eq '.') { $root.FullName } else { Join-Path $root.FullName $repo.ThemeFolder }
@@ -5478,7 +5514,7 @@ function Module-InstallThemes { param($Config)
         try {
             Download-FileSafe -Uri $global:URL_THEMES_REPO -OutFile $tz
             Confirm-FileHash -Path $tz -ExpectedHash $global:PinnedReleases.Themes.SHA256 -Label "Themes archive"
-            [System.IO.Compression.ZipFile]::ExtractToDirectory($tz, $tu)
+            Expand-ArchiveSafely -ZipPath $tz -DestinationPath $tu -Label 'Themes archive'
             $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
             if (-not $root) { throw "Theme archive did not contain an unpacked root folder." }
             $src = Join-Path $root.FullName $tn
@@ -5575,7 +5611,7 @@ function Module-InstallMarketplace { param($Config)
     try {
         Download-FileSafe -Uri $global:URL_MARKETPLACE -OutFile $mz
         Confirm-FileHash -Path $mz -ExpectedHash $global:PinnedReleases.Marketplace.SHA256 -Label "Marketplace"
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($mz, $mu)
+        Expand-ArchiveSafely -ZipPath $mz -DestinationPath $mu -Label 'Marketplace'
         $sp = if (Test-Path (Join-Path $mu "marketplace-dist")) { Join-Path $mu "marketplace-dist\*" } else { Join-Path $mu "*" }
         Copy-Item -Path $sp -Destination $md -Recurse -Force
         $health = Get-MarketplaceHealth
@@ -5919,7 +5955,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
