@@ -1,0 +1,136 @@
+{
+  "$comment": "Elevation boundary matrix — classifies every user-facing action by admin requirement. Non-mutating workflows run without elevation; mutating workflows prompt on execution.",
+  "boundaryVersion": 1,
+  "executionLevel": {
+    "powershellScript": "requireAdministrator",
+    "ps2exeCompiled": "requireAdministrator",
+    "wpfDesktopShell": "asInvoker",
+    "notes": "The PowerShell script and PS2EXE exe self-elevate immediately. The WPF shell launches as invoker and prompts for elevation only when executing mutating actions."
+  },
+  "actions": [
+    {
+      "action": "CheckUpdates",
+      "elevation": "no-admin",
+      "mutating": false,
+      "destructive": false,
+      "toastCompatible": true,
+      "description": "Compares pinned dependency versions against upstream; reads only",
+      "notes": "Only backend action that skips the admin requirement check in MainViewModel"
+    },
+    {
+      "action": "Install",
+      "elevation": "prompts-for-admin",
+      "mutating": true,
+      "destructive": false,
+      "toastCompatible": false,
+      "description": "Downloads and applies SpotX + Spicetify customizations to Spotify",
+      "notes": "Primary install workflow. Requires admin to write to Spotify's AppData files"
+    },
+    {
+      "action": "Reapply",
+      "elevation": "prompts-for-admin",
+      "mutating": true,
+      "destructive": false,
+      "toastCompatible": false,
+      "description": "Refreshes SpotX patches and restores saved Spicetify state",
+      "notes": null
+    },
+    {
+      "action": "RepairMarketplace",
+      "elevation": "prompts-for-admin",
+      "mutating": true,
+      "destructive": false,
+      "toastCompatible": false,
+      "description": "Reinstalls Marketplace custom app, applies, and opens marketplace",
+      "notes": null
+    },
+    {
+      "action": "RestoreVanilla",
+      "elevation": "prompts-for-admin",
+      "mutating": true,
+      "destructive": false,
+      "toastCompatible": false,
+      "description": "Removes Spicetify customizations while keeping SpotX in place",
+      "notes": null
+    },
+    {
+      "action": "EnableAutoReapply",
+      "elevation": "prompts-for-admin",
+      "mutating": true,
+      "destructive": false,
+      "toastCompatible": false,
+      "description": "Registers the ReapplyWatcher scheduled task",
+      "notes": "Scheduled task registration requires admin"
+    },
+    {
+      "action": "DisableAutoReapply",
+      "elevation": "prompts-for-admin",
+      "mutating": true,
+      "destructive": false,
+      "toastCompatible": false,
+      "description": "Removes the ReapplyWatcher scheduled task",
+      "notes": null
+    },
+    {
+      "action": "WatchAutoReapply",
+      "elevation": "scheduled-task",
+      "mutating": true,
+      "destructive": false,
+      "toastCompatible": false,
+      "description": "Headless watcher that reapplies patches after Spotify updates",
+      "notes": "Runs as a scheduled task at logon; elevation inherited from task registration"
+    },
+    {
+      "action": "UninstallSpicetify",
+      "elevation": "admin-only",
+      "mutating": true,
+      "destructive": true,
+      "toastCompatible": false,
+      "description": "Restores Spotify, removes Spicetify CLI, config, and PATH entry",
+      "notes": "Marked IsDestructive in AppCatalog"
+    },
+    {
+      "action": "FullReset",
+      "elevation": "admin-only",
+      "mutating": true,
+      "destructive": true,
+      "toastCompatible": false,
+      "description": "8-phase comprehensive uninstaller: process kill, AppX, filesystem, registry, tasks, firewall, verification",
+      "notes": "Marked IsDestructive in AppCatalog"
+    }
+  ],
+  "nonActionWorkflows": [
+    {
+      "workflow": "Browse/edit config",
+      "elevation": "no-admin",
+      "notes": "Config UI is available without elevation in the WPF shell"
+    },
+    {
+      "workflow": "Export diagnostics",
+      "elevation": "no-admin",
+      "notes": "Read-only log/crash dump collection"
+    },
+    {
+      "workflow": "View logs",
+      "elevation": "no-admin",
+      "notes": "Serilog logs in %LOCALAPPDATA%\\LibreSpot"
+    },
+    {
+      "workflow": "Receive notifications",
+      "elevation": "no-admin",
+      "notes": "Windows app notifications are not supported for elevated processes"
+    },
+    {
+      "workflow": "Protocol activation (librespot://)",
+      "elevation": "no-admin",
+      "notes": "Future. URI activation should land in the non-elevated shell and prompt for elevation if the action requires it"
+    }
+  ],
+  "designPrinciples": [
+    "The WPF shell launches non-elevated (asInvoker) and prompts for admin only when executing mutating backend actions",
+    "Non-mutating workflows (config browse, update check, diagnostics, logs, notifications) never require elevation",
+    "Destructive actions (FullReset, UninstallSpicetify) are gated behind both elevation and confirmation",
+    "Toast/notification support is only available in the non-elevated session — elevated processes cannot register for app notifications",
+    "The PowerShell script self-elevates immediately because its architecture does not separate read-only and mutating paths"
+  ]
+}
