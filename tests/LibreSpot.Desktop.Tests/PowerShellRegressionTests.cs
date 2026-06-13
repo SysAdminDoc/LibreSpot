@@ -498,11 +498,11 @@ public sealed class PowerShellRegressionTests
     {
         var script = ReadFile(relativePath.Split('/'));
 
-        Assert.Contains("95882aa5b308832102ac8a206d300bf6f5436bfb", script);
-        Assert.Contains("67e7ad2ec42531712f33959b1170590d48f7b2940a9a478f956b5770a69b1af3", script);
-        Assert.Contains("1.2.90.451.gb094aab0", script);
-        Assert.DoesNotContain("0abf98a36be501740d774a56d54d5f7fbbafc35c", script);
-        Assert.DoesNotContain("38d4205a2afc2050781bbfe28c6713edd6b0aef2c084304b58d92308b081f569", script);
+        Assert.Contains("3284673df69e276c5c0ee90bb1cc9185cecb9ad4", script);
+        Assert.Contains("18684432f8b9ec1c6d7d2481192afc0bcad670aa769a306480948a3e690cc823", script);
+        Assert.Contains("1.2.92", script);
+        Assert.DoesNotContain("95882aa5b308832102ac8a206d300bf6f5436bfb", script);
+        Assert.DoesNotContain("67e7ad2ec42531712f33959b1170590d48f7b2940a9a478f956b5770a69b1af3", script);
     }
 
     [Theory]
