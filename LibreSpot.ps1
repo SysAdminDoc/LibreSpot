@@ -5050,6 +5050,35 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
 # =============================================================================
 # 13. UPDATE CHECKER
 # =============================================================================
+function Invoke-GitHubApiSafe { param([string]$Uri,[hashtable]$Headers,[int]$TimeoutSec=15,[string]$Label='GitHub API')
+    try {
+        $response = Invoke-WebRequest -Uri $Uri -Headers $Headers -TimeoutSec $TimeoutSec -UseBasicParsing -ErrorAction Stop
+        $remaining = $response.Headers['x-ratelimit-remaining']
+        if ($remaining -and [int]$remaining -le 5) {
+            $resetEpoch = $response.Headers['x-ratelimit-reset']
+            $resetTime = if ($resetEpoch) { ([DateTimeOffset]::FromUnixTimeSeconds([long]$resetEpoch)).LocalDateTime.ToString('HH:mm:ss') } else { 'unknown' }
+            Write-Log "GitHub API rate limit nearly exhausted ($remaining remaining, resets at $resetTime). Subsequent checks may fail." -Level 'WARN'
+        }
+        return ($response.Content | ConvertFrom-Json)
+    } catch {
+        $statusCode = $null
+        if ($_.Exception.PSObject.Properties['Response'] -and $_.Exception.Response) {
+            $statusCode = [int]$_.Exception.Response.StatusCode
+        }
+        if ($statusCode -eq 403 -or $statusCode -eq 429) {
+            $resetEpoch = $null
+            try { $resetEpoch = $_.Exception.Response.Headers['x-ratelimit-reset'] } catch {}
+            $resetMsg = ''
+            if ($resetEpoch) {
+                $resetTime = ([DateTimeOffset]::FromUnixTimeSeconds([long]$resetEpoch)).LocalDateTime.ToString('HH:mm:ss')
+                $resetMsg = " Rate limit resets at $resetTime."
+            }
+            throw "GitHub API rate limit reached for $Label (HTTP $statusCode).$resetMsg Try again later or use an authenticated request."
+        }
+        throw
+    }
+}
+
 function Check-ForUpdates {
     Write-Log '=== Checking for dependency updates ===' -Level 'STEP'
     $headers = @{'User-Agent'="LibreSpot/$global:VERSION"}
@@ -5058,7 +5087,7 @@ function Check-ForUpdates {
 
     # SpotX (pinned to a specific commit on main, check for newer commits)
     try {
-        $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/SpotX-Official/SpotX/commits/main' -Headers $headers -TimeoutSec 15
+        $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/SpotX-Official/SpotX/commits/main' -Headers $headers -Label 'SpotX'
         $latestSha = $rel.sha
         $pinnedSha = $global:PinnedReleases.SpotX.Commit
         if ($latestSha -ne $pinnedSha) {
@@ -5071,7 +5100,7 @@ function Check-ForUpdates {
 
     # Spicetify CLI
     try {
-        $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest' -Headers $headers -TimeoutSec 15
+        $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest' -Headers $headers -Label 'Spicetify CLI'
         $latest = $rel.tag_name -replace '^v',''
         $pinned = $global:PinnedReleases.SpicetifyCLI.Version
         if (Compare-LibreSpotVersions -Latest $latest -Current $pinned) { $updates += "CLI: $pinned -> $latest"; Write-Log "  Spicetify CLI: $pinned -> $latest available" -Level 'WARN' }
@@ -5080,7 +5109,7 @@ function Check-ForUpdates {
 
     # Marketplace
     try {
-        $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/marketplace/releases/latest' -Headers $headers -TimeoutSec 15
+        $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/spicetify/marketplace/releases/latest' -Headers $headers -Label 'Marketplace'
         $latest = $rel.tag_name -replace '^v',''
         $pinned = $global:PinnedReleases.Marketplace.Version
         if (Compare-LibreSpotVersions -Latest $latest -Current $pinned) { $updates += "Marketplace: $pinned -> $latest"; Write-Log "  Marketplace: $pinned -> $latest available" -Level 'WARN' }
@@ -5089,7 +5118,7 @@ function Check-ForUpdates {
 
     # Themes
     try {
-        $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/spicetify-themes/commits/master' -Headers $headers -TimeoutSec 15
+        $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/spicetify/spicetify-themes/commits/master' -Headers $headers -Label 'Themes'
         $latest = $rel.sha
         $pinned = $global:PinnedReleases.Themes.Commit
         if ($latest -ne $pinned) {
@@ -5104,7 +5133,7 @@ function Check-ForUpdates {
 
     # LibreSpot itself
     try {
-        $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest' -Headers $headers -TimeoutSec 15
+        $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest' -Headers $headers -Label 'LibreSpot'
         $latest = $rel.tag_name -replace '^v',''
         if (Compare-LibreSpotVersions -Latest $latest -Current $global:VERSION) {
             $updates += "LibreSpot: $($global:VERSION) -> $latest"
@@ -5955,7 +5984,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
