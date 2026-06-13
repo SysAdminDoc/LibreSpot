@@ -1,0 +1,160 @@
+{
+  "$comment": "Third-party notices manifest — tracks every dependency, bundled tool, and retrieved asset with license and redistribution metadata. Operator decisions for copyleft/unknown licenses are tracked via the redistributionPosture field.",
+  "noticesVersion": 1,
+  "projectLicense": "MIT",
+  "categories": {
+    "runtime": "Ships with or is executed by the released artifact",
+    "build": "Used during build/CI only — not shipped",
+    "test": "Used during testing only — not shipped",
+    "retrieved": "Downloaded at runtime from upstream — not bundled"
+  },
+  "dependencies": [
+    {
+      "name": "SpotX",
+      "category": "retrieved",
+      "version": "commit 3284673d",
+      "sourceUrl": "https://github.com/SpotX-Official/SpotX",
+      "spdxLicense": "MIT",
+      "licenseUrl": "https://github.com/SpotX-Official/SpotX/blob/main/LICENSE",
+      "copyrightHolder": "SpotX-Official contributors",
+      "redistributionPosture": "not-redistributed",
+      "notes": "Downloaded and executed at runtime via commit-pinned URL with SHA256 verification. Not bundled in release artifacts."
+    },
+    {
+      "name": "Spicetify CLI",
+      "category": "retrieved",
+      "version": "2.43.2",
+      "sourceUrl": "https://github.com/spicetify/cli",
+      "spdxLicense": "LGPL-2.1-only",
+      "licenseUrl": "https://github.com/spicetify/cli/blob/master/LICENSE",
+      "copyrightHolder": "spicetify contributors",
+      "redistributionPosture": "not-redistributed",
+      "notes": "Downloaded and installed at runtime. Not bundled in release artifacts. LGPL-2.1 — review required if ever bundled."
+    },
+    {
+      "name": "Spicetify Marketplace",
+      "category": "retrieved",
+      "version": "1.0.8",
+      "sourceUrl": "https://github.com/spicetify/marketplace",
+      "spdxLicense": "MIT",
+      "licenseUrl": "https://github.com/spicetify/marketplace/blob/main/LICENSE",
+      "copyrightHolder": "spicetify contributors",
+      "redistributionPosture": "not-redistributed",
+      "notes": "Downloaded and deployed at runtime as a Spicetify custom app. Not bundled."
+    },
+    {
+      "name": "Spicetify Themes (official archive)",
+      "category": "retrieved",
+      "version": "commit df033493",
+      "sourceUrl": "https://github.com/spicetify/spicetify-themes",
+      "spdxLicense": "MIT",
+      "licenseUrl": "https://github.com/spicetify/spicetify-themes/blob/master/LICENSE",
+      "copyrightHolder": "spicetify contributors",
+      "redistributionPosture": "not-redistributed",
+      "notes": "Downloaded at runtime as a commit-pinned archive with SHA256 verification. Not bundled."
+    },
+    {
+      "name": "Serilog",
+      "category": "runtime",
+      "version": "4.3.1",
+      "sourceUrl": "https://github.com/serilog/serilog",
+      "spdxLicense": "Apache-2.0",
+      "licenseUrl": "https://github.com/serilog/serilog/blob/dev/LICENSE",
+      "copyrightHolder": "Serilog contributors",
+      "redistributionPosture": "allowed",
+      "notes": "NuGet runtime dependency for the WPF desktop shell."
+    },
+    {
+      "name": "Serilog.Sinks.File",
+      "category": "runtime",
+      "version": "7.0.0",
+      "sourceUrl": "https://github.com/serilog/serilog-sinks-file",
+      "spdxLicense": "Apache-2.0",
+      "licenseUrl": "https://github.com/serilog/serilog-sinks-file/blob/dev/LICENSE",
+      "copyrightHolder": "Serilog contributors",
+      "redistributionPosture": "allowed",
+      "notes": "NuGet runtime dependency for the WPF desktop shell."
+    },
+    {
+      "name": "PS2EXE",
+      "category": "build",
+      "version": "1.0.18",
+      "sourceUrl": "https://github.com/MScholtes/PS2EXE",
+      "spdxLicense": "MIT",
+      "licenseUrl": "https://github.com/MScholtes/PS2EXE/blob/master/LICENSE",
+      "copyrightHolder": "Markus Scholtes",
+      "redistributionPosture": "build-only",
+      "notes": "Compiles LibreSpot.ps1 into a standalone .exe during release. The compiled output is redistributed, not PS2EXE itself."
+    },
+    {
+      "name": "CycloneDX",
+      "category": "build",
+      "version": "6.2.0",
+      "sourceUrl": "https://github.com/CycloneDX/cyclonedx-dotnet",
+      "spdxLicense": "Apache-2.0",
+      "licenseUrl": "https://github.com/CycloneDX/cyclonedx-dotnet/blob/master/LICENSE",
+      "copyrightHolder": "OWASP Foundation",
+      "redistributionPosture": "build-only",
+      "notes": "Generates SBOM during release workflow. Not shipped."
+    },
+    {
+      "name": "Microsoft.NET.Test.Sdk",
+      "category": "test",
+      "version": "18.6.0",
+      "sourceUrl": "https://github.com/microsoft/vstest",
+      "spdxLicense": "MIT",
+      "licenseUrl": "https://github.com/microsoft/vstest/blob/main/LICENSE",
+      "copyrightHolder": "Microsoft Corporation",
+      "redistributionPosture": "test-only",
+      "notes": "Test infrastructure. Not shipped."
+    },
+    {
+      "name": "xunit",
+      "category": "test",
+      "version": "2.9.3",
+      "sourceUrl": "https://github.com/xunit/xunit",
+      "spdxLicense": "Apache-2.0",
+      "licenseUrl": "https://github.com/xunit/xunit/blob/main/LICENSE",
+      "copyrightHolder": "xunit contributors",
+      "redistributionPosture": "test-only",
+      "notes": "Test framework. Not shipped."
+    },
+    {
+      "name": "xunit.runner.visualstudio",
+      "category": "test",
+      "version": "3.1.5",
+      "sourceUrl": "https://github.com/xunit/visualstudio.xunit",
+      "spdxLicense": "Apache-2.0",
+      "licenseUrl": "https://github.com/xunit/visualstudio.xunit/blob/main/LICENSE",
+      "copyrightHolder": "xunit contributors",
+      "redistributionPosture": "test-only",
+      "notes": "Test runner adapter. Not shipped."
+    },
+    {
+      "name": "coverlet.collector",
+      "category": "test",
+      "version": "10.0.1",
+      "sourceUrl": "https://github.com/coverlet-coverage/coverlet",
+      "spdxLicense": "MIT",
+      "licenseUrl": "https://github.com/coverlet-coverage/coverlet/blob/master/LICENSE",
+      "copyrightHolder": "coverlet contributors",
+      "redistributionPosture": "test-only",
+      "notes": "Code coverage collector. Not shipped."
+    }
+  ],
+  "communityAssetsRef": "schemas/community-assets.json",
+  "licensePolicy": {
+    "autoAllowed": ["MIT", "ISC", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "Unlicense", "0BSD"],
+    "reviewRequired": ["LGPL-2.1-only", "LGPL-3.0-only", "GPL-2.0-only", "GPL-3.0-only", "MPL-2.0", "AGPL-3.0-only", "WTFPL"],
+    "blocked": [],
+    "unknownPolicy": "block-until-verified",
+    "pendingReviews": [
+      {
+        "dependency": "Spicetify CLI",
+        "license": "LGPL-2.1-only",
+        "concern": "Copyleft license — currently not bundled (retrieved at runtime), so no redistribution obligation. Must be reviewed if bundling strategy changes.",
+        "decision": "pending-operator-review"
+      }
+    ]
+  }
+}
