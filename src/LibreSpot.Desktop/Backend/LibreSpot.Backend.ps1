@@ -1022,6 +1022,49 @@ function Confirm-FileHash {
     Write-Log "SHA256 verified: $Label"
 }
 
+function Expand-ArchiveSafely {
+    param(
+        [string]$ZipPath,
+        [string]$DestinationPath,
+        [string]$Label = 'archive',
+        [int]$MaxEntries = 10000,
+        [long]$MaxExpandedBytes = 500MB
+    )
+    Add-Type -AssemblyName System.IO.Compression
+    $zip = $null
+    try {
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+        if ($zip.Entries.Count -gt $MaxEntries) {
+            throw "Archive '$Label' contains $($zip.Entries.Count) entries (limit $MaxEntries)."
+        }
+        $totalDeclaredBytes = 0L
+        foreach ($entry in $zip.Entries) {
+            $name = $entry.FullName
+            if ([string]::IsNullOrWhiteSpace($name)) { continue }
+            $normalized = $name.Replace('/', '\')
+            if ([System.IO.Path]::IsPathRooted($normalized)) {
+                throw "Archive '$Label' contains an absolute path entry: $name"
+            }
+            if ($normalized.Contains('..\') -or $normalized.StartsWith('..') -or $normalized.EndsWith('..')) {
+                throw "Archive '$Label' contains a path traversal entry: $name"
+            }
+            $fullTarget = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath $normalized))
+            $fullDest = [System.IO.Path]::GetFullPath($DestinationPath)
+            if (-not $fullTarget.StartsWith($fullDest, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "Archive '$Label' entry escapes destination: $name"
+            }
+            $totalDeclaredBytes += $entry.Length
+            if ($totalDeclaredBytes -gt $MaxExpandedBytes) {
+                throw "Archive '$Label' declared expanded size exceeds limit ($([math]::Round($MaxExpandedBytes / 1MB))MB)."
+            }
+        }
+    } finally {
+        if ($zip) { $zip.Dispose() }
+    }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $DestinationPath)
+}
+
 function Invoke-ExternalScriptIsolated {
     param(
         [string]$FilePath,
@@ -2009,8 +2052,7 @@ function Module-InstallSpicetifyCLI {
             }
         }
 
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $global:SPICETIFY_DIR)
+        Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $global:SPICETIFY_DIR -Label "Spicetify CLI ($arch)"
 
         if (-not (Test-Path (Join-Path $global:SPICETIFY_DIR 'spicetify.exe'))) {
             throw 'Spicetify CLI archive extracted without spicetify.exe.'
@@ -2051,8 +2093,7 @@ function Module-InstallThemes {
         try {
             Write-Log "Downloading community theme from $($repo.Owner)/$($repo.Repo)..."
             Download-FileSafe -Uri $archiveUrl -OutFile $zipPath
-            Add-Type -AssemblyName System.IO.Compression.FileSystem
-            [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $unpackPath)
+            Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $unpackPath -Label "Community theme '$themeName'"
             $root = Get-ChildItem -LiteralPath $unpackPath -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
             if (-not $root) { throw "Community theme archive for '$themeName' did not contain a root folder." }
             $sourcePath = if ($repo.ThemeFolder -eq '.') { $root.FullName } else { Join-Path $root.FullName $repo.ThemeFolder }
@@ -2085,8 +2126,7 @@ function Module-InstallThemes {
         try {
             Download-FileSafe -Uri $global:URL_THEMES_REPO -OutFile $zipPath
             Confirm-FileHash -Path $zipPath -ExpectedHash $global:PinnedReleases.Themes.SHA256 -Label 'Themes archive'
-            Add-Type -AssemblyName System.IO.Compression.FileSystem
-            [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $unpackPath)
+            Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $unpackPath -Label 'Themes archive'
             $root = Get-ChildItem -LiteralPath $unpackPath -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
             if (-not $root) { throw 'Pinned themes archive could not be unpacked safely.' }
             $sourcePath = Join-Path $root.FullName $themeName
@@ -2186,8 +2226,7 @@ function Module-InstallMarketplace {
         Download-FileSafe -Uri $global:URL_MARKETPLACE -OutFile $zipPath
         Confirm-FileHash -Path $zipPath -ExpectedHash $global:PinnedReleases.Marketplace.SHA256 -Label 'Marketplace archive'
 
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $unpackPath)
+        Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $unpackPath -Label 'Marketplace'
         $source = if (Test-Path -LiteralPath (Join-Path $unpackPath 'marketplace-dist')) { Join-Path $unpackPath 'marketplace-dist\*' } else { Join-Path $unpackPath '*' }
         Copy-Item -Path $source -Destination $marketplaceDir -Recurse -Force
 

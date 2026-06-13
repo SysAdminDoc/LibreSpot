@@ -897,4 +897,57 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("definition.Action, \"CheckUpdates\"", viewModel);
         Assert.Contains("StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2, requiresAdministrator)", viewModel);
     }
+
+    // ---------------------------------------------------------------------
+    // Safe archive extraction — path traversal, absolute path, and size
+    // limit protection via Expand-ArchiveSafely.
+    // ---------------------------------------------------------------------
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void ExpandArchiveSafely_ExistsAndValidatesEntries(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Expand-ArchiveSafely\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Expand-ArchiveSafely function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+
+        Assert.Contains("IsPathRooted", body);
+        Assert.Contains(@"'..\'" , body);
+        Assert.Contains("StartsWith", body);
+        Assert.Contains("MaxEntries", body);
+        Assert.Contains("MaxExpandedBytes", body);
+        Assert.Contains("escapes destination", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void AllArchiveExtractionUsesExpandArchiveSafely(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        var rawCalls = Regex.Matches(script, @"\[System\.IO\.Compression\.ZipFile\]::ExtractToDirectory");
+        Assert.Equal(1, rawCalls.Count);
+
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Expand-ArchiveSafely\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fnBody.Success);
+        Assert.Contains("ExtractToDirectory", fnBody.Groups["body"].Value);
+    }
+
+    [Fact]
+    public void ExpandArchiveSafely_IsExportedToWorkerRunspace()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var exportBlock = Regex.Match(script, @"\$functionNamesForWorker\s*=\s*@\((?<list>.+?)\)", RegexOptions.Singleline);
+        Assert.True(exportBlock.Success, "Worker function export list not found.");
+        Assert.Contains("'Expand-ArchiveSafely'", exportBlock.Groups["list"].Value);
+    }
 }
