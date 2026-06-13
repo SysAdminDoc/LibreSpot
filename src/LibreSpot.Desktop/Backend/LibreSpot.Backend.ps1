@@ -2481,6 +2481,22 @@ function Invoke-LibreSpotMaintenance {
 try {
     Ensure-LogDirectory
     if ($Action -eq 'WatchAutoReapply') {
+        $scriptDir = Split-Path -Path $PSCommandPath -Parent
+        $sidecarPath = Join-Path $scriptDir 'LibreSpot.Backend.ps1.sha256'
+        if (Test-Path -LiteralPath $sidecarPath -PathType Leaf) {
+            $expectedHash = ([System.IO.File]::ReadAllText($sidecarPath)).Trim()
+            if ($expectedHash.Length -ge 64) {
+                $selfBytes = [System.IO.File]::ReadAllBytes($PSCommandPath)
+                $sha = [System.Security.Cryptography.SHA256]::Create()
+                try {
+                    $actualHash = [System.BitConverter]::ToString($sha.ComputeHash($selfBytes)).Replace('-', '')
+                } finally { $sha.Dispose() }
+                if ($actualHash -ne $expectedHash) {
+                    Write-WatcherLog "Integrity check failed: expected $expectedHash, got $actualHash" -Level 'ERROR'
+                    exit 1
+                }
+            }
+        }
         $code = Invoke-AutoReapplyWatcher
         exit $code
     }

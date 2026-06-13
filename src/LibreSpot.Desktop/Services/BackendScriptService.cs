@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 
 namespace LibreSpot.Desktop.Services;
@@ -53,7 +55,7 @@ public sealed class BackendScriptService
 
         try
         {
-            Directory.CreateDirectory(RuntimeDirectory);
+            EnsureHardenedRuntimeDirectory();
         }
         catch (Exception ex)
         {
@@ -79,16 +81,30 @@ public sealed class BackendScriptService
         }
 
         string scriptPath;
+        string? executionCopy = null;
         try
         {
-            scriptPath = await EnsureBackendScriptAsync(cancellationToken);
+            var (canonicalPath, expectedHash) = await EnsureBackendScriptAsync(cancellationToken);
+            executionCopy = Path.Combine(RuntimeDirectory, $"LibreSpot.Backend.{Guid.NewGuid():N}.run.ps1");
+            File.Copy(canonicalPath, executionCopy, overwrite: true);
+
+            await using var verifyStream = File.Open(executionCopy, FileMode.Open, FileAccess.Read, FileShare.None);
+            var copyHash = ComputeHash(verifyStream);
+            if (copyHash != expectedHash)
+            {
+                throw new InvalidOperationException("Execution copy hash mismatch — the runtime file was modified between extraction and copy.");
+            }
+
+            scriptPath = executionCopy;
         }
         catch (OperationCanceledException)
         {
+            TryDeleteExecutionCopy(executionCopy);
             return new BackendRunResult(false, "LibreSpot canceled the backend run.");
         }
         catch (Exception ex)
         {
+            TryDeleteExecutionCopy(executionCopy);
             return new BackendRunResult(false, $"LibreSpot could not prepare the backend runtime: {ex.Message}");
         }
 
@@ -172,6 +188,8 @@ public sealed class BackendScriptService
             }
         }
 
+        TryDeleteExecutionCopy(executionCopy);
+
         return process.ExitCode == 0
             ? new BackendRunResult(true)
             : new BackendRunResult(false, $"LibreSpot backend exited with code {process.ExitCode}.");
@@ -220,9 +238,10 @@ public sealed class BackendScriptService
         return File.Exists(systemPath) ? systemPath : "powershell.exe";
     }
 
-    private async Task<string> EnsureBackendScriptAsync(CancellationToken cancellationToken)
+    private async Task<(string Path, string Hash)> EnsureBackendScriptAsync(CancellationToken cancellationToken)
     {
         var destination = Path.Combine(RuntimeDirectory, "LibreSpot.Backend.ps1");
+        var hashSidecar = Path.Combine(RuntimeDirectory, "LibreSpot.Backend.ps1.sha256");
         var tempPath = Path.Combine(RuntimeDirectory, $"LibreSpot.Backend.{Guid.NewGuid():N}.tmp");
 
         await RuntimeScriptLock.WaitAsync(cancellationToken);
@@ -231,9 +250,6 @@ public sealed class BackendScriptService
             await using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName)
                 ?? throw new InvalidOperationException("LibreSpot backend resource was not found.");
 
-            // Compute the embedded script's hash once, then only re-extract when the
-            // on-disk copy is missing or stale. Avoids gratuitous file writes on every
-            // run and removes a race against any stray file handle left by an earlier run.
             var expectedHash = ComputeHash(resourceStream);
             resourceStream.Position = 0;
 
@@ -244,12 +260,12 @@ public sealed class BackendScriptService
                     await using var existing = File.Open(destination, FileMode.Open, FileAccess.Read, FileShare.Read);
                     if (ComputeHash(existing) == expectedHash)
                     {
-                        return destination;
+                        WriteSidecarHash(hashSidecar, expectedHash);
+                        return (destination, expectedHash);
                     }
                 }
                 catch
                 {
-                    // If we can't read it for any reason, fall through and rewrite it.
                 }
             }
 
@@ -262,7 +278,8 @@ public sealed class BackendScriptService
                 }
 
                 File.Move(tempPath, destination, overwrite: true);
-                return destination;
+                WriteSidecarHash(hashSidecar, expectedHash);
+                return (destination, expectedHash);
             }
             catch
             {
@@ -282,5 +299,73 @@ public sealed class BackendScriptService
         using var sha = SHA256.Create();
         var bytes = sha.ComputeHash(stream);
         return Convert.ToHexString(bytes);
+    }
+
+    private void EnsureHardenedRuntimeDirectory()
+    {
+        var dirInfo = new DirectoryInfo(RuntimeDirectory);
+        if (!dirInfo.Exists)
+        {
+            dirInfo.Create();
+        }
+
+        try
+        {
+            var security = dirInfo.GetAccessControl();
+            security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+
+            var rules = security.GetAccessRules(includeExplicit: true, includeInherited: true, targetType: typeof(SecurityIdentifier));
+            foreach (FileSystemAccessRule rule in rules)
+            {
+                security.RemoveAccessRule(rule);
+            }
+
+            var currentUser = WindowsIdentity.GetCurrent().User
+                ?? throw new InvalidOperationException("Could not resolve the current user SID.");
+            security.AddAccessRule(new FileSystemAccessRule(
+                currentUser,
+                FileSystemRights.FullControl,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow));
+
+            var adminsSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+            security.AddAccessRule(new FileSystemAccessRule(
+                adminsSid,
+                FileSystemRights.FullControl,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow));
+
+            dirInfo.SetAccessControl(security);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Non-elevated runs may not be able to rewrite ACLs; the directory
+            // still exists and is usable under inherited permissions.
+        }
+    }
+
+    private static void WriteSidecarHash(string path, string hash)
+    {
+        try { File.WriteAllText(path, hash, Encoding.UTF8); } catch { }
+    }
+
+    private static void TryDeleteExecutionCopy(string? path)
+    {
+        if (path is null) return;
+        try { File.Delete(path); } catch { }
+    }
+
+    public static void CleanStaleExecutionCopies(string runtimeDirectory)
+    {
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(runtimeDirectory, "LibreSpot.Backend.*.run.ps1"))
+            {
+                try { File.Delete(file); } catch { }
+            }
+        }
+        catch { }
     }
 }
