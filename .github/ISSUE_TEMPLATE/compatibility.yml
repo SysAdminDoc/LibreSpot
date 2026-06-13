@@ -1,0 +1,67 @@
+name: Compatibility Breakage
+description: Report that LibreSpot stopped working after a Spotify, SpotX, or Spicetify update
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when LibreSpot was working before and broke after an update to Spotify, SpotX, Spicetify, or Windows.
+
+  - type: input
+    id: librespot-version
+    attributes:
+      label: LibreSpot Version
+      placeholder: "e.g. v3.7.2"
+    validations:
+      required: true
+
+  - type: input
+    id: spotify-version
+    attributes:
+      label: Current Spotify Version
+      description: The version that is now broken.
+      placeholder: "e.g. 1.2.93.400"
+    validations:
+      required: true
+
+  - type: input
+    id: previous-spotify
+    attributes:
+      label: Previous Spotify Version (if known)
+      description: The last version that worked correctly.
+      placeholder: "e.g. 1.2.92.123"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: what-broke
+    attributes:
+      label: What broke?
+      description: Select all that apply.
+      multiple: true
+      options:
+        - Spotify shows ads again
+        - Spotify has a blank/white screen
+        - Spicetify theme is missing or broken
+        - Extensions stopped working
+        - LibreSpot install fails with an error
+        - Auto-reapply watcher stopped working
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows Version
+      placeholder: "e.g. Windows 11 23H2"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Details
+      description: Any additional context about what changed and when.
+    validations:
+      required: false

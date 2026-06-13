@@ -1,0 +1,106 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in LibreSpot
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out the fields below so we can reproduce and fix the issue.
+
+        **Do not paste secrets, tokens, or private logs.** If your issue involves sensitive information, use [private vulnerability reporting](https://github.com/SysAdminDoc/LibreSpot/security/advisories/new) instead.
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Install Mode
+      description: Which mode were you using when the issue occurred?
+      options:
+        - Easy Install
+        - Custom Install
+        - Maintenance
+        - CLI / One-liner
+        - Auto-reapply watcher
+    validations:
+      required: true
+
+  - type: input
+    id: librespot-version
+    attributes:
+      label: LibreSpot Version
+      description: "Found in the title bar or via `$global:VERSION` in the script"
+      placeholder: "e.g. v3.7.2 or v4.0.0-preview.6"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: librespot-variant
+    attributes:
+      label: LibreSpot Variant
+      description: Which variant are you running?
+      options:
+        - PowerShell script (LibreSpot.ps1)
+        - Compiled executable (LibreSpot.exe)
+        - WPF Desktop shell (LibreSpot-Desktop.exe)
+    validations:
+      required: true
+
+  - type: input
+    id: spotify-version
+    attributes:
+      label: Spotify Version
+      description: "Right-click Spotify tray icon > About, or check Settings > About"
+      placeholder: "e.g. 1.2.92.123"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: spotify-source
+    attributes:
+      label: Spotify Source
+      description: Where was Spotify installed from?
+      options:
+        - Microsoft Store
+        - Spotify website / standalone installer
+        - SpotX-managed install
+        - Unsure
+    validations:
+      required: true
+
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows Version
+      description: "Run `winver` or check Settings > System > About"
+      placeholder: "e.g. Windows 11 23H2 (build 22631)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug clearly. What did you expect vs. what actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: List the steps to reproduce the issue.
+      placeholder: |
+        1. Open LibreSpot
+        2. Select Easy Install
+        3. Click Install
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Log Output
+      description: "Paste the install log (Copy Log button) or error message. **Remove any file paths that contain your Windows username if you prefer privacy.**"
+      render: text
+    validations:
+      required: false
