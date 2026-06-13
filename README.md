@@ -183,6 +183,27 @@ Every download is verified against pinned SHA256 hashes. LibreSpot doesn't host 
 
 ---
 
+## Trust & risk disclosure
+
+**What LibreSpot does:**
+- Downloads SpotX and Spicetify CLI directly from their official GitHub repositories using commit-pinned URLs with SHA256 verification
+- Patches the local Spotify installation to remove ads and apply themes/extensions
+- Optionally registers a scheduled task for automatic reapplication after Spotify updates
+
+**What LibreSpot does NOT do:**
+- Collect, transmit, or store any credentials, tokens, or account data
+- Bundle, host, or redistribute Spotify binaries or any upstream project code
+- Communicate with any server other than GitHub (for downloads) and Spotify (normal app traffic)
+- Modify Spotify's authentication, payment, or account systems
+
+**Account risk:**
+Spotify's [Terms of Service](https://www.spotify.com/legal/end-user-agreement/) and [User Guidelines](https://www.spotify.com/legal/user-guidelines/) prohibit circumventing ads and modifying the client. While enforcement against individual users of tools like SpotX has not been publicly documented, using LibreSpot is at your own risk. LibreSpot provides a "Full Reset" option in Maintenance mode to return Spotify to its unmodified state at any time.
+
+**Returning to stock Spotify:**
+Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify, and cleans up every trace. You can also manually run `spicetify restore` followed by a clean Spotify reinstall.
+
+---
+
 ## Signing & verification
 
 Releases ship unsigned today. [SignPath Foundation](https://signpath.org/) OSS enrollment is pending. Once the cert arrives, tagged releases will Authenticode-sign both `LibreSpot.exe` and `LibreSpot-Desktop.exe` via the workflow in [.github/workflows/release.yml](.github/workflows/release.yml) and users will stop seeing the "Unknown publisher" SmartScreen warning.
