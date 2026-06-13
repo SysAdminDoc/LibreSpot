@@ -1,0 +1,120 @@
+{
+  "$comment": "Release artifact contract — defines expected assets, checksums, signing, and attestation state per release channel. Post-upload CI should verify the published release matches this contract.",
+  "contractVersion": 1,
+  "tagPatterns": {
+    "stable": "^v\\d+\\.\\d+\\.\\d+$",
+    "preview": "^v\\d+\\.\\d+\\.\\d+-preview\\.\\d+$",
+    "rc": "^v\\d+\\.\\d+\\.\\d+-rc\\.\\d+$"
+  },
+  "releaseFlags": {
+    "stable": {
+      "prerelease": false,
+      "latest": true
+    },
+    "preview": {
+      "prerelease": true,
+      "latest": false
+    },
+    "rc": {
+      "prerelease": true,
+      "latest": false
+    }
+  },
+  "artifacts": [
+    {
+      "name": "LibreSpot.exe",
+      "description": "PS2EXE compiled PowerShell script (single-file, requires admin)",
+      "channels": ["stable", "preview", "rc"],
+      "required": true,
+      "checksumEntry": true,
+      "signingRequirement": "authenticode-when-available",
+      "attestation": "build-provenance",
+      "distributionChannels": ["github-releases", "powershell-oneliner"]
+    },
+    {
+      "name": "LibreSpot.ps1",
+      "description": "Raw PowerShell script for iex one-liner installs",
+      "channels": ["stable", "preview", "rc"],
+      "required": true,
+      "checksumEntry": true,
+      "signingRequirement": "none",
+      "attestation": "build-provenance",
+      "distributionChannels": ["github-releases", "powershell-oneliner"]
+    },
+    {
+      "name": "LibreSpot-Desktop.exe",
+      "description": ".NET 10 WPF self-contained single-file executable",
+      "channels": ["stable", "preview", "rc"],
+      "required": true,
+      "checksumEntry": true,
+      "signingRequirement": "authenticode-when-available",
+      "attestation": "build-provenance",
+      "distributionChannels": ["github-releases-wpf", "velopack"]
+    },
+    {
+      "name": "LibreSpot.sbom.cdx.json",
+      "description": "CycloneDX SBOM for the WPF desktop shell",
+      "channels": ["stable", "preview", "rc"],
+      "required": true,
+      "checksumEntry": true,
+      "signingRequirement": "none",
+      "attestation": "sbom-attestation",
+      "distributionChannels": ["github-releases", "github-releases-wpf"]
+    },
+    {
+      "name": "checksums.txt",
+      "description": "SHA256 checksums for all release assets (sha256sum format)",
+      "channels": ["stable", "preview", "rc"],
+      "required": true,
+      "checksumEntry": false,
+      "signingRequirement": "none",
+      "attestation": "none",
+      "distributionChannels": ["github-releases", "github-releases-wpf"]
+    }
+  ],
+  "checksumContract": {
+    "algorithm": "SHA256",
+    "format": "sha256sum",
+    "coveredAssets": ["LibreSpot.exe", "LibreSpot.ps1", "LibreSpot-Desktop.exe", "LibreSpot.sbom.cdx.json"],
+    "verificationCommand": "sha256sum --check checksums.txt"
+  },
+  "attestationContract": {
+    "provider": "github-built-in",
+    "buildProvenance": {
+      "subjects": ["LibreSpot.exe", "LibreSpot.ps1", "LibreSpot-Desktop.exe"],
+      "action": "actions/attest-build-provenance"
+    },
+    "sbom": {
+      "subject": "LibreSpot-Desktop.exe",
+      "sbomFile": "LibreSpot.sbom.cdx.json",
+      "action": "actions/attest-sbom"
+    },
+    "verificationCommand": "gh attestation verify <asset> -R SysAdminDoc/LibreSpot"
+  },
+  "signingContract": {
+    "provider": "signpath-foundation",
+    "type": "authenticode",
+    "status": "pending-enrollment",
+    "conditionalOn": ["SIGNPATH_API_TOKEN", "SIGNPATH_ORGANIZATION_ID"],
+    "signedAssets": ["LibreSpot.exe", "LibreSpot-Desktop.exe"],
+    "verificationCommand": "Get-AuthenticodeSignature .\\<asset>"
+  },
+  "postUploadAudit": {
+    "description": "After gh release upload, the workflow should verify the published release matches this contract.",
+    "checks": [
+      "Every artifact with required=true exists exactly once in the release assets",
+      "checksums.txt contains one entry per coveredAsset",
+      "Prerelease flag matches releaseFlags for the tag channel",
+      "No non-draft release is overwritten without explicit operator override",
+      "Build provenance attestation exists for each buildProvenance subject",
+      "SBOM attestation exists for the sbom subject"
+    ],
+    "implementationStatus": "pending-operator-wiring",
+    "notes": "The post-upload step needs access to gh release view --json and gh attestation list, which requires the workflow to run after upload. This is the operator-dependent part of this contract."
+  },
+  "historicalReleases": {
+    "description": "Releases before this contract was introduced do not conform to it.",
+    "priorToContract": ["v3.7.2", "v4.0.0-preview.1", "v4.0.0-preview.2", "v4.0.0-preview.3", "v4.0.0-preview.4", "v4.0.0-preview.5", "v4.0.0-preview.6"],
+    "notes": "v3.7.2 ships only checksums.txt, LibreSpot.exe, LibreSpot.ps1. v4.0.0-preview.1 ships only LibreSpot-v4.0.0-preview.1.exe. These releases predate the WPF desktop exe, SBOM, and attestation requirements."
+  }
+}
