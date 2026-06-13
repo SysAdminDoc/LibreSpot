@@ -1,7 +1,7 @@
 name: Release
 
 # Triggered when a version tag is pushed, e.g. `git tag v3.5.1 && git push --tags`.
-# Builds the PS2EXE PowerShell .exe, the .NET 8 WPF self-contained .exe, uploads
+# Builds the PS2EXE PowerShell .exe, the .NET 10 WPF self-contained .exe, uploads
 # the raw LibreSpot.ps1 so `irm .../LibreSpot.ps1 | iex` works, emits SHA256
 # checksums + CycloneDX SBOM, and attests provenance + SBOM via GitHub's built-in
 # in-toto signer. Consumers verify with `gh attestation verify <asset> -R SysAdminDoc/LibreSpot`.
@@ -20,11 +20,11 @@ permissions:
   contents: read     # default for all jobs; release job escalates per-job
 
 env:
-  DOTNET_TARGET_FRAMEWORK: net8.0-windows
-  DOTNET_SDK_CHANNEL: 8.0.x
-  DOTNET_SUPPORT_PHASE: maintenance
-  DOTNET_EOL_DATE: "2026-11-10"
-  DOTNET_HOLD_DECISION: "Hold .NET 8 for preview builds; migrate the WPF shell to .NET 10 before v4 stable or before .NET 8 EOL."
+  DOTNET_TARGET_FRAMEWORK: net10.0-windows
+  DOTNET_SDK_CHANNEL: 10.0.x
+  DOTNET_SUPPORT_PHASE: active
+  DOTNET_EOL_DATE: "2028-11-14"
+  DOTNET_HOLD_DECISION: ".NET 10 LTS is the stable target through 2028-11-14."
   PS2EXE_VERSION: "1.0.18"
   CYCLONEDX_VERSION: "6.2.0"
 
@@ -306,7 +306,7 @@ jobs:
             LibreSpot.ps1
 
   build-wpf:
-    name: Build WPF self-contained (.NET 8)
+    name: Build WPF self-contained (.NET 10)
     needs: preflight
     runs-on: windows-latest
     env:
@@ -320,7 +320,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup .NET 8
+      - name: Setup .NET 10
         # actions/setup-dotnet v4.3.1
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
         with:
@@ -330,8 +330,8 @@ jobs:
         shell: pwsh
         run: |
           $sdkVersion = (dotnet --version).Trim()
-          if ($sdkVersion -notmatch '^8\.0\.') {
-              throw "Expected an 8.0.x SDK from setup-dotnet but resolved $sdkVersion."
+          if ($sdkVersion -notmatch '^10\.0\.') {
+              throw "Expected a 10.0.x SDK from setup-dotnet but resolved $sdkVersion."
           }
           Write-Host "Resolved .NET SDK patch: $sdkVersion"
           dotnet --info
