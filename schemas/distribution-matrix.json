@@ -1,0 +1,164 @@
+{
+  "$comment": "Distribution channel matrix — tracks every release channel, its artifact, status, and blocking decisions.",
+  "matrixVersion": 1,
+  "channels": [
+    {
+      "channel": "github-releases",
+      "targetAudience": "Power users, first-time users following README",
+      "artifactRole": "primary",
+      "packageId": null,
+      "displayName": "LibreSpot",
+      "executableName": "LibreSpot.exe",
+      "artifact": "LibreSpot.exe (PS2EXE single-file)",
+      "installScope": "user",
+      "updateOwner": "manual (download new release)",
+      "signingRequirement": "pending — Authenticode via SignPath or self-signed",
+      "checksumSource": "SHA256 in release body + SLSA provenance attestation",
+      "requiredCliSwitches": null,
+      "validationCommand": "Get-AuthenticodeSignature .\\LibreSpot.exe",
+      "supportStatus": "active",
+      "blockingDecisions": []
+    },
+    {
+      "channel": "github-releases-wpf",
+      "targetAudience": "Users who prefer a native desktop shell over the script UI",
+      "artifactRole": "primary",
+      "packageId": null,
+      "displayName": "LibreSpot Desktop",
+      "executableName": "LibreSpot-Desktop.exe",
+      "artifact": "LibreSpot-Desktop.exe (.NET 10 self-contained single-file)",
+      "installScope": "user",
+      "updateOwner": "manual (download new release)",
+      "signingRequirement": "pending — Authenticode via SignPath or self-signed",
+      "checksumSource": "SHA256 in release body + SLSA provenance attestation",
+      "requiredCliSwitches": null,
+      "validationCommand": "Get-AuthenticodeSignature .\\LibreSpot-Desktop.exe",
+      "supportStatus": "preview",
+      "blockingDecisions": [
+        "Finalize executable name (LibreSpot.exe vs LibreSpot-Desktop.exe) — depends on rebrand decision",
+        "Code signing certificate — operator action required"
+      ]
+    },
+    {
+      "channel": "powershell-oneliner",
+      "targetAudience": "Quick-start users who paste the one-liner from README",
+      "artifactRole": "convenience",
+      "packageId": null,
+      "displayName": "LibreSpot",
+      "executableName": null,
+      "artifact": "LibreSpot.ps1 (downloaded and executed inline)",
+      "installScope": "user",
+      "updateOwner": "always fetches latest from GitHub",
+      "signingRequirement": "none (script runs in-memory from trusted source)",
+      "checksumSource": "HTTPS transport only",
+      "requiredCliSwitches": null,
+      "validationCommand": null,
+      "supportStatus": "active",
+      "blockingDecisions": []
+    },
+    {
+      "channel": "winget",
+      "targetAudience": "Windows users who prefer winget install/upgrade",
+      "artifactRole": "package",
+      "packageId": "pending — e.g. SysAdminDoc.LibreSpot",
+      "displayName": "LibreSpot",
+      "executableName": "pending — depends on artifact choice",
+      "artifact": "pending — PS2EXE .exe or .NET self-contained or zip",
+      "installScope": "user",
+      "updateOwner": "winget upgrade",
+      "signingRequirement": "Authenticode required for winget submission",
+      "checksumSource": "winget manifest InstallerSha256",
+      "requiredCliSwitches": null,
+      "validationCommand": "winget list --id SysAdminDoc.LibreSpot",
+      "supportStatus": "draft",
+      "blockingDecisions": [
+        "Finalize package identity (publisher name, package ID)",
+        "Code signing certificate — winget requires Authenticode",
+        "Choose artifact: PS2EXE exe vs .NET exe vs installer"
+      ]
+    },
+    {
+      "channel": "scoop",
+      "targetAudience": "Developers and power users who prefer Scoop buckets",
+      "artifactRole": "package",
+      "packageId": "pending — librespot in a custom bucket",
+      "displayName": "LibreSpot",
+      "executableName": "pending",
+      "artifact": "pending — portable zip or single exe",
+      "installScope": "user",
+      "updateOwner": "scoop update",
+      "signingRequirement": "optional (Scoop uses SHA256 verification)",
+      "checksumSource": "Scoop manifest hash field from GitHub release asset",
+      "requiredCliSwitches": null,
+      "validationCommand": "scoop info librespot",
+      "supportStatus": "draft",
+      "blockingDecisions": [
+        "Decide own bucket vs community bucket submission",
+        "Finalize artifact format (zip vs exe)"
+      ]
+    },
+    {
+      "channel": "chocolatey",
+      "targetAudience": "Enterprise/IT users who prefer Chocolatey packages",
+      "artifactRole": "package",
+      "packageId": "pending — librespot",
+      "displayName": "LibreSpot",
+      "executableName": "pending",
+      "artifact": "pending — nupkg wrapping GitHub release asset",
+      "installScope": "machine (Chocolatey default)",
+      "updateOwner": "choco upgrade",
+      "signingRequirement": "Authenticode recommended for moderation approval",
+      "checksumSource": "Chocolatey verification file + upstream SHA256",
+      "requiredCliSwitches": null,
+      "validationCommand": "choco info librespot",
+      "supportStatus": "draft",
+      "blockingDecisions": [
+        "Code signing certificate",
+        "Chocolatey moderation review timeline",
+        "Finalize artifact and install script"
+      ]
+    },
+    {
+      "channel": "velopack",
+      "targetAudience": "WPF desktop users who want auto-update",
+      "artifactRole": "installer",
+      "packageId": "pending",
+      "displayName": "LibreSpot Desktop",
+      "executableName": "LibreSpot.exe",
+      "artifact": "Velopack Setup.exe + nupkg delta updates",
+      "installScope": "user",
+      "updateOwner": "Velopack auto-update (in-app)",
+      "signingRequirement": "Authenticode required for Setup.exe",
+      "checksumSource": "Velopack built-in SHA256 verification",
+      "requiredCliSwitches": null,
+      "validationCommand": null,
+      "supportStatus": "draft",
+      "blockingDecisions": [
+        "Code signing certificate",
+        "Velopack integration in WPF shell",
+        "Update server hosting decision (GitHub Releases vs S3/R2)"
+      ]
+    },
+    {
+      "channel": "psgallery",
+      "targetAudience": "PowerShell users who prefer Install-Script",
+      "artifactRole": "script",
+      "packageId": "pending — LibreSpot",
+      "displayName": "LibreSpot",
+      "executableName": null,
+      "artifact": "LibreSpot.ps1 (published as a script, not module)",
+      "installScope": "user (CurrentUser scope)",
+      "updateOwner": "Update-Script LibreSpot",
+      "signingRequirement": "PSGallery account + NuGet API key",
+      "checksumSource": "PSGallery built-in hash",
+      "requiredCliSwitches": null,
+      "validationCommand": "Get-InstalledScript LibreSpot",
+      "supportStatus": "draft",
+      "blockingDecisions": [
+        "PSGallery account creation",
+        "Script metadata (.ps1 requires specific comment-based help headers)",
+        "Decide go/no-go for PSGallery channel"
+      ]
+    }
+  ]
+}
