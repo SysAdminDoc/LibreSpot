@@ -27,10 +27,10 @@ public sealed class ReleaseWorkflowTests
     {
         var workflow = ReadWorkflow();
 
-        Assert.Contains("DOTNET_TARGET_FRAMEWORK: net8.0-windows", workflow);
-        Assert.Contains("DOTNET_SDK_CHANNEL: 8.0.x", workflow);
-        Assert.Contains("DOTNET_SUPPORT_PHASE: maintenance", workflow);
-        Assert.Contains("DOTNET_EOL_DATE: \"2026-11-10\"", workflow);
+        Assert.Contains("DOTNET_TARGET_FRAMEWORK: net10.0-windows", workflow);
+        Assert.Contains("DOTNET_SDK_CHANNEL: 10.0.x", workflow);
+        Assert.Contains("DOTNET_SUPPORT_PHASE: active", workflow);
+        Assert.Contains("DOTNET_EOL_DATE: \"2028-11-14\"", workflow);
         Assert.Contains("DOTNET_HOLD_DECISION:", workflow);
         Assert.Contains("Runtime and build-tool lifecycle gate", workflow);
         Assert.Contains("reached end of support", workflow);

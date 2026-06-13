@@ -24,11 +24,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup .NET 8
+      - name: Setup .NET 10
         # actions/setup-dotnet v4.3.1
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
 
       - name: Restore with locked NuGet audit
         run: |
