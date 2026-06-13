@@ -1,0 +1,26 @@
+# Package Manifest Validation Commands
+
+All manifests are DRAFT status. Run these commands to validate locally before submission.
+
+## winget
+
+```powershell
+winget validate publish\winget\
+```
+
+## Scoop
+
+```powershell
+# From a Scoop installation with the extras bucket
+scoop install .\publish\scoop\librespot.json
+# Or test checkver + autoupdate
+.\bin\checkver.ps1 librespot -u -dir .\publish\scoop\
+```
+
+## Chocolatey
+
+```powershell
+cd publish\chocolatey
+choco pack
+choco install librespot --source .
+```
