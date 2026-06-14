@@ -190,6 +190,8 @@ Every download is verified against pinned SHA256 hashes. LibreSpot doesn't host 
 - Patches the local Spotify installation to remove ads and apply themes/extensions
 - Optionally registers a scheduled task for automatic reapplication after Spotify updates
 
+**Downloader hardening (CVE-2025-54100):** LibreSpot fetches with PowerShell's `Invoke-WebRequest`. [CVE-2025-54100](https://nvd.nist.gov/vuln/detail/CVE-2025-54100) is a Windows PowerShell 5.1 web-content RCE fixed in the December 2025 Windows cumulative updates. The two mitigations are **SHA256 pinning** (guarantees payload integrity) and **patch level** (keeping Windows updated closes the parse-time vector); SHA256 alone does not remove the vector on an unpatched host. LibreSpot adds a non-blocking preflight that warns when the host predates the December 2025 patch wave. See [SECURITY.md](SECURITY.md#cve-2025-54100--windows-powershell-51-web-content-rce) for details.
+
 **What LibreSpot does NOT do:**
 - Collect, transmit, or store any credentials, tokens, or account data
 - Bundle, host, or redistribute Spotify binaries or any upstream project code

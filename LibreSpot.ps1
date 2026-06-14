@@ -4981,7 +4981,75 @@ function Read-ProcessOutputDelta {
     return $result
 }
 
+# CVE-2025-54100: a Windows PowerShell 5.1 remote-code-execution flaw (CVSS 7.8,
+# fixed in the December 2025 Windows cumulative updates) in web-content handling.
+# Content fetched by Invoke-WebRequest can execute at parse time on an unpatched
+# host -- exactly LibreSpot's download pattern. SHA256 pinning guarantees payload
+# *integrity* but does not remove the parse-time vector, so we surface a
+# non-blocking heads-up when the host looks unpatched. PowerShell 7+ (Core) is a
+# separate product and is not affected. Pure and side-effect free for unit tests.
+function Get-DownloaderCveExposure {
+    $result = [ordered]@{
+        Exposed = $false
+        Status  = 'NotAffected'   # NotAffected | Patched | PossiblyExposed | Unknown
+        Reason  = ''
+        Edition = [string]$PSVersionTable.PSEdition
+        OSBuild = ''
+    }
+    # Only Windows PowerShell 5.1 (Desktop edition) is in scope for this CVE.
+    if ($PSVersionTable.PSEdition -and $PSVersionTable.PSEdition -ne 'Desktop') {
+        $result.Reason = 'PowerShell 7+ (Core) is in use; CVE-2025-54100 affects Windows PowerShell 5.1 only.'
+        return [pscustomobject]$result
+    }
+
+    try {
+        $cv = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction Stop
+        if ($cv.CurrentBuild) { $result.OSBuild = "$($cv.CurrentBuild).$($cv.UBR)" }
+    } catch {}
+
+    # Heuristic: the newest installed update vs the December 2025 patch wave.
+    # We never claim certainty -- this only flags a host that is plainly behind.
+    $patchWave = [datetime]'2025-12-09'
+    $latest = $null
+    try {
+        $latest = Get-HotFix -ErrorAction Stop |
+            Where-Object { $_.InstalledOn } |
+            Sort-Object InstalledOn -Descending |
+            Select-Object -First 1
+    } catch {}
+
+    if ($null -eq $latest -or $null -eq $latest.InstalledOn) {
+        $result.Status = 'Unknown'
+        $result.Reason = 'Could not read the host update history to confirm the December 2025 PowerShell fix (CVE-2025-54100). Keep Windows fully updated.'
+        return [pscustomobject]$result
+    }
+    if ($latest.InstalledOn -ge $patchWave) {
+        $result.Status = 'Patched'
+        $result.Reason = "Latest Windows update ($($latest.HotFixID), $($latest.InstalledOn.ToString('yyyy-MM-dd'))) is at or past the December 2025 fix for CVE-2025-54100."
+        return [pscustomobject]$result
+    }
+
+    $result.Exposed = $true
+    $result.Status  = 'PossiblyExposed'
+    $result.Reason  = "The newest Windows update on this host is from $($latest.InstalledOn.ToString('yyyy-MM-dd')), before the December 2025 cumulative update that fixes CVE-2025-54100 (a Windows PowerShell 5.1 web-content RCE). LibreSpot still hash-verifies every download, but install pending Windows updates to close the parse-time vector."
+    return [pscustomobject]$result
+}
+
+# Emits the CVE heads-up at most once per run, into whatever log is active. Never
+# blocks: a possibly-exposed host still installs, it just gets told to patch.
+function Write-DownloaderCveWarningIfNeeded {
+    if ($global:CveDownloaderWarned) { return }
+    $global:CveDownloaderWarned = $true
+    try {
+        $exposure = Get-DownloaderCveExposure
+        if ($exposure.Exposed) {
+            Write-Log "Security: $($exposure.Reason)" -Level 'WARN'
+        }
+    } catch {}
+}
+
 function Download-FileSafe { param([string]$Uri,[string]$OutFile)
+    Write-DownloaderCveWarningIfNeeded
     Write-Log "Downloading: $Uri"
     $headers = @{'User-Agent'="LibreSpot/$global:VERSION"}
     try {
@@ -6076,7 +6144,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Download-FileSafe','Confirm-FileHash','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Download-FileSafe','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Confirm-FileHash','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',

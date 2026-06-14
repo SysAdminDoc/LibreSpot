@@ -52,3 +52,17 @@ The following are **out of scope**:
 ### Upstream dependency issues
 
 If you discover a vulnerability in SpotX, Spicetify CLI, or a community extension/theme that LibreSpot retrieves, please report it to the upstream project first. If the upstream is unresponsive after 14 days, you may report it here and we will disable or pin around the affected component.
+
+## Host platform advisories
+
+### CVE-2025-54100 — Windows PowerShell 5.1 web-content RCE
+
+[CVE-2025-54100](https://nvd.nist.gov/vuln/detail/CVE-2025-54100) is a remote-code-execution flaw (CVSS 7.8) in Windows PowerShell 5.1's handling of web content, fixed in the **December 2025 Windows cumulative updates**. Content fetched by `Invoke-WebRequest` can execute at parse time on an unpatched host — the same download primitive LibreSpot uses to retrieve SpotX, Spicetify CLI, extensions, and themes.
+
+**Mitigations in LibreSpot:**
+
+- **SHA256 pinning** — every download is verified against a pinned hash before use. This guarantees the *integrity* of the payload (a tampered or substituted file is rejected) but does **not** by itself remove the parse-time execution vector on an unpatched PowerShell 5.1 host.
+- **Patch-level preflight** — the downloader runs a non-blocking check (`Get-DownloaderCveExposure`) the first time it fetches anything. On Windows PowerShell 5.1 (Desktop edition) it inspects the host's most recent Windows update and logs a `WARN` when the host predates the December 2025 patch wave. It never blocks the install — it tells you to update Windows.
+- **PowerShell 7+ is unaffected** — PowerShell 7 (Core) is a separate product and is out of scope for this CVE; the preflight skips it.
+
+**Required action for users:** keep Windows fully updated. Hosts on the December 2025 cumulative update or later have the fix; older hosts should install pending updates before running LibreSpot's `irm … | iex` quickstart.

@@ -1077,4 +1077,71 @@ public sealed class PowerShellRegressionTests
         Assert.True(exportBlock.Success, "Worker function export list not found.");
         Assert.Contains("'Get-SpotXPatchVerification'", exportBlock.Groups["list"].Value);
     }
+
+    // ---------------------------------------------------------------------
+    // CVE-2025-54100: Windows PowerShell 5.1 web-content RCE (CVSS 7.8, fixed
+    // in the December 2025 Windows cumulative updates). SHA256 pinning protects
+    // payload integrity but not the parse-time vector on an unpatched host, so
+    // the downloader must surface a non-blocking patch-level warning.
+    // ---------------------------------------------------------------------
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void DownloaderCveExposure_FunctionExistsAndDiscriminatesStates(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        Assert.Contains("function Get-DownloaderCveExposure", script);
+
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Get-DownloaderCveExposure\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fnBody.Success, $"Get-DownloaderCveExposure function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+
+        // PowerShell 7+ (Core) is out of scope for this CVE and must be skipped.
+        Assert.Contains("Desktop", body);
+        // All verdict states must be reachable.
+        Assert.Contains("'NotAffected'", body);
+        Assert.Contains("'Patched'", body);
+        Assert.Contains("'PossiblyExposed'", body);
+        Assert.Contains("'Unknown'", body);
+        // The discriminator is the December 2025 patch wave.
+        Assert.Contains("2025-12-09", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void DownloadFileSafe_RunsNonBlockingCveWarning(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Download-FileSafe\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fnBody.Success, $"Download-FileSafe function block not found in {relativePath}.");
+        // Every download path must emit the patch-level heads-up.
+        Assert.Contains("Write-DownloaderCveWarningIfNeeded", fnBody.Groups["body"].Value);
+    }
+
+    [Fact]
+    public void DownloaderCveFunctions_AreExportedToWorkerRunspace()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var exportBlock = Regex.Match(script, @"\$functionNamesForWorker\s*=\s*@\((?<list>.+?)\)", RegexOptions.Singleline);
+        Assert.True(exportBlock.Success, "Worker function export list not found.");
+        Assert.Contains("'Get-DownloaderCveExposure'", exportBlock.Groups["list"].Value);
+        Assert.Contains("'Write-DownloaderCveWarningIfNeeded'", exportBlock.Groups["list"].Value);
+    }
+
+    [Fact]
+    public void SecurityPolicy_DocumentsDownloaderCve()
+    {
+        var security = ReadFile("SECURITY.md");
+        Assert.Contains("CVE-2025-54100", security);
+        Assert.Contains("December 2025", security);
+        // The two named mitigations are hash pinning and patch level.
+        Assert.Contains("SHA256", security);
+    }
 }
