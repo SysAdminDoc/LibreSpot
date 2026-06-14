@@ -153,19 +153,20 @@ public sealed class BackendScriptService
             }
         };
 
+        using var registration = cancellationToken.Register(() => TryKillTree(process));
+
         try
         {
             process.Start();
         }
         catch (Exception ex)
         {
+            TryDeleteExecutionCopy(executionCopy);
             return new BackendRunResult(false, $"LibreSpot could not start the backend runtime: {ex.Message}");
         }
 
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
-
-        using var registration = cancellationToken.Register(() => TryKillTree(process));
 
         try
         {
@@ -174,6 +175,7 @@ public sealed class BackendScriptService
         catch (OperationCanceledException)
         {
             TryKillTree(process, waitForExit: true);
+            try { await Task.Run(process.WaitForExit, CancellationToken.None); } catch { }
             return new BackendRunResult(false, "LibreSpot canceled the backend run.");
         }
 
