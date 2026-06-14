@@ -107,6 +107,9 @@
   <SolidColorBrush x:Key="ScrimBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
   <SolidColorBrush x:Key="SheenBrush" Color="Transparent" />
 
+  <SolidColorBrush x:Key="TerminalBgBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+  <SolidColorBrush x:Key="TerminalFgBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+
   <!-- ═══ Radius rhythm (unchanged) ═══ -->
   <CornerRadius x:Key="RadiusSm">8</CornerRadius>
   <CornerRadius x:Key="RadiusMd">12</CornerRadius>

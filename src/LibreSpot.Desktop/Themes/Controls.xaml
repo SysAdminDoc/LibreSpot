@@ -959,8 +959,8 @@
 
   <!-- ═══ Log textbox (monospace terminal) ═══ -->
   <Style x:Key="LogTextBoxStyle" TargetType="TextBox">
-    <Setter Property="Background" Value="#080B0A" />
-    <Setter Property="Foreground" Value="#D6E4DB" />
+    <Setter Property="Background" Value="{DynamicResource TerminalBgBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TerminalFgBrush}" />
     <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
     <Setter Property="SelectionBrush" Value="{StaticResource AccentRingBrush}" />
     <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />

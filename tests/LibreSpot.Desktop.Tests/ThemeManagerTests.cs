@@ -61,6 +61,23 @@ public sealed class ThemeManagerTests
     }
 
     [Fact]
+    public void ThemeManager_PaletteSearchUsesEndsWith()
+    {
+        var source = ReadFile("src", "LibreSpot.Desktop", "Services", "ThemeManager.cs");
+        Assert.Contains("EndsWith(PaletteSource", source);
+        Assert.Contains("EndsWith(HighContrastPaletteSource", source);
+        Assert.DoesNotContain(".Contains(\"Palette.xaml\")", source);
+    }
+
+    [Fact]
+    public void ThemeManager_ClearsReducedMotionOverridesWhenReenabled()
+    {
+        var source = ReadFile("src", "LibreSpot.Desktop", "Services", "ThemeManager.cs");
+        Assert.Contains("ClearReducedMotionOverrides", source);
+        Assert.Contains("app.Resources.Remove(key)", source);
+    }
+
+    [Fact]
     public void ThemeManager_IsInitializedBeforeWindowInAppStartup()
     {
         var appCs = ReadFile("src", "LibreSpot.Desktop", "App.xaml.cs");
