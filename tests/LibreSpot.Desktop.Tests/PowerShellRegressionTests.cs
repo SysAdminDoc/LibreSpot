@@ -1205,4 +1205,86 @@ public sealed class PowerShellRegressionTests
                 "Normalize it in Normalize-LibreSpotConfig (allowlist/integer) and add it here, or use tokenized execution.");
         }
     }
+
+    // ---------------------------------------------------------------------
+    // PowerShell execution-policy / language-mode / application-control
+    // diagnostics. LibreSpot runs with -ExecutionPolicy Bypass, which is a
+    // safety feature, NOT a security boundary, and does not defeat AppLocker /
+    // WDAC (they enforce ConstrainedLanguage). The shell records the security
+    // context at run start and classifies CLM/WDAC blocks separately from
+    // ordinary errors, without telling users to weaken enterprise controls.
+    // ---------------------------------------------------------------------
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void PowerShellSecurityContext_RecordsEditionVersionPolicyAndLanguageMode(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        Assert.Contains("function Get-PowerShellSecurityContext", script);
+
+        var fn = Regex.Match(
+            script,
+            @"function\s+Get-PowerShellSecurityContext\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fn.Success, $"Get-PowerShellSecurityContext not found in {relativePath}.");
+        var body = fn.Groups["body"].Value;
+
+        Assert.Contains("PSVersionTable.PSEdition", body);
+        Assert.Contains("PSVersionTable.PSVersion", body);
+        Assert.Contains("LanguageMode", body);
+        Assert.Contains("Get-ExecutionPolicy -List", body);
+        // ConstrainedLanguage implies enforced application control.
+        Assert.Contains("ConstrainedLanguage", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void ExternalScriptRunner_LogsSecurityContextAndClassifiesAppControlErrors(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        Assert.Contains("function Test-IsLanguageModeOrAppControlError", script);
+
+        var fn = Regex.Match(
+            script,
+            @"function\s+Invoke-ExternalScriptIsolated\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fn.Success, $"Invoke-ExternalScriptIsolated not found in {relativePath}.");
+        var body = fn.Groups["body"].Value;
+
+        // Proactive: logs the host security context before spawning.
+        Assert.Contains("Write-PowerShellSecurityContext", body);
+        // Reactive: classifies app-control failures from spawned-process output.
+        Assert.Contains("Test-IsLanguageModeOrAppControlError", body);
+    }
+
+    [Fact]
+    public void DiagnosticsCopy_NeverClaimsExecutionPolicyIsASecurityBoundary()
+    {
+        // The copy must explicitly frame execution policy as NOT a security
+        // boundary, and must never assert that bypassing it defeats app control.
+        var security = ReadFile("SECURITY.md");
+        Assert.Contains("not a security boundary", security);
+        Assert.Contains("ConstrainedLanguage", security);
+        Assert.Contains("does **not** defeat AppLocker or Windows Defender Application Control", security);
+
+        // No script should tell users that -ExecutionPolicy Bypass bypasses app
+        // control; our copy says the opposite ("does not bypass").
+        foreach (var path in new[] { "LibreSpot.ps1", "src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1" })
+        {
+            var script = ReadFile(path.Split('/'));
+            Assert.DoesNotMatch(@"Bypass[^\n]{0,40}(bypasses|defeats|disables)[^\n]{0,40}(AppLocker|application control|WDAC)", script);
+        }
+    }
+
+    [Fact]
+    public void PowerShellSecurityContextFunctions_AreExportedToWorkerRunspace()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var exportBlock = Regex.Match(script, @"\$functionNamesForWorker\s*=\s*@\((?<list>.+?)\)", RegexOptions.Singleline);
+        Assert.True(exportBlock.Success, "Worker function export list not found.");
+        Assert.Contains("'Get-PowerShellSecurityContext'", exportBlock.Groups["list"].Value);
+        Assert.Contains("'Write-PowerShellSecurityContext'", exportBlock.Groups["list"].Value);
+        Assert.Contains("'Test-IsLanguageModeOrAppControlError'", exportBlock.Groups["list"].Value);
+    }
 }

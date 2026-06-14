@@ -1127,6 +1127,54 @@ function Expand-ArchiveSafely {
     [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $DestinationPath)
 }
 
+# Records the PowerShell security context for support diagnostics. Execution
+# policy is a SAFETY feature, not a security boundary (Microsoft docs): running
+# with -ExecutionPolicy Bypass does NOT defeat AppLocker or Windows Defender
+# Application Control (WDAC), which force ConstrainedLanguage mode. Surfacing the
+# language mode + execution-policy scopes lets CLM/WDAC blocks be told apart from
+# ordinary script errors. Pure and side-effect free for unit testing.
+function Get-PowerShellSecurityContext {
+    $ctx = [ordered]@{
+        Edition             = [string]$PSVersionTable.PSEdition
+        Version             = [string]$PSVersionTable.PSVersion
+        LanguageMode        = ''
+        ExecutionPolicies   = ''
+        ConstrainedLanguage = $false
+        AppControlEnforced  = $false
+    }
+    try { $ctx.LanguageMode = [string]$ExecutionContext.SessionState.LanguageMode } catch {}
+    if ($ctx.LanguageMode -eq 'ConstrainedLanguage') {
+        $ctx.ConstrainedLanguage = $true
+        $ctx.AppControlEnforced = $true
+    }
+    try {
+        $scopes = Get-ExecutionPolicy -List -ErrorAction Stop |
+            ForEach-Object { "$($_.Scope)=$($_.ExecutionPolicy)" }
+        $ctx.ExecutionPolicies = ($scopes -join '; ')
+    } catch {}
+    return [pscustomobject]$ctx
+}
+
+function Write-PowerShellSecurityContext {
+    if ($global:PsSecurityContextLogged) { return }
+    $global:PsSecurityContextLogged = $true
+    try {
+        $ctx = Get-PowerShellSecurityContext
+        Write-Log "PowerShell context: $($ctx.Edition) $($ctx.Version); language mode $($ctx.LanguageMode); execution policy [$($ctx.ExecutionPolicies)]."
+        if ($ctx.AppControlEnforced) {
+            Write-Log "This host enforces ConstrainedLanguage mode (AppLocker or Windows Defender Application Control). LibreSpot's scripts may be blocked -- this is an enterprise control, not a LibreSpot error, and -ExecutionPolicy Bypass does not bypass it. Ask your administrator to allow LibreSpot/SpotX; do not disable application control to work around it." -Level 'WARN'
+        }
+    } catch {}
+}
+
+function Test-IsLanguageModeOrAppControlError {
+    param([string]$Message)
+    if ([string]::IsNullOrWhiteSpace($Message)) {
+        try { return ([string]$ExecutionContext.SessionState.LanguageMode -eq 'ConstrainedLanguage') } catch { return $false }
+    }
+    return ($Message -match 'ConstrainedLanguage|language mode|AppLocker|Application Control|\bWDAC\b')
+}
+
 function Invoke-ExternalScriptIsolated {
     param(
         [string]$FilePath,
@@ -1134,10 +1182,14 @@ function Invoke-ExternalScriptIsolated {
         [int]$TimeoutSeconds = 600
     )
     Write-Log "Spawning: $FilePath"
+    Write-PowerShellSecurityContext
     $stdoutPath = Join-Path $global:TEMP_DIR ("LibreSpot-stdout-" + [Guid]::NewGuid().ToString('N') + '.log')
     $stderrPath = Join-Path $global:TEMP_DIR ("LibreSpot-stderr-" + [Guid]::NewGuid().ToString('N') + '.log')
     $stdoutState = @{ Offset = 0L; Remainder = '' }
     $stderrState = @{ Offset = 0L; Remainder = '' }
+    # The spawned powershell.exe can be forced into ConstrainedLanguage by WDAC /
+    # AppLocker even when this host is FullLanguage; classify that from stderr.
+    $appControlHintShown = $false
     $process = $null
     try {
         # Use the single-string ArgumentList form. The array form is tempting because
@@ -1164,7 +1216,13 @@ function Invoke-ExternalScriptIsolated {
 
             $stderrRead = Read-ProcessOutputDelta -Path $stderrPath -Offset $stderrState.Offset -Remainder $stderrState.Remainder
             $stderrState = @{ Offset = $stderrRead.Offset; Remainder = $stderrRead.Remainder }
-            foreach ($line in $stderrRead.Lines) { Write-Log "[STDERR] $line" -Level 'WARN' }
+            foreach ($line in $stderrRead.Lines) {
+                Write-Log "[STDERR] $line" -Level 'WARN'
+                if (-not $appControlHintShown -and (Test-IsLanguageModeOrAppControlError -Message $line)) {
+                    $appControlHintShown = $true
+                    Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker or Windows Defender Application Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these enterprise controls -- ask your administrator to allow LibreSpot/SpotX, or use a host without WDAC/AppLocker enforcement." -Level 'WARN'
+                }
+            }
             Start-Sleep -Milliseconds 200
         }
         $process.WaitForExit()
@@ -1176,6 +1234,10 @@ function Invoke-ExternalScriptIsolated {
         $stderrRead = Read-ProcessOutputDelta -Path $stderrPath -Offset $stderrState.Offset -Remainder $stderrState.Remainder
         foreach ($line in $stderrRead.Lines + @($stderrRead.Remainder) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) {
             Write-Log "[STDERR] $line" -Level 'WARN'
+            if (-not $appControlHintShown -and (Test-IsLanguageModeOrAppControlError -Message $line)) {
+                $appControlHintShown = $true
+                Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker or Windows Defender Application Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these enterprise controls -- ask your administrator to allow LibreSpot/SpotX, or use a host without WDAC/AppLocker enforcement." -Level 'WARN'
+            }
         }
 
         # Capture ExitCode defensively. If the Process wrapper has lost its handle

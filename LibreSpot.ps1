@@ -5062,6 +5062,59 @@ function Write-DownloaderCveWarningIfNeeded {
     } catch {}
 }
 
+# Records the PowerShell security context for support diagnostics. Execution
+# policy is a SAFETY feature, not a security boundary (Microsoft docs): running
+# with -ExecutionPolicy Bypass does NOT defeat AppLocker or Windows Defender
+# Application Control (WDAC), which force ConstrainedLanguage mode. We surface
+# language mode + execution-policy scopes so CLM/WDAC blocks can be told apart
+# from ordinary script errors. Pure and side-effect free for unit testing.
+function Get-PowerShellSecurityContext {
+    $ctx = [ordered]@{
+        Edition             = [string]$PSVersionTable.PSEdition
+        Version             = [string]$PSVersionTable.PSVersion
+        LanguageMode        = ''
+        ExecutionPolicies   = ''
+        ConstrainedLanguage = $false
+        AppControlEnforced  = $false
+    }
+    try { $ctx.LanguageMode = [string]$ExecutionContext.SessionState.LanguageMode } catch {}
+    if ($ctx.LanguageMode -eq 'ConstrainedLanguage') {
+        $ctx.ConstrainedLanguage = $true
+        # CLM is forced by AppLocker / WDAC in enforce mode (or __PSLockdownPolicy).
+        $ctx.AppControlEnforced = $true
+    }
+    try {
+        $scopes = Get-ExecutionPolicy -List -ErrorAction Stop |
+            ForEach-Object { "$($_.Scope)=$($_.ExecutionPolicy)" }
+        $ctx.ExecutionPolicies = ($scopes -join '; ')
+    } catch {}
+    return [pscustomobject]$ctx
+}
+
+# Logs the PS security context once per run and warns (without telling users to
+# weaken enterprise controls) when application control is enforced.
+function Write-PowerShellSecurityContext {
+    if ($global:PsSecurityContextLogged) { return }
+    $global:PsSecurityContextLogged = $true
+    try {
+        $ctx = Get-PowerShellSecurityContext
+        Write-Log "PowerShell context: $($ctx.Edition) $($ctx.Version); language mode $($ctx.LanguageMode); execution policy [$($ctx.ExecutionPolicies)]."
+        if ($ctx.AppControlEnforced) {
+            Write-Log "This host enforces ConstrainedLanguage mode (AppLocker or Windows Defender Application Control). LibreSpot's scripts may be blocked -- this is an enterprise control, not a LibreSpot error, and -ExecutionPolicy Bypass does not bypass it. Ask your administrator to allow LibreSpot/SpotX; do not disable application control to work around it." -Level 'WARN'
+        }
+    } catch {}
+}
+
+# Classifies whether a failure looks like a language-mode / app-control block
+# rather than an ordinary script error, so support copy can be specific.
+function Test-IsLanguageModeOrAppControlError {
+    param([string]$Message)
+    if ([string]::IsNullOrWhiteSpace($Message)) {
+        try { return ([string]$ExecutionContext.SessionState.LanguageMode -eq 'ConstrainedLanguage') } catch { return $false }
+    }
+    return ($Message -match 'ConstrainedLanguage|language mode|AppLocker|Application Control|\bWDAC\b')
+}
+
 function Download-FileSafe { param([string]$Uri,[string]$OutFile)
     Write-DownloaderCveWarningIfNeeded
     Write-Log "Downloading: $Uri"
@@ -5162,10 +5215,14 @@ function Hide-SpotifyWindows {
 
 function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Arguments,[int]$TimeoutSeconds=600)
     Write-Log "Spawning: $FilePath"
+    Write-PowerShellSecurityContext
     $stdoutPath = Join-Path $global:TEMP_DIR ("LibreSpot-stdout-" + [Guid]::NewGuid().ToString('N') + '.log')
     $stderrPath = Join-Path $global:TEMP_DIR ("LibreSpot-stderr-" + [Guid]::NewGuid().ToString('N') + '.log')
     $stdoutState = @{ Offset = 0L; Remainder = '' }
     $stderrState = @{ Offset = 0L; Remainder = '' }
+    # The spawned powershell.exe can be forced into ConstrainedLanguage by WDAC /
+    # AppLocker even when this host is FullLanguage; classify that from stderr.
+    $appControlHintShown = $false
     $p = $null
     try {
         $argString = "-NoProfile -ExecutionPolicy Bypass -File `"$FilePath`" $Arguments"
@@ -5184,7 +5241,13 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
 
             $stderrRead = Read-ProcessOutputDelta -Path $stderrPath -Offset $stderrState.Offset -Remainder $stderrState.Remainder
             $stderrState = @{ Offset = $stderrRead.Offset; Remainder = $stderrRead.Remainder }
-            foreach ($line in $stderrRead.Lines) { Write-Log "[STDERR] $line" -Level 'WARN' }
+            foreach ($line in $stderrRead.Lines) {
+                Write-Log "[STDERR] $line" -Level 'WARN'
+                if (-not $appControlHintShown -and (Test-IsLanguageModeOrAppControlError -Message $line)) {
+                    $appControlHintShown = $true
+                    Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker or Windows Defender Application Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these enterprise controls -- ask your administrator to allow LibreSpot/SpotX, or use a host without WDAC/AppLocker enforcement." -Level 'WARN'
+                }
+            }
             Start-Sleep -Milliseconds 200
         }
         $p.WaitForExit()
@@ -5196,6 +5259,10 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
         $stderrRead = Read-ProcessOutputDelta -Path $stderrPath -Offset $stderrState.Offset -Remainder $stderrState.Remainder
         foreach ($line in $stderrRead.Lines + @($stderrRead.Remainder) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) {
             Write-Log "[STDERR] $line" -Level 'WARN'
+            if (-not $appControlHintShown -and (Test-IsLanguageModeOrAppControlError -Message $line)) {
+                $appControlHintShown = $true
+                Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker or Windows Defender Application Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these enterprise controls -- ask your administrator to allow LibreSpot/SpotX, or use a host without WDAC/AppLocker enforcement." -Level 'WARN'
+            }
         }
 
         # Capture ExitCode defensively. Windows PowerShell can occasionally lose
@@ -6158,7 +6225,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Download-FileSafe','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Confirm-FileHash','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Download-FileSafe','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Confirm-FileHash','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
