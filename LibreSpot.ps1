@@ -115,10 +115,12 @@ $global:CONFIG_SCHEMA_VERSION = 1
 #   -watch              Headless auto-reapply check. No UI. Scheduled task uses this.
 #   -installwatcher     Register the scheduled task that calls `-watch` and exit.
 #   -uninstallwatcher   Remove that scheduled task and exit.
+#   -removeselfdata     Unregister the watcher task and remove all LibreSpot-owned data, then exit.
 $script:CliClean           = $false
 $script:CliWatch           = $false
 $script:CliInstallWatcher  = $false
 $script:CliUninstallWatcher = $false
+$script:CliRemoveSelfData  = $false
 try {
     if ($args -and $args.Count -gt 0) {
         foreach ($a in $args) {
@@ -127,6 +129,7 @@ try {
                 '^-{1,2}watch$'              { $script:CliWatch = $true }
                 '^-{1,2}installwatcher$'     { $script:CliInstallWatcher = $true }
                 '^-{1,2}uninstallwatcher$'   { $script:CliUninstallWatcher = $true }
+                '^-{1,2}removeselfdata$'     { $script:CliRemoveSelfData = $true }
             }
         }
     }
@@ -565,6 +568,37 @@ if ($script:CliUninstallWatcher) {
     Write-WatcherLog "CLI: -uninstallwatcher"
     $ok = Unregister-AutoReapplyTask
     if ($ok) { Write-Host "LibreSpot auto-reapply watcher removed." } else { Write-Host "LibreSpot watcher was not registered." }
+    exit 0
+}
+
+if ($script:CliRemoveSelfData) {
+    Write-Host "Removing all LibreSpot-owned data..."
+    $removed = @()
+    $null = Unregister-AutoReapplyTask
+    $removed += "Watcher scheduled task"
+    $selfPaths = @(
+        @{ Path = $global:CONFIG_DIR;    Label = 'Config directory (%APPDATA%\LibreSpot)' }
+        @{ Path = $global:BACKUP_ROOT;   Label = 'Backup directory (%USERPROFILE%\LibreSpot_Backups)' }
+        @{ Path = (Join-Path $env:LOCALAPPDATA 'LibreSpot'); Label = 'Log/crash directory (%LOCALAPPDATA%\LibreSpot)' }
+    )
+    foreach ($entry in $selfPaths) {
+        if (Test-Path -LiteralPath $entry.Path) {
+            try {
+                Remove-Item -LiteralPath $entry.Path -Recurse -Force -ErrorAction Stop
+                $removed += $entry.Label
+                Write-Host "  Removed: $($entry.Label)"
+            } catch {
+                Write-Warning "  Failed to remove $($entry.Label): $($_.Exception.Message)"
+            }
+        } else {
+            Write-Host "  Not found: $($entry.Label)"
+        }
+    }
+    Write-Host ""
+    Write-Host "LibreSpot self-cleanup complete. Removed $($removed.Count) item(s):"
+    foreach ($r in $removed) { Write-Host "  - $r" }
+    Write-Host ""
+    Write-Host "Spotify and Spicetify are NOT affected. Use Maintenance > Full Reset to remove those."
     exit 0
 }
 

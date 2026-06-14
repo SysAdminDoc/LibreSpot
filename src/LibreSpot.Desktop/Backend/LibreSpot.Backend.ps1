@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')]
+    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'RemoveSelfData', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')]
     [string]$Action = 'Install',
     [string]$ConfigPath = "$env:APPDATA\LibreSpot\config.json"
 )
@@ -2527,6 +2527,31 @@ function Invoke-LibreSpotMaintenance {
             Module-NukeSpotify
             $null = Remove-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'Process'
             $null = Remove-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'User'
+        }
+        'RemoveSelfData' {
+            Update-BackendState -Progress 10 -Status 'Removing watcher task' -Step 'Unregistering scheduled task'
+            if (Unregister-AutoReapplyTask) {
+                Write-Log 'Auto-reapply scheduled task removed.'
+            } else {
+                Write-Log 'Auto-reapply scheduled task was not registered.'
+            }
+            $selfPaths = @(
+                @{ Path = $global:CONFIG_DIR; Label = 'Config directory' }
+                @{ Path = $global:BACKUP_ROOT; Label = 'Backup directory' }
+                @{ Path = (Join-Path $env:LOCALAPPDATA 'LibreSpot'); Label = 'Log/crash directory' }
+            )
+            $step = 20
+            foreach ($entry in $selfPaths) {
+                Update-BackendState -Progress $step -Status "Removing $($entry.Label)" -Step $entry.Label
+                if (Test-Path -LiteralPath $entry.Path) {
+                    $null = Remove-PathSafely -Path $entry.Path -Label $entry.Label
+                    Write-Log "Removed: $($entry.Label) ($($entry.Path))"
+                } else {
+                    Write-Log "Not found: $($entry.Label) ($($entry.Path))"
+                }
+                $step += 25
+            }
+            Write-Log 'LibreSpot self-cleanup complete. Spotify and Spicetify were not affected.' -Level 'SUCCESS'
         }
         'EnableAutoReapply' {
             Update-BackendState -Progress 25 -Status 'Registering watcher' -Step 'Creating scheduled task'
