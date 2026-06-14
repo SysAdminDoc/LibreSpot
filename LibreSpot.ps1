@@ -4059,6 +4059,58 @@ function Get-ExistingSpotifyPatchSignature {
     return $null
 }
 
+# Post-patch effectiveness check. A clean SpotX exit code does NOT prove the
+# patch landed: Spotify's signature protection on newer builds (>=1.2.70) can
+# let SpotX run to completion without actually patching xpui (SpotX issue #760).
+# SpotX backs up the original bundle to Apps\xpui.spa.bak *before* it patches,
+# so a successfully patched install leaves BOTH the patched xpui.spa AND the
+# .bak alongside Spotify.exe. We assert those on-disk markers and return a
+# structured verdict so callers can surface "patched & verified" vs "ran but
+# unverified" with a recovery hint instead of trusting exit code 0 alone.
+# Pure and side-effect free so it can be unit-tested against a synthetic dir.
+function Get-SpotXPatchVerification {
+    param([string]$SpotifyExePath = $global:SPOTIFY_EXE_PATH)
+
+    $result = [ordered]@{
+        Verified = $false
+        Status   = 'Missing'   # Missing | Unverified | Verified
+        Reason   = ''
+        Signals  = @()
+    }
+
+    if ([string]::IsNullOrWhiteSpace($SpotifyExePath) -or -not (Test-Path -LiteralPath $SpotifyExePath)) {
+        $result.Reason = 'Spotify.exe was not found, so SpotX could not have patched anything.'
+        return [pscustomobject]$result
+    }
+
+    $spotifyDir = Split-Path -LiteralPath $SpotifyExePath -Parent
+    $appsDir    = Join-Path $spotifyDir 'Apps'
+    $signals    = New-Object System.Collections.Generic.List[string]
+
+    $hasBackup = Test-Path -LiteralPath (Join-Path $appsDir 'xpui.spa.bak')
+    $hasBundle = Test-Path -LiteralPath (Join-Path $appsDir 'xpui.spa')
+
+    if ($hasBackup) { $signals.Add('xpui.spa.bak (SpotX backed up the original bundle before patching)') }
+    if ($hasBundle) { $signals.Add('xpui.spa (Spotify app bundle present)') }
+    $result.Signals = @($signals)
+
+    if ($hasBackup -and $hasBundle) {
+        $result.Verified = $true
+        $result.Status   = 'Verified'
+        $result.Reason   = 'SpotX left a patched xpui.spa and a backup of the original, so the patch was applied.'
+    }
+    elseif ($hasBundle) {
+        $result.Status = 'Unverified'
+        $result.Reason = 'Spotify is present but no SpotX backup (xpui.spa.bak) was found, so the patch may not have been applied. Signature protection on newer Spotify builds can let SpotX exit cleanly without patching.'
+    }
+    else {
+        $result.Status = 'Unverified'
+        $result.Reason = 'The Spotify app bundle (Apps\xpui.spa) is missing, so SpotX patching could not be confirmed.'
+    }
+
+    return [pscustomobject]$result
+}
+
 # Shown once per session when Spotify looks like it was patched outside of
 # LibreSpot. SpotX can recover, but the user deserves an explicit heads-up.
 function Test-ForeignPatchWarningIfNeeded {
@@ -5465,7 +5517,13 @@ function Module-InstallSpotX { param($Config,$SyncHash)
                 throw "Spotify installation is incomplete - chrome_elf.dll is missing. This usually means the Spotify download failed or was corrupted."
             }
             $patchedVer = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
-            Write-Log "Spotify $patchedVer patched successfully." -Level 'SUCCESS'
+            $verify = Get-SpotXPatchVerification -SpotifyExePath $global:SPOTIFY_EXE_PATH
+            if ($verify.Verified) {
+                Write-Log "Spotify $patchedVer patched and verified ($($verify.Signals -join '; '))." -Level 'SUCCESS'
+            } else {
+                Write-Log "Spotify ${patchedVer}: SpotX ran but the patch could not be verified. $($verify.Reason)" -Level 'WARN'
+                Write-Log "If ads still play or the UI is blank, this Spotify build may resist SpotX patching (SpotX issue #760). Try Maintenance > Reapply, or Maintenance > Full Reset to start clean." -Level 'WARN'
+            }
             Write-Log "Launching Spotify (hidden) to generate config files..."
             if (Test-Path $global:SPOTIFY_EXE_PATH) {
                 Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
@@ -6023,6 +6081,7 @@ $functionNamesForWorker = @(
     'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
     'Get-NormalizedPathString','Get-PathEntries','Set-PathEntries','Add-PathEntry','Remove-PathEntry',
+    'Get-SpotXPatchVerification',
     'Module-NukeSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
     'Module-InstallThemes','Download-CommunityExtensions','Module-InstallExtensions',
     'Module-InstallMarketplace','Open-SpicetifyMarketplace','Repair-Marketplace','Module-ApplySpicetify',

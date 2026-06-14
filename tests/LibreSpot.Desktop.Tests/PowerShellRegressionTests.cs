@@ -1002,4 +1002,79 @@ public sealed class PowerShellRegressionTests
         Assert.True(exportBlock.Success, "Worker function export list not found.");
         Assert.Contains("'Invoke-GitHubApiSafe'", exportBlock.Groups["list"].Value);
     }
+
+    // ---------------------------------------------------------------------
+    // SpotX post-patch effectiveness verification.
+    // A clean SpotX exit code does NOT prove the patch landed: Spotify's
+    // signature protection (>=1.2.70) can let SpotX exit 0 without patching
+    // (SpotX issue #760). Get-SpotXPatchVerification asserts the on-disk
+    // markers SpotX leaves (xpui.spa + xpui.spa.bak) and the install flow must
+    // surface "verified" vs "ran but unverified" instead of always logging
+    // success. These guards lock that distinction in both PowerShell paths.
+    // ---------------------------------------------------------------------
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SpotXPatchVerification_FunctionExistsInBothPowerShellPaths(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        Assert.Contains("function Get-SpotXPatchVerification", script);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SpotXPatchVerification_DiscriminatesVerifiedFromUnverified(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Get-SpotXPatchVerification\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fnBody.Success, $"Get-SpotXPatchVerification function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+
+        // The discriminating signal is SpotX's pre-patch backup of the original bundle.
+        Assert.Contains("xpui.spa.bak", body);
+        Assert.Contains("xpui.spa", body);
+        // All three verdict states must be reachable from the function body.
+        Assert.Contains("'Verified'", body);
+        Assert.Contains("'Unverified'", body);
+        Assert.Contains("'Missing'", body);
+        // Verdict requires BOTH the patched bundle and the backup to be present.
+        Assert.Contains("$hasBackup -and $hasBundle", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void InstallSpotX_SurfacesVerificationInsteadOfUnconditionalSuccess(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Module-InstallSpotX\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fnBody.Success, $"Module-InstallSpotX function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+
+        // The install flow must call the verifier and branch on its verdict,
+        // not log success purely on exit code.
+        Assert.Contains("Get-SpotXPatchVerification", body);
+        Assert.Contains("$verify.Verified", body);
+        Assert.Contains("#760", body);
+        Assert.DoesNotContain("Spotify $patchedVer patched successfully.", body);
+        Assert.DoesNotContain("SpotX patching completed successfully.", body);
+    }
+
+    [Fact]
+    public void SpotXPatchVerification_IsExportedToWorkerRunspace()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var exportBlock = Regex.Match(script, @"\$functionNamesForWorker\s*=\s*@\((?<list>.+?)\)", RegexOptions.Singleline);
+        Assert.True(exportBlock.Success, "Worker function export list not found.");
+        Assert.Contains("'Get-SpotXPatchVerification'", exportBlock.Groups["list"].Value);
+    }
 }

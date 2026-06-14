@@ -2037,6 +2037,58 @@ function Build-SpotXParams {
     return ($params -join ' ')
 }
 
+# Post-patch effectiveness check. A clean SpotX exit code does NOT prove the
+# patch landed: Spotify's signature protection on newer builds (>=1.2.70) can
+# let SpotX run to completion without actually patching xpui (SpotX issue #760).
+# SpotX backs up the original bundle to Apps\xpui.spa.bak *before* it patches,
+# so a successfully patched install leaves BOTH the patched xpui.spa AND the
+# .bak alongside Spotify.exe. We assert those on-disk markers and return a
+# structured verdict so callers can surface "patched & verified" vs "ran but
+# unverified" with a recovery hint instead of trusting exit code 0 alone.
+# Pure and side-effect free so it can be unit-tested against a synthetic dir.
+function Get-SpotXPatchVerification {
+    param([string]$SpotifyExePath = $global:SPOTIFY_EXE_PATH)
+
+    $result = [ordered]@{
+        Verified = $false
+        Status   = 'Missing'   # Missing | Unverified | Verified
+        Reason   = ''
+        Signals  = @()
+    }
+
+    if ([string]::IsNullOrWhiteSpace($SpotifyExePath) -or -not (Test-Path -LiteralPath $SpotifyExePath)) {
+        $result.Reason = 'Spotify.exe was not found, so SpotX could not have patched anything.'
+        return [pscustomobject]$result
+    }
+
+    $spotifyDir = Split-Path -LiteralPath $SpotifyExePath -Parent
+    $appsDir    = Join-Path $spotifyDir 'Apps'
+    $signals    = New-Object System.Collections.Generic.List[string]
+
+    $hasBackup = Test-Path -LiteralPath (Join-Path $appsDir 'xpui.spa.bak')
+    $hasBundle = Test-Path -LiteralPath (Join-Path $appsDir 'xpui.spa')
+
+    if ($hasBackup) { $signals.Add('xpui.spa.bak (SpotX backed up the original bundle before patching)') }
+    if ($hasBundle) { $signals.Add('xpui.spa (Spotify app bundle present)') }
+    $result.Signals = @($signals)
+
+    if ($hasBackup -and $hasBundle) {
+        $result.Verified = $true
+        $result.Status   = 'Verified'
+        $result.Reason   = 'SpotX left a patched xpui.spa and a backup of the original, so the patch was applied.'
+    }
+    elseif ($hasBundle) {
+        $result.Status = 'Unverified'
+        $result.Reason = 'Spotify is present but no SpotX backup (xpui.spa.bak) was found, so the patch may not have been applied. Signature protection on newer Spotify builds can let SpotX exit cleanly without patching.'
+    }
+    else {
+        $result.Status = 'Unverified'
+        $result.Reason = 'The Spotify app bundle (Apps\xpui.spa) is missing, so SpotX patching could not be confirmed.'
+    }
+
+    return [pscustomobject]$result
+}
+
 function Module-InstallSpotX {
     param($Config)
     Write-Log "Installing SpotX v$($global:PinnedReleases.SpotX.Version)..." -Level 'STEP'
@@ -2062,7 +2114,13 @@ function Module-InstallSpotX {
             throw 'Spotify installation looks incomplete because chrome_elf.dll is missing.'
         }
 
-        Write-Log 'SpotX patching completed successfully.' -Level 'SUCCESS'
+        $verify = Get-SpotXPatchVerification -SpotifyExePath $global:SPOTIFY_EXE_PATH
+        if ($verify.Verified) {
+            Write-Log "SpotX patching completed and verified ($($verify.Signals -join '; '))." -Level 'SUCCESS'
+        } else {
+            Write-Log "SpotX ran but the patch could not be verified. $($verify.Reason)" -Level 'WARN'
+            Write-Log 'If ads still play or the UI is blank, this Spotify build may resist SpotX patching (SpotX issue #760). Try Reapply, or Full Reset to start clean.' -Level 'WARN'
+        }
         Write-Log 'Launching Spotify once to generate its base config files...'
         Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
         Start-Sleep -Seconds 6
