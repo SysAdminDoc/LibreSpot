@@ -1144,4 +1144,65 @@ public sealed class PowerShellRegressionTests
         // The two named mitigations are hash pinning and patch level.
         Assert.Contains("SHA256", security);
     }
+
+    // ---------------------------------------------------------------------
+    // SpotX external-process execution contract.
+    // The PowerShell backend assembles the SpotX argument string by string
+    // interpolation and runs it via a single-string Start-Process (a Windows
+    // PowerShell 5.1 redirected-output quirk). That is only safe because EVERY
+    // interpolated value is either a fixed flag or a normalized enum/integer.
+    // These guards lock that invariant: Normalize-LibreSpotConfig must constrain
+    // each user-controlled field, and Build-SpotXParams must not interpolate
+    // anything outside the known-safe set. A new free-form argument fails the
+    // guard until it is reviewed here (and normalized or tokenized), instead of
+    // silently enabling command injection from a crafted config.json.
+    // ---------------------------------------------------------------------
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void Normalize_ConstrainsSpotXInterpolatedFieldsToAllowlistsOrIntegers(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        // Download method: reset to the {'', curl, webclient} allowlist.
+        Assert.Matches(@"SpotX_DownloadMethod[\s\S]{0,200}-notin\s*@\(\s*''\s*,\s*'curl'\s*,\s*'webclient'\s*\)", script);
+        // Lyrics theme: allowlist membership against the known theme set.
+        Assert.Matches(@"\$lyricsTheme\s*-notin\s*\$global:SpotXLyricsThemes", script);
+        // Spotify version id: allowlist membership against the manifest ids.
+        Assert.Matches(@"-notin\s*\$global:SpotifyVersionIds", script);
+        // Cache limit: integer coercion with an upper bound.
+        Assert.Matches(@"SpotX_CacheLimit\s*=\s*ConvertTo-ConfigInt[\s\S]{0,160}-Maximum\s*50000", script);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void BuildSpotXParams_OnlyInterpolatesKnownSafeNormalizedFields(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fn = Regex.Match(
+            script,
+            @"function\s+Build-SpotXParams\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fn.Success, $"Build-SpotXParams not found in {relativePath}.");
+        var body = fn.Groups["body"].Value;
+
+        // Every $( ... ) subexpression interpolated into an argument string must
+        // reference only a normalized/allowlisted field. A new interpolation
+        // fails this test until it is reviewed and added here.
+        var allowed = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "$Config.SpotX_LyricsTheme",
+            "$Config.SpotX_DownloadMethod",
+            "$Config.SpotX_CacheLimit",
+            "$entry.Version",
+        };
+        foreach (Match m in Regex.Matches(body, @"\$\((?<expr>[^)]*)\)"))
+        {
+            var expr = m.Groups["expr"].Value.Trim();
+            Assert.True(
+                allowed.Contains(expr),
+                $"Build-SpotXParams in {relativePath} interpolates '{expr}', which is not in the known-safe set. " +
+                "Normalize it in Normalize-LibreSpotConfig (allowlist/integer) and add it here, or use tokenized execution.");
+        }
+    }
 }

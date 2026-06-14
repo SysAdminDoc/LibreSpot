@@ -2050,6 +2050,11 @@ function Module-NukeSpotify {
     Write-Log "Cleanup complete. $removedCount item(s) were removed." -Level 'SUCCESS'
 }
 
+# SECURITY: see SECURITY.md "External process execution contract". $Config MUST
+# be a Normalize-LibreSpotConfig output: the only interpolated values here are
+# SpotX_LyricsTheme (allowlist), SpotX_DownloadMethod (allowlist),
+# SpotX_CacheLimit (integer), and a manifest-supplied version. Do NOT interpolate
+# any new free-form/user value into this string without normalizing it first.
 function Build-SpotXParams {
     param($Config)
     $params = @()

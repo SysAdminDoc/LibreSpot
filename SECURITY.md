@@ -72,3 +72,15 @@ If you discover a vulnerability in SpotX, Spicetify CLI, or a community extensio
 LibreSpot runs the [OpenSSF Scorecard](https://github.com/ossf/scorecard) action weekly and on pushes to `main` ([.github/workflows/scorecard.yml](.github/workflows/scorecard.yml)). It publishes results to the public Scorecard API (the badge in the README) and uploads the SARIF report as a build artifact. This complements the existing release-time controls (commit-pinned dependencies, SHA256 checksums, CycloneDX SBOM, and GitHub provenance attestations).
 
 Scorecard findings are treated as work, not noise: a low score on any check should become a `ROADMAP.md` item with a remediation plan rather than a silently ignored warning.
+
+## External process execution contract
+
+LibreSpot shells out to a few external programs. The boundary that keeps this safe is: **arguments are either fixed literal flags or values that `Normalize-LibreSpotConfig` has already constrained to an allowlist or an integer.** A crafted `config.json` cannot turn a setting into an extra command.
+
+| Executable / script | Argument source | Quoting / execution | Timeout | Output | Exit handling |
+|---|---|---|---|---|---|
+| SpotX `run.ps1` | `Build-SpotXParams` — fixed flags plus four normalized fields (`SpotX_LyricsTheme` → 27-value allowlist, `SpotX_DownloadMethod` → `{curl,webclient}`, `SpotX_SpotifyVersionId` → manifest-id allowlist that selects a manifest-supplied version, `SpotX_CacheLimit` → integer 0–50000) | WPF backend uses `ProcessStartInfo.ArgumentList`; the PowerShell backend uses a single-string `Start-Process -ArgumentList` (a Windows PowerShell 5.1 redirected-output quirk) over the generated path | `Invoke-ExternalScriptIsolated` (600s default, killed on overrun) | Streamed via `Read-ProcessOutputDelta` | Exit code checked, then post-patch markers verified (`Get-SpotXPatchVerification`) |
+| Spicetify CLI | `Invoke-SpicetifyCli` — fixed verbs/flags; list values are allowlisted extension/theme names | `Start-Process -ArgumentList` over the resolved `spicetify.exe` | bounded waits | captured | exit code checked, auto-restore on apply failure |
+| `schtasks.exe` | Fixed task name `LibreSpot\ReapplyWatcher` | `ProcessStartInfo.ArgumentList` | 1500ms (off the UI thread) | captured | exit code → registered/not |
+
+**Rule for new arguments:** any new SpotX/Spicetify argument that carries a user-controlled value must be normalized to an allowlist or integer in `Normalize-LibreSpotConfig` **before** it reaches the parameter builder, or it must use tokenized execution (`ArgumentList`) with explicit escaping. The regression tests `Normalize_ConstrainsSpotXInterpolatedFieldsToAllowlistsOrIntegers` and `BuildSpotXParams_OnlyInterpolatesKnownSafeNormalizedFields` (both PowerShell paths) fail if a new free-form interpolation is added without updating this contract.
