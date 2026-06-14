@@ -282,7 +282,8 @@ public static class AppCatalog
         new ExtensionDefinition("hidePodcasts.js", "Hide Podcasts", "Remove podcast, episode, and audiobook UI elements."),
         new ExtensionDefinition("beautiful-lyrics.mjs", "Beautiful Lyrics", "Immersive synced lyrics with dynamic backgrounds and blur."),
         new ExtensionDefinition("playlist-icons.js", "Playlist Icons", "Add custom icons and folder images to playlists."),
-        new ExtensionDefinition("volumePercentage.js", "Volume Percentage", "Display exact volume percentage next to the slider.")
+        new ExtensionDefinition("volumePercentage.js", "Volume Percentage", "Display exact volume percentage next to the slider."),
+        new ExtensionDefinition("adblock.js", "Ad-block (Spicetify fallback)", "Spicetify-layer ad blocking for when SpotX patching fails on a newer Spotify build. Not a SpotX replacement.")
     });
 
     private static readonly IReadOnlyDictionary<string, string> ExtensionAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)

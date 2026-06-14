@@ -81,6 +81,26 @@
       "legacyAliases": [],
       "easyModeDefault": true,
       "notes": null
+    },
+    {
+      "filename": "adblock.js",
+      "displayName": "Ad-block (Spicetify fallback)",
+      "description": "Spicetify-layer ad blocking - a fallback for when SpotX patching fails on a newer Spotify build. Not a SpotX replacement.",
+      "owner": "rxri",
+      "repo": "spicetify-extensions",
+      "commitSha": "60554c512739c6f2084879efe9d8a88f1dd16646",
+      "assetPath": "adblock/adblock.js",
+      "sourceUrl": "https://raw.githubusercontent.com/rxri/spicetify-extensions/60554c512739c6f2084879efe9d8a88f1dd16646/adblock/adblock.js",
+      "sha256": "fb6dc4dfc09ee369638ffaf47a9f36202bb99c1555edc79772d7fbb235114623",
+      "spdxLicense": "MIT",
+      "copyrightHolder": "CharlieS1103 and adblockify contributors",
+      "redistributionPosture": "download-only-not-redistributed",
+      "supportState": "active",
+      "lastVerifiedDate": "2026-06-14",
+      "fallbackBehavior": "skip-with-warning",
+      "legacyAliases": [],
+      "easyModeDefault": false,
+      "notes": "Opt-in SpotX-independent ad-block fallback. Suggested by the post-install SpotX verification check when patching cannot be confirmed."
     }
   ],
   "deprecatedExtensions": [

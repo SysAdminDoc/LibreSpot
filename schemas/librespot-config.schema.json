@@ -186,7 +186,8 @@
           "hidePodcasts.js",
           "beautiful-lyrics.mjs",
           "playlist-icons.js",
-          "volumePercentage.js"
+          "volumePercentage.js",
+          "adblock.js"
         ]
       }
     },

@@ -900,6 +900,12 @@ $global:CommunityExtensions = [ordered]@{
         Source      = "daksh2k/spicetify-stuff"
         SHA256      = "b88dcde894f4998abc4473773333015c09f0450ec563d256ed5af45db7129aca"
     }
+    "adblock.js" = @{
+        Description = "Spicetify-layer ad blocking - a fallback for when SpotX patching fails on a newer Spotify build. Not a SpotX replacement."
+        Url         = "https://raw.githubusercontent.com/rxri/spicetify-extensions/60554c512739c6f2084879efe9d8a88f1dd16646/adblock/adblock.js"
+        Source      = "rxri/spicetify-extensions"
+        SHA256      = "fb6dc4dfc09ee369638ffaf47a9f36202bb99c1555edc79772d7fbb235114623"
+    }
 }
 $global:CommunityExtensionAliases = @{
     "beautifulLyrics.js" = "beautiful-lyrics.mjs"
@@ -2074,7 +2080,9 @@ $xaml = @"
                                                             </StackPanel>
                                                             <StackPanel Grid.Column="2">
                                                                 <CheckBox Name="ChkExt_volumePercentage" Content="Volume Percentage" Style="{StaticResource DarkCheckBox}" Margin="0"/>
-                                                                <TextBlock Text="Display exact volume percentage next to the slider." Style="{StaticResource HelperText}" Margin="30,2,0,0"/>
+                                                                <TextBlock Text="Display exact volume percentage next to the slider." Style="{StaticResource HelperText}" Margin="30,2,0,4"/>
+                                                                <CheckBox Name="ChkExt_adblock" Content="Ad-block (Spicetify fallback)" Style="{StaticResource DarkCheckBox}" Margin="0"/>
+                                                                <TextBlock Text="Spicetify-layer ad blocking for when SpotX patching fails on a newer Spotify build. Not a SpotX replacement." Style="{StaticResource HelperText}" Margin="30,2,0,0"/>
                                                             </StackPanel>
                                                         </Grid>
                                                     </StackPanel>
@@ -2359,7 +2367,7 @@ $ui = @{}
   'ChkSendVersionOff','ChkDevTools','ChkMirror','ChkConfirmUninstall','CmbDownloadMethod','CmbSpotifyVersion','SpotifyVersionHint',
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
-  'ChkExt_hidePodcasts','ChkExt_beautifulLyrics','ChkExt_playlistIcons','ChkExt_volumePercentage',
+  'ChkExt_hidePodcasts','ChkExt_beautifulLyrics','ChkExt_playlistIcons','ChkExt_volumePercentage','ChkExt_adblock',
   'ChkCleanInstall','ChkLaunchAfter',
   'MaintenanceOverviewTitle','MaintenanceOverviewText',
   'MaintenanceMetricStackValue','MaintenanceMetricStackDetail','MaintenanceMetricBackupValue','MaintenanceMetricBackupDetail','MaintenanceMetricNextStepValue','MaintenanceMetricNextStepDetail',
@@ -2385,6 +2393,7 @@ $extCheckboxMap = [ordered]@{
     'ChkExt_hidePodcasts'='hidePodcasts.js'; 'ChkExt_beautifulLyrics'='beautiful-lyrics.mjs'
     'ChkExt_playlistIcons'='playlist-icons.js'
     'ChkExt_volumePercentage'='volumePercentage.js'
+    'ChkExt_adblock'='adblock.js'
 }
 
 foreach ($ck in $extCheckboxMap.Keys) {
@@ -5590,7 +5599,7 @@ function Module-InstallSpotX { param($Config,$SyncHash)
                 Write-Log "Spotify $patchedVer patched and verified ($($verify.Signals -join '; '))." -Level 'SUCCESS'
             } else {
                 Write-Log "Spotify ${patchedVer}: SpotX ran but the patch could not be verified. $($verify.Reason)" -Level 'WARN'
-                Write-Log "If ads still play or the UI is blank, this Spotify build may resist SpotX patching (SpotX issue #760). Try Maintenance > Reapply, or Maintenance > Full Reset to start clean." -Level 'WARN'
+                Write-Log "If ads still play or the UI is blank, this Spotify build may resist SpotX patching (SpotX issue #760). Try Maintenance > Reapply, or Maintenance > Full Reset to start clean. As a fallback, enable 'Ad-block (Spicetify fallback)' in Custom Install to keep ad-blocking working at the Spicetify layer." -Level 'WARN'
             }
             Write-Log "Launching Spotify (hidden) to generate config files..."
             if (Test-Path $global:SPOTIFY_EXE_PATH) {

@@ -144,6 +144,7 @@ $global:CommunityExtensions = @{
     'beautiful-lyrics.mjs'  = @{ Url = 'https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/61ac582da092311e893423269ca7f09003108705/Extension/Builds/Release/beautiful-lyrics.mjs';      Source = 'surfbryce/beautiful-lyrics'; SHA256 = '93c9ecfcb0a83c832c5ee7ca8fe826bcfaeec7cdd129c0bf05bab84b8ba6ba72' }
     'playlist-icons.js'     = @{ Url = 'https://raw.githubusercontent.com/jeroentvb/spicetify-playlist-icons/8f401f923a5c25f530935faaceb39089a25b701a/playlist-icons.js';                         Source = 'jeroentvb/spicetify-playlist-icons'; SHA256 = '79bbe2bd6a52a521a382a73ef1c8c7ff0b0b9bd7674c48bb0ed44c5d2c944c8d' }
     'volumePercentage.js'   = @{ Url = 'https://raw.githubusercontent.com/daksh2k/spicetify-stuff/89e609d933946a888cdff9cc3d7c4f1e9b88cfde/Extensions/volumePercentage.js';                       Source = 'daksh2k/spicetify-stuff'; SHA256 = 'b88dcde894f4998abc4473773333015c09f0450ec563d256ed5af45db7129aca' }
+    'adblock.js'            = @{ Url = 'https://raw.githubusercontent.com/rxri/spicetify-extensions/60554c512739c6f2084879efe9d8a88f1dd16646/adblock/adblock.js';                                    Source = 'rxri/spicetify-extensions'; SHA256 = 'fb6dc4dfc09ee369638ffaf47a9f36202bb99c1555edc79772d7fbb235114623' }
 }
 $global:CommunityExtensionAliases = @{
     'beautifulLyrics.js' = 'beautiful-lyrics.mjs'
@@ -2180,7 +2181,7 @@ function Module-InstallSpotX {
             Write-Log "SpotX patching completed and verified ($($verify.Signals -join '; '))." -Level 'SUCCESS'
         } else {
             Write-Log "SpotX ran but the patch could not be verified. $($verify.Reason)" -Level 'WARN'
-            Write-Log 'If ads still play or the UI is blank, this Spotify build may resist SpotX patching (SpotX issue #760). Try Reapply, or Full Reset to start clean.' -Level 'WARN'
+            Write-Log 'If ads still play or the UI is blank, this Spotify build may resist SpotX patching (SpotX issue #760). Try Reapply, or Full Reset to start clean. As a fallback, enable the Spicetify ad-block extension to keep ad-blocking working at the Spicetify layer.' -Level 'WARN'
         }
         Write-Log 'Launching Spotify once to generate its base config files...'
         Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
