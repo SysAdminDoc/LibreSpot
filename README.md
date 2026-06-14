@@ -176,7 +176,7 @@ Use Maintenance > Repair and open Marketplace. LibreSpot reinstalls the custom a
 Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify, and cleans up every trace.
 
 **Can I migrate from BlockTheSpot?**
-Yes. LibreSpot warns when it sees BlockTheSpot-family DLL or config artifacts next to Spotify. A normal install can replace them, and Maintenance > Full Reset is the fallback if you see blank screens or playback failures after patching.
+BlockTheSpot archived its repository in February 2026. LibreSpot warns when it sees BlockTheSpot-family DLL or config artifacts next to Spotify. A normal install can replace them, and Maintenance > Full Reset is the fallback if you see blank screens or playback failures after patching.
 
 **Is this safe?**
 Every download is verified against pinned SHA256 hashes. LibreSpot doesn't host or redistribute any code — it downloads directly from the official SpotX and Spicetify GitHub repositories. See [Trust & risk disclosure](#trust--risk-disclosure) below for enforcement context and account risk details.
