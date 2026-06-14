@@ -34,7 +34,9 @@ public static class ThemeManager
         for (var i = 0; i < dictionaries.Count; i++)
         {
             var source = dictionaries[i].Source;
-            if (source is not null && (source.OriginalString.Contains("Palette.xaml")))
+            if (source is not null &&
+                (source.OriginalString.EndsWith(PaletteSource, StringComparison.OrdinalIgnoreCase) ||
+                 source.OriginalString.EndsWith(HighContrastPaletteSource, StringComparison.OrdinalIgnoreCase)))
             {
                 paletteIndex = i;
                 break;
@@ -50,6 +52,10 @@ public static class ThemeManager
         {
             ApplyReducedMotion(app);
         }
+        else
+        {
+            ClearReducedMotionOverrides(app);
+        }
     }
 
     private static void ApplyReducedMotion(Application app)
@@ -60,5 +66,17 @@ public static class ThemeManager
         app.Resources["MotionFast"] = 0.0;
         app.Resources["MotionMed"] = 0.0;
         app.Resources["MotionSlow"] = 0.0;
+    }
+
+    private static void ClearReducedMotionOverrides(Application app)
+    {
+        string[] motionKeys = ["MotionFast", "MotionMed", "MotionSlow"];
+        foreach (var key in motionKeys)
+        {
+            if (app.Resources.Contains(key))
+            {
+                app.Resources.Remove(key);
+            }
+        }
     }
 }

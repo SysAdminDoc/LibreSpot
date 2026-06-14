@@ -108,6 +108,9 @@
   <SolidColorBrush x:Key="ScrimBrush" Color="{StaticResource ScrimColor}" />
   <SolidColorBrush x:Key="SheenBrush" Color="{StaticResource SheenColor}" />
 
+  <SolidColorBrush x:Key="TerminalBgBrush" Color="#080B0A" />
+  <SolidColorBrush x:Key="TerminalFgBrush" Color="#D6E4DB" />
+
   <!-- ═══ Radius rhythm ═══ -->
   <CornerRadius x:Key="RadiusSm">8</CornerRadius>
   <CornerRadius x:Key="RadiusMd">12</CornerRadius>

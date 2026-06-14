@@ -854,7 +854,8 @@
                               Padding="18,0"
                               Style="{StaticResource SecondaryButtonStyle}"
                               Visibility="{Binding HasSettingsSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
-                              Command="{Binding ClearSettingsSearchCommand}" />
+                              Command="{Binding ClearSettingsSearchCommand}"
+                              AutomationProperties.Name="Clear settings search" />
                     </Grid>
                     <TextBlock Text="{Binding CustomSearchSummary}"
                                Style="{StaticResource CaptionTextStyle}"
@@ -1663,7 +1664,8 @@
                              Value="{Binding ProgressValue, Mode=OneWay}"
                              IsIndeterminate="{Binding IsBusyIndeterminate, Mode=OneWay}"
                              Style="{StaticResource ProgressBarStylePremium}"
-                             VerticalAlignment="Center" />
+                             VerticalAlignment="Center"
+                             AutomationProperties.Name="Installation progress" />
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
                             Margin="14,0,0,0"
@@ -1787,7 +1789,7 @@
               </Grid>
               <Border Grid.Row="1"
                       MinHeight="220"
-                      Background="#080B0A"
+                      Background="{DynamicResource TerminalBgBrush}"
                       BorderBrush="{StaticResource StrokeBrush}"
                       BorderThickness="1"
                       CornerRadius="12">
@@ -1840,7 +1842,7 @@
                                        Text="{Binding Message}"
                                        FontFamily="{StaticResource MonoFont}"
                                        FontSize="11.5"
-                                       Foreground="#D6E4DB"
+                                       Foreground="{DynamicResource TerminalFgBrush}"
                                        TextWrapping="Wrap" />
                           </Grid>
                         </DataTemplate>
