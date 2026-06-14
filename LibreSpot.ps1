@@ -2074,7 +2074,7 @@ $xaml = @"
                                                                 <CheckBox Name="ChkExt_hidePodcasts" Content="Hide Podcasts" Style="{StaticResource DarkCheckBox}" Margin="0"/>
                                                                 <TextBlock Text="Remove podcast, episode, and audiobook sections from the UI." Style="{StaticResource HelperText}" Margin="30,2,0,4"/>
                                                                 <CheckBox Name="ChkExt_beautifulLyrics" Content="Beautiful Lyrics" Style="{StaticResource DarkCheckBox}" Margin="0"/>
-                                                                <TextBlock Text="Immersive synced lyrics with dynamic backgrounds and blur." Style="{StaticResource HelperText}" Margin="30,2,0,4"/>
+                                                                <TextBlock Text="Immersive synced lyrics with dynamic backgrounds and blur. Connects to a third-party lyrics service (not just GitHub/Spotify)." Style="{StaticResource HelperText}" Margin="30,2,0,4"/>
                                                                 <CheckBox Name="ChkExt_playlistIcons" Content="Playlist Icons" Style="{StaticResource DarkCheckBox}" Margin="0"/>
                                                                 <TextBlock Text="Add custom icons and folder images to playlists." Style="{StaticResource HelperText}" Margin="30,2,0,0"/>
                                                             </StackPanel>

@@ -137,7 +137,7 @@ public sealed class CommunityAssetsManifestTests
         foreach (var ext in Manifest.RootElement.GetProperty("extensions").EnumerateArray())
         {
             var filename = ext.GetProperty("filename").GetString()!;
-            var required = new[] { "filename", "displayName", "owner", "repo", "commitSha", "sourceUrl", "sha256", "spdxLicense", "supportState", "fallbackBehavior" };
+            var required = new[] { "filename", "displayName", "owner", "repo", "commitSha", "sourceUrl", "sha256", "spdxLicense", "supportState", "fallbackBehavior", "networkBehavior" };
             foreach (var field in required)
             {
                 Assert.True(
@@ -153,12 +153,51 @@ public sealed class CommunityAssetsManifestTests
         foreach (var theme in Manifest.RootElement.GetProperty("themes").EnumerateArray())
         {
             var themeId = theme.GetProperty("themeId").GetString()!;
-            var required = new[] { "themeId", "displayName", "owner", "repo", "spdxLicense", "supportState", "fallbackBehavior", "schemes", "requiresJsInjection" };
+            var required = new[] { "themeId", "displayName", "owner", "repo", "spdxLicense", "supportState", "fallbackBehavior", "schemes", "requiresJsInjection", "networkBehavior" };
             foreach (var field in required)
             {
                 Assert.True(
                     theme.TryGetProperty(field, out var val) && val.ValueKind != JsonValueKind.Undefined,
                     $"Theme '{themeId}' is missing required field '{field}'.");
+            }
+        }
+    }
+
+    // Every installable community asset must explicitly declare its runtime
+    // network behavior so users (and the trust docs) know whether enabling it
+    // contacts a server other than GitHub/Spotify. Assets that talk to a
+    // third-party service must explain what they contact.
+    [Fact]
+    public void Manifest_AllAssetsDeclareNetworkBehavior()
+    {
+        var allowed = new[] { "local-only", "third-party-service" };
+
+        IEnumerable<JsonElement> assets =
+            Manifest.RootElement.GetProperty("extensions").EnumerateArray()
+                .Concat(Manifest.RootElement.GetProperty("themes").EnumerateArray());
+
+        foreach (var asset in assets)
+        {
+            var id = asset.TryGetProperty("filename", out var fn)
+                ? fn.GetString()!
+                : asset.GetProperty("themeId").GetString()!;
+
+            Assert.True(
+                asset.TryGetProperty("networkBehavior", out var behavior) && behavior.ValueKind == JsonValueKind.String,
+                $"Asset '{id}' is missing a string 'networkBehavior'.");
+
+            var value = behavior.GetString()!;
+            Assert.True(
+                allowed.Contains(value),
+                $"Asset '{id}' has unknown networkBehavior '{value}'. Allowed: {string.Join(", ", allowed)}.");
+
+            if (value == "third-party-service")
+            {
+                Assert.True(
+                    asset.TryGetProperty("networkDetail", out var detail)
+                        && detail.ValueKind == JsonValueKind.String
+                        && !string.IsNullOrWhiteSpace(detail.GetString()),
+                    $"Asset '{id}' is networked but has no 'networkDetail' explaining what it contacts.");
             }
         }
     }

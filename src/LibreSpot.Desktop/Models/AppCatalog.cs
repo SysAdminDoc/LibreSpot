@@ -280,7 +280,7 @@ public static class AppCatalog
         new ExtensionDefinition("webnowplaying.js", "WebNowPlaying", "Expose now-playing data for desktop integrations and widgets."),
         // Community extensions — downloaded from GitHub during install
         new ExtensionDefinition("hidePodcasts.js", "Hide Podcasts", "Remove podcast, episode, and audiobook UI elements."),
-        new ExtensionDefinition("beautiful-lyrics.mjs", "Beautiful Lyrics", "Immersive synced lyrics with dynamic backgrounds and blur."),
+        new ExtensionDefinition("beautiful-lyrics.mjs", "Beautiful Lyrics", "Immersive synced lyrics with dynamic backgrounds and blur. Connects to a third-party lyrics service (not just GitHub/Spotify)."),
         new ExtensionDefinition("playlist-icons.js", "Playlist Icons", "Add custom icons and folder images to playlists."),
         new ExtensionDefinition("volumePercentage.js", "Volume Percentage", "Display exact volume percentage next to the slider."),
         new ExtensionDefinition("adblock.js", "Ad-block (Spicetify fallback)", "Spicetify-layer ad blocking for when SpotX patching fails on a newer Spotify build. Not a SpotX replacement.")

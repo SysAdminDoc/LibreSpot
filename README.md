@@ -196,8 +196,10 @@ Every download is verified against pinned SHA256 hashes. LibreSpot doesn't host 
 **What LibreSpot does NOT do:**
 - Collect, transmit, or store any credentials, tokens, or account data
 - Bundle, host, or redistribute Spotify binaries or any upstream project code
-- Communicate with any server other than GitHub (for downloads) and Spotify (normal app traffic)
+- Communicate, *as LibreSpot itself*, with any server other than GitHub (for downloads) and Spotify (normal app traffic)
 - Modify Spotify's authentication, payment, or account systems
+
+> **Note on community extensions:** the bullet above covers LibreSpot itself. Some *opt-in* community extensions you can enable in Custom Install do contact their own services — for example, [Beautiful Lyrics](https://github.com/surfbryce/beautiful-lyrics) fetches lyrics from a third-party backend and uses an external API for optional Discord features. Extensions that talk to a third-party service are flagged in the Custom Install catalog and recorded in [`schemas/community-assets.json`](schemas/community-assets.json) under `networkBehavior`. They are off by default.
 
 **Account risk:**
 Spotify's [Terms of Service](https://www.spotify.com/legal/end-user-agreement/) and [User Guidelines](https://www.spotify.com/legal/user-guidelines/) prohibit circumventing ads and modifying the client. While enforcement against individual users of tools like SpotX has not been publicly documented, using LibreSpot is at your own risk. LibreSpot provides a "Full Reset" option in Maintenance mode to return Spotify to its unmodified state at any time.
