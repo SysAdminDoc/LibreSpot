@@ -33,7 +33,8 @@ public sealed class DependencyAutomationTests
         Assert.Contains("- \"coverlet.collector\"", config);
         Assert.Contains("package-ecosystem: \"github-actions\"", config);
         Assert.Contains("directory: \"/\"", config);
-        Assert.Contains("workflow-actions:", config);
+        Assert.Contains("workflow-actions-minor:", config);
+        Assert.Contains("workflow-actions-major:", config);
         Assert.Contains("- \"github-actions\"", config);
     }
 

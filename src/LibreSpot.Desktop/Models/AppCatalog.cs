@@ -298,7 +298,8 @@ public static class AppCatalog
         new MaintenanceActionDefinition("RepairMarketplace", "Repair and open Marketplace", "Reinstall the Spicetify Marketplace custom app, apply it, and open spotify:app:marketplace if the sidebar entry is missing.", "Repair Marketplace"),
         new MaintenanceActionDefinition("RestoreVanilla", "Restore vanilla Spotify", "Remove active Spicetify customizations while leaving SpotX in place.", "Restore"),
         new MaintenanceActionDefinition("UninstallSpicetify", "Uninstall Spicetify", "Restore Spotify and then remove the Spicetify CLI, config folder, and PATH entry.", "Remove Spicetify", true),
-        new MaintenanceActionDefinition("FullReset", "Full reset", "Remove SpotX, Spicetify, Spotify app state, and related leftovers for a truly clean start.", "Reset everything", true)
+        new MaintenanceActionDefinition("FullReset", "Full reset", "Remove SpotX, Spicetify, Spotify app state, and related leftovers for a truly clean start.", "Reset everything", true),
+        new MaintenanceActionDefinition("RemoveSelfData", "Remove LibreSpot data", "Unregister the watcher task and delete LibreSpot's own config, backups, logs, and crash reports. Spotify and Spicetify are not affected.", "Remove LibreSpot data", true)
     });
 
     public static IReadOnlyList<string> RecommendedHighlights { get; } = new ReadOnlyCollection<string>(new[]

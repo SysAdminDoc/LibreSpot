@@ -97,6 +97,15 @@
       "toastCompatible": false,
       "description": "8-phase comprehensive uninstaller: process kill, AppX, filesystem, registry, tasks, firewall, verification",
       "notes": "Marked IsDestructive in AppCatalog"
+    },
+    {
+      "action": "RemoveSelfData",
+      "elevation": "no-admin",
+      "mutating": true,
+      "destructive": true,
+      "toastCompatible": false,
+      "description": "Unregisters the watcher scheduled task and removes LibreSpot config, backups, logs, and crash reports. Does not affect Spotify or Spicetify.",
+      "notes": "Marked IsDestructive in AppCatalog. Does not require admin because it only removes per-user LibreSpot data."
     }
   ],
   "nonActionWorkflows": [
@@ -129,7 +138,7 @@
   "designPrinciples": [
     "The WPF shell launches non-elevated (asInvoker) and prompts for admin only when executing mutating backend actions",
     "Non-mutating workflows (config browse, update check, diagnostics, logs, notifications) never require elevation",
-    "Destructive actions (FullReset, UninstallSpicetify) are gated behind both elevation and confirmation",
+    "Destructive actions (FullReset, UninstallSpicetify, RemoveSelfData) are gated behind both elevation and confirmation",
     "Toast/notification support is only available in the non-elevated session — elevated processes cannot register for app notifications",
     "The PowerShell script self-elevates immediately because its architecture does not separate read-only and mutating paths"
   ]
