@@ -12,6 +12,12 @@ publish-new/
 tmp/
 *.user
 
+# Build artifacts — never tracked. Integrity comes from CI-attested release
+# assets (release.yml generates fresh checksums + SBOM + provenance per tag),
+# not from stale copies committed to the repo.
+LibreSpot.exe
+checksums.txt
+
 # Runtime caches written to %APPDATA% in production; belt-and-braces here
 update-check.json
 

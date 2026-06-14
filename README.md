@@ -211,12 +211,15 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 
 Releases ship unsigned today. [SignPath Foundation](https://signpath.org/) OSS enrollment is pending. Once the cert arrives, tagged releases will Authenticode-sign both `LibreSpot.exe` and `LibreSpot-Desktop.exe` via the workflow in [.github/workflows/release.yml](.github/workflows/release.yml) and users will stop seeing the "Unknown publisher" SmartScreen warning.
 
-The current latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt`. Workflow-built tags are expected to add `LibreSpot-Desktop.exe`, CycloneDX SBOM output, and GitHub provenance attestations.
+The current latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt` **as GitHub release assets**. The repository itself does not track build artifacts — `LibreSpot.exe` and `checksums.txt` are generated fresh per tag by [.github/workflows/release.yml](.github/workflows/release.yml), so always verify against the copies you downloaded from the [Releases page](https://github.com/SysAdminDoc/LibreSpot/releases), not against anything in a source checkout. Workflow-built tags also add `LibreSpot-Desktop.exe`, CycloneDX SBOM output, and GitHub provenance attestations.
 
-Verify a downloaded v3.7.2 asset against `checksums.txt`:
+Verify a downloaded release asset against that release's `checksums.txt` (run this in the folder you downloaded the assets into):
 
 ```powershell
-Get-FileHash .\LibreSpot.exe -Algorithm SHA256
+# Compare the hash of each downloaded asset to its line in checksums.txt
+Get-FileHash .\LibreSpot.exe  -Algorithm SHA256
+Get-FileHash .\LibreSpot.ps1  -Algorithm SHA256
+Get-Content  .\checksums.txt
 ```
 
 For workflow-built assets that include GitHub attestations, verify provenance with:
