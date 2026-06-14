@@ -5002,7 +5002,7 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
                 throw "Archive '$Label' contains a path traversal entry: $name"
             }
             $fullTarget = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath $normalized))
-            $fullDest = [System.IO.Path]::GetFullPath($DestinationPath)
+            $fullDest = [System.IO.Path]::GetFullPath($DestinationPath).TrimEnd('\') + '\'
             if (-not $fullTarget.StartsWith($fullDest, [System.StringComparison]::OrdinalIgnoreCase)) {
                 throw "Archive '$Label' entry escapes destination: $name"
             }
@@ -5285,7 +5285,7 @@ function Remove-PathSafely { param([string]$Path,[string]$Label)
         return 0
     }
     try {
-        $null = & icacls.exe $Path /reset /T /C /Q 2>$null
+        $null = & icacls.exe "$Path" /reset /T /C /Q 2>$null
         Remove-Item -LiteralPath $Path -Recurse -Force -EA Stop
         Write-Log "  Removed: $(if($Label){$Label}else{$Path})"
         return 1

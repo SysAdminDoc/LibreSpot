@@ -46,7 +46,7 @@ public sealed class EnvironmentSnapshotService
                 Path.Combine(_spicetifyConfigDirectory, "config-xpui.ini"),
                 "custom_apps",
                 "marketplace"),
-            SavedConfigExists = File.Exists(configPath),
+            SavedConfigExists = !string.IsNullOrWhiteSpace(configPath) && File.Exists(configPath),
             ConfigFolderExists = Directory.Exists(configDirectory),
             AutoReapplyTaskRegistered = _autoReapplyTaskProbe()
         };

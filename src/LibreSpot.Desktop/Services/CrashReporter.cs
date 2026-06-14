@@ -32,8 +32,15 @@ public static class CrashReporter
             return;
         }
 
-        Directory.CreateDirectory(LogRoot);
-        Directory.CreateDirectory(CrashRoot);
+        try
+        {
+            Directory.CreateDirectory(LogRoot);
+            Directory.CreateDirectory(CrashRoot);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"CrashReporter: could not create log/crash directories: {ex.Message}");
+        }
 
         // Clean up crash reports older than 30 days to prevent unbounded growth.
         try
@@ -453,7 +460,7 @@ public static class CrashReporter
             {
                 FileName = CrashRoot,
                 UseShellExecute = true
-            });
+            })?.Dispose();
         }
         catch
         {
