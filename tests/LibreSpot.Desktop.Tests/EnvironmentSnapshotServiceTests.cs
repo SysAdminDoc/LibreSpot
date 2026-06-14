@@ -61,6 +61,60 @@ public sealed class EnvironmentSnapshotServiceTests
     }
 
     [Fact]
+    public async Task GetSnapshotAsync_MatchesSyncResult()
+    {
+        var configDirectory = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(configDirectory, "config.json");
+
+        try
+        {
+            Directory.CreateDirectory(configDirectory);
+            File.WriteAllText(configPath, "{}");
+
+            var service = new EnvironmentSnapshotService(autoReapplyTaskProbe: () => true);
+
+            // GetSnapshotAsync offloads the blocking schtasks probe to the thread
+            // pool (so the UI dispatcher is never blocked) and must return the
+            // same result as the synchronous path.
+            var asyncSnapshot = await service.GetSnapshotAsync(configPath);
+            var syncSnapshot = service.GetSnapshot(configPath);
+
+            Assert.Equal(syncSnapshot.AutoReapplyTaskRegistered, asyncSnapshot.AutoReapplyTaskRegistered);
+            Assert.Equal(syncSnapshot.SavedConfigExists, asyncSnapshot.SavedConfigExists);
+            Assert.Equal(syncSnapshot.ConfigFolderExists, asyncSnapshot.ConfigFolderExists);
+            Assert.True(asyncSnapshot.AutoReapplyTaskRegistered);
+            Assert.True(asyncSnapshot.SavedConfigExists);
+        }
+        finally
+        {
+            if (Directory.Exists(configDirectory))
+            {
+                Directory.Delete(configDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void GetSnapshotAsync_OffloadsToThreadPoolViaTaskRun()
+    {
+        // Lock in the structural guarantee: the async wrapper must use Task.Run so
+        // the 1500ms schtasks probe never executes on the caller's (UI) thread.
+        var source = File.ReadAllText(Path.Combine(
+            ResolveRepoRoot(), "src", "LibreSpot.Desktop", "Services", "EnvironmentSnapshotService.cs"));
+        Assert.Matches(@"GetSnapshotAsync\([^)]*\)\s*=>\s*\r?\n?\s*Task\.Run", source);
+    }
+
+    private static string ResolveRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "LibreSpot.ps1")))
+        {
+            dir = dir.Parent;
+        }
+        return dir?.FullName ?? throw new InvalidOperationException("Could not locate repo root.");
+    }
+
+    [Fact]
     public void GetSnapshot_ReportsMarketplaceReadyWhenFilesAndConfigRegistrationExist()
     {
         var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));

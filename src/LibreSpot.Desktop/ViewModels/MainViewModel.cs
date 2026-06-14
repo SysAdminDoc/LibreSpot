@@ -215,7 +215,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DismissActivityCommand = new RelayCommand(DismissActivity, () => IsActivityVisible && !IsRunning);
         CopyLogCommand = new RelayCommand(CopyLog, () => LogEntries.Count > 0);
         OpenLibreSpotFolderCommand = new RelayCommand(OpenLibreSpotFolder);
-        RefreshSnapshotCommand = new RelayCommand(RefreshSnapshot);
+        RefreshSnapshotCommand = new RelayCommand(() => _ = RefreshSnapshotAsync());
         EnableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: true), () => !IsRunning && !Snapshot.AutoReapplyTaskRegistered);
         DisableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: false), () => !IsRunning && Snapshot.AutoReapplyTaskRegistered);
         ClearSettingsSearchCommand = new RelayCommand(() => SettingsSearchText = string.Empty, () => HasSettingsSearchText);
@@ -1114,7 +1114,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _recoveredConfigurationPath = loadResult.RecoveredFilePath;
         _configurationRecoveryReason = loadResult.RecoveryReason;
         ApplyConfigurationToEditor(loadResult.Configuration);
-        RefreshSnapshot();
+        await RefreshSnapshotAsync();
     }
 
     private ObservableCollection<OptionToggleViewModel> CreateOptions(string section) =>
@@ -1543,7 +1543,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             RaisePropertyChanged(nameof(RunElapsedText));
             IsRunning = false;
             IsCancelRequested = false;
-            RefreshSnapshot();
+            await RefreshSnapshotAsync();
         }
     }
 
@@ -1644,9 +1644,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(IsLogEmpty));
     }
 
-    private void RefreshSnapshot()
+    private async Task RefreshSnapshotAsync()
     {
-        Snapshot = _snapshotService.GetSnapshot(_configurationService.ConfigPath);
+        // Probe off the UI thread (schtasks query can take up to 1500ms); the
+        // await resumes on the dispatcher so property updates stay UI-safe.
+        Snapshot = await _snapshotService.GetSnapshotAsync(_configurationService.ConfigPath);
         _snapshotRefreshedAt = DateTime.Now;
         RaisePropertyChanged(nameof(LastRefreshedText));
         RaiseSnapshotFreshnessChanged();

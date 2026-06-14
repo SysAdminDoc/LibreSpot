@@ -29,6 +29,13 @@ public sealed class EnvironmentSnapshotService
             : Path.GetFullPath(spicetifyConfigDirectory);
     }
 
+    // Snapshot probing touches the filesystem and shells out to schtasks.exe
+    // (up to 1500ms). Callers on the UI thread must use this async variant so
+    // the dispatcher is never blocked; the work runs on the thread pool and the
+    // caller's await resumes on the original (UI) context to publish results.
+    public Task<EnvironmentSnapshot> GetSnapshotAsync(string configPath) =>
+        Task.Run(() => GetSnapshot(configPath));
+
     public EnvironmentSnapshot GetSnapshot(string configPath)
     {
         var configDirectory = ResolveConfigDirectory(configPath);
