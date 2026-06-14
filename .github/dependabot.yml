@@ -46,9 +46,14 @@ updates:
       prefix: "chore"
       include: "scope"
     groups:
-      workflow-actions:
+      workflow-actions-minor:
         patterns:
           - "*"
         update-types:
           - "minor"
           - "patch"
+      workflow-actions-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
