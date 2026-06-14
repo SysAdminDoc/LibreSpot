@@ -10,6 +10,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-4.0.0--preview.6-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/SysAdminDoc/LibreSpot/badge)](https://securityscorecards.dev/viewer/?uri=github.com/SysAdminDoc/LibreSpot)
 
 </div>
 

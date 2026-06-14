@@ -66,3 +66,9 @@ If you discover a vulnerability in SpotX, Spicetify CLI, or a community extensio
 - **PowerShell 7+ is unaffected** — PowerShell 7 (Core) is a separate product and is out of scope for this CVE; the preflight skips it.
 
 **Required action for users:** keep Windows fully updated. Hosts on the December 2025 cumulative update or later have the fix; older hosts should install pending updates before running LibreSpot's `irm … | iex` quickstart.
+
+## Supply-chain hygiene
+
+LibreSpot runs the [OpenSSF Scorecard](https://github.com/ossf/scorecard) action weekly and on pushes to `main` ([.github/workflows/scorecard.yml](.github/workflows/scorecard.yml)). It publishes results to the public Scorecard API (the badge in the README) and uploads the SARIF report as a build artifact. This complements the existing release-time controls (commit-pinned dependencies, SHA256 checksums, CycloneDX SBOM, and GitHub provenance attestations).
+
+Scorecard findings are treated as work, not noise: a low score on any check should become a `ROADMAP.md` item with a remediation plan rather than a silently ignored warning.

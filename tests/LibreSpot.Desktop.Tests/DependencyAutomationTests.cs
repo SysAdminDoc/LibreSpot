@@ -115,6 +115,24 @@ public sealed class DependencyAutomationTests
         Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
     }
 
+    [Fact]
+    public void ScorecardWorkflow_RunsOnScheduleAndPublishesResults()
+    {
+        var workflow = ReadRepoFile(".github", "workflows", "scorecard.yml");
+
+        // Scheduled + push(main) coverage; PR triggers are intentionally absent
+        // because Scorecard's publish/OIDC steps need repo-scoped tokens.
+        Assert.Contains("schedule:", workflow);
+        Assert.Contains("cron:", workflow);
+        Assert.Contains("branches: [ \"main\" ]", workflow);
+        // Least-privilege top-level token.
+        Assert.Contains("permissions: read-all", workflow);
+        // Publishes to the OSSF API so the README badge resolves.
+        Assert.Contains("ossf/scorecard-action@", workflow);
+        Assert.Contains("publish_results: true", workflow);
+        Assert.Contains("id-token: write", workflow);
+    }
+
     private static string ReadRepoFile(params string[] relativeParts) =>
         File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(relativeParts).ToArray()));
 

@@ -1,0 +1,56 @@
+# OpenSSF Scorecard — supply-chain security hygiene scan.
+#
+# Publishes results to the public Scorecard API (which powers the README badge)
+# and uploads the SARIF report as a build artifact for inspection. Runs weekly
+# and on pushes to the default branch; branch_protection_rule keeps the
+# branch-protection check fresh. Pull-request triggers are intentionally
+# omitted: Scorecard's publish + OIDC steps require repo-scoped tokens that
+# pull requests from forks do not receive, so a PR run would only warn.
+#
+# Low scores surfaced here should become ROADMAP.md items rather than silent
+# warnings, per the supply-chain hygiene plan.
+name: Scorecard
+
+on:
+  branch_protection_rule:
+  schedule:
+    # Weekly, Monday 02:21 UTC (off-peak, fixed minute to avoid the top of the hour).
+    - cron: '21 2 * * 1'
+  push:
+    branches: [ "main" ]
+
+# Least privilege by default; the job widens only what Scorecard needs.
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      # Publish results to the OSSF API and mint the badge (OIDC).
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout repository
+        # actions/checkout v4.3.1
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard analysis
+        # ossf/scorecard-action v2.4.3
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # Publish to the public Scorecard API so the README badge resolves.
+          publish_results: true
+
+      - name: Upload SARIF artifact
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 5
