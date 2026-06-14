@@ -69,6 +69,12 @@ public sealed class ConfigurationService
         {
             throw;
         }
+        catch (FileNotFoundException)
+        {
+            return new ConfigurationLoadResult(
+                AppCatalog.CreateRecommendedConfiguration(),
+                ConfigurationLoadState.Missing);
+        }
         catch (Exception ex)
         {
             // Preserve the corrupt file for forensics rather than silently overwriting
