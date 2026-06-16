@@ -104,6 +104,131 @@ public sealed record OptionDefinition(string Key, string Title, string Descripti
 public sealed record ExtensionDefinition(string Key, string Title, string Description);
 public sealed record MaintenanceActionDefinition(string Action, string Title, string Description, string ButtonText, bool IsDestructive = false);
 
+public static class HealthSeverity
+{
+    public const string Ready = "ready";
+    public const string Info = "info";
+    public const string Warning = "warning";
+    public const string Critical = "critical";
+}
+
+public sealed class StackHealthReport
+{
+    public static StackHealthReport Empty { get; } = new(Array.Empty<StackHealthComponent>());
+
+    public StackHealthReport(IEnumerable<StackHealthComponent> components)
+    {
+        Components = new ReadOnlyCollection<StackHealthComponent>(components.ToArray());
+        CriticalIssues = new ReadOnlyCollection<StackHealthComponent>(
+            Components.Where(component => component.Severity == HealthSeverity.Critical).ToArray());
+        WarningIssues = new ReadOnlyCollection<StackHealthComponent>(
+            Components.Where(component => component.Severity == HealthSeverity.Warning).ToArray());
+        InfoIssues = new ReadOnlyCollection<StackHealthComponent>(
+            Components.Where(component => component.Severity == HealthSeverity.Info).ToArray());
+    }
+
+    public IReadOnlyList<StackHealthComponent> Components { get; }
+    public IReadOnlyList<StackHealthComponent> CriticalIssues { get; }
+    public IReadOnlyList<StackHealthComponent> WarningIssues { get; }
+    public IReadOnlyList<StackHealthComponent> InfoIssues { get; }
+
+    public bool HasIssues => CriticalIssues.Count + WarningIssues.Count + InfoIssues.Count > 0;
+    public bool HasCriticalIssues => CriticalIssues.Count > 0;
+    public bool HasWarningIssues => WarningIssues.Count > 0;
+    public bool HasInfoIssues => InfoIssues.Count > 0;
+
+    public string StatusTitle
+    {
+        get
+        {
+            var spotify = Find("spotify");
+            var spicetify = Find("spicetify-cli");
+
+            if (spotify?.Severity == HealthSeverity.Info && spicetify?.Severity == HealthSeverity.Info)
+            {
+                return "Clean slate";
+            }
+
+            if (HasCriticalIssues)
+            {
+                return "Needs repair";
+            }
+
+            if (HasWarningIssues)
+            {
+                return "Review recommended";
+            }
+
+            return "Stack ready";
+        }
+    }
+
+    public string StatusDetail
+    {
+        get
+        {
+            var spotify = Find("spotify");
+            var spicetify = Find("spicetify-cli");
+
+            if (spotify?.Severity == HealthSeverity.Info && spicetify?.Severity == HealthSeverity.Info)
+            {
+                return "LibreSpot will build a fresh SpotX + Spicetify stack.";
+            }
+
+            if (HasCriticalIssues)
+            {
+                return "A required file or state check needs repair before the stack is reliable.";
+            }
+
+            if (HasWarningIssues)
+            {
+                return "The stack is present, with targeted repairs or backups recommended.";
+            }
+
+            return "Install, refresh, or roll back from here.";
+        }
+    }
+
+    public string IssueSummary
+    {
+        get
+        {
+            var count = CriticalIssues.Count + WarningIssues.Count;
+            return count switch
+            {
+                0 when InfoIssues.Count == 0 => "No issues detected",
+                0 => $"{InfoIssues.Count} informational note{(InfoIssues.Count == 1 ? string.Empty : "s")}",
+                1 => "1 repair note",
+                _ => $"{count} repair notes"
+            };
+        }
+    }
+
+    private StackHealthComponent? Find(string id) =>
+        Components.FirstOrDefault(component => string.Equals(component.Id, id, StringComparison.OrdinalIgnoreCase));
+}
+
+public sealed record StackHealthComponent(
+    string Id,
+    string Name,
+    string Status,
+    string Severity,
+    string? DetectedVersion,
+    string? Path,
+    DateTime? LastChanged,
+    string Evidence,
+    IReadOnlyList<string> RecommendedActionIds)
+{
+    public bool HasDetectedVersion => !string.IsNullOrWhiteSpace(DetectedVersion);
+    public bool HasPath => !string.IsNullOrWhiteSpace(Path);
+    public bool HasLastChanged => LastChanged.HasValue;
+    public bool HasRecommendedActions => RecommendedActionIds.Count > 0;
+    public string LastChangedDisplay => LastChanged?.ToString("yyyy-MM-dd HH:mm") ?? string.Empty;
+    public string RecommendedActionText => HasRecommendedActions
+        ? string.Join(", ", RecommendedActionIds)
+        : "No action";
+}
+
 public static class Prettify
 {
     /// <summary>
@@ -158,21 +283,12 @@ public sealed class EnvironmentSnapshot
     public bool SavedConfigExists { get; init; }
     public bool ConfigFolderExists { get; init; }
     public bool AutoReapplyTaskRegistered { get; init; }
+    public StackHealthReport HealthReport { get; init; } = StackHealthReport.Empty;
     public bool MarketplaceReady => MarketplaceFilesPresent && MarketplaceRegistered;
 
-    public string StatusTitle =>
-        SpotifyInstalled && SpicetifyInstalled
-            ? "Stack ready"
-            : SpotifyInstalled
-                ? "Partial setup"
-                : "Clean slate";
+    public string StatusTitle => HealthReport.StatusTitle;
 
-    public string StatusDetail =>
-        SpotifyInstalled && SpicetifyInstalled
-            ? "Install, refresh, or roll back from here."
-            : SpotifyInstalled
-                ? "Spotify is present; customization layer is incomplete."
-                : "LibreSpot will build a fresh SpotX + Spicetify stack.";
+    public string StatusDetail => HealthReport.StatusDetail;
 }
 
 public static class AppCatalog

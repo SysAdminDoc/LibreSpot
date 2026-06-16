@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="clr-namespace:LibreSpot.Desktop.Models"
         xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
         mc:Ignorable="d"
         Title="LibreSpot"
@@ -47,6 +48,77 @@
       <Setter Property="Padding" Value="0,0,0,18" />
       <Setter Property="Margin" Value="0,0,0,18" />
     </Style>
+
+    <DataTemplate DataType="{x:Type models:StackHealthComponent}" x:Key="HealthIssueTemplate">
+      <Border Margin="0,0,0,8">
+        <Border.Style>
+          <Style TargetType="Border" BasedOn="{StaticResource SubtleCardStyle}">
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource StrokeSoftBrush}" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Severity}" Value="critical">
+                <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+              </DataTrigger>
+              <DataTrigger Binding="{Binding Severity}" Value="warning">
+                <Setter Property="Background" Value="{StaticResource WarningSoftBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource WarningRingBrush}" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Border.Style>
+        <StackPanel>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding Name}"
+                       Foreground="{StaticResource TextBrush}"
+                       FontWeight="SemiBold"
+                       FontSize="12.5"
+                       TextWrapping="Wrap"
+                       Margin="0,0,10,0" />
+            <TextBlock Grid.Column="1"
+                       Text="{Binding Status}"
+                       TextAlignment="Right">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource LabelTextStyle}">
+                  <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Severity}" Value="critical">
+                      <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Severity}" Value="warning">
+                      <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+          </Grid>
+          <TextBlock Text="{Binding Evidence}"
+                     Style="{StaticResource CaptionTextStyle}"
+                     Margin="0,6,0,0" />
+          <TextBlock Text="{Binding RecommendedActionText}"
+                     Style="{StaticResource CaptionTextStyle}"
+                     Foreground="{StaticResource MutedTextBrush}"
+                     Margin="0,6,0,0"
+                     Visibility="{Binding HasRecommendedActions, Converter={StaticResource BoolToVisibilityConverter}}" />
+          <TextBlock Text="{Binding Path}"
+                     Style="{StaticResource CaptionTextStyle}"
+                     Foreground="{StaticResource SubtleTextBrush}"
+                     Margin="0,6,0,0"
+                     Visibility="{Binding HasPath, Converter={StaticResource BoolToVisibilityConverter}}" />
+          <TextBlock Text="{Binding LastChangedDisplay}"
+                     Style="{StaticResource CaptionTextStyle}"
+                     Foreground="{StaticResource SubtleTextBrush}"
+                     Margin="0,4,0,0"
+                     Visibility="{Binding HasLastChanged, Converter={StaticResource BoolToVisibilityConverter}}" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
 
     <DataTemplate DataType="{x:Type viewModels:OptionToggleViewModel}" x:Key="OptionTemplate">
       <CheckBox Style="{StaticResource SettingCheckBoxStyle}"
@@ -560,6 +632,39 @@
                 </Grid>
               </StackPanel>
             </Border>
+
+            <StackPanel Visibility="{Binding HasAnyHealthIssues, Converter={StaticResource BoolToVisibilityConverter}}">
+              <TextBlock Text="{Binding HealthIssueSummary}"
+                         Style="{StaticResource SectionEyebrowTextStyle}"
+                         Margin="0,20,0,8" />
+
+              <StackPanel Visibility="{Binding HasCriticalHealthIssues, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="Critical"
+                           Style="{StaticResource LabelTextStyle}"
+                           Foreground="{StaticResource DangerBrush}"
+                           Margin="0,0,0,8" />
+                <ItemsControl ItemsSource="{Binding CriticalHealthIssues}"
+                              ItemTemplate="{StaticResource HealthIssueTemplate}" />
+              </StackPanel>
+
+              <StackPanel Visibility="{Binding HasWarningHealthIssues, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="Warnings"
+                           Style="{StaticResource LabelTextStyle}"
+                           Foreground="{StaticResource WarningBrush}"
+                           Margin="0,4,0,8" />
+                <ItemsControl ItemsSource="{Binding WarningHealthIssues}"
+                              ItemTemplate="{StaticResource HealthIssueTemplate}" />
+              </StackPanel>
+
+              <StackPanel Visibility="{Binding HasInfoHealthIssues, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="Notes"
+                           Style="{StaticResource LabelTextStyle}"
+                           Foreground="{StaticResource MutedTextBrush}"
+                           Margin="0,4,0,8" />
+                <ItemsControl ItemsSource="{Binding InfoHealthIssues}"
+                              ItemTemplate="{StaticResource HealthIssueTemplate}" />
+              </StackPanel>
+            </StackPanel>
 
             <TextBlock Text="Next step" Style="{StaticResource SectionEyebrowTextStyle}" Margin="0,20,0,8" />
             <TextBlock Text="{Binding WorkspaceRecommendationTitle}"

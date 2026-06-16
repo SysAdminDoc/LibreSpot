@@ -308,6 +308,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                         ? "Marketplace files missing - repair available"
                         : "Marketplace not enabled";
 
+    public StackHealthReport HealthReport => Snapshot.HealthReport;
+    public IReadOnlyList<StackHealthComponent> CriticalHealthIssues => HealthReport.CriticalIssues;
+    public IReadOnlyList<StackHealthComponent> WarningHealthIssues => HealthReport.WarningIssues;
+    public IReadOnlyList<StackHealthComponent> InfoHealthIssues => HealthReport.InfoIssues;
+    public bool HasCriticalHealthIssues => HealthReport.HasCriticalIssues;
+    public bool HasWarningHealthIssues => HealthReport.HasWarningIssues;
+    public bool HasInfoHealthIssues => HealthReport.HasInfoIssues;
+    public bool HasAnyHealthIssues => HealthReport.HasIssues;
+    public string HealthIssueSummary => HealthReport.IssueSummary;
+
     public bool HasConfigurationRecoveryNotice =>
         _configurationLoadState == ConfigurationLoadState.RecoveredFromCorrupt;
 
@@ -1350,6 +1360,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(SpotifyStatusLine));
         RaisePropertyChanged(nameof(CustomizationStatusLine));
         RaisePropertyChanged(nameof(MarketplaceStatusLine));
+        RaisePropertyChanged(nameof(HealthReport));
+        RaisePropertyChanged(nameof(CriticalHealthIssues));
+        RaisePropertyChanged(nameof(WarningHealthIssues));
+        RaisePropertyChanged(nameof(InfoHealthIssues));
+        RaisePropertyChanged(nameof(HasCriticalHealthIssues));
+        RaisePropertyChanged(nameof(HasWarningHealthIssues));
+        RaisePropertyChanged(nameof(HasInfoHealthIssues));
+        RaisePropertyChanged(nameof(HasAnyHealthIssues));
+        RaisePropertyChanged(nameof(HealthIssueSummary));
         RaisePropertyChanged(nameof(HasConfigurationRecoveryNotice));
         RaisePropertyChanged(nameof(ConfigurationRecoveryTitle));
         RaisePropertyChanged(nameof(ConfigurationRecoveryDetail));
