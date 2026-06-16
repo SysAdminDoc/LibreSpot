@@ -162,6 +162,17 @@
       "copyrightHolder": "coverlet contributors",
       "redistributionPosture": "test-only",
       "notes": "Code coverage collector. Not shipped."
+    },
+    {
+      "name": "FsCheck.Xunit",
+      "category": "test",
+      "version": "3.3.3",
+      "sourceUrl": "https://github.com/fscheck/FsCheck",
+      "spdxLicense": "BSD-3-Clause",
+      "licenseUrl": "https://licenses.nuget.org/BSD-3-Clause",
+      "copyrightHolder": "Kurt Schelfthout and FsCheck contributors",
+      "redistributionPosture": "test-only",
+      "notes": "Property-based testing framework. Not shipped."
     }
   ],
   "communityAssetsRef": "schemas/community-assets.json",
