@@ -153,6 +153,14 @@
     <GradientStop Color="#001ED760" Offset="1.0" />
   </LinearGradientBrush>
 
+  <!-- ═══ Interactive overlays ═══ -->
+  <SolidColorBrush x:Key="GhostButtonBgBrush" Color="#10FFFFFF" />
+  <SolidColorBrush x:Key="GhostButtonBorderBrush" Color="#1AFFFFFF" />
+  <SolidColorBrush x:Key="GhostHoverTintBrush" Color="#18FFFFFF" />
+  <SolidColorBrush x:Key="DangerHoverTintBrush" Color="#30FFFFFF" />
+  <SolidColorBrush x:Key="PressTintBrush" Color="#33000000" />
+  <SolidColorBrush x:Key="PressTintLightBrush" Color="#16000000" />
+
   <!-- ═══ Elevation ═══ -->
   <DropShadowEffect x:Key="CardShadow"
                     BlurRadius="48"

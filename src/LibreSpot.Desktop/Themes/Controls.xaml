@@ -200,7 +200,7 @@
                     IsHitTestVisible="False" />
             <!-- Pressed overlay (subtle darkening) -->
             <Border x:Name="PressTint"
-                    Background="#33000000"
+                    Background="{DynamicResource PressTintBrush}"
                     CornerRadius="12"
                     Opacity="0"
                     IsHitTestVisible="False" />
@@ -312,7 +312,7 @@
                     Opacity="0"
                     IsHitTestVisible="False" />
             <Border x:Name="PressTint"
-                    Background="#33000000"
+                    Background="{DynamicResource PressTintBrush}"
                     CornerRadius="12"
                     Opacity="0"
                     IsHitTestVisible="False" />
@@ -387,23 +387,19 @@
     </Setter>
   </Style>
 
-  <!-- Reusable brushes used as hover-tint overlays on derived button styles. -->
-  <SolidColorBrush x:Key="GhostHoverTintBrush" Color="#18FFFFFF" />
-  <SolidColorBrush x:Key="DangerHoverTintBrush" Color="#30FFFFFF" />
-
   <!-- Ghost: low-emphasis transparent-on-rail -->
   <Style x:Key="GhostButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
     <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-    <Setter Property="Background" Value="#10FFFFFF" />
-    <Setter Property="BorderBrush" Value="#1AFFFFFF" />
-    <Setter Property="Tag" Value="{StaticResource GhostHoverTintBrush}" />
+    <Setter Property="Background" Value="{DynamicResource GhostButtonBgBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource GhostButtonBorderBrush}" />
+    <Setter Property="Tag" Value="{DynamicResource GhostHoverTintBrush}" />
   </Style>
 
   <Style x:Key="DestructiveButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
     <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
-    <Setter Property="Tag" Value="{StaticResource DangerHoverTintBrush}" />
+    <Setter Property="Tag" Value="{DynamicResource DangerHoverTintBrush}" />
   </Style>
 
   <!-- ═══ Pill badge ═══ -->
@@ -537,7 +533,7 @@
                     Opacity="0"
                     IsHitTestVisible="False" />
             <Border x:Name="PressTint"
-                    Background="#16000000"
+                    Background="{DynamicResource PressTintLightBrush}"
                     CornerRadius="14"
                     Opacity="0"
                     IsHitTestVisible="False" />

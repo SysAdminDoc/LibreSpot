@@ -125,6 +125,14 @@
   <Thickness x:Key="SpaceXl">24</Thickness>
   <Thickness x:Key="SpaceXxl">32</Thickness>
 
+  <!-- ═══ Interactive overlays — transparent in HC (shape/border conveys state) ═══ -->
+  <SolidColorBrush x:Key="GhostButtonBgBrush" Color="Transparent" />
+  <SolidColorBrush x:Key="GhostButtonBorderBrush" Color="{DynamicResource {x:Static SystemColors.ActiveBorderColorKey}}" />
+  <SolidColorBrush x:Key="GhostHoverTintBrush" Color="Transparent" />
+  <SolidColorBrush x:Key="DangerHoverTintBrush" Color="Transparent" />
+  <SolidColorBrush x:Key="PressTintBrush" Color="Transparent" />
+  <SolidColorBrush x:Key="PressTintLightBrush" Color="Transparent" />
+
   <!-- ═══ Gradients flattened to solid equivalents ═══ -->
   <SolidColorBrush x:Key="RailGlowBrush" Color="Transparent" />
   <SolidColorBrush x:Key="SurfaceSheenBrush" Color="Transparent" />
