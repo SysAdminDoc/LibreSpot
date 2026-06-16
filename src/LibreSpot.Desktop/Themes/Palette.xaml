@@ -142,8 +142,8 @@
   </LinearGradientBrush>
 
   <LinearGradientBrush x:Key="AccentGradientBrush" StartPoint="0,0" EndPoint="1,1">
-    <GradientStop Color="#1ED760" Offset="0" />
-    <GradientStop Color="#169443" Offset="1" />
+    <GradientStop Color="{DynamicResource AccentHoverColor}" Offset="0" />
+    <GradientStop Color="{DynamicResource AccentDeepColor}" Offset="1" />
   </LinearGradientBrush>
 
   <!-- Shimmer sweep used on progress bars during indeterminate runs -->
