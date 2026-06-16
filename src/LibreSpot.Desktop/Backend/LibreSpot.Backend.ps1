@@ -545,18 +545,44 @@ function Write-WatcherLog {
 
 function Get-WatcherState {
     if (-not (Test-Path -LiteralPath $global:WATCHER_STATE_PATH)) {
-        return @{ LastKnownVersion = $null; LastRunAt = $null; LastOutcome = $null }
+        return @{
+            LastKnownVersion = $null
+            LastRunAt = $null
+            LastOutcome = $null
+            LastAppliedSpotifyVersion = $null
+            LastAttemptedSpotifyVersion = $null
+            LastSuccessfulApplyAt = $null
+            LastApplyAt = $null
+            LastApplyOutcome = $null
+            LastApplyError = $null
+        }
     }
 
     try {
         $raw = Get-Content -LiteralPath $global:WATCHER_STATE_PATH -Raw -ErrorAction Stop | ConvertFrom-Json
         return @{
             LastKnownVersion = [string]$raw.LastKnownVersion
-            LastRunAt        = [string]$raw.LastRunAt
-            LastOutcome      = [string]$raw.LastOutcome
+            LastRunAt = [string]$raw.LastRunAt
+            LastOutcome = [string]$raw.LastOutcome
+            LastAppliedSpotifyVersion = [string]$raw.LastAppliedSpotifyVersion
+            LastAttemptedSpotifyVersion = [string]$raw.LastAttemptedSpotifyVersion
+            LastSuccessfulApplyAt = [string]$raw.LastSuccessfulApplyAt
+            LastApplyAt = [string]$raw.LastApplyAt
+            LastApplyOutcome = [string]$raw.LastApplyOutcome
+            LastApplyError = [string]$raw.LastApplyError
         }
     } catch {
-        return @{ LastKnownVersion = $null; LastRunAt = $null; LastOutcome = $null }
+        return @{
+            LastKnownVersion = $null
+            LastRunAt = $null
+            LastOutcome = $null
+            LastAppliedSpotifyVersion = $null
+            LastAttemptedSpotifyVersion = $null
+            LastSuccessfulApplyAt = $null
+            LastApplyAt = $null
+            LastApplyOutcome = $null
+            LastApplyError = $null
+        }
     }
 }
 
@@ -564,11 +590,43 @@ function Set-WatcherState {
     param([hashtable]$State)
     try {
         Ensure-LogDirectory
+        $merged = Get-WatcherState
+        foreach ($key in @($State.Keys)) {
+            $merged[$key] = $State[$key]
+        }
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-        $json = $State | ConvertTo-Json -Compress
+        $json = $merged | ConvertTo-Json -Compress
         [System.IO.File]::WriteAllText($global:WATCHER_STATE_PATH, $json, $utf8NoBom)
     } catch {
         Write-WatcherLog "State save failed: $($_.Exception.Message)" -Level 'WARN'
+    }
+}
+
+function Update-ApplyState {
+    param(
+        [string]$Outcome,
+        [bool]$Successful,
+        [string]$ErrorMessage = ''
+    )
+
+    try {
+        $now = Get-Date -Format 'o'
+        $currentVersion = Get-InstalledSpotifyVersion
+        $state = Get-WatcherState
+        $state['LastAttemptedSpotifyVersion'] = $currentVersion
+        $state['LastApplyAt'] = $now
+        $state['LastApplyOutcome'] = $Outcome
+        $state['LastApplyError'] = if ([string]::IsNullOrWhiteSpace($ErrorMessage)) { $null } else { $ErrorMessage }
+        if ($Successful) {
+            $state['LastAppliedSpotifyVersion'] = $currentVersion
+            $state['LastSuccessfulApplyAt'] = $now
+            if (-not [string]::IsNullOrWhiteSpace($currentVersion)) {
+                $state['LastKnownVersion'] = $currentVersion
+            }
+        }
+        Set-WatcherState -State $state
+    } catch {
+        Write-WatcherLog "Apply state update failed: $($_.Exception.Message)" -Level 'WARN'
     }
 }
 
@@ -818,17 +876,43 @@ function Invoke-AutoReapplyWatcher {
     Write-WatcherLog "Spotify version bump: $($state.LastKnownVersion) -> $currentVersion" -Level 'STEP'
     if (Test-SpotifyRunning) {
         Write-WatcherLog 'Spotify is running; deferring reapply to the next tick.'
-        Set-WatcherState -State @{ LastKnownVersion = $state.LastKnownVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'DeferredSpotifyRunning' }
+        Set-WatcherState -State @{
+            LastKnownVersion = $state.LastKnownVersion
+            LastRunAt = (Get-Date -Format 'o')
+            LastOutcome = 'DeferredSpotifyRunning'
+            LastAttemptedSpotifyVersion = $currentVersion
+        }
         return 0
     }
 
     try {
         Invoke-HeadlessReapply -Config $saved
-        Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'Reapplied' }
+        $now = Get-Date -Format 'o'
+        Set-WatcherState -State @{
+            LastKnownVersion = $currentVersion
+            LastRunAt = $now
+            LastOutcome = 'Reapplied'
+            LastAppliedSpotifyVersion = $currentVersion
+            LastAttemptedSpotifyVersion = $currentVersion
+            LastSuccessfulApplyAt = $now
+            LastApplyAt = $now
+            LastApplyOutcome = 'WatcherReapplied'
+            LastApplyError = $null
+        }
         return 0
     } catch {
         Write-WatcherLog "Reapply failed: $($_.Exception.Message)" -Level 'ERROR'
-        Set-WatcherState -State @{ LastKnownVersion = $state.LastKnownVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = "Error: $($_.Exception.Message)" }
+        $now = Get-Date -Format 'o'
+        $message = [string]$_.Exception.Message
+        Set-WatcherState -State @{
+            LastKnownVersion = $state.LastKnownVersion
+            LastRunAt = $now
+            LastOutcome = "Error: $message"
+            LastAttemptedSpotifyVersion = $currentVersion
+            LastApplyAt = $now
+            LastApplyOutcome = 'WatcherFailed'
+            LastApplyError = $message
+        }
         return 1
     }
 }
@@ -2594,6 +2678,7 @@ function Module-ApplySpicetify {
     try {
         Invoke-SpicetifyCli -Arguments @('backup', 'apply', '--bypass-admin') -FailureMessage 'Could not backup and apply Spicetify changes.'
         Write-Log 'Spicetify applied successfully.' -Level 'SUCCESS'
+        Update-ApplyState -Outcome 'SpicetifyApplySucceeded' -Successful $true
         return
     } catch {
         $applyError = if ($_.Exception -and $_.Exception.Message) { [string]$_.Exception.Message } else { 'Unknown Spicetify apply error.' }
@@ -2613,8 +2698,10 @@ function Module-ApplySpicetify {
     }
 
     if ([string]::IsNullOrWhiteSpace($restoreError)) {
+        Update-ApplyState -Outcome 'SpicetifyApplyRolledBack' -Successful $false -ErrorMessage $applyError
         throw "Spicetify apply failed but LibreSpot restored Spotify to a usable state. Apply error: $applyError"
     } else {
+        Update-ApplyState -Outcome 'SpicetifyApplyRollbackFailed' -Successful $false -ErrorMessage "Apply error: $applyError | Rollback error: $restoreError"
         throw "Spicetify apply failed and rollback also failed. Apply error: $applyError | Rollback error: $restoreError"
     }
 }

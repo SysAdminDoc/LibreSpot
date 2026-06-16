@@ -14,6 +14,9 @@ public sealed class EnvironmentSnapshotService
     private readonly string _backupDirectory;
     private readonly string _rollingLogDirectory;
     private readonly string _crashDirectory;
+    private readonly Func<string?> _spotifyVersionProbe;
+    private readonly Func<string?> _spicetifyVersionProbe;
+    private readonly Func<bool> _spotifyRunningProbe;
 
     public EnvironmentSnapshotService(
         Func<bool>? autoReapplyTaskProbe = null,
@@ -22,7 +25,10 @@ public sealed class EnvironmentSnapshotService
         string? spicetifyConfigDirectory = null,
         string? backupDirectory = null,
         string? rollingLogDirectory = null,
-        string? crashDirectory = null)
+        string? crashDirectory = null,
+        Func<string?>? spotifyVersionProbe = null,
+        Func<string?>? spicetifyVersionProbe = null,
+        Func<bool>? spotifyRunningProbe = null)
     {
         _autoReapplyTaskProbe = autoReapplyTaskProbe ?? IsAutoReapplyTaskRegistered;
         _spotifyPath = string.IsNullOrWhiteSpace(spotifyPath)
@@ -43,6 +49,9 @@ public sealed class EnvironmentSnapshotService
         _crashDirectory = string.IsNullOrWhiteSpace(crashDirectory)
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibreSpot", "crashes")
             : Path.GetFullPath(crashDirectory);
+        _spotifyVersionProbe = spotifyVersionProbe ?? (() => GetFileVersion(_spotifyPath));
+        _spicetifyVersionProbe = spicetifyVersionProbe ?? (() => GetFileVersion(_spicetifyPath));
+        _spotifyRunningProbe = spotifyRunningProbe ?? IsSpotifyRunning;
     }
 
     // Snapshot probing touches the filesystem and shells out to schtasks.exe
@@ -111,6 +120,8 @@ public sealed class EnvironmentSnapshotService
         bool configFolderExists,
         bool autoReapplyTaskRegistered)
     {
+        var watcherStatePath = Path.Combine(configDirectory, "watcher-state.json");
+        var watcherState = ReadWatcherState(watcherStatePath);
         var components = new List<StackHealthComponent>
         {
             BuildSpotifyComponent(spotifyInstalled),
@@ -120,7 +131,14 @@ public sealed class EnvironmentSnapshotService
             BuildMarketplaceComponent(spicetifyInstalled, marketplaceDirectory, marketplaceFilesPresent, marketplaceRegistered),
             BuildThemeComponent(spicetifyInstalled, spicetifyConfigPath, spicetifyConfig),
             BuildBackupComponent(spicetifyInstalled),
-            BuildWatcherComponent(configDirectory, autoReapplyTaskRegistered),
+            BuildWatcherComponent(watcherStatePath, watcherState, autoReapplyTaskRegistered),
+            BuildPostUpdateTriageComponent(
+                watcherStatePath,
+                watcherState,
+                spotifyInstalled,
+                spicetifyInstalled,
+                marketplaceFilesPresent,
+                marketplaceRegistered),
             BuildLogsComponent(configDirectory),
             BuildCrashComponent(),
             BuildSavedProfileComponent(configPath, savedConfigExists, configFolderExists)
@@ -150,7 +168,7 @@ public sealed class EnvironmentSnapshotService
             "Spotify",
             "Detected",
             HealthSeverity.Ready,
-            GetFileVersion(_spotifyPath),
+            _spotifyVersionProbe(),
             _spotifyPath,
             GetLastChanged(_spotifyPath),
             "Spotify.exe exists and can be used as the patch target.");
@@ -240,7 +258,7 @@ public sealed class EnvironmentSnapshotService
             "Spicetify CLI",
             "Detected",
             HealthSeverity.Ready,
-            GetFileVersion(_spicetifyPath),
+            _spicetifyVersionProbe(),
             _spicetifyPath,
             GetLastChanged(_spicetifyPath),
             "spicetify.exe exists and maintenance actions can call it.");
@@ -465,11 +483,8 @@ public sealed class EnvironmentSnapshotService
             spicetifyInstalled ? "CreateBackup" : "Install");
     }
 
-    private static StackHealthComponent BuildWatcherComponent(string configDirectory, bool taskRegistered)
+    private static StackHealthComponent BuildWatcherComponent(string statePath, WatcherState state, bool taskRegistered)
     {
-        var statePath = Path.Combine(configDirectory, "watcher-state.json");
-        var state = ReadWatcherState(statePath);
-
         if (!taskRegistered)
         {
             return Component(
@@ -536,6 +551,127 @@ public sealed class EnvironmentSnapshotService
             statePath,
             state.LastRunAt,
             "The scheduled task is registered and watcher state is recent.");
+    }
+
+    private StackHealthComponent BuildPostUpdateTriageComponent(
+        string statePath,
+        WatcherState state,
+        bool spotifyInstalled,
+        bool spicetifyInstalled,
+        bool marketplaceFilesPresent,
+        bool marketplaceRegistered)
+    {
+        var currentSpotifyVersion = _spotifyVersionProbe();
+        var spicetifyVersion = _spicetifyVersionProbe();
+        var lastPatchedVersion = FirstNonEmpty(state.LastAppliedSpotifyVersion, state.LastKnownVersion);
+        var marketplaceReady = marketplaceFilesPresent && marketplaceRegistered;
+        var spotifyVersionChanged = spotifyInstalled &&
+            !string.IsNullOrWhiteSpace(currentSpotifyVersion) &&
+            !string.IsNullOrWhiteSpace(lastPatchedVersion) &&
+            !string.Equals(currentSpotifyVersion, lastPatchedVersion, StringComparison.OrdinalIgnoreCase);
+
+        if (string.Equals(state.LastOutcome, "Reapplied", StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(currentSpotifyVersion) &&
+            string.Equals(state.LastAppliedSpotifyVersion, currentSpotifyVersion, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!marketplaceReady && spicetifyInstalled)
+            {
+                return Component(
+                    "post-spotify-update",
+                    "After Spotify update",
+                    "Marketplace still missing",
+                    HealthSeverity.Warning,
+                    currentSpotifyVersion,
+                    statePath,
+                    LatestStateChange(state),
+                    $"Watcher reapplied Spotify {currentSpotifyVersion}, but Marketplace is not ready. Last successful apply: {FormatMaybe(state.LastSuccessfulApplyAt)}. Spicetify: {FormatMaybe(spicetifyVersion)}.",
+                    "RepairMarketplace",
+                    "OpenLogs");
+            }
+
+            return Component(
+                "post-spotify-update",
+                "After Spotify update",
+                "Reapplied",
+                HealthSeverity.Ready,
+                currentSpotifyVersion,
+                statePath,
+                LatestStateChange(state),
+                $"Watcher reapplied the current Spotify version. Last successful apply: {FormatMaybe(state.LastSuccessfulApplyAt)}. Spicetify: {FormatMaybe(spicetifyVersion)}.");
+        }
+
+        if (string.Equals(state.LastOutcome, "DeferredSpotifyRunning", StringComparison.OrdinalIgnoreCase) || (spotifyVersionChanged && _spotifyRunningProbe()))
+        {
+            return Component(
+                "post-spotify-update",
+                "After Spotify update",
+                "Close Spotify first",
+                HealthSeverity.Warning,
+                currentSpotifyVersion,
+                statePath,
+                LatestStateChange(state),
+                $"Spotify changed from {FormatMaybe(lastPatchedVersion)} to {FormatMaybe(currentSpotifyVersion)}, but the watcher deferred because Spotify was running. Close Spotify, then reapply the saved profile.",
+                "Reapply",
+                "OpenLogs");
+        }
+
+        if (state.LastOutcome?.StartsWith("Error:", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            var failedDuringSpotX = state.LastOutcome.Contains("spotx", StringComparison.OrdinalIgnoreCase);
+            return Component(
+                "post-spotify-update",
+                "After Spotify update",
+                failedDuringSpotX ? "SpotX reapply failed" : "Watcher failed",
+                failedDuringSpotX ? HealthSeverity.Critical : HealthSeverity.Warning,
+                currentSpotifyVersion,
+                statePath,
+                LatestStateChange(state),
+                $"Watcher could not finish after Spotify changed from {FormatMaybe(lastPatchedVersion)} to {FormatMaybe(currentSpotifyVersion)}. {state.LastOutcome}",
+                "Reapply",
+                "OpenLogs");
+        }
+
+        if (string.Equals(state.LastApplyOutcome, "SpicetifyApplyRolledBack", StringComparison.OrdinalIgnoreCase) ||
+            state.LastApplyError?.Contains("restored Spotify to a usable state", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return Component(
+                "post-spotify-update",
+                "After Spotify update",
+                "Spicetify rolled back",
+                HealthSeverity.Warning,
+                currentSpotifyVersion,
+                statePath,
+                LatestStateChange(state),
+                $"Spicetify apply failed after the Spotify update, but LibreSpot restored Spotify. Error: {FormatMaybe(state.LastApplyError)}",
+                "Reapply",
+                "RestoreVanilla",
+                "OpenLogs");
+        }
+
+        if (spotifyVersionChanged)
+        {
+            return Component(
+                "post-spotify-update",
+                "After Spotify update",
+                "Reapply needed",
+                HealthSeverity.Warning,
+                currentSpotifyVersion,
+                statePath,
+                LatestStateChange(state),
+                $"Spotify changed from {FormatMaybe(lastPatchedVersion)} to {FormatMaybe(currentSpotifyVersion)}. Reapply the saved profile before escalating to reset.",
+                "Reapply",
+                "OpenLogs");
+        }
+
+        return Component(
+            "post-spotify-update",
+            "After Spotify update",
+            "No drift",
+            HealthSeverity.Ready,
+            currentSpotifyVersion,
+            statePath,
+            LatestStateChange(state),
+            $"Current Spotify version matches the last known patched version. Spicetify: {FormatMaybe(spicetifyVersion)}.");
     }
 
     private StackHealthComponent BuildLogsComponent(string configDirectory)
@@ -846,12 +982,24 @@ public sealed class EnvironmentSnapshotService
             var root = document.RootElement;
             var version = TryGetString(root, "LastKnownVersion");
             var outcome = TryGetString(root, "LastOutcome");
-            var lastRunRaw = TryGetString(root, "LastRunAt");
-            var lastRun = DateTime.TryParse(lastRunRaw, out var parsed)
-                ? parsed.ToLocalTime()
-                : (DateTime?)null;
+            var lastRun = TryGetDateTime(root, "LastRunAt");
+            var lastAppliedSpotifyVersion = TryGetString(root, "LastAppliedSpotifyVersion");
+            var lastAttemptedSpotifyVersion = TryGetString(root, "LastAttemptedSpotifyVersion");
+            var lastSuccessfulApplyAt = TryGetDateTime(root, "LastSuccessfulApplyAt");
+            var lastApplyAt = TryGetDateTime(root, "LastApplyAt");
+            var lastApplyOutcome = TryGetString(root, "LastApplyOutcome");
+            var lastApplyError = TryGetString(root, "LastApplyError");
 
-            return new WatcherState(version, lastRun, outcome);
+            return new WatcherState(
+                version,
+                lastRun,
+                outcome,
+                lastAppliedSpotifyVersion,
+                lastAttemptedSpotifyVersion,
+                lastSuccessfulApplyAt,
+                lastApplyAt,
+                lastApplyOutcome,
+                lastApplyError);
         }
         catch
         {
@@ -871,9 +1019,38 @@ public sealed class EnvironmentSnapshotService
             : property.ToString();
     }
 
-    private sealed record WatcherState(string? LastKnownVersion, DateTime? LastRunAt, string? LastOutcome)
+    private static DateTime? TryGetDateTime(JsonElement element, string propertyName)
     {
-        public static WatcherState Empty { get; } = new(null, null, null);
+        var raw = TryGetString(element, propertyName);
+        return DateTime.TryParse(raw, out var parsed)
+            ? parsed.ToLocalTime()
+            : null;
+    }
+
+    private static DateTime? LatestStateChange(WatcherState state) =>
+        Max(state.LastRunAt, state.LastSuccessfulApplyAt, state.LastApplyAt);
+
+    private static string? FirstNonEmpty(params string?[] values) =>
+        values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
+    private static string FormatMaybe(DateTime? value) =>
+        value?.ToString("yyyy-MM-dd HH:mm") ?? "unknown";
+
+    private static string FormatMaybe(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "unknown" : value;
+
+    private sealed record WatcherState(
+        string? LastKnownVersion,
+        DateTime? LastRunAt,
+        string? LastOutcome,
+        string? LastAppliedSpotifyVersion,
+        string? LastAttemptedSpotifyVersion,
+        DateTime? LastSuccessfulApplyAt,
+        DateTime? LastApplyAt,
+        string? LastApplyOutcome,
+        string? LastApplyError)
+    {
+        public static WatcherState Empty { get; } = new(null, null, null, null, null, null, null, null, null);
     }
 
     private static bool IsAutoReapplyTaskRegistered()
@@ -907,6 +1084,18 @@ public sealed class EnvironmentSnapshotService
             }
 
             return process.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool IsSpotifyRunning()
+    {
+        try
+        {
+            return Process.GetProcessesByName("Spotify").Length > 0;
         }
         catch
         {

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
 using Xunit;
@@ -315,6 +316,124 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.Equal("1 recent crash", crash.Status);
     }
 
+    [Fact]
+    public void GetSnapshot_PostUpdateTriage_CoversWatcherReappliedCurrentSpotify()
+    {
+        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.93", SpicetifyVersion = "2.43.2" };
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+        fixture.WriteMarketplaceFiles();
+        fixture.WriteWatcherState(
+            DateTime.Now.AddMinutes(-10),
+            "Reapplied",
+            lastKnownVersion: "1.2.93",
+            lastAppliedSpotifyVersion: "1.2.93",
+            lastSuccessfulApplyAt: DateTime.Now.AddMinutes(-10),
+            lastApplyOutcome: "WatcherReapplied");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: true);
+
+        var triage = Assert.Single(snapshot.HealthReport.Components, component => component.Id == "post-spotify-update");
+        Assert.Equal("Reapplied", triage.Status);
+        Assert.Equal(HealthSeverity.Ready, triage.Severity);
+        Assert.DoesNotContain(snapshot.HealthReport.WarningIssues, component => component.Id == "post-spotify-update");
+    }
+
+    [Fact]
+    public void GetSnapshot_PostUpdateTriage_CoversWatcherSkippedBecauseSpotifyWasRunning()
+    {
+        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.93", SpotifyRunning = true };
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+        fixture.WriteMarketplaceFiles();
+        fixture.WriteWatcherState(
+            DateTime.Now.AddMinutes(-5),
+            "DeferredSpotifyRunning",
+            lastKnownVersion: "1.2.92",
+            lastAppliedSpotifyVersion: "1.2.92");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: true);
+
+        var triage = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "post-spotify-update");
+        Assert.Equal("Close Spotify first", triage.Status);
+        Assert.Contains("Reapply", triage.RecommendedActionIds);
+        Assert.Contains("OpenLogs", triage.RecommendedActionIds);
+        Assert.DoesNotContain("FullReset", triage.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_PostUpdateTriage_CoversWatcherFailedDuringSpotX()
+    {
+        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.93" };
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+        fixture.WriteMarketplaceFiles();
+        fixture.WriteWatcherState(
+            DateTime.Now.AddMinutes(-5),
+            "Error: SpotX patch failed with code 1",
+            lastKnownVersion: "1.2.92",
+            lastAppliedSpotifyVersion: "1.2.92",
+            lastApplyOutcome: "WatcherFailed",
+            lastApplyError: "SpotX patch failed with code 1");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: true);
+
+        var triage = Assert.Single(snapshot.HealthReport.CriticalIssues, component => component.Id == "post-spotify-update");
+        Assert.Equal("SpotX reapply failed", triage.Status);
+        Assert.Contains("Reapply", triage.RecommendedActionIds);
+        Assert.Contains("OpenLogs", triage.RecommendedActionIds);
+        Assert.DoesNotContain("FullReset", triage.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_PostUpdateTriage_CoversSpicetifyApplyRolledBack()
+    {
+        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.93", SpicetifyVersion = "2.43.2" };
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = Catppuccin\r\ninject_css = 1\r\nreplace_colors = 1");
+        fixture.WriteMarketplaceFiles();
+        fixture.WriteWatcherState(
+            DateTime.Now.AddMinutes(-5),
+            "UpToDate",
+            lastKnownVersion: "1.2.92",
+            lastAppliedSpotifyVersion: "1.2.92",
+            lastApplyAt: DateTime.Now.AddMinutes(-5),
+            lastApplyOutcome: "SpicetifyApplyRolledBack",
+            lastApplyError: "Spicetify apply failed but LibreSpot restored Spotify to a usable state.");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: true);
+
+        var triage = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "post-spotify-update");
+        Assert.Equal("Spicetify rolled back", triage.Status);
+        Assert.Contains("Reapply", triage.RecommendedActionIds);
+        Assert.Contains("RestoreVanilla", triage.RecommendedActionIds);
+        Assert.Contains("OpenLogs", triage.RecommendedActionIds);
+        Assert.DoesNotContain("FullReset", triage.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_PostUpdateTriage_CoversMarketplaceStillMissingAfterReapply()
+    {
+        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.93", SpicetifyVersion = "2.43.2" };
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+        fixture.WriteWatcherState(
+            DateTime.Now.AddMinutes(-5),
+            "Reapplied",
+            lastKnownVersion: "1.2.93",
+            lastAppliedSpotifyVersion: "1.2.93",
+            lastSuccessfulApplyAt: DateTime.Now.AddMinutes(-5),
+            lastApplyOutcome: "WatcherReapplied");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: true);
+
+        var triage = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "post-spotify-update");
+        Assert.Equal("Marketplace still missing", triage.Status);
+        Assert.Contains("RepairMarketplace", triage.RecommendedActionIds);
+        Assert.Contains("OpenLogs", triage.RecommendedActionIds);
+        Assert.DoesNotContain("FullReset", triage.RecommendedActionIds);
+    }
+
     private sealed class SnapshotFixture : IDisposable
     {
         public SnapshotFixture()
@@ -330,6 +449,10 @@ public sealed class EnvironmentSnapshotServiceTests
             CrashDirectory = Path.Combine(Root, "crashes");
             Directory.CreateDirectory(ConfigDirectory);
         }
+
+        public string? SpotifyVersion { get; init; }
+        public string? SpicetifyVersion { get; init; }
+        public bool SpotifyRunning { get; init; }
 
         public string Root { get; }
         public string ConfigDirectory { get; }
@@ -350,7 +473,10 @@ public sealed class EnvironmentSnapshotServiceTests
                 spicetifyConfigDirectory: SpicetifyConfigDirectory,
                 backupDirectory: BackupDirectory,
                 rollingLogDirectory: RollingLogDirectory,
-                crashDirectory: CrashDirectory);
+                crashDirectory: CrashDirectory,
+                spotifyVersionProbe: () => SpotifyVersion,
+                spicetifyVersionProbe: () => SpicetifyVersion,
+                spotifyRunningProbe: () => SpotifyRunning);
 
             return service.GetSnapshot(ConfigPath);
         }
@@ -388,12 +514,30 @@ public sealed class EnvironmentSnapshotServiceTests
             WriteFile(Path.Combine(backup, "config-xpui.ini"), "current_theme = Catppuccin");
         }
 
-        public void WriteWatcherState(DateTime lastRunAt, string outcome)
-        {
+        public void WriteWatcherState(
+            DateTime lastRunAt,
+            string outcome,
+            string lastKnownVersion = "1.2.92",
+            string? lastAppliedSpotifyVersion = null,
+            DateTime? lastSuccessfulApplyAt = null,
+            DateTime? lastApplyAt = null,
+            string? lastApplyOutcome = null,
+            string? lastApplyError = null) =>
             WriteFile(
                 Path.Combine(ConfigDirectory, "watcher-state.json"),
-                $$"""{ "LastKnownVersion": "1.2.92", "LastRunAt": "{{lastRunAt:o}}", "LastOutcome": "{{outcome}}" }""");
-        }
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        LastKnownVersion = lastKnownVersion,
+                        LastRunAt = lastRunAt,
+                        LastOutcome = outcome,
+                        LastAppliedSpotifyVersion = lastAppliedSpotifyVersion,
+                        LastAttemptedSpotifyVersion = SpotifyVersion,
+                        LastSuccessfulApplyAt = lastSuccessfulApplyAt,
+                        LastApplyAt = lastApplyAt,
+                        LastApplyOutcome = lastApplyOutcome,
+                        LastApplyError = lastApplyError
+                    }));
 
         public void WriteInstallLog() =>
             WriteFile(Path.Combine(ConfigDirectory, "install.log"), "ok");

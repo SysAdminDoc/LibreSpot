@@ -57,7 +57,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 > **Note:** Spotify frequently updates its client, which can break SpotX and Spicetify patches. LibreSpot blocks Spotify auto-updates by default (via SpotX) to keep your installation stable.
 >
-> If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch.
+> If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch. The WPF Maintenance dashboard also flags **After Spotify update** drift and recommends targeted recovery steps before a full reset.
 
 **Pinned dependency versions (v3.7.2):**
 
@@ -164,6 +164,9 @@ LibreSpot.ps1 -Watch               # run one tick manually (what the task invoke
 
 **Will this break if Spotify updates?**
 SpotX blocks Spotify auto-updates by default. If you manually update Spotify, use Maintenance > Reapply After Update to re-patch.
+
+**What should I do after Spotify updates?**
+Open Maintenance and check the After Spotify update note. LibreSpot compares the current Spotify version with the last patched version, watcher status, Spicetify apply result, and Marketplace state, then points to the safest next action: close Spotify, reapply the saved profile, repair Marketplace, restore vanilla Spotify, or open logs.
 
 **Can I use this with a Premium account?**
 Yes. Enable "Premium user (skip ad-blocking)" in Custom Install to skip ad-related patches while keeping all other modifications.

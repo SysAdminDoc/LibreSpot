@@ -364,6 +364,21 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("DeferredSpotifyRunning", fn.Groups["body"].Value);
     }
 
+    [Fact]
+    public void DesktopBackend_WatcherStateTracksApplyAttemptsAndPreservesFields()
+    {
+        var backend = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+
+        Assert.Contains("LastAppliedSpotifyVersion", backend);
+        Assert.Contains("LastAttemptedSpotifyVersion", backend);
+        Assert.Contains("LastSuccessfulApplyAt", backend);
+        Assert.Contains("LastApplyOutcome", backend);
+        Assert.Contains("function Update-ApplyState", backend);
+        Assert.Contains("$merged = Get-WatcherState", backend);
+        Assert.Contains("SpicetifyApplyRolledBack", backend);
+        Assert.Contains("WatcherReapplied", backend);
+    }
+
     [Theory]
     [InlineData("EnableAutoReapply")]
     [InlineData("DisableAutoReapply")]
