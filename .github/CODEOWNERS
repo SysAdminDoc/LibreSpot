@@ -1,0 +1,13 @@
+# Default owner for everything
+* @SysAdminDoc
+
+# Release and signing
+.github/workflows/ @SysAdminDoc
+SIGNPATH.md @SysAdminDoc
+
+# PowerShell scripts
+LibreSpot.ps1 @SysAdminDoc
+src/LibreSpot.Desktop/Backend/ @SysAdminDoc
+
+# Schemas and manifests
+schemas/ @SysAdminDoc

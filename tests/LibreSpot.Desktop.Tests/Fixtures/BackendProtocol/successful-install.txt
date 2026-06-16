@@ -1,0 +1,24 @@
+@@LS@@|status|INFO|Preparing install
+@@LS@@|step|INFO|Loading configuration
+@@LS@@|progress|INFO|5
+@@LS@@|step|INFO|Downloading Spotify
+@@LS@@|progress|INFO|15
+@@LS@@|log|INFO|Fetching Spotify 1.2.92 from official source
+@@LS@@|progress|INFO|30
+@@LS@@|step|INFO|Downloading SpotX
+@@LS@@|log|INFO|SpotX commit 3284673d verified
+@@LS@@|progress|INFO|45
+@@LS@@|step|INFO|Applying SpotX patches
+@@LS@@|log|INFO|Running SpotX run.ps1
+@@LS@@|progress|INFO|60
+@@LS@@|step|INFO|Installing Spicetify CLI
+@@LS@@|progress|INFO|70
+@@LS@@|step|INFO|Configuring theme
+@@LS@@|log|INFO|Theme: Sleek, Scheme: catppuccin
+@@LS@@|progress|INFO|80
+@@LS@@|step|INFO|Applying Spicetify
+@@LS@@|log|INFO|spicetify backup apply succeeded
+@@LS@@|progress|INFO|95
+@@LS@@|step|INFO|Verifying installation
+@@LS@@|progress|INFO|100
+@@LS@@|result|SUCCESS|LibreSpot installation completed successfully

@@ -1,0 +1,5 @@
+@@LS@@|status|INFO|Preparing install
+@@LS@@|step|INFO|Loading configuration
+@@LS@@|progress|INFO|5
+@@LS@@|step|INFO|Downloading Spotify
+@@LS@@|progress|INFO|15

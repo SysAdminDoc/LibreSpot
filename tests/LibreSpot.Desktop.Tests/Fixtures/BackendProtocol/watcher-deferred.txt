@@ -1,0 +1,7 @@
+@@LS@@|status|INFO|Watcher tick
+@@LS@@|step|INFO|Checking Spotify version
+@@LS@@|log|INFO|Current Spotify version: 1.2.92.456
+@@LS@@|log|INFO|Last known version: 1.2.90.451
+@@LS@@|log|INFO|Version change detected
+@@LS@@|log|WARN|Spotify.exe is currently running — deferring reapply
+@@LS@@|result|INFO|DeferredSpotifyRunning

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SysAdminDoc/LibreSpot/schemas/backend-event-protocol.json",
+  "title": "LibreSpot Backend Event Protocol v1",
+  "description": "Versioned contract for the pipe-delimited event protocol between the PowerShell backend and the WPF desktop shell.",
+  "type": "object",
+  "properties": {
+    "protocolVersion": {
+      "const": 1,
+      "description": "Protocol version. Increment when adding new required kinds or breaking delimiter/escaping rules."
+    },
+    "prefix": {
+      "const": "@@LS@@",
+      "description": "Every structured message line starts with this prefix followed by a pipe delimiter."
+    },
+    "delimiter": {
+      "const": "|",
+      "description": "Pipe character separates prefix, kind, level, and payload. Maximum 4 segments."
+    },
+    "escaping": {
+      "type": "object",
+      "description": "Payload escaping rules applied before emission.",
+      "properties": {
+        "newlines": {
+          "const": "replaced with single space",
+          "description": "CR, LF, and CRLF sequences in the payload are replaced with a single space before writing."
+        }
+      }
+    },
+    "kinds": {
+      "type": "object",
+      "description": "Known message kinds. Unknown kinds MUST be handled as log entries by the parser.",
+      "properties": {
+        "progress": {
+          "description": "Numeric 0-100 in the payload. Parser clamps out-of-range values."
+        },
+        "status": {
+          "description": "Human-readable status text for the main status line."
+        },
+        "step": {
+          "description": "Human-readable step text for the secondary status line."
+        },
+        "action": {
+          "description": "Backend action being performed."
+        },
+        "result": {
+          "description": "Terminal message. Level SUCCESS means the run completed normally."
+        },
+        "log": {
+          "description": "General log line. Also the fallback kind for lines without the protocol prefix."
+        }
+      }
+    },
+    "levels": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": ["INFO", "WARN", "ERROR", "SUCCESS"],
+      "description": "Known severity levels. SUCCESS is only valid for result kind."
+    },
+    "parserRules": {
+      "type": "object",
+      "properties": {
+        "missingPrefix": {
+          "const": "emit as log|INFO|<entire line>",
+          "description": "Lines that do not start with the prefix are treated as plain log output."
+        },
+        "insufficientParts": {
+          "const": "emit as log|INFO|<entire line>",
+          "description": "Lines with fewer than 4 pipe-separated segments after the prefix are treated as plain log."
+        },
+        "unknownKind": {
+          "const": "emit to log consumer",
+          "description": "The parser must not reject unknown kinds. They are forwarded to the log/default handler."
+        },
+        "emptyPayload": {
+          "const": "valid",
+          "description": "An empty payload after the final pipe is valid for any kind."
+        }
+      }
+    }
+  }
+}

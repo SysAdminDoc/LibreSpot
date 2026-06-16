@@ -1,0 +1,10 @@
+Plain text line without prefix
+@@LS@@|status|INFO|Normal structured message
+@@LS@@|only-two-parts
+@@LS@@|progress|INFO|50.5
+@@LS@@|progress|INFO|-10
+@@LS@@|progress|INFO|200
+@@LS@@|progress|INFO|not-a-number
+@@LS@@|futureKind|INFO|Unknown kind from a newer backend
+@@LS@@|log|INFO|
+@@LS@@|status|INFO|Payload with pipe|characters|inside

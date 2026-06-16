@@ -1,0 +1,5 @@
+@@LS@@|status|INFO|Preparing install
+@@LS@@|step|INFO|Loading configuration
+@@LS@@|progress|INFO|5
+@@LS@@|log|ERROR|Unhandled exception: System.IO.IOException Access to the path is denied.
+@@LS@@|result|ERROR|Installation failed due to an unexpected error. Check logs for details.

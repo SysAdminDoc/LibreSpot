@@ -1,0 +1,9 @@
+@@LS@@|status|INFO|Preparing install
+@@LS@@|step|INFO|Loading configuration
+@@LS@@|progress|INFO|5
+@@LS@@|step|INFO|Downloading Spotify
+@@LS@@|progress|INFO|10
+@@LS@@|log|WARN|Download attempt 1 failed: connection timed out
+@@LS@@|log|INFO|Falling back to BITS transfer
+@@LS@@|log|ERROR|BITS transfer also failed: network unreachable
+@@LS@@|result|ERROR|Installation failed: could not download Spotify. Check your internet connection and try again.

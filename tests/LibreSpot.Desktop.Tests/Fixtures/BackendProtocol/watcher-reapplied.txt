@@ -1,0 +1,13 @@
+@@LS@@|status|INFO|Watcher tick
+@@LS@@|step|INFO|Checking Spotify version
+@@LS@@|log|INFO|Current Spotify version: 1.2.92.456
+@@LS@@|log|INFO|Last known version: 1.2.90.451
+@@LS@@|log|INFO|Version change detected — Spotify is not running
+@@LS@@|step|INFO|Reapplying SpotX
+@@LS@@|progress|INFO|30
+@@LS@@|log|INFO|SpotX reapply succeeded
+@@LS@@|step|INFO|Reapplying Spicetify
+@@LS@@|progress|INFO|70
+@@LS@@|log|INFO|spicetify backup apply succeeded
+@@LS@@|progress|INFO|100
+@@LS@@|result|SUCCESS|Reapplied
