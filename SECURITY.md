@@ -69,9 +69,22 @@ If you discover a vulnerability in SpotX, Spicetify CLI, or a community extensio
 
 ## Supply-chain hygiene
 
-LibreSpot runs the [OpenSSF Scorecard](https://github.com/ossf/scorecard) action weekly and on pushes to `main` ([.github/workflows/scorecard.yml](.github/workflows/scorecard.yml)). It publishes results to the public Scorecard API (the badge in the README) and uploads the SARIF report as a build artifact. This complements the existing release-time controls (commit-pinned dependencies, SHA256 checksums, CycloneDX SBOM, and GitHub provenance attestations).
+LibreSpot runs the [OpenSSF Scorecard](https://github.com/ossf/scorecard) action weekly and on pushes to `main` ([.github/workflows/scorecard.yml](.github/workflows/scorecard.yml)). It publishes results to the public Scorecard API (the badge in the README) and uploads both SARIF and JSON reports as build artifacts. This complements the existing release-time controls (commit-pinned dependencies, SHA256 checksums, CycloneDX SBOM, and GitHub provenance attestations).
 
-Scorecard findings are treated as work, not noise: a low score on any check should become a `ROADMAP.md` item with a remediation plan rather than a silently ignored warning.
+Scorecard findings are treated as work, not noise: a low score on any check should become a `ROADMAP.md` item with a remediation plan rather than a silently ignored warning. Each run compares results against a checked-in baseline ([schemas/scorecard-baseline.json](schemas/scorecard-baseline.json)), writes the triage table to the GitHub Actions job summary, uploads the SARIF/JSON/triage artifacts, and fails on unaccepted floor regressions.
+
+**Accepted single-maintainer limits:** the following Scorecard checks score zero or low and are documented as expected for a single-maintainer project — they are not silently ignored:
+
+| Check | Score | Reason |
+|-------|-------|--------|
+| Branch-Protection | 0 | Required reviews are not practical without additional contributors. Branch protection is enabled with admin enforcement, force-push and deletion disabled. |
+| Code-Review | 0 | All commits are direct pushes. Quality is maintained through CI, static analysis, and research/build machine separation. |
+| Contributors | 0 | Single-maintainer project by design. |
+| CII-Best-Practices | 0 | Enrollment deferred until v4.0 stable ships and community adoption grows. |
+| Fuzzing | 0 | Property-based testing (FsCheck) is planned; OSS-Fuzz enrollment is deferred. |
+| Signed-Releases | — | SignPath Foundation enrollment is pending. Releases ship with checksums, SBOM, and provenance attestations but are not yet Authenticode-signed. |
+
+These limits are revisited when their documented trigger conditions are met (e.g., a second maintainer joins, signing completes). The full accepted-risk registry is in [schemas/scorecard-baseline.json](schemas/scorecard-baseline.json).
 
 ## External process execution contract
 

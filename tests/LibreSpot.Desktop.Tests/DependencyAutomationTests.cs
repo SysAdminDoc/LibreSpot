@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -131,6 +132,56 @@ public sealed class DependencyAutomationTests
         Assert.Contains("ossf/scorecard-action@", workflow);
         Assert.Contains("publish_results: true", workflow);
         Assert.Contains("id-token: write", workflow);
+        Assert.Contains("Run Scorecard analysis (JSON)", workflow);
+        Assert.Contains("results_format: json", workflow);
+        Assert.Contains("schemas/scorecard-baseline.json", workflow);
+        Assert.Contains("scorecard-triage.json", workflow);
+        Assert.Contains("Unaccepted regressions:", workflow);
+        Assert.Contains("exit 1", workflow);
+        Assert.Contains("if: ${{ always() }}", workflow);
+        Assert.DoesNotContain("regressions=$((regressions + 1))", workflow);
+    }
+
+    [Fact]
+    public void ScorecardBaseline_DocumentsAcceptedSingleMaintainerRisks()
+    {
+        using var baseline = JsonDocument.Parse(ReadRepoFile("schemas", "scorecard-baseline.json"));
+        var root = baseline.RootElement;
+
+        Assert.Equal(1, root.GetProperty("schemaVersion").GetInt32());
+        Assert.NotEqual(DateTime.MinValue, DateTime.Parse(root.GetProperty("lastUpdated").GetString()!));
+
+        var floors = root.GetProperty("checkFloors");
+        Assert.Equal(10, floors.GetProperty("Dangerous-Workflow").GetInt32());
+        Assert.Equal(10, floors.GetProperty("Dependency-Update-Tool").GetInt32());
+        Assert.True(floors.GetProperty("Pinned-Dependencies").GetInt32() >= 8);
+        Assert.True(floors.GetProperty("SAST").GetInt32() >= 5);
+        Assert.True(floors.GetProperty("Token-Permissions").GetInt32() >= 8);
+
+        var acceptedRisks = root.GetProperty("acceptedRisks").EnumerateArray().ToArray();
+        var acceptedChecks = acceptedRisks
+            .Select(risk => risk.GetProperty("check").GetString())
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var expected in new[]
+                 {
+                     "Branch-Protection",
+                     "Code-Review",
+                     "Contributors",
+                     "CII-Best-Practices",
+                     "Fuzzing",
+                     "Signed-Releases",
+                     "Packaging"
+                 })
+        {
+            Assert.Contains(expected, acceptedChecks);
+        }
+
+        foreach (var risk in acceptedRisks)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(risk.GetProperty("reason").GetString()));
+            Assert.False(string.IsNullOrWhiteSpace(risk.GetProperty("revisitWhen").GetString()));
+        }
     }
 
     private static string ReadRepoFile(params string[] relativeParts) =>

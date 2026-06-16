@@ -7,8 +7,10 @@
 # omitted: Scorecard's publish + OIDC steps require repo-scoped tokens that
 # pull requests from forks do not receive, so a PR run would only warn.
 #
-# Low scores surfaced here should become ROADMAP.md items rather than silent
-# warnings, per the supply-chain hygiene plan.
+# After the scan, a triage step compares results against the checked-in
+# baseline (schemas/scorecard-baseline.json), writes a job summary, and fails
+# on unaccepted regressions. Accepted single-maintainer limits are documented
+# in the baseline and do not block the run.
 name: Scorecard
 
 on:
@@ -38,19 +40,100 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Run Scorecard analysis
+      - name: Run Scorecard analysis (SARIF)
         # ossf/scorecard-action v2.4.3
         uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a
         with:
           results_file: results.sarif
           results_format: sarif
-          # Publish to the public Scorecard API so the README badge resolves.
           publish_results: true
 
-      - name: Upload SARIF artifact
+      - name: Run Scorecard analysis (JSON)
+        # ossf/scorecard-action v2.4.3
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a
+        with:
+          results_file: results.json
+          results_format: json
+          publish_results: false
+
+      - name: Triage against baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          baseline="schemas/scorecard-baseline.json"
+          results="results.json"
+          triage="scorecard-triage.json"
+
+          if [ ! -f "$baseline" ] || [ ! -f "$results" ]; then
+            echo "::warning::Scorecard baseline or results missing; skipping triage."
+            exit 0
+          fi
+
+          jq -n \
+            --slurpfile baseline "$baseline" \
+            --slurpfile results "$results" \
+            '
+            ($baseline[0]) as $baselineDoc
+            | ($baselineDoc.acceptedRisks // [] | map(.check) | unique) as $accepted
+            | ($results[0].checks // [])
+            | map(
+                select((.score // -1) >= 0)
+                | .name as $name
+                | .score as $score
+                | ($baselineDoc.checkFloors[$name] // null) as $floor
+                | ($accepted | index($name)) as $acceptedRisk
+                | {
+                    name: $name,
+                    score: $score,
+                    floor: $floor,
+                    acceptedRisk: ($acceptedRisk != null),
+                    blocking: (
+                      ($acceptedRisk == null)
+                      and ($floor != null)
+                      and ($floor >= 0)
+                      and ($score < $floor)
+                    ),
+                    status: (
+                      if $acceptedRisk != null then "Accepted risk"
+                      elif ($floor == null or $floor < 0) then "No floor"
+                      elif $score < $floor then "Regression"
+                      else "OK"
+                      end
+                    )
+                  }
+              )
+            | sort_by(.name)
+            ' > "$triage"
+
+          regressions=$(jq '[.[] | select(.blocking)] | length' "$triage")
+
+          # Write summary table.
+          {
+            echo "## Scorecard Triage"
+            echo ""
+            echo "| Check | Score | Floor | Status |"
+            echo "|-------|-------|-------|--------|"
+            jq -r '.[] | "| \(.name) | \(.score) | \(.floor // "n/a") | \(.status) |"' "$triage"
+            echo ""
+            echo "_Baseline: \`schemas/scorecard-baseline.json\` ($(jq -r '.lastUpdated' "$baseline"))_"
+            echo ""
+            echo "Unaccepted regressions: $regressions"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$regressions" -gt 0 ]; then
+            jq -r '.[] | select(.blocking) | "::error::Scorecard regression: \(.name) scored \(.score) (floor: \(.floor))"' "$triage"
+            echo "::error::Scorecard triage found $regressions unaccepted regression(s). Update the baseline only after documenting accepted risk or add remediation."
+            exit 1
+          fi
+
+      - name: Upload Scorecard artifacts
+        if: ${{ always() }}
         # actions/upload-artifact v4.6.2
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: scorecard-results
-          path: results.sarif
+          path: |
+            results.sarif
+            results.json
+            scorecard-triage.json
           retention-days: 5
