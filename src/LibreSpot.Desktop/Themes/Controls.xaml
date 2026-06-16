@@ -13,8 +13,8 @@
 
   <!-- ═══ Window ═══ -->
   <Style x:Key="WindowChromeStyle" TargetType="Window">
-    <Setter Property="Background" Value="{StaticResource CanvasBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     <Setter Property="FontFamily" Value="{StaticResource BodyFont}" />
     <Setter Property="FontSize" Value="13.5" />
     <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
@@ -27,7 +27,7 @@
   <Style x:Key="EyebrowTextStyle" TargetType="TextBlock">
     <Setter Property="FontSize" Value="11" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
   </Style>
@@ -36,7 +36,7 @@
     <Setter Property="FontFamily" Value="{StaticResource HeadingFont}" />
     <Setter Property="FontSize" Value="30" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="LineHeight" Value="38" />
   </Style>
@@ -45,7 +45,7 @@
     <Setter Property="FontFamily" Value="{StaticResource HeadingFont}" />
     <Setter Property="FontSize" Value="24" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
 
@@ -53,20 +53,20 @@
     <Setter Property="FontFamily" Value="{StaticResource HeadingFont}" />
     <Setter Property="FontSize" Value="20" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
 
   <Style x:Key="BodyTextStyle" TargetType="TextBlock">
     <Setter Property="FontSize" Value="13" />
-    <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="LineHeight" Value="20" />
   </Style>
 
   <Style x:Key="CaptionTextStyle" TargetType="TextBlock">
     <Setter Property="FontSize" Value="12" />
-    <Setter Property="Foreground" Value="{StaticResource SubtleTextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SubtleTextBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="LineHeight" Value="18" />
   </Style>
@@ -74,7 +74,7 @@
   <Style x:Key="LabelTextStyle" TargetType="TextBlock">
     <Setter Property="FontSize" Value="11" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
 
@@ -82,14 +82,14 @@
   <Style x:Key="SectionEyebrowTextStyle" TargetType="TextBlock">
     <Setter Property="FontSize" Value="10.5" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource SubtleTextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SubtleTextBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="Margin" Value="0,0,0,10" />
   </Style>
 
   <Style x:Key="MicroBadgeStyle" TargetType="Border">
-    <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource StrokeSoftBrush}" />
+    <Setter Property="Background" Value="{DynamicResource Surface1Brush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
     <Setter Property="Padding" Value="9,3" />
@@ -100,14 +100,14 @@
 
   <Style x:Key="MicroBadgeTextStyle" TargetType="TextBlock" BasedOn="{StaticResource LabelTextStyle}">
     <Setter Property="FontSize" Value="10.5" />
-    <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
     <Setter Property="TextAlignment" Value="Center" />
     <Setter Property="TextWrapping" Value="NoWrap" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
   <Style x:Key="EmptyStateTitleTextStyle" TargetType="TextBlock">
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     <Setter Property="FontFamily" Value="{StaticResource HeadingFont}" />
     <Setter Property="FontSize" Value="14" />
     <Setter Property="FontWeight" Value="SemiBold" />
@@ -115,38 +115,38 @@
   </Style>
 
   <Style x:Key="EmptyStateBodyTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
-    <Setter Property="Foreground" Value="{StaticResource SubtleTextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource SubtleTextBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="LineHeight" Value="18" />
   </Style>
 
   <!-- ═══ Cards / Surfaces ═══ -->
   <Style x:Key="SurfaceCardStyle" TargetType="Border">
-    <Setter Property="Background" Value="{StaticResource Surface2Brush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource StrokeSoftBrush}" />
+    <Setter Property="Background" Value="{DynamicResource Surface2Brush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{StaticResource RadiusXl}" />
     <Setter Property="Padding" Value="26" />
-    <Setter Property="Effect" Value="{StaticResource CardShadow}" />
+    <Setter Property="Effect" Value="{DynamicResource CardShadow}" />
   </Style>
 
   <Style x:Key="SubtleCardStyle" TargetType="Border">
-    <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource StrokeSoftBrush}" />
+    <Setter Property="Background" Value="{DynamicResource Surface1Brush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}" />
     <Setter Property="Padding" Value="18" />
   </Style>
 
   <Style x:Key="MetricCardStyle" TargetType="Border" BasedOn="{StaticResource SubtleCardStyle}">
-    <Setter Property="Background" Value="{StaticResource Surface3Brush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
+    <Setter Property="Background" Value="{DynamicResource Surface3Brush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeBrush}" />
     <Setter Property="Padding" Value="20" />
   </Style>
 
   <Style x:Key="SectionFrameStyle" TargetType="Border">
-    <Setter Property="Background" Value="{StaticResource Surface2Brush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource StrokeSoftBrush}" />
+    <Setter Property="Background" Value="{DynamicResource Surface2Brush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="18" />
     <Setter Property="Padding" Value="24" />
@@ -163,9 +163,9 @@
 
   <!-- ═══ Primary button ═══ -->
   <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-    <Setter Property="Foreground" Value="{StaticResource TextOnAccentBrush}" />
-    <Setter Property="Background" Value="{StaticResource AccentBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}" />
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="FontSize" Value="13" />
@@ -173,7 +173,7 @@
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="SnapsToDevicePixels" Value="True" />
     <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-    <Setter Property="Tag" Value="{StaticResource AccentHoverBrush}" />
+    <Setter Property="Tag" Value="{DynamicResource AccentHoverBrush}" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
@@ -184,7 +184,7 @@
             <Border x:Name="FocusRing"
                     Margin="-3"
                     CornerRadius="15"
-                    BorderBrush="{StaticResource AccentRingBrush}"
+                    BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
             <Border x:Name="Root"
@@ -216,7 +216,7 @@
                   <Storyboard>
                     <DoubleAnimation Storyboard.TargetName="HoverTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="1" Duration="0:0:0.150" />
+                                     To="1" Duration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
@@ -225,7 +225,7 @@
                   <Storyboard>
                     <DoubleAnimation Storyboard.TargetName="HoverTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="0" Duration="0:0:0.180" />
+                                     To="0" Duration="{StaticResource MotionSlowDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -236,13 +236,13 @@
                   <Storyboard>
                     <DoubleAnimation Storyboard.TargetName="PressTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="1" Duration="0:0:0.080" />
+                                     To="1" Duration="{StaticResource MotionFastDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleX"
-                                     To="0.985" Duration="0:0:0.090" />
+                                     To="0.985" Duration="{StaticResource MotionFastDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleY"
-                                     To="0.985" Duration="0:0:0.090" />
+                                     To="0.985" Duration="{StaticResource MotionFastDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
@@ -251,13 +251,13 @@
                   <Storyboard>
                     <DoubleAnimation Storyboard.TargetName="PressTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="0" Duration="0:0:0.160" />
+                                     To="0" Duration="{StaticResource MotionMedDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleX"
-                                     To="1.0" Duration="0:0:0.140" />
+                                     To="1.0" Duration="{StaticResource MotionMedDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleY"
-                                     To="1.0" Duration="0:0:0.140" />
+                                     To="1.0" Duration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -277,9 +277,9 @@
 
   <!-- Secondary: tonal surface button -->
   <Style x:Key="SecondaryButtonStyle" TargetType="Button">
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-    <Setter Property="Background" Value="{StaticResource Surface3Brush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource Surface3Brush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="FontSize" Value="13" />
@@ -287,7 +287,7 @@
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="SnapsToDevicePixels" Value="True" />
     <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-    <Setter Property="Tag" Value="{StaticResource SurfaceRaisedBrush}" />
+    <Setter Property="Tag" Value="{DynamicResource SurfaceRaisedBrush}" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
@@ -298,7 +298,7 @@
             <Border x:Name="FocusRing"
                     Margin="-3"
                     CornerRadius="15"
-                    BorderBrush="{StaticResource AccentRingBrush}"
+                    BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
             <Border x:Name="Root"
@@ -328,7 +328,7 @@
                   <Storyboard>
                     <DoubleAnimation Storyboard.TargetName="HoverTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="1" Duration="0:0:0.150" />
+                                     To="1" Duration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
@@ -337,7 +337,7 @@
                   <Storyboard>
                     <DoubleAnimation Storyboard.TargetName="HoverTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="0" Duration="0:0:0.180" />
+                                     To="0" Duration="{StaticResource MotionSlowDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -348,13 +348,13 @@
                   <Storyboard>
                     <DoubleAnimation Storyboard.TargetName="PressTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="1" Duration="0:0:0.080" />
+                                     To="1" Duration="{StaticResource MotionFastDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleX"
-                                     To="0.985" Duration="0:0:0.090" />
+                                     To="0.985" Duration="{StaticResource MotionFastDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleY"
-                                     To="0.985" Duration="0:0:0.090" />
+                                     To="0.985" Duration="{StaticResource MotionFastDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
@@ -363,13 +363,13 @@
                   <Storyboard>
                     <DoubleAnimation Storyboard.TargetName="PressTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="0" Duration="0:0:0.160" />
+                                     To="0" Duration="{StaticResource MotionMedDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleX"
-                                     To="1.0" Duration="0:0:0.140" />
+                                     To="1.0" Duration="{StaticResource MotionMedDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleY"
-                                     To="1.0" Duration="0:0:0.140" />
+                                     To="1.0" Duration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -393,23 +393,23 @@
 
   <!-- Ghost: low-emphasis transparent-on-rail -->
   <Style x:Key="GhostButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     <Setter Property="Background" Value="#10FFFFFF" />
     <Setter Property="BorderBrush" Value="#1AFFFFFF" />
     <Setter Property="Tag" Value="{StaticResource GhostHoverTintBrush}" />
   </Style>
 
   <Style x:Key="DestructiveButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-    <Setter Property="Background" Value="{StaticResource DangerBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
     <Setter Property="Tag" Value="{StaticResource DangerHoverTintBrush}" />
   </Style>
 
   <!-- ═══ Pill badge ═══ -->
   <Style x:Key="PillBadgeStyle" TargetType="Border">
-    <Setter Property="Background" Value="{StaticResource AccentMistBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
+    <Setter Property="Background" Value="{DynamicResource AccentMistBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="999" />
     <Setter Property="Padding" Value="11,5" />
@@ -428,8 +428,8 @@
               <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <Border Grid.Row="0"
-                    Background="{StaticResource Surface1Brush}"
-                    BorderBrush="{StaticResource StrokeSoftBrush}"
+                    Background="{DynamicResource Surface1Brush}"
+                    BorderBrush="{DynamicResource StrokeSoftBrush}"
                     BorderThickness="1"
                     CornerRadius="14"
                     Padding="6"
@@ -447,7 +447,7 @@
   </Style>
 
   <Style x:Key="WorkspaceTabItemStyle" TargetType="TabItem">
-    <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="FontSize" Value="13" />
     <Setter Property="Cursor" Value="Hand" />
@@ -460,7 +460,7 @@
             <Border x:Name="FocusRing"
                     Margin="0"
                     CornerRadius="10"
-                    BorderBrush="{StaticResource AccentRingBrush}"
+                    BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
             <Border x:Name="Root"
@@ -476,16 +476,16 @@
             </Border>
             <Border x:Name="HoverTint"
                     Margin="2,0"
-                    Background="{StaticResource SurfaceSheenBrush}"
+                    Background="{DynamicResource SurfaceSheenBrush}"
                     CornerRadius="10"
                     Opacity="0"
                     IsHitTestVisible="False" />
           </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsSelected" Value="True">
-              <Setter TargetName="Root" Property="Background" Value="{StaticResource AccentGradientBrush}" />
-              <Setter TargetName="Root" Property="Effect" Value="{StaticResource TabSelectedGlow}" />
-              <Setter Property="Foreground" Value="{StaticResource TextOnAccentBrush}" />
+              <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentGradientBrush}" />
+              <Setter TargetName="Root" Property="Effect" Value="{DynamicResource TabSelectedGlow}" />
+              <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}" />
               <Setter TargetName="HoverTint" Property="Opacity" Value="0" />
             </Trigger>
             <MultiTrigger>
@@ -493,9 +493,9 @@
                 <Condition Property="IsMouseOver" Value="True" />
                 <Condition Property="IsSelected" Value="False" />
               </MultiTrigger.Conditions>
-              <Setter TargetName="Root" Property="Background" Value="{StaticResource Surface3Brush}" />
+              <Setter TargetName="Root" Property="Background" Value="{DynamicResource Surface3Brush}" />
               <Setter TargetName="HoverTint" Property="Opacity" Value="1" />
-              <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+              <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
             </MultiTrigger>
             <Trigger Property="IsKeyboardFocusWithin" Value="True">
               <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
@@ -508,7 +508,7 @@
 
   <!-- ═══ Checkbox card (used for every toggle) ═══ -->
   <Style x:Key="SettingCheckBoxStyle" TargetType="CheckBox">
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -522,17 +522,17 @@
             <Border x:Name="FocusRing"
                     Margin="-3"
                     CornerRadius="16"
-                    BorderBrush="{StaticResource AccentRingBrush}"
+                    BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
             <Border x:Name="Root"
-                    Background="{StaticResource Surface1Brush}"
-                    BorderBrush="{StaticResource StrokeSoftBrush}"
+                    Background="{DynamicResource Surface1Brush}"
+                    BorderBrush="{DynamicResource StrokeSoftBrush}"
                     BorderThickness="1"
                     CornerRadius="14"
                     Padding="0" />
             <Border x:Name="HoverTint"
-                    Background="{StaticResource SurfaceSheenBrush}"
+                    Background="{DynamicResource SurfaceSheenBrush}"
                     CornerRadius="14"
                     Opacity="0"
                     IsHitTestVisible="False" />
@@ -552,15 +552,15 @@
                         Width="18"
                         Height="18"
                         CornerRadius="5"
-                        Background="{StaticResource Surface3Brush}"
-                        BorderBrush="{StaticResource StrokeStrongBrush}"
+                        Background="{DynamicResource Surface3Brush}"
+                        BorderBrush="{DynamicResource StrokeStrongBrush}"
                         BorderThickness="1.2" />
                 <Path x:Name="Mark"
                       Width="11"
                       Height="10"
                       Stretch="Uniform"
                       Data="M 1 5 L 4.5 8.5 L 10 2"
-                      Stroke="{StaticResource TextOnAccentBrush}"
+                      Stroke="{DynamicResource TextOnAccentBrush}"
                       StrokeThickness="2"
                       StrokeStartLineCap="Round"
                       StrokeEndLineCap="Round"
@@ -573,16 +573,16 @@
           </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsChecked" Value="True">
-              <Setter TargetName="Root" Property="Background" Value="{StaticResource AccentSoftBrush}" />
-              <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
-              <Setter TargetName="Box" Property="Background" Value="{StaticResource AccentBrush}" />
-              <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+              <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+              <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
+              <Setter TargetName="Box" Property="Background" Value="{DynamicResource AccentBrush}" />
+              <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
               <Trigger.EnterActions>
                 <BeginStoryboard>
                   <Storyboard>
                     <DoubleAnimation Storyboard.TargetName="Mark"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="1" Duration="0:0:0.120" />
+                                     To="1" Duration="{StaticResource MotionFastDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
@@ -591,28 +591,28 @@
                   <Storyboard>
                     <DoubleAnimation Storyboard.TargetName="Mark"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="0" Duration="0:0:0.080" />
+                                     To="0" Duration="{StaticResource MotionFastDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
             </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource StrokeStrongBrush}" />
+              <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
               <Trigger.EnterActions>
                 <BeginStoryboard>
                   <Storyboard>
                     <DoubleAnimation Storyboard.TargetName="HoverTint"
                                      Storyboard.TargetProperty="Opacity"
                                      To="1"
-                                     Duration="0:0:0.150" />
+                                     Duration="{StaticResource MotionMedDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleX"
                                      To="1.01"
-                                     Duration="0:0:0.150" />
+                                     Duration="{StaticResource MotionMedDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleY"
                                      To="1.01"
-                                     Duration="0:0:0.150" />
+                                     Duration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
@@ -622,15 +622,15 @@
                     <DoubleAnimation Storyboard.TargetName="HoverTint"
                                      Storyboard.TargetProperty="Opacity"
                                      To="0"
-                                     Duration="0:0:0.180" />
+                                     Duration="{StaticResource MotionSlowDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleX"
                                      To="1"
-                                     Duration="0:0:0.180" />
+                                     Duration="{StaticResource MotionSlowDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleY"
                                      To="1"
-                                     Duration="0:0:0.180" />
+                                     Duration="{StaticResource MotionSlowDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -640,7 +640,7 @@
                 <Condition Property="IsMouseOver" Value="True" />
                 <Condition Property="IsChecked" Value="True" />
               </MultiTrigger.Conditions>
-              <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" />
+              <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}" />
             </MultiTrigger>
             <Trigger Property="IsPressed" Value="True">
               <Trigger.EnterActions>
@@ -649,15 +649,15 @@
                     <DoubleAnimation Storyboard.TargetName="PressTint"
                                      Storyboard.TargetProperty="Opacity"
                                      To="1"
-                                     Duration="0:0:0.080" />
+                                     Duration="{StaticResource MotionFastDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleX"
                                      To="0.992"
-                                     Duration="0:0:0.080" />
+                                     Duration="{StaticResource MotionFastDuration}" />
                     <DoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleY"
                                      To="0.992"
-                                     Duration="0:0:0.080" />
+                                     Duration="{StaticResource MotionFastDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
@@ -667,7 +667,7 @@
                     <DoubleAnimation Storyboard.TargetName="PressTint"
                                      Storyboard.TargetProperty="Opacity"
                                      To="0"
-                                     Duration="0:0:0.140" />
+                                     Duration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -687,7 +687,7 @@
 
   <!-- ═══ ComboBox item ═══ -->
   <Style x:Key="ComboBoxItemPremium" TargetType="ComboBoxItem">
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     <Setter Property="Padding" Value="12,8" />
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -705,15 +705,15 @@
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Root" Property="Background" Value="{StaticResource Surface3Brush}" />
+              <Setter TargetName="Root" Property="Background" Value="{DynamicResource Surface3Brush}" />
             </Trigger>
             <Trigger Property="IsHighlighted" Value="True">
-              <Setter TargetName="Root" Property="Background" Value="{StaticResource AccentSoftBrush}" />
-              <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+              <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+              <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
-              <Setter TargetName="Root" Property="Background" Value="{StaticResource AccentBrush}" />
-              <Setter Property="Foreground" Value="{StaticResource TextOnAccentBrush}" />
+              <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentBrush}" />
+              <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -723,9 +723,9 @@
 
   <!-- ═══ ComboBox ═══ -->
   <Style x:Key="ComboBoxStylePremium" TargetType="ComboBox">
-    <Setter Property="Background" Value="{StaticResource Surface3Brush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource Surface3Brush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Padding" Value="14,9" />
     <Setter Property="FontSize" Value="13" />
@@ -740,7 +740,7 @@
             <Border x:Name="FocusRing"
                     Margin="-2"
                     CornerRadius="14"
-                    BorderBrush="{StaticResource AccentRingBrush}"
+                    BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
             <ToggleButton Name="ToggleButton"
@@ -768,7 +768,7 @@
                             Margin="12,0,0,0"
                             Stretch="Uniform"
                             Data="M 0 0 L 5 5 L 10 0"
-                            Stroke="{StaticResource MutedTextBrush}"
+                            Stroke="{DynamicResource MutedTextBrush}"
                             StrokeThickness="1.7"
                             StrokeStartLineCap="Round"
                             StrokeEndLineCap="Round"
@@ -781,16 +781,16 @@
                   </Border>
                   <ControlTemplate.Triggers>
                     <Trigger Property="IsMouseOver" Value="True">
-                      <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource StrokeStrongBrush}" />
+                      <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
                     </Trigger>
                     <Trigger Property="IsChecked" Value="True">
-                      <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                      <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                       <Trigger.EnterActions>
                         <BeginStoryboard>
                           <Storyboard>
                             <DoubleAnimation Storyboard.TargetName="ChevronRotate"
                                              Storyboard.TargetProperty="Angle"
-                                             To="180" Duration="0:0:0.150" />
+                                             To="180" Duration="{StaticResource MotionMedDuration}" />
                           </Storyboard>
                         </BeginStoryboard>
                       </Trigger.EnterActions>
@@ -799,7 +799,7 @@
                           <Storyboard>
                             <DoubleAnimation Storyboard.TargetName="ChevronRotate"
                                              Storyboard.TargetProperty="Angle"
-                                             To="0" Duration="0:0:0.150" />
+                                             To="0" Duration="{StaticResource MotionMedDuration}" />
                           </Storyboard>
                         </BeginStoryboard>
                       </Trigger.ExitActions>
@@ -822,13 +822,13 @@
                    Placement="Bottom"
                    AllowsTransparency="True"
                    PopupAnimation="Slide">
-              <Border Background="{StaticResource Surface2Brush}"
-                      BorderBrush="{StaticResource StrokeBrush}"
+              <Border Background="{DynamicResource Surface2Brush}"
+                      BorderBrush="{DynamicResource StrokeBrush}"
                       BorderThickness="1"
                       CornerRadius="12"
                       Margin="0,6,0,0"
                       MinWidth="{Binding ActualWidth, ElementName=ToggleButton}"
-                      Effect="{StaticResource CardShadow}">
+                      Effect="{DynamicResource CardShadow}">
                 <ScrollViewer Margin="4"
                               MaxHeight="320"
                               CanContentScroll="True"
@@ -854,11 +854,11 @@
 
   <!-- ═══ TextBox ═══ -->
   <Style x:Key="TextBoxStylePremium" TargetType="TextBox">
-    <Setter Property="Background" Value="{StaticResource Surface3Brush}" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
-    <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
-    <Setter Property="SelectionBrush" Value="{StaticResource AccentRingBrush}" />
+    <Setter Property="Background" Value="{DynamicResource Surface3Brush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeBrush}" />
+    <Setter Property="CaretBrush" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="SelectionBrush" Value="{DynamicResource AccentRingBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Padding" Value="14,9" />
     <Setter Property="FontSize" Value="13" />
@@ -872,7 +872,7 @@
             <Border x:Name="FocusRing"
                     Margin="-2"
                     CornerRadius="14"
-                    BorderBrush="{StaticResource AccentRingBrush}"
+                    BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
             <Border x:Name="Root"
@@ -886,10 +886,10 @@
           </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource StrokeStrongBrush}" />
+              <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
             </Trigger>
             <Trigger Property="IsKeyboardFocused" Value="True">
-              <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+              <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
               <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
@@ -904,8 +904,8 @@
   <!-- ═══ Progress bar — determinate fill + indeterminate shimmer sweep ═══ -->
   <Style x:Key="ProgressBarStylePremium" TargetType="ProgressBar">
     <Setter Property="Height" Value="8" />
-    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
-    <Setter Property="Background" Value="{StaticResource Surface3Brush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Background" Value="{DynamicResource Surface3Brush}" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Template">
       <Setter.Value>
@@ -920,12 +920,12 @@
             <Border x:Name="PART_Indicator"
                     HorizontalAlignment="Left"
                     CornerRadius="999"
-                    Background="{StaticResource AccentGradientBrush}"
+                    Background="{DynamicResource AccentGradientBrush}"
                     Visibility="Visible" />
             <!-- Indeterminate shimmer: translucent sweep across the full track -->
             <Border x:Name="Shimmer"
                     CornerRadius="999"
-                    Background="{StaticResource ShimmerBrush}"
+                    Background="{DynamicResource ShimmerBrush}"
                     Opacity="0"
                     IsHitTestVisible="False"
                     Margin="-80,0,-80,0"
@@ -961,9 +961,9 @@
   <Style x:Key="LogTextBoxStyle" TargetType="TextBox">
     <Setter Property="Background" Value="{DynamicResource TerminalBgBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource TerminalFgBrush}" />
-    <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
-    <Setter Property="SelectionBrush" Value="{StaticResource AccentRingBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
+    <Setter Property="CaretBrush" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="SelectionBrush" Value="{DynamicResource AccentRingBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Padding" Value="16" />
     <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
@@ -994,15 +994,15 @@
       <Setter.Value>
         <ControlTemplate TargetType="Thumb">
           <Border x:Name="Thumb"
-                  Background="{StaticResource StrokeStrongBrush}"
+                  Background="{DynamicResource StrokeStrongBrush}"
                   CornerRadius="999"
                   Margin="2" />
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Thumb" Property="Background" Value="{StaticResource MutedTextBrush}" />
+              <Setter TargetName="Thumb" Property="Background" Value="{DynamicResource MutedTextBrush}" />
             </Trigger>
             <Trigger Property="IsDragging" Value="True">
-              <Setter TargetName="Thumb" Property="Background" Value="{StaticResource AccentBrush}" />
+              <Setter TargetName="Thumb" Property="Background" Value="{DynamicResource AccentBrush}" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -1013,7 +1013,7 @@
   <Style TargetType="ScrollBar">
     <Setter Property="Width" Value="10" />
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{StaticResource StrokeStrongBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StrokeStrongBrush}" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ScrollBar">
@@ -1065,7 +1065,7 @@
   <Style x:Key="StatusDotStyle" TargetType="Ellipse">
     <Setter Property="Width" Value="8" />
     <Setter Property="Height" Value="8" />
-    <Setter Property="Fill" Value="{StaticResource MutedTextBrush}" />
+    <Setter Property="Fill" Value="{DynamicResource MutedTextBrush}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
@@ -1073,7 +1073,7 @@
   <Storyboard x:Key="OverlayEnterStoryboard">
     <DoubleAnimation Storyboard.TargetProperty="Opacity"
                      From="0" To="1"
-                     Duration="0:0:0.180">
+                     Duration="{StaticResource MotionSlowDuration}">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>

@@ -48,14 +48,14 @@
   <Color x:Key="AccentMistColor">Transparent</Color>
   <Color x:Key="AccentRingColor">{x:Static SystemColors.HighlightColor}</Color>
 
-  <!-- ═══ Semantic intent — stronger signal, no alpha ═══ -->
-  <Color x:Key="DangerColor">#FF0000</Color>
-  <Color x:Key="DangerDeepColor">#CC0000</Color>
+  <!-- ═══ Semantic intent — mapped to SystemColors for guaranteed contrast ═══ -->
+  <Color x:Key="DangerColor">{x:Static SystemColors.WindowTextColor}</Color>
+  <Color x:Key="DangerDeepColor">{x:Static SystemColors.WindowTextColor}</Color>
   <Color x:Key="DangerSoftColor">{x:Static SystemColors.ControlColor}</Color>
-  <Color x:Key="WarningColor">#FFAA00</Color>
+  <Color x:Key="WarningColor">{x:Static SystemColors.HotTrackColor}</Color>
   <Color x:Key="WarningSoftColor">{x:Static SystemColors.ControlColor}</Color>
-  <Color x:Key="WarningRingColor">#FFAA00</Color>
-  <Color x:Key="SuccessColor">#00CC00</Color>
+  <Color x:Key="WarningRingColor">{x:Static SystemColors.HotTrackColor}</Color>
+  <Color x:Key="SuccessColor">{x:Static SystemColors.WindowTextColor}</Color>
   <Color x:Key="SuccessSoftColor">{x:Static SystemColors.ControlColor}</Color>
   <Color x:Key="InfoColor">{x:Static SystemColors.HotTrackColor}</Color>
 
@@ -93,13 +93,13 @@
   <SolidColorBrush x:Key="AccentMistBrush" Color="Transparent" />
   <SolidColorBrush x:Key="AccentRingBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
 
-  <SolidColorBrush x:Key="DangerBrush" Color="#FF0000" />
-  <SolidColorBrush x:Key="DangerDeepBrush" Color="#CC0000" />
+  <SolidColorBrush x:Key="DangerBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+  <SolidColorBrush x:Key="DangerDeepBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
   <SolidColorBrush x:Key="DangerSoftBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
-  <SolidColorBrush x:Key="WarningBrush" Color="#FFAA00" />
+  <SolidColorBrush x:Key="WarningBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
   <SolidColorBrush x:Key="WarningSoftBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
-  <SolidColorBrush x:Key="WarningRingBrush" Color="#FFAA00" />
-  <SolidColorBrush x:Key="SuccessBrush" Color="#00CC00" />
+  <SolidColorBrush x:Key="WarningRingBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
+  <SolidColorBrush x:Key="SuccessBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
   <SolidColorBrush x:Key="SuccessSoftBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
   <SolidColorBrush x:Key="InfoBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
 
