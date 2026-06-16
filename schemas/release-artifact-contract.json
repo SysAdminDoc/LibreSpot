@@ -70,6 +70,16 @@
       "signingRequirement": "none",
       "attestation": "none",
       "distributionChannels": ["github-releases", "github-releases-wpf"]
+    },
+    {
+      "name": "librespot-release-manifest.json",
+      "description": "Machine-readable release manifest with per-artifact SHA256, size, RID, and role for package-manager automation",
+      "channels": ["stable", "preview", "rc"],
+      "required": true,
+      "checksumEntry": false,
+      "signingRequirement": "none",
+      "attestation": "none",
+      "distributionChannels": ["github-releases"]
     }
   ],
   "checksumContract": {

@@ -497,6 +497,49 @@ jobs:
             > checksums.txt
           cat checksums.txt
 
+      - name: Generate release manifest
+        env:
+          TAG: ${{ needs.preflight.outputs.tag }}
+          IS_PRERELEASE: ${{ needs.preflight.outputs.is_prerelease }}
+        working-directory: release
+        run: |
+          set -euo pipefail
+          generate_entry() {
+            local file="$1" role="$2" rid="${3:-any}"
+            local size sha
+            size=$(stat -c%s "$file")
+            sha=$(sha256sum "$file" | cut -d' ' -f1)
+            cat <<ENTRY
+            {
+              "artifact": "$file",
+              "role": "$role",
+              "rid": "$rid",
+              "sizeBytes": $size,
+              "sha256": "$sha"
+            }
+          ENTRY
+          }
+
+          cat > librespot-release-manifest.json <<MANIFEST
+          {
+            "schemaVersion": 1,
+            "tag": "${TAG}",
+            "commitSha": "${GITHUB_SHA}",
+            "isPrerelease": ${IS_PRERELEASE},
+            "releaseUrl": "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}",
+            "artifacts": [
+              $(generate_entry "LibreSpot.ps1" "script"),
+              $(generate_entry "LibreSpot.exe" "ps2exe" "win-x64"),
+              $(generate_entry "LibreSpot-Desktop.exe" "wpf-shell" "win-x64"),
+              $(generate_entry "LibreSpot.sbom.cdx.json" "sbom")
+            ]
+          }
+          MANIFEST
+
+          python3 -m json.tool librespot-release-manifest.json > /dev/null
+          echo "Release manifest generated:"
+          cat librespot-release-manifest.json
+
       - name: Attest build provenance
         # actions/attest-build-provenance v2.4.0
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be
@@ -542,4 +585,5 @@ jobs:
               release/LibreSpot-Desktop.exe \
               release/LibreSpot.sbom.cdx.json \
               release/checksums.txt \
+              release/librespot-release-manifest.json \
               --clobber
