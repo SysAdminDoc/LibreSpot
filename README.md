@@ -80,7 +80,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 **Custom Install** — full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), pick from 21 themes (16 official + 5 community) with per-theme color schemes, select from 15 extensions (10 built-in + 5 community), and choose between clean or overlay install.
 
-**Maintenance** — manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, restore vanilla Spotify, uninstall Spicetify, check for dependency updates, or perform a full system reset.
+**Maintenance** — manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, export a redacted local support bundle, restore vanilla Spotify, uninstall Spicetify, check for dependency updates, or perform a full system reset.
 
 ### Comprehensive Uninstaller
 
@@ -173,6 +173,9 @@ Use the Spicetify Marketplace (installed by default) to browse and apply themes 
 
 **Marketplace is installed but I do not see it.**
 Use Maintenance > Repair and open Marketplace. LibreSpot reinstalls the custom app, re-enables `custom_apps`, reapplies Spicetify, and opens `spotify:app:marketplace` directly.
+
+**How do I collect diagnostics without leaking local paths or secrets?**
+Use Maintenance > Support bundle. LibreSpot previews the selected health report, operation journal, log, and crash-report windows, redacts local user/machine paths, GitHub headers, proxy credentials, tokens, passwords, and command-line secret arguments, then writes a local zip. It does not upload the bundle.
 
 **How do I go back to stock Spotify?**
 Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify, and cleans up every trace.

@@ -294,11 +294,15 @@ public sealed class EnvironmentSnapshot
 public static class AppCatalog
 {
     public const int CurrentConfigSchemaVersion = 1;
+    public const string PinnedSpotXVersion = "2.0";
+    public const string PinnedSpotXCommit = "3284673df69e276c5c0ee90bb1cc9185cecb9ad4";
     public const string PinnedSpotXSpotifyVersionId = "1.2.92";
     public const string PinnedSpotXSpotifyVersion = "1.2.92";
     public const string PinnedSpicetifyCliVersion = "2.43.2";
     public const string SpicetifyWindowsMinTestedSpotify = "1.2.14";
     public const string SpicetifyWindowsMaxTestedSpotify = "1.2.88";
+    public const string PinnedMarketplaceVersion = "1.0.8";
+    public const string PinnedThemesCommit = "df033493a7dae30ca6e371de9cec1897871dbb0c";
 
     public static IReadOnlyList<string> LyricsThemes { get; } = new ReadOnlyCollection<string>(new[]
     {

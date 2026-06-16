@@ -373,6 +373,42 @@
       </Border>
     </DataTemplate>
 
+    <DataTemplate DataType="{x:Type viewModels:SupportBundleCategoryViewModel}" x:Key="SupportBundleCategoryTemplate">
+      <CheckBox Style="{StaticResource SettingCheckBoxStyle}"
+                IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                AutomationProperties.Name="{Binding Title}"
+                AutomationProperties.HelpText="{Binding Detail}"
+                ToolTip="{Binding Detail}"
+                Margin="0,0,10,10">
+        <StackPanel>
+          <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding Title}"
+                       Foreground="{StaticResource TextBrush}"
+                       FontWeight="SemiBold"
+                       FontSize="13"
+                       TextWrapping="Wrap"
+                       Margin="0,0,10,0" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+              <Border Style="{StaticResource MicroBadgeStyle}" Margin="0,0,6,0">
+                <TextBlock Text="{Binding FileCountText}"
+                           Style="{StaticResource MicroBadgeTextStyle}" />
+              </Border>
+              <Border Style="{StaticResource MicroBadgeStyle}">
+                <TextBlock Text="{Binding EstimatedSizeText}"
+                           Style="{StaticResource MicroBadgeTextStyle}" />
+              </Border>
+            </StackPanel>
+          </Grid>
+          <TextBlock Text="{Binding Detail}"
+                     Style="{StaticResource CaptionTextStyle}" />
+        </StackPanel>
+      </CheckBox>
+    </DataTemplate>
+
     <DataTemplate DataType="{x:Type viewModels:SelectionInsightViewModel}" x:Key="SelectionInsightTemplate">
       <Grid Margin="0,0,0,12">
         <Grid.ColumnDefinitions>
@@ -1603,6 +1639,85 @@
                       </StackPanel>
                     </Border>
                   </UniformGrid>
+
+                  <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,14">
+                    <StackPanel>
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,18,0">
+                          <TextBlock Text="Support bundle"
+                                     Style="{StaticResource SectionTitleTextStyle}"
+                                     FontSize="18" />
+                          <TextBlock Text="{Binding SupportBundlePreviewTitle}"
+                                     Foreground="{StaticResource TextBrush}"
+                                     FontWeight="SemiBold"
+                                     Margin="0,8,0,0"
+                                     TextWrapping="Wrap" />
+                          <TextBlock Text="{Binding SupportBundlePreviewDetail}"
+                                     Style="{StaticResource CaptionTextStyle}"
+                                     Margin="0,4,0,0" />
+                          <TextBlock Text="{Binding SupportBundleRedactionSummary}"
+                                     Style="{StaticResource CaptionTextStyle}"
+                                     Foreground="{StaticResource TextBrush}"
+                                     Margin="0,8,0,0"
+                                     TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Button Grid.Column="1"
+                                MinWidth="170"
+                                Height="42"
+                                Padding="16,0"
+                                Content="Export bundle"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                AutomationProperties.Name="Export support bundle"
+                                AutomationProperties.HelpText="Writes a local redacted LibreSpot support zip using the selected diagnostic categories."
+                                Command="{Binding ExportSupportBundleCommand}" />
+                      </Grid>
+
+                      <ItemsControl ItemsSource="{Binding SupportBundleItems}"
+                                    ItemTemplate="{StaticResource SupportBundleCategoryTemplate}"
+                                    Margin="0,16,0,0">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                      </ItemsControl>
+
+                      <Border Height="1"
+                              Background="{StaticResource StrokeSoftBrush}"
+                              Margin="0,8,0,14" />
+
+                      <ItemsControl ItemsSource="{Binding SupportBundleRedactionRules}"
+                                    Margin="0,10,0,0">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Grid Margin="0,0,0,6">
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                              </Grid.ColumnDefinitions>
+                              <Border Width="4"
+                                      Height="14"
+                                      CornerRadius="2"
+                                      Background="{StaticResource AccentBrush}"
+                                      Margin="0,3,10,0" />
+                              <TextBlock Grid.Column="1"
+                                         Text="{Binding}"
+                                         Style="{StaticResource CaptionTextStyle}"
+                                         TextWrapping="Wrap" />
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <TextBlock Text="{Binding SupportBundleLastExportText}"
+                                 Style="{StaticResource CaptionTextStyle}"
+                                 Foreground="{StaticResource MutedTextBrush}"
+                                 Margin="0,8,0,0"
+                                 TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
 
                   <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,14">
                     <Grid>

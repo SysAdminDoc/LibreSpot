@@ -73,6 +73,28 @@ public sealed class MainViewModelMaintenanceTests
             Assert.True(Card(viewModel, "Reapply").IsRelevant);
         });
 
+    [Fact]
+    public Task SupportBundlePreview_ShowsSelectableDiagnosticCategories() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            fixture.WriteSpotify(withSpotXMarkers: true);
+            fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+            fixture.WriteMarketplaceFiles();
+            fixture.WriteInstallLog("backend log");
+            fixture.WriteRollingLog("desktop log");
+            fixture.WriteCrashReport("crash log");
+
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            Assert.Contains(viewModel.SupportBundleItems, item => item.Id == "health" && item.IsRequired && item.IsSelected);
+            Assert.Contains(viewModel.SupportBundleItems, item => item.Id == "logs" && item.IsOptional && item.IsSelected);
+            Assert.Contains(viewModel.SupportBundleItems, item => item.Id == "crashes" && item.FileCountText == "1 file window");
+            Assert.Contains(viewModel.SupportBundleRedactionRules, rule => rule.Contains("tokens", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains("file window", viewModel.SupportBundlePreviewTitle);
+            Assert.Contains("Estimated local zip size", viewModel.SupportBundlePreviewDetail);
+        });
+
     private static MaintenanceActionCardViewModel Card(MainViewModel viewModel, string action) =>
         viewModel.SafeMaintenanceActions
             .Concat(viewModel.DestructiveMaintenanceActions)
@@ -142,7 +164,8 @@ public sealed class MainViewModelMaintenanceTests
                     spicetifyConfigDirectory: SpicetifyConfigDirectory,
                     backupDirectory: BackupDirectory,
                     rollingLogDirectory: RollingLogDirectory,
-                    crashDirectory: CrashDirectory));
+                    crashDirectory: CrashDirectory),
+                new SupportBundleService(ConfigDirectory, RollingLogDirectory, CrashDirectory));
 
             await viewModel.InitializeAsync();
             return viewModel;
@@ -177,6 +200,15 @@ public sealed class MainViewModelMaintenanceTests
             var backup = Path.Combine(BackupDirectory, DateTime.Now.ToString("yyyyMMdd-HHmmss"));
             WriteFile(Path.Combine(backup, "config-xpui.ini"), "current_theme = Catppuccin");
         }
+
+        public void WriteInstallLog(string content) =>
+            WriteFile(Path.Combine(ConfigDirectory, "install.log"), content);
+
+        public void WriteRollingLog(string content) =>
+            WriteFile(Path.Combine(RollingLogDirectory, "librespot-20260616.log"), content);
+
+        public void WriteCrashReport(string content) =>
+            WriteFile(Path.Combine(CrashDirectory, "crash-20260616-test.log"), content);
 
         private static void WriteFile(string path, string content)
         {

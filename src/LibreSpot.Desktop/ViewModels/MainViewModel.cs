@@ -120,6 +120,84 @@ public sealed class MaintenanceActionCardViewModel : ObservableObject
     }
 }
 
+public sealed class SupportBundleCategoryViewModel : ObservableObject
+{
+    private readonly Action _selectionChanged;
+    private bool _isRefreshing;
+    private bool _isSelected;
+    private string _detail;
+    private string _fileCountText = "0 files";
+    private string _estimatedSizeText = "0 B";
+
+    public SupportBundleCategoryViewModel(
+        string id,
+        string title,
+        bool isRequired,
+        bool isSelected,
+        string detail,
+        Action selectionChanged)
+    {
+        Id = id;
+        Title = title;
+        IsRequired = isRequired;
+        _isSelected = isRequired || isSelected;
+        _detail = detail;
+        _selectionChanged = selectionChanged;
+    }
+
+    public string Id { get; }
+    public string Title { get; }
+    public bool IsRequired { get; }
+    public bool IsOptional => !IsRequired;
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            var next = IsRequired || value;
+            if (SetProperty(ref _isSelected, next) && !_isRefreshing)
+            {
+                _selectionChanged();
+            }
+        }
+    }
+
+    public string Detail
+    {
+        get => _detail;
+        private set => SetProperty(ref _detail, value);
+    }
+
+    public string FileCountText
+    {
+        get => _fileCountText;
+        private set => SetProperty(ref _fileCountText, value);
+    }
+
+    public string EstimatedSizeText
+    {
+        get => _estimatedSizeText;
+        private set => SetProperty(ref _estimatedSizeText, value);
+    }
+
+    public void Refresh(SupportBundlePreviewEntry entry)
+    {
+        _isRefreshing = true;
+        try
+        {
+            Detail = entry.Detail;
+            FileCountText = entry.FileCount == 1 ? "1 file window" : $"{entry.FileCount} file windows";
+            EstimatedSizeText = MainViewModel.FormatBytes(entry.EstimatedBytes);
+            IsSelected = entry.IsSelected;
+        }
+        finally
+        {
+            _isRefreshing = false;
+        }
+    }
+}
+
 public sealed class SelectionInsightViewModel
 {
     public SelectionInsightViewModel(string tone, string title, string detail)
@@ -144,6 +222,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly ConfigurationService _configurationService;
     private readonly BackendScriptService _backendScriptService;
     private readonly EnvironmentSnapshotService _snapshotService;
+    private readonly SupportBundleService _supportBundleService;
     private readonly Dispatcher _dispatcher;
     private readonly bool _isAdministratorSession;
     private readonly InstallConfiguration _recommendedBaseline;
@@ -183,15 +262,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string? _recoveredConfigurationPath;
     private string? _configurationRecoveryReason;
     private Func<Task>? _pendingPromptAction;
+    private SupportBundlePreview _supportBundlePreview = new(
+        Array.Empty<SupportBundlePreviewEntry>(),
+        0,
+        Array.Empty<string>());
+    private string _supportBundleLastExportText = "No support bundle exported in this session.";
 
     public MainViewModel(
         ConfigurationService configurationService,
         BackendScriptService backendScriptService,
-        EnvironmentSnapshotService snapshotService)
+        EnvironmentSnapshotService snapshotService,
+        SupportBundleService? supportBundleService = null)
     {
         _configurationService = configurationService;
         _backendScriptService = backendScriptService;
         _snapshotService = snapshotService;
+        _supportBundleService = supportBundleService ?? new SupportBundleService(configurationService.ConfigDirectory);
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _isAdministratorSession = IsAdministrator();
         _recommendedBaseline = AppCatalog.CreateRecommendedConfiguration();
@@ -215,6 +301,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DownloadMethodOptions = new ObservableCollection<AppCatalog.DownloadMethodEntry>(AppCatalog.DownloadMethods);
         SelectionInsights = new ObservableCollection<SelectionInsightViewModel>();
         SelectedExtensionLabels = new ObservableCollection<string>();
+        SupportBundleItems = new ObservableCollection<SupportBundleCategoryViewModel>();
+        SupportBundleRedactionRules = new ObservableCollection<string>();
 
         InstallOptions = CreateOptions("Install");
         CoreOptions = CreateOptions("Core");
@@ -243,6 +331,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CopyLogCommand = new RelayCommand(CopyLog, () => LogEntries.Count > 0);
         OpenLibreSpotFolderCommand = new RelayCommand(OpenLibreSpotFolder);
         RefreshSnapshotCommand = new RelayCommand(() => _ = RefreshSnapshotAsync());
+        RefreshSupportBundlePreviewCommand = new RelayCommand(RefreshSupportBundlePreview);
+        ExportSupportBundleCommand = new RelayCommand(() => _ = ExportSupportBundleAsync(), () => !IsRunning);
         EnableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: true), () => !IsRunning && !Snapshot.AutoReapplyTaskRegistered);
         DisableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: false), () => !IsRunning && Snapshot.AutoReapplyTaskRegistered);
         ClearSettingsSearchCommand = new RelayCommand(() => SettingsSearchText = string.Empty, () => HasSettingsSearchText);
@@ -253,6 +343,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         ConfigureSettingsSearchFilters();
         RegisterOptionStateObservers();
+        InitializeSupportBundleItems();
+        RefreshSupportBundlePreview();
         RefreshMaintenanceActionRelevance();
         RaiseSelectionInsightsChanged();
         RaiseSnapshotInsightsChanged();
@@ -275,6 +367,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<ExtensionToggleViewModel> Extensions { get; }
     public ObservableCollection<MaintenanceActionCardViewModel> SafeMaintenanceActions { get; }
     public ObservableCollection<MaintenanceActionCardViewModel> DestructiveMaintenanceActions { get; }
+    public ObservableCollection<SupportBundleCategoryViewModel> SupportBundleItems { get; }
+    public ObservableCollection<string> SupportBundleRedactionRules { get; }
     public ObservableCollection<LogEntryViewModel> LogEntries { get; }
 
     public RelayCommand ApplyRecommendedCommand { get; }
@@ -284,6 +378,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand CopyLogCommand { get; }
     public RelayCommand OpenLibreSpotFolderCommand { get; }
     public RelayCommand RefreshSnapshotCommand { get; }
+    public RelayCommand RefreshSupportBundlePreviewCommand { get; }
+    public RelayCommand ExportSupportBundleCommand { get; }
     public RelayCommand EnableAutoReapplyCommand { get; }
     public RelayCommand DisableAutoReapplyCommand { get; }
     public RelayCommand ClearSettingsSearchCommand { get; }
@@ -300,6 +396,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _snapshot, value))
             {
                 RaiseAutoReapplyStateChanged();
+                RefreshSupportBundlePreview();
             }
         }
     }
@@ -634,6 +731,26 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string MaintenanceThemeValue => HealthComponent("active-theme")?.Status ?? "Unknown";
     public string MaintenanceThemeDetail => HealthComponent("active-theme")?.Evidence ?? "Theme state has not been checked yet.";
 
+    public string SupportBundlePreviewTitle =>
+        _supportBundlePreview.SelectedFileCount switch
+        {
+            0 => "Health report only",
+            1 => "1 file window selected",
+            _ => $"{_supportBundlePreview.SelectedFileCount} file windows selected"
+        };
+
+    public string SupportBundlePreviewDetail =>
+        $"Estimated local zip size before compression: {FormatBytes(_supportBundlePreview.EstimatedBytes)}.";
+
+    public string SupportBundleRedactionSummary =>
+        "User paths, machine/user names, GitHub headers, proxy credentials, tokens, passwords, and command-line secret arguments are redacted before the zip is written.";
+
+    public string SupportBundleLastExportText
+    {
+        get => _supportBundleLastExportText;
+        private set => SetProperty(ref _supportBundleLastExportText, value);
+    }
+
     public string RecommendedRunDuration =>
         Snapshot.SpotifyInstalled
             ? "Usually 2-3 minutes, depending on whether Spotify restarts."
@@ -884,6 +1001,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 DismissActivityCommand.RaiseCanExecuteChanged();
                 EnableAutoReapplyCommand.RaiseCanExecuteChanged();
                 DisableAutoReapplyCommand.RaiseCanExecuteChanged();
+                ExportSupportBundleCommand.RaiseCanExecuteChanged();
                 RelaunchAsAdministratorCommand.RaiseCanExecuteChanged();
                 ConfirmPromptCommand.RaiseCanExecuteChanged();
                 CancelPromptCommand.RaiseCanExecuteChanged();
@@ -1444,6 +1562,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(MaintenanceMarketplaceDetail));
         RaisePropertyChanged(nameof(MaintenanceThemeValue));
         RaisePropertyChanged(nameof(MaintenanceThemeDetail));
+        RaiseSupportBundlePreviewChanged();
         RaisePropertyChanged(nameof(HasConfigurationRecoveryNotice));
         RaisePropertyChanged(nameof(ConfigurationRecoveryTitle));
         RaisePropertyChanged(nameof(ConfigurationRecoveryDetail));
@@ -1508,6 +1627,131 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             "RemoveSelfData" => savedProfile?.Severity == HealthSeverity.Ready || logs?.Severity == HealthSeverity.Ready || backups?.Severity == HealthSeverity.Ready || Snapshot.ConfigFolderExists,
             _ => HasRecommendedAction(action)
         };
+    }
+
+    private void InitializeSupportBundleItems()
+    {
+        SupportBundleItems.Clear();
+        SupportBundleItems.Add(new SupportBundleCategoryViewModel(
+            "health",
+            "Health report",
+            true,
+            true,
+            "Required redacted health report, runtime metadata, and catalog pin baseline.",
+            OnSupportBundleSelectionChanged));
+        SupportBundleItems.Add(new SupportBundleCategoryViewModel(
+            "operation",
+            "Operation journal",
+            false,
+            true,
+            "Latest backend and watcher state slices from the LibreSpot profile.",
+            OnSupportBundleSelectionChanged));
+        SupportBundleItems.Add(new SupportBundleCategoryViewModel(
+            "logs",
+            "Logs",
+            false,
+            true,
+            "Selected backend, watcher, and desktop rolling log windows.",
+            OnSupportBundleSelectionChanged));
+        SupportBundleItems.Add(new SupportBundleCategoryViewModel(
+            "crashes",
+            "Crash reports",
+            false,
+            true,
+            "Newest crash report windows when present.",
+            OnSupportBundleSelectionChanged));
+    }
+
+    private void OnSupportBundleSelectionChanged() => RefreshSupportBundlePreview();
+
+    private SupportBundleOptions BuildSupportBundleOptions() =>
+        new(
+            IncludeOperationJournal: SupportBundleItems.FirstOrDefault(item => item.Id == "operation")?.IsSelected ?? true,
+            IncludeLogs: SupportBundleItems.FirstOrDefault(item => item.Id == "logs")?.IsSelected ?? true,
+            IncludeCrashReports: SupportBundleItems.FirstOrDefault(item => item.Id == "crashes")?.IsSelected ?? true);
+
+    private void RefreshSupportBundlePreview()
+    {
+        _supportBundlePreview = _supportBundleService.CreatePreview(Snapshot, BuildSupportBundleOptions());
+
+        foreach (var entry in _supportBundlePreview.Entries)
+        {
+            SupportBundleItems.FirstOrDefault(item => item.Id == entry.Id)?.Refresh(entry);
+        }
+
+        SupportBundleRedactionRules.Clear();
+        foreach (var rule in _supportBundlePreview.RedactionRules)
+        {
+            SupportBundleRedactionRules.Add(rule);
+        }
+
+        RaiseSupportBundlePreviewChanged();
+        ExportSupportBundleCommand.RaiseCanExecuteChanged();
+    }
+
+    private void RaiseSupportBundlePreviewChanged()
+    {
+        RaisePropertyChanged(nameof(SupportBundlePreviewTitle));
+        RaisePropertyChanged(nameof(SupportBundlePreviewDetail));
+        RaisePropertyChanged(nameof(SupportBundleRedactionSummary));
+    }
+
+    private async Task ExportSupportBundleAsync()
+    {
+        if (IsRunning)
+        {
+            return;
+        }
+
+        RefreshSupportBundlePreview();
+        var defaultPath = _supportBundleService.CreateDefaultBundlePath();
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Export LibreSpot support bundle",
+            Filter = "Zip archives (*.zip)|*.zip",
+            DefaultExt = ".zip",
+            AddExtension = true,
+            OverwritePrompt = true,
+            InitialDirectory = Path.GetDirectoryName(defaultPath),
+            FileName = Path.GetFileName(defaultPath)
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var result = await _supportBundleService.ExportAsync(
+                dialog.FileName,
+                Snapshot,
+                BuildSupportBundleOptions());
+            SupportBundleLastExportText = $"Last export: {result.Path} ({FormatBytes(result.BytesWritten)}, {result.EntryCount} zip entries).";
+            AppendLog($"Support bundle exported locally: {result.Path}", "SUCCESS");
+        }
+        catch (Exception ex)
+        {
+            SupportBundleLastExportText = $"Export failed: {ex.Message}";
+            AppendLog($"Support bundle export failed: {ex.Message}", "ERROR");
+        }
+    }
+
+    public static string FormatBytes(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB"];
+        var value = Math.Max(0, bytes);
+        var unit = 0;
+        var display = (double)value;
+        while (display >= 1024 && unit < units.Length - 1)
+        {
+            display /= 1024;
+            unit++;
+        }
+
+        return unit == 0
+            ? $"{value} {units[unit]}"
+            : $"{display:0.#} {units[unit]}";
     }
 
     private void RaiseAutoReapplyStateChanged()
