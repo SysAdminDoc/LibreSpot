@@ -54,6 +54,22 @@
       "notes": null
     },
     {
+      "action": "CreateBackup",
+      "elevation": "no-admin",
+      "mutating": false,
+      "destructive": false,
+      "toastCompatible": true,
+      "notes": "Creates a Spicetify config backup without modifying Spotify"
+    },
+    {
+      "action": "RestoreBackup",
+      "elevation": "prompts-for-admin",
+      "mutating": true,
+      "destructive": false,
+      "toastCompatible": false,
+      "notes": "Restores Spicetify backup and reapplies — modifies Spotify files"
+    },
+    {
       "action": "RestoreVanilla",
       "elevation": "prompts-for-admin",
       "mutating": true,

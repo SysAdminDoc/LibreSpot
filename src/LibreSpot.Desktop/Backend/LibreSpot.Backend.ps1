@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'SafeMode', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'RemoveSelfData', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')]
+    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'SafeMode', 'CreateBackup', 'RestoreBackup', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'RemoveSelfData', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')]
     [string]$Action = 'Install',
     [string]$ConfigPath = "$env:APPDATA\LibreSpot\config.json"
 )
@@ -2721,6 +2721,24 @@ function Invoke-LibreSpotMaintenance {
                 -FailureMessage 'Spicetify restore failed — try Reapply or Restore Vanilla.' `
                 -MissingMessage 'Spicetify CLI not found — no customizations to disable.'
             Write-Log 'Safe mode active — all customizations disabled. Use Reapply to restore your setup.' -Level 'SUCCESS'
+        }
+        'CreateBackup' {
+            Update-BackendState -Progress 10 -Status 'Creating backup' -Step 'Backing up Spicetify configuration'
+            if (-not (Test-Path -LiteralPath (Join-Path $global:SPICETIFY_DIR 'spicetify.exe'))) {
+                Write-Log 'Spicetify CLI is not installed — nothing to back up.' -Level 'WARN'
+            } else {
+                Invoke-SpicetifyCli -Arguments @('backup', '--bypass-admin') -FailureMessage 'Spicetify backup failed.'
+                Write-Log 'Spicetify configuration backed up.' -Level 'SUCCESS'
+            }
+        }
+        'RestoreBackup' {
+            Update-BackendState -Progress 10 -Status 'Restoring backup' -Step 'Restoring Spicetify configuration from backup'
+            Restore-SpotifyIfSpicetifyPresent `
+                -FailureMessage 'Spicetify restore failed. The backup may be missing or corrupt.' `
+                -MissingMessage 'Spicetify CLI not found — cannot restore.'
+            Update-BackendState -Progress 60 -Status 'Reapplying' -Step 'Reapplying Spicetify customizations after restore'
+            Invoke-SpicetifyCli -Arguments @('backup', 'apply', '--bypass-admin') -FailureMessage 'Spicetify apply after restore failed.'
+            Write-Log 'Backup restored and customizations reapplied.' -Level 'SUCCESS'
         }
         'RestoreVanilla' {
             Update-BackendState -Progress 35 -Status 'Restoring vanilla Spotify' -Step 'Removing active Spicetify customizations'

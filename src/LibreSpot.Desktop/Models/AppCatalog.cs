@@ -305,6 +305,8 @@ public static class AppCatalog
         new MaintenanceActionDefinition("Reapply", "Reapply your setup", "Refresh SpotX first and then restore the saved Spicetify theme and extension state.", "Reapply"),
         new MaintenanceActionDefinition("RepairMarketplace", "Repair and open Marketplace", "Reinstall the Spicetify Marketplace custom app, apply it, and open spotify:app:marketplace if the sidebar entry is missing.", "Repair Marketplace"),
         new MaintenanceActionDefinition("SafeMode", "Safe mode", "Disable all themes and extensions without uninstalling. Spotify will load in its stock look — use Reapply to restore your setup.", "Enter safe mode"),
+        new MaintenanceActionDefinition("CreateBackup", "Create Spicetify backup", "Save a backup of the current Spicetify configuration and themes. Backups are stored in your LibreSpot profile folder and can be restored later.", "Create backup"),
+        new MaintenanceActionDefinition("RestoreBackup", "Restore latest backup", "Restore the most recent Spicetify configuration backup, then reapply customizations. This does not modify your SpotX or LibreSpot settings.", "Restore backup"),
         new MaintenanceActionDefinition("RestoreVanilla", "Restore vanilla Spotify", "Remove active Spicetify customizations while leaving SpotX in place.", "Restore"),
         new MaintenanceActionDefinition("UninstallSpicetify", "Uninstall Spicetify", "Restore Spotify and then remove the Spicetify CLI, config folder, and PATH entry.", "Remove Spicetify", true),
         new MaintenanceActionDefinition("FullReset", "Full reset", "Remove SpotX, Spicetify, Spotify app state, and related leftovers for a truly clean start.", "Reset everything", true),
