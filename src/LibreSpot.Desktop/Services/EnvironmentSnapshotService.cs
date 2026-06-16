@@ -102,7 +102,9 @@ public sealed class EnvironmentSnapshotService
             SavedConfigExists = savedConfigExists,
             ConfigFolderExists = configFolderExists,
             AutoReapplyTaskRegistered = autoReapplyTaskRegistered,
-            HealthReport = healthReport
+            HealthReport = healthReport,
+            HostArchitecture = GetHostArchitecture(),
+            ProcessArchitecture = GetProcessArchitecture()
         };
     }
 
@@ -1100,6 +1102,30 @@ public sealed class EnvironmentSnapshotService
         catch
         {
             return false;
+        }
+    }
+
+    private static string GetHostArchitecture()
+    {
+        try
+        {
+            return System.Runtime.InteropServices.RuntimeInformation.OSArchitecture.ToString();
+        }
+        catch
+        {
+            return "Unknown";
+        }
+    }
+
+    private static string GetProcessArchitecture()
+    {
+        try
+        {
+            return System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();
+        }
+        catch
+        {
+            return "Unknown";
         }
     }
 }

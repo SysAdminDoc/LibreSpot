@@ -434,6 +434,19 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.DoesNotContain("FullReset", triage.RecommendedActionIds);
     }
 
+    [Fact]
+    public void GetSnapshot_RecordsHostAndProcessArchitecture()
+    {
+        using var fixture = new SnapshotFixture();
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.NotEqual("Unknown", snapshot.HostArchitecture);
+        Assert.NotEqual("Unknown", snapshot.ProcessArchitecture);
+        Assert.Contains(snapshot.HostArchitecture, new[] { "X64", "X86", "Arm64", "Arm" });
+        Assert.Contains(snapshot.ProcessArchitecture, new[] { "X64", "X86", "Arm64", "Arm" });
+    }
+
     private sealed class SnapshotFixture : IDisposable
     {
         public SnapshotFixture()

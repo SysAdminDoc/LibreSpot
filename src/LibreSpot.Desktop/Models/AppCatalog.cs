@@ -284,6 +284,8 @@ public sealed class EnvironmentSnapshot
     public bool ConfigFolderExists { get; init; }
     public bool AutoReapplyTaskRegistered { get; init; }
     public StackHealthReport HealthReport { get; init; } = StackHealthReport.Empty;
+    public string HostArchitecture { get; init; } = "Unknown";
+    public string ProcessArchitecture { get; init; } = "Unknown";
     public bool MarketplaceReady => MarketplaceFilesPresent && MarketplaceRegistered;
 
     public string StatusTitle => HealthReport.StatusTitle;
