@@ -89,7 +89,58 @@ jobs:
           }
 
       - name: Run unit tests
-        run: dotnet test tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj -c Release --nologo --no-restore
+        run: dotnet test tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj -c Release --nologo --no-restore --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
+
+      - name: Upload test results on failure
+        if: ${{ failure() }}
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: test-results
+          path: TestResults/
+          retention-days: 5
+
+      - name: Write CI summary
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $trx = Get-ChildItem -Path TestResults -Filter '*.trx' -ErrorAction SilentlyContinue | Select-Object -First 1
+          $summary = @()
+          $summary += "## CI Summary"
+          $summary += ""
+          $summary += "| Check | Status |"
+          $summary += "|-------|--------|"
+
+          # NuGet restore
+          $lockExists = Test-Path 'src/LibreSpot.Desktop/packages.lock.json'
+          $summary += "| NuGet locked restore | $( if ($lockExists) { ':white_check_mark: Lock file present' } else { ':x: Missing' } ) |"
+
+          # Test results from TRX
+          if ($trx) {
+              [xml]$xml = Get-Content $trx.FullName
+              $counters = $xml.TestRun.ResultSummary.Counters
+              $total = [int]$counters.total
+              $passed = [int]$counters.passed
+              $failed = [int]$counters.failed
+              $status = if ($failed -gt 0) { ":x: $failed failed" } else { ":white_check_mark: All $passed passed" }
+              $summary += "| Unit tests ($total total) | $status |"
+          } else {
+              $summary += "| Unit tests | :warning: No TRX output found |"
+          }
+
+          # Version sync check
+          $monolith = Get-Content 'LibreSpot.ps1' -Raw
+          $backend = Get-Content 'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1' -Raw
+          $mv = if ($monolith -match "\`$global:VERSION\s*=\s*'([^']+)'") { $Matches[1] } else { '?' }
+          $bv = if ($backend -match "\`$global:VERSION\s*=\s*'([^']+)'") { $Matches[1] } else { '?' }
+          $versionOk = $mv -eq $bv
+          $summary += "| Version sync (script=$mv, backend=$bv) | $( if ($versionOk) { ':white_check_mark:' } else { ':x: Mismatch' } ) |"
+
+          $summary += ""
+          $summary += "_Run: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID_"
+
+          $summary -join "`n" >> $env:GITHUB_STEP_SUMMARY
 
       - name: NuGet vulnerability audit
         shell: pwsh
