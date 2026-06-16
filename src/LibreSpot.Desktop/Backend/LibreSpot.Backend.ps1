@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'RemoveSelfData', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')]
+    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'SafeMode', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'RemoveSelfData', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')]
     [string]$Action = 'Install',
     [string]$ConfigPath = "$env:APPDATA\LibreSpot\config.json"
 )
@@ -2702,6 +2702,13 @@ function Invoke-LibreSpotMaintenance {
             Update-BackendState -Progress 20 -Status 'Repairing Marketplace' -Step 'Reinstalling the custom app'
             $savedConfig = Load-LibreSpotConfig
             Repair-Marketplace -Config $savedConfig
+        }
+        'SafeMode' {
+            Update-BackendState -Progress 10 -Status 'Entering safe mode' -Step 'Disabling all themes and extensions'
+            Restore-SpotifyIfSpicetifyPresent `
+                -FailureMessage 'Spicetify restore failed — try Reapply or Restore Vanilla.' `
+                -MissingMessage 'Spicetify CLI not found — no customizations to disable.'
+            Write-Log 'Safe mode active — all customizations disabled. Use Reapply to restore your setup.' -Level 'SUCCESS'
         }
         'RestoreVanilla' {
             Update-BackendState -Progress 35 -Status 'Restoring vanilla Spotify' -Step 'Removing active Spicetify customizations'

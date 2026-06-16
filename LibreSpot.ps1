@@ -2180,6 +2180,7 @@ $xaml = @"
                                             <StackPanel>
                                                 <TextBlock Text="Restore or remove modifications" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.75" FontWeight="SemiBold"/>
                                                 <TextBlock Text="Use the lighter recovery option first. Full Reset is intentionally destructive and best when you want to start clean." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,6"/>
+                                                <Button Name="BtnSafeMode" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Safe mode (disable all customizations)" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="12.75" FontWeight="SemiBold"/><TextBlock Text="Disable all themes and extensions without uninstalling. Spotify will load in its stock look — use Reapply to restore your setup." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Button Name="BtnSpicetifyRestore" Style="{StaticResource MaintButton}"><StackPanel><TextBlock Text="Restore vanilla Spotify" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="12.75" FontWeight="SemiBold"/><TextBlock Text="Remove Spicetify themes and extensions while keeping SpotX patching in place." Foreground="{StaticResource FgSecondaryBrush}" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Button Name="BtnUninstallSpicetify" Style="{StaticResource WarningMaintButton}"><StackPanel><TextBlock Text="Uninstall Spicetify" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="12.75" FontWeight="SemiBold"/><TextBlock Text="Restore vanilla first, then remove the CLI, config, and PATH entry while leaving Spotify and SpotX in place." Foreground="#FFEABF67" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
                                                 <Button Name="BtnFullReset" Style="{StaticResource DangerMaintButton}"><StackPanel><TextBlock Text="Full Reset" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" FontSize="12.75" FontWeight="SemiBold"/><TextBlock Text="Restore vanilla Spotify, remove SpotX and Spicetify, uninstall Spotify, and clean leftover files." Foreground="#FFFCA5A5" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel></Button>
@@ -2373,7 +2374,7 @@ $ui = @{}
   'MaintenanceMetricStackValue','MaintenanceMetricStackDetail','MaintenanceMetricBackupValue','MaintenanceMetricBackupDetail','MaintenanceMetricNextStepValue','MaintenanceMetricNextStepDetail',
   'StatusCardSpotify','StatusCardSpotX','StatusCardSpicetify','StatusCardMarketplace','StatusCardTheme',
   'StatusSpotify','StatusSpotX','StatusSpicetify','StatusMarketplace','StatusTheme',
-  'BtnBackupConfig','BtnRestoreConfig','BtnCheckUpdates','BtnRepairMarketplace','BtnReapply','BtnSpicetifyRestore','BtnUninstallSpicetify','BtnFullReset',
+  'BtnBackupConfig','BtnRestoreConfig','BtnCheckUpdates','BtnRepairMarketplace','BtnReapply','BtnSafeMode','BtnSpicetifyRestore','BtnUninstallSpicetify','BtnFullReset',
   'ChkAutoReapply','AutoReapplyStatusText',
   'InstallStagePrepare','InstallStageRun','InstallStageVerify','InstallStageComplete',
   'InstallStagePrepareText','InstallStageRunText','InstallStageVerifyText','InstallStageCompleteText',
@@ -4305,12 +4306,13 @@ function Update-MaintenanceStatus {
     $hasConfigSnapshot = Test-Path -LiteralPath (Join-Path $global:SPICETIFY_CONFIG_DIR 'config-xpui.ini')
     $ui['BtnBackupConfig'].IsEnabled=($si -and $hasConfigSnapshot); $ui['BtnRestoreConfig'].IsEnabled=($bk -and $si); $ui['BtnReapply'].IsEnabled=$sp
     if ($ui.ContainsKey('BtnRepairMarketplace')) { $ui['BtnRepairMarketplace'].IsEnabled=$si }
-    $ui['BtnSpicetifyRestore'].IsEnabled=$si; $ui['BtnUninstallSpicetify'].IsEnabled=$si; $ui['BtnFullReset'].IsEnabled=($sp -or $si)
+    $ui['BtnSafeMode'].IsEnabled=$si; $ui['BtnSpicetifyRestore'].IsEnabled=$si; $ui['BtnUninstallSpicetify'].IsEnabled=$si; $ui['BtnFullReset'].IsEnabled=($sp -or $si)
     $ui['BtnBackupConfig'].ToolTip = if ($ui['BtnBackupConfig'].IsEnabled) { 'Create a timestamped backup of the active Spicetify configuration.' } elseif (-not $si) { 'Install Spicetify before backing up its configuration.' } else { 'Run a setup first so LibreSpot has a clean Spicetify config to back up.' }
     $ui['BtnRestoreConfig'].ToolTip = if ($ui['BtnRestoreConfig'].IsEnabled) { 'Restore the newest saved Spicetify backup and apply it immediately.' } elseif (-not $si) { 'Install Spicetify before restoring a backup.' } else { 'Create at least one backup before restoring.' }
     $ui['BtnCheckUpdates'].ToolTip = 'Compare LibreSpot''s pinned versions against the latest upstream releases.'
     if ($ui.ContainsKey('BtnRepairMarketplace')) { $ui['BtnRepairMarketplace'].ToolTip = if ($ui['BtnRepairMarketplace'].IsEnabled) { 'Reinstall Marketplace files, re-enable custom_apps, apply Spicetify, and open spotify:app:marketplace.' } else { 'Install Spicetify before repairing Marketplace.' } }
     $ui['BtnReapply'].ToolTip = if ($ui['BtnReapply'].IsEnabled) { 'Run SpotX again and then reapply Spicetify with the saved LibreSpot configuration.' } else { 'Spotify needs to be installed before LibreSpot can reapply anything.' }
+    $ui['BtnSafeMode'].ToolTip = if ($ui['BtnSafeMode'].IsEnabled) { 'Disable all themes and extensions without uninstalling — use Reapply to restore your setup.' } else { 'Install Spicetify before entering safe mode.' }
     $ui['BtnSpicetifyRestore'].ToolTip = if ($ui['BtnSpicetifyRestore'].IsEnabled) { 'Remove active Spicetify customizations and restore vanilla Spotify while leaving SpotX in place.' } else { 'Install Spicetify before using this restore action.' }
     $ui['BtnUninstallSpicetify'].ToolTip = if ($ui['BtnUninstallSpicetify'].IsEnabled) { 'Remove the Spicetify CLI, configuration, and PATH entry after restoring vanilla Spotify.' } else { 'Install Spicetify before uninstalling it.' }
     $ui['BtnFullReset'].ToolTip = if ($ui['BtnFullReset'].IsEnabled) { 'Remove the full Spotify customization stack and clean leftover files.' } else { 'Nothing is installed yet, so there is nothing to reset.' }
@@ -4583,6 +4585,15 @@ if ($ui.ContainsKey('ChkAutoReapply')) {
     Update-AutoReapplyStatusLabel
 }
 
+$ui['BtnSafeMode'].Add_Click({
+    if (-not $si) { return }
+    try {
+        Switch-ToInstallPage -Title 'Entering safe mode' -Context 'Disabling all themes and extensions — use Reapply to restore your setup.' -PrepareLabel 'Prepare' -RunLabel 'Disable' -VerifyLabel 'Verify' -CompleteLabel 'Complete'
+        Start-MaintenanceJob -Action 'SafeMode'
+    } catch {
+        Reset-UiAfterLaunchFailure -Title 'Could not start maintenance' -Message "LibreSpot couldn't start safe mode.`n`n$($_.Exception.Message)"
+    }
+})
 $ui['BtnSpicetifyRestore'].Add_Click({
     $r = Show-ThemedDialog -Message "LibreSpot will remove Spicetify themes and extensions, then restore vanilla Spotify while keeping SpotX in place." -Title "Restore Vanilla Spotify" -Buttons "YesNo" -Icon "Question" -PrimaryText "Restore Spotify" -SecondaryText "Cancel"
     if ($r -eq 'Yes') {

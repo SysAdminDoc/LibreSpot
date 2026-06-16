@@ -45,6 +45,15 @@
       "notes": null
     },
     {
+      "action": "SafeMode",
+      "elevation": "prompts-for-admin",
+      "mutating": true,
+      "destructive": false,
+      "toastCompatible": false,
+      "description": "Runs spicetify restore to disable customizations — reversible via Reapply",
+      "notes": null
+    },
+    {
       "action": "RestoreVanilla",
       "elevation": "prompts-for-admin",
       "mutating": true,
