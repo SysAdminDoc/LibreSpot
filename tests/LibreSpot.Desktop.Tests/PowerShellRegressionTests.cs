@@ -1169,6 +1169,8 @@ public sealed class PowerShellRegressionTests
         Assert.Matches(@"\$lyricsTheme\s*-notin\s*\$global:SpotXLyricsThemes", script);
         // Spotify version id: allowlist membership against the manifest ids.
         Assert.Matches(@"-notin\s*\$global:SpotifyVersionIds", script);
+        // Language: allowlist membership against known BCP-47 codes.
+        Assert.Matches(@"\$allowedLanguages\s*-contains\s*\$lang", script);
         // Cache limit: integer coercion with an upper bound.
         Assert.Matches(@"SpotX_CacheLimit\s*=\s*ConvertTo-ConfigInt[\s\S]{0,160}-Maximum\s*50000", script);
     }
@@ -1193,6 +1195,7 @@ public sealed class PowerShellRegressionTests
         {
             "$Config.SpotX_LyricsTheme",
             "$Config.SpotX_DownloadMethod",
+            "$Config.SpotX_Language",
             "$Config.SpotX_CacheLimit",
             "$entry.Version",
         };

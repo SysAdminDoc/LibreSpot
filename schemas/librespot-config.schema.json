@@ -158,6 +158,9 @@
         "1.2.5.1006.win7"
       ]
     },
+    "SpotX_Language": {
+      "type": "string"
+    },
     "Spicetify_Theme": {
       "type": "string"
     },

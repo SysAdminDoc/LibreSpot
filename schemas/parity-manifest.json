@@ -37,6 +37,7 @@
     { "key": "SpotX_DownloadMethod",   "type": "string", "default": "",                                                     "script": true, "wpf": true, "wpfBackend": true },
     { "key": "SpotX_ConfirmUninstall", "type": "bool",   "default": false,                                                  "script": true, "wpf": true, "wpfBackend": true },
     { "key": "SpotX_SpotifyVersionId", "type": "string", "default": "auto",                                                 "script": true, "wpf": true, "wpfBackend": true },
+    { "key": "SpotX_Language",         "type": "string", "default": "",                                                     "script": true, "wpf": true, "wpfBackend": true },
     { "key": "Spicetify_Theme",        "type": "string", "default": "(None - Marketplace Only)",                             "script": true, "wpf": true, "wpfBackend": true },
     { "key": "Spicetify_Scheme",       "type": "string", "default": "Default",                                              "script": true, "wpf": true, "wpfBackend": true },
     { "key": "Spicetify_Marketplace",  "type": "bool",   "default": true,                                                   "script": true, "wpf": true, "wpfBackend": true },

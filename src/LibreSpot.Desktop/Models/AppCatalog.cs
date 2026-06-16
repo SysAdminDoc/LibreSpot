@@ -38,6 +38,7 @@ public sealed class InstallConfiguration
     public string SpotX_DownloadMethod { get; set; } = "";
     public bool SpotX_ConfirmUninstall { get; set; }
     public string SpotX_SpotifyVersionId { get; set; } = "auto";
+    public string SpotX_Language { get; set; } = string.Empty;
 
     public string Spicetify_Theme { get; set; } = "(None - Marketplace Only)";
     public string Spicetify_Scheme { get; set; } = "Default";
@@ -89,6 +90,7 @@ public sealed class InstallConfiguration
             SpotX_DownloadMethod = SpotX_DownloadMethod,
             SpotX_ConfirmUninstall = SpotX_ConfirmUninstall,
             SpotX_SpotifyVersionId = SpotX_SpotifyVersionId,
+            SpotX_Language = SpotX_Language,
             Spicetify_Theme = Spicetify_Theme,
             Spicetify_Scheme = Spicetify_Scheme,
             Spicetify_Marketplace = Spicetify_Marketplace,
@@ -367,6 +369,14 @@ public static class AppCatalog
 
         var rawDm = (source.SpotX_DownloadMethod ?? string.Empty).Trim().ToLowerInvariant();
         normalized.SpotX_DownloadMethod = rawDm is "curl" or "webclient" ? rawDm : "";
+
+        var allowedLanguages = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "en","ru","de","fr","es","pt","pt-BR","it","nl","pl","sv","no","da","fi",
+            "ja","ko","zh-CN","zh-TW","ar","tr","cs","hu","ro","uk","id","th","vi"
+        };
+        var rawLang = (source.SpotX_Language ?? string.Empty).Trim();
+        normalized.SpotX_Language = allowedLanguages.Contains(rawLang) ? rawLang : "";
 
         var rawVersionId = (source.SpotX_SpotifyVersionId ?? string.Empty).Trim();
         var canonicalVersionId = SpotifyVersionManifest.FirstOrDefault(entry => string.Equals(entry.Id, rawVersionId, StringComparison.OrdinalIgnoreCase))?.Id;

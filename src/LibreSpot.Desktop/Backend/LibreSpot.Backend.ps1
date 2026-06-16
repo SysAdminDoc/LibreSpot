@@ -194,6 +194,7 @@ $global:EasyDefaults = @{
     SpotX_DownloadMethod = ''
     SpotX_ConfirmUninstall = $false
     SpotX_SpotifyVersionId = 'auto'
+    SpotX_Language = ''
     Spicetify_Theme = '(None - Marketplace Only)'
     Spicetify_Scheme = 'Default'
     Spicetify_Marketplace = $true
@@ -379,6 +380,10 @@ function Normalize-LibreSpotConfig {
     $dm = $dm.Trim().ToLowerInvariant()
     if ($dm -notin @('','curl','webclient')) { $dm = '' }
     $normalized.SpotX_DownloadMethod = $dm
+
+    $lang = if ($Config -and $Config.ContainsKey('SpotX_Language')) { [string]$Config.SpotX_Language } else { [string]$normalized.SpotX_Language }
+    $allowedLanguages = @('en','ru','de','fr','es','pt','pt-BR','it','nl','pl','sv','no','da','fi','ja','ko','zh-CN','zh-TW','ar','tr','cs','hu','ro','uk','id','th','vi')
+    $normalized.SpotX_Language = if ($allowedLanguages -contains $lang) { $lang } else { '' }
 
     $svid = if ($Config -and $Config.ContainsKey('SpotX_SpotifyVersionId')) { [string]$Config.SpotX_SpotifyVersionId } else { [string]$normalized.SpotX_SpotifyVersionId }
     if ([string]::IsNullOrWhiteSpace($svid) -or $svid -notin $global:SpotifyVersionIds) { $svid = 'auto' }
@@ -2118,8 +2123,9 @@ function Module-NukeSpotify {
 # SECURITY: see SECURITY.md "External process execution contract". $Config MUST
 # be a Normalize-LibreSpotConfig output: the only interpolated values here are
 # SpotX_LyricsTheme (allowlist), SpotX_DownloadMethod (allowlist),
-# SpotX_CacheLimit (integer), and a manifest-supplied version. Do NOT interpolate
-# any new free-form/user value into this string without normalizing it first.
+# SpotX_Language (allowlist), SpotX_CacheLimit (integer), and a manifest-supplied
+# version. Do NOT interpolate any new free-form/user value into this string
+# without normalizing it first.
 function Build-SpotXParams {
     param($Config)
     $params = @()
@@ -2166,6 +2172,9 @@ function Build-SpotXParams {
         }
     }
     if ($Config.SpotX_CacheLimit -ge 500) { $params += "-cache_limit $($Config.SpotX_CacheLimit)" }
+    if (-not [string]::IsNullOrWhiteSpace([string]$Config.SpotX_Language)) {
+        $params += "-language $($Config.SpotX_Language)"
+    }
     return ($params -join ' ')
 }
 
