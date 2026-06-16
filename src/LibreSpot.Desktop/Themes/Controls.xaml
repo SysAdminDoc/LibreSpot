@@ -78,7 +78,7 @@
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
 
-  <!-- Uppercase micro-label (eyebrow rail/section). Slightly lifted font for rhythm. -->
+  <!-- Micro-label (eyebrow rail/section). Slightly lifted font for rhythm. -->
   <Style x:Key="SectionEyebrowTextStyle" TargetType="TextBlock">
     <Setter Property="FontSize" Value="10.5" />
     <Setter Property="FontWeight" Value="SemiBold" />
@@ -981,15 +981,18 @@
       <Setter.Value>
         <ControlTemplate TargetType="Thumb">
           <Border x:Name="Thumb"
-                  Background="{DynamicResource StrokeStrongBrush}"
+                  Background="{DynamicResource StrokeSoftBrush}"
                   CornerRadius="4"
-                  Margin="2" />
+                  Margin="2"
+                  Opacity="0.68" />
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Thumb" Property="Background" Value="{DynamicResource MutedTextBrush}" />
+              <Setter TargetName="Thumb" Property="Opacity" Value="0.95" />
             </Trigger>
             <Trigger Property="IsDragging" Value="True">
               <Setter TargetName="Thumb" Property="Background" Value="{DynamicResource AccentBrush}" />
+              <Setter TargetName="Thumb" Property="Opacity" Value="1" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -998,7 +1001,7 @@
   </Style>
 
   <Style TargetType="ScrollBar">
-    <Setter Property="Width" Value="10" />
+    <Setter Property="Width" Value="8" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource StrokeStrongBrush}" />
     <Setter Property="Template">
@@ -1023,7 +1026,7 @@
     </Setter>
     <Style.Triggers>
       <Trigger Property="Orientation" Value="Horizontal">
-        <Setter Property="Height" Value="10" />
+        <Setter Property="Height" Value="8" />
         <Setter Property="Width" Value="Auto" />
         <Setter Property="Template">
           <Setter.Value>

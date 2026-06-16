@@ -554,7 +554,7 @@
                       Focusable="False">
         <DockPanel LastChildFill="True">
           <StackPanel DockPanel.Dock="Top">
-            <TextBlock Text="LIBRESPOT"
+            <TextBlock Text="LibreSpot"
                        Style="{StaticResource SectionEyebrowTextStyle}"
                        Foreground="{StaticResource AccentBrush}" />
             <TextBlock Text="Setup and recovery"
@@ -763,7 +763,7 @@
                 </Style>
               </Border.Style>
               <StackPanel>
-                <TextBlock Text="STACK SNAPSHOT">
+                <TextBlock Text="Stack snapshot">
                   <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource LabelTextStyle}">
                       <Style.Triggers>
@@ -1539,7 +1539,7 @@
                             Margin="0,16,0,0"
                             Style="{StaticResource PrimaryButtonStyle}"
                             AutomationProperties.Name="Apply custom profile"
-                            AutomationProperties.HelpText="Saves this custom profile and runs it through the backend installer."
+                            AutomationProperties.HelpText="Saves this custom profile and starts the installer with those selections."
                             Command="{Binding ApplyCustomCommand}" />
                     <TextBlock Grid.Row="2"
                                Text="{Binding CustomApplyCaption}"
@@ -1564,6 +1564,8 @@
                              Foreground="{StaticResource TextBrush}"
                              Margin="0,8,0,0"
                              MaxWidth="780"
+                             HorizontalAlignment="Left"
+                             TextAlignment="Left"
                              TextWrapping="Wrap" />
 
                   <Border Height="1"
@@ -1884,7 +1886,7 @@
                 Padding="32"
                 Focusable="True"
                 AutomationProperties.Name="Run activity dialog"
-                AutomationProperties.HelpText="Shows live backend progress, current status, and troubleshooting output."
+                AutomationProperties.HelpText="Shows live progress, current status, and troubleshooting output."
                 Style="{StaticResource ActivityCardStyle}">
           <Grid>
             <Grid.RowDefinitions>
@@ -2062,15 +2064,15 @@
                   <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
-                  <TextBlock Text="BACKEND LOG"
+                  <TextBlock Text="Run log"
                              Style="{StaticResource LabelTextStyle}"
                              VerticalAlignment="Center" />
-                  <TextBlock Text="Live PowerShell output from the backend."
+                  <TextBlock Text="Detailed progress and recovery notes from this run."
                              Style="{StaticResource CaptionTextStyle}"
                              Margin="0,6,0,0" />
                 </StackPanel>
                 <TextBlock Grid.Column="1"
-                           Text="{Binding LogEntries.Count, StringFormat={}{0} backend event(s)}"
+                           Text="{Binding LogLineCountText}"
                            Style="{StaticResource CaptionTextStyle}"
                            Foreground="{StaticResource MutedTextBrush}"
                            VerticalAlignment="Center"
@@ -2097,11 +2099,11 @@
                         </Style.Triggers>
                       </Style>
                     </StackPanel.Style>
-                    <TextBlock Text="Backend output will appear here"
+                    <TextBlock Text="Run details will appear here"
                                Style="{StaticResource EmptyStateTitleTextStyle}"
                                TextAlignment="Center"
                                HorizontalAlignment="Center" />
-                    <TextBlock Text="Progress, warnings, and recovery clues are captured as soon as the backend begins emitting output."
+                    <TextBlock Text="Progress, warnings, and recovery clues appear as soon as LibreSpot has something to report."
                                Style="{StaticResource EmptyStateBodyTextStyle}"
                                TextAlignment="Center"
                                Margin="0,6,0,0"
@@ -2111,7 +2113,7 @@
                   <ScrollViewer x:Name="LogScrollViewer"
                                 VerticalScrollBarVisibility="Auto"
                                 HorizontalScrollBarVisibility="Disabled"
-                                AutomationProperties.Name="Backend log"
+                                AutomationProperties.Name="Run log"
                                 Padding="14,12">
                     <ItemsControl ItemsSource="{Binding LogEntries}">
                       <ItemsControl.ItemTemplate>
@@ -2183,8 +2185,8 @@
                         Padding="18,0"
                         Margin="0,0,10,0"
                         Style="{StaticResource SecondaryButtonStyle}"
-                        AutomationProperties.Name="Copy backend log"
-                        AutomationProperties.HelpText="Copies the visible backend log to the clipboard."
+                        AutomationProperties.Name="Copy run log"
+                        AutomationProperties.HelpText="Copies the visible run log to the clipboard."
                         Command="{Binding CopyLogCommand}" />
                 <Button Content="Open folder"
                         x:Name="ActivityOpenLibreSpotFolderButton"
@@ -2204,7 +2206,7 @@
                         Margin="0,0,10,0"
                         Style="{StaticResource DestructiveButtonStyle}"
                         AutomationProperties.Name="Cancel current run"
-                        AutomationProperties.HelpText="Stops the active LibreSpot backend run."
+                        AutomationProperties.HelpText="Stops the active LibreSpot run."
                         Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibilityConverter}}"
                         Command="{Binding CancelRunCommand}" />
                 <Button Content="Close"

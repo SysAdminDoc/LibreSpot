@@ -187,7 +187,7 @@ public sealed class SupportBundleCategoryViewModel : ObservableObject
         try
         {
             Detail = entry.Detail;
-            FileCountText = entry.FileCount == 1 ? "1 file window" : $"{entry.FileCount} file windows";
+            FileCountText = entry.FileCount == 1 ? "1 file" : $"{entry.FileCount} files";
             EstimatedSizeText = MainViewModel.FormatBytes(entry.EstimatedBytes);
             IsSelected = entry.IsSelected;
         }
@@ -685,14 +685,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? "Ready for upkeep or reset"
             : Snapshot.SpotifyInstalled
                 ? "Customization layer is incomplete"
-                : "Maintenance tools are standing by";
+                : "Maintenance is ready when you need it";
 
     public string MaintenanceGuidanceDetail =>
         Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
             ? "Start with the safer actions. Use reset only when you want to clear the stack and rebuild."
             : Snapshot.SpotifyInstalled
                 ? "Reapply becomes useful once the customization layer is back in place. Until then, Recommended is usually the better path."
-                : "You can still inspect versions or prepare a clean reset. Most repair actions matter after Spotify is installed.";
+                : "Most repair actions matter after Spotify is installed. You can still inspect versions, export support details, or prepare a clean reset.";
 
     private int MaintenanceReadyComponentCount =>
         new[] { "spotify", "spotx", "spicetify-cli", "marketplace", "active-theme" }
@@ -735,8 +735,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _supportBundlePreview.SelectedFileCount switch
         {
             0 => "Health report only",
-            1 => "1 file window selected",
-            _ => $"{_supportBundlePreview.SelectedFileCount} file windows selected"
+            1 => "1 diagnostic file selected",
+            _ => $"{_supportBundlePreview.SelectedFileCount} diagnostic files selected"
         };
 
     public string SupportBundlePreviewDetail =>
@@ -869,9 +869,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string WorkspaceHeroEyebrow => SelectedWorkspaceIndex switch
     {
-        1 => "CUSTOM PROFILE",
-        2 => "RECOVERY LANE",
-        _ => "DESKTOP SHELL"
+        1 => "Custom profile",
+        2 => "Recovery lane",
+        _ => "Guided setup"
     };
 
     public string WorkspaceHeroTitle => SelectedWorkspaceIndex switch
@@ -1123,8 +1123,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string ActivityDetailLabel =>
         IsRunning || IsCancelRequested
-            ? "CURRENT STEP"
-            : "RUN STATUS";
+            ? "Current step"
+            : "Run status";
 
     public string ActivityTitle
     {
@@ -1190,9 +1190,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string LogLineCountText =>
         LogEntries.Count switch
         {
-            0 => "Waiting for output",
-            1 => "1 line",
-            _ => $"{LogEntries.Count} lines"
+            0 => "No log output yet",
+            1 => "1 log line",
+            _ => $"{LogEntries.Count} log lines"
         };
 
     public bool IsLogEmpty => LogEntries.Count == 0;
@@ -1644,14 +1644,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             "Operation journal",
             false,
             true,
-            "Latest backend and watcher state slices from the LibreSpot profile.",
+            "Recent install and watcher state from the LibreSpot profile.",
             OnSupportBundleSelectionChanged));
         SupportBundleItems.Add(new SupportBundleCategoryViewModel(
             "logs",
             "Logs",
             false,
             true,
-            "Selected backend, watcher, and desktop rolling log windows.",
+            "Selected install, watcher, and desktop rolling logs.",
             OnSupportBundleSelectionChanged));
         SupportBundleItems.Add(new SupportBundleCategoryViewModel(
             "crashes",
@@ -2437,21 +2437,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 SelectedWorkspaceIndex = 0;
                 ShowPrompt(
                     "UI automation prompt",
-                    "This prompt is shown by LibreSpot's no-backend UI automation smoke mode.",
+                    "This prompt is shown only for UI smoke coverage.",
                     "Confirm smoke action",
                     "Cancel smoke action",
                     false,
                     () => Task.CompletedTask,
                     "Smoke coverage",
-                    "Confirms prompt labels, focusable actions, and keyboard-trap boundaries without starting the backend.");
+                    "Confirms prompt labels, focus order, and modal boundaries without running an install.");
                 break;
             case "activity":
                 SelectedWorkspaceIndex = 0;
-                LogEntries.Add(new LogEntryViewModel(DateTime.Now, "INFO", "UI automation smoke activity."));
+                AppendLog("UI automation smoke activity.", "INFO");
                 ShowNotice(
                     "UI automation activity",
                     "Run complete",
-                    "No backend command was started.");
+                    "No install command was started.");
                 ProgressValue = 100;
                 break;
             default:

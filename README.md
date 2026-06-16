@@ -40,7 +40,7 @@ Or [download LibreSpot.ps1](https://github.com/SysAdminDoc/LibreSpot/releases/la
 
 **Premium UI overhaul.** Win11 Mica backdrop (with graceful fallback on Windows 10), a left sidebar navigation rail with Lucide icons replacing the old top tab bar, semantic design tokens, hover-lift micro-interactions, and a shimmering install progress bar. Compact density pass means every panel fits a 1080-px screen without scrolling. Same install behavior, polished chrome.
 
-The v4 desktop preview continues that polish with a sharper 6-12 px radius system, cleaner first-run guidance, readable Custom setting cards, forced dark native window chrome, and more reliable activity/log status feedback for assistive technology.
+The v4 desktop preview continues that polish with a sharper 6-12 px radius system, quieter scrollbars, cleaner first-run guidance, readable Custom setting cards, forced dark native window chrome, and calmer activity/support-bundle feedback for assistive technology.
 
 ---
 

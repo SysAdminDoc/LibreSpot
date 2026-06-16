@@ -89,9 +89,9 @@ public sealed class MainViewModelMaintenanceTests
 
             Assert.Contains(viewModel.SupportBundleItems, item => item.Id == "health" && item.IsRequired && item.IsSelected);
             Assert.Contains(viewModel.SupportBundleItems, item => item.Id == "logs" && item.IsOptional && item.IsSelected);
-            Assert.Contains(viewModel.SupportBundleItems, item => item.Id == "crashes" && item.FileCountText == "1 file window");
+            Assert.Contains(viewModel.SupportBundleItems, item => item.Id == "crashes" && item.FileCountText == "1 file");
             Assert.Contains(viewModel.SupportBundleRedactionRules, rule => rule.Contains("tokens", StringComparison.OrdinalIgnoreCase));
-            Assert.Contains("file window", viewModel.SupportBundlePreviewTitle);
+            Assert.Contains("diagnostic file", viewModel.SupportBundlePreviewTitle);
             Assert.Contains("Estimated local zip size", viewModel.SupportBundlePreviewDetail);
         });
 

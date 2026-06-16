@@ -87,7 +87,7 @@ public sealed class SupportBundleService
             new SupportBundlePreviewEntry(
                 "operation",
                 "Operation journal",
-                "Latest backend and watcher state slices from the LibreSpot profile.",
+                "Recent install and watcher state from the LibreSpot profile.",
                 CountExisting(OperationFiles()),
                 EstimateFiles(OperationFiles(), MaxOperationLines),
                 false,
@@ -95,7 +95,7 @@ public sealed class SupportBundleService
             new SupportBundlePreviewEntry(
                 "logs",
                 "Logs",
-                $"Selected backend, watcher, and desktop log windows; newest {MaxRollingLogFiles} rolling desktop logs.",
+                $"Selected install, watcher, and desktop logs; newest {MaxRollingLogFiles} rolling desktop logs.",
                 CountExisting(LogFiles()),
                 EstimateFiles(LogFiles(), MaxLogLines),
                 false,
