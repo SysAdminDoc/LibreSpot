@@ -184,6 +184,20 @@ public sealed class DependencyAutomationTests
         }
     }
 
+    [Fact]
+    public void SpicetifyV3CompatibilityGate_PinnedVersionIsV2()
+    {
+        var script = ReadRepoFile("LibreSpot.ps1");
+        var match = Regex.Match(script, @"\$global:PinnedReleases\s*=\s*@\{.*?SpicetifyCLI\s*=\s*@\{[^}]*Version\s*=\s*'([^']+)'",
+            RegexOptions.Singleline);
+        Assert.True(match.Success, "Could not find SpicetifyCLI version in pinned releases.");
+        var version = Version.Parse(match.Groups[1].Value);
+        Assert.True(version.Major == 2,
+            $"Pinned Spicetify CLI is v{version} — if v3 has shipped, LibreSpot's " +
+            "extension sync, theme injection, Marketplace install, and watcher code " +
+            "need a compatibility audit before this pin is updated. See spicetify/cli#3038.");
+    }
+
     private static string ReadRepoFile(params string[] relativeParts) =>
         File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(relativeParts).ToArray()));
 
