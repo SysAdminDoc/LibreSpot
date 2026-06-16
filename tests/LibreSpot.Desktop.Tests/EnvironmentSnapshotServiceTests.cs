@@ -447,6 +447,106 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.Contains(snapshot.ProcessArchitecture, new[] { "X64", "X86", "Arm64", "Arm" });
     }
 
+    [Fact]
+    public void GetSnapshot_SpotifyDirectoryWithoutExe_ReportsNotInstalled()
+    {
+        using var fixture = new SnapshotFixture();
+        Directory.CreateDirectory(Path.GetDirectoryName(fixture.SpotifyPath)!);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.False(snapshot.SpotifyInstalled);
+        var spotify = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "spotify");
+        Assert.Equal("Not installed", spotify.Status);
+    }
+
+    [Fact]
+    public void GetSnapshot_SpotXMarkersWithoutSpotifyExe_ReportsNotChecked()
+    {
+        using var fixture = new SnapshotFixture();
+        var appsDir = Path.Combine(Path.GetDirectoryName(fixture.SpotifyPath)!, "Apps");
+        Directory.CreateDirectory(appsDir);
+        File.WriteAllText(Path.Combine(appsDir, "xpui.spa"), "bundle");
+        File.WriteAllText(Path.Combine(appsDir, "xpui.spa.bak"), "backup");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.False(snapshot.SpotifyInstalled);
+        var spotx = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "spotx");
+        Assert.Equal("Not checked", spotx.Status);
+    }
+
+    [Fact]
+    public void GetSnapshot_SpotifyWithOnlyBundleNoBak_ReportsUnverified()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: false);
+        var appsDir = Path.Combine(Path.GetDirectoryName(fixture.SpotifyPath)!, "Apps");
+        Directory.CreateDirectory(appsDir);
+        File.WriteAllText(Path.Combine(appsDir, "xpui.spa"), "bundle");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.True(snapshot.SpotifyInstalled);
+        var spotx = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "spotx");
+        Assert.Equal("Unverified", spotx.Status);
+        Assert.Equal(HealthSeverity.Warning, spotx.Severity);
+        Assert.Contains("Reapply", spotx.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_SpotifyVersionProbeReturnsKnownVersion()
+    {
+        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.92.456" };
+        fixture.WriteSpotify(withSpotXMarkers: true);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var spotify = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "spotify");
+        Assert.Equal("1.2.92.456", spotify.DetectedVersion);
+        Assert.Equal(HealthSeverity.Ready, spotify.Severity);
+    }
+
+    [Fact]
+    public void GetSnapshot_SpotifyVersionMismatchTriggersReapplyNeeded()
+    {
+        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.95.100" };
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+        fixture.WriteMarketplaceFiles();
+        fixture.WriteWatcherState(DateTime.Now.AddHours(-1), "UpToDate", lastKnownVersion: "1.2.92.456", lastAppliedSpotifyVersion: "1.2.92.456");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: true);
+
+        var triage = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "post-spotify-update");
+        Assert.Equal("Reapply needed", triage.Status);
+        Assert.Equal(HealthSeverity.Warning, triage.Severity);
+    }
+
+    [Fact]
+    public void GetSnapshot_FullStackWithArchitectureRecordsBothFields()
+    {
+        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.92.456", SpicetifyVersion = "2.43.2" };
+        fixture.WriteSavedConfig();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = Catppuccin\r\ninject_css = 1\r\nreplace_colors = 1");
+        fixture.WriteMarketplaceFiles();
+        fixture.WriteBackup();
+        fixture.WriteWatcherState(DateTime.Now.AddHours(-1), "UpToDate",
+            lastKnownVersion: "1.2.92.456",
+            lastAppliedSpotifyVersion: "1.2.92.456",
+            lastSuccessfulApplyAt: DateTime.Now.AddHours(-1));
+        fixture.WriteInstallLog();
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: true);
+
+        Assert.NotEqual("Unknown", snapshot.HostArchitecture);
+        Assert.NotEqual("Unknown", snapshot.ProcessArchitecture);
+        Assert.Equal("Stack ready", snapshot.HealthReport.StatusTitle);
+        Assert.True(snapshot.SpotifyInstalled);
+        Assert.True(snapshot.SpicetifyInstalled);
+    }
+
     private sealed class SnapshotFixture : IDisposable
     {
         public SnapshotFixture()
