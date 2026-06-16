@@ -893,8 +893,10 @@ public sealed class PowerShellRegressionTests
         var backend = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
         var viewModel = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
 
-        Assert.Contains("@('CheckUpdates', 'EnableAutoReapply', 'DisableAutoReapply')", backend);
-        Assert.Contains("definition.Action, \"CheckUpdates\"", viewModel);
+        Assert.Contains("'CheckUpdates'", backend);
+        Assert.Contains("'OpenMarketplace'", backend);
+        Assert.Contains("RequiresAdministrator(definition.Action)", viewModel);
+        Assert.Contains("\"CheckUpdates\" or \"CreateBackup\" or \"OpenMarketplace\" or \"RemoveSelfData\"", viewModel);
         Assert.Contains("StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2, requiresAdministrator)", viewModel);
     }
 

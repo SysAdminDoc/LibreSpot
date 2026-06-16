@@ -50,6 +50,7 @@
     { "action": "CheckUpdates",        "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Compatibility matrix check" },
     { "action": "Reapply",             "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Re-run SpotX + Spicetify with current config" },
     { "action": "RepairMarketplace",   "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Fix missing or broken Marketplace custom app" },
+    { "action": "OpenMarketplace",     "script": false, "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Open Marketplace without reinstalling or applying Spicetify" },
     { "action": "SafeMode",             "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Disable all themes/extensions without uninstalling — reversible via Reapply" },
     { "action": "CreateBackup",        "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Create a Spicetify configuration backup" },
     { "action": "RestoreBackup",       "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Restore latest Spicetify backup and reapply" },

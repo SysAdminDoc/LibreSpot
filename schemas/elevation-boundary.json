@@ -45,6 +45,15 @@
       "notes": null
     },
     {
+      "action": "OpenMarketplace",
+      "elevation": "no-admin",
+      "mutating": false,
+      "destructive": false,
+      "toastCompatible": true,
+      "description": "Opens spotify:app:marketplace when Marketplace is already installed",
+      "notes": "Open-only action; repair remains the mutating path"
+    },
+    {
       "action": "SafeMode",
       "elevation": "prompts-for-admin",
       "mutating": true,

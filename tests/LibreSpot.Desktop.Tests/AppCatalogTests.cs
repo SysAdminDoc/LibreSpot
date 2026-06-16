@@ -163,6 +163,16 @@ public sealed class AppCatalogTests
     }
 
     [Fact]
+    public void MaintenanceActions_ExposeMarketplaceOpenOnlyAction()
+    {
+        var action = Assert.Single(AppCatalog.MaintenanceActions, item => item.Action == "OpenMarketplace");
+
+        Assert.Equal("Open Marketplace", action.Title);
+        Assert.False(action.IsDestructive);
+        Assert.Contains("already installed and registered", action.Description);
+    }
+
+    [Fact]
     public void NormalizeConfiguration_FallsBackWhenAdvancedCompatibilitySelectionsAreUnknown()
     {
         var configuration = new InstallConfiguration

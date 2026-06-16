@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'SafeMode', 'CreateBackup', 'RestoreBackup', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'RemoveSelfData', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')]
+    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'OpenMarketplace', 'SafeMode', 'CreateBackup', 'RestoreBackup', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'RemoveSelfData', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')]
     [string]$Action = 'Install',
     [string]$ConfigPath = "$env:APPDATA\LibreSpot\config.json"
 )
@@ -2714,6 +2714,15 @@ function Invoke-LibreSpotMaintenance {
             Update-BackendState -Progress 20 -Status 'Repairing Marketplace' -Step 'Reinstalling the custom app'
             $savedConfig = Load-LibreSpotConfig
             Repair-Marketplace -Config $savedConfig
+        }
+        'OpenMarketplace' {
+            Update-BackendState -Progress 35 -Status 'Opening Marketplace' -Step 'Launching spotify:app:marketplace'
+            $health = Get-MarketplaceHealth
+            if (-not $health.IsReady) {
+                Write-Log "Marketplace status is '$($health.Status)', so open-only launch may fail. Use Repair Marketplace first if Spotify does not show it." -Level 'WARN'
+            }
+            Open-SpicetifyMarketplace
+            Write-Log 'Marketplace launch requested.' -Level 'SUCCESS'
         }
         'SafeMode' {
             Update-BackendState -Progress 10 -Status 'Entering safe mode' -Step 'Disabling all themes and extensions'

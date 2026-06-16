@@ -78,13 +78,46 @@ public sealed class LogEntryViewModel
     public string CopyLine => $"[{TimestampDisplay}] [{Level}] {Message}";
 }
 
-public sealed class MaintenanceActionCardViewModel
+public sealed class MaintenanceActionCardViewModel : ObservableObject
 {
-    public required string Title { get; init; }
-    public required string Description { get; init; }
-    public required string ButtonText { get; init; }
-    public required bool IsDestructive { get; init; }
-    public required RelayCommand Command { get; init; }
+    private bool _isRelevant = true;
+
+    public MaintenanceActionCardViewModel(
+        MaintenanceActionDefinition definition,
+        Func<MaintenanceActionDefinition, Task> runAsync,
+        Func<bool> canRun)
+    {
+        Definition = definition;
+        Command = new RelayCommand(
+            () => _ = runAsync(Definition),
+            () => IsRelevant && canRun());
+    }
+
+    public MaintenanceActionDefinition Definition { get; }
+    public string Action => Definition.Action;
+    public string Title => Definition.Title;
+    public string Description => Definition.Description;
+    public string ButtonText => Definition.ButtonText;
+    public bool IsDestructive => Definition.IsDestructive;
+    public RelayCommand Command { get; }
+
+    public bool IsRelevant
+    {
+        get => _isRelevant;
+        private set
+        {
+            if (SetProperty(ref _isRelevant, value))
+            {
+                Command.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public void RefreshRelevance(bool isRelevant)
+    {
+        IsRelevant = isRelevant;
+        Command.RaiseCanExecuteChanged();
+    }
 }
 
 public sealed class SelectionInsightViewModel
@@ -114,6 +147,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly Dispatcher _dispatcher;
     private readonly bool _isAdministratorSession;
     private readonly InstallConfiguration _recommendedBaseline;
+    private readonly List<MaintenanceActionCardViewModel> _maintenanceCards;
     private readonly Stopwatch _runStopwatch = new();
     private readonly DispatcherTimer _runElapsedTimer;
     private readonly DispatcherTimer _snapshotFreshnessTimer;
@@ -194,19 +228,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 def.Description,
                 _recommendedBaseline.Spicetify_Extensions.Contains(def.Key, StringComparer.OrdinalIgnoreCase))));
 
-        var maintenanceCards = AppCatalog.MaintenanceActions
-            .Select(def => new MaintenanceActionCardViewModel
-            {
-                Title = def.Title,
-                Description = def.Description,
-                ButtonText = def.ButtonText,
-                IsDestructive = def.IsDestructive,
-                Command = new RelayCommand(() => _ = RunMaintenanceAsync(def))
-            })
+        _maintenanceCards = AppCatalog.MaintenanceActions
+            .Select(def => new MaintenanceActionCardViewModel(def, RunMaintenanceAsync, () => !IsRunning))
             .ToList();
 
-        SafeMaintenanceActions = new ObservableCollection<MaintenanceActionCardViewModel>(maintenanceCards.Where(card => !card.IsDestructive));
-        DestructiveMaintenanceActions = new ObservableCollection<MaintenanceActionCardViewModel>(maintenanceCards.Where(card => card.IsDestructive));
+        SafeMaintenanceActions = new ObservableCollection<MaintenanceActionCardViewModel>(_maintenanceCards.Where(card => !card.IsDestructive));
+        DestructiveMaintenanceActions = new ObservableCollection<MaintenanceActionCardViewModel>(_maintenanceCards.Where(card => card.IsDestructive));
 
         LogEntries = new ObservableCollection<LogEntryViewModel>();
         ApplyRecommendedCommand = new RelayCommand(() => _ = ApplyRecommendedAsync(), () => !IsRunning);
@@ -226,6 +253,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         ConfigureSettingsSearchFilters();
         RegisterOptionStateObservers();
+        RefreshMaintenanceActionRelevance();
         RaiseSelectionInsightsChanged();
         RaiseSnapshotInsightsChanged();
     }
@@ -569,6 +597,43 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ? "Reapply becomes useful once the customization layer is back in place. Until then, Recommended is usually the better path."
                 : "You can still inspect versions or prepare a clean reset. Most repair actions matter after Spotify is installed.";
 
+    private int MaintenanceReadyComponentCount =>
+        new[] { "spotify", "spotx", "spicetify-cli", "marketplace", "active-theme" }
+            .Count(id => HealthComponent(id)?.Severity == HealthSeverity.Ready);
+
+    public string MaintenanceReadinessValue => $"{MaintenanceReadyComponentCount} of 5 ready";
+
+    public string MaintenanceReadinessDetail =>
+        MaintenanceReadyComponentCount switch
+        {
+            5 => "Spotify, SpotX, Spicetify, Marketplace, and theme state are all ready.",
+            0 => "No customization stack components are ready yet.",
+            _ => "Spotify, SpotX, Spicetify, Marketplace, and theme checks are partially ready."
+        };
+
+    public string MaintenanceBackupValue => HealthComponent("backups")?.Status ?? "Unknown";
+
+    public string MaintenanceBackupDetail
+    {
+        get
+        {
+            var backups = HealthComponent("backups");
+            if (backups is null)
+            {
+                return "Backup state has not been checked yet.";
+            }
+
+            return backups.HasLastChanged
+                ? $"{backups.Evidence} Latest: {backups.LastChangedDisplay}."
+                : backups.Evidence;
+        }
+    }
+
+    public string MaintenanceMarketplaceValue => HealthComponent("marketplace")?.Status ?? "Unknown";
+    public string MaintenanceMarketplaceDetail => HealthComponent("marketplace")?.Evidence ?? "Marketplace state has not been checked yet.";
+    public string MaintenanceThemeValue => HealthComponent("active-theme")?.Status ?? "Unknown";
+    public string MaintenanceThemeDetail => HealthComponent("active-theme")?.Evidence ?? "Theme state has not been checked yet.";
+
     public string RecommendedRunDuration =>
         Snapshot.SpotifyInstalled
             ? "Usually 2-3 minutes, depending on whether Spotify restarts."
@@ -822,6 +887,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 RelaunchAsAdministratorCommand.RaiseCanExecuteChanged();
                 ConfirmPromptCommand.RaiseCanExecuteChanged();
                 CancelPromptCommand.RaiseCanExecuteChanged();
+                RaiseMaintenanceActionCanExecuteChanged();
                 RaisePropertyChanged(nameof(IsBusyIndeterminate));
                 RaisePropertyChanged(nameof(ProgressLabel));
                 RaisePropertyChanged(nameof(IsActivityError));
@@ -1355,6 +1421,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void RaiseSnapshotInsightsChanged()
     {
+        RefreshMaintenanceActionRelevance();
         RaisePropertyChanged(nameof(SessionAccessTitle));
         RaisePropertyChanged(nameof(SessionAccessDetail));
         RaisePropertyChanged(nameof(SpotifyStatusLine));
@@ -1369,6 +1436,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(HasInfoHealthIssues));
         RaisePropertyChanged(nameof(HasAnyHealthIssues));
         RaisePropertyChanged(nameof(HealthIssueSummary));
+        RaisePropertyChanged(nameof(MaintenanceReadinessValue));
+        RaisePropertyChanged(nameof(MaintenanceReadinessDetail));
+        RaisePropertyChanged(nameof(MaintenanceBackupValue));
+        RaisePropertyChanged(nameof(MaintenanceBackupDetail));
+        RaisePropertyChanged(nameof(MaintenanceMarketplaceValue));
+        RaisePropertyChanged(nameof(MaintenanceMarketplaceDetail));
+        RaisePropertyChanged(nameof(MaintenanceThemeValue));
+        RaisePropertyChanged(nameof(MaintenanceThemeDetail));
         RaisePropertyChanged(nameof(HasConfigurationRecoveryNotice));
         RaisePropertyChanged(nameof(ConfigurationRecoveryTitle));
         RaisePropertyChanged(nameof(ConfigurationRecoveryDetail));
@@ -1386,6 +1461,53 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(CustomRunReadinessDetail));
         RaisePropertyChanged(nameof(CustomApplyCaption));
         RebuildSelectionInsights();
+    }
+
+    private StackHealthComponent? HealthComponent(string id) =>
+        HealthReport.Components.FirstOrDefault(component => string.Equals(component.Id, id, StringComparison.OrdinalIgnoreCase));
+
+    private bool HasRecommendedAction(string action) =>
+        HealthReport.Components.Any(component => component.RecommendedActionIds.Contains(action, StringComparer.Ordinal));
+
+    private void RefreshMaintenanceActionRelevance()
+    {
+        foreach (var card in _maintenanceCards)
+        {
+            card.RefreshRelevance(IsMaintenanceActionRelevant(card.Action));
+        }
+    }
+
+    private void RaiseMaintenanceActionCanExecuteChanged()
+    {
+        foreach (var card in _maintenanceCards)
+        {
+            card.Command.RaiseCanExecuteChanged();
+        }
+    }
+
+    private bool IsMaintenanceActionRelevant(string action)
+    {
+        var marketplace = HealthComponent("marketplace");
+        var backups = HealthComponent("backups");
+        var spicetifyConfig = HealthComponent("spicetify-config");
+        var savedProfile = HealthComponent("saved-profile");
+        var logs = HealthComponent("logs");
+
+        return action switch
+        {
+            "CheckUpdates" => true,
+            "Reapply" => Snapshot.SpotifyInstalled && (Snapshot.SpicetifyInstalled || HealthReport.HasCriticalIssues || HealthReport.HasWarningIssues),
+            "RepairMarketplace" => Snapshot.SpicetifyInstalled && marketplace?.Severity is HealthSeverity.Warning or HealthSeverity.Critical,
+            "OpenMarketplace" => marketplace?.Severity == HealthSeverity.Ready,
+            "SafeMode" => Snapshot.SpicetifyInstalled && HealthComponent("active-theme")?.Status != "Marketplace or stock",
+            "CreateBackup" => Snapshot.SpicetifyInstalled && spicetifyConfig?.Severity == HealthSeverity.Ready,
+            "RestoreBackup" => Snapshot.SpicetifyInstalled && backups?.Severity == HealthSeverity.Ready,
+            "RestoreVanilla" => Snapshot.SpicetifyInstalled,
+            "UninstallSpicetify" => Snapshot.SpicetifyInstalled,
+            "FullReset" => Snapshot.SpotifyInstalled || Snapshot.SpicetifyInstalled || HealthReport.HasCriticalIssues,
+            "RemoveSelfData" => savedProfile?.Severity == HealthSeverity.Ready || logs?.Severity == HealthSeverity.Ready || backups?.Severity == HealthSeverity.Ready || Snapshot.ConfigFolderExists,
+            _ => HasRecommendedAction(action)
+        };
     }
 
     private void RaiseAutoReapplyStateChanged()
@@ -1427,7 +1549,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}This is a deeper reset path and may remove the current customization state. Continue only when you are ready to rebuild."
             : $"{definition.Description}{Environment.NewLine}{Environment.NewLine}LibreSpot will keep this window open and stream backend progress while the action runs.";
         var (summaryTitle, summaryBody) = BuildMaintenancePromptSummary(definition);
-        var requiresAdministrator = !string.Equals(definition.Action, "CheckUpdates", StringComparison.Ordinal);
+        var requiresAdministrator = RequiresAdministrator(definition.Action);
 
         ShowPrompt(
             definition.Title,
@@ -1441,6 +1563,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         return Task.CompletedTask;
     }
+
+    private static bool RequiresAdministrator(string action) =>
+        action is not ("CheckUpdates" or "CreateBackup" or "OpenMarketplace" or "RemoveSelfData");
 
     private void PresentAutoReapplyPrompt(bool enable)
     {
@@ -1949,6 +2074,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             "CheckUpdates" => ("What this does", "LibreSpot compares pinned versions plus the SpotX, Spicetify CLI, Marketplace, and themes compatibility matrix before you decide whether to update."),
             "Reapply" => ("What this does", "LibreSpot refreshes SpotX first, then restores the saved Spicetify layer so the stack returns to its last known profile."),
             "RepairMarketplace" => ("What this does", "LibreSpot reinstalls the Marketplace custom app, re-enables it in Spicetify, applies the change, and opens spotify:app:marketplace if Spotify accepts the URI."),
+            "OpenMarketplace" => ("What this does", "LibreSpot asks Spotify to open spotify:app:marketplace without reinstalling or changing your Spicetify files."),
             "RestoreVanilla" => ("What this does", "This removes the visible Spicetify layer while leaving SpotX in place, so Spotify returns to a calmer default look."),
             "UninstallSpicetify" => ("What this removes", "LibreSpot restores Spotify first, then removes the Spicetify CLI, config folder, and PATH entry from this machine."),
             "FullReset" => ("What this removes", "LibreSpot clears Spotify customization state and related leftovers so the next install can start from a truly clean baseline."),

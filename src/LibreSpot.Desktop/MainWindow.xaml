@@ -305,7 +305,8 @@
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type viewModels:MaintenanceActionCardViewModel}" x:Key="MaintenanceTemplate">
-      <Border Margin="0,0,0,12">
+      <Border Margin="0,0,0,12"
+              Visibility="{Binding IsRelevant, Converter={StaticResource BoolToVisibilityConverter}}">
         <Border.Style>
           <Style TargetType="Border" BasedOn="{StaticResource SubtleCardStyle}">
             <Setter Property="Padding" Value="16" />
@@ -1535,6 +1536,73 @@
                   <Border Height="1"
                           Background="{StaticResource StrokeSoftBrush}"
                           Margin="0,18,0,18" />
+
+                  <UniformGrid Columns="4"
+                               Margin="0,0,0,14">
+                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">
+                      <StackPanel>
+                        <TextBlock Text="Stack"
+                                   Style="{StaticResource LabelTextStyle}" />
+                        <TextBlock Text="{Binding MaintenanceReadinessValue}"
+                                   Foreground="{StaticResource TextBrush}"
+                                   FontWeight="SemiBold"
+                                   FontSize="15"
+                                   Margin="0,6,0,0"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding MaintenanceReadinessDetail}"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,6,0,0" />
+                      </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">
+                      <StackPanel>
+                        <TextBlock Text="Backups"
+                                   Style="{StaticResource LabelTextStyle}" />
+                        <TextBlock Text="{Binding MaintenanceBackupValue}"
+                                   Foreground="{StaticResource TextBrush}"
+                                   FontWeight="SemiBold"
+                                   FontSize="15"
+                                   Margin="0,6,0,0"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding MaintenanceBackupDetail}"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,6,0,0" />
+                      </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">
+                      <StackPanel>
+                        <TextBlock Text="Marketplace"
+                                   Style="{StaticResource LabelTextStyle}" />
+                        <TextBlock Text="{Binding MaintenanceMarketplaceValue}"
+                                   Foreground="{StaticResource TextBrush}"
+                                   FontWeight="SemiBold"
+                                   FontSize="15"
+                                   Margin="0,6,0,0"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding MaintenanceMarketplaceDetail}"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,6,0,0" />
+                      </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SubtleCardStyle}">
+                      <StackPanel>
+                        <TextBlock Text="Theme"
+                                   Style="{StaticResource LabelTextStyle}" />
+                        <TextBlock Text="{Binding MaintenanceThemeValue}"
+                                   Foreground="{StaticResource TextBrush}"
+                                   FontWeight="SemiBold"
+                                   FontSize="15"
+                                   Margin="0,6,0,0"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding MaintenanceThemeDetail}"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,6,0,0" />
+                      </StackPanel>
+                    </Border>
+                  </UniformGrid>
 
                   <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,14">
                     <Grid>
