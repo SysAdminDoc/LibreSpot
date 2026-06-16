@@ -23,5 +23,8 @@
   <ItemGroup>
     <PackageReference Include="Serilog" Version="4.3.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <!-- v4 shell controls use the active lepo.co package identity: WPF-UI.
+         Do not switch to the older similarly named Wpf.Ui package ID. -->
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
 </Project>

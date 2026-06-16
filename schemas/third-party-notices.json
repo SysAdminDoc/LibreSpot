@@ -76,6 +76,28 @@
       "notes": "NuGet runtime dependency for the WPF desktop shell."
     },
     {
+      "name": "WPF-UI",
+      "category": "runtime",
+      "version": "4.3.0",
+      "sourceUrl": "https://github.com/lepoco/wpfui",
+      "spdxLicense": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "copyrightHolder": "Leszek Pomianowski and WPF UI contributors",
+      "redistributionPosture": "allowed",
+      "notes": "NuGet runtime dependency selected for v4 shell TitleBar, InfoBar/Snackbar, NumberBox, and SplitButton controls."
+    },
+    {
+      "name": "WPF-UI.Abstractions",
+      "category": "runtime",
+      "version": "4.3.0",
+      "sourceUrl": "https://github.com/lepoco/wpfui",
+      "spdxLicense": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "copyrightHolder": "Leszek Pomianowski and WPF UI contributors",
+      "redistributionPosture": "allowed",
+      "notes": "Transitive NuGet runtime dependency of WPF-UI."
+    },
+    {
       "name": "PS2EXE",
       "category": "build",
       "version": "1.0.18",
