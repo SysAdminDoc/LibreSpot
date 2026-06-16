@@ -28,9 +28,11 @@ Or [download LibreSpot.ps1](https://github.com/SysAdminDoc/LibreSpot/releases/la
 
 <div align="center">
 
-<img width="1150" height="950" alt="2026-02-02 19_59_24-LibreSpot" src="https://github.com/user-attachments/assets/fb3d007b-f28a-4ecc-8a16-b0b866c03a4c" />
+<img width="1150" alt="LibreSpot Recommended setup WPF shell" src="assets/screenshots/wpf-recommended.png" />
 
-<img width="1150" height="950" alt="2026-02-02 20_16_59-LibreSpot" src="https://github.com/user-attachments/assets/83f99ae8-88b8-4f36-a207-4ffa9a163281" />
+<img width="1150" alt="LibreSpot Custom settings WPF shell" src="assets/screenshots/wpf-custom.png" />
+
+<img width="1150" alt="LibreSpot Maintenance WPF shell" src="assets/screenshots/wpf-maintenance.png" />
 
 </div>
 
