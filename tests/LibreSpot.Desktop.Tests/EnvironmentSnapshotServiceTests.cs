@@ -435,6 +435,49 @@ public sealed class EnvironmentSnapshotServiceTests
     }
 
     [Fact]
+    public void GetSnapshot_ExtensionIntegrity_AllFilesPresent()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpicetifyConfig("extensions = fullAppDisplay.js|shuffle+.js\r\ncustom_apps = marketplace");
+        fixture.WriteExtensionFiles("fullAppDisplay.js", "shuffle+.js");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var ext = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "extension-integrity");
+        Assert.Equal("All present", ext.Status);
+        Assert.Equal(HealthSeverity.Ready, ext.Severity);
+    }
+
+    [Fact]
+    public void GetSnapshot_ExtensionIntegrity_MissingFileTriggersQuarantineWarning()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpicetifyConfig("extensions = fullAppDisplay.js|beautiful-lyrics.mjs\r\ncustom_apps = marketplace");
+        fixture.WriteExtensionFiles("fullAppDisplay.js");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var ext = Assert.Single(snapshot.HealthReport.WarningIssues, c => c.Id == "extension-integrity");
+        Assert.Contains("missing", ext.Status, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("beautiful-lyrics.mjs", ext.Evidence);
+        Assert.Contains("security product", ext.Evidence, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Reapply", ext.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_ExtensionIntegrity_NoExtensionsRegistered()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var ext = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "extension-integrity");
+        Assert.Equal("None registered", ext.Status);
+        Assert.Equal(HealthSeverity.Ready, ext.Severity);
+    }
+
+    [Fact]
     public void GetSnapshot_RecordsHostAndProcessArchitecture()
     {
         using var fixture = new SnapshotFixture();
@@ -657,6 +700,15 @@ public sealed class EnvironmentSnapshotServiceTests
 
         public void WriteRecentCrashReport() =>
             WriteFile(Path.Combine(CrashDirectory, "crash-20260616-test.log"), "crash");
+
+        public void WriteExtensionFiles(params string[] extensionNames)
+        {
+            var extensionsDir = Path.Combine(SpicetifyConfigDirectory, "Extensions");
+            foreach (var name in extensionNames)
+            {
+                WriteFile(Path.Combine(extensionsDir, name), "// extension content");
+            }
+        }
 
         private static void WriteFile(string path, string content)
         {

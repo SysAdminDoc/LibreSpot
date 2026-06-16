@@ -141,6 +141,7 @@ public sealed class EnvironmentSnapshotService
                 spicetifyInstalled,
                 marketplaceFilesPresent,
                 marketplaceRegistered),
+            BuildExtensionFileIntegrityComponent(spicetifyInstalled, spicetifyConfig),
             BuildLogsComponent(configDirectory),
             BuildCrashComponent(),
             BuildSavedProfileComponent(configPath, savedConfigExists, configFolderExists)
@@ -778,6 +779,71 @@ public sealed class EnvironmentSnapshotService
                 ? "The LibreSpot profile folder exists, but config.json has not been saved yet."
                 : "The LibreSpot profile folder will be created on the first save.",
             "Install");
+    }
+
+    private StackHealthComponent BuildExtensionFileIntegrityComponent(
+        bool spicetifyInstalled,
+        IReadOnlyDictionary<string, string> spicetifyConfig)
+    {
+        var extensionsDir = Path.Combine(_spicetifyConfigDirectory, "Extensions");
+
+        if (!spicetifyInstalled)
+        {
+            return Component(
+                "extension-integrity",
+                "Extension files",
+                "Not applicable",
+                HealthSeverity.Info,
+                null,
+                extensionsDir,
+                null,
+                "Extension file checks run after Spicetify is installed.");
+        }
+
+        if (!spicetifyConfig.TryGetValue("extensions", out var raw) || string.IsNullOrWhiteSpace(raw))
+        {
+            return Component(
+                "extension-integrity",
+                "Extension files",
+                "None registered",
+                HealthSeverity.Ready,
+                null,
+                extensionsDir,
+                null,
+                "No Spicetify extensions are registered in config-xpui.ini.");
+        }
+
+        var registered = raw
+            .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToArray();
+        var missing = registered
+            .Where(ext => !File.Exists(Path.Combine(extensionsDir, ext)))
+            .ToArray();
+
+        if (missing.Length > 0)
+        {
+            var label = missing.Length == 1 ? $"'{missing[0]}' missing" : $"{missing.Length} files missing";
+            return Component(
+                "extension-integrity",
+                "Extension files",
+                label,
+                HealthSeverity.Warning,
+                null,
+                extensionsDir,
+                null,
+                $"Registered extensions are missing from disk: {string.Join(", ", missing)}. A security product (such as Microsoft Defender) may have quarantined them. Check Windows Security > Virus & threat protection > Protection history.",
+                "Reapply");
+        }
+
+        return Component(
+            "extension-integrity",
+            "Extension files",
+            "All present",
+            HealthSeverity.Ready,
+            null,
+            extensionsDir,
+            GetNewestFileChange(extensionsDir),
+            $"All {registered.Length} registered extension file(s) exist on disk.");
     }
 
     private static string ResolveConfigDirectory(string configPath)
