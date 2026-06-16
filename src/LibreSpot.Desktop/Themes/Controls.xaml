@@ -3,7 +3,7 @@
   <!--
     LibreSpot Desktop control styles.
     Conventions:
-      • Radius rhythm:    8 inline, 12 inputs/buttons, 16-20 cards, 999 pills.
+      • Radius rhythm:    6 inline, 8 badges, 10 controls, 12 cards.
       • Focus visual:     overlay ring that never changes container thickness,
                           so focus never shifts layout.
       • State transitions: short (~150ms) ease-out on color/opacity for hover,
@@ -91,7 +91,7 @@
     <Setter Property="Background" Value="{DynamicResource Surface1Brush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusBadge}" />
     <Setter Property="Padding" Value="9,3" />
     <Setter Property="MinHeight" Value="22" />
     <Setter Property="VerticalAlignment" Value="Top" />
@@ -183,7 +183,7 @@
             </Grid.RenderTransform>
             <Border x:Name="FocusRing"
                     Margin="-3"
-                    CornerRadius="15"
+                    CornerRadius="12"
                     BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
@@ -297,7 +297,7 @@
             </Grid.RenderTransform>
             <Border x:Name="FocusRing"
                     Margin="-3"
-                    CornerRadius="15"
+                    CornerRadius="12"
                     BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
@@ -402,15 +402,6 @@
     <Setter Property="Tag" Value="{DynamicResource DangerHoverTintBrush}" />
   </Style>
 
-  <!-- ═══ Pill badge ═══ -->
-  <Style x:Key="PillBadgeStyle" TargetType="Border">
-    <Setter Property="Background" Value="{DynamicResource AccentMistBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
-    <Setter Property="Padding" Value="11,5" />
-  </Style>
-
   <!-- ═══ Tabs ═══ -->
   <Style x:Key="WorkspaceTabControlStyle" TargetType="TabControl">
     <Setter Property="Background" Value="Transparent" />
@@ -427,7 +418,7 @@
                     Background="{DynamicResource Surface1Brush}"
                     BorderBrush="{DynamicResource StrokeSoftBrush}"
                     BorderThickness="1"
-                    CornerRadius="14"
+                    CornerRadius="10"
                     Padding="6"
                     HorizontalAlignment="Left"
                     Margin="0,0,0,22">
@@ -517,7 +508,7 @@
             </Grid.RenderTransform>
             <Border x:Name="FocusRing"
                     Margin="-3"
-                    CornerRadius="16"
+                    CornerRadius="12"
                     BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
@@ -525,16 +516,16 @@
                     Background="{DynamicResource Surface1Brush}"
                     BorderBrush="{DynamicResource StrokeSoftBrush}"
                     BorderThickness="1"
-                    CornerRadius="14"
+                    CornerRadius="10"
                     Padding="0" />
             <Border x:Name="HoverTint"
                     Background="{DynamicResource SurfaceSheenBrush}"
-                    CornerRadius="14"
+                    CornerRadius="10"
                     Opacity="0"
                     IsHitTestVisible="False" />
             <Border x:Name="PressTint"
                     Background="{DynamicResource PressTintLightBrush}"
-                    CornerRadius="14"
+                    CornerRadius="10"
                     Opacity="0"
                     IsHitTestVisible="False" />
             <Grid Margin="16,13">
@@ -735,7 +726,7 @@
           <Grid>
             <Border x:Name="FocusRing"
                     Margin="-2"
-                    CornerRadius="14"
+                    CornerRadius="12"
                     BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
@@ -867,7 +858,7 @@
           <Grid>
             <Border x:Name="FocusRing"
                     Margin="-2"
-                    CornerRadius="14"
+                    CornerRadius="12"
                     BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
@@ -909,18 +900,18 @@
           <Grid ClipToBounds="True">
             <Border x:Name="Track"
                     Background="{TemplateBinding Background}"
-                    CornerRadius="999" />
+                    CornerRadius="4" />
             <Border x:Name="PART_Track"
                     Background="Transparent"
-                    CornerRadius="999" />
+                    CornerRadius="4" />
             <Border x:Name="PART_Indicator"
                     HorizontalAlignment="Left"
-                    CornerRadius="999"
+                    CornerRadius="4"
                     Background="{DynamicResource AccentGradientBrush}"
                     Visibility="Visible" />
             <!-- Indeterminate shimmer: translucent sweep across the full track -->
             <Border x:Name="Shimmer"
-                    CornerRadius="999"
+                    CornerRadius="4"
                     Background="{DynamicResource ShimmerBrush}"
                     Opacity="0"
                     IsHitTestVisible="False"
@@ -991,7 +982,7 @@
         <ControlTemplate TargetType="Thumb">
           <Border x:Name="Thumb"
                   Background="{DynamicResource StrokeStrongBrush}"
-                  CornerRadius="999"
+                  CornerRadius="4"
                   Margin="2" />
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">

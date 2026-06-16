@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
@@ -12,8 +13,10 @@ namespace LibreSpot.Desktop;
 
 public partial class MainWindow : Window
 {
+    private const string UiAutomationSmokeArgumentPrefix = "--uia-smoke=";
     private static readonly Regex NumericInput = new("^[0-9]+$", RegexOptions.Compiled);
     private readonly MainViewModel _viewModel;
+    private readonly string? _uiAutomationSmokeState;
     private bool _allowCloseWhileRunning;
     private IInputElement? _focusBeforeActivity;
     private IInputElement? _focusBeforePrompt;
@@ -22,10 +25,13 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        _viewModel = new MainViewModel(
-            new ConfigurationService(),
-            new BackendScriptService(),
-            new EnvironmentSnapshotService());
+        _uiAutomationSmokeState = GetUiAutomationSmokeState();
+        _viewModel = string.IsNullOrWhiteSpace(_uiAutomationSmokeState)
+            ? new MainViewModel(
+                new ConfigurationService(),
+                new BackendScriptService(),
+                new EnvironmentSnapshotService())
+            : CreateUiAutomationSmokeViewModel();
 
         DataContext = _viewModel;
         SourceInitialized += MainWindow_SourceInitialized;
@@ -52,6 +58,10 @@ public partial class MainWindow : Window
         try
         {
             await _viewModel.InitializeAsync();
+            if (!string.IsNullOrWhiteSpace(_uiAutomationSmokeState))
+            {
+                _viewModel.ApplyUiAutomationSmokeState(_uiAutomationSmokeState);
+            }
         }
         catch (Exception ex)
         {
@@ -210,5 +220,59 @@ public partial class MainWindow : Window
         {
             previousFocus = null;
         }
+    }
+
+    private static string? GetUiAutomationSmokeState()
+    {
+        var args = Environment.GetCommandLineArgs();
+        foreach (var arg in args)
+        {
+            if (arg.StartsWith(UiAutomationSmokeArgumentPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var value = arg[UiAutomationSmokeArgumentPrefix.Length..].Trim();
+                return string.IsNullOrWhiteSpace(value) ? "recommended" : value;
+            }
+        }
+
+        return null;
+    }
+
+    private static MainViewModel CreateUiAutomationSmokeViewModel()
+    {
+        var root = Environment.GetEnvironmentVariable("LIBRESPOT_UIA_ROOT");
+        if (string.IsNullOrWhiteSpace(root))
+        {
+            root = Path.Combine(Path.GetTempPath(), "LibreSpot.UIA", Guid.NewGuid().ToString("N"));
+        }
+
+        root = Path.GetFullPath(root);
+        var configDirectory = Path.Combine(root, "config");
+        var logDirectory = Path.Combine(root, "logs");
+        var crashDirectory = Path.Combine(root, "crashes");
+        var runtimeDirectory = Path.Combine(root, "runtime");
+        var spotifyPath = Path.Combine(root, "Spotify", "Spotify.exe");
+        var spicetifyPath = Path.Combine(root, "Spicetify", "spicetify.exe");
+        var spicetifyConfigDirectory = Path.Combine(root, "spicetify-config");
+        var backupDirectory = Path.Combine(root, "backups");
+
+        Directory.CreateDirectory(configDirectory);
+        Directory.CreateDirectory(logDirectory);
+        Directory.CreateDirectory(crashDirectory);
+
+        return new MainViewModel(
+            new ConfigurationService(configDirectory),
+            new BackendScriptService(runtimeDirectory, noBackendMode: true),
+            new EnvironmentSnapshotService(
+                autoReapplyTaskProbe: () => false,
+                spotifyPath: spotifyPath,
+                spicetifyPath: spicetifyPath,
+                spicetifyConfigDirectory: spicetifyConfigDirectory,
+                backupDirectory: backupDirectory,
+                rollingLogDirectory: logDirectory,
+                crashDirectory: crashDirectory,
+                spotifyVersionProbe: () => "1.2.92",
+                spicetifyVersionProbe: () => "2.43.2",
+                spotifyRunningProbe: () => false),
+            new SupportBundleService(configDirectory, logDirectory, crashDirectory));
     }
 }

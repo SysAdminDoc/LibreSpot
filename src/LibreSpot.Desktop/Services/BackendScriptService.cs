@@ -26,12 +26,14 @@ public sealed class BackendScriptService
     };
 
     private readonly string _runtimeDirectory;
+    private readonly bool _noBackendMode;
 
-    public BackendScriptService(string? runtimeDirectory = null)
+    public BackendScriptService(string? runtimeDirectory = null, bool noBackendMode = false)
     {
         _runtimeDirectory = string.IsNullOrWhiteSpace(runtimeDirectory)
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibreSpot", "Runtime")
             : Path.GetFullPath(runtimeDirectory);
+        _noBackendMode = noBackendMode;
     }
 
     private string RuntimeDirectory => _runtimeDirectory;
@@ -51,6 +53,14 @@ public sealed class BackendScriptService
         if (cancellationToken.IsCancellationRequested)
         {
             return new BackendRunResult(false, "LibreSpot canceled the backend run.");
+        }
+
+        if (_noBackendMode)
+        {
+            onMessage(new BackendMessage("status", "INFO", "UI automation no-backend mode"));
+            onMessage(new BackendMessage("step", "INFO", $"Skipped backend action: {action}"));
+            onMessage(new BackendMessage("progress", "INFO", "100"));
+            return new BackendRunResult(true);
         }
 
         try

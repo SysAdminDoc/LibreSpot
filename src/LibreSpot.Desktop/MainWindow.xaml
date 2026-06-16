@@ -128,19 +128,15 @@
                 ToolTip="{Binding Description}"
                 Margin="0,0,10,10">
         <StackPanel>
-          <Grid Margin="0,0,0,4">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="{Binding Title}"
-                       Foreground="{StaticResource TextBrush}"
-                       FontWeight="SemiBold"
-                       FontSize="13"
-                       TextWrapping="Wrap"
-                       Margin="0,0,10,0" />
-            <Border Grid.Column="1"
-                    MinWidth="86">
+          <TextBlock Text="{Binding Title}"
+                     Foreground="{StaticResource TextBrush}"
+                     FontWeight="SemiBold"
+                     FontSize="13.5"
+                     LineHeight="18"
+                     TextWrapping="Wrap" />
+          <Border MinWidth="86"
+                  HorizontalAlignment="Left"
+                  Margin="0,7,0,8">
               <Border.Style>
                 <Style TargetType="Border" BasedOn="{StaticResource MicroBadgeStyle}">
                   <Style.Triggers>
@@ -204,8 +200,7 @@
                   </Style>
                 </TextBlock.Style>
               </TextBlock>
-            </Border>
-          </Grid>
+          </Border>
           <TextBlock Text="{Binding Description}"
                      Style="{StaticResource CaptionTextStyle}" />
         </StackPanel>
@@ -220,19 +215,15 @@
                 ToolTip="{Binding Description}"
                 Margin="0,0,10,10">
         <StackPanel>
-          <Grid Margin="0,0,0,4">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="{Binding Title}"
-                       Foreground="{StaticResource TextBrush}"
-                       FontWeight="SemiBold"
-                       FontSize="13"
-                       TextWrapping="Wrap"
-                       Margin="0,0,10,0" />
-            <Border Grid.Column="1"
-                    MinWidth="76">
+          <TextBlock Text="{Binding Title}"
+                     Foreground="{StaticResource TextBrush}"
+                     FontWeight="SemiBold"
+                     FontSize="13.5"
+                     LineHeight="18"
+                     TextWrapping="Wrap" />
+          <Border MinWidth="76"
+                  HorizontalAlignment="Left"
+                  Margin="0,7,0,8">
               <Border.Style>
                 <Style TargetType="Border" BasedOn="{StaticResource MicroBadgeStyle}">
                   <Style.Triggers>
@@ -296,8 +287,7 @@
                   </Style>
                 </TextBlock.Style>
               </TextBlock>
-            </Border>
-          </Grid>
+          </Border>
           <TextBlock Text="{Binding Description}"
                      Style="{StaticResource CaptionTextStyle}" />
         </StackPanel>
@@ -548,7 +538,7 @@
   <Grid Background="{StaticResource CanvasBrush}">
     <Grid Margin="24">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="300" />
+        <ColumnDefinition Width="312" />
         <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
 
@@ -557,7 +547,7 @@
               Background="{StaticResource RailBrush}"
               BorderBrush="{StaticResource StrokeSoftBrush}"
               BorderThickness="1"
-              CornerRadius="22"
+              CornerRadius="12"
               Padding="20">
         <ScrollViewer VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
@@ -567,11 +557,11 @@
             <TextBlock Text="LIBRESPOT"
                        Style="{StaticResource SectionEyebrowTextStyle}"
                        Foreground="{StaticResource AccentBrush}" />
-            <TextBlock Text="Spotify setup, repair, and recovery"
+            <TextBlock Text="Setup and recovery"
                        Style="{StaticResource RailTitleTextStyle}"
                        FontSize="21"
                        Margin="0,8,0,0" />
-            <TextBlock Text="Recommended handles the stable path, Custom keeps deliberate changes visible, and Maintenance stays reserved for recovery work."
+            <TextBlock Text="Recommended handles the stable path. Custom keeps deliberate changes visible. Maintenance stays focused on recovery."
                        Style="{StaticResource CaptionTextStyle}"
                        Margin="0,10,0,0" />
 
@@ -670,7 +660,20 @@
               </StackPanel>
             </Border>
 
-            <StackPanel Visibility="{Binding HasAnyHealthIssues, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel>
+              <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                  <Setter Property="Visibility" Value="Collapsed" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
+                      <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding HasWarningHealthIssues}" Value="True">
+                      <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </StackPanel.Style>
               <TextBlock Text="{Binding HealthIssueSummary}"
                          Style="{StaticResource SectionEyebrowTextStyle}"
                          Margin="0,20,0,8" />
@@ -693,14 +696,6 @@
                               ItemTemplate="{StaticResource HealthIssueTemplate}" />
               </StackPanel>
 
-              <StackPanel Visibility="{Binding HasInfoHealthIssues, Converter={StaticResource BoolToVisibilityConverter}}">
-                <TextBlock Text="Notes"
-                           Style="{StaticResource LabelTextStyle}"
-                           Foreground="{StaticResource MutedTextBrush}"
-                           Margin="0,4,0,8" />
-                <ItemsControl ItemsSource="{Binding InfoHealthIssues}"
-                              ItemTemplate="{StaticResource HealthIssueTemplate}" />
-              </StackPanel>
             </StackPanel>
 
             <TextBlock Text="Next step" Style="{StaticResource SectionEyebrowTextStyle}" Margin="0,20,0,8" />
@@ -877,7 +872,8 @@
 
             <!-- ═══ Recommended (condensed: big apply button first, everything else below) ═══ -->
             <TabItem Header="Recommended">
-              <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <ScrollViewer VerticalScrollBarVisibility="Auto"
+                            AutomationProperties.Name="Recommended workspace">
                 <StackPanel Margin="0,12,0,0">
                   <Grid Margin="0,0,0,18">
                     <Grid.ColumnDefinitions>
@@ -971,7 +967,7 @@
 
             <!-- ═══ Custom ═══ -->
             <TabItem Header="Custom">
-              <Grid>
+              <Grid AutomationProperties.Name="Custom workspace">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="*" />
                   <ColumnDefinition Width="320" />
@@ -1557,7 +1553,8 @@
 
             <!-- ═══ Maintenance ═══ -->
             <TabItem Header="Maintenance">
-              <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <ScrollViewer VerticalScrollBarVisibility="Auto"
+                            AutomationProperties.Name="Maintenance workspace">
                 <StackPanel Margin="0,12,0,0">
                   <TextBlock Text="{Binding MaintenanceGuidanceTitle}"
                              Style="{StaticResource SectionTitleTextStyle}"
@@ -1905,8 +1902,7 @@
               </Grid.ColumnDefinitions>
               <StackPanel>
                 <TextBlock Text="{Binding ActivityBadgeText}"
-                           AutomationProperties.Name="Run status"
-                           AutomationProperties.LiveSetting="Polite">
+                           AutomationProperties.Name="Run state">
                   <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource LabelTextStyle}">
                       <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
@@ -1924,6 +1920,7 @@
                 <TextBlock Text="{Binding ActivityTitle}" Style="{StaticResource SectionTitleTextStyle}" FontSize="24" />
                 <TextBlock Text="{Binding ActivityStatus}"
                            Style="{StaticResource BodyTextStyle}"
+                           AutomationProperties.Name="Run status"
                            AutomationProperties.LiveSetting="Polite"
                            Margin="0,6,0,0" />
               </StackPanel>
@@ -2073,7 +2070,7 @@
                              Margin="0,6,0,0" />
                 </StackPanel>
                 <TextBlock Grid.Column="1"
-                           Text="{Binding LogLineCountText}"
+                           Text="{Binding LogEntries.Count, StringFormat={}{0} backend event(s)}"
                            Style="{StaticResource CaptionTextStyle}"
                            Foreground="{StaticResource MutedTextBrush}"
                            VerticalAlignment="Center"
@@ -2089,8 +2086,17 @@
                   <!-- Empty state -->
                   <StackPanel HorizontalAlignment="Center"
                               VerticalAlignment="Center"
-                              MaxWidth="420"
-                              Visibility="{Binding IsLogEmpty, Converter={StaticResource BoolToVisibilityConverter}}">
+                              MaxWidth="420">
+                    <StackPanel.Style>
+                      <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding LogEntries.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Visible" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </StackPanel.Style>
                     <TextBlock Text="Backend output will appear here"
                                Style="{StaticResource EmptyStateTitleTextStyle}"
                                TextAlignment="Center"

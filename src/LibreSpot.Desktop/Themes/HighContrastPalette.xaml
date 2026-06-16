@@ -111,11 +111,11 @@
   <SolidColorBrush x:Key="TerminalFgBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
 
   <!-- ═══ Radius rhythm (unchanged) ═══ -->
-  <CornerRadius x:Key="RadiusSm">8</CornerRadius>
-  <CornerRadius x:Key="RadiusMd">12</CornerRadius>
-  <CornerRadius x:Key="RadiusLg">16</CornerRadius>
-  <CornerRadius x:Key="RadiusXl">20</CornerRadius>
-  <CornerRadius x:Key="RadiusPill">999</CornerRadius>
+  <CornerRadius x:Key="RadiusSm">6</CornerRadius>
+  <CornerRadius x:Key="RadiusMd">8</CornerRadius>
+  <CornerRadius x:Key="RadiusLg">10</CornerRadius>
+  <CornerRadius x:Key="RadiusXl">12</CornerRadius>
+  <CornerRadius x:Key="RadiusBadge">8</CornerRadius>
 
   <!-- ═══ Spacing (unchanged) ═══ -->
   <Thickness x:Key="SpaceXs">4</Thickness>

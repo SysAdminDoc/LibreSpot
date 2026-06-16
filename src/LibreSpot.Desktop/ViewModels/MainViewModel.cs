@@ -2423,6 +2423,43 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(RunElapsedText));
     }
 
+    public void ApplyUiAutomationSmokeState(string state)
+    {
+        switch (state.Trim().ToLowerInvariant())
+        {
+            case "custom":
+                SelectedWorkspaceIndex = 1;
+                break;
+            case "maintenance":
+                SelectedWorkspaceIndex = 2;
+                break;
+            case "prompt":
+                SelectedWorkspaceIndex = 0;
+                ShowPrompt(
+                    "UI automation prompt",
+                    "This prompt is shown by LibreSpot's no-backend UI automation smoke mode.",
+                    "Confirm smoke action",
+                    "Cancel smoke action",
+                    false,
+                    () => Task.CompletedTask,
+                    "Smoke coverage",
+                    "Confirms prompt labels, focusable actions, and keyboard-trap boundaries without starting the backend.");
+                break;
+            case "activity":
+                SelectedWorkspaceIndex = 0;
+                LogEntries.Add(new LogEntryViewModel(DateTime.Now, "INFO", "UI automation smoke activity."));
+                ShowNotice(
+                    "UI automation activity",
+                    "Run complete",
+                    "No backend command was started.");
+                ProgressValue = 100;
+                break;
+            default:
+                SelectedWorkspaceIndex = 0;
+                break;
+        }
+    }
+
     private static bool IsAdministrator()
     {
         using var identity = WindowsIdentity.GetCurrent();

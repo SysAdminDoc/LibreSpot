@@ -8,6 +8,9 @@ namespace LibreSpot.Desktop.Services;
 public static class Win11ShellIntegration
 {
     private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+    private const int DWMWA_BORDER_COLOR = 34;
+    private const int DWMWA_CAPTION_COLOR = 35;
+    private const int DWMWA_TEXT_COLOR = 36;
     private const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
     private const int DWMSBT_MAINWINDOW = 2;
 
@@ -25,6 +28,13 @@ public static class Win11ShellIntegration
         {
             DwmSetWindowAttribute(hwnd, 19, ref useDark, sizeof(int));
         }
+
+        var captionColor = ToColorRef(0x0B, 0x0F, 0x0D);
+        var captionTextColor = ToColorRef(0xEA, 0xF2, 0xED);
+        var borderColor = ToColorRef(0x2A, 0x36, 0x30);
+        DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ref captionColor, sizeof(int));
+        DwmSetWindowAttribute(hwnd, DWMWA_TEXT_COLOR, ref captionTextColor, sizeof(int));
+        DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref borderColor, sizeof(int));
 
         if (Environment.OSVersion.Version.Build < 22621)
         {
@@ -46,4 +56,7 @@ public static class Win11ShellIntegration
             window.Background = micaBrush;
         }
     }
+
+    private static int ToColorRef(byte red, byte green, byte blue) =>
+        red | (green << 8) | (blue << 16);
 }
