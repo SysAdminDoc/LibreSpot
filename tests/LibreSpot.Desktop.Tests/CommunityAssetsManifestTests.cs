@@ -153,13 +153,78 @@ public sealed class CommunityAssetsManifestTests
         foreach (var theme in Manifest.RootElement.GetProperty("themes").EnumerateArray())
         {
             var themeId = theme.GetProperty("themeId").GetString()!;
-            var required = new[] { "themeId", "displayName", "owner", "repo", "spdxLicense", "supportState", "fallbackBehavior", "schemes", "requiresJsInjection", "networkBehavior" };
+            var required = new[] { "themeId", "displayName", "owner", "repo", "commitSha", "archiveSha256", "spdxLicense", "supportState", "fallbackBehavior", "schemes", "requiresJsInjection", "networkBehavior" };
             foreach (var field in required)
             {
                 Assert.True(
                     theme.TryGetProperty(field, out var val) && val.ValueKind != JsonValueKind.Undefined,
                     $"Theme '{themeId}' is missing required field '{field}'.");
             }
+        }
+    }
+
+    [Fact]
+    public void Manifest_ThemeCommitShasAreNotNull()
+    {
+        foreach (var theme in Manifest.RootElement.GetProperty("themes").EnumerateArray())
+        {
+            var themeId = theme.GetProperty("themeId").GetString()!;
+
+            var commitSha = theme.GetProperty("commitSha");
+            Assert.True(
+                commitSha.ValueKind == JsonValueKind.String && Regex.IsMatch(commitSha.GetString()!, @"^[a-f0-9]{40}$"),
+                $"Theme '{themeId}' must have a 40-char hex commitSha, got: {commitSha}");
+
+            var archiveHash = theme.GetProperty("archiveSha256");
+            Assert.True(
+                archiveHash.ValueKind == JsonValueKind.String && Regex.IsMatch(archiveHash.GetString()!, @"^[a-f0-9]{64}$"),
+                $"Theme '{themeId}' must have a 64-char hex archiveSha256, got: {archiveHash}");
+        }
+    }
+
+    [Fact]
+    public void Manifest_ThemeCommitShaMatchesScript()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+
+        foreach (var theme in Manifest.RootElement.GetProperty("themes").EnumerateArray())
+        {
+            var themeId = theme.GetProperty("themeId").GetString()!;
+            var manifestCommit = theme.GetProperty("commitSha").GetString()!;
+
+            var commitMatch = Regex.Match(
+                script,
+                $@"""{Regex.Escape(themeId)}""\s*=\s*@\{{[^}}]*CommitSha\s*=\s*""([a-f0-9]{{40}})""",
+                RegexOptions.Singleline);
+
+            Assert.True(
+                commitMatch.Success,
+                $"Could not find CommitSha for theme '{themeId}' in script.");
+
+            Assert.Equal(manifestCommit, commitMatch.Groups[1].Value);
+        }
+    }
+
+    [Fact]
+    public void Manifest_ThemeArchiveSha256MatchesScript()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+
+        foreach (var theme in Manifest.RootElement.GetProperty("themes").EnumerateArray())
+        {
+            var themeId = theme.GetProperty("themeId").GetString()!;
+            var manifestHash = theme.GetProperty("archiveSha256").GetString()!;
+
+            var hashMatch = Regex.Match(
+                script,
+                $@"""{Regex.Escape(themeId)}""\s*=\s*@\{{[^}}]*SHA256\s*=\s*""([a-f0-9]{{64}})""",
+                RegexOptions.Singleline);
+
+            Assert.True(
+                hashMatch.Success,
+                $"Could not find SHA256 for theme '{themeId}' in script.");
+
+            Assert.Equal(manifestHash, hashMatch.Groups[1].Value);
         }
     }
 

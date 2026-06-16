@@ -848,11 +848,11 @@ $global:ThemeData = [ordered]@{
 # this table to decide whether to pull from the official themes archive or
 # from the community repo.
 $global:CommunityThemeRepos = @{
-    "Catppuccin" = @{ Owner="catppuccin"; Repo="spicetify"; Branch="main"; ThemeFolder="." }
-    "Comfy"      = @{ Owner="Comfy-Themes"; Repo="Spicetify"; Branch="main"; ThemeFolder="." }
-    "Bloom"      = @{ Owner="nimsandu"; Repo="spicetify-bloom"; Branch="main"; ThemeFolder="." }
-    "Lucid"      = @{ Owner="sanoojes"; Repo="Spicetify-Lucid"; Branch="main"; ThemeFolder="." }
-    "Hazy"       = @{ Owner="Astromations"; Repo="Hazy"; Branch="main"; ThemeFolder="." }
+    "Catppuccin" = @{ Owner="catppuccin"; Repo="spicetify"; CommitSha="1ec645c4cf7f42f9792b9eeb1bb7930f94593277"; SHA256="59432d5dfba871f288331e72ca5eb9ae48783e94d96cc3835a2992b3df71ed65"; ThemeFolder="." }
+    "Comfy"      = @{ Owner="Comfy-Themes"; Repo="Spicetify"; CommitSha="32ff101e27cfd33d85b7cc587f7f95db6b2df8b0"; SHA256="d82afe89be0a58c7c2d83a85a0dfa24b473d48d4f63241178e37c94c1fd1e7c6"; ThemeFolder="." }
+    "Bloom"      = @{ Owner="nimsandu"; Repo="spicetify-bloom"; CommitSha="654cfed682b94613b0029997ffafc1eadccc5bef"; SHA256="12cb8678f7226b2a014a10fdef8ea462e0ac0a866f84b2de48050004fcd50a70"; ThemeFolder="." }
+    "Lucid"      = @{ Owner="sanoojes"; Repo="Spicetify-Lucid"; CommitSha="5c28e9f955d5ca84a82d06084cc6652e5655ea2d"; SHA256="af3f1ed718b3deda7c52ebf7e0ca4bf7c07f03f212a88dd0534c2ebe81803bf8"; ThemeFolder="." }
+    "Hazy"       = @{ Owner="Astromations"; Repo="Hazy"; CommitSha="1926d9db3e0313b68ca6e2193c2b278e733ac3c4"; SHA256="372938c3fea3cbac7850afeb6b66b15673236e248436a7afaacb2ab1d814c4bf"; ThemeFolder="." }
 }
 
 # Themes that require inject_theme_js = 1 (they ship a theme.js file).
@@ -5115,6 +5115,16 @@ function Test-IsLanguageModeOrAppControlError {
     return ($Message -match 'ConstrainedLanguage|language mode|AppLocker|Application Control|\bWDAC\b')
 }
 
+# Guidance shown when a file LibreSpot verified moments ago has vanished, or a
+# known extension / custom-app file is missing. The usual cause is a security
+# product (Microsoft Defender or another endpoint suite) quarantining it.
+# LibreSpot only DETECTS and GUIDES -- it never disables AV, adds exclusions, or
+# auto-restores quarantined files. Pure and side-effect free for unit testing.
+function Get-QuarantineGuidance {
+    param([string]$What = 'A verified file')
+    return "$What is missing right after LibreSpot verified it. A security product (for example Microsoft Defender) may have quarantined it. Open Windows Security > Virus & threat protection > Protection history; if the file is listed, restore it and re-run LibreSpot. LibreSpot will not disable your antivirus, add exclusions, or restore quarantined files for you."
+}
+
 function Download-FileSafe { param([string]$Uri,[string]$OutFile)
     Write-DownloaderCveWarningIfNeeded
     Write-Log "Downloading: $Uri"
@@ -5736,15 +5746,16 @@ function Module-InstallThemes { param($Config)
     $isCommunity = $global:CommunityThemeRepos.ContainsKey($tn)
 
     if ($isCommunity) {
-        # Community theme — download from its own GitHub repo
+        # Community theme — download commit-pinned archive and verify hash
         $repo = $global:CommunityThemeRepos[$tn]
-        $archiveUrl = "https://github.com/$($repo.Owner)/$($repo.Repo)/archive/refs/heads/$($repo.Branch).zip"
+        $archiveUrl = "https://github.com/$($repo.Owner)/$($repo.Repo)/archive/$($repo.CommitSha).zip"
         $safeName = ($tn -replace '[^a-zA-Z0-9_-]','_')
         $tz = New-LibreSpotTempFile -Name "community-theme-$safeName.zip"
         $tu = New-LibreSpotTempDirectory -Name "community-theme-$safeName-unpack"
         try {
-            Write-Log "Downloading community theme from $($repo.Owner)/$($repo.Repo)..."
+            Write-Log "Downloading community theme from $($repo.Owner)/$($repo.Repo) @ $($repo.CommitSha.Substring(0,10))..."
             Download-FileSafe -Uri $archiveUrl -OutFile $tz
+            Confirm-FileHash -Path $tz -ExpectedHash $repo.SHA256 -Label "Community theme '$tn'"
             Expand-ArchiveSafely -ZipPath $tz -DestinationPath $tu -Label "Community theme '$tn'"
             $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
             if (-not $root) { throw "Community theme archive for '$tn' did not contain a root folder." }
@@ -5816,6 +5827,7 @@ function Download-CommunityExtensions { param($Config)
     $exts = @($Config.Spicetify_Extensions)
     $extDir = Join-Path $global:SPICETIFY_CONFIG_DIR "Extensions"
     if (-not (Test-Path $extDir)) { New-Item -Path $extDir -ItemType Directory -Force | Out-Null }
+    $verifiedPaths = @()
     foreach ($ext in $exts) {
         if (-not $global:CommunityExtensions.Contains($ext)) { continue }
         $info = $global:CommunityExtensions[$ext]
@@ -5834,8 +5846,18 @@ function Download-CommunityExtensions { param($Config)
             }
             Confirm-FileHash -Path $destFile -ExpectedHash $info.SHA256 -Label "Community extension $ext"
             Write-Log "Community extension '$ext' saved to $destFile"
+            $verifiedPaths += $destFile
         } catch {
             Write-Log "Could not download community extension '$ext': $($_.Exception.Message). Skipping." -Level 'WARN'
+        }
+    }
+    # A file LibreSpot just verified that has since vanished is the classic
+    # antivirus-quarantine signal. Detect and guide; never auto-restore.
+    $quarantineWarned = $false
+    foreach ($vp in $verifiedPaths) {
+        if (-not $quarantineWarned -and -not (Test-Path -LiteralPath $vp)) {
+            $quarantineWarned = $true
+            Write-Log (Get-QuarantineGuidance -What "The verified extension file '$(Split-Path -Leaf $vp)'") -Level 'WARN'
         }
     }
 }
@@ -6225,7 +6247,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Download-FileSafe','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Confirm-FileHash','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Download-FileSafe','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',

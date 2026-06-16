@@ -1287,4 +1287,49 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("'Write-PowerShellSecurityContext'", exportBlock.Groups["list"].Value);
         Assert.Contains("'Test-IsLanguageModeOrAppControlError'", exportBlock.Groups["list"].Value);
     }
+
+    [Fact]
+    public void CommunityThemes_UseCommitPinnedArchiveUrls_NotBranchPinned()
+    {
+        foreach (var path in new[] { "LibreSpot.ps1", "src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1" })
+        {
+            var script = ReadFile(path.Split('/'));
+            Assert.DoesNotContain("archive/refs/heads/", script);
+
+            var themeBlock = Regex.Match(script, @"\$global:CommunityThemeRepos\s*=\s*@\{(?<body>.+?)\n\}", RegexOptions.Singleline);
+            Assert.True(themeBlock.Success, $"CommunityThemeRepos not found in {path}");
+            Assert.DoesNotContain("Branch", themeBlock.Groups["body"].Value);
+            Assert.Contains("CommitSha", themeBlock.Groups["body"].Value);
+            Assert.Contains("SHA256", themeBlock.Groups["body"].Value);
+        }
+    }
+
+    [Fact]
+    public void CommunityThemes_CommitShasMatchBetweenScripts()
+    {
+        var mainScript = ReadFile("LibreSpot.ps1");
+        var backendScript = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+
+        var themes = new[] { "Catppuccin", "Comfy", "Bloom", "Lucid", "Hazy" };
+        foreach (var theme in themes)
+        {
+            var mainCommit = Regex.Match(mainScript,
+                $@"""{theme}""\s*=\s*@\{{[^}}]*CommitSha\s*=\s*""([a-f0-9]{{40}})""", RegexOptions.Singleline);
+            var backendCommit = Regex.Match(backendScript,
+                $@"'{theme}'\s*=\s*@\{{[^}}]*CommitSha\s*=\s*'([a-f0-9]{{40}})'", RegexOptions.Singleline);
+
+            Assert.True(mainCommit.Success, $"CommitSha not found for {theme} in LibreSpot.ps1");
+            Assert.True(backendCommit.Success, $"CommitSha not found for {theme} in Backend script");
+            Assert.Equal(mainCommit.Groups[1].Value, backendCommit.Groups[1].Value);
+
+            var mainHash = Regex.Match(mainScript,
+                $@"""{theme}""\s*=\s*@\{{[^}}]*SHA256\s*=\s*""([a-f0-9]{{64}})""", RegexOptions.Singleline);
+            var backendHash = Regex.Match(backendScript,
+                $@"'{theme}'\s*=\s*@\{{[^}}]*SHA256\s*=\s*'([a-f0-9]{{64}})'", RegexOptions.Singleline);
+
+            Assert.True(mainHash.Success, $"SHA256 not found for {theme} in LibreSpot.ps1");
+            Assert.True(backendHash.Success, $"SHA256 not found for {theme} in Backend script");
+            Assert.Equal(mainHash.Groups[1].Value, backendHash.Groups[1].Value);
+        }
+    }
 }
