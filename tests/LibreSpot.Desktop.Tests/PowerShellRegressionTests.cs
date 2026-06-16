@@ -1332,4 +1332,72 @@ public sealed class PowerShellRegressionTests
             Assert.Equal(mainHash.Groups[1].Value, backendHash.Groups[1].Value);
         }
     }
+
+    // ---------------------------------------------------------------------
+    // Risk acknowledgment — first-run ToS dialog gate.
+    // ---------------------------------------------------------------------
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void RiskAcknowledged_IsPartOfBooleanNormalization(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var booleanBlock = Regex.Match(
+            script,
+            @"\$booleanKeys\s*=\s*@\((?<body>.+?)\)",
+            RegexOptions.Singleline);
+        Assert.True(booleanBlock.Success, $"Could not locate $booleanKeys block in {relativePath}.");
+        Assert.Contains("RiskAcknowledged", booleanBlock.Groups["body"].Value);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void RiskAcknowledged_DefaultsToFalseInNormalization(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Normalize-LibreSpotConfig\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fnBody.Success, $"Normalize-LibreSpotConfig not found in {relativePath}.");
+        Assert.Contains("RiskAcknowledged", fnBody.Groups["body"].Value);
+        // The default must be false (not $true or true).
+        Assert.Matches(@"\$normalized\['RiskAcknowledged'\]\s*=\s*\$false", fnBody.Groups["body"].Value);
+    }
+
+    [Fact]
+    public void PowerShellMonolith_GatesInstallBehindRiskAcknowledgment()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+
+        // The install button must call Assert-RiskAcknowledged before proceeding.
+        Assert.Contains("function Assert-RiskAcknowledged", script);
+        Assert.Contains("Assert-RiskAcknowledged", script);
+
+        // The function must load config, check RiskAcknowledged, show a dialog,
+        // save on acceptance, and return false on cancellation.
+        var fn = Regex.Match(
+            script,
+            @"function\s+Assert-RiskAcknowledged\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fn.Success, "Assert-RiskAcknowledged function block not found.");
+        var body = fn.Groups["body"].Value;
+        Assert.Contains("RiskAcknowledged", body);
+        Assert.Contains("Show-ThemedDialog", body);
+        Assert.Contains("Save-LibreSpotConfig", body);
+        Assert.Contains("return $false", body);
+        Assert.Contains("return $true", body);
+    }
+
+    [Fact]
+    public void DesktopBackend_GatesPatchingActionsBehindRiskAcknowledgment()
+    {
+        var backend = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+
+        // The backend entry point must check RiskAcknowledged before Install
+        // and maintenance actions, and exit with an error if not acknowledged.
+        Assert.Contains("RiskAcknowledged", backend);
+        Assert.Contains("Risk acknowledgment required", backend);
+    }
 }

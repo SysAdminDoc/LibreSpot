@@ -347,6 +347,9 @@ function Normalize-LibreSpotConfig {
         }
     }
 
+    # RiskAcknowledged is a UX-only flag not part of EasyDefaults; default false.
+    if (-not $normalized.ContainsKey('RiskAcknowledged')) { $normalized['RiskAcknowledged'] = $false }
+
     if ($Config -and $Config.ContainsKey('Mode')) {
         $mode = [string]$Config.Mode
         if ($mode -in @('Easy', 'Custom')) { $normalized.Mode = $mode }
@@ -360,7 +363,7 @@ function Normalize-LibreSpotConfig {
         'SpotX_NoShortcut', 'SpotX_OldLyrics', 'SpotX_HideColIconOff', 'SpotX_Plus',
         'SpotX_NewFullscreen', 'SpotX_FunnyProgress', 'SpotX_ExpSpotify', 'SpotX_LyricsBlock',
         'SpotX_SendVersionOff', 'SpotX_StartSpoti', 'SpotX_DevTools', 'SpotX_Mirror', 'SpotX_ConfirmUninstall',
-        'Spicetify_Marketplace', 'AutoReapply_Enabled'
+        'Spicetify_Marketplace', 'AutoReapply_Enabled', 'RiskAcknowledged'
     )
     foreach ($key in $booleanKeys) {
         if ($Config -and $Config.ContainsKey($key)) {
@@ -2821,6 +2824,17 @@ try {
     Write-EventLine -Kind 'action' -Payload $Action
     if ($Action -notin @('CheckUpdates', 'EnableAutoReapply', 'DisableAutoReapply')) {
         Ensure-Admin
+    }
+
+    # Gate patching actions behind risk acknowledgment. The WPF shell handles
+    # the dialog; the backend enforces the invariant as a safety net.
+    if ($Action -notin @('CheckUpdates', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')) {
+        $riskConfig = Load-LibreSpotConfig
+        if (-not (ConvertTo-ConfigBoolean -Value $riskConfig['RiskAcknowledged'] -Default $false)) {
+            Write-Log 'RiskAcknowledged is false. The desktop shell must present the acknowledgment dialog before running this action.' -Level 'ERROR'
+            Write-EventLine -Kind 'result' -Level 'ERROR' -Payload 'Risk acknowledgment required before this action can proceed.'
+            exit 1
+        }
     }
 
     if ($Action -eq 'Install') {

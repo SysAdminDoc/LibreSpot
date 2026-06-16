@@ -1473,6 +1473,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
+        // First-run risk acknowledgment gate. Non-patching actions are exempt.
+        if (action is not ("CheckUpdates" or "EnableAutoReapply" or "DisableAutoReapply"))
+        {
+            if (!await EnsureRiskAcknowledgedAsync())
+            {
+                return;
+            }
+        }
+
         SelectedWorkspaceIndex = targetWorkspaceIndex;
         ActivityTitle = title;
         ActivityStatus = status;
@@ -1928,6 +1937,90 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ? ("What this removes", "LibreSpot will make a deeper cleanup pass and leave the result visible here afterward.")
                 : ("What this does", "LibreSpot will keep the window open, stream progress here, and leave the result easy to review afterward.")
         };
+
+    /// <summary>
+    /// Ensures the user has acknowledged the Spotify ToS risk before any
+    /// patching action runs. Shows a blocking prompt on the first run and
+    /// persists the acknowledgment to config.json so it never appears again.
+    /// </summary>
+    private async Task<bool> EnsureRiskAcknowledgedAsync()
+    {
+        try
+        {
+            var config = await _configurationService.LoadAsync();
+            if (config.RiskAcknowledged)
+            {
+                return true;
+            }
+        }
+        catch
+        {
+            // If we can't read config, assume not acknowledged.
+        }
+
+        var tcs = new TaskCompletionSource<bool>();
+
+        ShowPrompt(
+            "Risk acknowledgment",
+            "LibreSpot modifies your Spotify installation to remove ads and apply themes. " +
+            "This violates Spotify's Terms of Service and User Guidelines " +
+            "(https://spotify.com/legal/user-guidelines/). " +
+            "While enforcement against individual users has not been publicly documented, " +
+            "your account could be affected." +
+            Environment.NewLine + Environment.NewLine +
+            "By continuing, you acknowledge this risk and agree to proceed at your own discretion." +
+            Environment.NewLine + Environment.NewLine +
+            "You can restore stock Spotify at any time using Maintenance > Full Reset.",
+            "I understand, continue",
+            "Cancel",
+            false,
+            async () =>
+            {
+                // Signal acceptance synchronously before any await so the
+                // deferred cancellation handler (OnPromptHidden) always
+                // loses the TrySetResult race.
+                tcs.TrySetResult(true);
+
+                try
+                {
+                    var config = await _configurationService.LoadAsync();
+                    config.RiskAcknowledged = true;
+                    await _configurationService.SaveAsync(config);
+                }
+                catch
+                {
+                    // Best-effort save; the backend will re-check.
+                }
+            },
+            "What this means",
+            "LibreSpot will record your acknowledgment so this dialog does not appear again. " +
+            "No data leaves your machine.");
+
+        // The prompt is non-blocking UI; we need to wait for the user to act.
+        // ConfirmPromptAsync calls ClearPrompt() (setting IsPromptVisible=false)
+        // *before* running the action, so the PropertyChanged handler must use
+        // TrySetResult(false) which becomes a no-op when the confirm action
+        // already resolved the TCS with true.  We post the cancellation
+        // resolution via the dispatcher so the confirm action lambda has a
+        // chance to complete the TCS first.
+        void OnPromptHidden(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(IsPromptVisible) && !IsPromptVisible)
+            {
+                _dispatcher.InvokeAsync(() => tcs.TrySetResult(false), DispatcherPriority.Background);
+            }
+        }
+
+        PropertyChanged += OnPromptHidden;
+        try
+        {
+            return await tcs.Task;
+        }
+        finally
+        {
+            PropertyChanged -= OnPromptHidden;
+        }
+    }
 
     private void ShowNotice(string title, string status, string step)
     {

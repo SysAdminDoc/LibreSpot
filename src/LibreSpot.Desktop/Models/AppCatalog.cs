@@ -49,6 +49,10 @@ public sealed class InstallConfiguration
     // UI stays consistent after a save/reload.
     public bool AutoReapply_Enabled { get; set; }
 
+    // First-run ToS risk acknowledgment. Once the user accepts, this is
+    // persisted as true and the dialog never shows again.
+    public bool RiskAcknowledged { get; set; }
+
     public InstallConfiguration Clone() =>
         new()
         {
@@ -89,7 +93,8 @@ public sealed class InstallConfiguration
             Spicetify_Scheme = Spicetify_Scheme,
             Spicetify_Marketplace = Spicetify_Marketplace,
             Spicetify_Extensions = new List<string>(Spicetify_Extensions ?? []),
-            AutoReapply_Enabled = AutoReapply_Enabled
+            AutoReapply_Enabled = AutoReapply_Enabled,
+            RiskAcknowledged = RiskAcknowledged
         };
 }
 
@@ -390,6 +395,7 @@ public static class AppCatalog
 
         normalized.Spicetify_Marketplace = source.Spicetify_Marketplace;
         normalized.AutoReapply_Enabled = source.AutoReapply_Enabled;
+        normalized.RiskAcknowledged = source.RiskAcknowledged;
 
         var validExtensions = ExtensionDefinitions.Select(def => def.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         normalized.Spicetify_Extensions = (source.Spicetify_Extensions ?? [])

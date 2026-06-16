@@ -1034,6 +1034,9 @@ function Normalize-LibreSpotConfig {
         }
     }
 
+    # RiskAcknowledged is a UX-only flag not part of EasyDefaults; default false.
+    if (-not $normalized.ContainsKey('RiskAcknowledged')) { $normalized['RiskAcknowledged'] = $false }
+
     if ($Config -and $Config.ContainsKey('Mode')) {
         $mode = [string]$Config.Mode
         if ($mode -in @('Easy', 'Custom')) { $normalized.Mode = $mode }
@@ -1047,7 +1050,7 @@ function Normalize-LibreSpotConfig {
         'SpotX_DisableStartup','SpotX_NoShortcut','SpotX_OldLyrics','SpotX_HideColIconOff',
         'SpotX_Plus','SpotX_NewFullscreen','SpotX_FunnyProgress','SpotX_ExpSpotify','SpotX_LyricsBlock',
         'SpotX_SendVersionOff','SpotX_StartSpoti','SpotX_DevTools','SpotX_Mirror','SpotX_ConfirmUninstall',
-        'Spicetify_Marketplace','AutoReapply_Enabled'
+        'Spicetify_Marketplace','AutoReapply_Enabled','RiskAcknowledged'
     )
     foreach ($key in $booleanKeys) {
         if ($Config -and $Config.ContainsKey($key)) {
@@ -4504,6 +4507,7 @@ $ui['BtnCheckUpdates'].Add_Click({
 })
 $ui['BtnRepairMarketplace'].Add_Click({
     if (-not (Test-NetworkReady)) { Show-ThemedDialog -Message "LibreSpot needs an internet connection to download the pinned Marketplace archive before it can repair the custom app." -Title "No Internet Connection" -Icon "Error" -PrimaryText "Close"; return }
+    if (-not (Assert-RiskAcknowledged)) { return }
     $r = Show-ThemedDialog -Message "LibreSpot will reinstall the pinned Marketplace custom app, re-enable it in Spicetify, apply the change, and open spotify:app:marketplace. Use this when the Marketplace files exist but the sidebar icon is missing or only partial Marketplace content appears." -Title "Repair Marketplace" -Buttons "YesNo" -Icon "Question" -PrimaryText "Repair and open" -SecondaryText "Cancel"
     if ($r -eq 'Yes') {
         try {
@@ -4516,6 +4520,7 @@ $ui['BtnRepairMarketplace'].Add_Click({
 })
 $ui['BtnReapply'].Add_Click({
     if (-not (Test-NetworkReady)) { Show-ThemedDialog -Message "LibreSpot needs an internet connection to download the pinned SpotX script before it can reapply your setup." -Title "No Internet Connection" -Icon "Error" -PrimaryText "Close"; return }
+    if (-not (Assert-RiskAcknowledged)) { return }
     $r = Show-ThemedDialog -Message "LibreSpot will run SpotX again and then reapply Spicetify. Your saved LibreSpot settings will be used when available." -Title "Reapply Setup" -Buttons "YesNo" -Icon "Question" -PrimaryText "Reapply now" -SecondaryText "Cancel"
     if ($r -eq 'Yes') {
         try {
@@ -4595,6 +4600,7 @@ $ui['BtnSafeMode'].Add_Click({
     }
 })
 $ui['BtnSpicetifyRestore'].Add_Click({
+    if (-not (Assert-RiskAcknowledged)) { return }
     $r = Show-ThemedDialog -Message "LibreSpot will remove Spicetify themes and extensions, then restore vanilla Spotify while keeping SpotX in place." -Title "Restore Vanilla Spotify" -Buttons "YesNo" -Icon "Question" -PrimaryText "Restore Spotify" -SecondaryText "Cancel"
     if ($r -eq 'Yes') {
         try {
@@ -4606,6 +4612,7 @@ $ui['BtnSpicetifyRestore'].Add_Click({
     }
 })
 $ui['BtnUninstallSpicetify'].Add_Click({
+    if (-not (Assert-RiskAcknowledged)) { return }
     $r = Show-ThemedDialog -Message "LibreSpot will restore vanilla Spotify first, then remove the Spicetify CLI, configuration folder, and PATH entry." -Title "Uninstall Spicetify" -Buttons "YesNo" -Icon "Warning" -PrimaryText "Uninstall" -SecondaryText "Cancel" -PrimaryIsDestructive
     if ($r -eq 'Yes') {
         try {
@@ -4617,6 +4624,7 @@ $ui['BtnUninstallSpicetify'].Add_Click({
     }
 })
 $ui['BtnFullReset'].Add_Click({
+    if (-not (Assert-RiskAcknowledged)) { return }
     $r = Show-ThemedDialog -Message "LibreSpot will restore vanilla Spotify, remove SpotX and Spicetify, uninstall Spotify, and clean leftover files. This is the deepest reset available." -Title "Full Reset" -Buttons "YesNo" -Icon "Warning" -PrimaryText "Reset everything" -SecondaryText "Cancel" -PrimaryIsDestructive
     if ($r -eq 'Yes') {
         try {
@@ -4793,6 +4801,28 @@ function Show-ThemedDialog {
     return $script:dlgResult
 }
 
+function Assert-RiskAcknowledged {
+    <#
+    .SYNOPSIS
+    Returns $true when the user has acknowledged the ToS risk. Shows a
+    first-run dialog when needed and persists the acknowledgment.
+    #>
+    $cfg = $null
+    try { $cfg = Load-LibreSpotConfig } catch {}
+    if ($cfg -and (ConvertTo-ConfigBoolean -Value $cfg['RiskAcknowledged'] -Default $false)) {
+        return $true
+    }
+
+    $riskMessage = "LibreSpot modifies your Spotify installation to remove ads and apply themes. This violates Spotify's Terms of Service and User Guidelines (https://spotify.com/legal/user-guidelines/). While enforcement against individual users has not been publicly documented, your account could be affected.`n`nBy continuing, you acknowledge this risk and agree to proceed at your own discretion.`n`nYou can restore stock Spotify at any time using Maintenance > Full Reset."
+    $r = Show-ThemedDialog -Title 'Risk acknowledgment' -Message $riskMessage -Buttons 'YesNo' -Icon 'Warning' -PrimaryText 'I understand, continue' -SecondaryText 'Cancel'
+    if ($r -ne 'Yes') { return $false }
+
+    if (-not $cfg) { $cfg = Normalize-LibreSpotConfig -Config @{} }
+    $cfg['RiskAcknowledged'] = $true
+    try { $null = Save-LibreSpotConfig -Config $cfg } catch {}
+    return $true
+}
+
 $window.Add_ContentRendered({
     if (-not [string]::IsNullOrWhiteSpace($script:ConfigLoadWarning)) {
         $warningMessage = $script:ConfigLoadWarning
@@ -4862,6 +4892,7 @@ $ui['BtnInstall'].Add_Click({
         Show-ThemedDialog -Message "LibreSpot could not reach the download sources it needs. Check the connection, then try the setup again." -Title "No Internet Connection" -Icon "Error" -PrimaryText "Close"
         return
     }
+    if (-not (Assert-RiskAcknowledged)) { return }
     $ui['BtnInstall'].IsEnabled = $false
     $isEasy = $ui['ModeEasy'].IsChecked
     if ($isEasy) {
@@ -6363,6 +6394,7 @@ if ($script:CliClean) {
                 Show-ThemedDialog -Message "LibreSpot could not reach the download sources it needs. Check the connection, then run the clean setup again." -Title "No Internet Connection" -Icon "Error" -PrimaryText "Close"
                 return
             }
+            if (-not (Assert-RiskAcknowledged)) { return }
 
             if ($ui.ContainsKey('BtnInstall')) { $ui['BtnInstall'].IsEnabled = $false }
             if ($ui.ContainsKey('ModeEasy')) { $ui['ModeEasy'].IsChecked = $true }

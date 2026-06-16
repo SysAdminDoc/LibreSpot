@@ -193,6 +193,9 @@
     },
     "AutoReapply_Enabled": {
       "type": "boolean"
+    },
+    "RiskAcknowledged": {
+      "type": "boolean"
     }
   }
 }

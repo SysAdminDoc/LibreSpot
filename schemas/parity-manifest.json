@@ -41,7 +41,8 @@
     { "key": "Spicetify_Scheme",       "type": "string", "default": "Default",                                              "script": true, "wpf": true, "wpfBackend": true },
     { "key": "Spicetify_Marketplace",  "type": "bool",   "default": true,                                                   "script": true, "wpf": true, "wpfBackend": true },
     { "key": "Spicetify_Extensions",   "type": "array",  "default": ["fullAppDisplay.js", "shuffle+.js", "trashbin.js"],     "script": true, "wpf": true, "wpfBackend": true },
-    { "key": "AutoReapply_Enabled",    "type": "bool",   "default": false,                                                  "script": true, "wpf": true, "wpfBackend": true }
+    { "key": "AutoReapply_Enabled",    "type": "bool",   "default": false,                                                  "script": true, "wpf": true, "wpfBackend": true },
+    { "key": "RiskAcknowledged",       "type": "bool",   "default": false,                                                  "script": true, "wpf": true, "wpfBackend": true }
   ],
   "actions": [
     { "action": "Install",             "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": false, "notes": "Primary install flow; script uses mode-driven dispatch, WPF triggers via Run button" },
