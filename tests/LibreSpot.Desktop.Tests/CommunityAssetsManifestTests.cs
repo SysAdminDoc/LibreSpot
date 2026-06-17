@@ -280,6 +280,147 @@ public sealed class CommunityAssetsManifestTests
         Assert.Contains(archiveHash, script);
     }
 
+    // --- License-policy enforcement tests ---
+
+    /// <summary>
+    /// Any asset whose spdxLicense is NOASSERTION or in the reviewRequiredLicenses
+    /// list must NOT be easyModeDefault=true unless it carries a policyOverride with
+    /// reason, approvedBy, and approvedDate.
+    /// </summary>
+    [Fact]
+    public void Manifest_NoassertionOrReviewRequiredWithEasyModeDefaultRequiresOverride()
+    {
+        var policy = Manifest.RootElement.GetProperty("policy");
+        var reviewRequired = policy.GetProperty("reviewRequiredLicenses")
+            .EnumerateArray().Select(l => l.GetString()!).ToHashSet(StringComparer.Ordinal);
+
+        IEnumerable<JsonElement> assets =
+            Manifest.RootElement.GetProperty("extensions").EnumerateArray()
+                .Concat(Manifest.RootElement.GetProperty("themes").EnumerateArray());
+
+        foreach (var asset in assets)
+        {
+            var id = asset.TryGetProperty("filename", out var fn)
+                ? fn.GetString()!
+                : asset.GetProperty("themeId").GetString()!;
+
+            var license = asset.GetProperty("spdxLicense").GetString()!;
+            var isEasyDefault = asset.TryGetProperty("easyModeDefault", out var em)
+                && em.ValueKind == JsonValueKind.True;
+
+            if (!isEasyDefault)
+                continue;
+
+            bool needsOverride = license == "NOASSERTION" || reviewRequired.Contains(license);
+            if (!needsOverride)
+                continue;
+
+            Assert.True(
+                asset.TryGetProperty("policyOverride", out var po) && po.ValueKind == JsonValueKind.Object,
+                $"Asset '{id}' has license '{license}' and easyModeDefault=true but no policyOverride object.");
+
+            Assert.True(
+                po.TryGetProperty("reason", out var reason) && reason.ValueKind == JsonValueKind.String
+                    && !string.IsNullOrWhiteSpace(reason.GetString()),
+                $"Asset '{id}' policyOverride is missing a non-empty 'reason'.");
+
+            Assert.True(
+                po.TryGetProperty("approvedBy", out var by) && by.ValueKind == JsonValueKind.String
+                    && !string.IsNullOrWhiteSpace(by.GetString()),
+                $"Asset '{id}' policyOverride is missing a non-empty 'approvedBy'.");
+
+            Assert.True(
+                po.TryGetProperty("approvedDate", out var date) && date.ValueKind == JsonValueKind.String
+                    && Regex.IsMatch(date.GetString()!, @"^\d{4}-\d{2}-\d{2}$"),
+                $"Asset '{id}' policyOverride is missing a valid 'approvedDate' (YYYY-MM-DD).");
+        }
+    }
+
+    /// <summary>
+    /// Every asset's spdxLicense must appear in one of the policy license lists or be "NOASSERTION".
+    /// Unknown license identifiers that aren't tracked by the policy would slip through silently.
+    /// </summary>
+    [Fact]
+    public void Manifest_AllLicensesAreKnownToPolicy()
+    {
+        var policy = Manifest.RootElement.GetProperty("policy");
+        var knownLicenses = new HashSet<string>(StringComparer.Ordinal) { "NOASSERTION" };
+
+        foreach (var l in policy.GetProperty("allowedLicenses").EnumerateArray())
+            knownLicenses.Add(l.GetString()!);
+        foreach (var l in policy.GetProperty("reviewRequiredLicenses").EnumerateArray())
+            knownLicenses.Add(l.GetString()!);
+        foreach (var l in policy.GetProperty("blockedLicenses").EnumerateArray())
+            knownLicenses.Add(l.GetString()!);
+
+        IEnumerable<JsonElement> assets =
+            Manifest.RootElement.GetProperty("extensions").EnumerateArray()
+                .Concat(Manifest.RootElement.GetProperty("themes").EnumerateArray());
+
+        foreach (var asset in assets)
+        {
+            var id = asset.TryGetProperty("filename", out var fn)
+                ? fn.GetString()!
+                : asset.GetProperty("themeId").GetString()!;
+
+            var license = asset.GetProperty("spdxLicense").GetString()!;
+            Assert.True(
+                knownLicenses.Contains(license),
+                $"Asset '{id}' has spdxLicense '{license}' which is not in allowedLicenses, reviewRequiredLicenses, blockedLicenses, or NOASSERTION.");
+        }
+    }
+
+    /// <summary>
+    /// Beautiful Lyrics has NOASSERTION + easyModeDefault=true. It must carry a valid
+    /// operator policyOverride to satisfy the unknownLicensePolicy.
+    /// </summary>
+    [Fact]
+    public void Manifest_BeautifulLyricsHasOperatorOverride()
+    {
+        var bl = Manifest.RootElement.GetProperty("extensions").EnumerateArray()
+            .First(e => e.GetProperty("filename").GetString() == "beautiful-lyrics.mjs");
+
+        Assert.Equal("NOASSERTION", bl.GetProperty("spdxLicense").GetString());
+        Assert.True(bl.GetProperty("easyModeDefault").GetBoolean());
+
+        Assert.True(
+            bl.TryGetProperty("policyOverride", out var po) && po.ValueKind == JsonValueKind.Object,
+            "Beautiful Lyrics (NOASSERTION + easyModeDefault) must have a policyOverride.");
+
+        Assert.Equal("operator", po.GetProperty("approvedBy").GetString());
+        Assert.True(
+            !string.IsNullOrWhiteSpace(po.GetProperty("reason").GetString()),
+            "Beautiful Lyrics policyOverride must include a non-empty reason.");
+        Assert.True(
+            Regex.IsMatch(po.GetProperty("approvedDate").GetString()!, @"^\d{4}-\d{2}-\d{2}$"),
+            "Beautiful Lyrics policyOverride approvedDate must be YYYY-MM-DD.");
+    }
+
+    /// <summary>
+    /// Hazy has NOASSERTION. It must carry a valid operator policyOverride to satisfy
+    /// the unknownLicensePolicy.
+    /// </summary>
+    [Fact]
+    public void Manifest_HazyHasOperatorOverride()
+    {
+        var hazy = Manifest.RootElement.GetProperty("themes").EnumerateArray()
+            .First(t => t.GetProperty("themeId").GetString() == "Hazy");
+
+        Assert.Equal("NOASSERTION", hazy.GetProperty("spdxLicense").GetString());
+
+        Assert.True(
+            hazy.TryGetProperty("policyOverride", out var po) && po.ValueKind == JsonValueKind.Object,
+            "Hazy (NOASSERTION) must have a policyOverride.");
+
+        Assert.Equal("operator", po.GetProperty("approvedBy").GetString());
+        Assert.True(
+            !string.IsNullOrWhiteSpace(po.GetProperty("reason").GetString()),
+            "Hazy policyOverride must include a non-empty reason.");
+        Assert.True(
+            Regex.IsMatch(po.GetProperty("approvedDate").GetString()!, @"^\d{4}-\d{2}-\d{2}$"),
+            "Hazy policyOverride approvedDate must be YYYY-MM-DD.");
+    }
+
     private static JsonDocument LoadManifest()
     {
         var path = Path.Combine(RepoRoot, "schemas", "community-assets.json");

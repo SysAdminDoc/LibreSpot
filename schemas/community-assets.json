@@ -22,7 +22,12 @@
       "fallbackBehavior": "skip-with-warning",
       "legacyAliases": [],
       "easyModeDefault": true,
-      "notes": null
+      "notes": null,
+      "policyOverride": {
+        "reason": "GPL-3.0-only is review-required — operator approved as easyModeDefault because the extension is download-only (not redistributed) and no copyleft obligations attach to the host application.",
+        "approvedBy": "operator",
+        "approvedDate": "2026-06-17"
+      }
     },
     {
       "filename": "beautiful-lyrics.mjs",
@@ -44,7 +49,12 @@
       "fallbackBehavior": "skip-with-warning",
       "legacyAliases": ["beautifulLyrics.js"],
       "easyModeDefault": true,
-      "notes": "Migrated from beautifulLyrics.js to .mjs build"
+      "notes": "Migrated from beautifulLyrics.js to .mjs build",
+      "policyOverride": {
+        "reason": "NOASSERTION license — operator approved as easyModeDefault because the extension is widely used and download-only (not redistributed). License status should be re-evaluated when the upstream adds a LICENSE file.",
+        "approvedBy": "operator",
+        "approvedDate": "2026-06-17"
+      }
     },
     {
       "filename": "playlist-icons.js",
@@ -225,7 +235,12 @@
       "networkDetail": null,
       "schemes": ["dark", "light"],
       "requiresJsInjection": true,
-      "notes": "Commit-pinned and archive hash-verified"
+      "notes": "Commit-pinned and archive hash-verified",
+      "policyOverride": {
+        "reason": "NOASSERTION license — operator approved because the theme is widely used and download-only (not redistributed). License status should be re-evaluated when the upstream adds a LICENSE file.",
+        "approvedBy": "operator",
+        "approvedDate": "2026-06-17"
+      }
     }
   ],
   "officialThemesArchive": {
