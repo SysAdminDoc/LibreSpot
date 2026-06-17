@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Windows.Automation;
+using System.Windows.Automation.Peers;
+using LibreSpot.Desktop.Controls;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -99,11 +101,26 @@ public sealed class WpfUiAutomationSmokeTests
                     ?? throw new InvalidOperationException("Could not find the run-status live region.");
 
                 Assert.True(runStatus.Current.IsEnabled, "The run-status element must be present and enabled for assistive technology.");
+                Assert.Equal("LiveRegionContentControl", runStatus.Current.ClassName);
+                Assert.Equal(ControlType.Text, runStatus.Current.ControlType);
             }
             finally
             {
                 app.Dispose();
             }
+        });
+    }
+
+    [Fact]
+    public void LiveRegionContentControl_AutomationPeerReportsPolite()
+    {
+        RunOnSta(() =>
+        {
+            var control = new LiveRegionContentControl { Content = "Run complete" };
+            var peer = UIElementAutomationPeer.CreatePeerForElement(control)
+                ?? throw new InvalidOperationException("Could not create the live-region automation peer.");
+
+            Assert.Equal(AutomationLiveSetting.Polite, peer.GetLiveSetting());
         });
     }
 

@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:LibreSpot.Desktop.Controls"
         xmlns:models="clr-namespace:LibreSpot.Desktop.Models"
         xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
         mc:Ignorable="d"
@@ -1920,11 +1921,15 @@
                   </TextBlock.Style>
                 </TextBlock>
                 <TextBlock Text="{Binding ActivityTitle}" Style="{StaticResource SectionTitleTextStyle}" FontSize="24" />
-                <TextBlock Text="{Binding ActivityStatus}"
-                           Style="{StaticResource BodyTextStyle}"
-                           AutomationProperties.Name="Run status"
-                           AutomationProperties.LiveSetting="Polite"
-                           Margin="0,6,0,0" />
+                <controls:LiveRegionContentControl Content="{Binding ActivityStatus}"
+                                                   AutomationProperties.Name="Run status"
+                                                   Margin="0,6,0,0">
+                  <controls:LiveRegionContentControl.ContentTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding}" Style="{StaticResource BodyTextStyle}" />
+                    </DataTemplate>
+                  </controls:LiveRegionContentControl.ContentTemplate>
+                </controls:LiveRegionContentControl>
               </StackPanel>
               <StackPanel Grid.Column="1"
                           HorizontalAlignment="Right"
