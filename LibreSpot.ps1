@@ -5585,15 +5585,26 @@ function Test-SafeRemovalTarget {
     $root = [System.IO.Path]::GetPathRoot($resolved).TrimEnd('\')
     if ($normalized -eq $root) { return $false }
 
-    $blockedTargets = @(
+    $blockedRaw = @(
         $env:USERPROFILE,
         $env:APPDATA,
         $env:LOCALAPPDATA,
         $env:TEMP,
         $env:SystemRoot,
         $env:ProgramFiles,
-        ${env:ProgramFiles(x86)}
-    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object { $_.TrimEnd('\') }
+        ${env:ProgramFiles(x86)},
+        $env:ProgramData,
+        $env:ALLUSERSPROFILE,
+        $env:PUBLIC,
+        $env:OneDrive,
+        $env:OneDriveConsumer,
+        $env:OneDriveCommercial,
+        [Environment]::GetFolderPath('Desktop'),
+        [Environment]::GetFolderPath('Personal'),
+        [Environment]::GetFolderPath('CommonDesktopDirectory'),
+        [Environment]::GetFolderPath('CommonStartMenu')
+    )
+    $blockedTargets = @($blockedRaw | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object { $_.TrimEnd('\') } | Sort-Object -Unique)
 
     return ($normalized -notin $blockedTargets)
 }
@@ -5918,13 +5929,13 @@ function Module-InstallThemes { param($Config)
                 throw "Theme folder '$($repo.ThemeFolder)' was not found in the $($repo.Owner)/$($repo.Repo) archive."
             }
             # Verify the archive actually contains Spicetify theme files
-            $hasColorIni = Test-Path (Join-Path $src 'color.ini')
-            $hasUserCss  = Test-Path (Join-Path $src 'user.css')
+            $hasColorIni = Test-Path -LiteralPath (Join-Path $src 'color.ini')
+            $hasUserCss  = Test-Path -LiteralPath (Join-Path $src 'user.css')
             if (-not ($hasColorIni -or $hasUserCss)) {
                 throw "Community theme '$tn' archive does not contain color.ini or user.css - not a valid Spicetify theme."
             }
             $dst = Join-Path $td $tn
-            if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+            if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Recurse -Force }
             # Copy only theme-relevant files, not repo metadata (.git, .github, etc.)
             New-Item -Path $dst -ItemType Directory -Force | Out-Null
             $themeFiles = @('color.ini','user.css','theme.js','theme.script.js','assets','README.md')
@@ -5967,7 +5978,7 @@ function Module-InstallThemes { param($Config)
                 throw "Theme '$tn' was not found in the pinned theme archive."
             }
             $dst = Join-Path $td $tn
-            if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+            if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Recurse -Force }
             Copy-Item $src -Destination $dst -Recurse -Force
             Write-Log "Theme copied to $dst"
         } finally {
