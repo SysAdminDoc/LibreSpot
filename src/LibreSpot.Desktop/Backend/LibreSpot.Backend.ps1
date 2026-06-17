@@ -1139,6 +1139,44 @@ function Write-DownloaderCveWarningIfNeeded {
     } catch {}
 }
 
+function Get-DownloadFailureHint {
+    param(
+        [string]$Uri,
+        [object]$ErrorRecord,
+        [string]$Stage = 'Download'
+    )
+    $message = ''
+    try { $message = [string]$ErrorRecord.Exception.Message } catch { $message = [string]$ErrorRecord }
+    $statusCode = $null
+    try {
+        if ($ErrorRecord.Exception.Response -and $ErrorRecord.Exception.Response.StatusCode) {
+            $statusCode = [int]$ErrorRecord.Exception.Response.StatusCode
+        }
+    } catch {}
+    $target = $Uri
+    try { $target = ([uri]$Uri).Host } catch {}
+    $lowerMessage = $message.ToLowerInvariant()
+    if ($statusCode -eq 407 -or $lowerMessage -match 'proxy.*auth|407|proxy authentication') {
+        return "$Stage failed: proxy authentication is required for $target. Configure the system or WinHTTP proxy before retrying."
+    }
+    if ($statusCode -eq 429 -or (($statusCode -eq 403) -and ($target -match 'github'))) {
+        return "$Stage failed: GitHub rate limit or access block for $target. Wait for the rate-limit reset or retry from a network with GitHub access."
+    }
+    if ($lowerMessage -match 'could not be resolved|name resolution|no such host|\bdns\b') {
+        return "$Stage failed: DNS could not resolve $target. Check DNS, VPN, firewall, or content-filtering rules."
+    }
+    if ($lowerMessage -match 'ssl|tls|certificate|trust relationship') {
+        return "$Stage failed: TLS or certificate validation failed for $target. Check system time, enterprise TLS inspection, and root certificates."
+    }
+    if ($lowerMessage -match 'timed out|timeout') {
+        return "$Stage failed: the connection to $target timed out. Check connectivity or retry after the network is stable."
+    }
+    if ([string]::IsNullOrWhiteSpace($message)) {
+        return "$Stage failed for $target."
+    }
+    return "$Stage failed for $target: $message"
+}
+
 function Download-FileSafe {
     param(
         [string]$Uri,
@@ -1158,23 +1196,31 @@ function Download-FileSafe {
         try {
             Invoke-WebRequest -Uri $Uri -OutFile $OutFile -UseBasicParsing -Headers $headers -TimeoutSec 120 -ErrorAction Stop
         } catch {
-            Write-Log 'Web request failed, trying BITS...' -Level 'WARN'
-            Import-Module BitsTransfer -ErrorAction SilentlyContinue
-            $bitsJob = Start-BitsTransfer -Source $Uri -Destination $OutFile -Asynchronous -ErrorAction Stop
-            $deadline = (Get-Date).AddSeconds(120)
-            while ($bitsJob.JobState -in @('Transferring', 'Connecting', 'Queued', 'TransientError')) {
-                if ((Get-Date) -gt $deadline) {
-                    Remove-BitsTransfer $bitsJob -ErrorAction SilentlyContinue
-                    throw 'BITS transfer timed out (120s)'
+            $webHint = Get-DownloadFailureHint -Uri $Uri -ErrorRecord $_ -Stage 'Web request'
+            Write-Log "$webHint Trying BITS fallback." -Level 'WARN'
+            try {
+                Import-Module BitsTransfer -ErrorAction SilentlyContinue
+                $bitsJob = Start-BitsTransfer -Source $Uri -Destination $OutFile -Asynchronous -ErrorAction Stop
+                $deadline = (Get-Date).AddSeconds(120)
+                while ($bitsJob.JobState -in @('Transferring', 'Connecting', 'Queued', 'TransientError')) {
+                    if ((Get-Date) -gt $deadline) {
+                        Remove-BitsTransfer $bitsJob -ErrorAction SilentlyContinue
+                        throw 'BITS transfer timed out (120s)'
+                    }
+                    Start-Sleep -Milliseconds 500
                 }
-                Start-Sleep -Milliseconds 500
+                if ($bitsJob.JobState -ne 'Transferred') {
+                    $jobState = $bitsJob.JobState
+                    $bitsDetail = "BITS state: $jobState"
+                    try { if ($bitsJob.ErrorDescription) { $bitsDetail = "$bitsDetail - $($bitsJob.ErrorDescription)" } } catch {}
+                    Remove-BitsTransfer $bitsJob -ErrorAction SilentlyContinue
+                    throw $bitsDetail
+                }
+                Complete-BitsTransfer $bitsJob
+            } catch {
+                $bitsHint = Get-DownloadFailureHint -Uri $Uri -ErrorRecord $_ -Stage 'BITS'
+                throw "Download failed after WebRequest and BITS fallback. $webHint $bitsHint"
             }
-            if ($bitsJob.JobState -ne 'Transferred') {
-                $jobState = $bitsJob.JobState
-                Remove-BitsTransfer $bitsJob -ErrorAction SilentlyContinue
-                throw "BITS state: $jobState"
-            }
-            Complete-BitsTransfer $bitsJob
         }
         if (-not (Test-Path -LiteralPath $OutFile)) { throw "Download produced no file: $OutFile" }
         if ((Get-Item -LiteralPath $OutFile).Length -eq 0) { throw "Download produced empty file: $OutFile" }

@@ -1035,6 +1035,50 @@ public sealed class PowerShellRegressionTests
     }
 
     // ---------------------------------------------------------------------
+    // Download failure diagnostics — WebRequest/BITS fallback should explain
+    // common DNS, TLS, proxy, GitHub block/rate-limit, and timeout causes.
+    // ---------------------------------------------------------------------
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void DownloadFileSafe_UsesNetworkFailureClassifier(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var classifier = Regex.Match(
+            script,
+            @"function\s+Get-DownloadFailureHint\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        var downloader = Regex.Match(
+            script,
+            @"function\s+Download-FileSafe\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(classifier.Success, $"Get-DownloadFailureHint function block not found in {relativePath}.");
+        Assert.True(downloader.Success, $"Download-FileSafe function block not found in {relativePath}.");
+
+        var classifierBody = classifier.Groups["body"].Value;
+        Assert.Contains("proxy authentication", classifierBody);
+        Assert.Contains("GitHub rate limit or access block", classifierBody);
+        Assert.Contains("DNS could not resolve", classifierBody);
+        Assert.Contains("TLS or certificate validation failed", classifierBody);
+        Assert.Contains("timed out", classifierBody);
+
+        var downloaderBody = downloader.Groups["body"].Value;
+        Assert.Contains("Get-DownloadFailureHint", downloaderBody);
+        Assert.Contains("Trying BITS fallback", downloaderBody);
+        Assert.Contains("Download failed after WebRequest and BITS fallback", downloaderBody);
+    }
+
+    [Fact]
+    public void GetDownloadFailureHint_IsExportedToWorkerRunspace()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var exportBlock = Regex.Match(script, @"\$functionNamesForWorker\s*=\s*@\((?<list>.+?)\)", RegexOptions.Singleline);
+        Assert.True(exportBlock.Success, "Worker function export list not found.");
+        Assert.Contains("'Get-DownloadFailureHint'", exportBlock.Groups["list"].Value);
+    }
+
+    // ---------------------------------------------------------------------
     // SpotX post-patch effectiveness verification.
     // A clean SpotX exit code does NOT prove the patch landed: Spotify's
     // signature protection (>=1.2.70) can let SpotX exit 0 without patching

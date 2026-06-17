@@ -5209,6 +5209,44 @@ function Get-QuarantineGuidance {
     return "$What is missing right after LibreSpot verified it. A security product (for example Microsoft Defender) may have quarantined it. Open Windows Security > Virus & threat protection > Protection history; if the file is listed, restore it and re-run LibreSpot. LibreSpot will not disable your antivirus, add exclusions, or restore quarantined files for you."
 }
 
+function Get-DownloadFailureHint {
+    param(
+        [string]$Uri,
+        [object]$ErrorRecord,
+        [string]$Stage = 'Download'
+    )
+    $message = ''
+    try { $message = [string]$ErrorRecord.Exception.Message } catch { $message = [string]$ErrorRecord }
+    $statusCode = $null
+    try {
+        if ($ErrorRecord.Exception.Response -and $ErrorRecord.Exception.Response.StatusCode) {
+            $statusCode = [int]$ErrorRecord.Exception.Response.StatusCode
+        }
+    } catch {}
+    $target = $Uri
+    try { $target = ([uri]$Uri).Host } catch {}
+    $lowerMessage = $message.ToLowerInvariant()
+    if ($statusCode -eq 407 -or $lowerMessage -match 'proxy.*auth|407|proxy authentication') {
+        return "$Stage failed: proxy authentication is required for $target. Configure the system or WinHTTP proxy before retrying."
+    }
+    if ($statusCode -eq 429 -or (($statusCode -eq 403) -and ($target -match 'github'))) {
+        return "$Stage failed: GitHub rate limit or access block for $target. Wait for the rate-limit reset or retry from a network with GitHub access."
+    }
+    if ($lowerMessage -match 'could not be resolved|name resolution|no such host|\bdns\b') {
+        return "$Stage failed: DNS could not resolve $target. Check DNS, VPN, firewall, or content-filtering rules."
+    }
+    if ($lowerMessage -match 'ssl|tls|certificate|trust relationship') {
+        return "$Stage failed: TLS or certificate validation failed for $target. Check system time, enterprise TLS inspection, and root certificates."
+    }
+    if ($lowerMessage -match 'timed out|timeout') {
+        return "$Stage failed: the connection to $target timed out. Check connectivity or retry after the network is stable."
+    }
+    if ([string]::IsNullOrWhiteSpace($message)) {
+        return "$Stage failed for $target."
+    }
+    return "$Stage failed for $target: $message"
+}
+
 function Download-FileSafe { param([string]$Uri,[string]$OutFile)
     Write-DownloaderCveWarningIfNeeded
     Write-Log "Downloading: $Uri"
@@ -5228,7 +5266,8 @@ function Download-FileSafe { param([string]$Uri,[string]$OutFile)
             Invoke-WebRequest -Uri $Uri -OutFile $OutFile -UseBasicParsing -Headers $headers -TimeoutSec 120 -ErrorAction Stop
         }
         catch {
-            Write-Log "Web request failed, trying BITS..." -Level 'WARN'
+            $webHint = Get-DownloadFailureHint -Uri $Uri -ErrorRecord $_ -Stage 'Web request'
+            Write-Log "$webHint Trying BITS fallback." -Level 'WARN'
             try {
                 Import-Module BitsTransfer -EA SilentlyContinue
                 $bitsJob = Start-BitsTransfer -Source $Uri -Destination $OutFile -Asynchronous -EA Stop
@@ -5237,9 +5276,18 @@ function Download-FileSafe { param([string]$Uri,[string]$OutFile)
                     if ((Get-Date) -gt $deadline) { Remove-BitsTransfer $bitsJob -EA SilentlyContinue; throw "BITS transfer timed out (120s)" }
                     Start-Sleep -Milliseconds 500
                 }
-                if ($bitsJob.JobState -ne 'Transferred') { $js=$bitsJob.JobState; Remove-BitsTransfer $bitsJob -EA SilentlyContinue; throw "BITS state: $js" }
+                if ($bitsJob.JobState -ne 'Transferred') {
+                    $js=$bitsJob.JobState
+                    $bitsDetail = "BITS state: $js"
+                    try { if ($bitsJob.ErrorDescription) { $bitsDetail = "$bitsDetail - $($bitsJob.ErrorDescription)" } } catch {}
+                    Remove-BitsTransfer $bitsJob -EA SilentlyContinue
+                    throw $bitsDetail
+                }
                 Complete-BitsTransfer $bitsJob
-            } catch { throw "Download failed: $($_.Exception.Message)" }
+            } catch {
+                $bitsHint = Get-DownloadFailureHint -Uri $Uri -ErrorRecord $_ -Stage 'BITS'
+                throw "Download failed after WebRequest and BITS fallback. $webHint $bitsHint"
+            }
         }
         if (-not (Test-Path -LiteralPath $OutFile)) { throw "Download produced no file: $OutFile" }
         if ((Get-Item -LiteralPath $OutFile).Length -eq 0) { throw "Download produced empty file: $OutFile" }
@@ -6469,7 +6517,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Download-FileSafe','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Download-FileSafe','Get-DownloadFailureHint','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
