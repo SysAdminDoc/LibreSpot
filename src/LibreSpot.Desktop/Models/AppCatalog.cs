@@ -314,18 +314,18 @@ public static class AppCatalog
         "drot", "default", "spotify#2"
     });
 
-    public sealed record SpotifyVersionEntry(string Id, string Label, string Version, string Notes);
+    public sealed record SpotifyVersionEntry(string Id, string Label, string Version, string Notes, string Architecture = "any");
     public sealed record DownloadMethodEntry(string Id, string Label, string Detail);
 
     public static IReadOnlyList<SpotifyVersionEntry> SpotifyVersionManifest { get; } = new ReadOnlyCollection<SpotifyVersionEntry>(new[]
     {
-        new SpotifyVersionEntry("auto",            "Auto (use SpotX default)",          "",                          "Recommended. Lets SpotX pick the most compatible build."),
-        new SpotifyVersionEntry(PinnedSpotXSpotifyVersionId, "1.2.92 (current pinned)", PinnedSpotXSpotifyVersion, "Best match for our pinned SpotX commit; newer than Spicetify CLI's max-tested Windows CSS-map baseline."),
-        new SpotifyVersionEntry("1.2.90.451",      "1.2.90.451 (previous fallback)",    "1.2.90.451.gb094aab0",      "Prior pinned build kept for rollback and comparison."),
-        new SpotifyVersionEntry("1.2.86.502",      "1.2.86.502 (older stable)",         "1.2.86.502.g8cd7fb22",      "Earlier pinned build kept for rollback and comparison."),
-        new SpotifyVersionEntry("1.2.85.519",      "1.2.85.519 (older stable)",         "1.2.85.519.g7c42e2e8",      "Last Windows release before Canvas-home changes."),
-        new SpotifyVersionEntry("1.2.53.440.x86",  "1.2.53.440 (x86 / 32-bit only)",    "1.2.53.440.g7b2f582a",      "For 32-bit Windows. Do not pick on x64."),
-        new SpotifyVersionEntry("1.2.5.1006.win7", "1.2.5.1006 (Windows 7 / 8.1)",      "1.2.5.1006.g22820f93",      "Last build supported on legacy Windows."),
+        new SpotifyVersionEntry("auto",            "Auto (use SpotX default)",          "",                          "Recommended. Lets SpotX pick the most compatible build.", "any"),
+        new SpotifyVersionEntry(PinnedSpotXSpotifyVersionId, "1.2.92 (current pinned)", PinnedSpotXSpotifyVersion, "Best match for our pinned SpotX commit; newer than Spicetify CLI's max-tested Windows CSS-map baseline.", "x64"),
+        new SpotifyVersionEntry("1.2.90.451",      "1.2.90.451 (previous fallback)",    "1.2.90.451.gb094aab0",      "Prior pinned build kept for rollback and comparison.", "x64"),
+        new SpotifyVersionEntry("1.2.86.502",      "1.2.86.502 (older stable)",         "1.2.86.502.g8cd7fb22",      "Earlier pinned build kept for rollback and comparison.", "x64"),
+        new SpotifyVersionEntry("1.2.85.519",      "1.2.85.519 (older stable)",         "1.2.85.519.g7c42e2e8",      "Last Windows release before Canvas-home changes.", "x64"),
+        new SpotifyVersionEntry("1.2.53.440.x86",  "1.2.53.440 (x86 / 32-bit only)",    "1.2.53.440.g7b2f582a",      "For 32-bit Windows. Do not pick on x64.", "x86"),
+        new SpotifyVersionEntry("1.2.5.1006.win7", "1.2.5.1006 (Windows 7 / 8.1)",      "1.2.5.1006.g22820f93",      "Last build supported on legacy Windows.", "legacy-os"),
     });
 
     public static IReadOnlyList<DownloadMethodEntry> DownloadMethods { get; } = new ReadOnlyCollection<DownloadMethodEntry>(new[]
@@ -443,6 +443,56 @@ public static class AppCatalog
         "Restores Spicetify, Marketplace, and the starter extensions.",
         "Saves a dependable profile for reapply, recovery, and future maintenance."
     });
+
+    /// <summary>
+    /// Evaluates whether a Spotify version entry is compatible with the host
+    /// architecture. Returns null when compatible, or a human-readable warning
+    /// string when the combination is mismatched.
+    /// </summary>
+    public static string? CheckArchitectureCompatibility(SpotifyVersionEntry entry, string hostArchitecture)
+    {
+        if (entry is null)
+        {
+            return null;
+        }
+
+        var arch = entry.Architecture;
+        var host = (hostArchitecture ?? "Unknown").Trim();
+
+        // "any" and "auto" entries are always compatible.
+        if (string.Equals(arch, "any", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(entry.Id, "auto", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        // x86-only build selected on a 64-bit or ARM64 host.
+        if (string.Equals(arch, "x86", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(host, "X86", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"This is a 32-bit Spotify build intended for x86 Windows. Your host is {host}. SpotX and Spicetify patches may not apply correctly.";
+        }
+
+        // x64-only build selected on a non-x64 host (e.g., x86 or ARM64).
+        if (string.Equals(arch, "x64", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(host, "X86", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"This is a 64-bit Spotify build, but your host is {host}. Choose the x86 build or Auto instead.";
+        }
+
+        // Legacy OS build selected on a modern Windows host.
+        if (string.Equals(arch, "legacy-os", StringComparison.OrdinalIgnoreCase))
+        {
+            var osVersion = Environment.OSVersion.Version;
+            // Windows 10 is 10.0; Windows 7 is 6.1, Windows 8.1 is 6.3.
+            if (osVersion.Major >= 10)
+            {
+                return "This Spotify build targets Windows 7/8.1 and lacks features available in modern builds. Use Auto or a current pinned version on Windows 10+.";
+            }
+        }
+
+        return null;
+    }
 
     public static InstallConfiguration CreateRecommendedConfiguration() => new();
 

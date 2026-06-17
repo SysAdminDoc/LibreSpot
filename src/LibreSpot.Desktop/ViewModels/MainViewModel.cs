@@ -599,6 +599,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string SpotifyVersionNotes => CurrentSpotifyVersionEntry.Notes;
 
+    public string? ArchitectureMismatchWarning =>
+        AppCatalog.CheckArchitectureCompatibility(CurrentSpotifyVersionEntry, Snapshot.HostArchitecture);
+
+    public bool HasArchitectureMismatch => !string.IsNullOrEmpty(ArchitectureMismatchWarning);
+
     public string DownloadMethodSummary => CurrentDownloadMethodEntry.Label;
 
     public string DownloadMethodDetail => CurrentDownloadMethodEntry.Detail;
@@ -1523,6 +1528,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(CacheSummary));
         RaisePropertyChanged(nameof(SpotifyVersionSummary));
         RaisePropertyChanged(nameof(SpotifyVersionNotes));
+        RaisePropertyChanged(nameof(ArchitectureMismatchWarning));
+        RaisePropertyChanged(nameof(HasArchitectureMismatch));
         RaisePropertyChanged(nameof(DownloadMethodSummary));
         RaisePropertyChanged(nameof(DownloadMethodDetail));
         RaisePropertyChanged(nameof(ExtensionSummary));
@@ -2672,6 +2679,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 versionTone,
                 "Pinned Compatibility Target",
                 CurrentSpotifyVersionEntry.Notes));
+        }
+
+        if (HasArchitectureMismatch)
+        {
+            SelectionInsights.Add(new SelectionInsightViewModel(
+                "warning",
+                "Architecture Mismatch",
+                ArchitectureMismatchWarning!));
         }
 
         if (!string.IsNullOrWhiteSpace(SelectedDownloadMethod))
