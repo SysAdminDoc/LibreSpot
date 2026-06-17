@@ -73,6 +73,56 @@ jobs:
               Write-Host "  $file parsed cleanly"
           }
 
+      - name: PSScriptAnalyzer lint
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck
+          $includeRules = @(
+              'PSAvoidUsingCmdletAliases'
+              'PSAvoidUsingInvokeExpression'
+              'PSAvoidUsingPlainTextForPassword'
+              'PSUseApprovedVerbs'
+          )
+          $files = @('LibreSpot.ps1', 'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1')
+          $allResults = @()
+          foreach ($file in $files) {
+              $results = Invoke-ScriptAnalyzer -Path $file -IncludeRule $includeRules -Severity Warning,Error
+              foreach ($r in $results) {
+                  $allResults += [pscustomobject]@{
+                      File     = $file
+                      Line     = $r.Line
+                      Rule     = $r.RuleName
+                      Severity = $r.Severity
+                      Message  = $r.Message -replace '\|','\|'
+                  }
+                  Write-Host "::warning file=$file,line=$($r.Line)::[$($r.RuleName)] $($r.Message)"
+              }
+          }
+          $summary = @()
+          $summary += "## PSScriptAnalyzer Results"
+          $summary += ""
+          if ($allResults.Count -eq 0) {
+              $summary += ":white_check_mark: No warnings from curated rule set."
+          } else {
+              $summary += ":warning: **$($allResults.Count) finding(s)** (non-blocking)"
+              $summary += ""
+              $summary += "| File | Line | Rule | Severity | Message |"
+              $summary += "|------|-----:|------|----------|---------|"
+              foreach ($r in $allResults | Select-Object -First 50) {
+                  $summary += "| ``$($r.File)`` | $($r.Line) | ``$($r.Rule)`` | $($r.Severity) | $($r.Message) |"
+              }
+              if ($allResults.Count -gt 50) {
+                  $summary += ""
+                  $summary += "_Showing first 50 of $($allResults.Count) findings._"
+              }
+          }
+          $summary += ""
+          $summary += "_Rules: $($includeRules -join ', ')_"
+          $summary -join "`n" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "PSScriptAnalyzer: $($allResults.Count) finding(s) from $($includeRules.Count) rules"
+
       - name: XAML parse smoke
         shell: pwsh
         run: |
@@ -141,6 +191,87 @@ jobs:
           $summary += "_Run: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID_"
 
           $summary -join "`n" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Source shape metrics
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $keyFiles = @(
+              'LibreSpot.ps1',
+              'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1',
+              'src/LibreSpot.Desktop/ViewModels/MainViewModel.cs',
+              'src/LibreSpot.Desktop/Models/AppCatalog.cs',
+              'src/LibreSpot.Desktop/MainWindow.xaml'
+          )
+
+          $rows = @()
+          foreach ($file in $keyFiles) {
+              if (-not (Test-Path $file)) {
+                  $rows += [pscustomobject]@{ File = $file; Lines = 'missing'; Functions = '-' }
+                  continue
+              }
+              $lineCount = (Get-Content $file).Count
+              $funcCount = '-'
+              if ($file -like '*.ps1') {
+                  $funcCount = ([regex]::Matches((Get-Content $file -Raw), '(?m)^\s*function\s+')).Count
+              }
+              $rows += [pscustomobject]@{ File = $file; Lines = $lineCount; Functions = $funcCount }
+          }
+
+          $csCount = (Get-ChildItem -Path src -Recurse -Filter '*.cs' |
+              Where-Object { $_.FullName -notmatch '[\\/](obj|bin)[\\/]' }).Count
+          $testCount = (Get-ChildItem -Path tests -Recurse -Filter '*.cs' |
+              Where-Object { $_.FullName -notmatch '[\\/](obj|bin)[\\/]' }).Count
+
+          # Build summary table
+          $summary = @()
+          $summary += "## Source Shape Metrics"
+          $summary += ""
+          $summary += "| File | Lines | Functions |"
+          $summary += "|------|------:|----------:|"
+          foreach ($r in $rows) {
+              $summary += "| ``$($r.File)`` | $($r.Lines) | $($r.Functions) |"
+          }
+          $summary += ""
+          $summary += "| Aggregate | Count |"
+          $summary += "|-----------|------:|"
+          $summary += "| C# sources under ``src/`` | $csCount |"
+          $summary += "| Test files under ``tests/`` | $testCount |"
+
+          # Budget threshold warnings
+          $warnings = @()
+          $lsRow = $rows | Where-Object { $_.File -eq 'LibreSpot.ps1' }
+          if ($lsRow -and $lsRow.Lines -ne 'missing' -and [int]$lsRow.Lines -gt 7000) {
+              $warnings += "LibreSpot.ps1 is $($lsRow.Lines) lines (budget: 7000)"
+          }
+          $mvRow = $rows | Where-Object { $_.File -like '*MainViewModel.cs' }
+          if ($mvRow -and $mvRow.Lines -ne 'missing' -and [int]$mvRow.Lines -gt 3000) {
+              $warnings += "MainViewModel.cs is $($mvRow.Lines) lines (budget: 3000)"
+          }
+          $beRow = $rows | Where-Object { $_.File -like '*LibreSpot.Backend.ps1' }
+          if ($beRow -and $beRow.Lines -ne 'missing' -and [int]$beRow.Lines -gt 3500) {
+              $warnings += "LibreSpot.Backend.ps1 is $($beRow.Lines) lines (budget: 3500)"
+          }
+
+          if ($warnings.Count -gt 0) {
+              $summary += ""
+              $summary += "### :warning: Budget Warnings"
+              $summary += ""
+              foreach ($w in $warnings) {
+                  $summary += "- $w"
+                  Write-Host "::warning::$w"
+              }
+          }
+
+          $summary -join "`n" >> $env:GITHUB_STEP_SUMMARY
+
+          # Echo to log
+          foreach ($r in $rows) {
+              Write-Host "$($r.File): $($r.Lines) lines, $($r.Functions) functions"
+          }
+          Write-Host "C# sources: $csCount | Test files: $testCount"
 
       - name: NuGet vulnerability audit
         shell: pwsh
