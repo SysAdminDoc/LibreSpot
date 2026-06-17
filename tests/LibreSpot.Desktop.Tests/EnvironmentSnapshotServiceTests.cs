@@ -106,6 +106,23 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.Matches(@"GetSnapshotAsync\([^)]*\)\s*=>\s*\r?\n?\s*Task\.Run", source);
     }
 
+    [Fact]
+    public void AutoReapplyTaskProbe_DrainsRedirectedPipesBeforeWaitForExit()
+    {
+        var source = File.ReadAllText(Path.Combine(
+            ResolveRepoRoot(), "src", "LibreSpot.Desktop", "Services", "EnvironmentSnapshotService.cs"));
+
+        var stdoutIndex = source.IndexOf("StandardOutput.ReadToEndAsync", StringComparison.Ordinal);
+        var stderrIndex = source.IndexOf("StandardError.ReadToEndAsync", StringComparison.Ordinal);
+        var waitIndex = source.IndexOf("WaitForExit(1500)", StringComparison.Ordinal);
+
+        Assert.True(stdoutIndex > 0, "schtasks stdout must be drained asynchronously.");
+        Assert.True(stderrIndex > 0, "schtasks stderr must be drained asynchronously.");
+        Assert.True(waitIndex > 0, "schtasks probe must keep the bounded wait.");
+        Assert.True(stdoutIndex < waitIndex, "stdout drain must start before WaitForExit.");
+        Assert.True(stderrIndex < waitIndex, "stderr drain must start before WaitForExit.");
+    }
+
     private static string ResolveRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

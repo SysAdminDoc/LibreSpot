@@ -85,12 +85,14 @@ public sealed class MaintenanceActionCardViewModel : ObservableObject
     public MaintenanceActionCardViewModel(
         MaintenanceActionDefinition definition,
         Func<MaintenanceActionDefinition, Task> runAsync,
-        Func<bool> canRun)
+        Func<bool> canRun,
+        Action<Exception> onException)
     {
         Definition = definition;
-        Command = new RelayCommand(
-            () => _ = runAsync(Definition),
-            () => IsRelevant && canRun());
+        Command = new AsyncRelayCommand(
+            () => runAsync(Definition),
+            () => IsRelevant && canRun(),
+            onException);
     }
 
     public MaintenanceActionDefinition Definition { get; }
@@ -99,7 +101,7 @@ public sealed class MaintenanceActionCardViewModel : ObservableObject
     public string Description => Definition.Description;
     public string ButtonText => Definition.ButtonText;
     public bool IsDestructive => Definition.IsDestructive;
-    public RelayCommand Command { get; }
+    public AsyncRelayCommand Command { get; }
 
     public bool IsRelevant
     {
@@ -317,27 +319,27 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 _recommendedBaseline.Spicetify_Extensions.Contains(def.Key, StringComparer.OrdinalIgnoreCase))));
 
         _maintenanceCards = AppCatalog.MaintenanceActions
-            .Select(def => new MaintenanceActionCardViewModel(def, RunMaintenanceAsync, () => !IsRunning))
+            .Select(def => new MaintenanceActionCardViewModel(def, RunMaintenanceAsync, () => !IsRunning, HandleAsyncCommandException))
             .ToList();
 
         SafeMaintenanceActions = new ObservableCollection<MaintenanceActionCardViewModel>(_maintenanceCards.Where(card => !card.IsDestructive));
         DestructiveMaintenanceActions = new ObservableCollection<MaintenanceActionCardViewModel>(_maintenanceCards.Where(card => card.IsDestructive));
 
         LogEntries = new ObservableCollection<LogEntryViewModel>();
-        ApplyRecommendedCommand = new RelayCommand(() => _ = ApplyRecommendedAsync(), () => !IsRunning);
-        ApplyCustomCommand = new RelayCommand(() => _ = ApplyCustomAsync(), () => !IsRunning);
+        ApplyRecommendedCommand = new AsyncRelayCommand(ApplyRecommendedAsync, () => !IsRunning, HandleAsyncCommandException);
+        ApplyCustomCommand = new AsyncRelayCommand(ApplyCustomAsync, () => !IsRunning, HandleAsyncCommandException);
         CancelRunCommand = new RelayCommand(PresentCancelRunPrompt, () => IsRunning && !IsCancelRequested);
         DismissActivityCommand = new RelayCommand(DismissActivity, () => IsActivityVisible && !IsRunning);
         CopyLogCommand = new RelayCommand(CopyLog, () => LogEntries.Count > 0);
         OpenLibreSpotFolderCommand = new RelayCommand(OpenLibreSpotFolder);
-        RefreshSnapshotCommand = new RelayCommand(() => _ = RefreshSnapshotAsync());
+        RefreshSnapshotCommand = new AsyncRelayCommand(RefreshSnapshotAsync, onException: HandleAsyncCommandException);
         RefreshSupportBundlePreviewCommand = new RelayCommand(RefreshSupportBundlePreview);
-        ExportSupportBundleCommand = new RelayCommand(() => _ = ExportSupportBundleAsync(), () => !IsRunning);
+        ExportSupportBundleCommand = new AsyncRelayCommand(ExportSupportBundleAsync, () => !IsRunning, HandleAsyncCommandException);
         EnableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: true), () => !IsRunning && !Snapshot.AutoReapplyTaskRegistered);
         DisableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: false), () => !IsRunning && Snapshot.AutoReapplyTaskRegistered);
         ClearSettingsSearchCommand = new RelayCommand(() => SettingsSearchText = string.Empty, () => HasSettingsSearchText);
         RelaunchAsAdministratorCommand = new RelayCommand(PresentAdministratorPrompt, () => NeedsAdministratorRelaunch && !IsRunning);
-        ConfirmPromptCommand = new RelayCommand(() => _ = ConfirmPromptAsync(), () => IsPromptVisible);
+        ConfirmPromptCommand = new AsyncRelayCommand(ConfirmPromptAsync, () => IsPromptVisible, HandleAsyncCommandException);
         CancelPromptCommand = new RelayCommand(CancelPrompt, () => IsPromptVisible);
         EscapeCommand = new RelayCommand(HandleEscape);
 
@@ -371,20 +373,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<string> SupportBundleRedactionRules { get; }
     public ObservableCollection<LogEntryViewModel> LogEntries { get; }
 
-    public RelayCommand ApplyRecommendedCommand { get; }
-    public RelayCommand ApplyCustomCommand { get; }
+    public AsyncRelayCommand ApplyRecommendedCommand { get; }
+    public AsyncRelayCommand ApplyCustomCommand { get; }
     public RelayCommand CancelRunCommand { get; }
     public RelayCommand DismissActivityCommand { get; }
     public RelayCommand CopyLogCommand { get; }
     public RelayCommand OpenLibreSpotFolderCommand { get; }
-    public RelayCommand RefreshSnapshotCommand { get; }
+    public AsyncRelayCommand RefreshSnapshotCommand { get; }
     public RelayCommand RefreshSupportBundlePreviewCommand { get; }
-    public RelayCommand ExportSupportBundleCommand { get; }
+    public AsyncRelayCommand ExportSupportBundleCommand { get; }
     public RelayCommand EnableAutoReapplyCommand { get; }
     public RelayCommand DisableAutoReapplyCommand { get; }
     public RelayCommand ClearSettingsSearchCommand { get; }
     public RelayCommand RelaunchAsAdministratorCommand { get; }
-    public RelayCommand ConfirmPromptCommand { get; }
+    public AsyncRelayCommand ConfirmPromptCommand { get; }
     public RelayCommand CancelPromptCommand { get; }
     public RelayCommand EscapeCommand { get; }
 
@@ -446,7 +448,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool HasConfigurationRecoveryNotice =>
         _configurationLoadState == ConfigurationLoadState.RecoveredFromCorrupt;
 
-    public string ConfigurationRecoveryTitle => "Unreadable profile was recovered";
+    private bool IsForwardIncompatibleConfiguration =>
+        _configurationRecoveryReason?.Contains("newer than this LibreSpot build supports", StringComparison.OrdinalIgnoreCase) == true;
+
+    public string ConfigurationRecoveryTitle =>
+        IsForwardIncompatibleConfiguration
+            ? "Profile needs a newer LibreSpot"
+            : "Unreadable profile was recovered";
 
     private string ConfigurationRecoveryReasonClause =>
         string.IsNullOrWhiteSpace(_configurationRecoveryReason)
@@ -456,6 +464,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string ConfigurationRecoveryDetail =>
         !HasConfigurationRecoveryNotice
             ? string.Empty
+            : IsForwardIncompatibleConfiguration
+                ? string.IsNullOrWhiteSpace(_recoveredConfigurationPath)
+                    ? $"LibreSpot loaded safe defaults because config.json was saved by a newer build.{ConfigurationRecoveryReasonClause} Update LibreSpot before reusing that profile."
+                    : $"LibreSpot kept the config.json from a newer LibreSpot build aside and loaded safe defaults.{ConfigurationRecoveryReasonClause} Update LibreSpot before reusing that profile. Backup kept as {Path.GetFileName(_recoveredConfigurationPath)}."
             : string.IsNullOrWhiteSpace(_recoveredConfigurationPath)
                 ? $"LibreSpot reopened with safe defaults because config.json could not be read safely.{ConfigurationRecoveryReasonClause} Apply Recommended or Custom to save a fresh profile."
                 : $"LibreSpot moved the unreadable config.json aside and reopened with safe defaults.{ConfigurationRecoveryReasonClause} Apply Recommended or Custom to save a fresh profile. Backup kept as {Path.GetFileName(_recoveredConfigurationPath)}.";
@@ -1609,6 +1621,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             card.Command.RaiseCanExecuteChanged();
         }
+    }
+
+    private void HandleAsyncCommandException(Exception ex)
+    {
+        if (ex is OperationCanceledException)
+        {
+            return;
+        }
+
+        AppendLog($"Desktop command failed: {ex.Message}", "ERROR");
+        ShowNotice(
+            "Action could not finish",
+            ex.Message,
+            "Review the run log before trying again.");
     }
 
     private bool IsMaintenanceActionRelevant(string action)

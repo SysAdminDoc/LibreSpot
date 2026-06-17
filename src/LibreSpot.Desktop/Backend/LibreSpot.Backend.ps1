@@ -589,6 +589,8 @@ function Get-WatcherState {
 
 function Set-WatcherState {
     param([hashtable]$State)
+    $tempPath = $null
+    $backupPath = $null
     try {
         Ensure-LogDirectory
         $merged = Get-WatcherState
@@ -597,8 +599,23 @@ function Set-WatcherState {
         }
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
         $json = $merged | ConvertTo-Json -Compress
-        [System.IO.File]::WriteAllText($global:WATCHER_STATE_PATH, $json, $utf8NoBom)
+        $tempPath = Join-Path $global:CONFIG_DIR ("watcher-state.{0}.tmp" -f [Guid]::NewGuid().ToString('N'))
+        $backupPath = Join-Path $global:CONFIG_DIR ("watcher-state.{0}.bak" -f [Guid]::NewGuid().ToString('N'))
+        [System.IO.File]::WriteAllText($tempPath, $json, $utf8NoBom)
+        if (Test-Path -LiteralPath $global:WATCHER_STATE_PATH) {
+            try {
+                [System.IO.File]::Replace($tempPath, $global:WATCHER_STATE_PATH, $backupPath, $true)
+                Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
+            } catch {
+                Remove-Item -LiteralPath $global:WATCHER_STATE_PATH -Force -ErrorAction Stop
+                [System.IO.File]::Move($tempPath, $global:WATCHER_STATE_PATH)
+            }
+        } else {
+            [System.IO.File]::Move($tempPath, $global:WATCHER_STATE_PATH)
+        }
     } catch {
+        if ($tempPath) { Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue }
+        if ($backupPath) { Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue }
         Write-WatcherLog "State save failed: $($_.Exception.Message)" -Level 'WARN'
     }
 }

@@ -31,10 +31,13 @@ public sealed class BackendScriptService
     public BackendScriptService(string? runtimeDirectory = null, bool noBackendMode = false)
     {
         _runtimeDirectory = string.IsNullOrWhiteSpace(runtimeDirectory)
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibreSpot", "Runtime")
+            ? DefaultRuntimeDirectory
             : Path.GetFullPath(runtimeDirectory);
         _noBackendMode = noBackendMode;
     }
+
+    public static string DefaultRuntimeDirectory =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibreSpot", "Runtime");
 
     private string RuntimeDirectory => _runtimeDirectory;
 
@@ -92,28 +95,38 @@ public sealed class BackendScriptService
 
         string scriptPath;
         string? executionCopy = null;
+        FileStream? executionCopyGuard = null;
         try
         {
             var (canonicalPath, expectedHash) = await EnsureBackendScriptAsync(cancellationToken);
             executionCopy = Path.Combine(RuntimeDirectory, $"LibreSpot.Backend.{Guid.NewGuid():N}.run.ps1");
-            File.Copy(canonicalPath, executionCopy, overwrite: true);
+            await using var canonicalStream = File.Open(canonicalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            executionCopyGuard = new FileStream(
+                executionCopy,
+                FileMode.CreateNew,
+                FileAccess.ReadWrite,
+                FileShare.Read);
+            await canonicalStream.CopyToAsync(executionCopyGuard, cancellationToken);
+            await executionCopyGuard.FlushAsync(cancellationToken);
 
-            await using var verifyStream = File.Open(executionCopy, FileMode.Open, FileAccess.Read, FileShare.None);
-            var copyHash = ComputeHash(verifyStream);
+            var copyHash = ComputeHash(executionCopyGuard);
             if (copyHash != expectedHash)
             {
                 throw new InvalidOperationException("Execution copy hash mismatch — the runtime file was modified between extraction and copy.");
             }
 
+            executionCopyGuard.Position = 0;
             scriptPath = executionCopy;
         }
         catch (OperationCanceledException)
         {
+            executionCopyGuard?.Dispose();
             TryDeleteExecutionCopy(executionCopy);
             return new BackendRunResult(false, "LibreSpot canceled the backend run.");
         }
         catch (Exception ex)
         {
+            executionCopyGuard?.Dispose();
             TryDeleteExecutionCopy(executionCopy);
             return new BackendRunResult(false, $"LibreSpot could not prepare the backend runtime: {ex.Message}");
         }
@@ -171,6 +184,7 @@ public sealed class BackendScriptService
         }
         catch (Exception ex)
         {
+            executionCopyGuard?.Dispose();
             TryDeleteExecutionCopy(executionCopy);
             return new BackendRunResult(false, $"LibreSpot could not start the backend runtime: {ex.Message}");
         }
@@ -186,6 +200,8 @@ public sealed class BackendScriptService
         {
             TryKillTree(process, waitForExit: true);
             try { await Task.Run(process.WaitForExit, CancellationToken.None); } catch { }
+            executionCopyGuard?.Dispose();
+            TryDeleteExecutionCopy(executionCopy);
             return new BackendRunResult(false, "LibreSpot canceled the backend run.");
         }
 
@@ -196,10 +212,13 @@ public sealed class BackendScriptService
         {
             if (messageDeliveryException is not null)
             {
+                executionCopyGuard?.Dispose();
+                TryDeleteExecutionCopy(executionCopy);
                 return new BackendRunResult(false, $"LibreSpot could not update the desktop shell while the backend was running: {messageDeliveryException.Message}");
             }
         }
 
+        executionCopyGuard?.Dispose();
         TryDeleteExecutionCopy(executionCopy);
 
         return process.ExitCode == 0
@@ -380,4 +399,6 @@ public sealed class BackendScriptService
         }
         catch { }
     }
+
+    public static void CleanStaleExecutionCopies() => CleanStaleExecutionCopies(DefaultRuntimeDirectory);
 }

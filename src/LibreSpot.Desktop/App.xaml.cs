@@ -8,6 +8,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         CrashReporter.Initialize();
+        BackendScriptService.CleanStaleExecutionCopies();
         ThemeManager.Initialize(this);
         base.OnStartup(e);
     }

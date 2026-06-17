@@ -9,6 +9,25 @@ namespace LibreSpot.Desktop.Tests;
 public sealed class BackendScriptServiceTests
 {
     [Fact]
+    public void RunAsync_HoldsExecutionCopyWithReadOnlySharing()
+    {
+        var source = ReadRepoFile("src", "LibreSpot.Desktop", "Services", "BackendScriptService.cs");
+
+        Assert.Contains("executionCopyGuard", source);
+        Assert.Contains("FileMode.CreateNew", source);
+        Assert.Contains("FileShare.Read", source);
+        Assert.DoesNotContain("File.Copy(canonicalPath, executionCopy", source);
+    }
+
+    [Fact]
+    public void AppStartup_CleansStaleExecutionCopies()
+    {
+        var source = ReadRepoFile("src", "LibreSpot.Desktop", "App.xaml.cs");
+
+        Assert.Contains("BackendScriptService.CleanStaleExecutionCopies()", source);
+    }
+
+    [Fact]
     public async Task RunAsync_RejectsUnknownActionsBeforePreparingRuntime()
     {
         var runtimeDirectory = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
@@ -145,5 +164,17 @@ public sealed class BackendScriptServiceTests
         {
             try { Directory.Delete(runtimeDirectory, recursive: true); } catch { }
         }
+    }
+
+    private static string ReadRepoFile(params string[] relativeParts)
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "LibreSpot.ps1")))
+        {
+            dir = dir.Parent;
+        }
+
+        var root = dir?.FullName ?? throw new InvalidOperationException("Could not locate repo root.");
+        return File.ReadAllText(Path.Combine(new[] { root }.Concat(relativeParts).ToArray()));
     }
 }

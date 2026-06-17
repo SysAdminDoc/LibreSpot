@@ -8,6 +8,35 @@ namespace LibreSpot.Desktop.Tests;
 public sealed class MainViewModelMaintenanceTests
 {
     [Fact]
+    public Task InitializeAsync_ShowsForwardSchemaRecoveryNotice() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            fixture.WriteConfig("{\"ConfigSchemaVersion\":999}");
+
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            Assert.True(viewModel.HasConfigurationRecoveryNotice);
+            Assert.Equal("Profile needs a newer LibreSpot", viewModel.ConfigurationRecoveryTitle);
+            Assert.Contains("newer LibreSpot build", viewModel.ConfigurationRecoveryDetail);
+            Assert.Contains("Backup kept as", viewModel.ConfigurationRecoveryDetail);
+        });
+
+    [Fact]
+    public void AsyncRelayCommand_RoutesAsyncExceptionsToHandler()
+    {
+        var observed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var command = new AsyncRelayCommand(
+            () => Task.FromException(new InvalidOperationException("command exploded")),
+            onException: ex => observed.TrySetResult(ex.Message));
+
+        command.Execute(null);
+
+        Assert.True(observed.Task.Wait(TimeSpan.FromSeconds(2)));
+        Assert.Equal("command exploded", observed.Task.Result);
+    }
+
+    [Fact]
     public Task MaintenanceActions_ShowOpenMarketplaceWhenMarketplaceIsReady() =>
         RunStaAsync(async () =>
         {
@@ -209,6 +238,9 @@ public sealed class MainViewModelMaintenanceTests
 
         public void WriteCrashReport(string content) =>
             WriteFile(Path.Combine(CrashDirectory, "crash-20260616-test.log"), content);
+
+        public void WriteConfig(string content) =>
+            WriteFile(ConfigPath, content);
 
         private static void WriteFile(string path, string content)
         {

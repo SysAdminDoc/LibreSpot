@@ -1125,31 +1125,40 @@ public sealed class EnvironmentSnapshotService
     {
         try
         {
-            using var process = Process.Start(new ProcessStartInfo
+            using var process = new Process
             {
-                FileName = "schtasks.exe",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                ArgumentList =
+                StartInfo = new ProcessStartInfo
                 {
-                    "/Query",
-                    "/TN",
-                    @"LibreSpot\ReapplyWatcher"
+                    FileName = "schtasks.exe",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    ArgumentList =
+                    {
+                        "/Query",
+                        "/TN",
+                        @"LibreSpot\ReapplyWatcher"
+                    }
                 }
-            });
+            };
 
-            if (process is null)
+            if (!process.Start())
             {
                 return false;
             }
+
+            var stdoutDrain = process.StandardOutput.ReadToEndAsync();
+            var stderrDrain = process.StandardError.ReadToEndAsync();
 
             if (!process.WaitForExit(1500))
             {
                 try { process.Kill(); } catch { }
+                try { process.WaitForExit(500); } catch { }
                 return false;
             }
+
+            try { Task.WaitAll(new Task[] { stdoutDrain, stderrDrain }, 500); } catch { }
 
             return process.ExitCode == 0;
         }

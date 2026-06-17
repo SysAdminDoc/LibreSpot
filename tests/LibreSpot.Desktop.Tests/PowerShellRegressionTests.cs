@@ -119,6 +119,20 @@ public sealed class PowerShellRegressionTests
     }
 
     [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SetWatcherState_WritesThroughAtomicTempFile(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("function Set-WatcherState", script);
+        Assert.Contains("watcher-state.{0}.tmp", script);
+        Assert.Contains("[System.IO.File]::Replace($tempPath, $global:WATCHER_STATE_PATH", script);
+        Assert.Contains("[System.IO.File]::Move($tempPath, $global:WATCHER_STATE_PATH)", script);
+        Assert.DoesNotContain("[System.IO.File]::WriteAllText($global:WATCHER_STATE_PATH", script);
+    }
+
+    [Theory]
     [InlineData("[Version]")]
     [InlineData("-preview")]
     [InlineData("-rc")]
