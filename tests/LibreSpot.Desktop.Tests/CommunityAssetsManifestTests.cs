@@ -228,6 +228,114 @@ public sealed class CommunityAssetsManifestTests
         }
     }
 
+    [Fact]
+    public void Manifest_AllCustomAppsHaveRequiredFields()
+    {
+        var customApps = Manifest.RootElement.GetProperty("customApps");
+        Assert.True(customApps.GetArrayLength() > 0, "customApps array must not be empty.");
+
+        foreach (var app in customApps.EnumerateArray())
+        {
+            var appId = app.GetProperty("appId").GetString()!;
+            var required = new[] { "appId", "displayName", "description", "owner", "repo", "commitSha", "assetPath", "sha256", "spdxLicense", "supportState", "fallbackBehavior", "networkBehavior", "easyModeDefault" };
+            foreach (var field in required)
+            {
+                Assert.True(
+                    app.TryGetProperty(field, out var val) && val.ValueKind != JsonValueKind.Undefined,
+                    $"Custom app '{appId}' is missing required field '{field}'.");
+            }
+        }
+    }
+
+    [Fact]
+    public void Manifest_CustomAppIdsAreUnique()
+    {
+        var ids = Manifest.RootElement.GetProperty("customApps").EnumerateArray()
+            .Select(a => a.GetProperty("appId").GetString()!)
+            .ToList();
+
+        var duplicates = ids.GroupBy(id => id).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+        Assert.True(duplicates.Count == 0, $"Duplicate custom app IDs: {string.Join(", ", duplicates)}");
+    }
+
+    [Fact]
+    public void Manifest_CustomAppsHaveValidLicenses()
+    {
+        var policy = Manifest.RootElement.GetProperty("policy");
+        var knownLicenses = new HashSet<string>(StringComparer.Ordinal) { "NOASSERTION" };
+        foreach (var l in policy.GetProperty("allowedLicenses").EnumerateArray())
+            knownLicenses.Add(l.GetString()!);
+        foreach (var l in policy.GetProperty("reviewRequiredLicenses").EnumerateArray())
+            knownLicenses.Add(l.GetString()!);
+        foreach (var l in policy.GetProperty("blockedLicenses").EnumerateArray())
+            knownLicenses.Add(l.GetString()!);
+
+        foreach (var app in Manifest.RootElement.GetProperty("customApps").EnumerateArray())
+        {
+            var appId = app.GetProperty("appId").GetString()!;
+            var license = app.GetProperty("spdxLicense").GetString()!;
+            Assert.True(
+                knownLicenses.Contains(license),
+                $"Custom app '{appId}' has spdxLicense '{license}' which is not known to the policy.");
+        }
+    }
+
+    [Fact]
+    public void Manifest_CustomAppsWithReviewRequiredLicenseAndEasyModeRequireOverride()
+    {
+        var policy = Manifest.RootElement.GetProperty("policy");
+        var reviewRequired = policy.GetProperty("reviewRequiredLicenses")
+            .EnumerateArray().Select(l => l.GetString()!).ToHashSet(StringComparer.Ordinal);
+
+        foreach (var app in Manifest.RootElement.GetProperty("customApps").EnumerateArray())
+        {
+            var appId = app.GetProperty("appId").GetString()!;
+            var license = app.GetProperty("spdxLicense").GetString()!;
+            var isEasyDefault = app.TryGetProperty("easyModeDefault", out var em) && em.ValueKind == JsonValueKind.True;
+
+            if (!isEasyDefault)
+                continue;
+
+            bool needsOverride = license == "NOASSERTION" || reviewRequired.Contains(license);
+            if (!needsOverride)
+                continue;
+
+            Assert.True(
+                app.TryGetProperty("policyOverride", out var po) && po.ValueKind == JsonValueKind.Object,
+                $"Custom app '{appId}' has license '{license}' and easyModeDefault=true but no policyOverride.");
+
+            Assert.True(
+                po.TryGetProperty("reason", out var reason) && reason.ValueKind == JsonValueKind.String
+                    && !string.IsNullOrWhiteSpace(reason.GetString()),
+                $"Custom app '{appId}' policyOverride is missing a non-empty 'reason'.");
+
+            Assert.True(
+                po.TryGetProperty("approvedBy", out var by) && by.ValueKind == JsonValueKind.String
+                    && !string.IsNullOrWhiteSpace(by.GetString()),
+                $"Custom app '{appId}' policyOverride is missing a non-empty 'approvedBy'.");
+
+            Assert.True(
+                po.TryGetProperty("approvedDate", out var date) && date.ValueKind == JsonValueKind.String
+                    && Regex.IsMatch(date.GetString()!, @"^\d{4}-\d{2}-\d{2}$"),
+                $"Custom app '{appId}' policyOverride is missing a valid 'approvedDate' (YYYY-MM-DD).");
+        }
+    }
+
+    [Fact]
+    public void Manifest_CustomAppsAppIdMatchesAssetPath()
+    {
+        foreach (var app in Manifest.RootElement.GetProperty("customApps").EnumerateArray())
+        {
+            var appId = app.GetProperty("appId").GetString()!;
+            var assetPath = app.GetProperty("assetPath").GetString()!;
+
+            // The assetPath should start with or equal the appId (the folder name spicetify uses)
+            Assert.True(
+                assetPath == appId || assetPath.StartsWith(appId + "/", StringComparison.Ordinal),
+                $"Custom app '{appId}' has assetPath '{assetPath}' that does not match its appId.");
+        }
+    }
+
     // Every installable community asset must explicitly declare its runtime
     // network behavior so users (and the trust docs) know whether enabling it
     // contacts a server other than GitHub/Spotify. Assets that talk to a
@@ -239,13 +347,16 @@ public sealed class CommunityAssetsManifestTests
 
         IEnumerable<JsonElement> assets =
             Manifest.RootElement.GetProperty("extensions").EnumerateArray()
-                .Concat(Manifest.RootElement.GetProperty("themes").EnumerateArray());
+                .Concat(Manifest.RootElement.GetProperty("themes").EnumerateArray())
+                .Concat(Manifest.RootElement.GetProperty("customApps").EnumerateArray());
 
         foreach (var asset in assets)
         {
             var id = asset.TryGetProperty("filename", out var fn)
                 ? fn.GetString()!
-                : asset.GetProperty("themeId").GetString()!;
+                : asset.TryGetProperty("themeId", out var tid)
+                    ? tid.GetString()!
+                    : asset.GetProperty("appId").GetString()!;
 
             Assert.True(
                 asset.TryGetProperty("networkBehavior", out var behavior) && behavior.ValueKind == JsonValueKind.String,
@@ -296,13 +407,16 @@ public sealed class CommunityAssetsManifestTests
 
         IEnumerable<JsonElement> assets =
             Manifest.RootElement.GetProperty("extensions").EnumerateArray()
-                .Concat(Manifest.RootElement.GetProperty("themes").EnumerateArray());
+                .Concat(Manifest.RootElement.GetProperty("themes").EnumerateArray())
+                .Concat(Manifest.RootElement.GetProperty("customApps").EnumerateArray());
 
         foreach (var asset in assets)
         {
             var id = asset.TryGetProperty("filename", out var fn)
                 ? fn.GetString()!
-                : asset.GetProperty("themeId").GetString()!;
+                : asset.TryGetProperty("themeId", out var tid)
+                    ? tid.GetString()!
+                    : asset.GetProperty("appId").GetString()!;
 
             var license = asset.GetProperty("spdxLicense").GetString()!;
             var isEasyDefault = asset.TryGetProperty("easyModeDefault", out var em)
@@ -355,13 +469,16 @@ public sealed class CommunityAssetsManifestTests
 
         IEnumerable<JsonElement> assets =
             Manifest.RootElement.GetProperty("extensions").EnumerateArray()
-                .Concat(Manifest.RootElement.GetProperty("themes").EnumerateArray());
+                .Concat(Manifest.RootElement.GetProperty("themes").EnumerateArray())
+                .Concat(Manifest.RootElement.GetProperty("customApps").EnumerateArray());
 
         foreach (var asset in assets)
         {
             var id = asset.TryGetProperty("filename", out var fn)
                 ? fn.GetString()!
-                : asset.GetProperty("themeId").GetString()!;
+                : asset.TryGetProperty("themeId", out var tid)
+                    ? tid.GetString()!
+                    : asset.GetProperty("appId").GetString()!;
 
             var license = asset.GetProperty("spdxLicense").GetString()!;
             Assert.True(

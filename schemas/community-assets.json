@@ -243,6 +243,49 @@
       }
     }
   ],
+  "customApps": [
+    {
+      "$comment": "SHA256 hashes are PENDING_VERIFICATION — they must be filled in by downloading the archive at the pinned commit and hashing the app folder contents. Until verified, the install pipeline should refuse to cache or apply these entries.",
+      "appId": "stats",
+      "displayName": "Stats",
+      "description": "View detailed listening statistics including top tracks, artists, genres, and listening history with interactive charts",
+      "owner": "harbassan",
+      "repo": "spicetify-apps",
+      "commitSha": "PENDING_VERIFICATION",
+      "assetPath": "stats",
+      "sha256": "PENDING_VERIFICATION",
+      "spdxLicense": "MIT",
+      "copyrightHolder": "harbassan",
+      "redistributionPosture": "download-only-not-redistributed",
+      "supportState": "active",
+      "lastVerifiedDate": "2026-06-17",
+      "fallbackBehavior": "skip-with-warning",
+      "networkBehavior": "local-only",
+      "networkDetail": null,
+      "easyModeDefault": false,
+      "notes": "Custom app — installs via spicetify config custom_apps. Opt-in only until SHA256 and commit SHA are verified."
+    },
+    {
+      "appId": "new-releases",
+      "displayName": "New Releases",
+      "description": "Browse new album and single releases from artists you follow, with filtering and sorting options",
+      "owner": "harbassan",
+      "repo": "spicetify-apps",
+      "commitSha": "PENDING_VERIFICATION",
+      "assetPath": "new-releases",
+      "sha256": "PENDING_VERIFICATION",
+      "spdxLicense": "MIT",
+      "copyrightHolder": "harbassan",
+      "redistributionPosture": "download-only-not-redistributed",
+      "supportState": "active",
+      "lastVerifiedDate": "2026-06-17",
+      "fallbackBehavior": "skip-with-warning",
+      "networkBehavior": "local-only",
+      "networkDetail": null,
+      "easyModeDefault": false,
+      "notes": "Custom app — installs via spicetify config custom_apps. Opt-in only until SHA256 and commit SHA are verified."
+    }
+  ],
   "officialThemesArchive": {
     "owner": "spicetify",
     "repo": "spicetify-themes",
