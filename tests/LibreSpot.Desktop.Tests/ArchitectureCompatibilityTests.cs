@@ -68,10 +68,8 @@ public sealed class ArchitectureCompatibilityTests
         Assert.Contains("64-bit", result);
     }
 
-    [Theory]
-    [InlineData("X64")]
-    [InlineData("Arm64")]
-    public void X64Entry_IsCompatibleOnX64OrArm64Host(string host)
+    [Fact]
+    public void X64Entry_IsCompatibleOnX64Host()
     {
         var entry = new AppCatalog.SpotifyVersionEntry(
             "1.2.92",
@@ -80,9 +78,22 @@ public sealed class ArchitectureCompatibilityTests
             "Current pinned.",
             "x64");
 
-        var result = AppCatalog.CheckArchitectureCompatibility(entry, host);
+        Assert.Null(AppCatalog.CheckArchitectureCompatibility(entry, "X64"));
+    }
 
-        Assert.Null(result);
+    [Fact]
+    public void X64Entry_WarnsOnArm64Host()
+    {
+        var entry = new AppCatalog.SpotifyVersionEntry(
+            "1.2.92",
+            "1.2.92 (current pinned)",
+            "1.2.92",
+            "Current pinned.",
+            "x64");
+
+        var result = AppCatalog.CheckArchitectureCompatibility(entry, "ARM64");
+        Assert.NotNull(result);
+        Assert.Contains("emulation", result);
     }
 
     [Fact]

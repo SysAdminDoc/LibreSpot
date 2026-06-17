@@ -70,7 +70,11 @@ public static class ThemeManager
 
     private static void ClearReducedMotionOverrides(Application app)
     {
-        string[] motionKeys = ["MotionFast", "MotionMed", "MotionSlow"];
+        string[] motionKeys =
+        [
+            "MotionFast", "MotionMed", "MotionSlow",
+            "MotionFastDuration", "MotionMedDuration", "MotionSlowDuration"
+        ];
         foreach (var key in motionKeys)
         {
             if (app.Resources.Contains(key))

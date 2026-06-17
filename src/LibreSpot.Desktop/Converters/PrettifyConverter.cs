@@ -14,5 +14,5 @@ public sealed class PrettifyConverter : IValueConverter
         => value is string slug ? Prettify.Label(slug) : value;
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => value;
+        => throw new NotSupportedException();
 }

@@ -473,11 +473,18 @@ public static class AppCatalog
             return $"This is a 32-bit Spotify build intended for x86 Windows. Your host is {host}. SpotX and Spicetify patches may not apply correctly.";
         }
 
-        // x64-only build selected on a non-x64 host (e.g., x86 or ARM64).
+        // x64-only build selected on an x86 host.
         if (string.Equals(arch, "x64", StringComparison.OrdinalIgnoreCase) &&
             string.Equals(host, "X86", StringComparison.OrdinalIgnoreCase))
         {
             return $"This is a 64-bit Spotify build, but your host is {host}. Choose the x86 build or Auto instead.";
+        }
+
+        // x64 build running under emulation on ARM64.
+        if (string.Equals(arch, "x64", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(host, "ARM64", StringComparison.OrdinalIgnoreCase))
+        {
+            return "This x64 Spotify build will run under emulation on ARM64. SpotX and Spicetify patches are untested in this configuration.";
         }
 
         // Legacy OS build selected on a modern Windows host.

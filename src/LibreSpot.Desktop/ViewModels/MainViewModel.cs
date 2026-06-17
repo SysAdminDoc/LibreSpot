@@ -2050,13 +2050,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private async Task RefreshSnapshotAsync()
     {
-        // Probe off the UI thread (schtasks query can take up to 1500ms); the
-        // await resumes on the dispatcher so property updates stay UI-safe.
-        Snapshot = await _snapshotService.GetSnapshotAsync(_configurationService.ConfigPath);
-        _snapshotRefreshedAt = DateTime.Now;
-        RaisePropertyChanged(nameof(LastRefreshedText));
-        RaiseSnapshotFreshnessChanged();
-        RaiseSnapshotInsightsChanged();
+        try
+        {
+            Snapshot = await _snapshotService.GetSnapshotAsync(_configurationService.ConfigPath);
+            _snapshotRefreshedAt = DateTime.Now;
+            RaisePropertyChanged(nameof(LastRefreshedText));
+            RaiseSnapshotFreshnessChanged();
+            RaiseSnapshotInsightsChanged();
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Environment snapshot refresh failed");
+        }
     }
 
     private void RaiseSnapshotFreshnessChanged()

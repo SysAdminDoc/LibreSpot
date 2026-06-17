@@ -78,6 +78,20 @@ public sealed class ThemeManagerTests
     }
 
     [Fact]
+    public void ThemeManager_ClearsAllMotionKeysSetByApplyReducedMotion()
+    {
+        var source = ReadFile("src", "LibreSpot.Desktop", "Services", "ThemeManager.cs");
+
+        var setKeys = new[] { "MotionFast", "MotionMed", "MotionSlow", "MotionFastDuration", "MotionMedDuration", "MotionSlowDuration" };
+        foreach (var key in setKeys)
+        {
+            Assert.True(
+                source.Contains($"\"{key}\""),
+                $"ClearReducedMotionOverrides must include \"{key}\" so it clears everything ApplyReducedMotion sets.");
+        }
+    }
+
+    [Fact]
     public void ThemeManager_IsInitializedBeforeWindowInAppStartup()
     {
         var appCs = ReadFile("src", "LibreSpot.Desktop", "App.xaml.cs");

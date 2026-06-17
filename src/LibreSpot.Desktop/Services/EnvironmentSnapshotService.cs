@@ -1163,7 +1163,9 @@ public sealed class EnvironmentSnapshotService
     {
         try
         {
-            return Process.GetProcessesByName("Spotify").Length > 0;
+            var processes = Process.GetProcessesByName("Spotify");
+            try { return processes.Length > 0; }
+            finally { foreach (var p in processes) p.Dispose(); }
         }
         catch
         {
