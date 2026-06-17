@@ -136,56 +136,67 @@ public sealed class SupportBundleService
 
         var preview = CreatePreview(snapshot, options);
         var entryCount = 0;
+        var tempPath = fullPath + ".tmp";
 
-        await using (var stream = new FileStream(fullPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
-        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create))
+        try
         {
-            AddJsonEntry(archive, "manifest.json", BuildManifest(preview, options, snapshot));
-            entryCount++;
-            AddJsonEntry(archive, "health/health-report.json", BuildHealthReport(snapshot));
-            entryCount++;
-            AddJsonEntry(archive, "health/runtime.json", BuildRuntimeReport(snapshot));
-            entryCount++;
-
-            if (options.IncludeOperationJournal)
+            await using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create))
             {
-                AddTextEntry(archive, "operation/latest-journal.txt", BuildOperationJournal());
+                AddJsonEntry(archive, "manifest.json", BuildManifest(preview, options, snapshot));
                 entryCount++;
-            }
+                AddJsonEntry(archive, "health/health-report.json", BuildHealthReport(snapshot));
+                entryCount++;
+                AddJsonEntry(archive, "health/runtime.json", BuildRuntimeReport(snapshot));
+                entryCount++;
 
-            if (options.IncludeLogs)
-            {
-                foreach (var file in LogFiles())
+                if (options.IncludeOperationJournal)
                 {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        break;
-                    }
+                    AddTextEntry(archive, "operation/latest-journal.txt", BuildOperationJournal());
+                    entryCount++;
+                }
 
-                    if (TryAddRedactedFileWindow(archive, "logs", file, MaxLogLines))
+                if (options.IncludeLogs)
+                {
+                    foreach (var file in LogFiles())
                     {
-                        entryCount++;
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            break;
+                        }
+
+                        if (TryAddRedactedFileWindow(archive, "logs", file, MaxLogLines))
+                        {
+                            entryCount++;
+                        }
                     }
                 }
-            }
 
-            if (options.IncludeCrashReports)
-            {
-                foreach (var file in CrashFiles())
+                if (options.IncludeCrashReports)
                 {
-                    if (cancellationToken.IsCancellationRequested)
+                    foreach (var file in CrashFiles())
                     {
-                        break;
-                    }
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            break;
+                        }
 
-                    if (TryAddRedactedFileWindow(archive, "crashes", file, MaxCrashLines))
-                    {
-                        entryCount++;
+                        if (TryAddRedactedFileWindow(archive, "crashes", file, MaxCrashLines))
+                        {
+                            entryCount++;
+                        }
                     }
                 }
+
+                cancellationToken.ThrowIfCancellationRequested();
             }
 
-            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(tempPath, fullPath, overwrite: true);
+        }
+        catch
+        {
+            try { File.Delete(tempPath); } catch { }
+            throw;
         }
 
         var writtenBytes = new FileInfo(fullPath).Length;

@@ -157,7 +157,7 @@ public sealed class ConfigurationService
             }
 
             var fallbackPath = Path.Combine(ConfigDirectory, $"config.corrupt-{Guid.NewGuid():N}.json");
-            File.Move(ConfigPath, fallbackPath, overwrite: false);
+            File.Move(ConfigPath, fallbackPath, overwrite: true);
             return fallbackPath;
         }
         catch
