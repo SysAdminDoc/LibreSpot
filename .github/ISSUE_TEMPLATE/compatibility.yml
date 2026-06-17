@@ -58,10 +58,43 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    id: librespot-variant
+    attributes:
+      label: LibreSpot Variant
+      description: Which variant are you running?
+      options:
+        - PowerShell script (LibreSpot.ps1)
+        - Compiled executable (LibreSpot.exe)
+        - WPF Desktop shell (LibreSpot-Desktop.exe)
+    validations:
+      required: true
+
+  - type: input
+    id: spicetify-version
+    attributes:
+      label: Spicetify Version
+      description: "Run `spicetify --version` in a terminal, or leave blank if not installed"
+      placeholder: "e.g. 2.43.2"
+    validations:
+      required: false
+
+  - type: textarea
+    id: support-bundle
+    attributes:
+      label: Support Bundle
+      description: |
+        **Preferred:** In the WPF Desktop shell, go to Maintenance > Export Support Bundle, then drag the `.zip` file here.
+        The bundle is local-only, redacted (no usernames or tokens), and you can preview its contents before exporting.
+        If you cannot export a bundle, paste log output in the field below instead.
+      placeholder: "Drag and drop the .zip file here, or paste the manifest hash from the export dialog."
+    validations:
+      required: false
+
   - type: textarea
     id: description
     attributes:
       label: Details
-      description: Any additional context about what changed and when.
+      description: Any additional context about what changed and when. If you cannot attach a support bundle above, paste relevant log output here.
     validations:
       required: false
