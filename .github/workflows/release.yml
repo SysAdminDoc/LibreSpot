@@ -587,3 +587,87 @@ jobs:
               release/checksums.txt \
               release/librespot-release-manifest.json \
               --clobber
+
+      - name: Post-upload contract audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+          IS_PRERELEASE: ${{ needs.preflight.outputs.is_prerelease }}
+        run: |
+          set -euo pipefail
+          echo "::group::Fetch published release metadata"
+          release_json="$(gh release view "$TAG" --json assets,isPrerelease,isLatest)"
+          echo "$release_json" | python3 -m json.tool
+          echo "::endgroup::"
+
+          errors=0
+          fail() { echo "::error::$1"; errors=$((errors + 1)); }
+
+          # 1. Verify every required artifact appears exactly once.
+          required_assets=(
+            LibreSpot.exe
+            LibreSpot.ps1
+            LibreSpot-Desktop.exe
+            LibreSpot.sbom.cdx.json
+            checksums.txt
+            librespot-release-manifest.json
+          )
+          for asset in "${required_assets[@]}"; do
+            count=$(echo "$release_json" | python3 -c "
+          import json,sys
+          assets=json.load(sys.stdin)['assets']
+          print(sum(1 for a in assets if a['name']=='$asset'))")
+            if [[ "$count" -ne 1 ]]; then
+              fail "Asset '$asset' appears $count time(s) in release (expected exactly 1)."
+            else
+              echo "OK: $asset present"
+            fi
+          done
+
+          # 2. Download checksums.txt and verify it has one entry per covered asset.
+          gh release download "$TAG" --pattern checksums.txt --dir /tmp/audit --clobber
+          checksum_covered=(
+            LibreSpot.exe
+            LibreSpot.ps1
+            LibreSpot-Desktop.exe
+            LibreSpot.sbom.cdx.json
+          )
+          for asset in "${checksum_covered[@]}"; do
+            matches=$(grep -cF "$asset" /tmp/audit/checksums.txt || true)
+            if [[ "$matches" -ne 1 ]]; then
+              fail "checksums.txt has $matches entries for '$asset' (expected 1)."
+            else
+              echo "OK: checksums.txt covers $asset"
+            fi
+          done
+
+          # 3. Verify prerelease flag matches expectations.
+          actual_prerelease=$(echo "$release_json" | python3 -c "
+          import json,sys; print(str(json.load(sys.stdin)['isPrerelease']).lower())")
+          if [[ "$actual_prerelease" != "$IS_PRERELEASE" ]]; then
+            fail "Prerelease flag mismatch: release has $actual_prerelease, expected $IS_PRERELEASE."
+          else
+            echo "OK: prerelease=$actual_prerelease matches expected=$IS_PRERELEASE"
+          fi
+
+          # 4. Verify build provenance attestation exists for each subject.
+          provenance_subjects=(
+            LibreSpot.exe
+            LibreSpot.ps1
+            LibreSpot-Desktop.exe
+          )
+          for subject in "${provenance_subjects[@]}"; do
+            if ! gh attestation list --repo "$GITHUB_REPOSITORY" --subject "release/$subject" --format json 2>/dev/null | python3 -c "
+          import json,sys; data=json.load(sys.stdin); sys.exit(0 if len(data)>0 else 1)" 2>/dev/null; then
+              fail "No attestation found for '$subject'."
+            else
+              echo "OK: attestation exists for $subject"
+            fi
+          done
+
+          # Final verdict.
+          if [[ "$errors" -gt 0 ]]; then
+            echo "::error::Post-upload contract audit failed with $errors error(s)."
+            exit 1
+          fi
+          echo "Post-upload contract audit passed."

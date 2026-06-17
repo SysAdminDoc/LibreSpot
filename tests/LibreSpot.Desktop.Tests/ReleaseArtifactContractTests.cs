@@ -128,6 +128,16 @@ public sealed class ReleaseArtifactContractTests
     }
 
     [Fact]
+    public void Contract_PostUploadAuditIsImplemented()
+    {
+        var status = Contract.RootElement
+            .GetProperty("postUploadAudit")
+            .GetProperty("implementationStatus").GetString();
+
+        Assert.Equal("implemented", status);
+    }
+
+    [Fact]
     public void Contract_DistributionChannelsReferenceKnownChannels()
     {
         var matrixPath = Path.Combine(RepoRoot, "schemas", "distribution-matrix.json");

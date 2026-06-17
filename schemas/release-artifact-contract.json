@@ -119,7 +119,7 @@
       "Build provenance attestation exists for each buildProvenance subject",
       "SBOM attestation exists for the sbom subject"
     ],
-    "implementationStatus": "pending-operator-wiring",
+    "implementationStatus": "implemented",
     "notes": "The post-upload step needs access to gh release view --json and gh attestation list, which requires the workflow to run after upload. This is the operator-dependent part of this contract."
   },
   "historicalReleases": {
