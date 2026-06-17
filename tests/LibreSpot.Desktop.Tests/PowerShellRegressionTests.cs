@@ -576,7 +576,7 @@ public sealed class PowerShellRegressionTests
         Assert.DoesNotContain("/main/dist/", catalog);
         Assert.DoesNotContain("Shinyhero36/spicetify-song-stats", catalog);
         Assert.DoesNotContain("'songStats.js'        = @{", catalog);
-        Assert.Contains("Confirm-FileHash -Path $destFile -ExpectedHash $info.SHA256", script);
+        Assert.Contains("Confirm-FileHash -Path $destFile -ExpectedHash $extHash", script);
     }
 
     [Fact]

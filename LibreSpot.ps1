@@ -179,6 +179,7 @@ $global:BACKUP_ROOT            = "$env:USERPROFILE\LibreSpot_Backups"
 $global:CONFIG_DIR             = "$env:APPDATA\LibreSpot"
 $global:CONFIG_PATH            = "$env:APPDATA\LibreSpot\config.json"
 $global:LOG_PATH               = "$env:APPDATA\LibreSpot\install.log"
+$global:CACHE_DIR              = "$env:APPDATA\LibreSpot\cache"
 $global:WATCHER_STATE_PATH     = "$env:APPDATA\LibreSpot\watcher-state.json"
 $global:WATCHER_LOG_PATH       = "$env:APPDATA\LibreSpot\watcher.log"
 $global:WATCHER_TASK_NAME      = 'LibreSpot\ReapplyWatcher'
@@ -436,12 +437,26 @@ function Invoke-HeadlessReapply {
         # Download + hash-verify SpotX. We DON'T fall back to BITS here because
         # the watcher runs unattended and we'd rather silently skip than use a
         # different download backend than the user-triggered install path.
-        Write-WatcherLog "Downloading SpotX run.ps1"
-        Invoke-WebRequest -Uri $global:URL_SPOTX -OutFile $spotxRun -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
-        $actualHash = (Get-FileHash -LiteralPath $spotxRun -Algorithm SHA256).Hash.ToLowerInvariant()
         $expectedHash = [string]$global:PinnedReleases.SpotX.SHA256
-        if ($actualHash -ne $expectedHash.ToLowerInvariant()) {
-            throw "SpotX hash mismatch. Expected $expectedHash, got $actualHash. Refusing to run."
+        if (-not (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $spotxRun -Label 'SpotX run.ps1 (watcher)')) {
+            $downloadFailed = $false
+            try {
+                Write-WatcherLog "Downloading SpotX run.ps1"
+                Invoke-WebRequest -Uri $global:URL_SPOTX -OutFile $spotxRun -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+            } catch {
+                $downloadFailed = $true
+                if (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $spotxRun -Label 'SpotX run.ps1 (watcher)') {
+                    Write-WatcherLog 'Network download failed; using verified cached copy.' -Level 'WARN'
+                    $downloadFailed = $false
+                } else { throw }
+            }
+            if (-not $downloadFailed) {
+                $actualHash = (Get-FileHash -LiteralPath $spotxRun -Algorithm SHA256).Hash.ToLowerInvariant()
+                if ($actualHash -ne $expectedHash.ToLowerInvariant()) {
+                    throw "SpotX hash mismatch. Expected $expectedHash, got $actualHash. Refusing to run."
+                }
+                Save-ToAssetCache -SourcePath $spotxRun -SHA256Hash $expectedHash
+            }
         }
 
         $spotxArgs = Build-SpotXParams -Config $Config
@@ -5231,6 +5246,64 @@ function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]
     Write-Log "  SHA256 verified: $Label"
 }
 
+function Save-ToAssetCache { param([string]$SourcePath, [string]$SHA256Hash)
+    if ([string]::IsNullOrWhiteSpace($SHA256Hash)) { return }
+    $hash = $SHA256Hash.ToLowerInvariant()
+    if ($hash.Length -ne 64) { return }
+    try {
+        if (-not (Test-Path -LiteralPath $global:CACHE_DIR -PathType Container)) {
+            New-Item -Path $global:CACHE_DIR -ItemType Directory -Force | Out-Null
+        }
+        $cachePath = Join-Path $global:CACHE_DIR $hash
+        Copy-Item -LiteralPath $SourcePath -Destination $cachePath -Force
+        Write-Log "  Cached verified asset (SHA256: $hash)"
+    } catch {
+        Write-Log "  Asset cache save failed: $($_.Exception.Message)" -Level 'WARN'
+    }
+}
+
+function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPath, [string]$Label)
+    if ([string]::IsNullOrWhiteSpace($SHA256Hash)) { return $false }
+    $hash = $SHA256Hash.ToLowerInvariant()
+    if ($hash.Length -ne 64) { return $false }
+    $cachePath = Join-Path $global:CACHE_DIR $hash
+    if (-not (Test-Path -LiteralPath $cachePath -PathType Leaf)) {
+        Write-Log "  Cache miss for $Label (SHA256: $hash)"
+        return $false
+    }
+    try {
+        $actual = (Get-FileHash -LiteralPath $cachePath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actual -ne $hash) {
+            Write-Log "  Cached asset for $Label failed re-verification (expected $hash, got $actual). Removing stale entry." -Level 'WARN'
+            Remove-Item -LiteralPath $cachePath -Force -ErrorAction SilentlyContinue
+            return $false
+        }
+        $outDir = Split-Path -Path $DestinationPath -Parent
+        if ($outDir -and -not (Test-Path -LiteralPath $outDir)) {
+            New-Item -Path $outDir -ItemType Directory -Force | Out-Null
+        }
+        Copy-Item -LiteralPath $cachePath -Destination $DestinationPath -Force
+        Write-Log "  Using verified cached copy for $Label (SHA256: $hash)"
+        return $true
+    } catch {
+        Write-Log "  Cache retrieval failed for $Label: $($_.Exception.Message)" -Level 'WARN'
+        return $false
+    }
+}
+
+function Clear-LibreSpotCache {
+    if (-not (Test-Path -LiteralPath $global:CACHE_DIR -PathType Container)) {
+        Write-Log 'Asset cache directory does not exist. Nothing to clear.'
+        return
+    }
+    try {
+        Remove-Item -LiteralPath $global:CACHE_DIR -Recurse -Force -ErrorAction Stop
+        Write-Log 'Asset cache cleared.'
+    } catch {
+        Write-Log "Failed to clear asset cache: $($_.Exception.Message)" -Level 'WARN'
+    }
+}
+
 function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,[string]$Label='archive',[int]$MaxEntries=10000,[long]$MaxExpandedBytes=500MB)
     Add-Type -AssemblyName System.IO.Compression
     $zip = $null
@@ -5706,8 +5779,18 @@ function Module-InstallSpotX { param($Config,$SyncHash)
     Write-Log "Installing SpotX v$($global:PinnedReleases.SpotX.Version)..." -Level 'STEP'
     $dest = New-LibreSpotTempFile -Name 'spotx_run.ps1'
     try {
-        Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
-        Confirm-FileHash -Path $dest -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label "SpotX run.ps1"
+        $spotxHash = $global:PinnedReleases.SpotX.SHA256
+        if (-not (Get-FromAssetCache -SHA256Hash $spotxHash -DestinationPath $dest -Label 'SpotX run.ps1')) {
+            try {
+                Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
+            } catch {
+                if (Get-FromAssetCache -SHA256Hash $spotxHash -DestinationPath $dest -Label 'SpotX run.ps1') {
+                    Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
+                } else { throw }
+            }
+            Confirm-FileHash -Path $dest -ExpectedHash $spotxHash -Label "SpotX run.ps1"
+            Save-ToAssetCache -SourcePath $dest -SHA256Hash $spotxHash
+        }
         $params = Build-SpotXParams -Config $Config
         if (Test-Path $global:SPOTIFY_EXE_PATH) {
             $ver = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
@@ -5768,9 +5851,18 @@ function Module-InstallSpicetifyCLI {
     $zip = $global:URL_SPICETIFY_FMT -f $ver, $arch
     $zp = New-LibreSpotTempFile -Name 'spicetify.zip'
     try {
-        Download-FileSafe -Uri $zip -OutFile $zp
         $expectedHash = $global:PinnedReleases.SpicetifyCLI.SHA256[$arch]
-        Confirm-FileHash -Path $zp -ExpectedHash $expectedHash -Label "Spicetify CLI ($arch)"
+        if (-not (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zp -Label "Spicetify CLI ($arch)")) {
+            try {
+                Download-FileSafe -Uri $zip -OutFile $zp
+            } catch {
+                if (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zp -Label "Spicetify CLI ($arch)") {
+                    Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
+                } else { throw }
+            }
+            Confirm-FileHash -Path $zp -ExpectedHash $expectedHash -Label "Spicetify CLI ($arch)"
+            Save-ToAssetCache -SourcePath $zp -SHA256Hash $expectedHash
+        }
         if (Test-Path -LiteralPath $global:SPICETIFY_DIR) {
             $null = Clear-DirectoryContentsSafely -Path $global:SPICETIFY_DIR -Label 'Spicetify CLI'
         }
@@ -5806,8 +5898,18 @@ function Module-InstallThemes { param($Config)
         $tu = New-LibreSpotTempDirectory -Name "community-theme-$safeName-unpack"
         try {
             Write-Log "Downloading community theme from $($repo.Owner)/$($repo.Repo) @ $($repo.CommitSha.Substring(0,10))..."
-            Download-FileSafe -Uri $archiveUrl -OutFile $tz
-            Confirm-FileHash -Path $tz -ExpectedHash $repo.SHA256 -Label "Community theme '$tn'"
+            $themeHash = $repo.SHA256
+            if (-not (Get-FromAssetCache -SHA256Hash $themeHash -DestinationPath $tz -Label "Community theme '$tn'")) {
+                try {
+                    Download-FileSafe -Uri $archiveUrl -OutFile $tz
+                } catch {
+                    if (Get-FromAssetCache -SHA256Hash $themeHash -DestinationPath $tz -Label "Community theme '$tn'") {
+                        Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
+                    } else { throw }
+                }
+                Confirm-FileHash -Path $tz -ExpectedHash $themeHash -Label "Community theme '$tn'"
+                Save-ToAssetCache -SourcePath $tz -SHA256Hash $themeHash
+            }
             Expand-ArchiveSafely -ZipPath $tz -DestinationPath $tu -Label "Community theme '$tn'"
             $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
             if (-not $root) { throw "Community theme archive for '$tn' did not contain a root folder." }
@@ -5845,8 +5947,18 @@ function Module-InstallThemes { param($Config)
         $tz = New-LibreSpotTempFile -Name 'themes.zip'
         $tu = New-LibreSpotTempDirectory -Name 'themes-unpack'
         try {
-            Download-FileSafe -Uri $global:URL_THEMES_REPO -OutFile $tz
-            Confirm-FileHash -Path $tz -ExpectedHash $global:PinnedReleases.Themes.SHA256 -Label "Themes archive"
+            $themesHash = $global:PinnedReleases.Themes.SHA256
+            if (-not (Get-FromAssetCache -SHA256Hash $themesHash -DestinationPath $tz -Label 'Themes archive')) {
+                try {
+                    Download-FileSafe -Uri $global:URL_THEMES_REPO -OutFile $tz
+                } catch {
+                    if (Get-FromAssetCache -SHA256Hash $themesHash -DestinationPath $tz -Label 'Themes archive') {
+                        Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
+                    } else { throw }
+                }
+                Confirm-FileHash -Path $tz -ExpectedHash $themesHash -Label "Themes archive"
+                Save-ToAssetCache -SourcePath $tz -SHA256Hash $themesHash
+            }
             Expand-ArchiveSafely -ZipPath $tz -DestinationPath $tu -Label 'Themes archive'
             $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
             if (-not $root) { throw "Theme archive did not contain an unpacked root folder." }
@@ -5886,17 +5998,27 @@ function Download-CommunityExtensions { param($Config)
         $destFile = Join-Path $extDir $ext
         try {
             Write-Log "Downloading community extension: $ext from $($info.Source)..."
-            Download-FileSafe -Uri $info.Url -OutFile $destFile
-            # Sanity check: make sure we got JavaScript, not a 404 HTML page.
-            # Read just the first 512 bytes to avoid loading a huge file.
-            $head = Get-Content -LiteralPath $destFile -TotalCount 5 -ErrorAction SilentlyContinue
-            $headStr = ($head -join "`n").TrimStart()
-            if ($headStr -match '^<(!DOCTYPE|html)' -or $headStr -match '^404:') {
-                Remove-Item -LiteralPath $destFile -Force -ErrorAction SilentlyContinue
-                Write-Log "Community extension '$ext' downloaded but appears to be an HTML error page, not JavaScript. The URL may have changed. Skipping." -Level 'WARN'
-                continue
+            $extHash = $info.SHA256
+            if (-not (Get-FromAssetCache -SHA256Hash $extHash -DestinationPath $destFile -Label "Community extension $ext")) {
+                try {
+                    Download-FileSafe -Uri $info.Url -OutFile $destFile
+                } catch {
+                    if (Get-FromAssetCache -SHA256Hash $extHash -DestinationPath $destFile -Label "Community extension $ext") {
+                        Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
+                    } else { throw }
+                }
+                # Sanity check: make sure we got JavaScript, not a 404 HTML page.
+                # Read just the first 512 bytes to avoid loading a huge file.
+                $head = Get-Content -LiteralPath $destFile -TotalCount 5 -ErrorAction SilentlyContinue
+                $headStr = ($head -join "`n").TrimStart()
+                if ($headStr -match '^<(!DOCTYPE|html)' -or $headStr -match '^404:') {
+                    Remove-Item -LiteralPath $destFile -Force -ErrorAction SilentlyContinue
+                    Write-Log "Community extension '$ext' downloaded but appears to be an HTML error page, not JavaScript. The URL may have changed. Skipping." -Level 'WARN'
+                    continue
+                }
+                Confirm-FileHash -Path $destFile -ExpectedHash $extHash -Label "Community extension $ext"
+                Save-ToAssetCache -SourcePath $destFile -SHA256Hash $extHash
             }
-            Confirm-FileHash -Path $destFile -ExpectedHash $info.SHA256 -Label "Community extension $ext"
             Write-Log "Community extension '$ext' saved to $destFile"
             $verifiedPaths += $destFile
         } catch {
@@ -5953,8 +6075,18 @@ function Module-InstallMarketplace { param($Config)
     }
     New-Item -Path $md -ItemType Directory -Force | Out-Null
     try {
-        Download-FileSafe -Uri $global:URL_MARKETPLACE -OutFile $mz
-        Confirm-FileHash -Path $mz -ExpectedHash $global:PinnedReleases.Marketplace.SHA256 -Label "Marketplace"
+        $marketplaceHash = $global:PinnedReleases.Marketplace.SHA256
+        if (-not (Get-FromAssetCache -SHA256Hash $marketplaceHash -DestinationPath $mz -Label 'Marketplace archive')) {
+            try {
+                Download-FileSafe -Uri $global:URL_MARKETPLACE -OutFile $mz
+            } catch {
+                if (Get-FromAssetCache -SHA256Hash $marketplaceHash -DestinationPath $mz -Label 'Marketplace archive') {
+                    Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
+                } else { throw }
+            }
+            Confirm-FileHash -Path $mz -ExpectedHash $marketplaceHash -Label "Marketplace"
+            Save-ToAssetCache -SourcePath $mz -SHA256Hash $marketplaceHash
+        }
         Expand-ArchiveSafely -ZipPath $mz -DestinationPath $mu -Label 'Marketplace'
         $sp = if (Test-Path (Join-Path $mu "marketplace-dist")) { Join-Path $mu "marketplace-dist\*" } else { Join-Path $mu "*" }
         Copy-Item -Path $sp -Destination $md -Recurse -Force
@@ -6194,8 +6326,18 @@ $maintBlock = { param($sh,$action)
             }
             $sp=Build-SpotXParams -Config $saved
             try {
-                Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
-                Confirm-FileHash -Path $dest -ExpectedHash $global:PinnedReleases.SpotX.SHA256 -Label "SpotX run.ps1"
+                $spotxHash = $global:PinnedReleases.SpotX.SHA256
+                if (-not (Get-FromAssetCache -SHA256Hash $spotxHash -DestinationPath $dest -Label 'SpotX run.ps1')) {
+                    try {
+                        Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
+                    } catch {
+                        if (Get-FromAssetCache -SHA256Hash $spotxHash -DestinationPath $dest -Label 'SpotX run.ps1') {
+                            Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
+                        } else { throw }
+                    }
+                    Confirm-FileHash -Path $dest -ExpectedHash $spotxHash -Label "SpotX run.ps1"
+                    Save-ToAssetCache -SourcePath $dest -SHA256Hash $spotxHash
+                }
                 Write-Log "SpotX will verify version compatibility and overwrite if needed"
                 $sh.AllowSpotify=$true
                 try { Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $sp } finally { $sh.AllowSpotify=$false }
@@ -6299,7 +6441,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Download-FileSafe','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Download-FileSafe','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
@@ -6322,7 +6464,7 @@ foreach ($fname in $functionNamesForWorker) {
 $varNamesForWorker = @(
     'URL_SPOTX','URL_MARKETPLACE','URL_THEMES_REPO','URL_SPICETIFY_FMT','PinnedReleases',
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR',
-    'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH',
+    'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH','CACHE_DIR',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
     'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityExtensionAliases','DeprecatedCommunityExtensionNames','CommunityThemeRepos','ThemesNeedingJS','SpotXLyricsThemes','VERSION','CONFIG_SCHEMA_VERSION'
 )
