@@ -4539,7 +4539,7 @@ $ui['BtnRestoreConfig'].Add_Click({ try {
 } catch { Show-ThemedDialog -Message "LibreSpot could not restore the backup.`n`n$($_.Exception.Message)" -Title "Restore Failed" -Icon "Error" -PrimaryText "Close" } })
 
 $ui['BtnCheckUpdates'].Add_Click({
-    if (-not (Test-NetworkReady)) { Show-ThemedDialog -Message "LibreSpot could not reach GitHub to compare pinned versions. Check the connection, then try again." -Title "No Internet Connection" -Icon "Error" -PrimaryText "Close"; return }
+    if (-not (Confirm-NetworkReadyForAction -Message "LibreSpot could not reach GitHub to compare pinned versions." -Purpose "GitHub update checks")) { return }
     try {
         Switch-ToInstallPage -Title 'Checking pinned versions' -Context 'LibreSpot is comparing the pinned LibreSpot, SpotX, Spicetify, Marketplace, and theme versions against upstream releases.' -PrepareLabel 'Prepare' -RunLabel 'Compare' -VerifyLabel 'Review' -CompleteLabel 'Complete'
         Start-MaintenanceJob -Action 'CheckUpdates'
@@ -4548,7 +4548,7 @@ $ui['BtnCheckUpdates'].Add_Click({
     }
 })
 $ui['BtnRepairMarketplace'].Add_Click({
-    if (-not (Test-NetworkReady)) { Show-ThemedDialog -Message "LibreSpot needs an internet connection to download the pinned Marketplace archive before it can repair the custom app." -Title "No Internet Connection" -Icon "Error" -PrimaryText "Close"; return }
+    if (-not (Confirm-NetworkReadyForAction -Message "LibreSpot needs an internet connection to download the pinned Marketplace archive before it can repair the custom app." -Purpose "Marketplace repair downloads")) { return }
     if (-not (Assert-RiskAcknowledged)) { return }
     $r = Show-ThemedDialog -Message "LibreSpot will reinstall the pinned Marketplace custom app, re-enable it in Spicetify, apply the change, and open spotify:app:marketplace. Use this when the Marketplace files exist but the sidebar icon is missing or only partial Marketplace content appears." -Title "Repair Marketplace" -Buttons "YesNo" -Icon "Question" -PrimaryText "Repair and open" -SecondaryText "Cancel"
     if ($r -eq 'Yes') {
@@ -4561,7 +4561,7 @@ $ui['BtnRepairMarketplace'].Add_Click({
     }
 })
 $ui['BtnReapply'].Add_Click({
-    if (-not (Test-NetworkReady)) { Show-ThemedDialog -Message "LibreSpot needs an internet connection to download the pinned SpotX script before it can reapply your setup." -Title "No Internet Connection" -Icon "Error" -PrimaryText "Close"; return }
+    if (-not (Confirm-NetworkReadyForAction -Message "LibreSpot needs an internet connection to download the pinned SpotX script before it can reapply your setup." -Purpose "SpotX reapply downloads")) { return }
     if (-not (Assert-RiskAcknowledged)) { return }
     $r = Show-ThemedDialog -Message "LibreSpot will run SpotX again and then reapply Spicetify. Your saved LibreSpot settings will be used when available." -Title "Reapply Setup" -Buttons "YesNo" -Icon "Question" -PrimaryText "Reapply now" -SecondaryText "Cancel"
     if ($r -eq 'Yes') {
@@ -4873,13 +4873,98 @@ $window.Add_ContentRendered({
     }
 })
 
-function Test-NetworkReady {
-    $resp = $null
+function Get-NetworkDiagnosticCode {
+    param(
+        [string]$Uri,
+        [object]$ErrorRecord
+    )
+    $message = ''
+    try { $message = [string]$ErrorRecord.Exception.Message } catch { $message = [string]$ErrorRecord }
+    $statusCode = $null
     try {
-        $r = [System.Net.WebRequest]::Create("https://raw.githubusercontent.com"); $r.Timeout = 5000; $r.Method = 'HEAD'
-        $resp = $r.GetResponse(); return $true
-    } catch { return $false }
-    finally { if ($resp) { $resp.Close() } }
+        if ($ErrorRecord.Exception.Response -and $ErrorRecord.Exception.Response.StatusCode) {
+            $statusCode = [int]$ErrorRecord.Exception.Response.StatusCode
+        }
+    } catch {}
+    $target = $Uri
+    try { $target = ([uri]$Uri).Host } catch {}
+    $lowerMessage = $message.ToLowerInvariant()
+
+    if ($statusCode -eq 407 -or $lowerMessage -match 'proxy.*auth|407|proxy authentication') { return 'ProxyAuthRequired' }
+    if ($statusCode -eq 429 -or (($statusCode -eq 403) -and ($target -match 'github'))) { return 'GitHubRateLimitOrBlock' }
+    if ($lowerMessage -match 'could not be resolved|name resolution|no such host|\bdns\b') { return 'DnsFailure' }
+    if ($lowerMessage -match 'ssl|tls|certificate|trust relationship') { return 'TlsFailure' }
+    if ($lowerMessage -match 'timed out|timeout') { return 'Timeout' }
+    return 'NetworkFailure'
+}
+
+function Get-NetworkPreflightStatus {
+    param(
+        [string]$Uri = 'https://raw.githubusercontent.com',
+        [string]$Purpose = 'download sources',
+        [int]$TimeoutMilliseconds = 5000
+    )
+    $resp = $null
+    $target = $Uri
+    try { $target = ([uri]$Uri).Host } catch {}
+    $result = [ordered]@{
+        Ready   = $false
+        Code    = 'Unknown'
+        Target  = $target
+        Message = ''
+        Detail  = ''
+    }
+    try {
+        $request = [System.Net.WebRequest]::Create($Uri)
+        $request.Timeout = $TimeoutMilliseconds
+        $request.Method = 'HEAD'
+        try { $request.UserAgent = "LibreSpot/$global:VERSION" } catch {}
+        $resp = $request.GetResponse()
+        $statusCode = $null
+        try { $statusCode = [int]$resp.StatusCode } catch {}
+        if ($null -eq $statusCode -or ($statusCode -ge 200 -and $statusCode -lt 400)) {
+            $result.Ready = $true
+            $result.Code = 'Ready'
+            $result.Message = "LibreSpot can reach $target for $Purpose."
+            $result.Detail = if ($null -eq $statusCode) { 'HTTP status unavailable' } else { "HTTP $statusCode" }
+        } elseif ($statusCode -eq 407) {
+            $result.Code = 'ProxyAuthRequired'
+            $result.Message = "Network preflight failed: proxy authentication is required for $target. Configure the system or WinHTTP proxy before retrying."
+            $result.Detail = "HTTP $statusCode"
+        } elseif (($statusCode -eq 403 -or $statusCode -eq 429) -and ($target -match 'github')) {
+            $result.Code = 'GitHubRateLimitOrBlock'
+            $result.Message = "Network preflight failed: GitHub rate limit or access block for $target. Wait for the rate-limit reset or retry from a network with GitHub access."
+            $result.Detail = "HTTP $statusCode"
+        } else {
+            $result.Code = "Http$statusCode"
+            $result.Message = "Network preflight failed: $target returned HTTP $statusCode while checking $Purpose."
+            $result.Detail = "HTTP $statusCode"
+        }
+    } catch {
+        $result.Code = Get-NetworkDiagnosticCode -Uri $Uri -ErrorRecord $_
+        $result.Message = Get-DownloadFailureHint -Uri $Uri -ErrorRecord $_ -Stage 'Network preflight'
+        try { $result.Detail = [string]$_.Exception.Message } catch {}
+    }
+    finally { if ($resp) { try { $resp.Close() } catch {} } }
+    return [pscustomobject]$result
+}
+
+function Test-NetworkReady {
+    $status = Get-NetworkPreflightStatus
+    return [bool]$status.Ready
+}
+
+function Confirm-NetworkReadyForAction {
+    param(
+        [string]$Message,
+        [string]$Purpose = 'download sources',
+        [string]$Uri = 'https://raw.githubusercontent.com'
+    )
+    $status = Get-NetworkPreflightStatus -Uri $Uri -Purpose $Purpose
+    if ($status.Ready) { return $true }
+    try { Write-Log $status.Message -Level 'WARN' } catch {}
+    Show-ThemedDialog -Message "$Message`n`n$($status.Message)" -Title "Network Check Failed" -Icon "Error" -PrimaryText "Close" | Out-Null
+    return $false
 }
 
 function Reset-UiAfterLaunchFailure {
@@ -4930,10 +5015,7 @@ function Switch-ToInstallPage {
 
 $ui['BtnInstall'].Add_Click({
     if ($ui['BtnInstall'].IsEnabled -eq $false) { return }
-    if (-not (Test-NetworkReady)) {
-        Show-ThemedDialog -Message "LibreSpot could not reach the download sources it needs. Check the connection, then try the setup again." -Title "No Internet Connection" -Icon "Error" -PrimaryText "Close"
-        return
-    }
+    if (-not (Confirm-NetworkReadyForAction -Message "LibreSpot could not reach the download sources it needs." -Purpose "setup downloads")) { return }
     if (-not (Assert-RiskAcknowledged)) { return }
     $ui['BtnInstall'].IsEnabled = $false
     $isEasy = $ui['ModeEasy'].IsChecked
@@ -5510,7 +5592,7 @@ function Invoke-GitHubApiSafe { param([string]$Uri,[hashtable]$Headers,[int]$Tim
             }
             throw "GitHub API rate limit reached for $Label (HTTP $statusCode).$resetMsg Try again later or use an authenticated request."
         }
-        throw
+        throw (Get-DownloadFailureHint -Uri $Uri -ErrorRecord $_ -Stage $Label)
     }
 }
 
@@ -6517,7 +6599,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Download-FileSafe','Get-DownloadFailureHint','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
@@ -6618,10 +6700,7 @@ if ($script:CliClean) {
         if ($script:CliCleanAutoStarted) { return }
         $script:CliCleanAutoStarted = $true
         try {
-            if (-not (Test-NetworkReady)) {
-                Show-ThemedDialog -Message "LibreSpot could not reach the download sources it needs. Check the connection, then run the clean setup again." -Title "No Internet Connection" -Icon "Error" -PrimaryText "Close"
-                return
-            }
+            if (-not (Confirm-NetworkReadyForAction -Message "LibreSpot could not reach the download sources it needs. Run the clean setup again after the network issue is fixed." -Purpose "clean setup downloads")) { return }
             if (-not (Assert-RiskAcknowledged)) { return }
 
             if ($ui.ContainsKey('BtnInstall')) { $ui['BtnInstall'].IsEnabled = $false }

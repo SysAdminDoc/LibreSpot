@@ -1005,6 +1005,7 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("429", body);
         Assert.Contains("403", body);
         Assert.Contains("rate limit", body.ToLowerInvariant());
+        Assert.Contains("Get-DownloadFailureHint", body);
     }
 
     [Theory]
@@ -1076,6 +1077,64 @@ public sealed class PowerShellRegressionTests
         var exportBlock = Regex.Match(script, @"\$functionNamesForWorker\s*=\s*@\((?<list>.+?)\)", RegexOptions.Singleline);
         Assert.True(exportBlock.Success, "Worker function export list not found.");
         Assert.Contains("'Get-DownloadFailureHint'", exportBlock.Groups["list"].Value);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void NetworkPreflightStatus_ClassifiesCommonFailureModes(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var diagnostic = Regex.Match(
+            script,
+            @"function\s+Get-NetworkDiagnosticCode\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        var preflight = Regex.Match(
+            script,
+            @"function\s+Get-NetworkPreflightStatus\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(diagnostic.Success, $"Get-NetworkDiagnosticCode function block not found in {relativePath}.");
+        Assert.True(preflight.Success, $"Get-NetworkPreflightStatus function block not found in {relativePath}.");
+
+        var combined = diagnostic.Groups["body"].Value + preflight.Groups["body"].Value;
+        Assert.Contains("ProxyAuthRequired", combined);
+        Assert.Contains("GitHubRateLimitOrBlock", combined);
+        Assert.Contains("DnsFailure", combined);
+        Assert.Contains("TlsFailure", combined);
+        Assert.Contains("Timeout", combined);
+        Assert.Contains("Get-DownloadFailureHint", combined);
+        Assert.Contains("Network preflight", combined);
+    }
+
+    [Fact]
+    public void MonolithNetworkActionsUseClassifiedPreflightDialog()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var helper = Regex.Match(
+            script,
+            @"function\s+Confirm-NetworkReadyForAction\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(helper.Success, "Confirm-NetworkReadyForAction function block not found.");
+
+        var body = helper.Groups["body"].Value;
+        Assert.Contains("Get-NetworkPreflightStatus", body);
+        Assert.Contains("Network Check Failed", body);
+        Assert.Contains("Write-Log", body);
+        Assert.Contains("$status.Message", body);
+        Assert.Contains("Confirm-NetworkReadyForAction -Message", script);
+    }
+
+    [Fact]
+    public void NetworkPreflightHelpers_AreExportedToWorkerRunspace()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var exportBlock = Regex.Match(script, @"\$functionNamesForWorker\s*=\s*@\((?<list>.+?)\)", RegexOptions.Singleline);
+        Assert.True(exportBlock.Success, "Worker function export list not found.");
+        var exports = exportBlock.Groups["list"].Value;
+        Assert.Contains("'Get-NetworkDiagnosticCode'", exports);
+        Assert.Contains("'Get-NetworkPreflightStatus'", exports);
+        Assert.Contains("'Test-NetworkReady'", exports);
     }
 
     // ---------------------------------------------------------------------

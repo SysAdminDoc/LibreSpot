@@ -1177,6 +1177,82 @@ function Get-DownloadFailureHint {
     return "$Stage failed for $target: $message"
 }
 
+function Get-NetworkDiagnosticCode {
+    param(
+        [string]$Uri,
+        [object]$ErrorRecord
+    )
+    $message = ''
+    try { $message = [string]$ErrorRecord.Exception.Message } catch { $message = [string]$ErrorRecord }
+    $statusCode = $null
+    try {
+        if ($ErrorRecord.Exception.Response -and $ErrorRecord.Exception.Response.StatusCode) {
+            $statusCode = [int]$ErrorRecord.Exception.Response.StatusCode
+        }
+    } catch {}
+    $target = $Uri
+    try { $target = ([uri]$Uri).Host } catch {}
+    $lowerMessage = $message.ToLowerInvariant()
+
+    if ($statusCode -eq 407 -or $lowerMessage -match 'proxy.*auth|407|proxy authentication') { return 'ProxyAuthRequired' }
+    if ($statusCode -eq 429 -or (($statusCode -eq 403) -and ($target -match 'github'))) { return 'GitHubRateLimitOrBlock' }
+    if ($lowerMessage -match 'could not be resolved|name resolution|no such host|\bdns\b') { return 'DnsFailure' }
+    if ($lowerMessage -match 'ssl|tls|certificate|trust relationship') { return 'TlsFailure' }
+    if ($lowerMessage -match 'timed out|timeout') { return 'Timeout' }
+    return 'NetworkFailure'
+}
+
+function Get-NetworkPreflightStatus {
+    param(
+        [string]$Uri = 'https://raw.githubusercontent.com',
+        [string]$Purpose = 'download sources',
+        [int]$TimeoutMilliseconds = 5000
+    )
+    $response = $null
+    $target = $Uri
+    try { $target = ([uri]$Uri).Host } catch {}
+    $result = [ordered]@{
+        Ready   = $false
+        Code    = 'Unknown'
+        Target  = $target
+        Message = ''
+        Detail  = ''
+    }
+    try {
+        $request = [System.Net.WebRequest]::Create($Uri)
+        $request.Timeout = $TimeoutMilliseconds
+        $request.Method = 'HEAD'
+        try { $request.UserAgent = "LibreSpot/$global:VERSION" } catch {}
+        $response = $request.GetResponse()
+        $statusCode = $null
+        try { $statusCode = [int]$response.StatusCode } catch {}
+        if ($null -eq $statusCode -or ($statusCode -ge 200 -and $statusCode -lt 400)) {
+            $result.Ready = $true
+            $result.Code = 'Ready'
+            $result.Message = "LibreSpot can reach $target for $Purpose."
+            $result.Detail = if ($null -eq $statusCode) { 'HTTP status unavailable' } else { "HTTP $statusCode" }
+        } elseif ($statusCode -eq 407) {
+            $result.Code = 'ProxyAuthRequired'
+            $result.Message = "Network preflight failed: proxy authentication is required for $target. Configure the system or WinHTTP proxy before retrying."
+            $result.Detail = "HTTP $statusCode"
+        } elseif (($statusCode -eq 403 -or $statusCode -eq 429) -and ($target -match 'github')) {
+            $result.Code = 'GitHubRateLimitOrBlock'
+            $result.Message = "Network preflight failed: GitHub rate limit or access block for $target. Wait for the rate-limit reset or retry from a network with GitHub access."
+            $result.Detail = "HTTP $statusCode"
+        } else {
+            $result.Code = "Http$statusCode"
+            $result.Message = "Network preflight failed: $target returned HTTP $statusCode while checking $Purpose."
+            $result.Detail = "HTTP $statusCode"
+        }
+    } catch {
+        $result.Code = Get-NetworkDiagnosticCode -Uri $Uri -ErrorRecord $_
+        $result.Message = Get-DownloadFailureHint -Uri $Uri -ErrorRecord $_ -Stage 'Network preflight'
+        try { $result.Detail = [string]$_.Exception.Message } catch {}
+    }
+    finally { if ($response) { try { $response.Close() } catch {} } }
+    return [pscustomobject]$result
+}
+
 function Download-FileSafe {
     param(
         [string]$Uri,
@@ -1594,7 +1670,7 @@ function Invoke-GitHubApiSafe {
             }
             throw "GitHub API rate limit reached for $Label (HTTP $statusCode).$resetMsg Try again later or use an authenticated request."
         }
-        throw
+        throw (Get-DownloadFailureHint -Uri $Uri -ErrorRecord $_ -Stage $Label)
     }
 }
 
