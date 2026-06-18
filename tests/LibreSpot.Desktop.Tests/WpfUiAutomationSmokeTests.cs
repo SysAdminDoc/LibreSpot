@@ -60,6 +60,7 @@ public sealed class WpfUiAutomationSmokeTests
 
     [Theory]
     [InlineData("prompt", "Cancel smoke action", "Confirm smoke action")]
+    [InlineData("prompt-destructive", "Cancel destructive smoke action", "Confirm destructive smoke action")]
     [InlineData("activity", "Open LibreSpot folder", "Close activity panel")]
     public void WpfShell_UiaOverlaysKeepFocusableActionBoundaries(string state, string firstAction, string secondAction)
     {

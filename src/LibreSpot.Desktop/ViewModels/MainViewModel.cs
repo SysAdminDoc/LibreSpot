@@ -1272,6 +1272,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             {
                 ConfirmPromptCommand.RaiseCanExecuteChanged();
                 CancelPromptCommand.RaiseCanExecuteChanged();
+                RaisePropertyChanged(nameof(IsPromptConfirmDefault));
             }
         }
     }
@@ -1315,8 +1316,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool IsPromptDestructive
     {
         get => _isPromptDestructive;
-        private set => SetProperty(ref _isPromptDestructive, value);
+        private set
+        {
+            if (SetProperty(ref _isPromptDestructive, value))
+            {
+                RaisePropertyChanged(nameof(IsPromptConfirmDefault));
+            }
+        }
     }
+
+    public bool IsPromptConfirmDefault => IsPromptVisible && !IsPromptDestructive;
 
     public async Task InitializeAsync()
     {
@@ -2482,6 +2491,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                     () => Task.CompletedTask,
                     "Smoke coverage",
                     "Confirms prompt labels, focus order, and modal boundaries without running an install.");
+                break;
+            case "prompt-destructive":
+                SelectedWorkspaceIndex = 0;
+                ShowPrompt(
+                    "UI automation destructive prompt",
+                    "This destructive prompt is shown only for UI smoke coverage.",
+                    "Confirm destructive smoke action",
+                    "Cancel destructive smoke action",
+                    true,
+                    () => Task.CompletedTask,
+                    "Smoke coverage",
+                    "Confirms destructive prompt focus order and default-button safety without running an install.");
                 break;
             case "activity":
                 SelectedWorkspaceIndex = 0;

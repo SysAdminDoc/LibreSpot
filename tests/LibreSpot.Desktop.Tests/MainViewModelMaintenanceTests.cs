@@ -124,6 +124,26 @@ public sealed class MainViewModelMaintenanceTests
             Assert.Contains("Estimated local zip size", viewModel.SupportBundlePreviewDetail);
         });
 
+    [Fact]
+    public Task PromptDefaultConfirm_OnlyAppliesToNonDestructivePrompts() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            viewModel.ApplyUiAutomationSmokeState("prompt");
+
+            Assert.True(viewModel.IsPromptVisible);
+            Assert.False(viewModel.IsPromptDestructive);
+            Assert.True(viewModel.IsPromptConfirmDefault);
+
+            viewModel.ApplyUiAutomationSmokeState("prompt-destructive");
+
+            Assert.True(viewModel.IsPromptVisible);
+            Assert.True(viewModel.IsPromptDestructive);
+            Assert.False(viewModel.IsPromptConfirmDefault);
+        });
+
     private static MaintenanceActionCardViewModel Card(MainViewModel viewModel, string action) =>
         viewModel.SafeMaintenanceActions
             .Concat(viewModel.DestructiveMaintenanceActions)

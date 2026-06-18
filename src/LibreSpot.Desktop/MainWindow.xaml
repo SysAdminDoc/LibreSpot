@@ -2329,6 +2329,7 @@
                       Padding="18,0"
                       Content="{Binding PromptConfirmText}"
                       AutomationProperties.Name="{Binding PromptConfirmText}"
+                      IsDefault="{Binding IsPromptConfirmDefault}"
                       Command="{Binding ConfirmPromptCommand}">
                 <Button.Style>
                   <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">

@@ -55,6 +55,9 @@ All notable changes to LibreSpot will be documented in this file.
 - Added `AutomationProperties.Name` to the settings search clear button and installation progress bar.
 
 ### Fixed
+- WPF confirmation prompts now make Enter activate the safe default action only
+  for non-destructive prompts; destructive prompts keep focus on cancel and no
+  longer expose confirm as the implicit default.
 - Operation journal writes now cap the local JSONL history and insert a
   structured retention marker before trimming old entries, preventing long-lived
   installs from growing `%APPDATA%\LibreSpot\operation-journal.jsonl` without
