@@ -148,7 +148,7 @@
     <Setter Property="Background" Value="{DynamicResource Surface2Brush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="18" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXl}" />
     <Setter Property="Padding" Value="24" />
   </Style>
 

@@ -43,6 +43,8 @@ All notable changes to LibreSpot will be documented in this file.
 - Added `-RemoveSelfData` CLI flag and "Remove LibreSpot data" WPF maintenance action that unregisters the watcher scheduled task and removes all LibreSpot-owned config, backups, logs, and crash reports without affecting Spotify or Spicetify.
 
 ### Changed
+- WPF section frames now use the shared 12 px radius token instead of a
+  hardcoded 18 px corner, keeping the shell within the documented radius system.
 - WPF desktop shell second polish pass: softened global scrollbars, moved hero and sidebar micro-labels to title case, replaced backend-centric activity overlay copy with product-level run-log language, fixed log-count pluralization, and cleaned up support-bundle preview wording.
 - WPF desktop shell polish pass: normalized the radius system to 6-12 px, removed pill-shaped badge/progress treatments, shortened the first-run rail copy, hid non-actionable informational health details from the sidebar, fixed Custom option-card title wrapping, forced dark native DWM caption colors, and made activity log empty/count states bind directly to the log collection. The UIA smoke harness now checks stable visible landmarks and named actionable controls.
 - Community theme downloads are now commit-pinned and SHA256-verified, matching the existing integrity model for community extensions and the official themes archive. All five community themes (Catppuccin, Comfy, Bloom, Lucid, Hazy) use immutable commit-SHA archive URLs with `Confirm-FileHash` verification instead of mutable branch-based downloads. CI tests enforce that no branch-pinned archive URLs remain and that commit SHAs and hashes stay consistent across the script, WPF backend, and community-assets manifest.

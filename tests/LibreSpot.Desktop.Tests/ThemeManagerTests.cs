@@ -114,6 +114,32 @@ public sealed class ThemeManagerTests
         Assert.True(paletteIndex < controlsIndex, "Palette must be merged before Controls so tokens resolve.");
     }
 
+    [Fact]
+    public void XamlCornerRadii_DoNotExceedDocumentedRadiusMaximum()
+    {
+        var files = new[]
+        {
+            Path.Combine("src", "LibreSpot.Desktop", "MainWindow.xaml"),
+            Path.Combine("src", "LibreSpot.Desktop", "Themes", "Controls.xaml")
+        };
+        var offenders = new List<string>();
+
+        foreach (var file in files)
+        {
+            var content = ReadFile(file.Split(Path.DirectorySeparatorChar));
+            foreach (Match match in Regex.Matches(content, @"CornerRadius\s*=\s*""(?<value>\d+)""|Property=""CornerRadius""\s+Value=""(?<value>\d+)"""))
+            {
+                var value = int.Parse(match.Groups["value"].Value);
+                if (value > 12)
+                {
+                    offenders.Add($"{file}: CornerRadius {value} exceeds the 12 px radius token maximum.");
+                }
+            }
+        }
+
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
     private static HashSet<string> ExtractResourceKeys(string xamlContent)
     {
         var keys = new HashSet<string>(StringComparer.Ordinal);
