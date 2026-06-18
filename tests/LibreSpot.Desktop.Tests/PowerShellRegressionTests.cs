@@ -1138,6 +1138,80 @@ public sealed class PowerShellRegressionTests
     }
 
     // ---------------------------------------------------------------------
+    // Operation journal — destructive actions should leave structured JSONL
+    // breadcrumbs with operation ids, safety decisions, and rollback hints.
+    // ---------------------------------------------------------------------
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void OperationJournalWriter_EmitsStructuredJsonlContract(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var writer = Regex.Match(
+            script,
+            @"function\s+Write-OperationJournalEntry\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        var starter = Regex.Match(
+            script,
+            @"function\s+Start-OperationJournalRun\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        var completer = Regex.Match(
+            script,
+            @"function\s+Complete-OperationJournalRun\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(writer.Success, $"Write-OperationJournalEntry function block not found in {relativePath}.");
+        Assert.True(starter.Success, $"Start-OperationJournalRun function block not found in {relativePath}.");
+        Assert.True(completer.Success, $"Complete-OperationJournalRun function block not found in {relativePath}.");
+
+        var body = writer.Groups["body"].Value;
+        Assert.Contains("operation-journal.jsonl", script);
+        Assert.Contains("ConvertTo-Json -Compress", body);
+        Assert.Contains("schemaVersion", body);
+        Assert.Contains("operationId", body);
+        Assert.Contains("safetyDecision", body);
+        Assert.Contains("wouldChange", body);
+        Assert.Contains("rollbackHint", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void RemovePathSafely_JournalsSafetyDecisionsAndResults(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var remover = Regex.Match(
+            script,
+            @"function\s+Remove-PathSafely\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(remover.Success, $"Remove-PathSafely function block not found in {relativePath}.");
+        var body = remover.Groups["body"].Value;
+
+        Assert.Contains("Write-OperationJournalEntry", body);
+        Assert.Contains("SkippedMissingTarget", body);
+        Assert.Contains("RefusedUnsafeTarget", body);
+        Assert.Contains("Allowed", body);
+        Assert.Contains("Planned", body);
+        Assert.Contains("Removed", body);
+        Assert.Contains("Failed", body);
+        Assert.Contains("Restore from a backup", body);
+    }
+
+    [Fact]
+    public void OperationJournalHelpers_AreExportedToWorkerRunspace()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var exportBlock = Regex.Match(script, @"\$functionNamesForWorker\s*=\s*@\((?<list>.+?)\)", RegexOptions.Singleline);
+        Assert.True(exportBlock.Success, "Worker function export list not found.");
+        var exports = exportBlock.Groups["list"].Value;
+        Assert.Contains("'Write-OperationJournalEntry'", exports);
+        Assert.Contains("'Start-OperationJournalRun'", exports);
+        Assert.Contains("'Complete-OperationJournalRun'", exports);
+        Assert.Contains("'OPERATION_JOURNAL_PATH'", script);
+    }
+
+    // ---------------------------------------------------------------------
     // SpotX post-patch effectiveness verification.
     // A clean SpotX exit code does NOT prove the patch landed: Spotify's
     // signature protection (>=1.2.70) can let SpotX exit 0 without patching

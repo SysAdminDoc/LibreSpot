@@ -332,6 +332,7 @@ public sealed class SupportBundleService
 
     private IEnumerable<SupportBundleFile> OperationFiles()
     {
+        yield return new SupportBundleFile(Path.Combine(_configDirectory, "operation-journal.jsonl"), "Operation journal JSONL");
         yield return new SupportBundleFile(Path.Combine(_configDirectory, "install.log"), "Backend install log tail");
         yield return new SupportBundleFile(Path.Combine(_configDirectory, "watcher.log"), "Auto-reapply watcher log tail");
         yield return new SupportBundleFile(Path.Combine(_configDirectory, "watcher-state.json"), "Auto-reapply watcher state");

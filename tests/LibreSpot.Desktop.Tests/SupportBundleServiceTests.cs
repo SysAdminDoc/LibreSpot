@@ -52,6 +52,8 @@ public sealed class SupportBundleServiceTests
         using var fixture = new SupportBundleFixture();
         fixture.WriteStackReadyState();
         fixture.WriteInstallLog("install journal");
+        var journalTarget = Path.Combine(fixture.ConfigDirectory, "secret.txt");
+        fixture.WriteOperationJournal($"{{\"operationId\":\"op-1\",\"target\":\"{journalTarget.Replace("\\", "\\\\")}\",\"result\":\"Removed\"}}");
         fixture.WriteRollingLog("desktop log");
         fixture.WriteCrashReport("crash log");
 
@@ -65,6 +67,9 @@ public sealed class SupportBundleServiceTests
         Assert.Contains("health/health-report.json", entries.Keys);
         Assert.Contains("health/runtime.json", entries.Keys);
         Assert.Contains("operation/latest-journal.txt", entries.Keys);
+        Assert.Contains("Operation journal JSONL", entries["operation/latest-journal.txt"]);
+        Assert.Contains("<LIBRESPOT_CONFIG>", entries["operation/latest-journal.txt"]);
+        Assert.DoesNotContain(journalTarget, entries["operation/latest-journal.txt"]);
         Assert.DoesNotContain(entries.Keys, name => name.StartsWith("logs/", StringComparison.Ordinal));
         Assert.DoesNotContain(entries.Keys, name => name.StartsWith("crashes/", StringComparison.Ordinal));
     }
@@ -179,6 +184,9 @@ public sealed class SupportBundleServiceTests
 
         public void WriteInstallLog(string content) =>
             WriteFile(Path.Combine(ConfigDirectory, "install.log"), content);
+
+        public void WriteOperationJournal(string content) =>
+            WriteFile(Path.Combine(ConfigDirectory, "operation-journal.jsonl"), content);
 
         public void WriteRollingLog(string content) =>
             WriteFile(Path.Combine(RollingLogDirectory, "librespot-20260616.log"), content);

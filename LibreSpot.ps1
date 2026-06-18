@@ -179,6 +179,9 @@ $global:BACKUP_ROOT            = "$env:USERPROFILE\LibreSpot_Backups"
 $global:CONFIG_DIR             = "$env:APPDATA\LibreSpot"
 $global:CONFIG_PATH            = "$env:APPDATA\LibreSpot\config.json"
 $global:LOG_PATH               = "$env:APPDATA\LibreSpot\install.log"
+$global:OPERATION_JOURNAL_PATH = "$env:APPDATA\LibreSpot\operation-journal.jsonl"
+$global:CURRENT_OPERATION_ID   = $null
+$global:CURRENT_OPERATION_ACTION = $null
 $global:CACHE_DIR              = "$env:APPDATA\LibreSpot\cache"
 $global:WATCHER_STATE_PATH     = "$env:APPDATA\LibreSpot\watcher-state.json"
 $global:WATCHER_LOG_PATH       = "$env:APPDATA\LibreSpot\watcher.log"
@@ -5119,6 +5122,70 @@ function Update-UI { param([string]$Message,[string]$Level="INFO",[bool]$IsHeade
 }
 function Write-Log { param([string]$Message,[string]$Level='INFO'); Update-UI -Message $Message -Level $Level -IsHeader ($Level -eq 'STEP' -or $Level -eq 'HEADER') }
 
+function Write-OperationJournalEntry {
+    param(
+        [string]$OperationId = $global:CURRENT_OPERATION_ID,
+        [string]$Action = $global:CURRENT_OPERATION_ACTION,
+        [string]$Phase = 'event',
+        [string]$Target = '',
+        [string]$SafetyDecision = 'NotEvaluated',
+        [string]$Result = 'Info',
+        [bool]$WouldChange = $false,
+        [bool]$Reversible = $false,
+        [string]$RollbackHint = '',
+        [hashtable]$Data = $null
+    )
+    try {
+        if ([string]::IsNullOrWhiteSpace($OperationId)) { $OperationId = [Guid]::NewGuid().ToString('N') }
+        if ([string]::IsNullOrWhiteSpace($Action)) { $Action = 'Unknown' }
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
+            New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
+        }
+        $entry = [ordered]@{
+            schemaVersion  = 1
+            timestamp      = (Get-Date).ToUniversalTime().ToString('o')
+            operationId    = $OperationId
+            action         = $Action
+            phase          = $Phase
+            target         = $Target
+            safetyDecision = $SafetyDecision
+            result         = $Result
+            wouldChange    = $WouldChange
+            reversible     = $Reversible
+            rollbackHint   = $RollbackHint
+        }
+        if ($Data) { $entry.data = $Data }
+        $json = $entry | ConvertTo-Json -Compress -Depth 6
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::AppendAllText($global:OPERATION_JOURNAL_PATH, $json + [Environment]::NewLine, $utf8NoBom)
+    } catch {
+        try { Write-Log "Operation journal write failed: $($_.Exception.Message)" -Level 'WARN' } catch {}
+    }
+}
+
+function Start-OperationJournalRun {
+    param(
+        [string]$Action,
+        [string]$Target = '',
+        [bool]$WouldChange = $true,
+        [bool]$Reversible = $false,
+        [string]$RollbackHint = ''
+    )
+    $global:CURRENT_OPERATION_ID = [Guid]::NewGuid().ToString('N')
+    $global:CURRENT_OPERATION_ACTION = $Action
+    Write-OperationJournalEntry -OperationId $global:CURRENT_OPERATION_ID -Action $Action -Phase 'planned' -Target $Target -SafetyDecision 'Pending' -Result 'Started' -WouldChange $WouldChange -Reversible $Reversible -RollbackHint $RollbackHint
+    Write-Log "Operation id: $global:CURRENT_OPERATION_ID"
+    return $global:CURRENT_OPERATION_ID
+}
+
+function Complete-OperationJournalRun {
+    param(
+        [string]$Result = 'Succeeded',
+        [string]$Message = ''
+    )
+    Write-OperationJournalEntry -Phase 'complete' -Target $Message -SafetyDecision 'NotEvaluated' -Result $Result -WouldChange $false -Reversible $false
+}
+
 function Read-ProcessOutputDelta {
     param(
         [string]$Path,
@@ -5772,18 +5839,28 @@ function Clear-DirectoryContentsSafely {
 }
 
 function Remove-PathSafely { param([string]$Path,[string]$Label)
+    $displayLabel = if ($Label) { $Label } else { $Path }
+    $journalData = @{ label = $displayLabel }
     if ([string]::IsNullOrWhiteSpace($Path)) { return 0 }
-    if (-not (Test-Path -LiteralPath $Path)) { return 0 }
+    if (-not (Test-Path -LiteralPath $Path)) {
+        Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'SkippedMissingTarget' -Result 'Skipped' -WouldChange $false -Reversible $false -RollbackHint 'No files were removed because the target did not exist.' -Data $journalData
+        return 0
+    }
     if (-not (Test-SafeRemovalTarget -Path $Path)) {
+        Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'RefusedUnsafeTarget' -Result 'Refused' -WouldChange $false -Reversible $false -RollbackHint 'No files were removed because the target failed LibreSpot safe-removal checks.' -Data $journalData
         Write-Log "  Refusing to remove unsafe target: $Path" -Level 'WARN'
         return 0
     }
+    Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
     try {
         $null = & icacls.exe "$Path" /reset /T /C /Q 2>$null
         Remove-Item -LiteralPath $Path -Recurse -Force -EA Stop
-        Write-Log "  Removed: $(if($Label){$Label}else{$Path})"
+        Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
+        Write-Log "  Removed: $displayLabel"
         return 1
     } catch {
+        $journalData['error'] = [string]$_.Exception.Message
+        Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'The target may be partially unchanged; review the error before retrying.' -Data $journalData
         Write-Log "  Failed to remove: $Path ($($_.Exception.Message))" -Level 'WARN'
         return 0
     }
@@ -6410,6 +6487,8 @@ $installBlock = { param($sh,$cfg)
     $script:syncHash = $sh
     $ErrorActionPreference = 'Stop'
     try {
+        $modeName = if ($cfg -and $cfg.Mode) { [string]$cfg.Mode } else { 'Unknown' }
+        Start-OperationJournalRun -Action 'Install' -Target "LibreSpot install ($modeName)" -WouldChange $true -Reversible $false -RollbackHint 'Use Maintenance > Restore Vanilla or Full Reset to reverse applied customizations.' | Out-Null
         Write-Log "--- LibreSpot Installation Started ---" -Level 'HEADER'; Write-Log "Mode: $($cfg.Mode)"
         $steps = @('SpotX','SpicetifyCLI','Themes','Extensions','Marketplace','Apply')
         if ($cfg.CleanInstall) { $steps = @('Cleanup') + $steps }
@@ -6446,6 +6525,7 @@ $installBlock = { param($sh,$cfg)
         Write-Log "Temp files cleaned up."
         $finalStep = 'Ready when you are'
         if ($cfg.LaunchAfter -and (Test-Path $global:SPOTIFY_EXE_PATH)) { Write-Log "Launching Spotify..." -Level 'SUCCESS'; Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""; $finalStep = 'Spotify is opening' }
+        Complete-OperationJournalRun -Result 'Succeeded' -Message 'Install completed.'
         Write-Log "--- Installation Complete ---" -Level 'SUCCESS'; $sh.IsRunning=$false
         $installDoneContext = if ($cfg.LaunchAfter -and (Test-Path $global:SPOTIFY_EXE_PATH)) {
             'LibreSpot finished applying your selected setup and is handing off to Spotify now.'
@@ -6454,6 +6534,7 @@ $installBlock = { param($sh,$cfg)
         }
         $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text="Setup complete"; $sh.StepLabel.Text=$finalStep; $sh.InstallTitle.Text='Setup complete'; $sh.InstallContext.Text=$installDoneContext; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     } catch { $sh.IsRunning=$false; $em=$_.Exception.Message; $st=$_.ScriptStackTrace
+        try { Complete-OperationJournalRun -Result 'Failed' -Message $em } catch {}
         try { Write-Log "[FATAL] $em`n$st" -Level 'ERROR' } catch {}
         $sh.Dispatcher.Invoke([Action]{ if($sh.Timer){$sh.Timer.Stop()}; $sh.LogBlock.Text+="`n[FATAL] $em`n$st"; $sh.StatusLabel.Text="Setup stopped"
             $sh.StepLabel.Text="Needs attention"; $sh.InstallTitle.Text='Setup needs attention'; $sh.InstallContext.Text='LibreSpot stopped before the install finished. Review the log below, then go back to setup or copy the details if you want to troubleshoot.'; $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
@@ -6464,6 +6545,8 @@ $maintBlock = { param($sh,$action)
     $script:syncHash = $sh
     $ErrorActionPreference = 'Stop'
     try {
+        $maintenanceWouldChange = ($action -notin @('CheckUpdates','OpenMarketplace'))
+        Start-OperationJournalRun -Action $action -Target "Maintenance action: $action" -WouldChange $maintenanceWouldChange -Reversible $false -RollbackHint 'Review individual journal entries for action-specific rollback hints.' | Out-Null
         if ($action -eq 'CheckUpdates') {
             Write-Log "--- Dependency Update Check ---" -Level 'HEADER'
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Checking upstream releases"; $sh.ProgressBar.Value=20 })
@@ -6574,6 +6657,7 @@ $maintBlock = { param($sh,$action)
             'FullReset' { 'System is ready for a fresh start' }
             default { 'Ready for next step' }
         }
+        Complete-OperationJournalRun -Result 'Succeeded' -Message "Maintenance action $action completed."
         $sh.IsRunning=$false
         $doneContext = switch ($action) {
             'CheckUpdates' { 'LibreSpot compared the pinned releases against upstream versions. Review the log for anything newer before you decide to update the script pins.' }
@@ -6587,6 +6671,7 @@ $maintBlock = { param($sh,$action)
         $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text=$doneStatus; $sh.StepLabel.Text=$doneStep; $sh.InstallTitle.Text=$doneStatus; $sh.InstallContext.Text=$doneContext
             $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     } catch { $sh.IsRunning=$false; $em=$_.Exception.Message; $st=$_.ScriptStackTrace
+        try { Complete-OperationJournalRun -Result 'Failed' -Message $em } catch {}
         try { Write-Log "[FATAL] $em`n$st" -Level 'ERROR' } catch {}
         $sh.Dispatcher.Invoke([Action]{ if($sh.Timer){$sh.Timer.Stop()}; $sh.LogBlock.Text+="`n[FATAL] $em`n$st"; $sh.StatusLabel.Text="Maintenance stopped"; $sh.StepLabel.Text="Needs attention"; $sh.InstallTitle.Text='Maintenance needs attention'; $sh.InstallContext.Text='LibreSpot stopped before the maintenance action finished. Review the live log below, then go back when you are ready to try again.'
             $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
@@ -6599,7 +6684,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
@@ -6622,7 +6707,7 @@ foreach ($fname in $functionNamesForWorker) {
 $varNamesForWorker = @(
     'URL_SPOTX','URL_MARKETPLACE','URL_THEMES_REPO','URL_SPICETIFY_FMT','PinnedReleases',
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR',
-    'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH','CACHE_DIR',
+    'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH','OPERATION_JOURNAL_PATH','CURRENT_OPERATION_ID','CURRENT_OPERATION_ACTION','CACHE_DIR',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
     'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityExtensionAliases','DeprecatedCommunityExtensionNames','CommunityThemeRepos','ThemesNeedingJS','SpotXLyricsThemes','VERSION','CONFIG_SCHEMA_VERSION'
 )

@@ -96,6 +96,9 @@ if ([string]::IsNullOrWhiteSpace($resolvedConfigDirectory)) {
 $global:CONFIG_DIR           = $resolvedConfigDirectory
 $global:CONFIG_PATH          = $ConfigPath
 $global:LOG_PATH             = Join-Path $global:CONFIG_DIR 'install.log'
+$global:OPERATION_JOURNAL_PATH = Join-Path $global:CONFIG_DIR 'operation-journal.jsonl'
+$global:CURRENT_OPERATION_ID = $null
+$global:CURRENT_OPERATION_ACTION = $null
 $global:CACHE_DIR            = Join-Path $global:CONFIG_DIR 'cache'
 $global:WATCHER_STATE_PATH   = Join-Path $global:CONFIG_DIR 'watcher-state.json'
 $global:WATCHER_LOG_PATH     = Join-Path $global:CONFIG_DIR 'watcher.log'
@@ -252,6 +255,68 @@ function Write-Log {
         [System.IO.File]::AppendAllText($global:LOG_PATH, $timestamped + [Environment]::NewLine)
     } catch {}
     Write-EventLine -Kind 'log' -Level $Level -Payload $Message
+}
+
+function Write-OperationJournalEntry {
+    param(
+        [string]$OperationId = $global:CURRENT_OPERATION_ID,
+        [string]$Action = $global:CURRENT_OPERATION_ACTION,
+        [string]$Phase = 'event',
+        [string]$Target = '',
+        [string]$SafetyDecision = 'NotEvaluated',
+        [string]$Result = 'Info',
+        [bool]$WouldChange = $false,
+        [bool]$Reversible = $false,
+        [string]$RollbackHint = '',
+        [hashtable]$Data = $null
+    )
+    try {
+        if ([string]::IsNullOrWhiteSpace($OperationId)) { $OperationId = [Guid]::NewGuid().ToString('N') }
+        if ([string]::IsNullOrWhiteSpace($Action)) { $Action = 'Unknown' }
+        Ensure-LogDirectory
+        $entry = [ordered]@{
+            schemaVersion  = 1
+            timestamp      = (Get-Date).ToUniversalTime().ToString('o')
+            operationId    = $OperationId
+            action         = $Action
+            phase          = $Phase
+            target         = $Target
+            safetyDecision = $SafetyDecision
+            result         = $Result
+            wouldChange    = $WouldChange
+            reversible     = $Reversible
+            rollbackHint   = $RollbackHint
+        }
+        if ($Data) { $entry.data = $Data }
+        $json = $entry | ConvertTo-Json -Compress -Depth 6
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::AppendAllText($global:OPERATION_JOURNAL_PATH, $json + [Environment]::NewLine, $utf8NoBom)
+    } catch {
+        try { Write-Log "Operation journal write failed: $($_.Exception.Message)" -Level 'WARN' } catch {}
+    }
+}
+
+function Start-OperationJournalRun {
+    param(
+        [string]$Action,
+        [string]$Target = '',
+        [bool]$WouldChange = $true,
+        [bool]$Reversible = $false,
+        [string]$RollbackHint = ''
+    )
+    $global:CURRENT_OPERATION_ID = [Guid]::NewGuid().ToString('N')
+    $global:CURRENT_OPERATION_ACTION = $Action
+    Write-OperationJournalEntry -OperationId $global:CURRENT_OPERATION_ID -Action $Action -Phase 'planned' -Target $Target -SafetyDecision 'Pending' -Result 'Started' -WouldChange $WouldChange -Reversible $Reversible -RollbackHint $RollbackHint
+    Write-Log "Operation id: $global:CURRENT_OPERATION_ID"
+    return $global:CURRENT_OPERATION_ID
+}
+
+function Complete-OperationJournalRun {
+    param(
+        [string]$Result = 'Succeeded',
+        [string]$Message = ''
+    )
+    Write-OperationJournalEntry -Phase 'complete' -Target $Message -SafetyDecision 'NotEvaluated' -Result $Result -WouldChange $false -Reversible $false
 }
 
 function Update-BackendState {
@@ -1846,18 +1911,28 @@ function Remove-PathSafely {
         [string]$Path,
         [string]$Label
     )
+    $displayLabel = if ($Label) { $Label } else { $Path }
+    $journalData = @{ label = $displayLabel }
     if ([string]::IsNullOrWhiteSpace($Path)) { return 0 }
-    if (-not (Test-Path -LiteralPath $Path)) { return 0 }
+    if (-not (Test-Path -LiteralPath $Path)) {
+        Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'SkippedMissingTarget' -Result 'Skipped' -WouldChange $false -Reversible $false -RollbackHint 'No files were removed because the target did not exist.' -Data $journalData
+        return 0
+    }
     if (-not (Test-SafeRemovalTarget -Path $Path)) {
+        Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'RefusedUnsafeTarget' -Result 'Refused' -WouldChange $false -Reversible $false -RollbackHint 'No files were removed because the target failed LibreSpot safe-removal checks.' -Data $journalData
         Write-Log "Refusing to remove unsafe target: $Path" -Level 'WARN'
         return 0
     }
+    Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
     try {
         $null = & icacls.exe "$Path" /reset /T /C /Q 2>$null
         Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
-        Write-Log "Removed: $(if ($Label) { $Label } else { $Path })"
+        Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
+        Write-Log "Removed: $displayLabel"
         return 1
     } catch {
+        $journalData['error'] = [string]$_.Exception.Message
+        Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'The target may be partially unchanged; review the error before retrying.' -Data $journalData
         Write-Log "Failed to remove ${Path}: $($_.Exception.Message)" -Level 'WARN'
         return 0
     }
@@ -3232,6 +3307,8 @@ try {
     }
 
     Write-EventLine -Kind 'action' -Payload $Action
+    $journalWouldChange = ($Action -notin @('CheckUpdates', 'OpenMarketplace', 'WatchAutoReapply'))
+    Start-OperationJournalRun -Action $Action -Target "Backend action: $Action" -WouldChange $journalWouldChange -Reversible $false -RollbackHint 'Review individual journal entries for action-specific rollback hints.' | Out-Null
     if ($Action -notin @('CheckUpdates', 'EnableAutoReapply', 'DisableAutoReapply')) {
         Ensure-Admin
     }
@@ -3243,6 +3320,7 @@ try {
         if (-not (ConvertTo-ConfigBoolean -Value $riskConfig['RiskAcknowledged'] -Default $false)) {
             Write-Log 'RiskAcknowledged is false. The desktop shell must present the acknowledgment dialog before running this action.' -Level 'ERROR'
             Write-EventLine -Kind 'result' -Level 'ERROR' -Payload 'Risk acknowledgment required before this action can proceed.'
+            Complete-OperationJournalRun -Result 'Refused' -Message 'Risk acknowledgment required before this action can proceed.'
             exit 1
         }
     }
@@ -3252,10 +3330,12 @@ try {
     } else {
         Invoke-LibreSpotMaintenance
     }
+    Complete-OperationJournalRun -Result 'Succeeded' -Message "Backend action $Action completed."
     Write-EventLine -Kind 'result' -Level 'SUCCESS' -Payload 'LibreSpot backend completed successfully.'
     exit 0
 } catch {
     $message = $_.Exception.Message
+    try { Complete-OperationJournalRun -Result 'Failed' -Message $message } catch {}
     Write-Log $message -Level 'ERROR'
     Write-EventLine -Kind 'result' -Level 'ERROR' -Payload $message
     exit 1
