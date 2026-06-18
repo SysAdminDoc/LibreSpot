@@ -55,6 +55,9 @@ All notable changes to LibreSpot will be documented in this file.
 - Added `AutomationProperties.Name` to the settings search clear button and installation progress bar.
 
 ### Fixed
+- WPF health diagnostics no longer report post-update "No drift" when Spotify
+  is missing or no watcher history exists; those states now show clear
+  informational guidance instead.
 - WPF confirmation prompts now make Enter activate the safe default action only
   for non-destructive prompts; destructive prompts keep focus on cancel and no
   longer expose confirm as the implicit default.

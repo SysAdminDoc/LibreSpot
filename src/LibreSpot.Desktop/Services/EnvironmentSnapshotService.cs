@@ -139,6 +139,7 @@ public sealed class EnvironmentSnapshotService
                 watcherState,
                 spotifyInstalled,
                 spicetifyInstalled,
+                autoReapplyTaskRegistered,
                 marketplaceFilesPresent,
                 marketplaceRegistered),
             BuildExtensionFileIntegrityComponent(spicetifyInstalled, spicetifyConfig),
@@ -561,6 +562,7 @@ public sealed class EnvironmentSnapshotService
         WatcherState state,
         bool spotifyInstalled,
         bool spicetifyInstalled,
+        bool autoReapplyTaskRegistered,
         bool marketplaceFilesPresent,
         bool marketplaceRegistered)
     {
@@ -572,6 +574,36 @@ public sealed class EnvironmentSnapshotService
             !string.IsNullOrWhiteSpace(currentSpotifyVersion) &&
             !string.IsNullOrWhiteSpace(lastPatchedVersion) &&
             !string.Equals(currentSpotifyVersion, lastPatchedVersion, StringComparison.OrdinalIgnoreCase);
+
+        if (!spotifyInstalled)
+        {
+            return Component(
+                "post-spotify-update",
+                "After Spotify update",
+                "Not applicable",
+                HealthSeverity.Info,
+                null,
+                statePath,
+                LatestStateChange(state),
+                "Post-update drift checks start after Spotify is installed.",
+                "Install");
+        }
+
+        if (string.IsNullOrWhiteSpace(lastPatchedVersion))
+        {
+            return Component(
+                "post-spotify-update",
+                "After Spotify update",
+                autoReapplyTaskRegistered ? "No watcher history" : "Watcher not enabled",
+                HealthSeverity.Info,
+                currentSpotifyVersion,
+                statePath,
+                LatestStateChange(state),
+                autoReapplyTaskRegistered
+                    ? "LibreSpot has not recorded a patched Spotify version yet. Run the setup or reapply once so future Spotify updates can be compared accurately."
+                    : "Auto-reapply is not enabled and LibreSpot has no recorded patched Spotify version to compare against future updates.",
+                spicetifyInstalled ? "Reapply" : "Install");
+        }
 
         if (string.Equals(state.LastOutcome, "Reapplied", StringComparison.OrdinalIgnoreCase) &&
             !string.IsNullOrWhiteSpace(currentSpotifyVersion) &&

@@ -248,6 +248,7 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.Contains(snapshot.HealthReport.InfoIssues, component => component.Id == "spotify" && component.Status == "Not installed");
         Assert.Contains(snapshot.HealthReport.InfoIssues, component => component.Id == "spicetify-cli" && component.Status == "Not installed");
         Assert.Contains(snapshot.HealthReport.InfoIssues, component => component.Id == "spotx" && component.Status == "Not checked");
+        Assert.Contains(snapshot.HealthReport.InfoIssues, component => component.Id == "post-spotify-update" && component.Status == "Not applicable");
     }
 
     [Fact]
@@ -552,6 +553,23 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.Equal("Unverified", spotx.Status);
         Assert.Equal(HealthSeverity.Warning, spotx.Severity);
         Assert.Contains("Reapply", spotx.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_SpotifyInstalledWithoutWatcherHistory_DoesNotClaimNoDrift()
+    {
+        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.95.100" };
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+        fixture.WriteMarketplaceFiles();
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var triage = Assert.Single(snapshot.HealthReport.InfoIssues, c => c.Id == "post-spotify-update");
+        Assert.Equal("Watcher not enabled", triage.Status);
+        Assert.Equal(HealthSeverity.Info, triage.Severity);
+        Assert.Contains("no recorded patched Spotify version", triage.Evidence);
+        Assert.Contains("Reapply", triage.RecommendedActionIds);
     }
 
     [Fact]
