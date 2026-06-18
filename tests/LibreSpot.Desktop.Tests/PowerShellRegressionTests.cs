@@ -1172,6 +1172,11 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("safetyDecision", body);
         Assert.Contains("wouldChange", body);
         Assert.Contains("rollbackHint", body);
+        Assert.Contains("Optimize-OperationJournalRetention", body);
+        Assert.Contains("OPERATION_JOURNAL_MAX_BYTES", script);
+        Assert.Contains("OPERATION_JOURNAL_RETAIN_BYTES", script);
+        Assert.Contains("journal-retention", script);
+        Assert.Contains("result         = 'Trimmed'", script);
     }
 
     [Theory]
@@ -1209,6 +1214,19 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("'Start-OperationJournalRun'", exports);
         Assert.Contains("'Complete-OperationJournalRun'", exports);
         Assert.Contains("'OPERATION_JOURNAL_PATH'", script);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void PowerShellUserMessages_DelimitVariablesBeforeLiteralColons(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.DoesNotContain("$target:", script);
+        Assert.DoesNotContain("$Label:", script);
+        Assert.Contains("${target}:", script);
+        Assert.Contains("${Label}:", script);
     }
 
     [Fact]

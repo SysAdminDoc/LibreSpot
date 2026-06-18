@@ -97,6 +97,8 @@ $global:CONFIG_DIR           = $resolvedConfigDirectory
 $global:CONFIG_PATH          = $ConfigPath
 $global:LOG_PATH             = Join-Path $global:CONFIG_DIR 'install.log'
 $global:OPERATION_JOURNAL_PATH = Join-Path $global:CONFIG_DIR 'operation-journal.jsonl'
+$global:OPERATION_JOURNAL_MAX_BYTES = 1048576
+$global:OPERATION_JOURNAL_RETAIN_BYTES = 786432
 $global:CURRENT_OPERATION_ID = $null
 $global:CURRENT_OPERATION_ACTION = $null
 $global:CACHE_DIR            = Join-Path $global:CONFIG_DIR 'cache'
@@ -257,6 +259,58 @@ function Write-Log {
     Write-EventLine -Kind 'log' -Level $Level -Payload $Message
 }
 
+function Optimize-OperationJournalRetention {
+    try {
+        $maxBytes = [int64]$global:OPERATION_JOURNAL_MAX_BYTES
+        $retainBytes = [int64]$global:OPERATION_JOURNAL_RETAIN_BYTES
+        if ($maxBytes -le 0 -or $retainBytes -le 0 -or $retainBytes -ge $maxBytes) { return }
+        if (-not (Test-Path -LiteralPath $global:OPERATION_JOURNAL_PATH -PathType Leaf)) { return }
+
+        $file = Get-Item -LiteralPath $global:OPERATION_JOURNAL_PATH -ErrorAction Stop
+        if ($file.Length -le $maxBytes) { return }
+
+        $bytesToRead = [int][Math]::Min($retainBytes, $file.Length)
+        $buffer = New-Object 'System.Byte[]' $bytesToRead
+        $stream = [System.IO.File]::Open($global:OPERATION_JOURNAL_PATH, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        try {
+            $null = $stream.Seek(-1 * $bytesToRead, [System.IO.SeekOrigin]::End)
+            $read = $stream.Read($buffer, 0, $buffer.Length)
+        } finally {
+            try { $stream.Dispose() } catch {}
+        }
+
+        $tail = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $read)
+        $firstNewline = $tail.IndexOf("`n")
+        if ($firstNewline -ge 0 -and $firstNewline -lt ($tail.Length - 1)) {
+            $tail = $tail.Substring($firstNewline + 1)
+        }
+
+        $entry = [ordered]@{
+            schemaVersion  = 1
+            timestamp      = (Get-Date).ToUniversalTime().ToString('o')
+            operationId    = 'journal-retention'
+            action         = 'OperationJournal'
+            phase          = 'retention'
+            target         = $global:OPERATION_JOURNAL_PATH
+            safetyDecision = 'Allowed'
+            result         = 'Trimmed'
+            wouldChange    = $true
+            reversible     = $false
+            rollbackHint   = 'Older operation journal entries were trimmed to keep local diagnostics bounded.'
+            data           = @{
+                previousBytes = $file.Length
+                retainedBytes = [System.Text.Encoding]::UTF8.GetByteCount($tail)
+                maxBytes      = $maxBytes
+            }
+        }
+        $json = $entry | ConvertTo-Json -Compress -Depth 6
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($global:OPERATION_JOURNAL_PATH, $json + [Environment]::NewLine + $tail, $utf8NoBom)
+    } catch {
+        try { Write-Log "Operation journal retention failed: $($_.Exception.Message)" -Level 'WARN' } catch {}
+    }
+}
+
 function Write-OperationJournalEntry {
     param(
         [string]$OperationId = $global:CURRENT_OPERATION_ID,
@@ -274,6 +328,7 @@ function Write-OperationJournalEntry {
         if ([string]::IsNullOrWhiteSpace($OperationId)) { $OperationId = [Guid]::NewGuid().ToString('N') }
         if ([string]::IsNullOrWhiteSpace($Action)) { $Action = 'Unknown' }
         Ensure-LogDirectory
+        Optimize-OperationJournalRetention
         $entry = [ordered]@{
             schemaVersion  = 1
             timestamp      = (Get-Date).ToUniversalTime().ToString('o')
@@ -1239,7 +1294,7 @@ function Get-DownloadFailureHint {
     if ([string]::IsNullOrWhiteSpace($message)) {
         return "$Stage failed for $target."
     }
-    return "$Stage failed for $target: $message"
+    return "$Stage failed for ${target}: $message"
 }
 
 function Get-NetworkDiagnosticCode {
@@ -1440,7 +1495,7 @@ function Get-FromAssetCache {
         Write-Log "Using verified cached copy for $Label (SHA256: $hash)"
         return $true
     } catch {
-        Write-Log "Cache retrieval failed for $Label: $($_.Exception.Message)" -Level 'WARN'
+        Write-Log "Cache retrieval failed for ${Label}: $($_.Exception.Message)" -Level 'WARN'
         return $false
     }
 }

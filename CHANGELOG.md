@@ -55,6 +55,10 @@ All notable changes to LibreSpot will be documented in this file.
 - Added `AutomationProperties.Name` to the settings search clear button and installation progress bar.
 
 ### Fixed
+- Operation journal writes now cap the local JSONL history and insert a
+  structured retention marker before trimming old entries, preventing long-lived
+  installs from growing `%APPDATA%\LibreSpot\operation-journal.jsonl` without
+  bound.
 - WPF backend "Remove LibreSpot data" no longer recreates `%APPDATA%\LibreSpot`
   while reporting success after deleting that profile; it removes the active
   config profile last and switches final reporting to the event protocol.
