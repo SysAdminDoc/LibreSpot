@@ -55,6 +55,9 @@ All notable changes to LibreSpot will be documented in this file.
 - Added `AutomationProperties.Name` to the settings search clear button and installation progress bar.
 
 ### Fixed
+- WPF health diagnostics now reject path-like Spicetify extension entries before
+  probing the Extensions folder, preventing corrupt config values from escaping
+  the intended diagnostic boundary.
 - WPF support bundles now redact JSON-escaped and slash-normalized local paths
   and omit non-UTF-8 diagnostic payloads instead of replacement-decoding them.
 - CodeQL workflow job permissions now explicitly retain `contents: read` while

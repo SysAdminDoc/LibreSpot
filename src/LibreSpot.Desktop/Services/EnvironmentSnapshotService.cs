@@ -848,6 +848,37 @@ public sealed class EnvironmentSnapshotService
         var registered = raw
             .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToArray();
+        if (registered.Length == 0)
+        {
+            return Component(
+                "extension-integrity",
+                "Extension files",
+                "None registered",
+                HealthSeverity.Ready,
+                null,
+                extensionsDir,
+                null,
+                "No Spicetify extensions are registered in config-xpui.ini.");
+        }
+
+        var invalid = registered
+            .Where(ext => !IsSafeExtensionFileName(ext))
+            .ToArray();
+        if (invalid.Length > 0)
+        {
+            var label = invalid.Length == 1 ? "Invalid entry" : $"{invalid.Length} invalid entries";
+            return Component(
+                "extension-integrity",
+                "Extension files",
+                label,
+                HealthSeverity.Warning,
+                null,
+                extensionsDir,
+                null,
+                "Spicetify extension entries must be plain file names under the Extensions folder; path separators, rooted paths, and invalid file-name characters are ignored.",
+                "Reapply");
+        }
+
         var missing = registered
             .Where(ext => !File.Exists(Path.Combine(extensionsDir, ext)))
             .ToArray();
@@ -876,6 +907,26 @@ public sealed class EnvironmentSnapshotService
             extensionsDir,
             GetNewestFileChange(extensionsDir),
             $"All {registered.Length} registered extension file(s) exist on disk.");
+    }
+
+    private static bool IsSafeExtensionFileName(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        if (Path.IsPathFullyQualified(value) ||
+            value.Contains(Path.DirectorySeparatorChar) ||
+            value.Contains(Path.AltDirectorySeparatorChar) ||
+            string.Equals(value, ".", StringComparison.Ordinal) ||
+            string.Equals(value, "..", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return string.Equals(Path.GetFileName(value), value, StringComparison.Ordinal) &&
+               value.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
     }
 
     private static string ResolveConfigDirectory(string configPath)

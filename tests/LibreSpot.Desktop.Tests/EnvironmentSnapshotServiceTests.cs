@@ -483,6 +483,24 @@ public sealed class EnvironmentSnapshotServiceTests
     }
 
     [Fact]
+    public void GetSnapshot_ExtensionIntegrity_RejectsPathLikeExtensionEntries()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpicetifyConfig(@"extensions = fullAppDisplay.js|..\outside.js|C:\Temp\bad.js");
+        fixture.WriteExtensionFiles("fullAppDisplay.js");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var ext = Assert.Single(snapshot.HealthReport.WarningIssues, c => c.Id == "extension-integrity");
+        Assert.Equal("2 invalid entries", ext.Status);
+        Assert.Equal(HealthSeverity.Warning, ext.Severity);
+        Assert.Contains("plain file names", ext.Evidence);
+        Assert.DoesNotContain("outside.js", ext.Evidence);
+        Assert.DoesNotContain("C:\\Temp", ext.Evidence);
+        Assert.Contains("Reapply", ext.RecommendedActionIds);
+    }
+
+    [Fact]
     public void GetSnapshot_ExtensionIntegrity_NoExtensionsRegistered()
     {
         using var fixture = new SnapshotFixture();
