@@ -1211,6 +1211,29 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("'OPERATION_JOURNAL_PATH'", script);
     }
 
+    [Fact]
+    public void BackendRemoveSelfData_DoesNotRecreateProfileAfterDeletingIt()
+    {
+        var script = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+        var removeSelfData = Regex.Match(
+            script,
+            @"'RemoveSelfData'\s*\{(?<body>.+?)^\s*\}\s*'EnableAutoReapply'",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(removeSelfData.Success, "RemoveSelfData action block not found in backend script.");
+        var body = removeSelfData.Groups["body"].Value;
+
+        var backupIndex = body.IndexOf("Backup directory", StringComparison.Ordinal);
+        var localLogIndex = body.IndexOf("Log/crash directory", StringComparison.Ordinal);
+        var configIndex = body.IndexOf("Config directory", StringComparison.Ordinal);
+        Assert.True(backupIndex >= 0 && localLogIndex > backupIndex && configIndex > localLogIndex,
+            "RemoveSelfData must remove the active LibreSpot config profile last.");
+        Assert.Contains("RemovesActiveProfile", body);
+        Assert.Contains("Write-EventLine -Kind 'log' -Level 'SUCCESS'", body);
+        Assert.DoesNotContain("Write-Log 'LibreSpot self-cleanup complete", body);
+        Assert.Contains("if ($Action -ne 'RemoveSelfData')", script);
+    }
+
     // ---------------------------------------------------------------------
     // SpotX post-patch effectiveness verification.
     // A clean SpotX exit code does NOT prove the patch landed: Spotify's

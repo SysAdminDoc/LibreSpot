@@ -3240,22 +3240,37 @@ function Invoke-LibreSpotMaintenance {
                 Write-Log 'Auto-reapply scheduled task was not registered.'
             }
             $selfPaths = @(
-                @{ Path = $global:CONFIG_DIR; Label = 'Config directory' }
                 @{ Path = $global:BACKUP_ROOT; Label = 'Backup directory' }
                 @{ Path = (Join-Path $env:LOCALAPPDATA 'LibreSpot'); Label = 'Log/crash directory' }
+                @{ Path = $global:CONFIG_DIR; Label = 'Config directory'; RemovesActiveProfile = $true }
             )
             $step = 20
             foreach ($entry in $selfPaths) {
                 Update-BackendState -Progress $step -Status "Removing $($entry.Label)" -Step $entry.Label
                 if (Test-Path -LiteralPath $entry.Path) {
-                    $null = Remove-PathSafely -Path $entry.Path -Label $entry.Label
-                    Write-Log "Removed: $($entry.Label) ($($entry.Path))"
+                    if ($entry.RemovesActiveProfile) {
+                        if (-not (Test-SafeRemovalTarget -Path $entry.Path)) {
+                            Write-OperationJournalEntry -Phase 'remove' -Target $entry.Path -SafetyDecision 'RefusedUnsafeTarget' -Result 'Refused' -WouldChange $false -Reversible $false -RollbackHint 'No files were removed because the target failed LibreSpot safe-removal checks.' -Data @{ label = $entry.Label }
+                            Write-Log "Refusing to remove unsafe target: $($entry.Path)" -Level 'WARN'
+                        } else {
+                            Write-OperationJournalEntry -Phase 'remove' -Target $entry.Path -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'This removes LibreSpot profile data by user request.' -Data @{ label = $entry.Label }
+                            Remove-Item -LiteralPath $entry.Path -Recurse -Force -ErrorAction Stop
+                            Write-EventLine -Kind 'log' -Level 'INFO' -Payload "Removed: $($entry.Label) ($($entry.Path))"
+                        }
+                    } else {
+                        $null = Remove-PathSafely -Path $entry.Path -Label $entry.Label
+                        Write-Log "Removed: $($entry.Label) ($($entry.Path))"
+                    }
                 } else {
-                    Write-Log "Not found: $($entry.Label) ($($entry.Path))"
+                    if ($entry.RemovesActiveProfile) {
+                        Write-EventLine -Kind 'log' -Level 'INFO' -Payload "Not found: $($entry.Label) ($($entry.Path))"
+                    } else {
+                        Write-Log "Not found: $($entry.Label) ($($entry.Path))"
+                    }
                 }
                 $step += 25
             }
-            Write-Log 'LibreSpot self-cleanup complete. Spotify and Spicetify were not affected.' -Level 'SUCCESS'
+            Write-EventLine -Kind 'log' -Level 'SUCCESS' -Payload 'LibreSpot self-cleanup complete. Spotify and Spicetify were not affected.'
         }
         'EnableAutoReapply' {
             Update-BackendState -Progress 25 -Status 'Registering watcher' -Step 'Creating scheduled task'
@@ -3330,13 +3345,17 @@ try {
     } else {
         Invoke-LibreSpotMaintenance
     }
-    Complete-OperationJournalRun -Result 'Succeeded' -Message "Backend action $Action completed."
+    if ($Action -ne 'RemoveSelfData') {
+        Complete-OperationJournalRun -Result 'Succeeded' -Message "Backend action $Action completed."
+    }
     Write-EventLine -Kind 'result' -Level 'SUCCESS' -Payload 'LibreSpot backend completed successfully.'
     exit 0
 } catch {
     $message = $_.Exception.Message
-    try { Complete-OperationJournalRun -Result 'Failed' -Message $message } catch {}
-    Write-Log $message -Level 'ERROR'
+    if ($Action -ne 'RemoveSelfData') {
+        try { Complete-OperationJournalRun -Result 'Failed' -Message $message } catch {}
+        Write-Log $message -Level 'ERROR'
+    }
     Write-EventLine -Kind 'result' -Level 'ERROR' -Payload $message
     exit 1
 }
