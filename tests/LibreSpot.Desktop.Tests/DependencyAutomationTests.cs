@@ -143,6 +143,18 @@ public sealed class DependencyAutomationTests
     }
 
     [Fact]
+    public void CodeQlWorkflow_RetainsCheckoutPermissionWhenJobPermissionsAreNarrowed()
+    {
+        var workflow = ReadRepoFile(".github", "workflows", "codeql.yml");
+        var normalized = workflow.Replace("\r\n", "\n", StringComparison.Ordinal);
+
+        Assert.Contains(
+            "    permissions:\n      contents: read\n      security-events: write\n",
+            normalized);
+        Assert.Contains("actions/checkout@", workflow);
+    }
+
+    [Fact]
     public void ScorecardBaseline_DocumentsAcceptedSingleMaintainerRisks()
     {
         using var baseline = JsonDocument.Parse(ReadRepoFile("schemas", "scorecard-baseline.json"));

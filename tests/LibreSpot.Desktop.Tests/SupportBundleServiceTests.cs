@@ -13,6 +13,7 @@ public sealed class SupportBundleServiceTests
     {
         using var fixture = new SupportBundleFixture();
         var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var slashProfile = profile.Replace('\\', '/');
         var machine = Environment.MachineName;
         fixture.WriteStackReadyState();
         fixture.WriteInstallLog(
@@ -22,6 +23,7 @@ public sealed class SupportBundleServiceTests
             HTTP_PROXY=http://proxyUser:proxyPass@example.test:8080
             command.exe --token topsecret --password othersecret
             log path: {profile}\repos\LibreSpot\src\Program.cs on {machine}
+            slash path: {slashProfile}/repos/LibreSpot/src/Program.cs
             """);
         fixture.WriteRollingLog("GITHUB_TOKEN=ghp_abcdefghijklmnopqrstuvwxyz123456");
         fixture.WriteCrashReport(
@@ -35,6 +37,7 @@ public sealed class SupportBundleServiceTests
         var text = string.Join("\n", ReadZipText(result.Path).Values);
 
         Assert.DoesNotContain(profile, text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(slashProfile, text, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(machine, text, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("ghp_abcdefghijklmnopqrstuvwxyz123456", text);
         Assert.DoesNotContain("raw-request-id", text);
@@ -62,6 +65,7 @@ public sealed class SupportBundleServiceTests
             IncludeLogs: false,
             IncludeCrashReports: false));
         var entries = ReadZipText(result.Path);
+        var escapedJournalTarget = journalTarget.Replace("\\", "\\\\");
 
         Assert.Contains("manifest.json", entries.Keys);
         Assert.Contains("health/health-report.json", entries.Keys);
@@ -70,8 +74,26 @@ public sealed class SupportBundleServiceTests
         Assert.Contains("Operation journal JSONL", entries["operation/latest-journal.txt"]);
         Assert.Contains("<LIBRESPOT_CONFIG>", entries["operation/latest-journal.txt"]);
         Assert.DoesNotContain(journalTarget, entries["operation/latest-journal.txt"]);
+        Assert.DoesNotContain(escapedJournalTarget, entries["operation/latest-journal.txt"]);
         Assert.DoesNotContain(entries.Keys, name => name.StartsWith("logs/", StringComparison.Ordinal));
         Assert.DoesNotContain(entries.Keys, name => name.StartsWith("crashes/", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ExportAsync_OmitsInvalidUtf8DiagnosticWindows()
+    {
+        using var fixture = new SupportBundleFixture();
+        fixture.WriteStackReadyState();
+        fixture.WriteCrashReportBytes([0x48, 0x69, 0x20, 0xC3, 0x28]);
+
+        var result = await fixture.ExportAsync(new SupportBundleOptions(
+            IncludeOperationJournal: false,
+            IncludeLogs: false,
+            IncludeCrashReports: true));
+        var entries = ReadZipText(result.Path);
+        var crashWindow = Assert.Single(entries, entry => entry.Key.StartsWith("crashes/", StringComparison.Ordinal));
+
+        Assert.Contains("<omitted: file is not UTF-8 text>", crashWindow.Value);
     }
 
     [Fact]
@@ -193,6 +215,13 @@ public sealed class SupportBundleServiceTests
 
         public void WriteCrashReport(string content) =>
             WriteFile(Path.Combine(CrashDirectory, "crash-20260616-test.log"), content);
+
+        public void WriteCrashReportBytes(byte[] content)
+        {
+            var path = Path.Combine(CrashDirectory, "crash-20260616-test.log");
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, content);
+        }
 
         private static void WriteFile(string path, string content)
         {

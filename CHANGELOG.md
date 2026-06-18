@@ -55,6 +55,11 @@ All notable changes to LibreSpot will be documented in this file.
 - Added `AutomationProperties.Name` to the settings search clear button and installation progress bar.
 
 ### Fixed
+- WPF support bundles now redact JSON-escaped and slash-normalized local paths
+  and omit non-UTF-8 diagnostic payloads instead of replacement-decoding them.
+- CodeQL workflow job permissions now explicitly retain `contents: read` while
+  granting `security-events: write`, keeping checkout reliable under narrowed
+  job permissions.
 - WPF health diagnostics no longer report post-update "No drift" when Spotify
   is missing or no watcher history exists; those states now show clear
   informational guidance instead.

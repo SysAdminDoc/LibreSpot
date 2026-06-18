@@ -41,6 +41,7 @@ public sealed class SupportBundleService
     private const int MaxRollingLogFiles = 3;
     private const int MaxCrashFiles = 3;
     private const long MetadataEstimateBytes = 16 * 1024;
+    private static readonly Encoding StrictUtf8NoBom = new UTF8Encoding(false, true);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -373,7 +374,7 @@ public sealed class SupportBundleService
     {
         try
         {
-            var lines = File.ReadLines(path, Encoding.UTF8)
+            var lines = File.ReadLines(path, StrictUtf8NoBom)
                 .TakeLast(maxLines);
             return RedactText(string.Join(Environment.NewLine, lines));
         }
@@ -470,7 +471,7 @@ public sealed class SupportBundleService
     {
         public static IReadOnlyList<string> RuleDescriptions { get; } = new[]
         {
-            "Replaces local user, machine, profile, AppData, LocalAppData, temp, and LibreSpot config paths with placeholders.",
+            "Replaces local user, machine, profile, AppData, LocalAppData, temp, and LibreSpot config paths with placeholders, including JSON-escaped path forms.",
             "Redacts Authorization and GitHub response/request headers.",
             "Redacts GitHub tokens, API keys, passwords, proxy credentials, and command-line secret arguments.",
             "Omits binary or unreadable file payloads from text windows."
@@ -537,7 +538,10 @@ public sealed class SupportBundleService
                 return;
             }
 
-            AddLiteralRule(rules, Path.GetFullPath(value), replacement);
+            var fullPath = Path.GetFullPath(value);
+            AddLiteralRule(rules, fullPath, replacement);
+            AddLiteralRule(rules, fullPath.Replace(@"\", @"\\"), replacement);
+            AddLiteralRule(rules, fullPath.Replace('\\', '/'), replacement);
         }
 
         private static void AddLiteralRule(List<(string Value, string Replacement)> rules, string? value, string replacement)
