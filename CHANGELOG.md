@@ -5,6 +5,12 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- SpotX/Spicetify version compatibility warning badge in the footer of Easy
+  Install and Custom Install modes. When the SpotX-targeted Spotify version
+  exceeds Spicetify's max-tested range, a visible warning appears near the
+  install button. The Maintenance mode snapshot also flags the gap. The
+  `Update-CompatibilityWarningBadge` function reads the existing
+  `Get-LibreSpotCompatibilityWarnings` data and surfaces it visually.
 - Catalog refresh checklist (`schemas/catalog-refresh-checklist.json`) with 8
   weighted evaluation criteria (popularity, maintenance, license, install method,
   Spotify compatibility, Marketplace availability, security posture, user value),

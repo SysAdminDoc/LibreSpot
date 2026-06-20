@@ -2280,6 +2280,7 @@ $xaml = @"
                         <StackPanel Grid.Column="2" Name="FooterActionPanel" HorizontalAlignment="Right">
                             <Button Name="BtnInstall" Content="Install recommended setup" Background="{StaticResource AccentBrush}" Foreground="{StaticResource FgInverseBrush}" BorderBrush="{StaticResource AccentBrush}" Style="{StaticResource ActionButton}" Width="300" HorizontalAlignment="Right"/>
                             <TextBlock Name="ActionFooterNote" Text="Settings save when setup begins." Foreground="{StaticResource FgMutedBrush}" FontSize="11" Margin="0,10,0,0" HorizontalAlignment="Right" TextWrapping="Wrap" MaxWidth="300" TextAlignment="Right"/>
+                            <TextBlock Name="CompatibilityWarning" Foreground="#FFEAB308" FontSize="10.5" Margin="0,6,0,0" HorizontalAlignment="Right" TextWrapping="Wrap" MaxWidth="300" TextAlignment="Right" Visibility="Collapsed" AutomationProperties.Name="Compatibility warning"/>
                         </StackPanel>
                     </Grid>
                 </Grid>
@@ -2452,7 +2453,7 @@ $ui = @{}
   'InstallStagePrepare','InstallStageRun','InstallStageVerify','InstallStageComplete',
   'InstallStagePrepareText','InstallStageRunText','InstallStageVerifyText','InstallStageCompleteText',
   'LogScroller','LogOutput','StatusText','ElapsedTime','ProgressPercentText','StepIndicator','LastLogEventText','MainProgress','BtnCopyLog','BtnBackToConfig','CloseBtn',
-  'FooterActionPanel','ActionFooterNote','TitleText','TitleLogo','TitleBar'
+  'FooterActionPanel','ActionFooterNote','CompatibilityWarning','TitleText','TitleLogo','TitleBar'
 ) | ForEach-Object { $el = $window.FindName($_); if ($el) { $ui[$_] = $el } }
 
 try {
@@ -3093,6 +3094,7 @@ function Update-ModePresentation {
         Set-SelectionSnapshotState -Tone 'success' -BadgeText 'Pinned default stack' -DetailText 'Easy Install uses the verified cleanup path and saves the default recovery baseline when setup begins.'
         if ($ui.ContainsKey('ActionFooterNote')) { $ui['ActionFooterNote'].Text = 'Recommended defaults save when setup begins.' }
         $ui['BtnInstall'].Content = 'Start recommended setup'
+        Update-CompatibilityWarningBadge
         return
     }
 
@@ -3161,6 +3163,7 @@ function Update-ModePresentation {
             $ui['ActionFooterNote'].Text = if ($hasUnsavedCustomChanges) { 'Custom edits save when setup begins.' } else { 'Starting setup refreshes the remembered custom baseline.' }
         }
         $ui['BtnInstall'].Content = 'Install this setup'
+        Update-CompatibilityWarningBadge
         return
     }
 
@@ -4044,6 +4047,19 @@ function Get-LibreSpotCurrentSpotifyTarget {
     }
 }
 
+function Update-CompatibilityWarningBadge {
+    if (-not $ui.ContainsKey('CompatibilityWarning')) { return }
+    $warnings = @(Get-LibreSpotCompatibilityWarnings)
+    if ($warnings.Count -gt 0) {
+        $spotxTarget = Get-LibreSpotCurrentSpotifyTarget
+        $spicetifyMax = [string]$global:PinnedReleases.SpicetifyCLI.WindowsMaxTestedSpotify
+        $ui['CompatibilityWarning'].Text = "⚠ SpotX targets Spotify $($spotxTarget.Id) but Spicetify max-tested is $spicetifyMax"
+        $ui['CompatibilityWarning'].Visibility = 'Visible'
+    } else {
+        $ui['CompatibilityWarning'].Visibility = 'Collapsed'
+    }
+}
+
 function Get-LibreSpotCompatibilityWarnings {
     $warnings = @()
     $spotxTarget = Get-LibreSpotCurrentSpotifyTarget
@@ -4487,6 +4503,11 @@ function Update-MaintenanceStatus {
             "Detected $($script:MaintenanceComponentCount) of 5 core components. Create a backup before making deeper changes."
         } else {
             "Detected $($script:MaintenanceComponentCount) of 5 core components. Reapply or the lighter restore actions can help rebuild a stable state."
+        }
+        $compatWarnings = @(Get-LibreSpotCompatibilityWarnings)
+        if ($compatWarnings.Count -gt 0) {
+            $selectionDetail = "$selectionDetail SpotX/Spicetify version gap detected."
+            if ($selectionTone -ne 'danger') { $selectionTone = 'warning' }
         }
         Set-SelectionSnapshotState -Tone $selectionTone -BadgeText $selectionBadge -DetailText $selectionDetail
     }
