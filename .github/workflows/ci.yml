@@ -273,6 +273,50 @@ jobs:
           }
           Write-Host "C# sources: $csCount | Test files: $testCount"
 
+      - name: Upstream dependency freshness
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $script = Get-Content 'LibreSpot.ps1' -Raw
+          $stale = @()
+          $checks = @(
+              @{ Name = 'Spicetify CLI'; Repo = 'spicetify/cli'; PinnedPattern = "SpicetifyCLI\s*=\s*@\{[^}]*Version\s*=\s*'([^']+)'" },
+              @{ Name = 'Marketplace'; Repo = 'spicetify/marketplace'; PinnedPattern = "Marketplace\s*=\s*@\{[^}]*Version\s*=\s*'([^']+)'" }
+          )
+          foreach ($check in $checks) {
+              $pinnedMatch = [regex]::Match($script, $check.PinnedPattern, 'Singleline')
+              if (-not $pinnedMatch.Success) {
+                  Write-Host "::warning::Could not extract pinned version for $($check.Name)"
+                  continue
+              }
+              $pinned = $pinnedMatch.Groups[1].Value
+              try {
+                  $headers = @{ 'User-Agent' = 'LibreSpot-CI' }
+                  $release = Invoke-RestMethod "https://api.github.com/repos/$($check.Repo)/releases/latest" -Headers $headers -TimeoutSec 15
+                  $latest = $release.tag_name -replace '^v',''
+                  if ($pinned -ne $latest) {
+                      $stale += "$($check.Name): pinned $pinned, latest $latest ($($release.html_url))"
+                      Write-Host "::warning::$($check.Name) is pinned to $pinned but latest is $latest"
+                  } else {
+                      Write-Host "$($check.Name): $pinned is current"
+                  }
+              } catch {
+                  Write-Host "::warning::Failed to check $($check.Name): $($_.Exception.Message)"
+              }
+          }
+          $summary = @()
+          $summary += "## Upstream Dependency Freshness"
+          $summary += ""
+          if ($stale.Count -eq 0) {
+              $summary += ":white_check_mark: All pinned dependencies are current."
+          } else {
+              $summary += ":warning: **$($stale.Count) pinned dependency(s) behind upstream** (non-blocking)"
+              $summary += ""
+              foreach ($s in $stale) { $summary += "- $s" }
+          }
+          $summary -join "`n" >> $env:GITHUB_STEP_SUMMARY
+
       - name: NuGet vulnerability audit
         shell: pwsh
         env:

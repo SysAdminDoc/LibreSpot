@@ -5,6 +5,10 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Upstream dependency freshness check in CI. A new non-blocking step
+  compares pinned Spicetify CLI and Marketplace versions against the latest
+  GitHub releases and emits warning annotations when any pin falls behind.
+  Results appear in the CI summary.
 - Marketplace framed as optional with direct-install-first messaging. The
   Custom Install UI now labels Marketplace as "(optional)" with clear copy
   that themes and extensions are installed directly by LibreSpot regardless
