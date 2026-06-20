@@ -1688,4 +1688,34 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("SupportsShouldProcess", fullBlock);
         Assert.Contains("$PSCmdlet.ShouldProcess(", fnBody.Groups["body"].Value);
     }
+
+    // ---------------------------------------------------------------------
+    // Accessibility — icon-only and StackPanel-content controls must have
+    // AutomationProperties.Name so screen readers can identify them.
+    // ---------------------------------------------------------------------
+    [Theory]
+    [InlineData("MinimizeBtn", "Minimize window")]
+    [InlineData("CloseTitleBtn", "Close window")]
+    [InlineData("ModeEasy", "Easy Install")]
+    [InlineData("ModeCustom", "Custom Install")]
+    [InlineData("ModeMaint", "Maintenance")]
+    [InlineData("BtnBackupConfig", "Create configuration backup")]
+    [InlineData("BtnRestoreConfig", "Restore the newest backup")]
+    [InlineData("BtnCheckUpdates", "Check pinned versions")]
+    [InlineData("BtnRepairMarketplace", "Repair and open Marketplace")]
+    [InlineData("BtnReapply", "Reapply after a Spotify update")]
+    [InlineData("BtnSafeMode", "Safe mode")]
+    [InlineData("BtnSpicetifyRestore", "Restore vanilla Spotify")]
+    [InlineData("BtnUninstallSpicetify", "Uninstall Spicetify")]
+    [InlineData("BtnFullReset", "Full Reset")]
+    public void PowerShellXaml_InteractiveControlHasAutomationName(string controlName, string expectedFragment)
+    {
+        var script = ReadFile("LibreSpot.ps1");
+
+        var pattern = $@"Name=""{controlName}""[^>]*AutomationProperties\.Name=""(?<name>[^""]+)""";
+        var match = Regex.Match(script, pattern);
+
+        Assert.True(match.Success, $"Control '{controlName}' is missing AutomationProperties.Name in LibreSpot.ps1 XAML.");
+        Assert.Contains(expectedFragment, match.Groups["name"].Value);
+    }
 }

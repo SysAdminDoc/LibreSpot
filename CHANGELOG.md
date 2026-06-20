@@ -5,6 +5,11 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Legacy PowerShell GUI accessibility gate: 16 AutomationProperties.Name
+  attributes on the main window, titlebar icon-only buttons, navigation
+  RadioButtons, StackPanel-content maintenance/action buttons, and destructive
+  action controls. Screen readers can now identify every interactive control.
+  Regression tests lock the minimum accessibility contract.
 - NDJSON log format specification (`schemas/ndjson-log-format.json`) defining
   the newline-delimited JSON line schema for fleet CLI output, log files, and
   receipt event references. Each line carries schemaVersion, eventId (cross-
