@@ -5,6 +5,13 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- `.librespot` profile format schema (`schemas/librespot-profile.schema.json`)
+  for user-facing export/import. Includes metadata (generator, version, creation
+  time, dependency pins, OS/arch hints), a `settings` object matching config
+  properties, and security invariants (no credentials, no RiskAcknowledged
+  export, unknown schema versions rejected, import opens preview). Tests
+  validate required fields, consent field exclusion, settings structure, and
+  differentiation from the fleet answer file.
 - Shared theme preview manifest (`schemas/theme-preview-manifest.json`) with 22
   entries covering all 16 official themes, 5 community themes, and Marketplace-
   only mode. Each entry records source repo, commit SHA, scheme list, JS

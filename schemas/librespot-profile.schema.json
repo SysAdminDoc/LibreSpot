@@ -1,0 +1,390 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SysAdminDoc/LibreSpot/schemas/librespot-profile.schema.json",
+  "title": "LibreSpot profile",
+  "description": "Schema for .librespot profile files used to export and import saved LibreSpot configurations. Profiles are user-facing and shareable; they capture reproducible install settings without any per-user state.\n\nSecurity invariants:\n- A .librespot file NEVER contains credentials, tokens, or account data.\n- RiskAcknowledged is NOT exported; it is a per-user consent flag, not a shareable setting.\n- Consumers MUST reject files whose schemaVersion is not a recognized value; unknown future versions must not be silently imported.\n- Importing a .librespot file opens a preview dialog; it does not auto-apply the settings.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generator",
+    "generatorVersion",
+    "createdAt",
+    "profileName",
+    "settings"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Version of the profile schema this file was written against. Consumers must reject files with an unrecognized schemaVersion rather than silently importing."
+    },
+    "generator": {
+      "type": "string",
+      "enum": [
+        "LibreSpot",
+        "LibreSpot-Desktop"
+      ],
+      "description": "The application that generated this profile."
+    },
+    "generatorVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?(\\+[a-zA-Z0-9.]+)?$",
+      "description": "Semantic version of the generator that created this profile (e.g. '1.0.0', '2.3.1-beta.1')."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 datetime indicating when the profile was created."
+    },
+    "profileName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Human-readable name for this profile."
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Optional free-text notes describing the purpose or context of this profile."
+    },
+    "dependencyPins": {
+      "type": "object",
+      "description": "Optional pinned versions of upstream dependencies used when the profile was created. Useful for exact reproducibility.",
+      "additionalProperties": false,
+      "properties": {
+        "spotxCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,40}$",
+          "description": "Git commit hash of the SpotX repository used."
+        },
+        "spicetifyCliVersion": {
+          "type": "string",
+          "description": "Version string of the Spicetify CLI."
+        },
+        "marketplaceVersion": {
+          "type": "string",
+          "description": "Version string of the Spicetify Marketplace."
+        },
+        "themesCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,40}$",
+          "description": "Git commit hash of the Spicetify themes repository used."
+        }
+      }
+    },
+    "supportedOs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "examples": [
+          "Windows 10",
+          "Windows 11"
+        ]
+      },
+      "description": "Operating systems this profile is known to work on. Informational; not enforced at import time."
+    },
+    "supportedArchitecture": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "x64",
+          "arm64"
+        ]
+      },
+      "description": "CPU architectures this profile is intended for. Informational; not enforced at import time."
+    },
+    "settings": {
+      "type": "object",
+      "description": "LibreSpot configuration settings. These mirror the config schema properties. RiskAcknowledged is deliberately excluded because it represents per-user consent and must not be shared via profiles.",
+      "additionalProperties": false,
+      "properties": {
+        "Mode": {
+          "type": "string",
+          "enum": [
+            "Easy",
+            "Custom"
+          ],
+          "description": "Install mode."
+        },
+        "CleanInstall": {
+          "type": "boolean",
+          "description": "Perform a clean install of Spotify before patching."
+        },
+        "LaunchAfter": {
+          "type": "boolean",
+          "description": "Launch Spotify after installation completes."
+        },
+        "SpotX_NewTheme": {
+          "type": "boolean",
+          "description": "Enable the new SpotX theme."
+        },
+        "SpotX_PodcastsOff": {
+          "type": "boolean",
+          "description": "Remove podcast UI elements."
+        },
+        "SpotX_BlockUpdate": {
+          "type": "boolean",
+          "description": "Block Spotify auto-update."
+        },
+        "SpotX_AdSectionsOff": {
+          "type": "boolean",
+          "description": "Remove ad sections from the UI."
+        },
+        "SpotX_Premium": {
+          "type": "boolean",
+          "description": "Enable premium-style UI features."
+        },
+        "SpotX_LyricsEnabled": {
+          "type": "boolean",
+          "description": "Enable lyrics display."
+        },
+        "SpotX_LyricsTheme": {
+          "type": "string",
+          "enum": [
+            "spotify",
+            "blueberry",
+            "blue",
+            "discord",
+            "forest",
+            "fresh",
+            "github",
+            "lavender",
+            "orange",
+            "pumpkin",
+            "purple",
+            "red",
+            "strawberry",
+            "turquoise",
+            "yellow",
+            "oceano",
+            "royal",
+            "krux",
+            "pinkle",
+            "zing",
+            "radium",
+            "sandbar",
+            "postlight",
+            "relish",
+            "drot",
+            "default",
+            "spotify#2"
+          ],
+          "description": "Lyrics color theme."
+        },
+        "SpotX_TopSearch": {
+          "type": "boolean",
+          "description": "Enable top search bar."
+        },
+        "SpotX_RightSidebarOff": {
+          "type": "boolean",
+          "description": "Hide the right sidebar."
+        },
+        "SpotX_RightSidebarClr": {
+          "type": "boolean",
+          "description": "Clear/transparent right sidebar."
+        },
+        "SpotX_CanvasHomeOff": {
+          "type": "boolean",
+          "description": "Disable canvas on home page."
+        },
+        "SpotX_HomeSubOff": {
+          "type": "boolean",
+          "description": "Remove home page sub-sections."
+        },
+        "SpotX_DisableStartup": {
+          "type": "boolean",
+          "description": "Disable Spotify auto-start on login."
+        },
+        "SpotX_NoShortcut": {
+          "type": "boolean",
+          "description": "Do not create desktop shortcut."
+        },
+        "SpotX_CacheLimit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50000,
+          "description": "Spotify cache size limit in MB."
+        },
+        "SpotX_Plus": {
+          "type": "boolean",
+          "description": "Enable SpotX Plus features."
+        },
+        "SpotX_NewFullscreen": {
+          "type": "boolean",
+          "description": "Enable new fullscreen mode."
+        },
+        "SpotX_FunnyProgress": {
+          "type": "boolean",
+          "description": "Enable fun progress bar style."
+        },
+        "SpotX_ExpSpotify": {
+          "type": "boolean",
+          "description": "Enable experimental Spotify features."
+        },
+        "SpotX_LyricsBlock": {
+          "type": "boolean",
+          "description": "Block lyrics feature entirely."
+        },
+        "SpotX_OldLyrics": {
+          "type": "boolean",
+          "description": "Use old lyrics UI."
+        },
+        "SpotX_HideColIconOff": {
+          "type": "boolean",
+          "description": "Do not hide collection icons."
+        },
+        "SpotX_SendVersionOff": {
+          "type": "boolean",
+          "description": "Disable sending version telemetry."
+        },
+        "SpotX_StartSpoti": {
+          "type": "boolean",
+          "description": "Start Spotify after patching."
+        },
+        "SpotX_DevTools": {
+          "type": "boolean",
+          "description": "Enable Spotify developer tools."
+        },
+        "SpotX_Mirror": {
+          "type": "boolean",
+          "description": "Use mirror download source."
+        },
+        "SpotX_DownloadMethod": {
+          "type": "string",
+          "enum": [
+            "",
+            "curl",
+            "webclient"
+          ],
+          "description": "HTTP download method to use."
+        },
+        "SpotX_ConfirmUninstall": {
+          "type": "boolean",
+          "description": "Require confirmation before uninstall."
+        },
+        "SpotX_SpotifyVersionId": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1.2.92",
+            "1.2.90.451",
+            "1.2.86.502",
+            "1.2.85.519",
+            "1.2.53.440.x86",
+            "1.2.5.1006.win7"
+          ],
+          "description": "Spotify version to install."
+        },
+        "SpotX_Language": {
+          "type": "string",
+          "description": "Language code for SpotX localization."
+        },
+        "Spicetify_Theme": {
+          "type": "string",
+          "description": "Spicetify theme name."
+        },
+        "Spicetify_Scheme": {
+          "type": "string",
+          "description": "Color scheme within the selected theme."
+        },
+        "Spicetify_Marketplace": {
+          "type": "boolean",
+          "description": "Install the Spicetify Marketplace."
+        },
+        "Spicetify_Extensions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "fullAppDisplay.js",
+              "shuffle+.js",
+              "trashbin.js",
+              "keyboardShortcut.js",
+              "bookmark.js",
+              "loopyLoop.js",
+              "popupLyrics.js",
+              "autoSkipVideo.js",
+              "autoSkipExplicit.js",
+              "webnowplaying.js",
+              "hidePodcasts.js",
+              "beautiful-lyrics.mjs",
+              "playlist-icons.js",
+              "volumePercentage.js",
+              "adblock.js"
+            ]
+          },
+          "description": "Spicetify extensions to enable."
+        },
+        "AutoReapply_Enabled": {
+          "type": "boolean",
+          "description": "Enable automatic reapply of settings when Spotify updates."
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "schemaVersion": 1,
+      "generator": "LibreSpot",
+      "generatorVersion": "1.0.0",
+      "createdAt": "2025-06-15T14:30:00Z",
+      "profileName": "Minimal Ad-Free",
+      "settings": {
+        "Mode": "Easy"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "generator": "LibreSpot-Desktop",
+      "generatorVersion": "1.2.0",
+      "createdAt": "2025-06-15T18:45:00Z",
+      "profileName": "Full Custom Setup",
+      "notes": "My daily driver config with Dribbblish theme and all ad blocking. Tested on Windows 11 24H2.",
+      "dependencyPins": {
+        "spotxCommit": "abc1234",
+        "spicetifyCliVersion": "2.38.4",
+        "marketplaceVersion": "0.9.5",
+        "themesCommit": "def5678"
+      },
+      "supportedOs": [
+        "Windows 11"
+      ],
+      "supportedArchitecture": [
+        "x64"
+      ],
+      "settings": {
+        "Mode": "Custom",
+        "CleanInstall": false,
+        "LaunchAfter": true,
+        "SpotX_BlockUpdate": true,
+        "SpotX_AdSectionsOff": true,
+        "SpotX_PodcastsOff": true,
+        "SpotX_Premium": true,
+        "SpotX_LyricsEnabled": true,
+        "SpotX_LyricsTheme": "discord",
+        "SpotX_TopSearch": true,
+        "SpotX_RightSidebarOff": false,
+        "SpotX_CanvasHomeOff": true,
+        "SpotX_DisableStartup": true,
+        "SpotX_CacheLimit": 5000,
+        "SpotX_SendVersionOff": true,
+        "SpotX_SpotifyVersionId": "1.2.92",
+        "Spicetify_Theme": "Dribbblish",
+        "Spicetify_Scheme": "nord-dark",
+        "Spicetify_Marketplace": true,
+        "Spicetify_Extensions": [
+          "fullAppDisplay.js",
+          "shuffle+.js",
+          "beautiful-lyrics.mjs",
+          "hidePodcasts.js"
+        ],
+        "AutoReapply_Enabled": true
+      }
+    }
+  ]
+}
