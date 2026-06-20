@@ -2744,7 +2744,7 @@ if ($savedCfg) { try {
     if ($savedCfg.ContainsKey('Mode') -and [string]$savedCfg.Mode -eq 'Custom') {
         $ui['ModeCustom'].IsChecked = $true
     }
-} catch {} }
+} catch { Write-Log "Config restore warning: some saved settings could not be applied to the UI. Defaults will be shown. Error: $($_.Exception.Message)" -Level 'WARN' } }
 $script:SavedConfigMode = if ($savedCfg -and $savedCfg.ContainsKey('Mode')) { [string]$savedCfg.Mode } else { $null }
 $script:HasSavedConfig = [bool]$savedCfg
 $script:HasSavedCustomConfig = ($script:SavedConfigMode -eq 'Custom')
@@ -3805,7 +3805,7 @@ function Invoke-SpicetifyCli {
             $now = Get-Date
             if ($now -gt $deadline) {
                 Write-Log "Spicetify command exceeded ${TimeoutSeconds}s timeout and will be terminated." -Level 'WARN'
-                try { $process.Kill() } catch {}
+                try { $process.Kill(); $process.WaitForExit(5000) } catch {}
                 $tail = & $getTail
                 throw "$FailureMessage Timed out after $TimeoutSeconds seconds.$tail"
             }

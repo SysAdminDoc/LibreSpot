@@ -4,6 +4,27 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- Backend script `RemoveSelfData` action now correctly defines
+  `$global:BACKUP_ROOT` so backup directory cleanup is no longer silently
+  skipped. Previously the variable was undefined, causing `Test-Path` to
+  receive `$null` and always skip the backup removal step.
+- Config restoration no longer silently swallows exceptions. If saved
+  settings fail to apply to the UI (e.g., due to a renamed control), the
+  error is now logged so users understand why defaults appeared instead of
+  their saved choices.
+- `Invoke-SpicetifyCli` now calls `WaitForExit(5000)` after `Kill()` on
+  timeout, matching the pattern in `Invoke-ExternalScriptIsolated`. Prevents
+  zombie process handles when Spicetify exceeds the hard timeout.
+- Backend maintenance switch now has a `default` case that throws on
+  unhandled actions, preventing silently-successful no-ops if a new action
+  is added to `ValidateSet` but not to the dispatch switch.
+- `Plan` action correctly excluded from operation journal `WouldChange`
+  tracking — a dry-run plan no longer logs that mutations occurred.
+- `Build-Scripts.ps1` function body extraction now uses `[regex]::Escape()`
+  on function names so hyphens are treated as literal characters rather than
+  regex metacharacters.
+
 ### Added
 - Shared function drift validator (`Build-Scripts.ps1 -Validate`) that
   compares 86 functions shared between `LibreSpot.ps1` and the WPF backend

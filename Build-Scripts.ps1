@@ -53,9 +53,13 @@ function Get-FunctionBody {
         [string]$FunctionName
     )
     # Match a top-level function definition whose closing brace sits at column 0.
-    $pattern = "(?ms)^function\s+${FunctionName}\s*\{.+?^\}"
-    if ($ScriptContent -match $pattern) {
-        return $Matches[0]
+    # Escape the function name so hyphens and other regex-significant characters
+    # are treated literally.
+    $escapedName = [regex]::Escape($FunctionName)
+    $pattern = "(?ms)^function\s+${escapedName}\s*\{.+?^\}"
+    $match = [regex]::Match($ScriptContent, $pattern)
+    if ($match.Success) {
+        return $match.Value
     }
     return $null
 }

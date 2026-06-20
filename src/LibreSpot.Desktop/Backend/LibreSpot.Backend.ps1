@@ -102,6 +102,7 @@ $global:OPERATION_JOURNAL_RETAIN_BYTES = 786432
 $global:CURRENT_OPERATION_ID = $null
 $global:CURRENT_OPERATION_ACTION = $null
 $global:CACHE_DIR            = Join-Path $global:CONFIG_DIR 'cache'
+$global:BACKUP_ROOT          = "$env:USERPROFILE\LibreSpot_Backups"
 $global:WATCHER_STATE_PATH   = Join-Path $global:CONFIG_DIR 'watcher-state.json'
 $global:WATCHER_LOG_PATH     = Join-Path $global:CONFIG_DIR 'watcher.log'
 $global:WATCHER_TASK_NAME    = 'LibreSpot\ReapplyWatcher'
@@ -2380,7 +2381,7 @@ function Invoke-SpicetifyCli {
             $now = Get-Date
             if ($now -gt $deadline) {
                 Write-Log "Spicetify command exceeded ${TimeoutSeconds}s timeout and will be terminated." -Level 'WARN'
-                try { $process.Kill() } catch {}
+                try { $process.Kill(); $process.WaitForExit(5000) } catch {}
                 $tail = & $getTail
                 throw "$FailureMessage Timed out after $TimeoutSeconds seconds.$tail"
             }
@@ -3497,6 +3498,9 @@ function Invoke-LibreSpotMaintenance {
             Set-AutoReapplyConfigPreference -Enabled $false
             Write-Log 'Auto-reapply watcher disabled.' -Level 'SUCCESS'
         }
+        default {
+            throw "Unhandled maintenance action: $Action"
+        }
     }
 
     Update-BackendState -Progress 100 -Status 'Maintenance complete' -Step 'LibreSpot is ready'
@@ -3527,7 +3531,7 @@ try {
     }
 
     Write-EventLine -Kind 'action' -Payload $Action
-    $journalWouldChange = ($Action -notin @('CheckUpdates', 'OpenMarketplace', 'WatchAutoReapply'))
+    $journalWouldChange = ($Action -notin @('CheckUpdates', 'OpenMarketplace', 'WatchAutoReapply', 'Plan'))
     Start-OperationJournalRun -Action $Action -Target "Backend action: $Action" -WouldChange $journalWouldChange -Reversible $false -RollbackHint 'Review individual journal entries for action-specific rollback hints.' | Out-Null
     if ($Action -notin @('CheckUpdates', 'EnableAutoReapply', 'DisableAutoReapply')) {
         Ensure-Admin
