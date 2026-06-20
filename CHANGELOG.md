@@ -5,6 +5,12 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Pester 5.x test infrastructure for the PowerShell script lane. 108 tests
+  cover 7 pure functions extracted from the monolith: `Get-NormalizedPathString`,
+  `ConvertTo-ConfigInt`, `ConvertTo-ConfigBoolean`,
+  `Get-LibreSpotConfigSchemaVersion`, `Assert-LibreSpotConfigSchemaSupported`,
+  `Normalize-LibreSpotConfig`, and `Compare-LibreSpotVersions`. Tests use
+  regex-based function extraction to avoid sourcing the WPF bootstrap.
 - PowerShell `-WhatIf` and `-Confirm` support on mutating helpers.
   `Remove-PathSafely`, `Save-LibreSpotConfig`, `Set-PathEntries`,
   `Register-AutoReapplyTask`, `Unregister-AutoReapplyTask`,
