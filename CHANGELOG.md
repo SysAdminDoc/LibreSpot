@@ -5,6 +5,11 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Publish footprint budget with compressed artifact size tracking and build-mode
+  rationale (`schemas/publish-footprint-budget.json`). Release CI now records
+  compressed size and compression ratio alongside raw size, and documents why
+  WPF trimming is disabled (unsupported by Microsoft) and ReadyToRun is
+  deferred (startup dominated by WPF/PS init, not JIT).
 - Fleet CLI verb and flag contract (`schemas/fleet-cli-contract.json`) defining
   12 verbs (install, reapply, detect, status, validate, plan, repair, watcher
   install/remove, uninstall, export-support, version) with elevation requirements,

@@ -1,0 +1,67 @@
+{
+  "$comment": "Publish footprint budget and build-mode rationale for the WPF desktop shell.",
+  "schemaVersion": 1,
+  "description": "Documents the size/startup tradeoffs behind the WPF publish profile. Release CI records actual metrics in publish-footprint.json per build; this file records the budget and the reasons behind each build-mode decision.",
+  "budget": {
+    "artifact": "LibreSpot-Desktop.exe",
+    "rid": "win-x64",
+    "maxSizeMiB": 200,
+    "warnSizeMiB": 180,
+    "rationale": "The WPF shell ships as a self-contained single-file executable. 200 MiB keeps the portable download under typical browser and endpoint-tool size limits while accommodating the .NET runtime, WPF framework, WPF-UI, Serilog, and the embedded PowerShell backend."
+  },
+  "buildModeDecisions": [
+    {
+      "option": "trimming",
+      "enabled": false,
+      "rationale": "WPF trimming is not supported by Microsoft. The .NET trimmer cannot safely analyze WPF XAML bindings, resource dictionaries, or reflection-based converters. Enabling trimming produces runtime TypeLoadExceptions and missing-resource crashes in WPF apps. This decision should be revisited only if Microsoft announces official WPF trimming support.",
+      "references": [
+        "https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/incompatibilities",
+        "https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/prepare-libraries-for-trimming"
+      ]
+    },
+    {
+      "option": "readyToRun",
+      "enabled": false,
+      "rationale": "ReadyToRun (R2R) pre-compiles IL to native code, improving cold-start time at the cost of larger binaries (typically 10-25% size increase). For LibreSpot, the startup cost is dominated by WPF framework initialization and the embedded PowerShell backend load, not JIT compilation. R2R would increase the artifact size without meaningfully improving perceived startup. This should be re-evaluated with measured before/after startup times if the executable approaches the budget ceiling.",
+      "references": [
+        "https://learn.microsoft.com/en-us/dotnet/core/deploying/ready-to-run"
+      ]
+    },
+    {
+      "option": "selfContained",
+      "enabled": true,
+      "rationale": "Self-contained deployment avoids requiring users to install a specific .NET runtime. LibreSpot targets end users who may not have admin access or .NET knowledge. The size cost is significant but justified by the zero-prerequisite install experience."
+    },
+    {
+      "option": "singleFile",
+      "enabled": true,
+      "rationale": "Single-file bundling simplifies distribution: one file to download, verify, and run. The native extraction on first launch adds a few seconds but only happens once per version."
+    },
+    {
+      "option": "includeNativeLibrariesForSelfExtract",
+      "enabled": true,
+      "rationale": "Required for single-file to bundle native dependencies (e.g., WPF compositor, DirectWrite). Without this, the app would need a companion directory."
+    }
+  ],
+  "coldStartMetrics": {
+    "status": "not-yet-measured",
+    "rationale": "Cold-start-to-main-window, first-refresh, and working-set measurements require a Windows desktop with a display. GitHub Actions windows-latest runners provide a desktop but timing is noisy. These metrics should be captured from a local release-equivalent publish and documented here once a baseline is established.",
+    "targetMetrics": [
+      {
+        "metric": "coldStartToMainWindowMs",
+        "description": "Time from process start to MainWindow.Loaded event.",
+        "budgetMs": null
+      },
+      {
+        "metric": "firstRefreshMs",
+        "description": "Time from MainWindow.Loaded to first environment snapshot completion.",
+        "budgetMs": null
+      },
+      {
+        "metric": "baselineWorkingSetMiB",
+        "description": "Private working set after first refresh settles.",
+        "budgetMiB": null
+      }
+    ]
+  }
+}

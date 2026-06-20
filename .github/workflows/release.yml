@@ -368,31 +368,46 @@ jobs:
           $sizeBytes = (Get-Item $exe).Length
           $sizeMiB = [math]::Round($sizeBytes / 1MB, 2)
           $budgetMiB = 200
+          Compress-Archive -Path $exe -DestinationPath 'publish/wpf/LibreSpot-Desktop.zip' -Force
+          $compressedBytes = (Get-Item 'publish/wpf/LibreSpot-Desktop.zip').Length
+          $compressedMiB = [math]::Round($compressedBytes / 1MB, 2)
+          $compressionRatio = [math]::Round($compressedBytes / $sizeBytes * 100, 1)
+          $budgetMiB = 200
           $metrics = @{
               schemaVersion = 1
               artifact = 'LibreSpot-Desktop.exe'
               rid = 'win-x64'
               sizeBytes = $sizeBytes
               sizeMiB = $sizeMiB
+              compressedBytes = $compressedBytes
+              compressedMiB = $compressedMiB
+              compressionRatio = $compressionRatio
               budgetMiB = $budgetMiB
               overBudget = ($sizeMiB -gt $budgetMiB)
+              publishMode = 'self-contained single-file'
+              readyToRun = $false
+              trimming = $false
               commitSha = $env:GITHUB_SHA
               tag = $env:GITHUB_REF_NAME
           }
           $metrics | ConvertTo-Json -Depth 4 | Set-Content 'publish/wpf/publish-footprint.json' -Encoding UTF8
+          Remove-Item 'publish/wpf/LibreSpot-Desktop.zip' -Force
           $summary = @()
           $summary += "### WPF Publish Footprint"
           $summary += ""
           $summary += "| Metric | Value |"
           $summary += "|--------|------:|"
-          $summary += "| ``LibreSpot.exe`` size | $sizeMiB MiB ($sizeBytes bytes) |"
+          $summary += "| ``LibreSpot-Desktop.exe`` size | $sizeMiB MiB ($sizeBytes bytes) |"
+          $summary += "| Compressed size | $compressedMiB MiB ($compressionRatio% of raw) |"
           $summary += "| Budget | $budgetMiB MiB |"
+          $summary += "| ReadyToRun | disabled |"
+          $summary += "| Trimming | disabled |"
           if ($sizeMiB -gt $budgetMiB) {
               $summary += "| :warning: Over budget | $([math]::Round($sizeMiB - $budgetMiB, 2)) MiB |"
               Write-Host "::warning::WPF exe is $sizeMiB MiB, exceeding the $budgetMiB MiB budget."
           }
           $summary -join "`n" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "WPF exe: $sizeMiB MiB ($sizeBytes bytes), budget: $budgetMiB MiB"
+          Write-Host "WPF exe: $sizeMiB MiB ($sizeBytes bytes), compressed: $compressedMiB MiB ($compressionRatio%), budget: $budgetMiB MiB"
 
       - name: Install CycloneDX tool
         # Pin version to prevent breaking SBOM format changes from upstream.
