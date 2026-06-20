@@ -628,10 +628,10 @@ jobs:
             librespot-release-manifest.json
           )
           for asset in "${required_assets[@]}"; do
-            count=$(echo "$release_json" | python3 -c "
-          import json,sys
+            count=$(ASSET_NAME="$asset" python3 -c "
+          import json,sys,os
           assets=json.load(sys.stdin)['assets']
-          print(sum(1 for a in assets if a['name']=='$asset'))")
+          print(sum(1 for a in assets if a['name']==os.environ['ASSET_NAME']))" <<< "$release_json")
             if [[ "$count" -ne 1 ]]; then
               fail "Asset '$asset' appears $count time(s) in release (expected exactly 1)."
             else
