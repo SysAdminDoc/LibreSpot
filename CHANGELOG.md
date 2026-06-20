@@ -5,6 +5,15 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Shared theme preview manifest (`schemas/theme-preview-manifest.json`) with 22
+  entries covering all 16 official themes, 5 community themes, and Marketplace-
+  only mode. Each entry records source repo, commit SHA, scheme list, JS
+  injection requirement, preview URL with status (available/unavailable/broken/
+  placeholder), and support state. Official themes use commit-pinned URLs;
+  community themes are marked unavailable until their preview URLs are verified.
+  Tests validate field completeness, uniqueness, source/status enums, commit-
+  pinned URL enforcement, JS requirement consistency with the script, and
+  community theme coverage.
 - Publish footprint budget with compressed artifact size tracking and build-mode
   rationale (`schemas/publish-footprint-budget.json`). Release CI now records
   compressed size and compression ratio alongside raw size, and documents why

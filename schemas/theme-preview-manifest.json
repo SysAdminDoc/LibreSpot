@@ -1,0 +1,427 @@
+{
+  "$comment": "Shared theme preview manifest for both PowerShell and WPF shells.",
+  "schemaVersion": 1,
+  "description": "Single source of truth for theme preview metadata. Runtime code in both shells consumes this manifest. CI validates preview URLs and SHA256 hashes.",
+  "officialThemesRepo": "spicetify/spicetify-themes",
+  "officialThemesCommit": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+  "themes": [
+    {
+      "id": "(None - Marketplace Only)",
+      "source": "virtual",
+      "sourceRepo": null,
+      "commitSha": null,
+      "schemes": ["Default"],
+      "requiresJs": false,
+      "marketplaceOnly": true,
+      "supportState": "active",
+      "preview": {
+        "url": null,
+        "sha256": null,
+        "contentType": null,
+        "maxBytes": 3145728,
+        "fallbackLabel": "Marketplace-only mode (no theme preview)",
+        "lastVerified": null,
+        "status": "placeholder"
+      }
+    },
+    {
+      "id": "Sleek",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["Wealthy", "Cherry", "Coral", "Deep", "Greener", "Deeper", "Psycho", "UltraBlack", "Nord", "Futura", "Elementary", "BladeRunner", "Dracula", "VantaBlack", "RosePine", "Eldritch", "Catppuccin", "AyuDark", "TokyoNight"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Sleek/catppuccin.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Sleek theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "Dribbblish",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["base", "white", "dark", "dracula", "nord-light", "nord-dark", "purple", "samurai", "beach-sunset", "gruvbox", "gruvbox-material-dark", "rosepine", "lunar", "catppuccin-latte", "catppuccin-frappe", "catppuccin-macchiato", "catppuccin-mocha", "tokyo-night", "kanagawa"],
+      "requiresJs": true,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Dribbblish/base.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Dribbblish theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "Ziro",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["blue-dark", "blue-light", "gray-dark", "gray-light", "green-dark", "green-light", "orange-dark", "orange-light", "purple-dark", "purple-light", "red-dark", "red-light", "rose-pine", "rose-pine-moon", "rose-pine-dawn", "tokyo-night"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Ziro/screenshots/rose-pine.jpg",
+        "sha256": null,
+        "contentType": "image/jpeg",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Ziro theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "text",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["Spotify", "Spicetify", "CatppuccinMocha", "CatppuccinMacchiato", "CatppuccinLatte", "Dracula", "Gruvbox", "Kanagawa", "Nord", "Rigel", "RosePine", "RosePineMoon", "RosePineDawn", "Solarized", "TokyoNight", "TokyoNightStorm", "ForestGreen", "EverforestDarkHard", "EverforestDarkMedium", "EverforestDarkSoft"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/text/screenshots/Spotify.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "text theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "StarryNight",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["Base", "Cotton-candy", "Forest", "Galaxy", "Orange", "Sky", "Sunrise"],
+      "requiresJs": true,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/StarryNight/images/base.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "StarryNight theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "Turntable",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["turntable"],
+      "requiresJs": true,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Turntable/screenshots/turntable.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Turntable theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "Blackout",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["def"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Blackout/images/home.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Blackout theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "Blossom",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["dark"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Blossom/images/home.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Blossom theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "BurntSienna",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["Base"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/BurntSienna/screenshot.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "BurntSienna theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "Default",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["Ocean"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Default/ocean.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Default theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "Dreary",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["Psycho", "Deeper", "BIB", "Mono", "Golden", "Graytone-Blue"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Dreary/deeper.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Dreary theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "Flow",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["Pink", "Green", "Silver", "Violet", "Ocean"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Flow/screenshots/ocean.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Flow theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "Matte",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["matte", "periwinkle", "periwinkle-dark", "porcelain", "rose-pine-moon", "gray-dark1", "gray-dark2", "gray-dark3", "gray", "gray-light"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Matte/screenshots/ylx-gray-dark1.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Matte theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "Nightlight",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["Nightlight Colors"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Nightlight/screenshots/nightlight.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Nightlight theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "Onepunch",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["dark", "light", "legacy"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Onepunch/screenshots/dark_home.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Onepunch theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "SharkBlue",
+      "source": "official",
+      "sourceRepo": "spicetify/spicetify-themes",
+      "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "schemes": ["Base"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/SharkBlue/screenshot.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "SharkBlue theme preview",
+        "lastVerified": null,
+        "status": "available"
+      }
+    },
+    {
+      "id": "Catppuccin",
+      "source": "community",
+      "sourceRepo": "catppuccin/spicetify",
+      "commitSha": "1ec645c4cf7f42f9792b9eeb1bb7930f94593277",
+      "schemes": ["mocha", "macchiato", "frappe", "latte"],
+      "requiresJs": true,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/catppuccin/spicetify/1ec645c4cf7f42f9792b9eeb1bb7930f94593277/assets/mocha.webp",
+        "sha256": null,
+        "contentType": "image/webp",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Catppuccin theme preview",
+        "lastVerified": null,
+        "status": "unavailable"
+      }
+    },
+    {
+      "id": "Comfy",
+      "source": "community",
+      "sourceRepo": "Comfy-Themes/Spicetify",
+      "commitSha": "32ff101e27cfd33d85b7cc587f7f95db6b2df8b0",
+      "schemes": ["Comfy", "Mono", "Chromatic"],
+      "requiresJs": true,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/Comfy-Themes/Spicetify/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0/screenshots/Comfy.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Comfy theme preview",
+        "lastVerified": null,
+        "status": "unavailable"
+      }
+    },
+    {
+      "id": "Bloom",
+      "source": "community",
+      "sourceRepo": "nimsandu/spicetify-bloom",
+      "commitSha": "654cfed682b94613b0029997ffafc1eadccc5bef",
+      "schemes": ["dark", "light", "darkMono", "darkGreen", "coffee", "comfy", "violet"],
+      "requiresJs": true,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/nimsandu/spicetify-bloom/654cfed682b94613b0029997ffafc1eadccc5bef/screenshots/dark.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Bloom theme preview",
+        "lastVerified": null,
+        "status": "unavailable"
+      }
+    },
+    {
+      "id": "Lucid",
+      "source": "community",
+      "sourceRepo": "sanoojes/Spicetify-Lucid",
+      "commitSha": "5c28e9f955d5ca84a82d06084cc6652e5655ea2d",
+      "schemes": ["dark", "light", "dark-green", "coffee", "comfy", "dark-fluent", "greenland", "biscuit", "macos", "rosepine", "dracula", "dracula-pro"],
+      "requiresJs": true,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/sanoojes/Spicetify-Lucid/5c28e9f955d5ca84a82d06084cc6652e5655ea2d/screenshots/dark.webp",
+        "sha256": null,
+        "contentType": "image/webp",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Lucid theme preview",
+        "lastVerified": null,
+        "status": "unavailable"
+      }
+    },
+    {
+      "id": "Hazy",
+      "source": "community",
+      "sourceRepo": "Astromations/Hazy",
+      "commitSha": "1926d9db3e0313b68ca6e2193c2b278e733ac3c4",
+      "schemes": ["dark", "light"],
+      "requiresJs": true,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/Astromations/Hazy/1926d9db3e0313b68ca6e2193c2b278e733ac3c4/screenshots/dark.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Hazy theme preview",
+        "lastVerified": null,
+        "status": "unavailable"
+      }
+    }
+  ]
+}
