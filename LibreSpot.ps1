@@ -2482,21 +2482,22 @@ foreach ($theme in $global:ThemeData.Keys) {
 }
 # Theme preview image cache and loader
 $script:previewCache = @{}
-$script:previewLoading = $false
+$script:previewRequestId = 0
 function Update-ThemePreview {
-    if ($script:previewLoading) { return }  # re-entrancy guard
     $themeName = if ($ui['CmbTheme'].SelectedItem) { $ui['CmbTheme'].SelectedItem.Content } else { $null }
     $schemeName = if ($ui['CmbScheme'].SelectedItem) { $ui['CmbScheme'].SelectedItem.Content } else { $null }
     if (-not $themeName -or $themeName -eq '(None - Marketplace Only)') {
         $ui['ThemePreviewImg'].Source = $null
         $ui['PreviewLabel'].Visibility = 'Visible'
         $ui['PreviewLabel'].Text = 'Marketplace-only keeps Spotify close to stock so you can browse themes later from inside the app.'
+        $script:previewRequestId++
         return
     }
     $td = $global:ThemeData[$themeName]; if (-not $td -or -not $td.Preview -or $td.Preview.Count -eq 0) {
         $ui['ThemePreviewImg'].Source = $null
         $ui['PreviewLabel'].Visibility = 'Visible'
         $ui['PreviewLabel'].Text = "No bundled preview is available for $themeName."
+        $script:previewRequestId++
         return
     }
     $imgPath = if ($schemeName -and $td.Preview.ContainsKey($schemeName)) { $td.Preview[$schemeName] }
@@ -2505,6 +2506,7 @@ function Update-ThemePreview {
         $ui['ThemePreviewImg'].Source = $null
         $ui['PreviewLabel'].Visibility = 'Visible'
         $ui['PreviewLabel'].Text = "No bundled preview is available for $themeName."
+        $script:previewRequestId++
         return
     }
     $url = if ($imgPath -match '^https?://') { $imgPath } else { "$global:THEMES_RAW_BASE/$imgPath" }
@@ -2512,28 +2514,64 @@ function Update-ThemePreview {
         $ui['ThemePreviewImg'].Source = $script:previewCache[$url]; $ui['PreviewLabel'].Visibility = 'Collapsed'; return
     }
     $ui['ThemePreviewImg'].Source = $null; $ui['PreviewLabel'].Visibility = 'Visible'; $ui['PreviewLabel'].Text = "Loading the $themeName preview..."
-    # Force UI update before blocking download
-    [System.Windows.Forms.Application]::DoEvents()
-    $script:previewLoading = $true
-    try {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-        $wc = New-Object System.Net.WebClient
+    $script:previewRequestId++
+    $requestId = $script:previewRequestId
+    $maxBytes = 4 * 1024 * 1024
+    $dispatcher = $sh.Dispatcher
+    $cache = $script:previewCache
+    [System.Threading.ThreadPool]::QueueUserWorkItem({
+        param($state)
         try {
-            $wc.Headers.Add('User-Agent', 'LibreSpot')
-            $data = $wc.DownloadData($url)
-        } finally { $wc.Dispose() }
-        $ms = New-Object System.IO.MemoryStream(,$data)
-        $bmp = New-Object System.Windows.Media.Imaging.BitmapImage
-        $bmp.BeginInit(); $bmp.StreamSource = $ms; $bmp.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad; $bmp.EndInit(); $bmp.Freeze()
-        $script:previewCache[$url] = $bmp
-        $ui['ThemePreviewImg'].Source = $bmp; $ui['PreviewLabel'].Visibility = 'Collapsed'
-    } catch {
-        $ui['ThemePreviewImg'].Source = $null
-        $ui['PreviewLabel'].Visibility = 'Visible'
-        $ui['PreviewLabel'].Text = "Preview unavailable for $themeName right now."
-    } finally {
-        $script:previewLoading = $false
-    }
+            [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+            $request = [System.Net.HttpWebRequest]::Create($state.Url)
+            $request.UserAgent = 'LibreSpot'
+            $request.Timeout = 15000
+            $response = $request.GetResponse()
+            try {
+                if ($response.ContentLength -gt $state.MaxBytes) {
+                    $response.Close()
+                    throw "Preview image exceeds $([int]($state.MaxBytes / 1MB)) MB limit"
+                }
+                $stream = $response.GetResponseStream()
+                $ms = New-Object System.IO.MemoryStream
+                try {
+                    $buffer = New-Object byte[] 8192
+                    $total = 0
+                    while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                        $total += $read
+                        if ($total -gt $state.MaxBytes) { throw "Preview image exceeds $([int]($state.MaxBytes / 1MB)) MB limit" }
+                        $ms.Write($buffer, 0, $read)
+                    }
+                    $ms.Position = 0
+                    $bmp = New-Object System.Windows.Media.Imaging.BitmapImage
+                    $bmp.BeginInit()
+                    $bmp.StreamSource = $ms
+                    $bmp.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad
+                    $bmp.DecodePixelWidth = 640
+                    $bmp.EndInit()
+                    $bmp.Freeze()
+                    $state.Cache[$state.Url] = $bmp
+                    $state.Dispatcher.Invoke([Action]{
+                        if ($script:previewRequestId -eq $state.RequestId) {
+                            $ui['ThemePreviewImg'].Source = $bmp
+                            $ui['PreviewLabel'].Visibility = 'Collapsed'
+                        }
+                    })
+                } finally { $ms.Dispose(); $stream.Dispose() }
+            } finally { $response.Close() }
+        } catch {
+            $errorTheme = $state.ThemeName
+            try {
+                $state.Dispatcher.Invoke([Action]{
+                    if ($script:previewRequestId -eq $state.RequestId) {
+                        $ui['ThemePreviewImg'].Source = $null
+                        $ui['PreviewLabel'].Visibility = 'Visible'
+                        $ui['PreviewLabel'].Text = "Preview unavailable for $errorTheme right now."
+                    }
+                })
+            } catch {}
+        }
+    }, @{ Url = $url; RequestId = $requestId; ThemeName = $themeName; MaxBytes = $maxBytes; Dispatcher = $dispatcher; Cache = $cache }) | Out-Null
 }
 
 function Get-ComboSelectionText {

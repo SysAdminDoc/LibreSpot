@@ -5,6 +5,13 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Async theme preview loading in the PowerShell GUI. Preview images now
+  download on a ThreadPool thread instead of blocking the UI with synchronous
+  WebClient.DownloadData + DoEvents. Stale requests are cancelled via a
+  monotonic request ID so fast theme switching never overwrites the current
+  selection with an older download. Downloads are size-bounded (4 MB),
+  decoded to 640px thumbnails, streams are properly disposed, and 404/timeout
+  errors show a placeholder without freezing navigation.
 - Keyboard and focus contract schema (`schemas/keyboard-focus-contract.json`)
   documenting tab order, default/cancel buttons, Escape behavior, focus trap/
   restoration, and custom focus ring strategy for all WPF interactive surfaces.
