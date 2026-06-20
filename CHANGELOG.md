@@ -5,6 +5,16 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Hash mismatch diagnostic classification in both PowerShell lanes.
+  `Get-NetworkDiagnosticCode` now returns `HashMismatch` for SHA256
+  verification failures, and `Get-DownloadFailureHint` provides actionable
+  recovery guidance. `Confirm-FileHash` includes the keyword in its error
+  message for classifier detection.
+- Operation journal coverage for all ShouldProcess-enabled functions. Config
+  saves, scheduled task register/unregister, PATH entry changes, cache
+  clearing, and config quarantine now write structured JSONL journal entries
+  with planned/result phases, reversibility flags, and rollback hints in both
+  the stable script and WPF backend (13 journal calls per script).
 - Reversible operation token registry (`schemas/operation-token-types.json`)
   with 15 token types covering config writes, PATH changes, scheduled tasks,
   shortcuts, update blocking, Spicetify apply, SpotX patches, and destructive

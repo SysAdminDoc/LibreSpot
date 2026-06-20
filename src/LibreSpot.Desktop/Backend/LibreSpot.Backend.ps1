@@ -616,8 +616,10 @@ function Move-ConfigFileToQuarantine {
                 $quarantinePath = Join-Path $configDirectory ("config.corrupt.{0}.json" -f [Guid]::NewGuid().ToString('N'))
             }
 
+            Write-OperationJournalEntry -Phase 'config' -Target $ConfigPath -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.'
             if ($PSCmdlet.ShouldProcess($ConfigPath, 'Quarantine corrupted config')) {
                 Move-Item -LiteralPath $ConfigPath -Destination $quarantinePath -ErrorAction Stop
+                Write-OperationJournalEntry -Phase 'config' -Target $ConfigPath -SafetyDecision 'Allowed' -Result 'Quarantined' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.'
                 Write-Log "Saved config was moved to $(Split-Path -Path $quarantinePath -Leaf) after a read failure." -Level 'WARN'
             }
         }
@@ -891,10 +893,12 @@ function Register-AutoReapplyTask {
     try {
         Ensure-LogDirectory
         [System.IO.File]::WriteAllText($xmlPath, $xml, [System.Text.Encoding]::Unicode)
+        Write-OperationJournalEntry -Phase 'task' -Target $global:WATCHER_TASK_NAME -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Unregister the scheduled task to undo.'
         if ($PSCmdlet.ShouldProcess($global:WATCHER_TASK_NAME, 'Register scheduled task')) {
             $output = & schtasks.exe /Create /TN $global:WATCHER_TASK_NAME /XML $xmlPath /F 2>&1
             $ok = ($LASTEXITCODE -eq 0)
             if ($ok) {
+                Write-OperationJournalEntry -Phase 'task' -Target $global:WATCHER_TASK_NAME -SafetyDecision 'Allowed' -Result 'Registered' -WouldChange $true -Reversible $true -RollbackHint 'Unregister the scheduled task to undo.'
                 Write-WatcherLog "Register: scheduled task created for $($launch.Entry)"
             } else {
                 Write-WatcherLog "Register failed (exit $LASTEXITCODE): $($output -join ' ')" -Level 'ERROR'
@@ -913,10 +917,12 @@ function Register-AutoReapplyTask {
 function Unregister-AutoReapplyTask {
     [CmdletBinding(SupportsShouldProcess)]
     param()
+    Write-OperationJournalEntry -Phase 'task' -Target $global:WATCHER_TASK_NAME -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Re-register the scheduled task to undo.'
     try {
         if ($PSCmdlet.ShouldProcess($global:WATCHER_TASK_NAME, 'Remove scheduled task')) {
             $null = & schtasks.exe /Delete /TN $global:WATCHER_TASK_NAME /F 2>&1
             if ($LASTEXITCODE -eq 0) {
+                Write-OperationJournalEntry -Phase 'task' -Target $global:WATCHER_TASK_NAME -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $true -RollbackHint 'Re-register the scheduled task to undo.'
                 Write-WatcherLog 'Unregister: scheduled task removed'
                 return $true
             }
@@ -930,6 +936,7 @@ function Save-LibreSpotConfig {
     [CmdletBinding(SupportsShouldProcess)]
     param([hashtable]$Config)
 
+    Write-OperationJournalEntry -Phase 'config' -Target $global:CONFIG_PATH -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Restore from the most recent config backup.'
     if ($PSCmdlet.ShouldProcess($global:CONFIG_PATH, 'Save configuration')) {
         $tempPath = $null
         $backupPath = $null
@@ -954,8 +961,10 @@ function Save-LibreSpotConfig {
             } else {
                 [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)
             }
+            Write-OperationJournalEntry -Phase 'config' -Target $global:CONFIG_PATH -SafetyDecision 'Allowed' -Result 'Saved' -WouldChange $true -Reversible $true -RollbackHint 'Restore from the most recent config backup.'
             return $true
         } catch {
+            Write-OperationJournalEntry -Phase 'config' -Target $global:CONFIG_PATH -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $true -RollbackHint 'Restore from the most recent config backup.'
             Write-Log "Config save failed: $($_.Exception.Message)" -Level 'WARN'
             if ($tempPath) { Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue }
             if ($backupPath) { Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue }
@@ -1308,6 +1317,9 @@ function Get-DownloadFailureHint {
     if ($lowerMessage -match 'timed out|timeout') {
         return "$Stage failed: the connection to $target timed out. Check connectivity or retry after the network is stable."
     }
+    if ($lowerMessage -match 'sha256 mismatch|hash mismatch|checksum') {
+        return "$Stage failed: file hash verification failed for $target. The download may be corrupted or tampered with. Clear the asset cache and retry."
+    }
     if ([string]::IsNullOrWhiteSpace($message)) {
         return "$Stage failed for $target."
     }
@@ -1336,6 +1348,7 @@ function Get-NetworkDiagnosticCode {
     if ($lowerMessage -match 'could not be resolved|name resolution|no such host|\bdns\b') { return 'DnsFailure' }
     if ($lowerMessage -match 'ssl|tls|certificate|trust relationship') { return 'TlsFailure' }
     if ($lowerMessage -match 'timed out|timeout') { return 'Timeout' }
+    if ($lowerMessage -match 'sha256 mismatch|hash mismatch|checksum') { return 'HashMismatch' }
     return 'NetworkFailure'
 }
 
@@ -1458,7 +1471,7 @@ function Confirm-FileHash {
     $actual = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
     $expected = $ExpectedHash.ToLowerInvariant()
     if ($actual -ne $expected) {
-        throw "SHA256 mismatch for ${Label}. Expected $expected but received $actual."
+        throw "SHA256 mismatch for ${Label} (HashMismatch). Expected $expected but received $actual."
     }
     Write-Log "SHA256 verified: $Label"
 }
@@ -1524,9 +1537,11 @@ function Clear-LibreSpotCache {
         Write-Log 'Asset cache directory does not exist. Nothing to clear.'
         return
     }
+    Write-OperationJournalEntry -Phase 'cache' -Target $global:CACHE_DIR -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Cache will be rebuilt automatically on next download.'
     if ($PSCmdlet.ShouldProcess($global:CACHE_DIR, 'Clear asset cache')) {
         try {
             Remove-Item -LiteralPath $global:CACHE_DIR -Recurse -Force -ErrorAction Stop
+            Write-OperationJournalEntry -Phase 'cache' -Target $global:CACHE_DIR -SafetyDecision 'Allowed' -Result 'Cleared' -WouldChange $true -Reversible $false -RollbackHint 'Cache will be rebuilt automatically on next download.'
             Write-Log 'Asset cache cleared.'
         } catch {
             Write-Log "Failed to clear asset cache: $($_.Exception.Message)" -Level 'WARN'
@@ -2052,12 +2067,14 @@ function Set-PathEntries {
         $orderedEntries.Add($entry.Trim())
     }
     $pathValue = ($orderedEntries -join ';')
+    Write-OperationJournalEntry -Phase 'path' -Target "$Scope PATH" -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Restore the previous PATH value.'
     if ($PSCmdlet.ShouldProcess("$Scope PATH", 'Update PATH entries')) {
         if ($Scope -eq 'Process') {
             $env:PATH = $pathValue
         } else {
             [Environment]::SetEnvironmentVariable('PATH', $pathValue, $Scope)
         }
+        Write-OperationJournalEntry -Phase 'path' -Target "$Scope PATH" -SafetyDecision 'Allowed' -Result 'Updated' -WouldChange $true -Reversible $true -RollbackHint 'Restore the previous PATH value.'
     }
 }
 
