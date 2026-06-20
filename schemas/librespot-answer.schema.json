@@ -1,0 +1,362 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SysAdminDoc/LibreSpot/schemas/librespot-answer.schema.json",
+  "title": "LibreSpot fleet answer file",
+  "description": "Schema for fleet deployment answer files. Unlike the user-facing config schema, answer files enforce strict validation: invalid enum values cause failure rather than silent normalization, and admin-consent fields (eulaAccepted, riskAcknowledged) are required. Unknown properties are permitted for forward compatibility; consumers should gate behavior on schemaVersion and ignore unrecognized keys from newer schema versions.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "eulaAccepted",
+    "riskAcknowledged"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Version of the answer-file schema this file was written against. Consumers must reject files with an unrecognized schemaVersion rather than guessing forward compatibility."
+    },
+    "installMode": {
+      "type": "string",
+      "enum": [
+        "recommended",
+        "custom",
+        "reapply"
+      ],
+      "description": "Controls the install behavior. 'recommended' applies opinionated defaults, 'custom' respects all explicit flags, 'reapply' re-runs the last applied configuration without prompts."
+    },
+    "spotifyTarget": {
+      "type": "object",
+      "description": "Constraints on which Spotify version to install or target.",
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Spotify version to install. Use 'auto' for latest compatible version, or a specific version string (e.g. '1.2.92')."
+        },
+        "architecture": {
+          "type": "string",
+          "enum": [
+            "x64",
+            "x86"
+          ],
+          "description": "CPU architecture for the Spotify installer."
+        }
+      },
+      "additionalProperties": false
+    },
+    "spotx": {
+      "type": "object",
+      "description": "SpotX patching options. Boolean flags mirror the config schema SpotX_* properties.",
+      "properties": {
+        "newTheme": {
+          "type": "boolean",
+          "description": "Enable the new SpotX theme."
+        },
+        "podcastsOff": {
+          "type": "boolean",
+          "description": "Remove podcast UI elements."
+        },
+        "blockUpdate": {
+          "type": "boolean",
+          "description": "Block Spotify auto-update."
+        },
+        "adSectionsOff": {
+          "type": "boolean",
+          "description": "Remove ad sections from the UI."
+        },
+        "premium": {
+          "type": "boolean",
+          "description": "Enable premium-style UI features."
+        },
+        "lyricsEnabled": {
+          "type": "boolean",
+          "description": "Enable lyrics display."
+        },
+        "lyricsTheme": {
+          "type": "string",
+          "enum": [
+            "spotify",
+            "blueberry",
+            "blue",
+            "discord",
+            "forest",
+            "fresh",
+            "github",
+            "lavender",
+            "orange",
+            "pumpkin",
+            "purple",
+            "red",
+            "strawberry",
+            "turquoise",
+            "yellow",
+            "oceano",
+            "royal",
+            "krux",
+            "pinkle",
+            "zing",
+            "radium",
+            "sandbar",
+            "postlight",
+            "relish",
+            "drot",
+            "default",
+            "spotify#2"
+          ],
+          "description": "Lyrics color theme."
+        },
+        "topSearch": {
+          "type": "boolean",
+          "description": "Enable top search bar."
+        },
+        "rightSidebarOff": {
+          "type": "boolean",
+          "description": "Hide the right sidebar."
+        },
+        "rightSidebarClr": {
+          "type": "boolean",
+          "description": "Clear/transparent right sidebar."
+        },
+        "canvasHomeOff": {
+          "type": "boolean",
+          "description": "Disable canvas on home page."
+        },
+        "homeSubOff": {
+          "type": "boolean",
+          "description": "Remove home page sub-sections."
+        },
+        "disableStartup": {
+          "type": "boolean",
+          "description": "Disable Spotify auto-start on login."
+        },
+        "noShortcut": {
+          "type": "boolean",
+          "description": "Do not create desktop shortcut."
+        },
+        "cacheLimit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50000,
+          "description": "Spotify cache size limit in MB."
+        },
+        "plus": {
+          "type": "boolean",
+          "description": "Enable SpotX Plus features."
+        },
+        "newFullscreen": {
+          "type": "boolean",
+          "description": "Enable new fullscreen mode."
+        },
+        "funnyProgress": {
+          "type": "boolean",
+          "description": "Enable fun progress bar style."
+        },
+        "expSpotify": {
+          "type": "boolean",
+          "description": "Enable experimental Spotify features."
+        },
+        "lyricsBlock": {
+          "type": "boolean",
+          "description": "Block lyrics feature entirely."
+        },
+        "oldLyrics": {
+          "type": "boolean",
+          "description": "Use old lyrics UI."
+        },
+        "hideColIconOff": {
+          "type": "boolean",
+          "description": "Do not hide collection icons."
+        },
+        "sendVersionOff": {
+          "type": "boolean",
+          "description": "Disable sending version telemetry."
+        },
+        "startSpoti": {
+          "type": "boolean",
+          "description": "Start Spotify after patching."
+        },
+        "devTools": {
+          "type": "boolean",
+          "description": "Enable Spotify developer tools."
+        },
+        "mirror": {
+          "type": "boolean",
+          "description": "Use mirror download source."
+        },
+        "downloadMethod": {
+          "type": "string",
+          "enum": [
+            "",
+            "curl",
+            "webclient"
+          ],
+          "description": "HTTP download method to use."
+        },
+        "confirmUninstall": {
+          "type": "boolean",
+          "description": "Require confirmation before uninstall."
+        },
+        "language": {
+          "type": "string",
+          "description": "Language code for SpotX localization."
+        }
+      },
+      "additionalProperties": false
+    },
+    "spicetify": {
+      "type": "object",
+      "description": "Spicetify theming and extension options.",
+      "properties": {
+        "theme": {
+          "type": "string",
+          "description": "Spicetify theme name."
+        },
+        "scheme": {
+          "type": "string",
+          "description": "Color scheme within the selected theme."
+        },
+        "extensions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "fullAppDisplay.js",
+              "shuffle+.js",
+              "trashbin.js",
+              "keyboardShortcut.js",
+              "bookmark.js",
+              "loopyLoop.js",
+              "popupLyrics.js",
+              "autoSkipVideo.js",
+              "autoSkipExplicit.js",
+              "webnowplaying.js",
+              "hidePodcasts.js",
+              "beautiful-lyrics.mjs",
+              "playlist-icons.js",
+              "volumePercentage.js",
+              "adblock.js"
+            ]
+          },
+          "description": "Spicetify extensions to enable."
+        },
+        "marketplace": {
+          "type": "boolean",
+          "description": "Install the Spicetify Marketplace."
+        }
+      },
+      "additionalProperties": false
+    },
+    "watcher": {
+      "type": "object",
+      "description": "Auto-reapply watcher settings for drift detection.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable the configuration watcher."
+        },
+        "intervalMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Polling interval in minutes for the watcher."
+        }
+      },
+      "additionalProperties": false
+    },
+    "repairPolicy": {
+      "type": "string",
+      "enum": [
+        "skip",
+        "warn",
+        "auto"
+      ],
+      "description": "How to handle detected configuration drift. 'skip' ignores drift, 'warn' reports but does not act, 'auto' repairs automatically."
+    },
+    "logging": {
+      "type": "object",
+      "description": "Logging configuration for fleet runs.",
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": [
+            "silent",
+            "error",
+            "warn",
+            "info",
+            "debug",
+            "trace"
+          ],
+          "description": "Minimum log level to emit."
+        },
+        "directory": {
+          "type": "string",
+          "description": "Directory path for log file output. Defaults to %ProgramData%\\LibreSpot\\logs for system-context runs."
+        },
+        "ndjson": {
+          "type": "boolean",
+          "description": "Emit logs in NDJSON (newline-delimited JSON) format."
+        }
+      },
+      "additionalProperties": false
+    },
+    "eulaAccepted": {
+      "type": "boolean",
+      "description": "The deploying administrator confirms acceptance of the end-user license agreement. Must be true for fleet install to proceed."
+    },
+    "rebootPolicy": {
+      "type": "string",
+      "enum": [
+        "never",
+        "ifNeeded",
+        "always"
+      ],
+      "description": "Controls reboot behavior after installation. 'never' suppresses reboots, 'ifNeeded' reboots only when required (exit code 3010), 'always' forces a reboot."
+    },
+    "riskAcknowledged": {
+      "type": "boolean",
+      "description": "The deploying administrator acknowledges the risks of modifying Spotify. Must be true for fleet install to proceed."
+    }
+  },
+  "examples": [
+    {
+      "schemaVersion": 1,
+      "installMode": "recommended",
+      "eulaAccepted": true,
+      "riskAcknowledged": true
+    },
+    {
+      "schemaVersion": 1,
+      "installMode": "custom",
+      "spotifyTarget": {
+        "version": "1.2.92",
+        "architecture": "x64"
+      },
+      "spotx": {
+        "blockUpdate": true,
+        "adSectionsOff": true,
+        "podcastsOff": true,
+        "premium": true
+      },
+      "spicetify": {
+        "theme": "Dribbblish",
+        "scheme": "nord-dark",
+        "extensions": [
+          "fullAppDisplay.js",
+          "shuffle+.js"
+        ],
+        "marketplace": true
+      },
+      "watcher": {
+        "enabled": true,
+        "intervalMinutes": 60
+      },
+      "repairPolicy": "auto",
+      "logging": {
+        "level": "info",
+        "ndjson": true
+      },
+      "eulaAccepted": true,
+      "rebootPolicy": "ifNeeded",
+      "riskAcknowledged": true
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "$comment": "Fleet CLI exit code taxonomy — maps LibreSpot domain outcomes onto Intune/SCCM/PDQ/WinRM return-code categories.",
+  "schemaVersion": 1,
+  "description": "LibreSpot fleet CLI exit code taxonomy for Intune, SCCM, PDQ, and WinRM admin tools.",
+  "exitCodes": [
+    {
+      "code": 0,
+      "name": "Success",
+      "category": "success",
+      "description": "Successful operation, compliant, or no-op.",
+      "retryable": false,
+      "intuneBehavior": "success"
+    },
+    {
+      "code": 1,
+      "name": "UnhandledFailure",
+      "category": "failure",
+      "description": "Unhandled or unknown failure. Indicates an unexpected error that did not map to a more specific exit code.",
+      "retryable": false,
+      "intuneBehavior": "failure"
+    },
+    {
+      "code": 2,
+      "name": "ValidationError",
+      "category": "failure",
+      "description": "Validation or usage error. The command was invoked with invalid arguments, a malformed answer file, or an unrecognized option.",
+      "retryable": false,
+      "intuneBehavior": "failure"
+    },
+    {
+      "code": 10,
+      "name": "NotInstalled",
+      "category": "failure",
+      "description": "Spotify, Spicetify, or a required component is not installed. Detection found no target to operate on.",
+      "retryable": false,
+      "intuneBehavior": "failure"
+    },
+    {
+      "code": 11,
+      "name": "DriftDetected",
+      "category": "failure",
+      "description": "Drift or noncompliance detected. The installation exists but does not match the desired state (e.g., version mismatch, missing Marketplace, stale watcher).",
+      "retryable": false,
+      "intuneBehavior": "failure"
+    },
+    {
+      "code": 12,
+      "name": "RepairNeeded",
+      "category": "failure",
+      "description": "Repair needed. The installation is partially broken and requires a repair pass before it can be considered compliant.",
+      "retryable": false,
+      "intuneBehavior": "failure"
+    },
+    {
+      "code": 20,
+      "name": "BlockedByUserState",
+      "category": "blocked",
+      "description": "Blocked by Spotify running or another user-state condition. The operation cannot proceed until the user closes Spotify or the blocking condition is resolved.",
+      "retryable": true,
+      "intuneBehavior": "retry"
+    },
+    {
+      "code": 30,
+      "name": "NetworkFailure",
+      "category": "retry",
+      "description": "Network or rate-limit failure. A required download, API call, or connectivity check failed due to a transient network issue or upstream rate limiting.",
+      "retryable": true,
+      "intuneBehavior": "retry"
+    },
+    {
+      "code": 40,
+      "name": "TrustFailure",
+      "category": "failure",
+      "description": "Hash or signature trust failure. A downloaded artifact did not match its expected SHA256 checksum or Authenticode signature, indicating potential tampering or a corrupted download.",
+      "retryable": false,
+      "intuneBehavior": "failure"
+    },
+    {
+      "code": 50,
+      "name": "InsufficientPermissions",
+      "category": "failure",
+      "description": "Insufficient permissions. The operation requires elevated privileges or access rights that the current execution context does not have.",
+      "retryable": false,
+      "intuneBehavior": "failure"
+    },
+    {
+      "code": 60,
+      "name": "Canceled",
+      "category": "failure",
+      "description": "Operation canceled. The user or calling process explicitly canceled the operation before it completed.",
+      "retryable": false,
+      "intuneBehavior": "failure"
+    },
+    {
+      "code": 1618,
+      "name": "AnotherInstallInProgress",
+      "category": "blocked",
+      "description": "Another install is in progress. A concurrent installation (MSI mutex, LibreSpot run lock, or Windows Installer session) is blocking this operation.",
+      "retryable": true,
+      "intuneBehavior": "retry"
+    },
+    {
+      "code": 3010,
+      "name": "SuccessRebootRecommended",
+      "category": "reboot",
+      "description": "Success with reboot recommended. The operation completed successfully but a reboot is recommended for all changes to take full effect.",
+      "retryable": false,
+      "intuneBehavior": "softReboot"
+    },
+    {
+      "code": 1641,
+      "name": "RebootInitiated",
+      "category": "reboot",
+      "description": "Reboot initiated. The operation completed and LibreSpot actually initiated a system reboot. Only returned when LibreSpot itself triggers the restart.",
+      "retryable": false,
+      "intuneBehavior": "hardReboot"
+    }
+  ]
+}

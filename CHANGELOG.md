@@ -5,6 +5,14 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Fleet exit code taxonomy (`schemas/fleet-exit-codes.json`) mapping LibreSpot
+  domain outcomes onto Intune/SCCM/PDQ/WinRM return-code categories with 14
+  documented exit codes for success, validation, drift, network, trust, and
+  permission failures.
+- Fleet answer file schema (`schemas/librespot-answer.schema.json`) defining
+  strict-validation JSON Schema for silent/fleet deployments with required
+  consent fields, install mode, SpotX/Spicetify options, watcher, repair,
+  logging, and reboot policies.
 - Pester 5.x test infrastructure for the PowerShell script lane. 108 tests
   cover 7 pure functions extracted from the monolith: `Get-NormalizedPathString`,
   `ConvertTo-ConfigInt`, `ConvertTo-ConfigBoolean`,
