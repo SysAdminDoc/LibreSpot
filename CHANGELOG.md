@@ -5,6 +5,12 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Marketplace framed as optional with direct-install-first messaging. The
+  Custom Install UI now labels Marketplace as "(optional)" with clear copy
+  that themes and extensions are installed directly by LibreSpot regardless
+  of the Marketplace checkbox. A health warning about the upstream reset-on-
+  close bug (spicetify/cli#3837) appears when Marketplace is enabled. README
+  FAQ updated with a workaround for users experiencing the reset issue.
 - SpotX/Spicetify version compatibility warning badge in the footer of Easy
   Install and Custom Install modes. When the SpotX-targeted Spotify version
   exceeds Spicetify's max-tested range, a visible warning appears near the

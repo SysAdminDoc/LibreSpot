@@ -2096,10 +2096,11 @@ $xaml = @"
 
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,8,0,0">
                                                     <StackPanel>
-                                                        <TextBlock Text="Marketplace" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="Keep the in-app browser if you want to add more themes or extensions after the guided install." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
-                                                        <CheckBox Name="ChkMarketplace" Content="Install the Spicetify Marketplace" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="In-app store for themes and extensions"/>
-                                                        <TextBlock Text="Browse and install themes or extensions from inside Spotify after setup." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="28,4,0,0" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Marketplace (optional)" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="LibreSpot installs your selected themes and extensions directly — Marketplace adds an in-app browser for discovering more after setup. Skip it if you only want the bundled catalog." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <CheckBox Name="ChkMarketplace" Content="Install the Spicetify Marketplace" IsChecked="True" Style="{StaticResource DarkCheckBox}" ToolTip="Optional: adds an in-app store for themes and extensions. Your selected themes and extensions above are installed directly regardless of this setting."/>
+                                                        <TextBlock Text="Browse and install additional themes or extensions from inside Spotify after setup. Not required for the selections above." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="28,4,0,0" TextWrapping="Wrap"/>
+                                                        <TextBlock Name="MarketplaceHealthNote" Text="" Foreground="#FFEAB308" FontSize="10" Margin="28,4,0,0" TextWrapping="Wrap" Visibility="Collapsed"/>
                                                     </StackPanel>
                                                 </Border>
 
@@ -2438,7 +2439,7 @@ $ui = @{}
   'ChkNewTheme','ChkPodcastsOff','ChkAdSectionsOff','ChkBlockUpdate','ChkPremium','ChkLyrics','CmbLyricsTheme',
   'ChkTopSearch','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHomeOff','ChkHomeSubOff','ChkOldLyrics','ChkHideColIconOff',
   'ChkPlus','ChkNewFullscreen','ChkFunnyProgress','ChkExpSpotify','ChkLyricsBlock',
-  'ChkDisableStartup','ChkNoShortcut','ChkStartSpoti','TxtCacheLimit','CmbTheme','CmbScheme','PreviewBorder','ThemePreviewImg','PreviewLabel','ChkMarketplace',
+  'ChkDisableStartup','ChkNoShortcut','ChkStartSpoti','TxtCacheLimit','CmbTheme','CmbScheme','PreviewBorder','ThemePreviewImg','PreviewLabel','ChkMarketplace','MarketplaceHealthNote',
   'ChkSendVersionOff','ChkDevTools','ChkMirror','ChkConfirmUninstall','CmbDownloadMethod','CmbSpotifyVersion','SpotifyVersionHint',
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
@@ -3107,6 +3108,14 @@ function Update-ModePresentation {
         $extLabel = if ($extCount -eq 1) { '1 extension' } else { "$extCount extensions" }
         $installLabel = if ($ui['ChkCleanInstall'].IsChecked) { 'clean install' } else { 'keep current Spotify install' }
         $marketplaceLabel = if ($ui['ChkMarketplace'].IsChecked) { 'Marketplace included' } else { 'Marketplace skipped' }
+        if ($ui.ContainsKey('MarketplaceHealthNote')) {
+            if ([bool]$ui['ChkMarketplace'].IsChecked) {
+                $ui['MarketplaceHealthNote'].Text = 'Note: Spicetify Marketplace may reset installed themes/extensions when Spotify closes (upstream issue spicetify/cli#3837). Your selected themes and extensions above are installed directly by LibreSpot and are not affected.'
+                $ui['MarketplaceHealthNote'].Visibility = 'Visible'
+            } else {
+                $ui['MarketplaceHealthNote'].Visibility = 'Collapsed'
+            }
+        }
         $launchLabel = if ($ui['ChkLaunchAfter'].IsChecked) { 'launches Spotify when finished' } else { 'keeps Spotify closed when finished' }
         $savedStampText = if ($script:SavedConfigStamp) { $script:SavedConfigStamp.ToString('MMM d, yyyy h:mm tt') } else { $null }
         $hasUnsavedCustomChanges = Test-HasUnsavedCustomChanges
