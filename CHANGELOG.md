@@ -5,6 +5,13 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Verification-first bootstrap in README Quick Start. The primary install
+  command now downloads `LibreSpot.ps1` and `checksums.txt` to a local path,
+  validates SHA256 before execution, removes the script on mismatch, and saves
+  the verified file to `%LOCALAPPDATA%\LibreSpot\bootstrap` for reusable
+  launches. The original `irm | iex` one-liner is preserved as a labeled
+  lower-trust advanced option. Regression tests ensure the bootstrap references
+  valid release assets and downloads before executing.
 - Structured operation journal foundation in both PowerShell lanes. Install and
   maintenance runs now write JSONL entries with operation IDs, planned/complete
   results, safe-removal decisions, targets, dry-run flags, and rollback hints;

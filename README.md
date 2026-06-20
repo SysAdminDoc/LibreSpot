@@ -16,13 +16,34 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 ## Quick Start
 
-**One-liner install** — paste into PowerShell and hit Enter:
+**Verified install** — paste into PowerShell and hit Enter. This downloads `LibreSpot.ps1` and `checksums.txt` from the latest release, validates SHA256 before execution, and saves the script to a reusable local path:
+
+```powershell
+$d = "$env:LOCALAPPDATA\LibreSpot\bootstrap"; New-Item -ItemType Directory -Path $d -Force | Out-Null
+$base = 'https://github.com/SysAdminDoc/LibreSpot/releases/latest/download'
+Invoke-WebRequest "$base/LibreSpot.ps1" -OutFile "$d\LibreSpot.ps1" -UseBasicParsing
+Invoke-WebRequest "$base/checksums.txt" -OutFile "$d\checksums.txt" -UseBasicParsing
+$expected = ((Get-Content "$d\checksums.txt" | Where-Object { $_ -match 'LibreSpot\.ps1$' }) -split '\s+')[0]
+$actual = (Get-FileHash "$d\LibreSpot.ps1" -Algorithm SHA256).Hash
+if ($actual -ne $expected) { Remove-Item "$d\LibreSpot.ps1" -Force; throw "SHA256 mismatch — expected $expected, got $actual. The download may be corrupted or tampered with." }
+Write-Host "SHA256 verified: $actual" -ForegroundColor Green
+& "$d\LibreSpot.ps1"
+```
+
+Or [download LibreSpot.ps1](https://github.com/SysAdminDoc/LibreSpot/releases/latest) and right-click **Run with PowerShell**.
+
+<details>
+<summary><strong>Advanced: direct pipeline (lower trust)</strong></summary>
+
+The original one-liner executes without checksum verification. Use only if you understand the risk:
 
 ```powershell
 irm https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/LibreSpot.ps1 | iex
 ```
 
-Or [download LibreSpot.ps1](https://github.com/SysAdminDoc/LibreSpot/releases/latest) and right-click **Run with PowerShell**.
+This path does not verify the release checksum before execution, cannot self-elevate or register the watcher task reliably, and should not be used for persistent installations.
+
+</details>
 
 > **Requirements:** Windows 10/11, PowerShell 5.1+ (built-in), internet connection
 
@@ -229,7 +250,7 @@ Releases ship unsigned today. [SignPath Foundation](https://signpath.org/) OSS e
 
 The current latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt` **as GitHub release assets**. The repository itself does not track build artifacts — `LibreSpot.exe` and `checksums.txt` are generated fresh per tag by [.github/workflows/release.yml](.github/workflows/release.yml), so always verify against the copies you downloaded from the [Releases page](https://github.com/SysAdminDoc/LibreSpot/releases), not against anything in a source checkout. Workflow-built tags also add `LibreSpot-Desktop.exe`, CycloneDX SBOM output, and GitHub provenance attestations.
 
-Verify a downloaded release asset against that release's `checksums.txt` (run this in the folder you downloaded the assets into):
+The recommended Quick Start snippet above verifies `LibreSpot.ps1` automatically. For manual verification of any downloaded release asset:
 
 ```powershell
 # Compare the hash of each downloaded asset to its line in checksums.txt

@@ -165,6 +165,50 @@ public sealed class ReleaseArtifactContractTests
         }
     }
 
+    [Fact]
+    public void Readme_BootstrapReferencesValidReleaseAssets()
+    {
+        var readme = ReadFile("README.md");
+        var bootstrapSection = readme.Split("## Quick Start")[1].Split("##")[0];
+
+        Assert.Contains("checksums.txt", bootstrapSection);
+        Assert.Contains("LibreSpot.ps1", bootstrapSection);
+        Assert.Contains("SHA256", bootstrapSection);
+        Assert.Contains("Get-FileHash", bootstrapSection);
+
+        Assert.True(
+            bootstrapSection.Contains("mismatch") || bootstrapSection.Contains("Mismatch"),
+            "Bootstrap must fail on checksum mismatch.");
+
+        Assert.True(
+            bootstrapSection.Contains("Remove-Item") || bootstrapSection.Contains("remove"),
+            "Bootstrap should remove the script on checksum failure.");
+    }
+
+    [Fact]
+    public void Readme_BootstrapDownloadsBeforeExecution()
+    {
+        var readme = ReadFile("README.md");
+        var bootstrapSection = readme.Split("## Quick Start")[1].Split("##")[0];
+
+        var downloadIndex = bootstrapSection.IndexOf("Invoke-WebRequest", StringComparison.Ordinal);
+        var executeIndex = bootstrapSection.IndexOf("& \"$d\\LibreSpot.ps1\"", StringComparison.Ordinal);
+
+        Assert.True(downloadIndex >= 0, "Bootstrap must use Invoke-WebRequest to download.");
+        Assert.True(executeIndex >= 0, "Bootstrap must execute the saved script.");
+        Assert.True(downloadIndex < executeIndex, "Bootstrap must download before executing.");
+    }
+
+    [Fact]
+    public void Readme_KeepsLowerTrustPipelinePathLabeled()
+    {
+        var readme = ReadFile("README.md");
+
+        Assert.Contains("irm", readme);
+        Assert.Contains("iex", readme);
+        Assert.Contains("lower trust", readme, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static JsonDocument LoadContract()
     {
         var path = Path.Combine(RepoRoot, "schemas", "release-artifact-contract.json");
