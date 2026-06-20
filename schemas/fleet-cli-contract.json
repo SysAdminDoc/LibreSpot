@@ -1,0 +1,434 @@
+{
+  "$comment": "Fleet CLI verb and flag contract for admin tool integration. Defines the grammar that LibreSpot.Cli.exe exposes for Intune, PDQ, SCCM, WinRM, and PSRemoting use cases. Exit codes reference fleet-exit-codes.json; elevation requirements reference elevation-boundary.json.",
+  "schemaVersion": 1,
+  "verbs": [
+    {
+      "verb": "install",
+      "description": "Install or reinstall LibreSpot with SpotX + Spicetify.",
+      "requiresAdmin": true,
+      "mutates": true,
+      "supportsDryRun": true,
+      "supportsJson": false,
+      "supportsNdjson": true,
+      "defaultExitCodes": [0, 1, 2, 10, 20, 30, 40, 50, 60, 1618, 3010],
+      "flags": [
+        "--answer-file",
+        "--profile",
+        "--config-path",
+        "--silent",
+        "--quiet",
+        "--accept-eula",
+        "--no-restart",
+        "--dry-run",
+        "--yes",
+        "--correlation-id",
+        "--log-dir",
+        "--ndjson",
+        "--scope"
+      ],
+      "notes": "Primary install workflow. JSON output is not supported because install emits a stream of progress events via NDJSON. Use 'plan' for a JSON-only preview."
+    },
+    {
+      "verb": "reapply",
+      "description": "Reapply SpotX and Spicetify patches after a Spotify update.",
+      "requiresAdmin": true,
+      "mutates": true,
+      "supportsDryRun": true,
+      "supportsJson": false,
+      "supportsNdjson": true,
+      "defaultExitCodes": [0, 1, 2, 10, 20, 30, 40, 50, 60, 1618],
+      "flags": [
+        "--answer-file",
+        "--profile",
+        "--config-path",
+        "--silent",
+        "--quiet",
+        "--no-restart",
+        "--dry-run",
+        "--yes",
+        "--correlation-id",
+        "--log-dir",
+        "--ndjson",
+        "--scope"
+      ],
+      "notes": "Refreshes patches and restores saved Spicetify state. Typically triggered by the watcher after detecting a Spotify update."
+    },
+    {
+      "verb": "detect",
+      "description": "Check whether LibreSpot is installed and compliant with the desired state.",
+      "requiresAdmin": false,
+      "mutates": false,
+      "supportsDryRun": false,
+      "supportsJson": true,
+      "supportsNdjson": false,
+      "defaultExitCodes": [0, 1, 2, 10, 11, 12],
+      "flags": [
+        "--json",
+        "--config-path",
+        "--answer-file",
+        "--profile",
+        "--correlation-id",
+        "--log-dir",
+        "--scope",
+        "--intune"
+      ],
+      "notes": "Returns exit code 0 for compliant, 10 for not installed, 11 for drift, 12 for repair needed. The --intune flag formats output for Intune Win32 detection scripts."
+    },
+    {
+      "verb": "status",
+      "description": "Full health report covering Spotify, SpotX, Spicetify, watcher, and LibreSpot state.",
+      "requiresAdmin": false,
+      "mutates": false,
+      "supportsDryRun": false,
+      "supportsJson": true,
+      "supportsNdjson": false,
+      "defaultExitCodes": [0, 1, 2],
+      "flags": [
+        "--json",
+        "--config-path",
+        "--correlation-id",
+        "--log-dir",
+        "--scope"
+      ],
+      "notes": "Emits a structured health report. Designed for dashboards, monitoring, and pre-install triage. Does not mutate any state."
+    },
+    {
+      "verb": "validate",
+      "description": "Validate an answer file against the JSON schema and emit diagnostics.",
+      "requiresAdmin": false,
+      "mutates": false,
+      "supportsDryRun": false,
+      "supportsJson": true,
+      "supportsNdjson": false,
+      "defaultExitCodes": [0, 2],
+      "flags": [
+        "--json",
+        "--answer-file",
+        "--config-path",
+        "--correlation-id",
+        "--log-dir"
+      ],
+      "notes": "Exit 0 means the answer file is valid; exit 2 means validation errors were found. Includes typo suggestions for misspelled keys."
+    },
+    {
+      "verb": "plan",
+      "description": "Show what install/reapply would do without executing any changes.",
+      "requiresAdmin": false,
+      "mutates": false,
+      "supportsDryRun": false,
+      "supportsJson": true,
+      "supportsNdjson": false,
+      "defaultExitCodes": [0, 1, 2, 10],
+      "flags": [
+        "--json",
+        "--answer-file",
+        "--profile",
+        "--config-path",
+        "--correlation-id",
+        "--log-dir",
+        "--scope"
+      ],
+      "notes": "Dry-run by nature — never mutates. Produces an operation plan in JSON that describes each step, required downloads, and expected changes. Equivalent to running install --dry-run --json but with richer output."
+    },
+    {
+      "verb": "repair",
+      "description": "Run a specific repair action identified by its repair ID from a health report.",
+      "requiresAdmin": true,
+      "mutates": true,
+      "supportsDryRun": true,
+      "supportsJson": false,
+      "supportsNdjson": true,
+      "defaultExitCodes": [0, 1, 2, 10, 12, 20, 50, 60],
+      "flags": [
+        "--repair-id",
+        "--answer-file",
+        "--profile",
+        "--config-path",
+        "--silent",
+        "--quiet",
+        "--dry-run",
+        "--yes",
+        "--correlation-id",
+        "--log-dir",
+        "--ndjson",
+        "--scope"
+      ],
+      "notes": "Repair IDs come from the 'status' health report. Each repair action targets a single issue (e.g., stale watcher, missing Marketplace, version mismatch)."
+    },
+    {
+      "verb": "watcher install",
+      "description": "Register the auto-reapply scheduled task that patches Spotify after updates.",
+      "requiresAdmin": false,
+      "mutates": true,
+      "supportsDryRun": false,
+      "supportsJson": false,
+      "supportsNdjson": false,
+      "defaultExitCodes": [0, 1, 2, 50],
+      "flags": [
+        "--silent",
+        "--quiet",
+        "--yes",
+        "--correlation-id",
+        "--log-dir",
+        "--scope"
+      ],
+      "notes": "Registers a user-level scheduled task (no admin required). The task runs at logon and watches for Spotify updates."
+    },
+    {
+      "verb": "watcher remove",
+      "description": "Remove the auto-reapply scheduled task.",
+      "requiresAdmin": false,
+      "mutates": true,
+      "supportsDryRun": false,
+      "supportsJson": false,
+      "supportsNdjson": false,
+      "defaultExitCodes": [0, 1, 2],
+      "flags": [
+        "--silent",
+        "--quiet",
+        "--yes",
+        "--correlation-id",
+        "--log-dir",
+        "--scope"
+      ],
+      "notes": "Removes the scheduled task registered by 'watcher install'. No-op if the task does not exist (exits 0)."
+    },
+    {
+      "verb": "uninstall",
+      "description": "Uninstall LibreSpot customizations, optionally removing Spicetify and Spotify.",
+      "requiresAdmin": true,
+      "mutates": true,
+      "supportsDryRun": true,
+      "supportsJson": false,
+      "supportsNdjson": true,
+      "defaultExitCodes": [0, 1, 2, 20, 50, 60, 1618],
+      "flags": [
+        "--purge",
+        "--keep-spotify",
+        "--answer-file",
+        "--profile",
+        "--config-path",
+        "--silent",
+        "--quiet",
+        "--accept-eula",
+        "--no-restart",
+        "--dry-run",
+        "--yes",
+        "--correlation-id",
+        "--log-dir",
+        "--ndjson",
+        "--scope"
+      ],
+      "notes": "Default behavior removes LibreSpot and Spicetify customizations but keeps Spotify intact. --purge also removes LibreSpot config, logs, and backups. --keep-spotify is the default and is accepted for explicitness."
+    },
+    {
+      "verb": "export-support",
+      "description": "Export a redacted support bundle containing logs, config, and diagnostics.",
+      "requiresAdmin": false,
+      "mutates": false,
+      "supportsDryRun": false,
+      "supportsJson": false,
+      "supportsNdjson": false,
+      "defaultExitCodes": [0, 1, 2],
+      "flags": [
+        "--output",
+        "--correlation-id",
+        "--log-dir"
+      ],
+      "notes": "Produces a ZIP bundle with redacted logs, sanitized config, health report snapshot, and system info. The --output flag specifies the destination path; defaults to the current directory."
+    },
+    {
+      "verb": "version",
+      "description": "Show LibreSpot version, build metadata, and dependency versions.",
+      "requiresAdmin": false,
+      "mutates": false,
+      "supportsDryRun": false,
+      "supportsJson": true,
+      "supportsNdjson": false,
+      "defaultExitCodes": [0],
+      "flags": [
+        "--json"
+      ],
+      "notes": "Exits 0 unconditionally. JSON output includes LibreSpot version, git SHA, build timestamp, SpotX pin, Spicetify pin, and runtime info."
+    }
+  ],
+  "globalFlags": [
+    {
+      "flag": "--json",
+      "aliases": [],
+      "description": "Emit machine-readable JSON output to stdout.",
+      "type": "switch",
+      "conflictsWith": ["--ndjson"],
+      "notes": "Only available on verbs with supportsJson=true. Mutually exclusive with --ndjson."
+    },
+    {
+      "flag": "--ndjson",
+      "aliases": [],
+      "description": "Emit newline-delimited JSON progress events to stdout.",
+      "type": "switch",
+      "conflictsWith": ["--json"],
+      "notes": "Only available on verbs with supportsNdjson=true. Each line is a self-contained JSON object. Designed for real-time streaming consumption."
+    },
+    {
+      "flag": "--silent",
+      "aliases": ["/S", "-s"],
+      "description": "Suppress all interactive prompts and non-essential output.",
+      "type": "switch",
+      "conflictsWith": [],
+      "notes": "Implies --yes for confirmation prompts. Required for unattended deployment via Intune, SCCM, and PDQ."
+    },
+    {
+      "flag": "--quiet",
+      "aliases": ["-q"],
+      "description": "Reduce output verbosity; only errors and warnings are emitted.",
+      "type": "switch",
+      "conflictsWith": [],
+      "notes": "Less aggressive than --silent. Prompts still appear unless --yes is also specified."
+    },
+    {
+      "flag": "--answer-file",
+      "aliases": [],
+      "description": "Path to a JSON answer file that supplies configuration values.",
+      "type": "string",
+      "conflictsWith": [],
+      "notes": "Answer file schema is defined in librespot-answer.schema.json. Validated before any mutation occurs."
+    },
+    {
+      "flag": "--profile",
+      "aliases": [],
+      "description": "Named configuration profile to apply from the answer file.",
+      "type": "string",
+      "conflictsWith": [],
+      "notes": "Selects a named profile section within the answer file. Ignored if --answer-file is not specified."
+    },
+    {
+      "flag": "--config-path",
+      "aliases": [],
+      "description": "Override the default LibreSpot configuration directory.",
+      "type": "string",
+      "conflictsWith": [],
+      "notes": "Defaults to %LOCALAPPDATA%\\LibreSpot for user scope, %ProgramData%\\LibreSpot for machine scope."
+    },
+    {
+      "flag": "--log-dir",
+      "aliases": [],
+      "description": "Override the default log output directory.",
+      "type": "string",
+      "conflictsWith": [],
+      "notes": "Defaults to %ProgramData%\\LibreSpot\\logs for machine-scope operations, %LOCALAPPDATA%\\LibreSpot\\logs for user-scope."
+    },
+    {
+      "flag": "--scope",
+      "aliases": [],
+      "description": "Target installation scope.",
+      "type": "enum",
+      "enumValues": ["user", "machine"],
+      "conflictsWith": [],
+      "notes": "Determines whether operations target the per-user or per-machine Spotify installation. Defaults to 'user'."
+    },
+    {
+      "flag": "--accept-eula",
+      "aliases": [],
+      "description": "Accept the end-user license agreement non-interactively.",
+      "type": "switch",
+      "conflictsWith": [],
+      "notes": "Required for silent/unattended installs. Without this flag in silent mode, the CLI exits with code 2."
+    },
+    {
+      "flag": "--no-restart",
+      "aliases": [],
+      "description": "Suppress automatic Spotify restart after a mutating operation.",
+      "type": "switch",
+      "conflictsWith": [],
+      "notes": "By default, install/reapply/repair restart Spotify so the user sees changes immediately. Fleet deployments typically pass this flag."
+    },
+    {
+      "flag": "--dry-run",
+      "aliases": [],
+      "description": "Simulate the operation without making any changes.",
+      "type": "switch",
+      "conflictsWith": [],
+      "notes": "Only available on verbs with supportsDryRun=true. Produces the same output structure as a real run but skips all mutations. Exit code reflects what would have happened."
+    },
+    {
+      "flag": "--yes",
+      "aliases": ["-y"],
+      "description": "Auto-confirm all interactive prompts.",
+      "type": "switch",
+      "conflictsWith": [],
+      "notes": "Implied by --silent. Useful when running interactively but wanting to skip confirmation prompts."
+    },
+    {
+      "flag": "--correlation-id",
+      "aliases": [],
+      "description": "Attach a caller-supplied correlation ID to all log entries and output.",
+      "type": "string",
+      "conflictsWith": [],
+      "notes": "Passed through to NDJSON events, health reports, and receipts. Useful for correlating LibreSpot operations with deployment system job IDs."
+    }
+  ],
+  "verbSpecificFlags": [
+    {
+      "flag": "--intune",
+      "aliases": [],
+      "description": "Format detect output for Intune Win32 app detection scripts.",
+      "type": "switch",
+      "conflictsWith": [],
+      "applicableVerbs": ["detect"],
+      "notes": "Writes a single-line stdout message that Intune detection scripts can match. Combines with --json for structured Intune-compatible output."
+    },
+    {
+      "flag": "--repair-id",
+      "aliases": [],
+      "description": "Identifier of the specific repair action to execute.",
+      "type": "string",
+      "conflictsWith": [],
+      "applicableVerbs": ["repair"],
+      "notes": "Repair IDs are surfaced by the 'status' verb in the health report's repairActions array."
+    },
+    {
+      "flag": "--purge",
+      "aliases": [],
+      "description": "Remove LibreSpot configuration, logs, backups, and cached data in addition to the customizations.",
+      "type": "switch",
+      "conflictsWith": [],
+      "applicableVerbs": ["uninstall"],
+      "notes": "Without --purge, uninstall leaves config and logs intact for forensics or reinstall."
+    },
+    {
+      "flag": "--keep-spotify",
+      "aliases": [],
+      "description": "Keep Spotify installed when uninstalling LibreSpot customizations.",
+      "type": "switch",
+      "conflictsWith": [],
+      "applicableVerbs": ["uninstall"],
+      "notes": "This is the default behavior. The flag exists for explicitness in deployment scripts."
+    },
+    {
+      "flag": "--output",
+      "aliases": ["-o"],
+      "description": "Destination file path for the exported support bundle.",
+      "type": "string",
+      "conflictsWith": [],
+      "applicableVerbs": ["export-support"],
+      "notes": "Defaults to .\\LibreSpot-support-<timestamp>.zip in the current directory."
+    }
+  ],
+  "parserBehavior": {
+    "unknownFlags": "fail-before-mutation",
+    "typoSuggestions": true,
+    "flagOrdering": "any",
+    "caseSensitivity": "case-insensitive",
+    "slashPrefixAliases": "Only /S is recognized as a slash-prefixed alias (Windows convention). All other flags use -- or - prefixes.",
+    "notes": "Unknown flags cause immediate exit with code 2 and a suggestion of the closest known flag. This happens before any mutation, so partially-applied changes are impossible from typos."
+  },
+  "designPrinciples": [
+    "Non-mutating verbs (detect, status, validate, plan, version) never require admin elevation.",
+    "Mutating verbs fail with exit code 50 if admin elevation is missing, before any changes are made.",
+    "Every verb produces deterministic exit codes documented in fleet-exit-codes.json.",
+    "--dry-run on mutating verbs produces the same output structure as a real run but skips all filesystem/registry writes.",
+    "NDJSON is the streaming format for long-running mutating operations; JSON is the snapshot format for read-only queries.",
+    "Flag conflicts (e.g., --json + --ndjson) are caught at parse time and exit with code 2.",
+    "The CLI shares backend code with the WPF desktop shell — verbs map 1:1 to backend actions in elevation-boundary.json."
+  ]
+}

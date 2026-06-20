@@ -5,6 +5,16 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Fleet CLI verb and flag contract (`schemas/fleet-cli-contract.json`) defining
+  12 verbs (install, reapply, detect, status, validate, plan, repair, watcher
+  install/remove, uninstall, export-support, version) with elevation requirements,
+  mutation flags, output format support, applicable flags, exit code references,
+  and parser behavior rules for typo suggestions and conflict detection.
+- Stable diagnostic event IDs (`schemas/diagnostic-event-ids.json`) with 44
+  events across 13 categories (lifecycle, download, SpotX, Spicetify,
+  Marketplace, watcher, health, journal, config, PATH, task, network, security).
+  Each event carries a stable LS-prefixed ID, severity, and payload fields so
+  log meaning stays decoupled from display copy.
 - Fleet exit code taxonomy (`schemas/fleet-exit-codes.json`) mapping LibreSpot
   domain outcomes onto Intune/SCCM/PDQ/WinRM return-code categories with 14
   documented exit codes for success, validation, drift, network, trust, and

@@ -1,0 +1,479 @@
+{
+  "$comment": "Stable diagnostic event IDs for logs, receipts, support bundles, and fleet output.",
+  "schemaVersion": 1,
+  "description": "Event IDs decouple log meaning from display copy. Visible messages can change without breaking event-based filters, receipts, or test assertions.",
+  "eventCategories": [
+    {
+      "key": "lifecycle",
+      "label": "Lifecycle",
+      "description": "Run start, stop, and cancellation events.",
+      "idRange": "LS1001–LS1999"
+    },
+    {
+      "key": "download",
+      "label": "Download",
+      "description": "Download attempts, cache hits, and hash verification outcomes.",
+      "idRange": "LS2001–LS2999"
+    },
+    {
+      "key": "spotx",
+      "label": "SpotX",
+      "description": "SpotX patching operations and verification.",
+      "idRange": "LS3001–LS3999"
+    },
+    {
+      "key": "spicetify",
+      "label": "Spicetify",
+      "description": "Spicetify backup, apply, restore, and config operations.",
+      "idRange": "LS4001–LS4999"
+    },
+    {
+      "key": "marketplace",
+      "label": "Marketplace",
+      "description": "Marketplace install, repair, and health status.",
+      "idRange": "LS5001–LS5999"
+    },
+    {
+      "key": "watcher",
+      "label": "Watcher",
+      "description": "Auto-reapply watcher ticks and outcomes.",
+      "idRange": "LS6001–LS6999"
+    },
+    {
+      "key": "health",
+      "label": "Health",
+      "description": "Health check findings and overall results.",
+      "idRange": "LS7001–LS7999"
+    },
+    {
+      "key": "journal",
+      "label": "Journal",
+      "description": "Operation journal and receipt events.",
+      "idRange": "LS8001–LS8999"
+    },
+    {
+      "key": "config",
+      "label": "Config",
+      "description": "Config load, save, quarantine, and migration events.",
+      "idRange": "LS9001–LS9999"
+    },
+    {
+      "key": "path",
+      "label": "PATH",
+      "description": "PATH environment variable modifications.",
+      "idRange": "LS10001–LS10999"
+    },
+    {
+      "key": "task",
+      "label": "Task",
+      "description": "Scheduled task register and unregister events.",
+      "idRange": "LS11001–LS11999"
+    },
+    {
+      "key": "network",
+      "label": "Network",
+      "description": "Network preflight checks and rate-limit detection.",
+      "idRange": "LS12001–LS12999"
+    },
+    {
+      "key": "security",
+      "label": "Security",
+      "description": "CVE exposure checks, execution policy, and trust verification.",
+      "idRange": "LS13001–LS13999"
+    }
+  ],
+  "events": [
+    {
+      "id": "LS1001",
+      "category": "lifecycle",
+      "severity": "info",
+      "name": "RunStart",
+      "description": "A LibreSpot run has been initiated.",
+      "payloadFields": ["runId", "timestamp", "configProfile", "version"]
+    },
+    {
+      "id": "LS1002",
+      "category": "lifecycle",
+      "severity": "success",
+      "name": "RunComplete",
+      "description": "The run completed successfully.",
+      "payloadFields": ["runId", "durationMs", "actionsExecuted"]
+    },
+    {
+      "id": "LS1003",
+      "category": "lifecycle",
+      "severity": "error",
+      "name": "RunFailed",
+      "description": "The run terminated due to an unrecoverable error.",
+      "payloadFields": ["runId", "durationMs", "errorMessage", "failedAction"]
+    },
+    {
+      "id": "LS1004",
+      "category": "lifecycle",
+      "severity": "warning",
+      "name": "RunCanceled",
+      "description": "The run was canceled by the user or a controlling process.",
+      "payloadFields": ["runId", "durationMs", "cancelSource"]
+    },
+    {
+      "id": "LS2001",
+      "category": "download",
+      "severity": "info",
+      "name": "DownloadStarted",
+      "description": "A file download has been initiated.",
+      "payloadFields": ["url", "targetPath", "expectedHash"]
+    },
+    {
+      "id": "LS2002",
+      "category": "download",
+      "severity": "success",
+      "name": "DownloadVerified",
+      "description": "A downloaded file passed hash verification.",
+      "payloadFields": ["targetPath", "algorithm", "expectedHash", "actualHash"]
+    },
+    {
+      "id": "LS2003",
+      "category": "download",
+      "severity": "error",
+      "name": "DownloadFailed",
+      "description": "A file download failed after all retry attempts.",
+      "payloadFields": ["url", "errorMessage", "httpStatus", "retryCount"]
+    },
+    {
+      "id": "LS2004",
+      "category": "download",
+      "severity": "info",
+      "name": "CacheHit",
+      "description": "A cached copy of the requested file was found and is valid.",
+      "payloadFields": ["targetPath", "cacheAge"]
+    },
+    {
+      "id": "LS2005",
+      "category": "download",
+      "severity": "info",
+      "name": "CacheMiss",
+      "description": "No cached copy exists; a fresh download is required.",
+      "payloadFields": ["targetPath"]
+    },
+    {
+      "id": "LS2006",
+      "category": "download",
+      "severity": "error",
+      "name": "HashMismatch",
+      "description": "The downloaded file's hash does not match the expected value.",
+      "payloadFields": ["targetPath", "algorithm", "expectedHash", "actualHash"]
+    },
+    {
+      "id": "LS3001",
+      "category": "spotx",
+      "severity": "info",
+      "name": "SpotXPatchStarted",
+      "description": "SpotX patching has been initiated.",
+      "payloadFields": ["spotifyVersion", "spotxSource"]
+    },
+    {
+      "id": "LS3002",
+      "category": "spotx",
+      "severity": "success",
+      "name": "SpotXPatchVerified",
+      "description": "SpotX patch was applied and post-patch verification passed.",
+      "payloadFields": ["spotifyVersion", "patchedFiles"]
+    },
+    {
+      "id": "LS3003",
+      "category": "spotx",
+      "severity": "warning",
+      "name": "SpotXPatchUnverified",
+      "description": "SpotX patch was applied but post-patch verification could not confirm success.",
+      "payloadFields": ["spotifyVersion", "reason"]
+    },
+    {
+      "id": "LS3004",
+      "category": "spotx",
+      "severity": "error",
+      "name": "SpotXPatchFailed",
+      "description": "SpotX patching failed.",
+      "payloadFields": ["spotifyVersion", "errorMessage", "exitCode"]
+    },
+    {
+      "id": "LS4001",
+      "category": "spicetify",
+      "severity": "info",
+      "name": "SpicetifyBackupStarted",
+      "description": "Spicetify backup operation has been initiated.",
+      "payloadFields": ["spicetifyVersion", "spotifyVersion"]
+    },
+    {
+      "id": "LS4002",
+      "category": "spicetify",
+      "severity": "info",
+      "name": "SpicetifyApplyStarted",
+      "description": "Spicetify apply operation has been initiated.",
+      "payloadFields": ["spicetifyVersion", "spotifyVersion", "theme"]
+    },
+    {
+      "id": "LS4003",
+      "category": "spicetify",
+      "severity": "success",
+      "name": "SpicetifyApplySucceeded",
+      "description": "Spicetify apply completed successfully.",
+      "payloadFields": ["spicetifyVersion", "spotifyVersion", "theme", "durationMs"]
+    },
+    {
+      "id": "LS4004",
+      "category": "spicetify",
+      "severity": "error",
+      "name": "SpicetifyApplyFailed",
+      "description": "Spicetify apply failed.",
+      "payloadFields": ["spicetifyVersion", "spotifyVersion", "errorMessage", "exitCode"]
+    },
+    {
+      "id": "LS4005",
+      "category": "spicetify",
+      "severity": "info",
+      "name": "SpicetifyRestoreStarted",
+      "description": "Spicetify restore operation has been initiated.",
+      "payloadFields": ["spicetifyVersion", "spotifyVersion"]
+    },
+    {
+      "id": "LS4006",
+      "category": "spicetify",
+      "severity": "success",
+      "name": "SpicetifyRestoreSucceeded",
+      "description": "Spicetify restore completed successfully.",
+      "payloadFields": ["spicetifyVersion", "spotifyVersion", "durationMs"]
+    },
+    {
+      "id": "LS4007",
+      "category": "spicetify",
+      "severity": "error",
+      "name": "SpicetifyRestoreFailed",
+      "description": "Spicetify restore failed.",
+      "payloadFields": ["spicetifyVersion", "spotifyVersion", "errorMessage", "exitCode"]
+    },
+    {
+      "id": "LS5001",
+      "category": "marketplace",
+      "severity": "success",
+      "name": "MarketplaceInstalled",
+      "description": "Spicetify Marketplace was installed successfully.",
+      "payloadFields": ["marketplaceVersion", "installPath"]
+    },
+    {
+      "id": "LS5002",
+      "category": "marketplace",
+      "severity": "success",
+      "name": "MarketplaceRepaired",
+      "description": "Spicetify Marketplace was repaired after a detected issue.",
+      "payloadFields": ["marketplaceVersion", "repairReason"]
+    },
+    {
+      "id": "LS5003",
+      "category": "marketplace",
+      "severity": "warning",
+      "name": "MarketplaceMissing",
+      "description": "Spicetify Marketplace was expected but not found.",
+      "payloadFields": ["expectedPath"]
+    },
+    {
+      "id": "LS6001",
+      "category": "watcher",
+      "severity": "info",
+      "name": "WatcherTick",
+      "description": "The auto-reapply watcher performed a scheduled check.",
+      "payloadFields": ["tickNumber", "timestamp", "spotifyRunning"]
+    },
+    {
+      "id": "LS6002",
+      "category": "watcher",
+      "severity": "info",
+      "name": "WatcherSkipped",
+      "description": "The watcher skipped this tick because no reapply was needed.",
+      "payloadFields": ["tickNumber", "reason"]
+    },
+    {
+      "id": "LS6003",
+      "category": "watcher",
+      "severity": "success",
+      "name": "WatcherReapplied",
+      "description": "The watcher detected a change and successfully reapplied patches.",
+      "payloadFields": ["tickNumber", "trigger", "durationMs"]
+    },
+    {
+      "id": "LS6004",
+      "category": "watcher",
+      "severity": "error",
+      "name": "WatcherFailed",
+      "description": "The watcher's reapply attempt failed.",
+      "payloadFields": ["tickNumber", "errorMessage"]
+    },
+    {
+      "id": "LS7001",
+      "category": "health",
+      "severity": "info",
+      "name": "HealthCheckStarted",
+      "description": "A health check pass has been initiated.",
+      "payloadFields": ["checkScope", "timestamp"]
+    },
+    {
+      "id": "LS7002",
+      "category": "health",
+      "severity": "warning",
+      "name": "HealthIssueFound",
+      "description": "A health check detected an issue.",
+      "payloadFields": ["issueType", "issueDetail", "suggestedAction"]
+    },
+    {
+      "id": "LS7003",
+      "category": "health",
+      "severity": "info",
+      "name": "HealthCheckComplete",
+      "description": "The health check pass finished.",
+      "payloadFields": ["issuesFound", "durationMs"]
+    },
+    {
+      "id": "LS8001",
+      "category": "journal",
+      "severity": "info",
+      "name": "OperationPlanned",
+      "description": "An operation has been planned and added to the journal.",
+      "payloadFields": ["operationId", "operationType", "description"]
+    },
+    {
+      "id": "LS8002",
+      "category": "journal",
+      "severity": "info",
+      "name": "OperationExecuted",
+      "description": "A planned operation was executed.",
+      "payloadFields": ["operationId", "operationType", "outcome", "durationMs"]
+    },
+    {
+      "id": "LS8003",
+      "category": "journal",
+      "severity": "info",
+      "name": "OperationSkipped",
+      "description": "A planned operation was skipped.",
+      "payloadFields": ["operationId", "operationType", "reason"]
+    },
+    {
+      "id": "LS8004",
+      "category": "journal",
+      "severity": "info",
+      "name": "ReceiptWritten",
+      "description": "A run receipt was written to disk.",
+      "payloadFields": ["receiptPath", "runId", "eventCount"]
+    },
+    {
+      "id": "LS9001",
+      "category": "config",
+      "severity": "info",
+      "name": "ConfigLoaded",
+      "description": "Configuration was loaded from disk.",
+      "payloadFields": ["configPath", "schemaVersion"]
+    },
+    {
+      "id": "LS9002",
+      "category": "config",
+      "severity": "info",
+      "name": "ConfigSaved",
+      "description": "Configuration was saved to disk.",
+      "payloadFields": ["configPath", "schemaVersion"]
+    },
+    {
+      "id": "LS9003",
+      "category": "config",
+      "severity": "warning",
+      "name": "ConfigQuarantined",
+      "description": "A config file was quarantined due to validation failure or corruption.",
+      "payloadFields": ["configPath", "quarantinePath", "reason"]
+    },
+    {
+      "id": "LS9004",
+      "category": "config",
+      "severity": "info",
+      "name": "ConfigMigrated",
+      "description": "Configuration was migrated from an older schema version.",
+      "payloadFields": ["configPath", "fromVersion", "toVersion"]
+    },
+    {
+      "id": "LS10001",
+      "category": "path",
+      "severity": "info",
+      "name": "PathEntryAdded",
+      "description": "A directory was added to the PATH environment variable.",
+      "payloadFields": ["directory", "scope"]
+    },
+    {
+      "id": "LS10002",
+      "category": "path",
+      "severity": "info",
+      "name": "PathEntryRemoved",
+      "description": "A directory was removed from the PATH environment variable.",
+      "payloadFields": ["directory", "scope"]
+    },
+    {
+      "id": "LS11001",
+      "category": "task",
+      "severity": "info",
+      "name": "TaskRegistered",
+      "description": "A scheduled task was registered in Windows Task Scheduler.",
+      "payloadFields": ["taskName", "taskPath", "trigger"]
+    },
+    {
+      "id": "LS11002",
+      "category": "task",
+      "severity": "info",
+      "name": "TaskRemoved",
+      "description": "A scheduled task was removed from Windows Task Scheduler.",
+      "payloadFields": ["taskName", "taskPath"]
+    },
+    {
+      "id": "LS12001",
+      "category": "network",
+      "severity": "success",
+      "name": "NetworkPreflightPassed",
+      "description": "Network preflight checks passed; required endpoints are reachable.",
+      "payloadFields": ["endpointsChecked", "durationMs"]
+    },
+    {
+      "id": "LS12002",
+      "category": "network",
+      "severity": "error",
+      "name": "NetworkPreflightFailed",
+      "description": "Network preflight checks failed; one or more endpoints are unreachable.",
+      "payloadFields": ["failedEndpoints", "errorMessage"]
+    },
+    {
+      "id": "LS12003",
+      "category": "network",
+      "severity": "warning",
+      "name": "RateLimitDetected",
+      "description": "An HTTP 429 or equivalent rate-limit response was received.",
+      "payloadFields": ["url", "retryAfterSeconds", "httpStatus"]
+    },
+    {
+      "id": "LS13001",
+      "category": "security",
+      "severity": "info",
+      "name": "CveExposureChecked",
+      "description": "A CVE exposure check was performed against the installed Spotify version.",
+      "payloadFields": ["spotifyVersion", "cveIds", "exposureStatus"]
+    },
+    {
+      "id": "LS13002",
+      "category": "security",
+      "severity": "success",
+      "name": "TrustVerificationPassed",
+      "description": "Digital signature or trust verification passed for a downloaded artifact.",
+      "payloadFields": ["filePath", "signer", "thumbprint"]
+    },
+    {
+      "id": "LS13003",
+      "category": "security",
+      "severity": "error",
+      "name": "TrustVerificationFailed",
+      "description": "Digital signature or trust verification failed for a downloaded artifact.",
+      "payloadFields": ["filePath", "reason", "expectedSigner"]
+    }
+  ]
+}
