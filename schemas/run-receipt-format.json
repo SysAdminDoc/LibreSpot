@@ -1,0 +1,152 @@
+{
+  "$comment": "Format definition for post-run receipts.",
+  "schemaVersion": 1,
+  "receiptFields": [
+    {
+      "name": "receiptId",
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this receipt.",
+      "required": true
+    },
+    {
+      "name": "runId",
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier for the overall run session that produced this receipt.",
+      "required": true
+    },
+    {
+      "name": "operationId",
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier for the specific operation within the run.",
+      "required": true
+    },
+    {
+      "name": "startedAt",
+      "type": "string",
+      "format": "iso8601",
+      "description": "Timestamp when the operation started.",
+      "required": true
+    },
+    {
+      "name": "completedAt",
+      "type": "string",
+      "format": "iso8601",
+      "description": "Timestamp when the operation completed (null if still running or canceled mid-flight).",
+      "required": false
+    },
+    {
+      "name": "action",
+      "type": "string",
+      "description": "Human-readable label of the action performed (e.g. 'Apply Spicetify', 'Block Updates').",
+      "required": true
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "enum": ["success", "failed", "canceled", "dryRun", "partialSuccess"],
+      "description": "Outcome status of the operation.",
+      "required": true
+    },
+    {
+      "name": "planHash",
+      "type": "string",
+      "description": "SHA-256 hash of the preflight plan that was executed, for integrity verification.",
+      "required": false
+    },
+    {
+      "name": "errorSummary",
+      "type": "string",
+      "description": "Short summary of the error if status is 'failed' or 'partialSuccess'. Null on success.",
+      "required": false
+    },
+    {
+      "name": "undoAvailable",
+      "type": "boolean",
+      "description": "Whether undo is available for this operation based on captured state and token reversibility.",
+      "required": true
+    },
+    {
+      "name": "logRef",
+      "type": "string",
+      "description": "Reference path or identifier to the sanitized log file for this operation.",
+      "required": false
+    }
+  ],
+  "operationEntryFields": [
+    {
+      "name": "tokenKind",
+      "type": "string",
+      "description": "The operation token type kind (matches a kind value from operation-token-types.json).",
+      "required": true
+    },
+    {
+      "name": "target",
+      "type": "string",
+      "description": "The target of the operation (e.g. file path, PATH entry value, task name).",
+      "required": true
+    },
+    {
+      "name": "previousStateRef",
+      "type": "string",
+      "description": "Reference to the captured previous state (file path, snapshot id, or inline value). Null if state was not captured.",
+      "required": false
+    },
+    {
+      "name": "newState",
+      "type": "string",
+      "description": "Description or reference to the new state after the operation.",
+      "required": false
+    },
+    {
+      "name": "result",
+      "type": "string",
+      "enum": ["applied", "skipped", "failed", "rolledBack"],
+      "description": "Outcome of this individual operation entry.",
+      "required": true
+    },
+    {
+      "name": "reversible",
+      "type": "boolean",
+      "description": "Whether this specific operation entry is reversible (may differ from token type default if state capture failed).",
+      "required": true
+    },
+    {
+      "name": "undoAction",
+      "type": "string",
+      "description": "Description of the undo action for this entry, or reason undo is not available.",
+      "required": true
+    },
+    {
+      "name": "risk",
+      "type": "string",
+      "enum": ["low", "medium", "high", "destructive"],
+      "description": "Risk level of this operation entry.",
+      "required": true
+    }
+  ],
+  "statusValues": [
+    {
+      "value": "success",
+      "description": "All operations in the run completed successfully."
+    },
+    {
+      "value": "failed",
+      "description": "The run encountered a fatal error and did not complete."
+    },
+    {
+      "value": "canceled",
+      "description": "The run was canceled by the user before completion."
+    },
+    {
+      "value": "dryRun",
+      "description": "The run executed in dry-run mode; no mutations were applied."
+    },
+    {
+      "value": "partialSuccess",
+      "description": "Some operations succeeded but one or more failed or were skipped."
+    }
+  ]
+}

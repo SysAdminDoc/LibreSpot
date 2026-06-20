@@ -5,6 +5,14 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Reversible operation token registry (`schemas/operation-token-types.json`)
+  with 15 token types covering config writes, PATH changes, scheduled tasks,
+  shortcuts, update blocking, Spicetify apply, SpotX patches, and destructive
+  operations. Each type declares reversibility, previous-state capture, undo
+  action, admin requirement, and risk level.
+- Run receipt format (`schemas/run-receipt-format.json`) defining post-run
+  receipt structure with metadata, operation tokens, undo availability, and
+  status values for success, failed, canceled, dry-run, and partial results.
 - `.librespot` profile format schema (`schemas/librespot-profile.schema.json`)
   for user-facing export/import. Includes metadata (generator, version, creation
   time, dependency pins, OS/arch hints), a `settings` object matching config

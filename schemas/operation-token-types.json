@@ -1,0 +1,156 @@
+{
+  "$comment": "Registry of operation token types for the undo-selected-actions pane.",
+  "schemaVersion": 1,
+  "tokenTypes": [
+    {
+      "kind": "configWrite",
+      "description": "Configuration file write (config.json).",
+      "reversible": true,
+      "capturePreviousState": true,
+      "undoAction": "Restore previous config.json from captured state.",
+      "requiresAdmin": false,
+      "risk": "low",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "pathEntryAdd",
+      "description": "PATH environment variable entry addition.",
+      "reversible": true,
+      "capturePreviousState": true,
+      "undoAction": "Remove the added PATH entry and restore previous PATH value.",
+      "requiresAdmin": false,
+      "risk": "low",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "pathEntryRemove",
+      "description": "PATH environment variable entry removal.",
+      "reversible": true,
+      "capturePreviousState": true,
+      "undoAction": "Re-add the removed PATH entry from captured previous PATH value.",
+      "requiresAdmin": false,
+      "risk": "medium",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "watcherTaskRegister",
+      "description": "Scheduled task creation for Spotify update watcher.",
+      "reversible": true,
+      "capturePreviousState": false,
+      "undoAction": "Unregister the scheduled task by name.",
+      "requiresAdmin": true,
+      "risk": "low",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "watcherTaskRemove",
+      "description": "Scheduled task removal for Spotify update watcher.",
+      "reversible": true,
+      "capturePreviousState": true,
+      "undoAction": "Re-register the scheduled task from captured XML definition.",
+      "requiresAdmin": true,
+      "risk": "medium",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "shortcutCreate",
+      "description": "Shortcut file (.lnk) creation.",
+      "reversible": true,
+      "capturePreviousState": false,
+      "undoAction": "Delete the created shortcut file.",
+      "requiresAdmin": false,
+      "risk": "low",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "shortcutRemove",
+      "description": "Shortcut file (.lnk) removal.",
+      "reversible": true,
+      "capturePreviousState": true,
+      "undoAction": "Restore the shortcut file from captured backup.",
+      "requiresAdmin": false,
+      "risk": "low",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "updateBlock",
+      "description": "Spotify automatic update blocking.",
+      "reversible": true,
+      "capturePreviousState": true,
+      "undoAction": "Restore previous update state (re-enable Spotify auto-update).",
+      "requiresAdmin": false,
+      "risk": "low",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "spicetifyApply",
+      "description": "Spicetify theme/extension apply to Spotify.",
+      "reversible": true,
+      "capturePreviousState": true,
+      "undoAction": "Run spicetify restore to revert Spotify to pre-apply state.",
+      "requiresAdmin": false,
+      "risk": "medium",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "spotxPatch",
+      "description": "SpotX ad-blocking patch applied to Spotify.",
+      "reversible": true,
+      "capturePreviousState": true,
+      "undoAction": "Restore vanilla Spotify client files from captured backup.",
+      "requiresAdmin": false,
+      "risk": "medium",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "spotifyUninstall",
+      "description": "Full Spotify application removal.",
+      "reversible": false,
+      "capturePreviousState": false,
+      "undoAction": "Not reversible unless an explicit backup or snapshot exists. Spotify must be reinstalled manually.",
+      "requiresAdmin": true,
+      "risk": "destructive",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "spicetifyUninstall",
+      "description": "Full Spicetify removal.",
+      "reversible": false,
+      "capturePreviousState": false,
+      "undoAction": "Not reversible unless an explicit backup exists. Spicetify must be reinstalled manually.",
+      "requiresAdmin": false,
+      "risk": "destructive",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "fullReset",
+      "description": "Full environment reset (removes Spotify, Spicetify, config, and all managed state).",
+      "reversible": false,
+      "capturePreviousState": false,
+      "undoAction": "Not reversible. Full reset removes all managed state; a complete reinstall is required.",
+      "requiresAdmin": true,
+      "risk": "destructive",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "cacheCleared",
+      "description": "Spotify or Spicetify cache directory clearing.",
+      "reversible": false,
+      "capturePreviousState": false,
+      "undoAction": "Not reversible. Cache data is regenerated automatically by Spotify on next use.",
+      "requiresAdmin": false,
+      "risk": "low",
+      "expiresAfterHours": null
+    },
+    {
+      "kind": "selfDataRemoved",
+      "description": "LibreSpot profile and application data removal.",
+      "reversible": false,
+      "capturePreviousState": false,
+      "undoAction": "Not reversible. LibreSpot data must be recreated by running the application again.",
+      "requiresAdmin": false,
+      "risk": "high",
+      "expiresAfterHours": null
+    }
+  ]
+}
