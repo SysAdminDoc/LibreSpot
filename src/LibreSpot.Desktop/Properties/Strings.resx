@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" msdata:Ordinal="0" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="xml:space" use="optional" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- App-level -->
+  <data name="AppTitle" xml:space="preserve"><value>LibreSpot</value><comment>Main window title</comment></data>
+  <data name="AppSubtitle" xml:space="preserve"><value>Setup and recovery</value><comment>Subtitle in sidebar header</comment></data>
+
+  <!-- Activity panel defaults -->
+  <data name="ActivityReady" xml:space="preserve"><value>Ready when you are</value><comment>Default activity title before any action</comment></data>
+  <data name="ActivityPickPath" xml:space="preserve"><value>Pick a setup path to begin.</value><comment>Default activity status text</comment></data>
+
+  <!-- Navigation modes -->
+  <data name="ModeRecommendedTitle" xml:space="preserve"><value>Recommended</value><comment>Sidebar nav label for recommended/easy install</comment></data>
+  <data name="ModeRecommendedDescription" xml:space="preserve"><value>Recommended setup</value><comment>Workspace hero subtitle for recommended mode</comment></data>
+  <data name="ModeCustomTitle" xml:space="preserve"><value>Custom</value><comment>Sidebar nav label for custom install</comment></data>
+  <data name="ModeCustomDescription" xml:space="preserve"><value>Custom setup</value><comment>Workspace hero subtitle for custom mode</comment></data>
+  <data name="ModeMaintenanceTitle" xml:space="preserve"><value>Maintenance</value><comment>Sidebar nav label for maintenance mode</comment></data>
+  <data name="ModeMaintenanceDescription" xml:space="preserve"><value>Repair and recover</value><comment>Workspace hero subtitle for maintenance mode</comment></data>
+
+  <!-- Workspace hero -->
+  <data name="HeroGuidedSetup" xml:space="preserve"><value>Guided setup</value><comment>Hero eyebrow text for recommended/custom modes</comment></data>
+  <data name="HeroMaintenanceEyebrow" xml:space="preserve"><value>Stack health</value><comment>Hero eyebrow text for maintenance mode</comment></data>
+
+  <!-- Run readiness -->
+  <data name="ReadyToRun" xml:space="preserve"><value>Ready to run</value><comment>Status when admin privileges are available</comment></data>
+  <data name="AdminStepNeeded" xml:space="preserve"><value>Admin step needed</value><comment>Status when admin elevation is required</comment></data>
+  <data name="ReadyToRunDescription" xml:space="preserve"><value>LibreSpot can patch and recover without another Windows prompt.</value><comment>Explanation when running as admin</comment></data>
+  <data name="AdminStepDescription" xml:space="preserve"><value>LibreSpot will ask Windows for permission before running its backend.</value><comment>Explanation when not running as admin</comment></data>
+
+  <!-- Search -->
+  <data name="SearchPlaceholder" xml:space="preserve"><value>Find a setting</value><comment>Search box watermark text</comment></data>
+  <data name="SearchNoResults" xml:space="preserve"><value>No matching settings</value><comment>Shown when search finds nothing</comment></data>
+
+  <!-- Health severity labels -->
+  <data name="SeverityReady" xml:space="preserve"><value>Ready</value><comment>Health check passed</comment></data>
+  <data name="SeverityWarning" xml:space="preserve"><value>Warning</value><comment>Health check has a non-critical issue</comment></data>
+  <data name="SeverityCritical" xml:space="preserve"><value>Critical</value><comment>Health check found a serious problem</comment></data>
+  <data name="SeverityInfo" xml:space="preserve"><value>Info</value><comment>Informational health detail</comment></data>
+
+  <!-- Maintenance actions -->
+  <data name="ActionCheckMatrix" xml:space="preserve"><value>Check compatibility matrix</value><comment>Maintenance action title</comment></data>
+  <data name="ActionCreateBackup" xml:space="preserve"><value>Create Spicetify backup</value><comment>Maintenance action title</comment></data>
+  <data name="ActionRestoreBackup" xml:space="preserve"><value>Restore latest backup</value><comment>Maintenance action title</comment></data>
+  <data name="ActionReapply" xml:space="preserve"><value>Reapply after update</value><comment>Maintenance action title</comment></data>
+  <data name="ActionRepairMarketplace" xml:space="preserve"><value>Repair and open Marketplace</value><comment>Maintenance action title</comment></data>
+  <data name="ActionOpenMarketplace" xml:space="preserve"><value>Open Marketplace</value><comment>Maintenance action title</comment></data>
+  <data name="ActionSafeMode" xml:space="preserve"><value>Safe mode</value><comment>Maintenance action title</comment></data>
+  <data name="ActionRestoreVanilla" xml:space="preserve"><value>Restore vanilla Spotify</value><comment>Maintenance action title</comment></data>
+  <data name="ActionUninstallSpicetify" xml:space="preserve"><value>Uninstall Spicetify</value><comment>Maintenance action title</comment></data>
+  <data name="ActionFullReset" xml:space="preserve"><value>Full reset</value><comment>Maintenance action title — destructive</comment></data>
+  <data name="ActionRemoveSelfData" xml:space="preserve"><value>Remove LibreSpot data</value><comment>Maintenance action title — destructive</comment></data>
+
+  <!-- Buttons -->
+  <data name="ButtonRunSetup" xml:space="preserve"><value>Run setup</value><comment>Primary install button label</comment></data>
+  <data name="ButtonCancel" xml:space="preserve"><value>Cancel</value><comment>Cancel/abort button label</comment></data>
+  <data name="ButtonContinue" xml:space="preserve"><value>Continue</value><comment>Confirmation dialog continue button</comment></data>
+  <data name="ButtonDismiss" xml:space="preserve"><value>Dismiss</value><comment>Dismiss/close button</comment></data>
+  <data name="ButtonCopyLog" xml:space="preserve"><value>Copy log</value><comment>Copy log to clipboard button</comment></data>
+  <data name="ButtonOpenFolder" xml:space="preserve"><value>Open folder</value><comment>Open folder in Explorer button</comment></data>
+
+  <!-- Progress / activity -->
+  <data name="ProgressPreparing" xml:space="preserve"><value>Preparing</value><comment>Initial progress state</comment></data>
+  <data name="ProgressComplete" xml:space="preserve"><value>Setup complete</value><comment>Final progress state</comment></data>
+  <data name="ProgressSpotifyReady" xml:space="preserve"><value>Spotify is ready</value><comment>Final progress substatus</comment></data>
+
+  <!-- Install options -->
+  <data name="OptionCleanInstall" xml:space="preserve"><value>Remove current stack first</value><comment>Clean install option title</comment></data>
+  <data name="OptionCleanInstallDescription" xml:space="preserve"><value>Clear old Spotify and customization remnants before starting fresh.</value><comment>Clean install option description</comment></data>
+  <data name="OptionLaunchAfter" xml:space="preserve"><value>Launch Spotify when finished</value><comment>Post-install launch option title</comment></data>
+
+  <!-- Config status -->
+  <data name="ConfigSaved" xml:space="preserve"><value>Profile saved</value><comment>Shown after config is saved</comment></data>
+  <data name="ConfigUnsaved" xml:space="preserve"><value>Unsaved changes</value><comment>Shown when config has unsaved changes</comment></data>
+</root>

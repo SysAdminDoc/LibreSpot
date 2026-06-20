@@ -5,6 +5,13 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Localization extraction infrastructure: `Properties/Strings.resx` with 50+
+  extracted UI strings covering app titles, navigation labels, activity status,
+  health severity, maintenance actions, search, buttons, progress states,
+  install options, and config status. Auto-generates a `Strings.Designer.cs`
+  accessor via `PublicResXFileCodeGenerator`. Tests validate .resx structure,
+  key uniqueness, non-empty values, translator comments, and core key presence.
+  This is the first step toward satellite assembly localization.
 - Preflight plan action (`Plan`) in the WPF backend that emits structured
   JSON plan entries for every operation an install would perform — downloads,
   SpotX patching, Spicetify CLI, themes, extensions, Marketplace, config saves,
