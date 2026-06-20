@@ -1,0 +1,144 @@
+{
+  "$comment": "NDJSON log line format for fleet CLI and headless runs. Each stdout/file line is a self-contained JSON object following this schema. Event IDs reference diagnostic-event-ids.json.",
+  "schemaVersion": 1,
+  "description": "Defines the NDJSON (newline-delimited JSON) line format for fleet CLI output (--ndjson), log files, and receipt event references. Each line is a compact JSON object that endpoint tools can collect, parse, and filter without understanding LibreSpot internals. The format is shared across CLI stdout, log file rotation, receipt event ranges, and support bundle slices.",
+  "lineSchema": {
+    "required": [
+      "schemaVersion",
+      "eventId",
+      "timestamp",
+      "level",
+      "component",
+      "message"
+    ],
+    "optional": [
+      "verb",
+      "operationId",
+      "correlationId",
+      "target",
+      "payload",
+      "durationMs",
+      "exitCode"
+    ],
+    "fields": [
+      {
+        "name": "schemaVersion",
+        "type": "integer",
+        "description": "Log line schema version. Always 1 for this format."
+      },
+      {
+        "name": "eventId",
+        "type": "string",
+        "description": "Stable event ID from diagnostic-event-ids.json (e.g., LS1001, LS2003). Enables filtering by category without parsing the message.",
+        "pattern": "^LS\\d{4,5}$"
+      },
+      {
+        "name": "timestamp",
+        "type": "string",
+        "description": "ISO 8601 UTC timestamp with millisecond precision.",
+        "format": "date-time",
+        "example": "2026-06-19T14:30:00.123Z"
+      },
+      {
+        "name": "level",
+        "type": "string",
+        "description": "Log severity level.",
+        "enum": ["trace", "debug", "info", "success", "warn", "error", "critical"]
+      },
+      {
+        "name": "verb",
+        "type": "string",
+        "description": "CLI verb that initiated this event (e.g., install, detect, status). Null for non-CLI contexts.",
+        "nullable": true
+      },
+      {
+        "name": "operationId",
+        "type": "string",
+        "description": "GUID linking all events in the same backend run. Matches the operation journal operationId.",
+        "format": "uuid"
+      },
+      {
+        "name": "correlationId",
+        "type": "string",
+        "description": "Caller-supplied correlation ID from --correlation-id flag. Enables endpoint tools to match LibreSpot runs with deployment job IDs.",
+        "nullable": true
+      },
+      {
+        "name": "component",
+        "type": "string",
+        "description": "Component that emitted the event.",
+        "enum": ["lifecycle", "download", "spotx", "spicetify", "marketplace", "watcher", "health", "journal", "config", "path", "task", "network", "security", "cli"]
+      },
+      {
+        "name": "target",
+        "type": "string",
+        "description": "The resource or path affected by this event. Redacted for sensitive paths.",
+        "nullable": true
+      },
+      {
+        "name": "message",
+        "type": "string",
+        "description": "Human-readable event description. May change between versions; use eventId for stable filtering."
+      },
+      {
+        "name": "payload",
+        "type": "object",
+        "description": "Optional structured data specific to the event type. Fields match the payloadFields in diagnostic-event-ids.json.",
+        "nullable": true
+      },
+      {
+        "name": "durationMs",
+        "type": "integer",
+        "description": "Duration in milliseconds for timed operations (e.g., downloads, apply). Null for instantaneous events.",
+        "nullable": true
+      },
+      {
+        "name": "exitCode",
+        "type": "integer",
+        "description": "Exit code for run-completion events. References fleet-exit-codes.json.",
+        "nullable": true
+      }
+    ]
+  },
+  "outputModes": {
+    "stdout": {
+      "description": "When --ndjson is active, each log event writes one compact JSON line to stdout. No progress spinners, ANSI escape sequences, or WPF text is emitted.",
+      "encoding": "UTF-8 without BOM",
+      "lineTerminator": "\\n"
+    },
+    "file": {
+      "description": "Log files use the same line format. System-context runs write to %ProgramData%\\LibreSpot\\logs; user-context runs write to %LOCALAPPDATA%\\LibreSpot\\logs.",
+      "rotation": {
+        "strategy": "size-based",
+        "maxFileSizeBytes": 10485760,
+        "maxFiles": 5,
+        "namingPattern": "librespot-{timestamp}.ndjson"
+      }
+    }
+  },
+  "redactionRules": {
+    "description": "Sensitive data must be redacted before writing to any output. Redaction rules match the existing support bundle redaction in SupportBundleService.cs.",
+    "redactedPatterns": [
+      "Local user and machine paths (replaced with %APPDATA%, %LOCALAPPDATA%, etc.)",
+      "GitHub API tokens and authorization headers",
+      "Proxy credentials and proxy URLs with embedded credentials",
+      "Windows user SIDs and full domain\\user strings",
+      "Command-line arguments containing passwords or tokens"
+    ],
+    "redactionMarker": "[REDACTED]"
+  },
+  "examples": [
+    {
+      "description": "Run start event",
+      "line": "{\"schemaVersion\":1,\"eventId\":\"LS1001\",\"timestamp\":\"2026-06-19T14:30:00.000Z\",\"level\":\"info\",\"verb\":\"install\",\"operationId\":\"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\"correlationId\":\"intune-job-42\",\"component\":\"lifecycle\",\"target\":null,\"message\":\"LibreSpot run started.\",\"payload\":{\"version\":\"3.7.2\",\"action\":\"Install\",\"mode\":\"recommended\"}}"
+    },
+    {
+      "description": "Download verified event",
+      "line": "{\"schemaVersion\":1,\"eventId\":\"LS2002\",\"timestamp\":\"2026-06-19T14:30:05.123Z\",\"level\":\"success\",\"verb\":\"install\",\"operationId\":\"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\"component\":\"download\",\"target\":\"SpotX run.ps1\",\"message\":\"Download verified.\",\"payload\":{\"url\":\"https://github.com/SpotX-Official/SpotX/archive/3284673d.zip\",\"sha256\":\"abc123...\",\"sizeBytes\":45678,\"cached\":false},\"durationMs\":1234}"
+    },
+    {
+      "description": "Run complete event with exit code",
+      "line": "{\"schemaVersion\":1,\"eventId\":\"LS1002\",\"timestamp\":\"2026-06-19T14:35:00.000Z\",\"level\":\"success\",\"verb\":\"install\",\"operationId\":\"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\"component\":\"lifecycle\",\"target\":null,\"message\":\"LibreSpot run completed successfully.\",\"durationMs\":300000,\"exitCode\":0}"
+    }
+  ]
+}

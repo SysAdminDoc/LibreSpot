@@ -5,6 +5,13 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- NDJSON log format specification (`schemas/ndjson-log-format.json`) defining
+  the newline-delimited JSON line schema for fleet CLI output, log files, and
+  receipt event references. Each line carries schemaVersion, eventId (cross-
+  referencing diagnostic-event-ids.json), timestamp, level, component, verb,
+  operationId, correlationId, target, message, and optional payload. Includes
+  output mode specs for stdout and file rotation, redaction rules matching the
+  support bundle service, and example log lines.
 - Hash mismatch diagnostic classification in both PowerShell lanes.
   `Get-NetworkDiagnosticCode` now returns `HashMismatch` for SHA256
   verification failures, and `Get-DownloadFailureHint` provides actionable
