@@ -22,7 +22,7 @@ public sealed class BackendScriptService
     private static readonly HashSet<string> AllowedActions = new(StringComparer.Ordinal)
     {
         "Install", "CheckUpdates", "Reapply", "RepairMarketplace", "OpenMarketplace", "SafeMode", "CreateBackup", "RestoreBackup", "RestoreVanilla", "UninstallSpicetify", "FullReset", "RemoveSelfData",
-        "EnableAutoReapply", "DisableAutoReapply", "WatchAutoReapply"
+        "EnableAutoReapply", "DisableAutoReapply", "WatchAutoReapply", "Plan"
     };
 
     private readonly string _runtimeDirectory;

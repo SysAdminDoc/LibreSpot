@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'OpenMarketplace', 'SafeMode', 'CreateBackup', 'RestoreBackup', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'RemoveSelfData', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')]
+    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'OpenMarketplace', 'SafeMode', 'CreateBackup', 'RestoreBackup', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'RemoveSelfData', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply', 'Plan')]
     [string]$Action = 'Install',
     [string]$ConfigPath = "$env:APPDATA\LibreSpot\config.json"
 )
@@ -3173,6 +3173,110 @@ function Reapply-SavedSpicetifySetup {
     Module-ApplySpicetify -Config $Config
 }
 
+function Write-PlanEntry {
+    param(
+        [string]$Category,
+        [string]$Target,
+        [bool]$WouldChange = $true,
+        [string]$SafetyDecision = 'Allowed',
+        [bool]$RequiresElevation = $false,
+        [bool]$Reversible = $false,
+        [string]$Source = '',
+        [string]$Description = ''
+    )
+    $entry = @{
+        category         = $Category
+        target           = $Target
+        wouldChange      = $WouldChange
+        safetyDecision   = $SafetyDecision
+        requiresElevation = $RequiresElevation
+        reversible       = $Reversible
+        source           = $Source
+        description      = $Description
+    }
+    Write-EventLine -Kind 'plan' -Level 'INFO' -Payload ($entry | ConvertTo-Json -Compress -Depth 4)
+}
+
+function Invoke-LibreSpotPlan {
+    $config = Load-LibreSpotConfig
+    Write-EventLine -Kind 'plan-start' -Level 'INFO' -Payload "Generating plan for $($config.Mode) install"
+
+    if ($config.CleanInstall) {
+        Write-PlanEntry -Category 'spotify' -Target $global:SPOTIFY_EXE_PATH `
+            -Description 'Remove existing Spotify installation (8-phase cleanup)' `
+            -Reversible $false -Source 'Module-NukeSpotify'
+        Write-PlanEntry -Category 'file' -Target "$env:APPDATA\Spotify" `
+            -Description 'Remove Spotify roaming data directory' `
+            -Reversible $false -Source 'Module-NukeSpotify'
+        Write-PlanEntry -Category 'file' -Target "$env:LOCALAPPDATA\Spotify" `
+            -Description 'Remove Spotify local data directory' `
+            -Reversible $false -Source 'Module-NukeSpotify'
+        Write-PlanEntry -Category 'scheduled-task' -Target '\LibreSpot\ReapplyWatcher' `
+            -WouldChange (Test-AutoReapplyTaskRegistered) `
+            -Description 'Remove watcher task during cleanup' `
+            -Reversible $true -Source 'Module-NukeSpotify'
+    }
+
+    Write-PlanEntry -Category 'download' -Target $global:URL_SPOTX `
+        -Description "Download and verify SpotX from pinned commit $($global:PinnedReleases.SpotX.Commit)" `
+        -WouldChange $true -Reversible $false -Source 'Module-InstallSpotX'
+    Write-PlanEntry -Category 'spotify' -Target $global:SPOTIFY_EXE_PATH `
+        -Description 'Apply SpotX patches to Spotify' `
+        -WouldChange $true -Reversible $true -RequiresElevation $false `
+        -Source 'Module-InstallSpotX'
+
+    Write-PlanEntry -Category 'download' -Target "Spicetify CLI v$($global:PinnedReleases.SpicetifyCLI.Version)" `
+        -Description 'Download and install Spicetify CLI' `
+        -WouldChange (-not (Test-Path -LiteralPath (Join-Path $global:SPICETIFY_DIR 'spicetify.exe'))) `
+        -Reversible $true -Source 'Module-InstallSpicetifyCLI'
+    Write-PlanEntry -Category 'path' -Target $global:SPICETIFY_DIR `
+        -Description 'Add Spicetify to user PATH' `
+        -WouldChange $true -Reversible $true -Source 'Module-InstallSpicetifyCLI'
+
+    if ($config.Spicetify_Theme -and $config.Spicetify_Theme -ne 'Default') {
+        Write-PlanEntry -Category 'download' -Target "Theme: $($config.Spicetify_Theme)" `
+            -Description "Download and install theme $($config.Spicetify_Theme)" `
+            -WouldChange $true -Reversible $true -Source 'Module-InstallThemes'
+    }
+
+    $extensionList = @()
+    if ($config.Spicetify_Extensions) { $extensionList = @($config.Spicetify_Extensions) }
+    if ($extensionList.Count -gt 0) {
+        Write-PlanEntry -Category 'config' -Target 'Spicetify extensions' `
+            -Description "Sync $($extensionList.Count) extension(s): $($extensionList -join ', ')" `
+            -WouldChange $true -Reversible $true -Source 'Module-InstallExtensions'
+    }
+
+    if (-not $config.Spicetify_SkipMarketplace) {
+        Write-PlanEntry -Category 'download' -Target "Marketplace v$($global:PinnedReleases.Marketplace.Version)" `
+            -Description 'Download and install Spicetify Marketplace custom app' `
+            -WouldChange $true -Reversible $true -Source 'Module-InstallMarketplace'
+    }
+
+    Write-PlanEntry -Category 'spicetify' -Target 'backup apply' `
+        -Description 'Apply all Spicetify customizations to Spotify' `
+        -WouldChange $true -Reversible $true -Source 'Module-ApplySpicetify'
+
+    if ($config.LaunchAfter -and (Test-Path -LiteralPath $global:SPOTIFY_EXE_PATH)) {
+        Write-PlanEntry -Category 'process' -Target $global:SPOTIFY_EXE_PATH `
+            -Description 'Launch Spotify after install' `
+            -WouldChange $false -Reversible $false -Source 'Invoke-LibreSpotInstall'
+    }
+
+    Write-PlanEntry -Category 'config' -Target $ConfigPath `
+        -Description 'Save configuration to disk' `
+        -WouldChange $true -Reversible $true -Source 'Save-LibreSpotConfig'
+
+    if ($config.AutoReapply_Enabled) {
+        Write-PlanEntry -Category 'scheduled-task' -Target '\LibreSpot\ReapplyWatcher' `
+            -Description 'Register auto-reapply watcher scheduled task' `
+            -WouldChange (-not (Test-AutoReapplyTaskRegistered)) `
+            -Reversible $true -Source 'Register-AutoReapplyTask'
+    }
+
+    Write-EventLine -Kind 'plan-end' -Level 'INFO' -Payload 'Plan generation complete — no mutations performed'
+}
+
 function Invoke-LibreSpotInstall {
     $config = Load-LibreSpotConfig
     Write-Log "--- LibreSpot installation started ($($config.Mode)) ---" -Level 'HEADER'
@@ -3441,7 +3545,9 @@ try {
         }
     }
 
-    if ($Action -eq 'Install') {
+    if ($Action -eq 'Plan') {
+        Invoke-LibreSpotPlan
+    } elseif ($Action -eq 'Install') {
         Invoke-LibreSpotInstall
     } else {
         Invoke-LibreSpotMaintenance

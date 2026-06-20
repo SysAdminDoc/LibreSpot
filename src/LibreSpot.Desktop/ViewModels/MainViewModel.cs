@@ -1851,7 +1851,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     private static bool RequiresAdministrator(string action) =>
-        action is not ("CheckUpdates" or "CreateBackup" or "OpenMarketplace" or "RemoveSelfData");
+        action is not ("CheckUpdates" or "CreateBackup" or "OpenMarketplace" or "RemoveSelfData" or "Plan");
 
     private void PresentAutoReapplyPrompt(bool enable)
     {

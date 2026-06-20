@@ -140,6 +140,15 @@
       "toastCompatible": false,
       "description": "Unregisters the watcher scheduled task and removes LibreSpot config, backups, logs, and crash reports. Does not affect Spotify or Spicetify.",
       "notes": "Marked IsDestructive in AppCatalog. Does not require admin because it only removes per-user LibreSpot data."
+    },
+    {
+      "action": "Plan",
+      "elevation": "no-admin",
+      "mutating": false,
+      "destructive": false,
+      "toastCompatible": true,
+      "description": "Generates a structured preflight plan for the current config without mutating disk, PATH, tasks, or registry. Emits plan entries via the event protocol.",
+      "notes": "Read-only dry-run surface. Does not require admin. Fleet CLI exposes this as --dry-run."
     }
   ],
   "nonActionWorkflows": [

@@ -5,6 +5,13 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Preflight plan action (`Plan`) in the WPF backend that emits structured
+  JSON plan entries for every operation an install would perform — downloads,
+  SpotX patching, Spicetify CLI, themes, extensions, Marketplace, config saves,
+  and watcher tasks — without mutating disk, PATH, or scheduled tasks. Each
+  entry carries category, target, wouldChange, safetyDecision, reversible,
+  requiresElevation, and source fields. This is the foundation for `--dry-run`
+  in the fleet CLI and the WPF confirmation summary.
 - Legacy PowerShell GUI accessibility gate: 16 AutomationProperties.Name
   attributes on the main window, titlebar icon-only buttons, navigation
   RadioButtons, StackPanel-content maintenance/action buttons, and destructive
