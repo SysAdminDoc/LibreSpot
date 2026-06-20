@@ -1,0 +1,75 @@
+{
+  "$comment": "Keyboard and focus contract for the WPF desktop shell. Defines the expected tab order, default/cancel buttons, Escape behavior, focus trap/restoration, and screen-reader naming for every interactive surface.",
+  "schemaVersion": 1,
+  "globalBindings": [
+    {
+      "key": "Escape",
+      "command": "EscapeCommand",
+      "behavior": "Dismisses the topmost overlay (prompt, then activity) or navigates back if no overlay is open."
+    },
+    {
+      "key": "F5",
+      "command": "RefreshSnapshotCommand",
+      "behavior": "Refreshes the environment snapshot from disk."
+    }
+  ],
+  "overlays": [
+    {
+      "name": "PromptOverlay",
+      "tabNavigation": "Cycle",
+      "focusOnShow": "PromptConfirmButton (normal) or PromptCancelButton (destructive action)",
+      "focusOnDismiss": "Restores focus to the element that was focused before the prompt opened.",
+      "defaultButton": "PromptConfirmButton (data-bound via IsPromptConfirmDefault)",
+      "cancelButton": "PromptCancelButton (IsCancel=True — Escape dismisses)",
+      "contract": [
+        "Tab cycles within the prompt; does not leak to main content.",
+        "Destructive prompts focus Cancel first to prevent accidental Enter.",
+        "Escape closes the prompt without executing the action.",
+        "Focus is restored to the prior element when the prompt closes."
+      ]
+    },
+    {
+      "name": "ActivityOverlay",
+      "tabNavigation": "Cycle",
+      "focusOnShow": "ActivityDialogRoot (focusable Border, receives initial focus)",
+      "focusOnDismiss": "Restores focus to the element that was focused before the activity opened.",
+      "contract": [
+        "Tab cycles within the activity overlay; does not leak to main content.",
+        "While running: root element is focused so screen readers can announce progress.",
+        "After completion: focuses the first available action button (close, copy log, open folder).",
+        "Focus is restored to the prior element when the activity closes."
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "Recommended",
+      "initialFocus": "RunSetup button (primary action at bottom)",
+      "tabOrder": "Sidebar nav → workspace content → run button",
+      "notes": "Single-action page; sidebar RadioButtons are keyboard-navigable."
+    },
+    {
+      "name": "Custom",
+      "initialFocus": "First option in workspace content",
+      "tabOrder": "Sidebar nav → option groups → theme/scheme selectors → extensions → run button",
+      "notes": "Settings search box is reachable via Tab. Search results are focusable."
+    },
+    {
+      "name": "Maintenance",
+      "initialFocus": "First health card or action button",
+      "tabOrder": "Sidebar nav → health cards → action buttons",
+      "notes": "Destructive buttons (Full Reset) use warning/danger styling as non-color-only indicators."
+    }
+  ],
+  "focusVisuals": {
+    "strategy": "Custom ring-based indicators replace system FocusVisualStyle on all interactive controls.",
+    "controls": [
+      "Button: 2px AccentRingBrush overlay ring on IsKeyboardFocused, Margin=-3 (no layout shift)",
+      "ComboBox: Same overlay ring pattern",
+      "CheckBox: Same overlay ring pattern with Opacity animation",
+      "TabItem: IsKeyboardFocusWithin trigger so focus ring shows when any child has focus",
+      "TextBox: Standard focus border"
+    ],
+    "contract": "Every custom control either preserves a visible system focus cue or uses the AccentRingBrush custom replacement. FocusVisualStyle={x:Null} is only set when a custom ring trigger exists."
+  }
+}

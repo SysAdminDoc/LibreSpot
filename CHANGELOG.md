@@ -5,6 +5,12 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Keyboard and focus contract schema (`schemas/keyboard-focus-contract.json`)
+  documenting tab order, default/cancel buttons, Escape behavior, focus trap/
+  restoration, and custom focus ring strategy for all WPF interactive surfaces.
+  Regression tests validate XAML keyboard bindings, overlay TabNavigation=Cycle,
+  IsCancel/IsDefault on prompt buttons, focusable activity root, custom focus
+  ring styles, focus save/restore in code-behind, and contract schema coverage.
 - Localization extraction infrastructure: `Properties/Strings.resx` with 50+
   extracted UI strings covering app titles, navigation labels, activity status,
   health severity, maintenance actions, search, buttons, progress states,
