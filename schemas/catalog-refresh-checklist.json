@@ -1,0 +1,205 @@
+{
+  "$comment": "Catalog refresh checklist for evaluating candidate Spicetify themes, extensions, and custom apps before inclusion in LibreSpot's curated catalog.",
+  "schemaVersion": 1,
+  "description": "A measured process for adding or removing community assets. Each candidate is scored against popularity, maintenance, license, install method, Spotify-version compatibility, and Marketplace availability. The checklist produces an accept/reject/defer decision with evidence links.",
+  "evaluationCriteria": [
+    {
+      "criterion": "popularity",
+      "weight": "medium",
+      "signals": ["GitHub stars", "weekly clones (if available)", "Marketplace install count (if listed)"],
+      "threshold": "Stars > 50 preferred; < 10 stars requires exceptional utility or niche value."
+    },
+    {
+      "criterion": "maintenance",
+      "weight": "high",
+      "signals": ["Last commit date", "Open issue count", "Response to Spicetify CLI version bumps", "Archived/deprecated status"],
+      "threshold": "Last push within 12 months. Archived repos are rejected unless no alternative exists and an explicit maintenance-risk note is added."
+    },
+    {
+      "criterion": "license",
+      "weight": "high",
+      "signals": ["SPDX license identifier", "Redistribution terms", "Copyleft scope"],
+      "threshold": "Must have an OSI-approved license. AGPL/GPL require download-only posture (not bundled/redistributed). No-license repos are rejected."
+    },
+    {
+      "criterion": "installMethod",
+      "weight": "high",
+      "signals": ["Single-file JS/CSS vs multi-file package", "Requires theme.js injection", "Requires custom_apps registration", "Build step needed"],
+      "threshold": "Prefer single-file extensions and standard theme directory layout. Multi-file or build-required assets need stronger justification and explicit install/verification steps."
+    },
+    {
+      "criterion": "spotifyVersionCompatibility",
+      "weight": "high",
+      "signals": ["README-documented Spotify version range", "Known breakage issues", "SpotX conflict reports"],
+      "threshold": "Must not have open reports of breakage on the LibreSpot-pinned Spotify version. Known-broken assets are deferred until fixed upstream."
+    },
+    {
+      "criterion": "marketplaceAvailability",
+      "weight": "medium",
+      "signals": ["Listed in spicetify/marketplace", "Marketplace install method", "Marketplace version freshness"],
+      "threshold": "If Marketplace already provides a safer install path with version management, prefer Marketplace-only mode over bundled download. Direct inclusion is justified when Marketplace is unreliable for the asset or when the asset needs specific commit pinning."
+    },
+    {
+      "criterion": "securityPosture",
+      "weight": "high",
+      "signals": ["Network behavior (local-only vs third-party service)", "Minified/obfuscated code", "External URL fetches", "Permission scope"],
+      "threshold": "Third-party service contact must be disclosed. Obfuscated single-file assets without readable source are rejected. External URL fetches require networkBehavior=third-party-service in the manifest."
+    },
+    {
+      "criterion": "userValue",
+      "weight": "medium",
+      "signals": ["Unique functionality not covered by existing catalog", "User demand (issues, community requests)", "Overlap with built-in Spicetify extensions"],
+      "threshold": "Must provide distinct value not already covered by the existing catalog or built-in extensions."
+    }
+  ],
+  "decisions": ["accept", "reject", "defer", "marketplace-only"],
+  "decisionFields": {
+    "candidate": "Repository owner/name",
+    "type": "extension | theme | custom-app",
+    "evaluatedDate": "ISO 8601 date",
+    "stars": "Number at evaluation time",
+    "lastPush": "ISO 8601 date of most recent commit",
+    "license": "SPDX identifier or 'NONE'",
+    "installMethod": "single-file | theme-directory | custom-app | build-required",
+    "marketplaceListed": "boolean",
+    "spotifyVersionNotes": "Free text — known compatibility issues",
+    "networkBehavior": "local-only | third-party-service",
+    "decision": "accept | reject | defer | marketplace-only",
+    "reason": "One-line rationale",
+    "evidenceUrls": "Array of GitHub/issue/discussion links"
+  },
+  "evaluatedCandidates": [
+    {
+      "candidate": "surfbryce/beautiful-lyrics",
+      "type": "extension",
+      "evaluatedDate": "2026-06-06",
+      "stars": 1200,
+      "lastPush": "2026-05-15",
+      "license": "MIT",
+      "installMethod": "single-file",
+      "marketplaceListed": true,
+      "spotifyVersionNotes": "Compatible with Spotify 1.2.92; uses external lyrics API",
+      "networkBehavior": "third-party-service",
+      "decision": "accept",
+      "reason": "High demand, active maintenance, MIT license, unique synced lyrics functionality not in built-in extensions. Third-party service disclosed.",
+      "evidenceUrls": ["https://github.com/surfbryce/beautiful-lyrics"]
+    },
+    {
+      "candidate": "rxri/spicetify-extensions",
+      "type": "extension",
+      "evaluatedDate": "2026-06-06",
+      "stars": 150,
+      "lastPush": "2026-04-20",
+      "license": "MIT",
+      "installMethod": "single-file",
+      "marketplaceListed": true,
+      "spotifyVersionNotes": "adblock.js provides Spicetify-layer ad blocking as fallback when SpotX fails",
+      "networkBehavior": "local-only",
+      "decision": "accept",
+      "reason": "Provides critical SpotX fallback ad-blocking when Spotify signature protection blocks patching (SpotX #760).",
+      "evidenceUrls": ["https://github.com/rxri/spicetify-extensions"]
+    },
+    {
+      "candidate": "catppuccin/spicetify",
+      "type": "theme",
+      "evaluatedDate": "2026-06-06",
+      "stars": 800,
+      "lastPush": "2026-05-10",
+      "license": "MIT",
+      "installMethod": "theme-directory",
+      "marketplaceListed": true,
+      "spotifyVersionNotes": "Requires theme.js injection. 4 flavors (Latte, Frappe, Macchiato, Mocha)",
+      "networkBehavior": "local-only",
+      "decision": "accept",
+      "reason": "Most popular community theme, very active, MIT, supports all 4 Catppuccin palettes.",
+      "evidenceUrls": ["https://github.com/catppuccin/spicetify"]
+    },
+    {
+      "candidate": "Comfy-Themes/Spicetify",
+      "type": "theme",
+      "evaluatedDate": "2026-06-06",
+      "stars": 450,
+      "lastPush": "2026-04-28",
+      "license": "MIT",
+      "installMethod": "theme-directory",
+      "marketplaceListed": true,
+      "spotifyVersionNotes": "Requires theme.js. Integrates well with Spotify's sidebar layout",
+      "networkBehavior": "local-only",
+      "decision": "accept",
+      "reason": "Popular comfort-focused theme with active maintenance and clean design.",
+      "evidenceUrls": ["https://github.com/Comfy-Themes/Spicetify"]
+    },
+    {
+      "candidate": "nimsandu/spicetify-bloom",
+      "type": "theme",
+      "evaluatedDate": "2026-06-06",
+      "stars": 350,
+      "lastPush": "2026-03-15",
+      "license": "MIT",
+      "installMethod": "theme-directory",
+      "marketplaceListed": true,
+      "spotifyVersionNotes": "Fluent Design inspired. Requires theme.js",
+      "networkBehavior": "local-only",
+      "decision": "accept",
+      "reason": "Unique Fluent Design aesthetic, active community, MIT license.",
+      "evidenceUrls": ["https://github.com/nimsandu/spicetify-bloom"]
+    },
+    {
+      "candidate": "sanoojes/Spicetify-Lucid",
+      "type": "theme",
+      "evaluatedDate": "2026-06-06",
+      "stars": 300,
+      "lastPush": "2026-05-22",
+      "license": "MIT",
+      "installMethod": "theme-directory",
+      "marketplaceListed": true,
+      "spotifyVersionNotes": "Dynamic album-art backgrounds. Requires theme.js",
+      "networkBehavior": "local-only",
+      "decision": "accept",
+      "reason": "Unique dynamic background feature, active maintenance, popular.",
+      "evidenceUrls": ["https://github.com/sanoojes/Spicetify-Lucid"]
+    },
+    {
+      "candidate": "Astromations/Hazy",
+      "type": "theme",
+      "evaluatedDate": "2026-06-06",
+      "stars": 200,
+      "lastPush": "2026-04-10",
+      "license": "MIT",
+      "installMethod": "theme-directory",
+      "marketplaceListed": true,
+      "spotifyVersionNotes": "Glassmorphism effect. Requires theme.js",
+      "networkBehavior": "local-only",
+      "decision": "accept",
+      "reason": "Unique glassmorphism aesthetic, reasonable popularity, MIT.",
+      "evidenceUrls": ["https://github.com/Astromations/Hazy"]
+    }
+  ],
+  "rejectedExamples": [
+    {
+      "candidate": "example/no-license-theme",
+      "decision": "reject",
+      "reason": "No license file. Cannot verify redistribution rights."
+    },
+    {
+      "candidate": "example/archived-extension",
+      "decision": "reject",
+      "reason": "Repository archived 2025-06-01. No maintenance path."
+    },
+    {
+      "candidate": "example/obfuscated-extension",
+      "decision": "reject",
+      "reason": "Single minified file with no readable source. Security review not possible."
+    },
+    {
+      "candidate": "example/duplicate-functionality",
+      "decision": "reject",
+      "reason": "Duplicates built-in Full App Display extension with fewer features."
+    },
+    {
+      "candidate": "example/build-required-theme",
+      "decision": "defer",
+      "reason": "Requires npm build step. Evaluate when LibreSpot adds build-from-source support."
+    }
+  ]
+}

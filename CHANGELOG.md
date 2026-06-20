@@ -5,6 +5,12 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Catalog refresh checklist (`schemas/catalog-refresh-checklist.json`) with 8
+  weighted evaluation criteria (popularity, maintenance, license, install method,
+  Spotify compatibility, Marketplace availability, security posture, user value),
+  accept/reject/defer/marketplace-only decisions, evaluation records for all 7
+  shipped community assets, and 5 rejection examples covering no-license,
+  archived, obfuscated, duplicate, and build-required candidates.
 - Async theme preview loading in the PowerShell GUI. Preview images now
   download on a ThreadPool thread instead of blocking the UI with synchronous
   WebClient.DownloadData + DoEvents. Stale requests are cancelled via a
