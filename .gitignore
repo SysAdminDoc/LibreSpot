@@ -21,9 +21,10 @@ checksums.txt
 # Runtime caches written to %APPDATA% in production; belt-and-braces here
 update-check.json
 
-# Markdown files local-only (except README, SECURITY, and GitHub community health)
+# Markdown files local-only (except README, CHANGELOG, SECURITY, and GitHub community health)
 *.md
 !README.md
+!CHANGELOG.md
 !SECURITY.md
 !.github/*.md
 !.github/**/*.md
