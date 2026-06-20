@@ -123,6 +123,17 @@ jobs:
           $summary -join "`n" >> $env:GITHUB_STEP_SUMMARY
           Write-Host "PSScriptAnalyzer: $($allResults.Count) finding(s) from $($includeRules.Count) rules"
 
+      - name: Shared function drift check
+        if: always()
+        shell: pwsh
+        run: |
+          $result = pwsh -File Build-Scripts.ps1 -Validate 2>&1
+          $exitCode = $LASTEXITCODE
+          $result | ForEach-Object { Write-Host $_ }
+          if ($exitCode -ne 0) {
+            Write-Host "::warning::Shared function drift detected between LibreSpot.ps1 and Backend script. See output above."
+          }
+
       - name: XAML parse smoke
         shell: pwsh
         run: |

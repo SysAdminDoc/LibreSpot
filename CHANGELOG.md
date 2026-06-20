@@ -5,6 +5,12 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Shared function drift validator (`Build-Scripts.ps1 -Validate`) that
+  compares 86 functions shared between `LibreSpot.ps1` and the WPF backend
+  script and reports any implementation mismatches. The `-Inventory` flag
+  shows the full function distribution. CI runs this as a non-blocking
+  warning step on every push. Currently 52 of 86 shared functions have
+  drifted and need reconciliation as part of the shared-core extraction.
 - Windows high-contrast mode support in the PowerShell GUI. When high-
   contrast is active, key surface, border, accent, and text brushes are
   overridden with SystemColors equivalents so controls remain readable.
