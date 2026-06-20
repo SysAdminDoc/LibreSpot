@@ -588,6 +588,7 @@ function Normalize-LibreSpotConfig {
 }
 
 function Move-ConfigFileToQuarantine {
+    [CmdletBinding(SupportsShouldProcess)]
     param([string]$Reason)
 
     $configDirectory = Split-Path -Path $ConfigPath -Parent
@@ -615,8 +616,10 @@ function Move-ConfigFileToQuarantine {
                 $quarantinePath = Join-Path $configDirectory ("config.corrupt.{0}.json" -f [Guid]::NewGuid().ToString('N'))
             }
 
-            Move-Item -LiteralPath $ConfigPath -Destination $quarantinePath -ErrorAction Stop
-            Write-Log "Saved config was moved to $(Split-Path -Path $quarantinePath -Leaf) after a read failure." -Level 'WARN'
+            if ($PSCmdlet.ShouldProcess($ConfigPath, 'Quarantine corrupted config')) {
+                Move-Item -LiteralPath $ConfigPath -Destination $quarantinePath -ErrorAction Stop
+                Write-Log "Saved config was moved to $(Split-Path -Path $quarantinePath -Leaf) after a read failure." -Level 'WARN'
+            }
         }
     } catch {
         Write-Log 'LibreSpot could not move the unreadable config aside automatically.' -Level 'WARN'
@@ -806,6 +809,8 @@ function Test-AutoReapplyTaskRegistered {
 }
 
 function Register-AutoReapplyTask {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
     $launch = Get-WatcherLaunchCommand
     if (-not $launch) {
         Write-WatcherLog 'Register: no usable backend script path. Watcher not registered.' -Level 'ERROR'
@@ -886,14 +891,17 @@ function Register-AutoReapplyTask {
     try {
         Ensure-LogDirectory
         [System.IO.File]::WriteAllText($xmlPath, $xml, [System.Text.Encoding]::Unicode)
-        $output = & schtasks.exe /Create /TN $global:WATCHER_TASK_NAME /XML $xmlPath /F 2>&1
-        $ok = ($LASTEXITCODE -eq 0)
-        if ($ok) {
-            Write-WatcherLog "Register: scheduled task created for $($launch.Entry)"
-        } else {
-            Write-WatcherLog "Register failed (exit $LASTEXITCODE): $($output -join ' ')" -Level 'ERROR'
+        if ($PSCmdlet.ShouldProcess($global:WATCHER_TASK_NAME, 'Register scheduled task')) {
+            $output = & schtasks.exe /Create /TN $global:WATCHER_TASK_NAME /XML $xmlPath /F 2>&1
+            $ok = ($LASTEXITCODE -eq 0)
+            if ($ok) {
+                Write-WatcherLog "Register: scheduled task created for $($launch.Entry)"
+            } else {
+                Write-WatcherLog "Register failed (exit $LASTEXITCODE): $($output -join ' ')" -Level 'ERROR'
+            }
+            return $ok
         }
-        return $ok
+        return $false
     } catch {
         Write-WatcherLog "Register exception: $($_.Exception.Message)" -Level 'ERROR'
         return $false
@@ -903,49 +911,58 @@ function Register-AutoReapplyTask {
 }
 
 function Unregister-AutoReapplyTask {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
     try {
-        $null = & schtasks.exe /Delete /TN $global:WATCHER_TASK_NAME /F 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            Write-WatcherLog 'Unregister: scheduled task removed'
-            return $true
+        if ($PSCmdlet.ShouldProcess($global:WATCHER_TASK_NAME, 'Remove scheduled task')) {
+            $null = & schtasks.exe /Delete /TN $global:WATCHER_TASK_NAME /F 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                Write-WatcherLog 'Unregister: scheduled task removed'
+                return $true
+            }
+            return $false
         }
         return $false
     } catch { return $false }
 }
 
 function Save-LibreSpotConfig {
+    [CmdletBinding(SupportsShouldProcess)]
     param([hashtable]$Config)
 
-    $tempPath = $null
-    $backupPath = $null
-    try {
-        Ensure-LogDirectory
-        $tempPath = Join-Path $global:CONFIG_DIR ("config.{0}.tmp" -f [Guid]::NewGuid().ToString('N'))
-        $backupPath = Join-Path $global:CONFIG_DIR ("config.{0}.bak" -f [Guid]::NewGuid().ToString('N'))
-        $normalizedConfig = Normalize-LibreSpotConfig -Config $Config
-        $json = [ordered]@{}
-        foreach ($key in $normalizedConfig.Keys) { $json[$key] = $normalizedConfig[$key] }
-        $utf8 = New-Object System.Text.UTF8Encoding($false)
-        [System.IO.File]::WriteAllText($tempPath, ($json | ConvertTo-Json -Depth 4), $utf8)
+    if ($PSCmdlet.ShouldProcess($global:CONFIG_PATH, 'Save configuration')) {
+        $tempPath = $null
+        $backupPath = $null
+        try {
+            Ensure-LogDirectory
+            $tempPath = Join-Path $global:CONFIG_DIR ("config.{0}.tmp" -f [Guid]::NewGuid().ToString('N'))
+            $backupPath = Join-Path $global:CONFIG_DIR ("config.{0}.bak" -f [Guid]::NewGuid().ToString('N'))
+            $normalizedConfig = Normalize-LibreSpotConfig -Config $Config
+            $json = [ordered]@{}
+            foreach ($key in $normalizedConfig.Keys) { $json[$key] = $normalizedConfig[$key] }
+            $utf8 = New-Object System.Text.UTF8Encoding($false)
+            [System.IO.File]::WriteAllText($tempPath, ($json | ConvertTo-Json -Depth 4), $utf8)
 
-        if (Test-Path -LiteralPath $global:CONFIG_PATH) {
-            try {
-                [System.IO.File]::Replace($tempPath, $global:CONFIG_PATH, $backupPath, $true)
-                Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
-            } catch {
-                Remove-Item -LiteralPath $global:CONFIG_PATH -Force -ErrorAction Stop
+            if (Test-Path -LiteralPath $global:CONFIG_PATH) {
+                try {
+                    [System.IO.File]::Replace($tempPath, $global:CONFIG_PATH, $backupPath, $true)
+                    Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
+                } catch {
+                    Remove-Item -LiteralPath $global:CONFIG_PATH -Force -ErrorAction Stop
+                    [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)
+                }
+            } else {
                 [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)
             }
-        } else {
-            [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)
+            return $true
+        } catch {
+            Write-Log "Config save failed: $($_.Exception.Message)" -Level 'WARN'
+            if ($tempPath) { Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue }
+            if ($backupPath) { Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue }
+            return $false
         }
-        return $true
-    } catch {
-        Write-Log "Config save failed: $($_.Exception.Message)" -Level 'WARN'
-        if ($tempPath) { Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue }
-        if ($backupPath) { Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue }
-        return $false
     }
+    return $false
 }
 
 function Set-AutoReapplyConfigPreference {
@@ -1501,15 +1518,19 @@ function Get-FromAssetCache {
 }
 
 function Clear-LibreSpotCache {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
     if (-not (Test-Path -LiteralPath $global:CACHE_DIR -PathType Container)) {
         Write-Log 'Asset cache directory does not exist. Nothing to clear.'
         return
     }
-    try {
-        Remove-Item -LiteralPath $global:CACHE_DIR -Recurse -Force -ErrorAction Stop
-        Write-Log 'Asset cache cleared.'
-    } catch {
-        Write-Log "Failed to clear asset cache: $($_.Exception.Message)" -Level 'WARN'
+    if ($PSCmdlet.ShouldProcess($global:CACHE_DIR, 'Clear asset cache')) {
+        try {
+            Remove-Item -LiteralPath $global:CACHE_DIR -Recurse -Force -ErrorAction Stop
+            Write-Log 'Asset cache cleared.'
+        } catch {
+            Write-Log "Failed to clear asset cache: $($_.Exception.Message)" -Level 'WARN'
+        }
     }
 }
 
@@ -1962,6 +1983,7 @@ function Test-SafeRemovalTarget {
 }
 
 function Remove-PathSafely {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$Path,
         [string]$Label
@@ -1979,18 +2001,22 @@ function Remove-PathSafely {
         return 0
     }
     Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
-    try {
-        $null = & icacls.exe "$Path" /reset /T /C /Q 2>$null
-        Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
-        Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
-        Write-Log "Removed: $displayLabel"
-        return 1
-    } catch {
-        $journalData['error'] = [string]$_.Exception.Message
-        Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'The target may be partially unchanged; review the error before retrying.' -Data $journalData
-        Write-Log "Failed to remove ${Path}: $($_.Exception.Message)" -Level 'WARN'
-        return 0
+    if ($PSCmdlet.ShouldProcess($Path, 'Remove file or directory')) {
+        try {
+            $null = & icacls.exe "$Path" /reset /T /C /Q 2>$null
+            Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
+            Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
+            Write-Log "Removed: $displayLabel"
+            return 1
+        } catch {
+            $journalData['error'] = [string]$_.Exception.Message
+            Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'The target may be partially unchanged; review the error before retrying.' -Data $journalData
+            Write-Log "Failed to remove ${Path}: $($_.Exception.Message)" -Level 'WARN'
+            return 0
+        }
     }
+    Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
+    return 0
 }
 
 function Get-NormalizedPathString {
@@ -2009,6 +2035,7 @@ function Get-PathEntries {
 }
 
 function Set-PathEntries {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [ValidateSet('User', 'Process')] [string]$Scope = 'User',
         [string[]]$Entries
@@ -2025,10 +2052,12 @@ function Set-PathEntries {
         $orderedEntries.Add($entry.Trim())
     }
     $pathValue = ($orderedEntries -join ';')
-    if ($Scope -eq 'Process') {
-        $env:PATH = $pathValue
-    } else {
-        [Environment]::SetEnvironmentVariable('PATH', $pathValue, $Scope)
+    if ($PSCmdlet.ShouldProcess("$Scope PATH", 'Update PATH entries')) {
+        if ($Scope -eq 'Process') {
+            $env:PATH = $pathValue
+        } else {
+            [Environment]::SetEnvironmentVariable('PATH', $pathValue, $Scope)
+        }
     }
 }
 

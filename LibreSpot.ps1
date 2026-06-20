@@ -325,6 +325,8 @@ function Test-AutoReapplyTaskRegistered {
 }
 
 function Register-AutoReapplyTask {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
     # Creates a per-user scheduled task that fires at logon, then again every
     # 30 minutes, invoking LibreSpot in -Watch mode. Returns $true on success.
     $launch = Get-WatcherLaunchCommand
@@ -410,38 +412,46 @@ function Register-AutoReapplyTask {
 "@
 
     $xmlPath = Join-Path $global:CONFIG_DIR "watcher-task.xml"
-    try {
-        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
-            New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null
-        }
-        # schtasks /Create /XML requires UTF-16 LE with BOM to match the XML header.
-        [System.IO.File]::WriteAllText($xmlPath, $xml, [System.Text.Encoding]::Unicode)
+    if ($PSCmdlet.ShouldProcess($global:WATCHER_TASK_NAME, 'Register scheduled task')) {
+        try {
+            if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
+                New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null
+            }
+            # schtasks /Create /XML requires UTF-16 LE with BOM to match the XML header.
+            [System.IO.File]::WriteAllText($xmlPath, $xml, [System.Text.Encoding]::Unicode)
 
-        $output = & schtasks.exe /Create /TN $global:WATCHER_TASK_NAME /XML $xmlPath /F 2>&1
-        $ok = ($LASTEXITCODE -eq 0)
-        if ($ok) {
-            Write-WatcherLog "Register: scheduled task created for $($launch.Entry)"
-        } else {
-            Write-WatcherLog "Register failed (exit $LASTEXITCODE): $($output -join ' ')" -Level 'ERROR'
+            $output = & schtasks.exe /Create /TN $global:WATCHER_TASK_NAME /XML $xmlPath /F 2>&1
+            $ok = ($LASTEXITCODE -eq 0)
+            if ($ok) {
+                Write-WatcherLog "Register: scheduled task created for $($launch.Entry)"
+            } else {
+                Write-WatcherLog "Register failed (exit $LASTEXITCODE): $($output -join ' ')" -Level 'ERROR'
+            }
+            return $ok
+        } catch {
+            Write-WatcherLog "Register exception: $($_.Exception.Message)" -Level 'ERROR'
+            return $false
+        } finally {
+            try { if (Test-Path -LiteralPath $xmlPath) { Remove-Item -LiteralPath $xmlPath -Force -ErrorAction SilentlyContinue } } catch {}
         }
-        return $ok
-    } catch {
-        Write-WatcherLog "Register exception: $($_.Exception.Message)" -Level 'ERROR'
-        return $false
-    } finally {
-        try { if (Test-Path -LiteralPath $xmlPath) { Remove-Item -LiteralPath $xmlPath -Force -ErrorAction SilentlyContinue } } catch {}
     }
+    return $false
 }
 
 function Unregister-AutoReapplyTask {
-    try {
-        $null = & schtasks.exe /Delete /TN $global:WATCHER_TASK_NAME /F 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            Write-WatcherLog "Unregister: scheduled task removed"
-            return $true
-        }
-        return $false
-    } catch { return $false }
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+    if ($PSCmdlet.ShouldProcess($global:WATCHER_TASK_NAME, 'Remove scheduled task')) {
+        try {
+            $null = & schtasks.exe /Delete /TN $global:WATCHER_TASK_NAME /F 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                Write-WatcherLog "Unregister: scheduled task removed"
+                return $true
+            }
+            return $false
+        } catch { return $false }
+    }
+    return $false
 }
 
 function Invoke-HeadlessReapply {
@@ -1194,6 +1204,7 @@ function Normalize-LibreSpotConfig {
 }
 
 function Move-ConfigFileToQuarantine {
+    [CmdletBinding(SupportsShouldProcess)]
     param([string]$Reason)
     $reasonSuffix = if ([string]::IsNullOrWhiteSpace($Reason)) { '' } else { " Reason: $Reason" }
     try {
@@ -1216,9 +1227,11 @@ function Move-ConfigFileToQuarantine {
                 $quarantinePath = Join-Path $global:CONFIG_DIR ("config.corrupt.{0}.json" -f [Guid]::NewGuid().ToString('N'))
             }
 
-            Move-Item -LiteralPath $global:CONFIG_PATH -Destination $quarantinePath -ErrorAction Stop
-            $quarantineName = Split-Path -Path $quarantinePath -Leaf
-            $script:ConfigLoadWarning = "LibreSpot reset the saved settings because the config file could not be read safely.$reasonSuffix The previous file was moved to $quarantineName."
+            if ($PSCmdlet.ShouldProcess($global:CONFIG_PATH, 'Quarantine corrupted config')) {
+                Move-Item -LiteralPath $global:CONFIG_PATH -Destination $quarantinePath -ErrorAction Stop
+                $quarantineName = Split-Path -Path $quarantinePath -Leaf
+                $script:ConfigLoadWarning = "LibreSpot reset the saved settings because the config file could not be read safely.$reasonSuffix The previous file was moved to $quarantineName."
+            }
         } else {
             $script:ConfigLoadWarning = "LibreSpot reset the saved settings because the config file could not be read safely.$reasonSuffix"
         }
@@ -1230,7 +1243,12 @@ function Move-ConfigFileToQuarantine {
     } catch {}
 }
 
-function Save-LibreSpotConfig { param([hashtable]$Config)
+function Save-LibreSpotConfig {
+    [CmdletBinding(SupportsShouldProcess)]
+    param([hashtable]$Config)
+    if (-not $PSCmdlet.ShouldProcess($global:CONFIG_PATH, 'Save configuration')) {
+        return $true
+    }
     $tempPath = $null
     $backupPath = $null
     try {
@@ -3828,6 +3846,7 @@ function Get-PathEntries {
 }
 
 function Set-PathEntries {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [ValidateSet('User','Process')] [string]$Scope = 'User',
         [string[]]$Entries
@@ -3844,10 +3863,12 @@ function Set-PathEntries {
         $orderedEntries.Add($entry.Trim())
     }
     $pathValue = ($orderedEntries -join ';')
-    if ($Scope -eq 'Process') {
-        $env:PATH = $pathValue
-    } else {
-        [Environment]::SetEnvironmentVariable('PATH', $pathValue, $Scope)
+    if ($PSCmdlet.ShouldProcess("$Scope PATH", 'Update PATH entries')) {
+        if ($Scope -eq 'Process') {
+            $env:PATH = $pathValue
+        } else {
+            [Environment]::SetEnvironmentVariable('PATH', $pathValue, $Scope)
+        }
     }
 }
 
@@ -5561,15 +5582,19 @@ function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPat
 }
 
 function Clear-LibreSpotCache {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
     if (-not (Test-Path -LiteralPath $global:CACHE_DIR -PathType Container)) {
         Write-Log 'Asset cache directory does not exist. Nothing to clear.'
         return
     }
-    try {
-        Remove-Item -LiteralPath $global:CACHE_DIR -Recurse -Force -ErrorAction Stop
-        Write-Log 'Asset cache cleared.'
-    } catch {
-        Write-Log "Failed to clear asset cache: $($_.Exception.Message)" -Level 'WARN'
+    if ($PSCmdlet.ShouldProcess($global:CACHE_DIR, 'Clear asset cache')) {
+        try {
+            Remove-Item -LiteralPath $global:CACHE_DIR -Recurse -Force -ErrorAction Stop
+            Write-Log 'Asset cache cleared.'
+        } catch {
+            Write-Log "Failed to clear asset cache: $($_.Exception.Message)" -Level 'WARN'
+        }
     }
 }
 
@@ -5893,7 +5918,9 @@ function Clear-DirectoryContentsSafely {
     return $removedCount
 }
 
-function Remove-PathSafely { param([string]$Path,[string]$Label)
+function Remove-PathSafely {
+    [CmdletBinding(SupportsShouldProcess)]
+    param([string]$Path,[string]$Label)
     $displayLabel = if ($Label) { $Label } else { $Path }
     $journalData = @{ label = $displayLabel }
     if ([string]::IsNullOrWhiteSpace($Path)) { return 0 }
@@ -5907,18 +5934,21 @@ function Remove-PathSafely { param([string]$Path,[string]$Label)
         return 0
     }
     Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
-    try {
-        $null = & icacls.exe "$Path" /reset /T /C /Q 2>$null
-        Remove-Item -LiteralPath $Path -Recurse -Force -EA Stop
-        Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
-        Write-Log "  Removed: $displayLabel"
-        return 1
-    } catch {
-        $journalData['error'] = [string]$_.Exception.Message
-        Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'The target may be partially unchanged; review the error before retrying.' -Data $journalData
-        Write-Log "  Failed to remove: $Path ($($_.Exception.Message))" -Level 'WARN'
-        return 0
+    if ($PSCmdlet.ShouldProcess($Path, 'Remove file or directory')) {
+        try {
+            $null = & icacls.exe "$Path" /reset /T /C /Q 2>$null
+            Remove-Item -LiteralPath $Path -Recurse -Force -EA Stop
+            Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
+            Write-Log "  Removed: $displayLabel"
+            return 1
+        } catch {
+            $journalData['error'] = [string]$_.Exception.Message
+            Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'The target may be partially unchanged; review the error before retrying.' -Data $journalData
+            Write-Log "  Failed to remove: $Path ($($_.Exception.Message))" -Level 'WARN'
+            return 0
+        }
     }
+    return 0
 }
 
 function Module-NukeSpotify {

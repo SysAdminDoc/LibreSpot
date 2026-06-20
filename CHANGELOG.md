@@ -5,6 +5,13 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- PowerShell `-WhatIf` and `-Confirm` support on mutating helpers.
+  `Remove-PathSafely`, `Save-LibreSpotConfig`, `Set-PathEntries`,
+  `Register-AutoReapplyTask`, `Unregister-AutoReapplyTask`,
+  `Clear-LibreSpotCache`, and `Move-ConfigFileToQuarantine` now declare
+  `SupportsShouldProcess` and gate actual mutations behind
+  `$PSCmdlet.ShouldProcess()` in both the stable script and WPF backend.
+  Regression tests lock the contract for all 14 function instances.
 - Verification-first bootstrap in README Quick Start. The primary install
   command now downloads `LibreSpot.ps1` and `checksums.txt` to a local path,
   validates SHA256 before execution, removes the script on mismatch, and saves

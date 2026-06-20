@@ -1652,4 +1652,40 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("RiskAcknowledged", backend);
         Assert.Contains("Risk acknowledgment required", backend);
     }
+
+    // ---------------------------------------------------------------------
+    // ShouldProcess coverage — mutating helpers must declare
+    // SupportsShouldProcess so -WhatIf and -Confirm propagate correctly.
+    // PSScriptAnalyzer will enforce the reverse (ShouldProcess declared but
+    // never called), but this test locks in the forward contract.
+    // ---------------------------------------------------------------------
+    [Theory]
+    [InlineData("LibreSpot.ps1", "Remove-PathSafely")]
+    [InlineData("LibreSpot.ps1", "Save-LibreSpotConfig")]
+    [InlineData("LibreSpot.ps1", "Set-PathEntries")]
+    [InlineData("LibreSpot.ps1", "Register-AutoReapplyTask")]
+    [InlineData("LibreSpot.ps1", "Unregister-AutoReapplyTask")]
+    [InlineData("LibreSpot.ps1", "Clear-LibreSpotCache")]
+    [InlineData("LibreSpot.ps1", "Move-ConfigFileToQuarantine")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1", "Remove-PathSafely")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1", "Save-LibreSpotConfig")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1", "Set-PathEntries")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1", "Register-AutoReapplyTask")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1", "Unregister-AutoReapplyTask")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1", "Clear-LibreSpotCache")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1", "Move-ConfigFileToQuarantine")]
+    public void MutatingHelper_DeclaresAndCallsShouldProcess(string relativePath, string functionName)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            $@"function\s+{Regex.Escape(functionName)}\s*\{{(?<body>.+?)^\}}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"{functionName} function block not found in {relativePath}.");
+
+        var fullBlock = fnBody.Value;
+        Assert.Contains("SupportsShouldProcess", fullBlock);
+        Assert.Contains("$PSCmdlet.ShouldProcess(", fnBody.Groups["body"].Value);
+    }
 }
