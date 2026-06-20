@@ -2382,6 +2382,28 @@ $window.Add_SourceInitialized({
             }
         }
     } catch {}
+    # High-contrast mode: override custom dark-theme brushes with SystemColors
+    # so text, backgrounds, and borders remain readable. Mica is disabled under
+    # high-contrast because the transparent backdrop makes text invisible.
+    if ([System.Windows.SystemParameters]::HighContrast) {
+        try {
+            $script:MicaEnabled = $false
+            $window.Background = [System.Windows.SystemColors]::WindowBrush
+            $res = $window.Resources
+            $res['SurfaceBaseBrush']     = [System.Windows.SystemColors]::WindowBrush
+            $res['SurfaceElevatedBrush'] = [System.Windows.SystemColors]::WindowBrush
+            $res['SurfaceElevated2Brush']= [System.Windows.SystemColors]::ControlBrush
+            $res['SurfaceOverlayBrush']  = [System.Windows.SystemColors]::ControlBrush
+            $res['SurfaceSidebarBrush']  = [System.Windows.SystemColors]::WindowBrush
+            $res['BorderSubtleBrush']    = [System.Windows.SystemColors]::ControlDarkBrush
+            $res['BorderStrongBrush']    = [System.Windows.SystemColors]::ActiveBorderBrush
+            $res['AccentBrush']          = [System.Windows.SystemColors]::HighlightBrush
+            $res['FgPrimaryBrush']       = [System.Windows.SystemColors]::WindowTextBrush
+            $res['FgSecondaryBrush']     = [System.Windows.SystemColors]::WindowTextBrush
+            $res['FgMutedBrush']         = [System.Windows.SystemColors]::GrayTextBrush
+            $res['FgInverseBrush']       = [System.Windows.SystemColors]::HighlightTextBrush
+        } catch {}
+    }
 })
 function Get-LibreSpotBrandFrame {
     # Returns an ImageSource usable for both Window.Icon and Image.Source.

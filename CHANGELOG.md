@@ -5,6 +5,11 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Windows high-contrast mode support in the PowerShell GUI. When high-
+  contrast is active, key surface, border, accent, and text brushes are
+  overridden with SystemColors equivalents so controls remain readable.
+  Mica backdrop is disabled under high-contrast because the transparent
+  background would make text invisible.
 - Upstream dependency freshness check in CI. A new non-blocking step
   compares pinned Spicetify CLI and Marketplace versions against the latest
   GitHub releases and emits warning annotations when any pin falls behind.
