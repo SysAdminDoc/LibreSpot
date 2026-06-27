@@ -679,20 +679,6 @@ the schema-runtime disconnect, upstream version gaps, Marketplace
 reliability, localization follow-through, legacy GUI contrast, and
 dependency freshness surfaced during exhaustive ecosystem research.
 
-- [x] P1 — Wire .resx localization strings into WPF runtime code
-  Why: `Properties/Strings.resx` was created with 47 extracted strings and
-  `PublicResXFileCodeGenerator` configured, but `MainViewModel.cs` and
-  `MainWindow.xaml` still contain ~265 hardcoded English strings with zero
-  references to `Strings.` — the infrastructure exists but is inert.
-  Evidence: `grep -c "Strings\." src/LibreSpot.Desktop/ViewModels/MainViewModel.cs` = 0;
-  `src/LibreSpot.Desktop/Properties/Strings.resx` has 47 `<data>` entries;
-  `src/LibreSpot.Desktop/MainWindow.xaml` has ~65 hardcoded `Text=` strings.
-  Touches: MainViewModel.cs, MainWindow.xaml, AppCatalog.cs, Strings.resx
-  Acceptance: all user-visible strings in the WPF shell reference `Strings.`
-  or a XAML markup extension backed by .resx; hardcoded English string count
-  outside resource references drops to zero or has explicit exceptions.
-  Complexity: L
-
 - [ ] P2 — Consume operation-token and run-receipt schemas at runtime
   Why: `schemas/operation-token-types.json` (15 token types) and
   `schemas/run-receipt-format.json` exist with test coverage but zero
@@ -741,13 +727,6 @@ Items below were found during the engineering audit but could not be
 fixed due to .NET 10 SDK requirements or requiring broader design
 decisions.
 
-- [x] P2 — Add journal entries for registry and AppxPackage removals in Module-NukeSpotify
-  Why: registry key deletions (backend lines 2555-2571), Remove-AppxPackage
-  (lines 2498-2512), and scheduled task removal in the nuker (lines 2573-2588)
-  do not write operation journal entries, unlike the dedicated watcher task
-  functions. This creates a gap in the audit trail for destructive operations.
-  Where: `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `LibreSpot.ps1`
-
 - [ ] P2 — Address 52 drifted shared functions between the two PowerShell scripts
   Why: `Build-Scripts.ps1 -Validate` confirms 52 of 86 shared functions have
   divergent implementations. Each drift is a silent regression risk for every
@@ -755,10 +734,42 @@ decisions.
   existing 52 need reconciliation as part of the shared-core extraction (P1).
   Where: `LibreSpot.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`
 
-- [x] P3 — Mitigate potential deadlock in Clear-CompletedRunspaceResources
-  Why: if the worker runspace is blocked inside Dispatcher.Invoke() while the
-  UI thread calls Clear-CompletedRunspaceResources from Add_Closing, the
-  Start-Sleep(150) followed by runspace Dispose() can deadlock both threads.
-  The fix should set IsRunning=$false, skip the sleep, and use non-blocking
-  disposal or a background thread for cleanup.
-  Where: `LibreSpot.ps1` (Clear-CompletedRunspaceResources, ~line 3211)
+## Research-Driven Additions (June 27, 2026)
+
+Items below were added by the June 27, 2026 research pass. They address
+AV trust barriers, Smart App Control compatibility, Spotify enforcement
+risk, accessibility compliance, testing quality, and PowerShell runtime
+compatibility surfaced during exhaustive competitive and ecosystem research.
+
+- [ ] P2 — Add FlaUI-based WPF UI smoke tests alongside current XAML string tests
+  Why: current KeyboardFocusContractTests use `ExtractSection` with fixed
+  character windows (200-2000 chars) to find XAML markers — fragile and
+  broke when .resx wiring lengthened attribute values. FlaUI 5.0 provides
+  robust WPF automation with strongly-typed element access, retry logic,
+  and element caching. The theme gallery (Cycle 17) and preset gallery
+  (Cycle 18) will need real UI interaction tests that string matching
+  cannot provide.
+  Evidence: FlaUI 5.0.0 on NuGet (MIT license); broken
+  KeyboardFocusContractTests after .resx wiring (fixed by widening
+  windows, but root cause is string-matching fragility).
+  Touches: tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj
+  (add FlaUI.UIA3 package), new test files for UI interaction, existing
+  smoke tests (migrate incrementally).
+  Acceptance: at least 5 FlaUI-based tests covering: mode navigation
+  (Recommended/Custom/Maintenance tab switching), search box input and
+  clear, maintenance action button click, activity overlay open/close,
+  and prompt overlay confirm/cancel. These tests interact with the live
+  WPF window, not XAML text.
+  Complexity: M
+
+
+- [ ] P3 — Add Stryker.NET mutation testing to identify undertested code
+  Why: the project has 484 C# tests but many validate JSON schema structure
+  rather than runtime behavior. Stryker.NET 4.15.0 can identify code paths
+  where tests pass even when logic is mutated.
+  Blocked: Stryker cannot mutate the WPF project directly (net10.0-windows
+  with UseWPF=true fails analysis). This is sequenced behind the P2
+  view-model split — once non-UI logic is extracted into a class library,
+  Stryker can target that library.
+  Complexity: S (after view-model split)
+
