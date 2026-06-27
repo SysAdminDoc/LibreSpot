@@ -3464,6 +3464,28 @@ try {
     $null = $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::ApplicationIdle, [System.Action]{
         try { Test-ForeignPatchWarningIfNeeded } catch {}
     })
+    $null = [System.Threading.ThreadPool]::QueueUserWorkItem([System.Threading.WaitCallback]{
+        param($state)
+        try {
+            $notices = @(Get-UpstreamStalenessNotice)
+            if ($notices.Count -gt 0) {
+                $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::ApplicationIdle, [Action]{
+                    try {
+                        if ($ui.ContainsKey('CompatibilityWarning')) {
+                            $existing = $ui['CompatibilityWarning'].Text
+                            $staleText = ($notices -join ' | ')
+                            if ([string]::IsNullOrWhiteSpace($existing)) {
+                                $ui['CompatibilityWarning'].Text = "ℹ Newer upstream: $staleText"
+                            } else {
+                                $ui['CompatibilityWarning'].Text = "$existing | $staleText"
+                            }
+                            $ui['CompatibilityWarning'].Visibility = 'Visible'
+                        }
+                    } catch {}
+                })
+            }
+        } catch {}
+    }, $null)
 } catch {}
 
 # SECURITY: see SECURITY.md "External process execution contract". $Config MUST
@@ -5970,6 +5992,55 @@ function Check-ForUpdates {
         }
     }
     Write-Log '=== Update check complete ===' -Level 'STEP'
+}
+
+function Get-UpstreamStalenessNotice {
+    $cachePath = Join-Path $global:CONFIG_DIR 'upstream-freshness-cache.json'
+    $cacheMaxAge = [TimeSpan]::FromHours(24)
+    $staleItems = @()
+
+    if (Test-Path -LiteralPath $cachePath) {
+        try {
+            $cache = Get-Content -LiteralPath $cachePath -Raw | ConvertFrom-Json
+            $cacheAge = (Get-Date) - [datetime]$cache.checkedAt
+            if ($cacheAge -lt $cacheMaxAge) {
+                if ($cache.notices -and $cache.notices.Count -gt 0) {
+                    return [string[]]$cache.notices
+                }
+                return @()
+            }
+        } catch {}
+    }
+
+    $headers = @{'User-Agent'="LibreSpot/$global:VERSION"}
+    try {
+        $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest' -Headers $headers -Label 'Spicetify CLI freshness'
+        $latest = $rel.tag_name -replace '^v',''
+        $pinned = $global:PinnedReleases.SpicetifyCLI.Version
+        if (Compare-LibreSpotVersions -Latest $latest -Current $pinned) {
+            $staleItems += "Spicetify CLI v$latest is available (LibreSpot pins v$pinned)"
+        }
+    } catch {}
+
+    try {
+        $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/SpotX-Official/SpotX/commits/main' -Headers $headers -Label 'SpotX freshness'
+        $latestSha = $rel.sha
+        if ($latestSha -ne $global:PinnedReleases.SpotX.Commit) {
+            $short = $latestSha.Substring(0,10)
+            $staleItems += "SpotX has newer commits (latest: $short)"
+        }
+    } catch {}
+
+    try {
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
+            New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null
+        }
+        $cacheData = @{ checkedAt = (Get-Date).ToString('o'); notices = $staleItems }
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($cachePath, ($cacheData | ConvertTo-Json -Compress), $utf8NoBom)
+    } catch {}
+
+    return $staleItems
 }
 
 # =============================================================================
