@@ -25,7 +25,8 @@
 param(
     [switch]$Validate,
     [switch]$Inventory,
-    [switch]$Lint
+    [switch]$Lint,
+    [switch]$SyncSharedToBackend
 )
 
 $ErrorActionPreference = 'Stop'
@@ -204,8 +205,81 @@ if ($Lint) {
     exit 0
 }
 
+if ($SyncSharedToBackend) {
+    $sharedDir = Join-Path $PSScriptRoot 'src/powershell/shared'
+    if (-not (Test-Path -LiteralPath $sharedDir)) {
+        throw "Shared source directory not found at $sharedDir"
+    }
+
+    # Functions where the backend has intentionally different implementations
+    # (different entry paths, arguments, or event protocols). These are shared
+    # by name but NOT by body — each lane owns its own implementation.
+    $laneSpecificFunctions = @(
+        'Register-AutoReapplyTask'       # Main: -Watch flag; Backend: -Action WatchAutoReapply
+        'Get-WatcherState'               # Backend extends with LastApplied/AttemptedSpotifyVersion
+        'Get-WatcherLaunchCommand'       # Backend builds -Action args; Main builds -Watch args
+        'Invoke-AutoReapplyWatcher'      # Backend uses Update-ApplyState; Main uses direct state writes
+        'Invoke-HeadlessReapply'         # Backend delegates to Module-* with Update-BackendState
+        'Set-WatcherState'               # Backend preserves extra state fields
+        'Write-Log'                      # Main: Update-UI; Backend: Write-EventLine
+        'Save-LibreSpotConfig'           # Backend: Update-BackendState progress; Main: GUI state
+        'Load-LibreSpotConfig'           # Backend: different logging path
+    )
+
+    $sharedFiles = Get-ChildItem -Path $sharedDir -Filter '*.ps1' -File | Sort-Object Name
+    if ($sharedFiles.Count -eq 0) {
+        throw "No .ps1 files found in $sharedDir"
+    }
+
+    Write-Host "Syncing shared functions to backend script..." -ForegroundColor Cyan
+    Write-Host "  Source:     $sharedDir ($($sharedFiles.Count) files)" -ForegroundColor Gray
+    Write-Host "  Exclusions: $($laneSpecificFunctions.Count) lane-specific functions" -ForegroundColor Gray
+    Write-Host ""
+
+    $backendContent = Get-Content -Path $backendScript -Raw
+    $updatedCount = 0
+    $skippedCount = 0
+    $excludedCount = 0
+
+    foreach ($file in $sharedFiles) {
+        $fnName = $file.BaseName
+
+        if ($laneSpecificFunctions -contains $fnName) {
+            Write-Host "  EXCL $fnName (lane-specific)" -ForegroundColor DarkGray
+            $excludedCount++
+            continue
+        }
+
+        $sharedBody = Get-Content -Path $file.FullName -Raw
+
+        $existingBody = Get-FunctionBody -ScriptContent $backendContent -FunctionName $fnName
+        if (-not $existingBody) {
+            Write-Host "  SKIP $fnName (not found in backend)" -ForegroundColor Yellow
+            $skippedCount++
+            continue
+        }
+
+        $sharedNorm = ConvertTo-NormalizedFunctionBody -Body $sharedBody
+        $existingNorm = ConvertTo-NormalizedFunctionBody -Body $existingBody
+
+        if ($sharedNorm -ne $existingNorm) {
+            $backendContent = $backendContent.Replace($existingBody, $sharedBody.TrimEnd())
+            Write-Host "  UPDATED $fnName" -ForegroundColor Green
+            $updatedCount++
+        }
+    }
+
+    if ($updatedCount -gt 0) {
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($backendScript, $backendContent, $utf8NoBom)
+    }
+    Write-Host "`n$updatedCount synced, $excludedCount excluded (lane-specific), $skippedCount skipped (not in backend)." -ForegroundColor Green
+    exit 0
+}
+
 # Default: show usage
 Write-Host "Usage:"
-Write-Host "  pwsh -File Build-Scripts.ps1 -Validate    # Check shared functions for drift"
-Write-Host "  pwsh -File Build-Scripts.ps1 -Inventory   # List all functions and their locations"
-Write-Host "  pwsh -File Build-Scripts.ps1 -Lint         # Run PSScriptAnalyzer on both scripts"
+Write-Host "  pwsh -File Build-Scripts.ps1 -Validate             # Check shared functions for drift"
+Write-Host "  pwsh -File Build-Scripts.ps1 -Inventory             # List all functions and their locations"
+Write-Host "  pwsh -File Build-Scripts.ps1 -Lint                   # Run PSScriptAnalyzer on both scripts"
+Write-Host "  pwsh -File Build-Scripts.ps1 -SyncSharedToBackend   # Copy shared function sources into backend"
