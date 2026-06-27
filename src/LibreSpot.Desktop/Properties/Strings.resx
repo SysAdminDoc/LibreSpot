@@ -133,6 +133,15 @@
   <!-- Sidebar / environment -->
   <data name="SidebarDescription" xml:space="preserve"><value>Recommended handles the stable path. Custom keeps deliberate changes visible. Maintenance stays focused on recovery.</value><comment>Sidebar mode description paragraph</comment></data>
   <data name="EnvironmentLabel" xml:space="preserve"><value>Environment</value><comment>Sidebar environment section heading</comment></data>
+  <data name="DashboardSpotifyVersionLabel" xml:space="preserve"><value>Spotify version</value><comment>Status dashboard card label</comment></data>
+  <data name="DashboardSpicetifyVersionLabel" xml:space="preserve"><value>Spicetify version</value><comment>Status dashboard card label</comment></data>
+  <data name="DashboardSpotXStateLabel" xml:space="preserve"><value>SpotX state</value><comment>Status dashboard card label</comment></data>
+  <data name="DashboardLastPatchLabel" xml:space="preserve"><value>Last patch</value><comment>Status dashboard card label</comment></data>
+  <data name="DashboardWatcherLabel" xml:space="preserve"><value>Watcher</value><comment>Status dashboard card label</comment></data>
+  <data name="DashboardUnknownValue" xml:space="preserve"><value>Unknown</value><comment>Status dashboard fallback value</comment></data>
+  <data name="DashboardSnapshotMissingDetail" xml:space="preserve"><value>Snapshot has not checked this component yet.</value><comment>Status dashboard fallback detail</comment></data>
+  <data name="DashboardNoPatchRecord" xml:space="preserve"><value>No patch record</value><comment>Status dashboard last patch fallback value</comment></data>
+  <data name="DashboardNoPatchRecordDetail" xml:space="preserve"><value>Run setup or reapply once so LibreSpot can record patch state.</value><comment>Status dashboard last patch fallback detail</comment></data>
   <data name="SeverityWarningsLabel" xml:space="preserve"><value>Warnings</value><comment>Sidebar warning count label</comment></data>
   <data name="NextStepLabel" xml:space="preserve"><value>Next step</value><comment>Sidebar next-step section heading</comment></data>
   <data name="ProfileRecoveryLabel" xml:space="preserve"><value>Profile recovery</value><comment>Sidebar profile recovery section heading</comment></data>

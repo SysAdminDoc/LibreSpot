@@ -56,6 +56,29 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task StatusDashboard_ShowsLaunchSnapshotFields() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            fixture.WriteSpotify(withSpotXMarkers: true);
+            fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+            fixture.WriteMarketplaceFiles();
+            fixture.WriteBackup();
+
+            using var viewModel = await fixture.CreateInitializedViewModelAsync(
+                spotifyVersion: "1.2.92.647",
+                spicetifyVersion: "2.43.2");
+
+            Assert.Equal(6, viewModel.StatusDashboardItems.Count);
+            Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Spotify version" && item.Value == "1.2.92.647");
+            Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Spicetify version" && item.Value == "2.43.2");
+            Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "SpotX state" && item.Value == "Verified");
+            Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Last patch" && item.Value != "No patch record");
+            Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Watcher" && item.Value == "Disabled");
+            Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Backups" && item.Value == "1 backup");
+        });
+
+    [Fact]
     public Task MaintenanceActions_ShowRepairMarketplaceWhenFilesAreMissing() =>
         RunStaAsync(async () =>
         {
@@ -201,7 +224,9 @@ public sealed class MainViewModelMaintenanceTests
         private string RollingLogDirectory { get; }
         private string CrashDirectory { get; }
 
-        public async Task<MainViewModel> CreateInitializedViewModelAsync()
+        public async Task<MainViewModel> CreateInitializedViewModelAsync(
+            string? spotifyVersion = null,
+            string? spicetifyVersion = null)
         {
             var viewModel = new MainViewModel(
                 new ConfigurationService(ConfigDirectory),
@@ -213,7 +238,9 @@ public sealed class MainViewModelMaintenanceTests
                     spicetifyConfigDirectory: SpicetifyConfigDirectory,
                     backupDirectory: BackupDirectory,
                     rollingLogDirectory: RollingLogDirectory,
-                    crashDirectory: CrashDirectory),
+                    crashDirectory: CrashDirectory,
+                    spotifyVersionProbe: () => spotifyVersion,
+                    spicetifyVersionProbe: () => spicetifyVersion),
                 new SupportBundleService(ConfigDirectory, RollingLogDirectory, CrashDirectory));
 
             await viewModel.InitializeAsync();

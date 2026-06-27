@@ -647,6 +647,78 @@ namespace LibreSpot.Desktop.Properties {
             }
         }
         /// <summary>
+        ///   Status dashboard card label
+        /// </summary>
+        public static string DashboardSpotifyVersionLabel {
+            get {
+                return ResourceManager.GetString("DashboardSpotifyVersionLabel", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Status dashboard card label
+        /// </summary>
+        public static string DashboardSpicetifyVersionLabel {
+            get {
+                return ResourceManager.GetString("DashboardSpicetifyVersionLabel", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Status dashboard card label
+        /// </summary>
+        public static string DashboardSpotXStateLabel {
+            get {
+                return ResourceManager.GetString("DashboardSpotXStateLabel", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Status dashboard card label
+        /// </summary>
+        public static string DashboardLastPatchLabel {
+            get {
+                return ResourceManager.GetString("DashboardLastPatchLabel", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Status dashboard card label
+        /// </summary>
+        public static string DashboardWatcherLabel {
+            get {
+                return ResourceManager.GetString("DashboardWatcherLabel", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Status dashboard fallback value
+        /// </summary>
+        public static string DashboardUnknownValue {
+            get {
+                return ResourceManager.GetString("DashboardUnknownValue", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Status dashboard fallback detail
+        /// </summary>
+        public static string DashboardSnapshotMissingDetail {
+            get {
+                return ResourceManager.GetString("DashboardSnapshotMissingDetail", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Status dashboard last patch fallback value
+        /// </summary>
+        public static string DashboardNoPatchRecord {
+            get {
+                return ResourceManager.GetString("DashboardNoPatchRecord", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Status dashboard last patch fallback detail
+        /// </summary>
+        public static string DashboardNoPatchRecordDetail {
+            get {
+                return ResourceManager.GetString("DashboardNoPatchRecordDetail", resourceCulture);
+            }
+        }
+        /// <summary>
         ///   Sidebar warning count label
         /// </summary>
         public static string SeverityWarningsLabel {

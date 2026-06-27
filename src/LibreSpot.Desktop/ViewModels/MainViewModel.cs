@@ -215,6 +215,22 @@ public sealed class SelectionInsightViewModel
     public string Detail { get; }
 }
 
+public sealed class StatusDashboardItemViewModel
+{
+    public StatusDashboardItemViewModel(string label, string value, string detail, string tone)
+    {
+        Label = label;
+        Value = string.IsNullOrWhiteSpace(value) ? Strings.DashboardUnknownValue : value;
+        Detail = detail;
+        Tone = tone;
+    }
+
+    public string Label { get; }
+    public string Value { get; }
+    public string Detail { get; }
+    public string Tone { get; }
+}
+
 public sealed class MainViewModel : ObservableObject, IDisposable
 {
     // Cap the live log so a very chatty backend run can't pin UI memory or make
@@ -445,6 +461,31 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool HasInfoHealthIssues => HealthReport.HasInfoIssues;
     public bool HasAnyHealthIssues => HealthReport.HasIssues;
     public string HealthIssueSummary => HealthReport.IssueSummary;
+
+    public IReadOnlyList<StatusDashboardItemViewModel> StatusDashboardItems =>
+    [
+        BuildDashboardItem(
+            Strings.DashboardSpotifyVersionLabel,
+            HealthComponent("spotify"),
+            component => FirstNonEmpty(component.DetectedVersion, component.Status)),
+        BuildDashboardItem(
+            Strings.DashboardSpicetifyVersionLabel,
+            HealthComponent("spicetify-cli"),
+            component => FirstNonEmpty(component.DetectedVersion, component.Status)),
+        BuildDashboardItem(
+            Strings.DashboardSpotXStateLabel,
+            HealthComponent("spotx"),
+            component => component.Status),
+        BuildLastPatchDashboardItem(),
+        BuildDashboardItem(
+            Strings.DashboardWatcherLabel,
+            HealthComponent("auto-reapply-watcher"),
+            component => component.Status),
+        BuildDashboardItem(
+            Strings.BackupsLabel,
+            HealthComponent("backups"),
+            component => component.Status)
+    ];
 
     public bool HasConfigurationRecoveryNotice =>
         _configurationLoadState == ConfigurationLoadState.RecoveredFromCorrupt;
@@ -1583,6 +1624,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(HasInfoHealthIssues));
         RaisePropertyChanged(nameof(HasAnyHealthIssues));
         RaisePropertyChanged(nameof(HealthIssueSummary));
+        RaisePropertyChanged(nameof(StatusDashboardItems));
         RaisePropertyChanged(nameof(MaintenanceReadinessValue));
         RaisePropertyChanged(nameof(MaintenanceReadinessDetail));
         RaisePropertyChanged(nameof(MaintenanceBackupValue));
@@ -1613,6 +1655,48 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private StackHealthComponent? HealthComponent(string id) =>
         HealthReport.Components.FirstOrDefault(component => string.Equals(component.Id, id, StringComparison.OrdinalIgnoreCase));
+
+    private StatusDashboardItemViewModel BuildDashboardItem(
+        string label,
+        StackHealthComponent? component,
+        Func<StackHealthComponent, string> valueFactory)
+    {
+        if (component is null)
+        {
+            return new StatusDashboardItemViewModel(
+                label,
+                Strings.DashboardUnknownValue,
+                Strings.DashboardSnapshotMissingDetail,
+                HealthSeverity.Info);
+        }
+
+        var detail = component.HasLastChanged
+            ? $"{component.Evidence} Last changed: {component.LastChangedDisplay}."
+            : component.Evidence;
+
+        return new StatusDashboardItemViewModel(
+            label,
+            valueFactory(component),
+            detail,
+            component.Severity);
+    }
+
+    private StatusDashboardItemViewModel BuildLastPatchDashboardItem()
+    {
+        var postUpdate = HealthComponent("post-spotify-update");
+        var spotx = HealthComponent("spotx");
+        var timestampSource = postUpdate?.HasLastChanged == true ? postUpdate : spotx;
+        var evidenceSource = postUpdate ?? spotx;
+
+        return new StatusDashboardItemViewModel(
+            Strings.DashboardLastPatchLabel,
+            timestampSource?.HasLastChanged == true ? timestampSource.LastChangedDisplay : Strings.DashboardNoPatchRecord,
+            evidenceSource?.Evidence ?? Strings.DashboardNoPatchRecordDetail,
+            evidenceSource?.Severity ?? HealthSeverity.Info);
+    }
+
+    private static string FirstNonEmpty(params string?[] values) =>
+        values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? Strings.DashboardUnknownValue;
 
     private bool HasRecommendedAction(string action) =>
         HealthReport.Components.Any(component => component.RecommendedActionIds.Contains(action, StringComparer.Ordinal));

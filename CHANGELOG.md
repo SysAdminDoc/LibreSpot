@@ -5,6 +5,9 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- WPF Maintenance now exposes a six-card status dashboard for Spotify version,
+  Spicetify version, SpotX patch state, last patch timestamp, watcher status,
+  and backup count, all sourced from the existing environment snapshot.
 - WPF shell backend completions now surface a WPF-UI snackbar notification
   with success, warning, or error tone while keeping the existing activity log
   panel available for full review.

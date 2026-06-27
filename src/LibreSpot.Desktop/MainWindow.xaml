@@ -463,6 +463,67 @@
       </Border>
     </DataTemplate>
 
+    <DataTemplate DataType="{x:Type viewModels:StatusDashboardItemViewModel}" x:Key="StatusDashboardItemTemplate">
+      <Border Style="{StaticResource SubtleCardStyle}"
+              Margin="0,0,10,10"
+              AutomationProperties.Name="{Binding Label}"
+              AutomationProperties.HelpText="{Binding Detail}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Border Width="4"
+                  CornerRadius="2"
+                  Margin="0,2,12,0"
+                  VerticalAlignment="Stretch">
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource StrokeBrush}" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Ready}">
+                    <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Warning}">
+                    <Setter Property="Background" Value="{StaticResource WarningBrush}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Critical}">
+                    <Setter Property="Background" Value="{StaticResource DangerBrush}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+          </Border>
+          <StackPanel Grid.Column="1">
+            <TextBlock Text="{Binding Label}"
+                       Style="{StaticResource LabelTextStyle}" />
+            <TextBlock Text="{Binding Value}"
+                       FontWeight="SemiBold"
+                       FontSize="15"
+                       Margin="0,6,0,0"
+                       TextWrapping="Wrap">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                  <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Warning}">
+                      <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Critical}">
+                      <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+            <TextBlock Text="{Binding Detail}"
+                       Style="{StaticResource CaptionTextStyle}"
+                       Margin="0,6,0,0" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </DataTemplate>
+
     <!--
       Overlay card style: fade + subtle scale-in when the bound IsVisible flag
       transitions False→True. DataTrigger EnterActions run on every transition,
@@ -1574,6 +1635,20 @@
                   <Border Height="1"
                           Background="{StaticResource StrokeSoftBrush}"
                           Margin="0,18,0,18" />
+
+                  <TextBlock Text="{x:Static props:Strings.EnvironmentLabel}"
+                             Style="{StaticResource SectionEyebrowTextStyle}"
+                             Margin="0,0,0,10" />
+                  <ItemsControl ItemsSource="{Binding StatusDashboardItems}"
+                                ItemTemplate="{StaticResource StatusDashboardItemTemplate}"
+                                AutomationProperties.Name="{x:Static props:Strings.EnvironmentLabel}"
+                                Margin="0,0,0,6">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <UniformGrid Columns="3" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                  </ItemsControl>
 
                   <UniformGrid Columns="4"
                                Margin="0,0,0,14">
