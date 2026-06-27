@@ -230,6 +230,9 @@
   <data name="ActivityDialogHint" xml:space="preserve"><value>Shows live progress, current status, and troubleshooting output.</value><comment>Accessibility help text for activity overlay</comment></data>
   <data name="ElapsedLabel" xml:space="preserve"><value>Elapsed</value><comment>Elapsed time label</comment></data>
   <data name="ProgressBarName" xml:space="preserve"><value>Installation progress</value><comment>Accessibility name for progress bar</comment></data>
+  <data name="UndoPaneTitle" xml:space="preserve"><value>Reversible changes</value><comment>Undo pane heading after a successful run</comment></data>
+  <data name="UndoPaneDescription" xml:space="preserve"><value>These completed changes include a manual undo note from the operation journal.</value><comment>Undo pane description after a successful run</comment></data>
+  <data name="UndoPaneUndoLabel" xml:space="preserve"><value>Undo note</value><comment>Undo pane rollback hint label</comment></data>
   <data name="RunLogLabel" xml:space="preserve"><value>Run log</value><comment>Log section heading</comment></data>
   <data name="RunLogDescription" xml:space="preserve"><value>Detailed progress and recovery notes from this run.</value><comment>Log section description</comment></data>
   <data name="LogEmptyStateTitle" xml:space="preserve"><value>Run details will appear here</value><comment>Log empty state heading</comment></data>

@@ -55,6 +55,8 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 <img width="1150" alt="LibreSpot Maintenance WPF shell" src="assets/screenshots/wpf-maintenance.png" />
 
+<img width="1150" alt="LibreSpot reversible changes activity overlay" src="assets/screenshots/wpf-activity-undo.png" />
+
 </div>
 
 ---
@@ -63,7 +65,7 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 **Premium UI overhaul.** Win11 Mica backdrop (with graceful fallback on Windows 10), a left sidebar navigation rail with Lucide icons replacing the old top tab bar, semantic design tokens, hover-lift micro-interactions, and a shimmering install progress bar. Compact density pass means every panel fits a 1080-px screen without scrolling. Same install behavior, polished chrome.
 
-The v4 desktop preview continues that polish with a sharper 6-12 px radius system, quieter scrollbars, cleaner first-run guidance, readable Custom setting cards, forced dark native window chrome, completion notifications, a compact status dashboard, issue-level repair buttons, and calmer activity/support-bundle feedback for assistive technology.
+The v4 desktop preview continues that polish with a sharper 6-12 px radius system, quieter scrollbars, cleaner first-run guidance, readable Custom setting cards, forced dark native window chrome, completion notifications, a compact status dashboard, issue-level repair buttons, a post-run reversible-changes pane, and calmer activity/support-bundle feedback for assistive technology.
 
 ---
 

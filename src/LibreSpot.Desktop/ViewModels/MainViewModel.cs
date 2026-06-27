@@ -80,6 +80,64 @@ public sealed class LogEntryViewModel
     public string CopyLine => $"[{TimestampDisplay}] [{Level}] {Message}";
 }
 
+public sealed class UndoActionItemViewModel
+{
+    public UndoActionItemViewModel(OperationJournalUndoItem item)
+    {
+        Action = FormatActionLabel(item.Action);
+        Phase = string.IsNullOrWhiteSpace(item.Phase) ? Strings.DashboardUnknownValue : item.Phase;
+        Target = string.IsNullOrWhiteSpace(item.Target) ? Strings.DashboardUnknownValue : item.Target;
+        Result = string.IsNullOrWhiteSpace(item.Result) ? Strings.DashboardUnknownValue : item.Result;
+        RollbackHint = item.RollbackHint;
+    }
+
+    public string Action { get; }
+    public string Phase { get; }
+    public string Target { get; }
+    public string Result { get; }
+    public string RollbackHint { get; }
+    public string Summary => $"{Result} {Phase}: {Target}";
+
+    private static string FormatActionLabel(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return Strings.DashboardUnknownValue;
+        }
+
+        var trimmed = value.Trim();
+        var builder = new System.Text.StringBuilder(trimmed.Length + 8);
+        for (var i = 0; i < trimmed.Length; i++)
+        {
+            var character = trimmed[i];
+            if (character is '-' or '_')
+            {
+                AppendSpace(builder);
+                continue;
+            }
+
+            if (i > 0
+                && char.IsUpper(character)
+                && (char.IsLower(trimmed[i - 1]) || char.IsDigit(trimmed[i - 1])))
+            {
+                AppendSpace(builder);
+            }
+
+            builder.Append(character);
+        }
+
+        return builder.ToString();
+    }
+
+    private static void AppendSpace(System.Text.StringBuilder builder)
+    {
+        if (builder.Length > 0 && builder[^1] != ' ')
+        {
+            builder.Append(' ');
+        }
+    }
+}
+
 public sealed class MaintenanceActionCardViewModel : ObservableObject
 {
     private bool _isRelevant = true;
@@ -285,6 +343,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly BackendScriptService _backendScriptService;
     private readonly EnvironmentSnapshotService _snapshotService;
     private readonly SupportBundleService _supportBundleService;
+    private readonly OperationJournalUndoService _operationJournalUndoService;
     private readonly Dispatcher _dispatcher;
     private readonly bool _isAdministratorSession;
     private readonly InstallConfiguration _recommendedBaseline;
@@ -334,12 +393,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ConfigurationService configurationService,
         BackendScriptService backendScriptService,
         EnvironmentSnapshotService snapshotService,
-        SupportBundleService? supportBundleService = null)
+        SupportBundleService? supportBundleService = null,
+        OperationJournalUndoService? operationJournalUndoService = null)
     {
         _configurationService = configurationService;
         _backendScriptService = backendScriptService;
         _snapshotService = snapshotService;
         _supportBundleService = supportBundleService ?? new SupportBundleService(configurationService.ConfigDirectory);
+        _operationJournalUndoService = operationJournalUndoService ?? new OperationJournalUndoService();
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _isAdministratorSession = IsAdministrator();
         _recommendedBaseline = AppCatalog.CreateRecommendedConfiguration();
@@ -365,6 +426,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SelectedExtensionLabels = new ObservableCollection<string>();
         SupportBundleItems = new ObservableCollection<SupportBundleCategoryViewModel>();
         SupportBundleRedactionRules = new ObservableCollection<string>();
+        UndoActionItems = new ObservableCollection<UndoActionItemViewModel>();
 
         InstallOptions = CreateOptions("Install");
         CoreOptions = CreateOptions("Core");
@@ -431,6 +493,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<MaintenanceActionCardViewModel> DestructiveMaintenanceActions { get; }
     public ObservableCollection<SupportBundleCategoryViewModel> SupportBundleItems { get; }
     public ObservableCollection<string> SupportBundleRedactionRules { get; }
+    public ObservableCollection<UndoActionItemViewModel> UndoActionItems { get; }
     public ObservableCollection<LogEntryViewModel> LogEntries { get; }
 
     public AsyncRelayCommand ApplyRecommendedCommand { get; }
@@ -504,6 +567,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool HasInfoHealthIssues => HealthReport.HasInfoIssues;
     public bool HasAnyHealthIssues => HealthReport.HasIssues;
     public string HealthIssueSummary => HealthReport.IssueSummary;
+    public bool HasUndoActionItems => UndoActionItems.Count > 0;
 
     public IReadOnlyList<StatusDashboardItemViewModel> StatusDashboardItems =>
     [
@@ -2170,6 +2234,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ActivityTitle = title;
         ActivityStatus = status;
         ActivityStep = Strings.PreparingBackend;
+        ClearUndoActionItems();
         ClearLog();
         ProgressValue = 0;
         IsActivityVisible = true;
@@ -2182,6 +2247,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _runCts?.Dispose();
         _runCts = new CancellationTokenSource();
         var token = _runCts.Token;
+        var runSucceeded = false;
 
         try
         {
@@ -2218,6 +2284,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 AppendLog(result.ErrorMessage ?? "LibreSpot reported an unknown backend failure.", "ERROR");
                 ActivityStatus = Strings.RunNeedsAttention;
             }
+            else
+            {
+                runSucceeded = true;
+            }
         }
         catch (OperationCanceledException)
         {
@@ -2237,6 +2307,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             IsRunning = false;
             IsCancelRequested = false;
             await RefreshSnapshotAsync();
+            if (runSucceeded)
+            {
+                RefreshUndoActionItems();
+            }
         }
     }
 
@@ -2335,6 +2409,35 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CopyLogCommand.RaiseCanExecuteChanged();
         RaisePropertyChanged(nameof(LogLineCountText));
         RaisePropertyChanged(nameof(IsLogEmpty));
+    }
+
+    private void ClearUndoActionItems()
+    {
+        if (UndoActionItems.Count == 0)
+        {
+            return;
+        }
+
+        UndoActionItems.Clear();
+        RaisePropertyChanged(nameof(HasUndoActionItems));
+    }
+
+    private void RefreshUndoActionItems()
+    {
+        UndoActionItems.Clear();
+        try
+        {
+            foreach (var item in _operationJournalUndoService.ReadLatestUndoItems(_configurationService.ConfigDirectory))
+            {
+                UndoActionItems.Add(new UndoActionItemViewModel(item));
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Operation journal undo pane refresh failed");
+        }
+
+        RaisePropertyChanged(nameof(HasUndoActionItems));
     }
 
     private async Task RefreshSnapshotAsync()
@@ -2761,6 +2864,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             case "activity":
                 SelectedWorkspaceIndex = 0;
                 AppendLog("UI automation smoke activity.", "INFO");
+                ShowNotice(
+                    "UI automation activity",
+                    Strings.RunComplete,
+                    "No install command was started.");
+                ProgressValue = 100;
+                break;
+            case "activity-undo":
+                SelectedWorkspaceIndex = 0;
+                UndoActionItems.Add(new UndoActionItemViewModel(new OperationJournalUndoItem(
+                    "smoke",
+                    "EnableAutoReapply",
+                    "task",
+                    "LibreSpot\\ReapplyWatcher",
+                    "Registered",
+                    "Unregister the scheduled task to undo.")));
+                RaisePropertyChanged(nameof(HasUndoActionItems));
+                AppendLog("UI automation smoke activity with reversible changes.", "INFO");
                 ShowNotice(
                     "UI automation activity",
                     Strings.RunComplete,

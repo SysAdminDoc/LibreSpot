@@ -5,6 +5,9 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- WPF activity overlay now shows a reversible-changes pane after successful
+  backend runs, sourced from the latest successful operation journal entries
+  with manual undo notes and covered by parser plus UIA smoke tests.
 - WPF health issue cards now surface mapped repair and diagnostic buttons
   directly on the issue, including Marketplace repair, reapply/safe-mode
   actions, watcher enablement, and local log-folder inspection.

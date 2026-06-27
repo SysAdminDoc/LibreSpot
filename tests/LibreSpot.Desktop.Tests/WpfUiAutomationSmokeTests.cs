@@ -28,6 +28,7 @@ public sealed class WpfUiAutomationSmokeTests
     [InlineData("maintenance", "Maintenance")]
     [InlineData("prompt", "UI automation prompt")]
     [InlineData("activity", "UI automation activity")]
+    [InlineData("activity-undo", "Reversible changes")]
     public void WpfShell_UiaSmokeStatesExposeNamedActionableControls(string state, string expectedName)
     {
         RunOnSta(() =>
@@ -62,6 +63,7 @@ public sealed class WpfUiAutomationSmokeTests
     [InlineData("prompt", "Cancel smoke action", "Confirm smoke action")]
     [InlineData("prompt-destructive", "Cancel destructive smoke action", "Confirm destructive smoke action")]
     [InlineData("activity", "Open LibreSpot folder", "Close activity panel")]
+    [InlineData("activity-undo", "Open LibreSpot folder", "Close activity panel")]
     public void WpfShell_UiaOverlaysKeepFocusableActionBoundaries(string state, string firstAction, string secondAction)
     {
         RunOnSta(() =>
@@ -104,6 +106,27 @@ public sealed class WpfUiAutomationSmokeTests
                 Assert.True(runStatus.Current.IsEnabled, "The run-status element must be present and enabled for assistive technology.");
                 Assert.Equal("LiveRegionContentControl", runStatus.Current.ClassName);
                 Assert.Equal(ControlType.Text, runStatus.Current.ControlType);
+            }
+            finally
+            {
+                app.Dispose();
+            }
+        });
+    }
+
+    [Fact]
+    public void WpfShell_UiaActivityUndoStateExposesRollbackHint()
+    {
+        RunOnSta(() =>
+        {
+            using var app = LaunchSmokeState("activity-undo");
+            try
+            {
+                var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
+                var snapshot = WaitForSnapshotContaining(window, "Unregister the scheduled task to undo.", TimeSpan.FromSeconds(10));
+
+                Assert.Contains(snapshot, node => string.Equals(node.Name, "Reversible changes", StringComparison.Ordinal));
+                Assert.Contains(snapshot, node => string.Equals(node.Name, "Unregister the scheduled task to undo.", StringComparison.Ordinal));
             }
             finally
             {

@@ -2173,9 +2173,89 @@
             <Grid Grid.Row="3" Margin="0,20,0,0">
               <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
               </Grid.RowDefinitions>
-              <Grid Grid.Row="0" Margin="0,0,0,10">
+
+              <Border Grid.Row="0"
+                      Margin="0,0,0,14"
+                      Background="{StaticResource Surface1Brush}"
+                      BorderBrush="{StaticResource StrokeSoftBrush}"
+                      BorderThickness="1"
+                      CornerRadius="12"
+                      Padding="16"
+                      AutomationProperties.Name="{x:Static props:Strings.UndoPaneTitle}"
+                      Visibility="{Binding HasUndoActionItems, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="4" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Border Grid.Column="0"
+                          Width="4"
+                          CornerRadius="2"
+                          Background="{StaticResource AccentBrush}" />
+                  <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                    <TextBlock Text="{x:Static props:Strings.UndoPaneTitle}"
+                               Style="{StaticResource LabelTextStyle}"
+                               Foreground="{StaticResource AccentBrush}" />
+                    <TextBlock Text="{x:Static props:Strings.UndoPaneDescription}"
+                               Style="{StaticResource CaptionTextStyle}"
+                               Foreground="{StaticResource TextBrush}"
+                               Margin="0,4,0,10"
+                               TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding UndoActionItems}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Grid Margin="0,3">
+                            <Grid.RowDefinitions>
+                              <RowDefinition Height="Auto" />
+                              <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="*" />
+                              <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Row="0"
+                                       Grid.Column="0"
+                                       Text="{Binding Summary}"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                            <Border Grid.Row="0"
+                                    Grid.Column="1"
+                                    Style="{StaticResource MicroBadgeStyle}"
+                                    Margin="12,0,0,0">
+                              <TextBlock Text="{Binding Action}"
+                                         Style="{StaticResource MicroBadgeTextStyle}" />
+                            </Border>
+                            <Grid Grid.Row="1"
+                                  Grid.ColumnSpan="2"
+                                  Margin="0,4,0,0">
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                              </Grid.ColumnDefinitions>
+                              <TextBlock Text="{x:Static props:Strings.UndoPaneUndoLabel}"
+                                         Style="{StaticResource CaptionTextStyle}"
+                                         Foreground="{StaticResource MutedTextBrush}"
+                                         FontWeight="SemiBold"
+                                         Margin="0,0,6,0" />
+                              <TextBlock Grid.Column="1"
+                                         Text="{Binding RollbackHint}"
+                                         Style="{StaticResource CaptionTextStyle}"
+                                         Foreground="{StaticResource SubtleTextBrush}"
+                                         TextWrapping="Wrap" />
+                            </Grid>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Grid>
+              </Border>
+
+              <Grid Grid.Row="1" Margin="0,0,0,10">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="*" />
                   <ColumnDefinition Width="Auto" />
@@ -2195,7 +2275,7 @@
                            VerticalAlignment="Center"
                            Margin="12,0,0,0" />
               </Grid>
-              <Border Grid.Row="1"
+              <Border Grid.Row="2"
                       MinHeight="220"
                       Background="{DynamicResource TerminalBgBrush}"
                       BorderBrush="{StaticResource StrokeBrush}"

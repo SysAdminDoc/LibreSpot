@@ -1295,6 +1295,30 @@ namespace LibreSpot.Desktop.Properties {
             }
         }
         /// <summary>
+        ///   Undo pane heading after a successful run
+        /// </summary>
+        public static string UndoPaneTitle {
+            get {
+                return ResourceManager.GetString("UndoPaneTitle", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Undo pane description after a successful run
+        /// </summary>
+        public static string UndoPaneDescription {
+            get {
+                return ResourceManager.GetString("UndoPaneDescription", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Undo pane rollback hint label
+        /// </summary>
+        public static string UndoPaneUndoLabel {
+            get {
+                return ResourceManager.GetString("UndoPaneUndoLabel", resourceCulture);
+            }
+        }
+        /// <summary>
         ///   Log section heading
         /// </summary>
         public static string RunLogLabel {
