@@ -45,7 +45,7 @@
   <Color x:Key="AccentDeepColor">#169443</Color>
   <Color x:Key="AccentSoftColor">#1A241E</Color>
   <Color x:Key="AccentMistColor">#261DB954</Color>
-  <Color x:Key="AccentRingColor">#801DB954</Color>
+  <Color x:Key="AccentRingColor">#B31DB954</Color>
 
   <!-- ═══ Semantic intent ═══ -->
   <Color x:Key="DangerColor">#E5484D</Color>
