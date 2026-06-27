@@ -4097,6 +4097,24 @@ function Get-LibreSpotCurrentSpotifyTarget {
     }
 }
 
+function Test-CompatibilityGate {
+    $installedVersion = Get-InstalledSpotifyVersion
+    if ([string]::IsNullOrWhiteSpace($installedVersion)) { return $true }
+    $spotxTarget = Get-LibreSpotCurrentSpotifyTarget
+    $spicetifyMax = [string]$global:PinnedReleases.SpicetifyCLI.WindowsMaxTestedSpotify
+    $issues = @()
+    if (-not [string]::IsNullOrWhiteSpace($spicetifyMax)) {
+        $installedNorm = ($installedVersion -replace '\.(\d+)$','') -replace '^(\d+\.\d+\.\d+).*','$1'
+        if (Compare-LibreSpotVersions -Latest $installedNorm -Current $spicetifyMax) {
+            $issues += "Installed Spotify $installedVersion is newer than Spicetify CLI's max-tested version ($spicetifyMax). Themes and extensions may not apply correctly."
+        }
+    }
+    if ($issues.Count -eq 0) { return $true }
+    $msg = ($issues -join "`n`n") + "`n`nProceeding may produce a broken Spotify client. You can downgrade Spotify by choosing a pinned version in Custom Install, or continue at your own risk."
+    $r = Show-ThemedDialog -Title 'Version compatibility warning' -Message $msg -Buttons 'YesNo' -Icon 'Warning' -PrimaryText 'Continue anyway' -SecondaryText 'Cancel'
+    return ($r -eq 'Yes')
+}
+
 function Update-CompatibilityWarningBadge {
     if (-not $ui.ContainsKey('CompatibilityWarning')) { return }
     $warnings = @(Get-LibreSpotCompatibilityWarnings)
@@ -5165,6 +5183,7 @@ $ui['BtnInstall'].Add_Click({
     if ($ui['BtnInstall'].IsEnabled -eq $false) { return }
     if (-not (Confirm-NetworkReadyForAction -Message "LibreSpot could not reach the download sources it needs." -Purpose "setup downloads")) { return }
     if (-not (Assert-RiskAcknowledged)) { return }
+    if (-not (Test-CompatibilityGate)) { return }
     $ui['BtnInstall'].IsEnabled = $false
     $isEasy = $ui['ModeEasy'].IsChecked
     if ($isEasy) {

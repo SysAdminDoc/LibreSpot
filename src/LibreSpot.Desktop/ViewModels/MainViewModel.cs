@@ -1874,19 +1874,39 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch { }
 
-        if (planLines.Count == 0)
+        var compatWarnings = AppCatalog.CheckInstalledSpotifyCompatibility(
+            Snapshot.HealthReport.Components
+                .FirstOrDefault(c => string.Equals(c.Id, "spotify", StringComparison.OrdinalIgnoreCase))
+                ?.DetectedVersion);
+
+        if (planLines.Count == 0 && compatWarnings.Count == 0)
         {
             return "LibreSpot will download, verify, and apply the selected setup.";
         }
 
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine("LibreSpot will perform these steps:");
-        sb.AppendLine();
-        foreach (var line in planLines)
+
+        if (compatWarnings.Count > 0)
         {
-            sb.Append("• ");
-            sb.AppendLine(line);
+            sb.AppendLine("⚠ Version compatibility warning:");
+            foreach (var warning in compatWarnings)
+            {
+                sb.AppendLine(warning);
+            }
+            sb.AppendLine();
         }
+
+        if (planLines.Count > 0)
+        {
+            sb.AppendLine("LibreSpot will perform these steps:");
+            sb.AppendLine();
+            foreach (var line in planLines)
+            {
+                sb.Append("• ");
+                sb.AppendLine(line);
+            }
+        }
+
         return sb.ToString().TrimEnd();
     }
 

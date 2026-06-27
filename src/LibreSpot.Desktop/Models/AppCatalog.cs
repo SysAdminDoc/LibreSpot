@@ -501,6 +501,38 @@ public static class AppCatalog
         return null;
     }
 
+    public static IReadOnlyList<string> CheckInstalledSpotifyCompatibility(string? installedSpotifyVersion)
+    {
+        var warnings = new List<string>();
+        if (string.IsNullOrWhiteSpace(installedSpotifyVersion))
+        {
+            return warnings;
+        }
+
+        var installed = NormalizeSpotifyVersion(installedSpotifyVersion);
+        var maxTested = NormalizeSpotifyVersion(SpicetifyWindowsMaxTestedSpotify);
+        if (installed is not null && maxTested is not null && installed > maxTested)
+        {
+            warnings.Add(
+                $"Installed Spotify {installedSpotifyVersion} is newer than Spicetify CLI's max-tested version ({SpicetifyWindowsMaxTestedSpotify}). " +
+                "Themes and extensions may not apply correctly.");
+        }
+
+        return warnings;
+    }
+
+    private static Version? NormalizeSpotifyVersion(string version)
+    {
+        var parts = version.Split('.');
+        if (parts.Length >= 3 && int.TryParse(parts[0], out var major) &&
+            int.TryParse(parts[1], out var minor) && int.TryParse(parts[2], out var build))
+        {
+            return new Version(major, minor, build);
+        }
+
+        return null;
+    }
+
     public static InstallConfiguration CreateRecommendedConfiguration() => new();
 
     public static InstallConfiguration NormalizeConfiguration(InstallConfiguration? source)
