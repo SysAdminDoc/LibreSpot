@@ -45,7 +45,7 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 </details>
 
-> **Requirements:** Windows 10/11, PowerShell 5.1+ (built-in), internet connection
+> **Requirements:** Windows 10/11, PowerShell 5.1+ (built-in), internet connection. Tested on Windows PowerShell 5.1 and PowerShell 7.6 LTS.
 
 <div align="center">
 
