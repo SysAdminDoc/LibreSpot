@@ -427,7 +427,8 @@
               <TabPanel Background="Transparent"
                         IsItemsHost="True" />
             </Border>
-            <ContentPresenter Grid.Row="1"
+            <ContentPresenter x:Name="PART_SelectedContentHost"
+                              Grid.Row="1"
                               ContentSource="SelectedContent" />
           </Grid>
         </ControlTemplate>
@@ -1013,13 +1014,17 @@
             <Track x:Name="PART_Track"
                    IsDirectionReversed="true">
               <Track.DecreaseRepeatButton>
-                <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" />
+                <RepeatButton Command="ScrollBar.PageUpCommand"
+                              Opacity="0"
+                              AutomationProperties.Name="Scroll page up" />
               </Track.DecreaseRepeatButton>
               <Track.Thumb>
                 <Thumb Style="{StaticResource ScrollBarThumbStyle}" />
               </Track.Thumb>
               <Track.IncreaseRepeatButton>
-                <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" />
+                <RepeatButton Command="ScrollBar.PageDownCommand"
+                              Opacity="0"
+                              AutomationProperties.Name="Scroll page down" />
               </Track.IncreaseRepeatButton>
             </Track>
           </Grid>
@@ -1036,13 +1041,17 @@
               <Grid Background="Transparent">
                 <Track x:Name="PART_Track">
                   <Track.DecreaseRepeatButton>
-                    <RepeatButton Command="ScrollBar.PageLeftCommand" Opacity="0" />
+                    <RepeatButton Command="ScrollBar.PageLeftCommand"
+                                  Opacity="0"
+                                  AutomationProperties.Name="Scroll page left" />
                   </Track.DecreaseRepeatButton>
                   <Track.Thumb>
                     <Thumb Style="{StaticResource ScrollBarThumbStyle}" />
                   </Track.Thumb>
                   <Track.IncreaseRepeatButton>
-                    <RepeatButton Command="ScrollBar.PageRightCommand" Opacity="0" />
+                    <RepeatButton Command="ScrollBar.PageRightCommand"
+                                  Opacity="0"
+                                  AutomationProperties.Name="Scroll page right" />
                   </Track.IncreaseRepeatButton>
                 </Track>
               </Grid>

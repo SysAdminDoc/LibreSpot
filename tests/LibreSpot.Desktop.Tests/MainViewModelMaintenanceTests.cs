@@ -1,4 +1,5 @@
 using System.IO;
+using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
 using LibreSpot.Desktop.ViewModels;
 using Xunit;
@@ -193,6 +194,44 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task ThemeGallery_SearchAndSelectionUpdateThemeConfigurationFields() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            Assert.Contains(viewModel.ThemeGalleryItems, item => item.Name == "(None - Marketplace Only)" && item.IsMarketplaceOnly);
+            Assert.Contains(viewModel.ThemeGalleryItems, item => item.Name == "Catppuccin" && item.IsCommunity && item.RequiresThemeJs);
+
+            viewModel.ThemeSearchText = "mocha";
+
+            Assert.Contains(viewModel.FilteredThemeGalleryItems, item => item.Name == "Catppuccin");
+            Assert.Contains(viewModel.FilteredThemeGalleryItems, item => item.Name == "Dribbblish");
+            Assert.False(viewModel.ShowThemeGalleryEmptyState);
+
+            viewModel.ThemeSearchText = "theme.js";
+
+            Assert.Contains(viewModel.FilteredThemeGalleryItems, item => item.Name == "Catppuccin");
+
+            viewModel.SelectedThemeGalleryItem = viewModel.ThemeGalleryItems.Single(item => item.Name == "Catppuccin");
+
+            Assert.Equal("Catppuccin", viewModel.SelectedTheme);
+            Assert.Contains("mocha", viewModel.SchemeOptions);
+
+            viewModel.SelectedScheme = "macchiato";
+            var configuration = BuildConfiguration(viewModel, "Custom");
+
+            Assert.Equal("Catppuccin", configuration.Spicetify_Theme);
+            Assert.Equal("macchiato", configuration.Spicetify_Scheme);
+
+            viewModel.ThemeSearchText = "no-match-value";
+
+            Assert.Empty(viewModel.FilteredThemeGalleryItems);
+            Assert.True(viewModel.ShowThemeGalleryEmptyState);
+            Assert.Equal("No themes match this search.", viewModel.ThemeGalleryEmptyText);
+        });
+
+    [Fact]
     public Task PromptDefaultConfirm_OnlyAppliesToNonDestructivePrompts() =>
         RunStaAsync(async () =>
         {
@@ -216,6 +255,15 @@ public sealed class MainViewModelMaintenanceTests
         viewModel.SafeMaintenanceActions
             .Concat(viewModel.DestructiveMaintenanceActions)
             .Single(card => card.Action == action);
+
+    private static InstallConfiguration BuildConfiguration(MainViewModel viewModel, string mode)
+    {
+        var method = typeof(MainViewModel).GetMethod(
+            "BuildConfiguration",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(method);
+        return Assert.IsType<InstallConfiguration>(method.Invoke(viewModel, new object[] { mode }));
+    }
 
     private static Task RunStaAsync(Func<Task> action)
     {

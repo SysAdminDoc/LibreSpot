@@ -903,6 +903,86 @@ namespace LibreSpot.Desktop.Properties {
             }
         }
         /// <summary>
+        ///   Theme gallery search label
+        /// </summary>
+        public static string ThemeGallerySearchLabel {
+            get {
+                return ResourceManager.GetString("ThemeGallerySearchLabel", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Accessibility name for theme gallery search
+        /// </summary>
+        public static string ThemeGallerySearchName {
+            get {
+                return ResourceManager.GetString("ThemeGallerySearchName", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Accessibility help text for theme gallery search
+        /// </summary>
+        public static string ThemeGallerySearchHint {
+            get {
+                return ResourceManager.GetString("ThemeGallerySearchHint", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Theme gallery empty state
+        /// </summary>
+        public static string ThemeGalleryEmpty {
+            get {
+                return ResourceManager.GetString("ThemeGalleryEmpty", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Theme gallery no-results state
+        /// </summary>
+        public static string ThemeGalleryNoResults {
+            get {
+                return ResourceManager.GetString("ThemeGalleryNoResults", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Badge for themes that require theme.js
+        /// </summary>
+        public static string ThemeGalleryRequiresJsBadge {
+            get {
+                return ResourceManager.GetString("ThemeGalleryRequiresJsBadge", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Badge for community themes
+        /// </summary>
+        public static string ThemeGalleryCommunityBadge {
+            get {
+                return ResourceManager.GetString("ThemeGalleryCommunityBadge", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Badge for official themes
+        /// </summary>
+        public static string ThemeGalleryOfficialBadge {
+            get {
+                return ResourceManager.GetString("ThemeGalleryOfficialBadge", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Badge for marketplace-only fallback theme selection
+        /// </summary>
+        public static string ThemeGalleryMarketplaceBadge {
+            get {
+                return ResourceManager.GetString("ThemeGalleryMarketplaceBadge", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Theme gallery scheme chip section label
+        /// </summary>
+        public static string ThemeGallerySchemesLabel {
+            get {
+                return ResourceManager.GetString("ThemeGallerySchemesLabel", resourceCulture);
+            }
+        }
+        /// <summary>
         ///   Scheme selector label
         /// </summary>
         public static string ColorSchemeLabel {

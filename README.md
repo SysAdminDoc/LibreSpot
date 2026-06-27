@@ -65,7 +65,7 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 **Premium UI overhaul.** Win11 Mica backdrop (with graceful fallback on Windows 10), a left sidebar navigation rail with Lucide icons replacing the old top tab bar, semantic design tokens, hover-lift micro-interactions, and a shimmering install progress bar. Compact density pass means every panel fits a 1080-px screen without scrolling. Same install behavior, polished chrome.
 
-The v4 desktop preview continues that polish with a sharper 6-12 px radius system, quieter scrollbars, cleaner first-run guidance, readable Custom setting cards, forced dark native window chrome, completion notifications, a compact status dashboard, issue-level repair buttons, a post-run reversible-changes pane, and calmer activity/support-bundle feedback for assistive technology.
+The v4 desktop preview continues that polish with a sharper 6-12 px radius system, quieter scrollbars, cleaner first-run guidance, readable Custom setting cards, a searchable theme gallery, forced dark native window chrome, completion notifications, a compact status dashboard, issue-level repair buttons, a post-run reversible-changes pane, and calmer activity/support-bundle feedback for assistive technology.
 
 ---
 
@@ -105,7 +105,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 **Easy Install** — one click, sensible defaults. Removes any existing installation, applies SpotX ad-blocking with the new UI theme, installs Spicetify CLI with Marketplace, and enables Full App Display, Shuffle+, and Trash Bin extensions.
 
-**Custom Install** — full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), pick from 21 themes (16 official + 5 community) with per-theme color schemes, select from 15 extensions (10 built-in + 5 community), and choose between clean or overlay install.
+**Custom Install** — full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), browse 21 themes (16 official + 5 community) through a searchable gallery with per-theme color schemes, select from 15 extensions (10 built-in + 5 community), and choose between clean or overlay install.
 
 **Maintenance** — manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, export a redacted local support bundle, restore vanilla Spotify, uninstall Spicetify, check for dependency updates, or perform a full system reset.
 

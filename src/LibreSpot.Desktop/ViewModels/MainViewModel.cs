@@ -138,6 +138,113 @@ public sealed class UndoActionItemViewModel
     }
 }
 
+public sealed class ThemeGalleryItemViewModel
+{
+    public ThemeGalleryItemViewModel(string name, IReadOnlyList<string> schemes)
+    {
+        Name = name;
+        Label = Prettify.Label(name);
+        Schemes = schemes;
+        SchemePreview = string.Join(", ", schemes.Take(4).Select(Prettify.Label));
+        SchemeCountText = schemes.Count == 1 ? "1 scheme" : $"{schemes.Count} schemes";
+        IsMarketplaceOnly = string.Equals(name, "(None - Marketplace Only)", StringComparison.Ordinal);
+        IsCommunity = CommunityThemeNames.Contains(name);
+        RequiresThemeJs = ThemesNeedingJs.Contains(name);
+        SourceBadge = IsMarketplaceOnly
+            ? Strings.ThemeGalleryMarketplaceBadge
+            : IsCommunity
+                ? Strings.ThemeGalleryCommunityBadge
+                : Strings.ThemeGalleryOfficialBadge;
+        JsBadge = RequiresThemeJs ? Strings.ThemeGalleryRequiresJsBadge : string.Empty;
+        HasJsBadge = RequiresThemeJs;
+
+        var hash = StableHash(name);
+        SwatchA = Swatch(hash, 0x2B);
+        SwatchB = Swatch(hash >> 4, 0x46);
+        SwatchC = Swatch(hash >> 8, 0x61);
+    }
+
+    private static readonly HashSet<string> CommunityThemeNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Catppuccin",
+        "Comfy",
+        "Bloom",
+        "Lucid",
+        "Hazy"
+    };
+
+    private static readonly HashSet<string> ThemesNeedingJs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Dribbblish",
+        "StarryNight",
+        "Turntable",
+        "Catppuccin",
+        "Comfy",
+        "Bloom",
+        "Lucid",
+        "Hazy"
+    };
+
+    public string Name { get; }
+    public string Label { get; }
+    public IReadOnlyList<string> Schemes { get; }
+    public string SchemePreview { get; }
+    public string SchemeCountText { get; }
+    public bool IsMarketplaceOnly { get; }
+    public bool IsCommunity { get; }
+    public bool RequiresThemeJs { get; }
+    public string SourceBadge { get; }
+    public string JsBadge { get; }
+    public bool HasJsBadge { get; }
+    public string SwatchA { get; }
+    public string SwatchB { get; }
+    public string SwatchC { get; }
+    public string AutomationName => $"{Label}, {SchemeCountText}";
+    public string AutomationHelpText =>
+        IsMarketplaceOnly
+            ? "Uses Spicetify Marketplace without installing a bundled theme."
+            : RequiresThemeJs
+                ? $"{Label} includes a theme.js step and {SchemeCountText}."
+                : $"{Label} installs without a theme.js step and has {SchemeCountText}.";
+
+    public bool Matches(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return true;
+        }
+
+        var text = query.Trim();
+        return Label.Contains(text, StringComparison.OrdinalIgnoreCase)
+            || Name.Contains(text, StringComparison.OrdinalIgnoreCase)
+            || SourceBadge.Contains(text, StringComparison.OrdinalIgnoreCase)
+            || JsBadge.Contains(text, StringComparison.OrdinalIgnoreCase)
+            || SchemePreview.Contains(text, StringComparison.OrdinalIgnoreCase)
+            || Schemes.Any(scheme => scheme.Contains(text, StringComparison.OrdinalIgnoreCase)
+                || Prettify.Label(scheme).Contains(text, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static int StableHash(string value)
+    {
+        var hash = 2166136261u;
+        foreach (var c in value)
+        {
+            hash ^= char.ToUpperInvariant(c);
+            hash *= 16777619u;
+        }
+
+        return (int)(hash & 0x7FFFFFFF);
+    }
+
+    private static string Swatch(int value, byte floor)
+    {
+        var r = (byte)(floor + (value & 0x5F));
+        var g = (byte)(floor + ((value >> 5) & 0x5F));
+        var b = (byte)(floor + ((value >> 10) & 0x5F));
+        return $"#{r:X2}{g:X2}{b:X2}";
+    }
+}
+
 public sealed class MaintenanceActionCardViewModel : ObservableObject
 {
     private bool _isRelevant = true;
@@ -359,6 +466,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _selectedSpotifyVersionId = "auto";
     private string _selectedDownloadMethod = string.Empty;
     private string _cacheLimitText = "0";
+    private string _themeSearchText = string.Empty;
     private string _settingsSearchText = string.Empty;
     private int _selectedWorkspaceIndex;
     private bool _isActivityVisible;
@@ -418,6 +526,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         RecommendedHighlights = new ObservableCollection<string>(AppCatalog.RecommendedHighlights);
         ThemeNames = new ObservableCollection<string>(AppCatalog.ThemeSchemes.Keys);
+        ThemeGalleryItems = new ObservableCollection<ThemeGalleryItemViewModel>(
+            AppCatalog.ThemeSchemes.Select(pair => new ThemeGalleryItemViewModel(pair.Key, pair.Value)));
         SchemeOptions = new ObservableCollection<string>(AppCatalog.ThemeSchemes[_selectedTheme]);
         LyricsThemes = new ObservableCollection<string>(AppCatalog.LyricsThemes);
         SpotifyVersionOptions = new ObservableCollection<AppCatalog.SpotifyVersionEntry>(AppCatalog.SpotifyVersionManifest);
@@ -460,6 +570,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         EnableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: true), () => !IsRunning && !Snapshot.AutoReapplyTaskRegistered);
         DisableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: false), () => !IsRunning && Snapshot.AutoReapplyTaskRegistered);
         ClearSettingsSearchCommand = new RelayCommand(() => SettingsSearchText = string.Empty, () => HasSettingsSearchText);
+        ClearThemeSearchCommand = new RelayCommand(() => ThemeSearchText = string.Empty, () => HasThemeSearchText);
         RelaunchAsAdministratorCommand = new RelayCommand(PresentAdministratorPrompt, () => NeedsAdministratorRelaunch && !IsRunning);
         ConfirmPromptCommand = new AsyncRelayCommand(ConfirmPromptAsync, () => IsPromptVisible, HandleAsyncCommandException);
         CancelPromptCommand = new RelayCommand(CancelPrompt, () => IsPromptVisible);
@@ -476,6 +587,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<string> RecommendedHighlights { get; }
     public ObservableCollection<string> ThemeNames { get; }
+    public ObservableCollection<ThemeGalleryItemViewModel> ThemeGalleryItems { get; }
     public ObservableCollection<string> SchemeOptions { get; }
     public ObservableCollection<string> LyricsThemes { get; }
     public ObservableCollection<AppCatalog.SpotifyVersionEntry> SpotifyVersionOptions { get; }
@@ -508,6 +620,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand EnableAutoReapplyCommand { get; }
     public RelayCommand DisableAutoReapplyCommand { get; }
     public RelayCommand ClearSettingsSearchCommand { get; }
+    public RelayCommand ClearThemeSearchCommand { get; }
     public RelayCommand RelaunchAsAdministratorCommand { get; }
     public AsyncRelayCommand ConfirmPromptCommand { get; }
     public RelayCommand CancelPromptCommand { get; }
@@ -1077,10 +1190,50 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _selectedTheme, value))
             {
                 RebuildSchemes();
+                RaisePropertyChanged(nameof(SelectedThemeGalleryItem));
                 RaiseSelectionInsightsChanged();
             }
         }
     }
+
+    public ThemeGalleryItemViewModel? SelectedThemeGalleryItem
+    {
+        get => ThemeGalleryItems.FirstOrDefault(item => string.Equals(item.Name, SelectedTheme, StringComparison.Ordinal));
+        set
+        {
+            if (value is not null && !string.Equals(value.Name, SelectedTheme, StringComparison.Ordinal))
+            {
+                SelectedTheme = value.Name;
+            }
+        }
+    }
+
+    public string ThemeSearchText
+    {
+        get => _themeSearchText;
+        set
+        {
+            if (SetProperty(ref _themeSearchText, value))
+            {
+                RaisePropertyChanged(nameof(FilteredThemeGalleryItems));
+                RaisePropertyChanged(nameof(ThemeGalleryEmptyText));
+                RaisePropertyChanged(nameof(ShowThemeGalleryEmptyState));
+                RaisePropertyChanged(nameof(HasThemeSearchText));
+                ClearThemeSearchCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public IReadOnlyList<ThemeGalleryItemViewModel> FilteredThemeGalleryItems =>
+        ThemeGalleryItems.Where(item => item.Matches(ThemeSearchText)).ToArray();
+
+    public bool HasThemeSearchText => !string.IsNullOrWhiteSpace(ThemeSearchText);
+    public bool ShowThemeGalleryEmptyState => !FilteredThemeGalleryItems.Any();
+
+    public string ThemeGalleryEmptyText =>
+        HasThemeSearchText
+            ? Strings.ThemeGalleryNoResults
+            : Strings.ThemeGalleryEmpty;
 
     public string SelectedScheme
     {
@@ -2833,6 +2986,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             case "custom":
                 SelectedWorkspaceIndex = 1;
+                SettingsSearchText = "theme";
                 break;
             case "maintenance":
                 SelectedWorkspaceIndex = 2;

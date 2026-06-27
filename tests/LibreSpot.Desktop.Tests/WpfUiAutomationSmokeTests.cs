@@ -115,6 +115,27 @@ public sealed class WpfUiAutomationSmokeTests
     }
 
     [Fact]
+    public void WpfShell_UiaCustomStateExposesThemeGallery()
+    {
+        RunOnSta(() =>
+        {
+            using var app = LaunchSmokeState("custom");
+            try
+            {
+                var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
+                var snapshot = WaitForSnapshotContaining(window, "Search themes and schemes", TimeSpan.FromSeconds(10));
+
+                Assert.Contains(snapshot, node => string.Equals(node.Name, "Theme pack", StringComparison.Ordinal));
+                Assert.Contains(snapshot, node => node.Name.Contains("Marketplace only", StringComparison.Ordinal));
+            }
+            finally
+            {
+                app.Dispose();
+            }
+        });
+    }
+
+    [Fact]
     public void WpfShell_UiaActivityUndoStateExposesRollbackHint()
     {
         RunOnSta(() =>

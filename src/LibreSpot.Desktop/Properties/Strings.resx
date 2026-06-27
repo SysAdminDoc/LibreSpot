@@ -175,6 +175,16 @@
   <data name="AppearanceDescription" xml:space="preserve"><value>Theme, scheme, lyrics, cache, and compatibility.</value><comment>Custom mode section description</comment></data>
   <data name="ThemePackLabel" xml:space="preserve"><value>Theme pack</value><comment>Theme selector label</comment></data>
   <data name="ThemePackHint" xml:space="preserve"><value>Select the Spicetify theme pack LibreSpot should restore.</value><comment>Theme selector accessibility hint</comment></data>
+  <data name="ThemeGallerySearchLabel" xml:space="preserve"><value>Search themes and schemes</value><comment>Theme gallery search label</comment></data>
+  <data name="ThemeGallerySearchName" xml:space="preserve"><value>Search themes and schemes</value><comment>Accessibility name for theme gallery search</comment></data>
+  <data name="ThemeGallerySearchHint" xml:space="preserve"><value>Type a theme, scheme, source, or theme.js requirement to filter the gallery.</value><comment>Accessibility help text for theme gallery search</comment></data>
+  <data name="ThemeGalleryEmpty" xml:space="preserve"><value>No themes available.</value><comment>Theme gallery empty state</comment></data>
+  <data name="ThemeGalleryNoResults" xml:space="preserve"><value>No themes match this search.</value><comment>Theme gallery no-results state</comment></data>
+  <data name="ThemeGalleryRequiresJsBadge" xml:space="preserve"><value>theme.js</value><comment>Badge for themes that require theme.js</comment></data>
+  <data name="ThemeGalleryCommunityBadge" xml:space="preserve"><value>Community</value><comment>Badge for community themes</comment></data>
+  <data name="ThemeGalleryOfficialBadge" xml:space="preserve"><value>Official</value><comment>Badge for official themes</comment></data>
+  <data name="ThemeGalleryMarketplaceBadge" xml:space="preserve"><value>Marketplace only</value><comment>Badge for marketplace-only fallback theme selection</comment></data>
+  <data name="ThemeGallerySchemesLabel" xml:space="preserve"><value>Schemes</value><comment>Theme gallery scheme chip section label</comment></data>
   <data name="ColorSchemeLabel" xml:space="preserve"><value>Color scheme</value><comment>Scheme selector label</comment></data>
   <data name="LyricsThemeLabel" xml:space="preserve"><value>Lyrics theme</value><comment>Lyrics theme selector label</comment></data>
   <data name="CacheLimitLabel" xml:space="preserve"><value>Cache limit</value><comment>Cache limit field label</comment></data>

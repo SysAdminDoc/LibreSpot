@@ -1091,6 +1091,7 @@
                       <Button Grid.Column="1"
                               Content="{x:Static props:Strings.ButtonClearSearch}"
                               Height="42"
+                              MinWidth="84"
                               Margin="10,0,0,0"
                               Padding="18,0"
                               Style="{StaticResource SecondaryButtonStyle}"
@@ -1160,27 +1161,178 @@
                                      Margin="0,6,0,16" />
 
                           <TextBlock Text="{x:Static props:Strings.ThemePackLabel}" Style="{StaticResource LabelTextStyle}" />
-                          <ComboBox ItemsSource="{Binding ThemeNames}"
-                                     SelectedItem="{Binding SelectedTheme, Mode=TwoWay}"
-                                     Style="{StaticResource ComboBoxStylePremium}"
-                                     AutomationProperties.Name="{x:Static props:Strings.ThemePackLabel}"
-                                     AutomationProperties.HelpText="{x:Static props:Strings.ThemePackHint}"
-                                     Margin="0,6,0,14" />
+                          <Grid Margin="0,6,0,10">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="*" />
+                              <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding ThemeSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource TextBoxStylePremium}"
+                                     Height="42"
+                                     AutomationProperties.Name="{x:Static props:Strings.ThemeGallerySearchName}"
+                                     AutomationProperties.HelpText="{x:Static props:Strings.ThemeGallerySearchHint}" />
+                            <Button Grid.Column="1"
+                                    Content="{x:Static props:Strings.ButtonClearSearch}"
+                                    Height="42"
+                                    MinWidth="84"
+                                    Margin="10,0,0,0"
+                                    Padding="18,0"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Visibility="{Binding HasThemeSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    Command="{Binding ClearThemeSearchCommand}"
+                                    AutomationProperties.Name="{x:Static props:Strings.ButtonClearSearchName}" />
+                          </Grid>
+
+                          <ListBox ItemsSource="{Binding FilteredThemeGalleryItems}"
+                                   SelectedItem="{Binding SelectedThemeGalleryItem, Mode=TwoWay}"
+                                   Background="Transparent"
+                                   BorderThickness="0"
+                                   Padding="0"
+                                   MaxHeight="340"
+                                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                   ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                   KeyboardNavigation.DirectionalNavigation="Contained"
+                                   AutomationProperties.Name="{x:Static props:Strings.ThemePackLabel}"
+                                   AutomationProperties.HelpText="{x:Static props:Strings.ThemePackHint}"
+                                   Margin="0,0,0,14">
+                            <ListBox.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <WrapPanel />
+                              </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemContainerStyle>
+                              <Style TargetType="ListBoxItem">
+                                <Setter Property="Margin" Value="0,0,10,10" />
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                                <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
+                                <Setter Property="AutomationProperties.HelpText" Value="{Binding AutomationHelpText}" />
+                              </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                              <DataTemplate>
+                                <Border Width="246"
+                                        MinHeight="152"
+                                        Padding="12"
+                                        Background="{StaticResource Surface1Brush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                  <Border.Style>
+                                    <Style TargetType="Border">
+                                      <Setter Property="BorderBrush" Value="{StaticResource StrokeSoftBrush}" />
+                                      <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                          <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                        </DataTrigger>
+                                      </Style.Triggers>
+                                    </Style>
+                                  </Border.Style>
+                                  <StackPanel>
+                                    <Grid Height="46" ClipToBounds="True">
+                                      <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                      </Grid.ColumnDefinitions>
+                                      <Border Grid.Column="0" Background="{Binding SwatchA}" CornerRadius="6,0,0,6" />
+                                      <Border Grid.Column="1" Background="{Binding SwatchB}" />
+                                      <Border Grid.Column="2" Background="{Binding SwatchC}" CornerRadius="0,6,6,0" />
+                                    </Grid>
+                                    <StackPanel Margin="0,10,0,0">
+                                      <TextBlock Text="{Binding Label}"
+                                                 Foreground="{StaticResource TextBrush}"
+                                                 FontWeight="SemiBold"
+                                                 TextWrapping="Wrap" />
+                                      <Border Style="{StaticResource MicroBadgeStyle}"
+                                              HorizontalAlignment="Left"
+                                              Margin="0,7,0,0">
+                                        <TextBlock Text="{Binding SourceBadge}"
+                                                   Style="{StaticResource MicroBadgeTextStyle}" />
+                                      </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding SchemeCountText}"
+                                               Style="{StaticResource CaptionTextStyle}"
+                                               Foreground="{StaticResource SubtleTextBrush}"
+                                               Margin="0,6,0,0" />
+                                    <TextBlock Text="{Binding SchemePreview}"
+                                               Style="{StaticResource CaptionTextStyle}"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               TextWrapping="Wrap"
+                                               MaxHeight="36"
+                                               Margin="0,4,0,0" />
+                                    <Border Style="{StaticResource MicroBadgeStyle}"
+                                            Margin="0,8,0,0"
+                                            HorizontalAlignment="Left"
+                                            Visibility="{Binding HasJsBadge, Converter={StaticResource BoolToVisibilityConverter}}">
+                                      <TextBlock Text="{Binding JsBadge}"
+                                                 Style="{StaticResource MicroBadgeTextStyle}" />
+                                    </Border>
+                                  </StackPanel>
+                                </Border>
+                              </DataTemplate>
+                            </ListBox.ItemTemplate>
+                          </ListBox>
+
+                          <TextBlock Text="{Binding ThemeGalleryEmptyText}"
+                                     Style="{StaticResource CaptionTextStyle}"
+                                     Foreground="{StaticResource WarningBrush}"
+                                     Visibility="{Binding ShowThemeGalleryEmptyState, Converter={StaticResource BoolToVisibilityConverter}}"
+                                     Margin="0,0,0,14" />
 
                           <TextBlock Text="{x:Static props:Strings.ColorSchemeLabel}" Style="{StaticResource LabelTextStyle}" />
-                          <ComboBox ItemsSource="{Binding SchemeOptions}"
-                                     SelectedItem="{Binding SelectedScheme, Mode=TwoWay}"
-                                     Style="{StaticResource ComboBoxStylePremium}"
-                                     IsEnabled="{Binding IsThemeSchemeAvailable}"
-                                     AutomationProperties.Name="{x:Static props:Strings.ColorSchemeLabel}"
-                                     AutomationProperties.HelpText="{Binding ThemeSchemeHint}"
-                                     Margin="0,6,0,6">
-                            <ComboBox.ItemTemplate>
+                          <ListBox ItemsSource="{Binding SchemeOptions}"
+                                   SelectedItem="{Binding SelectedScheme, Mode=TwoWay}"
+                                   Background="Transparent"
+                                   BorderThickness="0"
+                                   Padding="0"
+                                   IsEnabled="{Binding IsThemeSchemeAvailable}"
+                                   AutomationProperties.Name="{x:Static props:Strings.ColorSchemeLabel}"
+                                   AutomationProperties.HelpText="{Binding ThemeSchemeHint}"
+                                   Margin="0,6,0,6">
+                            <ListBox.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <WrapPanel />
+                              </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemContainerStyle>
+                              <Style TargetType="ListBoxItem">
+                                <Setter Property="Margin" Value="0,0,8,8" />
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                                <Setter Property="AutomationProperties.Name" Value="{Binding Converter={StaticResource PrettifyConverter}}" />
+                              </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
                               <DataTemplate>
-                                <TextBlock Text="{Binding Converter={StaticResource PrettifyConverter}}" />
+                                <Border MinWidth="76"
+                                        Height="32"
+                                        Padding="12,0"
+                                        Background="{StaticResource Surface1Brush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                  <Border.Style>
+                                    <Style TargetType="Border">
+                                      <Setter Property="BorderBrush" Value="{StaticResource StrokeSoftBrush}" />
+                                      <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                          <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                        </DataTrigger>
+                                      </Style.Triggers>
+                                    </Style>
+                                  </Border.Style>
+                                  <TextBlock Text="{Binding Converter={StaticResource PrettifyConverter}}"
+                                             VerticalAlignment="Center"
+                                             TextAlignment="Center"
+                                             Foreground="{StaticResource TextBrush}"
+                                             FontSize="12" />
+                                </Border>
                               </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                          </ComboBox>
+                            </ListBox.ItemTemplate>
+                          </ListBox>
                           <TextBlock Text="{Binding ThemeSchemeHint}"
                                      Style="{StaticResource CaptionTextStyle}"
                                      Margin="0,0,0,14" />

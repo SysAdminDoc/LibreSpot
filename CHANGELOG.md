@@ -5,6 +5,9 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- WPF Custom mode now replaces theme and scheme ComboBoxes with a searchable
+  theme gallery, source/theme.js badges, scheme chips, UIA names, and a
+  refreshed screenshot for the preview shell.
 - WPF activity overlay now shows a reversible-changes pane after successful
   backend runs, sourced from the latest successful operation journal entries
   with manual undo notes and covered by parser plus UIA smoke tests.
