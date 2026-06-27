@@ -1811,23 +1811,83 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         var configuration = AppCatalog.CreateRecommendedConfiguration();
         configuration.Mode = "Easy";
-        await StartBackendRunAsync(
-            "Install",
-            configuration,
-            "Applying the recommended setup",
-            "LibreSpot is rebuilding the tested SpotX and Spicetify stack with the default premium preset.",
-            0);
+        var planSummary = await CollectPlanSummaryAsync(configuration);
+        ShowPrompt(
+            "Run recommended setup",
+            planSummary,
+            Strings.ButtonRunSetup,
+            Strings.ButtonCancel,
+            false,
+            () => StartBackendRunAsync(
+                "Install",
+                configuration,
+                "Applying the recommended setup",
+                "LibreSpot is rebuilding the tested SpotX and Spicetify stack with the default premium preset.",
+                0),
+            "What this will do",
+            "LibreSpot will download, verify, and apply each step listed above. The window stays open so you can follow progress.");
     }
 
     private async Task ApplyCustomAsync()
     {
         var configuration = BuildConfiguration("Custom");
-        await StartBackendRunAsync(
-            "Install",
-            configuration,
-            "Applying your custom setup",
-            "LibreSpot is validating your selections before it patches Spotify and restores the chosen visual stack.",
-            1);
+        var planSummary = await CollectPlanSummaryAsync(configuration);
+        ShowPrompt(
+            "Apply custom profile",
+            planSummary,
+            Strings.ButtonRunSetup,
+            Strings.ButtonCancel,
+            false,
+            () => StartBackendRunAsync(
+                "Install",
+                configuration,
+                "Applying your custom setup",
+                "LibreSpot is validating your selections before it patches Spotify and restores the chosen visual stack.",
+                1),
+            "What this will do",
+            "LibreSpot will download, verify, and apply each step listed above. The window stays open so you can follow progress.");
+    }
+
+    private async Task<string> CollectPlanSummaryAsync(InstallConfiguration configuration)
+    {
+        var planLines = new List<string>();
+        try
+        {
+            await _configurationService.SaveAsync(configuration);
+            await _backendScriptService.RunAsync("Plan", _configurationService.ConfigPath, message =>
+            {
+                if (message.Kind == "plan")
+                {
+                    try
+                    {
+                        var entry = System.Text.Json.JsonDocument.Parse(message.Payload);
+                        var desc = entry.RootElement.GetProperty("description").GetString() ?? "";
+                        var wouldChange = entry.RootElement.GetProperty("wouldChange").GetBoolean();
+                        if (wouldChange && !string.IsNullOrWhiteSpace(desc))
+                        {
+                            planLines.Add(desc);
+                        }
+                    }
+                    catch { }
+                }
+            });
+        }
+        catch { }
+
+        if (planLines.Count == 0)
+        {
+            return "LibreSpot will download, verify, and apply the selected setup.";
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("LibreSpot will perform these steps:");
+        sb.AppendLine();
+        foreach (var line in planLines)
+        {
+            sb.Append("• ");
+            sb.AppendLine(line);
+        }
+        return sb.ToString().TrimEnd();
     }
 
     private Task RunMaintenanceAsync(MaintenanceActionDefinition definition)
