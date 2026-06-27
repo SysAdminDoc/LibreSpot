@@ -163,6 +163,56 @@ public sealed class CliApplicationTests
         Assert.True(doc.RootElement.GetProperty("valid").GetBoolean());
     }
 
+    [Fact]
+    public void InstallDryRun_EmitsNdjsonPlanWithoutMutating()
+    {
+        var sample = Path.Combine(ResolveRepoRoot(), "samples", "minimal.json");
+
+        var result = Run("install", "--dry-run", "--answer-file", sample, "--ndjson");
+
+        Assert.Equal(0, result.ExitCode);
+        var lines = result.Stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+        Assert.True(lines.Length >= 3);
+        using var started = JsonDocument.Parse(lines[0]);
+        using var step = JsonDocument.Parse(lines[1]);
+        using var completed = JsonDocument.Parse(lines[^1]);
+        Assert.Equal("plan.started", started.RootElement.GetProperty("eventName").GetString());
+        Assert.Equal("plan.step", step.RootElement.GetProperty("eventName").GetString());
+        Assert.Equal("validate-answer-file", step.RootElement.GetProperty("payload").GetProperty("id").GetString());
+        Assert.Equal("plan.completed", completed.RootElement.GetProperty("eventName").GetString());
+        Assert.Equal(0, completed.RootElement.GetProperty("payload").GetProperty("exitCode").GetInt32());
+    }
+
+    [Fact]
+    public void PlanJson_EmitsSingleDryRunDocument()
+    {
+        var sample = Path.Combine(ResolveRepoRoot(), "samples", "minimal.json");
+
+        var result = Run("plan", "--answer-file", sample, "--json");
+
+        Assert.Equal(0, result.ExitCode);
+        using var doc = JsonDocument.Parse(result.Stdout);
+        Assert.Equal("install", doc.RootElement.GetProperty("operation").GetString());
+        Assert.True(doc.RootElement.GetProperty("dryRun").GetBoolean());
+        Assert.False(doc.RootElement.GetProperty("mutates").GetBoolean());
+        Assert.Contains(
+            doc.RootElement.GetProperty("steps").EnumerateArray(),
+            step => step.GetProperty("id").GetString() == "run-backend-plan" &&
+                    step.GetProperty("requiresAdmin").GetBoolean());
+    }
+
+    [Fact]
+    public void InstallWithoutDryRun_IsRejected()
+    {
+        var sample = Path.Combine(ResolveRepoRoot(), "samples", "minimal.json");
+
+        var result = Run("install", "--answer-file", sample, "--ndjson");
+
+        Assert.Equal(2, result.ExitCode);
+        Assert.Contains("only with --dry-run", result.Stderr);
+        Assert.Equal(string.Empty, result.Stdout);
+    }
+
     private static CliRunResult Run(params string[] args) =>
         Run(args, _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true));
 

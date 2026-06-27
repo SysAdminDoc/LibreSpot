@@ -111,7 +111,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 ### Fleet CLI Preview
 
-`LibreSpot.Cli.exe` is the console-capable fleet artifact for endpoint tools. The first read-only verbs are `--version`, `status --json`, `detect --json`, `detect --intune`, and `validate --answer-file <path> --json`. `detect --intune` exits `0` only when the existing health report maps to a compliant state; clean slate, drift, and repair states return documented nonzero fleet exit codes without mutating the machine.
+`LibreSpot.Cli.exe` is the console-capable fleet artifact for endpoint tools. The first non-mutating verbs are `--version`, `status --json`, `detect --json`, `detect --intune`, `validate --answer-file <path> --json`, `install --dry-run --answer-file <path> --ndjson`, and `plan --answer-file <path> --json`. `detect --intune` exits `0` only when the existing health report maps to a compliant state; clean slate, drift, blocked, and repair states return documented nonzero fleet exit codes without mutating the machine.
 
 ### Comprehensive Uninstaller
 

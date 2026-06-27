@@ -75,6 +75,10 @@ public static class CliApplication
                 "status" => RunStatus(options, stdout, stderr, snapshotFactory),
                 "detect" => RunDetect(options, stdout, stderr, snapshotFactory),
                 "validate" => RunValidate(options, stdout, stderr),
+                "install" => RunPlannedOperation("install", options, stdout, stderr),
+                "reapply" => RunPlannedOperation("reapply", options, stdout, stderr),
+                "uninstall" => RunPlannedOperation("uninstall", options, stdout, stderr),
+                "plan" => RunPlannedOperation("install", options, stdout, stderr, planVerb: true),
                 _ => UnknownVerb(verb, stderr)
             };
         }
@@ -188,6 +192,108 @@ public static class CliApplication
         }
 
         return result.Valid ? Success : ValidationError;
+    }
+
+    private static int RunPlannedOperation(
+        string operation,
+        CliOptions options,
+        TextWriter stdout,
+        TextWriter stderr,
+        bool planVerb = false)
+    {
+        if (!options.OnlyContains(
+                "--answer-file",
+                "--profile",
+                "--config-path",
+                "--silent",
+                "--quiet",
+                "--accept-eula",
+                "--no-restart",
+                "--dry-run",
+                "--yes",
+                "--correlation-id",
+                "--log-dir",
+                "--ndjson",
+                "--json",
+                "--scope",
+                "--purge",
+                "--keep-spotify"))
+        {
+            stderr.WriteLine($"{operation} received an unsupported flag.");
+            return ValidationError;
+        }
+
+        if (!planVerb && !options.HasFlag("--dry-run"))
+        {
+            stderr.WriteLine($"{operation} is currently available only with --dry-run in LibreSpot.Cli.");
+            return ValidationError;
+        }
+
+        if (!planVerb && options.HasFlag("--json"))
+        {
+            stderr.WriteLine($"{operation} does not support --json. Use --ndjson for dry-run events or the plan verb for a JSON plan.");
+            return ValidationError;
+        }
+
+        if (planVerb && options.HasFlag("--ndjson"))
+        {
+            stderr.WriteLine("plan does not support --ndjson. Use --json for a single plan document.");
+            return ValidationError;
+        }
+
+        var answerFile = options.GetValue("--answer-file");
+        ValidationDocument? validation = null;
+        if (!string.IsNullOrWhiteSpace(answerFile))
+        {
+            validation = ValidateAnswerFile(answerFile);
+            if (!validation.Valid)
+            {
+                if (options.HasFlag("--json"))
+                {
+                    WriteJson(stdout, validation);
+                }
+                else if (options.HasFlag("--ndjson"))
+                {
+                    WriteJson(stdout, NdjsonEvent("validation.failed", operation, validation));
+                }
+                else
+                {
+                    foreach (var error in validation.Errors)
+                    {
+                        stderr.WriteLine($"{error.Path}: {error.Message}");
+                    }
+                }
+
+                return ValidationError;
+            }
+        }
+        else if (operation is "install" or "reapply")
+        {
+            stderr.WriteLine($"{operation} dry-run requires --answer-file <path> so fleet intent is explicit.");
+            return ValidationError;
+        }
+
+        var plan = BuildPlan(operation, options, validation);
+        if (options.HasFlag("--ndjson"))
+        {
+            WriteJson(stdout, NdjsonEvent("plan.started", operation, new { plan.Operation, plan.DryRun, plan.Mutates }));
+            foreach (var step in plan.Steps)
+            {
+                WriteJson(stdout, NdjsonEvent("plan.step", operation, step));
+            }
+
+            WriteJson(stdout, NdjsonEvent("plan.completed", operation, new { exitCode = Success, stepCount = plan.Steps.Count }));
+        }
+        else if (options.HasFlag("--json") || planVerb)
+        {
+            WriteJson(stdout, plan);
+        }
+        else
+        {
+            stdout.WriteLine($"{operation} dry-run plan: {plan.Steps.Count} steps, no changes will be made.");
+        }
+
+        return Success;
     }
 
     private static StatusDocument BuildStatusDocument(EnvironmentSnapshot snapshot, string configPath) =>
@@ -326,6 +432,71 @@ public static class CliApplication
         return new ValidationDocument(1, fullPath, errors.Count == 0, errors);
     }
 
+    private static PlanDocument BuildPlan(string operation, CliOptions options, ValidationDocument? validation)
+    {
+        var answerFile = validation?.AnswerFile;
+        var steps = new List<PlanStepDocument>();
+
+        if (!string.IsNullOrWhiteSpace(answerFile))
+        {
+            steps.Add(new PlanStepDocument(
+                "validate-answer-file",
+                "Validate answer file",
+                false,
+                false,
+                answerFile,
+                "The answer file schema version and consent fields were validated before planning."));
+        }
+
+        steps.Add(new PlanStepDocument(
+            "read-health-report",
+            "Read local health report",
+            false,
+            false,
+            options.GetValue("--config-path") ?? DefaultConfigPath,
+            "The same environment snapshot used by the WPF dashboard informs fleet planning."));
+
+        if (operation is "install" or "reapply")
+        {
+            steps.Add(new PlanStepDocument(
+                "verify-compatibility",
+                "Check pinned compatibility",
+                false,
+                false,
+                "SpotX, Spicetify CLI, Marketplace, and themes pins",
+                "The backend compatibility matrix will be checked before downloads or patching."));
+            steps.Add(new PlanStepDocument(
+                "run-backend-plan",
+                "Prepare backend operation",
+                true,
+                false,
+                operation,
+                "The GUI backend owns mutation ordering; this dry-run stops before invoking it."));
+        }
+        else if (operation == "uninstall")
+        {
+            steps.Add(new PlanStepDocument(
+                "plan-uninstall",
+                "Plan uninstall cleanup",
+                true,
+                false,
+                options.HasFlag("--purge") ? "purge" : "keep LibreSpot data",
+                "Dry-run reports the intended cleanup posture without removing Spotify, Spicetify, or LibreSpot data."));
+        }
+
+        return new PlanDocument(
+            1,
+            ProductVersion,
+            DateTimeOffset.UtcNow,
+            operation,
+            true,
+            false,
+            options.GetValue("--correlation-id"),
+            answerFile,
+            options.GetValue("--profile"),
+            steps);
+    }
+
     private static void RequireSchemaVersion(JsonElement root, ICollection<ValidationErrorDocument> errors)
     {
         if (!root.TryGetProperty("schemaVersion", out var value))
@@ -425,6 +596,17 @@ public static class CliApplication
     private static void WriteJson<T>(TextWriter stdout, T value) =>
         stdout.WriteLine(JsonSerializer.Serialize(value, JsonOptions));
 
+    private static object NdjsonEvent(string eventName, string operation, object payload) =>
+        new
+        {
+            schemaVersion = 1,
+            productVersion = ProductVersion,
+            timestampUtc = DateTimeOffset.UtcNow,
+            eventName,
+            operation,
+            payload
+        };
+
     private static int UnknownVerb(string verb, TextWriter stderr)
     {
         stderr.WriteLine($"Unknown LibreSpot CLI verb: {verb}");
@@ -439,6 +621,8 @@ public static class CliApplication
         writer.WriteLine("  LibreSpot.Cli status [--json] [--config-path <path>]");
         writer.WriteLine("  LibreSpot.Cli detect [--json|--intune] [--config-path <path>]");
         writer.WriteLine("  LibreSpot.Cli validate --answer-file <path> [--json]");
+        writer.WriteLine("  LibreSpot.Cli install --dry-run --answer-file <path> [--ndjson]");
+        writer.WriteLine("  LibreSpot.Cli plan --answer-file <path> [--json]");
     }
 
     private static bool IsHelp(string arg) =>
@@ -546,3 +730,23 @@ public sealed record ValidationDocument(
     IReadOnlyList<ValidationErrorDocument> Errors);
 
 public sealed record ValidationErrorDocument(string Path, string Message);
+
+public sealed record PlanDocument(
+    int SchemaVersion,
+    string ProductVersion,
+    DateTimeOffset GeneratedAtUtc,
+    string Operation,
+    bool DryRun,
+    bool Mutates,
+    string? CorrelationId,
+    string? AnswerFile,
+    string? Profile,
+    IReadOnlyList<PlanStepDocument> Steps);
+
+public sealed record PlanStepDocument(
+    string Id,
+    string Title,
+    bool RequiresAdmin,
+    bool Mutates,
+    string Target,
+    string Detail);
