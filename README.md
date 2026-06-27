@@ -109,6 +109,10 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 **Maintenance** — manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, export a redacted local support bundle, restore vanilla Spotify, uninstall Spicetify, check for dependency updates, or perform a full system reset.
 
+### Fleet CLI Preview
+
+`LibreSpot.Cli.exe` is the console-capable fleet artifact for endpoint tools. The first read-only verbs are `--version`, `status --json`, `detect --json`, `detect --intune`, and `validate --answer-file <path> --json`. `detect --intune` exits `0` only when the existing health report maps to a compliant state; clean slate, drift, and repair states return documented nonzero fleet exit codes without mutating the machine.
+
 ### Comprehensive Uninstaller
 
 The built-in 8-phase uninstaller handles every trace of Spotify and Spicetify:
@@ -262,7 +266,7 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 
 Releases ship unsigned today. [SignPath Foundation](https://signpath.org/) OSS enrollment is pending. Once the cert arrives, local release builds will Authenticode-sign both `LibreSpot.exe` and `LibreSpot-Desktop.exe` before upload and users will stop seeing the "Unknown publisher" SmartScreen warning.
 
-The current latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt` **as GitHub release assets**. The repository itself does not track build artifacts — `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [Releases page](https://github.com/SysAdminDoc/LibreSpot/releases), not against anything in a source checkout. Newer release builds also add `LibreSpot-Desktop.exe`, CycloneDX SBOM output, and GitHub provenance attestations when those attestations are available.
+The current latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt` **as GitHub release assets**. The repository itself does not track build artifacts — `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [Releases page](https://github.com/SysAdminDoc/LibreSpot/releases), not against anything in a source checkout. Newer release builds also add `LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, CycloneDX SBOM output, and GitHub provenance attestations when those attestations are available.
 
 The recommended Quick Start snippet above verifies `LibreSpot.ps1` automatically. For manual verification of any downloaded release asset:
 

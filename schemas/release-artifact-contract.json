@@ -52,6 +52,16 @@
       "distributionChannels": ["github-releases-wpf", "velopack"]
     },
     {
+      "name": "LibreSpot.Cli.exe",
+      "description": ".NET 10 console-capable fleet CLI executable",
+      "channels": ["stable", "preview", "rc"],
+      "required": true,
+      "checksumEntry": true,
+      "signingRequirement": "authenticode-when-available",
+      "attestation": "build-provenance",
+      "distributionChannels": ["github-releases", "fleet-tools"]
+    },
+    {
       "name": "LibreSpot.sbom.cdx.json",
       "description": "CycloneDX SBOM for the WPF desktop shell",
       "channels": ["stable", "preview", "rc"],
@@ -85,13 +95,13 @@
   "checksumContract": {
     "algorithm": "SHA256",
     "format": "sha256sum",
-    "coveredAssets": ["LibreSpot.exe", "LibreSpot.ps1", "LibreSpot-Desktop.exe", "LibreSpot.sbom.cdx.json"],
+    "coveredAssets": ["LibreSpot.exe", "LibreSpot.ps1", "LibreSpot-Desktop.exe", "LibreSpot.Cli.exe", "LibreSpot.sbom.cdx.json"],
     "verificationCommand": "sha256sum --check checksums.txt"
   },
   "attestationContract": {
     "provider": "github-built-in",
     "buildProvenance": {
-      "subjects": ["LibreSpot.exe", "LibreSpot.ps1", "LibreSpot-Desktop.exe"],
+      "subjects": ["LibreSpot.exe", "LibreSpot.ps1", "LibreSpot-Desktop.exe", "LibreSpot.Cli.exe"],
       "action": "actions/attest-build-provenance"
     },
     "sbom": {
@@ -106,7 +116,7 @@
     "type": "authenticode",
     "status": "pending-enrollment",
     "conditionalOn": ["SIGNPATH_API_TOKEN", "SIGNPATH_ORGANIZATION_ID"],
-    "signedAssets": ["LibreSpot.exe", "LibreSpot-Desktop.exe"],
+    "signedAssets": ["LibreSpot.exe", "LibreSpot-Desktop.exe", "LibreSpot.Cli.exe"],
     "verificationCommand": "Get-AuthenticodeSignature .\\<asset>"
   },
   "postUploadAudit": {

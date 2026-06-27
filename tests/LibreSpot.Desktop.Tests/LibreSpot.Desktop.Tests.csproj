@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\LibreSpot.Cli\LibreSpot.Cli.csproj" Aliases="Cli" />
     <ProjectReference Include="..\..\src\LibreSpot.Desktop\LibreSpot.Desktop.csproj" />
   </ItemGroup>
 

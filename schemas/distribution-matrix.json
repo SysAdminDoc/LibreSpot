@@ -40,6 +40,26 @@
       ]
     },
     {
+      "channel": "fleet-tools",
+      "targetAudience": "Admins using Intune, PDQ, SCCM, WinRM, or PSRemoting",
+      "artifactRole": "fleet",
+      "packageId": null,
+      "displayName": "LibreSpot CLI",
+      "executableName": "LibreSpot.Cli.exe",
+      "artifact": "LibreSpot.Cli.exe (.NET 10 console single-file)",
+      "installScope": "user",
+      "updateOwner": "manual (download new release)",
+      "signingRequirement": "pending - Authenticode via SignPath or self-signed",
+      "checksumSource": "SHA256 in release body + SLSA provenance attestation",
+      "requiredCliSwitches": "--version; status --json; detect --json; detect --intune; validate --answer-file",
+      "validationCommand": ".\\LibreSpot.Cli.exe --version",
+      "supportStatus": "preview",
+      "blockingDecisions": [
+        "Code signing certificate - operator action required",
+        "Mutating install/reapply/uninstall CLI verbs still need backend wiring"
+      ]
+    },
+    {
       "channel": "powershell-oneliner",
       "targetAudience": "Quick-start users who paste the one-liner from README",
       "artifactRole": "convenience",
