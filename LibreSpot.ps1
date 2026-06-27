@@ -295,6 +295,23 @@ function Test-SpotifyRunning {
     catch { return $false }
 }
 
+function Test-SpotifySessionStability {
+    param([int]$WaitSeconds = 20)
+    if (-not (Test-Path -LiteralPath $global:SPOTIFY_EXE_PATH)) { return $true }
+    try {
+        $procs = @(Get-Process -Name 'Spotify' -ErrorAction SilentlyContinue)
+        if ($procs.Count -eq 0) { return $true }
+        $initialPid = $procs[0].Id
+        Start-Sleep -Seconds $WaitSeconds
+        $afterProcs = @(Get-Process -Name 'Spotify' -ErrorAction SilentlyContinue)
+        if ($afterProcs.Count -eq 0) {
+            Write-Log "Spotify exited within ${WaitSeconds}s of patched launch. This may indicate server-side enforcement. If Spotify keeps closing after patching, check the FAQ in README for current enforcement status." -Level 'WARN'
+            return $false
+        }
+        return $true
+    } catch { return $true }
+}
+
 function Get-WatcherLaunchCommand {
     # Returns a [string[]]{ FileName, ArgumentList... } suitable for schtasks.exe's
     # /TR value. Prefers the compiled LibreSpot.exe when the user launched from it;
@@ -6746,7 +6763,13 @@ $installBlock = { param($sh,$cfg)
         }
         Write-Log "Temp files cleaned up."
         $finalStep = 'Ready when you are'
-        if ($cfg.LaunchAfter -and (Test-Path $global:SPOTIFY_EXE_PATH)) { Write-Log "Launching Spotify..." -Level 'SUCCESS'; Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""; $finalStep = 'Spotify is opening' }
+        if ($cfg.LaunchAfter -and (Test-Path $global:SPOTIFY_EXE_PATH)) {
+            Write-Log "Launching Spotify..." -Level 'SUCCESS'
+            Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
+            $finalStep = 'Spotify is opening'
+            $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Verifying Spotify session stability" })
+            Test-SpotifySessionStability -WaitSeconds 20 | Out-Null
+        }
         Complete-OperationJournalRun -Result 'Succeeded' -Message 'Install completed.'
         Write-Log "--- Installation Complete ---" -Level 'SUCCESS'; $sh.IsRunning=$false
         $installDoneContext = if ($cfg.LaunchAfter -and (Test-Path $global:SPOTIFY_EXE_PATH)) {
@@ -6911,7 +6934,7 @@ $functionNamesForWorker = @(
     'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
     'Get-NormalizedPathString','Get-PathEntries','Set-PathEntries','Add-PathEntry','Remove-PathEntry',
-    'Get-SpotXPatchVerification',
+    'Get-SpotXPatchVerification','Test-SpotifySessionStability',
     'Module-NukeSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
     'Module-InstallThemes','Download-CommunityExtensions','Module-InstallExtensions',
     'Module-InstallMarketplace','Open-SpicetifyMarketplace','Repair-Marketplace','Module-ApplySpicetify',
