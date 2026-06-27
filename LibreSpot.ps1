@@ -3211,14 +3211,16 @@ function Clear-CompletedRunspaceResources {
     if ($script:activeSyncHash -and $script:activeSyncHash.IsRunning) { return $false }
     if ($script:activeSyncHash) {
         $script:activeSyncHash.IsRunning = $false
-        Start-Sleep -Milliseconds 150
     }
-    foreach ($resource in @($script:openRunspaces)) {
-        try { $resource.Dispose() } catch {}
-    }
+    $pending = @($script:openRunspaces)
     $script:openRunspaces.Clear()
     if ($script:activeSyncHash -and -not $script:activeSyncHash.IsRunning) {
         $script:activeSyncHash = $null
+    }
+    # CloseAsync is non-blocking — avoids deadlock when a worker runspace is
+    # stuck inside Dispatcher.Invoke while the UI thread is in Add_Closing.
+    foreach ($resource in $pending) {
+        try { $resource.CloseAsync() } catch {}
     }
     return $true
 }
@@ -6073,8 +6075,15 @@ function Module-NukeSpotify {
         if ($PSVersionTable.PSVersion.Major -ge 7) { Import-Module Appx -UseWindowsPowerShell -WarningAction SilentlyContinue }
         $storeApp = Get-AppxPackage -Name "SpotifyAB.SpotifyMusic" -EA SilentlyContinue
         if ($storeApp) {
+            Write-OperationJournalEntry -Phase 'appx' -Target $storeApp.PackageFullName -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Reinstall Spotify from the Microsoft Store.'
             $savedPP = $ProgressPreference; $ProgressPreference = 'SilentlyContinue'
-            try { Remove-AppxPackage -Package $storeApp.PackageFullName -EA Stop } finally { $ProgressPreference = $savedPP }
+            try {
+                Remove-AppxPackage -Package $storeApp.PackageFullName -EA Stop
+                Write-OperationJournalEntry -Phase 'appx' -Target $storeApp.PackageFullName -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Reinstall Spotify from the Microsoft Store.'
+            } catch {
+                Write-OperationJournalEntry -Phase 'appx' -Target $storeApp.PackageFullName -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'Retry removal or reinstall from the Microsoft Store.'
+                throw
+            } finally { $ProgressPreference = $savedPP }
             Write-Log "  Removed Spotify Store app."; $rc++
         } else { Write-Log "  No Store version found." }
     } catch { Write-Log "  Store removal failed: $($_.Exception.Message)" -Level 'WARN' }
@@ -6143,8 +6152,15 @@ function Module-NukeSpotify {
     )
     foreach ($key in $regKeys) {
         if (Test-Path $key) {
-            try { Remove-Item -Path $key -Recurse -Force -EA Stop; Write-Log "  Removed: $key"; $rc++ }
-            catch { Write-Log "  Failed: $key" -Level 'WARN' }
+            Write-OperationJournalEntry -Phase 'registry' -Target $key -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Registry key cannot be automatically restored.'
+            try {
+                Remove-Item -Path $key -Recurse -Force -EA Stop
+                Write-OperationJournalEntry -Phase 'registry' -Target $key -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Registry key cannot be automatically restored.'
+                Write-Log "  Removed: $key"; $rc++
+            } catch {
+                Write-OperationJournalEntry -Phase 'registry' -Target $key -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'Retry registry removal manually.'
+                Write-Log "  Failed: $key" -Level 'WARN'
+            }
         }
     }
     $regValues = @(
@@ -6153,8 +6169,15 @@ function Module-NukeSpotify {
     )
     foreach ($rv in $regValues) {
         if (Get-ItemProperty -Path $rv.Path -Name $rv.Name -EA SilentlyContinue) {
-            try { Remove-ItemProperty -Path $rv.Path -Name $rv.Name -Force -EA Stop; Write-Log "  Removed startup: $($rv.Name)"; $rc++ }
-            catch {}
+            $regTarget = "$($rv.Path)\$($rv.Name)"
+            Write-OperationJournalEntry -Phase 'registry' -Target $regTarget -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Registry value cannot be automatically restored.'
+            try {
+                Remove-ItemProperty -Path $rv.Path -Name $rv.Name -Force -EA Stop
+                Write-OperationJournalEntry -Phase 'registry' -Target $regTarget -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Registry value cannot be automatically restored.'
+                Write-Log "  Removed startup: $($rv.Name)"; $rc++
+            } catch {
+                Write-OperationJournalEntry -Phase 'registry' -Target $regTarget -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'Retry registry removal manually.'
+            }
         }
     }
 
@@ -6165,8 +6188,14 @@ function Module-NukeSpotify {
         Get-ScheduledTask -EA SilentlyContinue |
             Where-Object { $_.TaskName -in $spotifyTaskNames -or $_.TaskName -like 'Spotify-*' } |
             ForEach-Object {
-                try { Unregister-ScheduledTask -TaskName $_.TaskName -Confirm:$false -EA Stop; Write-Log "  Removed task: $($_.TaskName)"; $rc++ }
-                catch {}
+                Write-OperationJournalEntry -Phase 'task' -Target $_.TaskName -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Re-register the scheduled task manually if needed.'
+                try {
+                    Unregister-ScheduledTask -TaskName $_.TaskName -Confirm:$false -EA Stop
+                    Write-OperationJournalEntry -Phase 'task' -Target $_.TaskName -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Re-register the scheduled task manually if needed.'
+                    Write-Log "  Removed task: $($_.TaskName)"; $rc++
+                } catch {
+                    Write-OperationJournalEntry -Phase 'task' -Target $_.TaskName -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'Retry scheduled task removal manually.'
+                }
             }
     } catch { Write-Log "  Task cleanup skipped." }
 

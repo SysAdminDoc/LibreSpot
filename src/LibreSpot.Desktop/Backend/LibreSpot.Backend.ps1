@@ -2500,9 +2500,16 @@ function Module-NukeSpotify {
         if ($PSVersionTable.PSVersion.Major -ge 7) { Import-Module Appx -UseWindowsPowerShell -WarningAction SilentlyContinue }
         $storeApp = Get-AppxPackage -Name 'SpotifyAB.SpotifyMusic' -ErrorAction SilentlyContinue
         if ($storeApp) {
+            Write-OperationJournalEntry -Phase 'appx' -Target $storeApp.PackageFullName -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Reinstall Spotify from the Microsoft Store.'
             $savedProgress = $ProgressPreference
             $ProgressPreference = 'SilentlyContinue'
-            try { Remove-AppxPackage -Package $storeApp.PackageFullName -ErrorAction Stop } finally { $ProgressPreference = $savedProgress }
+            try {
+                Remove-AppxPackage -Package $storeApp.PackageFullName -ErrorAction Stop
+                Write-OperationJournalEntry -Phase 'appx' -Target $storeApp.PackageFullName -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Reinstall Spotify from the Microsoft Store.'
+            } catch {
+                Write-OperationJournalEntry -Phase 'appx' -Target $storeApp.PackageFullName -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'Retry removal or reinstall from the Microsoft Store.'
+                throw
+            } finally { $ProgressPreference = $savedProgress }
             Write-Log 'Removed the Microsoft Store Spotify package.'
             $removedCount++
         } else {
@@ -2561,11 +2568,14 @@ function Module-NukeSpotify {
         'HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\Spotify.exe'
     )) {
         if (Test-Path $key) {
+            Write-OperationJournalEntry -Phase 'registry' -Target $key -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Registry key cannot be automatically restored.'
             try {
                 Remove-Item -Path $key -Recurse -Force -ErrorAction Stop
+                Write-OperationJournalEntry -Phase 'registry' -Target $key -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Registry key cannot be automatically restored.'
                 Write-Log "Removed registry key: $key"
                 $removedCount++
             } catch {
+                Write-OperationJournalEntry -Phase 'registry' -Target $key -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'Retry registry removal manually.'
                 Write-Log "Failed to remove registry key $key" -Level 'WARN'
             }
         }
@@ -2579,10 +2589,14 @@ function Module-NukeSpotify {
         Get-ScheduledTask -ErrorAction SilentlyContinue |
             Where-Object { $_.TaskName -in $spotifyTaskNames -or $_.TaskName -like 'Spotify-*' } |
             ForEach-Object {
+                Write-OperationJournalEntry -Phase 'task' -Target $_.TaskName -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Re-register the scheduled task manually if needed.'
                 try {
                     Unregister-ScheduledTask -TaskName $_.TaskName -Confirm:$false -ErrorAction Stop
+                    Write-OperationJournalEntry -Phase 'task' -Target $_.TaskName -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Re-register the scheduled task manually if needed.'
                     Write-Log "Removed scheduled task: $($_.TaskName)"
-                } catch {}
+                } catch {
+                    Write-OperationJournalEntry -Phase 'task' -Target $_.TaskName -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'Retry scheduled task removal manually.'
+                }
             }
     } catch {
         Write-Log 'Scheduled task cleanup was skipped.' -Level 'WARN'
