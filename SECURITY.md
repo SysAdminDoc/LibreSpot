@@ -86,6 +86,40 @@ Scorecard findings are treated as work, not noise: a low score on any check shou
 
 These limits are revisited when their documented trigger conditions are met (e.g., a second maintainer joins, signing completes). The full accepted-risk registry is in [schemas/scorecard-baseline.json](schemas/scorecard-baseline.json).
 
+## Legal contingency
+
+LibreSpot is a wrapper and orchestrator — it does not host, redistribute, or modify the code of SpotX, Spicetify CLI, or Spotify itself. All upstream code is downloaded directly from its official GitHub repository using commit-pinned URLs with SHA256 verification. LibreSpot is MIT-licensed, uses no Spotify API Client IDs, and makes no network requests except to GitHub (for downloads) and Spotify (normal app traffic through the unmodified Spotify client).
+
+### If SpotX is taken down
+
+If the SpotX repository (`SpotX-Official/SpotX`) is removed or DMCA'd:
+- LibreSpot's pinned download URLs will fail. The installer will report a download error with the specific hash-verification failure and will not proceed with patching.
+- LibreSpot will **not** silently fall back to an alternative source. Users will see a clear error explaining that the upstream SpotX project is unavailable.
+- Existing Spotify installations that were already patched will continue to work until Spotify auto-updates override the patches.
+- Users can restore stock Spotify at any time using **Maintenance > Full Reset** or manually by reinstalling Spotify from [spotify.com/download](https://www.spotify.com/download/).
+- Spicetify theming and extensions will continue to work independently of SpotX.
+
+### If Spicetify is taken down
+
+If the Spicetify CLI repository (`spicetify/cli`) is removed:
+- LibreSpot's Spicetify CLI download will fail. The installer will skip Spicetify setup and report the failure clearly.
+- SpotX ad-blocking will continue to work independently of Spicetify.
+- Users with existing Spicetify installations can run `spicetify restore` to remove theming, or use **Maintenance > Restore vanilla Spotify** in LibreSpot.
+- The Spicetify Marketplace, themes archive, and community extensions are hosted in separate repositories — a Spicetify CLI takedown would not necessarily affect those, but LibreSpot would not be able to apply them without the CLI.
+
+### Restoring stock Spotify without LibreSpot
+
+If LibreSpot itself becomes unavailable, users can restore an unmodified Spotify client manually:
+1. Run `spicetify restore` in a terminal (if Spicetify CLI is still installed) to undo theme/extension injection.
+2. Uninstall Spotify: **Settings > Apps > Spotify** or run `%APPDATA%\Spotify\Spotify.exe /UNINSTALL /SILENT`.
+3. Delete residual data: remove `%APPDATA%\Spotify`, `%LOCALAPPDATA%\Spotify`, `%APPDATA%\spicetify`, and `%LOCALAPPDATA%\spicetify`.
+4. Reinstall Spotify from [spotify.com/download](https://www.spotify.com/download/).
+5. Remove the LibreSpot ReapplyWatcher scheduled task if registered: `schtasks /Delete /TN "LibreSpot\ReapplyWatcher" /F`.
+
+### Spotify's enforcement posture (as of mid-2026)
+
+Spotify has taken enforcement actions against tools that redistribute patched binaries or unlock premium features: 520 GitHub repos were DMCA'd in August 2025, and ReVanced's premium-unlock patch was specifically targeted. Desktop tools that focus on ad-blocking and UI customization (SpotX, Spicetify) have not been targeted and remain live. However, Spotify's January 2026 server-side dual-sync verification killed mobile mod APKs (xManager archived, ReVancedXposed archived), demonstrating that enforcement can escalate. See the README's [Trust & risk disclosure](#trust--risk-disclosure) section for current details. LibreSpot's session-stability canary (20-second post-launch monitor) will warn if desktop enforcement expands.
+
 ## External process execution contract
 
 LibreSpot shells out to a few external programs. The boundary that keeps this safe is: **arguments are either fixed literal flags or values that `Normalize-LibreSpotConfig` has already constrained to an allowlist or an integer.** A crafted `config.json` cannot turn a setting into an extra command.
