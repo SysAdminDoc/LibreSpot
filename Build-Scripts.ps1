@@ -15,6 +15,7 @@
 .EXAMPLE
     pwsh -File Build-Scripts.ps1 -Validate
     pwsh -File Build-Scripts.ps1 -Inventory
+    pwsh -File Build-Scripts.ps1 -Lint
 
 .NOTES
     Part of the "Extract shared PowerShell core logic" roadmap item (Cycle 11).
@@ -23,7 +24,8 @@
 [CmdletBinding()]
 param(
     [switch]$Validate,
-    [switch]$Inventory
+    [switch]$Inventory,
+    [switch]$Lint
 )
 
 $ErrorActionPreference = 'Stop'
@@ -161,7 +163,49 @@ if ($Validate) {
     exit 0
 }
 
+if ($Lint) {
+    $moduleName = 'PSScriptAnalyzer'
+    if (-not (Get-Module -ListAvailable -Name $moduleName)) {
+        Write-Host "Installing PSScriptAnalyzer..." -ForegroundColor Cyan
+        Install-Module -Name $moduleName -Force -Scope CurrentUser -SkipPublisherCheck
+    }
+    Import-Module $moduleName -ErrorAction Stop
+
+    $settingsPath = Join-Path $PSScriptRoot '.psscriptanalyzerrc.psd1'
+    if (-not (Test-Path -LiteralPath $settingsPath)) {
+        throw "PSScriptAnalyzer settings file not found at $settingsPath"
+    }
+
+    $scripts = @($mainScript, $backendScript)
+    $totalIssues = 0
+
+    foreach ($script in $scripts) {
+        $name = Split-Path $script -Leaf
+        Write-Host "Analyzing $name..." -ForegroundColor Cyan
+        $results = Invoke-ScriptAnalyzer -Path $script -Settings $settingsPath -Recurse
+        if ($results.Count -gt 0) {
+            $totalIssues += $results.Count
+            foreach ($r in $results) {
+                $severity = $r.Severity.ToString().ToUpper()
+                Write-Host "  [$severity] $($r.RuleName) at line $($r.Line): $($r.Message)" -ForegroundColor $(
+                    switch ($r.Severity) { 'Error' { 'Red' } 'Warning' { 'Yellow' } default { 'Gray' } }
+                )
+            }
+        } else {
+            Write-Host "  No issues." -ForegroundColor Green
+        }
+    }
+
+    if ($totalIssues -gt 0) {
+        Write-Host "`n$totalIssues issue(s) found." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "`nAll scripts pass PSScriptAnalyzer." -ForegroundColor Green
+    exit 0
+}
+
 # Default: show usage
 Write-Host "Usage:"
 Write-Host "  pwsh -File Build-Scripts.ps1 -Validate    # Check shared functions for drift"
 Write-Host "  pwsh -File Build-Scripts.ps1 -Inventory   # List all functions and their locations"
+Write-Host "  pwsh -File Build-Scripts.ps1 -Lint         # Run PSScriptAnalyzer on both scripts"
