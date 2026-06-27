@@ -5,6 +5,9 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- WPF health issue cards now surface mapped repair and diagnostic buttons
+  directly on the issue, including Marketplace repair, reapply/safe-mode
+  actions, watcher enablement, and local log-folder inspection.
 - WPF Maintenance now exposes a six-card status dashboard for Spotify version,
   Spicetify version, SpotX patch state, last patch timestamp, watcher status,
   and backup count, all sourced from the existing environment snapshot.

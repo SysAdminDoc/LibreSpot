@@ -52,7 +52,32 @@
       <Setter Property="Margin" Value="0,0,0,18" />
     </Style>
 
-    <DataTemplate DataType="{x:Type models:StackHealthComponent}" x:Key="HealthIssueTemplate">
+    <DataTemplate DataType="{x:Type viewModels:HealthIssueActionViewModel}" x:Key="HealthIssueActionTemplate">
+      <Button Content="{Binding ButtonText}"
+              Command="{Binding Command}"
+              ToolTip="{Binding Description}"
+              AutomationProperties.Name="{Binding ButtonText}"
+              AutomationProperties.HelpText="{Binding Description}"
+              MinWidth="0"
+              Height="34"
+              Padding="12,0"
+              Margin="0,0,8,8">
+        <Button.Style>
+          <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+            <Setter Property="FontSize" Value="12" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding IsDestructive}" Value="True">
+                <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+                <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Button.Style>
+      </Button>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type viewModels:HealthIssueViewModel}" x:Key="HealthIssueTemplate">
       <Border Margin="0,0,0,8">
         <Border.Style>
           <Style TargetType="Border" BasedOn="{StaticResource SubtleCardStyle}">
@@ -104,11 +129,21 @@
           <TextBlock Text="{Binding Evidence}"
                      Style="{StaticResource CaptionTextStyle}"
                      Margin="0,6,0,0" />
+          <ItemsControl ItemsSource="{Binding Actions}"
+                        ItemTemplate="{StaticResource HealthIssueActionTemplate}"
+                        Margin="0,10,0,0"
+                        Visibility="{Binding HasActions, Converter={StaticResource BoolToVisibilityConverter}}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
           <TextBlock Text="{Binding RecommendedActionText}"
                      Style="{StaticResource CaptionTextStyle}"
                      Foreground="{StaticResource MutedTextBrush}"
                      Margin="0,6,0,0"
-                     Visibility="{Binding HasRecommendedActions, Converter={StaticResource BoolToVisibilityConverter}}" />
+                     Visibility="{Binding ShowRecommendedActionText, Converter={StaticResource BoolToVisibilityConverter}}" />
           <TextBlock Text="{Binding Path}"
                      Style="{StaticResource CaptionTextStyle}"
                      Foreground="{StaticResource SubtleTextBrush}"

@@ -94,6 +94,51 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task HealthIssues_ExposeMappedRepairButtons() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            fixture.WriteSpotify(withSpotXMarkers: true);
+            fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            var marketplaceIssue = viewModel.WarningHealthIssues.Single(issue => issue.Id == "marketplace");
+            var action = Assert.Single(marketplaceIssue.Actions, item => item.Action == "RepairMarketplace");
+
+            Assert.Equal("Repair Marketplace", action.ButtonText);
+            Assert.False(action.IsDestructive);
+            Assert.True(action.Command.CanExecute(null));
+            Assert.False(marketplaceIssue.ShowRecommendedActionText);
+        });
+
+    [Fact]
+    public Task HealthIssues_MapLogRecommendationsToDiagnosticFolder()
+    {
+        return RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            fixture.WriteSpotify(withSpotXMarkers: true);
+            fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+            fixture.WriteMarketplaceFiles();
+            fixture.WriteWatcherState("{\"LastKnownVersion\":\"1.2.88\",\"LastOutcome\":\"Error: SpotX failed\",\"LastRunAt\":\"2026-06-20T12:00:00\",\"LastAttemptedSpotifyVersion\":\"1.2.92\"}");
+
+            using var viewModel = await fixture.CreateInitializedViewModelAsync(spotifyVersion: "1.2.92");
+
+            var issues = viewModel.CriticalHealthIssues
+                .Concat(viewModel.WarningHealthIssues)
+                .Concat(viewModel.InfoHealthIssues)
+                .ToArray();
+            Assert.True(
+                issues.Any(issue => issue.Id == "post-spotify-update"),
+                $"Issues: {string.Join(", ", issues.Select(issue => $"{issue.Id}:{issue.Status}"))}");
+
+            var triageIssue = issues.Single(issue => issue.Id == "post-spotify-update");
+            Assert.Contains(triageIssue.Actions, item => item.Action == "OpenLogs" && item.ButtonText == "Open LibreSpot folder");
+        });
+    }
+
+    [Fact]
     public Task MaintenanceActions_DisableRestoreBackupWhenNoBackupExists() =>
         RunStaAsync(async () =>
         {
@@ -276,6 +321,9 @@ public sealed class MainViewModelMaintenanceTests
             var backup = Path.Combine(BackupDirectory, DateTime.Now.ToString("yyyyMMdd-HHmmss"));
             WriteFile(Path.Combine(backup, "config-xpui.ini"), "current_theme = Catppuccin");
         }
+
+        public void WriteWatcherState(string content) =>
+            WriteFile(Path.Combine(ConfigDirectory, "watcher-state.json"), content);
 
         public void WriteInstallLog(string content) =>
             WriteFile(Path.Combine(ConfigDirectory, "install.log"), content);

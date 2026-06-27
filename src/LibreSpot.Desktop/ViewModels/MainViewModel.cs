@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Security.Principal;
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Threading;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Properties;
@@ -231,6 +232,48 @@ public sealed class StatusDashboardItemViewModel
     public string Tone { get; }
 }
 
+public sealed class HealthIssueActionViewModel
+{
+    public HealthIssueActionViewModel(string action, string buttonText, string description, bool isDestructive, ICommand command)
+    {
+        Action = action;
+        ButtonText = buttonText;
+        Description = description;
+        IsDestructive = isDestructive;
+        Command = command;
+    }
+
+    public string Action { get; }
+    public string ButtonText { get; }
+    public string Description { get; }
+    public bool IsDestructive { get; }
+    public ICommand Command { get; }
+}
+
+public sealed class HealthIssueViewModel
+{
+    public HealthIssueViewModel(StackHealthComponent component, IReadOnlyList<HealthIssueActionViewModel> actions)
+    {
+        Component = component;
+        Actions = actions;
+    }
+
+    public StackHealthComponent Component { get; }
+    public IReadOnlyList<HealthIssueActionViewModel> Actions { get; }
+    public string Id => Component.Id;
+    public string Name => Component.Name;
+    public string Status => Component.Status;
+    public string Severity => Component.Severity;
+    public string? Path => Component.Path;
+    public string Evidence => Component.Evidence;
+    public string LastChangedDisplay => Component.LastChangedDisplay;
+    public string RecommendedActionText => Component.RecommendedActionText;
+    public bool HasPath => Component.HasPath;
+    public bool HasLastChanged => Component.HasLastChanged;
+    public bool HasActions => Actions.Count > 0;
+    public bool ShowRecommendedActionText => Component.HasRecommendedActions && !HasActions;
+}
+
 public sealed class MainViewModel : ObservableObject, IDisposable
 {
     // Cap the live log so a very chatty backend run can't pin UI memory or make
@@ -453,9 +496,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                         : "Marketplace not enabled";
 
     public StackHealthReport HealthReport => Snapshot.HealthReport;
-    public IReadOnlyList<StackHealthComponent> CriticalHealthIssues => HealthReport.CriticalIssues;
-    public IReadOnlyList<StackHealthComponent> WarningHealthIssues => HealthReport.WarningIssues;
-    public IReadOnlyList<StackHealthComponent> InfoHealthIssues => HealthReport.InfoIssues;
+    public IReadOnlyList<HealthIssueViewModel> CriticalHealthIssues => BuildHealthIssues(HealthReport.CriticalIssues);
+    public IReadOnlyList<HealthIssueViewModel> WarningHealthIssues => BuildHealthIssues(HealthReport.WarningIssues);
+    public IReadOnlyList<HealthIssueViewModel> InfoHealthIssues => BuildHealthIssues(HealthReport.InfoIssues);
     public bool HasCriticalHealthIssues => HealthReport.HasCriticalIssues;
     public bool HasWarningHealthIssues => HealthReport.HasWarningIssues;
     public bool HasInfoHealthIssues => HealthReport.HasInfoIssues;
@@ -1655,6 +1698,52 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private StackHealthComponent? HealthComponent(string id) =>
         HealthReport.Components.FirstOrDefault(component => string.Equals(component.Id, id, StringComparison.OrdinalIgnoreCase));
+
+    private IReadOnlyList<HealthIssueViewModel> BuildHealthIssues(IReadOnlyList<StackHealthComponent> components) =>
+        components.Select(component => new HealthIssueViewModel(
+                component,
+                component.RecommendedActionIds
+                    .Select(BuildHealthIssueAction)
+                    .OfType<HealthIssueActionViewModel>()
+                    .ToArray()))
+            .ToArray();
+
+    private HealthIssueActionViewModel? BuildHealthIssueAction(string action)
+    {
+        var maintenanceCard = _maintenanceCards.FirstOrDefault(card => string.Equals(card.Action, action, StringComparison.Ordinal));
+        if (maintenanceCard is not null && maintenanceCard.IsRelevant)
+        {
+            return new HealthIssueActionViewModel(
+                maintenanceCard.Action,
+                maintenanceCard.ButtonText,
+                maintenanceCard.Description,
+                maintenanceCard.IsDestructive,
+                maintenanceCard.Command);
+        }
+
+        return action switch
+        {
+            "Install" => new HealthIssueActionViewModel(
+                action,
+                Strings.ButtonRunRecommendedSetup,
+                Strings.RecommendedModeHint,
+                false,
+                ApplyRecommendedCommand),
+            "EnableAutoReapply" => new HealthIssueActionViewModel(
+                action,
+                Strings.ButtonEnableWatcher,
+                Strings.ButtonEnableWatcherHint,
+                false,
+                EnableAutoReapplyCommand),
+            "OpenLogs" or "WatchAutoReapply" => new HealthIssueActionViewModel(
+                action,
+                Strings.ButtonOpenLibreSpotFolder,
+                Strings.ButtonOpenLibreSpotFolderActivityHint,
+                false,
+                OpenLibreSpotFolderCommand),
+            _ => null
+        };
+    }
 
     private StatusDashboardItemViewModel BuildDashboardItem(
         string label,
