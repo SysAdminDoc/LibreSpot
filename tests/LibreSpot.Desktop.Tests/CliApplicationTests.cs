@@ -29,7 +29,10 @@ public sealed class CliApplicationTests
             spotifyInstalled: true,
             spicetifyInstalled: true,
             Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready, version: "1.2.92"),
-            Component("spicetify-cli", "Spicetify CLI", "Detected", CliHealthSeverity.Ready, version: "2.43.2"));
+            Component("spicetify-cli", "Spicetify CLI", "Detected", CliHealthSeverity.Ready, version: "2.43.2"),
+            Component("backups", "Backups", "2 backups", CliHealthSeverity.Ready),
+            Component("auto-reapply-watcher", "Auto-reapply watcher", "UpToDate", CliHealthSeverity.Ready),
+            Component("post-spotify-update", "After Spotify update", "No drift", CliHealthSeverity.Ready, changed: DateTime.Parse("2026-06-27T12:00:00Z").ToUniversalTime()));
 
         var result = Run(
             new[] { "status", "--json", "--config-path", "C:\\LibreSpot\\config.json" },
@@ -40,6 +43,9 @@ public sealed class CliApplicationTests
         Assert.Equal(1, doc.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("Stack ready", doc.RootElement.GetProperty("statusTitle").GetString());
         Assert.Equal("C:\\LibreSpot\\config.json", doc.RootElement.GetProperty("configPath").GetString());
+        Assert.Equal(2, doc.RootElement.GetProperty("backupCount").GetInt32());
+        Assert.Equal("UpToDate", doc.RootElement.GetProperty("lastWatcherOutcome").GetString());
+        Assert.Equal("2026-06-27T12:00:00+00:00", doc.RootElement.GetProperty("lastPatchTimeUtc").GetString());
         Assert.Equal("spotify", doc.RootElement.GetProperty("components")[0].GetProperty("id").GetString());
         Assert.Equal("1.2.92", doc.RootElement.GetProperty("components")[0].GetProperty("detectedVersion").GetString());
     }
@@ -91,6 +97,37 @@ public sealed class CliApplicationTests
         Assert.Equal(11, result.ExitCode);
         Assert.Equal(string.Empty, result.Stdout);
         Assert.Contains("LibreSpot drifted", result.Stderr);
+    }
+
+    [Fact]
+    public void DetectJson_MapsSpotifyRunningPostUpdateToBlockedExitCode()
+    {
+        var snapshot = Snapshot(
+            spotifyInstalled: true,
+            spicetifyInstalled: true,
+            Component("post-spotify-update", "After Spotify update", "Close Spotify first", CliHealthSeverity.Warning, action: "Reapply"));
+
+        var result = Run(new[] { "detect", "--json" }, _ => snapshot);
+
+        Assert.Equal(20, result.ExitCode);
+        using var doc = JsonDocument.Parse(result.Stdout);
+        Assert.Equal("blocked", doc.RootElement.GetProperty("state").GetString());
+        Assert.Equal(20, doc.RootElement.GetProperty("exitCode").GetInt32());
+    }
+
+    [Fact]
+    public void DetectJson_MapsSingleComponentInstallToPartial()
+    {
+        var snapshot = Snapshot(
+            spotifyInstalled: true,
+            spicetifyInstalled: false,
+            Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready));
+
+        var result = Run(new[] { "detect", "--json" }, _ => snapshot);
+
+        Assert.Equal(11, result.ExitCode);
+        using var doc = JsonDocument.Parse(result.Stdout);
+        Assert.Equal("partial", doc.RootElement.GetProperty("state").GetString());
     }
 
     [Fact]
@@ -161,7 +198,8 @@ public sealed class CliApplicationTests
         string status,
         string severity,
         string? version = null,
-        string? action = null) =>
+        string? action = null,
+        DateTime? changed = null) =>
         new(
             id,
             name,
@@ -169,7 +207,7 @@ public sealed class CliApplicationTests
             severity,
             version,
             null,
-            null,
+            changed,
             $"{name} evidence",
             string.IsNullOrWhiteSpace(action) ? Array.Empty<string>() : new[] { action });
 

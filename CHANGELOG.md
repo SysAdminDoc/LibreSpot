@@ -7,7 +7,9 @@ All notable changes to LibreSpot will be documented in this file.
 ### Added
 - Added a dedicated `LibreSpot.Cli.exe` console project for fleet tooling with
   `--version`, `status --json`, `detect --json`, `detect --intune`, and
-  `validate --answer-file` support backed by the existing health report model.
+  `validate --answer-file` support backed by the existing health report model,
+  including structured backup count, last patch time, watcher outcome, issue
+  IDs, recommended repairs, and documented fleet exit-code states.
 
 ### Changed
 - WPF Custom mode now replaces theme and scheme ComboBoxes with a searchable

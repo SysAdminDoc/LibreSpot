@@ -205,23 +205,25 @@ public static class CliApplication
             snapshot.SpicetifyInstalled,
             snapshot.MarketplaceReady,
             snapshot.AutoReapplyTaskRegistered,
+            BackupCount(snapshot),
+            ComponentLastChanged(snapshot, "post-spotify-update"),
+            ComponentStatus(snapshot, "auto-reapply-watcher"),
+            IssueIds(snapshot),
+            RecommendedRepairIds(snapshot),
             snapshot.HealthReport.Components.Select(ComponentDocument.From).ToArray());
 
     private static DetectionDocument BuildDetectionDocument(EnvironmentSnapshot snapshot, string configPath)
     {
-        var issues = snapshot.HealthReport.CriticalIssues
-            .Concat(snapshot.HealthReport.WarningIssues)
-            .ToArray();
-        var recommendedRepairIds = snapshot.HealthReport.Components
-            .SelectMany(component => component.RecommendedActionIds)
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Order(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        var issueIds = IssueIds(snapshot);
+        var recommendedRepairIds = RecommendedRepairIds(snapshot);
 
         var (state, exitCode) =
-            !snapshot.SpotifyInstalled && !snapshot.SpicetifyInstalled
+            snapshot.HealthReport.Components.Count == 0
+                ? ("unknown", UnhandledFailure)
+                : !snapshot.SpotifyInstalled && !snapshot.SpicetifyInstalled
                 ? ("notInstalled", NotInstalled)
+                : HasBlockingUserState(snapshot)
+                    ? ("blocked", 20)
                 : snapshot.HealthReport.HasCriticalIssues
                     ? ("needsRepair", RepairNeeded)
                     : snapshot.SpotifyInstalled != snapshot.SpicetifyInstalled
@@ -238,9 +240,53 @@ public static class CliApplication
             state,
             exitCode,
             snapshot.HealthReport.IssueSummary,
-            issues.Select(component => component.Id).ToArray(),
+            issueIds,
             recommendedRepairIds);
     }
+
+    private static IReadOnlyList<string> IssueIds(EnvironmentSnapshot snapshot) =>
+        snapshot.HealthReport.CriticalIssues
+            .Concat(snapshot.HealthReport.WarningIssues)
+            .Select(component => component.Id)
+            .ToArray();
+
+    private static IReadOnlyList<string> RecommendedRepairIds(EnvironmentSnapshot snapshot) =>
+        snapshot.HealthReport.Components
+            .SelectMany(component => component.RecommendedActionIds)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+    private static bool HasBlockingUserState(EnvironmentSnapshot snapshot) =>
+        snapshot.HealthReport.WarningIssues.Any(component =>
+            string.Equals(component.Id, "post-spotify-update", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(component.Status, "Close Spotify first", StringComparison.OrdinalIgnoreCase));
+
+    private static int BackupCount(EnvironmentSnapshot snapshot)
+    {
+        var backupStatus = ComponentStatus(snapshot, "backups");
+        if (string.IsNullOrWhiteSpace(backupStatus))
+        {
+            return 0;
+        }
+
+        var firstToken = backupStatus.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        return int.TryParse(firstToken, out var count) ? count : 0;
+    }
+
+    private static DateTimeOffset? ComponentLastChanged(EnvironmentSnapshot snapshot, string id)
+    {
+        var value = snapshot.HealthReport.Components
+            .FirstOrDefault(component => string.Equals(component.Id, id, StringComparison.OrdinalIgnoreCase))
+            ?.LastChanged;
+        return value.HasValue ? new DateTimeOffset(value.Value.ToUniversalTime()) : null;
+    }
+
+    private static string? ComponentStatus(EnvironmentSnapshot snapshot, string id) =>
+        snapshot.HealthReport.Components
+            .FirstOrDefault(component => string.Equals(component.Id, id, StringComparison.OrdinalIgnoreCase))
+            ?.Status;
 
     private static ValidationDocument ValidateAnswerFile(string answerFile)
     {
@@ -451,6 +497,11 @@ public sealed record StatusDocument(
     bool SpicetifyInstalled,
     bool MarketplaceReady,
     bool AutoReapplyTaskRegistered,
+    int BackupCount,
+    DateTimeOffset? LastPatchTimeUtc,
+    string? LastWatcherOutcome,
+    IReadOnlyList<string> IssueIds,
+    IReadOnlyList<string> RecommendedRepairIds,
     IReadOnlyList<ComponentDocument> Components);
 
 public sealed record ComponentDocument(
