@@ -109,25 +109,6 @@ These require fresh research before implementation:
 - Spotify Connect regression test harness.
 - Spicetify v3 readiness and migration risk.
 
-## 🔬 Researcher Queue (Cycle 1 - 2026-06-04)
-
-These items are net-new or sharpened from the June 4 refresh. Ownership tags:
-🔬 = researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
-operator-needed where credentials or policy decisions block completion.
-
-
-## 🔬 Researcher Queue (Cycle 7 - 2026-06-04)
-
-Cycle 7 inspects WPF desktop quality gates that should land before a stable
-native shell: contrast themes, reduced motion, localization extraction, release
-publish footprint, and keyboard/focus regression coverage. Tags: 🔬 =
-researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
-operator-needed if policy or release-channel decisions are required.
-
-
-
-
-
 ## 🔬 Researcher Queue (Cycle 11 - 2026-06-04)
 
 Cycle 11 inspects maintainability risks in the PowerShell and WPF code shape.
@@ -192,16 +173,6 @@ operator-needed where release sequencing decisions are required.
     prove data context and command bindings still populate all three main tabs,
     activity overlay, and prompt overlay.
 
-## 🔬 Researcher Queue (Cycle 12 - 2026-06-04)
-
-Cycle 12 inspects the stable PowerShell GUI lane separately from the WPF
-preview. The public `releases/latest/download/LibreSpot.ps1` path still opens
-the PowerShell-hosted XAML shell, so it needs a minimum quality and support
-boundary even while v4 moves toward the native WPF shell. Tags: 🔬 =
-researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
-operator-needed where release-channel policy decisions are required.
-
-
 ## 🔬 Researcher Queue (Cycle 17 - 2026-06-06)
 
 Cycle 17 inspects theme selection and preview reliability across the stable
@@ -248,8 +219,6 @@ are required.
     confirm the saved config contains the expected `Spicetify_Theme` and
     `Spicetify_Scheme`.
 
-
-
 ## 🔬 Researcher Queue (Cycle 18 - 2026-06-06)
 
 Cycle 18 narrows the broad Community Sharing release-queue row into profile
@@ -259,7 +228,6 @@ focuses on the separate user-facing file/URI experience and the safety preview
 required before imported settings can mutate Spotify or Spicetify. Tags: 🔬 =
 researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
 operator-needed where hosted sharing or cloud policy decisions are required.
-
 
 - [ ] 🔬 🤖 P1 - Add a local preset
   gallery with named profiles instead of one mutable remembered config.
@@ -396,11 +364,6 @@ implying that every cleanup path can be rolled back.
   https://learn.microsoft.com/en-us/windows/win32/msi/rollback-installation,
   https://learn.microsoft.com/en-us/windows/win32/msi/rollback-custom-actions.
 
-### New / Refined Backlog Items
-
-
-
-
 ## 🔬 Researcher Queue (Cycle 20 - 2026-06-06)
 
 Cycle 20 narrows the broad diagnostics/repair queue into a native-WPF health
@@ -480,9 +443,6 @@ diagnose automatically.
   https://learn.microsoft.com/en-us/dotnet/core/diagnostics/eventsource,
   https://learn.microsoft.com/en-us/dotnet/core/diagnostics/eventsource-instrumentation,
   https://support.microsoft.com/en-us/windows/diagnostics-feedback-and-privacy-in-windows-28808a2b-a31b-dd73-dcd3-4559a5199319.
-
-### New / Refined Backlog Items
-
 
 ## 🔬 Researcher Queue (Cycle 21 - 2026-06-06)
 
@@ -585,7 +545,6 @@ bolt `--silent` onto the current WPF button actions.
     install fixture on a Windows runner; release checksums, SBOM, provenance,
     and SignPath signing include the CLI artifact.
 
-
 - [ ] 🔬 🤖 P1 - Build `detect` and `status` on the Cycle 20 health report.
   - Why: fleet detection should not invent separate logic. The same health
     model that powers the WPF dashboard should drive admin-facing JSON and
@@ -603,9 +562,6 @@ bolt `--silent` onto the current WPF button actions.
   - Verify: fixture tests assert JSON schema validity and exit codes for clean
     slate, compliant, Spotify-only, Spicetify-only, Marketplace missing,
     watcher stale, and post-update drift states.
-
-
-
 
 - [ ] 🔬 🤖 P2 - Publish deployment runbooks and package-manager validation
   samples only after the CLI contract is real.
@@ -713,11 +669,6 @@ Items below were added by the June 9, 2026 research pass. They cover
 ecosystem changes, legal landscape shifts, and catalog freshness gaps
 not addressed by earlier cycles.
 
-
-
-
-
-
 (Moved to `Roadmap_Blocked.md`: Decide the v4 theming base before the
 .NET 10 migration — blocked on operator architecture/design decision.)
 
@@ -728,7 +679,7 @@ the schema-runtime disconnect, upstream version gaps, Marketplace
 reliability, localization follow-through, legacy GUI contrast, and
 dependency freshness surfaced during exhaustive ecosystem research.
 
-- [ ] P1 — Wire .resx localization strings into WPF runtime code
+- [x] P1 — Wire .resx localization strings into WPF runtime code
   Why: `Properties/Strings.resx` was created with 47 extracted strings and
   `PublicResXFileCodeGenerator` configured, but `MainViewModel.cs` and
   `MainWindow.xaml` still contain ~265 hardcoded English strings with zero
@@ -741,8 +692,6 @@ dependency freshness surfaced during exhaustive ecosystem research.
   or a XAML markup extension backed by .resx; hardcoded English string count
   outside resource references drops to zero or has explicit exceptions.
   Complexity: L
-
-
 
 - [ ] P2 — Consume operation-token and run-receipt schemas at runtime
   Why: `schemas/operation-token-types.json` (15 token types) and
@@ -772,8 +721,6 @@ dependency freshness surfaced during exhaustive ecosystem research.
   are derived from or validated against the existing schemas. Schema
   changes fail CI if the CLI implementation diverges.
   Complexity: M (sequenced after CLI artifact exists)
-
-
 
 - [ ] P3 — Adopt CommunityToolkit.Mvvm during the view-model split
   Why: the project uses hand-rolled `ObservableObject` and `RelayCommand`

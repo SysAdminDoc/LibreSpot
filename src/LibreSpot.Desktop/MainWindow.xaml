@@ -6,8 +6,9 @@
         xmlns:controls="clr-namespace:LibreSpot.Desktop.Controls"
         xmlns:models="clr-namespace:LibreSpot.Desktop.Models"
         xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
+        xmlns:props="clr-namespace:LibreSpot.Desktop.Properties"
         mc:Ignorable="d"
-        Title="LibreSpot"
+        Title="{x:Static props:Strings.AppTitle}"
         Width="1440"
         Height="920"
         MinWidth="1200"
@@ -171,14 +172,14 @@
               <TextBlock>
                 <TextBlock.Style>
                   <Style TargetType="TextBlock" BasedOn="{StaticResource MicroBadgeTextStyle}">
-                    <Setter Property="Text" Value="Optional" />
+                    <Setter Property="Text" Value="{x:Static props:Strings.OptionStatusOptional}" />
                     <Style.Triggers>
                       <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
                           <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
                           <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
                         </MultiDataTrigger.Conditions>
-                        <Setter Property="Text" Value="Recommended" />
+                        <Setter Property="Text" Value="{x:Static props:Strings.OptionStatusRecommended}" />
                         <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
                       </MultiDataTrigger>
                       <MultiDataTrigger>
@@ -186,7 +187,7 @@
                           <Condition Binding="{Binding IsRecommendedDefault}" Value="False" />
                           <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
                         </MultiDataTrigger.Conditions>
-                        <Setter Property="Text" Value="Added" />
+                        <Setter Property="Text" Value="{x:Static props:Strings.OptionStatusAdded}" />
                         <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
                       </MultiDataTrigger>
                       <MultiDataTrigger>
@@ -194,7 +195,7 @@
                           <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
                           <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="False" />
                         </MultiDataTrigger.Conditions>
-                        <Setter Property="Text" Value="Removed" />
+                        <Setter Property="Text" Value="{x:Static props:Strings.OptionStatusRemoved}" />
                         <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
                       </MultiDataTrigger>
                     </Style.Triggers>
@@ -258,14 +259,14 @@
               <TextBlock>
                 <TextBlock.Style>
                   <Style TargetType="TextBlock" BasedOn="{StaticResource MicroBadgeTextStyle}">
-                    <Setter Property="Text" Value="Available" />
+                    <Setter Property="Text" Value="{x:Static props:Strings.ExtensionStatusAvailable}" />
                     <Style.Triggers>
                       <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
                           <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
                           <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
                         </MultiDataTrigger.Conditions>
-                        <Setter Property="Text" Value="Default" />
+                        <Setter Property="Text" Value="{x:Static props:Strings.ExtensionStatusDefault}" />
                         <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
                       </MultiDataTrigger>
                       <MultiDataTrigger>
@@ -273,7 +274,7 @@
                           <Condition Binding="{Binding IsRecommendedDefault}" Value="False" />
                           <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
                         </MultiDataTrigger.Conditions>
-                        <Setter Property="Text" Value="Added" />
+                        <Setter Property="Text" Value="{x:Static props:Strings.OptionStatusAdded}" />
                         <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
                       </MultiDataTrigger>
                       <MultiDataTrigger>
@@ -281,7 +282,7 @@
                           <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
                           <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="False" />
                         </MultiDataTrigger.Conditions>
-                        <Setter Property="Text" Value="Removed" />
+                        <Setter Property="Text" Value="{x:Static props:Strings.OptionStatusRemoved}" />
                         <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
                       </MultiDataTrigger>
                     </Style.Triggers>
@@ -327,11 +328,11 @@
             <TextBlock Margin="0,10,0,0">
               <TextBlock.Style>
                 <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
-                  <Setter Property="Text" Value="Runs here and leaves the result visible when LibreSpot finishes." />
+                  <Setter Property="Text" Value="{x:Static props:Strings.MaintenanceCardDefaultDetail}" />
                   <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
                   <Style.Triggers>
                     <DataTrigger Binding="{Binding IsDestructive}" Value="True">
-                      <Setter Property="Text" Value="Use only when you want to clear the current setup and rebuild from scratch." />
+                      <Setter Property="Text" Value="{x:Static props:Strings.MaintenanceCardDestructiveDetail}" />
                       <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
                     </DataTrigger>
                   </Style.Triggers>
@@ -555,14 +556,14 @@
                       Focusable="False">
         <DockPanel LastChildFill="True">
           <StackPanel DockPanel.Dock="Top">
-            <TextBlock Text="LibreSpot"
+            <TextBlock Text="{x:Static props:Strings.AppTitle}"
                        Style="{StaticResource SectionEyebrowTextStyle}"
                        Foreground="{StaticResource AccentBrush}" />
-            <TextBlock Text="Setup and recovery"
+            <TextBlock Text="{x:Static props:Strings.AppSubtitle}"
                        Style="{StaticResource RailTitleTextStyle}"
                        FontSize="21"
                        Margin="0,8,0,0" />
-            <TextBlock Text="Recommended handles the stable path. Custom keeps deliberate changes visible. Maintenance stays focused on recovery."
+            <TextBlock Text="{x:Static props:Strings.SidebarDescription}"
                        Style="{StaticResource CaptionTextStyle}"
                        Margin="0,10,0,0" />
 
@@ -570,7 +571,7 @@
                     Background="{StaticResource StrokeSoftBrush}"
                     Margin="0,18,0,18" />
 
-            <TextBlock Text="Environment" Style="{StaticResource SectionEyebrowTextStyle}" />
+            <TextBlock Text="{x:Static props:Strings.EnvironmentLabel}" Style="{StaticResource SectionEyebrowTextStyle}" />
             <Border Style="{StaticResource MetricCardStyle}">
               <StackPanel>
                 <TextBlock Text="{Binding Snapshot.StatusTitle}"
@@ -680,7 +681,7 @@
                          Margin="0,20,0,8" />
 
               <StackPanel Visibility="{Binding HasCriticalHealthIssues, Converter={StaticResource BoolToVisibilityConverter}}">
-                <TextBlock Text="Critical"
+                <TextBlock Text="{x:Static props:Strings.SeverityCritical}"
                            Style="{StaticResource LabelTextStyle}"
                            Foreground="{StaticResource DangerBrush}"
                            Margin="0,0,0,8" />
@@ -689,7 +690,7 @@
               </StackPanel>
 
               <StackPanel Visibility="{Binding HasWarningHealthIssues, Converter={StaticResource BoolToVisibilityConverter}}">
-                <TextBlock Text="Warnings"
+                <TextBlock Text="{x:Static props:Strings.SeverityWarningsLabel}"
                            Style="{StaticResource LabelTextStyle}"
                            Foreground="{StaticResource WarningBrush}"
                            Margin="0,4,0,8" />
@@ -699,7 +700,7 @@
 
             </StackPanel>
 
-            <TextBlock Text="Next step" Style="{StaticResource SectionEyebrowTextStyle}" Margin="0,20,0,8" />
+            <TextBlock Text="{x:Static props:Strings.NextStepLabel}" Style="{StaticResource SectionEyebrowTextStyle}" Margin="0,20,0,8" />
             <TextBlock Text="{Binding WorkspaceRecommendationTitle}"
                        Foreground="{StaticResource TextBrush}"
                        FontFamily="{StaticResource HeadingFont}"
@@ -713,7 +714,7 @@
                        Foreground="{StaticResource MutedTextBrush}"
                        Margin="0,10,0,0" />
 
-            <TextBlock Text="Profile recovery"
+            <TextBlock Text="{x:Static props:Strings.ProfileRecoveryLabel}"
                        Style="{StaticResource SectionEyebrowTextStyle}"
                        Margin="0,22,0,10"
                        Visibility="{Binding HasConfigurationRecoveryNotice, Converter={StaticResource BoolToVisibilityConverter}}" />
@@ -731,24 +732,24 @@
                 <TextBlock Text="{Binding ConfigurationRecoveryDetail}"
                            Style="{StaticResource CaptionTextStyle}"
                            Margin="0,6,0,0" />
-                <Button Content="Open LibreSpot folder"
+                <Button Content="{x:Static props:Strings.ButtonOpenLibreSpotFolder}"
                         Height="40"
                         Margin="0,14,0,0"
                         Style="{StaticResource SecondaryButtonStyle}"
-                        AutomationProperties.Name="Open LibreSpot folder"
-                        AutomationProperties.HelpText="Opens the LibreSpot configuration folder so you can inspect the recovered profile backup."
+                        AutomationProperties.Name="{x:Static props:Strings.ButtonOpenLibreSpotFolder}"
+                        AutomationProperties.HelpText="{x:Static props:Strings.ButtonOpenLibreSpotFolderHint}"
                         Command="{Binding OpenLibreSpotFolderCommand}" />
               </StackPanel>
             </Border>
           </StackPanel>
 
           <StackPanel DockPanel.Dock="Bottom" Margin="0,24,0,0">
-            <Button Content="Refresh environment"
+            <Button Content="{x:Static props:Strings.ButtonRefreshEnvironment}"
                     Style="{StaticResource GhostButtonStyle}"
                     Height="40"
-                    ToolTip="Recheck Spotify, Spicetify, and saved profile state."
-                    AutomationProperties.Name="Refresh environment"
-                    AutomationProperties.HelpText="Rechecks the current Spotify, Spicetify, and saved profile state."
+                    ToolTip="{x:Static props:Strings.ButtonRefreshEnvironmentHint}"
+                    AutomationProperties.Name="{x:Static props:Strings.ButtonRefreshEnvironment}"
+                    AutomationProperties.HelpText="{x:Static props:Strings.ButtonRefreshEnvironmentHint}"
                     Command="{Binding RefreshSnapshotCommand}" />
             <Border Margin="0,12,0,0">
               <Border.Style>
@@ -764,7 +765,7 @@
                 </Style>
               </Border.Style>
               <StackPanel>
-                <TextBlock Text="Stack snapshot">
+                <TextBlock Text="{x:Static props:Strings.StackSnapshotLabel}">
                   <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource LabelTextStyle}">
                       <Style.Triggers>
@@ -788,7 +789,7 @@
                            Margin="0,6,0,0" />
               </StackPanel>
             </Border>
-            <TextBlock Text="Refresh after changing Spotify outside LibreSpot so recommendations stay accurate."
+            <TextBlock Text="{x:Static props:Strings.StackSnapshotHint}"
                        Style="{StaticResource CaptionTextStyle}"
                        Foreground="{StaticResource SubtleTextBrush}"
                        TextAlignment="Left"
@@ -872,7 +873,7 @@
             </TabControl.ItemContainerStyle>
 
             <!-- ═══ Recommended (condensed: big apply button first, everything else below) ═══ -->
-            <TabItem Header="Recommended">
+            <TabItem Header="{x:Static props:Strings.ModeRecommendedTitle}">
               <ScrollViewer VerticalScrollBarVisibility="Auto"
                             AutomationProperties.Name="Recommended workspace">
                 <StackPanel Margin="0,12,0,0">
@@ -884,7 +885,7 @@
 
                     <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,14,0">
                       <StackPanel>
-                        <TextBlock Text="Recommended setup"
+                        <TextBlock Text="{x:Static props:Strings.ModeRecommendedDescription}"
                                    Style="{StaticResource SectionTitleTextStyle}"
                                    FontSize="22" />
                         <TextBlock Text="{Binding WorkspaceRecommendationDetail}"
@@ -895,7 +896,7 @@
                                 Margin="0,20,0,0"
                                 FontSize="17"
                                 Style="{StaticResource PrimaryButtonStyle}"
-                                AutomationProperties.Name="Run recommended setup"
+                                AutomationProperties.Name="{x:Static props:Strings.ButtonRunRecommendedSetup}"
                                 AutomationProperties.HelpText="Runs LibreSpot's most reliable install path with the saved default profile."
                                 Command="{Binding ApplyRecommendedCommand}">
                           <StackPanel Orientation="Horizontal">
@@ -908,7 +909,7 @@
                                   StrokeStartLineCap="Round"
                                   StrokeEndLineCap="Round"
                                   Data="M 12 2 L 12 11 M 5 6 A 9 9 0 1 0 19 6" />
-                            <TextBlock Text="Run recommended setup" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static props:Strings.ButtonRunRecommendedSetup}" VerticalAlignment="Center" />
                           </StackPanel>
                         </Button>
 
@@ -920,7 +921,7 @@
                     </Border>
 
                     <StackPanel Grid.Column="1" Margin="14,0,0,0">
-                      <TextBlock Text="What it includes"
+                      <TextBlock Text="{x:Static props:Strings.WhatIncludesLabel}"
                                  Style="{StaticResource SectionTitleTextStyle}"
                                  FontSize="17" />
                       <ItemsControl ItemsSource="{Binding RecommendedHighlights}" Margin="0,12,0,0">
@@ -957,7 +958,7 @@
                           Background="{StaticResource StrokeSoftBrush}"
                           Margin="0,0,0,16" />
 
-                  <TextBlock Text="Use Recommended for first installs, repairs after a Spotify update, or any time you want the fastest path back to a known-good setup."
+                  <TextBlock Text="{x:Static props:Strings.RecommendedModeHint}"
                              Style="{StaticResource CaptionTextStyle}"
                              Foreground="{StaticResource TextBrush}"
                              MaxWidth="780"
@@ -967,7 +968,7 @@
             </TabItem>
 
             <!-- ═══ Custom ═══ -->
-            <TabItem Header="Custom">
+            <TabItem Header="{x:Static props:Strings.ModeCustomTitle}">
               <Grid AutomationProperties.Name="Custom workspace">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="*" />
@@ -978,7 +979,7 @@
                               VerticalScrollBarVisibility="Auto"
                               Margin="0,0,22,0">
                   <StackPanel>
-                    <TextBlock Text="Find a setting"
+                    <TextBlock Text="{x:Static props:Strings.SearchPlaceholder}"
                                Style="{StaticResource LabelTextStyle}" />
                     <Grid Margin="0,8,0,0">
                       <Grid.ColumnDefinitions>
@@ -988,17 +989,17 @@
                       <TextBox Text="{Binding SettingsSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                Style="{StaticResource TextBoxStylePremium}"
                                Height="42"
-                               AutomationProperties.Name="Find a setting"
-                               AutomationProperties.HelpText="Search setting titles and descriptions across the Custom page." />
+                               AutomationProperties.Name="{x:Static props:Strings.SearchPlaceholder}"
+                               AutomationProperties.HelpText="{x:Static props:Strings.SearchHelpText}" />
                       <Button Grid.Column="1"
-                              Content="Clear"
+                              Content="{x:Static props:Strings.ButtonClearSearch}"
                               Height="42"
                               Margin="10,0,0,0"
                               Padding="18,0"
                               Style="{StaticResource SecondaryButtonStyle}"
                               Visibility="{Binding HasSettingsSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
                               Command="{Binding ClearSettingsSearchCommand}"
-                              AutomationProperties.Name="Clear settings search" />
+                              AutomationProperties.Name="{x:Static props:Strings.ButtonClearSearchName}" />
                     </Grid>
                     <TextBlock Text="{Binding CustomSearchSummary}"
                                Style="{StaticResource CaptionTextStyle}"
@@ -1023,9 +1024,9 @@
                                 Margin="0,2,12,0"
                                 VerticalAlignment="Top" />
                         <StackPanel Grid.Column="1">
-                          <TextBlock Text="No matching settings"
+                          <TextBlock Text="{x:Static props:Strings.SearchNoResults}"
                                      Style="{StaticResource EmptyStateTitleTextStyle}" />
-                          <TextBlock Text="Try a broader term, or clear the search to browse the full profile again."
+                          <TextBlock Text="{x:Static props:Strings.SearchNoResultsHint}"
                                      Style="{StaticResource EmptyStateBodyTextStyle}"
                                      Margin="0,6,0,0" />
                         </StackPanel>
@@ -1035,8 +1036,8 @@
                     <Border Style="{StaticResource MinimalSectionStyle}"
                             Visibility="{Binding HasVisibleInstallOptions, Converter={StaticResource BoolToVisibilityConverter}}">
                       <StackPanel>
-                        <TextBlock Text="Install posture" Style="{StaticResource SectionTitleTextStyle}" />
-                        <TextBlock Text="Choose whether LibreSpot rebuilds first and whether Spotify reopens when the run finishes."
+                        <TextBlock Text="{x:Static props:Strings.InstallPostureSection}" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="{x:Static props:Strings.InstallPostureDescription}"
                                    Style="{StaticResource BodyTextStyle}"
                                    Margin="0,6,0,14" />
                         <ItemsControl ItemsSource="{Binding InstallOptions}" ItemTemplate="{StaticResource OptionTemplate}">
@@ -1056,25 +1057,25 @@
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Margin="0,0,20,0">
-                          <TextBlock Text="Appearance" Style="{StaticResource SectionTitleTextStyle}" />
-                          <TextBlock Text="Theme, scheme, lyrics, cache, and compatibility."
+                          <TextBlock Text="{x:Static props:Strings.AppearanceSection}" Style="{StaticResource SectionTitleTextStyle}" />
+                          <TextBlock Text="{x:Static props:Strings.AppearanceDescription}"
                                      Style="{StaticResource BodyTextStyle}"
                                      Margin="0,6,0,16" />
 
-                          <TextBlock Text="Theme pack" Style="{StaticResource LabelTextStyle}" />
+                          <TextBlock Text="{x:Static props:Strings.ThemePackLabel}" Style="{StaticResource LabelTextStyle}" />
                           <ComboBox ItemsSource="{Binding ThemeNames}"
                                      SelectedItem="{Binding SelectedTheme, Mode=TwoWay}"
                                      Style="{StaticResource ComboBoxStylePremium}"
-                                     AutomationProperties.Name="Theme pack"
-                                     AutomationProperties.HelpText="Select the Spicetify theme pack LibreSpot should restore."
+                                     AutomationProperties.Name="{x:Static props:Strings.ThemePackLabel}"
+                                     AutomationProperties.HelpText="{x:Static props:Strings.ThemePackHint}"
                                      Margin="0,6,0,14" />
 
-                          <TextBlock Text="Color scheme" Style="{StaticResource LabelTextStyle}" />
+                          <TextBlock Text="{x:Static props:Strings.ColorSchemeLabel}" Style="{StaticResource LabelTextStyle}" />
                           <ComboBox ItemsSource="{Binding SchemeOptions}"
                                      SelectedItem="{Binding SelectedScheme, Mode=TwoWay}"
                                      Style="{StaticResource ComboBoxStylePremium}"
                                      IsEnabled="{Binding IsThemeSchemeAvailable}"
-                                     AutomationProperties.Name="Color scheme"
+                                     AutomationProperties.Name="{x:Static props:Strings.ColorSchemeLabel}"
                                      AutomationProperties.HelpText="{Binding ThemeSchemeHint}"
                                      Margin="0,6,0,6">
                             <ComboBox.ItemTemplate>
@@ -1087,12 +1088,12 @@
                                      Style="{StaticResource CaptionTextStyle}"
                                      Margin="0,0,0,14" />
 
-                          <TextBlock Text="Lyrics theme" Style="{StaticResource LabelTextStyle}" />
+                          <TextBlock Text="{x:Static props:Strings.LyricsThemeLabel}" Style="{StaticResource LabelTextStyle}" />
                           <ComboBox ItemsSource="{Binding LyricsThemes}"
                                      SelectedItem="{Binding SelectedLyricsTheme, Mode=TwoWay}"
                                      Style="{StaticResource ComboBoxStylePremium}"
                                      IsEnabled="{Binding IsLyricsThemeAvailable}"
-                                     AutomationProperties.Name="Lyrics theme"
+                                     AutomationProperties.Name="{x:Static props:Strings.LyricsThemeLabel}"
                                      AutomationProperties.HelpText="{Binding LyricsThemeHint}"
                                      Margin="0,6,0,6">
                             <ComboBox.ItemTemplate>
@@ -1106,7 +1107,7 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="1">
-                          <TextBlock Text="Cache limit" Style="{StaticResource LabelTextStyle}" />
+                          <TextBlock Text="{x:Static props:Strings.CacheLimitLabel}" Style="{StaticResource LabelTextStyle}" />
                           <Grid Margin="0,6,0,8">
                             <Grid.ColumnDefinitions>
                               <ColumnDefinition Width="*" />
@@ -1115,27 +1116,27 @@
                             <TextBox Text="{Binding CacheLimitText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource TextBoxStylePremium}"
                                      MaxLength="6"
-                                     AutomationProperties.Name="Cache limit in megabytes"
-                                     AutomationProperties.HelpText="Set a cache ceiling in megabytes, or leave zero to use LibreSpot's default."
+                                     AutomationProperties.Name="{x:Static props:Strings.CacheLimitName}"
+                                     AutomationProperties.HelpText="{x:Static props:Strings.CacheLimitHint}"
                                      DataObject.Pasting="CacheLimitTextBox_OnPasting"
                                      PreviewTextInput="CacheLimitTextBox_OnPreviewTextInput" />
                             <TextBlock Grid.Column="1"
-                                       Text="MB"
+                                       Text="{x:Static props:Strings.CacheLimitUnit}"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        FontWeight="SemiBold"
                                        VerticalAlignment="Center"
                                        Margin="10,0,0,0" />
                           </Grid>
-                          <TextBlock Text="Leave 0 for the default cache behavior."
+                          <TextBlock Text="{x:Static props:Strings.CacheLimitDefault}"
                                      Style="{StaticResource CaptionTextStyle}" />
 
                           <Border Height="1"
                                   Background="{StaticResource StrokeSoftBrush}"
                                   Margin="0,16,0,16" />
 
-                          <TextBlock Text="Compatibility target"
+                          <TextBlock Text="{x:Static props:Strings.CompatibilityTargetLabel}"
                                      Style="{StaticResource LabelTextStyle}" />
-                          <TextBlock Text="Spotify build"
+                          <TextBlock Text="{x:Static props:Strings.SpotifyBuildLabel}"
                                      Style="{StaticResource SectionTitleTextStyle}"
                                      FontSize="16"
                                      Margin="0,6,0,0" />
@@ -1143,8 +1144,8 @@
                                      SelectedValue="{Binding SelectedSpotifyVersionId, Mode=TwoWay}"
                                      SelectedValuePath="Id"
                                      Style="{StaticResource ComboBoxStylePremium}"
-                                     AutomationProperties.Name="Spotify compatibility target"
-                                     AutomationProperties.HelpText="Choose the Spotify build LibreSpot should pin when you want more explicit compatibility control."
+                                     AutomationProperties.Name="{x:Static props:Strings.SpotifyCompatibilityName}"
+                                     AutomationProperties.HelpText="{x:Static props:Strings.SpotifyCompatibilityHint}"
                                      Margin="0,10,0,6">
                             <ComboBox.ItemTemplate>
                               <DataTemplate>
@@ -1155,15 +1156,15 @@
                           <TextBlock Text="{Binding SpotifyVersionNotes}"
                                      Style="{StaticResource CaptionTextStyle}" />
 
-                          <TextBlock Text="Download path"
+                          <TextBlock Text="{x:Static props:Strings.DownloadPathLabel}"
                                      Style="{StaticResource LabelTextStyle}"
                                      Margin="0,16,0,0" />
                           <ComboBox ItemsSource="{Binding DownloadMethodOptions}"
                                      SelectedValue="{Binding SelectedDownloadMethod, Mode=TwoWay}"
                                      SelectedValuePath="Id"
                                      Style="{StaticResource ComboBoxStylePremium}"
-                                     AutomationProperties.Name="Download method"
-                                     AutomationProperties.HelpText="Override LibreSpot's default transfer path only when your network or environment calls for it."
+                                     AutomationProperties.Name="{x:Static props:Strings.DownloadMethodName}"
+                                     AutomationProperties.HelpText="{x:Static props:Strings.DownloadMethodHint}"
                                      Margin="0,10,0,6">
                             <ComboBox.ItemTemplate>
                               <DataTemplate>
@@ -1180,12 +1181,12 @@
                     <Border Style="{StaticResource MinimalSectionStyle}"
                             Visibility="{Binding HasVisibleBehaviorSection, Converter={StaticResource BoolToVisibilityConverter}}">
                       <StackPanel>
-                        <TextBlock Text="Playback and shell behavior" Style="{StaticResource SectionTitleTextStyle}" />
-                        <TextBlock Text="These settings shape the day-to-day Spotify experience after patching."
+                        <TextBlock Text="{x:Static props:Strings.PlaybackBehaviorSection}" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="{x:Static props:Strings.PlaybackBehaviorDescription}"
                                    Style="{StaticResource BodyTextStyle}"
                                    Margin="0,6,0,14" />
 
-                        <TextBlock Text="Core behavior"
+                        <TextBlock Text="{x:Static props:Strings.CoreBehaviorLabel}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Margin="0,0,0,8"
                                    Visibility="{Binding HasVisibleCoreOptions, Converter={StaticResource BoolToVisibilityConverter}}" />
@@ -1221,7 +1222,7 @@
                           </Border.Style>
                         </Border>
 
-                        <TextBlock Text="Interface tuning"
+                        <TextBlock Text="{x:Static props:Strings.InterfaceTuningLabel}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Margin="0,0,0,8"
                                    Visibility="{Binding HasVisibleInterfaceOptions, Converter={StaticResource BoolToVisibilityConverter}}" />
@@ -1245,8 +1246,8 @@
                     <Border Style="{StaticResource MinimalSectionStyle}"
                             Visibility="{Binding HasVisibleAdvancedSection, Converter={StaticResource BoolToVisibilityConverter}}">
                       <StackPanel>
-                        <TextBlock Text="Advanced adjustments" Style="{StaticResource SectionTitleTextStyle}" />
-                        <TextBlock Text="Leave these off unless you know you need them."
+                        <TextBlock Text="{x:Static props:Strings.AdvancedAdjustmentsSection}" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="{x:Static props:Strings.AdvancedAdjustmentsHint}"
                                    Style="{StaticResource BodyTextStyle}"
                                    Margin="0,6,0,14" />
                         <ItemsControl ItemsSource="{Binding AdvancedOptions}" ItemTemplate="{StaticResource OptionTemplate}">
@@ -1281,7 +1282,7 @@
                           </Border.Style>
                         </Border>
 
-                        <TextBlock Text="Experience extras"
+                        <TextBlock Text="{x:Static props:Strings.ExperienceExtrasLabel}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Margin="0,0,0,8"
                                    Visibility="{Binding HasVisibleExperienceOptions, Converter={StaticResource BoolToVisibilityConverter}}" />
@@ -1303,8 +1304,8 @@
                             BorderThickness="0"
                             Visibility="{Binding HasVisibleExtensions, Converter={StaticResource BoolToVisibilityConverter}}">
                       <StackPanel>
-                        <TextBlock Text="Built-in extensions" Style="{StaticResource SectionTitleTextStyle}" />
-                        <TextBlock Text="Extras LibreSpot manages with this profile."
+                        <TextBlock Text="{x:Static props:Strings.BuiltInExtensionsSection}" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="{x:Static props:Strings.BuiltInExtensionsDescription}"
                                    Style="{StaticResource BodyTextStyle}"
                                    Margin="0,6,0,14" />
                         <ItemsControl ItemsSource="{Binding Extensions}" ItemTemplate="{StaticResource ExtensionTemplate}">
@@ -1331,7 +1332,7 @@
 
                     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
                       <StackPanel>
-                        <TextBlock Text="Profile summary"
+                        <TextBlock Text="{x:Static props:Strings.ProfileSummaryLabel}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Foreground="{StaticResource AccentBrush}" />
                         <TextBlock Text="{Binding CustomProfileTitle}"
@@ -1362,7 +1363,7 @@
                             <RowDefinition Height="Auto" />
                           </Grid.RowDefinitions>
 
-                          <TextBlock Text="Install posture"
+                          <TextBlock Text="{x:Static props:Strings.InstallPostureLabel}"
                                      Style="{StaticResource LabelTextStyle}"
                                      Margin="0,2,12,0" />
                           <TextBlock Grid.Column="1"
@@ -1373,7 +1374,7 @@
                                      TextWrapping="Wrap" />
 
                           <TextBlock Grid.Row="1"
-                                     Text="Profile changes"
+                                     Text="{x:Static props:Strings.ProfileChangesLabel}"
                                      Style="{StaticResource LabelTextStyle}"
                                      Margin="0,12,12,0" />
                           <TextBlock Grid.Row="1"
@@ -1386,7 +1387,7 @@
                                      Margin="0,12,0,0" />
 
                           <TextBlock Grid.Row="2"
-                                     Text="Extensions"
+                                     Text="{x:Static props:Strings.ExtensionsLabel}"
                                      Style="{StaticResource LabelTextStyle}"
                                      Margin="0,12,12,0" />
                           <TextBlock Grid.Row="2"
@@ -1399,7 +1400,7 @@
                                      Margin="0,12,0,0" />
 
                           <TextBlock Grid.Row="3"
-                                     Text="Access"
+                                     Text="{x:Static props:Strings.AccessLabel}"
                                      Style="{StaticResource LabelTextStyle}"
                                      Margin="0,12,12,0" />
                           <TextBlock Grid.Row="3"
@@ -1416,7 +1417,7 @@
                                 Background="{StaticResource StrokeSoftBrush}"
                                 Margin="0,16,0,16" />
 
-                        <TextBlock Text="Run readiness"
+                        <TextBlock Text="{x:Static props:Strings.RunReadinessLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding CustomRunReadinessTitle}"
                                    Foreground="{StaticResource TextBrush}"
@@ -1431,7 +1432,7 @@
                                 Background="{StaticResource StrokeSoftBrush}"
                                 Margin="0,16,0,16" />
 
-                        <TextBlock Text="Current selections"
+                        <TextBlock Text="{x:Static props:Strings.CurrentSelectionsLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding ThemeSummary}"
                                    Foreground="{StaticResource TextBrush}"
@@ -1448,7 +1449,7 @@
                         <TextBlock Text="{Binding CustomSelectionSummary}"
                                    Style="{StaticResource CaptionTextStyle}"
                                    Margin="0,4,0,0" />
-                        <TextBlock Text="Compatibility target"
+                        <TextBlock Text="{x:Static props:Strings.CompatibilityTargetLabel}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Margin="0,12,0,0" />
                         <TextBlock Text="{Binding SpotifyVersionSummary}"
@@ -1460,7 +1461,7 @@
                         <TextBlock Text="{Binding SpotifyVersionNotes}"
                                    Style="{StaticResource CaptionTextStyle}"
                                    Margin="0,4,0,0" />
-                        <TextBlock Text="Download route"
+                        <TextBlock Text="{x:Static props:Strings.DownloadRouteLabel}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Margin="0,12,0,0" />
                         <TextBlock Text="{Binding DownloadMethodSummary}"
@@ -1477,7 +1478,7 @@
                                 Background="{StaticResource StrokeSoftBrush}"
                                 Margin="0,16,0,16" />
 
-                        <TextBlock Text="What to watch"
+                        <TextBlock Text="{x:Static props:Strings.WhatToWatchLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <ItemsControl ItemsSource="{Binding SelectionInsights}"
                                       ItemTemplate="{StaticResource SelectionInsightTemplate}"
@@ -1487,7 +1488,7 @@
                                 Background="{StaticResource StrokeSoftBrush}"
                                 Margin="0,6,0,16" />
 
-                        <TextBlock Text="Extensions"
+                        <TextBlock Text="{x:Static props:Strings.ExtensionsLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding ExtensionSummary}"
                                    Foreground="{StaticResource TextBrush}"
@@ -1523,11 +1524,11 @@
                               </Style.Triggers>
                             </Style>
                           </StackPanel.Style>
-                          <TextBlock Text="No extensions selected"
+                          <TextBlock Text="{x:Static props:Strings.NoExtensionsSelected}"
                                      Foreground="{StaticResource TextBrush}"
                                      FontWeight="SemiBold"
                                      FontSize="12.5" />
-                          <TextBlock Text="Keep it lean, or add helpers only when you need them."
+                          <TextBlock Text="{x:Static props:Strings.NoExtensionsHint}"
                                      Style="{StaticResource CaptionTextStyle}"
                                      Margin="0,6,0,0" />
                         </StackPanel>
@@ -1535,12 +1536,12 @@
                     </ScrollViewer>
 
                     <Button Grid.Row="1"
-                            Content="Apply custom profile"
+                            Content="{x:Static props:Strings.ButtonApplyCustomProfile}"
                             Height="48"
                             Margin="0,16,0,0"
                             Style="{StaticResource PrimaryButtonStyle}"
-                            AutomationProperties.Name="Apply custom profile"
-                            AutomationProperties.HelpText="Saves this custom profile and starts the installer with those selections."
+                            AutomationProperties.Name="{x:Static props:Strings.ButtonApplyCustomProfile}"
+                            AutomationProperties.HelpText="{x:Static props:Strings.ButtonApplyCustomProfileHint}"
                             Command="{Binding ApplyCustomCommand}" />
                     <TextBlock Grid.Row="2"
                                Text="{Binding CustomApplyCaption}"
@@ -1553,7 +1554,7 @@
             </TabItem>
 
             <!-- ═══ Maintenance ═══ -->
-            <TabItem Header="Maintenance">
+            <TabItem Header="{x:Static props:Strings.ModeMaintenanceTitle}">
               <ScrollViewer VerticalScrollBarVisibility="Auto"
                             AutomationProperties.Name="Maintenance workspace">
                 <StackPanel Margin="0,12,0,0">
@@ -1577,7 +1578,7 @@
                                Margin="0,0,0,14">
                     <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">
                       <StackPanel>
-                        <TextBlock Text="Stack"
+                        <TextBlock Text="{x:Static props:Strings.StackLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding MaintenanceReadinessValue}"
                                    Foreground="{StaticResource TextBrush}"
@@ -1593,7 +1594,7 @@
 
                     <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">
                       <StackPanel>
-                        <TextBlock Text="Backups"
+                        <TextBlock Text="{x:Static props:Strings.BackupsLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding MaintenanceBackupValue}"
                                    Foreground="{StaticResource TextBrush}"
@@ -1609,7 +1610,7 @@
 
                     <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">
                       <StackPanel>
-                        <TextBlock Text="Marketplace"
+                        <TextBlock Text="{x:Static props:Strings.MarketplaceLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding MaintenanceMarketplaceValue}"
                                    Foreground="{StaticResource TextBrush}"
@@ -1625,7 +1626,7 @@
 
                     <Border Style="{StaticResource SubtleCardStyle}">
                       <StackPanel>
-                        <TextBlock Text="Theme"
+                        <TextBlock Text="{x:Static props:Strings.ThemeLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding MaintenanceThemeValue}"
                                    Foreground="{StaticResource TextBrush}"
@@ -1648,7 +1649,7 @@
                           <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Margin="0,0,18,0">
-                          <TextBlock Text="Support bundle"
+                          <TextBlock Text="{x:Static props:Strings.SupportBundleTitle}"
                                      Style="{StaticResource SectionTitleTextStyle}"
                                      FontSize="18" />
                           <TextBlock Text="{Binding SupportBundlePreviewTitle}"
@@ -1670,10 +1671,10 @@
                                 MinWidth="170"
                                 Height="42"
                                 Padding="16,0"
-                                Content="Export bundle"
+                                Content="{x:Static props:Strings.ButtonExportBundle}"
                                 Style="{StaticResource PrimaryButtonStyle}"
-                                AutomationProperties.Name="Export support bundle"
-                                AutomationProperties.HelpText="Writes a local redacted LibreSpot support zip using the selected diagnostic categories."
+                                AutomationProperties.Name="{x:Static props:Strings.ButtonExportBundleName}"
+                                AutomationProperties.HelpText="{x:Static props:Strings.ButtonExportBundleHint}"
                                 Command="{Binding ExportSupportBundleCommand}" />
                       </Grid>
 
@@ -1733,7 +1734,7 @@
                           <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                          <TextBlock Text="Auto-reapply after Spotify updates"
+                          <TextBlock Text="{x:Static props:Strings.AutoReapplyTitle}"
                                      Style="{StaticResource SectionTitleTextStyle}"
                                      FontSize="18" />
                           <TextBlock Text="{Binding AutoReapplyStatusDetail}"
@@ -1786,22 +1787,22 @@
                       <WrapPanel Grid.Row="2"
                                  Margin="0,18,0,0"
                                  HorizontalAlignment="Right">
-                        <Button Content="Enable watcher"
+                        <Button Content="{x:Static props:Strings.ButtonEnableWatcher}"
                                 MinWidth="136"
                                 Height="38"
                                 Padding="16,0"
                                 Margin="0,0,10,0"
                                 Style="{StaticResource PrimaryButtonStyle}"
-                                AutomationProperties.Name="Enable auto-reapply watcher"
-                                AutomationProperties.HelpText="Registers the scheduled task that reapplies LibreSpot after Spotify updates."
+                                AutomationProperties.Name="{x:Static props:Strings.ButtonEnableWatcherName}"
+                                AutomationProperties.HelpText="{x:Static props:Strings.ButtonEnableWatcherHint}"
                                 Command="{Binding EnableAutoReapplyCommand}" />
-                        <Button Content="Disable watcher"
+                        <Button Content="{x:Static props:Strings.ButtonDisableWatcher}"
                                 MinWidth="136"
                                 Height="38"
                                 Padding="16,0"
                                 Style="{StaticResource SecondaryButtonStyle}"
-                                AutomationProperties.Name="Disable auto-reapply watcher"
-                                AutomationProperties.HelpText="Removes the scheduled auto-reapply watcher task."
+                                AutomationProperties.Name="{x:Static props:Strings.ButtonDisableWatcherName}"
+                                AutomationProperties.HelpText="{x:Static props:Strings.ButtonDisableWatcherHint}"
                                 Command="{Binding DisableAutoReapplyCommand}" />
                       </WrapPanel>
                     </Grid>
@@ -1809,10 +1810,10 @@
 
                   <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,14">
                     <StackPanel>
-                      <TextBlock Text="Refresh and recover"
+                      <TextBlock Text="{x:Static props:Strings.RefreshRecoverSection}"
                                  Style="{StaticResource SectionTitleTextStyle}"
                                  FontSize="18" />
-                      <TextBlock Text="Use these first for checks, reapply, and lighter rollback work."
+                      <TextBlock Text="{x:Static props:Strings.RefreshRecoverDescription}"
                                  Style="{StaticResource CaptionTextStyle}"
                                  Foreground="{StaticResource TextBrush}"
                                  Margin="0,8,0,12" />
@@ -1825,11 +1826,11 @@
                           Background="{StaticResource Surface1Brush}"
                           BorderBrush="{StaticResource StrokeSoftBrush}">
                     <StackPanel>
-                      <TextBlock Text="Reset"
+                      <TextBlock Text="{x:Static props:Strings.ResetSection}"
                                  Style="{StaticResource SectionTitleTextStyle}"
                                  FontSize="18"
                                  Foreground="{StaticResource DangerBrush}" />
-                      <TextBlock Text="Use only when you want to remove the current setup and start from a cleaner baseline."
+                      <TextBlock Text="{x:Static props:Strings.ResetDescription}"
                                  Style="{StaticResource CaptionTextStyle}"
                                  Foreground="{StaticResource TextBrush}"
                                  Margin="0,8,0,12" />
@@ -1838,7 +1839,7 @@
                     </StackPanel>
                   </Border>
 
-                  <TextBlock Text="Close Spotify first if playback is active, and copy the log if anything looks unusual."
+                  <TextBlock Text="{x:Static props:Strings.MaintenanceClosingHint}"
                              Style="{StaticResource CaptionTextStyle}"
                              Foreground="{StaticResource MutedTextBrush}"
                              Margin="0,16,0,0"
@@ -1886,8 +1887,8 @@
                 VerticalAlignment="Center"
                 Padding="32"
                 Focusable="True"
-                AutomationProperties.Name="Run activity dialog"
-                AutomationProperties.HelpText="Shows live progress, current status, and troubleshooting output."
+                AutomationProperties.Name="{x:Static props:Strings.ActivityDialogName}"
+                AutomationProperties.HelpText="{x:Static props:Strings.ActivityDialogHint}"
                 Style="{StaticResource ActivityCardStyle}">
           <Grid>
             <Grid.RowDefinitions>
@@ -1935,7 +1936,7 @@
                           HorizontalAlignment="Right"
                           VerticalAlignment="Top"
                           Margin="20,0,0,0">
-                <TextBlock Text="Elapsed"
+                <TextBlock Text="{x:Static props:Strings.ElapsedLabel}"
                            Style="{StaticResource LabelTextStyle}"
                            TextAlignment="Right" />
                 <TextBlock Text="{Binding RunElapsedText}"
@@ -1961,7 +1962,7 @@
                              IsIndeterminate="{Binding IsBusyIndeterminate, Mode=OneWay}"
                              Style="{StaticResource ProgressBarStylePremium}"
                              VerticalAlignment="Center"
-                             AutomationProperties.Name="Installation progress" />
+                             AutomationProperties.Name="{x:Static props:Strings.ProgressBarName}" />
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
                             Margin="14,0,0,0"
@@ -2069,10 +2070,10 @@
                   <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
-                  <TextBlock Text="Run log"
+                  <TextBlock Text="{x:Static props:Strings.RunLogLabel}"
                              Style="{StaticResource LabelTextStyle}"
                              VerticalAlignment="Center" />
-                  <TextBlock Text="Detailed progress and recovery notes from this run."
+                  <TextBlock Text="{x:Static props:Strings.RunLogDescription}"
                              Style="{StaticResource CaptionTextStyle}"
                              Margin="0,6,0,0" />
                 </StackPanel>
@@ -2104,11 +2105,11 @@
                         </Style.Triggers>
                       </Style>
                     </StackPanel.Style>
-                    <TextBlock Text="Run details will appear here"
+                    <TextBlock Text="{x:Static props:Strings.LogEmptyStateTitle}"
                                Style="{StaticResource EmptyStateTitleTextStyle}"
                                TextAlignment="Center"
                                HorizontalAlignment="Center" />
-                    <TextBlock Text="Progress, warnings, and recovery clues appear as soon as LibreSpot has something to report."
+                    <TextBlock Text="{x:Static props:Strings.LogEmptyStateHint}"
                                Style="{StaticResource EmptyStateBodyTextStyle}"
                                TextAlignment="Center"
                                Margin="0,6,0,0"
@@ -2183,38 +2184,38 @@
               <StackPanel Grid.Column="1"
                           Orientation="Horizontal"
                           HorizontalAlignment="Right">
-                <Button Content="Copy log"
+                <Button Content="{x:Static props:Strings.ButtonCopyLog}"
                         x:Name="ActivityCopyLogButton"
                         MinWidth="120"
                         Height="42"
                         Padding="18,0"
                         Margin="0,0,10,0"
                         Style="{StaticResource SecondaryButtonStyle}"
-                        AutomationProperties.Name="Copy run log"
-                        AutomationProperties.HelpText="Copies the visible run log to the clipboard."
+                        AutomationProperties.Name="{x:Static props:Strings.ButtonCopyLogName}"
+                        AutomationProperties.HelpText="{x:Static props:Strings.ButtonCopyLogHint}"
                         Command="{Binding CopyLogCommand}" />
-                <Button Content="Open folder"
+                <Button Content="{x:Static props:Strings.ButtonOpenFolder}"
                         x:Name="ActivityOpenLibreSpotFolderButton"
                         MinWidth="132"
                         Height="42"
                         Padding="18,0"
                         Margin="0,0,10,0"
                         Style="{StaticResource SecondaryButtonStyle}"
-                        AutomationProperties.Name="Open LibreSpot folder"
-                        AutomationProperties.HelpText="Opens the LibreSpot configuration folder, including config backups and install.log."
+                        AutomationProperties.Name="{x:Static props:Strings.ButtonOpenLibreSpotFolder}"
+                        AutomationProperties.HelpText="{x:Static props:Strings.ButtonOpenLibreSpotFolderActivityHint}"
                         Command="{Binding OpenLibreSpotFolderCommand}" />
-                <Button Content="Cancel run"
+                <Button Content="{x:Static props:Strings.ButtonCancelRun}"
                         x:Name="ActivityCancelRunButton"
                         MinWidth="140"
                         Height="42"
                         Padding="18,0"
                         Margin="0,0,10,0"
                         Style="{StaticResource DestructiveButtonStyle}"
-                        AutomationProperties.Name="Cancel current run"
-                        AutomationProperties.HelpText="Stops the active LibreSpot run."
+                        AutomationProperties.Name="{x:Static props:Strings.ButtonCancelRunName}"
+                        AutomationProperties.HelpText="{x:Static props:Strings.ButtonCancelRunHint}"
                         Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibilityConverter}}"
                         Command="{Binding CancelRunCommand}" />
-                <Button Content="Close"
+                <Button Content="{x:Static props:Strings.ButtonClose}"
                         x:Name="ActivityCloseButton"
                         MinWidth="140"
                         Height="42"
@@ -2277,11 +2278,11 @@
                        FontSize="11">
               <TextBlock.Style>
                 <Style TargetType="TextBlock" BasedOn="{StaticResource LabelTextStyle}">
-                  <Setter Property="Text" Value="Confirm action" />
+                  <Setter Property="Text" Value="{x:Static props:Strings.PromptActionConfirm}" />
                   <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
                   <Style.Triggers>
                     <DataTrigger Binding="{Binding IsPromptDestructive}" Value="True">
-                      <Setter Property="Text" Value="Reset action" />
+                      <Setter Property="Text" Value="{x:Static props:Strings.PromptActionReset}" />
                       <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
                     </DataTrigger>
                   </Style.Triggers>

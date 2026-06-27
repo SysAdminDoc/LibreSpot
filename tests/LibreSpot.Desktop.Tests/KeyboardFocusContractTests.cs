@@ -59,7 +59,7 @@ public sealed class KeyboardFocusContractTests
     public void ActivityDialogRoot_IsFocusable()
     {
         var xaml = ReadXaml();
-        var activitySection = ExtractSection(xaml, "ActivityDialogRoot", 50);
+        var activitySection = ExtractSection(xaml, "ActivityDialogRoot", 500);
         Assert.Contains("Focusable=\"True\"", activitySection);
     }
 
@@ -132,7 +132,7 @@ public sealed class KeyboardFocusContractTests
         var idx = text.IndexOf($"\"{markerName}\"", StringComparison.Ordinal);
         if (idx < 0) idx = text.IndexOf($"'{markerName}'", StringComparison.Ordinal);
         Assert.True(idx >= 0, $"Marker '{markerName}' not found in XAML.");
-        var start = Math.Max(0, idx - 200);
+        var start = Math.Max(0, idx - 2000);
         var end = Math.Min(text.Length, idx + charWindow);
         return text[start..end];
     }

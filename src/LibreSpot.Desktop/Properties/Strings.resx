@@ -61,6 +61,8 @@
   <!-- Search -->
   <data name="SearchPlaceholder" xml:space="preserve"><value>Find a setting</value><comment>Search box watermark text</comment></data>
   <data name="SearchNoResults" xml:space="preserve"><value>No matching settings</value><comment>Shown when search finds nothing</comment></data>
+  <data name="SearchNoResultsHint" xml:space="preserve"><value>Try a broader term, or clear the search to browse the full profile again.</value><comment>Hint below search no-results message</comment></data>
+  <data name="SearchHelpText" xml:space="preserve"><value>Search setting titles and descriptions across the Custom page.</value><comment>Accessibility help text for search box</comment></data>
 
   <!-- Health severity labels -->
   <data name="SeverityReady" xml:space="preserve"><value>Ready</value><comment>Health check passed</comment></data>
@@ -88,6 +90,31 @@
   <data name="ButtonDismiss" xml:space="preserve"><value>Dismiss</value><comment>Dismiss/close button</comment></data>
   <data name="ButtonCopyLog" xml:space="preserve"><value>Copy log</value><comment>Copy log to clipboard button</comment></data>
   <data name="ButtonOpenFolder" xml:space="preserve"><value>Open folder</value><comment>Open folder in Explorer button</comment></data>
+  <data name="ButtonClearSearch" xml:space="preserve"><value>Clear</value><comment>Clear search button</comment></data>
+  <data name="ButtonClearSearchName" xml:space="preserve"><value>Clear settings search</value><comment>Accessibility name for clear search button</comment></data>
+  <data name="ButtonRunRecommendedSetup" xml:space="preserve"><value>Run recommended setup</value><comment>Primary button on recommended mode</comment></data>
+  <data name="ButtonApplyCustomProfile" xml:space="preserve"><value>Apply custom profile</value><comment>Primary button on custom mode</comment></data>
+  <data name="ButtonApplyCustomProfileHint" xml:space="preserve"><value>Saves this custom profile and starts the installer with those selections.</value><comment>Accessibility help text for apply button</comment></data>
+  <data name="ButtonOpenLibreSpotFolder" xml:space="preserve"><value>Open LibreSpot folder</value><comment>Open config folder button</comment></data>
+  <data name="ButtonOpenLibreSpotFolderHint" xml:space="preserve"><value>Opens the LibreSpot configuration folder so you can inspect the recovered profile backup.</value><comment>Sidebar open-folder hint</comment></data>
+  <data name="ButtonOpenLibreSpotFolderActivityHint" xml:space="preserve"><value>Opens the LibreSpot configuration folder, including config backups and install.log.</value><comment>Activity panel open-folder hint</comment></data>
+  <data name="ButtonRefreshEnvironment" xml:space="preserve"><value>Refresh environment</value><comment>Refresh button label</comment></data>
+  <data name="ButtonRefreshEnvironmentHint" xml:space="preserve"><value>Recheck Spotify, Spicetify, and saved profile state.</value><comment>Refresh button tooltip</comment></data>
+  <data name="ButtonExportBundle" xml:space="preserve"><value>Export bundle</value><comment>Export support bundle button</comment></data>
+  <data name="ButtonExportBundleName" xml:space="preserve"><value>Export support bundle</value><comment>Accessibility name for export bundle button</comment></data>
+  <data name="ButtonExportBundleHint" xml:space="preserve"><value>Writes a local redacted LibreSpot support zip using the selected diagnostic categories.</value><comment>Accessibility help text for export bundle button</comment></data>
+  <data name="ButtonEnableWatcher" xml:space="preserve"><value>Enable watcher</value><comment>Enable auto-reapply button</comment></data>
+  <data name="ButtonEnableWatcherName" xml:space="preserve"><value>Enable auto-reapply watcher</value><comment>Accessibility name</comment></data>
+  <data name="ButtonEnableWatcherHint" xml:space="preserve"><value>Registers the scheduled task that reapplies LibreSpot after Spotify updates.</value><comment>Accessibility help text</comment></data>
+  <data name="ButtonDisableWatcher" xml:space="preserve"><value>Disable watcher</value><comment>Disable auto-reapply button</comment></data>
+  <data name="ButtonDisableWatcherName" xml:space="preserve"><value>Disable auto-reapply watcher</value><comment>Accessibility name</comment></data>
+  <data name="ButtonDisableWatcherHint" xml:space="preserve"><value>Removes the scheduled auto-reapply watcher task.</value><comment>Accessibility help text</comment></data>
+  <data name="ButtonCancelRun" xml:space="preserve"><value>Cancel run</value><comment>Cancel active run button</comment></data>
+  <data name="ButtonCancelRunName" xml:space="preserve"><value>Cancel current run</value><comment>Accessibility name</comment></data>
+  <data name="ButtonCancelRunHint" xml:space="preserve"><value>Stops the active LibreSpot run.</value><comment>Accessibility help text</comment></data>
+  <data name="ButtonClose" xml:space="preserve"><value>Close</value><comment>Close overlay button</comment></data>
+  <data name="ButtonCopyLogName" xml:space="preserve"><value>Copy run log</value><comment>Accessibility name for copy log button</comment></data>
+  <data name="ButtonCopyLogHint" xml:space="preserve"><value>Copies the visible run log to the clipboard.</value><comment>Accessibility help text</comment></data>
 
   <!-- Progress / activity -->
   <data name="ProgressPreparing" xml:space="preserve"><value>Preparing</value><comment>Initial progress state</comment></data>
@@ -102,4 +129,121 @@
   <!-- Config status -->
   <data name="ConfigSaved" xml:space="preserve"><value>Profile saved</value><comment>Shown after config is saved</comment></data>
   <data name="ConfigUnsaved" xml:space="preserve"><value>Unsaved changes</value><comment>Shown when config has unsaved changes</comment></data>
+
+  <!-- Sidebar / environment -->
+  <data name="SidebarDescription" xml:space="preserve"><value>Recommended handles the stable path. Custom keeps deliberate changes visible. Maintenance stays focused on recovery.</value><comment>Sidebar mode description paragraph</comment></data>
+  <data name="EnvironmentLabel" xml:space="preserve"><value>Environment</value><comment>Sidebar environment section heading</comment></data>
+  <data name="SeverityWarningsLabel" xml:space="preserve"><value>Warnings</value><comment>Sidebar warning count label</comment></data>
+  <data name="NextStepLabel" xml:space="preserve"><value>Next step</value><comment>Sidebar next-step section heading</comment></data>
+  <data name="ProfileRecoveryLabel" xml:space="preserve"><value>Profile recovery</value><comment>Sidebar profile recovery section heading</comment></data>
+  <data name="StackSnapshotLabel" xml:space="preserve"><value>Stack snapshot</value><comment>Sidebar stack snapshot heading</comment></data>
+  <data name="StackSnapshotHint" xml:space="preserve"><value>Refresh after changing Spotify outside LibreSpot so recommendations stay accurate.</value><comment>Stack snapshot helper text</comment></data>
+
+  <!-- Option status badges -->
+  <data name="OptionStatusOptional" xml:space="preserve"><value>Optional</value><comment>Option card status badge</comment></data>
+  <data name="OptionStatusRecommended" xml:space="preserve"><value>Recommended</value><comment>Option card status badge</comment></data>
+  <data name="OptionStatusAdded" xml:space="preserve"><value>Added</value><comment>Option card status badge</comment></data>
+  <data name="OptionStatusRemoved" xml:space="preserve"><value>Removed</value><comment>Option card status badge</comment></data>
+
+  <!-- Extension status badges -->
+  <data name="ExtensionStatusAvailable" xml:space="preserve"><value>Available</value><comment>Extension card status badge</comment></data>
+  <data name="ExtensionStatusDefault" xml:space="preserve"><value>Default</value><comment>Extension card status badge</comment></data>
+  <data name="ExtensionStatusAdded" xml:space="preserve"><value>Added</value><comment>Extension card status badge</comment></data>
+  <data name="ExtensionStatusRemoved" xml:space="preserve"><value>Removed</value><comment>Extension card status badge</comment></data>
+
+  <!-- Maintenance card details -->
+  <data name="MaintenanceCardDefaultDetail" xml:space="preserve"><value>Runs here and leaves the result visible when LibreSpot finishes.</value><comment>Default maintenance card detail text</comment></data>
+  <data name="MaintenanceCardDestructiveDetail" xml:space="preserve"><value>Use only when you want to clear the current setup and rebuild from scratch.</value><comment>Destructive maintenance card detail text</comment></data>
+
+  <!-- Recommended mode -->
+  <data name="WhatIncludesLabel" xml:space="preserve"><value>What it includes</value><comment>Recommended mode inclusion list heading</comment></data>
+  <data name="RecommendedModeHint" xml:space="preserve"><value>Use Recommended for first installs, repairs after a Spotify update, or any time you want the fastest path back to a known-good setup.</value><comment>Recommended mode usage hint</comment></data>
+
+  <!-- Custom mode sections -->
+  <data name="InstallPostureSection" xml:space="preserve"><value>Install posture</value><comment>Custom mode section heading</comment></data>
+  <data name="InstallPostureDescription" xml:space="preserve"><value>Choose whether LibreSpot rebuilds first and whether Spotify reopens when the run finishes.</value><comment>Custom mode section description</comment></data>
+  <data name="AppearanceSection" xml:space="preserve"><value>Appearance</value><comment>Custom mode section heading</comment></data>
+  <data name="AppearanceDescription" xml:space="preserve"><value>Theme, scheme, lyrics, cache, and compatibility.</value><comment>Custom mode section description</comment></data>
+  <data name="ThemePackLabel" xml:space="preserve"><value>Theme pack</value><comment>Theme selector label</comment></data>
+  <data name="ThemePackHint" xml:space="preserve"><value>Select the Spicetify theme pack LibreSpot should restore.</value><comment>Theme selector accessibility hint</comment></data>
+  <data name="ColorSchemeLabel" xml:space="preserve"><value>Color scheme</value><comment>Scheme selector label</comment></data>
+  <data name="LyricsThemeLabel" xml:space="preserve"><value>Lyrics theme</value><comment>Lyrics theme selector label</comment></data>
+  <data name="CacheLimitLabel" xml:space="preserve"><value>Cache limit</value><comment>Cache limit field label</comment></data>
+  <data name="CacheLimitName" xml:space="preserve"><value>Cache limit in megabytes</value><comment>Accessibility name for cache field</comment></data>
+  <data name="CacheLimitHint" xml:space="preserve"><value>Set a cache ceiling in megabytes, or leave zero to use LibreSpot's default.</value><comment>Cache limit accessibility hint</comment></data>
+  <data name="CacheLimitUnit" xml:space="preserve"><value>MB</value><comment>Cache limit unit suffix</comment></data>
+  <data name="CacheLimitDefault" xml:space="preserve"><value>Leave 0 for the default cache behavior.</value><comment>Cache limit helper text</comment></data>
+  <data name="CompatibilityTargetLabel" xml:space="preserve"><value>Compatibility target</value><comment>Section label for Spotify version targeting</comment></data>
+  <data name="SpotifyBuildLabel" xml:space="preserve"><value>Spotify build</value><comment>Version dropdown label</comment></data>
+  <data name="SpotifyCompatibilityName" xml:space="preserve"><value>Spotify compatibility target</value><comment>Accessibility name for version dropdown</comment></data>
+  <data name="SpotifyCompatibilityHint" xml:space="preserve"><value>Choose the Spotify build LibreSpot should pin when you want more explicit compatibility control.</value><comment>Version dropdown accessibility hint</comment></data>
+  <data name="DownloadPathLabel" xml:space="preserve"><value>Download path</value><comment>Download method section label</comment></data>
+  <data name="DownloadMethodName" xml:space="preserve"><value>Download method</value><comment>Accessibility name for download method dropdown</comment></data>
+  <data name="DownloadMethodHint" xml:space="preserve"><value>Override LibreSpot's default transfer path only when your network or environment calls for it.</value><comment>Download method accessibility hint</comment></data>
+  <data name="PlaybackBehaviorSection" xml:space="preserve"><value>Playback and shell behavior</value><comment>Custom mode section heading</comment></data>
+  <data name="PlaybackBehaviorDescription" xml:space="preserve"><value>These settings shape the day-to-day Spotify experience after patching.</value><comment>Custom mode section description</comment></data>
+  <data name="CoreBehaviorLabel" xml:space="preserve"><value>Core behavior</value><comment>Option group label</comment></data>
+  <data name="InterfaceTuningLabel" xml:space="preserve"><value>Interface tuning</value><comment>Option group label</comment></data>
+  <data name="AdvancedAdjustmentsSection" xml:space="preserve"><value>Advanced adjustments</value><comment>Custom mode section heading</comment></data>
+  <data name="AdvancedAdjustmentsHint" xml:space="preserve"><value>Leave these off unless you know you need them.</value><comment>Advanced section warning</comment></data>
+  <data name="ExperienceExtrasLabel" xml:space="preserve"><value>Experience extras</value><comment>Option group label</comment></data>
+  <data name="BuiltInExtensionsSection" xml:space="preserve"><value>Built-in extensions</value><comment>Custom mode section heading</comment></data>
+  <data name="BuiltInExtensionsDescription" xml:space="preserve"><value>Extras LibreSpot manages with this profile.</value><comment>Custom mode section description</comment></data>
+
+  <!-- Custom mode profile summary -->
+  <data name="ProfileSummaryLabel" xml:space="preserve"><value>Profile summary</value><comment>Summary sidebar heading</comment></data>
+  <data name="InstallPostureLabel" xml:space="preserve"><value>Install posture</value><comment>Summary section label</comment></data>
+  <data name="ProfileChangesLabel" xml:space="preserve"><value>Profile changes</value><comment>Summary section label</comment></data>
+  <data name="ExtensionsLabel" xml:space="preserve"><value>Extensions</value><comment>Summary section label</comment></data>
+  <data name="AccessLabel" xml:space="preserve"><value>Access</value><comment>Summary section label</comment></data>
+  <data name="RunReadinessLabel" xml:space="preserve"><value>Run readiness</value><comment>Summary section label</comment></data>
+  <data name="CurrentSelectionsLabel" xml:space="preserve"><value>Current selections</value><comment>Summary section label</comment></data>
+  <data name="DownloadRouteLabel" xml:space="preserve"><value>Download route</value><comment>Summary section label</comment></data>
+  <data name="WhatToWatchLabel" xml:space="preserve"><value>What to watch</value><comment>Summary section label</comment></data>
+  <data name="NoExtensionsSelected" xml:space="preserve"><value>No extensions selected</value><comment>Empty state for extensions list</comment></data>
+  <data name="NoExtensionsHint" xml:space="preserve"><value>Keep it lean, or add helpers only when you need them.</value><comment>Empty state hint for extensions</comment></data>
+
+  <!-- Maintenance mode -->
+  <data name="StackLabel" xml:space="preserve"><value>Stack</value><comment>Maintenance status section label</comment></data>
+  <data name="BackupsLabel" xml:space="preserve"><value>Backups</value><comment>Maintenance status section label</comment></data>
+  <data name="MarketplaceLabel" xml:space="preserve"><value>Marketplace</value><comment>Maintenance status section label</comment></data>
+  <data name="ThemeLabel" xml:space="preserve"><value>Theme</value><comment>Maintenance status section label</comment></data>
+  <data name="SupportBundleTitle" xml:space="preserve"><value>Support bundle</value><comment>Support bundle section heading</comment></data>
+  <data name="AutoReapplyTitle" xml:space="preserve"><value>Auto-reapply after Spotify updates</value><comment>Watcher section heading</comment></data>
+  <data name="RefreshRecoverSection" xml:space="preserve"><value>Refresh and recover</value><comment>Maintenance action group heading</comment></data>
+  <data name="RefreshRecoverDescription" xml:space="preserve"><value>Use these first for checks, reapply, and lighter rollback work.</value><comment>Maintenance action group description</comment></data>
+  <data name="ResetSection" xml:space="preserve"><value>Reset</value><comment>Maintenance destructive action group heading</comment></data>
+  <data name="ResetDescription" xml:space="preserve"><value>Use only when you want to remove the current setup and start from a cleaner baseline.</value><comment>Maintenance destructive group description</comment></data>
+  <data name="MaintenanceClosingHint" xml:space="preserve"><value>Close Spotify first if playback is active, and copy the log if anything looks unusual.</value><comment>Maintenance footer hint</comment></data>
+
+  <!-- Activity overlay -->
+  <data name="ActivityDialogName" xml:space="preserve"><value>Run activity dialog</value><comment>Accessibility name for activity overlay</comment></data>
+  <data name="ActivityDialogHint" xml:space="preserve"><value>Shows live progress, current status, and troubleshooting output.</value><comment>Accessibility help text for activity overlay</comment></data>
+  <data name="ElapsedLabel" xml:space="preserve"><value>Elapsed</value><comment>Elapsed time label</comment></data>
+  <data name="ProgressBarName" xml:space="preserve"><value>Installation progress</value><comment>Accessibility name for progress bar</comment></data>
+  <data name="RunLogLabel" xml:space="preserve"><value>Run log</value><comment>Log section heading</comment></data>
+  <data name="RunLogDescription" xml:space="preserve"><value>Detailed progress and recovery notes from this run.</value><comment>Log section description</comment></data>
+  <data name="LogEmptyStateTitle" xml:space="preserve"><value>Run details will appear here</value><comment>Log empty state heading</comment></data>
+  <data name="LogEmptyStateHint" xml:space="preserve"><value>Progress, warnings, and recovery clues appear as soon as LibreSpot has something to report.</value><comment>Log empty state description</comment></data>
+
+  <!-- Prompt overlay -->
+  <data name="PromptActionConfirm" xml:space="preserve"><value>Confirm action</value><comment>Default prompt overlay title</comment></data>
+  <data name="PromptActionReset" xml:space="preserve"><value>Reset action</value><comment>Prompt overlay title for destructive actions</comment></data>
+
+  <!-- ViewModel strings -->
+  <data name="FilesNone" xml:space="preserve"><value>0 files</value><comment>Default file count display</comment></data>
+  <data name="SizeNone" xml:space="preserve"><value>0 B</value><comment>Default size display</comment></data>
+  <data name="NoBundleExported" xml:space="preserve"><value>No support bundle exported in this session.</value><comment>Support bundle empty state</comment></data>
+  <data name="ExportBundleTitle" xml:space="preserve"><value>Export LibreSpot support bundle</value><comment>Export bundle dialog title</comment></data>
+  <data name="PreparingBackend" xml:space="preserve"><value>Preparing backend runtime</value><comment>Status while backend is starting</comment></data>
+  <data name="Canceled" xml:space="preserve"><value>Canceled</value><comment>Run was canceled</comment></data>
+  <data name="ConfigSaveCanceled" xml:space="preserve"><value>Configuration save canceled</value><comment>Config save was canceled</comment></data>
+  <data name="RunNeedsAttention" xml:space="preserve"><value>Run needs attention</value><comment>Activity title when run has warnings</comment></data>
+  <data name="RunComplete" xml:space="preserve"><value>Run complete</value><comment>Activity title when run finishes successfully</comment></data>
+  <data name="StoppingBackend" xml:space="preserve"><value>Stopping backend…</value><comment>Status while backend is stopping</comment></data>
+  <data name="StatusInProgress" xml:space="preserve"><value>In progress</value><comment>Run status badge</comment></data>
+  <data name="StatusNeedsReview" xml:space="preserve"><value>Needs review</value><comment>Run status badge when warnings exist</comment></data>
+  <data name="StatusComplete" xml:space="preserve"><value>Complete</value><comment>Run status badge on success</comment></data>
+  <data name="CurrentStep" xml:space="preserve"><value>Current step</value><comment>Progress step label</comment></data>
+  <data name="RunStatus" xml:space="preserve"><value>Run status</value><comment>Status label</comment></data>
 </root>

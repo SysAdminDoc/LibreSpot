@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Threading;
 using LibreSpot.Desktop.Models;
+using LibreSpot.Desktop.Properties;
 using LibreSpot.Desktop.Services;
 
 namespace LibreSpot.Desktop.ViewModels;
@@ -128,8 +129,8 @@ public sealed class SupportBundleCategoryViewModel : ObservableObject
     private bool _isRefreshing;
     private bool _isSelected;
     private string _detail;
-    private string _fileCountText = "0 files";
-    private string _estimatedSizeText = "0 B";
+    private string _fileCountText = Strings.FilesNone;
+    private string _estimatedSizeText = Strings.SizeNone;
 
     public SupportBundleCategoryViewModel(
         string id,
@@ -245,16 +246,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private bool _isActivityVisible;
     private bool _isRunning;
     private double _progressValue;
-    private string _activityTitle = "Ready when you are";
-    private string _activityStatus = "Pick a setup path to begin.";
+    private string _activityTitle = Strings.ActivityReady;
+    private string _activityStatus = Strings.ActivityPickPath;
     private string _activityStep = "Idle";
     private DateTime? _snapshotRefreshedAt;
     private EnvironmentSnapshot _snapshot = new();
     private bool _isPromptVisible;
     private string _promptTitle = string.Empty;
     private string _promptBody = string.Empty;
-    private string _promptConfirmText = "Continue";
-    private string _promptCancelText = "Cancel";
+    private string _promptConfirmText = Strings.ButtonContinue;
+    private string _promptCancelText = Strings.ButtonCancel;
     private string _promptSummaryTitle = string.Empty;
     private string _promptSummaryBody = string.Empty;
     private bool _isPromptDestructive;
@@ -268,7 +269,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Array.Empty<SupportBundlePreviewEntry>(),
         0,
         Array.Empty<string>());
-    private string _supportBundleLastExportText = "No support bundle exported in this session.";
+    private string _supportBundleLastExportText = Strings.NoBundleExported;
 
     public MainViewModel(
         ConfigurationService configurationService,
@@ -407,12 +408,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool NeedsAdministratorRelaunch => !_isAdministratorSession;
 
     public string SessionAccessTitle =>
-        IsAdministratorSession ? "Ready to run" : "Admin step needed";
+        IsAdministratorSession ? Strings.ReadyToRun : Strings.AdminStepNeeded;
 
     public string SessionAccessDetail =>
         IsAdministratorSession
-            ? "LibreSpot can patch and recover without another Windows prompt."
-            : "You can review settings now. LibreSpot asks for elevation only when you start.";
+            ? Strings.ReadyToRunDescription
+            : Strings.AdminStepDescription;
 
     public string SpotifyStatusLine =>
         Snapshot.SpotifyInstalled
@@ -841,7 +842,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 return "Best on an existing install";
             }
 
-            return "Ready";
+            return Strings.SeverityReady;
         }
     }
 
@@ -888,14 +889,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         1 => "Custom profile",
         2 => "Recovery lane",
-        _ => "Guided setup"
+        _ => Strings.HeroGuidedSetup
     };
 
     public string WorkspaceHeroTitle => SelectedWorkspaceIndex switch
     {
         1 => "Custom settings",
         2 => "Maintenance",
-        _ => "Recommended setup"
+        _ => Strings.ModeRecommendedDescription
     };
 
     public string WorkspaceHeroBody => SelectedWorkspaceIndex switch
@@ -1114,7 +1115,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? "Working…"
             : _isRunning
                 ? $"{Math.Round(ProgressValue)}%"
-                : _progressValue >= 100 ? "Done" : "Ready";
+                : _progressValue >= 100 ? "Done" : Strings.SeverityReady;
 
     // Activity badge surfaces the run's outcome after completion so the overlay
     // isn't frozen on "Live run" once work is done. We derive from ActivityStatus
@@ -1132,16 +1133,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string ActivityBadgeText =>
         IsCancelRequested ? "Stopping"
-        : _isRunning ? "In progress"
-        : IsActivityCanceled ? "Canceled"
-        : IsActivityError ? "Needs review"
-        : _progressValue >= 100 ? "Complete"
-        : "Ready";
+        : _isRunning ? Strings.StatusInProgress
+        : IsActivityCanceled ? Strings.Canceled
+        : IsActivityError ? Strings.StatusNeedsReview
+        : _progressValue >= 100 ? Strings.StatusComplete
+        : Strings.SeverityReady;
 
     public string ActivityDetailLabel =>
         IsRunning || IsCancelRequested
-            ? "Current step"
-            : "Run status";
+            ? Strings.CurrentStep
+            : Strings.RunStatus;
 
     public string ActivityTitle
     {
@@ -1749,7 +1750,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var defaultPath = _supportBundleService.CreateDefaultBundlePath();
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Title = "Export LibreSpot support bundle",
+            Title = Strings.ExportBundleTitle,
             Filter = "Zip archives (*.zip)|*.zip",
             DefaultExt = ".zip",
             AddExtension = true,
@@ -1841,7 +1842,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             definition.Title,
             body,
             definition.ButtonText,
-            definition.IsDestructive ? "Keep current setup" : "Cancel",
+            definition.IsDestructive ? "Keep current setup" : Strings.ButtonCancel,
             definition.IsDestructive,
             () => StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2, requiresAdministrator),
             summaryTitle,
@@ -1874,7 +1875,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             title,
             body,
             enable ? "Enable watcher" : "Disable watcher",
-            "Cancel",
+            Strings.ButtonCancel,
             false,
             () => StartBackendRunAsync(action, null, title, status, 2, requiresAdministrator: false),
             "What this does",
@@ -1915,7 +1916,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SelectedWorkspaceIndex = targetWorkspaceIndex;
         ActivityTitle = title;
         ActivityStatus = status;
-        ActivityStep = "Preparing backend runtime";
+        ActivityStep = Strings.PreparingBackend;
         ClearLog();
         ProgressValue = 0;
         IsActivityVisible = true;
@@ -1942,14 +1943,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 catch (OperationCanceledException)
                 {
                     AppendLog("Configuration save was canceled.", "WARN");
-                    ActivityStatus = "Canceled";
-                    ActivityStep = "Configuration save canceled";
+                    ActivityStatus = Strings.Canceled;
+                    ActivityStep = Strings.ConfigSaveCanceled;
                     return;
                 }
                 catch (Exception ex)
                 {
                     AppendLog($"Could not save configuration: {ex.Message}", "ERROR");
-                    ActivityStatus = "Run needs attention";
+                    ActivityStatus = Strings.RunNeedsAttention;
                     ActivityStep = "Configuration save failed";
                     ProgressValue = 100;
                     return;
@@ -1962,18 +1963,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             if (!result.Success)
             {
                 AppendLog(result.ErrorMessage ?? "LibreSpot reported an unknown backend failure.", "ERROR");
-                ActivityStatus = "Run needs attention";
+                ActivityStatus = Strings.RunNeedsAttention;
             }
         }
         catch (OperationCanceledException)
         {
             AppendLog("Backend run was canceled.", "WARN");
-            ActivityStatus = "Canceled";
+            ActivityStatus = Strings.Canceled;
         }
         catch (Exception ex)
         {
             AppendLog($"Backend run failed: {ex.Message}", "ERROR");
-            ActivityStatus = "Run needs attention";
+            ActivityStatus = Strings.RunNeedsAttention;
         }
         finally
         {
@@ -2035,13 +2036,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 case "result":
                     if (string.Equals(message.Level, "SUCCESS", StringComparison.OrdinalIgnoreCase))
                     {
-                        ActivityStatus = "Run complete";
+                        ActivityStatus = Strings.RunComplete;
                         ActivityStep = "LibreSpot is ready";
                         ProgressValue = 100;
                     }
                     else
                     {
-                        ActivityStatus = "Run needs attention";
+                        ActivityStatus = Strings.RunNeedsAttention;
                     }
 
                     AppendLog(message.Payload, message.Level);
@@ -2124,7 +2125,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             () =>
             {
                 IsCancelRequested = true;
-                ActivityStatus = "Stopping backend…";
+                ActivityStatus = Strings.StoppingBackend;
                 ActivityStep = "Cancel requested";
                 try { _runCts?.Cancel(); }
                 catch (ObjectDisposedException) { }
@@ -2351,8 +2352,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         IsPromptVisible = false;
         PromptTitle = string.Empty;
         PromptBody = string.Empty;
-        PromptConfirmText = "Continue";
-        PromptCancelText = "Cancel";
+        PromptConfirmText = Strings.ButtonContinue;
+        PromptCancelText = Strings.ButtonCancel;
         PromptSummaryTitle = string.Empty;
         PromptSummaryBody = string.Empty;
         IsPromptDestructive = false;
@@ -2408,7 +2409,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             Environment.NewLine + Environment.NewLine +
             "You can restore stock Spotify at any time using Maintenance > Full Reset.",
             "I understand, continue",
-            "Cancel",
+            Strings.ButtonCancel,
             false,
             async () =>
             {
@@ -2509,7 +2510,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 AppendLog("UI automation smoke activity.", "INFO");
                 ShowNotice(
                     "UI automation activity",
-                    "Run complete",
+                    Strings.RunComplete,
                     "No install command was started.");
                 ProgressValue = 100;
                 break;
