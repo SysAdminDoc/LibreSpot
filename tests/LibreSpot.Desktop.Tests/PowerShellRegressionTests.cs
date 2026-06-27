@@ -1216,6 +1216,20 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("'OPERATION_JOURNAL_PATH'", script);
     }
 
+    [Fact]
+    public void BuildScripts_SharedSyncUsesUtf8ReadsAndHostSpecificExclusions()
+    {
+        var script = ReadFile("Build-Scripts.ps1");
+
+        Assert.Contains("[System.IO.File]::ReadAllText($backendScript, [System.Text.Encoding]::UTF8)", script);
+        Assert.Contains("[System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)", script);
+        Assert.DoesNotContain("$backendContent = Get-Content -Path $backendScript -Raw", script);
+        Assert.Contains("$validatedNames = $sharedNames | Where-Object { $laneSpecificFunctions -notcontains $_ }", script);
+        Assert.Contains("'Module-ApplySpicetify'", script);
+        Assert.Contains("'Module-NukeSpotify'", script);
+        Assert.Contains("'Update-SpicetifyCliProgress'", script);
+    }
+
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
