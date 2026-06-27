@@ -217,6 +217,15 @@ BlockTheSpot archived its repository in February 2026. LibreSpot warns when it s
 **Is this safe?**
 Every download is verified against pinned SHA256 hashes. LibreSpot doesn't host or redistribute any code — it downloads directly from the official SpotX and Spicetify GitHub repositories. See [Trust & risk disclosure](#trust--risk-disclosure) below for enforcement context and account risk details.
 
+**My antivirus flagged LibreSpot / SpotX — is it a virus?**
+No. PowerShell scripts that use `Invoke-WebRequest` to download files and modify application directories trigger heuristic alerts from many antivirus engines. SpotX itself is flagged by [16 of 62 VirusTotal vendors](https://github.com/SpotX-Official/SpotX/issues/826) — including Kaspersky, Bitdefender, and others — as a generic "trojan" or "potentially unwanted program." These are pattern-match false positives, not detections of actual malware. LibreSpot's scripts are open source (you can read every line), all downloads are SHA256-verified against pinned hashes, and no compiled code runs that you can't inspect. If your AV quarantines `LibreSpot.ps1` or `SpotX run.ps1`, add an exclusion for the `%APPDATA%\LibreSpot` directory or submit a false-positive report to your vendor.
+
+**Windows SmartScreen says "Unknown publisher" — what do I do?**
+LibreSpot's executables are not yet code-signed (SignPath Foundation enrollment is pending). Until signing is in place, Windows SmartScreen will show a warning. Click **More info** → **Run anyway**. The SHA256 checksums in `checksums.txt` on the [Releases page](https://github.com/SysAdminDoc/LibreSpot/releases) verify that the file you downloaded matches the one the build produced.
+
+**Smart App Control blocks the script from running.**
+Windows 11 with Smart App Control (SAC) enabled enforces Constrained Language Mode on unsigned PowerShell scripts, which prevents LibreSpot from running. LibreSpot detects this at startup and shows a warning. To use LibreSpot on a SAC-enabled machine: open **Settings → Privacy & security → Windows Security → App & browser control → Smart App Control settings** and switch SAC to **Off**. Alternatively, use the pre-compiled `LibreSpot.exe` from the Releases page — PS2EXE-compiled executables are not blocked by SAC's PowerShell policy. Note: once SAC is turned off, it cannot be re-enabled without reinstalling Windows (on builds before 24H2 KB5083769) or toggling it back in Settings (on 24H2+).
+
 ---
 
 ## Trust & risk disclosure
