@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using LibreSpot.Desktop.Services;
 using LibreSpot.Desktop.ViewModels;
+using Wpf.Ui.Controls;
 
 namespace LibreSpot.Desktop;
 
@@ -20,6 +21,7 @@ public partial class MainWindow : Window
     private bool _allowCloseWhileRunning;
     private IInputElement? _focusBeforeActivity;
     private IInputElement? _focusBeforePrompt;
+    private bool _wasRunning;
 
     public MainWindow()
     {
@@ -112,8 +114,43 @@ public partial class MainWindow : Window
 
         if (e.PropertyName is nameof(MainViewModel.IsActivityVisible) or nameof(MainViewModel.IsRunning))
         {
+            if (e.PropertyName == nameof(MainViewModel.IsRunning))
+            {
+                var runJustFinished = _wasRunning && !_viewModel.IsRunning;
+                _wasRunning = _viewModel.IsRunning;
+                if (runJustFinished)
+                {
+                    Dispatcher.BeginInvoke(ShowCompletionSnackbar, DispatcherPriority.Background);
+                }
+            }
+
             Dispatcher.BeginInvoke(UpdateActivityFocus, DispatcherPriority.Input);
         }
+    }
+
+    private void ShowCompletionSnackbar()
+    {
+        if (!IsLoaded || !_viewModel.IsActivityVisible)
+        {
+            return;
+        }
+
+        var appearance = _viewModel.IsActivityError
+            ? ControlAppearance.Danger
+            : _viewModel.IsActivityCanceled
+                ? ControlAppearance.Caution
+                : ControlAppearance.Success;
+
+        var snackbar = new Snackbar(CompletionSnackbarPresenter)
+        {
+            Title = _viewModel.ActivityBadgeText,
+            Content = _viewModel.ActivityStatus,
+            Appearance = appearance,
+            Timeout = TimeSpan.FromSeconds(6),
+            IsCloseButtonEnabled = true
+        };
+
+        snackbar.Show();
     }
 
     private void OnLogEntriesChanged(object? sender, NotifyCollectionChangedEventArgs e)

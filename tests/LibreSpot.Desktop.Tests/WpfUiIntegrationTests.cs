@@ -6,6 +6,8 @@ namespace LibreSpot.Desktop.Tests;
 
 public sealed class WpfUiIntegrationTests
 {
+    private static readonly string RepoRoot = ResolveRepoRoot();
+
     [Fact]
     public void WpfUiAssembly_LoadsAndExposesTartetControls()
     {
@@ -79,6 +81,21 @@ public sealed class WpfUiIntegrationTests
         });
     }
 
+    [Fact]
+    public void WpfShell_UsesSnackbarPresenterForCompletionFeedback()
+    {
+        var xaml = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        var codeBehind = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
+
+        Assert.Contains("xmlns:ui=\"clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui\"", xaml);
+        Assert.Contains("<ui:SnackbarPresenter x:Name=\"CompletionSnackbarPresenter\"", xaml);
+        Assert.Contains("AutomationProperties.Name=\"Completion notifications\"", xaml);
+        Assert.Contains("new Snackbar(CompletionSnackbarPresenter)", codeBehind);
+        Assert.Contains("ControlAppearance.Success", codeBehind);
+        Assert.Contains("ControlAppearance.Caution", codeBehind);
+        Assert.Contains("ControlAppearance.Danger", codeBehind);
+    }
+
     private static void EnsureApplication()
     {
         if (Application.Current == null)
@@ -103,5 +120,25 @@ public sealed class WpfUiIntegrationTests
         {
             System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
         }
+    }
+
+    private static string ReadRepoFile(params string[] parts) =>
+        File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(parts).ToArray()));
+
+    private static string ResolveRepoRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "LibreSpot.ps1")) &&
+                Directory.Exists(Path.Combine(directory.FullName, "src")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Could not resolve repository root.");
     }
 }

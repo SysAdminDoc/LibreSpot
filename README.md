@@ -63,7 +63,7 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 **Premium UI overhaul.** Win11 Mica backdrop (with graceful fallback on Windows 10), a left sidebar navigation rail with Lucide icons replacing the old top tab bar, semantic design tokens, hover-lift micro-interactions, and a shimmering install progress bar. Compact density pass means every panel fits a 1080-px screen without scrolling. Same install behavior, polished chrome.
 
-The v4 desktop preview continues that polish with a sharper 6-12 px radius system, quieter scrollbars, cleaner first-run guidance, readable Custom setting cards, forced dark native window chrome, and calmer activity/support-bundle feedback for assistive technology.
+The v4 desktop preview continues that polish with a sharper 6-12 px radius system, quieter scrollbars, cleaner first-run guidance, readable Custom setting cards, forced dark native window chrome, completion notifications, and calmer activity/support-bundle feedback for assistive technology.
 
 ---
 
@@ -258,9 +258,9 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 
 ## Signing & verification
 
-Releases ship unsigned today. [SignPath Foundation](https://signpath.org/) OSS enrollment is pending. Once the cert arrives, tagged releases will Authenticode-sign both `LibreSpot.exe` and `LibreSpot-Desktop.exe` via the workflow in [.github/workflows/release.yml](.github/workflows/release.yml) and users will stop seeing the "Unknown publisher" SmartScreen warning.
+Releases ship unsigned today. [SignPath Foundation](https://signpath.org/) OSS enrollment is pending. Once the cert arrives, local release builds will Authenticode-sign both `LibreSpot.exe` and `LibreSpot-Desktop.exe` before upload and users will stop seeing the "Unknown publisher" SmartScreen warning.
 
-The current latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt` **as GitHub release assets**. The repository itself does not track build artifacts — `LibreSpot.exe` and `checksums.txt` are generated fresh per tag by [.github/workflows/release.yml](.github/workflows/release.yml), so always verify against the copies you downloaded from the [Releases page](https://github.com/SysAdminDoc/LibreSpot/releases), not against anything in a source checkout. Workflow-built tags also add `LibreSpot-Desktop.exe`, CycloneDX SBOM output, and GitHub provenance attestations.
+The current latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt` **as GitHub release assets**. The repository itself does not track build artifacts — `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [Releases page](https://github.com/SysAdminDoc/LibreSpot/releases), not against anything in a source checkout. Newer release builds also add `LibreSpot-Desktop.exe`, CycloneDX SBOM output, and GitHub provenance attestations when those attestations are available.
 
 The recommended Quick Start snippet above verifies `LibreSpot.ps1` automatically. For manual verification of any downloaded release asset:
 
@@ -271,7 +271,7 @@ Get-FileHash .\LibreSpot.ps1  -Algorithm SHA256
 Get-Content  .\checksums.txt
 ```
 
-For workflow-built assets that include GitHub attestations, verify provenance with:
+For release assets that include GitHub attestations, verify provenance with:
 
 ```powershell
 gh attestation verify .\LibreSpot.exe          -R SysAdminDoc/LibreSpot

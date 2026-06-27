@@ -88,8 +88,8 @@ public sealed class ThemePreviewManifestTests
         var jsMatch = Regex.Match(script, @"\$global:ThemesNeedingJS\s*=\s*@\((?<list>.+?)\)", RegexOptions.Singleline);
         Assert.True(jsMatch.Success, "ThemesNeedingJS not found in LibreSpot.ps1");
 
-        var jsThemes = Regex.Matches(jsMatch.Groups["list"].Value, @"'(\w+)'")
-            .Select(m => m.Groups[1].Value)
+        var jsThemes = Regex.Matches(jsMatch.Groups["list"].Value, @"['""](?<name>[\w-]+)['""]")
+            .Select(m => m.Groups["name"].Value)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         using var doc = LoadManifest();

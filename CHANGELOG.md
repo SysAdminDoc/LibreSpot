@@ -4,7 +4,16 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- WPF shell backend completions now surface a WPF-UI snackbar notification
+  with success, warning, or error tone while keeping the existing activity log
+  panel available for full review.
+
 ### Fixed
+- Local desktop tests now enforce the no-GitHub-Actions/no-dependency-bot
+  repository policy, keep the release artifact contract tied to the local
+  post-upload audit, and accept both single-quoted and double-quoted theme JS
+  lists when comparing the theme manifest to the installer scripts.
 - Backend script `RemoveSelfData` action now correctly defines
   `$global:BACKUP_ROOT` so backup directory cleanup is no longer silently
   skipped. Previously the variable was undefined, causing `Test-Path` to

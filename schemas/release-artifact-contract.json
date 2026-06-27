@@ -1,5 +1,5 @@
 {
-  "$comment": "Release artifact contract — defines expected assets, checksums, signing, and attestation state per release channel. Post-upload CI should verify the published release matches this contract.",
+  "$comment": "Release artifact contract — defines expected assets, checksums, signing, and attestation state per release channel. The local post-upload audit should verify the published release matches this contract.",
   "contractVersion": 1,
   "tagPatterns": {
     "stable": "^v\\d+\\.\\d+\\.\\d+$",
@@ -110,7 +110,7 @@
     "verificationCommand": "Get-AuthenticodeSignature .\\<asset>"
   },
   "postUploadAudit": {
-    "description": "After gh release upload, the workflow should verify the published release matches this contract.",
+    "description": "After gh release upload, the local release audit should verify the published release matches this contract.",
     "checks": [
       "Every artifact with required=true exists exactly once in the release assets",
       "checksums.txt contains one entry per coveredAsset",
@@ -119,8 +119,8 @@
       "Build provenance attestation exists for each buildProvenance subject",
       "SBOM attestation exists for the sbom subject"
     ],
-    "implementationStatus": "implemented",
-    "notes": "The post-upload step needs access to gh release view --json and gh attestation list, which requires the workflow to run after upload. This is the operator-dependent part of this contract."
+    "implementationStatus": "manual-local",
+    "notes": "The post-upload step runs from the maintainer machine with gh release view --json and gh attestation list after assets are uploaded. The repository intentionally does not track GitHub Actions build workflows."
   },
   "historicalReleases": {
     "description": "Releases before this contract was introduced do not conform to it.",

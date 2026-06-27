@@ -7,6 +7,7 @@
         xmlns:models="clr-namespace:LibreSpot.Desktop.Models"
         xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
         xmlns:props="clr-namespace:LibreSpot.Desktop.Properties"
+        xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
         mc:Ignorable="d"
         Title="{x:Static props:Strings.AppTitle}"
         Width="1440"
@@ -2350,5 +2351,12 @@
         </Border>
       </Grid>
     </Grid>
+
+    <ui:SnackbarPresenter x:Name="CompletionSnackbarPresenter"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Bottom"
+                          Margin="0,0,28,28"
+                          Panel.ZIndex="100"
+                          AutomationProperties.Name="Completion notifications" />
   </Grid>
 </Window>

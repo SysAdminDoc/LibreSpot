@@ -11,21 +11,22 @@ public sealed class ReleaseArtifactContractTests
     private static readonly JsonDocument Contract = LoadContract();
 
     [Fact]
-    public void Contract_AllRequiredArtifactsAppearInWorkflowUpload()
+    public void Contract_AllRequiredArtifactsAreReleaseCovered()
     {
-        var workflow = ReadFile(".github", "workflows", "release.yml");
-
-        var requiredNames = Contract.RootElement
-            .GetProperty("artifacts").EnumerateArray()
-            .Where(a => a.GetProperty("required").GetBoolean())
-            .Select(a => a.GetProperty("name").GetString()!)
-            .ToList();
-
-        foreach (var name in requiredNames)
+        foreach (var artifact in Contract.RootElement.GetProperty("artifacts").EnumerateArray())
         {
+            if (!artifact.GetProperty("required").GetBoolean())
+                continue;
+
+            var name = artifact.GetProperty("name").GetString()!;
+            var hasChecksumEntry = artifact.GetProperty("checksumEntry").GetBoolean();
+            var isReleaseMetadata = name is "checksums.txt" or "librespot-release-manifest.json";
+            var distributionChannels = artifact.GetProperty("distributionChannels").EnumerateArray().ToArray();
+
+            Assert.NotEmpty(distributionChannels);
             Assert.True(
-                workflow.Contains(name),
-                $"Required artifact '{name}' not found in release workflow upload.");
+                hasChecksumEntry || isReleaseMetadata,
+                $"Required artifact '{name}' must either be checksum-covered or be release metadata.");
         }
     }
 
@@ -72,22 +73,39 @@ public sealed class ReleaseArtifactContractTests
     }
 
     [Fact]
-    public void Contract_WorkflowUsesAttestationActions()
+    public void Contract_AttestationSubjectsMatchArtifactAttestationFields()
     {
-        var workflow = ReadFile(".github", "workflows", "release.yml");
-
-        var provenanceAction = Contract.RootElement
+        var buildProvenanceSubjects = Contract.RootElement
             .GetProperty("attestationContract")
             .GetProperty("buildProvenance")
-            .GetProperty("action").GetString()!;
+            .GetProperty("subjects").EnumerateArray()
+            .Select(v => v.GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
 
-        var sbomAction = Contract.RootElement
+        var sbomSubject = Contract.RootElement
             .GetProperty("attestationContract")
             .GetProperty("sbom")
-            .GetProperty("action").GetString()!;
+            .GetProperty("subject").GetString()!;
 
-        Assert.Contains(provenanceAction, workflow);
-        Assert.Contains(sbomAction, workflow);
+        foreach (var artifact in Contract.RootElement.GetProperty("artifacts").EnumerateArray())
+        {
+            var name = artifact.GetProperty("name").GetString()!;
+            var attestation = artifact.GetProperty("attestation").GetString();
+
+            if (attestation == "build-provenance")
+            {
+                Assert.Contains(name, buildProvenanceSubjects);
+            }
+            else
+            {
+                Assert.DoesNotContain(name, buildProvenanceSubjects);
+            }
+        }
+
+        Assert.True(
+            Contract.RootElement.GetProperty("artifacts").EnumerateArray()
+                .Any(a => a.GetProperty("name").GetString() == sbomSubject),
+            $"SBOM subject '{sbomSubject}' is not a known release artifact.");
     }
 
     [Fact]
@@ -102,12 +120,24 @@ public sealed class ReleaseArtifactContractTests
     }
 
     [Fact]
-    public void Contract_WorkflowValidatesTagFormat()
+    public void Contract_TagPatternsDistinguishStablePreviewAndRc()
     {
-        var workflow = ReadFile(".github", "workflows", "release.yml");
-        Assert.True(
-            Regex.IsMatch(workflow, @"preview|rc", RegexOptions.IgnoreCase),
-            "Release workflow must distinguish preview/rc from stable tags.");
+        var patterns = Contract.RootElement.GetProperty("tagPatterns");
+        var stable = new Regex(patterns.GetProperty("stable").GetString()!);
+        var preview = new Regex(patterns.GetProperty("preview").GetString()!);
+        var rc = new Regex(patterns.GetProperty("rc").GetString()!);
+
+        Assert.Matches(stable, "v4.0.0");
+        Assert.DoesNotMatch(stable, "v4.0.0-preview.6");
+        Assert.DoesNotMatch(stable, "v4.0.0-rc.1");
+
+        Assert.Matches(preview, "v4.0.0-preview.6");
+        Assert.DoesNotMatch(preview, "v4.0.0");
+        Assert.DoesNotMatch(preview, "v4.0.0-rc.1");
+
+        Assert.Matches(rc, "v4.0.0-rc.1");
+        Assert.DoesNotMatch(rc, "v4.0.0");
+        Assert.DoesNotMatch(rc, "v4.0.0-preview.6");
     }
 
     [Fact]
@@ -128,13 +158,13 @@ public sealed class ReleaseArtifactContractTests
     }
 
     [Fact]
-    public void Contract_PostUploadAuditIsImplemented()
+    public void Contract_PostUploadAuditIsManualLocal()
     {
         var status = Contract.RootElement
             .GetProperty("postUploadAudit")
             .GetProperty("implementationStatus").GetString();
 
-        Assert.Equal("implemented", status);
+        Assert.Equal("manual-local", status);
     }
 
     [Fact]
