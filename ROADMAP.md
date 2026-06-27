@@ -741,7 +741,7 @@ Items below were found during the engineering audit but could not be
 fixed due to .NET 10 SDK requirements or requiring broader design
 decisions.
 
-- [ ] P2 — Add journal entries for registry and AppxPackage removals in Module-NukeSpotify
+- [x] P2 — Add journal entries for registry and AppxPackage removals in Module-NukeSpotify
   Why: registry key deletions (backend lines 2555-2571), Remove-AppxPackage
   (lines 2498-2512), and scheduled task removal in the nuker (lines 2573-2588)
   do not write operation journal entries, unlike the dedicated watcher task
@@ -755,7 +755,7 @@ decisions.
   existing 52 need reconciliation as part of the shared-core extraction (P1).
   Where: `LibreSpot.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`
 
-- [ ] P3 — Mitigate potential deadlock in Clear-CompletedRunspaceResources
+- [x] P3 — Mitigate potential deadlock in Clear-CompletedRunspaceResources
   Why: if the worker runspace is blocked inside Dispatcher.Invoke() while the
   UI thread calls Clear-CompletedRunspaceResources from Add_Closing, the
   Start-Sleep(150) followed by runspace Dispose() can deadlock both threads.
