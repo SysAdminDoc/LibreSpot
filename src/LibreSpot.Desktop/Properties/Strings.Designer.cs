@@ -1390,5 +1390,989 @@ namespace LibreSpot.Desktop.Properties {
                 return ResourceManager.GetString("RunStatus", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Option title for CleanInstall
+        /// </summary>
+        public static string Option_CleanInstall_Title {
+            get {
+                return ResourceManager.GetString("Option_CleanInstall_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for CleanInstall
+        /// </summary>
+        public static string Option_CleanInstall_Description {
+            get {
+                return ResourceManager.GetString("Option_CleanInstall_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for LaunchAfter
+        /// </summary>
+        public static string Option_LaunchAfter_Title {
+            get {
+                return ResourceManager.GetString("Option_LaunchAfter_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for LaunchAfter
+        /// </summary>
+        public static string Option_LaunchAfter_Description {
+            get {
+                return ResourceManager.GetString("Option_LaunchAfter_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_NewTheme
+        /// </summary>
+        public static string Option_SpotX_NewTheme_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_NewTheme_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_NewTheme
+        /// </summary>
+        public static string Option_SpotX_NewTheme_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_NewTheme_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_PodcastsOff
+        /// </summary>
+        public static string Option_SpotX_PodcastsOff_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_PodcastsOff_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_PodcastsOff
+        /// </summary>
+        public static string Option_SpotX_PodcastsOff_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_PodcastsOff_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_BlockUpdate
+        /// </summary>
+        public static string Option_SpotX_BlockUpdate_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_BlockUpdate_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_BlockUpdate
+        /// </summary>
+        public static string Option_SpotX_BlockUpdate_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_BlockUpdate_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_AdSectionsOff
+        /// </summary>
+        public static string Option_SpotX_AdSectionsOff_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_AdSectionsOff_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_AdSectionsOff
+        /// </summary>
+        public static string Option_SpotX_AdSectionsOff_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_AdSectionsOff_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_Premium
+        /// </summary>
+        public static string Option_SpotX_Premium_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_Premium_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_Premium
+        /// </summary>
+        public static string Option_SpotX_Premium_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_Premium_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_DisableStartup
+        /// </summary>
+        public static string Option_SpotX_DisableStartup_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_DisableStartup_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_DisableStartup
+        /// </summary>
+        public static string Option_SpotX_DisableStartup_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_DisableStartup_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_NoShortcut
+        /// </summary>
+        public static string Option_SpotX_NoShortcut_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_NoShortcut_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_NoShortcut
+        /// </summary>
+        public static string Option_SpotX_NoShortcut_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_NoShortcut_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_StartSpoti
+        /// </summary>
+        public static string Option_SpotX_StartSpoti_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_StartSpoti_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_StartSpoti
+        /// </summary>
+        public static string Option_SpotX_StartSpoti_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_StartSpoti_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_LyricsEnabled
+        /// </summary>
+        public static string Option_SpotX_LyricsEnabled_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_LyricsEnabled_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_LyricsEnabled
+        /// </summary>
+        public static string Option_SpotX_LyricsEnabled_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_LyricsEnabled_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_TopSearch
+        /// </summary>
+        public static string Option_SpotX_TopSearch_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_TopSearch_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_TopSearch
+        /// </summary>
+        public static string Option_SpotX_TopSearch_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_TopSearch_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_RightSidebarOff
+        /// </summary>
+        public static string Option_SpotX_RightSidebarOff_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_RightSidebarOff_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_RightSidebarOff
+        /// </summary>
+        public static string Option_SpotX_RightSidebarOff_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_RightSidebarOff_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_RightSidebarClr
+        /// </summary>
+        public static string Option_SpotX_RightSidebarClr_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_RightSidebarClr_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_RightSidebarClr
+        /// </summary>
+        public static string Option_SpotX_RightSidebarClr_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_RightSidebarClr_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_CanvasHomeOff
+        /// </summary>
+        public static string Option_SpotX_CanvasHomeOff_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_CanvasHomeOff_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_CanvasHomeOff
+        /// </summary>
+        public static string Option_SpotX_CanvasHomeOff_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_CanvasHomeOff_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_HomeSubOff
+        /// </summary>
+        public static string Option_SpotX_HomeSubOff_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_HomeSubOff_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_HomeSubOff
+        /// </summary>
+        public static string Option_SpotX_HomeSubOff_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_HomeSubOff_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_OldLyrics
+        /// </summary>
+        public static string Option_SpotX_OldLyrics_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_OldLyrics_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_OldLyrics
+        /// </summary>
+        public static string Option_SpotX_OldLyrics_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_OldLyrics_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_HideColIconOff
+        /// </summary>
+        public static string Option_SpotX_HideColIconOff_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_HideColIconOff_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_HideColIconOff
+        /// </summary>
+        public static string Option_SpotX_HideColIconOff_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_HideColIconOff_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_Plus
+        /// </summary>
+        public static string Option_SpotX_Plus_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_Plus_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_Plus
+        /// </summary>
+        public static string Option_SpotX_Plus_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_Plus_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_NewFullscreen
+        /// </summary>
+        public static string Option_SpotX_NewFullscreen_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_NewFullscreen_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_NewFullscreen
+        /// </summary>
+        public static string Option_SpotX_NewFullscreen_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_NewFullscreen_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_FunnyProgress
+        /// </summary>
+        public static string Option_SpotX_FunnyProgress_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_FunnyProgress_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_FunnyProgress
+        /// </summary>
+        public static string Option_SpotX_FunnyProgress_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_FunnyProgress_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_ExpSpotify
+        /// </summary>
+        public static string Option_SpotX_ExpSpotify_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_ExpSpotify_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_ExpSpotify
+        /// </summary>
+        public static string Option_SpotX_ExpSpotify_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_ExpSpotify_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_LyricsBlock
+        /// </summary>
+        public static string Option_SpotX_LyricsBlock_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_LyricsBlock_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_LyricsBlock
+        /// </summary>
+        public static string Option_SpotX_LyricsBlock_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_LyricsBlock_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_SendVersionOff
+        /// </summary>
+        public static string Option_SpotX_SendVersionOff_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_SendVersionOff_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_SendVersionOff
+        /// </summary>
+        public static string Option_SpotX_SendVersionOff_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_SendVersionOff_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_DevTools
+        /// </summary>
+        public static string Option_SpotX_DevTools_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_DevTools_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_DevTools
+        /// </summary>
+        public static string Option_SpotX_DevTools_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_DevTools_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_Mirror
+        /// </summary>
+        public static string Option_SpotX_Mirror_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_Mirror_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_Mirror
+        /// </summary>
+        public static string Option_SpotX_Mirror_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_Mirror_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for SpotX_ConfirmUninstall
+        /// </summary>
+        public static string Option_SpotX_ConfirmUninstall_Title {
+            get {
+                return ResourceManager.GetString("Option_SpotX_ConfirmUninstall_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for SpotX_ConfirmUninstall
+        /// </summary>
+        public static string Option_SpotX_ConfirmUninstall_Description {
+            get {
+                return ResourceManager.GetString("Option_SpotX_ConfirmUninstall_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option title for Spicetify_Marketplace
+        /// </summary>
+        public static string Option_Spicetify_Marketplace_Title {
+            get {
+                return ResourceManager.GetString("Option_Spicetify_Marketplace_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Option description for Spicetify_Marketplace
+        /// </summary>
+        public static string Option_Spicetify_Marketplace_Description {
+            get {
+                return ResourceManager.GetString("Option_Spicetify_Marketplace_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for fullAppDisplay.js
+        /// </summary>
+        public static string Extension_fullAppDisplay_Title {
+            get {
+                return ResourceManager.GetString("Extension_fullAppDisplay_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for fullAppDisplay.js
+        /// </summary>
+        public static string Extension_fullAppDisplay_Description {
+            get {
+                return ResourceManager.GetString("Extension_fullAppDisplay_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for shuffle+.js
+        /// </summary>
+        public static string Extension_shuffle_plus_Title {
+            get {
+                return ResourceManager.GetString("Extension_shuffle_plus_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for shuffle+.js
+        /// </summary>
+        public static string Extension_shuffle_plus_Description {
+            get {
+                return ResourceManager.GetString("Extension_shuffle_plus_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for trashbin.js
+        /// </summary>
+        public static string Extension_trashbin_Title {
+            get {
+                return ResourceManager.GetString("Extension_trashbin_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for trashbin.js
+        /// </summary>
+        public static string Extension_trashbin_Description {
+            get {
+                return ResourceManager.GetString("Extension_trashbin_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for keyboardShortcut.js
+        /// </summary>
+        public static string Extension_keyboardShortcut_Title {
+            get {
+                return ResourceManager.GetString("Extension_keyboardShortcut_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for keyboardShortcut.js
+        /// </summary>
+        public static string Extension_keyboardShortcut_Description {
+            get {
+                return ResourceManager.GetString("Extension_keyboardShortcut_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for bookmark.js
+        /// </summary>
+        public static string Extension_bookmark_Title {
+            get {
+                return ResourceManager.GetString("Extension_bookmark_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for bookmark.js
+        /// </summary>
+        public static string Extension_bookmark_Description {
+            get {
+                return ResourceManager.GetString("Extension_bookmark_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for loopyLoop.js
+        /// </summary>
+        public static string Extension_loopyLoop_Title {
+            get {
+                return ResourceManager.GetString("Extension_loopyLoop_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for loopyLoop.js
+        /// </summary>
+        public static string Extension_loopyLoop_Description {
+            get {
+                return ResourceManager.GetString("Extension_loopyLoop_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for popupLyrics.js
+        /// </summary>
+        public static string Extension_popupLyrics_Title {
+            get {
+                return ResourceManager.GetString("Extension_popupLyrics_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for popupLyrics.js
+        /// </summary>
+        public static string Extension_popupLyrics_Description {
+            get {
+                return ResourceManager.GetString("Extension_popupLyrics_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for autoSkipVideo.js
+        /// </summary>
+        public static string Extension_autoSkipVideo_Title {
+            get {
+                return ResourceManager.GetString("Extension_autoSkipVideo_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for autoSkipVideo.js
+        /// </summary>
+        public static string Extension_autoSkipVideo_Description {
+            get {
+                return ResourceManager.GetString("Extension_autoSkipVideo_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for autoSkipExplicit.js
+        /// </summary>
+        public static string Extension_autoSkipExplicit_Title {
+            get {
+                return ResourceManager.GetString("Extension_autoSkipExplicit_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for autoSkipExplicit.js
+        /// </summary>
+        public static string Extension_autoSkipExplicit_Description {
+            get {
+                return ResourceManager.GetString("Extension_autoSkipExplicit_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for webnowplaying.js
+        /// </summary>
+        public static string Extension_webnowplaying_Title {
+            get {
+                return ResourceManager.GetString("Extension_webnowplaying_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for webnowplaying.js
+        /// </summary>
+        public static string Extension_webnowplaying_Description {
+            get {
+                return ResourceManager.GetString("Extension_webnowplaying_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for hidePodcasts.js
+        /// </summary>
+        public static string Extension_hidePodcasts_Title {
+            get {
+                return ResourceManager.GetString("Extension_hidePodcasts_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for hidePodcasts.js
+        /// </summary>
+        public static string Extension_hidePodcasts_Description {
+            get {
+                return ResourceManager.GetString("Extension_hidePodcasts_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for beautiful-lyrics.mjs
+        /// </summary>
+        public static string Extension_beautiful_lyrics_Title {
+            get {
+                return ResourceManager.GetString("Extension_beautiful_lyrics_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for beautiful-lyrics.mjs
+        /// </summary>
+        public static string Extension_beautiful_lyrics_Description {
+            get {
+                return ResourceManager.GetString("Extension_beautiful_lyrics_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for playlist-icons.js
+        /// </summary>
+        public static string Extension_playlist_icons_Title {
+            get {
+                return ResourceManager.GetString("Extension_playlist_icons_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for playlist-icons.js
+        /// </summary>
+        public static string Extension_playlist_icons_Description {
+            get {
+                return ResourceManager.GetString("Extension_playlist_icons_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for volumePercentage.js
+        /// </summary>
+        public static string Extension_volumePercentage_Title {
+            get {
+                return ResourceManager.GetString("Extension_volumePercentage_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for volumePercentage.js
+        /// </summary>
+        public static string Extension_volumePercentage_Description {
+            get {
+                return ResourceManager.GetString("Extension_volumePercentage_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension title for adblock.js
+        /// </summary>
+        public static string Extension_adblock_Title {
+            get {
+                return ResourceManager.GetString("Extension_adblock_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Extension description for adblock.js
+        /// </summary>
+        public static string Extension_adblock_Description {
+            get {
+                return ResourceManager.GetString("Extension_adblock_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action title for CheckUpdates
+        /// </summary>
+        public static string Maintenance_CheckUpdates_Title {
+            get {
+                return ResourceManager.GetString("Maintenance_CheckUpdates_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action description for CheckUpdates
+        /// </summary>
+        public static string Maintenance_CheckUpdates_Description {
+            get {
+                return ResourceManager.GetString("Maintenance_CheckUpdates_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action button text for CheckUpdates
+        /// </summary>
+        public static string Maintenance_CheckUpdates_ButtonText {
+            get {
+                return ResourceManager.GetString("Maintenance_CheckUpdates_ButtonText", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action title for Reapply
+        /// </summary>
+        public static string Maintenance_Reapply_Title {
+            get {
+                return ResourceManager.GetString("Maintenance_Reapply_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action description for Reapply
+        /// </summary>
+        public static string Maintenance_Reapply_Description {
+            get {
+                return ResourceManager.GetString("Maintenance_Reapply_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action button text for Reapply
+        /// </summary>
+        public static string Maintenance_Reapply_ButtonText {
+            get {
+                return ResourceManager.GetString("Maintenance_Reapply_ButtonText", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action title for RepairMarketplace
+        /// </summary>
+        public static string Maintenance_RepairMarketplace_Title {
+            get {
+                return ResourceManager.GetString("Maintenance_RepairMarketplace_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action description for RepairMarketplace
+        /// </summary>
+        public static string Maintenance_RepairMarketplace_Description {
+            get {
+                return ResourceManager.GetString("Maintenance_RepairMarketplace_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action button text for RepairMarketplace
+        /// </summary>
+        public static string Maintenance_RepairMarketplace_ButtonText {
+            get {
+                return ResourceManager.GetString("Maintenance_RepairMarketplace_ButtonText", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action title for OpenMarketplace
+        /// </summary>
+        public static string Maintenance_OpenMarketplace_Title {
+            get {
+                return ResourceManager.GetString("Maintenance_OpenMarketplace_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action description for OpenMarketplace
+        /// </summary>
+        public static string Maintenance_OpenMarketplace_Description {
+            get {
+                return ResourceManager.GetString("Maintenance_OpenMarketplace_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action button text for OpenMarketplace
+        /// </summary>
+        public static string Maintenance_OpenMarketplace_ButtonText {
+            get {
+                return ResourceManager.GetString("Maintenance_OpenMarketplace_ButtonText", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action title for SafeMode
+        /// </summary>
+        public static string Maintenance_SafeMode_Title {
+            get {
+                return ResourceManager.GetString("Maintenance_SafeMode_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action description for SafeMode
+        /// </summary>
+        public static string Maintenance_SafeMode_Description {
+            get {
+                return ResourceManager.GetString("Maintenance_SafeMode_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action button text for SafeMode
+        /// </summary>
+        public static string Maintenance_SafeMode_ButtonText {
+            get {
+                return ResourceManager.GetString("Maintenance_SafeMode_ButtonText", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action title for CreateBackup
+        /// </summary>
+        public static string Maintenance_CreateBackup_Title {
+            get {
+                return ResourceManager.GetString("Maintenance_CreateBackup_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action description for CreateBackup
+        /// </summary>
+        public static string Maintenance_CreateBackup_Description {
+            get {
+                return ResourceManager.GetString("Maintenance_CreateBackup_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action button text for CreateBackup
+        /// </summary>
+        public static string Maintenance_CreateBackup_ButtonText {
+            get {
+                return ResourceManager.GetString("Maintenance_CreateBackup_ButtonText", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action title for RestoreBackup
+        /// </summary>
+        public static string Maintenance_RestoreBackup_Title {
+            get {
+                return ResourceManager.GetString("Maintenance_RestoreBackup_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action description for RestoreBackup
+        /// </summary>
+        public static string Maintenance_RestoreBackup_Description {
+            get {
+                return ResourceManager.GetString("Maintenance_RestoreBackup_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action button text for RestoreBackup
+        /// </summary>
+        public static string Maintenance_RestoreBackup_ButtonText {
+            get {
+                return ResourceManager.GetString("Maintenance_RestoreBackup_ButtonText", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action title for RestoreVanilla
+        /// </summary>
+        public static string Maintenance_RestoreVanilla_Title {
+            get {
+                return ResourceManager.GetString("Maintenance_RestoreVanilla_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action description for RestoreVanilla
+        /// </summary>
+        public static string Maintenance_RestoreVanilla_Description {
+            get {
+                return ResourceManager.GetString("Maintenance_RestoreVanilla_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action button text for RestoreVanilla
+        /// </summary>
+        public static string Maintenance_RestoreVanilla_ButtonText {
+            get {
+                return ResourceManager.GetString("Maintenance_RestoreVanilla_ButtonText", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action title for UninstallSpicetify
+        /// </summary>
+        public static string Maintenance_UninstallSpicetify_Title {
+            get {
+                return ResourceManager.GetString("Maintenance_UninstallSpicetify_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action description for UninstallSpicetify
+        /// </summary>
+        public static string Maintenance_UninstallSpicetify_Description {
+            get {
+                return ResourceManager.GetString("Maintenance_UninstallSpicetify_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action button text for UninstallSpicetify
+        /// </summary>
+        public static string Maintenance_UninstallSpicetify_ButtonText {
+            get {
+                return ResourceManager.GetString("Maintenance_UninstallSpicetify_ButtonText", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action title for FullReset
+        /// </summary>
+        public static string Maintenance_FullReset_Title {
+            get {
+                return ResourceManager.GetString("Maintenance_FullReset_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action description for FullReset
+        /// </summary>
+        public static string Maintenance_FullReset_Description {
+            get {
+                return ResourceManager.GetString("Maintenance_FullReset_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action button text for FullReset
+        /// </summary>
+        public static string Maintenance_FullReset_ButtonText {
+            get {
+                return ResourceManager.GetString("Maintenance_FullReset_ButtonText", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action title for RemoveSelfData
+        /// </summary>
+        public static string Maintenance_RemoveSelfData_Title {
+            get {
+                return ResourceManager.GetString("Maintenance_RemoveSelfData_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action description for RemoveSelfData
+        /// </summary>
+        public static string Maintenance_RemoveSelfData_Description {
+            get {
+                return ResourceManager.GetString("Maintenance_RemoveSelfData_Description", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Maintenance action button text for RemoveSelfData
+        /// </summary>
+        public static string Maintenance_RemoveSelfData_ButtonText {
+            get {
+                return ResourceManager.GetString("Maintenance_RemoveSelfData_ButtonText", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Recommended mode highlight 1
+        /// </summary>
+        public static string RecommendedHighlight_1 {
+            get {
+                return ResourceManager.GetString("RecommendedHighlight_1", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Recommended mode highlight 2
+        /// </summary>
+        public static string RecommendedHighlight_2 {
+            get {
+                return ResourceManager.GetString("RecommendedHighlight_2", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Recommended mode highlight 3
+        /// </summary>
+        public static string RecommendedHighlight_3 {
+            get {
+                return ResourceManager.GetString("RecommendedHighlight_3", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Recommended mode highlight 4
+        /// </summary>
+        public static string RecommendedHighlight_4 {
+            get {
+                return ResourceManager.GetString("RecommendedHighlight_4", resourceCulture);
+            }
+        }
     }
 }

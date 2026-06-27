@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using LibreSpot.Desktop.Properties;
 
 namespace LibreSpot.Desktop.Models;
 
@@ -365,54 +366,54 @@ public static class AppCatalog
 
     public static IReadOnlyList<OptionDefinition> OptionDefinitions { get; } = new ReadOnlyCollection<OptionDefinition>(new[]
     {
-        new OptionDefinition(nameof(InstallConfiguration.CleanInstall), "Remove current stack first", "Clear old Spotify and customization remnants before LibreSpot rebuilds the setup.", "Install"),
-        new OptionDefinition(nameof(InstallConfiguration.LaunchAfter), "Open Spotify when finished", "Launch Spotify automatically after LibreSpot completes.", "Install"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_NewTheme), "Enable SpotX new theme", "Apply the newer SpotX shell tweaks for a cleaner Spotify frame.", "Core"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_PodcastsOff), "Hide podcasts", "Reduce podcast surfaces across Spotify for a music-first setup.", "Core"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_BlockUpdate), "Block Spotify updates", "Keep Spotify pinned so your setup is less likely to break unexpectedly.", "Core"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_AdSectionsOff), "Remove ad sections", "Strip ad-promoted sections from key Spotify views.", "Core"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_Premium), "Premium account mode", "Skip ad-focused patching while keeping the rest of the LibreSpot stack.", "Core"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_DisableStartup), "Disable startup launch", "Stop Spotify from auto-launching with Windows.", "Core"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_NoShortcut), "Skip shortcut creation", "Avoid desktop shortcut clutter during install.", "Core"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_StartSpoti), "Launch Spotify after install", "Let SpotX start Spotify the moment patching finishes.", "Core"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_LyricsEnabled), "Enable lyrics patch", "Turn on patched lyrics support and choose a lyrics skin.", "Interface"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_TopSearch), "Top search bar", "Move Spotify search into a more always-available position.", "Interface"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_RightSidebarOff), "Hide right sidebar", "Reduce secondary chrome for a more focused playback layout.", "Interface"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_RightSidebarClr), "Clear right sidebar styling", "Use lighter styling on the right sidebar instead of hiding it.", "Interface"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_CanvasHomeOff), "Disable home canvas", "Reduce motion and canvas clutter on the Spotify home surface.", "Interface"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_HomeSubOff), "Hide home suggestions", "Remove some of Spotify's recommendation-heavy home modules.", "Interface"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_OldLyrics), "Old lyrics layout", "Switch back to the earlier lyrics layout treatment.", "Interface"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_HideColIconOff), "Keep collection icon visible", "Prevent SpotX from hiding collection affordances.", "Interface"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_Plus), "Expanded SpotX tweaks", "Apply the broader SpotX tweak bundle for a more heavily modified Spotify shell.", "Advanced"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_NewFullscreen), "Alternative fullscreen layout", "Enable SpotX's alternate fullscreen playback experience.", "Advanced"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_FunnyProgress), "Novelty progress bar", "Swap in SpotX's playful progress bar variant.", "Advanced"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_ExpSpotify), "Experimental Spotify features", "Allow experimental Spotify flags when SpotX supports them.", "Advanced"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_LyricsBlock), "Block lyric overlays", "Disable some lyric-related overlays in patched states.", "Advanced"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_SendVersionOff), "Disable SpotX version reporting", "Blocks SpotX's outbound version notification (introduced April 2026). Recommended on.", "Advanced"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_DevTools), "Enable Spotify Developer Tools", "Unlocks the Chromium DevTools hotkey inside Spotify for extension authors.", "Advanced"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_Mirror), "Use GitHub.io mirror", "Falls back to the github.io mirror when raw.githubusercontent.com is blocked.", "Advanced"),
-        new OptionDefinition(nameof(InstallConfiguration.SpotX_ConfirmUninstall), "Force clean uninstall before patching", "Runs SpotX's uninstall-and-reinstall flow even when the current version would otherwise be kept.", "Advanced"),
-        new OptionDefinition(nameof(InstallConfiguration.Spicetify_Marketplace), "Install Marketplace", "Include the Spicetify Marketplace custom app by default.", "Experience")
+        new OptionDefinition(nameof(InstallConfiguration.CleanInstall), Strings.Option_CleanInstall_Title, Strings.Option_CleanInstall_Description, "Install"),
+        new OptionDefinition(nameof(InstallConfiguration.LaunchAfter), Strings.Option_LaunchAfter_Title, Strings.Option_LaunchAfter_Description, "Install"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_NewTheme), Strings.Option_SpotX_NewTheme_Title, Strings.Option_SpotX_NewTheme_Description, "Core"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_PodcastsOff), Strings.Option_SpotX_PodcastsOff_Title, Strings.Option_SpotX_PodcastsOff_Description, "Core"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_BlockUpdate), Strings.Option_SpotX_BlockUpdate_Title, Strings.Option_SpotX_BlockUpdate_Description, "Core"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_AdSectionsOff), Strings.Option_SpotX_AdSectionsOff_Title, Strings.Option_SpotX_AdSectionsOff_Description, "Core"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_Premium), Strings.Option_SpotX_Premium_Title, Strings.Option_SpotX_Premium_Description, "Core"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_DisableStartup), Strings.Option_SpotX_DisableStartup_Title, Strings.Option_SpotX_DisableStartup_Description, "Core"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_NoShortcut), Strings.Option_SpotX_NoShortcut_Title, Strings.Option_SpotX_NoShortcut_Description, "Core"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_StartSpoti), Strings.Option_SpotX_StartSpoti_Title, Strings.Option_SpotX_StartSpoti_Description, "Core"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_LyricsEnabled), Strings.Option_SpotX_LyricsEnabled_Title, Strings.Option_SpotX_LyricsEnabled_Description, "Interface"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_TopSearch), Strings.Option_SpotX_TopSearch_Title, Strings.Option_SpotX_TopSearch_Description, "Interface"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_RightSidebarOff), Strings.Option_SpotX_RightSidebarOff_Title, Strings.Option_SpotX_RightSidebarOff_Description, "Interface"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_RightSidebarClr), Strings.Option_SpotX_RightSidebarClr_Title, Strings.Option_SpotX_RightSidebarClr_Description, "Interface"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_CanvasHomeOff), Strings.Option_SpotX_CanvasHomeOff_Title, Strings.Option_SpotX_CanvasHomeOff_Description, "Interface"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_HomeSubOff), Strings.Option_SpotX_HomeSubOff_Title, Strings.Option_SpotX_HomeSubOff_Description, "Interface"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_OldLyrics), Strings.Option_SpotX_OldLyrics_Title, Strings.Option_SpotX_OldLyrics_Description, "Interface"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_HideColIconOff), Strings.Option_SpotX_HideColIconOff_Title, Strings.Option_SpotX_HideColIconOff_Description, "Interface"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_Plus), Strings.Option_SpotX_Plus_Title, Strings.Option_SpotX_Plus_Description, "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_NewFullscreen), Strings.Option_SpotX_NewFullscreen_Title, Strings.Option_SpotX_NewFullscreen_Description, "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_FunnyProgress), Strings.Option_SpotX_FunnyProgress_Title, Strings.Option_SpotX_FunnyProgress_Description, "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_ExpSpotify), Strings.Option_SpotX_ExpSpotify_Title, Strings.Option_SpotX_ExpSpotify_Description, "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_LyricsBlock), Strings.Option_SpotX_LyricsBlock_Title, Strings.Option_SpotX_LyricsBlock_Description, "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_SendVersionOff), Strings.Option_SpotX_SendVersionOff_Title, Strings.Option_SpotX_SendVersionOff_Description, "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_DevTools), Strings.Option_SpotX_DevTools_Title, Strings.Option_SpotX_DevTools_Description, "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_Mirror), Strings.Option_SpotX_Mirror_Title, Strings.Option_SpotX_Mirror_Description, "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.SpotX_ConfirmUninstall), Strings.Option_SpotX_ConfirmUninstall_Title, Strings.Option_SpotX_ConfirmUninstall_Description, "Advanced"),
+        new OptionDefinition(nameof(InstallConfiguration.Spicetify_Marketplace), Strings.Option_Spicetify_Marketplace_Title, Strings.Option_Spicetify_Marketplace_Description, "Experience")
     });
 
     public static IReadOnlyList<ExtensionDefinition> ExtensionDefinitions { get; } = new ReadOnlyCollection<ExtensionDefinition>(new[]
     {
-        new ExtensionDefinition("fullAppDisplay.js", "Full App Display", "Turn album art and playback controls into a full-screen presentation."),
-        new ExtensionDefinition("shuffle+.js", "True Shuffle", "Use a Fisher-Yates shuffle instead of Spotify's weighted shuffle."),
-        new ExtensionDefinition("trashbin.js", "Trash Bin", "Skip songs and artists you mark as unwanted."),
-        new ExtensionDefinition("keyboardShortcut.js", "Keyboard Shortcuts", "Add Vim-style navigation for faster keyboard control."),
-        new ExtensionDefinition("bookmark.js", "Bookmarks", "Save and recall pages, tracks, albums, and timestamps."),
-        new ExtensionDefinition("loopyLoop.js", "A-B Loops", "Loop exact track segments for practice or repeat listening."),
-        new ExtensionDefinition("popupLyrics.js", "Popup Lyrics", "Open synchronized lyrics in a separate resizable window."),
-        new ExtensionDefinition("autoSkipVideo.js", "Skip Video", "Automatically skip canvas videos and unsupported visual content."),
-        new ExtensionDefinition("autoSkipExplicit.js", "Skip Explicit", "Automatically skip tracks flagged as explicit."),
-        new ExtensionDefinition("webnowplaying.js", "WebNowPlaying", "Expose now-playing data for desktop integrations and widgets."),
+        new ExtensionDefinition("fullAppDisplay.js", Strings.Extension_fullAppDisplay_Title, Strings.Extension_fullAppDisplay_Description),
+        new ExtensionDefinition("shuffle+.js", Strings.Extension_shuffle_plus_Title, Strings.Extension_shuffle_plus_Description),
+        new ExtensionDefinition("trashbin.js", Strings.Extension_trashbin_Title, Strings.Extension_trashbin_Description),
+        new ExtensionDefinition("keyboardShortcut.js", Strings.Extension_keyboardShortcut_Title, Strings.Extension_keyboardShortcut_Description),
+        new ExtensionDefinition("bookmark.js", Strings.Extension_bookmark_Title, Strings.Extension_bookmark_Description),
+        new ExtensionDefinition("loopyLoop.js", Strings.Extension_loopyLoop_Title, Strings.Extension_loopyLoop_Description),
+        new ExtensionDefinition("popupLyrics.js", Strings.Extension_popupLyrics_Title, Strings.Extension_popupLyrics_Description),
+        new ExtensionDefinition("autoSkipVideo.js", Strings.Extension_autoSkipVideo_Title, Strings.Extension_autoSkipVideo_Description),
+        new ExtensionDefinition("autoSkipExplicit.js", Strings.Extension_autoSkipExplicit_Title, Strings.Extension_autoSkipExplicit_Description),
+        new ExtensionDefinition("webnowplaying.js", Strings.Extension_webnowplaying_Title, Strings.Extension_webnowplaying_Description),
         // Community extensions — downloaded from GitHub during install
-        new ExtensionDefinition("hidePodcasts.js", "Hide Podcasts", "Remove podcast, episode, and audiobook UI elements."),
-        new ExtensionDefinition("beautiful-lyrics.mjs", "Beautiful Lyrics", "Immersive synced lyrics with dynamic backgrounds and blur. Connects to a third-party lyrics service (not just GitHub/Spotify)."),
-        new ExtensionDefinition("playlist-icons.js", "Playlist Icons", "Add custom icons and folder images to playlists."),
-        new ExtensionDefinition("volumePercentage.js", "Volume Percentage", "Display exact volume percentage next to the slider."),
-        new ExtensionDefinition("adblock.js", "Ad-block (Spicetify fallback)", "Spicetify-layer ad blocking for when SpotX patching fails on a newer Spotify build. Not a SpotX replacement.")
+        new ExtensionDefinition("hidePodcasts.js", Strings.Extension_hidePodcasts_Title, Strings.Extension_hidePodcasts_Description),
+        new ExtensionDefinition("beautiful-lyrics.mjs", Strings.Extension_beautiful_lyrics_Title, Strings.Extension_beautiful_lyrics_Description),
+        new ExtensionDefinition("playlist-icons.js", Strings.Extension_playlist_icons_Title, Strings.Extension_playlist_icons_Description),
+        new ExtensionDefinition("volumePercentage.js", Strings.Extension_volumePercentage_Title, Strings.Extension_volumePercentage_Description),
+        new ExtensionDefinition("adblock.js", Strings.Extension_adblock_Title, Strings.Extension_adblock_Description)
     });
 
     private static readonly IReadOnlyDictionary<string, string> ExtensionAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -423,25 +424,25 @@ public static class AppCatalog
 
     public static IReadOnlyList<MaintenanceActionDefinition> MaintenanceActions { get; } = new ReadOnlyCollection<MaintenanceActionDefinition>(new[]
     {
-        new MaintenanceActionDefinition("CheckUpdates", "Check compatibility matrix", "Compare LibreSpot's pinned dependencies and SpotX/Spicetify compatibility baseline before you update the stack.", "Check matrix"),
-        new MaintenanceActionDefinition("Reapply", "Reapply your setup", "Refresh SpotX first and then restore the saved Spicetify theme and extension state.", "Reapply"),
-        new MaintenanceActionDefinition("RepairMarketplace", "Repair and open Marketplace", "Reinstall the Spicetify Marketplace custom app, apply it, and open spotify:app:marketplace if the sidebar entry is missing.", "Repair Marketplace"),
-        new MaintenanceActionDefinition("OpenMarketplace", "Open Marketplace", "Open spotify:app:marketplace when the Marketplace custom app is already installed and registered.", "Open Marketplace"),
-        new MaintenanceActionDefinition("SafeMode", "Safe mode", "Disable all themes and extensions without uninstalling. Spotify will load in its stock look — use Reapply to restore your setup.", "Enter safe mode"),
-        new MaintenanceActionDefinition("CreateBackup", "Create Spicetify backup", "Save a backup of the current Spicetify configuration and themes. Backups are stored in your LibreSpot profile folder and can be restored later.", "Create backup"),
-        new MaintenanceActionDefinition("RestoreBackup", "Restore latest backup", "Restore the most recent Spicetify configuration backup, then reapply customizations. This does not modify your SpotX or LibreSpot settings.", "Restore backup"),
-        new MaintenanceActionDefinition("RestoreVanilla", "Restore vanilla Spotify", "Remove active Spicetify customizations while leaving SpotX in place.", "Restore"),
-        new MaintenanceActionDefinition("UninstallSpicetify", "Uninstall Spicetify", "Restore Spotify and then remove the Spicetify CLI, config folder, and PATH entry.", "Remove Spicetify", true),
-        new MaintenanceActionDefinition("FullReset", "Full reset", "Remove SpotX, Spicetify, Spotify app state, and related leftovers for a truly clean start.", "Reset everything", true),
-        new MaintenanceActionDefinition("RemoveSelfData", "Remove LibreSpot data", "Unregister the watcher task and delete LibreSpot's own config, backups, logs, and crash reports. Spotify and Spicetify are not affected.", "Remove LibreSpot data", true)
+        new MaintenanceActionDefinition("CheckUpdates", Strings.Maintenance_CheckUpdates_Title, Strings.Maintenance_CheckUpdates_Description, Strings.Maintenance_CheckUpdates_ButtonText),
+        new MaintenanceActionDefinition("Reapply", Strings.Maintenance_Reapply_Title, Strings.Maintenance_Reapply_Description, Strings.Maintenance_Reapply_ButtonText),
+        new MaintenanceActionDefinition("RepairMarketplace", Strings.Maintenance_RepairMarketplace_Title, Strings.Maintenance_RepairMarketplace_Description, Strings.Maintenance_RepairMarketplace_ButtonText),
+        new MaintenanceActionDefinition("OpenMarketplace", Strings.Maintenance_OpenMarketplace_Title, Strings.Maintenance_OpenMarketplace_Description, Strings.Maintenance_OpenMarketplace_ButtonText),
+        new MaintenanceActionDefinition("SafeMode", Strings.Maintenance_SafeMode_Title, Strings.Maintenance_SafeMode_Description, Strings.Maintenance_SafeMode_ButtonText),
+        new MaintenanceActionDefinition("CreateBackup", Strings.Maintenance_CreateBackup_Title, Strings.Maintenance_CreateBackup_Description, Strings.Maintenance_CreateBackup_ButtonText),
+        new MaintenanceActionDefinition("RestoreBackup", Strings.Maintenance_RestoreBackup_Title, Strings.Maintenance_RestoreBackup_Description, Strings.Maintenance_RestoreBackup_ButtonText),
+        new MaintenanceActionDefinition("RestoreVanilla", Strings.Maintenance_RestoreVanilla_Title, Strings.Maintenance_RestoreVanilla_Description, Strings.Maintenance_RestoreVanilla_ButtonText),
+        new MaintenanceActionDefinition("UninstallSpicetify", Strings.Maintenance_UninstallSpicetify_Title, Strings.Maintenance_UninstallSpicetify_Description, Strings.Maintenance_UninstallSpicetify_ButtonText, true),
+        new MaintenanceActionDefinition("FullReset", Strings.Maintenance_FullReset_Title, Strings.Maintenance_FullReset_Description, Strings.Maintenance_FullReset_ButtonText, true),
+        new MaintenanceActionDefinition("RemoveSelfData", Strings.Maintenance_RemoveSelfData_Title, Strings.Maintenance_RemoveSelfData_Description, Strings.Maintenance_RemoveSelfData_ButtonText, true)
     });
 
     public static IReadOnlyList<string> RecommendedHighlights { get; } = new ReadOnlyCollection<string>(new[]
     {
-        "Starts from a clean Spotify state.",
-        "Applies the pinned SpotX baseline with updates blocked.",
-        "Restores Spicetify, Marketplace, and the starter extensions.",
-        "Saves a dependable profile for reapply, recovery, and future maintenance."
+        Strings.RecommendedHighlight_1,
+        Strings.RecommendedHighlight_2,
+        Strings.RecommendedHighlight_3,
+        Strings.RecommendedHighlight_4
     });
 
     /// <summary>
