@@ -19,6 +19,9 @@ All notable changes to LibreSpot will be documented in this file.
   panel available for full review.
 
 ### Fixed
+- Shared PowerShell validation now syncs generated backend functions with
+  explicit UTF-8 reads, excludes documented host-specific wrappers, and passes
+  `Build-Scripts.ps1 -Validate` with 74 generated shared functions in sync.
 - Local desktop tests now enforce the no-GitHub-Actions/no-dependency-bot
   repository policy, keep the release artifact contract tied to the local
   post-upload audit, and accept both single-quoted and double-quoted theme JS

@@ -328,7 +328,9 @@ function Write-OperationJournalEntry {
     try {
         if ([string]::IsNullOrWhiteSpace($OperationId)) { $OperationId = [Guid]::NewGuid().ToString('N') }
         if ([string]::IsNullOrWhiteSpace($Action)) { $Action = 'Unknown' }
-        Ensure-LogDirectory
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
+            New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
+        }
         Optimize-OperationJournalRetention
         $entry = [ordered]@{
             schemaVersion  = 1
@@ -405,10 +407,7 @@ function ConvertTo-PlainHashtable {
 }
 
 function ConvertTo-ConfigBoolean {
-    param(
-        [object]$Value,
-        [bool]$Default = $false
-    )
+    param([object]$Value, [bool]$Default = $false)
     if ($null -eq $Value) { return $Default }
     if ($Value -is [bool]) { return [bool]$Value }
     if ($Value -is [int] -or $Value -is [long]) { return ([int64]$Value -ne 0) }
@@ -479,14 +478,14 @@ function Normalize-LibreSpotConfig {
     }
 
     $booleanKeys = @(
-        'CleanInstall', 'LaunchAfter',
-        'SpotX_NewTheme', 'SpotX_PodcastsOff', 'SpotX_BlockUpdate', 'SpotX_AdSectionsOff',
-        'SpotX_Premium', 'SpotX_LyricsEnabled', 'SpotX_TopSearch', 'SpotX_RightSidebarOff',
-        'SpotX_RightSidebarClr', 'SpotX_CanvasHomeOff', 'SpotX_HomeSubOff', 'SpotX_DisableStartup',
-        'SpotX_NoShortcut', 'SpotX_OldLyrics', 'SpotX_HideColIconOff', 'SpotX_Plus',
-        'SpotX_NewFullscreen', 'SpotX_FunnyProgress', 'SpotX_ExpSpotify', 'SpotX_LyricsBlock',
-        'SpotX_SendVersionOff', 'SpotX_StartSpoti', 'SpotX_DevTools', 'SpotX_Mirror', 'SpotX_ConfirmUninstall',
-        'Spicetify_Marketplace', 'AutoReapply_Enabled', 'RiskAcknowledged'
+        'CleanInstall','LaunchAfter',
+        'SpotX_NewTheme','SpotX_PodcastsOff','SpotX_BlockUpdate','SpotX_AdSectionsOff',
+        'SpotX_Premium','SpotX_LyricsEnabled','SpotX_TopSearch','SpotX_RightSidebarOff',
+        'SpotX_RightSidebarClr','SpotX_CanvasHomeOff','SpotX_HomeSubOff',
+        'SpotX_DisableStartup','SpotX_NoShortcut','SpotX_OldLyrics','SpotX_HideColIconOff',
+        'SpotX_Plus','SpotX_NewFullscreen','SpotX_FunnyProgress','SpotX_ExpSpotify','SpotX_LyricsBlock',
+        'SpotX_SendVersionOff','SpotX_StartSpoti','SpotX_DevTools','SpotX_Mirror','SpotX_ConfirmUninstall',
+        'Spicetify_Marketplace','AutoReapply_Enabled','RiskAcknowledged'
     )
     foreach ($key in $booleanKeys) {
         if ($Config -and $Config.ContainsKey($key)) {
@@ -518,12 +517,15 @@ function Normalize-LibreSpotConfig {
     $normalized.SpotX_LyricsTheme = $lyricsTheme
 
     $themeName = if ($Config -and $Config.ContainsKey('Spicetify_Theme')) { [string]$Config.Spicetify_Theme } else { [string]$normalized.Spicetify_Theme }
-    if ([string]::IsNullOrWhiteSpace($themeName) -or -not $global:ThemeSchemes.Contains($themeName)) {
+    if ([string]::IsNullOrWhiteSpace($themeName) -or -not $global:ThemeData.Contains($themeName)) {
         $themeName = [string]$global:EasyDefaults.Spicetify_Theme
     }
     $normalized.Spicetify_Theme = $themeName
 
-    $availableSchemes = if ($global:ThemeSchemes.Contains($themeName)) { @($global:ThemeSchemes[$themeName]) } else { @('Default') }
+    $availableSchemes = @()
+    if ($global:ThemeData.Contains($themeName)) {
+        $availableSchemes = @($global:ThemeData[$themeName].Schemes)
+    }
     $defaultScheme = if ($availableSchemes -contains [string]$global:EasyDefaults.Spicetify_Scheme) {
         [string]$global:EasyDefaults.Spicetify_Scheme
     } elseif ($availableSchemes.Count -gt 0) {
@@ -550,7 +552,7 @@ function Normalize-LibreSpotConfig {
         $name = [string]$extension
         if ([string]::IsNullOrWhiteSpace($name)) { continue }
         if ($global:CommunityExtensionAliases.ContainsKey($name)) { $name = [string]$global:CommunityExtensionAliases[$name] }
-        if ($name -notin $global:AllManagedExtensionNames) { continue }
+        if (-not $global:BuiltInExtensions.Contains($name) -and -not $global:CommunityExtensions.Contains($name)) { continue }
         if (-not $extensions.Contains($name)) { $extensions.Add($name) }
     }
     $normalized.Spicetify_Extensions = @($extensions)
@@ -591,46 +593,43 @@ function Normalize-LibreSpotConfig {
 function Move-ConfigFileToQuarantine {
     [CmdletBinding(SupportsShouldProcess)]
     param([string]$Reason)
-
-    $configDirectory = Split-Path -Path $ConfigPath -Parent
-    if ([string]::IsNullOrWhiteSpace($configDirectory)) {
-        $configDirectory = $global:CONFIG_DIR
-    }
-
+    $reasonSuffix = if ([string]::IsNullOrWhiteSpace($Reason)) { '' } else { " Reason: $Reason" }
     try {
-        if (-not (Test-Path -LiteralPath $configDirectory)) {
-            New-Item -Path $configDirectory -ItemType Directory -Force | Out-Null
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
+            New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
         }
-
-        if (Test-Path -LiteralPath $ConfigPath) {
+        if (Test-Path -LiteralPath $global:CONFIG_PATH) {
             $stamp = Get-Date -Format 'yyyyMMdd-HHmmssfff'
             $quarantinePath = $null
             for ($attempt = 0; $attempt -lt 10; $attempt++) {
                 $suffix = if ($attempt -eq 0) { '' } else { "-$attempt" }
-                $candidatePath = Join-Path $configDirectory "config.corrupt.$stamp$suffix.json"
+                $candidateName = "config.corrupt.$stamp$suffix.json"
+                $candidatePath = Join-Path $global:CONFIG_DIR $candidateName
                 if (-not (Test-Path -LiteralPath $candidatePath)) {
                     $quarantinePath = $candidatePath
                     break
                 }
             }
             if (-not $quarantinePath) {
-                $quarantinePath = Join-Path $configDirectory ("config.corrupt.{0}.json" -f [Guid]::NewGuid().ToString('N'))
+                $quarantinePath = Join-Path $global:CONFIG_DIR ("config.corrupt.{0}.json" -f [Guid]::NewGuid().ToString('N'))
             }
 
-            Write-OperationJournalEntry -Phase 'config' -Target $ConfigPath -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.'
-            if ($PSCmdlet.ShouldProcess($ConfigPath, 'Quarantine corrupted config')) {
-                Move-Item -LiteralPath $ConfigPath -Destination $quarantinePath -ErrorAction Stop
-                Write-OperationJournalEntry -Phase 'config' -Target $ConfigPath -SafetyDecision 'Allowed' -Result 'Quarantined' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.'
-                Write-Log "Saved config was moved to $(Split-Path -Path $quarantinePath -Leaf) after a read failure." -Level 'WARN'
+            if ($PSCmdlet.ShouldProcess($global:CONFIG_PATH, 'Quarantine corrupted config')) {
+                Write-OperationJournalEntry -Phase 'config' -Target $global:CONFIG_PATH -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.'
+                Move-Item -LiteralPath $global:CONFIG_PATH -Destination $quarantinePath -ErrorAction Stop
+                Write-OperationJournalEntry -Phase 'config' -Target $global:CONFIG_PATH -SafetyDecision 'Allowed' -Result 'Quarantined' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.'
+                $quarantineName = Split-Path -Path $quarantinePath -Leaf
+                $script:ConfigLoadWarning = "LibreSpot reset the saved settings because the config file could not be read safely.$reasonSuffix The previous file was moved to $quarantineName."
             }
+        } else {
+            $script:ConfigLoadWarning = "LibreSpot reset the saved settings because the config file could not be read safely.$reasonSuffix"
         }
     } catch {
-        Write-Log 'LibreSpot could not move the unreadable config aside automatically.' -Level 'WARN'
+        $script:ConfigLoadWarning = 'LibreSpot reset the saved settings because the config file could not be read safely, but it could not move the original file aside automatically.'
     }
-
-    if ($Reason) {
-        Write-Log "Config reset: $Reason" -Level 'WARN'
-    }
+    try {
+        if ($Reason) { Write-Log "Config reset: $Reason" -Level 'WARN' }
+    } catch {}
 }
 
 function Load-LibreSpotConfig {
@@ -659,11 +658,15 @@ function Ensure-Admin {
 function Write-WatcherLog {
     param([string]$Message, [string]$Level = 'INFO')
     try {
-        Ensure-LogDirectory
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
+            New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null
+        }
         $line = "[{0}] [{1}] {2}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Level, $Message
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::AppendAllText($global:WATCHER_LOG_PATH, $line + [Environment]::NewLine, $utf8NoBom)
-        if ((Test-Path -LiteralPath $global:WATCHER_LOG_PATH) -and (Get-Item -LiteralPath $global:WATCHER_LOG_PATH).Length -gt 1048576) {
+        # Trim the watcher log when it exceeds ~1 MB so an unattended machine
+        # can't fill the disk with 15-minute polling entries.
+        if ((Get-Item -LiteralPath $global:WATCHER_LOG_PATH).Length -gt 1048576) {
             $keep = Get-Content -LiteralPath $global:WATCHER_LOG_PATH -Tail 500
             [System.IO.File]::WriteAllLines($global:WATCHER_LOG_PATH, $keep, $utf8NoBom)
         }
@@ -918,19 +921,19 @@ function Register-AutoReapplyTask {
 function Unregister-AutoReapplyTask {
     [CmdletBinding(SupportsShouldProcess)]
     param()
-    Write-OperationJournalEntry -Phase 'task' -Target $global:WATCHER_TASK_NAME -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Re-register the scheduled task to undo.'
-    try {
-        if ($PSCmdlet.ShouldProcess($global:WATCHER_TASK_NAME, 'Remove scheduled task')) {
+    if ($PSCmdlet.ShouldProcess($global:WATCHER_TASK_NAME, 'Remove scheduled task')) {
+        Write-OperationJournalEntry -Phase 'task' -Target $global:WATCHER_TASK_NAME -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Re-register the scheduled task to undo.'
+        try {
             $null = & schtasks.exe /Delete /TN $global:WATCHER_TASK_NAME /F 2>&1
             if ($LASTEXITCODE -eq 0) {
                 Write-OperationJournalEntry -Phase 'task' -Target $global:WATCHER_TASK_NAME -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $true -RollbackHint 'Re-register the scheduled task to undo.'
-                Write-WatcherLog 'Unregister: scheduled task removed'
+                Write-WatcherLog "Unregister: scheduled task removed"
                 return $true
             }
             return $false
-        }
-        return $false
-    } catch { return $false }
+        } catch { return $false }
+    }
+    return $false
 }
 
 function Save-LibreSpotConfig {
@@ -1211,7 +1214,7 @@ function Read-ProcessOutputDelta {
         }
         if ([string]::IsNullOrEmpty($chunk)) { return $result }
         $text = [string]$result.Remainder + $chunk
-        $parts = $text -split "`r`n|`n|`r"
+        $parts = $text -split "\r\n|\n|\r"
         $hasTrailingNewline = $text.EndsWith("`n") -or $text.EndsWith("`r")
         if ($hasTrailingNewline) {
             $result.Remainder = ''
@@ -1239,6 +1242,7 @@ function Get-DownloaderCveExposure {
         Edition = [string]$PSVersionTable.PSEdition
         OSBuild = ''
     }
+    # Only Windows PowerShell 5.1 (Desktop edition) is in scope for this CVE.
     if ($PSVersionTable.PSEdition -and $PSVersionTable.PSEdition -ne 'Desktop') {
         $result.Reason = 'PowerShell 7+ (Core) is in use; CVE-2025-54100 affects Windows PowerShell 5.1 only.'
         return [pscustomobject]$result
@@ -1249,6 +1253,8 @@ function Get-DownloaderCveExposure {
         if ($cv.CurrentBuild) { $result.OSBuild = "$($cv.CurrentBuild).$($cv.UBR)" }
     } catch {}
 
+    # Heuristic: the newest installed update vs the December 2025 patch wave.
+    # We never claim certainty -- this only flags a host that is plainly behind.
     $patchWave = [datetime]'2025-12-09'
     $latest = $null
     try {
@@ -1319,7 +1325,7 @@ function Get-DownloadFailureHint {
         return "$Stage failed: the connection to $target timed out. Check connectivity or retry after the network is stable."
     }
     if ($lowerMessage -match 'sha256 mismatch|hash mismatch|checksum') {
-        return "$Stage failed: file hash verification failed for $target. The download may be corrupted or tampered with. Clear the asset cache and retry."
+        return "$Stage hash verification failed for $target. The downloaded file does not match the expected SHA256 checksum. Try clearing the asset cache and re-downloading."
     }
     if ([string]::IsNullOrWhiteSpace($message)) {
         return "$Stage failed for $target."
@@ -1359,7 +1365,7 @@ function Get-NetworkPreflightStatus {
         [string]$Purpose = 'download sources',
         [int]$TimeoutMilliseconds = 5000
     )
-    $response = $null
+    $resp = $null
     $target = $Uri
     try { $target = ([uri]$Uri).Host } catch {}
     $result = [ordered]@{
@@ -1374,9 +1380,9 @@ function Get-NetworkPreflightStatus {
         $request.Timeout = $TimeoutMilliseconds
         $request.Method = 'HEAD'
         try { $request.UserAgent = "LibreSpot/$global:VERSION" } catch {}
-        $response = $request.GetResponse()
+        $resp = $request.GetResponse()
         $statusCode = $null
-        try { $statusCode = [int]$response.StatusCode } catch {}
+        try { $statusCode = [int]$resp.StatusCode } catch {}
         if ($null -eq $statusCode -or ($statusCode -ge 200 -and $statusCode -lt 400)) {
             $result.Ready = $true
             $result.Code = 'Ready'
@@ -1400,19 +1406,18 @@ function Get-NetworkPreflightStatus {
         $result.Message = Get-DownloadFailureHint -Uri $Uri -ErrorRecord $_ -Stage 'Network preflight'
         try { $result.Detail = [string]$_.Exception.Message } catch {}
     }
-    finally { if ($response) { try { $response.Close() } catch {} } }
+    finally { if ($resp) { try { $resp.Close() } catch {} } }
     return [pscustomobject]$result
 }
 
-function Download-FileSafe {
-    param(
-        [string]$Uri,
-        [string]$OutFile
-    )
+function Download-FileSafe { param([string]$Uri,[string]$OutFile)
     Write-DownloaderCveWarningIfNeeded
     Write-Log "Downloading: $Uri"
-    $headers = @{ 'User-Agent' = "LibreSpot/$global:VERSION" }
+    $headers = @{'User-Agent'="LibreSpot/$global:VERSION"}
     try {
+        try {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        } catch {}
         $outDir = Split-Path -Path $OutFile -Parent
         if ($outDir -and -not (Test-Path -LiteralPath $outDir)) {
             New-Item -Path $outDir -ItemType Directory -Force | Out-Null
@@ -1422,25 +1427,23 @@ function Download-FileSafe {
         }
         try {
             Invoke-WebRequest -Uri $Uri -OutFile $OutFile -UseBasicParsing -Headers $headers -TimeoutSec 120 -ErrorAction Stop
-        } catch {
+        }
+        catch {
             $webHint = Get-DownloadFailureHint -Uri $Uri -ErrorRecord $_ -Stage 'Web request'
             Write-Log "$webHint Trying BITS fallback." -Level 'WARN'
             try {
-                Import-Module BitsTransfer -ErrorAction SilentlyContinue
-                $bitsJob = Start-BitsTransfer -Source $Uri -Destination $OutFile -Asynchronous -ErrorAction Stop
+                Import-Module BitsTransfer -EA SilentlyContinue
+                $bitsJob = Start-BitsTransfer -Source $Uri -Destination $OutFile -Asynchronous -EA Stop
                 $deadline = (Get-Date).AddSeconds(120)
-                while ($bitsJob.JobState -in @('Transferring', 'Connecting', 'Queued', 'TransientError')) {
-                    if ((Get-Date) -gt $deadline) {
-                        Remove-BitsTransfer $bitsJob -ErrorAction SilentlyContinue
-                        throw 'BITS transfer timed out (120s)'
-                    }
+                while ($bitsJob.JobState -in @('Transferring','Connecting','Queued','TransientError')) {
+                    if ((Get-Date) -gt $deadline) { Remove-BitsTransfer $bitsJob -EA SilentlyContinue; throw "BITS transfer timed out (120s)" }
                     Start-Sleep -Milliseconds 500
                 }
                 if ($bitsJob.JobState -ne 'Transferred') {
-                    $jobState = $bitsJob.JobState
-                    $bitsDetail = "BITS state: $jobState"
+                    $js=$bitsJob.JobState
+                    $bitsDetail = "BITS state: $js"
                     try { if ($bitsJob.ErrorDescription) { $bitsDetail = "$bitsDetail - $($bitsJob.ErrorDescription)" } } catch {}
-                    Remove-BitsTransfer $bitsJob -ErrorAction SilentlyContinue
+                    Remove-BitsTransfer $bitsJob -EA SilentlyContinue
                     throw $bitsDetail
                 }
                 Complete-BitsTransfer $bitsJob
@@ -1459,29 +1462,20 @@ function Download-FileSafe {
     }
 }
 
-function Confirm-FileHash {
-    param(
-        [string]$Path,
-        [string]$ExpectedHash,
-        [string]$Label
-    )
+function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]$Label)
     if ([string]::IsNullOrWhiteSpace($ExpectedHash)) {
-        Write-Log "Hash verification skipped for $Label (no hash pinned)." -Level 'WARN'
+        Write-Log "  Hash verification skipped for $Label (no hash pinned)" -Level 'WARN'
         return
     }
-    $actual = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
-    $expected = $ExpectedHash.ToLowerInvariant()
+    $actual = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLower()
+    $expected = $ExpectedHash.ToLower()
     if ($actual -ne $expected) {
-        throw "SHA256 mismatch for ${Label} (HashMismatch). Expected $expected but received $actual."
+        throw "SHA256 hash mismatch for ${Label}`n  Expected: $expected`n  Actual:   $actual`n  File may be corrupted or tampered with. Update pinned hash if this is a legitimate new version."
     }
-    Write-Log "SHA256 verified: $Label"
+    Write-Log "  SHA256 verified: $Label"
 }
 
-function Save-ToAssetCache {
-    param(
-        [string]$SourcePath,
-        [string]$SHA256Hash
-    )
+function Save-ToAssetCache { param([string]$SourcePath, [string]$SHA256Hash)
     if ([string]::IsNullOrWhiteSpace($SHA256Hash)) { return }
     $hash = $SHA256Hash.ToLowerInvariant()
     if ($hash.Length -ne 64) { return }
@@ -1491,30 +1485,25 @@ function Save-ToAssetCache {
         }
         $cachePath = Join-Path $global:CACHE_DIR $hash
         Copy-Item -LiteralPath $SourcePath -Destination $cachePath -Force
-        Write-Log "Cached verified asset (SHA256: $hash)"
+        Write-Log "  Cached verified asset (SHA256: $hash)"
     } catch {
-        Write-Log "Asset cache save failed: $($_.Exception.Message)" -Level 'WARN'
+        Write-Log "  Asset cache save failed: $($_.Exception.Message)" -Level 'WARN'
     }
 }
 
-function Get-FromAssetCache {
-    param(
-        [string]$SHA256Hash,
-        [string]$DestinationPath,
-        [string]$Label
-    )
+function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPath, [string]$Label)
     if ([string]::IsNullOrWhiteSpace($SHA256Hash)) { return $false }
     $hash = $SHA256Hash.ToLowerInvariant()
     if ($hash.Length -ne 64) { return $false }
     $cachePath = Join-Path $global:CACHE_DIR $hash
     if (-not (Test-Path -LiteralPath $cachePath -PathType Leaf)) {
-        Write-Log "Cache miss for $Label (SHA256: $hash)"
+        Write-Log "  Cache miss for $Label (SHA256: $hash)"
         return $false
     }
     try {
         $actual = (Get-FileHash -LiteralPath $cachePath -Algorithm SHA256).Hash.ToLowerInvariant()
         if ($actual -ne $hash) {
-            Write-Log "Cached asset for $Label failed re-verification (expected $hash, got $actual). Removing stale entry." -Level 'WARN'
+            Write-Log "  Cached asset for $Label failed re-verification (expected $hash, got $actual). Removing stale entry." -Level 'WARN'
             Remove-Item -LiteralPath $cachePath -Force -ErrorAction SilentlyContinue
             return $false
         }
@@ -1523,10 +1512,10 @@ function Get-FromAssetCache {
             New-Item -Path $outDir -ItemType Directory -Force | Out-Null
         }
         Copy-Item -LiteralPath $cachePath -Destination $DestinationPath -Force
-        Write-Log "Using verified cached copy for $Label (SHA256: $hash)"
+        Write-Log "  Using verified cached copy for $Label (SHA256: $hash)"
         return $true
     } catch {
-        Write-Log "Cache retrieval failed for ${Label}: $($_.Exception.Message)" -Level 'WARN'
+        Write-Log "  Cache retrieval failed for ${Label}: $($_.Exception.Message)" -Level 'WARN'
         return $false
     }
 }
@@ -1538,8 +1527,8 @@ function Clear-LibreSpotCache {
         Write-Log 'Asset cache directory does not exist. Nothing to clear.'
         return
     }
-    Write-OperationJournalEntry -Phase 'cache' -Target $global:CACHE_DIR -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Cache will be rebuilt automatically on next download.'
     if ($PSCmdlet.ShouldProcess($global:CACHE_DIR, 'Clear asset cache')) {
+        Write-OperationJournalEntry -Phase 'cache' -Target $global:CACHE_DIR -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Cache will be rebuilt automatically on next download.'
         try {
             Remove-Item -LiteralPath $global:CACHE_DIR -Recurse -Force -ErrorAction Stop
             Write-OperationJournalEntry -Phase 'cache' -Target $global:CACHE_DIR -SafetyDecision 'Allowed' -Result 'Cleared' -WouldChange $true -Reversible $false -RollbackHint 'Cache will be rebuilt automatically on next download.'
@@ -1550,14 +1539,7 @@ function Clear-LibreSpotCache {
     }
 }
 
-function Expand-ArchiveSafely {
-    param(
-        [string]$ZipPath,
-        [string]$DestinationPath,
-        [string]$Label = 'archive',
-        [int]$MaxEntries = 10000,
-        [long]$MaxExpandedBytes = 500MB
-    )
+function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,[string]$Label='archive',[int]$MaxEntries=10000,[long]$MaxExpandedBytes=500MB)
     Add-Type -AssemblyName System.IO.Compression
     $zip = $null
     try {
@@ -1611,6 +1593,7 @@ function Get-PowerShellSecurityContext {
     try { $ctx.LanguageMode = [string]$ExecutionContext.SessionState.LanguageMode } catch {}
     if ($ctx.LanguageMode -eq 'ConstrainedLanguage') {
         $ctx.ConstrainedLanguage = $true
+        # CLM is forced by AppLocker, WDAC, or Smart App Control (SAC on Win11).
         $ctx.AppControlEnforced = $true
     }
     try {
@@ -1641,12 +1624,7 @@ function Test-IsLanguageModeOrAppControlError {
     return ($Message -match 'ConstrainedLanguage|language mode|AppLocker|Application Control|\bWDAC\b')
 }
 
-function Invoke-ExternalScriptIsolated {
-    param(
-        [string]$FilePath,
-        [string]$Arguments,
-        [int]$TimeoutSeconds = 600
-    )
+function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Arguments,[int]$TimeoutSeconds=600)
     Write-Log "Spawning: $FilePath"
     Write-PowerShellSecurityContext
     $stdoutPath = Join-Path $global:TEMP_DIR ("LibreSpot-stdout-" + [Guid]::NewGuid().ToString('N') + '.log')
@@ -1656,25 +1634,17 @@ function Invoke-ExternalScriptIsolated {
     # The spawned powershell.exe can be forced into ConstrainedLanguage by WDAC /
     # AppLocker even when this host is FullLanguage; classify that from stderr.
     $appControlHintShown = $false
-    $process = $null
+    $p = $null
     try {
-        # Use the single-string ArgumentList form. The array form is tempting because
-        # it auto-quotes each element, but on Windows PowerShell 5.1 combining
-        # `-ArgumentList` (array) with `-RedirectStandardOutput` and `-Wait:$false`
-        # returns a Process wrapper whose handle is released before ExitCode can be
-        # read, so a successful SpotX run surfaces as a spurious "exited with code ."
-        # failure. $FilePath is always a LibreSpot-generated temp path (no user input
-        # reaches this callsite) and $Arguments comes from Build-SpotXParams which only
-        # emits fixed flags, so the single-string form is safe here.
         $argString = "-NoProfile -ExecutionPolicy Bypass -File `"$FilePath`" $Arguments"
-        $process = Start-Process -FilePath 'powershell.exe' -ArgumentList $argString -PassThru -Wait:$false -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -WindowStyle Hidden -ErrorAction Stop
+        $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $argString -NoNewWindow -PassThru -Wait:$false -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -ErrorAction Stop
         $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
-        while (-not $process.HasExited) {
+        while (-not $p.HasExited) {
             if ((Get-Date) -gt $deadline) {
-                Write-Log "Process exceeded ${TimeoutSeconds}s timeout and will be terminated." -Level 'WARN'
-                try { $process.Kill() } catch {}
-                try { $process.WaitForExit(5000) } catch {}
-                throw "External process timed out after ${TimeoutSeconds} seconds."
+                Write-Log "Process exceeded ${TimeoutSeconds}s timeout - terminating." -Level 'WARN'
+                try { $p.Kill() } catch {}
+                try { $p.WaitForExit(5000) } catch {}
+                throw "External process timed out after ${TimeoutSeconds} seconds. It may have hung or entered an interactive prompt."
             }
             $stdoutRead = Read-ProcessOutputDelta -Path $stdoutPath -Offset $stdoutState.Offset -Remainder $stdoutState.Remainder
             $stdoutState = @{ Offset = $stdoutRead.Offset; Remainder = $stdoutRead.Remainder }
@@ -1691,7 +1661,7 @@ function Invoke-ExternalScriptIsolated {
             }
             Start-Sleep -Milliseconds 200
         }
-        $process.WaitForExit()
+        $p.WaitForExit()
 
         $stdoutRead = Read-ProcessOutputDelta -Path $stdoutPath -Offset $stdoutState.Offset -Remainder $stdoutState.Remainder
         foreach ($line in $stdoutRead.Lines + @($stdoutRead.Remainder) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) {
@@ -1706,44 +1676,50 @@ function Invoke-ExternalScriptIsolated {
             }
         }
 
-        # Capture ExitCode defensively. If the Process wrapper has lost its handle
-        # (a known PowerShell quirk under certain Start-Process parameter combinations)
-        # the getter can return $null — and `$null -ne 0` evaluates to $true, which
-        # would turn a successful run into a spurious failure. Treat null as success
-        # but log a warning so we notice if the environment ever regresses to this.
+        # Capture ExitCode defensively. Windows PowerShell can occasionally lose
+        # the Process handle when Start-Process is combined with redirected output.
         $exitCode = $null
-        try { $exitCode = $process.ExitCode } catch { $exitCode = $null }
+        try { $exitCode = $p.ExitCode } catch { $exitCode = $null }
 
         if ($null -eq $exitCode) {
             Write-Log 'External process finished but ExitCode was unavailable; treating as success.' -Level 'WARN'
         } elseif ($exitCode -ne 0) {
-            throw "Process exited with code $exitCode."
+            throw "Process exited with code $exitCode"
         }
     } finally {
-        if ($process) { try { $process.Dispose() } catch {} }
+        if ($p) { try { $p.Dispose() } catch {} }
         Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
     }
 }
 
 function Compare-LibreSpotVersions {
+    # Semver-ish compare that tolerates `-preview.N` / `-rc.N` suffixes and
+    # string-compare them as a tie-breaker when the numeric prefixes match.
+    # Returns $true iff $Latest is strictly newer than $Current.
     param([string]$Latest, [string]$Current)
     if ([string]::IsNullOrWhiteSpace($Latest)) { return $false }
     if ([string]::IsNullOrWhiteSpace($Current)) { return $true }
     $stripLatest  = ($Latest  -replace '-preview.*','' -replace '-rc.*','')
     $stripCurrent = ($Current -replace '-preview.*','' -replace '-rc.*','')
     try {
-        $latestVersion = [Version]$stripLatest
-        $currentVersion = [Version]$stripCurrent
-        if ($latestVersion -gt $currentVersion) { return $true }
-        if ($latestVersion -lt $currentVersion) { return $false }
-        $latestIsStable = ($Latest -eq $stripLatest)
+        $l = [Version]$stripLatest
+        $c = [Version]$stripCurrent
+        if ($l -gt $c) { return $true }
+        if ($l -lt $c) { return $false }
+        # Numeric prefixes equal: the one WITHOUT a pre-release suffix is newer.
+        $latestIsStable  = ($Latest  -eq $stripLatest)
         $currentIsStable = ($Current -eq $stripCurrent)
         if ($latestIsStable -and -not $currentIsStable) { return $true }
         if (-not $latestIsStable -and $currentIsStable) { return $false }
+        # Both stable or both pre-release with same numeric prefix: compare the
+        # full suffix lexically. E.g. `-preview.5` > `-preview.4`. If the
+        # suffixes are identical the versions are equal (not "newer").
         if ($Latest -eq $Current) { return $false }
         return ([string]::CompareOrdinal($Latest, $Current) -gt 0)
     } catch {
+        # Non-parseable versions: lexical compare is better than claiming all
+        # non-equal versions are "newer".
         if ($Latest -eq $Current) { return $false }
         return ([string]::CompareOrdinal($Latest, $Current) -gt 0)
     }
@@ -1781,34 +1757,26 @@ function Write-LibreSpotCompatibilityMatrix {
     }
     $spicetify = $global:PinnedReleases.SpicetifyCLI
 
-    Write-Log 'Compatibility matrix:'
-    Write-Log "  SpotX: commit $($global:PinnedReleases.SpotX.Commit.Substring(0,10)) targets Spotify $spotxLabel"
-    Write-Log "  Spicetify CLI: v$($spicetify.Version) max-tested Windows/Microsoft Store Spotify $($spicetify.WindowsMinSpotify) -> $($spicetify.WindowsMaxTestedSpotify)"
-    Write-Log "  Marketplace: v$($global:PinnedReleases.Marketplace.Version) checked as a custom app package independent of Spotify CSS-map coverage"
-    Write-Log "  Themes: commit $($global:PinnedReleases.Themes.Commit.Substring(0,10)) checked as a theme archive independent of Spotify CSS-map coverage"
+    Write-Log '  Compatibility matrix:'
+    Write-Log "    SpotX: commit $($global:PinnedReleases.SpotX.Commit.Substring(0,10)) targets Spotify $spotxLabel"
+    Write-Log "    Spicetify CLI: v$($spicetify.Version) max-tested Windows/Microsoft Store Spotify $($spicetify.WindowsMinSpotify) -> $($spicetify.WindowsMaxTestedSpotify)"
+    Write-Log "    Marketplace: v$($global:PinnedReleases.Marketplace.Version) checked as a custom app package independent of Spotify CSS-map coverage"
+    Write-Log "    Themes: commit $($global:PinnedReleases.Themes.Commit.Substring(0,10)) checked as a theme archive independent of Spotify CSS-map coverage"
 
     $warnings = @(Get-LibreSpotCompatibilityWarnings)
     foreach ($warning in $warnings) {
-        Write-Log "  Compatibility warning: $warning" -Level 'WARN'
+        Write-Log "    Compatibility warning: $warning" -Level 'WARN'
     }
     return $warnings
 }
 
-function Invoke-GitHubApiSafe {
-    param(
-        [string]$Uri,
-        [hashtable]$Headers,
-        [int]$TimeoutSec = 15,
-        [string]$Label = 'GitHub API'
-    )
+function Invoke-GitHubApiSafe { param([string]$Uri,[hashtable]$Headers,[int]$TimeoutSec=15,[string]$Label='GitHub API')
     try {
         $response = Invoke-WebRequest -Uri $Uri -Headers $Headers -TimeoutSec $TimeoutSec -UseBasicParsing -ErrorAction Stop
         $remaining = $response.Headers['x-ratelimit-remaining']
         if ($remaining -and [int]$remaining -le 5) {
             $resetEpoch = $response.Headers['x-ratelimit-reset']
-            $resetTime = if ($resetEpoch) {
-                ([DateTimeOffset]::FromUnixTimeSeconds([long]$resetEpoch)).LocalDateTime.ToString('HH:mm:ss')
-            } else { 'unknown' }
+            $resetTime = if ($resetEpoch) { ([DateTimeOffset]::FromUnixTimeSeconds([long]$resetEpoch)).LocalDateTime.ToString('HH:mm:ss') } else { 'unknown' }
             Write-Log "GitHub API rate limit nearly exhausted ($remaining remaining, resets at $resetTime). Subsequent checks may fail." -Level 'WARN'
         }
         return ($response.Content | ConvertFrom-Json)
@@ -1832,118 +1800,118 @@ function Invoke-GitHubApiSafe {
 }
 
 function Check-ForUpdates {
-    Write-Log 'Checking pinned dependencies against upstream releases...' -Level 'STEP'
-    $headers = @{ 'User-Agent' = "LibreSpot/$global:VERSION" }
+    Write-Log '=== Checking for dependency updates ===' -Level 'STEP'
+    $headers = @{'User-Agent'="LibreSpot/$global:VERSION"}
     $updates = @()
     $compatWarnings = @()
 
+    # SpotX (pinned to a specific commit on main, check for newer commits)
     try {
         $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/SpotX-Official/SpotX/commits/main' -Headers $headers -Label 'SpotX'
-        if ($rel.sha -ne $global:PinnedReleases.SpotX.Commit) {
-            $updates += 'SpotX'
-            Write-Log "SpotX has a newer commit available: $($rel.sha.Substring(0, 10))" -Level 'WARN'
-        } else {
-            Write-Log "SpotX is pinned to the latest tested commit."
-        }
-    } catch {
-        Write-Log "SpotX update check failed: $($_.Exception.Message)" -Level 'WARN'
-    }
+        $latestSha = $rel.sha
+        $pinnedSha = $global:PinnedReleases.SpotX.Commit
+        if ($latestSha -ne $pinnedSha) {
+            $short = $latestSha.Substring(0,10)
+            $msg = ($rel.commit.message -split "`n")[0]
+            $updates += "SpotX: new commit $short"
+            Write-Log "  SpotX: new commit $short ($msg)" -Level 'WARN'
+        } else { Write-Log "  SpotX: $($pinnedSha.Substring(0,10)) (up to date)" }
+    } catch { Write-Log "  SpotX: check failed ($($_.Exception.Message))" -Level 'WARN' }
 
+    # Spicetify CLI
     try {
         $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest' -Headers $headers -Label 'Spicetify CLI'
-        $latest = $rel.tag_name -replace '^v', ''
-        if (Compare-LibreSpotVersions -Latest $latest -Current $global:PinnedReleases.SpicetifyCLI.Version) {
-            $updates += 'Spicetify CLI'
-            Write-Log "Spicetify CLI update available: $($global:PinnedReleases.SpicetifyCLI.Version) -> $latest" -Level 'WARN'
-        } else {
-            Write-Log 'Spicetify CLI is up to date.'
-        }
-    } catch {
-        Write-Log "Spicetify CLI update check failed: $($_.Exception.Message)" -Level 'WARN'
-    }
+        $latest = $rel.tag_name -replace '^v',''
+        $pinned = $global:PinnedReleases.SpicetifyCLI.Version
+        if (Compare-LibreSpotVersions -Latest $latest -Current $pinned) { $updates += "CLI: $pinned -> $latest"; Write-Log "  Spicetify CLI: $pinned -> $latest available" -Level 'WARN' }
+        else { Write-Log "  Spicetify CLI: v$pinned (up to date)" }
+    } catch { Write-Log "  Spicetify CLI: check failed ($($_.Exception.Message))" -Level 'WARN' }
 
+    # Marketplace
     try {
         $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/spicetify/marketplace/releases/latest' -Headers $headers -Label 'Marketplace'
-        $latest = $rel.tag_name -replace '^v', ''
-        if (Compare-LibreSpotVersions -Latest $latest -Current $global:PinnedReleases.Marketplace.Version) {
-            $updates += 'Marketplace'
-            Write-Log "Marketplace update available: $($global:PinnedReleases.Marketplace.Version) -> $latest" -Level 'WARN'
-        } else {
-            Write-Log 'Marketplace is up to date.'
-        }
-    } catch {
-        Write-Log "Marketplace update check failed: $($_.Exception.Message)" -Level 'WARN'
-    }
+        $latest = $rel.tag_name -replace '^v',''
+        $pinned = $global:PinnedReleases.Marketplace.Version
+        if (Compare-LibreSpotVersions -Latest $latest -Current $pinned) { $updates += "Marketplace: $pinned -> $latest"; Write-Log "  Marketplace: $pinned -> $latest available" -Level 'WARN' }
+        else { Write-Log "  Marketplace: v$pinned (up to date)" }
+    } catch { Write-Log "  Marketplace: check failed ($($_.Exception.Message))" -Level 'WARN' }
 
+    # Themes
     try {
         $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/spicetify/spicetify-themes/commits/master' -Headers $headers -Label 'Themes'
-        if ($rel.sha -ne $global:PinnedReleases.Themes.Commit) {
-            $updates += 'Themes'
-            Write-Log "Theme archive has a newer commit available: $($rel.sha.Substring(0, 10))" -Level 'WARN'
-        } else {
-            Write-Log 'Pinned theme archive is up to date.'
-        }
-    } catch {
-        Write-Log "Themes update check failed: $($_.Exception.Message)" -Level 'WARN'
-    }
+        $latest = $rel.sha
+        $pinned = $global:PinnedReleases.Themes.Commit
+        if ($latest -ne $pinned) {
+            $short = $latest.Substring(0,10)
+            $msg = ($rel.commit.message -split "`n")[0]
+            $updates += "Themes: new commit $short"
+            Write-Log "  Themes: new commit $short ($msg)" -Level 'WARN'
+        } else { Write-Log "  Themes: $($pinned.Substring(0,10)) (up to date)" }
+    } catch { Write-Log "  Themes: check failed ($($_.Exception.Message))" -Level 'WARN' }
 
     $compatWarnings = @(Write-LibreSpotCompatibilityMatrix)
 
+    # LibreSpot itself
+    try {
+        $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest' -Headers $headers -Label 'LibreSpot'
+        $latest = $rel.tag_name -replace '^v',''
+        if (Compare-LibreSpotVersions -Latest $latest -Current $global:VERSION) {
+            $updates += "LibreSpot: $($global:VERSION) -> $latest"
+            Write-Log "  LibreSpot: $($global:VERSION) -> $latest available" -Level 'WARN'
+        } else {
+            Write-Log "  LibreSpot: v$($global:VERSION) (up to date)"
+        }
+    } catch { Write-Log "  LibreSpot: check failed ($($_.Exception.Message))" -Level 'WARN' }
+
     if ($updates.Count -eq 0 -and $compatWarnings.Count -eq 0) {
-        Write-Log 'All pinned dependencies and compatibility baselines are current.' -Level 'SUCCESS'
+        Write-Log "All dependencies and compatibility baselines are up to date." -Level 'SUCCESS'
     } else {
         if ($updates.Count -eq 0) {
-            Write-Log 'All pinned dependency versions are current.' -Level 'SUCCESS'
+            Write-Log "All pinned dependency versions are current." -Level 'SUCCESS'
         }
         if ($updates.Count -gt 0) {
-            Write-Log "$($updates.Count) dependency update(s) are available." -Level 'WARN'
+            Write-Log "$($updates.Count) update(s) available. Update the PinnedReleases block in the script to upgrade." -Level 'WARN'
         }
         if ($compatWarnings.Count -gt 0) {
             Write-Log "$($compatWarnings.Count) compatibility warning(s) detected; review the matrix above before repatching newer Spotify builds." -Level 'WARN'
         }
+        if ($updates.Count -gt 0) {
+            Write-Log "After updating versions, re-download each component and update its SHA256 hash." -Level 'WARN'
+        }
     }
+    Write-Log '=== Update check complete ===' -Level 'STEP'
 }
 
-function Stop-SpotifyProcesses {
-    param(
-        [int]$MaxAttempts = 5,
-        [int]$RetryDelay = 500
-    )
-    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
-        $processes = Get-Process -Name 'Spotify', 'SpotifyWebHelper', 'SpotifyMigrator', 'SpotifyCrashService' -ErrorAction SilentlyContinue
-        if (-not $processes) { return }
-        Write-Log "Stopping Spotify processes (attempt $attempt/$MaxAttempts)..."
-        $processes | ForEach-Object {
-            try { Stop-Process -Id $_.Id -Force -ErrorAction Stop } catch {}
-        }
+function Stop-SpotifyProcesses { param([int]$MaxAttempts=5,[int]$RetryDelay=500)
+    for ($a=1; $a -le $MaxAttempts; $a++) {
+        $procs = Get-Process -Name "Spotify","SpotifyWebHelper","SpotifyMigrator","SpotifyCrashService" -EA SilentlyContinue
+        if (-not $procs) { return }
+        Write-Log "Killing Spotify processes (attempt $a/$MaxAttempts)..."
+        $procs | ForEach-Object { try { Stop-Process -Id $_.Id -Force -EA Stop } catch {} }
         Start-Sleep -Milliseconds $RetryDelay
     }
+    $still = Get-Process -Name "Spotify" -EA SilentlyContinue
+    if ($still) { Write-Log "Some Spotify processes survived kill attempts." -Level 'WARN' }
 }
 
 function Unlock-SpotifyUpdateFolder {
-    $updateDir = Join-Path $env:LOCALAPPDATA 'Spotify\Update'
-    if (-not (Test-Path -LiteralPath $updateDir -PathType Container)) { return }
+    $updateDir = Join-Path $env:LOCALAPPDATA "Spotify\Update"
+    if (-not (Test-Path $updateDir -PathType Container)) { return }
     try {
         $acl = Get-Acl $updateDir
         $changed = $false
         foreach ($rule in $acl.Access) {
             if ($rule.AccessControlType -eq 'Deny') {
-                $null = $acl.RemoveAccessRule($rule)
-                $changed = $true
+                $null = $acl.RemoveAccessRule($rule); $changed = $true
             }
         }
-        if ($changed) {
-            Set-Acl $updateDir $acl
-            Write-Log 'Unlocked Spotify update folder ACLs.'
-        }
-    } catch {
-        Write-Log "Could not unlock Spotify update folder: $($_.Exception.Message)" -Level 'WARN'
-    }
+        if ($changed) { Set-Acl $updateDir $acl; Write-Log "Unlocked Update folder ACLs." }
+    } catch { Write-Log "Could not unlock Update folder: $($_.Exception.Message)" -Level 'WARN' }
 }
 
 function Get-DesktopPath {
     try {
-        $shell = (Get-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -ErrorAction Stop).Desktop
+        $shell = (Get-ItemProperty "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -EA Stop).Desktop
         if ($shell) { $shell = [Environment]::ExpandEnvironmentVariables($shell) }
         if ($shell -and (Test-Path $shell)) { return $shell }
     } catch {}
@@ -1964,10 +1932,6 @@ function Test-SafeRemovalTarget {
     $root = [System.IO.Path]::GetPathRoot($resolved).TrimEnd('\')
     if ($normalized -eq $root) { return $false }
 
-    # Roots that must never be removed. Expanded beyond the obvious profile/system
-    # roots to cover OneDrive-redirected Desktop/Documents, the Public Desktop used
-    # by Start-Menu shortcuts, and ALLUSERSPROFILE / ProgramData for machine-wide
-    # state. Missing these would mean a malformed config could nuke the whole profile.
     $blockedRaw = @(
         $env:USERPROFILE,
         $env:APPDATA,
@@ -1983,27 +1947,18 @@ function Test-SafeRemovalTarget {
         $env:OneDriveConsumer,
         $env:OneDriveCommercial,
         [Environment]::GetFolderPath('Desktop'),
-        [Environment]::GetFolderPath('Personal'),   # Documents
+        [Environment]::GetFolderPath('Personal'),
         [Environment]::GetFolderPath('CommonDesktopDirectory'),
         [Environment]::GetFolderPath('CommonStartMenu')
     )
     $blockedTargets = @($blockedRaw | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object { $_.TrimEnd('\') } | Sort-Object -Unique)
 
-    $normalizedLower = $normalized.ToLowerInvariant()
-    foreach ($blocked in $blockedTargets) {
-        if ([string]::Equals($normalizedLower, $blocked.ToLowerInvariant(), [System.StringComparison]::OrdinalIgnoreCase)) {
-            return $false
-        }
-    }
-    return $true
+    return ($normalized -notin $blockedTargets)
 }
 
 function Remove-PathSafely {
     [CmdletBinding(SupportsShouldProcess)]
-    param(
-        [string]$Path,
-        [string]$Label
-    )
+    param([string]$Path,[string]$Label)
     $displayLabel = if ($Label) { $Label } else { $Path }
     $journalData = @{ label = $displayLabel }
     if ([string]::IsNullOrWhiteSpace($Path)) { return 0 }
@@ -2013,25 +1968,24 @@ function Remove-PathSafely {
     }
     if (-not (Test-SafeRemovalTarget -Path $Path)) {
         Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'RefusedUnsafeTarget' -Result 'Refused' -WouldChange $false -Reversible $false -RollbackHint 'No files were removed because the target failed LibreSpot safe-removal checks.' -Data $journalData
-        Write-Log "Refusing to remove unsafe target: $Path" -Level 'WARN'
+        Write-Log "  Refusing to remove unsafe target: $Path" -Level 'WARN'
         return 0
     }
     Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
     if ($PSCmdlet.ShouldProcess($Path, 'Remove file or directory')) {
         try {
             $null = & icacls.exe "$Path" /reset /T /C /Q 2>$null
-            Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
+            Remove-Item -LiteralPath $Path -Recurse -Force -EA Stop
             Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
-            Write-Log "Removed: $displayLabel"
+            Write-Log "  Removed: $displayLabel"
             return 1
         } catch {
             $journalData['error'] = [string]$_.Exception.Message
             Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'The target may be partially unchanged; review the error before retrying.' -Data $journalData
-            Write-Log "Failed to remove ${Path}: $($_.Exception.Message)" -Level 'WARN'
+            Write-Log "  Failed to remove: $Path ($($_.Exception.Message))" -Level 'WARN'
             return 0
         }
     }
-    Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
     return 0
 }
 
@@ -2044,7 +1998,7 @@ function Get-NormalizedPathString {
 }
 
 function Get-PathEntries {
-    param([ValidateSet('User', 'Process')] [string]$Scope = 'User')
+    param([ValidateSet('User','Process')] [string]$Scope = 'User')
     $rawPath = if ($Scope -eq 'Process') { $env:PATH } else { [Environment]::GetEnvironmentVariable('PATH', $Scope) }
     if ([string]::IsNullOrWhiteSpace($rawPath)) { return @() }
     return @($rawPath -split ';' | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
@@ -2053,7 +2007,7 @@ function Get-PathEntries {
 function Set-PathEntries {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [ValidateSet('User', 'Process')] [string]$Scope = 'User',
+        [ValidateSet('User','Process')] [string]$Scope = 'User',
         [string[]]$Entries
     )
     $orderedEntries = [System.Collections.Generic.List[string]]::new()
@@ -2068,8 +2022,8 @@ function Set-PathEntries {
         $orderedEntries.Add($entry.Trim())
     }
     $pathValue = ($orderedEntries -join ';')
-    Write-OperationJournalEntry -Phase 'path' -Target "$Scope PATH" -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Restore the previous PATH value.'
     if ($PSCmdlet.ShouldProcess("$Scope PATH", 'Update PATH entries')) {
+        Write-OperationJournalEntry -Phase 'path' -Target "$Scope PATH" -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Restore the previous PATH value.'
         if ($Scope -eq 'Process') {
             $env:PATH = $pathValue
         } else {
@@ -2082,7 +2036,7 @@ function Set-PathEntries {
 function Add-PathEntry {
     param(
         [string]$Entry,
-        [ValidateSet('User', 'Process')] [string]$Scope = 'User'
+        [ValidateSet('User','Process')] [string]$Scope = 'User'
     )
     $normalized = Get-NormalizedPathString -Path $Entry
     if ([string]::IsNullOrWhiteSpace($normalized)) { return $false }
@@ -2100,7 +2054,7 @@ function Add-PathEntry {
 function Remove-PathEntry {
     param(
         [string]$Entry,
-        [ValidateSet('User', 'Process')] [string]$Scope = 'User'
+        [ValidateSet('User','Process')] [string]$Scope = 'User'
     )
     $normalized = Get-NormalizedPathString -Path $Entry
     if ([string]::IsNullOrWhiteSpace($normalized)) { return $false }
@@ -2132,7 +2086,9 @@ function Get-SpicetifyConfigEntries {
             }
         }
     } catch {
-        Write-Log "Could not read Spicetify config: $($_.Exception.Message)" -Level 'WARN'
+        if (Get-Command Write-Log -ErrorAction SilentlyContinue) {
+            Write-Log "Could not read Spicetify config: $($_.Exception.Message)" -Level 'WARN'
+        }
     }
     return $entries
 }
@@ -2618,56 +2574,57 @@ function Module-NukeSpotify {
 # SpotX_Language (allowlist), SpotX_CacheLimit (integer), and a manifest-supplied
 # version. Do NOT interpolate any new free-form/user value into this string
 # without normalizing it first.
-function Build-SpotXParams {
-    param($Config)
-    $params = @()
-    $params += '-confirm_uninstall_ms_spoti'
-    $params += '-confirm_spoti_recomended_over'
-    if ($Config.SpotX_NewTheme) { $params += '-new_theme' }
-    if ($Config.SpotX_PodcastsOff) { $params += '-podcasts_off' } else { $params += '-podcasts_on' }
-    if ($Config.SpotX_AdSectionsOff) { $params += '-adsections_off' }
-    if ($Config.SpotX_BlockUpdate) { $params += '-block_update_on' } else { $params += '-block_update_off' }
-    if ($Config.SpotX_Premium) { $params += '-premium' }
-    if ($Config.SpotX_DisableStartup) { $params += '-DisableStartup' }
-    if ($Config.SpotX_NoShortcut) { $params += '-no_shortcut' }
+function Build-SpotXParams { param($Config)
+    $p = @()
+    # Always auto-remove MS Store Spotify without prompt (prevents stdin hang)
+    $p += "-confirm_uninstall_ms_spoti"
+    # Let SpotX manage Spotify version compatibility (auto-overwrite unsupported versions)
+    $p += "-confirm_spoti_recomended_over"
+    if ($Config.SpotX_NewTheme)        { $p += "-new_theme" }
+    if ($Config.SpotX_PodcastsOff)     { $p += "-podcasts_off" } else { $p += "-podcasts_on" }
+    if ($Config.SpotX_AdSectionsOff)   { $p += "-adsections_off" }
+    if ($Config.SpotX_BlockUpdate)     { $p += "-block_update_on" } else { $p += "-block_update_off" }
+    if ($Config.SpotX_Premium)         { $p += "-premium" }
+    if ($Config.SpotX_DisableStartup)  { $p += "-DisableStartup" }
+    if ($Config.SpotX_NoShortcut)      { $p += "-no_shortcut" }
+    if ($Config.SpotX_StartSpoti)      { $p += "-start_spoti" }
     if ($Config.SpotX_LyricsEnabled) {
-        $params += "-lyrics_stat $($Config.SpotX_LyricsTheme)"
+        $p += "-lyrics_stat $($Config.SpotX_LyricsTheme)"
         if ($Config.SpotX_LyricsBlock) {
-            $params += '-lyrics_block'
+            $p += "-lyrics_block"
         } elseif ($Config.SpotX_OldLyrics) {
-            $params += '-old_lyrics'
+            $p += "-old_lyrics"
         }
     }
-    if ($Config.SpotX_TopSearch) { $params += '-topsearchbar' }
-    if ($Config.SpotX_RightSidebarOff) { $params += '-rightsidebar_off' }
-    if ($Config.SpotX_RightSidebarClr) { $params += '-rightsidebarcolor' }
-    if ($Config.SpotX_CanvasHomeOff) { $params += '-canvashome_off' }
-    if ($Config.SpotX_HomeSubOff) { $params += '-homesub_off' }
-    if ($Config.SpotX_HideColIconOff) { $params += '-hide_col_icon_off' }
-    if ($Config.SpotX_Plus) { $params += '-plus' }
-    if ($Config.SpotX_NewFullscreen) { $params += '-newFullscreenMode' }
-    if ($Config.SpotX_FunnyProgress) { $params += '-funnyprogressBar' }
-    if ($Config.SpotX_ExpSpotify) { $params += '-exp_spotify' }
-    if ($Config.SpotX_SendVersionOff) { $params += '-sendversion_off' }
-    if ($Config.SpotX_StartSpoti) { $params += '-start_spoti' }
-    if ($Config.SpotX_DevTools) { $params += '-devtools' }
-    if ($Config.SpotX_Mirror) { $params += '-mirror' }
-    if ($Config.SpotX_ConfirmUninstall) { $params += '-confirm_spoti_recomended_uninstall' }
+    if ($Config.SpotX_TopSearch)       { $p += "-topsearchbar" }
+    if ($Config.SpotX_RightSidebarOff) { $p += "-rightsidebar_off" }
+    if ($Config.SpotX_RightSidebarClr) { $p += "-rightsidebarcolor" }
+    if ($Config.SpotX_CanvasHomeOff)   { $p += "-canvashome_off" }
+    if ($Config.SpotX_HomeSubOff)      { $p += "-homesub_off" }
+    if ($Config.SpotX_HideColIconOff)  { $p += "-hide_col_icon_off" }
+    if ($Config.SpotX_Plus)             { $p += "-plus" }
+    if ($Config.SpotX_NewFullscreen)    { $p += "-newFullscreenMode" }
+    if ($Config.SpotX_FunnyProgress)    { $p += "-funnyprogressBar" }
+    if ($Config.SpotX_ExpSpotify)       { $p += "-exp_spotify" }
+    if ($Config.SpotX_SendVersionOff)   { $p += "-sendversion_off" }
+    if ($Config.SpotX_DevTools)         { $p += "-devtools" }
+    if ($Config.SpotX_Mirror)           { $p += "-mirror" }
+    if ($Config.SpotX_ConfirmUninstall) { $p += "-confirm_spoti_recomended_uninstall" }
     if (-not [string]::IsNullOrWhiteSpace([string]$Config.SpotX_DownloadMethod)) {
-        $params += "-download_method $($Config.SpotX_DownloadMethod)"
+        $p += "-download_method $($Config.SpotX_DownloadMethod)"
     }
     $versionId = [string]$Config.SpotX_SpotifyVersionId
     if (-not [string]::IsNullOrWhiteSpace($versionId) -and $versionId -ne 'auto') {
         $entry = $global:SpotifyVersionManifest | Where-Object { $_.Id -eq $versionId } | Select-Object -First 1
         if ($entry -and -not [string]::IsNullOrWhiteSpace([string]$entry.Version)) {
-            $params += "-version $($entry.Version)"
+            $p += "-version $($entry.Version)"
         }
     }
-    if ($Config.SpotX_CacheLimit -ge 500) { $params += "-cache_limit $($Config.SpotX_CacheLimit)" }
+    if ($Config.SpotX_CacheLimit -ge 500) { $p += "-cache_limit $($Config.SpotX_CacheLimit)" }
     if (-not [string]::IsNullOrWhiteSpace([string]$Config.SpotX_Language)) {
-        $params += "-language $($Config.SpotX_Language)"
+        $p += "-language $($Config.SpotX_Language)"
     }
-    return ($params -join ' ')
+    return ($p -join " ")
 }
 
 # Post-patch effectiveness check. A clean SpotX exit code does NOT prove the
@@ -2722,204 +2679,216 @@ function Get-SpotXPatchVerification {
     return [pscustomobject]$result
 }
 
-function Module-InstallSpotX {
-    param($Config)
+function Module-InstallSpotX { param($Config,$SyncHash)
     Write-Log "Installing SpotX v$($global:PinnedReleases.SpotX.Version)..." -Level 'STEP'
-    $destination = New-LibreSpotTempFile -Name 'spotx_run.ps1'
+    $dest = New-LibreSpotTempFile -Name 'spotx_run.ps1'
     try {
         $spotxHash = $global:PinnedReleases.SpotX.SHA256
-        if (-not (Get-FromAssetCache -SHA256Hash $spotxHash -DestinationPath $destination -Label 'SpotX run.ps1')) {
+        if (-not (Get-FromAssetCache -SHA256Hash $spotxHash -DestinationPath $dest -Label 'SpotX run.ps1')) {
             try {
-                Download-FileSafe -Uri $global:URL_SPOTX -OutFile $destination
+                Download-FileSafe -Uri $global:URL_SPOTX -OutFile $dest
             } catch {
-                if (Get-FromAssetCache -SHA256Hash $spotxHash -DestinationPath $destination -Label 'SpotX run.ps1') {
+                if (Get-FromAssetCache -SHA256Hash $spotxHash -DestinationPath $dest -Label 'SpotX run.ps1') {
                     Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
                 } else { throw }
             }
-            Confirm-FileHash -Path $destination -ExpectedHash $spotxHash -Label 'SpotX run.ps1'
-            Save-ToAssetCache -SourcePath $destination -SHA256Hash $spotxHash
+            Confirm-FileHash -Path $dest -ExpectedHash $spotxHash -Label "SpotX run.ps1"
+            Save-ToAssetCache -SourcePath $dest -SHA256Hash $spotxHash
         }
-
         $params = Build-SpotXParams -Config $Config
         if (Test-Path $global:SPOTIFY_EXE_PATH) {
-            Write-Log "Existing Spotify installation detected: $((Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion)"
+            $ver = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
+            Write-Log "Spotify $ver detected - SpotX will verify version compatibility"
         } else {
-            Write-Log 'Spotify is not installed yet, so SpotX will download the recommended build.'
+            Write-Log "Spotify not installed - SpotX will download recommended version"
         }
-
-        Invoke-ExternalScriptIsolated -FilePath $destination -Arguments $params
-        if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
-            throw "SpotX finished but Spotify.exe was not found at $global:SPOTIFY_EXE_PATH."
+        Write-Log "Params: $params"
+        if ($SyncHash) { $SyncHash.AllowSpotify = $true }
+        try {
+            Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $params
+            # Verify SpotX patching succeeded
+            if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
+                throw "SpotX failed - Spotify.exe not found at $global:SPOTIFY_EXE_PATH. Check the log above for errors."
+            }
+            $elfDll = Join-Path (Split-Path $global:SPOTIFY_EXE_PATH) "chrome_elf.dll"
+            if (-not (Test-Path $elfDll)) {
+                throw "Spotify installation is incomplete - chrome_elf.dll is missing. This usually means the Spotify download failed or was corrupted."
+            }
+            $patchedVer = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
+            $verify = Get-SpotXPatchVerification -SpotifyExePath $global:SPOTIFY_EXE_PATH
+            if ($verify.Verified) {
+                Write-Log "Spotify $patchedVer patched and verified ($($verify.Signals -join '; '))." -Level 'SUCCESS'
+            } else {
+                Write-Log "Spotify ${patchedVer}: SpotX ran but the patch could not be verified. $($verify.Reason)" -Level 'WARN'
+                Write-Log "If ads still play or the UI is blank, this Spotify build may resist SpotX patching (SpotX issue #760). Try Maintenance > Reapply, or Maintenance > Full Reset to start clean. As a fallback, enable 'Ad-block (Spicetify fallback)' in Custom Install to keep ad-blocking working at the Spicetify layer." -Level 'WARN'
+            }
+            Write-Log "Launching Spotify (hidden) to generate config files..."
+            if (Test-Path $global:SPOTIFY_EXE_PATH) {
+                Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
+                Start-Sleep -Milliseconds 800
+                Hide-SpotifyWindows
+            }
+            $prefsPath = Join-Path $env:APPDATA "Spotify\prefs"
+            $waited = 0; $maxWait = 45
+            while ($waited -lt $maxWait) {
+                if ((Test-Path $prefsPath) -and ((Get-Item $prefsPath).Length -gt 10)) {
+                    Write-Log "Config files detected after ${waited}s."; break
+                }
+                Hide-SpotifyWindows
+                Start-Sleep -Seconds 2; $waited += 2
+            }
+            if ($waited -ge $maxWait) { Write-Log "Timed out waiting for config (${maxWait}s). Continuing..." -Level 'WARN' }
+            Start-Sleep -Seconds 3; Stop-SpotifyProcesses -maxAttempts 3
+        } finally {
+            if ($SyncHash) { $SyncHash.AllowSpotify = $false }
         }
-
-        $spotifyDir = Split-Path $global:SPOTIFY_EXE_PATH -Parent
-        if (-not (Test-Path (Join-Path $spotifyDir 'chrome_elf.dll'))) {
-            throw 'Spotify installation looks incomplete because chrome_elf.dll is missing.'
-        }
-
-        $verify = Get-SpotXPatchVerification -SpotifyExePath $global:SPOTIFY_EXE_PATH
-        if ($verify.Verified) {
-            Write-Log "SpotX patching completed and verified ($($verify.Signals -join '; '))." -Level 'SUCCESS'
-        } else {
-            Write-Log "SpotX ran but the patch could not be verified. $($verify.Reason)" -Level 'WARN'
-            Write-Log 'If ads still play or the UI is blank, this Spotify build may resist SpotX patching (SpotX issue #760). Try Reapply, or Full Reset to start clean. As a fallback, enable the Spicetify ad-block extension to keep ad-blocking working at the Spicetify layer.' -Level 'WARN'
-        }
-        Write-Log 'Launching Spotify once to generate its base config files...'
-        Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
-        Start-Sleep -Seconds 6
-        Stop-SpotifyProcesses -MaxAttempts 3
     } finally {
-        Remove-Item -LiteralPath $destination -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue
     }
 }
 
 function Module-InstallSpicetifyCLI {
-    $version = $global:PinnedReleases.SpicetifyCLI.Version
-    Write-Log "Installing Spicetify CLI v$version..." -Level 'STEP'
+    $ver = $global:PinnedReleases.SpicetifyCLI.Version
+    Write-Log "Installing Spicetify CLI v$ver..." -Level 'STEP'
     New-Item -Path $global:SPICETIFY_DIR -ItemType Directory -Force | Out-Null
-    $arch = switch ($env:PROCESSOR_ARCHITECTURE) { 'ARM64' { 'arm64' } default { 'x64' } }
-    $zipUri = $global:URL_SPICETIFY_FMT -f $version, $arch
-    $zipPath = New-LibreSpotTempFile -Name 'spicetify.zip'
+    $arch = switch ($env:PROCESSOR_ARCHITECTURE) { 'ARM64' {'arm64'} default {'x64'} }
+    $zip = $global:URL_SPICETIFY_FMT -f $ver, $arch
+    $zp = New-LibreSpotTempFile -Name 'spicetify.zip'
     try {
-        $spicetifyHash = $global:PinnedReleases.SpicetifyCLI.SHA256[$arch]
-        if (-not (Get-FromAssetCache -SHA256Hash $spicetifyHash -DestinationPath $zipPath -Label "Spicetify CLI ($arch)")) {
+        $expectedHash = $global:PinnedReleases.SpicetifyCLI.SHA256[$arch]
+        if (-not (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zp -Label "Spicetify CLI ($arch)")) {
             try {
-                Download-FileSafe -Uri $zipUri -OutFile $zipPath
+                Download-FileSafe -Uri $zip -OutFile $zp
             } catch {
-                if (Get-FromAssetCache -SHA256Hash $spicetifyHash -DestinationPath $zipPath -Label "Spicetify CLI ($arch)") {
+                if (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zp -Label "Spicetify CLI ($arch)") {
                     Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
                 } else { throw }
             }
-            Confirm-FileHash -Path $zipPath -ExpectedHash $spicetifyHash -Label "Spicetify CLI ($arch)"
-            Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $spicetifyHash
+            Confirm-FileHash -Path $zp -ExpectedHash $expectedHash -Label "Spicetify CLI ($arch)"
+            Save-ToAssetCache -SourcePath $zp -SHA256Hash $expectedHash
         }
-
         if (Test-Path -LiteralPath $global:SPICETIFY_DIR) {
-            Get-ChildItem -LiteralPath $global:SPICETIFY_DIR -Force -ErrorAction SilentlyContinue | ForEach-Object {
-                $null = Remove-PathSafely -Path $_.FullName -Label "Spicetify CLI: $($_.Name)"
-            }
+            $null = Clear-DirectoryContentsSafely -Path $global:SPICETIFY_DIR -Label 'Spicetify CLI'
         }
-
-        Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $global:SPICETIFY_DIR -Label "Spicetify CLI ($arch)"
-
-        if (-not (Test-Path (Join-Path $global:SPICETIFY_DIR 'spicetify.exe'))) {
-            throw 'Spicetify CLI archive extracted without spicetify.exe.'
-        }
-
+        Expand-ArchiveSafely -ZipPath $zp -DestinationPath $global:SPICETIFY_DIR -Label 'Spicetify CLI'
+        $sExe = Join-Path $global:SPICETIFY_DIR "spicetify.exe"
+        if (-not (Test-Path $sExe)) { throw "spicetify.exe not found after extraction - ZIP may be corrupted" }
         $null = Add-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'Process'
         if (Add-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'User') {
-            Write-Log 'Added Spicetify CLI to the user PATH.'
+            Write-Log "Added Spicetify to user PATH."
         }
+        Write-Log "Generating config..."
         Invoke-SpicetifyCli -Arguments @('config', '--bypass-admin') -FailureMessage 'Could not generate the initial Spicetify config.'
-        Write-Log 'Spicetify CLI installed successfully.' -Level 'SUCCESS'
+        Write-Log "Spicetify CLI v$ver installed."
     } finally {
-        Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $zp -Force -ErrorAction SilentlyContinue
     }
 }
 
-function Module-InstallThemes {
-    param($Config)
-    $themeName = $Config.Spicetify_Theme
-    if ($themeName -eq '(None - Marketplace Only)') {
-        Write-Log 'No theme selected. Skipping theme installation.'
-        return
-    }
-    Write-Log "Installing theme: $themeName..." -Level 'STEP'
-    $themesDir = Join-Path $global:SPICETIFY_CONFIG_DIR 'Themes'
-    if (-not (Test-Path -LiteralPath $themesDir)) {
-        New-Item -Path $themesDir -ItemType Directory -Force | Out-Null
-    }
+function Module-InstallThemes { param($Config)
+    $tn = $Config.Spicetify_Theme; if ($tn -eq '(None - Marketplace Only)') { Write-Log "No theme selected."; return }
+    Write-Log "Installing theme: $tn..." -Level 'STEP'
+    $td = Join-Path $global:SPICETIFY_CONFIG_DIR "Themes"
+    if (-not (Test-Path $td)) { New-Item -Path $td -ItemType Directory -Force | Out-Null }
 
-    $isCommunity = $global:CommunityThemeRepos.ContainsKey($themeName)
+    $isCommunity = $global:CommunityThemeRepos.ContainsKey($tn)
 
     if ($isCommunity) {
-        $repo = $global:CommunityThemeRepos[$themeName]
+        # Community theme — download commit-pinned archive and verify hash
+        $repo = $global:CommunityThemeRepos[$tn]
         $archiveUrl = "https://github.com/$($repo.Owner)/$($repo.Repo)/archive/$($repo.CommitSha).zip"
-        $safeName = ($themeName -replace '[^a-zA-Z0-9_-]','_')
-        $zipPath = New-LibreSpotTempFile -Name "community-theme-$safeName.zip"
-        $unpackPath = New-LibreSpotTempDirectory -Name "community-theme-$safeName-unpack"
+        $safeName = ($tn -replace '[^a-zA-Z0-9_-]','_')
+        $tz = New-LibreSpotTempFile -Name "community-theme-$safeName.zip"
+        $tu = New-LibreSpotTempDirectory -Name "community-theme-$safeName-unpack"
         try {
             Write-Log "Downloading community theme from $($repo.Owner)/$($repo.Repo) @ $($repo.CommitSha.Substring(0,10))..."
             $themeHash = $repo.SHA256
-            if (-not (Get-FromAssetCache -SHA256Hash $themeHash -DestinationPath $zipPath -Label "Community theme '$themeName'")) {
+            if (-not (Get-FromAssetCache -SHA256Hash $themeHash -DestinationPath $tz -Label "Community theme '$tn'")) {
                 try {
-                    Download-FileSafe -Uri $archiveUrl -OutFile $zipPath
+                    Download-FileSafe -Uri $archiveUrl -OutFile $tz
                 } catch {
-                    if (Get-FromAssetCache -SHA256Hash $themeHash -DestinationPath $zipPath -Label "Community theme '$themeName'") {
+                    if (Get-FromAssetCache -SHA256Hash $themeHash -DestinationPath $tz -Label "Community theme '$tn'") {
                         Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
                     } else { throw }
                 }
-                Confirm-FileHash -Path $zipPath -ExpectedHash $themeHash -Label "Community theme '$themeName'"
-                Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $themeHash
+                Confirm-FileHash -Path $tz -ExpectedHash $themeHash -Label "Community theme '$tn'"
+                Save-ToAssetCache -SourcePath $tz -SHA256Hash $themeHash
             }
-            Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $unpackPath -Label "Community theme '$themeName'"
-            $root = Get-ChildItem -LiteralPath $unpackPath -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
-            if (-not $root) { throw "Community theme archive for '$themeName' did not contain a root folder." }
-            $sourcePath = if ($repo.ThemeFolder -eq '.') { $root.FullName } else { Join-Path $root.FullName $repo.ThemeFolder }
-            if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
-                throw "Theme folder '$($repo.ThemeFolder)' not found in $($repo.Owner)/$($repo.Repo) archive."
+            Expand-ArchiveSafely -ZipPath $tz -DestinationPath $tu -Label "Community theme '$tn'"
+            $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $root) { throw "Community theme archive for '$tn' did not contain a root folder." }
+            $src = if ($repo.ThemeFolder -eq '.') { $root.FullName } else { Join-Path $root.FullName $repo.ThemeFolder }
+            if (-not (Test-Path -LiteralPath $src -PathType Container)) {
+                throw "Theme folder '$($repo.ThemeFolder)' was not found in the $($repo.Owner)/$($repo.Repo) archive."
             }
-            $hasColorIni = Test-Path (Join-Path $sourcePath 'color.ini')
-            $hasUserCss  = Test-Path (Join-Path $sourcePath 'user.css')
+            # Verify the archive actually contains Spicetify theme files
+            $hasColorIni = Test-Path -LiteralPath (Join-Path $src 'color.ini')
+            $hasUserCss  = Test-Path -LiteralPath (Join-Path $src 'user.css')
             if (-not ($hasColorIni -or $hasUserCss)) {
-                throw "Community theme '$themeName' archive does not contain color.ini or user.css."
+                throw "Community theme '$tn' archive does not contain color.ini or user.css - not a valid Spicetify theme."
             }
-            $destination = Join-Path $themesDir $themeName
-            if (Test-Path -LiteralPath $destination) { Remove-Item -LiteralPath $destination -Recurse -Force }
-            New-Item -Path $destination -ItemType Directory -Force | Out-Null
+            $dst = Join-Path $td $tn
+            if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Recurse -Force }
+            # Copy only theme-relevant files, not repo metadata (.git, .github, etc.)
+            New-Item -Path $dst -ItemType Directory -Force | Out-Null
             $themeFiles = @('color.ini','user.css','theme.js','theme.script.js','assets','README.md')
             foreach ($tf in $themeFiles) {
-                $tfSrc = Join-Path $sourcePath $tf
+                $tfSrc = Join-Path $src $tf
                 if (Test-Path -LiteralPath $tfSrc) {
-                    Copy-Item $tfSrc -Destination (Join-Path $destination $tf) -Recurse -Force
+                    Copy-Item $tfSrc -Destination (Join-Path $dst $tf) -Recurse -Force
                 }
             }
-            Write-Log "Community theme '$themeName' copied to $destination"
+            Write-Log "Community theme '$tn' copied to $dst"
+        } catch {
+            Write-Log "Community theme '$tn' failed to install: $($_.Exception.Message). The install will continue without this theme." -Level 'WARN'
+            return
         } finally {
-            Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
-            Remove-Item -LiteralPath $unpackPath -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $tz -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $tu -Recurse -Force -ErrorAction SilentlyContinue
         }
     } else {
-        $zipPath = New-LibreSpotTempFile -Name 'themes.zip'
-        $unpackPath = New-LibreSpotTempDirectory -Name 'themes-unpack'
+        # Official theme — extract from the pinned spicetify-themes archive
+        $tz = New-LibreSpotTempFile -Name 'themes.zip'
+        $tu = New-LibreSpotTempDirectory -Name 'themes-unpack'
         try {
             $themesHash = $global:PinnedReleases.Themes.SHA256
-            if (-not (Get-FromAssetCache -SHA256Hash $themesHash -DestinationPath $zipPath -Label 'Themes archive')) {
+            if (-not (Get-FromAssetCache -SHA256Hash $themesHash -DestinationPath $tz -Label 'Themes archive')) {
                 try {
-                    Download-FileSafe -Uri $global:URL_THEMES_REPO -OutFile $zipPath
+                    Download-FileSafe -Uri $global:URL_THEMES_REPO -OutFile $tz
                 } catch {
-                    if (Get-FromAssetCache -SHA256Hash $themesHash -DestinationPath $zipPath -Label 'Themes archive') {
+                    if (Get-FromAssetCache -SHA256Hash $themesHash -DestinationPath $tz -Label 'Themes archive') {
                         Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
                     } else { throw }
                 }
-                Confirm-FileHash -Path $zipPath -ExpectedHash $themesHash -Label 'Themes archive'
-                Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $themesHash
+                Confirm-FileHash -Path $tz -ExpectedHash $themesHash -Label "Themes archive"
+                Save-ToAssetCache -SourcePath $tz -SHA256Hash $themesHash
             }
-            Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $unpackPath -Label 'Themes archive'
-            $root = Get-ChildItem -LiteralPath $unpackPath -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
-            if (-not $root) { throw 'Pinned themes archive could not be unpacked safely.' }
-            $sourcePath = Join-Path $root.FullName $themeName
-            if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
-                throw "Theme '$themeName' was not found in the pinned theme archive."
+            Expand-ArchiveSafely -ZipPath $tz -DestinationPath $tu -Label 'Themes archive'
+            $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $root) { throw "Theme archive did not contain an unpacked root folder." }
+            $src = Join-Path $root.FullName $tn
+            if (-not (Test-Path -LiteralPath $src -PathType Container)) {
+                throw "Theme '$tn' was not found in the pinned theme archive."
             }
-            $destination = Join-Path $themesDir $themeName
-            if (Test-Path -LiteralPath $destination) { Remove-Item -LiteralPath $destination -Recurse -Force }
-            Copy-Item -Path $sourcePath -Destination $destination -Recurse -Force
-            Write-Log "Theme copied to $destination"
+            $dst = Join-Path $td $tn
+            if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Recurse -Force }
+            Copy-Item $src -Destination $dst -Recurse -Force
+            Write-Log "Theme copied to $dst"
         } finally {
-            Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
-            Remove-Item -LiteralPath $unpackPath -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $tz -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $tu -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 
-    Invoke-SpicetifyCli -Arguments @('config', 'current_theme', $themeName, '--bypass-admin') -FailureMessage "Could not set Spicetify theme '$themeName'."
-    Invoke-SpicetifyCli -Arguments @('config', 'color_scheme', $Config.Spicetify_Scheme, '--bypass-admin') -FailureMessage "Could not set color scheme '$($Config.Spicetify_Scheme)'."
-
-    $needsThemeJs = $global:ThemesNeedingJS -contains $themeName
-    $themeJs = if ($needsThemeJs) { '1' } else { '0' }
-    Invoke-SpicetifyCli -Arguments @('config', 'inject_css', '1', 'replace_colors', '1', 'overwrite_assets', '1', 'inject_theme_js', $themeJs, '--bypass-admin') -FailureMessage 'Could not enable theme assets.'
-
-    Write-Log 'Theme assets copied and configured.' -Level 'SUCCESS'
+    if (-not (Test-Path (Join-Path $td $tn))) { return }
+    $sc = $Config.Spicetify_Scheme; Write-Log "Setting theme=$tn, scheme=$sc"
+    Invoke-SpicetifyCli -Arguments @('config', 'current_theme', $tn, '--bypass-admin') -FailureMessage "Could not set Spicetify theme '$tn'."
+    if (-not [string]::IsNullOrWhiteSpace($sc)) {
+        Invoke-SpicetifyCli -Arguments @('config', 'color_scheme', $sc, '--bypass-admin') -FailureMessage "Could not set color scheme '$sc'."
+    }
+    $needsThemeJs = $global:ThemesNeedingJS -contains $tn
+    $jsVal = if ($needsThemeJs) { "1" } else { "0" }
+    Invoke-SpicetifyCli -Arguments @('config', 'inject_css', '1', 'replace_colors', '1', 'overwrite_assets', '1', 'inject_theme_js', $jsVal, '--bypass-admin') -FailureMessage 'Could not enable the selected theme assets.'
 }
 
 # Guidance shown when a file LibreSpot verified moments ago has vanished, or a
@@ -2932,14 +2901,13 @@ function Get-QuarantineGuidance {
     return "$What is missing right after LibreSpot verified it. A security product (for example Microsoft Defender) may have quarantined it. Open Windows Security > Virus & threat protection > Protection history; if the file is listed, restore it and re-run LibreSpot. LibreSpot will not disable your antivirus, add exclusions, or restore quarantined files for you."
 }
 
-function Download-CommunityExtensions {
-    param($Config)
+function Download-CommunityExtensions { param($Config)
     $exts = @($Config.Spicetify_Extensions)
-    $extDir = Join-Path $global:SPICETIFY_CONFIG_DIR 'Extensions'
-    if (-not (Test-Path -LiteralPath $extDir)) { New-Item -Path $extDir -ItemType Directory -Force | Out-Null }
+    $extDir = Join-Path $global:SPICETIFY_CONFIG_DIR "Extensions"
+    if (-not (Test-Path $extDir)) { New-Item -Path $extDir -ItemType Directory -Force | Out-Null }
     $verifiedPaths = @()
     foreach ($ext in $exts) {
-        if (-not $global:CommunityExtensions.ContainsKey($ext)) { continue }
+        if (-not $global:CommunityExtensions.Contains($ext)) { continue }
         $info = $global:CommunityExtensions[$ext]
         $destFile = Join-Path $extDir $ext
         try {
@@ -2953,11 +2921,13 @@ function Download-CommunityExtensions {
                         Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
                     } else { throw }
                 }
+                # Sanity check: make sure we got JavaScript, not a 404 HTML page.
+                # Read just the first 512 bytes to avoid loading a huge file.
                 $head = Get-Content -LiteralPath $destFile -TotalCount 5 -ErrorAction SilentlyContinue
                 $headStr = ($head -join "`n").TrimStart()
                 if ($headStr -match '^<(!DOCTYPE|html)' -or $headStr -match '^404:') {
                     Remove-Item -LiteralPath $destFile -Force -ErrorAction SilentlyContinue
-                    Write-Log "Community extension '$ext' appears to be an HTML error page. Skipping." -Level 'WARN'
+                    Write-Log "Community extension '$ext' downloaded but appears to be an HTML error page, not JavaScript. The URL may have changed. Skipping." -Level 'WARN'
                     continue
                 }
                 Confirm-FileHash -Path $destFile -ExpectedHash $extHash -Label "Community extension $ext"
@@ -2980,28 +2950,27 @@ function Download-CommunityExtensions {
     }
 }
 
-function Module-InstallExtensions {
-    param($Config)
-    $extensions = @($Config.Spicetify_Extensions)
-    if ($extensions.Count -eq 0) {
-        Write-Log 'No extensions selected. LibreSpot will remove previously managed extension toggles.' -Level 'STEP'
+function Module-InstallExtensions { param($Config)
+    $exts = @($Config.Spicetify_Extensions)
+    if ($exts.Count -eq 0) {
+        Write-Log "Extensions: none selected. Removing LibreSpot-managed extensions if they are still enabled..." -Level 'STEP'
     } else {
-        Write-Log "Enabling extensions: $($extensions -join ', ')." -Level 'STEP'
+        Write-Log "Extensions: $($exts -join ', ')..." -Level 'STEP'
     }
+    # Download any selected community extensions to the Extensions folder first
     Download-CommunityExtensions -Config $Config
-    Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems $extensions -ManagedItems $global:AllManagedExtensionNames
+    $allManaged = @($global:BuiltInExtensions.Keys) + @($global:CommunityExtensions.Keys) + @($global:DeprecatedCommunityExtensionNames)
+    Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems $exts -ManagedItems $allManaged
 }
 
-function Module-InstallMarketplace {
-    param($Config)
+function Module-InstallMarketplace { param($Config)
     $managedApps = @('marketplace')
     $marketplaceDirs = @(
         (Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps\marketplace'),
         (Join-Path $global:SPICETIFY_DIR 'CustomApps\marketplace')
     )
-
     if (-not $Config.Spicetify_Marketplace) {
-        Write-Log 'Marketplace is disabled, so LibreSpot will remove any managed Marketplace state.' -Level 'STEP'
+        Write-Log "Marketplace: disabled. Removing LibreSpot-managed Marketplace state if present..." -Level 'STEP'
         foreach ($dir in $marketplaceDirs) {
             $null = Remove-PathSafely -Path $dir -Label 'Marketplace app'
         }
@@ -3009,52 +2978,46 @@ function Module-InstallMarketplace {
         return
     }
 
-    Write-Log 'Installing Marketplace...' -Level 'STEP'
-    $customAppsDir = Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps'
-    New-Item -Path $customAppsDir -ItemType Directory -Force | Out-Null
-
-    $marketplaceDir = Join-Path $customAppsDir 'marketplace'
-    $zipPath = New-LibreSpotTempFile -Name 'marketplace.zip'
-    $unpackPath = New-LibreSpotTempDirectory -Name 'marketplace-unpack'
-
+    Write-Log "Installing Marketplace..." -Level 'STEP'
+    $ca = Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps'
+    New-Item -Path $ca -ItemType Directory -Force | Out-Null
+    $md=Join-Path $ca "marketplace"
+    $mz = New-LibreSpotTempFile -Name 'marketplace.zip'
+    $mu = New-LibreSpotTempDirectory -Name 'marketplace-unpack'
     foreach ($dir in $marketplaceDirs) {
         $null = Remove-PathSafely -Path $dir -Label 'Marketplace app'
     }
-    New-Item -Path $marketplaceDir -ItemType Directory -Force | Out-Null
-
+    New-Item -Path $md -ItemType Directory -Force | Out-Null
     try {
         $marketplaceHash = $global:PinnedReleases.Marketplace.SHA256
-        if (-not (Get-FromAssetCache -SHA256Hash $marketplaceHash -DestinationPath $zipPath -Label 'Marketplace archive')) {
+        if (-not (Get-FromAssetCache -SHA256Hash $marketplaceHash -DestinationPath $mz -Label 'Marketplace archive')) {
             try {
-                Download-FileSafe -Uri $global:URL_MARKETPLACE -OutFile $zipPath
+                Download-FileSafe -Uri $global:URL_MARKETPLACE -OutFile $mz
             } catch {
-                if (Get-FromAssetCache -SHA256Hash $marketplaceHash -DestinationPath $zipPath -Label 'Marketplace archive') {
+                if (Get-FromAssetCache -SHA256Hash $marketplaceHash -DestinationPath $mz -Label 'Marketplace archive') {
                     Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
                 } else { throw }
             }
-            Confirm-FileHash -Path $zipPath -ExpectedHash $marketplaceHash -Label 'Marketplace archive'
-            Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $marketplaceHash
+            Confirm-FileHash -Path $mz -ExpectedHash $marketplaceHash -Label "Marketplace"
+            Save-ToAssetCache -SourcePath $mz -SHA256Hash $marketplaceHash
         }
-
-        Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $unpackPath -Label 'Marketplace'
-        $source = if (Test-Path -LiteralPath (Join-Path $unpackPath 'marketplace-dist')) { Join-Path $unpackPath 'marketplace-dist\*' } else { Join-Path $unpackPath '*' }
-        Copy-Item -Path $source -Destination $marketplaceDir -Recurse -Force
-
+        Expand-ArchiveSafely -ZipPath $mz -DestinationPath $mu -Label 'Marketplace'
+        $sp = if (Test-Path (Join-Path $mu "marketplace-dist")) { Join-Path $mu "marketplace-dist\*" } else { Join-Path $mu "*" }
+        Copy-Item -Path $sp -Destination $md -Recurse -Force
         $health = Get-MarketplaceHealth
         if (-not $health.HasFiles) {
             throw 'Marketplace archive did not produce expected Spicetify custom app files.'
         }
-
         Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @('marketplace') -ManagedItems $managedApps
         $health = Get-MarketplaceHealth
         if ($health.IsReady) {
-            Write-Log 'Marketplace enabled successfully. If Spotify hides the sidebar icon, open spotify:app:marketplace directly.' -Level 'SUCCESS'
+            Write-Log "Marketplace enabled. If Spotify hides the sidebar icon, open spotify:app:marketplace directly."
         } else {
             Write-Log "Marketplace files were installed but status is '$($health.Status)'. Use Maintenance > Repair and open Marketplace if the sidebar icon is hidden." -Level 'WARN'
         }
     } finally {
-        Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $unpackPath -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $mz -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $mu -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -3174,11 +3137,9 @@ function Module-ApplySpicetify {
     }
 }
 
-function Reapply-SavedSpicetifySetup {
-    param($Config)
-
+function Reapply-SavedSpicetifySetup { param($Config)
     if (-not (Test-SpicetifyCliInstalled)) {
-        Write-Log 'Spicetify CLI is missing, so LibreSpot will reinstall it before restoring your saved setup.' -Level 'WARN'
+        Write-Log "Spicetify CLI is missing, so LibreSpot will reinstall it before restoring your saved setup." -Level 'WARN'
         Module-InstallSpicetifyCLI
     }
 

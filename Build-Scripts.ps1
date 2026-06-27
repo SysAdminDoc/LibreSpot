@@ -33,6 +33,7 @@ $ErrorActionPreference = 'Stop'
 
 $mainScript = Join-Path $PSScriptRoot 'LibreSpot.ps1'
 $backendScript = Join-Path $PSScriptRoot 'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1'
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 if (-not (Test-Path -LiteralPath $mainScript)) {
     throw "Cannot find LibreSpot.ps1 at $mainScript"
@@ -43,7 +44,7 @@ if (-not (Test-Path -LiteralPath $backendScript)) {
 
 function Get-FunctionNames {
     param([string]$ScriptPath)
-    $content = Get-Content -Path $ScriptPath -Raw
+    $content = [System.IO.File]::ReadAllText($ScriptPath, [System.Text.Encoding]::UTF8)
     $names = [regex]::Matches($content, '(?m)^\s*function\s+([A-Za-z0-9_-]+)') |
         ForEach-Object { $_.Groups[1].Value } |
         Sort-Object -Unique
@@ -80,8 +81,8 @@ function ConvertTo-NormalizedFunctionBody {
     return ($lines -join "`n")
 }
 
-$mainContent = Get-Content -Path $mainScript -Raw
-$backendContent = Get-Content -Path $backendScript -Raw
+$mainContent = [System.IO.File]::ReadAllText($mainScript, [System.Text.Encoding]::UTF8)
+$backendContent = [System.IO.File]::ReadAllText($backendScript, [System.Text.Encoding]::UTF8)
 
 $mainFunctions = Get-FunctionNames -ScriptPath $mainScript
 $backendFunctions = Get-FunctionNames -ScriptPath $backendScript
@@ -89,6 +90,24 @@ $backendFunctions = Get-FunctionNames -ScriptPath $backendScript
 $sharedNames = $mainFunctions | Where-Object { $backendFunctions -contains $_ } | Sort-Object
 $mainOnly = $mainFunctions | Where-Object { $backendFunctions -notcontains $_ } | Sort-Object
 $backendOnly = $backendFunctions | Where-Object { $mainFunctions -notcontains $_ } | Sort-Object
+
+# Functions where the backend has intentionally different implementations
+# (different entry paths, arguments, or event protocols). These are shared
+# by name but not by body; each lane owns its host-specific wrapper.
+$laneSpecificFunctions = @(
+    'Register-AutoReapplyTask'       # Main: -Watch flag; Backend: -Action WatchAutoReapply
+    'Get-WatcherState'               # Backend extends with LastApplied/AttemptedSpotifyVersion
+    'Get-WatcherLaunchCommand'       # Backend builds -Action args; Main builds -Watch args
+    'Invoke-AutoReapplyWatcher'      # Backend uses Update-ApplyState; Main uses direct state writes
+    'Invoke-HeadlessReapply'         # Backend delegates to Module-* with Update-BackendState
+    'Set-WatcherState'               # Backend preserves extra state fields
+    'Write-Log'                      # Main: Update-UI; Backend: Write-EventLine
+    'Save-LibreSpotConfig'           # Backend: Update-BackendState progress; Main: GUI state
+    'Load-LibreSpotConfig'           # Backend: different logging path
+    'Update-SpicetifyCliProgress'    # Backend streams progress events; Main updates WPF controls directly
+    'Module-NukeSpotify'             # Backend streams phase progress; Main owns GUI phase logging
+    'Module-ApplySpicetify'          # Backend records watcher apply outcomes
+)
 
 if ($Inventory) {
     Write-Host "`n=== SHARED FUNCTION INVENTORY ===" -ForegroundColor Cyan
@@ -116,12 +135,14 @@ if ($Validate) {
     Write-Host "  Main:    $mainScript ($($mainFunctions.Count) functions)"
     Write-Host "  Backend: $backendScript ($($backendFunctions.Count) functions)"
     Write-Host "  Shared:  $($sharedNames.Count) functions"
+    Write-Host "  Excluded lane-specific: $($laneSpecificFunctions.Count) functions"
     Write-Host ""
 
     $drifted = @()
     $missing = @()
+    $validatedNames = $sharedNames | Where-Object { $laneSpecificFunctions -notcontains $_ }
 
-    foreach ($fn in $sharedNames) {
+    foreach ($fn in $validatedNames) {
         $mainBody = Get-FunctionBody -ScriptContent $mainContent -FunctionName $fn
         $backendBody = Get-FunctionBody -ScriptContent $backendContent -FunctionName $fn
 
@@ -160,7 +181,8 @@ if ($Validate) {
         exit 1
     }
 
-    Write-Host "All $($sharedNames.Count) shared functions are in sync." -ForegroundColor Green
+    Write-Host "All $($validatedNames.Count) generated shared functions are in sync." -ForegroundColor Green
+    Write-Host "$($laneSpecificFunctions.Count) host-specific wrappers are excluded from body comparison." -ForegroundColor Green
     exit 0
 }
 
@@ -211,21 +233,6 @@ if ($SyncSharedToBackend) {
         throw "Shared source directory not found at $sharedDir"
     }
 
-    # Functions where the backend has intentionally different implementations
-    # (different entry paths, arguments, or event protocols). These are shared
-    # by name but NOT by body — each lane owns its own implementation.
-    $laneSpecificFunctions = @(
-        'Register-AutoReapplyTask'       # Main: -Watch flag; Backend: -Action WatchAutoReapply
-        'Get-WatcherState'               # Backend extends with LastApplied/AttemptedSpotifyVersion
-        'Get-WatcherLaunchCommand'       # Backend builds -Action args; Main builds -Watch args
-        'Invoke-AutoReapplyWatcher'      # Backend uses Update-ApplyState; Main uses direct state writes
-        'Invoke-HeadlessReapply'         # Backend delegates to Module-* with Update-BackendState
-        'Set-WatcherState'               # Backend preserves extra state fields
-        'Write-Log'                      # Main: Update-UI; Backend: Write-EventLine
-        'Save-LibreSpotConfig'           # Backend: Update-BackendState progress; Main: GUI state
-        'Load-LibreSpotConfig'           # Backend: different logging path
-    )
-
     $sharedFiles = Get-ChildItem -Path $sharedDir -Filter '*.ps1' -File | Sort-Object Name
     if ($sharedFiles.Count -eq 0) {
         throw "No .ps1 files found in $sharedDir"
@@ -236,7 +243,7 @@ if ($SyncSharedToBackend) {
     Write-Host "  Exclusions: $($laneSpecificFunctions.Count) lane-specific functions" -ForegroundColor Gray
     Write-Host ""
 
-    $backendContent = Get-Content -Path $backendScript -Raw
+    $backendContent = [System.IO.File]::ReadAllText($backendScript, [System.Text.Encoding]::UTF8)
     $updatedCount = 0
     $skippedCount = 0
     $excludedCount = 0
@@ -250,7 +257,7 @@ if ($SyncSharedToBackend) {
             continue
         }
 
-        $sharedBody = Get-Content -Path $file.FullName -Raw
+        $sharedBody = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
 
         $existingBody = Get-FunctionBody -ScriptContent $backendContent -FunctionName $fnName
         if (-not $existingBody) {
@@ -270,7 +277,6 @@ if ($SyncSharedToBackend) {
     }
 
     if ($updatedCount -gt 0) {
-        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::WriteAllText($backendScript, $backendContent, $utf8NoBom)
     }
     Write-Host "`n$updatedCount synced, $excludedCount excluded (lane-specific), $skippedCount skipped (not in backend)." -ForegroundColor Green
