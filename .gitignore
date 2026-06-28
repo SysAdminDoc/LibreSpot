@@ -34,3 +34,8 @@ CODEX_CHANGELOG.md
 AGENTS.md
 .claude/
 .codex/
+
+# AI config
+.ai/
+PROJECT_CONTEXT.md
+CONTINUATION_PROMPT.md
