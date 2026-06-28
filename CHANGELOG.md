@@ -349,7 +349,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 - `Show-ThemedDialog` runs as a separate `Window` with its own here-string XAML, so it does NOT inherit the main window's resource dictionary. v3.7.0's blanket `Foreground="#FFE7EDF3"` → `Foreground="{StaticResource FgPrimaryBrush}"` sweep caught three references inside that dialog markup. When the install button fired the "Start Recommended Setup" confirmation, `XamlReader::Load` threw `Cannot find resource named 'FgPrimaryBrush'`, which propagated out of `Show-ThemedDialog` and tore down the install flow before any work started. Reverted those three to inline hex (`#FFE7EDF3`) — the dialog renders as before and Easy/Custom installs proceed.
-- Logged the rule in `CLAUDE.md` Gotchas: every standalone XAML here-string (`$dlgXaml`, scheduled-task templates, future popouts) defines its own resource scope. Resource-token sweeps must explicitly skip them.
+- Gotcha: every standalone XAML here-string (`$dlgXaml`, scheduled-task templates, future popouts) defines its own resource scope. Resource-token sweeps must explicitly skip them.
 
 ### Why this slipped past v3.7.0/v3.7.1 validation
 `XamlReader::Load` ran clean on the main `$xaml` because the main window declares those brushes inline. The dialog only loads at click time — never exercised by my static checks. Lesson: when the script holds multiple XAML strings, each one needs its own `[XamlReader]::Load` round-trip in pre-flight validation.
@@ -544,7 +544,7 @@ Six new SpotX flags surfaced end-to-end (Custom Install UI + config persistence 
 - Re-verified every flag in `Build-SpotXParams` against SpotX `run.ps1` param block (2026-04-17) — all other flags correct.
 
 ### Changed
-- `-SpotifyPath` gotcha softened in CLAUDE.md to a historical note; SpotX `run.ps1` accepts it as a supported parameter.
+- `-SpotifyPath` gotcha softened to a historical note; SpotX `run.ps1` accepts it as a supported parameter.
 - WPF desktop shell bumped to v4.0.0-preview.2 (csproj now declares `<Version>`/`<AssemblyVersion>`/`<FileVersion>`).
 
 ## [v4.0.0-preview.1] - 2026-04-16 (pre-release)
