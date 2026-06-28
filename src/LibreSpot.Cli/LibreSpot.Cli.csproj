@@ -16,9 +16,11 @@
 
   <ItemGroup>
     <Compile Include="..\LibreSpot.Desktop\Models\AppCatalog.cs" Link="Shared\AppCatalog.cs" />
+    <Compile Include="..\LibreSpot.Desktop\Services\BackendScriptService.cs" Link="Shared\BackendScriptService.cs" />
     <Compile Include="..\LibreSpot.Desktop\Services\EnvironmentSnapshotService.cs" Link="Shared\EnvironmentSnapshotService.cs" />
     <Compile Include="..\LibreSpot.Desktop\Services\SupportBundleService.cs" Link="Shared\SupportBundleService.cs" />
     <Compile Include="..\LibreSpot.Desktop\Properties\Strings.Designer.cs" Link="Properties\Strings.Designer.cs" />
+    <EmbeddedResource Include="..\LibreSpot.Desktop\Backend\LibreSpot.Backend.ps1" LogicalName="LibreSpot.Desktop.Backend.LibreSpot.Backend.ps1" />
     <EmbeddedResource Include="..\LibreSpot.Desktop\Properties\Strings.resx" Link="Properties\Strings.resx" LogicalName="LibreSpot.Desktop.Properties.Strings.resources" />
   </ItemGroup>
 </Project>

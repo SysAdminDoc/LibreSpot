@@ -48,7 +48,8 @@ public static class CliApplication
         string[] args,
         TextWriter stdout,
         TextWriter stderr,
-        Func<string, EnvironmentSnapshot>? snapshotFactory = null)
+        Func<string, EnvironmentSnapshot>? snapshotFactory = null,
+        Func<string, string, Action<BackendMessage>, CancellationToken, Task<BackendRunResult>>? backendRunner = null)
     {
         try
         {
@@ -70,8 +71,8 @@ public static class CliApplication
                 return RunVersion(versionParse.Options ?? new CliOptions(new Dictionary<string, string?>()), stdout, stderr);
             }
 
-            var verb = args[0].Trim().ToLowerInvariant();
-            var parse = Parse(args.Skip(1).ToArray());
+            var (verb, optionArgs) = NormalizeVerb(args);
+            var parse = Parse(optionArgs);
             if (parse.Error is not null)
             {
                 stderr.WriteLine(parse.Error);
@@ -89,6 +90,8 @@ public static class CliApplication
                 "uninstall" => RunPlannedOperation("uninstall", options, stdout, stderr),
                 "plan" => RunPlannedOperation("install", options, stdout, stderr, planVerb: true),
                 "export-support" => RunExportSupport(options, stdout, stderr, snapshotFactory),
+                "watcher install" => RunWatcher("install", options, stdout, stderr, backendRunner),
+                "watcher remove" => RunWatcher("remove", options, stdout, stderr, backendRunner),
                 "version" => RunVersion(options, stdout, stderr),
                 _ => UnknownVerb(verb, stderr)
             };
@@ -98,6 +101,21 @@ public static class CliApplication
             stderr.WriteLine($"Unhandled LibreSpot CLI failure: {ex.Message}");
             return UnhandledFailure;
         }
+    }
+
+    private static (string Verb, string[] OptionArgs) NormalizeVerb(string[] args)
+    {
+        var verb = args[0].Trim().ToLowerInvariant();
+        if (string.Equals(verb, "watcher", StringComparison.OrdinalIgnoreCase) && args.Length >= 2)
+        {
+            var subverb = args[1].Trim().ToLowerInvariant();
+            if (subverb is "install" or "remove")
+            {
+                return ($"watcher {subverb}", args.Skip(2).ToArray());
+            }
+        }
+
+        return (verb, args.Skip(1).ToArray());
     }
 
     private static int RunStatus(
@@ -262,6 +280,60 @@ public static class CliApplication
 
         stdout.WriteLine($"Support bundle exported: {result.Path}");
         stdout.WriteLine($"Entries: {result.EntryCount}; Bytes: {result.BytesWritten}");
+        return Success;
+    }
+
+    private static int RunWatcher(
+        string operation,
+        CliOptions options,
+        TextWriter stdout,
+        TextWriter stderr,
+        Func<string, string, Action<BackendMessage>, CancellationToken, Task<BackendRunResult>>? backendRunner)
+    {
+        if (!options.OnlyContains("--silent", "--quiet", "--yes", "--correlation-id", "--log-dir", "--scope"))
+        {
+            stderr.WriteLine($"watcher {operation} received an unsupported flag.");
+            return ValidationError;
+        }
+
+        var action = operation == "install" ? "EnableAutoReapply" : "DisableAutoReapply";
+        var quiet = options.HasFlag("--quiet") || options.HasFlag("--silent");
+        var runner = backendRunner ?? ((backendAction, configPath, onMessage, token) =>
+            new BackendScriptService().RunAsync(backendAction, configPath, onMessage, token));
+
+        var result = runner(
+                action,
+                DefaultConfigPath,
+                message =>
+                {
+                    if (!quiet && message.Kind is "status" or "step")
+                    {
+                        stdout.WriteLine(message.Payload);
+                    }
+
+                    if (message.Level.Equals("WARN", StringComparison.OrdinalIgnoreCase) ||
+                        message.Level.Equals("ERROR", StringComparison.OrdinalIgnoreCase))
+                    {
+                        stderr.WriteLine(message.Payload);
+                    }
+                },
+                CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
+
+        if (!result.Success)
+        {
+            stderr.WriteLine(result.ErrorMessage ?? $"watcher {operation} failed.");
+            return UnhandledFailure;
+        }
+
+        if (!quiet)
+        {
+            stdout.WriteLine(operation == "install"
+                ? "Auto-reapply watcher installed."
+                : "Auto-reapply watcher removed.");
+        }
+
         return Success;
     }
 
@@ -784,6 +856,8 @@ public static class CliApplication
         writer.WriteLine("  LibreSpot.Cli install --dry-run --answer-file <path> [--ndjson]");
         writer.WriteLine("  LibreSpot.Cli plan --answer-file <path> [--json]");
         writer.WriteLine("  LibreSpot.Cli export-support [--output <path>]");
+        writer.WriteLine("  LibreSpot.Cli watcher install [--silent]");
+        writer.WriteLine("  LibreSpot.Cli watcher remove [--silent]");
     }
 
     private static bool IsHelp(string arg) =>

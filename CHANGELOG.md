@@ -15,6 +15,8 @@ All notable changes to LibreSpot will be documented in this file.
 - `LibreSpot.Cli.exe export-support --output <path>` now writes the existing
   redacted local support bundle format for endpoint tools without launching the
   WPF shell.
+- `LibreSpot.Cli.exe watcher install/remove --silent` now maps to the existing
+  backend auto-reapply scheduled-task actions for endpoint tooling.
 
 ### Changed
 - Release-trust documentation now reflects the local-only release process:

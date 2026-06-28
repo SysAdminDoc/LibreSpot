@@ -4,6 +4,8 @@ using System.IO.Compression;
 using System.Text.Json;
 using Xunit;
 using CliApp = Cli::LibreSpot.Cli.CliApplication;
+using CliBackendMessage = Cli::LibreSpot.Desktop.Services.BackendMessage;
+using CliBackendRunResult = Cli::LibreSpot.Desktop.Services.BackendRunResult;
 using CliEnvironmentSnapshot = Cli::LibreSpot.Desktop.Models.EnvironmentSnapshot;
 using CliHealthSeverity = Cli::LibreSpot.Desktop.Models.HealthSeverity;
 using CliStackHealthComponent = Cli::LibreSpot.Desktop.Models.StackHealthComponent;
@@ -295,6 +297,65 @@ public sealed class CliApplicationTests
         Assert.Equal(string.Empty, result.Stdout);
     }
 
+    [Theory]
+    [InlineData("install", "EnableAutoReapply", "Auto-reapply watcher installed.")]
+    [InlineData("remove", "DisableAutoReapply", "Auto-reapply watcher removed.")]
+    public void WatcherVerbs_RunMappedBackendActions(string subverb, string expectedAction, string expectedMessage)
+    {
+        var actions = new List<string>();
+        var result = Run(
+            new[] { "watcher", subverb },
+            _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+            (action, _, onMessage, _) =>
+            {
+                actions.Add(action);
+                onMessage(new CliBackendMessage("status", "INFO", "backend status"));
+                return Task.FromResult(new CliBackendRunResult(true));
+            });
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(new[] { expectedAction }, actions);
+        Assert.Contains("backend status", result.Stdout);
+        Assert.Contains(expectedMessage, result.Stdout);
+        Assert.Equal(string.Empty, result.Stderr);
+    }
+
+    [Fact]
+    public void WatcherSilent_SuppressesSuccessOutput()
+    {
+        var result = Run(
+            new[] { "watcher", "install", "--silent" },
+            _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+            (_, _, onMessage, _) =>
+            {
+                onMessage(new CliBackendMessage("status", "INFO", "hidden status"));
+                return Task.FromResult(new CliBackendRunResult(true));
+            });
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(string.Empty, result.Stdout);
+        Assert.Equal(string.Empty, result.Stderr);
+    }
+
+    [Fact]
+    public void WatcherUnsupportedJson_IsRejectedBeforeBackendRuns()
+    {
+        var backendRan = false;
+        var result = Run(
+            new[] { "watcher", "install", "--json" },
+            _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+            (_, _, _, _) =>
+            {
+                backendRan = true;
+                return Task.FromResult(new CliBackendRunResult(true));
+            });
+
+        Assert.Equal(2, result.ExitCode);
+        Assert.False(backendRan);
+        Assert.Contains("unsupported flag", result.Stderr);
+        Assert.Equal(string.Empty, result.Stdout);
+    }
+
     [Fact]
     public void InstallWithoutDryRun_IsRejected()
     {
@@ -332,7 +393,8 @@ public sealed class CliApplicationTests
                         spotifyInstalled: true,
                         spicetifyInstalled: true,
                         Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready),
-                        Component("spicetify-cli", "Spicetify CLI", "Detected", CliHealthSeverity.Ready)));
+                        Component("spicetify-cli", "Spicetify CLI", "Detected", CliHealthSeverity.Ready)),
+                    (_, _, _, _) => Task.FromResult(new CliBackendRunResult(true)));
 
                 Assert.Equal(0, result.ExitCode);
                 Assert.DoesNotContain("Unknown LibreSpot CLI verb", result.Stderr);
@@ -350,11 +412,14 @@ public sealed class CliApplicationTests
     private static CliRunResult Run(params string[] args) =>
         Run(args, _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true));
 
-    private static CliRunResult Run(string[] args, Func<string, CliEnvironmentSnapshot> snapshotFactory)
+    private static CliRunResult Run(
+        string[] args,
+        Func<string, CliEnvironmentSnapshot> snapshotFactory,
+        Func<string, string, Action<CliBackendMessage>, CancellationToken, Task<CliBackendRunResult>>? backendRunner = null)
     {
         using var stdout = new StringWriter();
         using var stderr = new StringWriter();
-        var exitCode = CliApp.Run(args, stdout, stderr, snapshotFactory);
+        var exitCode = CliApp.Run(args, stdout, stderr, snapshotFactory, backendRunner);
         return new CliRunResult(exitCode, stdout.ToString(), stderr.ToString());
     }
 
@@ -376,6 +441,8 @@ public sealed class CliApplicationTests
             "reapply" => (new[] { "reapply", "--dry-run", "--answer-file", sample, "--ndjson" }, null),
             "uninstall" => (new[] { "uninstall", "--dry-run", "--ndjson" }, null),
             "export-support" => (new[] { "export-support", "--output", supportBundlePath }, supportBundlePath),
+            "watcher install" => (new[] { "watcher", "install", "--silent" }, null),
+            "watcher remove" => (new[] { "watcher", "remove", "--silent" }, null),
             _ => throw new InvalidOperationException($"No parser smoke args are defined for implemented verb '{verb}'.")
         };
     }

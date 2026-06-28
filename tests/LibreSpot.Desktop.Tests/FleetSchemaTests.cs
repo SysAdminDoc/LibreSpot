@@ -226,7 +226,7 @@ public sealed class FleetSchemaTests
             .ToArray();
 
         Assert.Equal(
-            new[] { "repair", "watcher install", "watcher remove" },
+            new[] { "repair" },
             planned);
     }
 
