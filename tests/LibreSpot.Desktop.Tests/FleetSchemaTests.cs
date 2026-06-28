@@ -225,9 +225,7 @@ public sealed class FleetSchemaTests
             .OrderBy(name => name)
             .ToArray();
 
-        Assert.Equal(
-            new[] { "repair" },
-            planned);
+        Assert.Empty(planned);
     }
 
     [Fact]

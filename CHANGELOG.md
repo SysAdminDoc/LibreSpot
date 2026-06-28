@@ -20,6 +20,8 @@ All notable changes to LibreSpot will be documented in this file.
 - `LibreSpot.Cli.exe install`, `reapply`, and `uninstall` now execute the
   shared backend after answer-file validation, config persistence, and explicit
   uninstall consent while preserving dry-run NDJSON planning.
+- `LibreSpot.Cli.exe repair --repair-id <id>` now runs allowlisted health-report
+  repair actions, including the watcher repair alias, with dry-run NDJSON output.
 
 ### Changed
 - Release-trust documentation now reflects the local-only release process:

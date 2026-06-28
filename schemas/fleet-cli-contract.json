@@ -141,7 +141,7 @@
       "description": "Run a specific repair action identified by its repair ID from a health report.",
       "requiresAdmin": true,
       "mutates": true,
-      "implementationStatus": "planned",
+      "implementationStatus": "implemented",
       "supportsDryRun": true,
       "supportsJson": false,
       "supportsNdjson": true,

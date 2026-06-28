@@ -519,6 +519,95 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public void RepairSilent_RunsMappedBackendActionAndPersistsConsent()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(root, "config.json");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var actions = new List<string>();
+            var result = Run(
+                new[] { "repair", "--repair-id", "RepairMarketplace", "--silent", "--yes", "--config-path", configPath, "--ndjson" },
+                _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+                (action, _, onMessage, _) =>
+                {
+                    actions.Add(action);
+                    onMessage(new CliBackendMessage("step", "INFO", "repair step"));
+                    return Task.FromResult(new CliBackendRunResult(true));
+                });
+
+            Assert.Equal(0, result.ExitCode);
+            Assert.Equal(new[] { "RepairMarketplace" }, actions);
+            Assert.Contains("\"eventId\":\"LS1002\"", result.Stdout);
+            Assert.Equal(string.Empty, result.Stderr);
+
+            using var config = JsonDocument.Parse(File.ReadAllText(configPath));
+            Assert.True(config.RootElement.GetProperty("RiskAcknowledged").GetBoolean());
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void RepairWatcherId_MapsToEnableAutoReapply()
+    {
+        var actions = new List<string>();
+        var result = Run(
+            new[] { "repair", "--repair-id", "WatchAutoReapply", "--silent", "--yes" },
+            _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+            (action, _, _, _) =>
+            {
+                actions.Add(action);
+                return Task.FromResult(new CliBackendRunResult(true));
+            });
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(new[] { "EnableAutoReapply" }, actions);
+    }
+
+    [Fact]
+    public void RepairOpenLogs_IsRejectedBeforeBackendRuns()
+    {
+        var backendRan = false;
+        var result = Run(
+            new[] { "repair", "--repair-id", "OpenLogs", "--silent", "--yes" },
+            _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+            (_, _, _, _) =>
+            {
+                backendRan = true;
+                return Task.FromResult(new CliBackendRunResult(true));
+            });
+
+        Assert.Equal(2, result.ExitCode);
+        Assert.False(backendRan);
+        Assert.Contains("informational only", result.Stderr);
+    }
+
+    [Fact]
+    public void RepairInstall_RequiresAnswerFileBeforeBackendRuns()
+    {
+        var backendRan = false;
+        var result = Run(
+            new[] { "repair", "--repair-id", "Install", "--silent", "--yes" },
+            _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+            (_, _, _, _) =>
+            {
+                backendRan = true;
+                return Task.FromResult(new CliBackendRunResult(true));
+            });
+
+        Assert.Equal(2, result.ExitCode);
+        Assert.False(backendRan);
+        Assert.Contains("--answer-file", result.Stderr);
+    }
+
+    [Fact]
     public void FleetContract_ImplementedVerbsAreAcceptedByParser()
     {
         var repoRoot = ResolveRepoRoot();
@@ -590,6 +679,7 @@ public sealed class CliApplicationTests
             "install" => (new[] { "install", "--dry-run", "--answer-file", sample, "--ndjson" }, null),
             "reapply" => (new[] { "reapply", "--dry-run", "--answer-file", sample, "--ndjson" }, null),
             "uninstall" => (new[] { "uninstall", "--dry-run", "--ndjson" }, null),
+            "repair" => (new[] { "repair", "--repair-id", "RepairMarketplace", "--dry-run", "--ndjson" }, null),
             "export-support" => (new[] { "export-support", "--output", supportBundlePath }, supportBundlePath),
             "watcher install" => (new[] { "watcher", "install", "--silent" }, null),
             "watcher remove" => (new[] { "watcher", "remove", "--silent" }, null),

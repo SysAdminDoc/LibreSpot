@@ -50,6 +50,23 @@ public static class CliApplication
         "--scope"
     };
 
+    private static readonly IReadOnlyList<string> KnownRepairActions =
+    [
+        "Install",
+        "Reapply",
+        "RepairMarketplace",
+        "OpenMarketplace",
+        "SafeMode",
+        "CreateBackup",
+        "RestoreBackup",
+        "RestoreVanilla",
+        "UninstallSpicetify",
+        "FullReset",
+        "RemoveSelfData",
+        "EnableAutoReapply",
+        "DisableAutoReapply"
+    ];
+
     public static int Run(
         string[] args,
         TextWriter stdout,
@@ -94,6 +111,7 @@ public static class CliApplication
                 "install" => RunPlannedOperation("install", options, stdout, stderr, backendRunner),
                 "reapply" => RunPlannedOperation("reapply", options, stdout, stderr, backendRunner),
                 "uninstall" => RunPlannedOperation("uninstall", options, stdout, stderr, backendRunner),
+                "repair" => RunPlannedOperation("repair", options, stdout, stderr, backendRunner),
                 "plan" => RunPlannedOperation("install", options, stdout, stderr, planVerb: true),
                 "export-support" => RunExportSupport(options, stdout, stderr, snapshotFactory),
                 "watcher install" => RunWatcher("install", options, stdout, stderr, backendRunner),
@@ -353,6 +371,7 @@ public static class CliApplication
     {
         if (!options.OnlyContains(
                 "--answer-file",
+                "--repair-id",
                 "--profile",
                 "--config-path",
                 "--silent",
@@ -387,6 +406,16 @@ public static class CliApplication
 
         var answerFile = options.GetValue("--answer-file");
         ValidationDocument? validation = null;
+        string? repairError = null;
+        var repairAction = operation == "repair"
+            ? ResolveRepairAction(options.GetValue("--repair-id"), out repairError)
+            : null;
+        if (repairError is not null)
+        {
+            stderr.WriteLine(repairError);
+            return ValidationError;
+        }
+
         var operationId = Guid.NewGuid();
         if (!string.IsNullOrWhiteSpace(answerFile))
         {
@@ -426,13 +455,18 @@ public static class CliApplication
             stderr.WriteLine($"{operation} requires --answer-file <path> so fleet intent is explicit.");
             return ValidationError;
         }
+        else if (string.Equals(repairAction, "Install", StringComparison.Ordinal))
+        {
+            stderr.WriteLine("repair --repair-id Install requires --answer-file <path> so fleet intent is explicit.");
+            return ValidationError;
+        }
 
         if (!planVerb && !options.HasFlag("--dry-run"))
         {
-            return RunBackendOperation(operation, options, stdout, stderr, validation, backendRunner);
+            return RunBackendOperation(operation, options, stdout, stderr, validation, repairAction, backendRunner);
         }
 
-        var plan = BuildPlan(operation, options, validation);
+        var plan = BuildPlan(operation, options, validation, repairAction);
         if (options.HasFlag("--ndjson"))
         {
             WriteJson(stdout, NdjsonEvent(
@@ -487,11 +521,12 @@ public static class CliApplication
         TextWriter stdout,
         TextWriter stderr,
         ValidationDocument? validation,
+        string? repairAction,
         Func<string, string, Action<BackendMessage>, CancellationToken, Task<BackendRunResult>>? backendRunner)
     {
-        if (operation == "uninstall" && !options.HasFlag("--yes") && !options.HasFlag("--silent"))
+        if ((operation == "uninstall" || operation == "repair") && !options.HasFlag("--yes") && !options.HasFlag("--silent"))
         {
-            stderr.WriteLine("uninstall requires --yes or --silent before changes are made.");
+            stderr.WriteLine($"{operation} requires --yes or --silent before changes are made.");
             return ValidationError;
         }
 
@@ -501,6 +536,14 @@ public static class CliApplication
             if (operation is "install" or "reapply")
             {
                 PersistAnswerFileConfiguration(validation?.AnswerFile ?? string.Empty, configPath, operation, options);
+            }
+            else if (operation == "repair" && string.Equals(repairAction, "Install", StringComparison.Ordinal))
+            {
+                PersistAnswerFileConfiguration(validation?.AnswerFile ?? string.Empty, configPath, operation, options);
+            }
+            else if (operation == "repair")
+            {
+                PersistRepairAcknowledgmentConfig(configPath, options);
             }
             else if (operation == "uninstall")
             {
@@ -516,7 +559,7 @@ public static class CliApplication
         var operationId = Guid.NewGuid();
         var quiet = options.HasFlag("--quiet") || options.HasFlag("--silent");
         var ndjson = options.HasFlag("--ndjson");
-        var actions = BackendActionsFor(operation, options);
+        var actions = BackendActionsFor(operation, options, repairAction);
         var runner = backendRunner ?? ((backendAction, backendConfigPath, onMessage, token) =>
             new BackendScriptService().RunAsync(backendAction, backendConfigPath, onMessage, token));
 
@@ -590,15 +633,40 @@ public static class CliApplication
         return Success;
     }
 
-    private static IReadOnlyList<string> BackendActionsFor(string operation, CliOptions options) =>
+    private static IReadOnlyList<string> BackendActionsFor(string operation, CliOptions options, string? repairAction = null) =>
         operation switch
         {
             "install" => new[] { "Install" },
             "reapply" => new[] { "Reapply" },
+            "repair" when repairAction is not null => new[] { repairAction },
             "uninstall" when options.HasFlag("--purge") => new[] { "UninstallSpicetify", "RemoveSelfData" },
             "uninstall" => new[] { "UninstallSpicetify" },
             _ => throw new InvalidOperationException($"No backend action mapping exists for {operation}.")
         };
+
+    private static string? ResolveRepairAction(string? repairId, out string? error)
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(repairId))
+        {
+            error = "repair requires --repair-id <id>.";
+            return null;
+        }
+
+        var normalized = repairId.Trim();
+        var action = normalized.Equals("WatchAutoReapply", StringComparison.OrdinalIgnoreCase)
+            ? "EnableAutoReapply"
+            : KnownRepairActions.FirstOrDefault(item => item.Equals(normalized, StringComparison.OrdinalIgnoreCase));
+        if (action is not null)
+        {
+            return action;
+        }
+
+        error = normalized.Equals("OpenLogs", StringComparison.OrdinalIgnoreCase)
+            ? "repair --repair-id OpenLogs is informational only; use export-support or inspect the log directory."
+            : $"Unsupported repair id '{repairId}'.";
+        return null;
+    }
 
     private static void WriteBackendMessage(
         BackendMessage message,
@@ -678,6 +746,14 @@ public static class CliApplication
         var config = ReadConfigurationOrDefault(configPath);
         config.RiskAcknowledged = true;
         config.LaunchAfter = false;
+        WriteConfiguration(configPath, config);
+    }
+
+    private static void PersistRepairAcknowledgmentConfig(string configPath, CliOptions options)
+    {
+        var config = ReadConfigurationOrDefault(configPath);
+        config.RiskAcknowledged = true;
+        config.LaunchAfter = !options.HasFlag("--no-restart");
         WriteConfiguration(configPath, config);
     }
 
@@ -1003,7 +1079,11 @@ public static class CliApplication
         return new ValidationDocument(1, fullPath, errors.Count == 0, errors);
     }
 
-    private static PlanDocument BuildPlan(string operation, CliOptions options, ValidationDocument? validation)
+    private static PlanDocument BuildPlan(
+        string operation,
+        CliOptions options,
+        ValidationDocument? validation,
+        string? repairAction = null)
     {
         var answerFile = validation?.AnswerFile;
         var steps = new List<PlanStepDocument>();
@@ -1054,6 +1134,16 @@ public static class CliApplication
                 options.HasFlag("--purge") ? "purge" : "keep LibreSpot data",
                 "Dry-run reports the intended cleanup posture without removing Spotify, Spicetify, or LibreSpot data."));
         }
+        else if (operation == "repair")
+        {
+            steps.Add(new PlanStepDocument(
+                "plan-repair",
+                "Resolve repair action",
+                RepairRequiresAdmin(repairAction),
+                false,
+                repairAction ?? options.GetValue("--repair-id") ?? "unknown",
+                "Dry-run reports the backend action that would run for this repair ID without changing local state."));
+        }
 
         return new PlanDocument(
             1,
@@ -1067,6 +1157,9 @@ public static class CliApplication
             options.GetValue("--profile"),
             steps);
     }
+
+    private static bool RepairRequiresAdmin(string? repairAction) =>
+        repairAction is "Install" or "Reapply" or "RepairMarketplace" or "SafeMode" or "RestoreBackup" or "RestoreVanilla" or "UninstallSpicetify" or "FullReset";
 
     private static void RequireSchemaVersion(JsonElement root, ICollection<ValidationErrorDocument> errors)
     {
