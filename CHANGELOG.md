@@ -26,6 +26,8 @@ All notable changes to LibreSpot will be documented in this file.
   or `%ProgramData%\LibreSpot\logs` for mutating endpoint operations.
 - Fleet answer files now support named `profiles`, and `--profile <name>` is
   validated before install/reapply persists the selected preset to `config.json`.
+- README now includes tested fleet deployment examples for Intune detection,
+  PDQ/SCCM install and repair, WinRM, PSRemoting over SSH, and uninstall.
 
 ### Changed
 - Release-trust documentation now reflects the local-only release process:

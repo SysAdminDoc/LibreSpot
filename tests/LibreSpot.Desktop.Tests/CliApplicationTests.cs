@@ -759,6 +759,29 @@ public sealed class CliApplicationTests
         }
     }
 
+    [Fact]
+    public void Readme_FleetDeploymentExamplesUseImplementedCommands()
+    {
+        var readme = File.ReadAllText(Path.Combine(ResolveRepoRoot(), "README.md"));
+
+        foreach (var command in new[]
+                 {
+                     "LibreSpot.Cli.exe detect --intune",
+                     "LibreSpot.Cli.exe install --answer-file .\\librespot-answer.json --profile standard --silent --yes --no-restart --ndjson",
+                     "LibreSpot.Cli.exe repair --repair-id RepairMarketplace --silent --yes --ndjson",
+                     "LibreSpot.Cli.exe reapply --answer-file C:\\ProgramData\\LibreSpot\\librespot-answer.json --profile standard --silent --yes --no-restart --ndjson",
+                     "LibreSpot.Cli.exe detect --json",
+                     "LibreSpot.Cli.exe uninstall --silent --yes --keep-spotify --ndjson"
+                 })
+        {
+            Assert.Contains(command, readme);
+        }
+
+        Assert.Contains("`0` as success", readme);
+        Assert.Contains("`12` as repair needed", readme);
+        Assert.Contains("%ProgramData%\\LibreSpot\\logs", readme);
+    }
+
     private static CliRunResult Run(params string[] args) =>
         Run(args, _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true));
 

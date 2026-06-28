@@ -46,7 +46,6 @@ build machine should:
 
 | Priority | Track | Work | Exit criteria |
 |---|---|---|---|
-| P1 | Fleet CLI | Add silent install, JSON presets, detect/status JSON, NDJSON logs, validate, uninstall, dry-run, and deployment docs. | Admins can deploy LibreSpot idempotently through scripts or endpoint tools. |
 | P2 | Ecosystem catalog | Reconcile shipped theme/extension catalog against research; add remaining high-value themes/extensions and custom apps. | Catalog data and README agree with the actual installer behavior. |
 | P2 | Windows shell integration | Add jump list, taskbar thumbnail buttons, tray minimize, `librespot://` protocol, `.librespot` import association, and actionable persistent toasts. | Shell affordances work for installed and portable scenarios. |
 | P2 | Community sharing | Add local preset profiles, shareable URIs, bundled preset gallery, secure import preview, QR cards, changelog viewer, community links, and `COMPARISON.md`. | Users can save, import, share, and compare presets without a hosted service. |
@@ -65,21 +64,6 @@ Distribution work is sequenced behind the rebrand and signing decisions (see
 
 Microsoft Store/MSIX remains a poor fit because the app needs to patch files in
 the user's Spotify installation and interact with classic desktop locations.
-
-## Fleet Deployment
-
-Fleet work targets sysadmin use cases that competing Spotify customization
-tools do not cover:
-
-- `--silent`, `--quiet`, `--no-restart`, `--accept-eula`, and `/S` aliases.
-- JSON answer files with schema validation.
-- `--detect --json` with explicit compliant/not-installed/drift exit codes.
-- NDJSON logs under `%ProgramData%\LibreSpot\logs\` with rotation.
-- `uninstall --silent --purge --yes --keep-spotify`.
-- `validate` with typo suggestions.
-- `--dry-run` and PowerShell `-WhatIf` parity.
-- Deployment examples for WinRM, PSRemoting over SSH, PDQ Deploy, Intune Win32
-  apps, and SCCM-style return codes.
 
 ## Research Backlog
 

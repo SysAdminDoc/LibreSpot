@@ -112,6 +112,41 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 `LibreSpot.Cli.exe` is the console-capable fleet artifact for endpoint tools. The implemented verbs are `--version`, `--version --json`, `version --json`, `status --json`, `detect --json`, `detect --intune`, `validate --answer-file <path> --json`, `install --answer-file <path> --profile <name> --ndjson`, `reapply --answer-file <path> --profile <name> --ndjson`, `repair --repair-id <id> --silent --yes --ndjson`, `uninstall --silent --yes --keep-spotify --ndjson`, `install|reapply --dry-run --answer-file <path> --ndjson`, `repair|uninstall --dry-run --ndjson`, `plan --answer-file <path> --json`, `export-support --output <path>`, `watcher install --silent`, and `watcher remove --silent`. `detect --intune` exits `0` only when the existing health report maps to a compliant state; clean slate, drift, blocked, and repair states return documented nonzero fleet exit codes without mutating the machine. Mutating verbs stream stable `LS` NDJSON events from the fleet schema contract, write rotating `.ndjson` logs to `%ProgramData%\LibreSpot\logs` by default, and install/reapply write validated answer-file settings or named answer-file profiles to `config.json` before invoking the shared backend.
 
+### Fleet Deployment Examples
+
+Intune Win32 detection command:
+
+```powershell
+LibreSpot.Cli.exe detect --intune
+```
+
+Intune, PDQ Deploy, or SCCM install command:
+
+```powershell
+LibreSpot.Cli.exe install --answer-file .\librespot-answer.json --profile standard --silent --yes --no-restart --ndjson
+```
+
+PDQ or SCCM repair command using a health-report repair ID:
+
+```powershell
+LibreSpot.Cli.exe repair --repair-id RepairMarketplace --silent --yes --ndjson
+```
+
+WinRM or PSRemoting over SSH:
+
+```powershell
+Invoke-Command -ComputerName PC-42 -ScriptBlock { C:\ProgramData\LibreSpot\LibreSpot.Cli.exe reapply --answer-file C:\ProgramData\LibreSpot\librespot-answer.json --profile standard --silent --yes --no-restart --ndjson }
+ssh admin@PC-42 "C:\ProgramData\LibreSpot\LibreSpot.Cli.exe detect --json"
+```
+
+Uninstall customizations while keeping Spotify:
+
+```powershell
+LibreSpot.Cli.exe uninstall --silent --yes --keep-spotify --ndjson
+```
+
+Endpoint return-code handling should treat `0` as success, `2` as validation/configuration error, `10` as not installed, `11` as drift detected, `12` as repair needed, and `1` as an unexpected backend failure. Mutating examples above write rotating NDJSON logs under `%ProgramData%\LibreSpot\logs`; add `--log-dir <path>` to redirect logs into an endpoint-tool collection folder.
+
 ### Comprehensive Uninstaller
 
 The built-in 8-phase uninstaller handles every trace of Spotify and Spicetify:
