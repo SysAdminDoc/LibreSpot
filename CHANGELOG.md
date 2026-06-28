@@ -17,6 +17,9 @@ All notable changes to LibreSpot will be documented in this file.
   WPF shell.
 - `LibreSpot.Cli.exe watcher install/remove --silent` now maps to the existing
   backend auto-reapply scheduled-task actions for endpoint tooling.
+- `LibreSpot.Cli.exe install`, `reapply`, and `uninstall` now execute the
+  shared backend after answer-file validation, config persistence, and explicit
+  uninstall consent while preserving dry-run NDJSON planning.
 
 ### Changed
 - Release-trust documentation now reflects the local-only release process:

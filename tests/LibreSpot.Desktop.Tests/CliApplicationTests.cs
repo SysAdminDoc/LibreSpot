@@ -356,16 +356,166 @@ public sealed class CliApplicationTests
         Assert.Equal(string.Empty, result.Stdout);
     }
 
-    [Fact]
-    public void InstallWithoutDryRun_IsRejected()
+    [Theory]
+    [InlineData("install", "Install")]
+    [InlineData("reapply", "Reapply")]
+    public void MutatingInstallAndReapply_RunBackendAfterPersistingAnswerFile(string verb, string expectedAction)
     {
-        var sample = Path.Combine(ResolveRepoRoot(), "samples", "minimal.json");
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
+        var answerFile = Path.Combine(root, "answer.json");
+        var configPath = Path.Combine(root, "config.json");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(
+            answerFile,
+            """
+            {
+              "schemaVersion": 1,
+              "installMode": "custom",
+              "spotifyTarget": { "version": "1.2.90.451" },
+              "spotx": {
+                "premium": true,
+                "podcastsOff": false,
+                "cacheLimit": 2048,
+                "lyricsTheme": "github"
+              },
+              "spicetify": {
+                "theme": "Dribbblish",
+                "scheme": "nord-dark",
+                "extensions": ["fullAppDisplay.js", "shuffle+.js"],
+                "marketplace": true
+              },
+              "watcher": { "enabled": true },
+              "eulaAccepted": true,
+              "riskAcknowledged": true
+            }
+            """);
 
-        var result = Run("install", "--answer-file", sample, "--ndjson");
+        try
+        {
+            var actions = new List<string>();
+            var configPaths = new List<string>();
+            var result = Run(
+                new[] { verb, "--answer-file", answerFile, "--config-path", configPath, "--no-restart", "--ndjson" },
+                _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+                (action, path, onMessage, _) =>
+                {
+                    actions.Add(action);
+                    configPaths.Add(path);
+                    onMessage(new CliBackendMessage("step", "INFO", "backend step"));
+                    return Task.FromResult(new CliBackendRunResult(true));
+                });
+
+            Assert.Equal(0, result.ExitCode);
+            Assert.Equal(new[] { expectedAction }, actions);
+            Assert.Equal(new[] { configPath }, configPaths);
+            Assert.Equal(string.Empty, result.Stderr);
+            Assert.Contains("\"eventId\":\"LS1001\"", result.Stdout);
+            Assert.Contains("\"eventId\":\"LS9001\"", result.Stdout);
+            Assert.Contains("\"eventId\":\"LS1002\"", result.Stdout);
+
+            using var config = JsonDocument.Parse(File.ReadAllText(configPath));
+            Assert.Equal("Custom", config.RootElement.GetProperty("Mode").GetString());
+            Assert.False(config.RootElement.GetProperty("LaunchAfter").GetBoolean());
+            Assert.True(config.RootElement.GetProperty("RiskAcknowledged").GetBoolean());
+            Assert.True(config.RootElement.GetProperty("SpotX_Premium").GetBoolean());
+            Assert.False(config.RootElement.GetProperty("SpotX_PodcastsOff").GetBoolean());
+            Assert.Equal(2048, config.RootElement.GetProperty("SpotX_CacheLimit").GetInt32());
+            Assert.Equal("github", config.RootElement.GetProperty("SpotX_LyricsTheme").GetString());
+            Assert.Equal("1.2.90.451", config.RootElement.GetProperty("SpotX_SpotifyVersionId").GetString());
+            Assert.Equal("Dribbblish", config.RootElement.GetProperty("Spicetify_Theme").GetString());
+            Assert.Equal("nord-dark", config.RootElement.GetProperty("Spicetify_Scheme").GetString());
+            Assert.True(config.RootElement.GetProperty("AutoReapply_Enabled").GetBoolean());
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void InstallInvalidAnswerFile_IsRejectedBeforeBackendRuns()
+    {
+        var answerFile = Path.Combine(Path.GetTempPath(), "librespot-answer-" + Guid.NewGuid().ToString("N") + ".json");
+        File.WriteAllText(answerFile, "{\"schemaVersion\":1,\"eulaAccepted\":true}");
+        try
+        {
+            var backendRan = false;
+            var result = Run(
+                new[] { "install", "--answer-file", answerFile, "--ndjson" },
+                _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+                (_, _, _, _) =>
+                {
+                    backendRan = true;
+                    return Task.FromResult(new CliBackendRunResult(true));
+                });
+
+            Assert.Equal(2, result.ExitCode);
+            Assert.False(backendRan);
+            Assert.Contains("riskAcknowledged", result.Stdout);
+        }
+        finally
+        {
+            File.Delete(answerFile);
+        }
+    }
+
+    [Fact]
+    public void UninstallSilentPurge_RunsSpicetifyCleanupAndSelfDataRemoval()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(root, "config.json");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var actions = new List<string>();
+            var result = Run(
+                new[] { "uninstall", "--silent", "--yes", "--purge", "--keep-spotify", "--config-path", configPath, "--ndjson" },
+                _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+                (action, _, onMessage, _) =>
+                {
+                    actions.Add(action);
+                    onMessage(new CliBackendMessage("status", "INFO", $"{action} status"));
+                    return Task.FromResult(new CliBackendRunResult(true));
+                });
+
+            Assert.Equal(0, result.ExitCode);
+            Assert.Equal(new[] { "UninstallSpicetify", "RemoveSelfData" }, actions);
+            Assert.DoesNotContain("FullReset", actions);
+            Assert.Contains("\"eventId\":\"LS1002\"", result.Stdout);
+            Assert.Equal(string.Empty, result.Stderr);
+
+            using var config = JsonDocument.Parse(File.ReadAllText(configPath));
+            Assert.True(config.RootElement.GetProperty("RiskAcknowledged").GetBoolean());
+            Assert.False(config.RootElement.GetProperty("LaunchAfter").GetBoolean());
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void UninstallWithoutConsent_IsRejectedBeforeBackendRuns()
+    {
+        var backendRan = false;
+        var result = Run(
+            new[] { "uninstall" },
+            _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+            (_, _, _, _) =>
+            {
+                backendRan = true;
+                return Task.FromResult(new CliBackendRunResult(true));
+            });
 
         Assert.Equal(2, result.ExitCode);
-        Assert.Contains("only with --dry-run", result.Stderr);
-        Assert.Equal(string.Empty, result.Stdout);
+        Assert.False(backendRan);
+        Assert.Contains("--yes or --silent", result.Stderr);
     }
 
     [Fact]

@@ -32,6 +32,12 @@ public static class CliApplication
         WriteIndented = false
     };
 
+    private static readonly JsonSerializerOptions ConfigurationJsonOptions = new()
+    {
+        PropertyNamingPolicy = null,
+        WriteIndented = true
+    };
+
     private static readonly HashSet<string> ValueFlags = new(StringComparer.OrdinalIgnoreCase)
     {
         "--answer-file",
@@ -85,9 +91,9 @@ public static class CliApplication
                 "status" => RunStatus(options, stdout, stderr, snapshotFactory),
                 "detect" => RunDetect(options, stdout, stderr, snapshotFactory),
                 "validate" => RunValidate(options, stdout, stderr),
-                "install" => RunPlannedOperation("install", options, stdout, stderr),
-                "reapply" => RunPlannedOperation("reapply", options, stdout, stderr),
-                "uninstall" => RunPlannedOperation("uninstall", options, stdout, stderr),
+                "install" => RunPlannedOperation("install", options, stdout, stderr, backendRunner),
+                "reapply" => RunPlannedOperation("reapply", options, stdout, stderr, backendRunner),
+                "uninstall" => RunPlannedOperation("uninstall", options, stdout, stderr, backendRunner),
                 "plan" => RunPlannedOperation("install", options, stdout, stderr, planVerb: true),
                 "export-support" => RunExportSupport(options, stdout, stderr, snapshotFactory),
                 "watcher install" => RunWatcher("install", options, stdout, stderr, backendRunner),
@@ -342,6 +348,7 @@ public static class CliApplication
         CliOptions options,
         TextWriter stdout,
         TextWriter stderr,
+        Func<string, string, Action<BackendMessage>, CancellationToken, Task<BackendRunResult>>? backendRunner = null,
         bool planVerb = false)
     {
         if (!options.OnlyContains(
@@ -363,12 +370,6 @@ public static class CliApplication
                 "--keep-spotify"))
         {
             stderr.WriteLine($"{operation} received an unsupported flag.");
-            return ValidationError;
-        }
-
-        if (!planVerb && !options.HasFlag("--dry-run"))
-        {
-            stderr.WriteLine($"{operation} is currently available only with --dry-run in LibreSpot.Cli.");
             return ValidationError;
         }
 
@@ -422,8 +423,13 @@ public static class CliApplication
         }
         else if (operation is "install" or "reapply")
         {
-            stderr.WriteLine($"{operation} dry-run requires --answer-file <path> so fleet intent is explicit.");
+            stderr.WriteLine($"{operation} requires --answer-file <path> so fleet intent is explicit.");
             return ValidationError;
+        }
+
+        if (!planVerb && !options.HasFlag("--dry-run"))
+        {
+            return RunBackendOperation(operation, options, stdout, stderr, validation, backendRunner);
         }
 
         var plan = BuildPlan(operation, options, validation);
@@ -473,6 +479,369 @@ public static class CliApplication
         }
 
         return Success;
+    }
+
+    private static int RunBackendOperation(
+        string operation,
+        CliOptions options,
+        TextWriter stdout,
+        TextWriter stderr,
+        ValidationDocument? validation,
+        Func<string, string, Action<BackendMessage>, CancellationToken, Task<BackendRunResult>>? backendRunner)
+    {
+        if (operation == "uninstall" && !options.HasFlag("--yes") && !options.HasFlag("--silent"))
+        {
+            stderr.WriteLine("uninstall requires --yes or --silent before changes are made.");
+            return ValidationError;
+        }
+
+        var configPath = options.GetValue("--config-path") ?? DefaultConfigPath;
+        try
+        {
+            if (operation is "install" or "reapply")
+            {
+                PersistAnswerFileConfiguration(validation?.AnswerFile ?? string.Empty, configPath, operation, options);
+            }
+            else if (operation == "uninstall")
+            {
+                PersistUninstallAcknowledgmentConfig(configPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            stderr.WriteLine($"Could not prepare LibreSpot config for {operation}: {ex.Message}");
+            return UnhandledFailure;
+        }
+
+        var operationId = Guid.NewGuid();
+        var quiet = options.HasFlag("--quiet") || options.HasFlag("--silent");
+        var ndjson = options.HasFlag("--ndjson");
+        var actions = BackendActionsFor(operation, options);
+        var runner = backendRunner ?? ((backendAction, backendConfigPath, onMessage, token) =>
+            new BackendScriptService().RunAsync(backendAction, backendConfigPath, onMessage, token));
+
+        if (ndjson)
+        {
+            WriteJson(stdout, NdjsonEvent(
+                "LS1001",
+                "info",
+                "lifecycle",
+                "LibreSpot backend run started.",
+                operation,
+                new { actions },
+                options,
+                operationId));
+        }
+        else if (!quiet)
+        {
+            stdout.WriteLine($"Starting LibreSpot {operation}...");
+        }
+
+        foreach (var action in actions)
+        {
+            var result = runner(
+                    action,
+                    configPath,
+                    message => WriteBackendMessage(message, operation, options, operationId, stdout, stderr, quiet, ndjson),
+                    CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
+
+            if (!result.Success)
+            {
+                var message = result.ErrorMessage ?? $"LibreSpot backend action {action} failed.";
+                if (ndjson)
+                {
+                    WriteJson(stdout, NdjsonEvent(
+                        "LS1003",
+                        "error",
+                        "lifecycle",
+                        "LibreSpot backend run failed.",
+                        operation,
+                        new { action, error = message },
+                        options,
+                        operationId,
+                        exitCode: UnhandledFailure));
+                }
+
+                stderr.WriteLine(message);
+                return UnhandledFailure;
+            }
+        }
+
+        if (ndjson)
+        {
+            WriteJson(stdout, NdjsonEvent(
+                "LS1002",
+                "success",
+                "lifecycle",
+                "LibreSpot backend run completed.",
+                operation,
+                new { actionCount = actions.Count },
+                options,
+                operationId,
+                exitCode: Success));
+        }
+        else if (!quiet)
+        {
+            stdout.WriteLine($"LibreSpot {operation} completed.");
+        }
+
+        return Success;
+    }
+
+    private static IReadOnlyList<string> BackendActionsFor(string operation, CliOptions options) =>
+        operation switch
+        {
+            "install" => new[] { "Install" },
+            "reapply" => new[] { "Reapply" },
+            "uninstall" when options.HasFlag("--purge") => new[] { "UninstallSpicetify", "RemoveSelfData" },
+            "uninstall" => new[] { "UninstallSpicetify" },
+            _ => throw new InvalidOperationException($"No backend action mapping exists for {operation}.")
+        };
+
+    private static void WriteBackendMessage(
+        BackendMessage message,
+        string operation,
+        CliOptions options,
+        Guid operationId,
+        TextWriter stdout,
+        TextWriter stderr,
+        bool quiet,
+        bool ndjson)
+    {
+        var level = NormalizeLogLevel(message.Level);
+        if (ndjson)
+        {
+            WriteJson(stdout, NdjsonEvent(
+                "LS9001",
+                level,
+                "backend",
+                message.Payload,
+                operation,
+                new { message.Kind, message.Level, message.Payload },
+                options,
+                operationId));
+            return;
+        }
+
+        if (!quiet && message.Kind is "status" or "step")
+        {
+            stdout.WriteLine(message.Payload);
+        }
+
+        if (message.Level.Equals("WARN", StringComparison.OrdinalIgnoreCase) ||
+            message.Level.Equals("ERROR", StringComparison.OrdinalIgnoreCase))
+        {
+            stderr.WriteLine(message.Payload);
+        }
+    }
+
+    private static string NormalizeLogLevel(string level) =>
+        level.Equals("SUCCESS", StringComparison.OrdinalIgnoreCase)
+            ? "success"
+            : level.Equals("WARN", StringComparison.OrdinalIgnoreCase)
+                ? "warn"
+                : level.Equals("ERROR", StringComparison.OrdinalIgnoreCase)
+                    ? "error"
+                    : "info";
+
+    private static void PersistAnswerFileConfiguration(string answerFile, string configPath, string operation, CliOptions options)
+    {
+        if (string.IsNullOrWhiteSpace(answerFile))
+        {
+            throw new InvalidOperationException("Answer file path was not provided.");
+        }
+
+        using var stream = File.OpenRead(answerFile);
+        using var doc = JsonDocument.Parse(stream, new JsonDocumentOptions { AllowTrailingCommas = true });
+        var root = doc.RootElement;
+        var config = AppCatalog.CreateRecommendedConfiguration();
+        var installMode = GetString(root, "installMode");
+        config.Mode = string.Equals(installMode, "custom", StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(installMode, "reapply", StringComparison.OrdinalIgnoreCase)
+            ? "Custom"
+            : "Easy";
+        config.CleanInstall = operation == "install" && !string.Equals(installMode, "reapply", StringComparison.OrdinalIgnoreCase);
+        config.LaunchAfter = !options.HasFlag("--no-restart");
+        config.RiskAcknowledged = true;
+
+        ApplySpotifyTarget(root, config);
+        ApplySpotXOptions(root, config);
+        ApplySpicetifyOptions(root, config);
+        ApplyWatcherOptions(root, config);
+        WriteConfiguration(configPath, config);
+    }
+
+    private static void PersistUninstallAcknowledgmentConfig(string configPath)
+    {
+        var config = ReadConfigurationOrDefault(configPath);
+        config.RiskAcknowledged = true;
+        config.LaunchAfter = false;
+        WriteConfiguration(configPath, config);
+    }
+
+    private static InstallConfiguration ReadConfigurationOrDefault(string configPath)
+    {
+        try
+        {
+            if (File.Exists(configPath))
+            {
+                using var stream = File.OpenRead(configPath);
+                var config = JsonSerializer.Deserialize<InstallConfiguration>(stream, ConfigurationJsonOptions);
+                if (config is not null)
+                {
+                    return AppCatalog.NormalizeConfiguration(config);
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return AppCatalog.CreateRecommendedConfiguration();
+    }
+
+    private static void WriteConfiguration(string configPath, InstallConfiguration config)
+    {
+        var fullPath = Path.GetFullPath(configPath);
+        var directory = Path.GetDirectoryName(fullPath) ?? throw new InvalidOperationException("Configuration path has no directory.");
+        Directory.CreateDirectory(directory);
+        var normalized = AppCatalog.NormalizeConfiguration(config);
+        var tempPath = Path.Combine(directory, $"{Path.GetFileName(fullPath)}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                JsonSerializer.Serialize(stream, normalized, ConfigurationJsonOptions);
+                stream.Flush(flushToDisk: true);
+            }
+
+            File.Move(tempPath, fullPath, overwrite: true);
+        }
+        catch
+        {
+            try { File.Delete(tempPath); } catch { }
+            throw;
+        }
+    }
+
+    private static void ApplySpotifyTarget(JsonElement root, InstallConfiguration config)
+    {
+        if (!root.TryGetProperty("spotifyTarget", out var target) || target.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        var version = GetString(target, "version");
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            return;
+        }
+
+        var match = AppCatalog.SpotifyVersionManifest.FirstOrDefault(entry =>
+            entry.Id.Equals(version, StringComparison.OrdinalIgnoreCase) ||
+            entry.Version.Equals(version, StringComparison.OrdinalIgnoreCase));
+        config.SpotX_SpotifyVersionId = match?.Id ?? version;
+    }
+
+    private static void ApplySpotXOptions(JsonElement root, InstallConfiguration config)
+    {
+        if (!root.TryGetProperty("spotx", out var spotx) || spotx.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        SetBool(spotx, "newTheme", value => config.SpotX_NewTheme = value);
+        SetBool(spotx, "podcastsOff", value => config.SpotX_PodcastsOff = value);
+        SetBool(spotx, "blockUpdate", value => config.SpotX_BlockUpdate = value);
+        SetBool(spotx, "adSectionsOff", value => config.SpotX_AdSectionsOff = value);
+        SetBool(spotx, "premium", value => config.SpotX_Premium = value);
+        SetBool(spotx, "lyricsEnabled", value => config.SpotX_LyricsEnabled = value);
+        SetBool(spotx, "topSearch", value => config.SpotX_TopSearch = value);
+        SetBool(spotx, "rightSidebarOff", value => config.SpotX_RightSidebarOff = value);
+        SetBool(spotx, "rightSidebarClr", value => config.SpotX_RightSidebarClr = value);
+        SetBool(spotx, "canvasHomeOff", value => config.SpotX_CanvasHomeOff = value);
+        SetBool(spotx, "homeSubOff", value => config.SpotX_HomeSubOff = value);
+        SetBool(spotx, "disableStartup", value => config.SpotX_DisableStartup = value);
+        SetBool(spotx, "noShortcut", value => config.SpotX_NoShortcut = value);
+        SetBool(spotx, "plus", value => config.SpotX_Plus = value);
+        SetBool(spotx, "newFullscreen", value => config.SpotX_NewFullscreen = value);
+        SetBool(spotx, "funnyProgress", value => config.SpotX_FunnyProgress = value);
+        SetBool(spotx, "expSpotify", value => config.SpotX_ExpSpotify = value);
+        SetBool(spotx, "lyricsBlock", value => config.SpotX_LyricsBlock = value);
+        SetBool(spotx, "oldLyrics", value => config.SpotX_OldLyrics = value);
+        SetBool(spotx, "hideColIconOff", value => config.SpotX_HideColIconOff = value);
+        SetBool(spotx, "sendVersionOff", value => config.SpotX_SendVersionOff = value);
+        SetBool(spotx, "startSpoti", value => config.SpotX_StartSpoti = value);
+        SetBool(spotx, "devTools", value => config.SpotX_DevTools = value);
+        SetBool(spotx, "mirror", value => config.SpotX_Mirror = value);
+        SetBool(spotx, "confirmUninstall", value => config.SpotX_ConfirmUninstall = value);
+        SetInt(spotx, "cacheLimit", value => config.SpotX_CacheLimit = value);
+        SetString(spotx, "lyricsTheme", value => config.SpotX_LyricsTheme = value);
+        SetString(spotx, "downloadMethod", value => config.SpotX_DownloadMethod = value);
+        SetString(spotx, "language", value => config.SpotX_Language = value);
+    }
+
+    private static void ApplySpicetifyOptions(JsonElement root, InstallConfiguration config)
+    {
+        if (!root.TryGetProperty("spicetify", out var spicetify) || spicetify.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        SetString(spicetify, "theme", value => config.Spicetify_Theme = value);
+        SetString(spicetify, "scheme", value => config.Spicetify_Scheme = value);
+        SetBool(spicetify, "marketplace", value => config.Spicetify_Marketplace = value);
+        if (spicetify.TryGetProperty("extensions", out var extensions) && extensions.ValueKind == JsonValueKind.Array)
+        {
+            config.Spicetify_Extensions = extensions
+                .EnumerateArray()
+                .Where(item => item.ValueKind == JsonValueKind.String)
+                .Select(item => item.GetString() ?? string.Empty)
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .ToList();
+        }
+    }
+
+    private static void ApplyWatcherOptions(JsonElement root, InstallConfiguration config)
+    {
+        if (!root.TryGetProperty("watcher", out var watcher) || watcher.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        SetBool(watcher, "enabled", value => config.AutoReapply_Enabled = value);
+    }
+
+    private static string? GetString(JsonElement root, string property) =>
+        root.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
+
+    private static void SetString(JsonElement root, string property, Action<string> setter)
+    {
+        var value = GetString(root, property);
+        if (value is not null)
+        {
+            setter(value);
+        }
+    }
+
+    private static void SetBool(JsonElement root, string property, Action<bool> setter)
+    {
+        if (root.TryGetProperty(property, out var value) && value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            setter(value.GetBoolean());
+        }
+    }
+
+    private static void SetInt(JsonElement root, string property, Action<int> setter)
+    {
+        if (root.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number))
+        {
+            setter(number);
+        }
     }
 
     private static VersionDocument BuildVersionDocument() =>
