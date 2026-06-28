@@ -46,32 +46,12 @@ build machine should:
 
 | Priority | Track | Work | Exit criteria |
 |---|---|---|---|
-| P0 | v4.0 stable | Finish WPF shell polish: Wpf.Ui controls, visual QA, completion toasts, undo-selected-actions pane, status dashboard, and repair/diagnostic flow. | Stable WPF build has parity with the script shell and passes release preflight. |
 | P1 | Fleet CLI | Add silent install, JSON presets, detect/status JSON, NDJSON logs, validate, uninstall, dry-run, and deployment docs. | Admins can deploy LibreSpot idempotently through scripts or endpoint tools. |
-| P1 | Diagnostics | Add status-at-a-glance and repair flows for Spotify, SpotX, Spicetify, backups, scheduled task state, and last patch time. | Common broken states are detected and expose one-click fixes. |
 | P2 | Ecosystem catalog | Reconcile shipped theme/extension catalog against research; add remaining high-value themes/extensions and custom apps. | Catalog data and README agree with the actual installer behavior. |
 | P2 | Windows shell integration | Add jump list, taskbar thumbnail buttons, tray minimize, `librespot://` protocol, `.librespot` import association, and actionable persistent toasts. | Shell affordances work for installed and portable scenarios. |
 | P2 | Community sharing | Add local preset profiles, shareable URIs, bundled preset gallery, secure import preview, QR cards, changelog viewer, community links, and `COMPARISON.md`. | Users can save, import, share, and compare presets without a hosted service. |
 | P3 | Custom patches editor | Add AvalonEdit JSON authoring for SpotX `patches.json`, schema linting, regex safety checks, dry-run matching, and import-from-URL review. | Power users can validate and stage custom patch sets safely. |
 | P3 | Localization | Introduce resource-based UI strings, runtime culture switching, CI checks for raw strings, machine-translation prefill, and Crowdin sync. | EN/RU/ZH-Hans/PT-BR/ES can ship without hardcoded UI text. |
-
-## v4.0 Stable Scope
-
-The v4.0 stable cut should stay focused on the native shell and release trust:
-
-- Adopt Wpf.Ui `TitleBar`, `Snackbar`/`InfoBar`, `NumberBox`, and `SplitButton`
-  where they remove custom control code.
-- Add completion toasts once COM activation/notification registration is
-  reliable for the unpackaged app.
-- Add the undo-selected-actions pane after a successful run for reversible
-  operations such as update blocking, shortcuts, scheduled tasks, and config
-  changes.
-- Add a launch dashboard showing Spotify version, Spicetify version, SpotX
-  state, last patch timestamp, watcher status, and backup count.
-- Add repair/diagnostic buttons with per-issue fixes instead of a single broad
-  reset path.
-- Keep the release workflow's parse, version-sync, regression-test, checksum,
-  SBOM, and attestation gates mandatory.
 
 ## Distribution And Trust
 
@@ -117,34 +97,6 @@ into implementation-ready extraction and quality-gate work. Tags: 🔬 =
 researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
 operator-needed where release sequencing decisions are required.
 
-- [ ] 🔬 🤖 P1 - Extract shared
-  PowerShell core logic into a generated script-module source.
-  - Why: `LibreSpot.ps1` is 5,769 lines, the embedded WPF backend is 2,318
-    lines, and a function inventory on 2026-06-04 found 58 function names shared
-    between them. Shared functions include config normalization, SpotX parameter
-    building, downloads, path management, Spicetify runners, watcher state,
-    archive/install modules, and safety helpers. Hand-copying those functions
-    across two scripts makes every future SpotX flag, download hardening, safe
-    extraction, config migration, and process contract change vulnerable to
-    one-lane drift.
-  - Evidence: local function inventory on 2026-06-04,
-    `LibreSpot.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`,
-    `CHANGELOG.md:148`,
-    `tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs:7`,
-    https://learn.microsoft.com/en-us/powershell/scripting/developer/module/how-to-write-a-powershell-script-module,
-    https://learn.microsoft.com/en-us/powershell/scripting/developer/module/how-to-write-a-powershell-module-manifest
-  - Touches: PowerShell source layout, backend embedding step, release build,
-    regression tests, developer docs.
-  - Acceptance: repo has a shared PowerShell source module or source-fragment
-    layout that generates both `LibreSpot.ps1` and the embedded backend script.
-    Shared functions have one source of truth; lane-specific wrappers own only
-    UI, event protocol, elevation, and host dispatch. Generated outputs are
-    deterministic and include a banner naming their source commit.
-  - Verify: build step regenerates both scripts and fails on dirty generated
-    output; parser tests run against generated scripts; function inventory
-    proves shared functions are not manually duplicated; release workflow uses
-    generated artifacts only after tests pass.
-
 - [ ] 🔬 🤖 P2 - Split WPF view-model
   state domains before adding more v4 stable UI.
   - Why: `MainViewModel.cs` currently coordinates environment snapshots,
@@ -183,41 +135,6 @@ WPF parity before v4 stable. Tags: 🔬 = researcher-added this cycle; 🤖 =
 implementer-actionable now; 🔧 = operator-needed where catalog policy decisions
 are required.
 
-- [ ] 🔬 🤖 P1 - Replace theme ComboBoxes
-  with a preview-backed WPF theme gallery before v4 stable.
-  - Why: the stable script has 21 themes and hundreds of schemes plus a preview
-    card, while the WPF shell currently exposes only `SelectedTheme` and
-    `SchemeOptions` ComboBoxes and a text summary. Microsoft's control guidance
-    recommends list/grid-style surfaces instead of ComboBoxes when choices
-    carry images or multi-line detail, and Spicetify positions Marketplace as a
-    visual way to discover and install themes. LibreSpot's WPF Custom flow
-    should let users compare theme appearance, scheme count, JS-injection
-    requirement, Marketplace-only fallback, and support state without opening
-    Spotify first.
-  - Evidence: `LibreSpot.ps1:684`,
-    `LibreSpot.ps1:1858`,
-    `LibreSpot.ps1:1861`,
-    `LibreSpot.ps1:2253`,
-    `src/LibreSpot.Desktop/MainWindow.xaml:904`,
-    `src/LibreSpot.Desktop/MainWindow.xaml:911`,
-    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:421`,
-    `src/LibreSpot.Desktop/Models/AppCatalog.cs:198`,
-    https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/combo-box,
-    https://spicetify.app/docs/customization,
-    https://spicetify.app/docs/customization/themes
-  - Touches: WPF catalog model, `MainWindow.xaml`, theme/scheme view models,
-    settings search, accessibility tests, PowerShell/WPF parity manifest.
-  - Acceptance: WPF Custom mode offers a searchable/filterable theme gallery
-    with thumbnails, scheme chips, "requires theme.js" badges, Marketplace-only
-    card, unavailable/disabled states from the catalog manifest, and keyboard
-    navigation. Selecting a gallery card updates the same configuration fields
-    as the current ComboBoxes, preserves the selection summary, and still
-    supports power-user typed search for theme and scheme names.
-  - Verify: UIA/FlaUI smoke tests navigate gallery cards by keyboard, assert
-    every interactive card has an automation name/help text, select at least
-    one official theme, one community theme, and Marketplace-only mode, and
-    confirm the saved config contains the expected `Spicetify_Theme` and
-    `Spicetify_Scheme`.
 
 ## 🔬 Researcher Queue (Cycle 18 - 2026-06-06)
 
@@ -526,42 +443,6 @@ bolt `--silent` onto the current WPF button actions.
 
 ### New / Refined Backlog Items
 
-- [ ] 🔬 🤖 P1 - Ship a console-capable LibreSpot CLI artifact before fleet
-  documentation.
-  - Why: current release artifacts are GUI-first (`PS2EXE -NoConsole` and WPF
-    self-contained). Admin tools need deterministic stdout, stderr, and process
-    exit codes. A hidden GUI EXE with bolted-on flags will be harder to support
-    than a dedicated CLI host.
-  - Touches: release workflow, project structure, backend service boundary,
-    signing/checksum/SBOM steps, README, package-manager manifests.
-  - Acceptance: tagged releases publish a signed `LibreSpot.Cli.exe` or
-    equivalent console-capable artifact alongside `LibreSpot.exe`,
-    `LibreSpot.ps1`, and `LibreSpot-Desktop.exe`. The CLI can run without WPF,
-    uses the same backend/version/catalog code as the GUI, supports Windows
-    PowerShell 5.1-hosted backend execution, and writes only machine-readable
-    output when `--json` or `--ndjson` is requested.
-  - Verify: CI runs `LibreSpot.Cli.exe --version`, `status --json`, `detect
-    --json`, `validate --answer-file samples/minimal.json`, and a dry-run
-    install fixture on a Windows runner; release checksums, SBOM, provenance,
-    and SignPath signing include the CLI artifact.
-
-- [ ] 🔬 🤖 P1 - Build `detect` and `status` on the Cycle 20 health report.
-  - Why: fleet detection should not invent separate logic. The same health
-    model that powers the WPF dashboard should drive admin-facing JSON and
-    detection exit codes, otherwise GUI and fleet state will drift.
-  - Touches: `EnvironmentSnapshotService`/health report, CLI, watcher state,
-    tests, Intune docs.
-  - Acceptance: `status --json` emits a versioned health report with component
-    statuses, versions, paths, last patch time, last watcher outcome, backup
-    count, Marketplace/theme state, issue IDs, and recommended repair IDs.
-    `detect --json` emits a smaller compliance object with `state` values such
-    as `compliant`, `notInstalled`, `partial`, `drifted`, `needsRepair`,
-    `blocked`, and `unknown`. Intune-oriented `detect --intune` maps only
-    compliant state to STDOUT plus exit `0`; all noncompliant states exit
-    nonzero without mutating the machine.
-  - Verify: fixture tests assert JSON schema validity and exit codes for clean
-    slate, compliant, Spotify-only, Spicetify-only, Marketplace missing,
-    watcher stale, and post-update drift states.
 
 - [ ] 🔬 🤖 P2 - Publish deployment runbooks and package-manager validation
   samples only after the CLI contract is real.
@@ -721,19 +602,6 @@ dependency freshness surfaced during exhaustive ecosystem research.
   source generators eliminate boilerplate property/command declarations.
   Complexity: M (best done during the existing P2 view-model split)
 
-## Audit Findings (June 20, 2026)
-
-Items below were found during the engineering audit but could not be
-fixed due to .NET 10 SDK requirements or requiring broader design
-decisions.
-
-- [ ] P2 — Address 52 drifted shared functions between the two PowerShell scripts
-  Why: `Build-Scripts.ps1 -Validate` confirms 52 of 86 shared functions have
-  divergent implementations. Each drift is a silent regression risk for every
-  future change. The drift validator CI step catches new divergence but the
-  existing 52 need reconciliation as part of the shared-core extraction (P1).
-  Where: `LibreSpot.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`
-
 ## Research-Driven Additions (June 27, 2026)
 
 Items below were added by the June 27, 2026 research pass. They address
@@ -773,3 +641,71 @@ compatibility surfaced during exhaustive competitive and ecosystem research.
   Stryker can target that library.
   Complexity: S (after view-model split)
 
+## Research-Driven Additions (June 28, 2026)
+
+Items below were added by the June 28, 2026 research pass. They address
+upstream version fragility, legal risk documentation, Spicetify v3
+migration readiness, AppCatalog localization gap, and runtime upstream
+health monitoring surfaced during exhaustive competitive and community
+sentiment research.
+
+Note on existing items: the P1 shared-core extraction (Cycle 11) is
+reinforced by community evidence that SpotX+Spicetify ordering fragility
+(SpotX Discussion #402) and Spotify 1.2.86 CSS breakage (Spicetify
+X/Twitter Mar 2026) both amplify the cost of drifted functions. The
+Cycle 20 diagnostics item is reinforced by user reports of "SpotX
+stopped working" (issue #849) as the #1 complaint — the WPF dashboard
+needs to detect and surface this state, not just show booleans.
+
+
+
+- [ ] P2 — Add Spicetify v3 abstraction layer before tight coupling deepens
+  Why: Spicetify v3 (issue #3038) proposes restructuring into CLI/TUI +
+  hooks + modules, which would change the command surface, extension
+  loading, and configuration format that LibreSpot directly invokes.
+  LibreSpot currently calls `spicetify` CLI commands by name, reads/writes
+  Spicetify config files directly, and assumes v2.x directory layout.
+  Adding more Spicetify-coupled features (theme gallery, preset profiles)
+  before abstracting the integration boundary will multiply the v3
+  migration cost.
+  Evidence: spicetify/cli#3038 (v3 proposal); `Invoke-SpicetifyCli` in
+  `LibreSpot.ps1:1868`; `Sync-SpicetifyListSetting` in `LibreSpot.ps1:1886`;
+  direct config file manipulation throughout install modules.
+  Touches: new `SpicetifyIntegration` module/class wrapping all CLI calls,
+  config reads, and directory assumptions behind a version-aware facade.
+  Acceptance: all Spicetify interactions go through a single integration
+  boundary. A `SpicetifyVersion` enum or config key controls which command
+  surface is used. Tests mock the integration boundary, not raw CLI calls.
+  Complexity: L (but prevents XL rework later)
+
+## Research-Driven Additions
+
+- [ ] P1 — Repair release-trust documentation after local-only build policy
+  Why: release verification docs still describe GitHub Actions workflows, Scorecard artifacts, signing steps, and provenance outputs that are not present in the current repo, which undermines user trust before package/signing work.
+  Evidence: `SECURITY.md:72`, `SECURITY.md:74`, `SIGNPATH.md:23`, `SIGNPATH.md:34`, `SIGNPATH.md:76`, `README.md:269`, `.github/` has no `workflows` directory, `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj` targets `net10.0-windows`.
+  Touches: `SECURITY.md`, `SIGNPATH.md`, `README.md`, release verification docs, release-artifact/distribution schemas, docs drift tests.
+  Acceptance: docs describe the current local release process only, remove or replace dead workflow links, align WPF runtime/artifact names, clearly separate available checksums/SBOMs from blocked signing/provenance claims, and a local test fails on future references to absent workflows or stale runtime targets.
+  Complexity: S
+
+- [ ] P2 — Add draft package-manifest safety checks while package publishing is blocked
+  Why: tracked winget, Scoop, and Chocolatey manifests are intentionally draft-only, but they contain placeholder hashes, stale stable-version values, and validation instructions that point at generated publish paths; local tests should prevent accidental publication or README promotion before identity/signing are resolved.
+  Evidence: `packaging/winget/SysAdminDoc.LibreSpot.installer.yaml:2`, `packaging/winget/SysAdminDoc.LibreSpot.installer.yaml:4`, `packaging/winget/SysAdminDoc.LibreSpot.installer.yaml:15`, `packaging/scoop/librespot.json:2`, `packaging/scoop/librespot.json:8`, `packaging/chocolatey/tools/chocolateyInstall.ps1:1`, `packaging/chocolatey/tools/chocolateyInstall.ps1:8`, `packaging/VALIDATION.txt:3`, `Roadmap_Blocked.md` package identity/signing blockers.
+  Touches: `packaging/*`, `schemas/distribution-matrix.json`, `schemas/release-artifact-contract.json`, `tests/LibreSpot.Desktop.Tests/*`, README release/install copy.
+  Acceptance: tests parse every tracked package manifest, require draft/blocked markers and placeholder hashes while package identity/signing are unresolved, fail if README advertises draft manifests as installable, and fail if placeholders are removed before manifests are generated from a checked release manifest.
+  Complexity: S
+
+- [ ] P3 — Refresh .NET test platform package to 18.7.0
+  Why: runtime packages are current and vulnerability scans are clean, but the test project is one minor Microsoft.NET.Test.Sdk release behind, which leaves the local test runner on older TestPlatform assemblies.
+  Evidence: `dotnet list tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj package --outdated --include-transitive`; `tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj:13`.
+  Touches: `tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj`, test restore cache/lock posture, third-party notices if versioned there.
+  Acceptance: `Microsoft.NET.Test.Sdk` is bumped to 18.7.0, transitive TestPlatform packages resolve to 18.7.0, `dotnet test tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj --no-restore` passes, and no runtime project package versions change.
+  Complexity: S
+
+## Research-Driven Additions
+
+- [ ] P2 - Define Windows support policy before package publication
+  Why: README and draft package manifests currently say Windows 10/11 broadly, but Windows 10 Home/Pro support ended on October 14, 2025 and package metadata should distinguish supported, ESU/LTSC, and best-effort hosts before public package channels launch.
+  Evidence: `README.md:33`; `packaging/winget/SysAdminDoc.LibreSpot.installer.yaml:5`; Microsoft Windows 10 Home and Pro lifecycle docs; `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj` targets `net10.0-windows`.
+  Touches: README requirements, `SECURITY.md`, package manifests, `schemas/distribution-matrix.json`, support bundle/health-report OS fields, package validation tests.
+  Acceptance: docs and package metadata define the supported Windows matrix, warn or classify unsupported Windows 10 Home/Pro hosts unless covered by ESU/LTSC policy, and tests fail if README, winget metadata, distribution matrix, and runtime support-bundle OS classification diverge.
+  Complexity: S
