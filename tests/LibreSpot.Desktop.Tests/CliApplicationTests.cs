@@ -1,5 +1,6 @@
 extern alias Cli;
 
+using System.IO.Compression;
 using System.Text.Json;
 using Xunit;
 using CliApp = Cli::LibreSpot.Cli.CliApplication;
@@ -250,6 +251,51 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public void ExportSupport_WritesLocalRedactedZip()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
+        var output = Path.Combine(root, "support.zip");
+        try
+        {
+            var snapshot = Snapshot(
+                spotifyInstalled: true,
+                spicetifyInstalled: true,
+                Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready, version: "1.2.92"),
+                Component("spicetify-cli", "Spicetify CLI", "Detected", CliHealthSeverity.Ready, version: "2.43.2"));
+
+            var result = Run(new[] { "export-support", "--output", output }, _ => snapshot);
+
+            Assert.Equal(0, result.ExitCode);
+            Assert.Equal(string.Empty, result.Stderr);
+            Assert.Contains(output, result.Stdout);
+            Assert.True(File.Exists(output));
+
+            using var archive = ZipFile.OpenRead(output);
+            var entries = archive.Entries.Select(entry => entry.FullName).ToHashSet(StringComparer.Ordinal);
+            Assert.Contains("manifest.json", entries);
+            Assert.Contains("health/health-report.json", entries);
+            Assert.Contains("health/runtime.json", entries);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void ExportSupport_RejectsJsonOutputMode()
+    {
+        var result = Run("export-support", "--json");
+
+        Assert.Equal(2, result.ExitCode);
+        Assert.Contains("unsupported flag", result.Stderr);
+        Assert.Equal(string.Empty, result.Stdout);
+    }
+
+    [Fact]
     public void InstallWithoutDryRun_IsRejected()
     {
         var sample = Path.Combine(ResolveRepoRoot(), "samples", "minimal.json");
@@ -277,16 +323,27 @@ public sealed class CliApplicationTests
             }
 
             var name = verb.GetProperty("verb").GetString()!;
-            var result = Run(
-                ArgsForImplementedVerb(name, sample),
-                _ => Snapshot(
-                    spotifyInstalled: true,
-                    spicetifyInstalled: true,
-                    Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready),
-                    Component("spicetify-cli", "Spicetify CLI", "Detected", CliHealthSeverity.Ready)));
+            var (args, cleanupPath) = ArgsForImplementedVerb(name, sample);
+            try
+            {
+                var result = Run(
+                    args,
+                    _ => Snapshot(
+                        spotifyInstalled: true,
+                        spicetifyInstalled: true,
+                        Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready),
+                        Component("spicetify-cli", "Spicetify CLI", "Detected", CliHealthSeverity.Ready)));
 
-            Assert.Equal(0, result.ExitCode);
-            Assert.DoesNotContain("Unknown LibreSpot CLI verb", result.Stderr);
+                Assert.Equal(0, result.ExitCode);
+                Assert.DoesNotContain("Unknown LibreSpot CLI verb", result.Stderr);
+            }
+            finally
+            {
+                if (!string.IsNullOrWhiteSpace(cleanupPath) && File.Exists(cleanupPath))
+                {
+                    File.Delete(cleanupPath);
+                }
+            }
         }
     }
 
@@ -301,19 +358,27 @@ public sealed class CliApplicationTests
         return new CliRunResult(exitCode, stdout.ToString(), stderr.ToString());
     }
 
-    private static string[] ArgsForImplementedVerb(string verb, string sample) =>
-        verb switch
+    private static (string[] Args, string? CleanupPath) ArgsForImplementedVerb(string verb, string sample)
+    {
+        var supportBundlePath = Path.Combine(
+            Path.GetTempPath(),
+            "LibreSpot.Cli.Tests",
+            $"support-{Guid.NewGuid():N}.zip");
+
+        return verb switch
         {
-            "status" => new[] { "status", "--json" },
-            "detect" => new[] { "detect", "--json" },
-            "validate" => new[] { "validate", "--answer-file", sample, "--json" },
-            "plan" => new[] { "plan", "--answer-file", sample, "--json" },
-            "version" => new[] { "version", "--json" },
-            "install" => new[] { "install", "--dry-run", "--answer-file", sample, "--ndjson" },
-            "reapply" => new[] { "reapply", "--dry-run", "--answer-file", sample, "--ndjson" },
-            "uninstall" => new[] { "uninstall", "--dry-run", "--ndjson" },
+            "status" => (new[] { "status", "--json" }, null),
+            "detect" => (new[] { "detect", "--json" }, null),
+            "validate" => (new[] { "validate", "--answer-file", sample, "--json" }, null),
+            "plan" => (new[] { "plan", "--answer-file", sample, "--json" }, null),
+            "version" => (new[] { "version", "--json" }, null),
+            "install" => (new[] { "install", "--dry-run", "--answer-file", sample, "--ndjson" }, null),
+            "reapply" => (new[] { "reapply", "--dry-run", "--answer-file", sample, "--ndjson" }, null),
+            "uninstall" => (new[] { "uninstall", "--dry-run", "--ndjson" }, null),
+            "export-support" => (new[] { "export-support", "--output", supportBundlePath }, supportBundlePath),
             _ => throw new InvalidOperationException($"No parser smoke args are defined for implemented verb '{verb}'.")
         };
+    }
 
     private static void AssertNdjsonRequiredFields(JsonElement line)
     {

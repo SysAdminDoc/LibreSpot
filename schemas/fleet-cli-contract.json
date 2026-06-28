@@ -236,7 +236,7 @@
       "description": "Export a redacted support bundle containing logs, config, and diagnostics.",
       "requiresAdmin": false,
       "mutates": false,
-      "implementationStatus": "planned",
+      "implementationStatus": "implemented",
       "supportsDryRun": false,
       "supportsJson": false,
       "supportsNdjson": false,

@@ -88,6 +88,7 @@ public static class CliApplication
                 "reapply" => RunPlannedOperation("reapply", options, stdout, stderr),
                 "uninstall" => RunPlannedOperation("uninstall", options, stdout, stderr),
                 "plan" => RunPlannedOperation("install", options, stdout, stderr, planVerb: true),
+                "export-support" => RunExportSupport(options, stdout, stderr, snapshotFactory),
                 "version" => RunVersion(options, stdout, stderr),
                 _ => UnknownVerb(verb, stderr)
             };
@@ -222,6 +223,46 @@ public static class CliApplication
         }
 
         return result.Valid ? Success : ValidationError;
+    }
+
+    private static int RunExportSupport(
+        CliOptions options,
+        TextWriter stdout,
+        TextWriter stderr,
+        Func<string, EnvironmentSnapshot>? snapshotFactory)
+    {
+        if (!options.OnlyContains("--output", "--correlation-id", "--log-dir"))
+        {
+            stderr.WriteLine("export-support received an unsupported flag.");
+            return ValidationError;
+        }
+
+        var configPath = DefaultConfigPath;
+        var configDirectory = Path.GetDirectoryName(configPath) ?? Environment.CurrentDirectory;
+        var outputPath = options.GetValue("--output");
+        if (string.IsNullOrWhiteSpace(outputPath))
+        {
+            var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
+            outputPath = Path.Combine(Environment.CurrentDirectory, $"LibreSpot-support-{stamp}.zip");
+        }
+
+        var snapshot = GetSnapshot(configPath, snapshotFactory);
+        var service = new SupportBundleService(
+            configDirectory,
+            rollingLogDirectory: options.GetValue("--log-dir"));
+        var result = service.ExportAsync(
+                outputPath,
+                snapshot,
+                new SupportBundleOptions(
+                    IncludeOperationJournal: true,
+                    IncludeLogs: true,
+                    IncludeCrashReports: true))
+            .GetAwaiter()
+            .GetResult();
+
+        stdout.WriteLine($"Support bundle exported: {result.Path}");
+        stdout.WriteLine($"Entries: {result.EntryCount}; Bytes: {result.BytesWritten}");
+        return Success;
     }
 
     private static int RunPlannedOperation(
@@ -742,6 +783,7 @@ public static class CliApplication
         writer.WriteLine("  LibreSpot.Cli validate --answer-file <path> [--json]");
         writer.WriteLine("  LibreSpot.Cli install --dry-run --answer-file <path> [--ndjson]");
         writer.WriteLine("  LibreSpot.Cli plan --answer-file <path> [--json]");
+        writer.WriteLine("  LibreSpot.Cli export-support [--output <path>]");
     }
 
     private static bool IsHelp(string arg) =>

@@ -12,6 +12,9 @@ All notable changes to LibreSpot will be documented in this file.
   fleet dry-run fixtures. Status/detect JSON includes structured backup count,
   last patch time, watcher outcome, issue IDs, recommended repairs, and
   documented fleet exit-code states.
+- `LibreSpot.Cli.exe export-support --output <path>` now writes the existing
+  redacted local support bundle format for endpoint tools without launching the
+  WPF shell.
 
 ### Changed
 - Release-trust documentation now reflects the local-only release process:
