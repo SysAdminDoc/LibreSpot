@@ -1,0 +1,138 @@
+using System.Text.Json;
+using LibreSpot.Desktop.Models;
+using LibreSpot.Desktop.Services;
+using Xunit;
+
+namespace LibreSpot.Desktop.Tests;
+
+public sealed class LocalProfileServiceTests : IDisposable
+{
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "LibreSpot.Profile.Tests", Guid.NewGuid().ToString("N"));
+    private readonly ConfigurationService _configurationService;
+    private readonly LocalProfileService _profileService;
+
+    public LocalProfileServiceTests()
+    {
+        _configurationService = new ConfigurationService(_root);
+        _profileService = new LocalProfileService(_configurationService);
+    }
+
+    [Fact]
+    public async Task GetProfilesAsync_MigratesExistingConfigAndIncludesBundledTemplates()
+    {
+        var existing = AppCatalog.CreateRecommendedConfiguration();
+        existing.SpotX_Premium = true;
+        existing.RiskAcknowledged = true;
+        await _configurationService.SaveAsync(existing);
+
+        var profiles = await _profileService.GetProfilesAsync();
+
+        Assert.Contains(profiles, profile => profile.IsBuiltIn && profile.Name == "Recommended");
+        Assert.Contains(profiles, profile => profile.IsBuiltIn && profile.Name == "Minimal / Marketplace-only");
+        Assert.Contains(profiles, profile => profile.IsBuiltIn && profile.Name == "Visual Theme");
+        Assert.Contains(profiles, profile => profile.IsBuiltIn && profile.Name == "Lyrics Focus");
+        Assert.Contains(profiles, profile => profile.IsBuiltIn && profile.Name == "Premium Account");
+        Assert.Contains(profiles, profile => profile.IsBuiltIn && profile.Name == "Recovery / Reapply");
+        var current = Assert.Single(profiles.Where(profile => !profile.IsBuiltIn && profile.Name == "Current"));
+        Assert.True(current.IsActive);
+
+        var loaded = await _profileService.LoadProfileAsync(current.Id);
+        Assert.True(loaded.Configuration.SpotX_Premium);
+        Assert.False(loaded.Configuration.RiskAcknowledged);
+    }
+
+    [Fact]
+    public async Task CreateDuplicateRenameAndDeleteProfiles_EnforceNamesAndActiveFallback()
+    {
+        var created = await _profileService.CreateFromConfigurationAsync(
+            "Daily Driver",
+            "Main setup",
+            AppCatalog.CreateRecommendedConfiguration());
+        var duplicate = await _profileService.DuplicateAsync(created.Summary.Id, "Daily Driver Copy");
+        var renamed = await _profileService.RenameAsync(duplicate.Summary.Id, "Rollback Profile");
+
+        Assert.Equal("Rollback Profile", renamed.Summary.Name);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _profileService.CreateFromConfigurationAsync("Recommended", "", AppCatalog.CreateRecommendedConfiguration()));
+
+        await _profileService.ApplyProfileAsync(created.Summary.Id);
+        await _profileService.DeleteAsync(created.Summary.Id);
+
+        var profiles = await _profileService.GetProfilesAsync();
+        Assert.DoesNotContain(profiles, profile => profile.Id == created.Summary.Id);
+        Assert.Contains(profiles, profile => profile.Id == "recommended" && profile.IsActive);
+    }
+
+    [Fact]
+    public async Task ApplyProfileAsync_WritesConfigAndPreviousActivePointer()
+    {
+        var firstConfig = AppCatalog.CreateRecommendedConfiguration();
+        firstConfig.SpotX_LyricsTheme = "github";
+        var secondConfig = AppCatalog.CreateRecommendedConfiguration();
+        secondConfig.SpotX_LyricsTheme = "lavender";
+
+        var first = await _profileService.CreateFromConfigurationAsync("First", "", firstConfig);
+        var second = await _profileService.CreateFromConfigurationAsync("Second", "", secondConfig);
+
+        await _profileService.ApplyProfileAsync(first.Summary.Id);
+        await _profileService.ApplyProfileAsync(second.Summary.Id);
+
+        var active = await _configurationService.LoadAsync();
+        Assert.Equal("lavender", active.SpotX_LyricsTheme);
+        Assert.Equal(first.Summary.Id, await _profileService.ReadPreviousActiveProfileIdAsync());
+    }
+
+    [Fact]
+    public async Task ExportImport_RoundTripsSharedProfileWithoutRiskAcknowledgment()
+    {
+        var config = AppCatalog.CreateRecommendedConfiguration();
+        config.SpotX_Premium = true;
+        config.RiskAcknowledged = true;
+        var created = await _profileService.CreateFromConfigurationAsync("Share Me", "Portable setup", config);
+        var exportPath = Path.Combine(_root, "share.librespot");
+
+        await _profileService.ExportAsync(created.Summary.Id, exportPath);
+
+        using var exported = JsonDocument.Parse(File.ReadAllText(exportPath));
+        Assert.Equal("Share Me", exported.RootElement.GetProperty("profileName").GetString());
+        Assert.False(exported.RootElement.GetProperty("settings").TryGetProperty("RiskAcknowledged", out _));
+
+        await _profileService.DeleteAsync(created.Summary.Id);
+        var imported = await _profileService.ImportAsync(exportPath);
+
+        Assert.Equal("share-me", imported.Summary.Id);
+        Assert.True(imported.Configuration.SpotX_Premium);
+        Assert.False(imported.Configuration.RiskAcknowledged);
+    }
+
+    [Fact]
+    public async Task ImportAsync_RejectsSharedRiskAcknowledgment()
+    {
+        Directory.CreateDirectory(_root);
+        var path = Path.Combine(_root, "bad.librespot");
+        File.WriteAllText(
+            path,
+            """
+            {
+              "schemaVersion": 1,
+              "generator": "LibreSpot-Desktop",
+              "generatorVersion": "4.0.0-preview.6",
+              "createdAt": "2026-06-28T00:00:00Z",
+              "profileName": "Unsafe",
+              "settings": {
+                "riskAcknowledged": true
+              }
+            }
+            """);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _profileService.ImportAsync(path));
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_root))
+        {
+            Directory.Delete(_root, recursive: true);
+        }
+    }
+}

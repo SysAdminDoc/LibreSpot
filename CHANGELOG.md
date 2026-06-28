@@ -28,6 +28,9 @@ All notable changes to LibreSpot will be documented in this file.
   validated before install/reapply persists the selected preset to `config.json`.
 - README now includes tested fleet deployment examples for Intune detection,
   PDQ/SCCM install and repair, WinRM, PSRemoting over SSH, and uninstall.
+- Added a local profile store for the WPF preview that migrates the current
+  `config.json`, ships bundled profile templates, tracks active/previous
+  profile pointers, and round-trips safe `.librespot` share files.
 
 ### Changed
 - Release-trust documentation now reflects the local-only release process:
