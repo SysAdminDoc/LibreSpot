@@ -364,6 +364,7 @@ public sealed class CliApplicationTests
         var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
         var answerFile = Path.Combine(root, "answer.json");
         var configPath = Path.Combine(root, "config.json");
+        var logDir = Path.Combine(root, "logs");
         Directory.CreateDirectory(root);
         File.WriteAllText(
             answerFile,
@@ -395,7 +396,7 @@ public sealed class CliApplicationTests
             var actions = new List<string>();
             var configPaths = new List<string>();
             var result = Run(
-                new[] { verb, "--answer-file", answerFile, "--config-path", configPath, "--no-restart", "--ndjson" },
+                new[] { verb, "--answer-file", answerFile, "--config-path", configPath, "--log-dir", logDir, "--no-restart", "--ndjson" },
                 _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
                 (action, path, onMessage, _) =>
                 {
@@ -412,6 +413,8 @@ public sealed class CliApplicationTests
             Assert.Contains("\"eventId\":\"LS1001\"", result.Stdout);
             Assert.Contains("\"eventId\":\"LS9001\"", result.Stdout);
             Assert.Contains("\"eventId\":\"LS1002\"", result.Stdout);
+            var logFile = Assert.Single(Directory.EnumerateFiles(logDir, "librespot-*.ndjson"));
+            Assert.Contains("\"eventId\":\"LS9001\"", File.ReadAllText(logFile));
 
             using var config = JsonDocument.Parse(File.ReadAllText(configPath));
             Assert.Equal("Custom", config.RootElement.GetProperty("Mode").GetString());
@@ -467,12 +470,13 @@ public sealed class CliApplicationTests
     {
         var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
         var configPath = Path.Combine(root, "config.json");
+        var logDir = Path.Combine(root, "logs");
         Directory.CreateDirectory(root);
         try
         {
             var actions = new List<string>();
             var result = Run(
-                new[] { "uninstall", "--silent", "--yes", "--purge", "--keep-spotify", "--config-path", configPath, "--ndjson" },
+                new[] { "uninstall", "--silent", "--yes", "--purge", "--keep-spotify", "--config-path", configPath, "--log-dir", logDir, "--ndjson" },
                 _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
                 (action, _, onMessage, _) =>
                 {
@@ -486,6 +490,7 @@ public sealed class CliApplicationTests
             Assert.DoesNotContain("FullReset", actions);
             Assert.Contains("\"eventId\":\"LS1002\"", result.Stdout);
             Assert.Equal(string.Empty, result.Stderr);
+            Assert.Single(Directory.EnumerateFiles(logDir, "librespot-*.ndjson"));
 
             using var config = JsonDocument.Parse(File.ReadAllText(configPath));
             Assert.True(config.RootElement.GetProperty("RiskAcknowledged").GetBoolean());
@@ -523,12 +528,13 @@ public sealed class CliApplicationTests
     {
         var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
         var configPath = Path.Combine(root, "config.json");
+        var logDir = Path.Combine(root, "logs");
         Directory.CreateDirectory(root);
         try
         {
             var actions = new List<string>();
             var result = Run(
-                new[] { "repair", "--repair-id", "RepairMarketplace", "--silent", "--yes", "--config-path", configPath, "--ndjson" },
+                new[] { "repair", "--repair-id", "RepairMarketplace", "--silent", "--yes", "--config-path", configPath, "--log-dir", logDir, "--ndjson" },
                 _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
                 (action, _, onMessage, _) =>
                 {
@@ -541,6 +547,7 @@ public sealed class CliApplicationTests
             Assert.Equal(new[] { "RepairMarketplace" }, actions);
             Assert.Contains("\"eventId\":\"LS1002\"", result.Stdout);
             Assert.Equal(string.Empty, result.Stderr);
+            Assert.Single(Directory.EnumerateFiles(logDir, "librespot-*.ndjson"));
 
             using var config = JsonDocument.Parse(File.ReadAllText(configPath));
             Assert.True(config.RootElement.GetProperty("RiskAcknowledged").GetBoolean());
@@ -605,6 +612,39 @@ public sealed class CliApplicationTests
         Assert.Equal(2, result.ExitCode);
         Assert.False(backendRan);
         Assert.Contains("--answer-file", result.Stderr);
+    }
+
+    [Fact]
+    public void NdjsonLogRotation_PrunesOldFleetLogs()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
+        var logDir = Path.Combine(root, "logs");
+        Directory.CreateDirectory(logDir);
+        try
+        {
+            for (var i = 0; i < 25; i++)
+            {
+                var path = Path.Combine(logDir, $"librespot-old-{i:D2}.ndjson");
+                File.WriteAllText(path, "{}");
+                File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddMinutes(-100 - i));
+            }
+
+            var result = Run(
+                new[] { "repair", "--repair-id", "RepairMarketplace", "--dry-run", "--ndjson", "--log-dir", logDir },
+                _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true));
+
+            Assert.Equal(0, result.ExitCode);
+            var logs = Directory.EnumerateFiles(logDir, "librespot-*.ndjson").ToArray();
+            Assert.Equal(20, logs.Length);
+            Assert.Contains(logs, path => File.ReadAllText(path).Contains("\"eventId\":\"LS1002\""));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
     }
 
     [Fact]

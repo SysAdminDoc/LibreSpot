@@ -22,6 +22,8 @@ All notable changes to LibreSpot will be documented in this file.
   uninstall consent while preserving dry-run NDJSON planning.
 - `LibreSpot.Cli.exe repair --repair-id <id>` now runs allowlisted health-report
   repair actions, including the watcher repair alias, with dry-run NDJSON output.
+- Fleet CLI NDJSON runs now write rotating `.ndjson` log files to `--log-dir`
+  or `%ProgramData%\LibreSpot\logs` for mutating endpoint operations.
 
 ### Changed
 - Release-trust documentation now reflects the local-only release process:

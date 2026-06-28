@@ -469,39 +469,48 @@ public static class CliApplication
         var plan = BuildPlan(operation, options, validation, repairAction);
         if (options.HasFlag("--ndjson"))
         {
-            WriteJson(stdout, NdjsonEvent(
-                "LS1001",
-                "info",
-                "lifecycle",
-                "LibreSpot dry-run plan started.",
-                operation,
-                new { plan.Operation, plan.DryRun, plan.Mutates },
-                options,
-                operationId));
-            foreach (var step in plan.Steps)
+            using var ndjsonLog = CreateNdjsonLogWriter(options, operation, defaultToFleetDirectory: false, stderr);
+            if (ndjsonLog?.InitializationFailed == true)
             {
-                WriteJson(stdout, NdjsonEvent(
-                    "LS8001",
-                    "info",
-                    "journal",
-                    "Dry-run plan step recorded.",
-                    operation,
-                    step,
-                    options,
-                    operationId,
-                    target: step.Target));
+                return UnhandledFailure;
             }
 
-            WriteJson(stdout, NdjsonEvent(
-                "LS1002",
-                "success",
-                "lifecycle",
-                "LibreSpot dry-run plan completed.",
-                operation,
-                new { stepCount = plan.Steps.Count },
-                options,
-                operationId,
-                exitCode: Success));
+            WriteNdjson(stdout, NdjsonEvent(
+                    "LS1001",
+                    "info",
+                    "lifecycle",
+                    "LibreSpot dry-run plan started.",
+                    operation,
+                    new { plan.Operation, plan.DryRun, plan.Mutates, logPath = ndjsonLog?.Path },
+                    options,
+                    operationId),
+                ndjsonLog);
+            foreach (var step in plan.Steps)
+            {
+                WriteNdjson(stdout, NdjsonEvent(
+                        "LS8001",
+                        "info",
+                        "journal",
+                        "Dry-run plan step recorded.",
+                        operation,
+                        step,
+                        options,
+                        operationId,
+                        target: step.Target),
+                    ndjsonLog);
+            }
+
+            WriteNdjson(stdout, NdjsonEvent(
+                    "LS1002",
+                    "success",
+                    "lifecycle",
+                    "LibreSpot dry-run plan completed.",
+                    operation,
+                    new { stepCount = plan.Steps.Count, logPath = ndjsonLog?.Path },
+                    options,
+                    operationId,
+                    exitCode: Success),
+                ndjsonLog);
         }
         else if (options.HasFlag("--json") || planVerb)
         {
@@ -562,18 +571,24 @@ public static class CliApplication
         var actions = BackendActionsFor(operation, options, repairAction);
         var runner = backendRunner ?? ((backendAction, backendConfigPath, onMessage, token) =>
             new BackendScriptService().RunAsync(backendAction, backendConfigPath, onMessage, token));
+        using var ndjsonLog = ndjson ? CreateNdjsonLogWriter(options, operation, defaultToFleetDirectory: true, stderr) : null;
+        if (ndjsonLog?.InitializationFailed == true)
+        {
+            return UnhandledFailure;
+        }
 
         if (ndjson)
         {
-            WriteJson(stdout, NdjsonEvent(
-                "LS1001",
-                "info",
-                "lifecycle",
-                "LibreSpot backend run started.",
-                operation,
-                new { actions },
-                options,
-                operationId));
+            WriteNdjson(stdout, NdjsonEvent(
+                    "LS1001",
+                    "info",
+                    "lifecycle",
+                    "LibreSpot backend run started.",
+                    operation,
+                    new { actions, logPath = ndjsonLog?.Path },
+                    options,
+                    operationId),
+                ndjsonLog);
         }
         else if (!quiet)
         {
@@ -585,7 +600,7 @@ public static class CliApplication
             var result = runner(
                     action,
                     configPath,
-                    message => WriteBackendMessage(message, operation, options, operationId, stdout, stderr, quiet, ndjson),
+                    message => WriteBackendMessage(message, operation, options, operationId, stdout, stderr, quiet, ndjson, ndjsonLog),
                     CancellationToken.None)
                 .GetAwaiter()
                 .GetResult();
@@ -595,16 +610,17 @@ public static class CliApplication
                 var message = result.ErrorMessage ?? $"LibreSpot backend action {action} failed.";
                 if (ndjson)
                 {
-                    WriteJson(stdout, NdjsonEvent(
-                        "LS1003",
-                        "error",
-                        "lifecycle",
-                        "LibreSpot backend run failed.",
-                        operation,
-                        new { action, error = message },
-                        options,
-                        operationId,
-                        exitCode: UnhandledFailure));
+                    WriteNdjson(stdout, NdjsonEvent(
+                            "LS1003",
+                            "error",
+                            "lifecycle",
+                            "LibreSpot backend run failed.",
+                            operation,
+                            new { action, error = message, logPath = ndjsonLog?.Path },
+                            options,
+                            operationId,
+                            exitCode: UnhandledFailure),
+                        ndjsonLog);
                 }
 
                 stderr.WriteLine(message);
@@ -614,16 +630,17 @@ public static class CliApplication
 
         if (ndjson)
         {
-            WriteJson(stdout, NdjsonEvent(
-                "LS1002",
-                "success",
-                "lifecycle",
-                "LibreSpot backend run completed.",
-                operation,
-                new { actionCount = actions.Count },
-                options,
-                operationId,
-                exitCode: Success));
+            WriteNdjson(stdout, NdjsonEvent(
+                    "LS1002",
+                    "success",
+                    "lifecycle",
+                    "LibreSpot backend run completed.",
+                    operation,
+                    new { actionCount = actions.Count, logPath = ndjsonLog?.Path },
+                    options,
+                    operationId,
+                    exitCode: Success),
+                ndjsonLog);
         }
         else if (!quiet)
         {
@@ -676,20 +693,22 @@ public static class CliApplication
         TextWriter stdout,
         TextWriter stderr,
         bool quiet,
-        bool ndjson)
+        bool ndjson,
+        NdjsonLogWriter? ndjsonLog)
     {
         var level = NormalizeLogLevel(message.Level);
         if (ndjson)
         {
-            WriteJson(stdout, NdjsonEvent(
-                "LS9001",
-                level,
-                "backend",
-                message.Payload,
-                operation,
-                new { message.Kind, message.Level, message.Payload },
-                options,
-                operationId));
+            WriteNdjson(stdout, NdjsonEvent(
+                    "LS9001",
+                    level,
+                    "backend",
+                    message.Payload,
+                    operation,
+                    new { message.Kind, message.Level, message.Payload },
+                    options,
+                    operationId),
+                ndjsonLog);
             return;
         }
 
@@ -1276,6 +1295,41 @@ public static class CliApplication
     private static void WriteJson<T>(TextWriter stdout, T value) =>
         stdout.WriteLine(JsonSerializer.Serialize(value, JsonOptions));
 
+    private static void WriteNdjson<T>(TextWriter stdout, T value, NdjsonLogWriter? logWriter)
+    {
+        var line = JsonSerializer.Serialize(value, JsonOptions);
+        stdout.WriteLine(line);
+        logWriter?.WriteLine(line);
+    }
+
+    private static NdjsonLogWriter? CreateNdjsonLogWriter(
+        CliOptions options,
+        string operation,
+        bool defaultToFleetDirectory,
+        TextWriter stderr)
+    {
+        var logDirectory = options.GetValue("--log-dir");
+        if (string.IsNullOrWhiteSpace(logDirectory))
+        {
+            if (!defaultToFleetDirectory)
+            {
+                return null;
+            }
+
+            logDirectory = DefaultFleetLogDirectory;
+        }
+
+        try
+        {
+            return NdjsonLogWriter.Create(logDirectory, operation);
+        }
+        catch (Exception ex)
+        {
+            stderr.WriteLine($"Could not prepare NDJSON log directory: {ex.Message}");
+            return NdjsonLogWriter.Failed;
+        }
+    }
+
     private static NdjsonLogLine NdjsonEvent(
         string eventId,
         string level,
@@ -1340,7 +1394,72 @@ public static class CliApplication
     private static string DefaultConfigPath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LibreSpot", "config.json");
 
+    private static string DefaultFleetLogDirectory =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "LibreSpot", "logs");
+
     private sealed record ParseResult(CliOptions? Options, string? Error);
+
+    private sealed class NdjsonLogWriter : IDisposable
+    {
+        private const int MaxLogFiles = 20;
+        private readonly StreamWriter? _writer;
+
+        private NdjsonLogWriter(string? path, StreamWriter? writer, bool initializationFailed = false)
+        {
+            Path = path;
+            _writer = writer;
+            InitializationFailed = initializationFailed;
+        }
+
+        public static NdjsonLogWriter Failed { get; } = new(null, null, initializationFailed: true);
+
+        public string? Path { get; }
+        public bool InitializationFailed { get; }
+
+        public static NdjsonLogWriter Create(string directory, string operation)
+        {
+            var fullDirectory = System.IO.Path.GetFullPath(directory);
+            Directory.CreateDirectory(fullDirectory);
+            var stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
+            var safeOperation = new string(operation.Select(ch => char.IsLetterOrDigit(ch) ? ch : '-').ToArray()).Trim('-');
+            if (string.IsNullOrWhiteSpace(safeOperation))
+            {
+                safeOperation = "operation";
+            }
+
+            var path = System.IO.Path.Combine(fullDirectory, $"librespot-{safeOperation}-{stamp}-{Guid.NewGuid():N}.ndjson");
+            var writer = new StreamWriter(new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
+            {
+                AutoFlush = true
+            };
+            Rotate(fullDirectory);
+            return new NdjsonLogWriter(path, writer);
+        }
+
+        public void WriteLine(string line)
+        {
+            if (!InitializationFailed)
+            {
+                _writer?.WriteLine(line);
+            }
+        }
+
+        public void Dispose() => _writer?.Dispose();
+
+        private static void Rotate(string directory)
+        {
+            var files = Directory
+                .EnumerateFiles(directory, "librespot-*.ndjson")
+                .Select(path => new FileInfo(path))
+                .OrderByDescending(file => file.LastWriteTimeUtc)
+                .ThenByDescending(file => file.Name, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            foreach (var file in files.Skip(MaxLogFiles))
+            {
+                try { file.Delete(); } catch { }
+            }
+        }
+    }
 
     private sealed class CliOptions
     {
