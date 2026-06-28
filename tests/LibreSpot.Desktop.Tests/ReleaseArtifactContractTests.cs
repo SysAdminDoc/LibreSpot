@@ -239,6 +239,39 @@ public sealed class ReleaseArtifactContractTests
         Assert.Contains("lower trust", readme, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void ReleaseTrustDocs_DescribeLocalReleaseEvidenceOnly()
+    {
+        var docs = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["README.md"] = ReadFile("README.md"),
+            ["SECURITY.md"] = ReadFile("SECURITY.md"),
+            ["SIGNPATH.md"] = ReadFile("SIGNPATH.md")
+        };
+
+        foreach (var (path, content) in docs)
+        {
+            Assert.DoesNotContain(".github/workflows", content, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("gh attestation verify", content, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("actions/attest", content, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("SLSA", content, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(".NET 8", content, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("GitHub-hosted runners", content, StringComparison.OrdinalIgnoreCase);
+
+            Assert.Contains("checksums", content, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(
+                "SignPath",
+                content,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        Assert.Contains("GitHub provenance attestations are not produced", docs["README.md"], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("does not currently track build, release, or Scorecard GitHub Actions workflows", docs["SECURITY.md"], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("GitHub provenance attestations are not produced", docs["SIGNPATH.md"], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("LibreSpot.Cli.exe", docs["SIGNPATH.md"], StringComparison.Ordinal);
+        Assert.Contains(".NET 10", docs["SIGNPATH.md"], StringComparison.OrdinalIgnoreCase);
+    }
+
     private static JsonDocument LoadContract()
     {
         var path = Path.Combine(RepoRoot, "schemas", "release-artifact-contract.json");

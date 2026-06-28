@@ -40,7 +40,7 @@ The following are **in scope**:
 - Unsafe file operations (symlink attacks, path traversal, TOCTOU races)
 - Scheduled task manipulation (the ReapplyWatcher task)
 
-The following are **out of scope**:
+Report these issues to the upstream owner instead:
 
 - Vulnerabilities in Spotify itself (report to [Spotify](https://hackerone.com/spotify))
 - Vulnerabilities in SpotX (report to [SpotX-Official/SpotX](https://github.com/SpotX-Official/SpotX/issues))
@@ -69,20 +69,20 @@ If you discover a vulnerability in SpotX, Spicetify CLI, or a community extensio
 
 ## Supply-chain hygiene
 
-LibreSpot runs the [OpenSSF Scorecard](https://github.com/ossf/scorecard) action weekly and on pushes to `main` ([.github/workflows/scorecard.yml](.github/workflows/scorecard.yml)). It publishes results to the public Scorecard API (the badge in the README) and uploads both SARIF and JSON reports as build artifacts. This complements the existing release-time controls (commit-pinned dependencies, SHA256 checksums, CycloneDX SBOM, and GitHub provenance attestations).
+LibreSpot does not currently track build, release, or Scorecard GitHub Actions workflows. Release trust evidence comes from the local release build and post-upload audit: SHA256 entries in `checksums.txt`, the machine-readable `librespot-release-manifest.json`, CycloneDX SBOM output, pinned upstream download hashes, and local test/build logs.
 
-Scorecard findings are treated as work, not noise: a low score on any check should become a `ROADMAP.md` item with a remediation plan rather than a silently ignored warning. Each run compares results against a checked-in baseline ([schemas/scorecard-baseline.json](schemas/scorecard-baseline.json)), writes the triage table to the GitHub Actions job summary, uploads the SARIF/JSON/triage artifacts, and fails on unaccepted floor regressions.
+OpenSSF Scorecard findings are still treated as work, not noise. The accepted-risk baseline in [schemas/scorecard-baseline.json](schemas/scorecard-baseline.json) records the project's single-maintainer limits and local gate expectations; if a manual Scorecard run finds a new low score, it should become a `ROADMAP.md` item with a remediation plan rather than a silently ignored warning.
 
 **Accepted single-maintainer limits:** the following Scorecard checks score zero or low and are documented as expected for a single-maintainer project — they are not silently ignored:
 
 | Check | Score | Reason |
 |-------|-------|--------|
 | Branch-Protection | 0 | Required reviews are not practical without additional contributors. Branch protection is enabled with admin enforcement, force-push and deletion disabled. |
-| Code-Review | 0 | All commits are direct pushes. Quality is maintained through CI, static analysis, and research/build machine separation. |
+| Code-Review | 0 | All commits are direct pushes. Quality is maintained through local tests, static analysis, and research/build machine separation. |
 | Contributors | 0 | Single-maintainer project by design. |
 | CII-Best-Practices | 0 | Enrollment deferred until v4.0 stable ships and community adoption grows. |
 | Fuzzing | 0 | Property-based testing (FsCheck) is planned; OSS-Fuzz enrollment is deferred. |
-| Signed-Releases | — | SignPath Foundation enrollment is pending. Releases ship with checksums, SBOM, and provenance attestations but are not yet Authenticode-signed. |
+| Signed-Releases | — | SignPath Foundation enrollment is pending. Local releases ship with checksums, a release manifest, and SBOM output but are not yet Authenticode-signed and do not include GitHub provenance attestations. |
 
 These limits are revisited when their documented trigger conditions are met (e.g., a second maintainer joins, signing completes). The full accepted-risk registry is in [schemas/scorecard-baseline.json](schemas/scorecard-baseline.json).
 

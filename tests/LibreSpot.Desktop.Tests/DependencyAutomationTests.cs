@@ -40,6 +40,7 @@ public sealed class DependencyAutomationTests
         Assert.Contains("<RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>", testProject);
     }
 
+    [Fact]
     public void ScorecardBaseline_DocumentsAcceptedSingleMaintainerRisks()
     {
         using var baseline = JsonDocument.Parse(ReadRepoFile("schemas", "scorecard-baseline.json"));

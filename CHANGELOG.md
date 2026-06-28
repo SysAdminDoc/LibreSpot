@@ -14,6 +14,10 @@ All notable changes to LibreSpot will be documented in this file.
   documented fleet exit-code states.
 
 ### Changed
+- Release-trust documentation now reflects the local-only release process:
+  checksums, release manifests, SBOM output, and pending SignPath signing are
+  documented as current evidence, while absent GitHub workflow/provenance
+  claims are guarded by desktop regression tests.
 - WPF Custom mode now replaces theme and scheme ComboBoxes with a searchable
   theme gallery, source/theme.js badges, scheme chips, UIA names, and a
   refreshed screenshot for the preview shell.

@@ -665,13 +665,6 @@ needs to detect and surface this state, not just show booleans.
 
 ## Research-Driven Additions
 
-- [ ] P1 — Repair release-trust documentation after local-only build policy
-  Why: release verification docs still describe GitHub Actions workflows, Scorecard artifacts, signing steps, and provenance outputs that are not present in the current repo, which undermines user trust before package/signing work.
-  Evidence: `SECURITY.md:72`, `SECURITY.md:74`, `SIGNPATH.md:23`, `SIGNPATH.md:34`, `SIGNPATH.md:76`, `README.md:269`, `.github/` has no `workflows` directory, `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj` targets `net10.0-windows`.
-  Touches: `SECURITY.md`, `SIGNPATH.md`, `README.md`, release verification docs, release-artifact/distribution schemas, docs drift tests.
-  Acceptance: docs describe the current local release process only, remove or replace dead workflow links, align WPF runtime/artifact names, clearly separate available checksums/SBOMs from blocked signing/provenance claims, and a local test fails on future references to absent workflows or stale runtime targets.
-  Complexity: S
-
 - [ ] P2 — Add draft package-manifest safety checks while package publishing is blocked
   Why: tracked winget, Scoop, and Chocolatey manifests are intentionally draft-only, but they contain placeholder hashes, stale stable-version values, and validation instructions that point at generated publish paths; local tests should prevent accidental publication or README promotion before identity/signing are resolved.
   Evidence: `packaging/winget/SysAdminDoc.LibreSpot.installer.yaml:2`, `packaging/winget/SysAdminDoc.LibreSpot.installer.yaml:4`, `packaging/winget/SysAdminDoc.LibreSpot.installer.yaml:15`, `packaging/scoop/librespot.json:2`, `packaging/scoop/librespot.json:8`, `packaging/chocolatey/tools/chocolateyInstall.ps1:1`, `packaging/chocolatey/tools/chocolateyInstall.ps1:8`, `packaging/VALIDATION.txt:3`, `Roadmap_Blocked.md` package identity/signing blockers.

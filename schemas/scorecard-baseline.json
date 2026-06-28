@@ -1,5 +1,5 @@
 {
-  "$comment": "OpenSSF Scorecard accepted baseline. Checks below their accepted floor fail the workflow unless they are listed in acceptedRisks. Accepted risks are documented as expected for a single-maintainer project.",
+  "$comment": "OpenSSF Scorecard accepted baseline. Checks below their accepted floor should fail the local release gate unless they are listed in acceptedRisks. Accepted risks are documented as expected for a single-maintainer project.",
   "schemaVersion": 1,
   "lastUpdated": "2026-06-15",
   "checkFloors": {
@@ -26,13 +26,13 @@
     {
       "check": "Branch-Protection",
       "score": 0,
-      "reason": "Single-maintainer project; required reviews and signed commits are not practical without additional contributors. Branch protection is enabled with admin enforcement, force-push disabled, and deletion disabled.",
+      "reason": "Single-maintainer project; required reviews and signed commits are not practical without additional contributors. Branch protection is enabled with admin enforcement, force-push disabled, and deletion disabled. Local build/test gates are run before release work is pushed.",
       "revisitWhen": "A second maintainer joins the project."
     },
     {
       "check": "Code-Review",
       "score": 0,
-      "reason": "Single-maintainer project; all commits are direct pushes. Code quality is maintained through CI tests, static analysis, and the research/build machine separation.",
+      "reason": "Single-maintainer project; all commits are direct pushes. Code quality is maintained through local tests, static analysis, and the research/build machine separation.",
       "revisitWhen": "A second maintainer joins the project."
     },
     {
@@ -56,7 +56,7 @@
     {
       "check": "Signed-Releases",
       "score": -1,
-      "reason": "SignPath Foundation enrollment is pending. Releases ship with SHA256 checksums, CycloneDX SBOM, and GitHub provenance attestations but are not yet Authenticode-signed.",
+      "reason": "SignPath Foundation enrollment is pending. Local releases ship with SHA256 checksums and CycloneDX SBOM output but are not yet Authenticode-signed or covered by GitHub provenance attestations.",
       "revisitWhen": "SignPath enrollment completes."
     },
     {

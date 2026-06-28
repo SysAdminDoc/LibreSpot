@@ -1,5 +1,5 @@
 {
-  "$comment": "Release artifact contract — defines expected assets, checksums, signing, and attestation state per release channel. The local post-upload audit should verify the published release matches this contract.",
+  "$comment": "Release artifact contract — defines expected assets, checksums, signing, and local verification state per release channel. The local post-upload audit should verify the published release matches this contract.",
   "contractVersion": 1,
   "tagPatterns": {
     "stable": "^v\\d+\\.\\d+\\.\\d+$",
@@ -28,7 +28,7 @@
       "required": true,
       "checksumEntry": true,
       "signingRequirement": "authenticode-when-available",
-      "attestation": "build-provenance",
+      "attestation": "none",
       "distributionChannels": ["github-releases", "powershell-oneliner"]
     },
     {
@@ -38,7 +38,7 @@
       "required": true,
       "checksumEntry": true,
       "signingRequirement": "none",
-      "attestation": "build-provenance",
+      "attestation": "none",
       "distributionChannels": ["github-releases", "powershell-oneliner"]
     },
     {
@@ -48,7 +48,7 @@
       "required": true,
       "checksumEntry": true,
       "signingRequirement": "authenticode-when-available",
-      "attestation": "build-provenance",
+      "attestation": "none",
       "distributionChannels": ["github-releases-wpf", "velopack"]
     },
     {
@@ -58,7 +58,7 @@
       "required": true,
       "checksumEntry": true,
       "signingRequirement": "authenticode-when-available",
-      "attestation": "build-provenance",
+      "attestation": "none",
       "distributionChannels": ["github-releases", "fleet-tools"]
     },
     {
@@ -68,7 +68,7 @@
       "required": true,
       "checksumEntry": true,
       "signingRequirement": "none",
-      "attestation": "sbom-attestation",
+      "attestation": "none",
       "distributionChannels": ["github-releases", "github-releases-wpf"]
     },
     {
@@ -99,17 +99,19 @@
     "verificationCommand": "sha256sum --check checksums.txt"
   },
   "attestationContract": {
-    "provider": "github-built-in",
+    "provider": "none",
+    "status": "not-produced-by-local-builds",
+    "reason": "The repository intentionally does not track GitHub Actions build workflows. Local release builds publish checksums and SBOM files, but they do not currently produce GitHub provenance attestations.",
     "buildProvenance": {
-      "subjects": ["LibreSpot.exe", "LibreSpot.ps1", "LibreSpot-Desktop.exe", "LibreSpot.Cli.exe"],
-      "action": "actions/attest-build-provenance"
+      "subjects": [],
+      "action": null
     },
     "sbom": {
       "subject": "LibreSpot-Desktop.exe",
       "sbomFile": "LibreSpot.sbom.cdx.json",
-      "action": "actions/attest-sbom"
+      "action": null
     },
-    "verificationCommand": "gh attestation verify <asset> -R SysAdminDoc/LibreSpot"
+    "verificationCommand": null
   },
   "signingContract": {
     "provider": "signpath-foundation",
@@ -126,15 +128,15 @@
       "checksums.txt contains one entry per coveredAsset",
       "Prerelease flag matches releaseFlags for the tag channel",
       "No non-draft release is overwritten without explicit operator override",
-      "Build provenance attestation exists for each buildProvenance subject",
-      "SBOM attestation exists for the sbom subject"
+      "LibreSpot.sbom.cdx.json exists when the SBOM artifact is required",
+      "librespot-release-manifest.json records each artifact role, size, SHA256, RID, and build mode"
     ],
     "implementationStatus": "manual-local",
-    "notes": "The post-upload step runs from the maintainer machine with gh release view --json and gh attestation list after assets are uploaded. The repository intentionally does not track GitHub Actions build workflows."
+    "notes": "The post-upload step runs from the maintainer machine with gh release view --json after assets are uploaded. The repository intentionally does not track GitHub Actions build workflows, so provenance attestations are not part of the current local release contract."
   },
   "historicalReleases": {
     "description": "Releases before this contract was introduced do not conform to it.",
     "priorToContract": ["v3.7.2", "v4.0.0-preview.1", "v4.0.0-preview.2", "v4.0.0-preview.3", "v4.0.0-preview.4", "v4.0.0-preview.5", "v4.0.0-preview.6"],
-    "notes": "v3.7.2 ships only checksums.txt, LibreSpot.exe, LibreSpot.ps1. v4.0.0-preview.1 ships only LibreSpot-v4.0.0-preview.1.exe. These releases predate the WPF desktop exe, SBOM, and attestation requirements."
+    "notes": "v3.7.2 ships only checksums.txt, LibreSpot.exe, LibreSpot.ps1. v4.0.0-preview.1 ships only LibreSpot-v4.0.0-preview.1.exe. These releases predate the WPF desktop exe, CLI exe, SBOM, and release-manifest requirements."
   }
 }

@@ -10,7 +10,6 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-4.0.0--preview.6-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/SysAdminDoc/LibreSpot/badge)](https://securityscorecards.dev/viewer/?uri=github.com/SysAdminDoc/LibreSpot)
 
 </div>
 
@@ -264,9 +263,9 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 
 ## Signing & verification
 
-Releases ship unsigned today. [SignPath Foundation](https://signpath.org/) OSS enrollment is pending. Once the cert arrives, local release builds will Authenticode-sign both `LibreSpot.exe` and `LibreSpot-Desktop.exe` before upload and users will stop seeing the "Unknown publisher" SmartScreen warning.
+Releases ship unsigned today. [SignPath Foundation](https://signpath.org/) OSS enrollment is pending. Once the cert arrives, local release builds will Authenticode-sign `LibreSpot.exe`, `LibreSpot-Desktop.exe`, and `LibreSpot.Cli.exe` before upload and users will stop seeing the "Unknown publisher" SmartScreen warning.
 
-The current latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt` **as GitHub release assets**. The repository itself does not track build artifacts — `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [Releases page](https://github.com/SysAdminDoc/LibreSpot/releases), not against anything in a source checkout. Newer release builds also add `LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, CycloneDX SBOM output, and GitHub provenance attestations when those attestations are available.
+The current latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt` **as GitHub release assets**. The repository itself does not track build artifacts — `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [Releases page](https://github.com/SysAdminDoc/LibreSpot/releases), not against anything in a source checkout. Newer local release builds also add the .NET 10 `LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, CycloneDX SBOM output, and `librespot-release-manifest.json`.
 
 The recommended Quick Start snippet above verifies `LibreSpot.ps1` automatically. For manual verification of any downloaded release asset:
 
@@ -277,12 +276,7 @@ Get-FileHash .\LibreSpot.ps1  -Algorithm SHA256
 Get-Content  .\checksums.txt
 ```
 
-For release assets that include GitHub attestations, verify provenance with:
-
-```powershell
-gh attestation verify .\LibreSpot.exe          -R SysAdminDoc/LibreSpot
-gh attestation verify .\LibreSpot-Desktop.exe  -R SysAdminDoc/LibreSpot
-```
+GitHub provenance attestations are not produced by the current local release process because this repository intentionally does not track build workflows. Treat `checksums.txt`, the release manifest, and the SBOM as the current verification evidence until signing/provenance work is reintroduced.
 
 ## Project planning
 

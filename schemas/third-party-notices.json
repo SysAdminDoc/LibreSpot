@@ -117,7 +117,7 @@
       "licenseUrl": "https://github.com/CycloneDX/cyclonedx-dotnet/blob/master/LICENSE",
       "copyrightHolder": "OWASP Foundation",
       "redistributionPosture": "build-only",
-      "notes": "Generates SBOM during release workflow. Not shipped."
+      "notes": "Generates SBOM output during the local release build. Not shipped."
     },
     {
       "name": "Microsoft.NET.Test.Sdk",
