@@ -28,3 +28,9 @@ update-check.json
 !SECURITY.md
 !.github/*.md
 !.github/**/*.md
+
+# AI config
+CODEX_CHANGELOG.md
+AGENTS.md
+.claude/
+.codex/
