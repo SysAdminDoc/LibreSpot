@@ -298,6 +298,40 @@
       },
       "additionalProperties": false
     },
+    "profiles": {
+      "type": "object",
+      "description": "Named fleet presets selected with LibreSpot.Cli --profile <name>. Consent fields stay at the top level; each profile contains install settings that use the same shapes as the top-level answer-file options.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "installMode": {
+            "$ref": "#/properties/installMode"
+          },
+          "spotifyTarget": {
+            "$ref": "#/properties/spotifyTarget"
+          },
+          "spotx": {
+            "$ref": "#/properties/spotx"
+          },
+          "spicetify": {
+            "$ref": "#/properties/spicetify"
+          },
+          "watcher": {
+            "$ref": "#/properties/watcher"
+          },
+          "repairPolicy": {
+            "$ref": "#/properties/repairPolicy"
+          },
+          "logging": {
+            "$ref": "#/properties/logging"
+          },
+          "rebootPolicy": {
+            "$ref": "#/properties/rebootPolicy"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
     "eulaAccepted": {
       "type": "boolean",
       "description": "The deploying administrator confirms acceptance of the end-user license agreement. Must be true for fleet install to proceed."
@@ -357,6 +391,24 @@
       "eulaAccepted": true,
       "rebootPolicy": "ifNeeded",
       "riskAcknowledged": true
+    },
+    {
+      "schemaVersion": 1,
+      "eulaAccepted": true,
+      "riskAcknowledged": true,
+      "profiles": {
+        "minimal": {
+          "installMode": "custom",
+          "spotx": {
+            "podcastsOff": false,
+            "adSectionsOff": true
+          },
+          "spicetify": {
+            "theme": "(None - Marketplace Only)",
+            "extensions": []
+          }
+        }
+      }
     }
   ]
 }

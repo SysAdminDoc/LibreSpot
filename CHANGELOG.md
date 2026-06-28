@@ -24,6 +24,8 @@ All notable changes to LibreSpot will be documented in this file.
   repair actions, including the watcher repair alias, with dry-run NDJSON output.
 - Fleet CLI NDJSON runs now write rotating `.ndjson` log files to `--log-dir`
   or `%ProgramData%\LibreSpot\logs` for mutating endpoint operations.
+- Fleet answer files now support named `profiles`, and `--profile <name>` is
+  validated before install/reapply persists the selected preset to `config.json`.
 
 ### Changed
 - Release-trust documentation now reflects the local-only release process:

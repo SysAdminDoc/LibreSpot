@@ -181,6 +181,19 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public void ValidateAnswerFile_RejectsMissingRequestedProfile()
+    {
+        var sample = Path.Combine(ResolveRepoRoot(), "samples", "minimal.json");
+
+        var result = Run("validate", "--answer-file", sample, "--profile", "missing", "--json");
+
+        Assert.Equal(2, result.ExitCode);
+        using var doc = JsonDocument.Parse(result.Stdout);
+        Assert.False(doc.RootElement.GetProperty("valid").GetBoolean());
+        Assert.Contains("Profile 'missing'", doc.RootElement.GetProperty("errors")[0].GetProperty("message").GetString());
+    }
+
+    [Fact]
     public void InstallDryRun_EmitsNdjsonPlanWithoutMutating()
     {
         var sample = Path.Combine(ResolveRepoRoot(), "samples", "minimal.json");
@@ -428,6 +441,64 @@ public sealed class CliApplicationTests
             Assert.Equal("Dribbblish", config.RootElement.GetProperty("Spicetify_Theme").GetString());
             Assert.Equal("nord-dark", config.RootElement.GetProperty("Spicetify_Scheme").GetString());
             Assert.True(config.RootElement.GetProperty("AutoReapply_Enabled").GetBoolean());
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void MutatingInstall_UsesSelectedAnswerFileProfile()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
+        var answerFile = Path.Combine(root, "answer.json");
+        var configPath = Path.Combine(root, "config.json");
+        var logDir = Path.Combine(root, "logs");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(
+            answerFile,
+            """
+            {
+              "schemaVersion": 1,
+              "installMode": "recommended",
+              "spotx": { "premium": false },
+              "eulaAccepted": true,
+              "riskAcknowledged": true,
+              "profiles": {
+                "visual": {
+                  "installMode": "custom",
+                  "spotx": {
+                    "premium": true,
+                    "lyricsTheme": "lavender"
+                  },
+                  "spicetify": {
+                    "theme": "Dribbblish",
+                    "scheme": "catppuccin-mocha",
+                    "extensions": ["fullAppDisplay.js"]
+                  }
+                }
+              }
+            }
+            """);
+
+        try
+        {
+            var result = Run(
+                new[] { "install", "--answer-file", answerFile, "--profile", "visual", "--config-path", configPath, "--log-dir", logDir, "--ndjson" },
+                _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+                (action, _, _, _) => Task.FromResult(new CliBackendRunResult(action == "Install")));
+
+            Assert.Equal(0, result.ExitCode);
+            using var config = JsonDocument.Parse(File.ReadAllText(configPath));
+            Assert.Equal("Custom", config.RootElement.GetProperty("Mode").GetString());
+            Assert.True(config.RootElement.GetProperty("SpotX_Premium").GetBoolean());
+            Assert.Equal("lavender", config.RootElement.GetProperty("SpotX_LyricsTheme").GetString());
+            Assert.Equal("Dribbblish", config.RootElement.GetProperty("Spicetify_Theme").GetString());
+            Assert.Equal("catppuccin-mocha", config.RootElement.GetProperty("Spicetify_Scheme").GetString());
         }
         finally
         {

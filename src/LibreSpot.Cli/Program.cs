@@ -234,7 +234,7 @@ public static class CliApplication
 
     private static int RunValidate(CliOptions options, TextWriter stdout, TextWriter stderr)
     {
-        if (!options.OnlyContains("--json", "--answer-file", "--config-path", "--correlation-id", "--log-dir"))
+        if (!options.OnlyContains("--json", "--answer-file", "--profile", "--config-path", "--correlation-id", "--log-dir"))
         {
             stderr.WriteLine("validate received an unsupported flag.");
             return ValidationError;
@@ -247,7 +247,7 @@ public static class CliApplication
             return ValidationError;
         }
 
-        var result = ValidateAnswerFile(answerFile);
+        var result = ValidateAnswerFile(answerFile, options.GetValue("--profile"));
         if (options.HasFlag("--json"))
         {
             WriteJson(stdout, result);
@@ -419,7 +419,7 @@ public static class CliApplication
         var operationId = Guid.NewGuid();
         if (!string.IsNullOrWhiteSpace(answerFile))
         {
-            validation = ValidateAnswerFile(answerFile);
+            validation = ValidateAnswerFile(answerFile, options.GetValue("--profile"));
             if (!validation.Valid)
             {
                 if (options.HasFlag("--json"))
@@ -743,8 +743,17 @@ public static class CliApplication
         using var stream = File.OpenRead(answerFile);
         using var doc = JsonDocument.Parse(stream, new JsonDocumentOptions { AllowTrailingCommas = true });
         var root = doc.RootElement;
+        var settings = ResolveProfileSettings(root, options.GetValue("--profile"));
         var config = AppCatalog.CreateRecommendedConfiguration();
-        var installMode = GetString(root, "installMode");
+        ApplyAnswerSettings(root, config);
+        if (settings.HasValue)
+        {
+            ApplyAnswerSettings(settings.Value, config);
+        }
+
+        var installMode = settings.HasValue
+            ? GetString(settings.Value, "installMode") ?? GetString(root, "installMode")
+            : GetString(root, "installMode");
         config.Mode = string.Equals(installMode, "custom", StringComparison.OrdinalIgnoreCase) ||
                       string.Equals(installMode, "reapply", StringComparison.OrdinalIgnoreCase)
             ? "Custom"
@@ -752,12 +761,15 @@ public static class CliApplication
         config.CleanInstall = operation == "install" && !string.Equals(installMode, "reapply", StringComparison.OrdinalIgnoreCase);
         config.LaunchAfter = !options.HasFlag("--no-restart");
         config.RiskAcknowledged = true;
+        WriteConfiguration(configPath, config);
+    }
 
+    private static void ApplyAnswerSettings(JsonElement root, InstallConfiguration config)
+    {
         ApplySpotifyTarget(root, config);
         ApplySpotXOptions(root, config);
         ApplySpicetifyOptions(root, config);
         ApplyWatcherOptions(root, config);
-        WriteConfiguration(configPath, config);
     }
 
     private static void PersistUninstallAcknowledgmentConfig(string configPath)
@@ -1060,7 +1072,7 @@ public static class CliApplication
             .FirstOrDefault(component => string.Equals(component.Id, id, StringComparison.OrdinalIgnoreCase))
             ?.Status;
 
-    private static ValidationDocument ValidateAnswerFile(string answerFile)
+    private static ValidationDocument ValidateAnswerFile(string answerFile, string? profile = null)
     {
         var errors = new List<ValidationErrorDocument>();
         var fullPath = Path.GetFullPath(answerFile);
@@ -1081,10 +1093,12 @@ public static class CliApplication
                 return new ValidationDocument(1, fullPath, false, errors);
             }
 
-            RequireSchemaVersion(doc.RootElement, errors);
-            RequireBooleanTrue(doc.RootElement, "eulaAccepted", errors);
-            RequireBooleanTrue(doc.RootElement, "riskAcknowledged", errors);
-            ValidateInstallMode(doc.RootElement, errors);
+            var root = doc.RootElement;
+            RequireSchemaVersion(root, errors);
+            RequireBooleanTrue(root, "eulaAccepted", errors);
+            RequireBooleanTrue(root, "riskAcknowledged", errors);
+            var settings = ResolveProfileSettings(root, profile, errors);
+            ValidateInstallMode(settings ?? root, errors);
         }
         catch (JsonException ex)
         {
@@ -1096,6 +1110,46 @@ public static class CliApplication
         }
 
         return new ValidationDocument(1, fullPath, errors.Count == 0, errors);
+    }
+
+    private static JsonElement? ResolveProfileSettings(JsonElement root, string? profile)
+    {
+        var errors = new List<ValidationErrorDocument>();
+        var settings = ResolveProfileSettings(root, profile, errors);
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(errors[0].Message);
+        }
+
+        return settings;
+    }
+
+    private static JsonElement? ResolveProfileSettings(JsonElement root, string? profile, ICollection<ValidationErrorDocument> errors)
+    {
+        if (string.IsNullOrWhiteSpace(profile))
+        {
+            return null;
+        }
+
+        if (!root.TryGetProperty("profiles", out var profiles) || profiles.ValueKind != JsonValueKind.Object)
+        {
+            errors.Add(new ValidationErrorDocument("$.profiles", $"Profile '{profile}' was requested, but the answer file does not contain a profiles object."));
+            return null;
+        }
+
+        if (!profiles.TryGetProperty(profile, out var selected))
+        {
+            errors.Add(new ValidationErrorDocument($"$.profiles.{profile}", $"Profile '{profile}' was not found in the answer file."));
+            return null;
+        }
+
+        if (selected.ValueKind != JsonValueKind.Object)
+        {
+            errors.Add(new ValidationErrorDocument($"$.profiles.{profile}", $"Profile '{profile}' must be a JSON object."));
+            return null;
+        }
+
+        return selected;
     }
 
     private static PlanDocument BuildPlan(
