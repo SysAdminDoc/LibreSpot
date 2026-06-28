@@ -31,6 +31,9 @@ All notable changes to LibreSpot will be documented in this file.
 - Added a local profile store for the WPF preview that migrates the current
   `config.json`, ships bundled profile templates, tracks active/previous
   profile pointers, and round-trips safe `.librespot` share files.
+- WPF Custom mode now includes a local profile manager for bundled templates,
+  create-from-current saves, preview-before-write, active profile selection,
+  duplicate/rename/delete, and safe `.librespot` import/export.
 
 ### Changed
 - Release-trust documentation now reflects the local-only release process:

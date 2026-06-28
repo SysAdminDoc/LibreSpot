@@ -232,6 +232,60 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task LocalProfiles_LoadPreviewCreateRenameAndDeleteProfiles() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            Assert.Contains(viewModel.LocalProfiles, profile => profile.IsBuiltIn && profile.Name == "Recommended");
+            Assert.Contains(viewModel.LocalProfiles, profile => profile.IsBuiltIn && profile.Name == "Visual Theme");
+            Assert.Contains(viewModel.LocalProfiles, profile => profile.Id == "recommended" && profile.IsActive);
+
+            viewModel.SelectedLocalProfile = viewModel.LocalProfiles.Single(profile => profile.Id == "visual-theme");
+            await InvokePrivateTask(viewModel, "PreviewSelectedProfileAsync");
+
+            var previewed = BuildConfiguration(viewModel, "Custom");
+            Assert.Equal("Dribbblish", previewed.Spicetify_Theme);
+
+            viewModel.SelectedTheme = "Catppuccin";
+            viewModel.SelectedScheme = "mocha";
+            viewModel.ProfileNameText = "Desk preset";
+            viewModel.ProfileDescriptionText = "Saved from test";
+            await InvokePrivateTask(viewModel, "CreateLocalProfileAsync");
+
+            var created = Assert.Single(viewModel.LocalProfiles.Where(profile => profile.Name == "Desk preset"));
+            Assert.True(created.IsEditable);
+            Assert.True(viewModel.RenameProfileCommand.CanExecute(null));
+
+            viewModel.ProfileNameText = "Desk preset renamed";
+            await InvokePrivateTask(viewModel, "RenameLocalProfileAsync");
+
+            var renamed = Assert.Single(viewModel.LocalProfiles.Where(profile => profile.Name == "Desk preset renamed"));
+            Assert.DoesNotContain(viewModel.LocalProfiles, profile => profile.Name == "Desk preset");
+
+            await InvokePrivateTask(viewModel, "DeleteLocalProfileConfirmedAsync", renamed.Id, renamed.Name);
+
+            Assert.DoesNotContain(viewModel.LocalProfiles, profile => profile.Name == "Desk preset renamed");
+            Assert.Contains(viewModel.LocalProfiles, profile => profile.Id == "recommended" && profile.IsActive);
+        });
+
+    [Fact]
+    public Task LocalProfiles_SetActiveProfileWritesConfigAndKeepsPreviousPointer() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            await InvokePrivateTask(viewModel, "SetActiveProfileAsync", "lyrics-focus");
+
+            var active = BuildConfiguration(viewModel, "Custom");
+            Assert.Equal("lavender", active.SpotX_LyricsTheme);
+            Assert.Contains(viewModel.LocalProfiles, profile => profile.Id == "lyrics-focus" && profile.IsActive);
+            Assert.Contains("previous active profile", viewModel.ProfileOperationStatus, StringComparison.OrdinalIgnoreCase);
+        });
+
+    [Fact]
     public Task PromptDefaultConfirm_OnlyAppliesToNonDestructivePrompts() =>
         RunStaAsync(async () =>
         {
@@ -263,6 +317,17 @@ public sealed class MainViewModelMaintenanceTests
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
         Assert.NotNull(method);
         return Assert.IsType<InstallConfiguration>(method.Invoke(viewModel, new object[] { mode }));
+    }
+
+    private static async Task InvokePrivateTask(MainViewModel viewModel, string methodName, params object[] args)
+    {
+        var method = typeof(MainViewModel).GetMethod(
+            methodName,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(method);
+        var result = method.Invoke(viewModel, args);
+        var task = Assert.IsAssignableFrom<Task>(result);
+        await task;
     }
 
     private static Task RunStaAsync(Func<Task> action)

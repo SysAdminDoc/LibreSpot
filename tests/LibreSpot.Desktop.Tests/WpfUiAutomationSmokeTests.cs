@@ -125,6 +125,9 @@ public sealed class WpfUiAutomationSmokeTests
                 var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
                 var snapshot = WaitForSnapshotContaining(window, "Search themes and schemes", TimeSpan.FromSeconds(10));
 
+                Assert.Contains(snapshot, node => string.Equals(node.Name, "Local profiles", StringComparison.Ordinal));
+                Assert.Contains(snapshot, node => string.Equals(node.Name, "Recommended Template profile", StringComparison.Ordinal));
+                Assert.Contains(snapshot, node => string.Equals(node.Name, "Set selected profile active", StringComparison.Ordinal));
                 Assert.Contains(snapshot, node => string.Equals(node.Name, "Theme pack", StringComparison.Ordinal));
                 Assert.Contains(snapshot, node => node.Name.Contains("Marketplace only", StringComparison.Ordinal));
             }

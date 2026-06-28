@@ -98,6 +98,11 @@ public sealed class LocalProfileServiceTests : IDisposable
         Assert.False(exported.RootElement.GetProperty("settings").TryGetProperty("RiskAcknowledged", out _));
 
         await _profileService.DeleteAsync(created.Summary.Id);
+        var preview = await _profileService.PreviewImportAsync(exportPath);
+        Assert.Equal("Share Me", preview.Name);
+        Assert.True(preview.Configuration.SpotX_Premium);
+        Assert.DoesNotContain(await _profileService.GetProfilesAsync(), profile => profile.Name == "Share Me");
+
         var imported = await _profileService.ImportAsync(exportPath);
 
         Assert.Equal("share-me", imported.Summary.Id);

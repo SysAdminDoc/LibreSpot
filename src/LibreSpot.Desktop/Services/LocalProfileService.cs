@@ -18,6 +18,12 @@ public sealed record LocalProfile(
     LocalProfileSummary Summary,
     InstallConfiguration Configuration);
 
+public sealed record LocalProfileImportPreview(
+    string Name,
+    string Description,
+    InstallConfiguration Configuration,
+    string SourcePath);
+
 public sealed class LocalProfileService
 {
     private const int ProfileStoreSchemaVersion = 1;
@@ -182,6 +188,12 @@ public sealed class LocalProfileService
 
     public async Task<LocalProfile> ImportAsync(string sourcePath, CancellationToken cancellationToken = default)
     {
+        var preview = await PreviewImportAsync(sourcePath, cancellationToken);
+        return await CreateFromConfigurationAsync(preview.Name, preview.Description, preview.Configuration, cancellationToken);
+    }
+
+    public async Task<LocalProfileImportPreview> PreviewImportAsync(string sourcePath, CancellationToken cancellationToken = default)
+    {
         await using var stream = File.OpenRead(sourcePath);
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
         var root = document.RootElement;
@@ -210,7 +222,11 @@ public sealed class LocalProfileService
         var notes = root.TryGetProperty("notes", out var notesValue) && notesValue.ValueKind == JsonValueKind.String
             ? notesValue.GetString() ?? string.Empty
             : string.Empty;
-        return await CreateFromConfigurationAsync(profileName, notes, configuration, cancellationToken);
+        return new LocalProfileImportPreview(
+            NormalizeProfileName(profileName),
+            notes.Trim(),
+            SanitizedConfiguration(configuration),
+            Path.GetFullPath(sourcePath));
     }
 
     private async Task EnsureInitializedAsync(CancellationToken cancellationToken)

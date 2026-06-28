@@ -367,6 +367,38 @@ public sealed class SupportBundleCategoryViewModel : ObservableObject
     }
 }
 
+public sealed class LocalProfileCardViewModel
+{
+    public LocalProfileCardViewModel(LocalProfileSummary summary)
+    {
+        Id = summary.Id;
+        Name = summary.Name;
+        Description = summary.Description;
+        IsBuiltIn = summary.IsBuiltIn;
+        IsActive = summary.IsActive;
+        UpdatedAt = summary.UpdatedAt;
+    }
+
+    public string Id { get; }
+    public string Name { get; }
+    public string Description { get; }
+    public bool IsBuiltIn { get; }
+    public bool IsActive { get; }
+    public DateTimeOffset UpdatedAt { get; }
+    public bool IsEditable => !IsBuiltIn;
+    public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
+    public string KindBadge => IsBuiltIn ? "Template" : "Local";
+    public string StateBadge => IsActive ? "Active" : "Saved";
+    public string UpdatedText => IsBuiltIn ? "Bundled template" : $"Updated {UpdatedAt.LocalDateTime:g}";
+    public string AutomationName => $"{Name} {KindBadge} profile";
+    public string AutomationHelpText =>
+        IsActive
+            ? $"{Name} is the active LibreSpot profile."
+            : IsBuiltIn
+                ? $"{Name} is a bundled template that can be previewed, applied, or duplicated."
+                : $"{Name} is a local profile that can be previewed, renamed, exported, applied, duplicated, or deleted.";
+}
+
 public sealed class SelectionInsightViewModel
 {
     public SelectionInsightViewModel(string tone, string title, string detail)
@@ -451,6 +483,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly EnvironmentSnapshotService _snapshotService;
     private readonly SupportBundleService _supportBundleService;
     private readonly OperationJournalUndoService _operationJournalUndoService;
+    private readonly LocalProfileService _profileService;
     private readonly Dispatcher _dispatcher;
     private readonly bool _isAdministratorSession;
     private readonly InstallConfiguration _recommendedBaseline;
@@ -490,6 +523,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private ConfigurationLoadState _configurationLoadState = ConfigurationLoadState.Loaded;
     private string? _recoveredConfigurationPath;
     private string? _configurationRecoveryReason;
+    private LocalProfileCardViewModel? _selectedLocalProfile;
+    private string _profileNameText = "Custom profile";
+    private string _profileDescriptionText = "Saved from the Custom page.";
+    private string _profileOperationStatus = "Local profiles load when LibreSpot starts.";
     private Func<Task>? _pendingPromptAction;
     private SupportBundlePreview _supportBundlePreview = new(
         Array.Empty<SupportBundlePreviewEntry>(),
@@ -502,13 +539,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         BackendScriptService backendScriptService,
         EnvironmentSnapshotService snapshotService,
         SupportBundleService? supportBundleService = null,
-        OperationJournalUndoService? operationJournalUndoService = null)
+        OperationJournalUndoService? operationJournalUndoService = null,
+        LocalProfileService? profileService = null)
     {
         _configurationService = configurationService;
         _backendScriptService = backendScriptService;
         _snapshotService = snapshotService;
         _supportBundleService = supportBundleService ?? new SupportBundleService(configurationService.ConfigDirectory);
         _operationJournalUndoService = operationJournalUndoService ?? new OperationJournalUndoService();
+        _profileService = profileService ?? new LocalProfileService(configurationService);
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _isAdministratorSession = IsAdministrator();
         _recommendedBaseline = AppCatalog.CreateRecommendedConfiguration();
@@ -537,6 +576,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SupportBundleItems = new ObservableCollection<SupportBundleCategoryViewModel>();
         SupportBundleRedactionRules = new ObservableCollection<string>();
         UndoActionItems = new ObservableCollection<UndoActionItemViewModel>();
+        LocalProfiles = new ObservableCollection<LocalProfileCardViewModel>();
 
         InstallOptions = CreateOptions("Install");
         CoreOptions = CreateOptions("Core");
@@ -567,6 +607,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RefreshSnapshotCommand = new AsyncRelayCommand(RefreshSnapshotAsync, onException: HandleAsyncCommandException);
         RefreshSupportBundlePreviewCommand = new RelayCommand(RefreshSupportBundlePreview);
         ExportSupportBundleCommand = new AsyncRelayCommand(ExportSupportBundleAsync, () => !IsRunning, HandleAsyncCommandException);
+        RefreshProfilesCommand = new AsyncRelayCommand(() => RefreshLocalProfilesAsync(), () => !IsRunning, HandleAsyncCommandException);
+        PreviewSelectedProfileCommand = new AsyncRelayCommand(PreviewSelectedProfileAsync, CanUseSelectedProfile, HandleAsyncCommandException);
+        ApplySelectedProfileCommand = new AsyncRelayCommand(ApplySelectedProfileAsync, CanUseSelectedProfile, HandleAsyncCommandException);
+        CreateProfileCommand = new AsyncRelayCommand(CreateLocalProfileAsync, CanCreateLocalProfile, HandleAsyncCommandException);
+        DuplicateProfileCommand = new AsyncRelayCommand(DuplicateLocalProfileAsync, CanUseSelectedProfile, HandleAsyncCommandException);
+        RenameProfileCommand = new AsyncRelayCommand(RenameLocalProfileAsync, CanRenameLocalProfile, HandleAsyncCommandException);
+        DeleteProfileCommand = new AsyncRelayCommand(DeleteLocalProfileAsync, CanDeleteLocalProfile, HandleAsyncCommandException);
+        ExportProfileCommand = new AsyncRelayCommand(ExportLocalProfileAsync, CanUseSelectedProfile, HandleAsyncCommandException);
+        ImportProfileCommand = new AsyncRelayCommand(ImportLocalProfileAsync, () => !IsRunning, HandleAsyncCommandException);
         EnableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: true), () => !IsRunning && !Snapshot.AutoReapplyTaskRegistered);
         DisableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: false), () => !IsRunning && Snapshot.AutoReapplyTaskRegistered);
         ClearSettingsSearchCommand = new RelayCommand(() => SettingsSearchText = string.Empty, () => HasSettingsSearchText);
@@ -606,6 +655,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<SupportBundleCategoryViewModel> SupportBundleItems { get; }
     public ObservableCollection<string> SupportBundleRedactionRules { get; }
     public ObservableCollection<UndoActionItemViewModel> UndoActionItems { get; }
+    public ObservableCollection<LocalProfileCardViewModel> LocalProfiles { get; }
     public ObservableCollection<LogEntryViewModel> LogEntries { get; }
 
     public AsyncRelayCommand ApplyRecommendedCommand { get; }
@@ -617,6 +667,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public AsyncRelayCommand RefreshSnapshotCommand { get; }
     public RelayCommand RefreshSupportBundlePreviewCommand { get; }
     public AsyncRelayCommand ExportSupportBundleCommand { get; }
+    public AsyncRelayCommand RefreshProfilesCommand { get; }
+    public AsyncRelayCommand PreviewSelectedProfileCommand { get; }
+    public AsyncRelayCommand ApplySelectedProfileCommand { get; }
+    public AsyncRelayCommand CreateProfileCommand { get; }
+    public AsyncRelayCommand DuplicateProfileCommand { get; }
+    public AsyncRelayCommand RenameProfileCommand { get; }
+    public AsyncRelayCommand DeleteProfileCommand { get; }
+    public AsyncRelayCommand ExportProfileCommand { get; }
+    public AsyncRelayCommand ImportProfileCommand { get; }
     public RelayCommand EnableAutoReapplyCommand { get; }
     public RelayCommand DisableAutoReapplyCommand { get; }
     public RelayCommand ClearSettingsSearchCommand { get; }
@@ -641,6 +700,59 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public bool IsAdministratorSession => _isAdministratorSession;
     public bool NeedsAdministratorRelaunch => !_isAdministratorSession;
+
+    public LocalProfileCardViewModel? SelectedLocalProfile
+    {
+        get => _selectedLocalProfile;
+        set
+        {
+            if (SetProperty(ref _selectedLocalProfile, value))
+            {
+                RefreshProfileFormFromSelection();
+                RaiseLocalProfileStateChanged();
+            }
+        }
+    }
+
+    public string ProfileNameText
+    {
+        get => _profileNameText;
+        set
+        {
+            if (SetProperty(ref _profileNameText, value))
+            {
+                RaiseLocalProfileCommandStateChanged();
+            }
+        }
+    }
+
+    public string ProfileDescriptionText
+    {
+        get => _profileDescriptionText;
+        set
+        {
+            if (SetProperty(ref _profileDescriptionText, value))
+            {
+                RaiseLocalProfileCommandStateChanged();
+            }
+        }
+    }
+
+    public string ProfileOperationStatus
+    {
+        get => _profileOperationStatus;
+        private set => SetProperty(ref _profileOperationStatus, value);
+    }
+
+    public bool HasLocalProfiles => LocalProfiles.Count > 0;
+    public bool CanEditSelectedLocalProfile => SelectedLocalProfile?.IsEditable == true;
+    public string SelectedLocalProfileTitle => SelectedLocalProfile?.Name ?? "No profile selected";
+    public string SelectedLocalProfileDetail =>
+        SelectedLocalProfile is null
+            ? "Refresh profiles, import a .librespot file, or save the current Custom selections as a local profile."
+            : SelectedLocalProfile.IsActive
+                ? "This profile is active. Applying another profile keeps this one as the previous active pointer for rollback."
+                : SelectedLocalProfile.Description;
 
     public string SessionAccessTitle =>
         IsAdministratorSession ? Strings.ReadyToRun : Strings.AdminStepNeeded;
@@ -1324,6 +1436,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 RelaunchAsAdministratorCommand.RaiseCanExecuteChanged();
                 ConfirmPromptCommand.RaiseCanExecuteChanged();
                 CancelPromptCommand.RaiseCanExecuteChanged();
+                RaiseLocalProfileCommandStateChanged();
                 RaiseMaintenanceActionCanExecuteChanged();
                 RaisePropertyChanged(nameof(IsBusyIndeterminate));
                 RaisePropertyChanged(nameof(ProgressLabel));
@@ -1636,6 +1749,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _recoveredConfigurationPath = loadResult.RecoveredFilePath;
         _configurationRecoveryReason = loadResult.RecoveryReason;
         ApplyConfigurationToEditor(loadResult.Configuration);
+        await RefreshLocalProfilesAsync();
         await RefreshSnapshotAsync();
     }
 
@@ -1911,6 +2025,283 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(CustomRunReadinessDetail));
         RaisePropertyChanged(nameof(CustomApplyCaption));
         RebuildSelectionInsights();
+    }
+
+    private async Task RefreshLocalProfilesAsync(string? preferredProfileId = null)
+    {
+        var selectedId = preferredProfileId ?? SelectedLocalProfile?.Id;
+        var summaries = await _profileService.GetProfilesAsync();
+        LocalProfiles.Clear();
+        foreach (var summary in summaries)
+        {
+            LocalProfiles.Add(new LocalProfileCardViewModel(summary));
+        }
+
+        SelectedLocalProfile =
+            LocalProfiles.FirstOrDefault(profile => string.Equals(profile.Id, selectedId, StringComparison.OrdinalIgnoreCase)) ??
+            LocalProfiles.FirstOrDefault(profile => profile.IsActive) ??
+            LocalProfiles.FirstOrDefault();
+
+        ProfileOperationStatus = LocalProfiles.Count == 0
+            ? "No profiles are available yet. Save the current Custom selections to create one."
+            : $"{LocalProfiles.Count} local profile choices ready. Preview before applying if you want to inspect the settings first.";
+        RaiseLocalProfileStateChanged();
+    }
+
+    private void RefreshProfileFormFromSelection()
+    {
+        if (SelectedLocalProfile is null)
+        {
+            ProfileNameText = "Custom profile";
+            ProfileDescriptionText = "Saved from the Custom page.";
+            return;
+        }
+
+        ProfileNameText = SelectedLocalProfile.IsBuiltIn
+            ? CreateCopyName(SelectedLocalProfile.Name)
+            : SelectedLocalProfile.Name;
+        ProfileDescriptionText = SelectedLocalProfile.Description;
+    }
+
+    private void RaiseLocalProfileStateChanged()
+    {
+        RaisePropertyChanged(nameof(HasLocalProfiles));
+        RaisePropertyChanged(nameof(CanEditSelectedLocalProfile));
+        RaisePropertyChanged(nameof(SelectedLocalProfileTitle));
+        RaisePropertyChanged(nameof(SelectedLocalProfileDetail));
+        RaiseLocalProfileCommandStateChanged();
+    }
+
+    private void RaiseLocalProfileCommandStateChanged()
+    {
+        RefreshProfilesCommand.RaiseCanExecuteChanged();
+        PreviewSelectedProfileCommand.RaiseCanExecuteChanged();
+        ApplySelectedProfileCommand.RaiseCanExecuteChanged();
+        CreateProfileCommand.RaiseCanExecuteChanged();
+        DuplicateProfileCommand.RaiseCanExecuteChanged();
+        RenameProfileCommand.RaiseCanExecuteChanged();
+        DeleteProfileCommand.RaiseCanExecuteChanged();
+        ExportProfileCommand.RaiseCanExecuteChanged();
+        ImportProfileCommand.RaiseCanExecuteChanged();
+    }
+
+    private bool CanUseSelectedProfile() => !IsRunning && SelectedLocalProfile is not null;
+    private bool CanCreateLocalProfile() => !IsRunning && !string.IsNullOrWhiteSpace(ProfileNameText);
+    private bool CanRenameLocalProfile() => !IsRunning && SelectedLocalProfile?.IsEditable == true && !string.IsNullOrWhiteSpace(ProfileNameText);
+    private bool CanDeleteLocalProfile() => !IsRunning && SelectedLocalProfile?.IsEditable == true;
+
+    private async Task PreviewSelectedProfileAsync()
+    {
+        if (SelectedLocalProfile is null)
+        {
+            return;
+        }
+
+        var profile = await _profileService.LoadProfileAsync(SelectedLocalProfile.Id);
+        ApplyConfigurationToEditor(profile.Configuration);
+        ProfileOperationStatus = $"{profile.Summary.Name} is previewed in Custom. No files were changed.";
+        AppendLog($"Previewed local profile: {profile.Summary.Name}", "INFO");
+    }
+
+    private async Task ApplySelectedProfileAsync()
+    {
+        if (SelectedLocalProfile is null)
+        {
+            return;
+        }
+
+        var profile = await _profileService.LoadProfileAsync(SelectedLocalProfile.Id);
+        ShowPrompt(
+            $"Set active profile: {profile.Summary.Name}",
+            "LibreSpot will write this profile to config.json and keep the previous active profile pointer for rollback. This does not start an install by itself.",
+            "Set active",
+            Strings.ButtonCancel,
+            false,
+            () => SetActiveProfileAsync(profile.Summary.Id),
+            "Profile preview",
+            BuildProfileSummary(profile.Configuration));
+    }
+
+    private async Task SetActiveProfileAsync(string id)
+    {
+        await _profileService.ApplyProfileAsync(id);
+        var profile = await _profileService.LoadProfileAsync(id);
+        ApplyConfigurationToEditor(profile.Configuration);
+        await RefreshLocalProfilesAsync(profile.Summary.Id);
+        await RefreshSnapshotAsync();
+        ProfileOperationStatus = $"{profile.Summary.Name} is active. The previous active profile pointer is kept for rollback.";
+        AppendLog($"Set active local profile: {profile.Summary.Name}", "SUCCESS");
+    }
+
+    private async Task CreateLocalProfileAsync()
+    {
+        var profile = await _profileService.CreateFromConfigurationAsync(
+            ProfileNameText,
+            ProfileDescriptionText,
+            BuildConfiguration("Custom"));
+        await RefreshLocalProfilesAsync(profile.Summary.Id);
+        ProfileOperationStatus = $"{profile.Summary.Name} was saved from the current Custom selections.";
+        AppendLog($"Saved local profile: {profile.Summary.Name}", "SUCCESS");
+    }
+
+    private async Task DuplicateLocalProfileAsync()
+    {
+        if (SelectedLocalProfile is null)
+        {
+            return;
+        }
+
+        var sourceName = SelectedLocalProfile.Name;
+        var profile = await _profileService.DuplicateAsync(SelectedLocalProfile.Id, CreateCopyName(sourceName));
+        await RefreshLocalProfilesAsync(profile.Summary.Id);
+        ProfileOperationStatus = $"{profile.Summary.Name} was duplicated from {sourceName}.";
+        AppendLog($"Duplicated local profile: {profile.Summary.Name}", "SUCCESS");
+    }
+
+    private async Task RenameLocalProfileAsync()
+    {
+        if (SelectedLocalProfile is null)
+        {
+            return;
+        }
+
+        var profile = await _profileService.RenameAsync(SelectedLocalProfile.Id, ProfileNameText);
+        await RefreshLocalProfilesAsync(profile.Summary.Id);
+        ProfileOperationStatus = $"{profile.Summary.Name} was renamed.";
+        AppendLog($"Renamed local profile: {profile.Summary.Name}", "SUCCESS");
+    }
+
+    private Task DeleteLocalProfileAsync()
+    {
+        if (SelectedLocalProfile is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        var profile = SelectedLocalProfile;
+        ShowPrompt(
+            $"Delete profile: {profile.Name}",
+            "LibreSpot will remove this local profile file. Bundled templates are kept, and deleting the active profile falls back to Recommended.",
+            "Delete profile",
+            "Keep profile",
+            true,
+            () => DeleteLocalProfileConfirmedAsync(profile.Id, profile.Name),
+            "What this removes",
+            "Only the selected local profile JSON file is deleted. config.json and bundled templates are left intact.");
+        return Task.CompletedTask;
+    }
+
+    private async Task DeleteLocalProfileConfirmedAsync(string id, string name)
+    {
+        await _profileService.DeleteAsync(id);
+        await RefreshLocalProfilesAsync();
+        await RefreshSnapshotAsync();
+        ProfileOperationStatus = $"{name} was deleted. Active fallback is visible in the profile list.";
+        AppendLog($"Deleted local profile: {name}", "WARN");
+    }
+
+    private async Task ExportLocalProfileAsync()
+    {
+        if (SelectedLocalProfile is null)
+        {
+            return;
+        }
+
+        var fileName = $"{SlugifyForFile(SelectedLocalProfile.Name)}.librespot";
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Export LibreSpot profile",
+            Filter = "LibreSpot profiles (*.librespot)|*.librespot",
+            DefaultExt = ".librespot",
+            AddExtension = true,
+            OverwritePrompt = true,
+            FileName = fileName
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        await _profileService.ExportAsync(SelectedLocalProfile.Id, dialog.FileName);
+        ProfileOperationStatus = $"{SelectedLocalProfile.Name} was exported to {dialog.FileName}.";
+        AppendLog($"Exported local profile: {dialog.FileName}", "SUCCESS");
+    }
+
+    private async Task ImportLocalProfileAsync()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Import LibreSpot profile",
+            Filter = "LibreSpot profiles (*.librespot)|*.librespot|JSON files (*.json)|*.json",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        var preview = await _profileService.PreviewImportAsync(dialog.FileName);
+        ShowPrompt(
+            $"Import profile: {preview.Name}",
+            "LibreSpot validated the profile file and will save it as a local profile only after you confirm. Importing does not start an install or acknowledge Spotify risk.",
+            "Import profile",
+            Strings.ButtonCancel,
+            false,
+            () => ImportLocalProfileConfirmedAsync(preview.SourcePath),
+            "Imported settings",
+            BuildProfileSummary(preview.Configuration));
+    }
+
+    private async Task ImportLocalProfileConfirmedAsync(string sourcePath)
+    {
+        var profile = await _profileService.ImportAsync(sourcePath);
+        await RefreshLocalProfilesAsync(profile.Summary.Id);
+        ProfileOperationStatus = $"{profile.Summary.Name} was imported. Preview or set it active when you are ready.";
+        AppendLog($"Imported local profile: {profile.Summary.Name}", "SUCCESS");
+    }
+
+    private string CreateCopyName(string sourceName)
+    {
+        var baseName = string.IsNullOrWhiteSpace(sourceName) ? "Profile" : sourceName.Trim();
+        if (!baseName.EndsWith(" Copy", StringComparison.OrdinalIgnoreCase))
+        {
+            baseName += " Copy";
+        }
+
+        var candidate = baseName;
+        for (var suffix = 2; LocalProfiles.Any(profile => string.Equals(profile.Name, candidate, StringComparison.CurrentCultureIgnoreCase)); suffix++)
+        {
+            candidate = $"{baseName} {suffix}";
+        }
+
+        return candidate;
+    }
+
+    private static string SlugifyForFile(string value)
+    {
+        var safe = new string((value ?? "profile")
+            .Trim()
+            .ToLowerInvariant()
+            .Select(ch => char.IsLetterOrDigit(ch) ? ch : '-')
+            .ToArray());
+        var compact = string.Join('-', safe.Split('-', StringSplitOptions.RemoveEmptyEntries));
+        return string.IsNullOrWhiteSpace(compact) ? "profile" : compact;
+    }
+
+    private static string BuildProfileSummary(InstallConfiguration configuration)
+    {
+        var normalized = AppCatalog.NormalizeConfiguration(configuration);
+        var extensionCount = normalized.Spicetify_Extensions.Count;
+        var extensionText = extensionCount switch
+        {
+            0 => "no extensions",
+            1 => "1 extension",
+            _ => $"{extensionCount} extensions"
+        };
+        return $"{normalized.Mode} profile. Theme: {normalized.Spicetify_Theme} / {normalized.Spicetify_Scheme}. Lyrics: {Prettify.Label(normalized.SpotX_LyricsTheme)}. Extensions: {extensionText}. Premium flag: {(normalized.SpotX_Premium ? "on" : "off")}.";
     }
 
     private StackHealthComponent? HealthComponent(string id) =>

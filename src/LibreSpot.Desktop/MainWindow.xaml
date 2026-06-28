@@ -332,6 +332,61 @@
       </CheckBox>
     </DataTemplate>
 
+    <DataTemplate DataType="{x:Type viewModels:LocalProfileCardViewModel}" x:Key="LocalProfileTemplate">
+      <Border Margin="0,0,0,8"
+              Padding="12"
+              Background="{StaticResource Surface1Brush}"
+              BorderThickness="1"
+              CornerRadius="8">
+        <Border.Style>
+          <Style TargetType="Border">
+            <Setter Property="BorderBrush" Value="{StaticResource StrokeSoftBrush}" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding IsActive}" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                <Setter Property="Background" Value="{StaticResource AccentMistBrush}" />
+              </DataTrigger>
+              <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Border.Style>
+        <StackPanel>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding Name}"
+                       Foreground="{StaticResource TextBrush}"
+                       FontWeight="SemiBold"
+                       FontSize="13"
+                       TextWrapping="Wrap"
+                       Margin="0,0,8,0" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+              <Border Style="{StaticResource MicroBadgeStyle}" Margin="0,0,6,0">
+                <TextBlock Text="{Binding StateBadge}"
+                           Style="{StaticResource MicroBadgeTextStyle}" />
+              </Border>
+              <Border Style="{StaticResource MicroBadgeStyle}">
+                <TextBlock Text="{Binding KindBadge}"
+                           Style="{StaticResource MicroBadgeTextStyle}" />
+              </Border>
+            </StackPanel>
+          </Grid>
+          <TextBlock Text="{Binding Description}"
+                     Style="{StaticResource CaptionTextStyle}"
+                     Margin="0,6,0,0"
+                     Visibility="{Binding HasDescription, Converter={StaticResource BoolToVisibilityConverter}}" />
+          <TextBlock Text="{Binding UpdatedText}"
+                     Style="{StaticResource CaptionTextStyle}"
+                     Foreground="{StaticResource MutedTextBrush}"
+                     Margin="0,6,0,0" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
     <DataTemplate DataType="{x:Type viewModels:MaintenanceActionCardViewModel}" x:Key="MaintenanceTemplate">
       <Border Margin="0,0,0,12"
               Visibility="{Binding IsRelevant, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -1581,6 +1636,133 @@
 
                     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
                       <StackPanel>
+                        <TextBlock Text="Local profiles"
+                                   Style="{StaticResource LabelTextStyle}"
+                                   Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="Save named presets, preview templates, and import shared .librespot files before anything is written."
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Foreground="{StaticResource TextBrush}"
+                                   Margin="0,8,0,10" />
+
+                        <ListBox ItemsSource="{Binding LocalProfiles}"
+                                 SelectedItem="{Binding SelectedLocalProfile, Mode=TwoWay}"
+                                 ItemTemplate="{StaticResource LocalProfileTemplate}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Padding="0"
+                                 MaxHeight="230"
+                                 KeyboardNavigation.DirectionalNavigation="Contained"
+                                 AutomationProperties.Name="Local profiles"
+                                 AutomationProperties.HelpText="Named LibreSpot profiles and bundled templates.">
+                          <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                              <Setter Property="Margin" Value="0" />
+                              <Setter Property="Padding" Value="0" />
+                              <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                              <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                              <Setter Property="Background" Value="Transparent" />
+                              <Setter Property="BorderThickness" Value="0" />
+                              <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
+                              <Setter Property="AutomationProperties.HelpText" Value="{Binding AutomationHelpText}" />
+                            </Style>
+                          </ListBox.ItemContainerStyle>
+                        </ListBox>
+
+                        <TextBlock Text="{Binding ProfileOperationStatus}"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Foreground="{StaticResource MutedTextBrush}"
+                                   Margin="0,8,0,12" />
+
+                        <Grid Margin="0,0,0,10">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                          </Grid.ColumnDefinitions>
+                          <Button Content="Preview"
+                                  Height="34"
+                                  Margin="0,0,6,0"
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Command="{Binding PreviewSelectedProfileCommand}"
+                                  AutomationProperties.Name="Preview selected profile"
+                                  AutomationProperties.HelpText="Loads the selected profile into the Custom editor without writing config.json." />
+                          <Button Grid.Column="1"
+                                  Content="Set active"
+                                  Height="34"
+                                  Margin="6,0,0,0"
+                                  Style="{StaticResource PrimaryButtonStyle}"
+                                  Command="{Binding ApplySelectedProfileCommand}"
+                                  AutomationProperties.Name="Set selected profile active"
+                                  AutomationProperties.HelpText="Confirms and writes the selected profile to config.json." />
+                        </Grid>
+
+                        <TextBlock Text="Profile name"
+                                   Style="{StaticResource LabelTextStyle}" />
+                        <TextBox Text="{Binding ProfileNameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource TextBoxStylePremium}"
+                                 Height="38"
+                                 Margin="0,6,0,10"
+                                 AutomationProperties.Name="Profile name"
+                                 AutomationProperties.HelpText="Name used when saving or renaming a local profile." />
+                        <TextBlock Text="Notes"
+                                   Style="{StaticResource LabelTextStyle}" />
+                        <TextBox Text="{Binding ProfileDescriptionText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource TextBoxStylePremium}"
+                                 Height="62"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 Margin="0,6,0,12"
+                                 AutomationProperties.Name="Profile notes"
+                                 AutomationProperties.HelpText="Short description stored with the local profile." />
+
+                        <UniformGrid Columns="2" Margin="0,0,0,4">
+                          <Button Content="Save current"
+                                  Height="34"
+                                  Margin="0,0,6,8"
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Command="{Binding CreateProfileCommand}"
+                                  AutomationProperties.Name="Save current selections as profile"
+                                  AutomationProperties.HelpText="Saves the current Custom selections as a new local profile." />
+                          <Button Content="Duplicate"
+                                  Height="34"
+                                  Margin="6,0,0,8"
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Command="{Binding DuplicateProfileCommand}"
+                                  AutomationProperties.Name="Duplicate selected profile"
+                                  AutomationProperties.HelpText="Creates a new local copy of the selected profile." />
+                          <Button Content="Rename"
+                                  Height="34"
+                                  Margin="0,0,6,8"
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Command="{Binding RenameProfileCommand}"
+                                  AutomationProperties.Name="Rename selected profile"
+                                  AutomationProperties.HelpText="Renames the selected local profile using the profile name field." />
+                          <Button Content="Import"
+                                  Height="34"
+                                  Margin="6,0,0,8"
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Command="{Binding ImportProfileCommand}"
+                                  AutomationProperties.Name="Import LibreSpot profile"
+                                  AutomationProperties.HelpText="Opens a .librespot profile as an inert preview before saving it locally." />
+                          <Button Content="Export"
+                                  Height="34"
+                                  Margin="0,0,6,8"
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Command="{Binding ExportProfileCommand}"
+                                  AutomationProperties.Name="Export selected profile"
+                                  AutomationProperties.HelpText="Exports the selected profile as a safe .librespot file." />
+                          <Button Content="Delete"
+                                  Height="34"
+                                  Margin="6,0,0,8"
+                                  Style="{StaticResource DestructiveButtonStyle}"
+                                  Command="{Binding DeleteProfileCommand}"
+                                  AutomationProperties.Name="Delete selected local profile"
+                                  AutomationProperties.HelpText="Confirms and removes the selected local profile file." />
+                        </UniformGrid>
+
+                        <Border Height="1"
+                                Background="{StaticResource StrokeSoftBrush}"
+                                Margin="0,12,0,16" />
+
                         <TextBlock Text="{x:Static props:Strings.ProfileSummaryLabel}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Foreground="{StaticResource AccentBrush}" />
