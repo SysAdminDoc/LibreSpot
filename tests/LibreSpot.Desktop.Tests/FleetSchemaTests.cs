@@ -177,7 +177,7 @@ public sealed class FleetSchemaTests
     public void CliContract_AllVerbsHaveRequiredFields()
     {
         using var doc = LoadJson("fleet-cli-contract.json");
-        var required = new[] { "verb", "description", "requiresAdmin", "mutates", "supportsDryRun", "supportsJson", "supportsNdjson" };
+        var required = new[] { "verb", "description", "requiresAdmin", "mutates", "implementationStatus", "supportsDryRun", "supportsJson", "supportsNdjson" };
 
         foreach (var entry in doc.RootElement.GetProperty("verbs").EnumerateArray())
         {
@@ -199,6 +199,35 @@ public sealed class FleetSchemaTests
             .Select(e => e.GetProperty("verb").GetString()!)
             .ToList();
         Assert.Equal(names.Count, names.Distinct().Count());
+    }
+
+    [Fact]
+    public void CliContract_ImplementationStatusesAreKnown()
+    {
+        using var doc = LoadJson("fleet-cli-contract.json");
+        var known = new HashSet<string> { "implemented", "dry-run-only", "planned" };
+
+        foreach (var entry in doc.RootElement.GetProperty("verbs").EnumerateArray())
+        {
+            var verb = entry.GetProperty("verb").GetString()!;
+            var status = entry.GetProperty("implementationStatus").GetString()!;
+            Assert.True(known.Contains(status), $"Verb '{verb}' has unknown implementation status '{status}'.");
+        }
+    }
+
+    [Fact]
+    public void CliContract_PlannedVerbsAreExplicit()
+    {
+        using var doc = LoadJson("fleet-cli-contract.json");
+        var planned = doc.RootElement.GetProperty("verbs").EnumerateArray()
+            .Where(e => e.GetProperty("implementationStatus").GetString() == "planned")
+            .Select(e => e.GetProperty("verb").GetString()!)
+            .OrderBy(name => name)
+            .ToArray();
+
+        Assert.Equal(
+            new[] { "export-support", "repair", "watcher install", "watcher remove" },
+            planned);
     }
 
     [Fact]

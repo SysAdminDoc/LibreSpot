@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -37,7 +38,9 @@ public static class CliApplication
         "--config-path",
         "--correlation-id",
         "--log-dir",
+        "--output",
         "--profile",
+        "--repair-id",
         "--scope"
     };
 
@@ -57,8 +60,14 @@ public static class CliApplication
 
             if (IsVersion(args[0]))
             {
-                stdout.WriteLine($"LibreSpot.Cli {ProductVersion}");
-                return Success;
+                var versionParse = Parse(args.Skip(1).ToArray());
+                if (versionParse.Error is not null)
+                {
+                    stderr.WriteLine(versionParse.Error);
+                    return ValidationError;
+                }
+
+                return RunVersion(versionParse.Options ?? new CliOptions(new Dictionary<string, string?>()), stdout, stderr);
             }
 
             var verb = args[0].Trim().ToLowerInvariant();
@@ -79,6 +88,7 @@ public static class CliApplication
                 "reapply" => RunPlannedOperation("reapply", options, stdout, stderr),
                 "uninstall" => RunPlannedOperation("uninstall", options, stdout, stderr),
                 "plan" => RunPlannedOperation("install", options, stdout, stderr, planVerb: true),
+                "version" => RunVersion(options, stdout, stderr),
                 _ => UnknownVerb(verb, stderr)
             };
         }
@@ -112,6 +122,26 @@ public static class CliApplication
         else
         {
             stdout.WriteLine($"{snapshot.HealthReport.StatusTitle}: {snapshot.HealthReport.IssueSummary}");
+        }
+
+        return Success;
+    }
+
+    private static int RunVersion(CliOptions options, TextWriter stdout, TextWriter stderr)
+    {
+        if (!options.OnlyContains("--json"))
+        {
+            stderr.WriteLine("version received an unsupported flag.");
+            return ValidationError;
+        }
+
+        if (options.HasFlag("--json"))
+        {
+            WriteJson(stdout, BuildVersionDocument());
+        }
+        else
+        {
+            stdout.WriteLine($"LibreSpot.Cli {ProductVersion}");
         }
 
         return Success;
@@ -243,6 +273,7 @@ public static class CliApplication
 
         var answerFile = options.GetValue("--answer-file");
         ValidationDocument? validation = null;
+        var operationId = Guid.NewGuid();
         if (!string.IsNullOrWhiteSpace(answerFile))
         {
             validation = ValidateAnswerFile(answerFile);
@@ -254,7 +285,16 @@ public static class CliApplication
                 }
                 else if (options.HasFlag("--ndjson"))
                 {
-                    WriteJson(stdout, NdjsonEvent("validation.failed", operation, validation));
+                    WriteJson(stdout, NdjsonEvent(
+                        "LS1003",
+                        "error",
+                        "lifecycle",
+                        "Answer file validation failed.",
+                        operation,
+                        validation,
+                        options,
+                        operationId,
+                        exitCode: ValidationError));
                 }
                 else
                 {
@@ -276,13 +316,39 @@ public static class CliApplication
         var plan = BuildPlan(operation, options, validation);
         if (options.HasFlag("--ndjson"))
         {
-            WriteJson(stdout, NdjsonEvent("plan.started", operation, new { plan.Operation, plan.DryRun, plan.Mutates }));
+            WriteJson(stdout, NdjsonEvent(
+                "LS1001",
+                "info",
+                "lifecycle",
+                "LibreSpot dry-run plan started.",
+                operation,
+                new { plan.Operation, plan.DryRun, plan.Mutates },
+                options,
+                operationId));
             foreach (var step in plan.Steps)
             {
-                WriteJson(stdout, NdjsonEvent("plan.step", operation, step));
+                WriteJson(stdout, NdjsonEvent(
+                    "LS8001",
+                    "info",
+                    "journal",
+                    "Dry-run plan step recorded.",
+                    operation,
+                    step,
+                    options,
+                    operationId,
+                    target: step.Target));
             }
 
-            WriteJson(stdout, NdjsonEvent("plan.completed", operation, new { exitCode = Success, stepCount = plan.Steps.Count }));
+            WriteJson(stdout, NdjsonEvent(
+                "LS1002",
+                "success",
+                "lifecycle",
+                "LibreSpot dry-run plan completed.",
+                operation,
+                new { stepCount = plan.Steps.Count },
+                options,
+                operationId,
+                exitCode: Success));
         }
         else if (options.HasFlag("--json") || planVerb)
         {
@@ -295,6 +361,29 @@ public static class CliApplication
 
         return Success;
     }
+
+    private static VersionDocument BuildVersionDocument() =>
+        new(
+            1,
+            ProductVersion,
+            typeof(CliApplication).Assembly.GetName().Version?.ToString() ?? "unknown",
+            DateTimeOffset.UtcNow,
+            RuntimeInformation.FrameworkDescription,
+            RuntimeInformation.RuntimeIdentifier,
+            RuntimeInformation.ProcessArchitecture.ToString(),
+            RuntimeInformation.OSDescription,
+            new DependencyPinsDocument(
+                new SpotXPinDocument(
+                    AppCatalog.PinnedSpotXVersion,
+                    AppCatalog.PinnedSpotXCommit,
+                    AppCatalog.PinnedSpotXSpotifyVersionId,
+                    AppCatalog.PinnedSpotXSpotifyVersion),
+                new SpicetifyPinDocument(
+                    AppCatalog.PinnedSpicetifyCliVersion,
+                    AppCatalog.SpicetifyWindowsMinTestedSpotify,
+                    AppCatalog.SpicetifyWindowsMaxTestedSpotify),
+                AppCatalog.PinnedMarketplaceVersion,
+                AppCatalog.PinnedThemesCommit));
 
     private static StatusDocument BuildStatusDocument(EnvironmentSnapshot snapshot, string configPath) =>
         new(
@@ -558,19 +647,20 @@ public static class CliApplication
         for (var i = 0; i < args.Length; i++)
         {
             var arg = args[i];
-            if (!arg.StartsWith("--", StringComparison.Ordinal))
+            var normalizedArg = NormalizeFlagAlias(arg);
+            if (!normalizedArg.StartsWith("--", StringComparison.Ordinal))
             {
                 positional.Add(arg);
                 continue;
             }
 
-            var name = arg;
+            var name = normalizedArg;
             string? value = null;
-            var equalsIndex = arg.IndexOf('=', StringComparison.Ordinal);
+            var equalsIndex = normalizedArg.IndexOf('=', StringComparison.Ordinal);
             if (equalsIndex > 0)
             {
-                name = arg[..equalsIndex];
-                value = arg[(equalsIndex + 1)..];
+                name = normalizedArg[..equalsIndex];
+                value = normalizedArg[(equalsIndex + 1)..];
             }
             else if (ValueFlags.Contains(name))
             {
@@ -590,22 +680,51 @@ public static class CliApplication
             return new ParseResult(null, $"Unexpected positional argument: {positional[0]}");
         }
 
+        if (options.ContainsKey("--json") && options.ContainsKey("--ndjson"))
+        {
+            return new ParseResult(null, "--json and --ndjson cannot be used together.");
+        }
+
         return new ParseResult(new CliOptions(options), null);
     }
+
+    private static string NormalizeFlagAlias(string arg) =>
+        arg switch
+        {
+            "/S" or "/s" or "-s" => "--silent",
+            "-q" => "--quiet",
+            "-y" => "--yes",
+            "-o" => "--output",
+            _ => arg
+        };
 
     private static void WriteJson<T>(TextWriter stdout, T value) =>
         stdout.WriteLine(JsonSerializer.Serialize(value, JsonOptions));
 
-    private static object NdjsonEvent(string eventName, string operation, object payload) =>
-        new
-        {
-            schemaVersion = 1,
-            productVersion = ProductVersion,
-            timestampUtc = DateTimeOffset.UtcNow,
-            eventName,
-            operation,
-            payload
-        };
+    private static NdjsonLogLine NdjsonEvent(
+        string eventId,
+        string level,
+        string component,
+        string message,
+        string verb,
+        object payload,
+        CliOptions options,
+        Guid operationId,
+        string? target = null,
+        int? exitCode = null) =>
+        new(
+            1,
+            eventId,
+            DateTimeOffset.UtcNow,
+            level,
+            verb,
+            operationId,
+            options.GetValue("--correlation-id"),
+            component,
+            target,
+            message,
+            payload,
+            exitCode);
 
     private static int UnknownVerb(string verb, TextWriter stderr)
     {
@@ -750,3 +869,45 @@ public sealed record PlanStepDocument(
     bool Mutates,
     string Target,
     string Detail);
+
+public sealed record VersionDocument(
+    int SchemaVersion,
+    string ProductVersion,
+    string AssemblyVersion,
+    DateTimeOffset GeneratedAtUtc,
+    string FrameworkDescription,
+    string RuntimeIdentifier,
+    string ProcessArchitecture,
+    string OsDescription,
+    DependencyPinsDocument Dependencies);
+
+public sealed record DependencyPinsDocument(
+    SpotXPinDocument SpotX,
+    SpicetifyPinDocument SpicetifyCli,
+    string MarketplaceVersion,
+    string ThemesCommit);
+
+public sealed record SpotXPinDocument(
+    string Version,
+    string Commit,
+    string SpotifyTargetId,
+    string SpotifyTargetVersion);
+
+public sealed record SpicetifyPinDocument(
+    string Version,
+    string WindowsMinTestedSpotify,
+    string WindowsMaxTestedSpotify);
+
+public sealed record NdjsonLogLine(
+    int SchemaVersion,
+    string EventId,
+    DateTimeOffset Timestamp,
+    string Level,
+    string Verb,
+    Guid OperationId,
+    string? CorrelationId,
+    string Component,
+    string? Target,
+    string Message,
+    object Payload,
+    int? ExitCode);

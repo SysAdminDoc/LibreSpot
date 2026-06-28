@@ -23,6 +23,20 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public void VersionJson_EmitsDependencyPins()
+    {
+        var result = Run("version", "--json");
+
+        Assert.Equal(0, result.ExitCode);
+        using var doc = JsonDocument.Parse(result.Stdout);
+        Assert.Equal(1, doc.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal("4.0.0-preview.6", doc.RootElement.GetProperty("productVersion").GetString());
+        Assert.Equal("2.43.2", doc.RootElement.GetProperty("dependencies").GetProperty("spicetifyCli").GetProperty("version").GetString());
+        Assert.Equal("1.0.8", doc.RootElement.GetProperty("dependencies").GetProperty("marketplaceVersion").GetString());
+        Assert.StartsWith("3284673", doc.RootElement.GetProperty("dependencies").GetProperty("spotX").GetProperty("commit").GetString());
+    }
+
+    [Fact]
     public void StatusJson_UsesHealthReportComponents()
     {
         var snapshot = Snapshot(
@@ -176,11 +190,45 @@ public sealed class CliApplicationTests
         using var started = JsonDocument.Parse(lines[0]);
         using var step = JsonDocument.Parse(lines[1]);
         using var completed = JsonDocument.Parse(lines[^1]);
-        Assert.Equal("plan.started", started.RootElement.GetProperty("eventName").GetString());
-        Assert.Equal("plan.step", step.RootElement.GetProperty("eventName").GetString());
+        AssertNdjsonRequiredFields(started.RootElement);
+        AssertNdjsonRequiredFields(step.RootElement);
+        AssertNdjsonRequiredFields(completed.RootElement);
+        Assert.Equal("LS1001", started.RootElement.GetProperty("eventId").GetString());
+        Assert.Equal("info", started.RootElement.GetProperty("level").GetString());
+        Assert.Equal("lifecycle", started.RootElement.GetProperty("component").GetString());
+        Assert.Equal("install", started.RootElement.GetProperty("verb").GetString());
+        Assert.True(Guid.TryParse(started.RootElement.GetProperty("operationId").GetString(), out var operationId));
+        Assert.Equal(operationId, Guid.Parse(step.RootElement.GetProperty("operationId").GetString()!));
+        Assert.Equal("LS8001", step.RootElement.GetProperty("eventId").GetString());
+        Assert.Equal("journal", step.RootElement.GetProperty("component").GetString());
         Assert.Equal("validate-answer-file", step.RootElement.GetProperty("payload").GetProperty("id").GetString());
-        Assert.Equal("plan.completed", completed.RootElement.GetProperty("eventName").GetString());
-        Assert.Equal(0, completed.RootElement.GetProperty("payload").GetProperty("exitCode").GetInt32());
+        Assert.Equal("LS1002", completed.RootElement.GetProperty("eventId").GetString());
+        Assert.Equal("success", completed.RootElement.GetProperty("level").GetString());
+        Assert.Equal(0, completed.RootElement.GetProperty("exitCode").GetInt32());
+        Assert.True(completed.RootElement.GetProperty("payload").GetProperty("stepCount").GetInt32() >= 3);
+    }
+
+    [Fact]
+    public void SilentSlashAlias_IsAcceptedForDryRun()
+    {
+        var sample = Path.Combine(ResolveRepoRoot(), "samples", "minimal.json");
+
+        var result = Run("install", "/S", "--dry-run", "--answer-file", sample, "--ndjson");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("\"eventId\":\"LS1001\"", result.Stdout);
+    }
+
+    [Fact]
+    public void JsonAndNdjsonConflict_IsRejectedBeforeVerbExecution()
+    {
+        var sample = Path.Combine(ResolveRepoRoot(), "samples", "minimal.json");
+
+        var result = Run("install", "--dry-run", "--answer-file", sample, "--json", "--ndjson");
+
+        Assert.Equal(2, result.ExitCode);
+        Assert.Contains("--json and --ndjson cannot be used together", result.Stderr);
+        Assert.Equal(string.Empty, result.Stdout);
     }
 
     [Fact]
@@ -213,6 +261,35 @@ public sealed class CliApplicationTests
         Assert.Equal(string.Empty, result.Stdout);
     }
 
+    [Fact]
+    public void FleetContract_ImplementedVerbsAreAcceptedByParser()
+    {
+        var repoRoot = ResolveRepoRoot();
+        var sample = Path.Combine(repoRoot, "samples", "minimal.json");
+        using var contract = JsonDocument.Parse(File.ReadAllText(Path.Combine(repoRoot, "schemas", "fleet-cli-contract.json")));
+
+        foreach (var verb in contract.RootElement.GetProperty("verbs").EnumerateArray())
+        {
+            var status = verb.GetProperty("implementationStatus").GetString();
+            if (status is not ("implemented" or "dry-run-only"))
+            {
+                continue;
+            }
+
+            var name = verb.GetProperty("verb").GetString()!;
+            var result = Run(
+                ArgsForImplementedVerb(name, sample),
+                _ => Snapshot(
+                    spotifyInstalled: true,
+                    spicetifyInstalled: true,
+                    Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready),
+                    Component("spicetify-cli", "Spicetify CLI", "Detected", CliHealthSeverity.Ready)));
+
+            Assert.Equal(0, result.ExitCode);
+            Assert.DoesNotContain("Unknown LibreSpot CLI verb", result.Stderr);
+        }
+    }
+
     private static CliRunResult Run(params string[] args) =>
         Run(args, _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true));
 
@@ -222,6 +299,28 @@ public sealed class CliApplicationTests
         using var stderr = new StringWriter();
         var exitCode = CliApp.Run(args, stdout, stderr, snapshotFactory);
         return new CliRunResult(exitCode, stdout.ToString(), stderr.ToString());
+    }
+
+    private static string[] ArgsForImplementedVerb(string verb, string sample) =>
+        verb switch
+        {
+            "status" => new[] { "status", "--json" },
+            "detect" => new[] { "detect", "--json" },
+            "validate" => new[] { "validate", "--answer-file", sample, "--json" },
+            "plan" => new[] { "plan", "--answer-file", sample, "--json" },
+            "version" => new[] { "version", "--json" },
+            "install" => new[] { "install", "--dry-run", "--answer-file", sample, "--ndjson" },
+            "reapply" => new[] { "reapply", "--dry-run", "--answer-file", sample, "--ndjson" },
+            "uninstall" => new[] { "uninstall", "--dry-run", "--ndjson" },
+            _ => throw new InvalidOperationException($"No parser smoke args are defined for implemented verb '{verb}'.")
+        };
+
+    private static void AssertNdjsonRequiredFields(JsonElement line)
+    {
+        foreach (var field in new[] { "schemaVersion", "eventId", "timestamp", "level", "component", "message" })
+        {
+            Assert.True(line.TryGetProperty(field, out _), $"NDJSON line is missing '{field}'.");
+        }
     }
 
     private static CliEnvironmentSnapshot Snapshot(

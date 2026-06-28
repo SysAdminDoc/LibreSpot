@@ -111,7 +111,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 ### Fleet CLI Preview
 
-`LibreSpot.Cli.exe` is the console-capable fleet artifact for endpoint tools. The first non-mutating verbs are `--version`, `status --json`, `detect --json`, `detect --intune`, `validate --answer-file <path> --json`, `install --dry-run --answer-file <path> --ndjson`, and `plan --answer-file <path> --json`. `detect --intune` exits `0` only when the existing health report maps to a compliant state; clean slate, drift, blocked, and repair states return documented nonzero fleet exit codes without mutating the machine.
+`LibreSpot.Cli.exe` is the console-capable fleet artifact for endpoint tools. The implemented verbs are `--version`, `--version --json`, `version --json`, `status --json`, `detect --json`, `detect --intune`, `validate --answer-file <path> --json`, `install --dry-run --answer-file <path> --ndjson`, `reapply --dry-run --answer-file <path> --ndjson`, `uninstall --dry-run --ndjson`, and `plan --answer-file <path> --json`. `detect --intune` exits `0` only when the existing health report maps to a compliant state; clean slate, drift, blocked, and repair states return documented nonzero fleet exit codes without mutating the machine. Dry-run NDJSON uses stable `LS` event IDs from the fleet schema contract.
 
 ### Comprehensive Uninstaller
 

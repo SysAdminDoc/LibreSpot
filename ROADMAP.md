@@ -574,21 +574,6 @@ dependency freshness surfaced during exhaustive ecosystem research.
   renders a post-run receipt showing which actions can be undone.
   Complexity: L
 
-- [ ] P2 — Consume fleet CLI schemas when building the CLI artifact
-  Why: `fleet-exit-codes.json`, `fleet-cli-contract.json`, `diagnostic-
-  event-ids.json`, `ndjson-log-format.json`, and `librespot-answer.
-  schema.json` define a complete fleet contract but are not referenced
-  by any runtime code. The CLI artifact (existing P1 roadmap item) should
-  consume these schemas rather than re-inventing the contracts.
-  Evidence: `grep -c "fleet-exit-codes\|fleet-cli-contract\|diagnostic-
-  event-ids\|ndjson-log-format" src/ LibreSpot.ps1` = 0.
-  Touches: future LibreSpot.Cli project, BackendScriptService, exit
-  code handling, NDJSON log writer.
-  Acceptance: the CLI artifact's verb parser, exit codes, and log format
-  are derived from or validated against the existing schemas. Schema
-  changes fail CI if the CLI implementation diverges.
-  Complexity: M (sequenced after CLI artifact exists)
-
 - [ ] P3 — Adopt CommunityToolkit.Mvvm during the view-model split
   Why: the project uses hand-rolled `ObservableObject` and `RelayCommand`
   (22-line + 50-line custom implementations) instead of CommunityToolkit.

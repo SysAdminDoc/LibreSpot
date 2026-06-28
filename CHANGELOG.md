@@ -31,6 +31,9 @@ All notable changes to LibreSpot will be documented in this file.
   panel available for full review.
 
 ### Fixed
+- Fleet CLI schema conformance now covers `version --json`, schema-shaped
+  dry-run NDJSON with stable `LS` event IDs, Windows alias parsing, and
+  tests that fail when implemented verbs diverge from `fleet-cli-contract.json`.
 - Shared PowerShell validation now syncs generated backend functions with
   explicit UTF-8 reads, excludes documented host-specific wrappers, and passes
   `Build-Scripts.ps1 -Validate` with 74 generated shared functions in sync.

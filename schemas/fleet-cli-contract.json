@@ -7,6 +7,7 @@
       "description": "Install or reinstall LibreSpot with SpotX + Spicetify.",
       "requiresAdmin": true,
       "mutates": true,
+      "implementationStatus": "dry-run-only",
       "supportsDryRun": true,
       "supportsJson": false,
       "supportsNdjson": true,
@@ -33,6 +34,7 @@
       "description": "Reapply SpotX and Spicetify patches after a Spotify update.",
       "requiresAdmin": true,
       "mutates": true,
+      "implementationStatus": "dry-run-only",
       "supportsDryRun": true,
       "supportsJson": false,
       "supportsNdjson": true,
@@ -58,6 +60,7 @@
       "description": "Check whether LibreSpot is installed and compliant with the desired state.",
       "requiresAdmin": false,
       "mutates": false,
+      "implementationStatus": "implemented",
       "supportsDryRun": false,
       "supportsJson": true,
       "supportsNdjson": false,
@@ -79,6 +82,7 @@
       "description": "Full health report covering Spotify, SpotX, Spicetify, watcher, and LibreSpot state.",
       "requiresAdmin": false,
       "mutates": false,
+      "implementationStatus": "implemented",
       "supportsDryRun": false,
       "supportsJson": true,
       "supportsNdjson": false,
@@ -97,6 +101,7 @@
       "description": "Validate an answer file against the JSON schema and emit diagnostics.",
       "requiresAdmin": false,
       "mutates": false,
+      "implementationStatus": "implemented",
       "supportsDryRun": false,
       "supportsJson": true,
       "supportsNdjson": false,
@@ -115,6 +120,7 @@
       "description": "Show what install/reapply would do without executing any changes.",
       "requiresAdmin": false,
       "mutates": false,
+      "implementationStatus": "implemented",
       "supportsDryRun": false,
       "supportsJson": true,
       "supportsNdjson": false,
@@ -128,13 +134,14 @@
         "--log-dir",
         "--scope"
       ],
-      "notes": "Dry-run by nature — never mutates. Produces an operation plan in JSON that describes each step, required downloads, and expected changes. Equivalent to running install --dry-run --json but with richer output."
+      "notes": "Dry-run by nature — never mutates. Produces an operation plan in JSON that describes each step, required downloads, and expected changes. Use this verb when a single JSON plan document is preferred over install --dry-run --ndjson streaming output."
     },
     {
       "verb": "repair",
       "description": "Run a specific repair action identified by its repair ID from a health report.",
       "requiresAdmin": true,
       "mutates": true,
+      "implementationStatus": "planned",
       "supportsDryRun": true,
       "supportsJson": false,
       "supportsNdjson": true,
@@ -160,6 +167,7 @@
       "description": "Register the auto-reapply scheduled task that patches Spotify after updates.",
       "requiresAdmin": false,
       "mutates": true,
+      "implementationStatus": "planned",
       "supportsDryRun": false,
       "supportsJson": false,
       "supportsNdjson": false,
@@ -179,6 +187,7 @@
       "description": "Remove the auto-reapply scheduled task.",
       "requiresAdmin": false,
       "mutates": true,
+      "implementationStatus": "planned",
       "supportsDryRun": false,
       "supportsJson": false,
       "supportsNdjson": false,
@@ -198,6 +207,7 @@
       "description": "Uninstall LibreSpot customizations, optionally removing Spicetify and Spotify.",
       "requiresAdmin": true,
       "mutates": true,
+      "implementationStatus": "dry-run-only",
       "supportsDryRun": true,
       "supportsJson": false,
       "supportsNdjson": true,
@@ -226,6 +236,7 @@
       "description": "Export a redacted support bundle containing logs, config, and diagnostics.",
       "requiresAdmin": false,
       "mutates": false,
+      "implementationStatus": "planned",
       "supportsDryRun": false,
       "supportsJson": false,
       "supportsNdjson": false,
@@ -242,6 +253,7 @@
       "description": "Show LibreSpot version, build metadata, and dependency versions.",
       "requiresAdmin": false,
       "mutates": false,
+      "implementationStatus": "implemented",
       "supportsDryRun": false,
       "supportsJson": true,
       "supportsNdjson": false,
@@ -249,7 +261,7 @@
       "flags": [
         "--json"
       ],
-      "notes": "Exits 0 unconditionally. JSON output includes LibreSpot version, git SHA, build timestamp, SpotX pin, Spicetify pin, and runtime info."
+      "notes": "Exits 0 unconditionally. JSON output includes LibreSpot version, assembly version, runtime info, SpotX pin, Spicetify pin, Marketplace pin, and theme pin."
     }
   ],
   "globalFlags": [
