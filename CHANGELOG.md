@@ -8,6 +8,10 @@ All notable changes to LibreSpot will be documented in this file.
 - Added package-manifest safety tests so draft winget, Scoop, Chocolatey, and
   package-channel metadata stay visibly blocked until release-manifest-generated
   hashes, signing, and package identity decisions are ready.
+- Added schema-backed operation receipts: backend runs now write typed
+  operation-token entries and `run-receipt.latest.json`, while the WPF undo
+  pane consumes the embedded token and receipt schemas before showing
+  reversible post-run actions.
 - Added a dedicated `LibreSpot.Cli.exe` console project for fleet tooling with
   `--version`, `status --json`, `detect --json`, `detect --intune`, and
   `validate --answer-file` support backed by the existing health report model,

@@ -88,7 +88,9 @@ public sealed class UndoActionItemViewModel
         Phase = string.IsNullOrWhiteSpace(item.Phase) ? Strings.DashboardUnknownValue : item.Phase;
         Target = string.IsNullOrWhiteSpace(item.Target) ? Strings.DashboardUnknownValue : item.Target;
         Result = string.IsNullOrWhiteSpace(item.Result) ? Strings.DashboardUnknownValue : item.Result;
-        RollbackHint = item.RollbackHint;
+        RollbackHint = string.IsNullOrWhiteSpace(item.UndoAction) ? item.RollbackHint : item.UndoAction;
+        TokenKind = string.IsNullOrWhiteSpace(item.TokenKind) ? Strings.DashboardUnknownValue : FormatActionLabel(item.TokenKind);
+        Risk = string.IsNullOrWhiteSpace(item.Risk) ? Strings.DashboardUnknownValue : item.Risk;
     }
 
     public string Action { get; }
@@ -96,7 +98,9 @@ public sealed class UndoActionItemViewModel
     public string Target { get; }
     public string Result { get; }
     public string RollbackHint { get; }
-    public string Summary => $"{Result} {Phase}: {Target}";
+    public string TokenKind { get; }
+    public string Risk { get; }
+    public string Summary => $"{Result} {TokenKind}: {Target}";
 
     private static string FormatActionLabel(string value)
     {

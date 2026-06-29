@@ -183,6 +183,7 @@ $global:ACTIVE_PROFILE_PATH    = "$env:APPDATA\LibreSpot\active-profile.json"
 $global:PREVIOUS_PROFILE_PATH  = "$env:APPDATA\LibreSpot\active-profile.previous.json"
 $global:LOG_PATH               = "$env:APPDATA\LibreSpot\install.log"
 $global:OPERATION_JOURNAL_PATH = "$env:APPDATA\LibreSpot\operation-journal.jsonl"
+$global:RUN_RECEIPT_PATH       = "$env:APPDATA\LibreSpot\run-receipt.latest.json"
 $global:OPERATION_JOURNAL_MAX_BYTES = 1048576
 $global:OPERATION_JOURNAL_RETAIN_BYTES = 786432
 $global:CURRENT_OPERATION_ID   = $null
@@ -5719,11 +5720,46 @@ function Write-OperationJournalEntry {
         [bool]$WouldChange = $false,
         [bool]$Reversible = $false,
         [string]$RollbackHint = '',
+        [string]$TokenKind = '',
+        [string]$PreviousStateRef = '',
+        [string]$NewState = '',
+        [string]$UndoAction = '',
+        [string]$Risk = '',
         [hashtable]$Data = $null
     )
     try {
         if ([string]::IsNullOrWhiteSpace($OperationId)) { $OperationId = [Guid]::NewGuid().ToString('N') }
         if ([string]::IsNullOrWhiteSpace($Action)) { $Action = 'Unknown' }
+        if ([string]::IsNullOrWhiteSpace($TokenKind)) {
+            switch ($Phase) {
+                'config' { $TokenKind = 'configWrite'; break }
+                'path' { $TokenKind = if ($Result -eq 'Removed') { 'pathEntryRemove' } else { 'pathEntryAdd' }; break }
+                'task' { $TokenKind = if ($Result -eq 'Removed') { 'watcherTaskRemove' } else { 'watcherTaskRegister' }; break }
+                'cache' { $TokenKind = 'cacheCleared'; break }
+                'appx' { $TokenKind = 'spotifyUninstall'; break }
+                'remove' {
+                    $TokenKind = if ($Target -match 'Spicetify') { 'spicetifyUninstall' } elseif ($Target -match 'LibreSpot|Config') { 'selfDataRemoved' } else { 'fullReset' }
+                    break
+                }
+            }
+        }
+        if ([string]::IsNullOrWhiteSpace($UndoAction)) { $UndoAction = $RollbackHint }
+        if ([string]::IsNullOrWhiteSpace($Risk)) {
+            $Risk = switch ($TokenKind) {
+                'fullReset' { 'destructive' }
+                'spotifyUninstall' { 'destructive' }
+                'spicetifyUninstall' { 'destructive' }
+                'selfDataRemoved' { 'high' }
+                'watcherTaskRemove' { 'medium' }
+                'spotxPatch' { 'medium' }
+                'spicetifyApply' { 'medium' }
+                default { 'low' }
+            }
+        }
+        if ([string]::IsNullOrWhiteSpace($NewState)) { $NewState = $Result }
+        if ($Reversible -and [string]::IsNullOrWhiteSpace($PreviousStateRef)) {
+            $PreviousStateRef = if ([string]::IsNullOrWhiteSpace($Target)) { "operation:$OperationId" } else { "target:$Target" }
+        }
         if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
             New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
         }
@@ -5740,6 +5776,11 @@ function Write-OperationJournalEntry {
             wouldChange    = $WouldChange
             reversible     = $Reversible
             rollbackHint   = $RollbackHint
+            tokenKind      = $TokenKind
+            previousStateRef = $PreviousStateRef
+            newState       = $NewState
+            undoAction     = $UndoAction
+            risk           = $Risk
         }
         if ($Data) { $entry.data = $Data }
         $json = $entry | ConvertTo-Json -Compress -Depth 6
@@ -5758,7 +5799,7 @@ function Start-OperationJournalRun {
         [bool]$Reversible = $false,
         [string]$RollbackHint = ''
     )
-    $global:CURRENT_OPERATION_ID = [Guid]::NewGuid().ToString('N')
+    $global:CURRENT_OPERATION_ID = [Guid]::NewGuid().ToString()
     $global:CURRENT_OPERATION_ACTION = $Action
     Write-OperationJournalEntry -OperationId $global:CURRENT_OPERATION_ID -Action $Action -Phase 'planned' -Target $Target -SafetyDecision 'Pending' -Result 'Started' -WouldChange $WouldChange -Reversible $Reversible -RollbackHint $RollbackHint
     Write-Log "Operation id: $global:CURRENT_OPERATION_ID"
@@ -5771,6 +5812,66 @@ function Complete-OperationJournalRun {
         [string]$Message = ''
     )
     Write-OperationJournalEntry -Phase 'complete' -Target $Message -SafetyDecision 'NotEvaluated' -Result $Result -WouldChange $false -Reversible $false
+    try {
+        if ([string]::IsNullOrWhiteSpace($global:RUN_RECEIPT_PATH) -or [string]::IsNullOrWhiteSpace($global:CURRENT_OPERATION_ID)) { return }
+        if (-not (Test-Path -LiteralPath $global:OPERATION_JOURNAL_PATH -PathType Leaf)) { return }
+
+        $entries = @()
+        foreach ($line in (Get-Content -LiteralPath $global:OPERATION_JOURNAL_PATH -Tail 500 -ErrorAction SilentlyContinue)) {
+            if ([string]::IsNullOrWhiteSpace($line)) { continue }
+            try {
+                $entry = $line | ConvertFrom-Json -ErrorAction Stop
+                if ($entry.operationId -eq $global:CURRENT_OPERATION_ID) { $entries += $entry }
+            } catch {}
+        }
+
+        $operationEntries = @($entries |
+            Where-Object { $_.tokenKind -and $_.phase -ne 'planned' -and $_.phase -ne 'complete' } |
+            ForEach-Object {
+                [ordered]@{
+                    tokenKind        = [string]$_.tokenKind
+                    target           = [string]$_.target
+                    previousStateRef = [string]$_.previousStateRef
+                    newState         = [string]$_.newState
+                    result           = if ($_.result -eq 'Failed') { 'failed' } elseif ($_.result -eq 'Skipped') { 'skipped' } else { 'applied' }
+                    reversible       = [bool]$_.reversible
+                    undoAction       = [string]$_.undoAction
+                    risk             = [string]$_.risk
+                }
+            })
+
+        $status = switch ($Result) {
+            'Succeeded' { 'success' }
+            'Canceled' { 'canceled' }
+            'Cancelled' { 'canceled' }
+            'DryRun' { 'dryRun' }
+            'PartialSuccess' { 'partialSuccess' }
+            default { 'failed' }
+        }
+
+        $firstEntry = @($entries | Select-Object -First 1)
+        $startedAt = if ($firstEntry.Count -gt 0 -and $firstEntry[0].timestamp) { [string]$firstEntry[0].timestamp } else { (Get-Date).ToUniversalTime().ToString('o') }
+        $undoAvailable = @($operationEntries | Where-Object { $_.reversible -and -not [string]::IsNullOrWhiteSpace($_.previousStateRef) }).Count -gt 0
+        $receipt = [ordered]@{
+            schemaVersion = 1
+            receiptId     = [Guid]::NewGuid().ToString()
+            runId         = $global:CURRENT_OPERATION_ID
+            operationId   = $global:CURRENT_OPERATION_ID
+            startedAt     = $startedAt
+            completedAt   = (Get-Date).ToUniversalTime().ToString('o')
+            action        = $global:CURRENT_OPERATION_ACTION
+            status        = $status
+            errorSummary  = if ($status -eq 'failed') { $Message } else { $null }
+            undoAvailable = $undoAvailable
+            logRef        = $global:LOG_PATH
+            operations    = $operationEntries
+        }
+
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($global:RUN_RECEIPT_PATH, ($receipt | ConvertTo-Json -Depth 6), $utf8NoBom)
+    } catch {
+        try { Write-Log "Run receipt write failed: $($_.Exception.Message)" -Level 'WARN' } catch {}
+    }
 }
 
 function Read-ProcessOutputDelta {
@@ -7390,7 +7491,7 @@ foreach ($fname in $functionNamesForWorker) {
 $varNamesForWorker = @(
     'URL_SPOTX','URL_MARKETPLACE','URL_THEMES_REPO','URL_SPICETIFY_FMT','PinnedReleases',
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR',
-    'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH','OPERATION_JOURNAL_PATH','CURRENT_OPERATION_ID','CURRENT_OPERATION_ACTION','CACHE_DIR',
+    'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH','OPERATION_JOURNAL_PATH','RUN_RECEIPT_PATH','CURRENT_OPERATION_ID','CURRENT_OPERATION_ACTION','CACHE_DIR',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
     'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityExtensionAliases','DeprecatedCommunityExtensionNames','CommunityThemeRepos','ThemesNeedingJS','SpotXLyricsThemes','VERSION','CONFIG_SCHEMA_VERSION'
 )

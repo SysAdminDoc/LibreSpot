@@ -9,11 +9,46 @@ function Write-OperationJournalEntry {
         [bool]$WouldChange = $false,
         [bool]$Reversible = $false,
         [string]$RollbackHint = '',
+        [string]$TokenKind = '',
+        [string]$PreviousStateRef = '',
+        [string]$NewState = '',
+        [string]$UndoAction = '',
+        [string]$Risk = '',
         [hashtable]$Data = $null
     )
     try {
         if ([string]::IsNullOrWhiteSpace($OperationId)) { $OperationId = [Guid]::NewGuid().ToString('N') }
         if ([string]::IsNullOrWhiteSpace($Action)) { $Action = 'Unknown' }
+        if ([string]::IsNullOrWhiteSpace($TokenKind)) {
+            switch ($Phase) {
+                'config' { $TokenKind = 'configWrite'; break }
+                'path' { $TokenKind = if ($Result -eq 'Removed') { 'pathEntryRemove' } else { 'pathEntryAdd' }; break }
+                'task' { $TokenKind = if ($Result -eq 'Removed') { 'watcherTaskRemove' } else { 'watcherTaskRegister' }; break }
+                'cache' { $TokenKind = 'cacheCleared'; break }
+                'appx' { $TokenKind = 'spotifyUninstall'; break }
+                'remove' {
+                    $TokenKind = if ($Target -match 'Spicetify') { 'spicetifyUninstall' } elseif ($Target -match 'LibreSpot|Config') { 'selfDataRemoved' } else { 'fullReset' }
+                    break
+                }
+            }
+        }
+        if ([string]::IsNullOrWhiteSpace($UndoAction)) { $UndoAction = $RollbackHint }
+        if ([string]::IsNullOrWhiteSpace($Risk)) {
+            $Risk = switch ($TokenKind) {
+                'fullReset' { 'destructive' }
+                'spotifyUninstall' { 'destructive' }
+                'spicetifyUninstall' { 'destructive' }
+                'selfDataRemoved' { 'high' }
+                'watcherTaskRemove' { 'medium' }
+                'spotxPatch' { 'medium' }
+                'spicetifyApply' { 'medium' }
+                default { 'low' }
+            }
+        }
+        if ([string]::IsNullOrWhiteSpace($NewState)) { $NewState = $Result }
+        if ($Reversible -and [string]::IsNullOrWhiteSpace($PreviousStateRef)) {
+            $PreviousStateRef = if ([string]::IsNullOrWhiteSpace($Target)) { "operation:$OperationId" } else { "target:$Target" }
+        }
         if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
             New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
         }
@@ -30,6 +65,11 @@ function Write-OperationJournalEntry {
             wouldChange    = $WouldChange
             reversible     = $Reversible
             rollbackHint   = $RollbackHint
+            tokenKind      = $TokenKind
+            previousStateRef = $PreviousStateRef
+            newState       = $NewState
+            undoAction     = $UndoAction
+            risk           = $Risk
         }
         if ($Data) { $entry.data = $Data }
         $json = $entry | ConvertTo-Json -Compress -Depth 6

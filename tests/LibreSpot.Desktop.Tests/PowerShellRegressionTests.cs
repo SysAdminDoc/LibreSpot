@@ -1198,9 +1198,17 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("safetyDecision", body);
         Assert.Contains("wouldChange", body);
         Assert.Contains("rollbackHint", body);
+        Assert.Contains("tokenKind", body);
+        Assert.Contains("previousStateRef", body);
+        Assert.Contains("newState", body);
+        Assert.Contains("undoAction", body);
+        Assert.Contains("risk", body);
         Assert.Contains("Optimize-OperationJournalRetention", body);
         Assert.Contains("OPERATION_JOURNAL_MAX_BYTES", script);
         Assert.Contains("OPERATION_JOURNAL_RETAIN_BYTES", script);
+        Assert.Contains("RUN_RECEIPT_PATH", script);
+        Assert.Contains("run-receipt.latest.json", script);
+        Assert.Contains("ConvertFrom-Json", completer.Groups["body"].Value);
         Assert.Contains("journal-retention", script);
         Assert.Contains("result         = 'Trimmed'", script);
     }
@@ -1240,6 +1248,7 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("'Start-OperationJournalRun'", exports);
         Assert.Contains("'Complete-OperationJournalRun'", exports);
         Assert.Contains("'OPERATION_JOURNAL_PATH'", script);
+        Assert.Contains("'RUN_RECEIPT_PATH'", script);
     }
 
     [Fact]
