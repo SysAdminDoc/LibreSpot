@@ -241,6 +241,8 @@ public sealed class MainViewModelMaintenanceTests
             Assert.Contains(viewModel.LocalProfiles, profile => profile.IsBuiltIn && profile.Name == "Recommended");
             Assert.Contains(viewModel.LocalProfiles, profile => profile.IsBuiltIn && profile.Name == "Visual Theme");
             Assert.Contains(viewModel.LocalProfiles, profile => profile.Id == "recommended" && profile.IsActive);
+            Assert.True(viewModel.LocalProfiles[0].IsActive);
+            Assert.Contains("profile choices ready", viewModel.ProfileOperationStatus, StringComparison.OrdinalIgnoreCase);
 
             viewModel.SelectedLocalProfile = viewModel.LocalProfiles.Single(profile => profile.Id == "visual-theme");
             Assert.Contains("read-only", viewModel.ProfileSelectionHint, StringComparison.OrdinalIgnoreCase);

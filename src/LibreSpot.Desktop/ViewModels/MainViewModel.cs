@@ -2058,8 +2058,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         var selectedId = preferredProfileId ?? SelectedLocalProfile?.Id;
         var summaries = await _profileService.GetProfilesAsync();
+        var orderedSummaries = summaries
+            .OrderByDescending(summary => summary.IsActive)
+            .ThenBy(summary => summary.IsBuiltIn ? 0 : 1)
+            .ThenBy(summary => summary.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToArray();
         LocalProfiles.Clear();
-        foreach (var summary in summaries)
+        foreach (var summary in orderedSummaries)
         {
             LocalProfiles.Add(new LocalProfileCardViewModel(summary));
         }
@@ -2071,7 +2076,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         ProfileOperationStatus = LocalProfiles.Count == 0
             ? "No profiles are available yet. Save the current Custom selections to create one."
-            : $"{LocalProfiles.Count} local profile choices ready. Preview before applying if you want to inspect the settings first.";
+            : $"{LocalProfiles.Count} profile choices ready. Preview before applying if you want to inspect the settings first.";
         RaiseLocalProfileStateChanged();
     }
 
