@@ -183,6 +183,9 @@ if ($Validate) {
 
     Write-Host "All $($validatedNames.Count) generated shared functions are in sync." -ForegroundColor Green
     Write-Host "$($laneSpecificFunctions.Count) host-specific wrappers are excluded from body comparison." -ForegroundColor Green
+    Write-Host ""
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'tools/Sync-Localization.ps1') -Validate -ScanRawStrings
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     exit 0
 }
 

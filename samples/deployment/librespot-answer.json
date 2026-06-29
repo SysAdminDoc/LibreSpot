@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "installMode": "recommended",
+  "uiCulture": "en",
   "eulaAccepted": true,
   "riskAcknowledged": true,
   "profiles": {

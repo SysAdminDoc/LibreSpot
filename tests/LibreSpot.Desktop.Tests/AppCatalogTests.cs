@@ -115,6 +115,23 @@ public sealed class AppCatalogTests
         Assert.Empty(normalized.Spicetify_Extensions);
     }
 
+    [Theory]
+    [InlineData("ru", "ru")]
+    [InlineData("zh-Hans", "zh-Hans")]
+    [InlineData("pt-BR", "pt-BR")]
+    [InlineData("xx-FAKE", "en")]
+    [InlineData("", "en")]
+    public void NormalizeConfiguration_RestrictsUiCulture(string input, string expected)
+    {
+        var configuration = new InstallConfiguration { UiCulture = input };
+
+        var normalized = AppCatalog.NormalizeConfiguration(configuration);
+        var clone = normalized.Clone();
+
+        Assert.Equal(expected, normalized.UiCulture);
+        Assert.Equal(expected, clone.UiCulture);
+    }
+
     [Fact]
     public void NormalizeConfiguration_CanonicalizesAdvancedCompatibilitySelections()
     {

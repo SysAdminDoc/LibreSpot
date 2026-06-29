@@ -37,7 +37,7 @@ public sealed class CommunitySharingExperienceTests
     {
         var xaml = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
 
-        Assert.Contains("Profile share card", xaml);
+        Assert.Contains("Ui_ProfileShareCard", xaml);
         Assert.Contains("SelectedProfileQrImage", xaml);
         Assert.Contains("SelectedProfileShareUri", xaml);
         Assert.Contains("CopyProfileShareUriCommand", xaml);

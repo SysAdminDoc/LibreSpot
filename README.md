@@ -258,6 +258,7 @@ LibreSpot.ps1 -Watch               # run one tick manually (what the task invoke
 - **Threaded UI** — installation runs in background runspaces; the GUI stays responsive with a live log, elapsed timer, and progress bar
 - **Windows shell integration** — WPF builds register `librespot://` and `.librespot` handlers, expose jump-list/taskbar actions, and minimize to a tray icon with clickable completion notices
 - **Profile sharing cards** — WPF Custom mode renders an inert local share URI, QR card, selected-profile comparison, embedded changelog preview, and community links without requiring a hosted sharing service
+- **Runtime localization** — WPF builds include a persisted language selector with EN, RU, ZH-Hans, PT-BR, and ES resources plus local validation for raw UI strings
 - **Window management** — Spotify and installer windows are automatically hidden during installation; LibreSpot stays on top until finished
 - **Settings persistence** — your Custom Install configuration is saved to `%APPDATA%\LibreSpot\config.json` and restored next launch
 - **Community asset verification** — opt-in community extensions, themes, and custom apps are pinned in `schemas/community-assets.json` with provenance, SHA256, license, and network-behavior metadata

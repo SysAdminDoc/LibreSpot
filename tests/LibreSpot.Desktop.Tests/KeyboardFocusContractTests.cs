@@ -125,18 +125,18 @@ public sealed class KeyboardFocusContractTests
     }
 
     [Theory]
-    [InlineData("Recommended workspace")]
-    [InlineData("Custom settings editor")]
-    [InlineData("Maintenance workspace")]
-    public void ContentScrollRegions_DisableHorizontalScrolling(string automationName)
+    [InlineData("Ui_RecommendedWorkspace")]
+    [InlineData("Ui_CustomSettingsEditor")]
+    [InlineData("Ui_MaintenanceWorkspace")]
+    public void ContentScrollRegions_DisableHorizontalScrolling(string automationResourceKey)
     {
         var xaml = ReadXaml();
-        var nameIndex = xaml.IndexOf($"AutomationProperties.Name=\"{automationName}\"", StringComparison.Ordinal);
-        Assert.True(nameIndex >= 0, $"Scroll region '{automationName}' was not found.");
+        var nameIndex = xaml.IndexOf($"AutomationProperties.Name=\"{{services:Loc {automationResourceKey}}}\"", StringComparison.Ordinal);
+        Assert.True(nameIndex >= 0, $"Scroll region '{automationResourceKey}' was not found.");
 
         var tagStart = xaml.LastIndexOf("<ScrollViewer", nameIndex, StringComparison.Ordinal);
         var tagEnd = xaml.IndexOf('>', nameIndex);
-        Assert.True(tagStart >= 0 && tagEnd > tagStart, $"Scroll region '{automationName}' did not resolve to a ScrollViewer tag.");
+        Assert.True(tagStart >= 0 && tagEnd > tagStart, $"Scroll region '{automationResourceKey}' did not resolve to a ScrollViewer tag.");
 
         var openingTag = xaml[tagStart..tagEnd];
         Assert.Contains("HorizontalScrollBarVisibility=\"Disabled\"", openingTag);

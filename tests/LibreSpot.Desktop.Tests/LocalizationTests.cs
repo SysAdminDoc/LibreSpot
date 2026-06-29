@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using LibreSpot.Desktop.Services;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -8,6 +9,7 @@ namespace LibreSpot.Desktop.Tests;
 public sealed class LocalizationTests
 {
     private static readonly string RepoRoot = ResolveRepoRoot();
+    private static readonly string[] SupportedCultures = ["en", "ru", "zh-Hans", "pt-BR", "es"];
 
     [Fact]
     public void StringsResx_ExistsAndIsValidXml()
@@ -82,6 +84,73 @@ public sealed class LocalizationTests
     }
 
     [Fact]
+    public void SatelliteResources_ExistAndMatchSourceKeys()
+    {
+        var sourceKeys = GetResourceKeys(LoadResx());
+
+        foreach (var culture in SupportedCultures)
+        {
+            var path = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Properties", $"Strings.{culture}.resx");
+            Assert.True(File.Exists(path), $"Missing localization resource file for {culture}.");
+            var doc = XDocument.Load(path);
+            var targetKeys = GetResourceKeys(doc);
+
+            Assert.Empty(sourceKeys.Except(targetKeys));
+            Assert.Empty(targetKeys.Except(sourceKeys));
+
+            foreach (var data in doc.Root!.Elements("data"))
+            {
+                var name = data.Attribute("name")?.Value ?? "(unnamed)";
+                Assert.False(
+                    string.IsNullOrWhiteSpace(data.Element("value")?.Value),
+                    $"{Path.GetFileName(path)} key '{name}' has an empty value.");
+            }
+        }
+    }
+
+    [Fact]
+    public void MainWindow_UserFacingAttributesUseLocalizedBindings()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml"));
+        var matches = Regex.Matches(
+                xaml,
+                "\\b(?:Text|Content|Header|ToolTip|Description|Title|AutomationProperties\\.Name|AutomationProperties\\.HelpText)=\"(?<value>[^\\{][^\"]*)\"")
+            .Cast<Match>()
+            .Where(match => !match.Groups["value"].Value.StartsWith("pack://", StringComparison.OrdinalIgnoreCase))
+            .Select(match => match.Value)
+            .ToArray();
+
+        Assert.Empty(matches);
+    }
+
+    [Fact]
+    public void CrowdinConfig_MapsSupportedResourceFiles()
+    {
+        var path = Path.Combine(RepoRoot, ".crowdin.yml");
+        Assert.True(File.Exists(path), ".crowdin.yml is required for localization sync.");
+        var config = File.ReadAllText(path);
+
+        Assert.Contains("/src/LibreSpot.Desktop/Properties/Strings.resx", config);
+        Assert.Contains("/src/LibreSpot.Desktop/Properties/Strings.%locale%.resx", config);
+        foreach (var culture in SupportedCultures)
+        {
+            Assert.Contains(culture, config);
+        }
+    }
+
+    [Fact]
+    public void LocalizationService_SwitchesCulturesAtRuntime()
+    {
+        var service = LocalizationService.Current;
+        service.ApplyCulture("es");
+        Assert.Equal("es", service.CultureName);
+        Assert.False(string.IsNullOrWhiteSpace(service["AppTitle"]));
+
+        service.ApplyCulture("not-real");
+        Assert.Equal(LocalizationService.DefaultCultureName, service.CultureName);
+    }
+
+    [Fact]
     public void Csproj_ConfiguresResxCodeGeneration()
     {
         var csproj = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "LibreSpot.Desktop.csproj"));
@@ -95,6 +164,13 @@ public sealed class LocalizationTests
         var path = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Properties", "Strings.resx");
         return XDocument.Load(path);
     }
+
+    private static HashSet<string> GetResourceKeys(XDocument doc) =>
+        doc.Root!.Elements("data")
+            .Select(e => e.Attribute("name")?.Value)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!)
+            .ToHashSet(StringComparer.Ordinal);
 
     private static string ResolveRepoRoot()
     {

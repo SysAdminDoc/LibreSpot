@@ -143,6 +143,42 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
             .Concat(AdvancedOptions)
             .Concat(ExperienceOptions);
 
+    public void RefreshLocalizedText()
+    {
+        foreach (var option in EnumerateAllOptions())
+        {
+            option.RefreshText(
+                Strings.ResourceManager.GetString($"Option_{option.Key}_Title", Strings.Culture) ?? option.Title,
+                Strings.ResourceManager.GetString($"Option_{option.Key}_Description", Strings.Culture) ?? option.Description);
+        }
+
+        foreach (var extension in Extensions)
+        {
+            var resourceKey = ToExtensionResourceKey(extension.Key);
+            extension.RefreshText(
+                Strings.ResourceManager.GetString($"{resourceKey}_Title", Strings.Culture) ?? extension.Title,
+                Strings.ResourceManager.GetString($"{resourceKey}_Description", Strings.Culture) ?? extension.Description);
+        }
+
+        foreach (var customApp in CustomApps)
+        {
+            var resourceKey = ToCustomAppResourceKey(customApp.Key);
+            customApp.RefreshText(
+                Strings.ResourceManager.GetString($"{resourceKey}_Title", Strings.Culture) ?? customApp.Title,
+                Strings.ResourceManager.GetString($"{resourceKey}_Description", Strings.Culture) ?? customApp.Description);
+        }
+
+        var selectedTheme = SelectedTheme;
+        ThemeGalleryItems.Clear();
+        foreach (var item in AppCatalog.ThemeSchemes.Select(pair => new ThemeGalleryItemViewModel(pair.Key, pair.Value)))
+        {
+            ThemeGalleryItems.Add(item);
+        }
+
+        SelectedTheme = selectedTheme;
+        RaiseThemeFilterChanged();
+    }
+
     private static ObservableCollection<OptionToggleViewModel> CreateOptions(string section, InstallConfiguration recommendedBaseline) =>
         new(AppCatalog.OptionDefinitions
             .Where(definition => definition.Section == section)
@@ -176,4 +212,17 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
         RaisePropertyChanged(nameof(ShowThemeGalleryEmptyState));
         RaisePropertyChanged(nameof(HasThemeSearchText));
     }
+
+    private static string ToExtensionResourceKey(string key)
+    {
+        var name = key
+            .Replace(".mjs", string.Empty, StringComparison.OrdinalIgnoreCase)
+            .Replace(".js", string.Empty, StringComparison.OrdinalIgnoreCase)
+            .Replace("+", "_plus", StringComparison.Ordinal)
+            .Replace("-", "_", StringComparison.Ordinal);
+        return $"Extension_{name}";
+    }
+
+    private static string ToCustomAppResourceKey(string key) =>
+        $"CustomApp_{key.Replace("-", "_", StringComparison.Ordinal)}";
 }

@@ -24,6 +24,17 @@
       ],
       "description": "Controls the install behavior. 'recommended' applies opinionated defaults, 'custom' respects all explicit flags, 'reapply' re-runs the last applied configuration without prompts."
     },
+    "uiCulture": {
+      "type": "string",
+      "enum": [
+        "en",
+        "ru",
+        "zh-Hans",
+        "pt-BR",
+        "es"
+      ],
+      "description": "LibreSpot desktop interface culture to persist in config.json."
+    },
     "spotifyTarget": {
       "type": "object",
       "description": "Constraints on which Spotify version to install or target.",

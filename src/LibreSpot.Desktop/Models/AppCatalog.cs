@@ -7,6 +7,7 @@ public sealed class InstallConfiguration
 {
     public int ConfigSchemaVersion { get; set; } = AppCatalog.CurrentConfigSchemaVersion;
     public string Mode { get; set; } = "Easy";
+    public string UiCulture { get; set; } = AppCatalog.DefaultUiCulture;
     public bool CleanInstall { get; set; } = true;
     public bool LaunchAfter { get; set; } = true;
 
@@ -63,6 +64,7 @@ public sealed class InstallConfiguration
         {
             ConfigSchemaVersion = ConfigSchemaVersion,
             Mode = Mode,
+            UiCulture = UiCulture,
             CleanInstall = CleanInstall,
             LaunchAfter = LaunchAfter,
             SpotX_NewTheme = SpotX_NewTheme,
@@ -304,6 +306,7 @@ public sealed class EnvironmentSnapshot
 public static class AppCatalog
 {
     public const int CurrentConfigSchemaVersion = 1;
+    public const string DefaultUiCulture = "en";
     public const string PinnedSpotXVersion = "2.0";
     public const string PinnedSpotXCommit = "3284673df69e276c5c0ee90bb1cc9185cecb9ad4";
     public const string PinnedSpotXSpotifyVersionId = "1.2.92";
@@ -315,6 +318,21 @@ public static class AppCatalog
     public const string PinnedThemesCommit = "df033493a7dae30ca6e371de9cec1897871dbb0c";
     public const string PinnedStatsCustomAppVersion = "1.1.3";
     public const string PinnedStatsCustomAppReleaseTag = "stats-v1.1.3";
+
+    public static IReadOnlyList<string> SupportedUiCultures { get; } =
+        new ReadOnlyCollection<string>(new[] { DefaultUiCulture, "ru", "zh-Hans", "pt-BR", "es" });
+
+    public static string NormalizeUiCulture(string? cultureName)
+    {
+        if (string.IsNullOrWhiteSpace(cultureName))
+        {
+            return DefaultUiCulture;
+        }
+
+        var normalized = SupportedUiCultures.FirstOrDefault(culture =>
+            string.Equals(culture, cultureName.Trim(), StringComparison.OrdinalIgnoreCase));
+        return normalized ?? DefaultUiCulture;
+    }
 
     public static IReadOnlyList<string> LyricsThemes { get; } = new ReadOnlyCollection<string>(new[]
     {
@@ -569,6 +587,7 @@ public static class AppCatalog
 
         normalized.ConfigSchemaVersion = CurrentConfigSchemaVersion;
         normalized.Mode = source.Mode is "Easy" or "Custom" ? source.Mode : normalized.Mode;
+        normalized.UiCulture = NormalizeUiCulture(source.UiCulture);
         normalized.CleanInstall = source.CleanInstall;
         normalized.LaunchAfter = source.LaunchAfter;
 

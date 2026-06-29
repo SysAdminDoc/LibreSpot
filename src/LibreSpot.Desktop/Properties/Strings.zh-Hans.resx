@@ -1,0 +1,1726 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" msdata:Ordinal="0" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="xml:space" use="optional" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <!-- App-level -->
+  <data name="AppTitle" xml:space="preserve">
+    <value>自由点</value>
+    <comment>Main window title</comment>
+  </data>
+  <data name="AppSubtitle" xml:space="preserve">
+    <value>设置和恢复</value>
+    <comment>Subtitle in sidebar header</comment>
+  </data>
+  <!-- Activity panel defaults -->
+  <data name="ActivityReady" xml:space="preserve">
+    <value>当你准备好时</value>
+    <comment>Default activity title before any action</comment>
+  </data>
+  <data name="ActivityPickPath" xml:space="preserve">
+    <value>选择一个安装路径开始。</value>
+    <comment>Default activity status text</comment>
+  </data>
+  <!-- Navigation modes -->
+  <data name="ModeRecommendedTitle" xml:space="preserve">
+    <value>受到推崇的</value>
+    <comment>Sidebar nav label for recommended/easy install</comment>
+  </data>
+  <data name="ModeRecommendedDescription" xml:space="preserve">
+    <value>推荐设置</value>
+    <comment>Workspace hero subtitle for recommended mode</comment>
+  </data>
+  <data name="ModeCustomTitle" xml:space="preserve">
+    <value>风俗</value>
+    <comment>Sidebar nav label for custom install</comment>
+  </data>
+  <data name="ModeCustomDescription" xml:space="preserve">
+    <value>自定义设置</value>
+    <comment>Workspace hero subtitle for custom mode</comment>
+  </data>
+  <data name="ModeMaintenanceTitle" xml:space="preserve">
+    <value>维护</value>
+    <comment>Sidebar nav label for maintenance mode</comment>
+  </data>
+  <data name="ModeMaintenanceDescription" xml:space="preserve">
+    <value>修复和恢复</value>
+    <comment>Workspace hero subtitle for maintenance mode</comment>
+  </data>
+  <!-- Workspace hero -->
+  <data name="HeroGuidedSetup" xml:space="preserve">
+    <value>引导式设置</value>
+    <comment>Hero eyebrow text for recommended/custom modes</comment>
+  </data>
+  <data name="HeroMaintenanceEyebrow" xml:space="preserve">
+    <value>堆栈健康状况</value>
+    <comment>Hero eyebrow text for maintenance mode</comment>
+  </data>
+  <!-- Run readiness -->
+  <data name="ReadyToRun" xml:space="preserve">
+    <value>准备运行</value>
+    <comment>Status when admin privileges are available</comment>
+  </data>
+  <data name="AdminStepNeeded" xml:space="preserve">
+    <value>需要管理步骤</value>
+    <comment>Status when admin elevation is required</comment>
+  </data>
+  <data name="ReadyToRunDescription" xml:space="preserve">
+    <value>LibreSpot 可以在没有其他 Windows 提示的情况下进行修补和恢复。</value>
+    <comment>Explanation when running as admin</comment>
+  </data>
+  <data name="AdminStepDescription" xml:space="preserve">
+    <value>LibreSpot 在运行其后端之前会请求 Windows 的许可。</value>
+    <comment>Explanation when not running as admin</comment>
+  </data>
+  <!-- Search -->
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>找到一个设置</value>
+    <comment>Search box watermark text</comment>
+  </data>
+  <data name="SearchNoResults" xml:space="preserve">
+    <value>没有匹配的设置</value>
+    <comment>Shown when search finds nothing</comment>
+  </data>
+  <data name="SearchNoResultsHint" xml:space="preserve">
+    <value>尝试使用更广泛的术语，或清除搜索以再次浏览完整的个人资料。</value>
+    <comment>Hint below search no-results message</comment>
+  </data>
+  <data name="SearchHelpText" xml:space="preserve">
+    <value>在自定义页面中搜索设置标题和描述。</value>
+    <comment>Accessibility help text for search box</comment>
+  </data>
+  <!-- Health severity labels -->
+  <data name="SeverityReady" xml:space="preserve">
+    <value>准备好</value>
+    <comment>Health check passed</comment>
+  </data>
+  <data name="SeverityWarning" xml:space="preserve">
+    <value>警告</value>
+    <comment>Health check has a non-critical issue</comment>
+  </data>
+  <data name="SeverityCritical" xml:space="preserve">
+    <value>批判的</value>
+    <comment>Health check found a serious problem</comment>
+  </data>
+  <data name="SeverityInfo" xml:space="preserve">
+    <value>信息</value>
+    <comment>Informational health detail</comment>
+  </data>
+  <!-- Maintenance actions -->
+  <data name="ActionCheckMatrix" xml:space="preserve">
+    <value>检查兼容性矩阵</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionCreateBackup" xml:space="preserve">
+    <value>创建 Spicetify 备份</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionRestoreBackup" xml:space="preserve">
+    <value>恢复最新备份</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionReapply" xml:space="preserve">
+    <value>更新后重新申请</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionRepairMarketplace" xml:space="preserve">
+    <value>修复并打开市场</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionOpenMarketplace" xml:space="preserve">
+    <value>开放市场</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionSafeMode" xml:space="preserve">
+    <value>安全模式</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionRestoreVanilla" xml:space="preserve">
+    <value>恢复原版 Spotify</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionUninstallSpicetify" xml:space="preserve">
+    <value>卸载 Spicetify</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionFullReset" xml:space="preserve">
+    <value>完全重置</value>
+    <comment>Maintenance action title — destructive</comment>
+  </data>
+  <data name="ActionRemoveSelfData" xml:space="preserve">
+    <value>删除 LibreSpot 数据</value>
+    <comment>Maintenance action title — destructive</comment>
+  </data>
+  <!-- Buttons -->
+  <data name="ButtonRunSetup" xml:space="preserve">
+    <value>运行设置</value>
+    <comment>Primary install button label</comment>
+  </data>
+  <data name="ButtonCancel" xml:space="preserve">
+    <value>取消</value>
+    <comment>Cancel/abort button label</comment>
+  </data>
+  <data name="ButtonContinue" xml:space="preserve">
+    <value>继续</value>
+    <comment>Confirmation dialog continue button</comment>
+  </data>
+  <data name="ButtonDismiss" xml:space="preserve">
+    <value>解雇</value>
+    <comment>Dismiss/close button</comment>
+  </data>
+  <data name="ButtonCopyLog" xml:space="preserve">
+    <value>复制日志</value>
+    <comment>Copy log to clipboard button</comment>
+  </data>
+  <data name="ButtonOpenFolder" xml:space="preserve">
+    <value>打开文件夹</value>
+    <comment>Open folder in Explorer button</comment>
+  </data>
+  <data name="ButtonClearSearch" xml:space="preserve">
+    <value>清除</value>
+    <comment>Clear search button</comment>
+  </data>
+  <data name="ButtonClearSearchName" xml:space="preserve">
+    <value>清除设置搜索</value>
+    <comment>Accessibility name for clear search button</comment>
+  </data>
+  <data name="ButtonRunRecommendedSetup" xml:space="preserve">
+    <value>运行推荐的设置</value>
+    <comment>Primary button on recommended mode</comment>
+  </data>
+  <data name="ButtonApplyCustomProfile" xml:space="preserve">
+    <value>应用自定义配置文件</value>
+    <comment>Primary button on custom mode</comment>
+  </data>
+  <data name="ButtonApplyCustomProfileHint" xml:space="preserve">
+    <value>保存此自定义配置文件并使用这些选择启动安装程序。</value>
+    <comment>Accessibility help text for apply button</comment>
+  </data>
+  <data name="ButtonOpenLibreSpotFolder" xml:space="preserve">
+    <value>打开 LibreSpot 文件夹</value>
+    <comment>Open config folder button</comment>
+  </data>
+  <data name="ButtonOpenLibreSpotFolderHint" xml:space="preserve">
+    <value>打开 LibreSpot 配置文件夹，以便您可以检查恢复的配置文件备份。</value>
+    <comment>Sidebar open-folder hint</comment>
+  </data>
+  <data name="ButtonOpenLibreSpotFolderActivityHint" xml:space="preserve">
+    <value>打开 LibreSpot 配置文件夹，包括配置备份和 install.log。</value>
+    <comment>Activity panel open-folder hint</comment>
+  </data>
+  <data name="ButtonRefreshEnvironment" xml:space="preserve">
+    <value>刷新环境</value>
+    <comment>Refresh button label</comment>
+  </data>
+  <data name="ButtonRefreshEnvironmentHint" xml:space="preserve">
+    <value>重新检查 Spotify、Spisetify 和保存的配置文件状态。</value>
+    <comment>Refresh button tooltip</comment>
+  </data>
+  <data name="ButtonExportBundle" xml:space="preserve">
+    <value>出口捆绑</value>
+    <comment>Export support bundle button</comment>
+  </data>
+  <data name="ButtonExportBundleName" xml:space="preserve">
+    <value>导出支持包</value>
+    <comment>Accessibility name for export bundle button</comment>
+  </data>
+  <data name="ButtonExportBundleHint" xml:space="preserve">
+    <value>使用选定的诊断类别写入本地经过编辑的 LibreSpot 支持 zip。</value>
+    <comment>Accessibility help text for export bundle button</comment>
+  </data>
+  <data name="ButtonEnableWatcher" xml:space="preserve">
+    <value>启用观察者</value>
+    <comment>Enable auto-reapply button</comment>
+  </data>
+  <data name="ButtonEnableWatcherName" xml:space="preserve">
+    <value>启用自动重新应用观察程序</value>
+    <comment>Accessibility name</comment>
+  </data>
+  <data name="ButtonEnableWatcherHint" xml:space="preserve">
+    <value>注册 Spotify 更新后重新应用 LibreSpot 的计划任务。</value>
+    <comment>Accessibility help text</comment>
+  </data>
+  <data name="ButtonDisableWatcher" xml:space="preserve">
+    <value>禁用观察者</value>
+    <comment>Disable auto-reapply button</comment>
+  </data>
+  <data name="ButtonDisableWatcherName" xml:space="preserve">
+    <value>禁用自动重新应用观察程序</value>
+    <comment>Accessibility name</comment>
+  </data>
+  <data name="ButtonDisableWatcherHint" xml:space="preserve">
+    <value>删除计划的自动重新应用观察程序任务。</value>
+    <comment>Accessibility help text</comment>
+  </data>
+  <data name="ButtonCancelRun" xml:space="preserve">
+    <value>取消运行</value>
+    <comment>Cancel active run button</comment>
+  </data>
+  <data name="ButtonCancelRunName" xml:space="preserve">
+    <value>取消当前运行</value>
+    <comment>Accessibility name</comment>
+  </data>
+  <data name="ButtonCancelRunHint" xml:space="preserve">
+    <value>停止活动的 LibreSpot 运行。</value>
+    <comment>Accessibility help text</comment>
+  </data>
+  <data name="ButtonClose" xml:space="preserve">
+    <value>关闭</value>
+    <comment>Close overlay button</comment>
+  </data>
+  <data name="ButtonCopyLogName" xml:space="preserve">
+    <value>复制运行日志</value>
+    <comment>Accessibility name for copy log button</comment>
+  </data>
+  <data name="ButtonCopyLogHint" xml:space="preserve">
+    <value>将可见的运行日志复制到剪贴板。</value>
+    <comment>Accessibility help text</comment>
+  </data>
+  <!-- Progress / activity -->
+  <data name="ProgressPreparing" xml:space="preserve">
+    <value>准备中</value>
+    <comment>Initial progress state</comment>
+  </data>
+  <data name="ProgressComplete" xml:space="preserve">
+    <value>设置完成</value>
+    <comment>Final progress state</comment>
+  </data>
+  <data name="ProgressSpotifyReady" xml:space="preserve">
+    <value>Spotify 已准备就绪</value>
+    <comment>Final progress substatus</comment>
+  </data>
+  <!-- Install options -->
+  <data name="OptionCleanInstall" xml:space="preserve">
+    <value>首先删除当前堆栈</value>
+    <comment>Clean install option title</comment>
+  </data>
+  <data name="OptionCleanInstallDescription" xml:space="preserve">
+    <value>在重新开始之前清除旧的 Spotify 和自定义残留。</value>
+    <comment>Clean install option description</comment>
+  </data>
+  <data name="OptionLaunchAfter" xml:space="preserve">
+    <value>完成后启动 Spotify</value>
+    <comment>Post-install launch option title</comment>
+  </data>
+  <!-- Config status -->
+  <data name="ConfigSaved" xml:space="preserve">
+    <value>个人资料已保存</value>
+    <comment>Shown after config is saved</comment>
+  </data>
+  <data name="ConfigUnsaved" xml:space="preserve">
+    <value>未保存的更改</value>
+    <comment>Shown when config has unsaved changes</comment>
+  </data>
+  <!-- Sidebar / environment -->
+  <data name="SidebarDescription" xml:space="preserve">
+    <value>推荐处理稳定路径。</value>
+    <comment>Sidebar mode description paragraph</comment>
+  </data>
+  <data name="EnvironmentLabel" xml:space="preserve">
+    <value>环境</value>
+    <comment>Sidebar environment section heading</comment>
+  </data>
+  <data name="DashboardSpotifyVersionLabel" xml:space="preserve">
+    <value>Spotify 版本</value>
+    <comment>Status dashboard card label</comment>
+  </data>
+  <data name="DashboardSpicetifyVersionLabel" xml:space="preserve">
+    <value>Spicetify 版本</value>
+    <comment>Status dashboard card label</comment>
+  </data>
+  <data name="DashboardSpotXStateLabel" xml:space="preserve">
+    <value>SpotX 状态</value>
+    <comment>Status dashboard card label</comment>
+  </data>
+  <data name="DashboardLastPatchLabel" xml:space="preserve">
+    <value>最后一个补丁</value>
+    <comment>Status dashboard card label</comment>
+  </data>
+  <data name="DashboardWatcherLabel" xml:space="preserve">
+    <value>守望者</value>
+    <comment>Status dashboard card label</comment>
+  </data>
+  <data name="DashboardUnknownValue" xml:space="preserve">
+    <value>未知</value>
+    <comment>Status dashboard fallback value</comment>
+  </data>
+  <data name="DashboardSnapshotMissingDetail" xml:space="preserve">
+    <value>快照尚未检查此组件。</value>
+    <comment>Status dashboard fallback detail</comment>
+  </data>
+  <data name="DashboardNoPatchRecord" xml:space="preserve">
+    <value>无补丁记录</value>
+    <comment>Status dashboard last patch fallback value</comment>
+  </data>
+  <data name="DashboardNoPatchRecordDetail" xml:space="preserve">
+    <value>运行安装程序或重新应用一次，以便 LibreSpot 可以记录补丁状态。</value>
+    <comment>Status dashboard last patch fallback detail</comment>
+  </data>
+  <data name="SeverityWarningsLabel" xml:space="preserve">
+    <value>警告</value>
+    <comment>Sidebar warning count label</comment>
+  </data>
+  <data name="NextStepLabel" xml:space="preserve">
+    <value>下一步</value>
+    <comment>Sidebar next-step section heading</comment>
+  </data>
+  <data name="ProfileRecoveryLabel" xml:space="preserve">
+    <value>配置文件恢复</value>
+    <comment>Sidebar profile recovery section heading</comment>
+  </data>
+  <data name="StackSnapshotLabel" xml:space="preserve">
+    <value>堆栈快照</value>
+    <comment>Sidebar stack snapshot heading</comment>
+  </data>
+  <data name="StackSnapshotHint" xml:space="preserve">
+    <value>在 LibreSpot 之外更改 Spotify 后刷新，以便推荐保持准确。</value>
+    <comment>Stack snapshot helper text</comment>
+  </data>
+  <!-- Option status badges -->
+  <data name="OptionStatusOptional" xml:space="preserve">
+    <value>选修的</value>
+    <comment>Option card status badge</comment>
+  </data>
+  <data name="OptionStatusRecommended" xml:space="preserve">
+    <value>受到推崇的</value>
+    <comment>Option card status badge</comment>
+  </data>
+  <data name="OptionStatusAdded" xml:space="preserve">
+    <value>额外</value>
+    <comment>Option card status badge</comment>
+  </data>
+  <data name="OptionStatusRemoved" xml:space="preserve">
+    <value>已删除</value>
+    <comment>Option card status badge</comment>
+  </data>
+  <!-- Extension status badges -->
+  <data name="ExtensionStatusAvailable" xml:space="preserve">
+    <value>可用的</value>
+    <comment>Extension card status badge</comment>
+  </data>
+  <data name="ExtensionStatusDefault" xml:space="preserve">
+    <value>默认</value>
+    <comment>Extension card status badge</comment>
+  </data>
+  <data name="ExtensionStatusAdded" xml:space="preserve">
+    <value>额外</value>
+    <comment>Extension card status badge</comment>
+  </data>
+  <data name="ExtensionStatusRemoved" xml:space="preserve">
+    <value>已删除</value>
+    <comment>Extension card status badge</comment>
+  </data>
+  <!-- Maintenance card details -->
+  <data name="MaintenanceCardDefaultDetail" xml:space="preserve">
+    <value>在此处运行并在 LibreSpot 完成时使结果可见。</value>
+    <comment>Default maintenance card detail text</comment>
+  </data>
+  <data name="MaintenanceCardDestructiveDetail" xml:space="preserve">
+    <value>仅当您想要清除当前设置并从头开始重建时才使用。</value>
+    <comment>Destructive maintenance card detail text</comment>
+  </data>
+  <!-- Recommended mode -->
+  <data name="WhatIncludesLabel" xml:space="preserve">
+    <value>它包括什么</value>
+    <comment>Recommended mode inclusion list heading</comment>
+  </data>
+  <data name="RecommendedModeHint" xml:space="preserve">
+    <value>在首次安装、Spotify 更新后修复或任何您想要以最快的路径恢复到已知良好设置的情况下，请使用“推荐”。</value>
+    <comment>Recommended mode usage hint</comment>
+  </data>
+  <!-- Custom mode sections -->
+  <data name="InstallPostureSection" xml:space="preserve">
+    <value>安装姿势</value>
+    <comment>Custom mode section heading</comment>
+  </data>
+  <data name="InstallPostureDescription" xml:space="preserve">
+    <value>选择是否首先重建 LibreSpot，以及运行完成后是否重新打开 Spotify。</value>
+    <comment>Custom mode section description</comment>
+  </data>
+  <data name="AppearanceSection" xml:space="preserve">
+    <value>外貌</value>
+    <comment>Custom mode section heading</comment>
+  </data>
+  <data name="AppearanceDescription" xml:space="preserve">
+    <value>主题、方案、歌词、缓存和兼容性。</value>
+    <comment>Custom mode section description</comment>
+  </data>
+  <data name="ThemePackLabel" xml:space="preserve">
+    <value>主题包</value>
+    <comment>Theme selector label</comment>
+  </data>
+  <data name="ThemePackHint" xml:space="preserve">
+    <value>选择 LibreSpot 应恢复的 Spicetify 主题包。</value>
+    <comment>Theme selector accessibility hint</comment>
+  </data>
+  <data name="ThemeGallerySearchLabel" xml:space="preserve">
+    <value>搜索主题和方案</value>
+    <comment>Theme gallery search label</comment>
+  </data>
+  <data name="ThemeGallerySearchName" xml:space="preserve">
+    <value>搜索主题和方案</value>
+    <comment>Accessibility name for theme gallery search</comment>
+  </data>
+  <data name="ThemeGallerySearchHint" xml:space="preserve">
+    <value>输入主题、方案、源或 theme.js 要求来过滤图库。</value>
+    <comment>Accessibility help text for theme gallery search</comment>
+  </data>
+  <data name="ThemeGalleryEmpty" xml:space="preserve">
+    <value>没有可用的主题。</value>
+    <comment>Theme gallery empty state</comment>
+  </data>
+  <data name="ThemeGalleryNoResults" xml:space="preserve">
+    <value>没有与此搜索匹配的主题。</value>
+    <comment>Theme gallery no-results state</comment>
+  </data>
+  <data name="ThemeGalleryRequiresJsBadge" xml:space="preserve">
+    <value>主题.js</value>
+    <comment>Badge for themes that require theme.js</comment>
+  </data>
+  <data name="ThemeGalleryCommunityBadge" xml:space="preserve">
+    <value>社区</value>
+    <comment>Badge for community themes</comment>
+  </data>
+  <data name="ThemeGalleryOfficialBadge" xml:space="preserve">
+    <value>官方的</value>
+    <comment>Badge for official themes</comment>
+  </data>
+  <data name="ThemeGalleryMarketplaceBadge" xml:space="preserve">
+    <value>仅限市场</value>
+    <comment>Badge for marketplace-only fallback theme selection</comment>
+  </data>
+  <data name="ThemeGallerySchemesLabel" xml:space="preserve">
+    <value>方案</value>
+    <comment>Theme gallery scheme chip section label</comment>
+  </data>
+  <data name="ColorSchemeLabel" xml:space="preserve">
+    <value>配色方案</value>
+    <comment>Scheme selector label</comment>
+  </data>
+  <data name="LyricsThemeLabel" xml:space="preserve">
+    <value>歌词主题</value>
+    <comment>Lyrics theme selector label</comment>
+  </data>
+  <data name="CacheLimitLabel" xml:space="preserve">
+    <value>缓存限制</value>
+    <comment>Cache limit field label</comment>
+  </data>
+  <data name="CacheLimitName" xml:space="preserve">
+    <value>缓存限制（以兆字节为单位）</value>
+    <comment>Accessibility name for cache field</comment>
+  </data>
+  <data name="CacheLimitHint" xml:space="preserve">
+    <value>设置缓存上限（以兆字节为单位），或保留零以使用 LibreSpot 的默认值。</value>
+    <comment>Cache limit accessibility hint</comment>
+  </data>
+  <data name="CacheLimitUnit" xml:space="preserve">
+    <value>MB</value>
+    <comment>Cache limit unit suffix</comment>
+  </data>
+  <data name="CacheLimitDefault" xml:space="preserve">
+    <value>保留 0 作为默认缓存行为。</value>
+    <comment>Cache limit helper text</comment>
+  </data>
+  <data name="CompatibilityTargetLabel" xml:space="preserve">
+    <value>兼容目标</value>
+    <comment>Section label for Spotify version targeting</comment>
+  </data>
+  <data name="SpotifyBuildLabel" xml:space="preserve">
+    <value>Spotify 构建</value>
+    <comment>Version dropdown label</comment>
+  </data>
+  <data name="SpotifyCompatibilityName" xml:space="preserve">
+    <value>Spotify 兼容性目标</value>
+    <comment>Accessibility name for version dropdown</comment>
+  </data>
+  <data name="SpotifyCompatibilityHint" xml:space="preserve">
+    <value>当您需要更明确的兼容性控制时，请选择 Spotify 版本 LibreSpot 应固定的版本。</value>
+    <comment>Version dropdown accessibility hint</comment>
+  </data>
+  <data name="DownloadPathLabel" xml:space="preserve">
+    <value>下载路径</value>
+    <comment>Download method section label</comment>
+  </data>
+  <data name="DownloadMethodName" xml:space="preserve">
+    <value>下载方法</value>
+    <comment>Accessibility name for download method dropdown</comment>
+  </data>
+  <data name="DownloadMethodHint" xml:space="preserve">
+    <value>仅当您的网络或环境需要时才覆盖 LibreSpot 的默认传输路径。</value>
+    <comment>Download method accessibility hint</comment>
+  </data>
+  <data name="PlaybackBehaviorSection" xml:space="preserve">
+    <value>播放和 shell 行为</value>
+    <comment>Custom mode section heading</comment>
+  </data>
+  <data name="PlaybackBehaviorDescription" xml:space="preserve">
+    <value>这些设置决定了修补后 Spotify 的日常体验。</value>
+    <comment>Custom mode section description</comment>
+  </data>
+  <data name="CoreBehaviorLabel" xml:space="preserve">
+    <value>核心行为</value>
+    <comment>Option group label</comment>
+  </data>
+  <data name="InterfaceTuningLabel" xml:space="preserve">
+    <value>界面调整</value>
+    <comment>Option group label</comment>
+  </data>
+  <data name="AdvancedAdjustmentsSection" xml:space="preserve">
+    <value>高级调整</value>
+    <comment>Custom mode section heading</comment>
+  </data>
+  <data name="AdvancedAdjustmentsHint" xml:space="preserve">
+    <value>除非您知道需要它们，否则请将它们保留。</value>
+    <comment>Advanced section warning</comment>
+  </data>
+  <data name="ExperienceExtrasLabel" xml:space="preserve">
+    <value>额外体验</value>
+    <comment>Option group label</comment>
+  </data>
+  <data name="BuiltInExtensionsSection" xml:space="preserve">
+    <value>内置扩展</value>
+    <comment>Custom mode section heading</comment>
+  </data>
+  <data name="BuiltInExtensionsDescription" xml:space="preserve">
+    <value>附加 LibreSpot 使用此配置文件进行管理。</value>
+    <comment>Custom mode section description</comment>
+  </data>
+  <!-- Custom mode profile summary -->
+  <data name="ProfileSummaryLabel" xml:space="preserve">
+    <value>简介概要</value>
+    <comment>Summary sidebar heading</comment>
+  </data>
+  <data name="InstallPostureLabel" xml:space="preserve">
+    <value>安装姿势</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="ProfileChangesLabel" xml:space="preserve">
+    <value>个人资料变更</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="ExtensionsLabel" xml:space="preserve">
+    <value>扩展</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="AccessLabel" xml:space="preserve">
+    <value>使用权</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="RunReadinessLabel" xml:space="preserve">
+    <value>运行准备</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="CurrentSelectionsLabel" xml:space="preserve">
+    <value>当前选择</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="DownloadRouteLabel" xml:space="preserve">
+    <value>下载路线</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="WhatToWatchLabel" xml:space="preserve">
+    <value>看什么</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="NoExtensionsSelected" xml:space="preserve">
+    <value>未选择扩展名</value>
+    <comment>Empty state for extensions list</comment>
+  </data>
+  <data name="NoExtensionsHint" xml:space="preserve">
+    <value>保持精简，或者仅在需要时添加助手。</value>
+    <comment>Empty state hint for extensions</comment>
+  </data>
+  <!-- Maintenance mode -->
+  <data name="StackLabel" xml:space="preserve">
+    <value>堆</value>
+    <comment>Maintenance status section label</comment>
+  </data>
+  <data name="BackupsLabel" xml:space="preserve">
+    <value>备份</value>
+    <comment>Maintenance status section label</comment>
+  </data>
+  <data name="MarketplaceLabel" xml:space="preserve">
+    <value>市场</value>
+    <comment>Maintenance status section label</comment>
+  </data>
+  <data name="ThemeLabel" xml:space="preserve">
+    <value>主题</value>
+    <comment>Maintenance status section label</comment>
+  </data>
+  <data name="SupportBundleTitle" xml:space="preserve">
+    <value>支持包</value>
+    <comment>Support bundle section heading</comment>
+  </data>
+  <data name="AutoReapplyTitle" xml:space="preserve">
+    <value>Spotify 更新后自动重新申请</value>
+    <comment>Watcher section heading</comment>
+  </data>
+  <data name="RefreshRecoverSection" xml:space="preserve">
+    <value>刷新并恢复</value>
+    <comment>Maintenance action group heading</comment>
+  </data>
+  <data name="RefreshRecoverDescription" xml:space="preserve">
+    <value>首先使用它们进行检查、重新应用和较轻的回滚工作。</value>
+    <comment>Maintenance action group description</comment>
+  </data>
+  <data name="ResetSection" xml:space="preserve">
+    <value>重置</value>
+    <comment>Maintenance destructive action group heading</comment>
+  </data>
+  <data name="ResetDescription" xml:space="preserve">
+    <value>仅当您想要删除当前设置并从更清晰的基线开始时才使用。</value>
+    <comment>Maintenance destructive group description</comment>
+  </data>
+  <data name="MaintenanceClosingHint" xml:space="preserve">
+    <value>如果播放处于活动状态，请先关闭 Spotify，如果有任何异常情况，请复制日志。</value>
+    <comment>Maintenance footer hint</comment>
+  </data>
+  <!-- Activity overlay -->
+  <data name="ActivityDialogName" xml:space="preserve">
+    <value>运行活动对话框</value>
+    <comment>Accessibility name for activity overlay</comment>
+  </data>
+  <data name="ActivityDialogHint" xml:space="preserve">
+    <value>显示实时进度、当前状态和故障排除输出。</value>
+    <comment>Accessibility help text for activity overlay</comment>
+  </data>
+  <data name="ElapsedLabel" xml:space="preserve">
+    <value>过去</value>
+    <comment>Elapsed time label</comment>
+  </data>
+  <data name="ProgressBarName" xml:space="preserve">
+    <value>安装进度</value>
+    <comment>Accessibility name for progress bar</comment>
+  </data>
+  <data name="UndoPaneTitle" xml:space="preserve">
+    <value>可逆的变化</value>
+    <comment>Undo pane heading after a successful run</comment>
+  </data>
+  <data name="UndoPaneDescription" xml:space="preserve">
+    <value>这些已完成的更改包括来自操作日志的手动撤消注释。</value>
+    <comment>Undo pane description after a successful run</comment>
+  </data>
+  <data name="UndoPaneUndoLabel" xml:space="preserve">
+    <value>撤消注释</value>
+    <comment>Undo pane rollback hint label</comment>
+  </data>
+  <data name="RunLogLabel" xml:space="preserve">
+    <value>运行日志</value>
+    <comment>Log section heading</comment>
+  </data>
+  <data name="RunLogDescription" xml:space="preserve">
+    <value>此次运行的详细进度和恢复说明。</value>
+    <comment>Log section description</comment>
+  </data>
+  <data name="LogEmptyStateTitle" xml:space="preserve">
+    <value>运行详细信息将显示在此处</value>
+    <comment>Log empty state heading</comment>
+  </data>
+  <data name="LogEmptyStateHint" xml:space="preserve">
+    <value>一旦 LibreSpot 有需要报告的内容，就会出现进度、警告和恢复线索。</value>
+    <comment>Log empty state description</comment>
+  </data>
+  <!-- Prompt overlay -->
+  <data name="PromptActionConfirm" xml:space="preserve">
+    <value>确认动作</value>
+    <comment>Default prompt overlay title</comment>
+  </data>
+  <data name="PromptActionReset" xml:space="preserve">
+    <value>复位动作</value>
+    <comment>Prompt overlay title for destructive actions</comment>
+  </data>
+  <!-- ViewModel strings -->
+  <data name="FilesNone" xml:space="preserve">
+    <value>0 个文件</value>
+    <comment>Default file count display</comment>
+  </data>
+  <data name="SizeNone" xml:space="preserve">
+    <value>0乙</value>
+    <comment>Default size display</comment>
+  </data>
+  <data name="NoBundleExported" xml:space="preserve">
+    <value>此会话中没有导出支持包。</value>
+    <comment>Support bundle empty state</comment>
+  </data>
+  <data name="ExportBundleTitle" xml:space="preserve">
+    <value>导出 LibreSpot 支持包</value>
+    <comment>Export bundle dialog title</comment>
+  </data>
+  <data name="PreparingBackend" xml:space="preserve">
+    <value>准备后端运行时</value>
+    <comment>Status while backend is starting</comment>
+  </data>
+  <data name="Canceled" xml:space="preserve">
+    <value>取消</value>
+    <comment>Run was canceled</comment>
+  </data>
+  <data name="ConfigSaveCanceled" xml:space="preserve">
+    <value>配置保存已取消</value>
+    <comment>Config save was canceled</comment>
+  </data>
+  <data name="RunNeedsAttention" xml:space="preserve">
+    <value>跑步需要注意</value>
+    <comment>Activity title when run has warnings</comment>
+  </data>
+  <data name="RunComplete" xml:space="preserve">
+    <value>运行完成</value>
+    <comment>Activity title when run finishes successfully</comment>
+  </data>
+  <data name="StoppingBackend" xml:space="preserve">
+    <value>停止后端...</value>
+    <comment>Status while backend is stopping</comment>
+  </data>
+  <data name="StatusInProgress" xml:space="preserve">
+    <value>进行中</value>
+    <comment>Run status badge</comment>
+  </data>
+  <data name="StatusNeedsReview" xml:space="preserve">
+    <value>需要审查</value>
+    <comment>Run status badge when warnings exist</comment>
+  </data>
+  <data name="StatusComplete" xml:space="preserve">
+    <value>完全的</value>
+    <comment>Run status badge on success</comment>
+  </data>
+  <data name="CurrentStep" xml:space="preserve">
+    <value>当前步骤</value>
+    <comment>Progress step label</comment>
+  </data>
+  <data name="RunStatus" xml:space="preserve">
+    <value>运行状态</value>
+    <comment>Status label</comment>
+  </data>
+  <!-- AppCatalog: Option titles and descriptions -->
+  <data name="Option_CleanInstall_Title" xml:space="preserve">
+    <value>首先删除当前堆栈</value>
+    <comment>Option title for CleanInstall</comment>
+  </data>
+  <data name="Option_CleanInstall_Description" xml:space="preserve">
+    <value>在 LibreSpot 重建设置之前清除旧的 Spotify 和自定义残留物。</value>
+    <comment>Option description for CleanInstall</comment>
+  </data>
+  <data name="Option_LaunchAfter_Title" xml:space="preserve">
+    <value>完成后打开 Spotify</value>
+    <comment>Option title for LaunchAfter</comment>
+  </data>
+  <data name="Option_LaunchAfter_Description" xml:space="preserve">
+    <value>LibreSpot 完成后自动启动 Spotify。</value>
+    <comment>Option description for LaunchAfter</comment>
+  </data>
+  <data name="Option_SpotX_NewTheme_Title" xml:space="preserve">
+    <value>启用 SpotX 新主题</value>
+    <comment>Option title for SpotX_NewTheme</comment>
+  </data>
+  <data name="Option_SpotX_NewTheme_Description" xml:space="preserve">
+    <value>应用较新的 SpotX shell 调整以获得更干净的 Spotify 框架。</value>
+    <comment>Option description for SpotX_NewTheme</comment>
+  </data>
+  <data name="Option_SpotX_PodcastsOff_Title" xml:space="preserve">
+    <value>隐藏播客</value>
+    <comment>Option title for SpotX_PodcastsOff</comment>
+  </data>
+  <data name="Option_SpotX_PodcastsOff_Description" xml:space="preserve">
+    <value>减少 Spotify 上的播客界面，实现音乐优先的设置。</value>
+    <comment>Option description for SpotX_PodcastsOff</comment>
+  </data>
+  <data name="Option_SpotX_BlockUpdate_Title" xml:space="preserve">
+    <value>阻止 Spotify 更新</value>
+    <comment>Option title for SpotX_BlockUpdate</comment>
+  </data>
+  <data name="Option_SpotX_BlockUpdate_Description" xml:space="preserve">
+    <value>保持 Spotify 固定，这样您的设置就不太可能意外中断。</value>
+    <comment>Option description for SpotX_BlockUpdate</comment>
+  </data>
+  <data name="Option_SpotX_AdSectionsOff_Title" xml:space="preserve">
+    <value>删除广告部分</value>
+    <comment>Option title for SpotX_AdSectionsOff</comment>
+  </data>
+  <data name="Option_SpotX_AdSectionsOff_Description" xml:space="preserve">
+    <value>从 Spotify 的主要视图中删除广告宣传的部分。</value>
+    <comment>Option description for SpotX_AdSectionsOff</comment>
+  </data>
+  <data name="Option_SpotX_Premium_Title" xml:space="preserve">
+    <value>高级账户模式</value>
+    <comment>Option title for SpotX_Premium</comment>
+  </data>
+  <data name="Option_SpotX_Premium_Description" xml:space="preserve">
+    <value>跳过以广告为中心的修补，同时保留 LibreSpot 堆栈的其余部分。</value>
+    <comment>Option description for SpotX_Premium</comment>
+  </data>
+  <data name="Option_SpotX_DisableStartup_Title" xml:space="preserve">
+    <value>禁用启动启动</value>
+    <comment>Option title for SpotX_DisableStartup</comment>
+  </data>
+  <data name="Option_SpotX_DisableStartup_Description" xml:space="preserve">
+    <value>阻止 Spotify 在 Windows 上自动启动。</value>
+    <comment>Option description for SpotX_DisableStartup</comment>
+  </data>
+  <data name="Option_SpotX_NoShortcut_Title" xml:space="preserve">
+    <value>跳过快捷方式创建</value>
+    <comment>Option title for SpotX_NoShortcut</comment>
+  </data>
+  <data name="Option_SpotX_NoShortcut_Description" xml:space="preserve">
+    <value>安装过程中避免桌面快捷方式混乱。</value>
+    <comment>Option description for SpotX_NoShortcut</comment>
+  </data>
+  <data name="Option_SpotX_StartSpoti_Title" xml:space="preserve">
+    <value>安装后启动 Spotify</value>
+    <comment>Option title for SpotX_StartSpoti</comment>
+  </data>
+  <data name="Option_SpotX_StartSpoti_Description" xml:space="preserve">
+    <value>让 SpotX 在修补完成后立即启动 Spotify。</value>
+    <comment>Option description for SpotX_StartSpoti</comment>
+  </data>
+  <data name="Option_SpotX_LyricsEnabled_Title" xml:space="preserve">
+    <value>启用歌词补丁</value>
+    <comment>Option title for SpotX_LyricsEnabled</comment>
+  </data>
+  <data name="Option_SpotX_LyricsEnabled_Description" xml:space="preserve">
+    <value>打开修补歌词支持并选择歌词皮肤。</value>
+    <comment>Option description for SpotX_LyricsEnabled</comment>
+  </data>
+  <data name="Option_SpotX_TopSearch_Title" xml:space="preserve">
+    <value>顶部搜索栏</value>
+    <comment>Option title for SpotX_TopSearch</comment>
+  </data>
+  <data name="Option_SpotX_TopSearch_Description" xml:space="preserve">
+    <value>将 Spotify 搜索移至更始终可用的位置。</value>
+    <comment>Option description for SpotX_TopSearch</comment>
+  </data>
+  <data name="Option_SpotX_RightSidebarOff_Title" xml:space="preserve">
+    <value>隐藏右侧边栏</value>
+    <comment>Option title for SpotX_RightSidebarOff</comment>
+  </data>
+  <data name="Option_SpotX_RightSidebarOff_Description" xml:space="preserve">
+    <value>减少辅助镶边以获得更集中的播放布局。</value>
+    <comment>Option description for SpotX_RightSidebarOff</comment>
+  </data>
+  <data name="Option_SpotX_RightSidebarClr_Title" xml:space="preserve">
+    <value>清晰的右侧边栏样式</value>
+    <comment>Option title for SpotX_RightSidebarClr</comment>
+  </data>
+  <data name="Option_SpotX_RightSidebarClr_Description" xml:space="preserve">
+    <value>在右侧边栏上使用较轻的样式，而不是隐藏它。</value>
+    <comment>Option description for SpotX_RightSidebarClr</comment>
+  </data>
+  <data name="Option_SpotX_CanvasHomeOff_Title" xml:space="preserve">
+    <value>禁用主画布</value>
+    <comment>Option title for SpotX_CanvasHomeOff</comment>
+  </data>
+  <data name="Option_SpotX_CanvasHomeOff_Description" xml:space="preserve">
+    <value>减少 Spotify 主界面上的运动和画布混乱。</value>
+    <comment>Option description for SpotX_CanvasHomeOff</comment>
+  </data>
+  <data name="Option_SpotX_HomeSubOff_Title" xml:space="preserve">
+    <value>隐藏首页建议</value>
+    <comment>Option title for SpotX_HomeSubOff</comment>
+  </data>
+  <data name="Option_SpotX_HomeSubOff_Description" xml:space="preserve">
+    <value>删除 Spotify 的一些推荐较多的家庭模块。</value>
+    <comment>Option description for SpotX_HomeSubOff</comment>
+  </data>
+  <data name="Option_SpotX_OldLyrics_Title" xml:space="preserve">
+    <value>旧歌词布局</value>
+    <comment>Option title for SpotX_OldLyrics</comment>
+  </data>
+  <data name="Option_SpotX_OldLyrics_Description" xml:space="preserve">
+    <value>切换回之前的歌词布局处理。</value>
+    <comment>Option description for SpotX_OldLyrics</comment>
+  </data>
+  <data name="Option_SpotX_HideColIconOff_Title" xml:space="preserve">
+    <value>保持集合图标可见</value>
+    <comment>Option title for SpotX_HideColIconOff</comment>
+  </data>
+  <data name="Option_SpotX_HideColIconOff_Description" xml:space="preserve">
+    <value>防止 SpotX 隐藏集合可供性。</value>
+    <comment>Option description for SpotX_HideColIconOff</comment>
+  </data>
+  <data name="Option_SpotX_Plus_Title" xml:space="preserve">
+    <value>扩展 SpotX 调整</value>
+    <comment>Option title for SpotX_Plus</comment>
+  </data>
+  <data name="Option_SpotX_Plus_Description" xml:space="preserve">
+    <value>应用更广泛的 SpotX 调整包来对 Spotify shell 进行更大幅度的修改。</value>
+    <comment>Option description for SpotX_Plus</comment>
+  </data>
+  <data name="Option_SpotX_NewFullscreen_Title" xml:space="preserve">
+    <value>替代全屏布局</value>
+    <comment>Option title for SpotX_NewFullscreen</comment>
+  </data>
+  <data name="Option_SpotX_NewFullscreen_Description" xml:space="preserve">
+    <value>启用 SpotX 的备用全屏播放体验。</value>
+    <comment>Option description for SpotX_NewFullscreen</comment>
+  </data>
+  <data name="Option_SpotX_FunnyProgress_Title" xml:space="preserve">
+    <value>新奇的进度条</value>
+    <comment>Option title for SpotX_FunnyProgress</comment>
+  </data>
+  <data name="Option_SpotX_FunnyProgress_Description" xml:space="preserve">
+    <value>更换 SpotX 有趣的进度条变体。</value>
+    <comment>Option description for SpotX_FunnyProgress</comment>
+  </data>
+  <data name="Option_SpotX_ExpSpotify_Title" xml:space="preserve">
+    <value>实验性 Spotify 功能</value>
+    <comment>Option title for SpotX_ExpSpotify</comment>
+  </data>
+  <data name="Option_SpotX_ExpSpotify_Description" xml:space="preserve">
+    <value>当 SpotX 支持时，允许实验性 Spotify 标志。</value>
+    <comment>Option description for SpotX_ExpSpotify</comment>
+  </data>
+  <data name="Option_SpotX_LyricsBlock_Title" xml:space="preserve">
+    <value>块歌词叠加</value>
+    <comment>Option title for SpotX_LyricsBlock</comment>
+  </data>
+  <data name="Option_SpotX_LyricsBlock_Description" xml:space="preserve">
+    <value>在修补状态下禁用一些与歌词相关的叠加。</value>
+    <comment>Option description for SpotX_LyricsBlock</comment>
+  </data>
+  <data name="Option_SpotX_SendVersionOff_Title" xml:space="preserve">
+    <value>禁用 SpotX 版本报告</value>
+    <comment>Option title for SpotX_SendVersionOff</comment>
+  </data>
+  <data name="Option_SpotX_SendVersionOff_Description" xml:space="preserve">
+    <value>阻止 SpotX 的出站版本通知（2026 年 4 月推出）。</value>
+    <comment>Option description for SpotX_SendVersionOff</comment>
+  </data>
+  <data name="Option_SpotX_DevTools_Title" xml:space="preserve">
+    <value>启用 Spotify 开发者工具</value>
+    <comment>Option title for SpotX_DevTools</comment>
+  </data>
+  <data name="Option_SpotX_DevTools_Description" xml:space="preserve">
+    <value>为扩展作者解锁 Spotify 内的 Chromium DevTools 热键。</value>
+    <comment>Option description for SpotX_DevTools</comment>
+  </data>
+  <data name="Option_SpotX_Mirror_Title" xml:space="preserve">
+    <value>使用 GitHub.io 镜像</value>
+    <comment>Option title for SpotX_Mirror</comment>
+  </data>
+  <data name="Option_SpotX_Mirror_Description" xml:space="preserve">
+    <value>当 raw.githubusercontent.com 被阻止时，回退到 github.io 镜像。</value>
+    <comment>Option description for SpotX_Mirror</comment>
+  </data>
+  <data name="Option_SpotX_ConfirmUninstall_Title" xml:space="preserve">
+    <value>打补丁前强制彻底卸载</value>
+    <comment>Option title for SpotX_ConfirmUninstall</comment>
+  </data>
+  <data name="Option_SpotX_ConfirmUninstall_Description" xml:space="preserve">
+    <value>即使当前版本将被保留，也可以运行 SpotX 的卸载和重新安装流程。</value>
+    <comment>Option description for SpotX_ConfirmUninstall</comment>
+  </data>
+  <data name="Option_Spicetify_Marketplace_Title" xml:space="preserve">
+    <value>安装市场</value>
+    <comment>Option title for Spicetify_Marketplace</comment>
+  </data>
+  <data name="Option_Spicetify_Marketplace_Description" xml:space="preserve">
+    <value>默认情况下包含 Spisetify Marketplace 自定义应用程序。</value>
+    <comment>Option description for Spicetify_Marketplace</comment>
+  </data>
+  <!-- AppCatalog: Extension titles and descriptions -->
+  <data name="Extension_fullAppDisplay_Title" xml:space="preserve">
+    <value>完整的应用程序展示</value>
+    <comment>Extension title for fullAppDisplay.js</comment>
+  </data>
+  <data name="Extension_fullAppDisplay_Description" xml:space="preserve">
+    <value>将专辑封面和播放控件转变为全屏演示。</value>
+    <comment>Extension description for fullAppDisplay.js</comment>
+  </data>
+  <data name="Extension_shuffle_plus_Title" xml:space="preserve">
+    <value>真正的随机播放</value>
+    <comment>Extension title for shuffle+.js</comment>
+  </data>
+  <data name="Extension_shuffle_plus_Description" xml:space="preserve">
+    <value>使用 Fisher-Yates 随机播放而不是 Spotify 的加权随机播放。</value>
+    <comment>Extension description for shuffle+.js</comment>
+  </data>
+  <data name="Extension_trashbin_Title" xml:space="preserve">
+    <value>垃圾桶</value>
+    <comment>Extension title for trashbin.js</comment>
+  </data>
+  <data name="Extension_trashbin_Description" xml:space="preserve">
+    <value>跳过您标记为不需要的歌曲和艺术家。</value>
+    <comment>Extension description for trashbin.js</comment>
+  </data>
+  <data name="Extension_keyboardShortcut_Title" xml:space="preserve">
+    <value>键盘快捷键</value>
+    <comment>Extension title for keyboardShortcut.js</comment>
+  </data>
+  <data name="Extension_keyboardShortcut_Description" xml:space="preserve">
+    <value>添加 Vim 风格的导航以实现更快的键盘控制。</value>
+    <comment>Extension description for keyboardShortcut.js</comment>
+  </data>
+  <data name="Extension_bookmark_Title" xml:space="preserve">
+    <value>书签</value>
+    <comment>Extension title for bookmark.js</comment>
+  </data>
+  <data name="Extension_bookmark_Description" xml:space="preserve">
+    <value>保存和调用页面、曲目、专辑和时间戳。</value>
+    <comment>Extension description for bookmark.js</comment>
+  </data>
+  <data name="Extension_loopyLoop_Title" xml:space="preserve">
+    <value>A-B循环</value>
+    <comment>Extension title for loopyLoop.js</comment>
+  </data>
+  <data name="Extension_loopyLoop_Description" xml:space="preserve">
+    <value>循环播放精确的曲目片段以进行练习或重复聆听。</value>
+    <comment>Extension description for loopyLoop.js</comment>
+  </data>
+  <data name="Extension_popupLyrics_Title" xml:space="preserve">
+    <value>弹出歌词</value>
+    <comment>Extension title for popupLyrics.js</comment>
+  </data>
+  <data name="Extension_popupLyrics_Description" xml:space="preserve">
+    <value>在单独的可调整大小的窗口中打开同步歌词。</value>
+    <comment>Extension description for popupLyrics.js</comment>
+  </data>
+  <data name="Extension_autoSkipVideo_Title" xml:space="preserve">
+    <value>跳过视频</value>
+    <comment>Extension title for autoSkipVideo.js</comment>
+  </data>
+  <data name="Extension_autoSkipVideo_Description" xml:space="preserve">
+    <value>自动跳过画布视频和不受支持的视觉内容。</value>
+    <comment>Extension description for autoSkipVideo.js</comment>
+  </data>
+  <data name="Extension_autoSkipExplicit_Title" xml:space="preserve">
+    <value>跳过显式</value>
+    <comment>Extension title for autoSkipExplicit.js</comment>
+  </data>
+  <data name="Extension_autoSkipExplicit_Description" xml:space="preserve">
+    <value>自动跳过标记为露骨的曲目。</value>
+    <comment>Extension description for autoSkipExplicit.js</comment>
+  </data>
+  <data name="Extension_webnowplaying_Title" xml:space="preserve">
+    <value>网络正在播放</value>
+    <comment>Extension title for webnowplaying.js</comment>
+  </data>
+  <data name="Extension_webnowplaying_Description" xml:space="preserve">
+    <value>公开桌面集成和小部件的当前播放数据。</value>
+    <comment>Extension description for webnowplaying.js</comment>
+  </data>
+  <data name="Extension_hidePodcasts_Title" xml:space="preserve">
+    <value>隐藏播客</value>
+    <comment>Extension title for hidePodcasts.js</comment>
+  </data>
+  <data name="Extension_hidePodcasts_Description" xml:space="preserve">
+    <value>删除播客、剧集和有声读物 UI 元素。</value>
+    <comment>Extension description for hidePodcasts.js</comment>
+  </data>
+  <data name="Extension_beautiful_lyrics_Title" xml:space="preserve">
+    <value>美丽的歌词</value>
+    <comment>Extension title for beautiful-lyrics.mjs</comment>
+  </data>
+  <data name="Extension_beautiful_lyrics_Description" xml:space="preserve">
+    <value>具有动态背景和模糊效果的沉浸式同步歌词。</value>
+    <comment>Extension description for beautiful-lyrics.mjs</comment>
+  </data>
+  <data name="Extension_playlist_icons_Title" xml:space="preserve">
+    <value>播放列表图标</value>
+    <comment>Extension title for playlist-icons.js</comment>
+  </data>
+  <data name="Extension_playlist_icons_Description" xml:space="preserve">
+    <value>将自定义图标和文件夹图像添加到播放列表。</value>
+    <comment>Extension description for playlist-icons.js</comment>
+  </data>
+  <data name="Extension_volumePercentage_Title" xml:space="preserve">
+    <value>体积百分比</value>
+    <comment>Extension title for volumePercentage.js</comment>
+  </data>
+  <data name="Extension_volumePercentage_Description" xml:space="preserve">
+    <value>在滑块旁边显示准确的音量百分比。</value>
+    <comment>Extension description for volumePercentage.js</comment>
+  </data>
+  <data name="Extension_adblock_Title" xml:space="preserve">
+    <value>广告拦截（Spisetify 后备）</value>
+    <comment>Extension title for adblock.js</comment>
+  </data>
+  <data name="Extension_adblock_Description" xml:space="preserve">
+    <value>当 SpotX 修补在较新的 Spotify 版本上失败时，Spicetify 层广告拦截。</value>
+    <comment>Extension description for adblock.js</comment>
+  </data>
+  <!-- AppCatalog: Maintenance action titles, descriptions, and button text -->
+  <data name="Maintenance_CheckUpdates_Title" xml:space="preserve">
+    <value>检查兼容性矩阵</value>
+    <comment>Maintenance action title for CheckUpdates</comment>
+  </data>
+  <data name="Maintenance_CheckUpdates_Description" xml:space="preserve">
+    <value>在更新堆栈之前，比较 LibreSpot 的固定依赖项和 SpotX/Spicetify 兼容性基线。</value>
+    <comment>Maintenance action description for CheckUpdates</comment>
+  </data>
+  <data name="Maintenance_CheckUpdates_ButtonText" xml:space="preserve">
+    <value>检查矩阵</value>
+    <comment>Maintenance action button text for CheckUpdates</comment>
+  </data>
+  <data name="Maintenance_Reapply_Title" xml:space="preserve">
+    <value>重新应用您的设置</value>
+    <comment>Maintenance action title for Reapply</comment>
+  </data>
+  <data name="Maintenance_Reapply_Description" xml:space="preserve">
+    <value>首先刷新 SpotX，然后恢复保存的 Spicetify 主题和扩展状态。</value>
+    <comment>Maintenance action description for Reapply</comment>
+  </data>
+  <data name="Maintenance_Reapply_ButtonText" xml:space="preserve">
+    <value>重新申请</value>
+    <comment>Maintenance action button text for Reapply</comment>
+  </data>
+  <data name="Maintenance_RepairMarketplace_Title" xml:space="preserve">
+    <value>修复并打开市场</value>
+    <comment>Maintenance action title for RepairMarketplace</comment>
+  </data>
+  <data name="Maintenance_RepairMarketplace_Description" xml:space="preserve">
+    <value>重新安装 Spisetify Marketplace 自定义应用程序，应用它，然后打开 Spotify:app:marketplace（如果侧边栏条目丢失）。</value>
+    <comment>Maintenance action description for RepairMarketplace</comment>
+  </data>
+  <data name="Maintenance_RepairMarketplace_ButtonText" xml:space="preserve">
+    <value>维修市场</value>
+    <comment>Maintenance action button text for RepairMarketplace</comment>
+  </data>
+  <data name="Maintenance_OpenMarketplace_Title" xml:space="preserve">
+    <value>开放市场</value>
+    <comment>Maintenance action title for OpenMarketplace</comment>
+  </data>
+  <data name="Maintenance_OpenMarketplace_Description" xml:space="preserve">
+    <value>当 Marketplace 自定义应用程序已安装并注册时，打开 Spotify:app:marketplace。</value>
+    <comment>Maintenance action description for OpenMarketplace</comment>
+  </data>
+  <data name="Maintenance_OpenMarketplace_ButtonText" xml:space="preserve">
+    <value>开放市场</value>
+    <comment>Maintenance action button text for OpenMarketplace</comment>
+  </data>
+  <data name="Maintenance_SafeMode_Title" xml:space="preserve">
+    <value>安全模式</value>
+    <comment>Maintenance action title for SafeMode</comment>
+  </data>
+  <data name="Maintenance_SafeMode_Description" xml:space="preserve">
+    <value>禁用所有主题和扩展而不卸载。 </value>
+    <comment>Maintenance action description for SafeMode</comment>
+  </data>
+  <data name="Maintenance_SafeMode_ButtonText" xml:space="preserve">
+    <value>进入安全模式</value>
+    <comment>Maintenance action button text for SafeMode</comment>
+  </data>
+  <data name="Maintenance_CreateBackup_Title" xml:space="preserve">
+    <value>创建 Spicetify 备份</value>
+    <comment>Maintenance action title for CreateBackup</comment>
+  </data>
+  <data name="Maintenance_CreateBackup_Description" xml:space="preserve">
+    <value>保存当前 Spicetify 配置和主题的备份。</value>
+    <comment>Maintenance action description for CreateBackup</comment>
+  </data>
+  <data name="Maintenance_CreateBackup_ButtonText" xml:space="preserve">
+    <value>创建备份</value>
+    <comment>Maintenance action button text for CreateBackup</comment>
+  </data>
+  <data name="Maintenance_RestoreBackup_Title" xml:space="preserve">
+    <value>恢复最新备份</value>
+    <comment>Maintenance action title for RestoreBackup</comment>
+  </data>
+  <data name="Maintenance_RestoreBackup_Description" xml:space="preserve">
+    <value>恢复最新的 Spicetify 配置备份，然后重新应用自定义。</value>
+    <comment>Maintenance action description for RestoreBackup</comment>
+  </data>
+  <data name="Maintenance_RestoreBackup_ButtonText" xml:space="preserve">
+    <value>恢复备份</value>
+    <comment>Maintenance action button text for RestoreBackup</comment>
+  </data>
+  <data name="Maintenance_RestoreVanilla_Title" xml:space="preserve">
+    <value>恢复原版 Spotify</value>
+    <comment>Maintenance action title for RestoreVanilla</comment>
+  </data>
+  <data name="Maintenance_RestoreVanilla_Description" xml:space="preserve">
+    <value>删除活动的 Spicetify 自定义，同时保留 SpotX。</value>
+    <comment>Maintenance action description for RestoreVanilla</comment>
+  </data>
+  <data name="Maintenance_RestoreVanilla_ButtonText" xml:space="preserve">
+    <value>恢复</value>
+    <comment>Maintenance action button text for RestoreVanilla</comment>
+  </data>
+  <data name="Maintenance_UninstallSpicetify_Title" xml:space="preserve">
+    <value>卸载 Spicetify</value>
+    <comment>Maintenance action title for UninstallSpicetify</comment>
+  </data>
+  <data name="Maintenance_UninstallSpicetify_Description" xml:space="preserve">
+    <value>恢复 Spotify，然后删除 Spicetify CLI、配置文件夹和 PATH 条目。</value>
+    <comment>Maintenance action description for UninstallSpicetify</comment>
+  </data>
+  <data name="Maintenance_UninstallSpicetify_ButtonText" xml:space="preserve">
+    <value>删除 Spicetify</value>
+    <comment>Maintenance action button text for UninstallSpicetify</comment>
+  </data>
+  <data name="Maintenance_FullReset_Title" xml:space="preserve">
+    <value>完全重置</value>
+    <comment>Maintenance action title for FullReset</comment>
+  </data>
+  <data name="Maintenance_FullReset_Description" xml:space="preserve">
+    <value>删除 SpotX、Spicetify、Spotify 应用程序状态和相关残留物，以获得真正干净的开始。</value>
+    <comment>Maintenance action description for FullReset</comment>
+  </data>
+  <data name="Maintenance_FullReset_ButtonText" xml:space="preserve">
+    <value>重置一切</value>
+    <comment>Maintenance action button text for FullReset</comment>
+  </data>
+  <data name="Maintenance_RemoveSelfData_Title" xml:space="preserve">
+    <value>删除 LibreSpot 数据</value>
+    <comment>Maintenance action title for RemoveSelfData</comment>
+  </data>
+  <data name="Maintenance_RemoveSelfData_Description" xml:space="preserve">
+    <value>取消注册观察程序任务并删除 LibreSpot 自己的配置、备份、日志和崩溃报告。 </value>
+    <comment>Maintenance action description for RemoveSelfData</comment>
+  </data>
+  <data name="Maintenance_RemoveSelfData_ButtonText" xml:space="preserve">
+    <value>删除 LibreSpot 数据</value>
+    <comment>Maintenance action button text for RemoveSelfData</comment>
+  </data>
+  <!-- AppCatalog: Recommended highlights -->
+  <data name="RecommendedHighlight_1" xml:space="preserve">
+    <value>从干净的 Spotify 状态开始。</value>
+    <comment>Recommended mode highlight 1</comment>
+  </data>
+  <data name="RecommendedHighlight_2" xml:space="preserve">
+    <value>应用固定的 SpotX 基线并阻止更新。</value>
+    <comment>Recommended mode highlight 2</comment>
+  </data>
+  <data name="RecommendedHighlight_3" xml:space="preserve">
+    <value>恢复 Spisetify、Marketplace 和入门扩展。</value>
+    <comment>Recommended mode highlight 3</comment>
+  </data>
+  <data name="RecommendedHighlight_4" xml:space="preserve">
+    <value>保存可靠的配置文件以供重新应用、恢复和未来维护。</value>
+    <comment>Recommended mode highlight 4</comment>
+  </data>
+  <!-- Runtime localization and extracted XAML surface strings -->
+  <data name="LanguageLabel" xml:space="preserve">
+    <value>语言</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="LanguageHelpText" xml:space="preserve">
+    <value>切换 LibreSpot 界面语言。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CustomSettings" xml:space="preserve">
+    <value>自定义设置</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ImportProfile" xml:space="preserve">
+    <value>导入配置文件</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RelaunchAsAdministrator" xml:space="preserve">
+    <value>以管理员身份重新启动</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RelaunchLibreSpotAsAdministrator" xml:space="preserve">
+    <value>以管理员身份重新启动 LibreSpot</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RestartsLibreSpotWithAdministratorAccessBeforeApplyingChanges" xml:space="preserve">
+    <value>在应用更改之前以管理员访问权限重新启动 LibreSpot。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RecommendedWorkspace" xml:space="preserve">
+    <value>推荐工作空间</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RunsLibreSpotSMostReliableInstallPathWith" xml:space="preserve">
+    <value>使用保存的默认配置文件运行 LibreSpot 最可靠的安装路径。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CustomWorkspace" xml:space="preserve">
+    <value>自定义工作区</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CustomSettingsEditor" xml:space="preserve">
+    <value>自定义设置编辑器</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CustomPatches" xml:space="preserve">
+    <value>定制补丁</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_AuthorAndDryRunASpotXPatchesJson" xml:space="preserve">
+    <value>在 LibreSpot 为 SpotX 暂存该文件之前，编写并试运行 SpotX patch.json 文件。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_StageCustomPatchesDuringInstallAndReapply" xml:space="preserve">
+    <value>在安装和重新应用期间暂存自定义补丁</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_StageCustomSpotXPatches" xml:space="preserve">
+    <value>舞台自定义 SpotX 补丁</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_WhenEnabledLibreSpotValidatesThisJSONAndWrites" xml:space="preserve">
+    <value>启用后，LibreSpot 会验证此 JSON 并为 SpotX 写入临时的 patch.json。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_HTTPSURLToASpotXPatchesJsonFile" xml:space="preserve">
+    <value>SpotX patch.json 文件的 HTTPS URL</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CustomPatchesImportURL" xml:space="preserve">
+    <value>自定义补丁导入 URL</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_EnterAnHTTPSURLThenImportTheJSON" xml:space="preserve">
+    <value>输入 HTTPS URL，然后导入 JSON 进行本地审核。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ImportURL" xml:space="preserve">
+    <value>导入网址</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ImportCustomPatchesFromURL" xml:space="preserve">
+    <value>从 URL 导入自定义补丁</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SpotXCustomPatchesJSONEditor" xml:space="preserve">
+    <value>SpotX 自定义补丁 JSON 编辑器</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_PasteOrEditSpotXPatchesJsonContentHere" xml:space="preserve">
+    <value>在此处粘贴或编辑 SpotX patch.json 内容，然后在应用之前进行试运行。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_DryRun" xml:space="preserve">
+    <value>试运行</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ValidateCustomPatches" xml:space="preserve">
+    <value>验证自定义补丁</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_FormatJSON" xml:space="preserve">
+    <value>格式化 JSON</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_FormatCustomPatchesJSON" xml:space="preserve">
+    <value>设置自定义补丁 JSON 格式</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ClearCustomPatches" xml:space="preserve">
+    <value>清除自定义补丁</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Docs" xml:space="preserve">
+    <value>文档</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_OpenCustomPatchDocumentation" xml:space="preserve">
+    <value>打开自定义补丁文档</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_LocalProfiles" xml:space="preserve">
+    <value>本地档案</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Refresh" xml:space="preserve">
+    <value>刷新</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RefreshLocalProfiles" xml:space="preserve">
+    <value>刷新本地配置文件</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ReloadsBundledTemplatesAndLocalProfileFilesFrom" xml:space="preserve">
+    <value>从磁盘重新加载捆绑的模板和本地配置文件。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SaveNamedPresetsPreviewTemplatesAndImportShared" xml:space="preserve">
+    <value>在写入任何内容之前，保存命名预设、预览模板并导入共享 .librespot 文件。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_NamedLibreSpotProfilesAndBundledTemplates" xml:space="preserve">
+    <value>命名的 LibreSpot 配置文件和捆绑模板。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_NoProfilesAvailable" xml:space="preserve">
+    <value>没有可用的配置文件</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SaveTheCurrentCustomSelectionsOrImportA" xml:space="preserve">
+    <value>保存当前的自定义选择或导入 .librespot 文件以创建第一个本地配置文件。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SelectedProfile" xml:space="preserve">
+    <value>选定的个人资料</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ProfileOperationStatus" xml:space="preserve">
+    <value>配置文件运行状态</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_AnnouncesTheLatestProfileActionResult" xml:space="preserve">
+    <value>公布最新的个人资料行动结果。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ProfileShareCard" xml:space="preserve">
+    <value>个人资料共享卡</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ShowsAnInertShareLinkQRCodeAnd" xml:space="preserve">
+    <value>显示所选配置文件的惰性共享链接、二维码和配置文件比较。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SelectedProfileQRCode" xml:space="preserve">
+    <value>选定的个人资料二维码</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_NoQR" xml:space="preserve">
+    <value>无二维码</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ShareCard" xml:space="preserve">
+    <value>共享卡</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SelectedProfileShareLink" xml:space="preserve">
+    <value>选定的个人资料共享链接</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_InertLibrespotProfileLinkForPreviewOnlyImport" xml:space="preserve">
+    <value>用于仅预览导入的惰性 librespot 配置文件链接。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CompareToRecommended" xml:space="preserve">
+    <value>与推荐比较</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CopyLink" xml:space="preserve">
+    <value>复制链接</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CopySelectedProfileShareLink" xml:space="preserve">
+    <value>复制选定的个人资料共享链接</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CopyCompare" xml:space="preserve">
+    <value>复制比较</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CopySelectedProfileComparison" xml:space="preserve">
+    <value>复制选定的配置文件比较</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Preview" xml:space="preserve">
+    <value>预览</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_PreviewSelectedProfile" xml:space="preserve">
+    <value>预览选定的配置文件</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_LoadsTheSelectedProfileIntoTheCustomEditor" xml:space="preserve">
+    <value>将选定的配置文件加载到自定义编辑器中，而无需编写 config.json。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SetActive" xml:space="preserve">
+    <value>设置为活动状态</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SetSelectedProfileActive" xml:space="preserve">
+    <value>将选定的配置文件设置为活动状态</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ConfirmsAndWritesTheSelectedProfileToConfig" xml:space="preserve">
+    <value>确认所选配置文件并将其写入 config.json。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ProfileDetails" xml:space="preserve">
+    <value>个人资料详情</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ProfileName" xml:space="preserve">
+    <value>个人资料名称</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_NameUsedWhenSavingOrRenamingALocal" xml:space="preserve">
+    <value>保存或重命名本地配置文件时使用的名称。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Notes" xml:space="preserve">
+    <value>笔记</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ProfileNotes" xml:space="preserve">
+    <value>简介注释</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ShortDescriptionStoredWithTheLocalProfile" xml:space="preserve">
+    <value>与本地配置文件一起存储的简短描述。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ManageProfile" xml:space="preserve">
+    <value>管理个人资料</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SaveCurrent" xml:space="preserve">
+    <value>保存当前</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SaveCurrentSelectionsAsProfile" xml:space="preserve">
+    <value>将当前选择保存为配置文件</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SavesTheCurrentCustomSelectionsAsANew" xml:space="preserve">
+    <value>将当前自定义选择另存为新的本地配置文件。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Duplicate" xml:space="preserve">
+    <value>复制</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_DuplicateSelectedProfile" xml:space="preserve">
+    <value>重复选定的配置文件</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CreatesANewLocalCopyOfTheSelected" xml:space="preserve">
+    <value>创建所选配置文件的新本地副本。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Rename" xml:space="preserve">
+    <value>重命名</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RenameSelectedProfile" xml:space="preserve">
+    <value>重命名选定的配置文件</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RenamesTheSelectedLocalProfileUsingTheProfile" xml:space="preserve">
+    <value>使用配置文件名称字段重命名选定的本地配置文件。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Import" xml:space="preserve">
+    <value>进口</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ImportLibreSpotProfile" xml:space="preserve">
+    <value>导入 LibreSpot 配置文件</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_OpensALibrespotProfileAsAnInertPreview" xml:space="preserve">
+    <value>在本地保存之前，将 .librespot 配置文件打开为惰性预览。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Export" xml:space="preserve">
+    <value>出口</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ExportSelectedProfile" xml:space="preserve">
+    <value>导出选定的配置文件</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ExportsTheSelectedProfileAsASafeLibrespot" xml:space="preserve">
+    <value>将选定的配置文件导出为安全的 .librespot 文件。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Delete" xml:space="preserve">
+    <value>删除</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_DeleteSelectedLocalProfile" xml:space="preserve">
+    <value>删除选定的本地配置文件</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ConfirmsAndRemovesTheSelectedLocalProfileFile" xml:space="preserve">
+    <value>确认并删除选定的本地配置文件。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CommunityAndChangelog" xml:space="preserve">
+    <value>社区和变更日志</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ChangelogPreview" xml:space="preserve">
+    <value>变更日志预览</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CommunityLinks" xml:space="preserve">
+    <value>社区链接</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Repo" xml:space="preserve">
+    <value>回购协议</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_OpenLibreSpotRepository" xml:space="preserve">
+    <value>打开 LibreSpot 存储库</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_OpenSpicetifyExtensionDocs" xml:space="preserve">
+    <value>打开 Spicetify 扩展文档</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Themes" xml:space="preserve">
+    <value>主题</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_OpenSpicetifyThemeCatalog" xml:space="preserve">
+    <value>打开 Spicetify 主题目录</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Patches" xml:space="preserve">
+    <value>补丁</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_MaintenanceWorkspace" xml:space="preserve">
+    <value>维护工作区</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RunState" xml:space="preserve">
+    <value>运行状态</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CloseActivityPanel" xml:space="preserve">
+    <value>关闭活动面板</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_DismissesTheActivityPanelAfterTheRunIs" xml:space="preserve">
+    <value>运行完成后关闭活动面板。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_DecisionPrompt" xml:space="preserve">
+    <value>决策提示</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ConfirmsAnImportantLibreSpotActionBeforeItRuns" xml:space="preserve">
+    <value>在运行之前确认重要的 LibreSpot 操作。</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CompletionNotifications" xml:space="preserve">
+    <value>完成通知</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+</root>

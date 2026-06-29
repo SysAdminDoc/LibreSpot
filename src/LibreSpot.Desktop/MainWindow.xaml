@@ -8,9 +8,10 @@
         xmlns:models="clr-namespace:LibreSpot.Desktop.Models"
         xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
         xmlns:props="clr-namespace:LibreSpot.Desktop.Properties"
+        xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
         xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
         mc:Ignorable="d"
-        Title="{x:Static props:Strings.AppTitle}"
+        Title="{services:Loc AppTitle}"
         Width="1440"
         Height="920"
         MinWidth="1200"
@@ -32,19 +33,19 @@
     <TaskbarItemInfo ProgressState="{Binding TaskbarProgressState}"
                      ProgressValue="{Binding TaskbarProgressFraction}">
       <TaskbarItemInfo.ThumbButtonInfos>
-        <ThumbButtonInfo Description="Recommended setup"
+        <ThumbButtonInfo Description="{services:Loc ModeRecommendedDescription}"
                          Command="{Binding ShowRecommendedWorkspaceCommand}"
                          ImageSource="pack://application:,,,/Assets/LibreSpot.ico" />
-        <ThumbButtonInfo Description="Custom settings"
+        <ThumbButtonInfo Description="{services:Loc Ui_CustomSettings}"
                          Command="{Binding ShowCustomWorkspaceCommand}"
                          ImageSource="pack://application:,,,/Assets/LibreSpot.ico" />
-        <ThumbButtonInfo Description="Maintenance"
+        <ThumbButtonInfo Description="{services:Loc ModeMaintenanceTitle}"
                          Command="{Binding ShowMaintenanceWorkspaceCommand}"
                          ImageSource="pack://application:,,,/Assets/LibreSpot.ico" />
-        <ThumbButtonInfo Description="Import profile"
+        <ThumbButtonInfo Description="{services:Loc Ui_ImportProfile}"
                          Command="{Binding ImportProfileCommand}"
                          ImageSource="pack://application:,,,/Assets/LibreSpot.ico" />
-        <ThumbButtonInfo Description="Open LibreSpot folder"
+        <ThumbButtonInfo Description="{services:Loc ButtonOpenLibreSpotFolder}"
                          Command="{Binding OpenLibreSpotFolderCommand}"
                          ImageSource="pack://application:,,,/Assets/LibreSpot.ico" />
       </TaskbarItemInfo.ThumbButtonInfos>
@@ -771,16 +772,27 @@
                       Focusable="False">
         <DockPanel LastChildFill="True">
           <StackPanel DockPanel.Dock="Top">
-            <TextBlock Text="{x:Static props:Strings.AppTitle}"
+            <TextBlock Text="{services:Loc AppTitle}"
                        Style="{StaticResource SectionEyebrowTextStyle}"
                        Foreground="{StaticResource AccentBrush}" />
-            <TextBlock Text="{x:Static props:Strings.AppSubtitle}"
+            <TextBlock Text="{services:Loc AppSubtitle}"
                        Style="{StaticResource RailTitleTextStyle}"
                        FontSize="21"
                        Margin="0,8,0,0" />
-            <TextBlock Text="{x:Static props:Strings.SidebarDescription}"
+            <TextBlock Text="{services:Loc SidebarDescription}"
                        Style="{StaticResource CaptionTextStyle}"
                        Margin="0,10,0,0" />
+
+            <TextBlock Text="{services:Loc LanguageLabel}"
+                       Style="{StaticResource LabelTextStyle}"
+                       Margin="0,18,0,6" />
+            <ComboBox ItemsSource="{Binding LocalizationOptions}"
+                      SelectedItem="{Binding SelectedLocalizationOption, Mode=TwoWay}"
+                      DisplayMemberPath="DisplayName"
+                      Height="38"
+                      Style="{StaticResource ComboBoxStylePremium}"
+                      AutomationProperties.Name="{services:Loc LanguageLabel}"
+                      AutomationProperties.HelpText="{services:Loc LanguageHelpText}" />
 
             <Border Height="1"
                     Background="{StaticResource StrokeSoftBrush}"
@@ -1062,12 +1074,12 @@
                          TextWrapping="Wrap"
                          Width="260"
                          Margin="0,6,0,0" />
-              <Button Content="Relaunch as administrator"
+              <Button Content="{services:Loc Ui_RelaunchAsAdministrator}"
                       Height="40"
                       Margin="0,14,0,0"
                       Style="{StaticResource SecondaryButtonStyle}"
-                      AutomationProperties.Name="Relaunch LibreSpot as administrator"
-                      AutomationProperties.HelpText="Restarts LibreSpot with administrator access before applying changes."
+                      AutomationProperties.Name="{services:Loc Ui_RelaunchLibreSpotAsAdministrator}"
+                      AutomationProperties.HelpText="{services:Loc Ui_RestartsLibreSpotWithAdministratorAccessBeforeApplyingChanges}"
                       Visibility="{Binding NeedsAdministratorRelaunch, Converter={StaticResource BoolToVisibilityConverter}}"
                       Command="{Binding RelaunchAsAdministratorCommand}" />
             </StackPanel>
@@ -1091,7 +1103,7 @@
             <TabItem Header="{x:Static props:Strings.ModeRecommendedTitle}">
               <ScrollViewer VerticalScrollBarVisibility="Auto"
                             HorizontalScrollBarVisibility="Disabled"
-                            AutomationProperties.Name="Recommended workspace">
+                            AutomationProperties.Name="{services:Loc Ui_RecommendedWorkspace}">
                 <StackPanel Margin="0,12,0,0">
                   <Grid Margin="0,0,0,18">
                     <Grid.ColumnDefinitions>
@@ -1113,7 +1125,7 @@
                                 FontSize="17"
                                 Style="{StaticResource PrimaryButtonStyle}"
                                 AutomationProperties.Name="{x:Static props:Strings.ButtonRunRecommendedSetup}"
-                                AutomationProperties.HelpText="Runs LibreSpot's most reliable install path with the saved default profile."
+                                AutomationProperties.HelpText="{services:Loc Ui_RunsLibreSpotSMostReliableInstallPathWith}"
                                 Command="{Binding ApplyRecommendedCommand}">
                           <StackPanel Orientation="Horizontal">
                             <Path Width="22" Height="22"
@@ -1185,7 +1197,7 @@
 
             <!-- ═══ Custom ═══ -->
             <TabItem Header="{x:Static props:Strings.ModeCustomTitle}">
-              <Grid AutomationProperties.Name="Custom workspace">
+              <Grid AutomationProperties.Name="{services:Loc Ui_CustomWorkspace}">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="*" />
                   <ColumnDefinition Width="320" />
@@ -1194,7 +1206,7 @@
                 <ScrollViewer Grid.Column="0"
                                VerticalScrollBarVisibility="Auto"
                                HorizontalScrollBarVisibility="Disabled"
-                               AutomationProperties.Name="Custom settings editor"
+                               AutomationProperties.Name="{services:Loc Ui_CustomSettingsEditor}"
                                Margin="0,0,22,0">
                   <StackPanel>
                     <TextBlock Text="{x:Static props:Strings.SearchPlaceholder}"
@@ -1675,9 +1687,9 @@
                       <StackPanel>
                         <DockPanel LastChildFill="True">
                           <StackPanel DockPanel.Dock="Left">
-                            <TextBlock Text="Custom patches"
+                            <TextBlock Text="{services:Loc Ui_CustomPatches}"
                                        Style="{StaticResource SectionTitleTextStyle}" />
-                            <TextBlock Text="Author and dry-run a SpotX patches.json file before LibreSpot stages it for SpotX."
+                            <TextBlock Text="{services:Loc Ui_AuthorAndDryRunASpotXPatchesJson}"
                                        Style="{StaticResource BodyTextStyle}"
                                        Margin="0,6,0,0" />
                           </StackPanel>
@@ -1690,11 +1702,11 @@
                           </Border>
                         </DockPanel>
 
-                        <CheckBox Content="Stage custom patches during install and reapply"
+                        <CheckBox Content="{services:Loc Ui_StageCustomPatchesDuringInstallAndReapply}"
                                   IsChecked="{Binding CustomPatchesEnabled, Mode=TwoWay}"
                                   Margin="0,14,0,10"
-                                  AutomationProperties.Name="Stage custom SpotX patches"
-                                  AutomationProperties.HelpText="When enabled, LibreSpot validates this JSON and writes a temporary patches.json for SpotX." />
+                                  AutomationProperties.Name="{services:Loc Ui_StageCustomSpotXPatches}"
+                                  AutomationProperties.HelpText="{services:Loc Ui_WhenEnabledLibreSpotValidatesThisJSONAndWrites}" />
 
                         <Grid Margin="0,2,0,10">
                           <Grid.ColumnDefinitions>
@@ -1704,16 +1716,16 @@
                           <TextBox Text="{Binding CustomPatchesImportUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                    Style="{StaticResource TextBoxStylePremium}"
                                    MinHeight="40"
-                                   ToolTip="HTTPS URL to a SpotX patches.json file"
-                                   AutomationProperties.Name="Custom patches import URL"
-                                   AutomationProperties.HelpText="Enter an HTTPS URL, then import the JSON for local review." />
+                                   ToolTip="{services:Loc Ui_HTTPSURLToASpotXPatchesJsonFile}"
+                                   AutomationProperties.Name="{services:Loc Ui_CustomPatchesImportURL}"
+                                   AutomationProperties.HelpText="{services:Loc Ui_EnterAnHTTPSURLThenImportTheJSON}" />
                           <Button Grid.Column="1"
-                                  Content="Import URL"
+                                  Content="{services:Loc Ui_ImportURL}"
                                   Command="{Binding ImportCustomPatchesFromUrlCommand}"
                                   Style="{StaticResource SecondaryButtonStyle}"
                                   Margin="10,0,0,0"
                                   MinWidth="112"
-                                  AutomationProperties.Name="Import custom patches from URL" />
+                                  AutomationProperties.Name="{services:Loc Ui_ImportCustomPatchesFromURL}" />
                         </Grid>
 
                         <Border Background="{StaticResource Surface3Brush}"
@@ -1733,32 +1745,32 @@
                                              HorizontalScrollBarVisibility="Auto"
                                              VerticalScrollBarVisibility="Auto"
                                              TextChanged="CustomPatchesTextEditor_OnTextChanged"
-                                             AutomationProperties.Name="SpotX custom patches JSON editor"
-                                             AutomationProperties.HelpText="Paste or edit SpotX patches.json content here, then run a dry run before applying." />
+                                             AutomationProperties.Name="{services:Loc Ui_SpotXCustomPatchesJSONEditor}"
+                                             AutomationProperties.HelpText="{services:Loc Ui_PasteOrEditSpotXPatchesJsonContentHere}" />
                         </Border>
 
                         <UniformGrid Columns="4"
                                      Margin="0,12,0,8">
-                          <Button Content="Dry run"
+                          <Button Content="{services:Loc Ui_DryRun}"
                                   Command="{Binding ValidateCustomPatchesCommand}"
                                   Style="{StaticResource PrimaryButtonStyle}"
                                   Margin="0,0,6,0"
-                                  AutomationProperties.Name="Validate custom patches" />
-                          <Button Content="Format JSON"
+                                  AutomationProperties.Name="{services:Loc Ui_ValidateCustomPatches}" />
+                          <Button Content="{services:Loc Ui_FormatJSON}"
                                   Command="{Binding FormatCustomPatchesCommand}"
                                   Style="{StaticResource SecondaryButtonStyle}"
                                   Margin="3,0,3,0"
-                                  AutomationProperties.Name="Format custom patches JSON" />
-                          <Button Content="Clear"
+                                  AutomationProperties.Name="{services:Loc Ui_FormatCustomPatchesJSON}" />
+                          <Button Content="{services:Loc ButtonClearSearch}"
                                   Command="{Binding ClearCustomPatchesCommand}"
                                   Style="{StaticResource SecondaryButtonStyle}"
                                   Margin="3,0,3,0"
-                                  AutomationProperties.Name="Clear custom patches" />
-                          <Button Content="Docs"
+                                  AutomationProperties.Name="{services:Loc Ui_ClearCustomPatches}" />
+                          <Button Content="{services:Loc Ui_Docs}"
                                   Command="{Binding OpenRepositoryCommand}"
                                   Style="{StaticResource GhostButtonStyle}"
                                   Margin="6,0,0,0"
-                                  AutomationProperties.Name="Open custom patch documentation" />
+                                  AutomationProperties.Name="{services:Loc Ui_OpenCustomPatchDocumentation}" />
                         </UniformGrid>
 
                         <TextBlock Text="{Binding CustomPatchesStatus}"
@@ -1850,21 +1862,21 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                           </Grid.ColumnDefinitions>
-                          <TextBlock Text="Local profiles"
+                          <TextBlock Text="{services:Loc Ui_LocalProfiles}"
                                      Style="{StaticResource LabelTextStyle}"
                                      Foreground="{StaticResource AccentBrush}"
                                      VerticalAlignment="Center" />
                           <Button Grid.Column="1"
-                                  Content="Refresh"
+                                  Content="{services:Loc Ui_Refresh}"
                                   Height="30"
                                   MinWidth="82"
                                   Padding="12,0"
                                   Style="{StaticResource SecondaryButtonStyle}"
                                   Command="{Binding RefreshProfilesCommand}"
-                                  AutomationProperties.Name="Refresh local profiles"
-                                  AutomationProperties.HelpText="Reloads bundled templates and local profile files from disk." />
+                                  AutomationProperties.Name="{services:Loc Ui_RefreshLocalProfiles}"
+                                  AutomationProperties.HelpText="{services:Loc Ui_ReloadsBundledTemplatesAndLocalProfileFilesFrom}" />
                         </Grid>
-                        <TextBlock Text="Save named presets, preview templates, and import shared .librespot files before anything is written."
+                        <TextBlock Text="{services:Loc Ui_SaveNamedPresetsPreviewTemplatesAndImportShared}"
                                    Style="{StaticResource CaptionTextStyle}"
                                    Foreground="{StaticResource TextBrush}"
                                    Margin="0,8,0,12" />
@@ -1880,8 +1892,8 @@
                                  HorizontalContentAlignment="Stretch"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  KeyboardNavigation.DirectionalNavigation="Contained"
-                                 AutomationProperties.Name="Local profiles"
-                                 AutomationProperties.HelpText="Named LibreSpot profiles and bundled templates.">
+                                 AutomationProperties.Name="{services:Loc Ui_LocalProfiles}"
+                                 AutomationProperties.HelpText="{services:Loc Ui_NamedLibreSpotProfilesAndBundledTemplates}">
                           <ListBox.Style>
                             <Style TargetType="ListBox">
                               <Style.Triggers>
@@ -1919,9 +1931,9 @@
                             </Style>
                           </Border.Style>
                           <StackPanel>
-                            <TextBlock Text="No profiles available"
+                            <TextBlock Text="{services:Loc Ui_NoProfilesAvailable}"
                                        Style="{StaticResource EmptyStateTitleTextStyle}" />
-                            <TextBlock Text="Save the current Custom selections or import a .librespot file to create the first local profile."
+                            <TextBlock Text="{services:Loc Ui_SaveTheCurrentCustomSelectionsOrImportA}"
                                        Style="{StaticResource EmptyStateBodyTextStyle}"
                                        Margin="0,6,0,0" />
                           </StackPanel>
@@ -1933,7 +1945,7 @@
                                 Padding="14"
                                 Margin="0,2,0,12">
                           <StackPanel>
-                            <TextBlock Text="Selected profile"
+                            <TextBlock Text="{services:Loc Ui_SelectedProfile}"
                                        Style="{StaticResource LabelTextStyle}" />
                             <TextBlock Text="{Binding SelectedLocalProfileTitle}"
                                        Foreground="{StaticResource TextBrush}"
@@ -1956,8 +1968,8 @@
                                 CornerRadius="{StaticResource RadiusLg}"
                                 Padding="12"
                                 Margin="0,0,0,12"
-                                AutomationProperties.Name="Profile operation status"
-                                AutomationProperties.HelpText="Announces the latest profile action result.">
+                                AutomationProperties.Name="{services:Loc Ui_ProfileOperationStatus}"
+                                AutomationProperties.HelpText="{services:Loc Ui_AnnouncesTheLatestProfileActionResult}">
                           <Grid>
                             <Grid.ColumnDefinitions>
                               <ColumnDefinition Width="Auto" />
@@ -1970,7 +1982,7 @@
                                     VerticalAlignment="Stretch" />
                             <controls:LiveRegionContentControl Grid.Column="1"
                                                                Content="{Binding ProfileOperationStatus}"
-                                                               AutomationProperties.Name="Profile operation status">
+                                                               AutomationProperties.Name="{services:Loc Ui_ProfileOperationStatus}">
                               <controls:LiveRegionContentControl.ContentTemplate>
                                 <DataTemplate>
                                   <TextBlock Text="{Binding}"
@@ -1988,8 +2000,8 @@
                                 CornerRadius="{StaticResource RadiusLg}"
                                 Padding="12"
                                 Margin="0,0,0,12"
-                                AutomationProperties.Name="Profile share card"
-                                AutomationProperties.HelpText="Shows an inert share link, QR code, and profile comparison for the selected profile.">
+                                AutomationProperties.Name="{services:Loc Ui_ProfileShareCard}"
+                                AutomationProperties.HelpText="{services:Loc Ui_ShowsAnInertShareLinkQRCodeAnd}">
                           <StackPanel>
                             <Grid>
                               <Grid.ColumnDefinitions>
@@ -2007,9 +2019,9 @@
                                 <Grid>
                                   <Image Source="{Binding SelectedProfileQrImage}"
                                          Stretch="Uniform"
-                                         AutomationProperties.Name="Selected profile QR code"
+                                         AutomationProperties.Name="{services:Loc Ui_SelectedProfileQRCode}"
                                          Visibility="{Binding HasSelectedProfileQrImage, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                  <TextBlock Text="No QR"
+                                  <TextBlock Text="{services:Loc Ui_NoQR}"
                                              Foreground="{StaticResource MutedTextBrush}"
                                              HorizontalAlignment="Center"
                                              VerticalAlignment="Center">
@@ -2027,7 +2039,7 @@
                                 </Grid>
                               </Border>
                               <StackPanel Grid.Column="1">
-                                <TextBlock Text="Share card"
+                                <TextBlock Text="{services:Loc Ui_ShareCard}"
                                            Style="{StaticResource LabelTextStyle}"
                                            Foreground="{StaticResource AccentBrush}" />
                                 <TextBlock Text="{Binding SelectedProfileShareStatus}"
@@ -2039,30 +2051,30 @@
                                          IsReadOnly="True"
                                          Height="36"
                                          TextWrapping="NoWrap"
-                                         AutomationProperties.Name="Selected profile share link"
-                                         AutomationProperties.HelpText="Inert librespot profile link for preview-only import." />
+                                         AutomationProperties.Name="{services:Loc Ui_SelectedProfileShareLink}"
+                                         AutomationProperties.HelpText="{services:Loc Ui_InertLibrespotProfileLinkForPreviewOnlyImport}" />
                               </StackPanel>
                             </Grid>
 
-                            <TextBlock Text="Compare to Recommended"
+                            <TextBlock Text="{services:Loc Ui_CompareToRecommended}"
                                        Style="{StaticResource LabelTextStyle}"
                                        Margin="0,12,0,6" />
                             <TextBlock Text="{Binding SelectedProfileComparisonText}"
                                        Style="{StaticResource CaptionTextStyle}"
                                        TextWrapping="Wrap" />
                             <UniformGrid Columns="2" Margin="0,12,0,0">
-                              <Button Content="Copy link"
+                              <Button Content="{services:Loc Ui_CopyLink}"
                                       Height="34"
                                       Margin="0,0,6,0"
                                       Style="{StaticResource SecondaryButtonStyle}"
                                       Command="{Binding CopyProfileShareUriCommand}"
-                                      AutomationProperties.Name="Copy selected profile share link" />
-                              <Button Content="Copy compare"
+                                      AutomationProperties.Name="{services:Loc Ui_CopySelectedProfileShareLink}" />
+                              <Button Content="{services:Loc Ui_CopyCompare}"
                                       Height="34"
                                       Margin="6,0,0,0"
                                       Style="{StaticResource SecondaryButtonStyle}"
                                       Command="{Binding CopyProfileComparisonCommand}"
-                                      AutomationProperties.Name="Copy selected profile comparison" />
+                                      AutomationProperties.Name="{services:Loc Ui_CopySelectedProfileComparison}" />
                             </UniformGrid>
                           </StackPanel>
                         </Border>
@@ -2072,39 +2084,39 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                           </Grid.ColumnDefinitions>
-                          <Button Content="Preview"
+                          <Button Content="{services:Loc Ui_Preview}"
                                   Height="34"
                                   Margin="0,0,6,0"
                                   Style="{StaticResource SecondaryButtonStyle}"
                                   Command="{Binding PreviewSelectedProfileCommand}"
-                                  AutomationProperties.Name="Preview selected profile"
-                                  AutomationProperties.HelpText="Loads the selected profile into the Custom editor without writing config.json." />
+                                  AutomationProperties.Name="{services:Loc Ui_PreviewSelectedProfile}"
+                                  AutomationProperties.HelpText="{services:Loc Ui_LoadsTheSelectedProfileIntoTheCustomEditor}" />
                           <Button Grid.Column="1"
-                                  Content="Set active"
+                                  Content="{services:Loc Ui_SetActive}"
                                   Height="34"
                                   Margin="6,0,0,0"
                                   Style="{StaticResource PrimaryButtonStyle}"
                                   Command="{Binding ApplySelectedProfileCommand}"
-                                  AutomationProperties.Name="Set selected profile active"
-                                  AutomationProperties.HelpText="Confirms and writes the selected profile to config.json." />
+                                  AutomationProperties.Name="{services:Loc Ui_SetSelectedProfileActive}"
+                                  AutomationProperties.HelpText="{services:Loc Ui_ConfirmsAndWritesTheSelectedProfileToConfig}" />
                         </Grid>
 
-                        <TextBlock Text="Profile details"
+                        <TextBlock Text="{services:Loc Ui_ProfileDetails}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Foreground="{StaticResource AccentBrush}"
                                    Margin="0,4,0,0" />
                         <TextBlock Text="{Binding ProfileEditorHint}"
                                    Style="{StaticResource CaptionTextStyle}"
                                    Margin="0,6,0,10" />
-                        <TextBlock Text="Profile name"
+                        <TextBlock Text="{services:Loc Ui_ProfileName}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBox Text="{Binding ProfileNameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource TextBoxStylePremium}"
                                  Height="38"
                                  Margin="0,6,0,10"
-                                 AutomationProperties.Name="Profile name"
-                                 AutomationProperties.HelpText="Name used when saving or renaming a local profile." />
-                        <TextBlock Text="Notes"
+                                 AutomationProperties.Name="{services:Loc Ui_ProfileName}"
+                                 AutomationProperties.HelpText="{services:Loc Ui_NameUsedWhenSavingOrRenamingALocal}" />
+                        <TextBlock Text="{services:Loc Ui_Notes}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBox Text="{Binding ProfileDescriptionText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource TextBoxStylePremium}"
@@ -2112,55 +2124,55 @@
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
                                  Margin="0,6,0,12"
-                                 AutomationProperties.Name="Profile notes"
-                                 AutomationProperties.HelpText="Short description stored with the local profile." />
+                                 AutomationProperties.Name="{services:Loc Ui_ProfileNotes}"
+                                 AutomationProperties.HelpText="{services:Loc Ui_ShortDescriptionStoredWithTheLocalProfile}" />
 
-                        <TextBlock Text="Manage profile"
+                        <TextBlock Text="{services:Loc Ui_ManageProfile}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Margin="0,0,0,8" />
                         <UniformGrid Columns="2" Margin="0,0,0,4">
-                          <Button Content="Save current"
+                          <Button Content="{services:Loc Ui_SaveCurrent}"
                                   Height="34"
                                   Margin="0,0,6,8"
                                   Style="{StaticResource SecondaryButtonStyle}"
                                   Command="{Binding CreateProfileCommand}"
-                                  AutomationProperties.Name="Save current selections as profile"
-                                  AutomationProperties.HelpText="Saves the current Custom selections as a new local profile." />
-                          <Button Content="Duplicate"
+                                  AutomationProperties.Name="{services:Loc Ui_SaveCurrentSelectionsAsProfile}"
+                                  AutomationProperties.HelpText="{services:Loc Ui_SavesTheCurrentCustomSelectionsAsANew}" />
+                          <Button Content="{services:Loc Ui_Duplicate}"
                                   Height="34"
                                   Margin="6,0,0,8"
                                   Style="{StaticResource SecondaryButtonStyle}"
                                   Command="{Binding DuplicateProfileCommand}"
-                                  AutomationProperties.Name="Duplicate selected profile"
-                                  AutomationProperties.HelpText="Creates a new local copy of the selected profile." />
-                          <Button Content="Rename"
+                                  AutomationProperties.Name="{services:Loc Ui_DuplicateSelectedProfile}"
+                                  AutomationProperties.HelpText="{services:Loc Ui_CreatesANewLocalCopyOfTheSelected}" />
+                          <Button Content="{services:Loc Ui_Rename}"
                                   Height="34"
                                   Margin="0,0,6,8"
                                   Style="{StaticResource SecondaryButtonStyle}"
                                   Command="{Binding RenameProfileCommand}"
-                                  AutomationProperties.Name="Rename selected profile"
-                                  AutomationProperties.HelpText="Renames the selected local profile using the profile name field." />
-                          <Button Content="Import"
+                                  AutomationProperties.Name="{services:Loc Ui_RenameSelectedProfile}"
+                                  AutomationProperties.HelpText="{services:Loc Ui_RenamesTheSelectedLocalProfileUsingTheProfile}" />
+                          <Button Content="{services:Loc Ui_Import}"
                                   Height="34"
                                   Margin="6,0,0,8"
                                   Style="{StaticResource SecondaryButtonStyle}"
                                   Command="{Binding ImportProfileCommand}"
-                                  AutomationProperties.Name="Import LibreSpot profile"
-                                  AutomationProperties.HelpText="Opens a .librespot profile as an inert preview before saving it locally." />
-                          <Button Content="Export"
+                                  AutomationProperties.Name="{services:Loc Ui_ImportLibreSpotProfile}"
+                                  AutomationProperties.HelpText="{services:Loc Ui_OpensALibrespotProfileAsAnInertPreview}" />
+                          <Button Content="{services:Loc Ui_Export}"
                                   Height="34"
                                   Margin="0,0,6,8"
                                   Style="{StaticResource SecondaryButtonStyle}"
                                   Command="{Binding ExportProfileCommand}"
-                                  AutomationProperties.Name="Export selected profile"
-                                  AutomationProperties.HelpText="Exports the selected profile as a safe .librespot file." />
-                          <Button Content="Delete"
+                                  AutomationProperties.Name="{services:Loc Ui_ExportSelectedProfile}"
+                                  AutomationProperties.HelpText="{services:Loc Ui_ExportsTheSelectedProfileAsASafeLibrespot}" />
+                          <Button Content="{services:Loc Ui_Delete}"
                                   Height="34"
                                   Margin="6,0,0,8"
                                   Style="{StaticResource DestructiveButtonStyle}"
                                   Command="{Binding DeleteProfileCommand}"
-                                  AutomationProperties.Name="Delete selected local profile"
-                                  AutomationProperties.HelpText="Confirms and removes the selected local profile file." />
+                                  AutomationProperties.Name="{services:Loc Ui_DeleteSelectedLocalProfile}"
+                                  AutomationProperties.HelpText="{services:Loc Ui_ConfirmsAndRemovesTheSelectedLocalProfileFile}" />
                         </UniformGrid>
 
                         <Border Background="{StaticResource Surface1Brush}"
@@ -2169,9 +2181,9 @@
                                 CornerRadius="{StaticResource RadiusLg}"
                                 Padding="12"
                                 Margin="0,10,0,12"
-                                AutomationProperties.Name="Community and changelog">
+                                AutomationProperties.Name="{services:Loc Ui_CommunityAndChangelog}">
                           <StackPanel>
-                            <TextBlock Text="Changelog preview"
+                            <TextBlock Text="{services:Loc Ui_ChangelogPreview}"
                                        Style="{StaticResource LabelTextStyle}"
                                        Foreground="{StaticResource AccentBrush}" />
                             <ItemsControl ItemsSource="{Binding ChangelogHighlights}"
@@ -2185,28 +2197,28 @@
                                 </DataTemplate>
                               </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Text="Community links"
+                            <TextBlock Text="{services:Loc Ui_CommunityLinks}"
                                        Style="{StaticResource LabelTextStyle}"
                                        Margin="0,2,0,8" />
                             <UniformGrid Columns="3">
-                              <Button Content="Repo"
+                              <Button Content="{services:Loc Ui_Repo}"
                                       Height="32"
                                       Margin="0,0,6,0"
                                       Style="{StaticResource SecondaryButtonStyle}"
                                       Command="{Binding OpenRepositoryCommand}"
-                                      AutomationProperties.Name="Open LibreSpot repository" />
-                              <Button Content="Extensions"
+                                      AutomationProperties.Name="{services:Loc Ui_OpenLibreSpotRepository}" />
+                              <Button Content="{services:Loc ExtensionsLabel}"
                                       Height="32"
                                       Margin="3,0,3,0"
                                       Style="{StaticResource SecondaryButtonStyle}"
                                       Command="{Binding OpenSpicetifyCommunityCommand}"
-                                      AutomationProperties.Name="Open Spicetify extension docs" />
-                              <Button Content="Themes"
+                                      AutomationProperties.Name="{services:Loc Ui_OpenSpicetifyExtensionDocs}" />
+                              <Button Content="{services:Loc Ui_Themes}"
                                       Height="32"
                                       Margin="6,0,0,0"
                                       Style="{StaticResource SecondaryButtonStyle}"
                                       Command="{Binding OpenThemeCatalogCommand}"
-                                      AutomationProperties.Name="Open Spicetify theme catalog" />
+                                      AutomationProperties.Name="{services:Loc Ui_OpenSpicetifyThemeCatalog}" />
                             </UniformGrid>
                           </StackPanel>
                         </Border>
@@ -2296,7 +2308,7 @@
                                      Margin="0,12,0,0" />
 
                           <TextBlock Grid.Row="4"
-                                     Text="Patches"
+                                     Text="{services:Loc Ui_Patches}"
                                      Style="{StaticResource LabelTextStyle}"
                                      Margin="0,12,12,0" />
                           <TextBlock Grid.Row="4"
@@ -2456,7 +2468,7 @@
             <TabItem Header="{x:Static props:Strings.ModeMaintenanceTitle}">
               <ScrollViewer VerticalScrollBarVisibility="Auto"
                             HorizontalScrollBarVisibility="Disabled"
-                            AutomationProperties.Name="Maintenance workspace">
+                            AutomationProperties.Name="{services:Loc Ui_MaintenanceWorkspace}">
                 <StackPanel Margin="0,12,0,0">
                   <TextBlock Text="{Binding MaintenanceGuidanceTitle}"
                              Style="{StaticResource SectionTitleTextStyle}"
@@ -2820,7 +2832,7 @@
               </Grid.ColumnDefinitions>
               <StackPanel>
                 <TextBlock Text="{Binding ActivityBadgeText}"
-                           AutomationProperties.Name="Run state">
+                           AutomationProperties.Name="{services:Loc Ui_RunState}">
                   <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource LabelTextStyle}">
                       <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
@@ -2837,7 +2849,7 @@
                 </TextBlock>
                 <TextBlock Text="{Binding ActivityTitle}" Style="{StaticResource SectionTitleTextStyle}" FontSize="24" />
                 <controls:LiveRegionContentControl Content="{Binding ActivityStatus}"
-                                                   AutomationProperties.Name="Run status"
+                                                   AutomationProperties.Name="{services:Loc RunStatus}"
                                                    Margin="0,6,0,0">
                   <controls:LiveRegionContentControl.ContentTemplate>
                     <DataTemplate>
@@ -3113,7 +3125,7 @@
                   <ScrollViewer x:Name="LogScrollViewer"
                                 VerticalScrollBarVisibility="Auto"
                                 HorizontalScrollBarVisibility="Disabled"
-                                AutomationProperties.Name="Run log"
+                                AutomationProperties.Name="{services:Loc RunLogLabel}"
                                 Padding="14,12">
                     <ItemsControl ItemsSource="{Binding LogEntries}">
                       <ItemsControl.ItemTemplate>
@@ -3214,8 +3226,8 @@
                         MinWidth="140"
                         Height="42"
                         Padding="18,0"
-                        AutomationProperties.Name="Close activity panel"
-                        AutomationProperties.HelpText="Dismisses the activity panel after the run is finished."
+                        AutomationProperties.Name="{services:Loc Ui_CloseActivityPanel}"
+                        AutomationProperties.HelpText="{services:Loc Ui_DismissesTheActivityPanelAfterTheRunIs}"
                         Command="{Binding DismissActivityCommand}">
                   <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
@@ -3264,8 +3276,8 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Padding="30"
-                AutomationProperties.Name="Decision prompt"
-                AutomationProperties.HelpText="Confirms an important LibreSpot action before it runs."
+                AutomationProperties.Name="{services:Loc Ui_DecisionPrompt}"
+                AutomationProperties.HelpText="{services:Loc Ui_ConfirmsAnImportantLibreSpotActionBeforeItRuns}"
                 Style="{StaticResource PromptCardStyle}">
           <StackPanel>
             <TextBlock FontWeight="SemiBold"
@@ -3350,6 +3362,6 @@
                           VerticalAlignment="Bottom"
                           Margin="0,0,28,28"
                           Panel.ZIndex="100"
-                          AutomationProperties.Name="Completion notifications" />
+                          AutomationProperties.Name="{services:Loc Ui_CompletionNotifications}" />
   </Grid>
 </Window>

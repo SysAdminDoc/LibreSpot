@@ -38,6 +38,7 @@ public sealed class ConfigSchemaTests
         var properties = schema.RootElement.GetProperty("properties");
 
         Assert.Equal(["Easy", "Custom"], GetStringArray(properties.GetProperty(nameof(InstallConfiguration.Mode)).GetProperty("enum")));
+        Assert.Equal(["en", "ru", "zh-Hans", "pt-BR", "es"], GetStringArray(properties.GetProperty(nameof(InstallConfiguration.UiCulture)).GetProperty("enum")));
         Assert.Equal(AppCatalog.DownloadMethods.Select(method => method.Id), GetStringArray(properties.GetProperty(nameof(InstallConfiguration.SpotX_DownloadMethod)).GetProperty("enum")));
         Assert.Equal(AppCatalog.SpotifyVersionManifest.Select(version => version.Id), GetStringArray(properties.GetProperty(nameof(InstallConfiguration.SpotX_SpotifyVersionId)).GetProperty("enum")));
         Assert.Equal(AppCatalog.LyricsThemes, GetStringArray(properties.GetProperty(nameof(InstallConfiguration.SpotX_LyricsTheme)).GetProperty("enum")));

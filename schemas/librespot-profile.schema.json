@@ -110,6 +110,17 @@
           ],
           "description": "Install mode."
         },
+        "UiCulture": {
+          "type": "string",
+          "enum": [
+            "en",
+            "ru",
+            "zh-Hans",
+            "pt-BR",
+            "es"
+          ],
+          "description": "LibreSpot desktop interface culture saved with this profile."
+        },
         "CleanInstall": {
           "type": "boolean",
           "description": "Perform a clean install of Spotify before patching."

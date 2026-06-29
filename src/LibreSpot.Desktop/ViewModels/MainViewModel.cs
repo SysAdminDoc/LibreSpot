@@ -21,48 +21,84 @@ namespace LibreSpot.Desktop.ViewModels;
 public sealed class OptionToggleViewModel : ObservableObject
 {
     private bool _isSelected;
+    private string _title;
+    private string _description;
 
     public OptionToggleViewModel(string key, string title, string description, bool isRecommendedDefault)
     {
         Key = key;
-        Title = title;
-        Description = description;
+        _title = title;
+        _description = description;
         IsRecommendedDefault = isRecommendedDefault;
     }
 
     public string Key { get; }
-    public string Title { get; }
-    public string Description { get; }
+    public string Title
+    {
+        get => _title;
+        private set => SetProperty(ref _title, value);
+    }
+
+    public string Description
+    {
+        get => _description;
+        private set => SetProperty(ref _description, value);
+    }
+
     public bool IsRecommendedDefault { get; }
 
     public bool IsSelected
     {
         get => _isSelected;
         set => SetProperty(ref _isSelected, value);
+    }
+
+    public void RefreshText(string title, string description)
+    {
+        Title = title;
+        Description = description;
     }
 }
 
 public sealed class ExtensionToggleViewModel : ObservableObject
 {
     private bool _isSelected;
+    private string _title;
+    private string _description;
 
     public ExtensionToggleViewModel(string key, string title, string description, bool isRecommendedDefault)
     {
         Key = key;
-        Title = title;
-        Description = description;
+        _title = title;
+        _description = description;
         IsRecommendedDefault = isRecommendedDefault;
     }
 
     public string Key { get; }
-    public string Title { get; }
-    public string Description { get; }
+    public string Title
+    {
+        get => _title;
+        private set => SetProperty(ref _title, value);
+    }
+
+    public string Description
+    {
+        get => _description;
+        private set => SetProperty(ref _description, value);
+    }
+
     public bool IsRecommendedDefault { get; }
 
     public bool IsSelected
     {
         get => _isSelected;
         set => SetProperty(ref _isSelected, value);
+    }
+
+    public void RefreshText(string title, string description)
+    {
+        Title = title;
+        Description = description;
     }
 }
 
@@ -495,6 +531,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly OperationJournalUndoService _operationJournalUndoService;
     private readonly LocalProfileService _profileService;
     private readonly CustomPatchService _customPatchService;
+    private readonly LocalizationService _localizationService;
     private readonly ActivityRunStateViewModel _activityState = new();
     private readonly CustomOptionEditorStateViewModel _customOptions;
     private readonly EnvironmentSnapshotStateViewModel _environmentState = new();
@@ -527,6 +564,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _customPatchesJson = string.Empty;
     private string _customPatchesImportUrl = string.Empty;
     private CustomPatchValidationResult _customPatchValidation;
+    private LocalizationOption _selectedLocalizationOption = LocalizationService.SupportedCultures[0];
+    private bool _applyingCultureFromConfig;
     private SupportBundlePreview _supportBundlePreview = new(
         Array.Empty<SupportBundlePreviewEntry>(),
         0,
@@ -540,7 +579,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SupportBundleService? supportBundleService = null,
         OperationJournalUndoService? operationJournalUndoService = null,
         LocalProfileService? profileService = null,
-        CustomPatchService? customPatchService = null)
+        CustomPatchService? customPatchService = null,
+        LocalizationService? localizationService = null)
     {
         _configurationService = configurationService;
         _backendScriptService = backendScriptService;
@@ -549,7 +589,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _operationJournalUndoService = operationJournalUndoService ?? new OperationJournalUndoService();
         _profileService = profileService ?? new LocalProfileService(configurationService);
         _customPatchService = customPatchService ?? new CustomPatchService();
+        _localizationService = localizationService ?? LocalizationService.Current;
         _customPatchValidation = _customPatchService.Validate(string.Empty, enabled: false);
+        _selectedLocalizationOption = LocalizationService.SupportedCultures.First(option =>
+            string.Equals(option.CultureName, _localizationService.CultureName, StringComparison.OrdinalIgnoreCase));
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _isAdministratorSession = IsAdministrator();
         _recommendedBaseline = AppCatalog.CreateRecommendedConfiguration();
@@ -579,6 +622,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ChangelogHighlights = new ObservableCollection<string>(ChangelogPreviewService.LoadUnreleasedHighlights());
         LocalProfiles = new ObservableCollection<LocalProfileCardViewModel>();
         CustomPatchFindings = new ObservableCollection<string>();
+        LocalizationOptions = new ObservableCollection<LocalizationOption>(LocalizationService.SupportedCultures);
+        _localizationService.CultureChanged += OnLocalizationCultureChanged;
 
         _maintenanceActions = new MaintenanceActionsStateViewModel(
             AppCatalog.MaintenanceActions,
@@ -659,6 +704,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<UndoActionItemViewModel> UndoActionItems => _activityState.UndoActionItems;
     public ObservableCollection<LocalProfileCardViewModel> LocalProfiles { get; }
     public ObservableCollection<string> CustomPatchFindings { get; }
+    public ObservableCollection<LocalizationOption> LocalizationOptions { get; }
     public ObservableCollection<LogEntryViewModel> LogEntries => _activityState.LogEntries;
 
     public AsyncRelayCommand ApplyRecommendedCommand { get; }
@@ -701,6 +747,27 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand EscapeCommand { get; }
 
     public EnvironmentSnapshot Snapshot => _environmentState.Snapshot;
+
+    public LocalizationOption SelectedLocalizationOption
+    {
+        get => _selectedLocalizationOption;
+        set
+        {
+            if (value is null)
+            {
+                return;
+            }
+
+            if (SetProperty(ref _selectedLocalizationOption, value))
+            {
+                _localizationService.ApplyCulture(value.CultureName);
+                if (!_applyingCultureFromConfig)
+                {
+                    _ = PersistUiCultureAsync(value.CultureName);
+                }
+            }
+        }
+    }
 
     public bool IsAdministratorSession => _isAdministratorSession;
     public bool NeedsAdministratorRelaunch => !_isAdministratorSession;
@@ -1885,12 +1952,65 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    private void OnLocalizationCultureChanged(object? sender, EventArgs e) =>
+        _dispatcher.BeginInvoke(RaiseLocalizedTextChanged, DispatcherPriority.Background);
+
+    private void ApplyCultureFromConfiguration(string? cultureName)
+    {
+        var normalized = LocalizationService.NormalizeCultureName(cultureName);
+        var option = LocalizationOptions.First(item =>
+            string.Equals(item.CultureName, normalized, StringComparison.OrdinalIgnoreCase));
+
+        _applyingCultureFromConfig = true;
+        try
+        {
+            SelectedLocalizationOption = option;
+            _localizationService.ApplyCulture(option.CultureName);
+        }
+        finally
+        {
+            _applyingCultureFromConfig = false;
+        }
+    }
+
+    private async Task PersistUiCultureAsync(string cultureName)
+    {
+        try
+        {
+            var configuration = await _configurationService.LoadAsync();
+            configuration.UiCulture = LocalizationService.NormalizeCultureName(cultureName);
+            await _configurationService.SaveAsync(configuration);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Failed to persist UI culture preference");
+        }
+    }
+
+    private void RaiseLocalizedTextChanged()
+    {
+        RefreshSettingsSearch();
+        _customOptions.RefreshLocalizedText();
+        _environmentState.RefreshFreshness();
+        RebuildSelectionInsights();
+        RaiseSnapshotInsightsChanged();
+        RaiseLocalProfileStateChanged();
+        RaiseActivityDerivedStateChanged();
+        RaisePropertyChanged(nameof(SelectedLocalizationOption));
+        RaisePropertyChanged(nameof(StatusDashboardItems));
+        RaisePropertyChanged(nameof(SupportBundleLastExportText));
+        RaisePropertyChanged(nameof(WorkspaceHeroEyebrow));
+        RaisePropertyChanged(nameof(WorkspaceHeroTitle));
+        RaisePropertyChanged(nameof(WorkspaceHeroBody));
+    }
+
     public async Task InitializeAsync()
     {
         var loadResult = await _configurationService.LoadResultAsync();
         _configurationLoadState = loadResult.State;
         _recoveredConfigurationPath = loadResult.RecoveredFilePath;
         _configurationRecoveryReason = loadResult.RecoveryReason;
+        ApplyCultureFromConfiguration(loadResult.Configuration.UiCulture);
         ApplyConfigurationToEditor(loadResult.Configuration);
         await RefreshLocalProfilesAsync();
         await RefreshSnapshotAsync();
@@ -3262,6 +3382,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _environmentState.PropertyChanged -= OnEnvironmentStatePropertyChanged;
         _promptState.PropertyChanged -= OnPromptStatePropertyChanged;
         _settingsSearch.PropertyChanged -= OnSettingsSearchStatePropertyChanged;
+        _localizationService.CultureChanged -= OnLocalizationCultureChanged;
         _runCts?.Dispose();
         _runCts = null;
     }
@@ -3815,6 +3936,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         var configuration = AppCatalog.CreateRecommendedConfiguration();
         configuration.Mode = mode;
+        configuration.UiCulture = SelectedLocalizationOption.CultureName;
 
         ApplyOptionsToConfiguration(InstallOptions, configuration);
         ApplyOptionsToConfiguration(CoreOptions, configuration);

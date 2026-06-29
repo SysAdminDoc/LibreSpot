@@ -89,7 +89,7 @@ public sealed class WpfUiIntegrationTests
 
         Assert.Contains("xmlns:ui=\"clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui\"", xaml);
         Assert.Contains("<ui:SnackbarPresenter x:Name=\"CompletionSnackbarPresenter\"", xaml);
-        Assert.Contains("AutomationProperties.Name=\"Completion notifications\"", xaml);
+        Assert.Contains("AutomationProperties.Name=\"{services:Loc Ui_CompletionNotifications}\"", xaml);
         Assert.Contains("new Snackbar(CompletionSnackbarPresenter)", codeBehind);
         Assert.Contains("ControlAppearance.Success", codeBehind);
         Assert.Contains("ControlAppearance.Caution", codeBehind);

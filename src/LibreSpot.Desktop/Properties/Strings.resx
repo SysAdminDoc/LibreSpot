@@ -399,4 +399,106 @@
   <data name="RecommendedHighlight_2" xml:space="preserve"><value>Applies the pinned SpotX baseline with updates blocked.</value><comment>Recommended mode highlight 2</comment></data>
   <data name="RecommendedHighlight_3" xml:space="preserve"><value>Restores Spicetify, Marketplace, and the starter extensions.</value><comment>Recommended mode highlight 3</comment></data>
   <data name="RecommendedHighlight_4" xml:space="preserve"><value>Saves a dependable profile for reapply, recovery, and future maintenance.</value><comment>Recommended mode highlight 4</comment></data>
+
+  <!-- Runtime localization and extracted XAML surface strings -->
+  <data name="LanguageLabel" xml:space="preserve"><value>Language</value><comment>User-facing WPF text</comment></data>
+  <data name="LanguageHelpText" xml:space="preserve"><value>Switch the LibreSpot interface language. The setting is saved locally.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CustomSettings" xml:space="preserve"><value>Custom settings</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ImportProfile" xml:space="preserve"><value>Import profile</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_RelaunchAsAdministrator" xml:space="preserve"><value>Relaunch as administrator</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_RelaunchLibreSpotAsAdministrator" xml:space="preserve"><value>Relaunch LibreSpot as administrator</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_RestartsLibreSpotWithAdministratorAccessBeforeApplyingChanges" xml:space="preserve"><value>Restarts LibreSpot with administrator access before applying changes.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_RecommendedWorkspace" xml:space="preserve"><value>Recommended workspace</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_RunsLibreSpotSMostReliableInstallPathWith" xml:space="preserve"><value>Runs LibreSpot&apos;s most reliable install path with the saved default profile.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CustomWorkspace" xml:space="preserve"><value>Custom workspace</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CustomSettingsEditor" xml:space="preserve"><value>Custom settings editor</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CustomPatches" xml:space="preserve"><value>Custom patches</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_AuthorAndDryRunASpotXPatchesJson" xml:space="preserve"><value>Author and dry-run a SpotX patches.json file before LibreSpot stages it for SpotX.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_StageCustomPatchesDuringInstallAndReapply" xml:space="preserve"><value>Stage custom patches during install and reapply</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_StageCustomSpotXPatches" xml:space="preserve"><value>Stage custom SpotX patches</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_WhenEnabledLibreSpotValidatesThisJSONAndWrites" xml:space="preserve"><value>When enabled, LibreSpot validates this JSON and writes a temporary patches.json for SpotX.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_HTTPSURLToASpotXPatchesJsonFile" xml:space="preserve"><value>HTTPS URL to a SpotX patches.json file</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CustomPatchesImportURL" xml:space="preserve"><value>Custom patches import URL</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_EnterAnHTTPSURLThenImportTheJSON" xml:space="preserve"><value>Enter an HTTPS URL, then import the JSON for local review.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ImportURL" xml:space="preserve"><value>Import URL</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ImportCustomPatchesFromURL" xml:space="preserve"><value>Import custom patches from URL</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_SpotXCustomPatchesJSONEditor" xml:space="preserve"><value>SpotX custom patches JSON editor</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_PasteOrEditSpotXPatchesJsonContentHere" xml:space="preserve"><value>Paste or edit SpotX patches.json content here, then run a dry run before applying.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_DryRun" xml:space="preserve"><value>Dry run</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ValidateCustomPatches" xml:space="preserve"><value>Validate custom patches</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_FormatJSON" xml:space="preserve"><value>Format JSON</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_FormatCustomPatchesJSON" xml:space="preserve"><value>Format custom patches JSON</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ClearCustomPatches" xml:space="preserve"><value>Clear custom patches</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_Docs" xml:space="preserve"><value>Docs</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_OpenCustomPatchDocumentation" xml:space="preserve"><value>Open custom patch documentation</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_LocalProfiles" xml:space="preserve"><value>Local profiles</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_Refresh" xml:space="preserve"><value>Refresh</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_RefreshLocalProfiles" xml:space="preserve"><value>Refresh local profiles</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ReloadsBundledTemplatesAndLocalProfileFilesFrom" xml:space="preserve"><value>Reloads bundled templates and local profile files from disk.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_SaveNamedPresetsPreviewTemplatesAndImportShared" xml:space="preserve"><value>Save named presets, preview templates, and import shared .librespot files before anything is written.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_NamedLibreSpotProfilesAndBundledTemplates" xml:space="preserve"><value>Named LibreSpot profiles and bundled templates.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_NoProfilesAvailable" xml:space="preserve"><value>No profiles available</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_SaveTheCurrentCustomSelectionsOrImportA" xml:space="preserve"><value>Save the current Custom selections or import a .librespot file to create the first local profile.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_SelectedProfile" xml:space="preserve"><value>Selected profile</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ProfileOperationStatus" xml:space="preserve"><value>Profile operation status</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_AnnouncesTheLatestProfileActionResult" xml:space="preserve"><value>Announces the latest profile action result.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ProfileShareCard" xml:space="preserve"><value>Profile share card</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ShowsAnInertShareLinkQRCodeAnd" xml:space="preserve"><value>Shows an inert share link, QR code, and profile comparison for the selected profile.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_SelectedProfileQRCode" xml:space="preserve"><value>Selected profile QR code</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_NoQR" xml:space="preserve"><value>No QR</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ShareCard" xml:space="preserve"><value>Share card</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_SelectedProfileShareLink" xml:space="preserve"><value>Selected profile share link</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_InertLibrespotProfileLinkForPreviewOnlyImport" xml:space="preserve"><value>Inert librespot profile link for preview-only import.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CompareToRecommended" xml:space="preserve"><value>Compare to Recommended</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CopyLink" xml:space="preserve"><value>Copy link</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CopySelectedProfileShareLink" xml:space="preserve"><value>Copy selected profile share link</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CopyCompare" xml:space="preserve"><value>Copy compare</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CopySelectedProfileComparison" xml:space="preserve"><value>Copy selected profile comparison</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_Preview" xml:space="preserve"><value>Preview</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_PreviewSelectedProfile" xml:space="preserve"><value>Preview selected profile</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_LoadsTheSelectedProfileIntoTheCustomEditor" xml:space="preserve"><value>Loads the selected profile into the Custom editor without writing config.json.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_SetActive" xml:space="preserve"><value>Set active</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_SetSelectedProfileActive" xml:space="preserve"><value>Set selected profile active</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ConfirmsAndWritesTheSelectedProfileToConfig" xml:space="preserve"><value>Confirms and writes the selected profile to config.json.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ProfileDetails" xml:space="preserve"><value>Profile details</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ProfileName" xml:space="preserve"><value>Profile name</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_NameUsedWhenSavingOrRenamingALocal" xml:space="preserve"><value>Name used when saving or renaming a local profile.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_Notes" xml:space="preserve"><value>Notes</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ProfileNotes" xml:space="preserve"><value>Profile notes</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ShortDescriptionStoredWithTheLocalProfile" xml:space="preserve"><value>Short description stored with the local profile.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ManageProfile" xml:space="preserve"><value>Manage profile</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_SaveCurrent" xml:space="preserve"><value>Save current</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_SaveCurrentSelectionsAsProfile" xml:space="preserve"><value>Save current selections as profile</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_SavesTheCurrentCustomSelectionsAsANew" xml:space="preserve"><value>Saves the current Custom selections as a new local profile.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_Duplicate" xml:space="preserve"><value>Duplicate</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_DuplicateSelectedProfile" xml:space="preserve"><value>Duplicate selected profile</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CreatesANewLocalCopyOfTheSelected" xml:space="preserve"><value>Creates a new local copy of the selected profile.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_Rename" xml:space="preserve"><value>Rename</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_RenameSelectedProfile" xml:space="preserve"><value>Rename selected profile</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_RenamesTheSelectedLocalProfileUsingTheProfile" xml:space="preserve"><value>Renames the selected local profile using the profile name field.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_Import" xml:space="preserve"><value>Import</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ImportLibreSpotProfile" xml:space="preserve"><value>Import LibreSpot profile</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_OpensALibrespotProfileAsAnInertPreview" xml:space="preserve"><value>Opens a .librespot profile as an inert preview before saving it locally.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_Export" xml:space="preserve"><value>Export</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ExportSelectedProfile" xml:space="preserve"><value>Export selected profile</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ExportsTheSelectedProfileAsASafeLibrespot" xml:space="preserve"><value>Exports the selected profile as a safe .librespot file.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_Delete" xml:space="preserve"><value>Delete</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_DeleteSelectedLocalProfile" xml:space="preserve"><value>Delete selected local profile</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ConfirmsAndRemovesTheSelectedLocalProfileFile" xml:space="preserve"><value>Confirms and removes the selected local profile file.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CommunityAndChangelog" xml:space="preserve"><value>Community and changelog</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ChangelogPreview" xml:space="preserve"><value>Changelog preview</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CommunityLinks" xml:space="preserve"><value>Community links</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_Repo" xml:space="preserve"><value>Repo</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_OpenLibreSpotRepository" xml:space="preserve"><value>Open LibreSpot repository</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_OpenSpicetifyExtensionDocs" xml:space="preserve"><value>Open Spicetify extension docs</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_Themes" xml:space="preserve"><value>Themes</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_OpenSpicetifyThemeCatalog" xml:space="preserve"><value>Open Spicetify theme catalog</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_Patches" xml:space="preserve"><value>Patches</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_MaintenanceWorkspace" xml:space="preserve"><value>Maintenance workspace</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_RunState" xml:space="preserve"><value>Run state</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CloseActivityPanel" xml:space="preserve"><value>Close activity panel</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_DismissesTheActivityPanelAfterTheRunIs" xml:space="preserve"><value>Dismisses the activity panel after the run is finished.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_DecisionPrompt" xml:space="preserve"><value>Decision prompt</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_ConfirmsAnImportantLibreSpotActionBeforeItRuns" xml:space="preserve"><value>Confirms an important LibreSpot action before it runs.</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_CompletionNotifications" xml:space="preserve"><value>Completion notifications</value><comment>User-facing WPF text</comment></data>
 </root>

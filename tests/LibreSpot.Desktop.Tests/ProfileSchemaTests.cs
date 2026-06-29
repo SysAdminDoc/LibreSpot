@@ -67,6 +67,7 @@ public sealed class ProfileSchemaTests
             .GetProperty("settings").GetProperty("properties");
 
         Assert.True(props.TryGetProperty("Mode", out _));
+        Assert.True(props.TryGetProperty("UiCulture", out _));
         Assert.True(props.TryGetProperty("Spicetify_Theme", out _));
         Assert.True(props.TryGetProperty("Spicetify_Scheme", out _));
         Assert.True(props.TryGetProperty("Spicetify_CustomApps", out _));

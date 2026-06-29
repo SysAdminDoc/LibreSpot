@@ -386,6 +386,7 @@ public sealed class CliApplicationTests
             {
               "schemaVersion": 1,
               "installMode": "custom",
+              "uiCulture": "pt-BR",
               "spotifyTarget": { "version": "1.2.90.451" },
               "spotx": {
                 "premium": true,
@@ -434,6 +435,7 @@ public sealed class CliApplicationTests
 
             using var config = JsonDocument.Parse(File.ReadAllText(configPath));
             Assert.Equal("Custom", config.RootElement.GetProperty("Mode").GetString());
+            Assert.Equal("pt-BR", config.RootElement.GetProperty("UiCulture").GetString());
             Assert.False(config.RootElement.GetProperty("LaunchAfter").GetBoolean());
             Assert.True(config.RootElement.GetProperty("RiskAcknowledged").GetBoolean());
             Assert.True(config.RootElement.GetProperty("SpotX_Premium").GetBoolean());

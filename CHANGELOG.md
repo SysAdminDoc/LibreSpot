@@ -5,6 +5,10 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added WPF runtime localization with resource-backed strings, a persisted
+  language selector for EN/RU/ZH-Hans/PT-BR/ES, machine-prefilled RESX files,
+  Crowdin CLI mapping, and local validation for resource completeness plus raw
+  XAML user-facing strings.
 - Added a WPF Custom mode SpotX `patches.json` editor with AvalonEdit syntax
   highlighting, JSON formatting, regex and match/replace dry-run validation,
   HTTPS import review, CLI answer-file support, and backend temp-file staging

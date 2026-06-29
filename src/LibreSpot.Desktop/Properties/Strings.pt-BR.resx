@@ -1,0 +1,1726 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" msdata:Ordinal="0" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="xml:space" use="optional" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <!-- App-level -->
+  <data name="AppTitle" xml:space="preserve">
+    <value>LibreSpot</value>
+    <comment>Main window title</comment>
+  </data>
+  <data name="AppSubtitle" xml:space="preserve">
+    <value>Configuração e recuperação</value>
+    <comment>Subtitle in sidebar header</comment>
+  </data>
+  <!-- Activity panel defaults -->
+  <data name="ActivityReady" xml:space="preserve">
+    <value>Pronto quando você estiver</value>
+    <comment>Default activity title before any action</comment>
+  </data>
+  <data name="ActivityPickPath" xml:space="preserve">
+    <value>Escolha um caminho de configuração para começar.</value>
+    <comment>Default activity status text</comment>
+  </data>
+  <!-- Navigation modes -->
+  <data name="ModeRecommendedTitle" xml:space="preserve">
+    <value>Recomendado</value>
+    <comment>Sidebar nav label for recommended/easy install</comment>
+  </data>
+  <data name="ModeRecommendedDescription" xml:space="preserve">
+    <value>Configuração recomendada</value>
+    <comment>Workspace hero subtitle for recommended mode</comment>
+  </data>
+  <data name="ModeCustomTitle" xml:space="preserve">
+    <value>Personalizado</value>
+    <comment>Sidebar nav label for custom install</comment>
+  </data>
+  <data name="ModeCustomDescription" xml:space="preserve">
+    <value>Configuração personalizada</value>
+    <comment>Workspace hero subtitle for custom mode</comment>
+  </data>
+  <data name="ModeMaintenanceTitle" xml:space="preserve">
+    <value>Manutenção</value>
+    <comment>Sidebar nav label for maintenance mode</comment>
+  </data>
+  <data name="ModeMaintenanceDescription" xml:space="preserve">
+    <value>Reparar e recuperar</value>
+    <comment>Workspace hero subtitle for maintenance mode</comment>
+  </data>
+  <!-- Workspace hero -->
+  <data name="HeroGuidedSetup" xml:space="preserve">
+    <value>Configuração guiada</value>
+    <comment>Hero eyebrow text for recommended/custom modes</comment>
+  </data>
+  <data name="HeroMaintenanceEyebrow" xml:space="preserve">
+    <value>Saúde da pilha</value>
+    <comment>Hero eyebrow text for maintenance mode</comment>
+  </data>
+  <!-- Run readiness -->
+  <data name="ReadyToRun" xml:space="preserve">
+    <value>Pronto para correr</value>
+    <comment>Status when admin privileges are available</comment>
+  </data>
+  <data name="AdminStepNeeded" xml:space="preserve">
+    <value>Etapa administrativa necessária</value>
+    <comment>Status when admin elevation is required</comment>
+  </data>
+  <data name="ReadyToRunDescription" xml:space="preserve">
+    <value>O LibreSpot pode corrigir e recuperar sem outro prompt do Windows.</value>
+    <comment>Explanation when running as admin</comment>
+  </data>
+  <data name="AdminStepDescription" xml:space="preserve">
+    <value>O LibreSpot pedirá permissão ao Windows antes de executar seu back-end.</value>
+    <comment>Explanation when not running as admin</comment>
+  </data>
+  <!-- Search -->
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Encontre uma configuração</value>
+    <comment>Search box watermark text</comment>
+  </data>
+  <data name="SearchNoResults" xml:space="preserve">
+    <value>Nenhuma configuração correspondente</value>
+    <comment>Shown when search finds nothing</comment>
+  </data>
+  <data name="SearchNoResultsHint" xml:space="preserve">
+    <value>Experimente um termo mais amplo ou limpe a pesquisa para navegar novamente pelo perfil completo.</value>
+    <comment>Hint below search no-results message</comment>
+  </data>
+  <data name="SearchHelpText" xml:space="preserve">
+    <value>Pesquise títulos e descrições de configurações na página Personalizada.</value>
+    <comment>Accessibility help text for search box</comment>
+  </data>
+  <!-- Health severity labels -->
+  <data name="SeverityReady" xml:space="preserve">
+    <value>Preparar</value>
+    <comment>Health check passed</comment>
+  </data>
+  <data name="SeverityWarning" xml:space="preserve">
+    <value>Aviso</value>
+    <comment>Health check has a non-critical issue</comment>
+  </data>
+  <data name="SeverityCritical" xml:space="preserve">
+    <value>Crítico</value>
+    <comment>Health check found a serious problem</comment>
+  </data>
+  <data name="SeverityInfo" xml:space="preserve">
+    <value>Informações</value>
+    <comment>Informational health detail</comment>
+  </data>
+  <!-- Maintenance actions -->
+  <data name="ActionCheckMatrix" xml:space="preserve">
+    <value>Verifique a matriz de compatibilidade</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionCreateBackup" xml:space="preserve">
+    <value>Criar backup do Spicetify</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionRestoreBackup" xml:space="preserve">
+    <value>Restaurar backup mais recente</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionReapply" xml:space="preserve">
+    <value>Reaplicar após atualização</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionRepairMarketplace" xml:space="preserve">
+    <value>Reparar e abrir o Marketplace</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionOpenMarketplace" xml:space="preserve">
+    <value>Mercado aberto</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionSafeMode" xml:space="preserve">
+    <value>Modo de segurança</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionRestoreVanilla" xml:space="preserve">
+    <value>Restaurar baunilha Spotify</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionUninstallSpicetify" xml:space="preserve">
+    <value>Desinstalar o Spicetify</value>
+    <comment>Maintenance action title</comment>
+  </data>
+  <data name="ActionFullReset" xml:space="preserve">
+    <value>Reinicialização completa</value>
+    <comment>Maintenance action title — destructive</comment>
+  </data>
+  <data name="ActionRemoveSelfData" xml:space="preserve">
+    <value>Remover dados do LibreSpot</value>
+    <comment>Maintenance action title — destructive</comment>
+  </data>
+  <!-- Buttons -->
+  <data name="ButtonRunSetup" xml:space="preserve">
+    <value>Executar configuração</value>
+    <comment>Primary install button label</comment>
+  </data>
+  <data name="ButtonCancel" xml:space="preserve">
+    <value>Cancelar</value>
+    <comment>Cancel/abort button label</comment>
+  </data>
+  <data name="ButtonContinue" xml:space="preserve">
+    <value>Continuar</value>
+    <comment>Confirmation dialog continue button</comment>
+  </data>
+  <data name="ButtonDismiss" xml:space="preserve">
+    <value>Liberar</value>
+    <comment>Dismiss/close button</comment>
+  </data>
+  <data name="ButtonCopyLog" xml:space="preserve">
+    <value>Copiar registro</value>
+    <comment>Copy log to clipboard button</comment>
+  </data>
+  <data name="ButtonOpenFolder" xml:space="preserve">
+    <value>Abrir pasta</value>
+    <comment>Open folder in Explorer button</comment>
+  </data>
+  <data name="ButtonClearSearch" xml:space="preserve">
+    <value>Claro</value>
+    <comment>Clear search button</comment>
+  </data>
+  <data name="ButtonClearSearchName" xml:space="preserve">
+    <value>Limpar pesquisa de configurações</value>
+    <comment>Accessibility name for clear search button</comment>
+  </data>
+  <data name="ButtonRunRecommendedSetup" xml:space="preserve">
+    <value>Execute a configuração recomendada</value>
+    <comment>Primary button on recommended mode</comment>
+  </data>
+  <data name="ButtonApplyCustomProfile" xml:space="preserve">
+    <value>Aplicar perfil personalizado</value>
+    <comment>Primary button on custom mode</comment>
+  </data>
+  <data name="ButtonApplyCustomProfileHint" xml:space="preserve">
+    <value>Salva esse perfil personalizado e inicia o instalador com essas seleções.</value>
+    <comment>Accessibility help text for apply button</comment>
+  </data>
+  <data name="ButtonOpenLibreSpotFolder" xml:space="preserve">
+    <value>Abra a pasta LibreSpot</value>
+    <comment>Open config folder button</comment>
+  </data>
+  <data name="ButtonOpenLibreSpotFolderHint" xml:space="preserve">
+    <value>Abre a pasta de configuração do LibreSpot para que você possa inspecionar o backup do perfil recuperado.</value>
+    <comment>Sidebar open-folder hint</comment>
+  </data>
+  <data name="ButtonOpenLibreSpotFolderActivityHint" xml:space="preserve">
+    <value>Abre a pasta de configuração do LibreSpot, incluindo backups de configuração e install.log.</value>
+    <comment>Activity panel open-folder hint</comment>
+  </data>
+  <data name="ButtonRefreshEnvironment" xml:space="preserve">
+    <value>Atualizar ambiente</value>
+    <comment>Refresh button label</comment>
+  </data>
+  <data name="ButtonRefreshEnvironmentHint" xml:space="preserve">
+    <value>Verifique novamente o Spotify, o Spicetify e o estado do perfil salvo.</value>
+    <comment>Refresh button tooltip</comment>
+  </data>
+  <data name="ButtonExportBundle" xml:space="preserve">
+    <value>Pacote de exportação</value>
+    <comment>Export support bundle button</comment>
+  </data>
+  <data name="ButtonExportBundleName" xml:space="preserve">
+    <value>Exportar pacote de suporte</value>
+    <comment>Accessibility name for export bundle button</comment>
+  </data>
+  <data name="ButtonExportBundleHint" xml:space="preserve">
+    <value>Grava um zip de suporte LibreSpot redigido localmente usando as categorias de diagnóstico selecionadas.</value>
+    <comment>Accessibility help text for export bundle button</comment>
+  </data>
+  <data name="ButtonEnableWatcher" xml:space="preserve">
+    <value>Ativar observador</value>
+    <comment>Enable auto-reapply button</comment>
+  </data>
+  <data name="ButtonEnableWatcherName" xml:space="preserve">
+    <value>Ativar observador de reaplicação automática</value>
+    <comment>Accessibility name</comment>
+  </data>
+  <data name="ButtonEnableWatcherHint" xml:space="preserve">
+    <value>Registra a tarefa agendada que reaplica o LibreSpot após as atualizações do Spotify.</value>
+    <comment>Accessibility help text</comment>
+  </data>
+  <data name="ButtonDisableWatcher" xml:space="preserve">
+    <value>Desativar observador</value>
+    <comment>Disable auto-reapply button</comment>
+  </data>
+  <data name="ButtonDisableWatcherName" xml:space="preserve">
+    <value>Desativar observador de reaplicação automática</value>
+    <comment>Accessibility name</comment>
+  </data>
+  <data name="ButtonDisableWatcherHint" xml:space="preserve">
+    <value>Remove a tarefa agendada do observador de reaplicação automática.</value>
+    <comment>Accessibility help text</comment>
+  </data>
+  <data name="ButtonCancelRun" xml:space="preserve">
+    <value>Cancelar execução</value>
+    <comment>Cancel active run button</comment>
+  </data>
+  <data name="ButtonCancelRunName" xml:space="preserve">
+    <value>Cancelar execução atual</value>
+    <comment>Accessibility name</comment>
+  </data>
+  <data name="ButtonCancelRunHint" xml:space="preserve">
+    <value>Interrompe a execução ativa do LibreSpot.</value>
+    <comment>Accessibility help text</comment>
+  </data>
+  <data name="ButtonClose" xml:space="preserve">
+    <value>Fechar</value>
+    <comment>Close overlay button</comment>
+  </data>
+  <data name="ButtonCopyLogName" xml:space="preserve">
+    <value>Copiar log de execução</value>
+    <comment>Accessibility name for copy log button</comment>
+  </data>
+  <data name="ButtonCopyLogHint" xml:space="preserve">
+    <value>Copia o log de execução visível para a área de transferência.</value>
+    <comment>Accessibility help text</comment>
+  </data>
+  <!-- Progress / activity -->
+  <data name="ProgressPreparing" xml:space="preserve">
+    <value>Preparando</value>
+    <comment>Initial progress state</comment>
+  </data>
+  <data name="ProgressComplete" xml:space="preserve">
+    <value>Configuração concluída</value>
+    <comment>Final progress state</comment>
+  </data>
+  <data name="ProgressSpotifyReady" xml:space="preserve">
+    <value>Spotify está pronto</value>
+    <comment>Final progress substatus</comment>
+  </data>
+  <!-- Install options -->
+  <data name="OptionCleanInstall" xml:space="preserve">
+    <value>Remova a pilha atual primeiro</value>
+    <comment>Clean install option title</comment>
+  </data>
+  <data name="OptionCleanInstallDescription" xml:space="preserve">
+    <value>Limpe o antigo Spotify e os restos de personalização antes de começar do zero.</value>
+    <comment>Clean install option description</comment>
+  </data>
+  <data name="OptionLaunchAfter" xml:space="preserve">
+    <value>Inicie o Spotify quando terminar</value>
+    <comment>Post-install launch option title</comment>
+  </data>
+  <!-- Config status -->
+  <data name="ConfigSaved" xml:space="preserve">
+    <value>Perfil salvo</value>
+    <comment>Shown after config is saved</comment>
+  </data>
+  <data name="ConfigUnsaved" xml:space="preserve">
+    <value>Alterações não salvas</value>
+    <comment>Shown when config has unsaved changes</comment>
+  </data>
+  <!-- Sidebar / environment -->
+  <data name="SidebarDescription" xml:space="preserve">
+    <value>Recomendado lida com o caminho estável. </value>
+    <comment>Sidebar mode description paragraph</comment>
+  </data>
+  <data name="EnvironmentLabel" xml:space="preserve">
+    <value>Ambiente</value>
+    <comment>Sidebar environment section heading</comment>
+  </data>
+  <data name="DashboardSpotifyVersionLabel" xml:space="preserve">
+    <value>Versão Spotify</value>
+    <comment>Status dashboard card label</comment>
+  </data>
+  <data name="DashboardSpicetifyVersionLabel" xml:space="preserve">
+    <value>Versão Spicetify</value>
+    <comment>Status dashboard card label</comment>
+  </data>
+  <data name="DashboardSpotXStateLabel" xml:space="preserve">
+    <value>Estado SpotX</value>
+    <comment>Status dashboard card label</comment>
+  </data>
+  <data name="DashboardLastPatchLabel" xml:space="preserve">
+    <value>Último patch</value>
+    <comment>Status dashboard card label</comment>
+  </data>
+  <data name="DashboardWatcherLabel" xml:space="preserve">
+    <value>Observador</value>
+    <comment>Status dashboard card label</comment>
+  </data>
+  <data name="DashboardUnknownValue" xml:space="preserve">
+    <value>Desconhecido</value>
+    <comment>Status dashboard fallback value</comment>
+  </data>
+  <data name="DashboardSnapshotMissingDetail" xml:space="preserve">
+    <value>O Snapshot ainda não verificou este componente.</value>
+    <comment>Status dashboard fallback detail</comment>
+  </data>
+  <data name="DashboardNoPatchRecord" xml:space="preserve">
+    <value>Nenhum registro de patch</value>
+    <comment>Status dashboard last patch fallback value</comment>
+  </data>
+  <data name="DashboardNoPatchRecordDetail" xml:space="preserve">
+    <value>Execute a configuração ou reaplique uma vez para que o LibreSpot possa registrar o estado do patch.</value>
+    <comment>Status dashboard last patch fallback detail</comment>
+  </data>
+  <data name="SeverityWarningsLabel" xml:space="preserve">
+    <value>Avisos</value>
+    <comment>Sidebar warning count label</comment>
+  </data>
+  <data name="NextStepLabel" xml:space="preserve">
+    <value>Próxima etapa</value>
+    <comment>Sidebar next-step section heading</comment>
+  </data>
+  <data name="ProfileRecoveryLabel" xml:space="preserve">
+    <value>Recuperação de perfil</value>
+    <comment>Sidebar profile recovery section heading</comment>
+  </data>
+  <data name="StackSnapshotLabel" xml:space="preserve">
+    <value>Instantâneo de pilha</value>
+    <comment>Sidebar stack snapshot heading</comment>
+  </data>
+  <data name="StackSnapshotHint" xml:space="preserve">
+    <value>Atualize após alterar o Spotify fora do LibreSpot para que as recomendações permaneçam precisas.</value>
+    <comment>Stack snapshot helper text</comment>
+  </data>
+  <!-- Option status badges -->
+  <data name="OptionStatusOptional" xml:space="preserve">
+    <value>Opcional</value>
+    <comment>Option card status badge</comment>
+  </data>
+  <data name="OptionStatusRecommended" xml:space="preserve">
+    <value>Recomendado</value>
+    <comment>Option card status badge</comment>
+  </data>
+  <data name="OptionStatusAdded" xml:space="preserve">
+    <value>Adicionado</value>
+    <comment>Option card status badge</comment>
+  </data>
+  <data name="OptionStatusRemoved" xml:space="preserve">
+    <value>Removido</value>
+    <comment>Option card status badge</comment>
+  </data>
+  <!-- Extension status badges -->
+  <data name="ExtensionStatusAvailable" xml:space="preserve">
+    <value>Disponível</value>
+    <comment>Extension card status badge</comment>
+  </data>
+  <data name="ExtensionStatusDefault" xml:space="preserve">
+    <value>Padrão</value>
+    <comment>Extension card status badge</comment>
+  </data>
+  <data name="ExtensionStatusAdded" xml:space="preserve">
+    <value>Adicionado</value>
+    <comment>Extension card status badge</comment>
+  </data>
+  <data name="ExtensionStatusRemoved" xml:space="preserve">
+    <value>Removido</value>
+    <comment>Extension card status badge</comment>
+  </data>
+  <!-- Maintenance card details -->
+  <data name="MaintenanceCardDefaultDetail" xml:space="preserve">
+    <value>Executa aqui e deixa o resultado visível quando o LibreSpot termina.</value>
+    <comment>Default maintenance card detail text</comment>
+  </data>
+  <data name="MaintenanceCardDestructiveDetail" xml:space="preserve">
+    <value>Use apenas quando quiser limpar a configuração atual e reconstruí-la do zero.</value>
+    <comment>Destructive maintenance card detail text</comment>
+  </data>
+  <!-- Recommended mode -->
+  <data name="WhatIncludesLabel" xml:space="preserve">
+    <value>O que inclui</value>
+    <comment>Recommended mode inclusion list heading</comment>
+  </data>
+  <data name="RecommendedModeHint" xml:space="preserve">
+    <value>Use Recomendado para primeiras instalações, reparos após uma atualização do Spotify ou sempre que desejar o caminho mais rápido de volta para uma configuração em boas condições.</value>
+    <comment>Recommended mode usage hint</comment>
+  </data>
+  <!-- Custom mode sections -->
+  <data name="InstallPostureSection" xml:space="preserve">
+    <value>Instale postura</value>
+    <comment>Custom mode section heading</comment>
+  </data>
+  <data name="InstallPostureDescription" xml:space="preserve">
+    <value>Escolha se o LibreSpot será reconstruído primeiro e se o Spotify reabrirá quando a execução terminar.</value>
+    <comment>Custom mode section description</comment>
+  </data>
+  <data name="AppearanceSection" xml:space="preserve">
+    <value>Aparência</value>
+    <comment>Custom mode section heading</comment>
+  </data>
+  <data name="AppearanceDescription" xml:space="preserve">
+    <value>Tema, esquema, letras, cache e compatibilidade.</value>
+    <comment>Custom mode section description</comment>
+  </data>
+  <data name="ThemePackLabel" xml:space="preserve">
+    <value>Pacote temático</value>
+    <comment>Theme selector label</comment>
+  </data>
+  <data name="ThemePackHint" xml:space="preserve">
+    <value>Selecione o pacote de tema Spicetify que o LibreSpot deve restaurar.</value>
+    <comment>Theme selector accessibility hint</comment>
+  </data>
+  <data name="ThemeGallerySearchLabel" xml:space="preserve">
+    <value>Pesquisar temas e esquemas</value>
+    <comment>Theme gallery search label</comment>
+  </data>
+  <data name="ThemeGallerySearchName" xml:space="preserve">
+    <value>Pesquisar temas e esquemas</value>
+    <comment>Accessibility name for theme gallery search</comment>
+  </data>
+  <data name="ThemeGallerySearchHint" xml:space="preserve">
+    <value>Digite um tema, esquema, fonte ou requisito theme.js para filtrar a galeria.</value>
+    <comment>Accessibility help text for theme gallery search</comment>
+  </data>
+  <data name="ThemeGalleryEmpty" xml:space="preserve">
+    <value>Nenhum tema disponível.</value>
+    <comment>Theme gallery empty state</comment>
+  </data>
+  <data name="ThemeGalleryNoResults" xml:space="preserve">
+    <value>Nenhum tema corresponde a esta pesquisa.</value>
+    <comment>Theme gallery no-results state</comment>
+  </data>
+  <data name="ThemeGalleryRequiresJsBadge" xml:space="preserve">
+    <value>tema.js</value>
+    <comment>Badge for themes that require theme.js</comment>
+  </data>
+  <data name="ThemeGalleryCommunityBadge" xml:space="preserve">
+    <value>Comunidade</value>
+    <comment>Badge for community themes</comment>
+  </data>
+  <data name="ThemeGalleryOfficialBadge" xml:space="preserve">
+    <value>Oficial</value>
+    <comment>Badge for official themes</comment>
+  </data>
+  <data name="ThemeGalleryMarketplaceBadge" xml:space="preserve">
+    <value>Somente mercado</value>
+    <comment>Badge for marketplace-only fallback theme selection</comment>
+  </data>
+  <data name="ThemeGallerySchemesLabel" xml:space="preserve">
+    <value>Esquemas</value>
+    <comment>Theme gallery scheme chip section label</comment>
+  </data>
+  <data name="ColorSchemeLabel" xml:space="preserve">
+    <value>Esquema de cores</value>
+    <comment>Scheme selector label</comment>
+  </data>
+  <data name="LyricsThemeLabel" xml:space="preserve">
+    <value>Tema da letra</value>
+    <comment>Lyrics theme selector label</comment>
+  </data>
+  <data name="CacheLimitLabel" xml:space="preserve">
+    <value>Limite de cache</value>
+    <comment>Cache limit field label</comment>
+  </data>
+  <data name="CacheLimitName" xml:space="preserve">
+    <value>Limite de cache em megabytes</value>
+    <comment>Accessibility name for cache field</comment>
+  </data>
+  <data name="CacheLimitHint" xml:space="preserve">
+    <value>Defina um limite máximo de cache em megabytes ou deixe zero para usar o padrão do LibreSpot.</value>
+    <comment>Cache limit accessibility hint</comment>
+  </data>
+  <data name="CacheLimitUnit" xml:space="preserve">
+    <value>MB</value>
+    <comment>Cache limit unit suffix</comment>
+  </data>
+  <data name="CacheLimitDefault" xml:space="preserve">
+    <value>Deixe 0 para o comportamento padrão do cache.</value>
+    <comment>Cache limit helper text</comment>
+  </data>
+  <data name="CompatibilityTargetLabel" xml:space="preserve">
+    <value>Alvo de compatibilidade</value>
+    <comment>Section label for Spotify version targeting</comment>
+  </data>
+  <data name="SpotifyBuildLabel" xml:space="preserve">
+    <value>Compilação do Spotify</value>
+    <comment>Version dropdown label</comment>
+  </data>
+  <data name="SpotifyCompatibilityName" xml:space="preserve">
+    <value>Alvo de compatibilidade do Spotify</value>
+    <comment>Accessibility name for version dropdown</comment>
+  </data>
+  <data name="SpotifyCompatibilityHint" xml:space="preserve">
+    <value>Escolha a versão do Spotify que o LibreSpot deve fixar quando desejar um controle de compatibilidade mais explícito.</value>
+    <comment>Version dropdown accessibility hint</comment>
+  </data>
+  <data name="DownloadPathLabel" xml:space="preserve">
+    <value>Caminho de download</value>
+    <comment>Download method section label</comment>
+  </data>
+  <data name="DownloadMethodName" xml:space="preserve">
+    <value>Método de download</value>
+    <comment>Accessibility name for download method dropdown</comment>
+  </data>
+  <data name="DownloadMethodHint" xml:space="preserve">
+    <value>Substitua o caminho de transferência padrão do LibreSpot somente quando sua rede ou ambiente exigir isso.</value>
+    <comment>Download method accessibility hint</comment>
+  </data>
+  <data name="PlaybackBehaviorSection" xml:space="preserve">
+    <value>Comportamento de reprodução e shell</value>
+    <comment>Custom mode section heading</comment>
+  </data>
+  <data name="PlaybackBehaviorDescription" xml:space="preserve">
+    <value>Essas configurações moldam a experiência diária do Spotify após o patch.</value>
+    <comment>Custom mode section description</comment>
+  </data>
+  <data name="CoreBehaviorLabel" xml:space="preserve">
+    <value>Comportamento central</value>
+    <comment>Option group label</comment>
+  </data>
+  <data name="InterfaceTuningLabel" xml:space="preserve">
+    <value>Ajuste de interface</value>
+    <comment>Option group label</comment>
+  </data>
+  <data name="AdvancedAdjustmentsSection" xml:space="preserve">
+    <value>Ajustes avançados</value>
+    <comment>Custom mode section heading</comment>
+  </data>
+  <data name="AdvancedAdjustmentsHint" xml:space="preserve">
+    <value>Deixe-os de lado, a menos que você saiba que precisa deles.</value>
+    <comment>Advanced section warning</comment>
+  </data>
+  <data name="ExperienceExtrasLabel" xml:space="preserve">
+    <value>Extras de experiência</value>
+    <comment>Option group label</comment>
+  </data>
+  <data name="BuiltInExtensionsSection" xml:space="preserve">
+    <value>Extensões integradas</value>
+    <comment>Custom mode section heading</comment>
+  </data>
+  <data name="BuiltInExtensionsDescription" xml:space="preserve">
+    <value>Extras que o LibreSpot gerencia com este perfil.</value>
+    <comment>Custom mode section description</comment>
+  </data>
+  <!-- Custom mode profile summary -->
+  <data name="ProfileSummaryLabel" xml:space="preserve">
+    <value>Resumo do perfil</value>
+    <comment>Summary sidebar heading</comment>
+  </data>
+  <data name="InstallPostureLabel" xml:space="preserve">
+    <value>Instale postura</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="ProfileChangesLabel" xml:space="preserve">
+    <value>Mudanças de perfil</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="ExtensionsLabel" xml:space="preserve">
+    <value>Extensões</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="AccessLabel" xml:space="preserve">
+    <value>Acesso</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="RunReadinessLabel" xml:space="preserve">
+    <value>Preparação para execução</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="CurrentSelectionsLabel" xml:space="preserve">
+    <value>Seleções atuais</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="DownloadRouteLabel" xml:space="preserve">
+    <value>Baixar rota</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="WhatToWatchLabel" xml:space="preserve">
+    <value>O que assistir</value>
+    <comment>Summary section label</comment>
+  </data>
+  <data name="NoExtensionsSelected" xml:space="preserve">
+    <value>Nenhuma extensão selecionada</value>
+    <comment>Empty state for extensions list</comment>
+  </data>
+  <data name="NoExtensionsHint" xml:space="preserve">
+    <value>Mantenha-o simples ou adicione ajudantes apenas quando precisar deles.</value>
+    <comment>Empty state hint for extensions</comment>
+  </data>
+  <!-- Maintenance mode -->
+  <data name="StackLabel" xml:space="preserve">
+    <value>Pilha</value>
+    <comment>Maintenance status section label</comment>
+  </data>
+  <data name="BackupsLabel" xml:space="preserve">
+    <value>Cópias de segurança</value>
+    <comment>Maintenance status section label</comment>
+  </data>
+  <data name="MarketplaceLabel" xml:space="preserve">
+    <value>Mercado</value>
+    <comment>Maintenance status section label</comment>
+  </data>
+  <data name="ThemeLabel" xml:space="preserve">
+    <value>Tema</value>
+    <comment>Maintenance status section label</comment>
+  </data>
+  <data name="SupportBundleTitle" xml:space="preserve">
+    <value>Pacote de suporte</value>
+    <comment>Support bundle section heading</comment>
+  </data>
+  <data name="AutoReapplyTitle" xml:space="preserve">
+    <value>Reaplicar automaticamente após atualizações do Spotify</value>
+    <comment>Watcher section heading</comment>
+  </data>
+  <data name="RefreshRecoverSection" xml:space="preserve">
+    <value>Atualizar e recuperar</value>
+    <comment>Maintenance action group heading</comment>
+  </data>
+  <data name="RefreshRecoverDescription" xml:space="preserve">
+    <value>Use-os primeiro para verificações, reaplicações e trabalhos de reversão mais leves.</value>
+    <comment>Maintenance action group description</comment>
+  </data>
+  <data name="ResetSection" xml:space="preserve">
+    <value>Reiniciar</value>
+    <comment>Maintenance destructive action group heading</comment>
+  </data>
+  <data name="ResetDescription" xml:space="preserve">
+    <value>Use somente quando desejar remover a configuração atual e começar a partir de uma linha de base mais limpa.</value>
+    <comment>Maintenance destructive group description</comment>
+  </data>
+  <data name="MaintenanceClosingHint" xml:space="preserve">
+    <value>Feche o Spotify primeiro se a reprodução estiver ativa e copie o log se algo parecer incomum.</value>
+    <comment>Maintenance footer hint</comment>
+  </data>
+  <!-- Activity overlay -->
+  <data name="ActivityDialogName" xml:space="preserve">
+    <value>Caixa de diálogo Executar atividade</value>
+    <comment>Accessibility name for activity overlay</comment>
+  </data>
+  <data name="ActivityDialogHint" xml:space="preserve">
+    <value>Mostra o progresso ao vivo, o status atual e o resultado da solução de problemas.</value>
+    <comment>Accessibility help text for activity overlay</comment>
+  </data>
+  <data name="ElapsedLabel" xml:space="preserve">
+    <value>Decorrido</value>
+    <comment>Elapsed time label</comment>
+  </data>
+  <data name="ProgressBarName" xml:space="preserve">
+    <value>Progresso da instalação</value>
+    <comment>Accessibility name for progress bar</comment>
+  </data>
+  <data name="UndoPaneTitle" xml:space="preserve">
+    <value>Mudanças reversíveis</value>
+    <comment>Undo pane heading after a successful run</comment>
+  </data>
+  <data name="UndoPaneDescription" xml:space="preserve">
+    <value>Essas alterações concluídas incluem uma nota de desfazer manual do diário de operações.</value>
+    <comment>Undo pane description after a successful run</comment>
+  </data>
+  <data name="UndoPaneUndoLabel" xml:space="preserve">
+    <value>Desfazer nota</value>
+    <comment>Undo pane rollback hint label</comment>
+  </data>
+  <data name="RunLogLabel" xml:space="preserve">
+    <value>Executar registro</value>
+    <comment>Log section heading</comment>
+  </data>
+  <data name="RunLogDescription" xml:space="preserve">
+    <value>Progresso detalhado e notas de recuperação desta execução.</value>
+    <comment>Log section description</comment>
+  </data>
+  <data name="LogEmptyStateTitle" xml:space="preserve">
+    <value>Os detalhes da corrida aparecerão aqui</value>
+    <comment>Log empty state heading</comment>
+  </data>
+  <data name="LogEmptyStateHint" xml:space="preserve">
+    <value>Progresso, avisos e pistas de recuperação aparecem assim que o LibreSpot tem algo a relatar.</value>
+    <comment>Log empty state description</comment>
+  </data>
+  <!-- Prompt overlay -->
+  <data name="PromptActionConfirm" xml:space="preserve">
+    <value>Confirmar ação</value>
+    <comment>Default prompt overlay title</comment>
+  </data>
+  <data name="PromptActionReset" xml:space="preserve">
+    <value>Ação de redefinição</value>
+    <comment>Prompt overlay title for destructive actions</comment>
+  </data>
+  <!-- ViewModel strings -->
+  <data name="FilesNone" xml:space="preserve">
+    <value>0 arquivos</value>
+    <comment>Default file count display</comment>
+  </data>
+  <data name="SizeNone" xml:space="preserve">
+    <value>0B</value>
+    <comment>Default size display</comment>
+  </data>
+  <data name="NoBundleExported" xml:space="preserve">
+    <value>Nenhum pacote de suporte foi exportado nesta sessão.</value>
+    <comment>Support bundle empty state</comment>
+  </data>
+  <data name="ExportBundleTitle" xml:space="preserve">
+    <value>Exportar pacote de suporte do LibreSpot</value>
+    <comment>Export bundle dialog title</comment>
+  </data>
+  <data name="PreparingBackend" xml:space="preserve">
+    <value>Preparando o tempo de execução de back-end</value>
+    <comment>Status while backend is starting</comment>
+  </data>
+  <data name="Canceled" xml:space="preserve">
+    <value>Cancelado</value>
+    <comment>Run was canceled</comment>
+  </data>
+  <data name="ConfigSaveCanceled" xml:space="preserve">
+    <value>Salvamento de configuração cancelado</value>
+    <comment>Config save was canceled</comment>
+  </data>
+  <data name="RunNeedsAttention" xml:space="preserve">
+    <value>Corre precisa de atenção</value>
+    <comment>Activity title when run has warnings</comment>
+  </data>
+  <data name="RunComplete" xml:space="preserve">
+    <value>Execução concluída</value>
+    <comment>Activity title when run finishes successfully</comment>
+  </data>
+  <data name="StoppingBackend" xml:space="preserve">
+    <value>Interrompendo o back-end…</value>
+    <comment>Status while backend is stopping</comment>
+  </data>
+  <data name="StatusInProgress" xml:space="preserve">
+    <value>Em andamento</value>
+    <comment>Run status badge</comment>
+  </data>
+  <data name="StatusNeedsReview" xml:space="preserve">
+    <value>Precisa de revisão</value>
+    <comment>Run status badge when warnings exist</comment>
+  </data>
+  <data name="StatusComplete" xml:space="preserve">
+    <value>Completo</value>
+    <comment>Run status badge on success</comment>
+  </data>
+  <data name="CurrentStep" xml:space="preserve">
+    <value>Etapa atual</value>
+    <comment>Progress step label</comment>
+  </data>
+  <data name="RunStatus" xml:space="preserve">
+    <value>Status de execução</value>
+    <comment>Status label</comment>
+  </data>
+  <!-- AppCatalog: Option titles and descriptions -->
+  <data name="Option_CleanInstall_Title" xml:space="preserve">
+    <value>Remova a pilha atual primeiro</value>
+    <comment>Option title for CleanInstall</comment>
+  </data>
+  <data name="Option_CleanInstall_Description" xml:space="preserve">
+    <value>Limpe o antigo Spotify e os restos de personalização antes que o LibreSpot reconstrua a configuração.</value>
+    <comment>Option description for CleanInstall</comment>
+  </data>
+  <data name="Option_LaunchAfter_Title" xml:space="preserve">
+    <value>Abra o Spotify quando terminar</value>
+    <comment>Option title for LaunchAfter</comment>
+  </data>
+  <data name="Option_LaunchAfter_Description" xml:space="preserve">
+    <value>Inicie o Spotify automaticamente após a conclusão do LibreSpot.</value>
+    <comment>Option description for LaunchAfter</comment>
+  </data>
+  <data name="Option_SpotX_NewTheme_Title" xml:space="preserve">
+    <value>Habilite o novo tema SpotX</value>
+    <comment>Option title for SpotX_NewTheme</comment>
+  </data>
+  <data name="Option_SpotX_NewTheme_Description" xml:space="preserve">
+    <value>Aplique os ajustes mais recentes do shell SpotX para um quadro Spotify mais limpo.</value>
+    <comment>Option description for SpotX_NewTheme</comment>
+  </data>
+  <data name="Option_SpotX_PodcastsOff_Title" xml:space="preserve">
+    <value>Ocultar podcasts</value>
+    <comment>Option title for SpotX_PodcastsOff</comment>
+  </data>
+  <data name="Option_SpotX_PodcastsOff_Description" xml:space="preserve">
+    <value>Reduza as superfícies de podcast no Spotify para uma configuração que prioriza a música.</value>
+    <comment>Option description for SpotX_PodcastsOff</comment>
+  </data>
+  <data name="Option_SpotX_BlockUpdate_Title" xml:space="preserve">
+    <value>Bloquear atualizações do Spotify</value>
+    <comment>Option title for SpotX_BlockUpdate</comment>
+  </data>
+  <data name="Option_SpotX_BlockUpdate_Description" xml:space="preserve">
+    <value>Mantenha o Spotify fixado para que sua configuração tenha menos probabilidade de quebrar inesperadamente.</value>
+    <comment>Option description for SpotX_BlockUpdate</comment>
+  </data>
+  <data name="Option_SpotX_AdSectionsOff_Title" xml:space="preserve">
+    <value>Remover seções de anúncios</value>
+    <comment>Option title for SpotX_AdSectionsOff</comment>
+  </data>
+  <data name="Option_SpotX_AdSectionsOff_Description" xml:space="preserve">
+    <value>Retire seções promovidas por anúncios das principais visualizações do Spotify.</value>
+    <comment>Option description for SpotX_AdSectionsOff</comment>
+  </data>
+  <data name="Option_SpotX_Premium_Title" xml:space="preserve">
+    <value>Modo de conta premium</value>
+    <comment>Option title for SpotX_Premium</comment>
+  </data>
+  <data name="Option_SpotX_Premium_Description" xml:space="preserve">
+    <value>Ignore os patches focados em anúncios enquanto mantém o resto da pilha do LibreSpot.</value>
+    <comment>Option description for SpotX_Premium</comment>
+  </data>
+  <data name="Option_SpotX_DisableStartup_Title" xml:space="preserve">
+    <value>Desativar inicialização</value>
+    <comment>Option title for SpotX_DisableStartup</comment>
+  </data>
+  <data name="Option_SpotX_DisableStartup_Description" xml:space="preserve">
+    <value>Impedir que o Spotify seja iniciado automaticamente com o Windows.</value>
+    <comment>Option description for SpotX_DisableStartup</comment>
+  </data>
+  <data name="Option_SpotX_NoShortcut_Title" xml:space="preserve">
+    <value>Pular criação de atalho</value>
+    <comment>Option title for SpotX_NoShortcut</comment>
+  </data>
+  <data name="Option_SpotX_NoShortcut_Description" xml:space="preserve">
+    <value>Evite a confusão de atalhos na área de trabalho durante a instalação.</value>
+    <comment>Option description for SpotX_NoShortcut</comment>
+  </data>
+  <data name="Option_SpotX_StartSpoti_Title" xml:space="preserve">
+    <value>Inicie o Spotify após a instalação</value>
+    <comment>Option title for SpotX_StartSpoti</comment>
+  </data>
+  <data name="Option_SpotX_StartSpoti_Description" xml:space="preserve">
+    <value>Deixe o SpotX iniciar o Spotify assim que o patch terminar.</value>
+    <comment>Option description for SpotX_StartSpoti</comment>
+  </data>
+  <data name="Option_SpotX_LyricsEnabled_Title" xml:space="preserve">
+    <value>Ativar patch de letras</value>
+    <comment>Option title for SpotX_LyricsEnabled</comment>
+  </data>
+  <data name="Option_SpotX_LyricsEnabled_Description" xml:space="preserve">
+    <value>Ative o suporte a letras corrigidas e escolha uma capa de letra.</value>
+    <comment>Option description for SpotX_LyricsEnabled</comment>
+  </data>
+  <data name="Option_SpotX_TopSearch_Title" xml:space="preserve">
+    <value>Barra de pesquisa superior</value>
+    <comment>Option title for SpotX_TopSearch</comment>
+  </data>
+  <data name="Option_SpotX_TopSearch_Description" xml:space="preserve">
+    <value>Mova a pesquisa do Spotify para uma posição mais sempre disponível.</value>
+    <comment>Option description for SpotX_TopSearch</comment>
+  </data>
+  <data name="Option_SpotX_RightSidebarOff_Title" xml:space="preserve">
+    <value>Ocultar barra lateral direita</value>
+    <comment>Option title for SpotX_RightSidebarOff</comment>
+  </data>
+  <data name="Option_SpotX_RightSidebarOff_Description" xml:space="preserve">
+    <value>Reduza o cromo secundário para um layout de reprodução mais focado.</value>
+    <comment>Option description for SpotX_RightSidebarOff</comment>
+  </data>
+  <data name="Option_SpotX_RightSidebarClr_Title" xml:space="preserve">
+    <value>Estilo claro da barra lateral direita</value>
+    <comment>Option title for SpotX_RightSidebarClr</comment>
+  </data>
+  <data name="Option_SpotX_RightSidebarClr_Description" xml:space="preserve">
+    <value>Use um estilo mais claro na barra lateral direita em vez de ocultá-la.</value>
+    <comment>Option description for SpotX_RightSidebarClr</comment>
+  </data>
+  <data name="Option_SpotX_CanvasHomeOff_Title" xml:space="preserve">
+    <value>Desativar tela inicial</value>
+    <comment>Option title for SpotX_CanvasHomeOff</comment>
+  </data>
+  <data name="Option_SpotX_CanvasHomeOff_Description" xml:space="preserve">
+    <value>Reduza o movimento e a desordem da tela na superfície inicial do Spotify.</value>
+    <comment>Option description for SpotX_CanvasHomeOff</comment>
+  </data>
+  <data name="Option_SpotX_HomeSubOff_Title" xml:space="preserve">
+    <value>Ocultar sugestões de casa</value>
+    <comment>Option title for SpotX_HomeSubOff</comment>
+  </data>
+  <data name="Option_SpotX_HomeSubOff_Description" xml:space="preserve">
+    <value>Remova alguns dos módulos iniciais com muitas recomendações do Spotify.</value>
+    <comment>Option description for SpotX_HomeSubOff</comment>
+  </data>
+  <data name="Option_SpotX_OldLyrics_Title" xml:space="preserve">
+    <value>Layout de letras antigas</value>
+    <comment>Option title for SpotX_OldLyrics</comment>
+  </data>
+  <data name="Option_SpotX_OldLyrics_Description" xml:space="preserve">
+    <value>Volte para o tratamento anterior de layout de letras.</value>
+    <comment>Option description for SpotX_OldLyrics</comment>
+  </data>
+  <data name="Option_SpotX_HideColIconOff_Title" xml:space="preserve">
+    <value>Mantenha o ícone da coleção visível</value>
+    <comment>Option title for SpotX_HideColIconOff</comment>
+  </data>
+  <data name="Option_SpotX_HideColIconOff_Description" xml:space="preserve">
+    <value>Evite que o SpotX oculte recursos de coleta.</value>
+    <comment>Option description for SpotX_HideColIconOff</comment>
+  </data>
+  <data name="Option_SpotX_Plus_Title" xml:space="preserve">
+    <value>Ajustes expandidos do SpotX</value>
+    <comment>Option title for SpotX_Plus</comment>
+  </data>
+  <data name="Option_SpotX_Plus_Description" xml:space="preserve">
+    <value>Aplique o pacote mais amplo de ajustes do SpotX para um shell do Spotify mais modificado.</value>
+    <comment>Option description for SpotX_Plus</comment>
+  </data>
+  <data name="Option_SpotX_NewFullscreen_Title" xml:space="preserve">
+    <value>Layout alternativo de tela cheia</value>
+    <comment>Option title for SpotX_NewFullscreen</comment>
+  </data>
+  <data name="Option_SpotX_NewFullscreen_Description" xml:space="preserve">
+    <value>Habilite a experiência alternativa de reprodução em tela cheia do SpotX.</value>
+    <comment>Option description for SpotX_NewFullscreen</comment>
+  </data>
+  <data name="Option_SpotX_FunnyProgress_Title" xml:space="preserve">
+    <value>Barra de progresso de novidades</value>
+    <comment>Option title for SpotX_FunnyProgress</comment>
+  </data>
+  <data name="Option_SpotX_FunnyProgress_Description" xml:space="preserve">
+    <value>Troque pela divertida variante da barra de progresso do SpotX.</value>
+    <comment>Option description for SpotX_FunnyProgress</comment>
+  </data>
+  <data name="Option_SpotX_ExpSpotify_Title" xml:space="preserve">
+    <value>Recursos experimentais do Spotify</value>
+    <comment>Option title for SpotX_ExpSpotify</comment>
+  </data>
+  <data name="Option_SpotX_ExpSpotify_Description" xml:space="preserve">
+    <value>Permitir sinalizadores experimentais do Spotify quando o SpotX os suportar.</value>
+    <comment>Option description for SpotX_ExpSpotify</comment>
+  </data>
+  <data name="Option_SpotX_LyricsBlock_Title" xml:space="preserve">
+    <value>Bloquear sobreposições de letras</value>
+    <comment>Option title for SpotX_LyricsBlock</comment>
+  </data>
+  <data name="Option_SpotX_LyricsBlock_Description" xml:space="preserve">
+    <value>Desative algumas sobreposições relacionadas às letras em estados corrigidos.</value>
+    <comment>Option description for SpotX_LyricsBlock</comment>
+  </data>
+  <data name="Option_SpotX_SendVersionOff_Title" xml:space="preserve">
+    <value>Desativar relatórios de versão SpotX</value>
+    <comment>Option title for SpotX_SendVersionOff</comment>
+  </data>
+  <data name="Option_SpotX_SendVersionOff_Description" xml:space="preserve">
+    <value>Bloqueia a notificação de versão de saída do SpotX (introduzida em abril de 2026). </value>
+    <comment>Option description for SpotX_SendVersionOff</comment>
+  </data>
+  <data name="Option_SpotX_DevTools_Title" xml:space="preserve">
+    <value>Habilite as ferramentas para desenvolvedores do Spotify</value>
+    <comment>Option title for SpotX_DevTools</comment>
+  </data>
+  <data name="Option_SpotX_DevTools_Description" xml:space="preserve">
+    <value>Desbloqueia a tecla de atalho do Chromium DevTools dentro do Spotify para autores de extensões.</value>
+    <comment>Option description for SpotX_DevTools</comment>
+  </data>
+  <data name="Option_SpotX_Mirror_Title" xml:space="preserve">
+    <value>Use o espelho GitHub.io</value>
+    <comment>Option title for SpotX_Mirror</comment>
+  </data>
+  <data name="Option_SpotX_Mirror_Description" xml:space="preserve">
+    <value>Volta para o espelho github.io quando raw.githubusercontent.com é bloqueado.</value>
+    <comment>Option description for SpotX_Mirror</comment>
+  </data>
+  <data name="Option_SpotX_ConfirmUninstall_Title" xml:space="preserve">
+    <value>Forçar a desinstalação limpa antes de aplicar o patch</value>
+    <comment>Option title for SpotX_ConfirmUninstall</comment>
+  </data>
+  <data name="Option_SpotX_ConfirmUninstall_Description" xml:space="preserve">
+    <value>Executa o fluxo de desinstalação e reinstalação do SpotX mesmo quando a versão atual seria mantida.</value>
+    <comment>Option description for SpotX_ConfirmUninstall</comment>
+  </data>
+  <data name="Option_Spicetify_Marketplace_Title" xml:space="preserve">
+    <value>Instalar o Mercado</value>
+    <comment>Option title for Spicetify_Marketplace</comment>
+  </data>
+  <data name="Option_Spicetify_Marketplace_Description" xml:space="preserve">
+    <value>Inclua o aplicativo personalizado Spicetify Marketplace por padrão.</value>
+    <comment>Option description for Spicetify_Marketplace</comment>
+  </data>
+  <!-- AppCatalog: Extension titles and descriptions -->
+  <data name="Extension_fullAppDisplay_Title" xml:space="preserve">
+    <value>Exibição completa do aplicativo</value>
+    <comment>Extension title for fullAppDisplay.js</comment>
+  </data>
+  <data name="Extension_fullAppDisplay_Description" xml:space="preserve">
+    <value>Transforme a arte do álbum e os controles de reprodução em uma apresentação em tela inteira.</value>
+    <comment>Extension description for fullAppDisplay.js</comment>
+  </data>
+  <data name="Extension_shuffle_plus_Title" xml:space="preserve">
+    <value>Embaralhamento Verdadeiro</value>
+    <comment>Extension title for shuffle+.js</comment>
+  </data>
+  <data name="Extension_shuffle_plus_Description" xml:space="preserve">
+    <value>Use um shuffle Fisher-Yates em vez do shuffle ponderado do Spotify.</value>
+    <comment>Extension description for shuffle+.js</comment>
+  </data>
+  <data name="Extension_trashbin_Title" xml:space="preserve">
+    <value>Lixeira</value>
+    <comment>Extension title for trashbin.js</comment>
+  </data>
+  <data name="Extension_trashbin_Description" xml:space="preserve">
+    <value>Ignore músicas e artistas marcados como indesejados.</value>
+    <comment>Extension description for trashbin.js</comment>
+  </data>
+  <data name="Extension_keyboardShortcut_Title" xml:space="preserve">
+    <value>Atalhos de teclado</value>
+    <comment>Extension title for keyboardShortcut.js</comment>
+  </data>
+  <data name="Extension_keyboardShortcut_Description" xml:space="preserve">
+    <value>Adicione navegação no estilo Vim para controle mais rápido do teclado.</value>
+    <comment>Extension description for keyboardShortcut.js</comment>
+  </data>
+  <data name="Extension_bookmark_Title" xml:space="preserve">
+    <value>Favoritos</value>
+    <comment>Extension title for bookmark.js</comment>
+  </data>
+  <data name="Extension_bookmark_Description" xml:space="preserve">
+    <value>Salve e recupere páginas, faixas, álbuns e carimbos de data/hora.</value>
+    <comment>Extension description for bookmark.js</comment>
+  </data>
+  <data name="Extension_loopyLoop_Title" xml:space="preserve">
+    <value>Loops AB</value>
+    <comment>Extension title for loopyLoop.js</comment>
+  </data>
+  <data name="Extension_loopyLoop_Description" xml:space="preserve">
+    <value>Faça um loop de segmentos exatos da faixa para praticar ou repetir a audição.</value>
+    <comment>Extension description for loopyLoop.js</comment>
+  </data>
+  <data name="Extension_popupLyrics_Title" xml:space="preserve">
+    <value>Letra Popup</value>
+    <comment>Extension title for popupLyrics.js</comment>
+  </data>
+  <data name="Extension_popupLyrics_Description" xml:space="preserve">
+    <value>Abra as letras sincronizadas em uma janela redimensionável separada.</value>
+    <comment>Extension description for popupLyrics.js</comment>
+  </data>
+  <data name="Extension_autoSkipVideo_Title" xml:space="preserve">
+    <value>Pular vídeo</value>
+    <comment>Extension title for autoSkipVideo.js</comment>
+  </data>
+  <data name="Extension_autoSkipVideo_Description" xml:space="preserve">
+    <value>Ignore automaticamente vídeos de tela e conteúdo visual não compatível.</value>
+    <comment>Extension description for autoSkipVideo.js</comment>
+  </data>
+  <data name="Extension_autoSkipExplicit_Title" xml:space="preserve">
+    <value>Pular explícito</value>
+    <comment>Extension title for autoSkipExplicit.js</comment>
+  </data>
+  <data name="Extension_autoSkipExplicit_Description" xml:space="preserve">
+    <value>Ignora automaticamente faixas sinalizadas como explícitas.</value>
+    <comment>Extension description for autoSkipExplicit.js</comment>
+  </data>
+  <data name="Extension_webnowplaying_Title" xml:space="preserve">
+    <value>WebNowPlaying</value>
+    <comment>Extension title for webnowplaying.js</comment>
+  </data>
+  <data name="Extension_webnowplaying_Description" xml:space="preserve">
+    <value>Exponha dados em reprodução para integrações de desktop e widgets.</value>
+    <comment>Extension description for webnowplaying.js</comment>
+  </data>
+  <data name="Extension_hidePodcasts_Title" xml:space="preserve">
+    <value>Ocultar podcasts</value>
+    <comment>Extension title for hidePodcasts.js</comment>
+  </data>
+  <data name="Extension_hidePodcasts_Description" xml:space="preserve">
+    <value>Remova elementos da interface do usuário de podcast, episódio e audiolivro.</value>
+    <comment>Extension description for hidePodcasts.js</comment>
+  </data>
+  <data name="Extension_beautiful_lyrics_Title" xml:space="preserve">
+    <value>Lindas letras</value>
+    <comment>Extension title for beautiful-lyrics.mjs</comment>
+  </data>
+  <data name="Extension_beautiful_lyrics_Description" xml:space="preserve">
+    <value>Letras sincronizadas envolventes com fundos dinâmicos e desfoque. </value>
+    <comment>Extension description for beautiful-lyrics.mjs</comment>
+  </data>
+  <data name="Extension_playlist_icons_Title" xml:space="preserve">
+    <value>Ícones da lista de reprodução</value>
+    <comment>Extension title for playlist-icons.js</comment>
+  </data>
+  <data name="Extension_playlist_icons_Description" xml:space="preserve">
+    <value>Adicione ícones personalizados e imagens de pastas às listas de reprodução.</value>
+    <comment>Extension description for playlist-icons.js</comment>
+  </data>
+  <data name="Extension_volumePercentage_Title" xml:space="preserve">
+    <value>Porcentagem de volume</value>
+    <comment>Extension title for volumePercentage.js</comment>
+  </data>
+  <data name="Extension_volumePercentage_Description" xml:space="preserve">
+    <value>Exiba a porcentagem exata do volume próximo ao controle deslizante.</value>
+    <comment>Extension description for volumePercentage.js</comment>
+  </data>
+  <data name="Extension_adblock_Title" xml:space="preserve">
+    <value>Bloco de anúncios (substituto do Spicetify)</value>
+    <comment>Extension title for adblock.js</comment>
+  </data>
+  <data name="Extension_adblock_Description" xml:space="preserve">
+    <value>Bloqueio de anúncios da camada Spicetify para quando o patch do SpotX falha em uma versão mais recente do Spotify. </value>
+    <comment>Extension description for adblock.js</comment>
+  </data>
+  <!-- AppCatalog: Maintenance action titles, descriptions, and button text -->
+  <data name="Maintenance_CheckUpdates_Title" xml:space="preserve">
+    <value>Verifique a matriz de compatibilidade</value>
+    <comment>Maintenance action title for CheckUpdates</comment>
+  </data>
+  <data name="Maintenance_CheckUpdates_Description" xml:space="preserve">
+    <value>Compare as dependências fixadas do LibreSpot e a linha de base de compatibilidade do SpotX/Spicetify antes de atualizar a pilha.</value>
+    <comment>Maintenance action description for CheckUpdates</comment>
+  </data>
+  <data name="Maintenance_CheckUpdates_ButtonText" xml:space="preserve">
+    <value>Verifique a matriz</value>
+    <comment>Maintenance action button text for CheckUpdates</comment>
+  </data>
+  <data name="Maintenance_Reapply_Title" xml:space="preserve">
+    <value>Reaplique sua configuração</value>
+    <comment>Maintenance action title for Reapply</comment>
+  </data>
+  <data name="Maintenance_Reapply_Description" xml:space="preserve">
+    <value>Atualize o SpotX primeiro e depois restaure o tema salvo do Spicetify e o estado da extensão.</value>
+    <comment>Maintenance action description for Reapply</comment>
+  </data>
+  <data name="Maintenance_Reapply_ButtonText" xml:space="preserve">
+    <value>Reaplicar</value>
+    <comment>Maintenance action button text for Reapply</comment>
+  </data>
+  <data name="Maintenance_RepairMarketplace_Title" xml:space="preserve">
+    <value>Reparar e abrir o Marketplace</value>
+    <comment>Maintenance action title for RepairMarketplace</comment>
+  </data>
+  <data name="Maintenance_RepairMarketplace_Description" xml:space="preserve">
+    <value>Reinstale o aplicativo personalizado Spicetify Marketplace, aplique-o e abra spotify:app:marketplace se a entrada da barra lateral estiver faltando.</value>
+    <comment>Maintenance action description for RepairMarketplace</comment>
+  </data>
+  <data name="Maintenance_RepairMarketplace_ButtonText" xml:space="preserve">
+    <value>Mercado de reparos</value>
+    <comment>Maintenance action button text for RepairMarketplace</comment>
+  </data>
+  <data name="Maintenance_OpenMarketplace_Title" xml:space="preserve">
+    <value>Mercado aberto</value>
+    <comment>Maintenance action title for OpenMarketplace</comment>
+  </data>
+  <data name="Maintenance_OpenMarketplace_Description" xml:space="preserve">
+    <value>Abra spotify:app:marketplace quando o aplicativo personalizado do Marketplace já estiver instalado e registrado.</value>
+    <comment>Maintenance action description for OpenMarketplace</comment>
+  </data>
+  <data name="Maintenance_OpenMarketplace_ButtonText" xml:space="preserve">
+    <value>Mercado aberto</value>
+    <comment>Maintenance action button text for OpenMarketplace</comment>
+  </data>
+  <data name="Maintenance_SafeMode_Title" xml:space="preserve">
+    <value>Modo de segurança</value>
+    <comment>Maintenance action title for SafeMode</comment>
+  </data>
+  <data name="Maintenance_SafeMode_Description" xml:space="preserve">
+    <value>Desative todos os temas e extensões sem desinstalar. </value>
+    <comment>Maintenance action description for SafeMode</comment>
+  </data>
+  <data name="Maintenance_SafeMode_ButtonText" xml:space="preserve">
+    <value>Entre no modo de segurança</value>
+    <comment>Maintenance action button text for SafeMode</comment>
+  </data>
+  <data name="Maintenance_CreateBackup_Title" xml:space="preserve">
+    <value>Criar backup do Spicetify</value>
+    <comment>Maintenance action title for CreateBackup</comment>
+  </data>
+  <data name="Maintenance_CreateBackup_Description" xml:space="preserve">
+    <value>Salve um backup da configuração e dos temas atuais do Spicetify. </value>
+    <comment>Maintenance action description for CreateBackup</comment>
+  </data>
+  <data name="Maintenance_CreateBackup_ButtonText" xml:space="preserve">
+    <value>Criar backup</value>
+    <comment>Maintenance action button text for CreateBackup</comment>
+  </data>
+  <data name="Maintenance_RestoreBackup_Title" xml:space="preserve">
+    <value>Restaurar backup mais recente</value>
+    <comment>Maintenance action title for RestoreBackup</comment>
+  </data>
+  <data name="Maintenance_RestoreBackup_Description" xml:space="preserve">
+    <value>Restaure o backup de configuração mais recente do Spicetify e reaplique as personalizações. </value>
+    <comment>Maintenance action description for RestoreBackup</comment>
+  </data>
+  <data name="Maintenance_RestoreBackup_ButtonText" xml:space="preserve">
+    <value>Restaurar cópia de segurança</value>
+    <comment>Maintenance action button text for RestoreBackup</comment>
+  </data>
+  <data name="Maintenance_RestoreVanilla_Title" xml:space="preserve">
+    <value>Restaurar baunilha Spotify</value>
+    <comment>Maintenance action title for RestoreVanilla</comment>
+  </data>
+  <data name="Maintenance_RestoreVanilla_Description" xml:space="preserve">
+    <value>Remova as personalizações ativas do Spicetify enquanto deixa o SpotX no lugar.</value>
+    <comment>Maintenance action description for RestoreVanilla</comment>
+  </data>
+  <data name="Maintenance_RestoreVanilla_ButtonText" xml:space="preserve">
+    <value>Restaurar</value>
+    <comment>Maintenance action button text for RestoreVanilla</comment>
+  </data>
+  <data name="Maintenance_UninstallSpicetify_Title" xml:space="preserve">
+    <value>Desinstalar o Spicetify</value>
+    <comment>Maintenance action title for UninstallSpicetify</comment>
+  </data>
+  <data name="Maintenance_UninstallSpicetify_Description" xml:space="preserve">
+    <value>Restaure o Spotify e remova a CLI do Spicetify, a pasta de configuração e a entrada PATH.</value>
+    <comment>Maintenance action description for UninstallSpicetify</comment>
+  </data>
+  <data name="Maintenance_UninstallSpicetify_ButtonText" xml:space="preserve">
+    <value>Remover Spicetify</value>
+    <comment>Maintenance action button text for UninstallSpicetify</comment>
+  </data>
+  <data name="Maintenance_FullReset_Title" xml:space="preserve">
+    <value>Reinicialização completa</value>
+    <comment>Maintenance action title for FullReset</comment>
+  </data>
+  <data name="Maintenance_FullReset_Description" xml:space="preserve">
+    <value>Remova o estado do aplicativo SpotX, Spicetify, Spotify e sobras relacionadas para um começo verdadeiramente limpo.</value>
+    <comment>Maintenance action description for FullReset</comment>
+  </data>
+  <data name="Maintenance_FullReset_ButtonText" xml:space="preserve">
+    <value>Redefinir tudo</value>
+    <comment>Maintenance action button text for FullReset</comment>
+  </data>
+  <data name="Maintenance_RemoveSelfData_Title" xml:space="preserve">
+    <value>Remover dados do LibreSpot</value>
+    <comment>Maintenance action title for RemoveSelfData</comment>
+  </data>
+  <data name="Maintenance_RemoveSelfData_Description" xml:space="preserve">
+    <value>Cancele o registro da tarefa do inspetor e exclua as configurações, backups, logs e relatórios de falhas do próprio LibreSpot. </value>
+    <comment>Maintenance action description for RemoveSelfData</comment>
+  </data>
+  <data name="Maintenance_RemoveSelfData_ButtonText" xml:space="preserve">
+    <value>Remover dados do LibreSpot</value>
+    <comment>Maintenance action button text for RemoveSelfData</comment>
+  </data>
+  <!-- AppCatalog: Recommended highlights -->
+  <data name="RecommendedHighlight_1" xml:space="preserve">
+    <value>Começa em um estado limpo do Spotify.</value>
+    <comment>Recommended mode highlight 1</comment>
+  </data>
+  <data name="RecommendedHighlight_2" xml:space="preserve">
+    <value>Aplica a linha de base SpotX fixada com atualizações bloqueadas.</value>
+    <comment>Recommended mode highlight 2</comment>
+  </data>
+  <data name="RecommendedHighlight_3" xml:space="preserve">
+    <value>Restaura Spicetify, Marketplace e as extensões iniciais.</value>
+    <comment>Recommended mode highlight 3</comment>
+  </data>
+  <data name="RecommendedHighlight_4" xml:space="preserve">
+    <value>Salva um perfil confiável para reaplicação, recuperação e manutenção futura.</value>
+    <comment>Recommended mode highlight 4</comment>
+  </data>
+  <!-- Runtime localization and extracted XAML surface strings -->
+  <data name="LanguageLabel" xml:space="preserve">
+    <value>Linguagem</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="LanguageHelpText" xml:space="preserve">
+    <value>Mude o idioma da interface do LibreSpot. </value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CustomSettings" xml:space="preserve">
+    <value>Configurações personalizadas</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ImportProfile" xml:space="preserve">
+    <value>Perfil de importação</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RelaunchAsAdministrator" xml:space="preserve">
+    <value>Reinicie como administrador</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RelaunchLibreSpotAsAdministrator" xml:space="preserve">
+    <value>Reinicie o LibreSpot como administrador</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RestartsLibreSpotWithAdministratorAccessBeforeApplyingChanges" xml:space="preserve">
+    <value>Reinicia o LibreSpot com acesso de administrador antes de aplicar as alterações.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RecommendedWorkspace" xml:space="preserve">
+    <value>Espaço de trabalho recomendado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RunsLibreSpotSMostReliableInstallPathWith" xml:space="preserve">
+    <value>Executa o caminho de instalação mais confiável do LibreSpot com o perfil padrão salvo.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CustomWorkspace" xml:space="preserve">
+    <value>Espaço de trabalho personalizado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CustomSettingsEditor" xml:space="preserve">
+    <value>Editor de configurações personalizadas</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CustomPatches" xml:space="preserve">
+    <value>Patches personalizados</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_AuthorAndDryRunASpotXPatchesJson" xml:space="preserve">
+    <value>Crie e execute um arquivo SpotX patches.json antes que o LibreSpot o prepare para o SpotX.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_StageCustomPatchesDuringInstallAndReapply" xml:space="preserve">
+    <value>Preparar patches personalizados durante a instalação e reaplicar</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_StageCustomSpotXPatches" xml:space="preserve">
+    <value>Preparar patches SpotX personalizados</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_WhenEnabledLibreSpotValidatesThisJSONAndWrites" xml:space="preserve">
+    <value>Quando ativado, o LibreSpot valida este JSON e grava um patches.json temporário para SpotX.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_HTTPSURLToASpotXPatchesJsonFile" xml:space="preserve">
+    <value>URL HTTPS para um arquivo SpotX patches.json</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CustomPatchesImportURL" xml:space="preserve">
+    <value>URL de importação de patches personalizados</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_EnterAnHTTPSURLThenImportTheJSON" xml:space="preserve">
+    <value>Insira um URL HTTPS e importe o JSON para revisão local.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ImportURL" xml:space="preserve">
+    <value>URL de importação</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ImportCustomPatchesFromURL" xml:space="preserve">
+    <value>Importar patches personalizados do URL</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SpotXCustomPatchesJSONEditor" xml:space="preserve">
+    <value>Editor JSON de patches personalizados SpotX</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_PasteOrEditSpotXPatchesJsonContentHere" xml:space="preserve">
+    <value>Cole ou edite o conteúdo SpotX patches.json aqui e execute uma simulação antes de aplicar.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_DryRun" xml:space="preserve">
+    <value>Teste a seco</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ValidateCustomPatches" xml:space="preserve">
+    <value>Validar patches personalizados</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_FormatJSON" xml:space="preserve">
+    <value>Formatar JSON</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_FormatCustomPatchesJSON" xml:space="preserve">
+    <value>Formatar patches personalizados JSON</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ClearCustomPatches" xml:space="preserve">
+    <value>Limpar patches personalizados</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Docs" xml:space="preserve">
+    <value>Documentos</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_OpenCustomPatchDocumentation" xml:space="preserve">
+    <value>Abra a documentação do patch personalizado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_LocalProfiles" xml:space="preserve">
+    <value>Perfis locais</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Refresh" xml:space="preserve">
+    <value>Atualizar</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RefreshLocalProfiles" xml:space="preserve">
+    <value>Atualizar perfis locais</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ReloadsBundledTemplatesAndLocalProfileFilesFrom" xml:space="preserve">
+    <value>Recarrega modelos agrupados e arquivos de perfil local do disco.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SaveNamedPresetsPreviewTemplatesAndImportShared" xml:space="preserve">
+    <value>Salve predefinições nomeadas, visualize modelos e importe arquivos .librespot compartilhados antes que qualquer coisa seja escrita.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_NamedLibreSpotProfilesAndBundledTemplates" xml:space="preserve">
+    <value>Perfis LibreSpot nomeados e modelos agrupados.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_NoProfilesAvailable" xml:space="preserve">
+    <value>Nenhum perfil disponível</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SaveTheCurrentCustomSelectionsOrImportA" xml:space="preserve">
+    <value>Salve as seleções personalizadas atuais ou importe um arquivo .librespot para criar o primeiro perfil local.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SelectedProfile" xml:space="preserve">
+    <value>Perfil selecionado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ProfileOperationStatus" xml:space="preserve">
+    <value>Status da operação do perfil</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_AnnouncesTheLatestProfileActionResult" xml:space="preserve">
+    <value>Anuncia o resultado mais recente da ação do perfil.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ProfileShareCard" xml:space="preserve">
+    <value>Cartão de compartilhamento de perfil</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ShowsAnInertShareLinkQRCodeAnd" xml:space="preserve">
+    <value>Mostra um link de compartilhamento inerte, código QR e comparação de perfil para o perfil selecionado.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SelectedProfileQRCode" xml:space="preserve">
+    <value>Código QR do perfil selecionado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_NoQR" xml:space="preserve">
+    <value>Sem QR</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ShareCard" xml:space="preserve">
+    <value>Compartilhar cartão</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SelectedProfileShareLink" xml:space="preserve">
+    <value>Link de compartilhamento de perfil selecionado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_InertLibrespotProfileLinkForPreviewOnlyImport" xml:space="preserve">
+    <value>Link de perfil inerte do librespot para importação somente de visualização.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CompareToRecommended" xml:space="preserve">
+    <value>Comparar com o recomendado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CopyLink" xml:space="preserve">
+    <value>Copiar link</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CopySelectedProfileShareLink" xml:space="preserve">
+    <value>Copiar link de compartilhamento de perfil selecionado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CopyCompare" xml:space="preserve">
+    <value>Copiar comparação</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CopySelectedProfileComparison" xml:space="preserve">
+    <value>Copiar comparação de perfis selecionados</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Preview" xml:space="preserve">
+    <value>Visualização</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_PreviewSelectedProfile" xml:space="preserve">
+    <value>Visualizar perfil selecionado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_LoadsTheSelectedProfileIntoTheCustomEditor" xml:space="preserve">
+    <value>Carrega o perfil selecionado no editor personalizado sem escrever config.json.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SetActive" xml:space="preserve">
+    <value>Definir ativo</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SetSelectedProfileActive" xml:space="preserve">
+    <value>Definir perfil selecionado como ativo</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ConfirmsAndWritesTheSelectedProfileToConfig" xml:space="preserve">
+    <value>Confirma e grava o perfil selecionado em config.json.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ProfileDetails" xml:space="preserve">
+    <value>Detalhes do perfil</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ProfileName" xml:space="preserve">
+    <value>Nome do perfil</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_NameUsedWhenSavingOrRenamingALocal" xml:space="preserve">
+    <value>Nome usado ao salvar ou renomear um perfil local.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Notes" xml:space="preserve">
+    <value>Notas</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ProfileNotes" xml:space="preserve">
+    <value>Notas de perfil</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ShortDescriptionStoredWithTheLocalProfile" xml:space="preserve">
+    <value>Breve descrição armazenada com o perfil local.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ManageProfile" xml:space="preserve">
+    <value>Gerenciar perfil</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SaveCurrent" xml:space="preserve">
+    <value>Salvar atual</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SaveCurrentSelectionsAsProfile" xml:space="preserve">
+    <value>Salvar as seleções atuais como perfil</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_SavesTheCurrentCustomSelectionsAsANew" xml:space="preserve">
+    <value>Salva as seleções personalizadas atuais como um novo perfil local.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Duplicate" xml:space="preserve">
+    <value>Duplicado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_DuplicateSelectedProfile" xml:space="preserve">
+    <value>Duplicar perfil selecionado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CreatesANewLocalCopyOfTheSelected" xml:space="preserve">
+    <value>Cria uma nova cópia local do perfil selecionado.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Rename" xml:space="preserve">
+    <value>Renomear</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RenameSelectedProfile" xml:space="preserve">
+    <value>Renomear perfil selecionado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RenamesTheSelectedLocalProfileUsingTheProfile" xml:space="preserve">
+    <value>Renomeia o perfil local selecionado usando o campo de nome do perfil.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Import" xml:space="preserve">
+    <value>Importar</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ImportLibreSpotProfile" xml:space="preserve">
+    <value>Importar perfil LibreSpot</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_OpensALibrespotProfileAsAnInertPreview" xml:space="preserve">
+    <value>Abre um perfil .librespot como uma visualização inerte antes de salvá-lo localmente.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Export" xml:space="preserve">
+    <value>Exportar</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ExportSelectedProfile" xml:space="preserve">
+    <value>Exportar perfil selecionado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ExportsTheSelectedProfileAsASafeLibrespot" xml:space="preserve">
+    <value>Exporta o perfil selecionado como um arquivo .librespot seguro.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Delete" xml:space="preserve">
+    <value>Excluir</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_DeleteSelectedLocalProfile" xml:space="preserve">
+    <value>Excluir perfil local selecionado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ConfirmsAndRemovesTheSelectedLocalProfileFile" xml:space="preserve">
+    <value>Confirma e remove o arquivo de perfil local selecionado.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CommunityAndChangelog" xml:space="preserve">
+    <value>Comunidade e changelog</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ChangelogPreview" xml:space="preserve">
+    <value>Visualização do registro de alterações</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CommunityLinks" xml:space="preserve">
+    <value>Links da comunidade</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Repo" xml:space="preserve">
+    <value>Repositório</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_OpenLibreSpotRepository" xml:space="preserve">
+    <value>Abra o repositório LibreSpot</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_OpenSpicetifyExtensionDocs" xml:space="preserve">
+    <value>Abra os documentos de extensão do Spicetify</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Themes" xml:space="preserve">
+    <value>Temas</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_OpenSpicetifyThemeCatalog" xml:space="preserve">
+    <value>Abra o catálogo de temas do Spicetify</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_Patches" xml:space="preserve">
+    <value>Patches</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_MaintenanceWorkspace" xml:space="preserve">
+    <value>Espaço de trabalho de manutenção</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RunState" xml:space="preserve">
+    <value>Executar estado</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CloseActivityPanel" xml:space="preserve">
+    <value>Fechar painel de atividades</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_DismissesTheActivityPanelAfterTheRunIs" xml:space="preserve">
+    <value>Ignora o painel de atividades após a conclusão da execução.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_DecisionPrompt" xml:space="preserve">
+    <value>Alerta de decisão</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_ConfirmsAnImportantLibreSpotActionBeforeItRuns" xml:space="preserve">
+    <value>Confirma uma ação importante do LibreSpot antes de ser executada.</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_CompletionNotifications" xml:space="preserve">
+    <value>Notificações de conclusão</value>
+    <comment>User-facing WPF text</comment>
+  </data>
+</root>

@@ -67,6 +67,7 @@ BeforeAll {
 
     # ---- set up the minimal global state that Normalize-LibreSpotConfig needs ----
     $global:EasyDefaults = @{
+        UiCulture='en'
         SpotX_NewTheme=$true; SpotX_PodcastsOff=$true; SpotX_BlockUpdate=$true; SpotX_AdSectionsOff=$true
         SpotX_Premium=$false; SpotX_LyricsEnabled=$true; SpotX_LyricsTheme="spotify"
         SpotX_TopSearch=$false; SpotX_RightSidebarOff=$false; SpotX_RightSidebarClr=$false
@@ -599,6 +600,31 @@ Describe 'Normalize-LibreSpotConfig' {
         It 'Resets invalid language to empty string' {
             $result = Normalize-LibreSpotConfig -Config @{ SpotX_Language = 'xx-FAKE' }
             $result.SpotX_Language | Should -Be ''
+        }
+    }
+
+    Context 'UiCulture validation' {
+        It 'Accepts supported desktop cultures' {
+            foreach ($culture in @('en','ru','zh-Hans','pt-BR','es')) {
+                $result = Normalize-LibreSpotConfig -Config @{ UiCulture = $culture }
+                $result.UiCulture | Should -Be $culture
+            }
+        }
+
+        It 'Falls back to English for unsupported cultures' {
+            $result = Normalize-LibreSpotConfig -Config @{ UiCulture = 'xx-FAKE' }
+            $result.UiCulture | Should -Be 'en'
+        }
+
+        It 'Does not mark an otherwise default config as Custom' {
+            $config = @{}
+            foreach ($key in $global:EasyDefaults.Keys) {
+                $config[$key] = $global:EasyDefaults[$key]
+            }
+            $config.UiCulture = 'es'
+
+            $result = Normalize-LibreSpotConfig -Config $config
+            $result.Mode | Should -Be 'Easy'
         }
     }
 

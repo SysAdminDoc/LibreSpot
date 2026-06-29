@@ -10,6 +10,7 @@ public partial class App : Application
     {
         CrashReporter.Initialize();
         BackendScriptService.CleanStaleExecutionCopies();
+        LocalizationService.Current.ApplyCulture(LocalizationService.DefaultCultureName);
         ThemeManager.Initialize(this);
         base.OnStartup(e);
         ShellIntegrationService.RegisterCurrentUserShellHooksIfPossible();

@@ -20,6 +20,17 @@
         "Custom"
       ]
     },
+    "UiCulture": {
+      "type": "string",
+      "enum": [
+        "en",
+        "ru",
+        "zh-Hans",
+        "pt-BR",
+        "es"
+      ],
+      "description": "LibreSpot desktop interface culture."
+    },
     "CleanInstall": {
       "type": "boolean"
     },

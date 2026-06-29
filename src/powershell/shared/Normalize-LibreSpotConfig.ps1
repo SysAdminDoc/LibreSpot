@@ -24,6 +24,10 @@ function Normalize-LibreSpotConfig {
         if ($mode -in @('Easy', 'Custom')) { $normalized.Mode = $mode }
     }
 
+    $uiCulture = if ($Config -and $Config.ContainsKey('UiCulture')) { [string]$Config.UiCulture } else { [string]$normalized.UiCulture }
+    $allowedUiCultures = @('en','ru','zh-Hans','pt-BR','es')
+    $normalized.UiCulture = if ($allowedUiCultures -contains $uiCulture) { $uiCulture } else { 'en' }
+
     $booleanKeys = @(
         'CleanInstall','LaunchAfter',
         'SpotX_NewTheme','SpotX_PodcastsOff','SpotX_BlockUpdate','SpotX_AdSectionsOff',
@@ -142,6 +146,7 @@ function Normalize-LibreSpotConfig {
 
     if ($Config -and -not $Config.ContainsKey('Mode')) {
         foreach ($key in $global:EasyDefaults.Keys) {
+            if ($key -eq 'UiCulture') { continue }
             $defaultValue = $global:EasyDefaults[$key]
             $currentValue = $normalized[$key]
             $isEnumerableDefault = ($defaultValue -is [System.Collections.IEnumerable] -and $defaultValue -isnot [string])

@@ -1,0 +1,12 @@
+preserve_hierarchy: true
+
+files:
+  - source: /src/LibreSpot.Desktop/Properties/Strings.resx
+    translation: /src/LibreSpot.Desktop/Properties/Strings.%locale%.resx
+    languages_mapping:
+      locale:
+        en: en
+        ru: ru
+        zh-CN: zh-Hans
+        pt-BR: pt-BR
+        es-ES: es

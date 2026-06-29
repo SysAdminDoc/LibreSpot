@@ -766,6 +766,7 @@ public static class CliApplication
 
     private static void ApplyAnswerSettings(JsonElement root, InstallConfiguration config)
     {
+        SetString(root, "uiCulture", value => config.UiCulture = value);
         ApplySpotifyTarget(root, config);
         ApplySpotXOptions(root, config);
         ApplySpicetifyOptions(root, config);
