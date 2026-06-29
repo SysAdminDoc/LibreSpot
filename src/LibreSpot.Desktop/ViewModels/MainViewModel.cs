@@ -387,10 +387,17 @@ public sealed class LocalProfileCardViewModel
     public DateTimeOffset UpdatedAt { get; }
     public bool IsEditable => !IsBuiltIn;
     public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
-    public string KindBadge => IsBuiltIn ? "Template" : "Local";
-    public string StateBadge => IsActive ? "Active" : "Saved";
+    public string KindBadge => IsBuiltIn ? "Bundled" : "Local";
+    public string StateBadge => IsActive ? "Active" : IsBuiltIn ? "Template" : "Saved";
+    public string StateTone => IsActive ? "active" : IsBuiltIn ? "template" : "local";
+    public string CapabilityText =>
+        IsBuiltIn
+            ? "Read-only"
+            : IsActive
+                ? "Editable active"
+                : "Editable";
     public string UpdatedText => IsBuiltIn ? "Bundled template" : $"Updated {UpdatedAt.LocalDateTime:g}";
-    public string AutomationName => $"{Name} {KindBadge} profile";
+    public string AutomationName => $"{Name} {(IsBuiltIn ? "Template" : "Local")} profile";
     public string AutomationHelpText =>
         IsActive
             ? $"{Name} is the active LibreSpot profile."
@@ -745,6 +752,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     public bool HasLocalProfiles => LocalProfiles.Count > 0;
+    public bool HasSelectedLocalProfile => SelectedLocalProfile is not null;
     public bool CanEditSelectedLocalProfile => SelectedLocalProfile?.IsEditable == true;
     public string SelectedLocalProfileTitle => SelectedLocalProfile?.Name ?? "No profile selected";
     public string SelectedLocalProfileDetail =>
@@ -753,6 +761,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             : SelectedLocalProfile.IsActive
                 ? "This profile is active. Applying another profile keeps this one as the previous active pointer for rollback."
                 : SelectedLocalProfile.Description;
+
+    public string ProfileSelectionHint =>
+        IsRunning
+            ? "Profile actions pause while LibreSpot is running so config.json cannot change mid-run."
+            : SelectedLocalProfile is null
+                ? "Select a template or local profile to preview, duplicate, export, or set active."
+                : SelectedLocalProfile.IsBuiltIn
+                    ? "Bundled templates are read-only. Preview one, set it active, or duplicate it before editing."
+                    : SelectedLocalProfile.IsActive
+                        ? "This local profile is active. Duplicate it before experimenting, or export it as a restore point."
+                        : "Local profile selected. Preview first when you want to inspect settings without writing config.json.";
+
+    public string ProfileEditorHint =>
+        SelectedLocalProfile is null
+            ? "Use a clear name before saving the current Custom selections as a local profile."
+            : SelectedLocalProfile.IsBuiltIn
+                ? "The fields are prefilled with a copy name so Duplicate creates an editable local profile."
+                : "Edit the name or notes, then use Rename to update this local profile.";
 
     public string SessionAccessTitle =>
         IsAdministratorSession ? Strings.ReadyToRun : Strings.AdminStepNeeded;
@@ -1437,6 +1463,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ConfirmPromptCommand.RaiseCanExecuteChanged();
                 CancelPromptCommand.RaiseCanExecuteChanged();
                 RaiseLocalProfileCommandStateChanged();
+                RaisePropertyChanged(nameof(ProfileSelectionHint));
                 RaiseMaintenanceActionCanExecuteChanged();
                 RaisePropertyChanged(nameof(IsBusyIndeterminate));
                 RaisePropertyChanged(nameof(ProgressLabel));
@@ -2066,9 +2093,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void RaiseLocalProfileStateChanged()
     {
         RaisePropertyChanged(nameof(HasLocalProfiles));
+        RaisePropertyChanged(nameof(HasSelectedLocalProfile));
         RaisePropertyChanged(nameof(CanEditSelectedLocalProfile));
         RaisePropertyChanged(nameof(SelectedLocalProfileTitle));
         RaisePropertyChanged(nameof(SelectedLocalProfileDetail));
+        RaisePropertyChanged(nameof(ProfileSelectionHint));
+        RaisePropertyChanged(nameof(ProfileEditorHint));
         RaiseLocalProfileCommandStateChanged();
     }
 

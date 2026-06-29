@@ -243,6 +243,8 @@ public sealed class MainViewModelMaintenanceTests
             Assert.Contains(viewModel.LocalProfiles, profile => profile.Id == "recommended" && profile.IsActive);
 
             viewModel.SelectedLocalProfile = viewModel.LocalProfiles.Single(profile => profile.Id == "visual-theme");
+            Assert.Contains("read-only", viewModel.ProfileSelectionHint, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Duplicate", viewModel.ProfileEditorHint, StringComparison.Ordinal);
             await InvokePrivateTask(viewModel, "PreviewSelectedProfileAsync");
 
             var previewed = BuildConfiguration(viewModel, "Custom");
@@ -254,14 +256,16 @@ public sealed class MainViewModelMaintenanceTests
             viewModel.ProfileDescriptionText = "Saved from test";
             await InvokePrivateTask(viewModel, "CreateLocalProfileAsync");
 
-            var created = Assert.Single(viewModel.LocalProfiles.Where(profile => profile.Name == "Desk preset"));
+            var created = Assert.Single(viewModel.LocalProfiles, profile => profile.Name == "Desk preset");
             Assert.True(created.IsEditable);
+            Assert.Equal("Editable", created.CapabilityText);
+            Assert.Contains("Edit the name", viewModel.ProfileEditorHint, StringComparison.Ordinal);
             Assert.True(viewModel.RenameProfileCommand.CanExecute(null));
 
             viewModel.ProfileNameText = "Desk preset renamed";
             await InvokePrivateTask(viewModel, "RenameLocalProfileAsync");
 
-            var renamed = Assert.Single(viewModel.LocalProfiles.Where(profile => profile.Name == "Desk preset renamed"));
+            var renamed = Assert.Single(viewModel.LocalProfiles, profile => profile.Name == "Desk preset renamed");
             Assert.DoesNotContain(viewModel.LocalProfiles, profile => profile.Name == "Desk preset");
 
             await InvokePrivateTask(viewModel, "DeleteLocalProfileConfirmedAsync", renamed.Id, renamed.Name);

@@ -333,14 +333,13 @@
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type viewModels:LocalProfileCardViewModel}" x:Key="LocalProfileTemplate">
-      <Border Margin="0,0,0,8"
-              Padding="12"
-              Background="{StaticResource Surface1Brush}"
-              BorderThickness="1"
-              CornerRadius="8">
+      <Border Margin="0,0,0,8">
         <Border.Style>
-          <Style TargetType="Border">
+          <Style TargetType="Border" BasedOn="{StaticResource SubtleCardStyle}">
+            <Setter Property="Padding" Value="14" />
+            <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
             <Setter Property="BorderBrush" Value="{StaticResource StrokeSoftBrush}" />
+            <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}" />
             <Style.Triggers>
               <DataTrigger Binding="{Binding IsActive}" Value="True">
                 <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
@@ -352,38 +351,83 @@
             </Style.Triggers>
           </Style>
         </Border.Style>
-        <StackPanel>
-          <Grid>
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Border Width="4"
+                  CornerRadius="2"
+                  Margin="0,2,12,0"
+                  VerticalAlignment="Stretch">
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource StrokeBrush}" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding StateTone}" Value="active">
+                    <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding StateTone}" Value="template">
+                    <Setter Property="Background" Value="{StaticResource InfoBrush}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+          </Border>
+          <StackPanel Grid.Column="1">
             <TextBlock Text="{Binding Name}"
                        Foreground="{StaticResource TextBrush}"
                        FontWeight="SemiBold"
-                       FontSize="13"
+                       FontSize="13.5"
                        TextWrapping="Wrap"
-                       Margin="0,0,8,0" />
-            <StackPanel Grid.Column="1" Orientation="Horizontal">
-              <Border Style="{StaticResource MicroBadgeStyle}" Margin="0,0,6,0">
+                       LineHeight="18" />
+            <WrapPanel Margin="0,7,0,0">
+              <Border Margin="0,0,6,6">
+                <Border.Style>
+                  <Style TargetType="Border" BasedOn="{StaticResource MicroBadgeStyle}">
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsActive}" Value="True">
+                        <Setter Property="Background" Value="{StaticResource AccentMistBrush}" />
+                        <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Border.Style>
                 <TextBlock Text="{Binding StateBadge}"
                            Style="{StaticResource MicroBadgeTextStyle}" />
               </Border>
-              <Border Style="{StaticResource MicroBadgeStyle}">
+              <Border Margin="0,0,6,6">
+                <Border.Style>
+                  <Style TargetType="Border" BasedOn="{StaticResource MicroBadgeStyle}">
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsBuiltIn}" Value="True">
+                        <Setter Property="Background" Value="{StaticResource Surface3Brush}" />
+                        <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Border.Style>
                 <TextBlock Text="{Binding KindBadge}"
                            Style="{StaticResource MicroBadgeTextStyle}" />
               </Border>
-            </StackPanel>
-          </Grid>
-          <TextBlock Text="{Binding Description}"
-                     Style="{StaticResource CaptionTextStyle}"
-                     Margin="0,6,0,0"
-                     Visibility="{Binding HasDescription, Converter={StaticResource BoolToVisibilityConverter}}" />
-          <TextBlock Text="{Binding UpdatedText}"
-                     Style="{StaticResource CaptionTextStyle}"
-                     Foreground="{StaticResource MutedTextBrush}"
-                     Margin="0,6,0,0" />
-        </StackPanel>
+              <Border Margin="0,0,6,6"
+                      Style="{StaticResource MicroBadgeStyle}">
+                <TextBlock Text="{Binding CapabilityText}"
+                           Style="{StaticResource MicroBadgeTextStyle}" />
+              </Border>
+            </WrapPanel>
+            <TextBlock Text="{Binding Description}"
+                       Style="{StaticResource CaptionTextStyle}"
+                       Foreground="{StaticResource MutedTextBrush}"
+                       Margin="0,2,0,0"
+                       TextTrimming="CharacterEllipsis"
+                       Visibility="{Binding HasDescription, Converter={StaticResource BoolToVisibilityConverter}}" />
+            <TextBlock Text="{Binding UpdatedText}"
+                       Style="{StaticResource CaptionTextStyle}"
+                       Foreground="{StaticResource SubtleTextBrush}"
+                       Margin="0,6,0,0" />
+          </StackPanel>
+        </Grid>
       </Border>
     </DataTemplate>
 
@@ -1634,15 +1678,33 @@
                       <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Row="0"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
                       <StackPanel>
-                        <TextBlock Text="Local profiles"
-                                   Style="{StaticResource LabelTextStyle}"
-                                   Foreground="{StaticResource AccentBrush}" />
+                        <Grid>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                          </Grid.ColumnDefinitions>
+                          <TextBlock Text="Local profiles"
+                                     Style="{StaticResource LabelTextStyle}"
+                                     Foreground="{StaticResource AccentBrush}"
+                                     VerticalAlignment="Center" />
+                          <Button Grid.Column="1"
+                                  Content="Refresh"
+                                  Height="30"
+                                  MinWidth="82"
+                                  Padding="12,0"
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Command="{Binding RefreshProfilesCommand}"
+                                  AutomationProperties.Name="Refresh local profiles"
+                                  AutomationProperties.HelpText="Reloads bundled templates and local profile files from disk." />
+                        </Grid>
                         <TextBlock Text="Save named presets, preview templates, and import shared .librespot files before anything is written."
                                    Style="{StaticResource CaptionTextStyle}"
                                    Foreground="{StaticResource TextBrush}"
-                                   Margin="0,8,0,10" />
+                                   Margin="0,8,0,12" />
 
                         <ListBox ItemsSource="{Binding LocalProfiles}"
                                  SelectedItem="{Binding SelectedLocalProfile, Mode=TwoWay}"
@@ -1650,10 +1712,22 @@
                                  Background="Transparent"
                                  BorderThickness="0"
                                  Padding="0"
-                                 MaxHeight="230"
+                                 MinHeight="120"
+                                 MaxHeight="260"
+                                 HorizontalContentAlignment="Stretch"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  KeyboardNavigation.DirectionalNavigation="Contained"
                                  AutomationProperties.Name="Local profiles"
                                  AutomationProperties.HelpText="Named LibreSpot profiles and bundled templates.">
+                          <ListBox.Style>
+                            <Style TargetType="ListBox">
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasLocalProfiles}" Value="False">
+                                  <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </ListBox.Style>
                           <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
                               <Setter Property="Margin" Value="0" />
@@ -1668,10 +1742,82 @@
                           </ListBox.ItemContainerStyle>
                         </ListBox>
 
-                        <TextBlock Text="{Binding ProfileOperationStatus}"
-                                   Style="{StaticResource CaptionTextStyle}"
-                                   Foreground="{StaticResource MutedTextBrush}"
-                                   Margin="0,8,0,12" />
+                        <Border Margin="0,0,0,12">
+                          <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource SubtleCardStyle}">
+                              <Setter Property="Padding" Value="14" />
+                              <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
+                              <Setter Property="Visibility" Value="Collapsed" />
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasLocalProfiles}" Value="False">
+                                  <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </Border.Style>
+                          <StackPanel>
+                            <TextBlock Text="No profiles available"
+                                       Style="{StaticResource EmptyStateTitleTextStyle}" />
+                            <TextBlock Text="Save the current Custom selections or import a .librespot file to create the first local profile."
+                                       Style="{StaticResource EmptyStateBodyTextStyle}"
+                                       Margin="0,6,0,0" />
+                          </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SubtleCardStyle}"
+                                Background="{StaticResource Surface3Brush}"
+                                BorderBrush="{StaticResource StrokeBrush}"
+                                Padding="14"
+                                Margin="0,2,0,12">
+                          <StackPanel>
+                            <TextBlock Text="Selected profile"
+                                       Style="{StaticResource LabelTextStyle}" />
+                            <TextBlock Text="{Binding SelectedLocalProfileTitle}"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14.5"
+                                       TextWrapping="Wrap"
+                                       Margin="0,6,0,4" />
+                            <TextBlock Text="{Binding SelectedLocalProfileDetail}"
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Foreground="{StaticResource MutedTextBrush}" />
+                            <TextBlock Text="{Binding ProfileSelectionHint}"
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Margin="0,8,0,0" />
+                          </StackPanel>
+                        </Border>
+
+                        <Border Background="{StaticResource Surface1Brush}"
+                                BorderBrush="{StaticResource StrokeSoftBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource RadiusLg}"
+                                Padding="12"
+                                Margin="0,0,0,12"
+                                AutomationProperties.Name="Profile operation status"
+                                AutomationProperties.HelpText="Announces the latest profile action result.">
+                          <Grid>
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="Auto" />
+                              <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="4"
+                                    CornerRadius="2"
+                                    Background="{StaticResource AccentBrush}"
+                                    Margin="0,2,10,0"
+                                    VerticalAlignment="Stretch" />
+                            <controls:LiveRegionContentControl Grid.Column="1"
+                                                               Content="{Binding ProfileOperationStatus}"
+                                                               AutomationProperties.Name="Profile operation status">
+                              <controls:LiveRegionContentControl.ContentTemplate>
+                                <DataTemplate>
+                                  <TextBlock Text="{Binding}"
+                                             Style="{StaticResource CaptionTextStyle}"
+                                             Foreground="{StaticResource MutedTextBrush}" />
+                                </DataTemplate>
+                              </controls:LiveRegionContentControl.ContentTemplate>
+                            </controls:LiveRegionContentControl>
+                          </Grid>
+                        </Border>
 
                         <Grid Margin="0,0,0,10">
                           <Grid.ColumnDefinitions>
@@ -1695,6 +1841,13 @@
                                   AutomationProperties.HelpText="Confirms and writes the selected profile to config.json." />
                         </Grid>
 
+                        <TextBlock Text="Profile details"
+                                   Style="{StaticResource LabelTextStyle}"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,4,0,0" />
+                        <TextBlock Text="{Binding ProfileEditorHint}"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,6,0,10" />
                         <TextBlock Text="Profile name"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBox Text="{Binding ProfileNameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -1714,6 +1867,9 @@
                                  AutomationProperties.Name="Profile notes"
                                  AutomationProperties.HelpText="Short description stored with the local profile." />
 
+                        <TextBlock Text="Manage profile"
+                                   Style="{StaticResource LabelTextStyle}"
+                                   Margin="0,0,0,8" />
                         <UniformGrid Columns="2" Margin="0,0,0,4">
                           <Button Content="Save current"
                                   Height="34"
