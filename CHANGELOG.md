@@ -12,6 +12,9 @@ All notable changes to LibreSpot will be documented in this file.
   operation-token entries and `run-receipt.latest.json`, while the WPF undo
   pane consumes the embedded token and receipt schemas before showing
   reversible post-run actions.
+- Added live FlaUI UIA3 smoke tests for WPF workspace tab navigation,
+  settings search/clear, maintenance confirmation-to-activity flow, activity
+  overlay dismissal, and prompt confirm/cancel behavior.
 - Added a dedicated `LibreSpot.Cli.exe` console project for fleet tooling with
   `--version`, `status --json`, `detect --json`, `detect --intune`, and
   `validate --answer-file` support backed by the existing health report model,

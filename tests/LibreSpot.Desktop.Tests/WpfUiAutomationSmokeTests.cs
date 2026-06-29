@@ -7,6 +7,7 @@ using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
 
+[Collection(WpfUiAutomationCollection.Name)]
 public sealed class WpfUiAutomationSmokeTests
 {
     private static readonly HashSet<ControlType> ActionableTypes = new()
