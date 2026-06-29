@@ -50,7 +50,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 - WPF prompt, activity/log/undo, environment snapshot/freshness, maintenance
-  action grouping, and Custom settings search state now live in dedicated
+  action grouping, and Custom option editor/search state now live in dedicated
   state-domain view models while preserving the existing `MainViewModel`
   binding surface.
 - WPF Custom profile management now has clearer active/template/local card

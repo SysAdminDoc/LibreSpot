@@ -491,6 +491,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly OperationJournalUndoService _operationJournalUndoService;
     private readonly LocalProfileService _profileService;
     private readonly ActivityRunStateViewModel _activityState = new();
+    private readonly CustomOptionEditorStateViewModel _customOptions;
     private readonly EnvironmentSnapshotStateViewModel _environmentState = new();
     private readonly PromptStateViewModel _promptState = new();
     private readonly SettingsSearchStateViewModel _settingsSearch = new();
@@ -503,13 +504,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly DispatcherTimer _snapshotFreshnessTimer;
     private CancellationTokenSource? _runCts;
 
-    private string _selectedTheme = "(None - Marketplace Only)";
-    private string _selectedScheme = "Default";
-    private string _selectedLyricsTheme = "spotify";
-    private string _selectedSpotifyVersionId = "auto";
-    private string _selectedDownloadMethod = string.Empty;
-    private string _cacheLimitText = "0";
-    private string _themeSearchText = string.Empty;
     private int _selectedWorkspaceIndex;
     private bool _isApplyingSelectionDependencyRules;
     private ConfigurationLoadState _configurationLoadState = ConfigurationLoadState.Loaded;
@@ -542,6 +536,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _isAdministratorSession = IsAdministrator();
         _recommendedBaseline = AppCatalog.CreateRecommendedConfiguration();
+        _customOptions = new CustomOptionEditorStateViewModel(_recommendedBaseline);
         _runElapsedTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher)
         {
             Interval = TimeSpan.FromSeconds(1)
@@ -554,35 +549,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _snapshotFreshnessTimer.Tick += (_, _) => RaiseSnapshotFreshnessChanged();
         _snapshotFreshnessTimer.Start();
         _activityState.PropertyChanged += OnActivityStatePropertyChanged;
+        _customOptions.PropertyChanged += OnCustomOptionEditorPropertyChanged;
         _environmentState.PropertyChanged += OnEnvironmentStatePropertyChanged;
         _promptState.PropertyChanged += OnPromptStatePropertyChanged;
         _settingsSearch.PropertyChanged += OnSettingsSearchStatePropertyChanged;
 
         RecommendedHighlights = new ObservableCollection<string>(AppCatalog.RecommendedHighlights);
-        ThemeNames = new ObservableCollection<string>(AppCatalog.ThemeSchemes.Keys);
-        ThemeGalleryItems = new ObservableCollection<ThemeGalleryItemViewModel>(
-            AppCatalog.ThemeSchemes.Select(pair => new ThemeGalleryItemViewModel(pair.Key, pair.Value)));
-        SchemeOptions = new ObservableCollection<string>(AppCatalog.ThemeSchemes[_selectedTheme]);
-        LyricsThemes = new ObservableCollection<string>(AppCatalog.LyricsThemes);
-        SpotifyVersionOptions = new ObservableCollection<AppCatalog.SpotifyVersionEntry>(AppCatalog.SpotifyVersionManifest);
-        DownloadMethodOptions = new ObservableCollection<AppCatalog.DownloadMethodEntry>(AppCatalog.DownloadMethods);
         SelectionInsights = new ObservableCollection<SelectionInsightViewModel>();
         SelectedExtensionLabels = new ObservableCollection<string>();
         SupportBundleItems = new ObservableCollection<SupportBundleCategoryViewModel>();
         SupportBundleRedactionRules = new ObservableCollection<string>();
         LocalProfiles = new ObservableCollection<LocalProfileCardViewModel>();
-
-        InstallOptions = CreateOptions("Install");
-        CoreOptions = CreateOptions("Core");
-        InterfaceOptions = CreateOptions("Interface");
-        AdvancedOptions = CreateOptions("Advanced");
-        ExperienceOptions = CreateOptions("Experience");
-        Extensions = new ObservableCollection<ExtensionToggleViewModel>(
-            AppCatalog.ExtensionDefinitions.Select(def => new ExtensionToggleViewModel(
-                def.Key,
-                def.Title,
-                def.Description,
-                _recommendedBaseline.Spicetify_Extensions.Contains(def.Key, StringComparer.OrdinalIgnoreCase))));
 
         _maintenanceActions = new MaintenanceActionsStateViewModel(
             AppCatalog.MaintenanceActions,
@@ -627,21 +604,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     public ObservableCollection<string> RecommendedHighlights { get; }
-    public ObservableCollection<string> ThemeNames { get; }
-    public ObservableCollection<ThemeGalleryItemViewModel> ThemeGalleryItems { get; }
-    public ObservableCollection<string> SchemeOptions { get; }
-    public ObservableCollection<string> LyricsThemes { get; }
-    public ObservableCollection<AppCatalog.SpotifyVersionEntry> SpotifyVersionOptions { get; }
-    public ObservableCollection<AppCatalog.DownloadMethodEntry> DownloadMethodOptions { get; }
+    public ObservableCollection<string> ThemeNames => _customOptions.ThemeNames;
+    public ObservableCollection<ThemeGalleryItemViewModel> ThemeGalleryItems => _customOptions.ThemeGalleryItems;
+    public ObservableCollection<string> SchemeOptions => _customOptions.SchemeOptions;
+    public ObservableCollection<string> LyricsThemes => _customOptions.LyricsThemes;
+    public ObservableCollection<AppCatalog.SpotifyVersionEntry> SpotifyVersionOptions => _customOptions.SpotifyVersionOptions;
+    public ObservableCollection<AppCatalog.DownloadMethodEntry> DownloadMethodOptions => _customOptions.DownloadMethodOptions;
     public ObservableCollection<SelectionInsightViewModel> SelectionInsights { get; }
     public ObservableCollection<string> SelectedExtensionLabels { get; }
 
-    public ObservableCollection<OptionToggleViewModel> InstallOptions { get; }
-    public ObservableCollection<OptionToggleViewModel> CoreOptions { get; }
-    public ObservableCollection<OptionToggleViewModel> InterfaceOptions { get; }
-    public ObservableCollection<OptionToggleViewModel> AdvancedOptions { get; }
-    public ObservableCollection<OptionToggleViewModel> ExperienceOptions { get; }
-    public ObservableCollection<ExtensionToggleViewModel> Extensions { get; }
+    public ObservableCollection<OptionToggleViewModel> InstallOptions => _customOptions.InstallOptions;
+    public ObservableCollection<OptionToggleViewModel> CoreOptions => _customOptions.CoreOptions;
+    public ObservableCollection<OptionToggleViewModel> InterfaceOptions => _customOptions.InterfaceOptions;
+    public ObservableCollection<OptionToggleViewModel> AdvancedOptions => _customOptions.AdvancedOptions;
+    public ObservableCollection<OptionToggleViewModel> ExperienceOptions => _customOptions.ExperienceOptions;
+    public ObservableCollection<ExtensionToggleViewModel> Extensions => _customOptions.Extensions;
     public ObservableCollection<MaintenanceActionCardViewModel> SafeMaintenanceActions => _maintenanceActions.SafeActions;
     public ObservableCollection<MaintenanceActionCardViewModel> DestructiveMaintenanceActions => _maintenanceActions.DestructiveActions;
     public ObservableCollection<SupportBundleCategoryViewModel> SupportBundleItems { get; }
@@ -1290,115 +1267,57 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string SelectedTheme
     {
-        get => _selectedTheme;
-        set
-        {
-            if (SetProperty(ref _selectedTheme, value))
-            {
-                RebuildSchemes();
-                RaisePropertyChanged(nameof(SelectedThemeGalleryItem));
-                RaiseSelectionInsightsChanged();
-            }
-        }
+        get => _customOptions.SelectedTheme;
+        set => _customOptions.SelectedTheme = value;
     }
 
     public ThemeGalleryItemViewModel? SelectedThemeGalleryItem
     {
-        get => ThemeGalleryItems.FirstOrDefault(item => string.Equals(item.Name, SelectedTheme, StringComparison.Ordinal));
-        set
-        {
-            if (value is not null && !string.Equals(value.Name, SelectedTheme, StringComparison.Ordinal))
-            {
-                SelectedTheme = value.Name;
-            }
-        }
+        get => _customOptions.SelectedThemeGalleryItem;
+        set => _customOptions.SelectedThemeGalleryItem = value;
     }
 
     public string ThemeSearchText
     {
-        get => _themeSearchText;
-        set
-        {
-            if (SetProperty(ref _themeSearchText, value))
-            {
-                RaisePropertyChanged(nameof(FilteredThemeGalleryItems));
-                RaisePropertyChanged(nameof(ThemeGalleryEmptyText));
-                RaisePropertyChanged(nameof(ShowThemeGalleryEmptyState));
-                RaisePropertyChanged(nameof(HasThemeSearchText));
-                ClearThemeSearchCommand.RaiseCanExecuteChanged();
-            }
-        }
+        get => _customOptions.ThemeSearchText;
+        set => _customOptions.ThemeSearchText = value;
     }
 
-    public IReadOnlyList<ThemeGalleryItemViewModel> FilteredThemeGalleryItems =>
-        ThemeGalleryItems.Where(item => item.Matches(ThemeSearchText)).ToArray();
+    public IReadOnlyList<ThemeGalleryItemViewModel> FilteredThemeGalleryItems => _customOptions.FilteredThemeGalleryItems;
 
-    public bool HasThemeSearchText => !string.IsNullOrWhiteSpace(ThemeSearchText);
-    public bool ShowThemeGalleryEmptyState => !FilteredThemeGalleryItems.Any();
+    public bool HasThemeSearchText => _customOptions.HasThemeSearchText;
+    public bool ShowThemeGalleryEmptyState => _customOptions.ShowThemeGalleryEmptyState;
 
-    public string ThemeGalleryEmptyText =>
-        HasThemeSearchText
-            ? Strings.ThemeGalleryNoResults
-            : Strings.ThemeGalleryEmpty;
+    public string ThemeGalleryEmptyText => _customOptions.ThemeGalleryEmptyText;
 
     public string SelectedScheme
     {
-        get => _selectedScheme;
-        set
-        {
-            if (SetProperty(ref _selectedScheme, value))
-            {
-                RaiseSelectionInsightsChanged();
-            }
-        }
+        get => _customOptions.SelectedScheme;
+        set => _customOptions.SelectedScheme = value;
     }
 
     public string SelectedLyricsTheme
     {
-        get => _selectedLyricsTheme;
-        set
-        {
-            if (SetProperty(ref _selectedLyricsTheme, value))
-            {
-                RaiseSelectionInsightsChanged();
-            }
-        }
+        get => _customOptions.SelectedLyricsTheme;
+        set => _customOptions.SelectedLyricsTheme = value;
     }
 
     public string SelectedSpotifyVersionId
     {
-        get => _selectedSpotifyVersionId;
-        set
-        {
-            if (SetProperty(ref _selectedSpotifyVersionId, value))
-            {
-                RaiseSelectionInsightsChanged();
-            }
-        }
+        get => _customOptions.SelectedSpotifyVersionId;
+        set => _customOptions.SelectedSpotifyVersionId = value;
     }
 
     public string SelectedDownloadMethod
     {
-        get => _selectedDownloadMethod;
-        set
-        {
-            if (SetProperty(ref _selectedDownloadMethod, value))
-            {
-                RaiseSelectionInsightsChanged();
-            }
-        }
+        get => _customOptions.SelectedDownloadMethod;
+        set => _customOptions.SelectedDownloadMethod = value;
     }
 
     public string CacheLimitText
     {
-        get => _cacheLimitText;
-        set
-        {
-            if (SetProperty(ref _cacheLimitText, value))
-            {
-                RaiseSelectionInsightsChanged();
-            }
-        }
+        get => _customOptions.CacheLimitText;
+        set => _customOptions.CacheLimitText = value;
     }
 
     public bool IsActivityVisible
@@ -1671,6 +1590,57 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(TaskbarProgressFraction));
     }
 
+    private void OnCustomOptionEditorPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(CustomOptionEditorStateViewModel.SelectedTheme):
+                RaisePropertyChanged(nameof(SelectedTheme));
+                RaisePropertyChanged(nameof(SelectedThemeGalleryItem));
+                RaiseSelectionInsightsChanged();
+                break;
+            case nameof(CustomOptionEditorStateViewModel.SelectedThemeGalleryItem):
+                RaisePropertyChanged(nameof(SelectedThemeGalleryItem));
+                break;
+            case nameof(CustomOptionEditorStateViewModel.ThemeSearchText):
+                RaisePropertyChanged(nameof(ThemeSearchText));
+                ClearThemeSearchCommand.RaiseCanExecuteChanged();
+                break;
+            case nameof(CustomOptionEditorStateViewModel.FilteredThemeGalleryItems):
+                RaisePropertyChanged(nameof(FilteredThemeGalleryItems));
+                break;
+            case nameof(CustomOptionEditorStateViewModel.ThemeGalleryEmptyText):
+                RaisePropertyChanged(nameof(ThemeGalleryEmptyText));
+                break;
+            case nameof(CustomOptionEditorStateViewModel.ShowThemeGalleryEmptyState):
+                RaisePropertyChanged(nameof(ShowThemeGalleryEmptyState));
+                break;
+            case nameof(CustomOptionEditorStateViewModel.HasThemeSearchText):
+                RaisePropertyChanged(nameof(HasThemeSearchText));
+                break;
+            case nameof(CustomOptionEditorStateViewModel.SelectedScheme):
+                RaisePropertyChanged(nameof(SelectedScheme));
+                RaiseSelectionInsightsChanged();
+                break;
+            case nameof(CustomOptionEditorStateViewModel.SelectedLyricsTheme):
+                RaisePropertyChanged(nameof(SelectedLyricsTheme));
+                RaiseSelectionInsightsChanged();
+                break;
+            case nameof(CustomOptionEditorStateViewModel.SelectedSpotifyVersionId):
+                RaisePropertyChanged(nameof(SelectedSpotifyVersionId));
+                RaiseSelectionInsightsChanged();
+                break;
+            case nameof(CustomOptionEditorStateViewModel.SelectedDownloadMethod):
+                RaisePropertyChanged(nameof(SelectedDownloadMethod));
+                RaiseSelectionInsightsChanged();
+                break;
+            case nameof(CustomOptionEditorStateViewModel.CacheLimitText):
+                RaisePropertyChanged(nameof(CacheLimitText));
+                RaiseSelectionInsightsChanged();
+                break;
+        }
+    }
+
     private void OnEnvironmentStatePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         switch (e.PropertyName)
@@ -1752,15 +1722,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         await RefreshLocalProfilesAsync();
         await RefreshSnapshotAsync();
     }
-
-    private ObservableCollection<OptionToggleViewModel> CreateOptions(string section) =>
-        new(AppCatalog.OptionDefinitions
-            .Where(def => def.Section == section)
-            .Select(def => new OptionToggleViewModel(
-                def.Key,
-                def.Title,
-                def.Description,
-                typeof(InstallConfiguration).GetProperty(def.Key, BindingFlags.Public | BindingFlags.Instance)?.GetValue(_recommendedBaseline) is bool value && value)));
 
     private void ConfigureSettingsSearchFilters()
     {
@@ -1913,33 +1874,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private IEnumerable<OptionToggleViewModel> EnumerateAllOptions()
-    {
-        foreach (var option in InstallOptions)
-        {
-            yield return option;
-        }
-
-        foreach (var option in CoreOptions)
-        {
-            yield return option;
-        }
-
-        foreach (var option in InterfaceOptions)
-        {
-            yield return option;
-        }
-
-        foreach (var option in AdvancedOptions)
-        {
-            yield return option;
-        }
-
-        foreach (var option in ExperienceOptions)
-        {
-            yield return option;
-        }
-    }
+    private IEnumerable<OptionToggleViewModel> EnumerateAllOptions() => _customOptions.EnumerateAllOptions();
 
     private void RaiseSelectionInsightsChanged()
     {
@@ -2863,6 +2798,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _runElapsedTimer.Stop();
         _snapshotFreshnessTimer.Stop();
         _activityState.PropertyChanged -= OnActivityStatePropertyChanged;
+        _customOptions.PropertyChanged -= OnCustomOptionEditorPropertyChanged;
         _environmentState.PropertyChanged -= OnEnvironmentStatePropertyChanged;
         _promptState.PropertyChanged -= OnPromptStatePropertyChanged;
         _settingsSearch.PropertyChanged -= OnSettingsSearchStatePropertyChanged;
@@ -3359,23 +3295,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         using var identity = WindowsIdentity.GetCurrent();
         var principal = new WindowsPrincipal(identity);
         return principal.IsInRole(WindowsBuiltInRole.Administrator);
-    }
-
-    private void RebuildSchemes()
-    {
-        SchemeOptions.Clear();
-        if (AppCatalog.ThemeSchemes.TryGetValue(SelectedTheme, out var schemes))
-        {
-            foreach (var scheme in schemes)
-            {
-                SchemeOptions.Add(scheme);
-            }
-        }
-
-        if (!SchemeOptions.Contains(SelectedScheme))
-        {
-            SelectedScheme = SchemeOptions.FirstOrDefault() ?? "Default";
-        }
     }
 
     private void ApplyConfigurationToEditor(InstallConfiguration configuration)

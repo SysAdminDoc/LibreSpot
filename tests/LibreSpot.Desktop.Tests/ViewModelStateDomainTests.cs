@@ -243,4 +243,57 @@ public sealed class ViewModelStateDomainTests
 
         Assert.False(checkUpdates.Command.CanExecute(null));
     }
+
+    [Fact]
+    public void CustomOptionEditorState_BuildsOptionCollectionsFromCatalog()
+    {
+        var baseline = AppCatalog.CreateRecommendedConfiguration();
+        var state = new CustomOptionEditorStateViewModel(baseline);
+
+        Assert.NotEmpty(state.InstallOptions);
+        Assert.NotEmpty(state.CoreOptions);
+        Assert.NotEmpty(state.InterfaceOptions);
+        Assert.NotEmpty(state.AdvancedOptions);
+        Assert.NotEmpty(state.ExperienceOptions);
+        Assert.NotEmpty(state.Extensions);
+        Assert.NotEmpty(state.ThemeGalleryItems);
+        Assert.NotEmpty(state.SpotifyVersionOptions);
+        Assert.Contains(state.Extensions, extension => extension.IsRecommendedDefault);
+    }
+
+    [Fact]
+    public void CustomOptionEditorState_RebuildsSchemeOptionsWhenThemeChanges()
+    {
+        var state = new CustomOptionEditorStateViewModel(AppCatalog.CreateRecommendedConfiguration())
+        {
+            SelectedTheme = "Catppuccin",
+            SelectedScheme = "mocha"
+        };
+
+        Assert.Equal("Catppuccin", state.SelectedThemeGalleryItem?.Name);
+        Assert.Contains("mocha", state.SchemeOptions);
+
+        state.SelectedTheme = "(None - Marketplace Only)";
+
+        Assert.Equal("Default", state.SelectedScheme);
+        Assert.Equal(new[] { "Default" }, state.SchemeOptions);
+    }
+
+    [Fact]
+    public void CustomOptionEditorState_FiltersThemeGallery()
+    {
+        var state = new CustomOptionEditorStateViewModel(AppCatalog.CreateRecommendedConfiguration())
+        {
+            ThemeSearchText = "catppuccin"
+        };
+
+        Assert.True(state.HasThemeSearchText);
+        Assert.False(state.ShowThemeGalleryEmptyState);
+        Assert.Contains(state.FilteredThemeGalleryItems, item => string.Equals(item.Name, "Catppuccin", StringComparison.Ordinal));
+
+        state.ThemeSearchText = "definitely-not-a-theme";
+
+        Assert.True(state.ShowThemeGalleryEmptyState);
+        Assert.Equal(Strings.ThemeGalleryNoResults, state.ThemeGalleryEmptyText);
+    }
 }
