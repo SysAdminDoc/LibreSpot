@@ -122,10 +122,26 @@ public sealed class PackageManifestSafetyTests
         var validation = ReadFile("packaging/VALIDATION.txt");
         var releaseContract = ReadFile("schemas/release-artifact-contract.json");
 
-        Assert.Contains("parser-only", validation, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("validation samples", validation, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("do not submit", validation, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("librespot-release-manifest.json", validation, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Invoke-ValidationSamples.ps1", validation, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("-RunInstallChecks", validation, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("librespot-release-manifest.json", releaseContract, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PackageValidationRunnerKeepsDraftChecksLocalAndManual()
+    {
+        var runner = ReadFile("packaging/Invoke-ValidationSamples.ps1");
+
+        Assert.Contains("winget validate", runner, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("scoop install", runner, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("checkver.ps1", runner, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("choco pack", runner, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("choco install librespot --source .", runner, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("$RunInstallChecks", runner, StringComparison.Ordinal);
+        Assert.Contains("disposable VM", runner, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

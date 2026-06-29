@@ -2,6 +2,7 @@ extern alias Cli;
 
 using System.IO.Compression;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Xunit;
 using CliApp = Cli::LibreSpot.Cli.CliApplication;
 using CliBackendMessage = Cli::LibreSpot.Desktop.Services.BackendMessage;
@@ -777,9 +778,57 @@ public sealed class CliApplicationTests
             Assert.Contains(command, readme);
         }
 
-        Assert.Contains("`0` as success", readme);
-        Assert.Contains("`12` as repair needed", readme);
+        Assert.Contains("| `0` | Success or compliant |", readme);
+        Assert.Contains("| `12` | Repair needed |", readme);
         Assert.Contains("%ProgramData%\\LibreSpot\\logs", readme);
+    }
+
+    [Fact]
+    public void DeploymentSampleScriptsUseImplementedCliCommands()
+    {
+        var repoRoot = ResolveRepoRoot();
+        var answerFile = Path.Combine(repoRoot, "samples", "deployment", "librespot-answer.json");
+        var tempRoot = Path.Combine(Path.GetTempPath(), "LibreSpot.DeploymentSamples", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+        try
+        {
+            var examples = ReadDeploymentCliExamples(repoRoot).ToArray();
+
+            Assert.Contains(examples, example => example.Contains("detect --intune", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(examples, example => example.Contains("install --answer-file", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(examples, example => example.Contains("repair --repair-id RepairMarketplace", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(examples, example => example.Contains("uninstall --silent --yes --keep-spotify", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(examples, example => example.Contains("reapply --answer-file", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(examples, example => example.Contains("detect --json", StringComparison.OrdinalIgnoreCase));
+
+            foreach (var example in examples)
+            {
+                var tokens = TokenizeCommand(example);
+                Assert.NotEmpty(tokens);
+                Assert.Equal("LibreSpot.Cli.exe", tokens[0]);
+
+                var safeArgs = ToSafeDeploymentSmokeArgs(tokens.Skip(1).ToArray(), answerFile, tempRoot);
+                var result = Run(
+                    safeArgs,
+                    _ => Snapshot(
+                        spotifyInstalled: true,
+                        spicetifyInstalled: true,
+                        Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready),
+                        Component("spicetify-cli", "Spicetify CLI", "Detected", CliHealthSeverity.Ready)),
+                    (_, _, _, _) => Task.FromResult(new CliBackendRunResult(true)));
+
+                Assert.True(
+                    result.ExitCode == 0,
+                    $"{example} failed with exit {result.ExitCode}. stdout: {result.Stdout} stderr: {result.Stderr}");
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
     }
 
     private static CliRunResult Run(params string[] args) =>
@@ -827,6 +876,60 @@ public sealed class CliApplicationTests
         {
             Assert.True(line.TryGetProperty(field, out _), $"NDJSON line is missing '{field}'.");
         }
+    }
+
+    private static IEnumerable<string> ReadDeploymentCliExamples(string repoRoot)
+    {
+        var sampleRoot = Path.Combine(repoRoot, "samples", "deployment");
+        foreach (var file in Directory.EnumerateFiles(sampleRoot, "*.ps1").OrderBy(path => path, StringComparer.OrdinalIgnoreCase))
+        {
+            foreach (var line in File.ReadLines(file))
+            {
+                var trimmed = line.Trim();
+                if (trimmed.StartsWith("# CLI:", StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return trimmed["# CLI:".Length..].Trim();
+                }
+            }
+        }
+    }
+
+    private static string[] TokenizeCommand(string command) =>
+        Regex.Matches(command, @"(?:""(?<quoted>[^""]*)""|'(?<single>[^']*)'|(?<bare>\S+))")
+            .Select(match =>
+                match.Groups["quoted"].Success ? match.Groups["quoted"].Value :
+                match.Groups["single"].Success ? match.Groups["single"].Value :
+                match.Groups["bare"].Value)
+            .ToArray();
+
+    private static string[] ToSafeDeploymentSmokeArgs(string[] args, string answerFile, string tempRoot)
+    {
+        var safe = args
+            .Select(arg => arg.EndsWith("librespot-answer.json", StringComparison.OrdinalIgnoreCase)
+                ? answerFile
+                : arg)
+            .ToList();
+
+        for (var i = 0; i < safe.Count - 1; i++)
+        {
+            if (string.Equals(safe[i], "--log-dir", StringComparison.OrdinalIgnoreCase))
+            {
+                safe[i + 1] = Path.Combine(tempRoot, "logs");
+            }
+            else if (string.Equals(safe[i], "--output", StringComparison.OrdinalIgnoreCase))
+            {
+                safe[i + 1] = Path.Combine(tempRoot, "support.zip");
+            }
+        }
+
+        if (safe.Count > 0 &&
+            safe[0] is "install" or "reapply" or "repair" or "uninstall" &&
+            !safe.Any(arg => string.Equals(arg, "--dry-run", StringComparison.OrdinalIgnoreCase)))
+        {
+            safe.Insert(1, "--dry-run");
+        }
+
+        return safe.ToArray();
     }
 
     private static CliEnvironmentSnapshot Snapshot(

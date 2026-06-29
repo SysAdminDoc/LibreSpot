@@ -114,13 +114,18 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 ### Fleet Deployment Examples
 
+Executable samples live under `samples/deployment/`. The examples below are
+covered by the local parser smoke tests so README commands, sample scripts, and
+the CLI grammar stay aligned.
+
 Intune Win32 detection command:
 
 ```powershell
 LibreSpot.Cli.exe detect --intune
 ```
 
-Intune, PDQ Deploy, or SCCM install command:
+Intune Win32 install command, PDQ Deploy install step, or SCCM application
+program command:
 
 ```powershell
 LibreSpot.Cli.exe install --answer-file .\librespot-answer.json --profile standard --silent --yes --no-restart --ndjson
@@ -132,6 +137,12 @@ PDQ or SCCM repair command using a health-report repair ID:
 LibreSpot.Cli.exe repair --repair-id RepairMarketplace --silent --yes --ndjson
 ```
 
+Uninstall LibreSpot customizations while keeping Spotify installed:
+
+```powershell
+LibreSpot.Cli.exe uninstall --silent --yes --keep-spotify --ndjson
+```
+
 WinRM or PSRemoting over SSH:
 
 ```powershell
@@ -139,13 +150,34 @@ Invoke-Command -ComputerName PC-42 -ScriptBlock { C:\ProgramData\LibreSpot\Libre
 ssh admin@PC-42 "C:\ProgramData\LibreSpot\LibreSpot.Cli.exe detect --json"
 ```
 
-Uninstall customizations while keeping Spotify:
+Endpoint return-code handling:
+
+| Code | Meaning | Endpoint handling |
+|---:|---|---|
+| `0` | Success or compliant | Treat as success. |
+| `2` | Validation or configuration error | Fail the deployment and review stderr/JSON. |
+| `10` | LibreSpot target state not installed | Intune detection should mark app absent. |
+| `11` | Drift detected | Run the documented repair or reapply command. |
+| `12` | Repair needed | Run a health-report repair ID such as `RepairMarketplace`. |
+| `20` | Blocked by local state, such as Spotify running | Retry after closing Spotify or during a maintenance window. |
+| `1` | Unexpected backend failure | Collect the NDJSON log and support bundle. |
+
+Mutating examples above write rotating NDJSON logs under
+`%ProgramData%\LibreSpot\logs`; add `--log-dir <path>` to redirect logs into an
+endpoint-tool collection folder. Use `samples/deployment/librespot-answer.json`
+as a starting answer file and keep `riskAcknowledged` explicit in any production
+copy.
+
+Package-manager manifests under `packaging/` are draft validation templates,
+not public install channels. After a local release build generates
+`librespot-release-manifest.json`, run parser-safe validation samples with:
 
 ```powershell
-LibreSpot.Cli.exe uninstall --silent --yes --keep-spotify --ndjson
+.\packaging\Invoke-ValidationSamples.ps1 -Tool all
 ```
 
-Endpoint return-code handling should treat `0` as success, `2` as validation/configuration error, `10` as not installed, `11` as drift detected, `12` as repair needed, and `1` as an unexpected backend failure. Mutating examples above write rotating NDJSON logs under `%ProgramData%\LibreSpot\logs`; add `--log-dir <path>` to redirect logs into an endpoint-tool collection folder.
+Install-level Scoop and Chocolatey checks are intentionally manual-only; run
+them only in a disposable VM with `-RunInstallChecks`.
 
 ### Comprehensive Uninstaller
 

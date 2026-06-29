@@ -18,6 +18,9 @@ All notable changes to LibreSpot will be documented in this file.
 - Added inert `librespot://profile?...` share-link previews for local file,
   embedded, and HTTPS profile payloads, plus share-card payload generation that
   does not write config or start setup until the user confirms import.
+- Added tested fleet deployment sample scripts, a standard answer-file sample,
+  and a local package-validation runner for draft winget/Scoop/Chocolatey
+  manifests without advertising those channels as publishable.
 - Added a dedicated `LibreSpot.Cli.exe` console project for fleet tooling with
   `--version`, `status --json`, `detect --json`, `detect --intune`, and
   `validate --answer-file` support backed by the existing health report model,

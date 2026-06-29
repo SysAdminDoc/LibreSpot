@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "installMode": "recommended",
+  "eulaAccepted": true,
+  "riskAcknowledged": true,
+  "profiles": {
+    "standard": {
+      "installMode": "custom",
+      "spotx": {
+        "premium": false,
+        "podcastsOff": true,
+        "cacheLimit": 2048,
+        "lyricsTheme": "github"
+      },
+      "spicetify": {
+        "theme": "Catppuccin",
+        "scheme": "mocha",
+        "extensions": [
+          "fullAppDisplay.js",
+          "shuffle+.js",
+          "trashbin.js"
+        ],
+        "marketplace": true
+      },
+      "watcher": {
+        "enabled": true
+      }
+    }
+  }
+}

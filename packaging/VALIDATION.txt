@@ -1,10 +1,24 @@
 # Package Manifest Validation Commands
 
 All package-manager manifests are DRAFT status and blocked on package identity,
-signing, and release-channel ownership decisions. These commands are
-parser-only checks for generated output; do not submit or publish these tracked
+signing, and release-channel ownership decisions. These commands are local
+validation samples for generated output; do not submit or publish these tracked
 templates until they are regenerated from `librespot-release-manifest.json` with
 real release URLs, versions, and SHA256 values.
+
+Run all parser-safe checks from the repo root:
+
+```powershell
+.\packaging\Invoke-ValidationSamples.ps1 -Tool all
+```
+
+Install-level Scoop and Chocolatey checks are manual-only and should be run only
+inside a disposable VM:
+
+```powershell
+.\packaging\Invoke-ValidationSamples.ps1 -Tool scoop -RunInstallChecks
+.\packaging\Invoke-ValidationSamples.ps1 -Tool chocolatey -RunInstallChecks
+```
 
 ## winget
 
