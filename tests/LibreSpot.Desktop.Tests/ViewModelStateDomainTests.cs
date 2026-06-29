@@ -1,4 +1,5 @@
 using LibreSpot.Desktop.Properties;
+using LibreSpot.Desktop.Services;
 using LibreSpot.Desktop.ViewModels;
 using Xunit;
 
@@ -88,5 +89,75 @@ public sealed class ViewModelStateDomainTests
 
         Assert.False(state.HasText);
         Assert.True(state.Matches("Cache limit", "Leave 0 for default behavior."));
+    }
+
+    [Fact]
+    public void ActivityRunState_BeginAndNoticeOwnProgressVisibilityAndStatus()
+    {
+        var state = new ActivityRunStateViewModel();
+
+        state.Begin("Applying profile", "Preparing backend", "Preparing");
+
+        Assert.True(state.IsVisible);
+        Assert.True(state.IsRunning);
+        Assert.False(state.IsCancelRequested);
+        Assert.Equal(0, state.ProgressValue);
+        Assert.Equal("Applying profile", state.Title);
+        Assert.Equal("Preparing backend", state.Status);
+        Assert.Equal("Preparing", state.Step);
+
+        state.ShowNotice("Run complete", "Done", "No backend started");
+
+        Assert.True(state.IsVisible);
+        Assert.Equal("Run complete", state.Title);
+        Assert.Equal("Done", state.Status);
+        Assert.Equal("No backend started", state.Step);
+        Assert.Equal(0, state.ProgressValue);
+    }
+
+    [Fact]
+    public void ActivityRunState_AppendsTrimsAndClearsLogLines()
+    {
+        var state = new ActivityRunStateViewModel();
+        var timestamp = new DateTime(2026, 6, 29, 10, 0, 0);
+
+        for (var i = 0; i < 2005; i++)
+        {
+            state.AppendLog($"line {i}", "info", timestamp);
+        }
+
+        Assert.Equal(2000, state.LogEntries.Count);
+        Assert.Equal("line 5", state.LogEntries[0].Message);
+        Assert.Equal("2000 log lines", state.LogLineCountText);
+        Assert.False(state.IsLogEmpty);
+
+        state.ClearLog();
+
+        Assert.Empty(state.LogEntries);
+        Assert.True(state.IsLogEmpty);
+        Assert.Equal("No log output yet", state.LogLineCountText);
+    }
+
+    [Fact]
+    public void ActivityRunState_ReplacesUndoItemsAndClearsState()
+    {
+        var state = new ActivityRunStateViewModel();
+        var item = new OperationJournalUndoItem(
+            "phase",
+            "EnableAutoReapply",
+            "task",
+            "LibreSpot\\ReapplyWatcher",
+            "Registered",
+            "Unregister the task.");
+
+        state.ReplaceUndoActionItems(new[] { item });
+
+        Assert.True(state.HasUndoActionItems);
+        Assert.Single(state.UndoActionItems);
+
+        state.ClearUndoActionItems();
+
+        Assert.False(state.HasUndoActionItems);
+        Assert.Empty(state.UndoActionItems);
     }
 }

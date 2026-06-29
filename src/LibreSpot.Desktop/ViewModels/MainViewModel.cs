@@ -484,17 +484,13 @@ public sealed class HealthIssueViewModel
 
 public sealed class MainViewModel : ObservableObject, IDisposable
 {
-    // Cap the live log so a very chatty backend run can't pin UI memory or make
-    // the ItemsControl render pathologically slow. Extra lines are still copied
-    // via the `install.log` file the backend maintains.
-    private const int MaxLogEntries = 2000;
-
     private readonly ConfigurationService _configurationService;
     private readonly BackendScriptService _backendScriptService;
     private readonly EnvironmentSnapshotService _snapshotService;
     private readonly SupportBundleService _supportBundleService;
     private readonly OperationJournalUndoService _operationJournalUndoService;
     private readonly LocalProfileService _profileService;
+    private readonly ActivityRunStateViewModel _activityState = new();
     private readonly PromptStateViewModel _promptState = new();
     private readonly SettingsSearchStateViewModel _settingsSearch = new();
     private readonly Dispatcher _dispatcher;
@@ -514,15 +510,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _cacheLimitText = "0";
     private string _themeSearchText = string.Empty;
     private int _selectedWorkspaceIndex;
-    private bool _isActivityVisible;
-    private bool _isRunning;
-    private double _progressValue;
-    private string _activityTitle = Strings.ActivityReady;
-    private string _activityStatus = Strings.ActivityPickPath;
-    private string _activityStep = "Idle";
     private DateTime? _snapshotRefreshedAt;
     private EnvironmentSnapshot _snapshot = new();
-    private bool _isCancelRequested;
     private bool _isApplyingSelectionDependencyRules;
     private ConfigurationLoadState _configurationLoadState = ConfigurationLoadState.Loaded;
     private string? _recoveredConfigurationPath;
@@ -565,6 +554,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         };
         _snapshotFreshnessTimer.Tick += (_, _) => RaiseSnapshotFreshnessChanged();
         _snapshotFreshnessTimer.Start();
+        _activityState.PropertyChanged += OnActivityStatePropertyChanged;
         _promptState.PropertyChanged += OnPromptStatePropertyChanged;
         _settingsSearch.PropertyChanged += OnSettingsSearchStatePropertyChanged;
 
@@ -580,7 +570,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SelectedExtensionLabels = new ObservableCollection<string>();
         SupportBundleItems = new ObservableCollection<SupportBundleCategoryViewModel>();
         SupportBundleRedactionRules = new ObservableCollection<string>();
-        UndoActionItems = new ObservableCollection<UndoActionItemViewModel>();
         LocalProfiles = new ObservableCollection<LocalProfileCardViewModel>();
 
         InstallOptions = CreateOptions("Install");
@@ -602,7 +591,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SafeMaintenanceActions = new ObservableCollection<MaintenanceActionCardViewModel>(_maintenanceCards.Where(card => !card.IsDestructive));
         DestructiveMaintenanceActions = new ObservableCollection<MaintenanceActionCardViewModel>(_maintenanceCards.Where(card => card.IsDestructive));
 
-        LogEntries = new ObservableCollection<LogEntryViewModel>();
         ApplyRecommendedCommand = new AsyncRelayCommand(ApplyRecommendedAsync, () => !IsRunning, HandleAsyncCommandException);
         ApplyCustomCommand = new AsyncRelayCommand(ApplyCustomAsync, () => !IsRunning, HandleAsyncCommandException);
         CancelRunCommand = new RelayCommand(PresentCancelRunPrompt, () => IsRunning && !IsCancelRequested);
@@ -659,9 +647,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<MaintenanceActionCardViewModel> DestructiveMaintenanceActions { get; }
     public ObservableCollection<SupportBundleCategoryViewModel> SupportBundleItems { get; }
     public ObservableCollection<string> SupportBundleRedactionRules { get; }
-    public ObservableCollection<UndoActionItemViewModel> UndoActionItems { get; }
+    public ObservableCollection<UndoActionItemViewModel> UndoActionItems => _activityState.UndoActionItems;
     public ObservableCollection<LocalProfileCardViewModel> LocalProfiles { get; }
-    public ObservableCollection<LogEntryViewModel> LogEntries { get; }
+    public ObservableCollection<LogEntryViewModel> LogEntries => _activityState.LogEntries;
 
     public AsyncRelayCommand ApplyRecommendedCommand { get; }
     public AsyncRelayCommand ApplyCustomCommand { get; }
@@ -816,7 +804,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool HasInfoHealthIssues => HealthReport.HasInfoIssues;
     public bool HasAnyHealthIssues => HealthReport.HasIssues;
     public string HealthIssueSummary => HealthReport.IssueSummary;
-    public bool HasUndoActionItems => UndoActionItems.Count > 0;
+    public bool HasUndoActionItems => _activityState.HasUndoActionItems;
 
     public IReadOnlyList<StatusDashboardItemViewModel> StatusDashboardItems =>
     [
@@ -1427,90 +1415,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public bool IsActivityVisible
     {
-        get => _isActivityVisible;
-        private set
-        {
-            if (SetProperty(ref _isActivityVisible, value))
-            {
-                DismissActivityCommand.RaiseCanExecuteChanged();
-            }
-        }
+        get => _activityState.IsVisible;
+        private set => _activityState.IsVisible = value;
     }
 
     public bool IsRunning
     {
-        get => _isRunning;
-        private set
-        {
-            if (SetProperty(ref _isRunning, value))
-            {
-                ApplyRecommendedCommand.RaiseCanExecuteChanged();
-                ApplyCustomCommand.RaiseCanExecuteChanged();
-                CancelRunCommand.RaiseCanExecuteChanged();
-                DismissActivityCommand.RaiseCanExecuteChanged();
-                EnableAutoReapplyCommand.RaiseCanExecuteChanged();
-                DisableAutoReapplyCommand.RaiseCanExecuteChanged();
-                ExportSupportBundleCommand.RaiseCanExecuteChanged();
-                RelaunchAsAdministratorCommand.RaiseCanExecuteChanged();
-                ConfirmPromptCommand.RaiseCanExecuteChanged();
-                CancelPromptCommand.RaiseCanExecuteChanged();
-                RaiseLocalProfileCommandStateChanged();
-                RaisePropertyChanged(nameof(ProfileSelectionHint));
-                RaiseMaintenanceActionCanExecuteChanged();
-                RaisePropertyChanged(nameof(IsBusyIndeterminate));
-                RaisePropertyChanged(nameof(ProgressLabel));
-                RaisePropertyChanged(nameof(IsActivityError));
-                RaisePropertyChanged(nameof(IsActivityCanceled));
-                RaisePropertyChanged(nameof(ActivityBadgeText));
-                RaisePropertyChanged(nameof(ActivityDetailLabel));
-                RaisePropertyChanged(nameof(ActivityAssistiveText));
-                RaisePropertyChanged(nameof(ActivitySummaryTitle));
-                RaisePropertyChanged(nameof(TaskbarProgressState));
-                RaisePropertyChanged(nameof(TaskbarProgressFraction));
-            }
-        }
+        get => _activityState.IsRunning;
+        private set => _activityState.IsRunning = value;
     }
 
     public bool IsCancelRequested
     {
-        get => _isCancelRequested;
-        private set
-        {
-            if (SetProperty(ref _isCancelRequested, value))
-            {
-                CancelRunCommand.RaiseCanExecuteChanged();
-                RaisePropertyChanged(nameof(ProgressLabel));
-                RaisePropertyChanged(nameof(IsActivityCanceled));
-                RaisePropertyChanged(nameof(ActivityBadgeText));
-                RaisePropertyChanged(nameof(ActivityDetailLabel));
-                RaisePropertyChanged(nameof(ActivityAssistiveText));
-                RaisePropertyChanged(nameof(ActivitySummaryTitle));
-                RaisePropertyChanged(nameof(TaskbarProgressState));
-            }
-        }
+        get => _activityState.IsCancelRequested;
+        private set => _activityState.IsCancelRequested = value;
     }
 
     public double ProgressValue
     {
-        get => _progressValue;
-        private set
-        {
-            if (SetProperty(ref _progressValue, value))
-            {
-                RaisePropertyChanged(nameof(ProgressLabel));
-                RaisePropertyChanged(nameof(IsBusyIndeterminate));
-                RaisePropertyChanged(nameof(IsActivityCanceled));
-                RaisePropertyChanged(nameof(ActivityBadgeText));
-                RaisePropertyChanged(nameof(ActivityDetailLabel));
-                RaisePropertyChanged(nameof(ActivityAssistiveText));
-                RaisePropertyChanged(nameof(ActivitySummaryTitle));
-                RaisePropertyChanged(nameof(TaskbarProgressState));
-                RaisePropertyChanged(nameof(TaskbarProgressFraction));
-            }
-        }
+        get => _activityState.ProgressValue;
+        private set => _activityState.ProgressValue = value;
     }
 
-    public bool IsBusyIndeterminate => _isRunning && _progressValue <= 0.0;
+    public bool IsBusyIndeterminate => IsRunning && ProgressValue <= 0.0;
 
     // Mirror run state onto the taskbar icon so LibreSpot feels like a real
     // long-running Windows app even when the window is minimized.
@@ -1526,7 +1453,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             {
                 return System.Windows.Shell.TaskbarItemProgressState.Paused;
             }
-            if (!_isRunning)
+            if (!IsRunning)
             {
                 return System.Windows.Shell.TaskbarItemProgressState.None;
             }
@@ -1537,7 +1464,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     // TaskbarItemInfo.ProgressValue expects 0.0..1.0, but our ProgressValue is 0..100.
-    public double TaskbarProgressFraction => Math.Clamp(_progressValue / 100.0, 0.0, 1.0);
+    public double TaskbarProgressFraction => Math.Clamp(ProgressValue / 100.0, 0.0, 1.0);
 
     // "— %" reads like a broken UI. When we don't yet have a real percentage
     // from the backend, say what is actually happening: we're working.
@@ -1546,30 +1473,30 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? "Stopping…"
             : IsBusyIndeterminate
             ? "Working…"
-            : _isRunning
+            : IsRunning
                 ? $"{Math.Round(ProgressValue)}%"
-                : _progressValue >= 100 ? "Done" : Strings.SeverityReady;
+                : ProgressValue >= 100 ? "Done" : Strings.SeverityReady;
 
     // Activity badge surfaces the run's outcome after completion so the overlay
     // isn't frozen on "Live run" once work is done. We derive from ActivityStatus
     // because HandleBackendMessage already reconciles status strings per outcome.
     public bool IsActivityError =>
-        !_isRunning &&
-        !string.IsNullOrEmpty(_activityStatus) &&
-        (_activityStatus.Contains("attention", StringComparison.OrdinalIgnoreCase) ||
-         _activityStatus.Contains("failed", StringComparison.OrdinalIgnoreCase));
+        !IsRunning &&
+        !string.IsNullOrEmpty(ActivityStatus) &&
+        (ActivityStatus.Contains("attention", StringComparison.OrdinalIgnoreCase) ||
+         ActivityStatus.Contains("failed", StringComparison.OrdinalIgnoreCase));
 
     public bool IsActivityCanceled =>
-        !_isRunning &&
-        !string.IsNullOrEmpty(_activityStatus) &&
-        _activityStatus.Contains("canceled", StringComparison.OrdinalIgnoreCase);
+        !IsRunning &&
+        !string.IsNullOrEmpty(ActivityStatus) &&
+        ActivityStatus.Contains("canceled", StringComparison.OrdinalIgnoreCase);
 
     public string ActivityBadgeText =>
         IsCancelRequested ? "Stopping"
-        : _isRunning ? Strings.StatusInProgress
+        : IsRunning ? Strings.StatusInProgress
         : IsActivityCanceled ? Strings.Canceled
         : IsActivityError ? Strings.StatusNeedsReview
-        : _progressValue >= 100 ? Strings.StatusComplete
+        : ProgressValue >= 100 ? Strings.StatusComplete
         : Strings.SeverityReady;
 
     public string ActivityDetailLabel =>
@@ -1579,32 +1506,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string ActivityTitle
     {
-        get => _activityTitle;
-        private set => SetProperty(ref _activityTitle, value);
+        get => _activityState.Title;
+        private set => _activityState.Title = value;
     }
 
     public string ActivityStatus
     {
-        get => _activityStatus;
-        private set
-        {
-            if (SetProperty(ref _activityStatus, value))
-            {
-                RaisePropertyChanged(nameof(IsActivityError));
-                RaisePropertyChanged(nameof(IsActivityCanceled));
-                RaisePropertyChanged(nameof(ActivityBadgeText));
-                RaisePropertyChanged(nameof(ActivityDetailLabel));
-                RaisePropertyChanged(nameof(ActivityAssistiveText));
-                RaisePropertyChanged(nameof(ActivitySummaryTitle));
-                RaisePropertyChanged(nameof(TaskbarProgressState));
-            }
-        }
+        get => _activityState.Status;
+        private set => _activityState.Status = value;
     }
 
     public string ActivityStep
     {
-        get => _activityStep;
-        private set => SetProperty(ref _activityStep, value);
+        get => _activityState.Step;
+        private set => _activityState.Step = value;
     }
 
     public string ActivityAssistiveText =>
@@ -1616,7 +1531,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                     ? "LibreSpot stopped early. Review the log, then rerun Recommended or Reapply if Spotify looks inconsistent."
                 : IsActivityError
                     ? "Open the LibreSpot folder or copy the log before retrying so the next run starts with better context."
-                    : _progressValue >= 100
+                    : ProgressValue >= 100
                         ? "Your saved profile and maintenance tools are ready for the next pass."
                         : "You can dismiss this panel or copy the log for reference.";
 
@@ -1627,7 +1542,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ? "While this runs"
                 : IsActivityCanceled || IsActivityError
                     ? "Recommended next step"
-                    : _progressValue >= 100
+                    : ProgressValue >= 100
                         ? "Next step"
                         : "Session details";
 
@@ -1638,15 +1553,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? _runStopwatch.Elapsed.ToString(@"hh\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture)
             : _runStopwatch.Elapsed.ToString(@"mm\:ss", System.Globalization.CultureInfo.InvariantCulture);
 
-    public string LogLineCountText =>
-        LogEntries.Count switch
-        {
-            0 => "No log output yet",
-            1 => "1 log line",
-            _ => $"{LogEntries.Count} log lines"
-        };
+    public string LogLineCountText => _activityState.LogLineCountText;
 
-    public bool IsLogEmpty => LogEntries.Count == 0;
+    public bool IsLogEmpty => _activityState.IsLogEmpty;
 
     public string LastRefreshedText =>
         _snapshotRefreshedAt is null
@@ -1738,6 +1647,82 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     public bool IsPromptConfirmDefault => _promptState.IsConfirmDefault;
+
+    private void OnActivityStatePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(ActivityRunStateViewModel.IsVisible):
+                DismissActivityCommand.RaiseCanExecuteChanged();
+                RaisePropertyChanged(nameof(IsActivityVisible));
+                break;
+            case nameof(ActivityRunStateViewModel.IsRunning):
+                RaisePropertyChanged(nameof(IsRunning));
+                RaiseRunCommandStateChanged();
+                RaiseActivityDerivedStateChanged();
+                break;
+            case nameof(ActivityRunStateViewModel.IsCancelRequested):
+                CancelRunCommand.RaiseCanExecuteChanged();
+                RaisePropertyChanged(nameof(IsCancelRequested));
+                RaiseActivityDerivedStateChanged();
+                break;
+            case nameof(ActivityRunStateViewModel.ProgressValue):
+                RaisePropertyChanged(nameof(ProgressValue));
+                RaiseActivityDerivedStateChanged();
+                break;
+            case nameof(ActivityRunStateViewModel.Title):
+                RaisePropertyChanged(nameof(ActivityTitle));
+                break;
+            case nameof(ActivityRunStateViewModel.Status):
+                RaisePropertyChanged(nameof(ActivityStatus));
+                RaiseActivityDerivedStateChanged();
+                break;
+            case nameof(ActivityRunStateViewModel.Step):
+                RaisePropertyChanged(nameof(ActivityStep));
+                break;
+            case nameof(ActivityRunStateViewModel.LogLineCountText):
+                CopyLogCommand.RaiseCanExecuteChanged();
+                RaisePropertyChanged(nameof(LogLineCountText));
+                break;
+            case nameof(ActivityRunStateViewModel.IsLogEmpty):
+                RaisePropertyChanged(nameof(IsLogEmpty));
+                break;
+            case nameof(ActivityRunStateViewModel.HasUndoActionItems):
+                RaisePropertyChanged(nameof(HasUndoActionItems));
+                break;
+        }
+    }
+
+    private void RaiseRunCommandStateChanged()
+    {
+        ApplyRecommendedCommand.RaiseCanExecuteChanged();
+        ApplyCustomCommand.RaiseCanExecuteChanged();
+        CancelRunCommand.RaiseCanExecuteChanged();
+        DismissActivityCommand.RaiseCanExecuteChanged();
+        EnableAutoReapplyCommand.RaiseCanExecuteChanged();
+        DisableAutoReapplyCommand.RaiseCanExecuteChanged();
+        ExportSupportBundleCommand.RaiseCanExecuteChanged();
+        RelaunchAsAdministratorCommand.RaiseCanExecuteChanged();
+        ConfirmPromptCommand.RaiseCanExecuteChanged();
+        CancelPromptCommand.RaiseCanExecuteChanged();
+        RaiseLocalProfileCommandStateChanged();
+        RaisePropertyChanged(nameof(ProfileSelectionHint));
+        RaiseMaintenanceActionCanExecuteChanged();
+    }
+
+    private void RaiseActivityDerivedStateChanged()
+    {
+        RaisePropertyChanged(nameof(IsBusyIndeterminate));
+        RaisePropertyChanged(nameof(ProgressLabel));
+        RaisePropertyChanged(nameof(IsActivityError));
+        RaisePropertyChanged(nameof(IsActivityCanceled));
+        RaisePropertyChanged(nameof(ActivityBadgeText));
+        RaisePropertyChanged(nameof(ActivityDetailLabel));
+        RaisePropertyChanged(nameof(ActivityAssistiveText));
+        RaisePropertyChanged(nameof(ActivitySummaryTitle));
+        RaisePropertyChanged(nameof(TaskbarProgressState));
+        RaisePropertyChanged(nameof(TaskbarProgressFraction));
+    }
 
     private void OnPromptStatePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -2818,18 +2803,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         SelectedWorkspaceIndex = targetWorkspaceIndex;
-        ActivityTitle = title;
-        ActivityStatus = status;
-        ActivityStep = Strings.PreparingBackend;
         ClearUndoActionItems();
         ClearLog();
-        ProgressValue = 0;
-        IsActivityVisible = true;
+        _activityState.Begin(title, status, Strings.PreparingBackend);
         _runStopwatch.Restart();
         _runElapsedTimer.Start();
         RaisePropertyChanged(nameof(RunElapsedText));
-        IsRunning = true;
-        IsCancelRequested = false;
 
         _runCts?.Dispose();
         _runCts = new CancellationTokenSource();
@@ -2921,6 +2900,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         catch { }
         _runElapsedTimer.Stop();
         _snapshotFreshnessTimer.Stop();
+        _activityState.PropertyChanged -= OnActivityStatePropertyChanged;
         _promptState.PropertyChanged -= OnPromptStatePropertyChanged;
         _settingsSearch.PropertyChanged -= OnSettingsSearchStatePropertyChanged;
         _runCts?.Dispose();
@@ -2972,61 +2952,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void AppendLog(string payload, string level)
     {
-        if (string.IsNullOrEmpty(payload))
-        {
-            return;
-        }
-
-        LogEntries.Add(new LogEntryViewModel(DateTime.Now, level, payload));
-
-        // Bound the collection so a very chatty backend can't pin memory or slow the UI.
-        // The backend also writes every line to install.log on disk, so truncation here
-        // is visual-only — diagnostics remain complete on disk.
-        while (LogEntries.Count > MaxLogEntries)
-        {
-            LogEntries.RemoveAt(0);
-        }
-
-        CopyLogCommand.RaiseCanExecuteChanged();
-        RaisePropertyChanged(nameof(LogLineCountText));
-        RaisePropertyChanged(nameof(IsLogEmpty));
+        _activityState.AppendLog(payload, level, DateTime.Now);
     }
 
-    private void ClearLog()
-    {
-        LogEntries.Clear();
-        CopyLogCommand.RaiseCanExecuteChanged();
-        RaisePropertyChanged(nameof(LogLineCountText));
-        RaisePropertyChanged(nameof(IsLogEmpty));
-    }
+    private void ClearLog() => _activityState.ClearLog();
 
-    private void ClearUndoActionItems()
-    {
-        if (UndoActionItems.Count == 0)
-        {
-            return;
-        }
-
-        UndoActionItems.Clear();
-        RaisePropertyChanged(nameof(HasUndoActionItems));
-    }
+    private void ClearUndoActionItems() => _activityState.ClearUndoActionItems();
 
     private void RefreshUndoActionItems()
     {
-        UndoActionItems.Clear();
         try
         {
-            foreach (var item in _operationJournalUndoService.ReadLatestUndoItems(_configurationService.ConfigDirectory))
-            {
-                UndoActionItems.Add(new UndoActionItemViewModel(item));
-            }
+            _activityState.ReplaceUndoActionItems(_operationJournalUndoService.ReadLatestUndoItems(_configurationService.ConfigDirectory));
         }
         catch (Exception ex)
         {
             Serilog.Log.Warning(ex, "Operation journal undo pane refresh failed");
         }
-
-        RaisePropertyChanged(nameof(HasUndoActionItems));
     }
 
     private async Task RefreshSnapshotAsync()
@@ -3382,11 +3324,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         _runStopwatch.Reset();
         _runElapsedTimer.Stop();
-        ActivityTitle = title;
-        ActivityStatus = status;
-        ActivityStep = step;
-        ProgressValue = 0;
-        IsActivityVisible = true;
+        _activityState.ShowNotice(title, status, step);
         RaisePropertyChanged(nameof(RunElapsedText));
     }
 
@@ -3436,14 +3374,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 break;
             case "activity-undo":
                 SelectedWorkspaceIndex = 0;
-                UndoActionItems.Add(new UndoActionItemViewModel(new OperationJournalUndoItem(
-                    "smoke",
-                    "EnableAutoReapply",
-                    "task",
-                    "LibreSpot\\ReapplyWatcher",
-                    "Registered",
-                    "Unregister the scheduled task to undo.")));
-                RaisePropertyChanged(nameof(HasUndoActionItems));
+                _activityState.ReplaceUndoActionItems(new[]
+                {
+                    new OperationJournalUndoItem(
+                        "smoke",
+                        "EnableAutoReapply",
+                        "task",
+                        "LibreSpot\\ReapplyWatcher",
+                        "Registered",
+                        "Unregister the scheduled task to undo.")
+                });
                 AppendLog("UI automation smoke activity with reversible changes.", "INFO");
                 ShowNotice(
                     "UI automation activity",
