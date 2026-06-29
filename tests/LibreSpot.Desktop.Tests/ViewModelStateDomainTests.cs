@@ -1,4 +1,5 @@
 using LibreSpot.Desktop.Properties;
+using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
 using LibreSpot.Desktop.ViewModels;
 using Xunit;
@@ -159,5 +160,53 @@ public sealed class ViewModelStateDomainTests
 
         Assert.False(state.HasUndoActionItems);
         Assert.Empty(state.UndoActionItems);
+    }
+
+    [Fact]
+    public void EnvironmentSnapshotState_DefaultsToUncheckedFreshness()
+    {
+        var state = new EnvironmentSnapshotStateViewModel();
+
+        Assert.False(state.Snapshot.SpotifyInstalled);
+        Assert.Equal(string.Empty, state.LastRefreshedText);
+        Assert.False(state.IsStale);
+        Assert.Equal("Status not checked yet", state.FreshnessTitle);
+        Assert.Contains("Use Refresh environment", state.FreshnessDetail);
+    }
+
+    [Fact]
+    public void EnvironmentSnapshotState_UpdateOwnsSnapshotAndFreshnessCopy()
+    {
+        var state = new EnvironmentSnapshotStateViewModel();
+        var refreshedAt = DateTime.Now;
+
+        state.Update(
+            new EnvironmentSnapshot
+            {
+                SpotifyInstalled = true,
+                SpicetifyInstalled = true,
+                AutoReapplyTaskRegistered = true
+            },
+            refreshedAt);
+
+        Assert.True(state.Snapshot.SpotifyInstalled);
+        Assert.True(state.Snapshot.SpicetifyInstalled);
+        Assert.True(state.Snapshot.AutoReapplyTaskRegistered);
+        Assert.StartsWith("Last refreshed ", state.LastRefreshedText);
+        Assert.False(state.IsStale);
+        Assert.Equal("Environment checked just now", state.FreshnessTitle);
+        Assert.Contains("Refresh after you change Spotify", state.FreshnessDetail);
+    }
+
+    [Fact]
+    public void EnvironmentSnapshotState_StaleThresholdChangesGuidance()
+    {
+        var state = new EnvironmentSnapshotStateViewModel();
+
+        state.Update(new EnvironmentSnapshot(), DateTime.Now - TimeSpan.FromMinutes(6));
+
+        Assert.True(state.IsStale);
+        Assert.Equal("Refresh recommended", state.FreshnessTitle);
+        Assert.Contains("Recheck before you repair or reset", state.FreshnessDetail);
     }
 }

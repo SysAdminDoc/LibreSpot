@@ -491,6 +491,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly OperationJournalUndoService _operationJournalUndoService;
     private readonly LocalProfileService _profileService;
     private readonly ActivityRunStateViewModel _activityState = new();
+    private readonly EnvironmentSnapshotStateViewModel _environmentState = new();
     private readonly PromptStateViewModel _promptState = new();
     private readonly SettingsSearchStateViewModel _settingsSearch = new();
     private readonly Dispatcher _dispatcher;
@@ -510,8 +511,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _cacheLimitText = "0";
     private string _themeSearchText = string.Empty;
     private int _selectedWorkspaceIndex;
-    private DateTime? _snapshotRefreshedAt;
-    private EnvironmentSnapshot _snapshot = new();
     private bool _isApplyingSelectionDependencyRules;
     private ConfigurationLoadState _configurationLoadState = ConfigurationLoadState.Loaded;
     private string? _recoveredConfigurationPath;
@@ -555,6 +554,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _snapshotFreshnessTimer.Tick += (_, _) => RaiseSnapshotFreshnessChanged();
         _snapshotFreshnessTimer.Start();
         _activityState.PropertyChanged += OnActivityStatePropertyChanged;
+        _environmentState.PropertyChanged += OnEnvironmentStatePropertyChanged;
         _promptState.PropertyChanged += OnPromptStatePropertyChanged;
         _settingsSearch.PropertyChanged += OnSettingsSearchStatePropertyChanged;
 
@@ -678,18 +678,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand CancelPromptCommand { get; }
     public RelayCommand EscapeCommand { get; }
 
-    public EnvironmentSnapshot Snapshot
-    {
-        get => _snapshot;
-        private set
-        {
-            if (SetProperty(ref _snapshot, value))
-            {
-                RaiseAutoReapplyStateChanged();
-                RefreshSupportBundlePreview();
-            }
-        }
-    }
+    public EnvironmentSnapshot Snapshot => _environmentState.Snapshot;
 
     public bool IsAdministratorSession => _isAdministratorSession;
     public bool NeedsAdministratorRelaunch => !_isAdministratorSession;
@@ -1557,54 +1546,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public bool IsLogEmpty => _activityState.IsLogEmpty;
 
-    public string LastRefreshedText =>
-        _snapshotRefreshedAt is null
-            ? string.Empty
-            : $"Last refreshed {_snapshotRefreshedAt.Value.ToString("h:mm:ss tt", System.Globalization.CultureInfo.InvariantCulture)}";
+    public string LastRefreshedText => _environmentState.LastRefreshedText;
 
-    public bool IsSnapshotStale =>
-        _snapshotRefreshedAt is not null &&
-        DateTime.Now - _snapshotRefreshedAt.Value >= TimeSpan.FromMinutes(5);
+    public bool IsSnapshotStale => _environmentState.IsStale;
 
-    public string SnapshotFreshnessTitle
-    {
-        get
-        {
-            if (_snapshotRefreshedAt is null)
-            {
-                return "Status not checked yet";
-            }
+    public string SnapshotFreshnessTitle => _environmentState.FreshnessTitle;
 
-            var age = DateTime.Now - _snapshotRefreshedAt.Value;
-            if (age < TimeSpan.FromMinutes(1))
-            {
-                return "Environment checked just now";
-            }
-
-            if (age < TimeSpan.FromMinutes(3))
-            {
-                return "Environment checked recently";
-            }
-
-            return IsSnapshotStale ? "Refresh recommended" : "Environment may have changed";
-        }
-    }
-
-    public string SnapshotFreshnessDetail
-    {
-        get
-        {
-            if (_snapshotRefreshedAt is null)
-            {
-                return "Use Refresh environment before you decide whether Spotify, Spicetify, or the saved profile need repair.";
-            }
-
-            var refreshedAt = _snapshotRefreshedAt.Value.ToString("h:mm:ss tt", System.Globalization.CultureInfo.InvariantCulture);
-            return IsSnapshotStale
-                ? $"Last checked at {refreshedAt}. Recheck before you repair or reset if anything changed outside LibreSpot."
-                : $"Last checked at {refreshedAt}. Refresh after you change Spotify outside LibreSpot.";
-        }
-    }
+    public string SnapshotFreshnessDetail => _environmentState.FreshnessDetail;
 
     public bool IsPromptVisible
     {
@@ -1722,6 +1670,30 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(ActivitySummaryTitle));
         RaisePropertyChanged(nameof(TaskbarProgressState));
         RaisePropertyChanged(nameof(TaskbarProgressFraction));
+    }
+
+    private void OnEnvironmentStatePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(EnvironmentSnapshotStateViewModel.Snapshot):
+                RaisePropertyChanged(nameof(Snapshot));
+                RaiseAutoReapplyStateChanged();
+                RefreshSupportBundlePreview();
+                break;
+            case nameof(EnvironmentSnapshotStateViewModel.LastRefreshedText):
+                RaisePropertyChanged(nameof(LastRefreshedText));
+                break;
+            case nameof(EnvironmentSnapshotStateViewModel.IsStale):
+                RaisePropertyChanged(nameof(IsSnapshotStale));
+                break;
+            case nameof(EnvironmentSnapshotStateViewModel.FreshnessTitle):
+                RaisePropertyChanged(nameof(SnapshotFreshnessTitle));
+                break;
+            case nameof(EnvironmentSnapshotStateViewModel.FreshnessDetail):
+                RaisePropertyChanged(nameof(SnapshotFreshnessDetail));
+                break;
+        }
     }
 
     private void OnPromptStatePropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -2901,6 +2873,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _runElapsedTimer.Stop();
         _snapshotFreshnessTimer.Stop();
         _activityState.PropertyChanged -= OnActivityStatePropertyChanged;
+        _environmentState.PropertyChanged -= OnEnvironmentStatePropertyChanged;
         _promptState.PropertyChanged -= OnPromptStatePropertyChanged;
         _settingsSearch.PropertyChanged -= OnSettingsSearchStatePropertyChanged;
         _runCts?.Dispose();
@@ -2975,10 +2948,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         try
         {
-            Snapshot = await _snapshotService.GetSnapshotAsync(_configurationService.ConfigPath);
-            _snapshotRefreshedAt = DateTime.Now;
-            RaisePropertyChanged(nameof(LastRefreshedText));
-            RaiseSnapshotFreshnessChanged();
+            _environmentState.Update(
+                await _snapshotService.GetSnapshotAsync(_configurationService.ConfigPath),
+                DateTime.Now);
             RaiseSnapshotInsightsChanged();
         }
         catch (Exception ex)
@@ -2987,12 +2959,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void RaiseSnapshotFreshnessChanged()
-    {
-        RaisePropertyChanged(nameof(IsSnapshotStale));
-        RaisePropertyChanged(nameof(SnapshotFreshnessTitle));
-        RaisePropertyChanged(nameof(SnapshotFreshnessDetail));
-    }
+    private void RaiseSnapshotFreshnessChanged() => _environmentState.RefreshFreshness();
 
     private void PresentCancelRunPrompt()
     {
