@@ -497,7 +497,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly Dispatcher _dispatcher;
     private readonly bool _isAdministratorSession;
     private readonly InstallConfiguration _recommendedBaseline;
-    private readonly List<MaintenanceActionCardViewModel> _maintenanceCards;
+    private readonly MaintenanceActionsStateViewModel _maintenanceActions;
     private readonly Stopwatch _runStopwatch = new();
     private readonly DispatcherTimer _runElapsedTimer;
     private readonly DispatcherTimer _snapshotFreshnessTimer;
@@ -584,12 +584,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 def.Description,
                 _recommendedBaseline.Spicetify_Extensions.Contains(def.Key, StringComparer.OrdinalIgnoreCase))));
 
-        _maintenanceCards = AppCatalog.MaintenanceActions
-            .Select(def => new MaintenanceActionCardViewModel(def, RunMaintenanceAsync, () => !IsRunning, HandleAsyncCommandException))
-            .ToList();
-
-        SafeMaintenanceActions = new ObservableCollection<MaintenanceActionCardViewModel>(_maintenanceCards.Where(card => !card.IsDestructive));
-        DestructiveMaintenanceActions = new ObservableCollection<MaintenanceActionCardViewModel>(_maintenanceCards.Where(card => card.IsDestructive));
+        _maintenanceActions = new MaintenanceActionsStateViewModel(
+            AppCatalog.MaintenanceActions,
+            RunMaintenanceAsync,
+            () => !IsRunning,
+            HandleAsyncCommandException);
 
         ApplyRecommendedCommand = new AsyncRelayCommand(ApplyRecommendedAsync, () => !IsRunning, HandleAsyncCommandException);
         ApplyCustomCommand = new AsyncRelayCommand(ApplyCustomAsync, () => !IsRunning, HandleAsyncCommandException);
@@ -643,8 +642,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<OptionToggleViewModel> AdvancedOptions { get; }
     public ObservableCollection<OptionToggleViewModel> ExperienceOptions { get; }
     public ObservableCollection<ExtensionToggleViewModel> Extensions { get; }
-    public ObservableCollection<MaintenanceActionCardViewModel> SafeMaintenanceActions { get; }
-    public ObservableCollection<MaintenanceActionCardViewModel> DestructiveMaintenanceActions { get; }
+    public ObservableCollection<MaintenanceActionCardViewModel> SafeMaintenanceActions => _maintenanceActions.SafeActions;
+    public ObservableCollection<MaintenanceActionCardViewModel> DestructiveMaintenanceActions => _maintenanceActions.DestructiveActions;
     public ObservableCollection<SupportBundleCategoryViewModel> SupportBundleItems { get; }
     public ObservableCollection<string> SupportBundleRedactionRules { get; }
     public ObservableCollection<UndoActionItemViewModel> UndoActionItems => _activityState.UndoActionItems;
@@ -2318,7 +2317,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private HealthIssueActionViewModel? BuildHealthIssueAction(string action)
     {
-        var maintenanceCard = _maintenanceCards.FirstOrDefault(card => string.Equals(card.Action, action, StringComparison.Ordinal));
+        var maintenanceCard = _maintenanceActions.Find(action);
         if (maintenanceCard is not null && maintenanceCard.IsRelevant)
         {
             return new HealthIssueActionViewModel(
@@ -2400,19 +2399,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void RefreshMaintenanceActionRelevance()
     {
-        foreach (var card in _maintenanceCards)
-        {
-            card.RefreshRelevance(IsMaintenanceActionRelevant(card.Action));
-        }
+        _maintenanceActions.RefreshRelevance(IsMaintenanceActionRelevant);
     }
 
-    private void RaiseMaintenanceActionCanExecuteChanged()
-    {
-        foreach (var card in _maintenanceCards)
-        {
-            card.Command.RaiseCanExecuteChanged();
-        }
-    }
+    private void RaiseMaintenanceActionCanExecuteChanged() => _maintenanceActions.RaiseCanExecuteChanged();
 
     private void HandleAsyncCommandException(Exception ex)
     {

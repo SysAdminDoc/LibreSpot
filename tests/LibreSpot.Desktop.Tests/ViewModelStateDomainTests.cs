@@ -209,4 +209,38 @@ public sealed class ViewModelStateDomainTests
         Assert.Equal("Refresh recommended", state.FreshnessTitle);
         Assert.Contains("Recheck before you repair or reset", state.FreshnessDetail);
     }
+
+    [Fact]
+    public void MaintenanceActionsState_GroupsFindsAndRefreshesCards()
+    {
+        var canRun = true;
+        var state = new MaintenanceActionsStateViewModel(
+            AppCatalog.MaintenanceActions,
+            _ => Task.CompletedTask,
+            () => canRun,
+            _ => { });
+
+        Assert.NotEmpty(state.SafeActions);
+        Assert.NotEmpty(state.DestructiveActions);
+        Assert.All(state.SafeActions, card => Assert.False(card.IsDestructive));
+        Assert.All(state.DestructiveActions, card => Assert.True(card.IsDestructive));
+
+        var checkUpdates = state.Find("CheckUpdates");
+        var repairMarketplace = state.Find("RepairMarketplace");
+
+        Assert.NotNull(checkUpdates);
+        Assert.NotNull(repairMarketplace);
+        Assert.True(checkUpdates.Command.CanExecute(null));
+
+        state.RefreshRelevance(action => string.Equals(action, "CheckUpdates", StringComparison.Ordinal));
+
+        Assert.True(checkUpdates.IsRelevant);
+        Assert.False(repairMarketplace.IsRelevant);
+        Assert.False(repairMarketplace.Command.CanExecute(null));
+
+        canRun = false;
+        state.RaiseCanExecuteChanged();
+
+        Assert.False(checkUpdates.Command.CanExecute(null));
+    }
 }

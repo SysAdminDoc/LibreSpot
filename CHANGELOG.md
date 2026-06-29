@@ -49,9 +49,10 @@ All notable changes to LibreSpot will be documented in this file.
   can set a selected profile active without starting setup.
 
 ### Changed
-- WPF prompt, activity/log/undo, environment snapshot/freshness, and Custom
-  settings search state now live in dedicated state-domain view models while
-  preserving the existing `MainViewModel` binding surface.
+- WPF prompt, activity/log/undo, environment snapshot/freshness, maintenance
+  action grouping, and Custom settings search state now live in dedicated
+  state-domain view models while preserving the existing `MainViewModel`
+  binding surface.
 - WPF Custom profile management now has clearer active/template/local card
   states, a refresh action, selected-profile guidance, live status feedback,
   and safer edit/import/export command grouping.
