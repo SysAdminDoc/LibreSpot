@@ -13,6 +13,7 @@ using LibreSpot.Desktop.Properties;
 using LibreSpot.Desktop.Services;
 using Application = System.Windows.Application;
 using Clipboard = System.Windows.Clipboard;
+using ImageSource = System.Windows.Media.ImageSource;
 
 namespace LibreSpot.Desktop.ViewModels;
 
@@ -515,6 +516,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _profileNameText = "Custom profile";
     private string _profileDescriptionText = "Saved from the Custom page.";
     private string _profileOperationStatus = "Local profiles load when LibreSpot starts.";
+    private LocalProfileShareCard? _selectedProfileShareCard;
+    private ImageSource? _selectedProfileQrImage;
+    private string _selectedProfileShareStatus = "Select a profile to create an inert share card.";
+    private string _selectedProfileComparisonText = "Select a profile to compare it with Recommended.";
+    private Task _selectedProfileShareRefreshTask = Task.CompletedTask;
     private SupportBundlePreview _supportBundlePreview = new(
         Array.Empty<SupportBundlePreviewEntry>(),
         0,
@@ -561,6 +567,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SelectedExtensionLabels = new ObservableCollection<string>();
         SupportBundleItems = new ObservableCollection<SupportBundleCategoryViewModel>();
         SupportBundleRedactionRules = new ObservableCollection<string>();
+        ChangelogHighlights = new ObservableCollection<string>(ChangelogPreviewService.LoadUnreleasedHighlights());
         LocalProfiles = new ObservableCollection<LocalProfileCardViewModel>();
 
         _maintenanceActions = new MaintenanceActionsStateViewModel(
@@ -587,6 +594,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DeleteProfileCommand = new AsyncRelayCommand(DeleteLocalProfileAsync, CanDeleteLocalProfile, HandleAsyncCommandException);
         ExportProfileCommand = new AsyncRelayCommand(ExportLocalProfileAsync, CanUseSelectedProfile, HandleAsyncCommandException);
         ImportProfileCommand = new AsyncRelayCommand(ImportLocalProfileAsync, () => !IsRunning, HandleAsyncCommandException);
+        CopyProfileShareUriCommand = new RelayCommand(CopyProfileShareUri, () => HasSelectedProfileShareCard);
+        CopyProfileComparisonCommand = new RelayCommand(CopyProfileComparison, () => HasSelectedLocalProfile);
+        OpenRepositoryCommand = new RelayCommand(() => OpenExternalUri("https://github.com/SysAdminDoc/LibreSpot"));
+        OpenSpicetifyCommunityCommand = new RelayCommand(() => OpenExternalUri("https://spicetify.app/docs/advanced-usage/extensions"));
+        OpenThemeCatalogCommand = new RelayCommand(() => OpenExternalUri("https://github.com/spicetify/spicetify-themes"));
         ShowRecommendedWorkspaceCommand = new RelayCommand(() => SelectedWorkspaceIndex = 0);
         ShowCustomWorkspaceCommand = new RelayCommand(() => SelectedWorkspaceIndex = 1);
         ShowMaintenanceWorkspaceCommand = new RelayCommand(() => SelectedWorkspaceIndex = 2);
@@ -629,6 +641,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<MaintenanceActionCardViewModel> DestructiveMaintenanceActions => _maintenanceActions.DestructiveActions;
     public ObservableCollection<SupportBundleCategoryViewModel> SupportBundleItems { get; }
     public ObservableCollection<string> SupportBundleRedactionRules { get; }
+    public ObservableCollection<string> ChangelogHighlights { get; }
     public ObservableCollection<UndoActionItemViewModel> UndoActionItems => _activityState.UndoActionItems;
     public ObservableCollection<LocalProfileCardViewModel> LocalProfiles { get; }
     public ObservableCollection<LogEntryViewModel> LogEntries => _activityState.LogEntries;
@@ -651,6 +664,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public AsyncRelayCommand DeleteProfileCommand { get; }
     public AsyncRelayCommand ExportProfileCommand { get; }
     public AsyncRelayCommand ImportProfileCommand { get; }
+    public RelayCommand CopyProfileShareUriCommand { get; }
+    public RelayCommand CopyProfileComparisonCommand { get; }
+    public RelayCommand OpenRepositoryCommand { get; }
+    public RelayCommand OpenSpicetifyCommunityCommand { get; }
+    public RelayCommand OpenThemeCatalogCommand { get; }
     public RelayCommand ShowRecommendedWorkspaceCommand { get; }
     public RelayCommand ShowCustomWorkspaceCommand { get; }
     public RelayCommand ShowMaintenanceWorkspaceCommand { get; }
@@ -677,6 +695,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             {
                 RefreshProfileFormFromSelection();
                 RaiseLocalProfileStateChanged();
+                _selectedProfileShareRefreshTask = RefreshSelectedProfileShareCardAsync();
             }
         }
     }
@@ -709,6 +728,30 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         get => _profileOperationStatus;
         private set => SetProperty(ref _profileOperationStatus, value);
+    }
+
+    public bool HasSelectedProfileShareCard => _selectedProfileShareCard is not null;
+
+    public string SelectedProfileShareUri => _selectedProfileShareCard?.ShareUri ?? string.Empty;
+
+    public ImageSource? SelectedProfileQrImage
+    {
+        get => _selectedProfileQrImage;
+        private set => SetProperty(ref _selectedProfileQrImage, value);
+    }
+
+    public bool HasSelectedProfileQrImage => SelectedProfileQrImage is not null;
+
+    public string SelectedProfileShareStatus
+    {
+        get => _selectedProfileShareStatus;
+        private set => SetProperty(ref _selectedProfileShareStatus, value);
+    }
+
+    public string SelectedProfileComparisonText
+    {
+        get => _selectedProfileComparisonText;
+        private set => SetProperty(ref _selectedProfileComparisonText, value);
     }
 
     public bool HasLocalProfiles => LocalProfiles.Count > 0;
@@ -2018,6 +2061,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             LocalProfiles.FirstOrDefault(profile => string.Equals(profile.Id, selectedId, StringComparison.OrdinalIgnoreCase)) ??
             LocalProfiles.FirstOrDefault(profile => profile.IsActive) ??
             LocalProfiles.FirstOrDefault();
+        await _selectedProfileShareRefreshTask;
 
         ProfileOperationStatus = LocalProfiles.Count == 0
             ? "No profiles are available yet. Save the current Custom selections to create one."
@@ -2063,6 +2107,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DeleteProfileCommand.RaiseCanExecuteChanged();
         ExportProfileCommand.RaiseCanExecuteChanged();
         ImportProfileCommand.RaiseCanExecuteChanged();
+        CopyProfileShareUriCommand.RaiseCanExecuteChanged();
+        CopyProfileComparisonCommand.RaiseCanExecuteChanged();
     }
 
     private bool CanUseSelectedProfile() => !IsRunning && SelectedLocalProfile is not null;
@@ -2206,6 +2252,162 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         await _profileService.ExportAsync(SelectedLocalProfile.Id, dialog.FileName);
         ProfileOperationStatus = $"{SelectedLocalProfile.Name} was exported to {dialog.FileName}.";
         AppendLog($"Exported local profile: {dialog.FileName}", "SUCCESS");
+    }
+
+    private async Task RefreshSelectedProfileShareCardAsync()
+    {
+        var selected = SelectedLocalProfile;
+        _selectedProfileShareCard = null;
+        SelectedProfileQrImage = null;
+        SelectedProfileShareStatus = selected is null
+            ? "Select a profile to create an inert share card."
+            : "Preparing share card...";
+        SelectedProfileComparisonText = selected is null
+            ? "Select a profile to compare it with Recommended."
+            : "Comparing with Recommended...";
+        RaiseProfileShareCardStateChanged();
+
+        if (selected is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var shareCard = await _profileService.CreateShareCardAsync(selected.Id);
+            var profile = await _profileService.LoadProfileAsync(selected.Id);
+            if (SelectedLocalProfile?.Id != selected.Id)
+            {
+                return;
+            }
+
+            _selectedProfileShareCard = shareCard;
+            SelectedProfileComparisonText = BuildProfileComparison(profile.Configuration);
+
+            try
+            {
+                SelectedProfileQrImage = QrCodeImageService.CreateImage(shareCard.QrPayload);
+                SelectedProfileShareStatus = "QR card and share link are ready. Import still opens as a preview before saving.";
+            }
+            catch (Exception ex)
+            {
+                SelectedProfileQrImage = null;
+                SelectedProfileShareStatus = $"Share link is ready, but this profile is too large for a QR card: {ex.Message}";
+            }
+
+            RaiseProfileShareCardStateChanged();
+        }
+        catch (Exception ex)
+        {
+            SelectedProfileQrImage = null;
+            SelectedProfileShareStatus = $"Couldn't prepare sharing for {selected.Name}: {ex.Message}";
+            SelectedProfileComparisonText = "Comparison is unavailable until the profile can be loaded.";
+            RaiseProfileShareCardStateChanged();
+        }
+    }
+
+    private void RaiseProfileShareCardStateChanged()
+    {
+        RaisePropertyChanged(nameof(HasSelectedProfileShareCard));
+        RaisePropertyChanged(nameof(SelectedProfileShareUri));
+        RaisePropertyChanged(nameof(HasSelectedProfileQrImage));
+        CopyProfileShareUriCommand.RaiseCanExecuteChanged();
+        CopyProfileComparisonCommand.RaiseCanExecuteChanged();
+    }
+
+    private void CopyProfileShareUri()
+    {
+        if (_selectedProfileShareCard is null)
+        {
+            return;
+        }
+
+        TryCopyText(_selectedProfileShareCard.ShareUri, "Copied profile share link.", "Clipboard was unavailable. Use Export to share the profile file instead.");
+    }
+
+    private void CopyProfileComparison()
+    {
+        if (SelectedLocalProfile is null)
+        {
+            return;
+        }
+
+        TryCopyText(SelectedProfileComparisonText, "Copied profile comparison.", "Clipboard was unavailable. The comparison remains visible here.");
+    }
+
+    private void TryCopyText(string text, string successMessage, string failureMessage)
+    {
+        try
+        {
+            Clipboard.SetText(text);
+            ProfileOperationStatus = successMessage;
+        }
+        catch
+        {
+            ProfileOperationStatus = failureMessage;
+        }
+    }
+
+    private static string BuildProfileComparison(InstallConfiguration configuration)
+    {
+        var normalized = AppCatalog.NormalizeConfiguration(configuration);
+        var recommended = AppCatalog.CreateRecommendedConfiguration();
+        var changedAreas = new List<string>();
+
+        if (!string.Equals(normalized.Spicetify_Theme, recommended.Spicetify_Theme, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(normalized.Spicetify_Scheme, recommended.Spicetify_Scheme, StringComparison.OrdinalIgnoreCase))
+        {
+            changedAreas.Add($"theme {normalized.Spicetify_Theme}/{normalized.Spicetify_Scheme}");
+        }
+
+        if (!string.Equals(normalized.SpotX_LyricsTheme, recommended.SpotX_LyricsTheme, StringComparison.OrdinalIgnoreCase))
+        {
+            changedAreas.Add($"lyrics color {Prettify.Label(normalized.SpotX_LyricsTheme)}");
+        }
+
+        if (!SetEquals(normalized.Spicetify_Extensions, recommended.Spicetify_Extensions))
+        {
+            changedAreas.Add($"{normalized.Spicetify_Extensions.Count} extensions");
+        }
+
+        if (normalized.Spicetify_CustomApps.Count > 0)
+        {
+            changedAreas.Add($"{normalized.Spicetify_CustomApps.Count} custom apps");
+        }
+
+        if (normalized.SpotX_Premium != recommended.SpotX_Premium)
+        {
+            changedAreas.Add("Premium account patch posture");
+        }
+
+        if (normalized.CleanInstall != recommended.CleanInstall)
+        {
+            changedAreas.Add(normalized.CleanInstall ? "clean install" : "overlay install");
+        }
+
+        var diffText = changedAreas.Count == 0
+            ? "matches the Recommended baseline"
+            : $"differs in {string.Join(", ", changedAreas)}";
+        return $"{normalized.Mode} profile {diffText}. Theme: {normalized.Spicetify_Theme}/{normalized.Spicetify_Scheme}; lyrics: {Prettify.Label(normalized.SpotX_LyricsTheme)}; extensions: {normalized.Spicetify_Extensions.Count}; custom apps: {normalized.Spicetify_CustomApps.Count}.";
+    }
+
+    private static bool SetEquals(IEnumerable<string> left, IEnumerable<string> right) =>
+        left.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(right);
+
+    private void OpenExternalUri(string uri)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = uri,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            ProfileOperationStatus = $"Couldn't open link: {ex.Message}";
+        }
     }
 
     private async Task ImportLocalProfileAsync()

@@ -5,6 +5,10 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added profile sharing cards in WPF Custom mode with local QR rendering,
+  share-link copying, selected-profile comparison text, embedded changelog
+  preview, and direct community links for repository, Spicetify extensions, and
+  theme catalog discovery.
 - Added Windows shell integration for the WPF desktop preview: per-user
   `librespot://` protocol and `.librespot` file associations, jump-list tasks,
   taskbar thumbnail actions, tray minimize/restore, and clickable tray

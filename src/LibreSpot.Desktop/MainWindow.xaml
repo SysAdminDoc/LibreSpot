@@ -1856,6 +1856,91 @@
                           </Grid>
                         </Border>
 
+                        <Border Background="{StaticResource Surface1Brush}"
+                                BorderBrush="{StaticResource StrokeSoftBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource RadiusLg}"
+                                Padding="12"
+                                Margin="0,0,0,12"
+                                AutomationProperties.Name="Profile share card"
+                                AutomationProperties.HelpText="Shows an inert share link, QR code, and profile comparison for the selected profile.">
+                          <StackPanel>
+                            <Grid>
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                              </Grid.ColumnDefinitions>
+                              <Border Width="124"
+                                      Height="124"
+                                      Background="{StaticResource Surface3Brush}"
+                                      BorderBrush="{StaticResource StrokeSoftBrush}"
+                                      BorderThickness="1"
+                                      CornerRadius="{StaticResource RadiusMd}"
+                                      Padding="8"
+                                      Margin="0,0,12,0">
+                                <Grid>
+                                  <Image Source="{Binding SelectedProfileQrImage}"
+                                         Stretch="Uniform"
+                                         AutomationProperties.Name="Selected profile QR code"
+                                         Visibility="{Binding HasSelectedProfileQrImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                  <TextBlock Text="No QR"
+                                             Foreground="{StaticResource MutedTextBrush}"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                      <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                          <DataTrigger Binding="{Binding HasSelectedProfileQrImage}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                          </DataTrigger>
+                                        </Style.Triggers>
+                                      </Style>
+                                    </TextBlock.Style>
+                                  </TextBlock>
+                                </Grid>
+                              </Border>
+                              <StackPanel Grid.Column="1">
+                                <TextBlock Text="Share card"
+                                           Style="{StaticResource LabelTextStyle}"
+                                           Foreground="{StaticResource AccentBrush}" />
+                                <TextBlock Text="{Binding SelectedProfileShareStatus}"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,6,0,8" />
+                                <TextBox Text="{Binding SelectedProfileShareUri, Mode=OneWay}"
+                                         Style="{StaticResource TextBoxStylePremium}"
+                                         IsReadOnly="True"
+                                         Height="36"
+                                         TextWrapping="NoWrap"
+                                         AutomationProperties.Name="Selected profile share link"
+                                         AutomationProperties.HelpText="Inert librespot profile link for preview-only import." />
+                              </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="Compare to Recommended"
+                                       Style="{StaticResource LabelTextStyle}"
+                                       Margin="0,12,0,6" />
+                            <TextBlock Text="{Binding SelectedProfileComparisonText}"
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       TextWrapping="Wrap" />
+                            <UniformGrid Columns="2" Margin="0,12,0,0">
+                              <Button Content="Copy link"
+                                      Height="34"
+                                      Margin="0,0,6,0"
+                                      Style="{StaticResource SecondaryButtonStyle}"
+                                      Command="{Binding CopyProfileShareUriCommand}"
+                                      AutomationProperties.Name="Copy selected profile share link" />
+                              <Button Content="Copy compare"
+                                      Height="34"
+                                      Margin="6,0,0,0"
+                                      Style="{StaticResource SecondaryButtonStyle}"
+                                      Command="{Binding CopyProfileComparisonCommand}"
+                                      AutomationProperties.Name="Copy selected profile comparison" />
+                            </UniformGrid>
+                          </StackPanel>
+                        </Border>
+
                         <Grid Margin="0,0,0,10">
                           <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -1951,6 +2036,54 @@
                                   AutomationProperties.Name="Delete selected local profile"
                                   AutomationProperties.HelpText="Confirms and removes the selected local profile file." />
                         </UniformGrid>
+
+                        <Border Background="{StaticResource Surface1Brush}"
+                                BorderBrush="{StaticResource StrokeSoftBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource RadiusLg}"
+                                Padding="12"
+                                Margin="0,10,0,12"
+                                AutomationProperties.Name="Community and changelog">
+                          <StackPanel>
+                            <TextBlock Text="Changelog preview"
+                                       Style="{StaticResource LabelTextStyle}"
+                                       Foreground="{StaticResource AccentBrush}" />
+                            <ItemsControl ItemsSource="{Binding ChangelogHighlights}"
+                                          Margin="0,8,0,10">
+                              <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                  <TextBlock Text="{Binding}"
+                                             Style="{StaticResource CaptionTextStyle}"
+                                             TextWrapping="Wrap"
+                                             Margin="0,0,0,6" />
+                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="Community links"
+                                       Style="{StaticResource LabelTextStyle}"
+                                       Margin="0,2,0,8" />
+                            <UniformGrid Columns="3">
+                              <Button Content="Repo"
+                                      Height="32"
+                                      Margin="0,0,6,0"
+                                      Style="{StaticResource SecondaryButtonStyle}"
+                                      Command="{Binding OpenRepositoryCommand}"
+                                      AutomationProperties.Name="Open LibreSpot repository" />
+                              <Button Content="Extensions"
+                                      Height="32"
+                                      Margin="3,0,3,0"
+                                      Style="{StaticResource SecondaryButtonStyle}"
+                                      Command="{Binding OpenSpicetifyCommunityCommand}"
+                                      AutomationProperties.Name="Open Spicetify extension docs" />
+                              <Button Content="Themes"
+                                      Height="32"
+                                      Margin="6,0,0,0"
+                                      Style="{StaticResource SecondaryButtonStyle}"
+                                      Command="{Binding OpenThemeCatalogCommand}"
+                                      AutomationProperties.Name="Open Spicetify theme catalog" />
+                            </UniformGrid>
+                          </StackPanel>
+                        </Border>
 
                         <Border Height="1"
                                 Background="{StaticResource StrokeSoftBrush}"
