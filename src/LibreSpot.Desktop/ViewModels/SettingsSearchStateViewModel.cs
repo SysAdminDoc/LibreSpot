@@ -1,21 +1,11 @@
 namespace LibreSpot.Desktop.ViewModels;
 
-public sealed class SettingsSearchStateViewModel : ObservableObject
+public sealed partial class SettingsSearchStateViewModel : ObservableObject
 {
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasText))]
+    [NotifyPropertyChangedFor(nameof(Query))]
     private string _text = string.Empty;
-
-    public string Text
-    {
-        get => _text;
-        set
-        {
-            if (SetProperty(ref _text, value))
-            {
-                RaisePropertyChanged(nameof(HasText));
-                RaisePropertyChanged(nameof(Query));
-            }
-        }
-    }
 
     public bool HasText => !string.IsNullOrWhiteSpace(Text);
 

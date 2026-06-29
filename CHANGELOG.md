@@ -5,6 +5,9 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added CommunityToolkit.Mvvm 8.4.2 to the WPF shell, replacing the local
+  observable/command helpers with Toolkit commands and source-generated
+  observable state properties.
 - Added WPF runtime localization with resource-backed strings, a persisted
   language selector for EN/RU/ZH-Hans/PT-BR/ES, machine-prefilled RESX files,
   Crowdin CLI mapping, and local validation for resource completeness plus raw

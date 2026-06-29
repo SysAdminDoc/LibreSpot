@@ -24,14 +24,21 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
-    public void AsyncRelayCommand_RoutesAsyncExceptionsToHandler()
+    public void MaintenanceActionCommand_RoutesAsyncExceptionsToHandler()
     {
         var observed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var command = new AsyncRelayCommand(
-            () => Task.FromException(new InvalidOperationException("command exploded")),
-            onException: ex => observed.TrySetResult(ex.Message));
+        var definition = new MaintenanceActionDefinition(
+            "Explode",
+            "Explode",
+            "Throws during execution",
+            "Run");
+        var card = new MaintenanceActionCardViewModel(
+            definition,
+            _ => Task.FromException(new InvalidOperationException("command exploded")),
+            () => true,
+            ex => observed.TrySetResult(ex.Message));
 
-        command.Execute(null);
+        card.Command.Execute(null);
 
         Assert.True(observed.Task.Wait(TimeSpan.FromSeconds(2)));
         Assert.Equal("command exploded", observed.Task.Result);

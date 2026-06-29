@@ -66,7 +66,7 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
             if (SetProperty(ref _selectedTheme, value))
             {
                 RebuildSchemes();
-                RaisePropertyChanged(nameof(SelectedThemeGalleryItem));
+                OnPropertyChanged(nameof(SelectedThemeGalleryItem));
             }
         }
     }
@@ -207,10 +207,10 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
 
     private void RaiseThemeFilterChanged()
     {
-        RaisePropertyChanged(nameof(FilteredThemeGalleryItems));
-        RaisePropertyChanged(nameof(ThemeGalleryEmptyText));
-        RaisePropertyChanged(nameof(ShowThemeGalleryEmptyState));
-        RaisePropertyChanged(nameof(HasThemeSearchText));
+        OnPropertyChanged(nameof(FilteredThemeGalleryItems));
+        OnPropertyChanged(nameof(ThemeGalleryEmptyText));
+        OnPropertyChanged(nameof(ShowThemeGalleryEmptyState));
+        OnPropertyChanged(nameof(HasThemeSearchText));
     }
 
     private static string ToExtensionResourceKey(string key)

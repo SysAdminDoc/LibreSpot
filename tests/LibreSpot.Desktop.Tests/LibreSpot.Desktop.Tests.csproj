@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="FlaUI.UIA3.Signed" Version="5.0.0" />
     <PackageReference Include="FsCheck.Xunit" Version="3.3.3" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />

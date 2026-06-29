@@ -4,16 +4,29 @@ using LibreSpot.Desktop.Services;
 
 namespace LibreSpot.Desktop.ViewModels;
 
-public sealed class ActivityRunStateViewModel : ObservableObject
+public sealed partial class ActivityRunStateViewModel : ObservableObject
 {
     private const int MaxLogEntries = 2000;
 
+    [ObservableProperty]
     private bool _isVisible;
+
+    [ObservableProperty]
     private bool _isRunning;
+
+    [ObservableProperty]
     private bool _isCancelRequested;
+
+    [ObservableProperty]
     private double _progressValue;
+
+    [ObservableProperty]
     private string _title = Strings.ActivityReady;
+
+    [ObservableProperty]
     private string _status = Strings.ActivityPickPath;
+
+    [ObservableProperty]
     private string _step = "Idle";
 
     public ActivityRunStateViewModel()
@@ -24,48 +37,6 @@ public sealed class ActivityRunStateViewModel : ObservableObject
 
     public ObservableCollection<LogEntryViewModel> LogEntries { get; }
     public ObservableCollection<UndoActionItemViewModel> UndoActionItems { get; }
-
-    public bool IsVisible
-    {
-        get => _isVisible;
-        set => SetProperty(ref _isVisible, value);
-    }
-
-    public bool IsRunning
-    {
-        get => _isRunning;
-        set => SetProperty(ref _isRunning, value);
-    }
-
-    public bool IsCancelRequested
-    {
-        get => _isCancelRequested;
-        set => SetProperty(ref _isCancelRequested, value);
-    }
-
-    public double ProgressValue
-    {
-        get => _progressValue;
-        set => SetProperty(ref _progressValue, value);
-    }
-
-    public string Title
-    {
-        get => _title;
-        set => SetProperty(ref _title, value);
-    }
-
-    public string Status
-    {
-        get => _status;
-        set => SetProperty(ref _status, value);
-    }
-
-    public string Step
-    {
-        get => _step;
-        set => SetProperty(ref _step, value);
-    }
 
     public string LogLineCountText =>
         LogEntries.Count switch
@@ -134,7 +105,7 @@ public sealed class ActivityRunStateViewModel : ObservableObject
         }
 
         UndoActionItems.Clear();
-        RaisePropertyChanged(nameof(HasUndoActionItems));
+        OnPropertyChanged(nameof(HasUndoActionItems));
     }
 
     public void ReplaceUndoActionItems(IEnumerable<OperationJournalUndoItem> items)
@@ -145,12 +116,12 @@ public sealed class ActivityRunStateViewModel : ObservableObject
             UndoActionItems.Add(new UndoActionItemViewModel(item));
         }
 
-        RaisePropertyChanged(nameof(HasUndoActionItems));
+        OnPropertyChanged(nameof(HasUndoActionItems));
     }
 
     private void RaiseLogStateChanged()
     {
-        RaisePropertyChanged(nameof(LogLineCountText));
-        RaisePropertyChanged(nameof(IsLogEmpty));
+        OnPropertyChanged(nameof(LogLineCountText));
+        OnPropertyChanged(nameof(IsLogEmpty));
     }
 }

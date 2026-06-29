@@ -21,7 +21,7 @@ public sealed class PromptStateViewModel : ObservableObject
         {
             if (SetProperty(ref _isVisible, value))
             {
-                RaisePropertyChanged(nameof(IsConfirmDefault));
+                OnPropertyChanged(nameof(IsConfirmDefault));
             }
         }
     }
@@ -69,7 +69,7 @@ public sealed class PromptStateViewModel : ObservableObject
         {
             if (SetProperty(ref _isDestructive, value))
             {
-                RaisePropertyChanged(nameof(IsConfirmDefault));
+                OnPropertyChanged(nameof(IsConfirmDefault));
             }
         }
     }

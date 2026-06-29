@@ -85,9 +85,9 @@ public sealed class EnvironmentSnapshotStateViewModel : ObservableObject
 
     private void RaiseFreshnessChanged()
     {
-        RaisePropertyChanged(nameof(LastRefreshedText));
-        RaisePropertyChanged(nameof(IsStale));
-        RaisePropertyChanged(nameof(FreshnessTitle));
-        RaisePropertyChanged(nameof(FreshnessDetail));
+        OnPropertyChanged(nameof(LastRefreshedText));
+        OnPropertyChanged(nameof(IsStale));
+        OnPropertyChanged(nameof(FreshnessTitle));
+        OnPropertyChanged(nameof(FreshnessDetail));
     }
 }

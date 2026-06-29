@@ -301,9 +301,18 @@ public sealed class MaintenanceActionCardViewModel : ObservableObject
     {
         Definition = definition;
         Command = new AsyncRelayCommand(
-            () => runAsync(Definition),
-            () => IsRelevant && canRun(),
-            onException);
+            async () =>
+            {
+                try
+                {
+                    await runAsync(Definition);
+                }
+                catch (Exception ex)
+                {
+                    onException(ex);
+                }
+            },
+            () => IsRelevant && canRun());
     }
 
     public MaintenanceActionDefinition Definition { get; }
@@ -312,7 +321,7 @@ public sealed class MaintenanceActionCardViewModel : ObservableObject
     public string Description => Definition.Description;
     public string ButtonText => Definition.ButtonText;
     public bool IsDestructive => Definition.IsDestructive;
-    public AsyncRelayCommand Command { get; }
+    public IAsyncRelayCommand Command { get; }
 
     public bool IsRelevant
     {
@@ -321,7 +330,7 @@ public sealed class MaintenanceActionCardViewModel : ObservableObject
         {
             if (SetProperty(ref _isRelevant, value))
             {
-                Command.RaiseCanExecuteChanged();
+                Command.NotifyCanExecuteChanged();
             }
         }
     }
@@ -329,7 +338,7 @@ public sealed class MaintenanceActionCardViewModel : ObservableObject
     public void RefreshRelevance(bool isRelevant)
     {
         IsRelevant = isRelevant;
-        Command.RaiseCanExecuteChanged();
+        Command.NotifyCanExecuteChanged();
     }
 }
 
@@ -601,7 +610,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             Interval = TimeSpan.FromSeconds(1)
         };
-        _runElapsedTimer.Tick += (_, _) => RaisePropertyChanged(nameof(RunElapsedText));
+        _runElapsedTimer.Tick += (_, _) => OnPropertyChanged(nameof(RunElapsedText));
         _snapshotFreshnessTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher)
         {
             Interval = TimeSpan.FromSeconds(30)
@@ -631,30 +640,30 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             () => !IsRunning,
             HandleAsyncCommandException);
 
-        ApplyRecommendedCommand = new AsyncRelayCommand(ApplyRecommendedAsync, () => !IsRunning, HandleAsyncCommandException);
-        ApplyCustomCommand = new AsyncRelayCommand(ApplyCustomAsync, () => !IsRunning, HandleAsyncCommandException);
+        ApplyRecommendedCommand = CreateAsyncCommand(ApplyRecommendedAsync, () => !IsRunning);
+        ApplyCustomCommand = CreateAsyncCommand(ApplyCustomAsync, () => !IsRunning);
         CancelRunCommand = new RelayCommand(PresentCancelRunPrompt, () => IsRunning && !IsCancelRequested);
         DismissActivityCommand = new RelayCommand(DismissActivity, () => IsActivityVisible && !IsRunning);
         CopyLogCommand = new RelayCommand(CopyLog, () => LogEntries.Count > 0);
         OpenLibreSpotFolderCommand = new RelayCommand(OpenLibreSpotFolder);
-        RefreshSnapshotCommand = new AsyncRelayCommand(RefreshSnapshotAsync, onException: HandleAsyncCommandException);
+        RefreshSnapshotCommand = CreateAsyncCommand(RefreshSnapshotAsync);
         RefreshSupportBundlePreviewCommand = new RelayCommand(RefreshSupportBundlePreview);
-        ExportSupportBundleCommand = new AsyncRelayCommand(ExportSupportBundleAsync, () => !IsRunning, HandleAsyncCommandException);
-        RefreshProfilesCommand = new AsyncRelayCommand(() => RefreshLocalProfilesAsync(), () => !IsRunning, HandleAsyncCommandException);
-        PreviewSelectedProfileCommand = new AsyncRelayCommand(PreviewSelectedProfileAsync, CanUseSelectedProfile, HandleAsyncCommandException);
-        ApplySelectedProfileCommand = new AsyncRelayCommand(ApplySelectedProfileAsync, CanUseSelectedProfile, HandleAsyncCommandException);
-        CreateProfileCommand = new AsyncRelayCommand(CreateLocalProfileAsync, CanCreateLocalProfile, HandleAsyncCommandException);
-        DuplicateProfileCommand = new AsyncRelayCommand(DuplicateLocalProfileAsync, CanUseSelectedProfile, HandleAsyncCommandException);
-        RenameProfileCommand = new AsyncRelayCommand(RenameLocalProfileAsync, CanRenameLocalProfile, HandleAsyncCommandException);
-        DeleteProfileCommand = new AsyncRelayCommand(DeleteLocalProfileAsync, CanDeleteLocalProfile, HandleAsyncCommandException);
-        ExportProfileCommand = new AsyncRelayCommand(ExportLocalProfileAsync, CanUseSelectedProfile, HandleAsyncCommandException);
-        ImportProfileCommand = new AsyncRelayCommand(ImportLocalProfileAsync, () => !IsRunning, HandleAsyncCommandException);
+        ExportSupportBundleCommand = CreateAsyncCommand(ExportSupportBundleAsync, () => !IsRunning);
+        RefreshProfilesCommand = CreateAsyncCommand(() => RefreshLocalProfilesAsync(), () => !IsRunning);
+        PreviewSelectedProfileCommand = CreateAsyncCommand(PreviewSelectedProfileAsync, CanUseSelectedProfile);
+        ApplySelectedProfileCommand = CreateAsyncCommand(ApplySelectedProfileAsync, CanUseSelectedProfile);
+        CreateProfileCommand = CreateAsyncCommand(CreateLocalProfileAsync, CanCreateLocalProfile);
+        DuplicateProfileCommand = CreateAsyncCommand(DuplicateLocalProfileAsync, CanUseSelectedProfile);
+        RenameProfileCommand = CreateAsyncCommand(RenameLocalProfileAsync, CanRenameLocalProfile);
+        DeleteProfileCommand = CreateAsyncCommand(DeleteLocalProfileAsync, CanDeleteLocalProfile);
+        ExportProfileCommand = CreateAsyncCommand(ExportLocalProfileAsync, CanUseSelectedProfile);
+        ImportProfileCommand = CreateAsyncCommand(ImportLocalProfileAsync, () => !IsRunning);
         CopyProfileShareUriCommand = new RelayCommand(CopyProfileShareUri, () => HasSelectedProfileShareCard);
         CopyProfileComparisonCommand = new RelayCommand(CopyProfileComparison, () => HasSelectedLocalProfile);
         ValidateCustomPatchesCommand = new RelayCommand(ValidateCustomPatches, () => !IsRunning);
         FormatCustomPatchesCommand = new RelayCommand(FormatCustomPatches, () => !IsRunning && !string.IsNullOrWhiteSpace(CustomPatchesJson));
         ClearCustomPatchesCommand = new RelayCommand(ClearCustomPatches, () => !IsRunning && (CustomPatchesEnabled || !string.IsNullOrWhiteSpace(CustomPatchesJson)));
-        ImportCustomPatchesFromUrlCommand = new AsyncRelayCommand(ImportCustomPatchesFromUrlAsync, () => !IsRunning && !string.IsNullOrWhiteSpace(CustomPatchesImportUrl), HandleAsyncCommandException);
+        ImportCustomPatchesFromUrlCommand = CreateAsyncCommand(ImportCustomPatchesFromUrlAsync, () => !IsRunning && !string.IsNullOrWhiteSpace(CustomPatchesImportUrl));
         OpenRepositoryCommand = new RelayCommand(() => OpenExternalUri("https://github.com/SysAdminDoc/LibreSpot"));
         OpenSpicetifyCommunityCommand = new RelayCommand(() => OpenExternalUri("https://spicetify.app/docs/advanced-usage/extensions"));
         OpenThemeCatalogCommand = new RelayCommand(() => OpenExternalUri("https://github.com/spicetify/spicetify-themes"));
@@ -666,7 +675,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ClearSettingsSearchCommand = new RelayCommand(() => SettingsSearchText = string.Empty, () => HasSettingsSearchText);
         ClearThemeSearchCommand = new RelayCommand(() => ThemeSearchText = string.Empty, () => HasThemeSearchText);
         RelaunchAsAdministratorCommand = new RelayCommand(PresentAdministratorPrompt, () => NeedsAdministratorRelaunch && !IsRunning);
-        ConfirmPromptCommand = new AsyncRelayCommand(ConfirmPromptAsync, () => IsPromptVisible, HandleAsyncCommandException);
+        ConfirmPromptCommand = CreateAsyncCommand(ConfirmPromptAsync, () => IsPromptVisible);
         CancelPromptCommand = new RelayCommand(CancelPrompt, () => IsPromptVisible);
         EscapeCommand = new RelayCommand(HandleEscape);
 
@@ -707,30 +716,30 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<LocalizationOption> LocalizationOptions { get; }
     public ObservableCollection<LogEntryViewModel> LogEntries => _activityState.LogEntries;
 
-    public AsyncRelayCommand ApplyRecommendedCommand { get; }
-    public AsyncRelayCommand ApplyCustomCommand { get; }
+    public IAsyncRelayCommand ApplyRecommendedCommand { get; }
+    public IAsyncRelayCommand ApplyCustomCommand { get; }
     public RelayCommand CancelRunCommand { get; }
     public RelayCommand DismissActivityCommand { get; }
     public RelayCommand CopyLogCommand { get; }
     public RelayCommand OpenLibreSpotFolderCommand { get; }
-    public AsyncRelayCommand RefreshSnapshotCommand { get; }
+    public IAsyncRelayCommand RefreshSnapshotCommand { get; }
     public RelayCommand RefreshSupportBundlePreviewCommand { get; }
-    public AsyncRelayCommand ExportSupportBundleCommand { get; }
-    public AsyncRelayCommand RefreshProfilesCommand { get; }
-    public AsyncRelayCommand PreviewSelectedProfileCommand { get; }
-    public AsyncRelayCommand ApplySelectedProfileCommand { get; }
-    public AsyncRelayCommand CreateProfileCommand { get; }
-    public AsyncRelayCommand DuplicateProfileCommand { get; }
-    public AsyncRelayCommand RenameProfileCommand { get; }
-    public AsyncRelayCommand DeleteProfileCommand { get; }
-    public AsyncRelayCommand ExportProfileCommand { get; }
-    public AsyncRelayCommand ImportProfileCommand { get; }
+    public IAsyncRelayCommand ExportSupportBundleCommand { get; }
+    public IAsyncRelayCommand RefreshProfilesCommand { get; }
+    public IAsyncRelayCommand PreviewSelectedProfileCommand { get; }
+    public IAsyncRelayCommand ApplySelectedProfileCommand { get; }
+    public IAsyncRelayCommand CreateProfileCommand { get; }
+    public IAsyncRelayCommand DuplicateProfileCommand { get; }
+    public IAsyncRelayCommand RenameProfileCommand { get; }
+    public IAsyncRelayCommand DeleteProfileCommand { get; }
+    public IAsyncRelayCommand ExportProfileCommand { get; }
+    public IAsyncRelayCommand ImportProfileCommand { get; }
     public RelayCommand CopyProfileShareUriCommand { get; }
     public RelayCommand CopyProfileComparisonCommand { get; }
     public RelayCommand ValidateCustomPatchesCommand { get; }
     public RelayCommand FormatCustomPatchesCommand { get; }
     public RelayCommand ClearCustomPatchesCommand { get; }
-    public AsyncRelayCommand ImportCustomPatchesFromUrlCommand { get; }
+    public IAsyncRelayCommand ImportCustomPatchesFromUrlCommand { get; }
     public RelayCommand OpenRepositoryCommand { get; }
     public RelayCommand OpenSpicetifyCommunityCommand { get; }
     public RelayCommand OpenThemeCatalogCommand { get; }
@@ -742,7 +751,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand ClearSettingsSearchCommand { get; }
     public RelayCommand ClearThemeSearchCommand { get; }
     public RelayCommand RelaunchAsAdministratorCommand { get; }
-    public AsyncRelayCommand ConfirmPromptCommand { get; }
+    public IAsyncRelayCommand ConfirmPromptCommand { get; }
     public RelayCommand CancelPromptCommand { get; }
     public RelayCommand EscapeCommand { get; }
 
@@ -1434,10 +1443,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (SetProperty(ref _selectedWorkspaceIndex, value))
             {
-                RaisePropertyChanged(nameof(IsOverviewWorkspaceSelected));
-                RaisePropertyChanged(nameof(WorkspaceHeroEyebrow));
-                RaisePropertyChanged(nameof(WorkspaceHeroTitle));
-                RaisePropertyChanged(nameof(WorkspaceHeroBody));
+                OnPropertyChanged(nameof(IsOverviewWorkspaceSelected));
+                OnPropertyChanged(nameof(WorkspaceHeroEyebrow));
+                OnPropertyChanged(nameof(WorkspaceHeroTitle));
+                OnPropertyChanged(nameof(WorkspaceHeroBody));
             }
         }
     }
@@ -1530,7 +1539,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (SetProperty(ref _customPatchesImportUrl, value ?? string.Empty))
             {
-                ImportCustomPatchesFromUrlCommand.RaiseCanExecuteChanged();
+                ImportCustomPatchesFromUrlCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -1755,79 +1764,79 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         switch (e.PropertyName)
         {
             case nameof(ActivityRunStateViewModel.IsVisible):
-                DismissActivityCommand.RaiseCanExecuteChanged();
-                RaisePropertyChanged(nameof(IsActivityVisible));
+                DismissActivityCommand.NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(IsActivityVisible));
                 break;
             case nameof(ActivityRunStateViewModel.IsRunning):
-                RaisePropertyChanged(nameof(IsRunning));
+                OnPropertyChanged(nameof(IsRunning));
                 RaiseRunCommandStateChanged();
                 RaiseActivityDerivedStateChanged();
                 break;
             case nameof(ActivityRunStateViewModel.IsCancelRequested):
-                CancelRunCommand.RaiseCanExecuteChanged();
-                RaisePropertyChanged(nameof(IsCancelRequested));
+                CancelRunCommand.NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(IsCancelRequested));
                 RaiseActivityDerivedStateChanged();
                 break;
             case nameof(ActivityRunStateViewModel.ProgressValue):
-                RaisePropertyChanged(nameof(ProgressValue));
+                OnPropertyChanged(nameof(ProgressValue));
                 RaiseActivityDerivedStateChanged();
                 break;
             case nameof(ActivityRunStateViewModel.Title):
-                RaisePropertyChanged(nameof(ActivityTitle));
+                OnPropertyChanged(nameof(ActivityTitle));
                 break;
             case nameof(ActivityRunStateViewModel.Status):
-                RaisePropertyChanged(nameof(ActivityStatus));
+                OnPropertyChanged(nameof(ActivityStatus));
                 RaiseActivityDerivedStateChanged();
                 break;
             case nameof(ActivityRunStateViewModel.Step):
-                RaisePropertyChanged(nameof(ActivityStep));
+                OnPropertyChanged(nameof(ActivityStep));
                 break;
             case nameof(ActivityRunStateViewModel.LogLineCountText):
-                CopyLogCommand.RaiseCanExecuteChanged();
-                RaisePropertyChanged(nameof(LogLineCountText));
+                CopyLogCommand.NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(LogLineCountText));
                 break;
             case nameof(ActivityRunStateViewModel.IsLogEmpty):
-                RaisePropertyChanged(nameof(IsLogEmpty));
+                OnPropertyChanged(nameof(IsLogEmpty));
                 break;
             case nameof(ActivityRunStateViewModel.HasUndoActionItems):
-                RaisePropertyChanged(nameof(HasUndoActionItems));
+                OnPropertyChanged(nameof(HasUndoActionItems));
                 break;
         }
     }
 
     private void RaiseRunCommandStateChanged()
     {
-        ApplyRecommendedCommand.RaiseCanExecuteChanged();
-        ApplyCustomCommand.RaiseCanExecuteChanged();
-        CancelRunCommand.RaiseCanExecuteChanged();
-        DismissActivityCommand.RaiseCanExecuteChanged();
-        EnableAutoReapplyCommand.RaiseCanExecuteChanged();
-        DisableAutoReapplyCommand.RaiseCanExecuteChanged();
-        ExportSupportBundleCommand.RaiseCanExecuteChanged();
-        RelaunchAsAdministratorCommand.RaiseCanExecuteChanged();
-        ConfirmPromptCommand.RaiseCanExecuteChanged();
-        CancelPromptCommand.RaiseCanExecuteChanged();
-        ValidateCustomPatchesCommand.RaiseCanExecuteChanged();
-        FormatCustomPatchesCommand.RaiseCanExecuteChanged();
-        ClearCustomPatchesCommand.RaiseCanExecuteChanged();
-        ImportCustomPatchesFromUrlCommand.RaiseCanExecuteChanged();
+        ApplyRecommendedCommand.NotifyCanExecuteChanged();
+        ApplyCustomCommand.NotifyCanExecuteChanged();
+        CancelRunCommand.NotifyCanExecuteChanged();
+        DismissActivityCommand.NotifyCanExecuteChanged();
+        EnableAutoReapplyCommand.NotifyCanExecuteChanged();
+        DisableAutoReapplyCommand.NotifyCanExecuteChanged();
+        ExportSupportBundleCommand.NotifyCanExecuteChanged();
+        RelaunchAsAdministratorCommand.NotifyCanExecuteChanged();
+        ConfirmPromptCommand.NotifyCanExecuteChanged();
+        CancelPromptCommand.NotifyCanExecuteChanged();
+        ValidateCustomPatchesCommand.NotifyCanExecuteChanged();
+        FormatCustomPatchesCommand.NotifyCanExecuteChanged();
+        ClearCustomPatchesCommand.NotifyCanExecuteChanged();
+        ImportCustomPatchesFromUrlCommand.NotifyCanExecuteChanged();
         RaiseLocalProfileCommandStateChanged();
-        RaisePropertyChanged(nameof(ProfileSelectionHint));
+        OnPropertyChanged(nameof(ProfileSelectionHint));
         RaiseMaintenanceActionCanExecuteChanged();
     }
 
     private void RaiseActivityDerivedStateChanged()
     {
-        RaisePropertyChanged(nameof(IsBusyIndeterminate));
-        RaisePropertyChanged(nameof(ProgressLabel));
-        RaisePropertyChanged(nameof(IsActivityError));
-        RaisePropertyChanged(nameof(IsActivityCanceled));
-        RaisePropertyChanged(nameof(ActivityBadgeText));
-        RaisePropertyChanged(nameof(ActivityDetailLabel));
-        RaisePropertyChanged(nameof(ActivityAssistiveText));
-        RaisePropertyChanged(nameof(ActivitySummaryTitle));
-        RaisePropertyChanged(nameof(TaskbarProgressState));
-        RaisePropertyChanged(nameof(TaskbarProgressFraction));
+        OnPropertyChanged(nameof(IsBusyIndeterminate));
+        OnPropertyChanged(nameof(ProgressLabel));
+        OnPropertyChanged(nameof(IsActivityError));
+        OnPropertyChanged(nameof(IsActivityCanceled));
+        OnPropertyChanged(nameof(ActivityBadgeText));
+        OnPropertyChanged(nameof(ActivityDetailLabel));
+        OnPropertyChanged(nameof(ActivityAssistiveText));
+        OnPropertyChanged(nameof(ActivitySummaryTitle));
+        OnPropertyChanged(nameof(TaskbarProgressState));
+        OnPropertyChanged(nameof(TaskbarProgressFraction));
     }
 
     private void OnCustomOptionEditorPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -1835,47 +1844,47 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         switch (e.PropertyName)
         {
             case nameof(CustomOptionEditorStateViewModel.SelectedTheme):
-                RaisePropertyChanged(nameof(SelectedTheme));
-                RaisePropertyChanged(nameof(SelectedThemeGalleryItem));
+                OnPropertyChanged(nameof(SelectedTheme));
+                OnPropertyChanged(nameof(SelectedThemeGalleryItem));
                 RaiseSelectionInsightsChanged();
                 break;
             case nameof(CustomOptionEditorStateViewModel.SelectedThemeGalleryItem):
-                RaisePropertyChanged(nameof(SelectedThemeGalleryItem));
+                OnPropertyChanged(nameof(SelectedThemeGalleryItem));
                 break;
             case nameof(CustomOptionEditorStateViewModel.ThemeSearchText):
-                RaisePropertyChanged(nameof(ThemeSearchText));
-                ClearThemeSearchCommand.RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(ThemeSearchText));
+                ClearThemeSearchCommand.NotifyCanExecuteChanged();
                 break;
             case nameof(CustomOptionEditorStateViewModel.FilteredThemeGalleryItems):
-                RaisePropertyChanged(nameof(FilteredThemeGalleryItems));
+                OnPropertyChanged(nameof(FilteredThemeGalleryItems));
                 break;
             case nameof(CustomOptionEditorStateViewModel.ThemeGalleryEmptyText):
-                RaisePropertyChanged(nameof(ThemeGalleryEmptyText));
+                OnPropertyChanged(nameof(ThemeGalleryEmptyText));
                 break;
             case nameof(CustomOptionEditorStateViewModel.ShowThemeGalleryEmptyState):
-                RaisePropertyChanged(nameof(ShowThemeGalleryEmptyState));
+                OnPropertyChanged(nameof(ShowThemeGalleryEmptyState));
                 break;
             case nameof(CustomOptionEditorStateViewModel.HasThemeSearchText):
-                RaisePropertyChanged(nameof(HasThemeSearchText));
+                OnPropertyChanged(nameof(HasThemeSearchText));
                 break;
             case nameof(CustomOptionEditorStateViewModel.SelectedScheme):
-                RaisePropertyChanged(nameof(SelectedScheme));
+                OnPropertyChanged(nameof(SelectedScheme));
                 RaiseSelectionInsightsChanged();
                 break;
             case nameof(CustomOptionEditorStateViewModel.SelectedLyricsTheme):
-                RaisePropertyChanged(nameof(SelectedLyricsTheme));
+                OnPropertyChanged(nameof(SelectedLyricsTheme));
                 RaiseSelectionInsightsChanged();
                 break;
             case nameof(CustomOptionEditorStateViewModel.SelectedSpotifyVersionId):
-                RaisePropertyChanged(nameof(SelectedSpotifyVersionId));
+                OnPropertyChanged(nameof(SelectedSpotifyVersionId));
                 RaiseSelectionInsightsChanged();
                 break;
             case nameof(CustomOptionEditorStateViewModel.SelectedDownloadMethod):
-                RaisePropertyChanged(nameof(SelectedDownloadMethod));
+                OnPropertyChanged(nameof(SelectedDownloadMethod));
                 RaiseSelectionInsightsChanged();
                 break;
             case nameof(CustomOptionEditorStateViewModel.CacheLimitText):
-                RaisePropertyChanged(nameof(CacheLimitText));
+                OnPropertyChanged(nameof(CacheLimitText));
                 RaiseSelectionInsightsChanged();
                 break;
         }
@@ -1886,21 +1895,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         switch (e.PropertyName)
         {
             case nameof(EnvironmentSnapshotStateViewModel.Snapshot):
-                RaisePropertyChanged(nameof(Snapshot));
+                OnPropertyChanged(nameof(Snapshot));
                 RaiseAutoReapplyStateChanged();
                 RefreshSupportBundlePreview();
                 break;
             case nameof(EnvironmentSnapshotStateViewModel.LastRefreshedText):
-                RaisePropertyChanged(nameof(LastRefreshedText));
+                OnPropertyChanged(nameof(LastRefreshedText));
                 break;
             case nameof(EnvironmentSnapshotStateViewModel.IsStale):
-                RaisePropertyChanged(nameof(IsSnapshotStale));
+                OnPropertyChanged(nameof(IsSnapshotStale));
                 break;
             case nameof(EnvironmentSnapshotStateViewModel.FreshnessTitle):
-                RaisePropertyChanged(nameof(SnapshotFreshnessTitle));
+                OnPropertyChanged(nameof(SnapshotFreshnessTitle));
                 break;
             case nameof(EnvironmentSnapshotStateViewModel.FreshnessDetail):
-                RaisePropertyChanged(nameof(SnapshotFreshnessDetail));
+                OnPropertyChanged(nameof(SnapshotFreshnessDetail));
                 break;
         }
     }
@@ -1910,35 +1919,35 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         switch (e.PropertyName)
         {
             case nameof(PromptStateViewModel.IsVisible):
-                ConfirmPromptCommand.RaiseCanExecuteChanged();
-                CancelPromptCommand.RaiseCanExecuteChanged();
-                RaisePropertyChanged(nameof(IsPromptVisible));
-                RaisePropertyChanged(nameof(IsPromptConfirmDefault));
+                ConfirmPromptCommand.NotifyCanExecuteChanged();
+                CancelPromptCommand.NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(IsPromptVisible));
+                OnPropertyChanged(nameof(IsPromptConfirmDefault));
                 break;
             case nameof(PromptStateViewModel.Title):
-                RaisePropertyChanged(nameof(PromptTitle));
+                OnPropertyChanged(nameof(PromptTitle));
                 break;
             case nameof(PromptStateViewModel.Body):
-                RaisePropertyChanged(nameof(PromptBody));
+                OnPropertyChanged(nameof(PromptBody));
                 break;
             case nameof(PromptStateViewModel.ConfirmText):
-                RaisePropertyChanged(nameof(PromptConfirmText));
+                OnPropertyChanged(nameof(PromptConfirmText));
                 break;
             case nameof(PromptStateViewModel.CancelText):
-                RaisePropertyChanged(nameof(PromptCancelText));
+                OnPropertyChanged(nameof(PromptCancelText));
                 break;
             case nameof(PromptStateViewModel.SummaryTitle):
-                RaisePropertyChanged(nameof(PromptSummaryTitle));
+                OnPropertyChanged(nameof(PromptSummaryTitle));
                 break;
             case nameof(PromptStateViewModel.SummaryBody):
-                RaisePropertyChanged(nameof(PromptSummaryBody));
+                OnPropertyChanged(nameof(PromptSummaryBody));
                 break;
             case nameof(PromptStateViewModel.IsDestructive):
-                RaisePropertyChanged(nameof(IsPromptDestructive));
-                RaisePropertyChanged(nameof(IsPromptConfirmDefault));
+                OnPropertyChanged(nameof(IsPromptDestructive));
+                OnPropertyChanged(nameof(IsPromptConfirmDefault));
                 break;
             case nameof(PromptStateViewModel.IsConfirmDefault):
-                RaisePropertyChanged(nameof(IsPromptConfirmDefault));
+                OnPropertyChanged(nameof(IsPromptConfirmDefault));
                 break;
         }
     }
@@ -1947,7 +1956,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         if (e.PropertyName == nameof(SettingsSearchStateViewModel.Text))
         {
-            RaisePropertyChanged(nameof(SettingsSearchText));
+            OnPropertyChanged(nameof(SettingsSearchText));
             RefreshSettingsSearch();
         }
     }
@@ -1996,12 +2005,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaiseSnapshotInsightsChanged();
         RaiseLocalProfileStateChanged();
         RaiseActivityDerivedStateChanged();
-        RaisePropertyChanged(nameof(SelectedLocalizationOption));
-        RaisePropertyChanged(nameof(StatusDashboardItems));
-        RaisePropertyChanged(nameof(SupportBundleLastExportText));
-        RaisePropertyChanged(nameof(WorkspaceHeroEyebrow));
-        RaisePropertyChanged(nameof(WorkspaceHeroTitle));
-        RaisePropertyChanged(nameof(WorkspaceHeroBody));
+        OnPropertyChanged(nameof(SelectedLocalizationOption));
+        OnPropertyChanged(nameof(StatusDashboardItems));
+        OnPropertyChanged(nameof(SupportBundleLastExportText));
+        OnPropertyChanged(nameof(WorkspaceHeroEyebrow));
+        OnPropertyChanged(nameof(WorkspaceHeroTitle));
+        OnPropertyChanged(nameof(WorkspaceHeroBody));
     }
 
     public async Task InitializeAsync()
@@ -2045,28 +2054,28 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CollectionViewSource.GetDefaultView(ExperienceOptions).Refresh();
         CollectionViewSource.GetDefaultView(Extensions).Refresh();
         CollectionViewSource.GetDefaultView(CustomApps).Refresh();
-        ClearSettingsSearchCommand.RaiseCanExecuteChanged();
+        ClearSettingsSearchCommand.NotifyCanExecuteChanged();
         RaiseCustomSearchChanged();
     }
 
     private void RaiseCustomSearchChanged()
     {
-        RaisePropertyChanged(nameof(HasSettingsSearchText));
-        RaisePropertyChanged(nameof(HasVisibleInstallOptions));
-        RaisePropertyChanged(nameof(HasVisibleAppearanceSettings));
-        RaisePropertyChanged(nameof(HasVisibleCoreOptions));
-        RaisePropertyChanged(nameof(HasVisibleInterfaceOptions));
-        RaisePropertyChanged(nameof(HasVisibleBehaviorSection));
-        RaisePropertyChanged(nameof(HasVisibleAdvancedOptions));
-        RaisePropertyChanged(nameof(HasVisibleExperienceOptions));
-        RaisePropertyChanged(nameof(HasVisibleCustomPatchesSection));
-        RaisePropertyChanged(nameof(HasVisibleAdvancedSection));
-        RaisePropertyChanged(nameof(HasVisibleExtensions));
-        RaisePropertyChanged(nameof(HasVisibleCustomApps));
-        RaisePropertyChanged(nameof(CustomSearchMatchCount));
-        RaisePropertyChanged(nameof(HasAnyCustomSearchMatches));
-        RaisePropertyChanged(nameof(ShowCustomSearchEmptyState));
-        RaisePropertyChanged(nameof(CustomSearchSummary));
+        OnPropertyChanged(nameof(HasSettingsSearchText));
+        OnPropertyChanged(nameof(HasVisibleInstallOptions));
+        OnPropertyChanged(nameof(HasVisibleAppearanceSettings));
+        OnPropertyChanged(nameof(HasVisibleCoreOptions));
+        OnPropertyChanged(nameof(HasVisibleInterfaceOptions));
+        OnPropertyChanged(nameof(HasVisibleBehaviorSection));
+        OnPropertyChanged(nameof(HasVisibleAdvancedOptions));
+        OnPropertyChanged(nameof(HasVisibleExperienceOptions));
+        OnPropertyChanged(nameof(HasVisibleCustomPatchesSection));
+        OnPropertyChanged(nameof(HasVisibleAdvancedSection));
+        OnPropertyChanged(nameof(HasVisibleExtensions));
+        OnPropertyChanged(nameof(HasVisibleCustomApps));
+        OnPropertyChanged(nameof(CustomSearchMatchCount));
+        OnPropertyChanged(nameof(HasAnyCustomSearchMatches));
+        OnPropertyChanged(nameof(ShowCustomSearchEmptyState));
+        OnPropertyChanged(nameof(CustomSearchSummary));
     }
 
     private int CountMatchingOptions(IEnumerable<OptionToggleViewModel> options) =>
@@ -2104,14 +2113,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void RaiseCustomPatchStateChanged()
     {
-        RaisePropertyChanged(nameof(CustomPatchesStatus));
-        RaisePropertyChanged(nameof(CustomPatchesBadge));
-        RaisePropertyChanged(nameof(CustomPatchesSummary));
-        RaisePropertyChanged(nameof(HasCustomPatchFindings));
-        ValidateCustomPatchesCommand.RaiseCanExecuteChanged();
-        FormatCustomPatchesCommand.RaiseCanExecuteChanged();
-        ClearCustomPatchesCommand.RaiseCanExecuteChanged();
-        ImportCustomPatchesFromUrlCommand.RaiseCanExecuteChanged();
+        OnPropertyChanged(nameof(CustomPatchesStatus));
+        OnPropertyChanged(nameof(CustomPatchesBadge));
+        OnPropertyChanged(nameof(CustomPatchesSummary));
+        OnPropertyChanged(nameof(HasCustomPatchFindings));
+        ValidateCustomPatchesCommand.NotifyCanExecuteChanged();
+        FormatCustomPatchesCommand.NotifyCanExecuteChanged();
+        ClearCustomPatchesCommand.NotifyCanExecuteChanged();
+        ImportCustomPatchesFromUrlCommand.NotifyCanExecuteChanged();
     }
 
     private void RegisterOptionStateObservers()
@@ -2207,80 +2216,80 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void RaiseSelectionInsightsChanged()
     {
         RebuildSelectionInsights();
-        RaisePropertyChanged(nameof(CustomSelectionSummary));
-        RaisePropertyChanged(nameof(InstallPostureLabel));
-        RaisePropertyChanged(nameof(EnabledToggleCountLabel));
-        RaisePropertyChanged(nameof(IsThemeSchemeAvailable));
-        RaisePropertyChanged(nameof(ThemeSchemeHint));
-        RaisePropertyChanged(nameof(ThemeSummary));
-        RaisePropertyChanged(nameof(IsLyricsThemeAvailable));
-        RaisePropertyChanged(nameof(LyricsThemeHint));
-        RaisePropertyChanged(nameof(LyricsSummary));
-        RaisePropertyChanged(nameof(CacheSummary));
-        RaisePropertyChanged(nameof(SpotifyVersionSummary));
-        RaisePropertyChanged(nameof(SpotifyVersionNotes));
-        RaisePropertyChanged(nameof(ArchitectureMismatchWarning));
-        RaisePropertyChanged(nameof(HasArchitectureMismatch));
-        RaisePropertyChanged(nameof(DownloadMethodSummary));
-        RaisePropertyChanged(nameof(DownloadMethodDetail));
-        RaisePropertyChanged(nameof(CustomPatchesBadge));
-        RaisePropertyChanged(nameof(CustomPatchesSummary));
-        RaisePropertyChanged(nameof(ExtensionSummary));
-        RaisePropertyChanged(nameof(SelectedExtensionCountLabel));
-        RaisePropertyChanged(nameof(SelectedCustomAppCountLabel));
-        RaisePropertyChanged(nameof(HasSelectedExtensions));
-        RaisePropertyChanged(nameof(AccessPostureLabel));
-        RaisePropertyChanged(nameof(CustomChangeCountLabel));
-        RaisePropertyChanged(nameof(CustomProfileTitle));
-        RaisePropertyChanged(nameof(CustomProfileDetail));
-        RaisePropertyChanged(nameof(CustomRunReadinessTitle));
-        RaisePropertyChanged(nameof(CustomRunReadinessDetail));
-        RaisePropertyChanged(nameof(CustomApplyCaption));
+        OnPropertyChanged(nameof(CustomSelectionSummary));
+        OnPropertyChanged(nameof(InstallPostureLabel));
+        OnPropertyChanged(nameof(EnabledToggleCountLabel));
+        OnPropertyChanged(nameof(IsThemeSchemeAvailable));
+        OnPropertyChanged(nameof(ThemeSchemeHint));
+        OnPropertyChanged(nameof(ThemeSummary));
+        OnPropertyChanged(nameof(IsLyricsThemeAvailable));
+        OnPropertyChanged(nameof(LyricsThemeHint));
+        OnPropertyChanged(nameof(LyricsSummary));
+        OnPropertyChanged(nameof(CacheSummary));
+        OnPropertyChanged(nameof(SpotifyVersionSummary));
+        OnPropertyChanged(nameof(SpotifyVersionNotes));
+        OnPropertyChanged(nameof(ArchitectureMismatchWarning));
+        OnPropertyChanged(nameof(HasArchitectureMismatch));
+        OnPropertyChanged(nameof(DownloadMethodSummary));
+        OnPropertyChanged(nameof(DownloadMethodDetail));
+        OnPropertyChanged(nameof(CustomPatchesBadge));
+        OnPropertyChanged(nameof(CustomPatchesSummary));
+        OnPropertyChanged(nameof(ExtensionSummary));
+        OnPropertyChanged(nameof(SelectedExtensionCountLabel));
+        OnPropertyChanged(nameof(SelectedCustomAppCountLabel));
+        OnPropertyChanged(nameof(HasSelectedExtensions));
+        OnPropertyChanged(nameof(AccessPostureLabel));
+        OnPropertyChanged(nameof(CustomChangeCountLabel));
+        OnPropertyChanged(nameof(CustomProfileTitle));
+        OnPropertyChanged(nameof(CustomProfileDetail));
+        OnPropertyChanged(nameof(CustomRunReadinessTitle));
+        OnPropertyChanged(nameof(CustomRunReadinessDetail));
+        OnPropertyChanged(nameof(CustomApplyCaption));
     }
 
     private void RaiseSnapshotInsightsChanged()
     {
         RefreshMaintenanceActionRelevance();
-        RaisePropertyChanged(nameof(SessionAccessTitle));
-        RaisePropertyChanged(nameof(SessionAccessDetail));
-        RaisePropertyChanged(nameof(SpotifyStatusLine));
-        RaisePropertyChanged(nameof(CustomizationStatusLine));
-        RaisePropertyChanged(nameof(MarketplaceStatusLine));
-        RaisePropertyChanged(nameof(HealthReport));
-        RaisePropertyChanged(nameof(CriticalHealthIssues));
-        RaisePropertyChanged(nameof(WarningHealthIssues));
-        RaisePropertyChanged(nameof(InfoHealthIssues));
-        RaisePropertyChanged(nameof(HasCriticalHealthIssues));
-        RaisePropertyChanged(nameof(HasWarningHealthIssues));
-        RaisePropertyChanged(nameof(HasInfoHealthIssues));
-        RaisePropertyChanged(nameof(HasAnyHealthIssues));
-        RaisePropertyChanged(nameof(HealthIssueSummary));
-        RaisePropertyChanged(nameof(StatusDashboardItems));
-        RaisePropertyChanged(nameof(MaintenanceReadinessValue));
-        RaisePropertyChanged(nameof(MaintenanceReadinessDetail));
-        RaisePropertyChanged(nameof(MaintenanceBackupValue));
-        RaisePropertyChanged(nameof(MaintenanceBackupDetail));
-        RaisePropertyChanged(nameof(MaintenanceMarketplaceValue));
-        RaisePropertyChanged(nameof(MaintenanceMarketplaceDetail));
-        RaisePropertyChanged(nameof(MaintenanceThemeValue));
-        RaisePropertyChanged(nameof(MaintenanceThemeDetail));
+        OnPropertyChanged(nameof(SessionAccessTitle));
+        OnPropertyChanged(nameof(SessionAccessDetail));
+        OnPropertyChanged(nameof(SpotifyStatusLine));
+        OnPropertyChanged(nameof(CustomizationStatusLine));
+        OnPropertyChanged(nameof(MarketplaceStatusLine));
+        OnPropertyChanged(nameof(HealthReport));
+        OnPropertyChanged(nameof(CriticalHealthIssues));
+        OnPropertyChanged(nameof(WarningHealthIssues));
+        OnPropertyChanged(nameof(InfoHealthIssues));
+        OnPropertyChanged(nameof(HasCriticalHealthIssues));
+        OnPropertyChanged(nameof(HasWarningHealthIssues));
+        OnPropertyChanged(nameof(HasInfoHealthIssues));
+        OnPropertyChanged(nameof(HasAnyHealthIssues));
+        OnPropertyChanged(nameof(HealthIssueSummary));
+        OnPropertyChanged(nameof(StatusDashboardItems));
+        OnPropertyChanged(nameof(MaintenanceReadinessValue));
+        OnPropertyChanged(nameof(MaintenanceReadinessDetail));
+        OnPropertyChanged(nameof(MaintenanceBackupValue));
+        OnPropertyChanged(nameof(MaintenanceBackupDetail));
+        OnPropertyChanged(nameof(MaintenanceMarketplaceValue));
+        OnPropertyChanged(nameof(MaintenanceMarketplaceDetail));
+        OnPropertyChanged(nameof(MaintenanceThemeValue));
+        OnPropertyChanged(nameof(MaintenanceThemeDetail));
         RaiseSupportBundlePreviewChanged();
-        RaisePropertyChanged(nameof(HasConfigurationRecoveryNotice));
-        RaisePropertyChanged(nameof(ConfigurationRecoveryTitle));
-        RaisePropertyChanged(nameof(ConfigurationRecoveryDetail));
-        RaisePropertyChanged(nameof(ProfileStatusLine));
-        RaisePropertyChanged(nameof(WorkspaceRecommendationTitle));
-        RaisePropertyChanged(nameof(WorkspaceRecommendationDetail));
-        RaisePropertyChanged(nameof(WorkspaceRecommendationBrief));
-        RaisePropertyChanged(nameof(MaintenanceGuidanceTitle));
-        RaisePropertyChanged(nameof(MaintenanceGuidanceDetail));
+        OnPropertyChanged(nameof(HasConfigurationRecoveryNotice));
+        OnPropertyChanged(nameof(ConfigurationRecoveryTitle));
+        OnPropertyChanged(nameof(ConfigurationRecoveryDetail));
+        OnPropertyChanged(nameof(ProfileStatusLine));
+        OnPropertyChanged(nameof(WorkspaceRecommendationTitle));
+        OnPropertyChanged(nameof(WorkspaceRecommendationDetail));
+        OnPropertyChanged(nameof(WorkspaceRecommendationBrief));
+        OnPropertyChanged(nameof(MaintenanceGuidanceTitle));
+        OnPropertyChanged(nameof(MaintenanceGuidanceDetail));
         RaiseAutoReapplyStateChanged();
-        RaisePropertyChanged(nameof(AccessPostureLabel));
-        RaisePropertyChanged(nameof(RecommendedRunDuration));
-        RaisePropertyChanged(nameof(RecommendedFollowUpText));
-        RaisePropertyChanged(nameof(CustomRunReadinessTitle));
-        RaisePropertyChanged(nameof(CustomRunReadinessDetail));
-        RaisePropertyChanged(nameof(CustomApplyCaption));
+        OnPropertyChanged(nameof(AccessPostureLabel));
+        OnPropertyChanged(nameof(RecommendedRunDuration));
+        OnPropertyChanged(nameof(RecommendedFollowUpText));
+        OnPropertyChanged(nameof(CustomRunReadinessTitle));
+        OnPropertyChanged(nameof(CustomRunReadinessDetail));
+        OnPropertyChanged(nameof(CustomApplyCaption));
         RebuildSelectionInsights();
     }
 
@@ -2328,29 +2337,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void RaiseLocalProfileStateChanged()
     {
-        RaisePropertyChanged(nameof(HasLocalProfiles));
-        RaisePropertyChanged(nameof(HasSelectedLocalProfile));
-        RaisePropertyChanged(nameof(CanEditSelectedLocalProfile));
-        RaisePropertyChanged(nameof(SelectedLocalProfileTitle));
-        RaisePropertyChanged(nameof(SelectedLocalProfileDetail));
-        RaisePropertyChanged(nameof(ProfileSelectionHint));
-        RaisePropertyChanged(nameof(ProfileEditorHint));
+        OnPropertyChanged(nameof(HasLocalProfiles));
+        OnPropertyChanged(nameof(HasSelectedLocalProfile));
+        OnPropertyChanged(nameof(CanEditSelectedLocalProfile));
+        OnPropertyChanged(nameof(SelectedLocalProfileTitle));
+        OnPropertyChanged(nameof(SelectedLocalProfileDetail));
+        OnPropertyChanged(nameof(ProfileSelectionHint));
+        OnPropertyChanged(nameof(ProfileEditorHint));
         RaiseLocalProfileCommandStateChanged();
     }
 
     private void RaiseLocalProfileCommandStateChanged()
     {
-        RefreshProfilesCommand.RaiseCanExecuteChanged();
-        PreviewSelectedProfileCommand.RaiseCanExecuteChanged();
-        ApplySelectedProfileCommand.RaiseCanExecuteChanged();
-        CreateProfileCommand.RaiseCanExecuteChanged();
-        DuplicateProfileCommand.RaiseCanExecuteChanged();
-        RenameProfileCommand.RaiseCanExecuteChanged();
-        DeleteProfileCommand.RaiseCanExecuteChanged();
-        ExportProfileCommand.RaiseCanExecuteChanged();
-        ImportProfileCommand.RaiseCanExecuteChanged();
-        CopyProfileShareUriCommand.RaiseCanExecuteChanged();
-        CopyProfileComparisonCommand.RaiseCanExecuteChanged();
+        RefreshProfilesCommand.NotifyCanExecuteChanged();
+        PreviewSelectedProfileCommand.NotifyCanExecuteChanged();
+        ApplySelectedProfileCommand.NotifyCanExecuteChanged();
+        CreateProfileCommand.NotifyCanExecuteChanged();
+        DuplicateProfileCommand.NotifyCanExecuteChanged();
+        RenameProfileCommand.NotifyCanExecuteChanged();
+        DeleteProfileCommand.NotifyCanExecuteChanged();
+        ExportProfileCommand.NotifyCanExecuteChanged();
+        ImportProfileCommand.NotifyCanExecuteChanged();
+        CopyProfileShareUriCommand.NotifyCanExecuteChanged();
+        CopyProfileComparisonCommand.NotifyCanExecuteChanged();
     }
 
     private bool CanUseSelectedProfile() => !IsRunning && SelectedLocalProfile is not null;
@@ -2550,11 +2559,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void RaiseProfileShareCardStateChanged()
     {
-        RaisePropertyChanged(nameof(HasSelectedProfileShareCard));
-        RaisePropertyChanged(nameof(SelectedProfileShareUri));
-        RaisePropertyChanged(nameof(HasSelectedProfileQrImage));
-        CopyProfileShareUriCommand.RaiseCanExecuteChanged();
-        CopyProfileComparisonCommand.RaiseCanExecuteChanged();
+        OnPropertyChanged(nameof(HasSelectedProfileShareCard));
+        OnPropertyChanged(nameof(SelectedProfileShareUri));
+        OnPropertyChanged(nameof(HasSelectedProfileQrImage));
+        CopyProfileShareUriCommand.NotifyCanExecuteChanged();
+        CopyProfileComparisonCommand.NotifyCanExecuteChanged();
     }
 
     private void CopyProfileShareUri()
@@ -2848,6 +2857,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void RaiseMaintenanceActionCanExecuteChanged() => _maintenanceActions.RaiseCanExecuteChanged();
 
+    private static IAsyncRelayCommand CreateSafeAsyncCommand(
+        Func<Task> executeAsync,
+        Action<Exception> onException,
+        Func<bool>? canExecute = null) =>
+        canExecute is null
+            ? new AsyncRelayCommand(() => ExecuteSafeAsync(executeAsync, onException))
+            : new AsyncRelayCommand(() => ExecuteSafeAsync(executeAsync, onException), canExecute);
+
+    private IAsyncRelayCommand CreateAsyncCommand(Func<Task> executeAsync, Func<bool>? canExecute = null) =>
+        CreateSafeAsyncCommand(executeAsync, HandleAsyncCommandException, canExecute);
+
+    private static async Task ExecuteSafeAsync(Func<Task> executeAsync, Action<Exception> onException)
+    {
+        try
+        {
+            await executeAsync();
+        }
+        catch (Exception ex)
+        {
+            onException(ex);
+        }
+    }
+
     private void HandleAsyncCommandException(Exception ex)
     {
         if (ex is OperationCanceledException)
@@ -2944,14 +2976,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         RaiseSupportBundlePreviewChanged();
-        ExportSupportBundleCommand.RaiseCanExecuteChanged();
+        ExportSupportBundleCommand.NotifyCanExecuteChanged();
     }
 
     private void RaiseSupportBundlePreviewChanged()
     {
-        RaisePropertyChanged(nameof(SupportBundlePreviewTitle));
-        RaisePropertyChanged(nameof(SupportBundlePreviewDetail));
-        RaisePropertyChanged(nameof(SupportBundleRedactionSummary));
+        OnPropertyChanged(nameof(SupportBundlePreviewTitle));
+        OnPropertyChanged(nameof(SupportBundlePreviewDetail));
+        OnPropertyChanged(nameof(SupportBundleRedactionSummary));
     }
 
     private async Task ExportSupportBundleAsync()
@@ -3014,12 +3046,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void RaiseAutoReapplyStateChanged()
     {
-        RaisePropertyChanged(nameof(AutoReapplyStatusTitle));
-        RaisePropertyChanged(nameof(AutoReapplyStatusDetail));
-        RaisePropertyChanged(nameof(AutoReapplyTaskLine));
-        RaisePropertyChanged(nameof(AutoReapplyLogLine));
-        EnableAutoReapplyCommand.RaiseCanExecuteChanged();
-        DisableAutoReapplyCommand.RaiseCanExecuteChanged();
+        OnPropertyChanged(nameof(AutoReapplyStatusTitle));
+        OnPropertyChanged(nameof(AutoReapplyStatusDetail));
+        OnPropertyChanged(nameof(AutoReapplyTaskLine));
+        OnPropertyChanged(nameof(AutoReapplyLogLine));
+        EnableAutoReapplyCommand.NotifyCanExecuteChanged();
+        DisableAutoReapplyCommand.NotifyCanExecuteChanged();
     }
 
     private void ValidateCustomPatches()
@@ -3285,7 +3317,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _activityState.Begin(title, status, Strings.PreparingBackend);
         _runStopwatch.Restart();
         _runElapsedTimer.Start();
-        RaisePropertyChanged(nameof(RunElapsedText));
+        OnPropertyChanged(nameof(RunElapsedText));
 
         _runCts?.Dispose();
         _runCts = new CancellationTokenSource();
@@ -3346,7 +3378,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             _runStopwatch.Stop();
             _runElapsedTimer.Stop();
-            RaisePropertyChanged(nameof(RunElapsedText));
+            OnPropertyChanged(nameof(RunElapsedText));
             IsRunning = false;
             IsCancelRequested = false;
             await RefreshSnapshotAsync();
@@ -3799,7 +3831,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _runStopwatch.Reset();
         _runElapsedTimer.Stop();
         _activityState.ShowNotice(title, status, step);
-        RaisePropertyChanged(nameof(RunElapsedText));
+        OnPropertyChanged(nameof(RunElapsedText));
     }
 
     public void ApplyUiAutomationSmokeState(string state)

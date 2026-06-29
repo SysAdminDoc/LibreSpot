@@ -39,7 +39,7 @@ public sealed class MaintenanceActionsStateViewModel
     {
         foreach (var card in _cards)
         {
-            card.Command.RaiseCanExecuteChanged();
+            card.Command.NotifyCanExecuteChanged();
         }
     }
 }
