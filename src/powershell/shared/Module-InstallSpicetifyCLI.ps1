@@ -1,7 +1,8 @@
 function Module-InstallSpicetifyCLI {
+    $integration = Get-SpicetifyIntegrationContext
     $ver = $global:PinnedReleases.SpicetifyCLI.Version
     Write-Log "Installing Spicetify CLI v$ver..." -Level 'STEP'
-    New-Item -Path $global:SPICETIFY_DIR -ItemType Directory -Force | Out-Null
+    New-Item -Path $integration.InstallDirectory -ItemType Directory -Force | Out-Null
     $arch = switch ($env:PROCESSOR_ARCHITECTURE) { 'ARM64' {'arm64'} default {'x64'} }
     $zip = $global:URL_SPICETIFY_FMT -f $ver, $arch
     $zp = New-LibreSpotTempFile -Name 'spicetify.zip'
@@ -18,14 +19,14 @@ function Module-InstallSpicetifyCLI {
             Confirm-FileHash -Path $zp -ExpectedHash $expectedHash -Label "Spicetify CLI ($arch)"
             Save-ToAssetCache -SourcePath $zp -SHA256Hash $expectedHash
         }
-        if (Test-Path -LiteralPath $global:SPICETIFY_DIR) {
-            $null = Clear-DirectoryContentsSafely -Path $global:SPICETIFY_DIR -Label 'Spicetify CLI'
+        if (Test-Path -LiteralPath $integration.InstallDirectory) {
+            $null = Clear-DirectoryContentsSafely -Path $integration.InstallDirectory -Label 'Spicetify CLI'
         }
-        Expand-ArchiveSafely -ZipPath $zp -DestinationPath $global:SPICETIFY_DIR -Label 'Spicetify CLI'
-        $sExe = Join-Path $global:SPICETIFY_DIR "spicetify.exe"
+        Expand-ArchiveSafely -ZipPath $zp -DestinationPath $integration.InstallDirectory -Label 'Spicetify CLI'
+        $sExe = $integration.CliPath
         if (-not (Test-Path $sExe)) { throw "spicetify.exe not found after extraction - ZIP may be corrupted" }
-        $null = Add-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'Process'
-        if (Add-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'User') {
+        $null = Add-PathEntry -Entry $integration.InstallDirectory -Scope 'Process'
+        if (Add-PathEntry -Entry $integration.InstallDirectory -Scope 'User') {
             Write-Log "Added Spicetify to user PATH."
         }
         Write-Log "Generating config..."

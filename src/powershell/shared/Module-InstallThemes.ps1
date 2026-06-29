@@ -1,7 +1,7 @@
 function Module-InstallThemes { param($Config)
     $tn = $Config.Spicetify_Theme; if ($tn -eq '(None - Marketplace Only)') { Write-Log "No theme selected."; return }
     Write-Log "Installing theme: $tn..." -Level 'STEP'
-    $td = Join-Path $global:SPICETIFY_CONFIG_DIR "Themes"
+    $td = (Get-SpicetifyIntegrationContext).ThemesDirectory
     if (-not (Test-Path $td)) { New-Item -Path $td -ItemType Directory -Force | Out-Null }
 
     $isCommunity = $global:CommunityThemeRepos.ContainsKey($tn)

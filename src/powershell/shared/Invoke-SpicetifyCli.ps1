@@ -5,7 +5,8 @@ function Invoke-SpicetifyCli {
         [int]$TimeoutSeconds = 900,
         [int]$IdleTimeoutSeconds = 90
     )
-    $spicetifyExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
+    $integration = Get-SpicetifyIntegrationContext
+    $spicetifyExe = $integration.CliPath
     if (-not (Test-Path -LiteralPath $spicetifyExe)) {
         throw 'Spicetify CLI is not installed.'
     }
@@ -27,7 +28,7 @@ function Invoke-SpicetifyCli {
         $startInfo = New-Object System.Diagnostics.ProcessStartInfo
         $startInfo.FileName = $spicetifyExe
         $startInfo.Arguments = $argumentString
-        $startInfo.WorkingDirectory = Split-Path -Path $spicetifyExe -Parent
+        $startInfo.WorkingDirectory = $integration.InstallDirectory
         $startInfo.UseShellExecute = $false
         $startInfo.RedirectStandardOutput = $true
         $startInfo.RedirectStandardError = $true
@@ -39,7 +40,7 @@ function Invoke-SpicetifyCli {
         $collector.Attach($process)
 
         $null = $process.Start()
-        Write-Log "  Spicetify command: spicetify $displayArguments"
+        Write-Log "  Spicetify ($($integration.Version)) command: spicetify $displayArguments"
         Write-Log "  Spicetify PID: $($process.Id)"
         $process.BeginOutputReadLine()
         $process.BeginErrorReadLine()

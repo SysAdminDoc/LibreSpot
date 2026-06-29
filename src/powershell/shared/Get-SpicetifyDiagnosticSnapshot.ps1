@@ -1,6 +1,6 @@
 function Get-SpicetifyDiagnosticSnapshot {
     $snapshot = [ordered]@{}
-    $configPath = Join-Path $global:SPICETIFY_CONFIG_DIR 'config-xpui.ini'
+    $configPath = (Get-SpicetifyIntegrationContext).ConfigPath
     if (Test-Path -LiteralPath $configPath) {
         try {
             foreach ($line in Get-Content -LiteralPath $configPath -ErrorAction Stop) {

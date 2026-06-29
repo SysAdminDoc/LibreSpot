@@ -1,5 +1,5 @@
 function Get-SpicetifyConfigEntries {
-    $configPath = Join-Path $global:SPICETIFY_CONFIG_DIR 'config-xpui.ini'
+    $configPath = (Get-SpicetifyIntegrationContext).ConfigPath
     $entries = @{}
     if (-not (Test-Path -LiteralPath $configPath)) { return $entries }
     try {

@@ -1,4 +1,3 @@
 function Test-SpicetifyCliInstalled {
-    $spicetifyExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
-    return (Test-Path -LiteralPath $spicetifyExe)
+    return (Test-Path -LiteralPath (Get-SpicetifyIntegrationContext).CliPath)
 }

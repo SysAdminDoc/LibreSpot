@@ -175,6 +175,7 @@ $global:TEMP_DIR               = $env:TEMP
 $global:SPOTIFY_EXE_PATH       = "$env:APPDATA\Spotify\Spotify.exe"
 $global:SPICETIFY_DIR          = "$env:LOCALAPPDATA\spicetify"
 $global:SPICETIFY_CONFIG_DIR   = "$env:APPDATA\spicetify"
+$global:SPICETIFY_INTEGRATION_VERSION = 'v2'
 $global:BACKUP_ROOT            = "$env:USERPROFILE\LibreSpot_Backups"
 $global:CONFIG_DIR             = "$env:APPDATA\LibreSpot"
 $global:CONFIG_PATH            = "$env:APPDATA\LibreSpot\config.json"
@@ -549,15 +550,10 @@ function Invoke-HeadlessReapply {
 
         # Reapply Spicetify when it's installed. Missing CLI is fine — it just
         # means the user only patches with SpotX and that part is already done.
-        $spicetifyExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
-        if (Test-Path -LiteralPath $spicetifyExe) {
+        if (Test-SpicetifyCliInstalled) {
             try {
-                & $spicetifyExe 'backup' 'apply' 2>&1 | Out-Null
-                if ($LASTEXITCODE -eq 0) {
-                    Write-WatcherLog "Spicetify reapplied" -Level 'SUCCESS'
-                } else {
-                    Write-WatcherLog "Spicetify apply exited $LASTEXITCODE" -Level 'WARN'
-                }
+                Invoke-SpicetifyCli -Arguments @('backup','apply','--bypass-admin') -FailureMessage 'Watcher Spicetify apply failed.'
+                Write-WatcherLog "Spicetify reapplied" -Level 'SUCCESS'
             } catch {
                 Write-WatcherLog "Spicetify apply failed: $($_.Exception.Message)" -Level 'WARN'
             }
@@ -3909,8 +3905,30 @@ if ($script:CliWatch) {
     exit $code
 }
 
+function Get-SpicetifyIntegrationContext {
+    $version = if ($global:SPICETIFY_INTEGRATION_VERSION) { [string]$global:SPICETIFY_INTEGRATION_VERSION } else { 'v2' }
+    if ($version -notin @('v2','v3-preview')) {
+        throw "Unsupported Spicetify integration version '$version'."
+    }
+
+    $installDir = [string]$global:SPICETIFY_DIR
+    $configDir = [string]$global:SPICETIFY_CONFIG_DIR
+    return [pscustomobject]@{
+        Version                    = $version
+        InstallDirectory           = $installDir
+        ConfigDirectory            = $configDir
+        CliPath                    = Join-Path $installDir 'spicetify.exe'
+        ConfigPath                 = Join-Path $configDir 'config-xpui.ini'
+        ThemesDirectory            = Join-Path $configDir 'Themes'
+        ExtensionsDirectory        = Join-Path $configDir 'Extensions'
+        CustomAppsDirectory        = Join-Path $configDir 'CustomApps'
+        MarketplaceDirectory       = Join-Path $configDir 'CustomApps\marketplace'
+        LegacyMarketplaceDirectory = Join-Path $installDir 'CustomApps\marketplace'
+    }
+}
+
 function Get-SpicetifyConfigEntries {
-    $configPath = Join-Path $global:SPICETIFY_CONFIG_DIR 'config-xpui.ini'
+    $configPath = (Get-SpicetifyIntegrationContext).ConfigPath
     $entries = @{}
     if (-not (Test-Path -LiteralPath $configPath)) { return $entries }
     try {
@@ -3942,8 +3960,9 @@ function Get-SpicetifyConfigListValue {
 }
 
 function Get-MarketplaceHealth {
-    $configDir = Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps\marketplace'
-    $legacyDir = Join-Path $global:SPICETIFY_DIR 'CustomApps\marketplace'
+    $integration = Get-SpicetifyIntegrationContext
+    $configDir = $integration.MarketplaceDirectory
+    $legacyDir = $integration.LegacyMarketplaceDirectory
     $activeDir = if (Test-Path -LiteralPath $configDir -PathType Container) { $configDir } elseif (Test-Path -LiteralPath $legacyDir -PathType Container) { $legacyDir } else { $configDir }
     $hasConfigDir = Test-Path -LiteralPath $configDir -PathType Container
     $hasLegacyDir = Test-Path -LiteralPath $legacyDir -PathType Container
@@ -4121,7 +4140,8 @@ function Invoke-SpicetifyCli {
         [int]$TimeoutSeconds = 900,
         [int]$IdleTimeoutSeconds = 90
     )
-    $spicetifyExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
+    $integration = Get-SpicetifyIntegrationContext
+    $spicetifyExe = $integration.CliPath
     if (-not (Test-Path -LiteralPath $spicetifyExe)) {
         throw 'Spicetify CLI is not installed.'
     }
@@ -4143,7 +4163,7 @@ function Invoke-SpicetifyCli {
         $startInfo = New-Object System.Diagnostics.ProcessStartInfo
         $startInfo.FileName = $spicetifyExe
         $startInfo.Arguments = $argumentString
-        $startInfo.WorkingDirectory = Split-Path -Path $spicetifyExe -Parent
+        $startInfo.WorkingDirectory = $integration.InstallDirectory
         $startInfo.UseShellExecute = $false
         $startInfo.RedirectStandardOutput = $true
         $startInfo.RedirectStandardError = $true
@@ -4155,7 +4175,7 @@ function Invoke-SpicetifyCli {
         $collector.Attach($process)
 
         $null = $process.Start()
-        Write-Log "  Spicetify command: spicetify $displayArguments"
+        Write-Log "  Spicetify ($($integration.Version)) command: spicetify $displayArguments"
         Write-Log "  Spicetify PID: $($process.Id)"
         $process.BeginOutputReadLine()
         $process.BeginErrorReadLine()
@@ -4281,8 +4301,7 @@ function Sync-SpicetifyListSetting {
 }
 
 function Test-SpicetifyCliInstalled {
-    $spicetifyExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
-    return (Test-Path -LiteralPath $spicetifyExe)
+    return (Test-Path -LiteralPath (Get-SpicetifyIntegrationContext).CliPath)
 }
 
 function Restore-SpotifyIfSpicetifyPresent {
@@ -4752,7 +4771,8 @@ function Update-MaintenanceStatus {
         Set-MaintenanceCardTone -CardName 'StatusCardSpotX' -Tone 'muted'
     }
 
-    $sExe = Join-Path $global:SPICETIFY_DIR "spicetify.exe"
+    $integration = Get-SpicetifyIntegrationContext
+    $sExe = $integration.CliPath
     if (Test-Path $sExe) {
         $tmpOut = Join-Path $global:TEMP_DIR "spicetify_ver.txt"
         try {
@@ -4879,7 +4899,7 @@ function Update-MaintenanceStatus {
     $ui['BtnCheckUpdates'].IsEnabled=$true
     $pv = $global:PinnedReleases
     $ui['StatusSpotX'].ToolTip = "Pinned: SpotX v$($pv.SpotX.Version) | CLI v$($pv.SpicetifyCLI.Version) | Marketplace v$($pv.Marketplace.Version)"
-    $hasConfigSnapshot = Test-Path -LiteralPath (Join-Path $global:SPICETIFY_CONFIG_DIR 'config-xpui.ini')
+    $hasConfigSnapshot = Test-Path -LiteralPath $integration.ConfigPath
     $ui['BtnBackupConfig'].IsEnabled=($si -and $hasConfigSnapshot); $ui['BtnRestoreConfig'].IsEnabled=($bk -and $si); $ui['BtnReapply'].IsEnabled=$sp
     if ($ui.ContainsKey('BtnRepairMarketplace')) { $ui['BtnRepairMarketplace'].IsEnabled=$si }
     $ui['BtnSafeMode'].IsEnabled=$si; $ui['BtnSpicetifyRestore'].IsEnabled=$si; $ui['BtnUninstallSpicetify'].IsEnabled=$si; $ui['BtnFullReset'].IsEnabled=($sp -or $si)
@@ -4976,6 +4996,7 @@ function Copy-DirectorySnapshot {
 function Restore-SpicetifyBackupSnapshot {
     param([string]$SourcePath)
 
+    $integration = Get-SpicetifyIntegrationContext
     if (-not (Test-Path -LiteralPath $SourcePath -PathType Container)) {
         throw "The selected backup folder is missing."
     }
@@ -4993,17 +5014,17 @@ function Restore-SpicetifyBackupSnapshot {
         New-Item -Path $tempRoot -ItemType Directory -Force | Out-Null
         Copy-DirectorySnapshot -SourcePath $SourcePath -DestinationPath $stagedSource
 
-        if (Test-Path -LiteralPath $global:SPICETIFY_CONFIG_DIR -PathType Container) {
-            Copy-DirectorySnapshot -SourcePath $global:SPICETIFY_CONFIG_DIR -DestinationPath $rollbackPath
+        if (Test-Path -LiteralPath $integration.ConfigDirectory -PathType Container) {
+            Copy-DirectorySnapshot -SourcePath $integration.ConfigDirectory -DestinationPath $rollbackPath
             $rollbackAvailable = $true
         }
 
-        if (Test-Path -LiteralPath $global:SPICETIFY_CONFIG_DIR) {
-            $null = Remove-PathSafely -Path $global:SPICETIFY_CONFIG_DIR -Label 'Current Spicetify config'
+        if (Test-Path -LiteralPath $integration.ConfigDirectory) {
+            $null = Remove-PathSafely -Path $integration.ConfigDirectory -Label 'Current Spicetify config'
         }
-        Copy-DirectorySnapshot -SourcePath $stagedSource -DestinationPath $global:SPICETIFY_CONFIG_DIR
+        Copy-DirectorySnapshot -SourcePath $stagedSource -DestinationPath $integration.ConfigDirectory
 
-        $spicetifyExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
+        $spicetifyExe = $integration.CliPath
         if (Test-Path -LiteralPath $spicetifyExe) {
             Invoke-SpicetifyCli -Arguments @('backup','apply','--bypass-admin') -FailureMessage 'Could not apply the restored Spicetify backup.'
         }
@@ -5011,11 +5032,11 @@ function Restore-SpicetifyBackupSnapshot {
         $originalError = $_.Exception.Message
         if ($rollbackAvailable) {
             try {
-                if (Test-Path -LiteralPath $global:SPICETIFY_CONFIG_DIR) {
-                    $null = Remove-PathSafely -Path $global:SPICETIFY_CONFIG_DIR -Label 'Failed restore state'
+                if (Test-Path -LiteralPath $integration.ConfigDirectory) {
+                    $null = Remove-PathSafely -Path $integration.ConfigDirectory -Label 'Failed restore state'
                 }
-                Copy-DirectorySnapshot -SourcePath $rollbackPath -DestinationPath $global:SPICETIFY_CONFIG_DIR
-                $spicetifyExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
+                Copy-DirectorySnapshot -SourcePath $rollbackPath -DestinationPath $integration.ConfigDirectory
+                $spicetifyExe = $integration.CliPath
                 if (Test-Path -LiteralPath $spicetifyExe) {
                     Invoke-SpicetifyCli -Arguments @('backup','apply','--bypass-admin') -FailureMessage 'Could not reapply the rollback snapshot after the restore failed.'
                 }
@@ -5036,17 +5057,18 @@ function Restore-SpicetifyBackupSnapshot {
 }
 
 $ui['BtnBackupConfig'].Add_Click({ try {
-    if (-not (Test-Path -LiteralPath $global:SPICETIFY_CONFIG_DIR -PathType Container)) {
+    $integration = Get-SpicetifyIntegrationContext
+    if (-not (Test-Path -LiteralPath $integration.ConfigDirectory -PathType Container)) {
         Show-ThemedDialog -Message "LibreSpot could not find the active Spicetify configuration folder yet. Apply a setup first, then return here to create a backup." -Title "Nothing To Back Up" -Icon "Error" -PrimaryText "Close"
         return
     }
-    if (-not (Test-Path -LiteralPath (Join-Path $global:SPICETIFY_CONFIG_DIR 'config-xpui.ini') -PathType Leaf)) {
+    if (-not (Test-Path -LiteralPath $integration.ConfigPath -PathType Leaf)) {
         Show-ThemedDialog -Message "LibreSpot found the Spicetify folder, but the main config file is missing. Reapply your setup first so a clean backup can be created." -Title "Backup Not Ready" -Icon "Error" -PrimaryText "Close"
         return
     }
     $stamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"; $dest = Join-Path $global:BACKUP_ROOT $stamp
     New-Item -Path $dest -ItemType Directory -Force | Out-Null
-    Copy-DirectorySnapshot -SourcePath $global:SPICETIFY_CONFIG_DIR -DestinationPath (Join-Path $dest 'spicetify')
+    Copy-DirectorySnapshot -SourcePath $integration.ConfigDirectory -DestinationPath (Join-Path $dest 'spicetify')
     $all = Get-ChildItem $global:BACKUP_ROOT -Directory | Sort-Object Name -Descending
     if ($all.Count -gt 5) {
         $all | Select-Object -Skip 5 | ForEach-Object {
@@ -5057,7 +5079,7 @@ $ui['BtnBackupConfig'].Add_Click({ try {
 } catch { Show-ThemedDialog -Message "LibreSpot could not create the backup.`n`n$($_.Exception.Message)" -Title "Backup Failed" -Icon "Error" -PrimaryText "Close" } })
 
 $ui['BtnRestoreConfig'].Add_Click({ try {
-    $sExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
+    $sExe = (Get-SpicetifyIntegrationContext).CliPath
     if (-not (Test-Path -LiteralPath $sExe -PathType Leaf)) {
         Show-ThemedDialog -Message "LibreSpot needs the Spicetify CLI installed before it can restore and reapply a backup. Reinstall Spicetify first, then try the restore again." -Title "Spicetify Required" -Icon "Error" -PrimaryText "Close"
         return
@@ -6857,9 +6879,10 @@ function Module-InstallSpotX { param($Config,$SyncHash)
 }
 
 function Module-InstallSpicetifyCLI {
+    $integration = Get-SpicetifyIntegrationContext
     $ver = $global:PinnedReleases.SpicetifyCLI.Version
     Write-Log "Installing Spicetify CLI v$ver..." -Level 'STEP'
-    New-Item -Path $global:SPICETIFY_DIR -ItemType Directory -Force | Out-Null
+    New-Item -Path $integration.InstallDirectory -ItemType Directory -Force | Out-Null
     $arch = switch ($env:PROCESSOR_ARCHITECTURE) { 'ARM64' {'arm64'} default {'x64'} }
     $zip = $global:URL_SPICETIFY_FMT -f $ver, $arch
     $zp = New-LibreSpotTempFile -Name 'spicetify.zip'
@@ -6876,14 +6899,14 @@ function Module-InstallSpicetifyCLI {
             Confirm-FileHash -Path $zp -ExpectedHash $expectedHash -Label "Spicetify CLI ($arch)"
             Save-ToAssetCache -SourcePath $zp -SHA256Hash $expectedHash
         }
-        if (Test-Path -LiteralPath $global:SPICETIFY_DIR) {
-            $null = Clear-DirectoryContentsSafely -Path $global:SPICETIFY_DIR -Label 'Spicetify CLI'
+        if (Test-Path -LiteralPath $integration.InstallDirectory) {
+            $null = Clear-DirectoryContentsSafely -Path $integration.InstallDirectory -Label 'Spicetify CLI'
         }
-        Expand-ArchiveSafely -ZipPath $zp -DestinationPath $global:SPICETIFY_DIR -Label 'Spicetify CLI'
-        $sExe = Join-Path $global:SPICETIFY_DIR "spicetify.exe"
+        Expand-ArchiveSafely -ZipPath $zp -DestinationPath $integration.InstallDirectory -Label 'Spicetify CLI'
+        $sExe = $integration.CliPath
         if (-not (Test-Path $sExe)) { throw "spicetify.exe not found after extraction - ZIP may be corrupted" }
-        $null = Add-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'Process'
-        if (Add-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'User') {
+        $null = Add-PathEntry -Entry $integration.InstallDirectory -Scope 'Process'
+        if (Add-PathEntry -Entry $integration.InstallDirectory -Scope 'User') {
             Write-Log "Added Spicetify to user PATH."
         }
         Write-Log "Generating config..."
@@ -6897,7 +6920,7 @@ function Module-InstallSpicetifyCLI {
 function Module-InstallThemes { param($Config)
     $tn = $Config.Spicetify_Theme; if ($tn -eq '(None - Marketplace Only)') { Write-Log "No theme selected."; return }
     Write-Log "Installing theme: $tn..." -Level 'STEP'
-    $td = Join-Path $global:SPICETIFY_CONFIG_DIR "Themes"
+    $td = (Get-SpicetifyIntegrationContext).ThemesDirectory
     if (-not (Test-Path $td)) { New-Item -Path $td -ItemType Directory -Force | Out-Null }
 
     $isCommunity = $global:CommunityThemeRepos.ContainsKey($tn)
@@ -7002,7 +7025,7 @@ function Module-InstallThemes { param($Config)
 
 function Download-CommunityExtensions { param($Config)
     $exts = @($Config.Spicetify_Extensions)
-    $extDir = Join-Path $global:SPICETIFY_CONFIG_DIR "Extensions"
+    $extDir = (Get-SpicetifyIntegrationContext).ExtensionsDirectory
     if (-not (Test-Path $extDir)) { New-Item -Path $extDir -ItemType Directory -Force | Out-Null }
     $verifiedPaths = @()
     foreach ($ext in $exts) {
@@ -7063,10 +7086,11 @@ function Module-InstallExtensions { param($Config)
 }
 
 function Module-InstallMarketplace { param($Config)
+    $integration = Get-SpicetifyIntegrationContext
     $managedApps = @('marketplace')
     $marketplaceDirs = @(
-        (Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps\marketplace'),
-        (Join-Path $global:SPICETIFY_DIR 'CustomApps\marketplace')
+        $integration.MarketplaceDirectory,
+        $integration.LegacyMarketplaceDirectory
     )
     if (-not $Config.Spicetify_Marketplace) {
         Write-Log "Marketplace: disabled. Removing LibreSpot-managed Marketplace state if present..." -Level 'STEP'
@@ -7078,7 +7102,7 @@ function Module-InstallMarketplace { param($Config)
     }
 
     Write-Log "Installing Marketplace..." -Level 'STEP'
-    $ca = Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps'
+    $ca = $integration.CustomAppsDirectory
     New-Item -Path $ca -ItemType Directory -Force | Out-Null
     $md=Join-Path $ca "marketplace"
     $mz = New-LibreSpotTempFile -Name 'marketplace.zip'
@@ -7155,7 +7179,7 @@ function Repair-Marketplace {
 
 function Get-SpicetifyDiagnosticSnapshot {
     $snapshot = [ordered]@{}
-    $configPath = Join-Path $global:SPICETIFY_CONFIG_DIR 'config-xpui.ini'
+    $configPath = (Get-SpicetifyIntegrationContext).ConfigPath
     if (Test-Path -LiteralPath $configPath) {
         try {
             foreach ($line in Get-Content -LiteralPath $configPath -ErrorAction Stop) {
@@ -7393,21 +7417,23 @@ $maintBlock = { param($sh,$action)
             Write-Log "--- Restore Complete ---" -Level 'SUCCESS'
         } elseif ($action -eq 'UninstallSpicetify') {
             Write-Log "--- Uninstall Spicetify ---" -Level 'HEADER'
+            $integration = Get-SpicetifyIntegrationContext
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Restoring Spotify"; $sh.ProgressBar.Value=15 })
             if (Restore-SpotifyIfSpicetifyPresent -FailureMessage 'Could not restore Spotify before uninstalling Spicetify.' -MissingMessage 'Spicetify CLI was already missing, so LibreSpot will remove any leftover files and PATH entries directly.') {
                 Write-Log "Spicetify mods restored."
             }
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Removing Spicetify files"; $sh.ProgressBar.Value=45 })
-            if (Remove-PathSafely -Path $global:SPICETIFY_CONFIG_DIR -Label 'Spicetify config directory') { Write-Log "Removed config dir." }
-            if (Remove-PathSafely -Path $global:SPICETIFY_DIR -Label 'Spicetify CLI directory') { Write-Log "Removed CLI dir." }
+            if (Remove-PathSafely -Path $integration.ConfigDirectory -Label 'Spicetify config directory') { Write-Log "Removed config dir." }
+            if (Remove-PathSafely -Path $integration.InstallDirectory -Label 'Spicetify CLI directory') { Write-Log "Removed CLI dir." }
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Cleaning PATH"; $sh.ProgressBar.Value=75 })
-            if (Remove-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'Process') { Write-Log "Removed Spicetify from the current session PATH." }
-            if (Remove-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'User') {
+            if (Remove-PathEntry -Entry $integration.InstallDirectory -Scope 'Process') { Write-Log "Removed Spicetify from the current session PATH." }
+            if (Remove-PathEntry -Entry $integration.InstallDirectory -Scope 'User') {
                 Write-Log "Removed Spicetify from user PATH."
             }
             Write-Log "--- Uninstall Complete ---" -Level 'SUCCESS'
         } elseif ($action -eq 'FullReset') {
             Write-Log "--- Full Reset ---" -Level 'HEADER'
+            $integration = Get-SpicetifyIntegrationContext
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Restoring vanilla Spotify"; $sh.ProgressBar.Value=10 })
             try {
                 Invoke-SpicetifyCli -Arguments @('restore','--bypass-admin') -FailureMessage 'Could not restore Spotify before the full reset.'
@@ -7416,11 +7442,11 @@ $maintBlock = { param($sh,$action)
                 Write-Log "$($_.Exception.Message) Continuing with the full reset because Spotify will be removed next." -Level 'WARN'
             }
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Removing Spicetify"; $sh.ProgressBar.Value=30 })
-            $null = Remove-PathSafely -Path $global:SPICETIFY_CONFIG_DIR -Label 'Spicetify config directory'
-            $null = Remove-PathSafely -Path $global:SPICETIFY_DIR -Label 'Spicetify CLI directory'
+            $null = Remove-PathSafely -Path $integration.ConfigDirectory -Label 'Spicetify config directory'
+            $null = Remove-PathSafely -Path $integration.InstallDirectory -Label 'Spicetify CLI directory'
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Cleaning Spotify files"; $sh.ProgressBar.Value=50 }); Module-NukeSpotify
-            $null = Remove-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'Process'
-            if (Remove-PathEntry -Entry $global:SPICETIFY_DIR -Scope 'User') { Write-Log "Removed Spicetify from user PATH." }
+            $null = Remove-PathEntry -Entry $integration.InstallDirectory -Scope 'Process'
+            if (Remove-PathEntry -Entry $integration.InstallDirectory -Scope 'User') { Write-Log "Removed Spicetify from user PATH." }
             Write-Log "--- Full Reset Complete ---" -Level 'SUCCESS'
         }
         $doneStatus = switch ($action) {
@@ -7470,7 +7496,7 @@ $functionNamesForWorker = @(
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
     'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
-    'Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
+    'Get-SpicetifyIntegrationContext','Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
     'Get-NormalizedPathString','Get-PathEntries','Set-PathEntries','Add-PathEntry','Remove-PathEntry',
     'Get-SpotXPatchVerification','Test-SpotifySessionStability',
@@ -7490,7 +7516,7 @@ foreach ($fname in $functionNamesForWorker) {
 
 $varNamesForWorker = @(
     'URL_SPOTX','URL_MARKETPLACE','URL_THEMES_REPO','URL_SPICETIFY_FMT','PinnedReleases',
-    'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR',
+    'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR','SPICETIFY_INTEGRATION_VERSION',
     'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH','OPERATION_JOURNAL_PATH','RUN_RECEIPT_PATH','CURRENT_OPERATION_ID','CURRENT_OPERATION_ACTION','CACHE_DIR',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
     'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityExtensionAliases','DeprecatedCommunityExtensionNames','CommunityThemeRepos','ThemesNeedingJS','SpotXLyricsThemes','VERSION','CONFIG_SCHEMA_VERSION'

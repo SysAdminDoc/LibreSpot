@@ -1,6 +1,6 @@
 function Download-CommunityExtensions { param($Config)
     $exts = @($Config.Spicetify_Extensions)
-    $extDir = Join-Path $global:SPICETIFY_CONFIG_DIR "Extensions"
+    $extDir = (Get-SpicetifyIntegrationContext).ExtensionsDirectory
     if (-not (Test-Path $extDir)) { New-Item -Path $extDir -ItemType Directory -Force | Out-Null }
     $verifiedPaths = @()
     foreach ($ext in $exts) {

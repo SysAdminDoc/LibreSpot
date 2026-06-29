@@ -32,6 +32,13 @@ public sealed class PowerShellRegressionTests
     private static string ReadFile(params string[] relativeParts) =>
         File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(relativeParts).ToArray()));
 
+    private static string RemoveFunctionBody(string script, string functionName) =>
+        Regex.Replace(
+            script,
+            $@"function\s+{Regex.Escape(functionName)}\s*\{{(?<body>.+?)^\}}",
+            string.Empty,
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
     // ---------------------------------------------------------------------
     // Foreign-patch detection — v3.5.1 false-positive guard.
     // ---------------------------------------------------------------------
@@ -166,6 +173,84 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("Get-LibreSpotCompatibilityWarnings", listMatch.Value);
         Assert.Contains("Write-LibreSpotCompatibilityMatrix", listMatch.Value);
         Assert.Contains("Write-SpicetifyCliOutputLine", listMatch.Value);
+        Assert.Contains("Get-SpicetifyIntegrationContext", listMatch.Value);
+    }
+
+    [Fact]
+    public void RequiredSpicetifyGlobals_AreExportedIntoWorkerRunspace()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var listMatch = Regex.Match(
+            script,
+            @"\$varNamesForWorker\s*=\s*@\((?<body>.+?)^\)",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(listMatch.Success, "Worker variable export list not found.");
+        Assert.Contains("SPICETIFY_DIR", listMatch.Value);
+        Assert.Contains("SPICETIFY_CONFIG_DIR", listMatch.Value);
+        Assert.Contains("SPICETIFY_INTEGRATION_VERSION", listMatch.Value);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SpicetifyIntegrationContext_DefinesVersionedPathContract(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var body = Regex.Match(
+            script,
+            @"function\s+Get-SpicetifyIntegrationContext\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(body.Success, "Get-SpicetifyIntegrationContext function block not found.");
+        Assert.Contains("SPICETIFY_INTEGRATION_VERSION", body.Value);
+        Assert.Contains("'v2'", body.Value);
+        Assert.Contains("'v3-preview'", body.Value);
+        Assert.Contains("InstallDirectory", body.Value);
+        Assert.Contains("ConfigDirectory", body.Value);
+        Assert.Contains("CliPath", body.Value);
+        Assert.Contains("ConfigPath", body.Value);
+        Assert.Contains("ThemesDirectory", body.Value);
+        Assert.Contains("ExtensionsDirectory", body.Value);
+        Assert.Contains("CustomAppsDirectory", body.Value);
+        Assert.Contains("MarketplaceDirectory", body.Value);
+        Assert.Contains("LegacyMarketplaceDirectory", body.Value);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SpicetifyCallSites_DoNotRebuildIntegrationPaths(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        script = RemoveFunctionBody(script, "Get-SpicetifyIntegrationContext");
+        script = Regex.Replace(script, @"^\$global:SPICETIFY_(DIR|CONFIG_DIR|INTEGRATION_VERSION)\s*=.*$", string.Empty, RegexOptions.Multiline);
+
+        Assert.DoesNotContain("Join-Path $global:SPICETIFY_DIR", script);
+        Assert.DoesNotContain("Join-Path $global:SPICETIFY_CONFIG_DIR", script);
+        Assert.DoesNotContain("Remove-PathSafely -Path $global:SPICETIFY", script);
+        Assert.DoesNotContain("Remove-PathEntry -Entry $global:SPICETIFY", script);
+    }
+
+    [Theory]
+    [InlineData("src/powershell/shared/Download-CommunityExtensions.ps1")]
+    [InlineData("src/powershell/shared/Get-MarketplaceHealth.ps1")]
+    [InlineData("src/powershell/shared/Get-SpicetifyConfigEntries.ps1")]
+    [InlineData("src/powershell/shared/Get-SpicetifyDiagnosticSnapshot.ps1")]
+    [InlineData("src/powershell/shared/Invoke-SpicetifyCli.ps1")]
+    [InlineData("src/powershell/shared/Module-InstallMarketplace.ps1")]
+    [InlineData("src/powershell/shared/Module-InstallSpicetifyCLI.ps1")]
+    [InlineData("src/powershell/shared/Module-InstallThemes.ps1")]
+    [InlineData("src/powershell/shared/Test-SpicetifyCliInstalled.ps1")]
+    public void SharedSpicetifyHelpers_UseIntegrationContext(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("Get-SpicetifyIntegrationContext", script);
+        Assert.DoesNotContain("Join-Path $global:SPICETIFY_DIR", script);
+        Assert.DoesNotContain("Join-Path $global:SPICETIFY_CONFIG_DIR", script);
+        Assert.DoesNotContain("Remove-PathSafely -Path $global:SPICETIFY", script);
+        Assert.DoesNotContain("Remove-PathEntry -Entry $global:SPICETIFY", script);
     }
 
     [Fact]
@@ -619,7 +704,11 @@ public sealed class PowerShellRegressionTests
 
         Assert.True(fnBody.Success, $"Module-InstallMarketplace function block not found in {relativePath}.");
         var body = fnBody.Groups["body"].Value;
-        Assert.Contains("Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps'", body);
+        Assert.Contains("Get-SpicetifyIntegrationContext", body);
+        Assert.Contains("$integration.CustomAppsDirectory", body);
+        Assert.Contains("$integration.MarketplaceDirectory", body);
+        Assert.Contains("$integration.LegacyMarketplaceDirectory", body);
+        Assert.DoesNotContain("Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps'", body);
         Assert.DoesNotContain("Join-Path $global:SPICETIFY_DIR 'CustomApps'", body);
         Assert.Contains("Get-MarketplaceHealth", body);
         Assert.Contains("Marketplace archive did not produce expected Spicetify custom app files.", body);
@@ -685,7 +774,7 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("CreateNoWindow", body);
         Assert.Contains("TimeoutSeconds", body);
         Assert.Contains("statusIntervalSeconds", body);
-        Assert.Contains("Spicetify command: spicetify", body);
+        Assert.Contains("Spicetify ($($integration.Version)) command: spicetify", body);
         Assert.Contains("Spicetify PID", body);
         Assert.Contains("Spicetify still running", body);
         Assert.Contains("hard timeout", body);

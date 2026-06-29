@@ -68,15 +68,10 @@ function Invoke-HeadlessReapply {
 
         # Reapply Spicetify when it's installed. Missing CLI is fine — it just
         # means the user only patches with SpotX and that part is already done.
-        $spicetifyExe = Join-Path $global:SPICETIFY_DIR 'spicetify.exe'
-        if (Test-Path -LiteralPath $spicetifyExe) {
+        if (Test-SpicetifyCliInstalled) {
             try {
-                & $spicetifyExe 'backup' 'apply' 2>&1 | Out-Null
-                if ($LASTEXITCODE -eq 0) {
-                    Write-WatcherLog "Spicetify reapplied" -Level 'SUCCESS'
-                } else {
-                    Write-WatcherLog "Spicetify apply exited $LASTEXITCODE" -Level 'WARN'
-                }
+                Invoke-SpicetifyCli -Arguments @('backup','apply','--bypass-admin') -FailureMessage 'Watcher Spicetify apply failed.'
+                Write-WatcherLog "Spicetify reapplied" -Level 'SUCCESS'
             } catch {
                 Write-WatcherLog "Spicetify apply failed: $($_.Exception.Message)" -Level 'WARN'
             }

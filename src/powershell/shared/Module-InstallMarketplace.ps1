@@ -1,8 +1,9 @@
 function Module-InstallMarketplace { param($Config)
+    $integration = Get-SpicetifyIntegrationContext
     $managedApps = @('marketplace')
     $marketplaceDirs = @(
-        (Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps\marketplace'),
-        (Join-Path $global:SPICETIFY_DIR 'CustomApps\marketplace')
+        $integration.MarketplaceDirectory,
+        $integration.LegacyMarketplaceDirectory
     )
     if (-not $Config.Spicetify_Marketplace) {
         Write-Log "Marketplace: disabled. Removing LibreSpot-managed Marketplace state if present..." -Level 'STEP'
@@ -14,7 +15,7 @@ function Module-InstallMarketplace { param($Config)
     }
 
     Write-Log "Installing Marketplace..." -Level 'STEP'
-    $ca = Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps'
+    $ca = $integration.CustomAppsDirectory
     New-Item -Path $ca -ItemType Directory -Force | Out-Null
     $md=Join-Path $ca "marketplace"
     $mz = New-LibreSpotTempFile -Name 'marketplace.zip'

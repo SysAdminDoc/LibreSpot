@@ -1,6 +1,7 @@
 function Get-MarketplaceHealth {
-    $configDir = Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps\marketplace'
-    $legacyDir = Join-Path $global:SPICETIFY_DIR 'CustomApps\marketplace'
+    $integration = Get-SpicetifyIntegrationContext
+    $configDir = $integration.MarketplaceDirectory
+    $legacyDir = $integration.LegacyMarketplaceDirectory
     $activeDir = if (Test-Path -LiteralPath $configDir -PathType Container) { $configDir } elseif (Test-Path -LiteralPath $legacyDir -PathType Container) { $legacyDir } else { $configDir }
     $hasConfigDir = Test-Path -LiteralPath $configDir -PathType Container
     $hasLegacyDir = Test-Path -LiteralPath $legacyDir -PathType Container

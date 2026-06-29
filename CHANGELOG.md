@@ -21,6 +21,9 @@ All notable changes to LibreSpot will be documented in this file.
 - Added tested fleet deployment sample scripts, a standard answer-file sample,
   and a local package-validation runner for draft winget/Scoop/Chocolatey
   manifests without advertising those channels as publishable.
+- Added a version-aware Spicetify integration context so CLI, config, theme,
+  extension, Marketplace, backup, restore, and uninstall paths route through
+  one facade ahead of Spicetify v3 migration work.
 - Added a dedicated `LibreSpot.Cli.exe` console project for fleet tooling with
   `--version`, `status --json`, `detect --json`, `detect --intune`, and
   `validate --answer-file` support backed by the existing health report model,
