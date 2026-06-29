@@ -495,6 +495,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly SupportBundleService _supportBundleService;
     private readonly OperationJournalUndoService _operationJournalUndoService;
     private readonly LocalProfileService _profileService;
+    private readonly PromptStateViewModel _promptState = new();
+    private readonly SettingsSearchStateViewModel _settingsSearch = new();
     private readonly Dispatcher _dispatcher;
     private readonly bool _isAdministratorSession;
     private readonly InstallConfiguration _recommendedBaseline;
@@ -511,7 +513,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _selectedDownloadMethod = string.Empty;
     private string _cacheLimitText = "0";
     private string _themeSearchText = string.Empty;
-    private string _settingsSearchText = string.Empty;
     private int _selectedWorkspaceIndex;
     private bool _isActivityVisible;
     private bool _isRunning;
@@ -521,14 +522,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _activityStep = "Idle";
     private DateTime? _snapshotRefreshedAt;
     private EnvironmentSnapshot _snapshot = new();
-    private bool _isPromptVisible;
-    private string _promptTitle = string.Empty;
-    private string _promptBody = string.Empty;
-    private string _promptConfirmText = Strings.ButtonContinue;
-    private string _promptCancelText = Strings.ButtonCancel;
-    private string _promptSummaryTitle = string.Empty;
-    private string _promptSummaryBody = string.Empty;
-    private bool _isPromptDestructive;
     private bool _isCancelRequested;
     private bool _isApplyingSelectionDependencyRules;
     private ConfigurationLoadState _configurationLoadState = ConfigurationLoadState.Loaded;
@@ -538,7 +531,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _profileNameText = "Custom profile";
     private string _profileDescriptionText = "Saved from the Custom page.";
     private string _profileOperationStatus = "Local profiles load when LibreSpot starts.";
-    private Func<Task>? _pendingPromptAction;
     private SupportBundlePreview _supportBundlePreview = new(
         Array.Empty<SupportBundlePreviewEntry>(),
         0,
@@ -573,6 +565,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         };
         _snapshotFreshnessTimer.Tick += (_, _) => RaiseSnapshotFreshnessChanged();
         _snapshotFreshnessTimer.Start();
+        _promptState.PropertyChanged += OnPromptStatePropertyChanged;
+        _settingsSearch.PropertyChanged += OnSettingsSearchStatePropertyChanged;
 
         RecommendedHighlights = new ObservableCollection<string>(AppCatalog.RecommendedHighlights);
         ThemeNames = new ObservableCollection<string>(AppCatalog.ThemeSchemes.Keys);
@@ -1026,17 +1020,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string SettingsSearchText
     {
-        get => _settingsSearchText;
-        set
-        {
-            if (SetProperty(ref _settingsSearchText, value))
-            {
-                RefreshSettingsSearch();
-            }
-        }
+        get => _settingsSearch.Text;
+        set => _settingsSearch.Text = value;
     }
 
-    public bool HasSettingsSearchText => !string.IsNullOrWhiteSpace(SettingsSearchText);
+    public bool HasSettingsSearchText => _settingsSearch.HasText;
 
     public bool HasVisibleInstallOptions => HasVisibleOptions(InstallOptions);
 
@@ -1711,67 +1699,92 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public bool IsPromptVisible
     {
-        get => _isPromptVisible;
-        private set
-        {
-            if (SetProperty(ref _isPromptVisible, value))
-            {
-                ConfirmPromptCommand.RaiseCanExecuteChanged();
-                CancelPromptCommand.RaiseCanExecuteChanged();
-                RaisePropertyChanged(nameof(IsPromptConfirmDefault));
-            }
-        }
+        get => _promptState.IsVisible;
     }
 
     public string PromptTitle
     {
-        get => _promptTitle;
-        private set => SetProperty(ref _promptTitle, value);
+        get => _promptState.Title;
     }
 
     public string PromptBody
     {
-        get => _promptBody;
-        private set => SetProperty(ref _promptBody, value);
+        get => _promptState.Body;
     }
 
     public string PromptConfirmText
     {
-        get => _promptConfirmText;
-        private set => SetProperty(ref _promptConfirmText, value);
+        get => _promptState.ConfirmText;
     }
 
     public string PromptCancelText
     {
-        get => _promptCancelText;
-        private set => SetProperty(ref _promptCancelText, value);
+        get => _promptState.CancelText;
     }
 
     public string PromptSummaryTitle
     {
-        get => _promptSummaryTitle;
-        private set => SetProperty(ref _promptSummaryTitle, value);
+        get => _promptState.SummaryTitle;
     }
 
     public string PromptSummaryBody
     {
-        get => _promptSummaryBody;
-        private set => SetProperty(ref _promptSummaryBody, value);
+        get => _promptState.SummaryBody;
     }
 
     public bool IsPromptDestructive
     {
-        get => _isPromptDestructive;
-        private set
+        get => _promptState.IsDestructive;
+    }
+
+    public bool IsPromptConfirmDefault => _promptState.IsConfirmDefault;
+
+    private void OnPromptStatePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
         {
-            if (SetProperty(ref _isPromptDestructive, value))
-            {
+            case nameof(PromptStateViewModel.IsVisible):
+                ConfirmPromptCommand.RaiseCanExecuteChanged();
+                CancelPromptCommand.RaiseCanExecuteChanged();
+                RaisePropertyChanged(nameof(IsPromptVisible));
                 RaisePropertyChanged(nameof(IsPromptConfirmDefault));
-            }
+                break;
+            case nameof(PromptStateViewModel.Title):
+                RaisePropertyChanged(nameof(PromptTitle));
+                break;
+            case nameof(PromptStateViewModel.Body):
+                RaisePropertyChanged(nameof(PromptBody));
+                break;
+            case nameof(PromptStateViewModel.ConfirmText):
+                RaisePropertyChanged(nameof(PromptConfirmText));
+                break;
+            case nameof(PromptStateViewModel.CancelText):
+                RaisePropertyChanged(nameof(PromptCancelText));
+                break;
+            case nameof(PromptStateViewModel.SummaryTitle):
+                RaisePropertyChanged(nameof(PromptSummaryTitle));
+                break;
+            case nameof(PromptStateViewModel.SummaryBody):
+                RaisePropertyChanged(nameof(PromptSummaryBody));
+                break;
+            case nameof(PromptStateViewModel.IsDestructive):
+                RaisePropertyChanged(nameof(IsPromptDestructive));
+                RaisePropertyChanged(nameof(IsPromptConfirmDefault));
+                break;
+            case nameof(PromptStateViewModel.IsConfirmDefault):
+                RaisePropertyChanged(nameof(IsPromptConfirmDefault));
+                break;
         }
     }
 
-    public bool IsPromptConfirmDefault => IsPromptVisible && !IsPromptDestructive;
+    private void OnSettingsSearchStatePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingsSearchStateViewModel.Text))
+        {
+            RaisePropertyChanged(nameof(SettingsSearchText));
+            RefreshSettingsSearch();
+        }
+    }
 
     public async Task InitializeAsync()
     {
@@ -1859,16 +1872,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     private bool MatchesSettingsSearch(string title, string description)
-    {
-        if (!HasSettingsSearchText)
-        {
-            return true;
-        }
-
-        var query = SettingsSearchText.Trim();
-        return title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-               description.Contains(query, StringComparison.OrdinalIgnoreCase);
-    }
+        => _settingsSearch.Matches(title, description);
 
     private void RegisterOptionStateObservers()
     {
@@ -2917,6 +2921,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         catch { }
         _runElapsedTimer.Stop();
         _snapshotFreshnessTimer.Stop();
+        _promptState.PropertyChanged -= OnPromptStatePropertyChanged;
+        _settingsSearch.PropertyChanged -= OnSettingsSearchStatePropertyChanged;
         _runCts?.Dispose();
         _runCts = null;
     }
@@ -3242,35 +3248,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         string? summaryTitle = null,
         string? summaryBody = null)
     {
-        PromptTitle = title;
-        PromptBody = body;
-        PromptConfirmText = confirmText;
-        PromptCancelText = cancelText;
-        PromptSummaryTitle = summaryTitle ?? "What happens next";
-        PromptSummaryBody = summaryBody ??
-            (isDestructive
-                ? "LibreSpot will make the requested change and leave the result visible here so you can review it afterward."
-                : "LibreSpot will keep the window open, stream progress here, and leave the result easy to review afterward.");
-        IsPromptDestructive = isDestructive;
-        _pendingPromptAction = confirmAction;
-        IsPromptVisible = true;
+        _promptState.Show(
+            title,
+            body,
+            confirmText,
+            cancelText,
+            isDestructive,
+            confirmAction,
+            summaryTitle,
+            summaryBody);
     }
 
-    private async Task ConfirmPromptAsync()
-    {
-        var action = _pendingPromptAction;
-        ClearPrompt();
+    private Task ConfirmPromptAsync() => _promptState.ConfirmAsync();
 
-        if (action is not null)
-        {
-            await action();
-        }
-    }
-
-    private void CancelPrompt()
-    {
-        ClearPrompt();
-    }
+    private void CancelPrompt() => _promptState.Cancel();
 
     private void HandleEscape()
     {
@@ -3286,18 +3277,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void ClearPrompt()
-    {
-        IsPromptVisible = false;
-        PromptTitle = string.Empty;
-        PromptBody = string.Empty;
-        PromptConfirmText = Strings.ButtonContinue;
-        PromptCancelText = Strings.ButtonCancel;
-        PromptSummaryTitle = string.Empty;
-        PromptSummaryBody = string.Empty;
-        IsPromptDestructive = false;
-        _pendingPromptAction = null;
-    }
+    private void ClearPrompt() => _promptState.Clear();
 
     private static (string Title, string Body) BuildMaintenancePromptSummary(MaintenanceActionDefinition definition) =>
         definition.Action switch
