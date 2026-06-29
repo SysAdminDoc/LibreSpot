@@ -25,6 +25,8 @@ public sealed class BackendScriptServiceTests
         var source = ReadRepoFile("src", "LibreSpot.Desktop", "App.xaml.cs");
 
         Assert.Contains("BackendScriptService.CleanStaleExecutionCopies()", source);
+        Assert.Contains("ShellIntegrationService.RegisterCurrentUserShellHooksIfPossible()", source);
+        Assert.Contains("ShellIntegrationService.ConfigureJumpListIfPossible()", source);
     }
 
     [Fact]

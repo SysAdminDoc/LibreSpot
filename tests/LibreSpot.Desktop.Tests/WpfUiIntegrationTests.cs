@@ -96,6 +96,31 @@ public sealed class WpfUiIntegrationTests
         Assert.Contains("ControlAppearance.Danger", codeBehind);
     }
 
+    [Fact]
+    public void WpfShell_ExposesTaskbarThumbnailActions()
+    {
+        var xaml = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+
+        Assert.Contains("<TaskbarItemInfo.ThumbButtonInfos>", xaml);
+        Assert.Contains("ShowRecommendedWorkspaceCommand", xaml);
+        Assert.Contains("ShowCustomWorkspaceCommand", xaml);
+        Assert.Contains("ShowMaintenanceWorkspaceCommand", xaml);
+        Assert.Contains("ImportProfileCommand", xaml);
+        Assert.Contains("OpenLibreSpotFolderCommand", xaml);
+    }
+
+    [Fact]
+    public void WpfShell_MinimizesToTrayAndUsesClickableTrayNotifications()
+    {
+        var codeBehind = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
+
+        Assert.Contains("Forms.NotifyIcon", codeBehind);
+        Assert.Contains("HideToTray", codeBehind);
+        Assert.Contains("BalloonTipClicked", codeBehind);
+        Assert.Contains("ShowTrayCompletionNotification", codeBehind);
+        Assert.Contains("RestoreFromTray", codeBehind);
+    }
+
     private static void EnsureApplication()
     {
         if (Application.Current == null)

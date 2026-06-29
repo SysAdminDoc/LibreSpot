@@ -11,6 +11,8 @@ using System.Windows.Threading;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Properties;
 using LibreSpot.Desktop.Services;
+using Application = System.Windows.Application;
+using Clipboard = System.Windows.Clipboard;
 
 namespace LibreSpot.Desktop.ViewModels;
 
@@ -585,6 +587,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DeleteProfileCommand = new AsyncRelayCommand(DeleteLocalProfileAsync, CanDeleteLocalProfile, HandleAsyncCommandException);
         ExportProfileCommand = new AsyncRelayCommand(ExportLocalProfileAsync, CanUseSelectedProfile, HandleAsyncCommandException);
         ImportProfileCommand = new AsyncRelayCommand(ImportLocalProfileAsync, () => !IsRunning, HandleAsyncCommandException);
+        ShowRecommendedWorkspaceCommand = new RelayCommand(() => SelectedWorkspaceIndex = 0);
+        ShowCustomWorkspaceCommand = new RelayCommand(() => SelectedWorkspaceIndex = 1);
+        ShowMaintenanceWorkspaceCommand = new RelayCommand(() => SelectedWorkspaceIndex = 2);
         EnableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: true), () => !IsRunning && !Snapshot.AutoReapplyTaskRegistered);
         DisableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: false), () => !IsRunning && Snapshot.AutoReapplyTaskRegistered);
         ClearSettingsSearchCommand = new RelayCommand(() => SettingsSearchText = string.Empty, () => HasSettingsSearchText);
@@ -646,6 +651,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public AsyncRelayCommand DeleteProfileCommand { get; }
     public AsyncRelayCommand ExportProfileCommand { get; }
     public AsyncRelayCommand ImportProfileCommand { get; }
+    public RelayCommand ShowRecommendedWorkspaceCommand { get; }
+    public RelayCommand ShowCustomWorkspaceCommand { get; }
+    public RelayCommand ShowMaintenanceWorkspaceCommand { get; }
     public RelayCommand EnableAutoReapplyCommand { get; }
     public RelayCommand DisableAutoReapplyCommand { get; }
     public RelayCommand ClearSettingsSearchCommand { get; }

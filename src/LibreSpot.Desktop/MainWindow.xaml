@@ -29,7 +29,25 @@
     <!-- Mirror run state onto the taskbar icon so users see progress at a glance
          even when LibreSpot is minimized during a patch run. -->
     <TaskbarItemInfo ProgressState="{Binding TaskbarProgressState}"
-                     ProgressValue="{Binding TaskbarProgressFraction}" />
+                     ProgressValue="{Binding TaskbarProgressFraction}">
+      <TaskbarItemInfo.ThumbButtonInfos>
+        <ThumbButtonInfo Description="Recommended setup"
+                         Command="{Binding ShowRecommendedWorkspaceCommand}"
+                         ImageSource="pack://application:,,,/Assets/LibreSpot.ico" />
+        <ThumbButtonInfo Description="Custom settings"
+                         Command="{Binding ShowCustomWorkspaceCommand}"
+                         ImageSource="pack://application:,,,/Assets/LibreSpot.ico" />
+        <ThumbButtonInfo Description="Maintenance"
+                         Command="{Binding ShowMaintenanceWorkspaceCommand}"
+                         ImageSource="pack://application:,,,/Assets/LibreSpot.ico" />
+        <ThumbButtonInfo Description="Import profile"
+                         Command="{Binding ImportProfileCommand}"
+                         ImageSource="pack://application:,,,/Assets/LibreSpot.ico" />
+        <ThumbButtonInfo Description="Open LibreSpot folder"
+                         Command="{Binding OpenLibreSpotFolderCommand}"
+                         ImageSource="pack://application:,,,/Assets/LibreSpot.ico" />
+      </TaskbarItemInfo.ThumbButtonInfos>
+    </TaskbarItemInfo>
   </Window.TaskbarItemInfo>
 
   <Window.Resources>

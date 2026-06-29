@@ -8,6 +8,12 @@ using System.Windows.Threading;
 using System.Windows.Media;
 using Serilog;
 using Serilog.Events;
+using Application = System.Windows.Application;
+using Button = System.Windows.Controls.Button;
+using Clipboard = System.Windows.Clipboard;
+using HorizontalAlignment = System.Windows.HorizontalAlignment;
+using Orientation = System.Windows.Controls.Orientation;
+using TextBox = System.Windows.Controls.TextBox;
 
 namespace LibreSpot.Desktop.Services;
 

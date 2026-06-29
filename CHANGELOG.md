@@ -5,6 +5,10 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added Windows shell integration for the WPF desktop preview: per-user
+  `librespot://` protocol and `.librespot` file associations, jump-list tasks,
+  taskbar thumbnail actions, tray minimize/restore, and clickable tray
+  completion notifications.
 - Added opt-in Spicetify custom-app support for the verified Stats release,
   including Custom mode UI, CLI answer-file schema support, pinned SHA256
   catalog metadata, and Last.fm network-behavior disclosure.

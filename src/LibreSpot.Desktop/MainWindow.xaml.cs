@@ -9,28 +9,31 @@ using System.Windows.Threading;
 using LibreSpot.Desktop.Services;
 using LibreSpot.Desktop.ViewModels;
 using Wpf.Ui.Controls;
+using Drawing = System.Drawing;
+using Forms = System.Windows.Forms;
 
 namespace LibreSpot.Desktop;
 
 public partial class MainWindow : Window
 {
     private const string UiAutomationSmokeArgumentPrefix = "--uia-smoke=";
-    private const string ProfileShareArgumentPrefix = "--profile-uri=";
     private static readonly Regex NumericInput = new("^[0-9]+$", RegexOptions.Compiled);
     private readonly MainViewModel _viewModel;
     private readonly string? _uiAutomationSmokeState;
-    private readonly string? _profileShareUri;
+    private readonly ShellActivationRequest _shellActivation;
     private bool _allowCloseWhileRunning;
     private IInputElement? _focusBeforeActivity;
     private IInputElement? _focusBeforePrompt;
     private bool _wasRunning;
+    private Forms.NotifyIcon? _trayIcon;
+    private bool _hasShownTrayMinimizeNotice;
 
     public MainWindow()
     {
         InitializeComponent();
 
         _uiAutomationSmokeState = GetUiAutomationSmokeState();
-        _profileShareUri = GetProfileShareUri();
+        _shellActivation = ShellActivationService.Parse(Environment.GetCommandLineArgs().Skip(1));
         _viewModel = string.IsNullOrWhiteSpace(_uiAutomationSmokeState)
             ? new MainViewModel(
                 new ConfigurationService(),
@@ -41,6 +44,7 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
         SourceInitialized += MainWindow_SourceInitialized;
         Loaded += MainWindow_Loaded;
+        StateChanged += MainWindow_StateChanged;
         Closing += MainWindow_Closing;
         Closed += MainWindow_Closed;
     }
@@ -57,6 +61,7 @@ public partial class MainWindow : Window
     {
         Loaded -= MainWindow_Loaded;
 
+        InitializeTrayIcon();
         _viewModel.LogEntries.CollectionChanged += OnLogEntriesChanged;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
@@ -67,9 +72,9 @@ public partial class MainWindow : Window
             {
                 _viewModel.ApplyUiAutomationSmokeState(_uiAutomationSmokeState);
             }
-            else if (!string.IsNullOrWhiteSpace(_profileShareUri))
+            else if (_shellActivation.HasActivation)
             {
-                await _viewModel.PreviewSharedProfileUriAsync(_profileShareUri);
+                await HandleShellActivationAsync(_shellActivation);
             }
         }
         catch (Exception ex)
@@ -86,6 +91,7 @@ public partial class MainWindow : Window
         if (_viewModel.IsRunning && !_allowCloseWhileRunning)
         {
             e.Cancel = true;
+            RestoreFromTray();
             _viewModel.PresentCloseWhileRunningPrompt(() =>
             {
                 _allowCloseWhileRunning = true;
@@ -108,6 +114,8 @@ public partial class MainWindow : Window
             _viewModel.LogEntries.CollectionChanged -= OnLogEntriesChanged;
         }
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        StateChanged -= MainWindow_StateChanged;
+        DisposeTrayIcon();
         _viewModel.Dispose();
     }
 
@@ -157,7 +165,180 @@ public partial class MainWindow : Window
             IsCloseButtonEnabled = true
         };
 
-        snackbar.Show();
+        if (IsVisible && WindowState != WindowState.Minimized)
+        {
+            snackbar.Show();
+        }
+
+        if (!IsActive || !IsVisible || WindowState == WindowState.Minimized)
+        {
+            ShowTrayCompletionNotification(appearance);
+        }
+    }
+
+    private void MainWindow_StateChanged(object? sender, EventArgs e)
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            HideToTray();
+        }
+    }
+
+    private async Task HandleShellActivationAsync(ShellActivationRequest activation)
+    {
+        switch (activation.Kind)
+        {
+            case ShellActivationKind.NavigateRecommended:
+                _viewModel.SelectedWorkspaceIndex = 0;
+                break;
+            case ShellActivationKind.NavigateCustom:
+                _viewModel.SelectedWorkspaceIndex = 1;
+                break;
+            case ShellActivationKind.NavigateMaintenance:
+                _viewModel.SelectedWorkspaceIndex = 2;
+                break;
+            case ShellActivationKind.ImportProfile:
+                _viewModel.SelectedWorkspaceIndex = 1;
+                if (_viewModel.ImportProfileCommand.CanExecute(null))
+                {
+                    _viewModel.ImportProfileCommand.Execute(null);
+                }
+                break;
+            case ShellActivationKind.OpenLibreSpotFolder:
+                if (_viewModel.OpenLibreSpotFolderCommand.CanExecute(null))
+                {
+                    _viewModel.OpenLibreSpotFolderCommand.Execute(null);
+                }
+                break;
+            case ShellActivationKind.ProfileShareUri when !string.IsNullOrWhiteSpace(activation.Value):
+                _viewModel.SelectedWorkspaceIndex = 1;
+                await _viewModel.PreviewSharedProfileUriAsync(activation.Value);
+                break;
+        }
+    }
+
+    private void InitializeTrayIcon()
+    {
+        if (_trayIcon is not null)
+        {
+            return;
+        }
+
+        var menu = new Forms.ContextMenuStrip();
+        var openItem = new Forms.ToolStripMenuItem("Open LibreSpot");
+        openItem.Click += (_, _) => Dispatcher.BeginInvoke(new Action(RestoreFromTray), DispatcherPriority.Background);
+        menu.Items.Add(openItem);
+
+        var folderItem = new Forms.ToolStripMenuItem("Open LibreSpot folder");
+        folderItem.Click += (_, _) => Dispatcher.BeginInvoke(new Action(() =>
+        {
+            RestoreFromTray();
+            if (_viewModel.OpenLibreSpotFolderCommand.CanExecute(null))
+            {
+                _viewModel.OpenLibreSpotFolderCommand.Execute(null);
+            }
+        }), DispatcherPriority.Background);
+        menu.Items.Add(folderItem);
+
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        var exitItem = new Forms.ToolStripMenuItem("Exit LibreSpot");
+        exitItem.Click += (_, _) => Dispatcher.BeginInvoke(new Action(() =>
+        {
+            RestoreFromTray();
+            Close();
+        }), DispatcherPriority.Background);
+        menu.Items.Add(exitItem);
+
+        _trayIcon = new Forms.NotifyIcon
+        {
+            Icon = LoadTrayIcon(),
+            Text = "LibreSpot",
+            Visible = true,
+            ContextMenuStrip = menu
+        };
+        _trayIcon.DoubleClick += (_, _) => Dispatcher.BeginInvoke(new Action(RestoreFromTray), DispatcherPriority.Background);
+        _trayIcon.BalloonTipClicked += (_, _) => Dispatcher.BeginInvoke(new Action(RestoreFromTray), DispatcherPriority.Background);
+    }
+
+    private void HideToTray()
+    {
+        if (_trayIcon is null)
+        {
+            return;
+        }
+
+        Hide();
+        if (_hasShownTrayMinimizeNotice)
+        {
+            return;
+        }
+
+        _hasShownTrayMinimizeNotice = true;
+        var detail = _viewModel.IsRunning
+            ? "LibreSpot is still running. Double-click this icon to reopen the live log."
+            : "Double-click this icon to reopen LibreSpot.";
+        _trayIcon.ShowBalloonTip(5000, "LibreSpot is minimized", detail, Forms.ToolTipIcon.Info);
+    }
+
+    private void RestoreFromTray()
+    {
+        if (!IsVisible)
+        {
+            Show();
+        }
+
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    private void ShowTrayCompletionNotification(ControlAppearance appearance)
+    {
+        if (_trayIcon is null)
+        {
+            return;
+        }
+
+        var icon = appearance switch
+        {
+            ControlAppearance.Danger => Forms.ToolTipIcon.Error,
+            ControlAppearance.Caution => Forms.ToolTipIcon.Warning,
+            _ => Forms.ToolTipIcon.Info
+        };
+        _trayIcon.ShowBalloonTip(10000, _viewModel.ActivityBadgeText, _viewModel.ActivityStatus, icon);
+    }
+
+    private void DisposeTrayIcon()
+    {
+        if (_trayIcon is null)
+        {
+            return;
+        }
+
+        _trayIcon.Visible = false;
+        _trayIcon.Dispose();
+        _trayIcon = null;
+    }
+
+    private static Drawing.Icon LoadTrayIcon()
+    {
+        try
+        {
+            var executablePath = Environment.ProcessPath;
+            if (!string.IsNullOrWhiteSpace(executablePath) && File.Exists(executablePath))
+            {
+                var icon = Drawing.Icon.ExtractAssociatedIcon(executablePath);
+                if (icon is not null)
+                {
+                    return icon;
+                }
+            }
+        }
+        catch
+        {
+            // Fall back to the platform icon; the tray affordance should never block startup.
+        }
+
+        return Drawing.SystemIcons.Application;
     }
 
     private void OnLogEntriesChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -275,25 +456,6 @@ public partial class MainWindow : Window
             {
                 var value = arg[UiAutomationSmokeArgumentPrefix.Length..].Trim();
                 return string.IsNullOrWhiteSpace(value) ? "recommended" : value;
-            }
-        }
-
-        return null;
-    }
-
-    private static string? GetProfileShareUri()
-    {
-        foreach (var arg in Environment.GetCommandLineArgs())
-        {
-            if (arg.StartsWith(ProfileShareArgumentPrefix, StringComparison.OrdinalIgnoreCase))
-            {
-                var value = arg[ProfileShareArgumentPrefix.Length..].Trim();
-                return string.IsNullOrWhiteSpace(value) ? null : value;
-            }
-
-            if (arg.StartsWith("librespot://profile", StringComparison.OrdinalIgnoreCase))
-            {
-                return arg;
             }
         }
 
