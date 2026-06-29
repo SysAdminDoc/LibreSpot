@@ -130,40 +130,6 @@ required before imported settings can mutate Spotify or Spicetify. Tags: 🔬 =
 researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
 operator-needed where hosted sharing or cloud policy decisions are required.
 
-- [ ] 🔬 🤖 P1 - Add a local preset
-  gallery with named profiles instead of one mutable remembered config.
-  - Why: the WPF shell explains "saved profile" well, but the product still has
-    one active config and one "load recommended defaults" action. Community
-    sharing asks for local preset profiles and a bundled preset gallery; without
-    a profile manager, export/import will feel like overwriting a hidden file.
-    VS Code profiles and PowerToys backup/restore show users expect named
-    settings sets, a visible management surface, and a restore path that does
-    not require hand-editing AppData.
-  - Evidence: `README.md:152`,
-    `LibreSpot.ps1:1666`,
-    `LibreSpot.ps1:2973`,
-    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:302`,
-    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:385`,
-    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:551`,
-    `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:1945`,
-    `tests/LibreSpot.Desktop.Tests/ConfigurationServiceTests.cs:89`,
-    https://code.visualstudio.com/docs/configure/profiles,
-    https://learn.microsoft.com/en-us/windows/powertoys/general
-  - Touches: configuration storage, WPF profile manager, PowerShell Custom mode,
-    README, migration docs, backup/restore tests.
-  - Acceptance: LibreSpot stores named local profiles under a dedicated profile
-    directory, keeps one active profile pointer, and ships bundled templates
-    such as Recommended, Minimal/Marketplace-only, Visual Theme, Lyrics Focus,
-    Premium Account, and Recovery/Reapply. Users can duplicate, rename, delete,
-    export, import, and set a default profile. Applying a profile writes the
-    active `config.json` only after preview/confirmation and preserves the
-    previous active profile for rollback.
-  - Verify: tests cover creating profiles from recommended/current/imported
-    configs, preventing duplicate names or invalid filenames, deleting the
-    active profile, migrating the existing single `config.json` into the active
-    profile store, and round-tripping profile display metadata without changing
-    install behavior.
-
 - [ ] 🔬 🤖 P2 - Design shareable
   URIs and QR cards as inert previews, not install commands.
   - Why: the roadmap calls for shareable URIs and QR cards, while Cycle 4

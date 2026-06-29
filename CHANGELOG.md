@@ -34,6 +34,9 @@ All notable changes to LibreSpot will be documented in this file.
 - WPF Custom mode now includes a local profile manager for bundled templates,
   create-from-current saves, preview-before-write, active profile selection,
   duplicate/rename/delete, and safe `.librespot` import/export.
+- Stable PowerShell Custom mode now reads the same local profile store, previews
+  bundled templates, saves current Custom selections as a named profile, and
+  can set a selected profile active without starting setup.
 
 ### Changed
 - Release-trust documentation now reflects the local-only release process:

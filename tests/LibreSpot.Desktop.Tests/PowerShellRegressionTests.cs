@@ -857,6 +857,26 @@ public sealed class PowerShellRegressionTests
         Assert.DoesNotContain("$global:CONFIG_PATH.bak", body);
     }
 
+    [Fact]
+    public void PowerShellCustomMode_UsesSharedLocalProfileStore()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+
+        Assert.Contains("$global:PROFILE_DIR", script);
+        Assert.Contains("$global:ACTIVE_PROFILE_PATH", script);
+        Assert.Contains("$global:PREVIOUS_PROFILE_PATH", script);
+        Assert.Contains("function Get-LibreSpotBuiltInProfiles", script);
+        Assert.Contains("function Initialize-LibreSpotProfileStore", script);
+        Assert.Contains("function Apply-LibreSpotProfile", script);
+        Assert.Contains("CmbLocalProfiles", script);
+        Assert.Contains("BtnProfilePreview", script);
+        Assert.Contains("BtnProfileApply", script);
+        Assert.Contains("BtnProfileSaveCurrent", script);
+        Assert.Contains("ProfileStatusText", script);
+        Assert.Contains("Set active profile", script);
+        Assert.Contains("previous active profile pointer", script);
+    }
+
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]

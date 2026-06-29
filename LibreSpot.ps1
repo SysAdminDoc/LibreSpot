@@ -178,6 +178,9 @@ $global:SPICETIFY_CONFIG_DIR   = "$env:APPDATA\spicetify"
 $global:BACKUP_ROOT            = "$env:USERPROFILE\LibreSpot_Backups"
 $global:CONFIG_DIR             = "$env:APPDATA\LibreSpot"
 $global:CONFIG_PATH            = "$env:APPDATA\LibreSpot\config.json"
+$global:PROFILE_DIR            = "$env:APPDATA\LibreSpot\profiles"
+$global:ACTIVE_PROFILE_PATH    = "$env:APPDATA\LibreSpot\active-profile.json"
+$global:PREVIOUS_PROFILE_PATH  = "$env:APPDATA\LibreSpot\active-profile.previous.json"
 $global:LOG_PATH               = "$env:APPDATA\LibreSpot\install.log"
 $global:OPERATION_JOURNAL_PATH = "$env:APPDATA\LibreSpot\operation-journal.jsonl"
 $global:OPERATION_JOURNAL_MAX_BYTES = 1048576
@@ -1320,6 +1323,192 @@ function Load-LibreSpotConfig {
     return $null
 }
 
+function ConvertTo-LibreSpotProfileId {
+    param([string]$Name)
+    $text = if ([string]::IsNullOrWhiteSpace($Name)) { 'profile' } else { $Name.Trim().ToLowerInvariant() }
+    $chars = foreach ($ch in $text.ToCharArray()) {
+        if ([char]::IsLetterOrDigit($ch)) { $ch } else { '-' }
+    }
+    $slug = (($chars -join '') -split '-' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join '-'
+    if ([string]::IsNullOrWhiteSpace($slug)) { return 'profile' }
+    return $slug
+}
+
+function New-LibreSpotProfileDocument {
+    param(
+        [string]$Id,
+        [string]$Name,
+        [string]$Description,
+        [hashtable]$Configuration
+    )
+    $normalized = Normalize-LibreSpotConfig -Config $Configuration
+    $normalized.RiskAcknowledged = $false
+    return [ordered]@{
+        SchemaVersion = 1
+        Id            = $Id
+        Name          = $Name
+        Description   = $Description
+        CreatedAt     = (Get-Date).ToUniversalTime().ToString('o')
+        UpdatedAt     = (Get-Date).ToUniversalTime().ToString('o')
+        Configuration = $normalized
+    }
+}
+
+function Get-LibreSpotBuiltInProfiles {
+    $recommended = Normalize-LibreSpotConfig -Config @{ Mode = 'Easy' }
+
+    $minimal = Normalize-LibreSpotConfig -Config $recommended
+    $minimal.Mode = 'Custom'
+    $minimal.Spicetify_Theme = '(None - Marketplace Only)'
+    $minimal.Spicetify_Extensions = @()
+
+    $visual = Normalize-LibreSpotConfig -Config $recommended
+    $visual.Mode = 'Custom'
+    $visual.Spicetify_Theme = 'Dribbblish'
+    $visual.Spicetify_Scheme = 'catppuccin-mocha'
+    $visual.Spicetify_Extensions = @('fullAppDisplay.js','shuffle+.js')
+
+    $lyrics = Normalize-LibreSpotConfig -Config $recommended
+    $lyrics.Mode = 'Custom'
+    $lyrics.SpotX_LyricsEnabled = $true
+    $lyrics.SpotX_LyricsTheme = 'lavender'
+    $lyrics.Spicetify_Extensions = @('beautiful-lyrics.mjs','popupLyrics.js')
+
+    $premium = Normalize-LibreSpotConfig -Config $recommended
+    $premium.Mode = 'Custom'
+    $premium.SpotX_Premium = $true
+    $premium.SpotX_PodcastsOff = $false
+    $premium.SpotX_AdSectionsOff = $true
+
+    $recovery = Normalize-LibreSpotConfig -Config $recommended
+    $recovery.Mode = 'Custom'
+    $recovery.CleanInstall = $false
+    $recovery.LaunchAfter = $false
+    $recovery.AutoReapply_Enabled = $true
+
+    return @(
+        [ordered]@{ Id='recommended'; Name='Recommended'; Description='Opinionated defaults for first installs.'; IsBuiltIn=$true; Configuration=$recommended }
+        [ordered]@{ Id='minimal-marketplace'; Name='Minimal / Marketplace-only'; Description='Marketplace with no bundled theme or extension choices.'; IsBuiltIn=$true; Configuration=$minimal }
+        [ordered]@{ Id='visual-theme'; Name='Visual Theme'; Description='A visual setup with Dribbblish and useful interface extensions.'; IsBuiltIn=$true; Configuration=$visual }
+        [ordered]@{ Id='lyrics-focus'; Name='Lyrics Focus'; Description='Lyrics-focused SpotX and Spicetify settings.'; IsBuiltIn=$true; Configuration=$lyrics }
+        [ordered]@{ Id='premium-account'; Name='Premium Account'; Description='Keeps premium-account UI expectations calmer while blocking ad sections.'; IsBuiltIn=$true; Configuration=$premium }
+        [ordered]@{ Id='recovery-reapply'; Name='Recovery / Reapply'; Description='Conservative settings for reapply and watcher recovery runs.'; IsBuiltIn=$true; Configuration=$recovery }
+    )
+}
+
+function Read-LibreSpotProfilePointer {
+    param([string]$Path)
+    try {
+        if (-not (Test-Path -LiteralPath $Path)) { return $null }
+        $json = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+        return [string]$json.ProfileId
+    } catch { return $null }
+}
+
+function Write-LibreSpotProfilePointer {
+    param([string]$Path, [string]$ProfileId)
+    if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) { New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null }
+    $document = [ordered]@{
+        SchemaVersion = 1
+        ProfileId     = $ProfileId
+        UpdatedAt     = (Get-Date).ToUniversalTime().ToString('o')
+    }
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Path, ($document | ConvertTo-Json -Depth 4), $utf8)
+}
+
+function Initialize-LibreSpotProfileStore {
+    if (-not (Test-Path -LiteralPath $global:PROFILE_DIR)) { New-Item -Path $global:PROFILE_DIR -ItemType Directory -Force | Out-Null }
+    if (Test-Path -LiteralPath $global:ACTIVE_PROFILE_PATH) { return }
+
+    $activeId = 'recommended'
+    $currentConfig = $null
+    try { $currentConfig = Load-LibreSpotConfig } catch { $currentConfig = $null }
+    if ($currentConfig) {
+        $activeId = 'current'
+        $profilePath = Join-Path $global:PROFILE_DIR 'current.json'
+        if (Test-Path -LiteralPath $profilePath) {
+            $activeId = "current-$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
+            $profilePath = Join-Path $global:PROFILE_DIR "$activeId.json"
+        }
+        $document = New-LibreSpotProfileDocument -Id $activeId -Name 'Current' -Description 'Migrated from the existing config.json.' -Configuration $currentConfig
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($profilePath, ($document | ConvertTo-Json -Depth 8), $utf8)
+    }
+
+    Write-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH -ProfileId $activeId
+}
+
+function Get-LibreSpotProfiles {
+    Initialize-LibreSpotProfileStore
+    $activeId = Read-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH
+    $profiles = @()
+    foreach ($profileEntry in Get-LibreSpotBuiltInProfiles) {
+        $profileEntry.IsActive = ([string]$profileEntry.Id -eq [string]$activeId)
+        $profiles += $profileEntry
+    }
+
+    if (Test-Path -LiteralPath $global:PROFILE_DIR) {
+        foreach ($path in Get-ChildItem -LiteralPath $global:PROFILE_DIR -Filter '*.json' -File -ErrorAction SilentlyContinue) {
+            try {
+                $json = Get-Content -LiteralPath $path.FullName -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+                $cfg = ConvertTo-PlainHashtable -InputObject $json.Configuration
+                $profiles += [ordered]@{
+                    Id            = [string]$json.Id
+                    Name          = [string]$json.Name
+                    Description   = [string]$json.Description
+                    IsBuiltIn     = $false
+                    IsActive      = ([string]$json.Id -eq [string]$activeId)
+                    Configuration = (Normalize-LibreSpotConfig -Config $cfg)
+                }
+            } catch {}
+        }
+    }
+
+    return $profiles
+}
+
+function Get-LibreSpotProfileById {
+    param([string]$Id)
+    foreach ($profileEntry in Get-LibreSpotProfiles) {
+        if ([string]$profileEntry.Id -eq [string]$Id) { return $profileEntry }
+    }
+    return $null
+}
+
+function Save-LibreSpotLocalProfile {
+    param([string]$Name, [string]$Description, [hashtable]$Configuration)
+    Initialize-LibreSpotProfileStore
+    $normalizedName = if ([string]::IsNullOrWhiteSpace($Name)) { 'Custom profile' } else { $Name.Trim() }
+    $baseName = $normalizedName
+    $idBase = ConvertTo-LibreSpotProfileId -Name $baseName
+    $id = $idBase
+    $suffix = 2
+    while ((Get-LibreSpotProfiles | Where-Object { [string]$_.Id -eq $id -or [string]$_.Name -eq $normalizedName } | Select-Object -First 1)) {
+        $normalizedName = "$baseName $suffix"
+        $id = "$idBase-$suffix"
+        $suffix++
+    }
+    $document = New-LibreSpotProfileDocument -Id $id -Name $normalizedName -Description $Description -Configuration $Configuration
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText((Join-Path $global:PROFILE_DIR "$id.json"), ($document | ConvertTo-Json -Depth 8), $utf8)
+    return $document
+}
+
+function Apply-LibreSpotProfile {
+    param([string]$Id)
+    $profileEntry = Get-LibreSpotProfileById -Id $Id
+    if (-not $profileEntry) { throw "Profile '$Id' was not found." }
+    $previousId = Read-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH
+    if (-not [string]::IsNullOrWhiteSpace($previousId)) {
+        Write-LibreSpotProfilePointer -Path $global:PREVIOUS_PROFILE_PATH -ProfileId $previousId
+    }
+    $saved = Save-LibreSpotConfig -Config $profileEntry.Configuration
+    if (-not $saved) { throw "LibreSpot could not write config.json for profile '$($profileEntry.Name)'." }
+    Write-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH -ProfileId $profileEntry.Id
+    return $profileEntry
+}
+
 function Get-LibreSpotTempRoot {
     $root = Join-Path $global:TEMP_DIR 'LibreSpot'
     if (Test-Path -LiteralPath $root -PathType Leaf) {
@@ -1980,6 +2169,24 @@ $xaml = @"
                                             </Border>
                                         </Grid>
                                     </Border>
+                                    <Border Style="{StaticResource SurfaceCard}" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="Local profiles" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.75" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Preview bundled templates, save the current Custom selections, or set a selected profile active without hand-editing AppData." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12" Margin="0,4,0,10" TextWrapping="Wrap"/>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <ComboBox Grid.Column="0" Name="CmbLocalProfiles" Height="36" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}" ToolTip="Named LibreSpot profiles and bundled templates." AutomationProperties.Name="Local profiles"/>
+                                                <Button Grid.Column="2" Name="BtnProfilePreview" Content="Preview" Style="{StaticResource ActionButton}" Height="36" ToolTip="Load the selected profile into Custom without writing config.json." AutomationProperties.Name="Preview selected profile"/>
+                                                <Button Grid.Column="4" Name="BtnProfileApply" Content="Set active" Style="{StaticResource ActionButton}" Height="36" ToolTip="Confirm and write the selected profile to config.json." AutomationProperties.Name="Set selected profile active"/>
+                                            </Grid>
+                                            <Grid Margin="0,10,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <TextBox Grid.Column="0" Name="TxtProfileName" Text="Custom profile" Style="{StaticResource DarkTextBox}" Height="36" ToolTip="Name for a new local profile saved from the current Custom selections." AutomationProperties.Name="Profile name"/>
+                                                <Button Grid.Column="2" Name="BtnProfileSaveCurrent" Content="Save current" Style="{StaticResource ActionButton}" Height="36" ToolTip="Save the current Custom selections as a new local profile." AutomationProperties.Name="Save current selections as profile"/>
+                                            </Grid>
+                                            <TextBlock Name="ProfileStatusText" Text="Profiles load when Custom opens." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
                                     <Grid>
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Border Grid.Column="0" Style="{StaticResource SurfaceCard}">
@@ -2475,6 +2682,7 @@ $ui = @{}
   'ModeHeadline','ModeSummaryText','SelectionSummaryCard','SelectionSummaryTitle','SelectionSummary','SelectionStateBadge','SelectionStateBadgeText','SelectionStateDetail','InstallTitle','InstallContext',
   'ModeEasy','ModeCustom','ModeMaint','PanelEasy','PanelCustom','PanelMaint','BtnInstall','BtnResetCustomDefaults','LyricsThemePanel',
   'CustomSnapshotPlanValue','CustomSnapshotThemeValue','CustomSnapshotExtensionsValue','CustomSnapshotMemoryValue',
+  'CmbLocalProfiles','BtnProfilePreview','BtnProfileApply','TxtProfileName','BtnProfileSaveCurrent','ProfileStatusText',
   'ChkNewTheme','ChkPodcastsOff','ChkAdSectionsOff','ChkBlockUpdate','ChkPremium','ChkLyrics','CmbLyricsTheme',
   'ChkTopSearch','ChkRightSidebarOff','ChkRightSidebarColor','ChkCanvasHomeOff','ChkHomeSubOff','ChkOldLyrics','ChkHideColIconOff',
   'ChkPlus','ChkNewFullscreen','ChkFunnyProgress','ChkExpSpotify','ChkLyricsBlock',
@@ -2499,6 +2707,60 @@ $ui = @{}
 try {
     if ($ui.ContainsKey('TitleLogo') -and $script:BrandIconFrame) { $ui['TitleLogo'].Source = $script:BrandIconFrame }
 } catch {}
+
+function Update-LocalProfilePicker {
+    if (-not $ui.ContainsKey('CmbLocalProfiles')) { return }
+    try {
+        $profiles = @(Get-LibreSpotProfiles)
+        $ui['CmbLocalProfiles'].Items.Clear()
+        $activeIndex = -1
+        for ($i = 0; $i -lt $profiles.Count; $i++) {
+            $profileEntry = $profiles[$i]
+            $item = New-Object System.Windows.Controls.ComboBoxItem
+            $state = if ($profileEntry.IsActive) { 'Active' } elseif ($profileEntry.IsBuiltIn) { 'Template' } else { 'Local' }
+            $item.Content = "$($profileEntry.Name) - $state"
+            $item.Tag = [string]$profileEntry.Id
+            $item.ToolTip = [string]$profileEntry.Description
+            $null = $ui['CmbLocalProfiles'].Items.Add($item)
+            if ($profileEntry.IsActive) { $activeIndex = $i }
+        }
+        if ($profiles.Count -gt 0) {
+            $ui['CmbLocalProfiles'].SelectedIndex = if ($activeIndex -ge 0) { $activeIndex } else { 0 }
+        }
+        if ($ui.ContainsKey('ProfileStatusText')) {
+            $ui['ProfileStatusText'].Text = if ($profiles.Count -eq 1) { '1 profile is ready.' } else { "$($profiles.Count) profiles are ready." }
+        }
+    } catch {
+        if ($ui.ContainsKey('ProfileStatusText')) { $ui['ProfileStatusText'].Text = "Profiles could not be loaded: $($_.Exception.Message)" }
+    }
+}
+
+function Get-SelectedLocalProfileFromUi {
+    if (-not $ui.ContainsKey('CmbLocalProfiles') -or -not $ui['CmbLocalProfiles'].SelectedItem) { return $null }
+    $id = [string]$ui['CmbLocalProfiles'].SelectedItem.Tag
+    return (Get-LibreSpotProfileById -Id $id)
+}
+
+function Select-LocalProfileInPicker {
+    param([string]$Id)
+    if (-not $ui.ContainsKey('CmbLocalProfiles')) { return }
+    for ($i = 0; $i -lt $ui['CmbLocalProfiles'].Items.Count; $i++) {
+        if ([string]$ui['CmbLocalProfiles'].Items[$i].Tag -eq [string]$Id) {
+            $ui['CmbLocalProfiles'].SelectedIndex = $i
+            return
+        }
+    }
+}
+
+function Set-StableConfigStateFromProfile {
+    param([hashtable]$Config)
+    $script:HasSavedConfig = $true
+    $script:SavedConfigMode = if ($Config -and $Config.ContainsKey('Mode')) { [string]$Config.Mode } else { $null }
+    $script:HasSavedCustomConfig = ($script:SavedConfigMode -eq 'Custom')
+    $script:SavedConfigStamp = if (Test-Path $global:CONFIG_PATH) { (Get-Item $global:CONFIG_PATH).LastWriteTime } else { $null }
+    Capture-CustomConfigBaseline
+    Update-ModePresentation
+}
 
 $extCheckboxMap = [ordered]@{
     'ChkExt_fullAppDisplay'='fullAppDisplay.js'; 'ChkExt_shuffle'='shuffle+.js'; 'ChkExt_trashbin'='trashbin.js'
@@ -3298,6 +3560,55 @@ if ($ui.ContainsKey('BtnResetCustomDefaults')) {
         Apply-ConfigToUi -Config $preset -ForceCustomMode
     })
 }
+if ($ui.ContainsKey('CmbLocalProfiles')) {
+    $ui['CmbLocalProfiles'].Add_SelectionChanged({
+        $selectedProfile = Get-SelectedLocalProfileFromUi
+        if ($selectedProfile -and $ui.ContainsKey('ProfileStatusText')) {
+            $state = if ($selectedProfile.IsActive) { 'Active profile.' } elseif ($selectedProfile.IsBuiltIn) { 'Bundled template.' } else { 'Local profile.' }
+            $ui['ProfileStatusText'].Text = "$state $($selectedProfile.Description)"
+        }
+    })
+}
+if ($ui.ContainsKey('BtnProfilePreview')) {
+    $ui['BtnProfilePreview'].Add_Click({
+        $selectedProfile = Get-SelectedLocalProfileFromUi
+        if (-not $selectedProfile) { return }
+        Apply-ConfigToUi -Config $selectedProfile.Configuration -ForceCustomMode
+        if ($ui.ContainsKey('ProfileStatusText')) { $ui['ProfileStatusText'].Text = "$($selectedProfile.Name) is previewed in Custom. config.json was not changed." }
+        Update-ModePresentation
+    })
+}
+if ($ui.ContainsKey('BtnProfileSaveCurrent')) {
+    $ui['BtnProfileSaveCurrent'].Add_Click({
+        try {
+            $name = if ($ui.ContainsKey('TxtProfileName')) { [string]$ui['TxtProfileName'].Text } else { 'Custom profile' }
+            $savedProfile = Save-LibreSpotLocalProfile -Name $name -Description 'Saved from PowerShell Custom mode.' -Configuration (Get-InstallConfig -EasyMode $false)
+            Update-LocalProfilePicker
+            Select-LocalProfileInPicker -Id $savedProfile.Id
+            if ($ui.ContainsKey('ProfileStatusText')) { $ui['ProfileStatusText'].Text = "$($savedProfile.Name) was saved as a local profile." }
+        } catch {
+            Show-ThemedDialog -Title 'Could not save profile' -Message $_.Exception.Message -Icon 'Error' -PrimaryText 'Close' | Out-Null
+        }
+    })
+}
+if ($ui.ContainsKey('BtnProfileApply')) {
+    $ui['BtnProfileApply'].Add_Click({
+        $selectedProfile = Get-SelectedLocalProfileFromUi
+        if (-not $selectedProfile) { return }
+        $result = Show-ThemedDialog -Title "Set active profile" -Message "LibreSpot will write '$($selectedProfile.Name)' to config.json and keep the previous active profile pointer for rollback. This does not start setup by itself." -Buttons 'YesNo' -Icon 'Question' -PrimaryText 'Set active' -SecondaryText 'Cancel'
+        if ($result -ne 'Yes') { return }
+        try {
+            $applied = Apply-LibreSpotProfile -Id $selectedProfile.Id
+            Apply-ConfigToUi -Config $applied.Configuration -ForceCustomMode
+            Set-StableConfigStateFromProfile -Config $applied.Configuration
+            Update-LocalProfilePicker
+            Select-LocalProfileInPicker -Id $applied.Id
+            if ($ui.ContainsKey('ProfileStatusText')) { $ui['ProfileStatusText'].Text = "$($applied.Name) is active. The previous active profile pointer is kept for rollback." }
+        } catch {
+            Show-ThemedDialog -Title 'Could not set profile active' -Message $_.Exception.Message -Icon 'Error' -PrimaryText 'Close' | Out-Null
+        }
+    })
+}
 $ui['TitleBar'].Add_MouseLeftButtonDown({ $window.DragMove() })
 $ui['CloseTitleBtn'].Add_Click({ $window.Close() })
 $ui['MinimizeBtn'].Add_Click({ $window.WindowState = 'Minimized' })
@@ -3453,6 +3764,7 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
 }
 
 Capture-CustomConfigBaseline
+Update-LocalProfilePicker
 Update-ModePresentation
 
 # Post-launch housekeeping. Self-update runs truly async (ThreadPool) so a
