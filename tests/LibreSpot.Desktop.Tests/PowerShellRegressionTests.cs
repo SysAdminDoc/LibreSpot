@@ -873,6 +873,12 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("BtnProfileApply", script);
         Assert.Contains("BtnProfileSaveCurrent", script);
         Assert.Contains("ProfileStatusText", script);
+        Assert.Contains("SecondaryActionButton", script);
+        Assert.Contains("Get-LocalProfileStatusText", script);
+        Assert.Contains("if ($_.IsActive) { 0 } else { 1 }", script);
+        Assert.Contains("Previewing $($selectedProfile.Name) in Custom. config.json was not changed.", script);
+        Assert.Contains("Saved $($savedProfile.Name) as a local profile. Preview or set it active when ready.", script);
+        Assert.Contains("No profiles are available yet. Save the current Custom selections to create one.", script);
         Assert.Contains("Set active profile", script);
         Assert.Contains("previous active profile pointer", script);
     }

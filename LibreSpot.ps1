@@ -1776,6 +1776,11 @@ $xaml = @"
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="SecondaryActionButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+            <Setter Property="Background" Value="#FF111821"/>
+            <Setter Property="BorderBrush" Value="#FF2D3A47"/>
+            <Setter Property="Foreground" Value="{StaticResource FgPrimaryBrush}"/>
+        </Style>
         <!-- Sidebar Nav Item (RadioButton) -->
         <Style x:Key="ModeRadio" TargetType="RadioButton">
             <Setter Property="Foreground" Value="{StaticResource FgPrimaryBrush}"/>
@@ -2138,7 +2143,7 @@ $xaml = @"
                                             <TextBlock Text="Custom install, dialed in" Foreground="{StaticResource FgPrimaryBrush}" FontSize="16" FontWeight="SemiBold"/>
                                             <TextBlock Text="Choose exactly how much cleanup, theming, Marketplace support, and extension prep you want before Spotify opens." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                         </StackPanel>
-                                        <Button Grid.Column="1" Name="BtnResetCustomDefaults" Content="Recommended defaults" Background="#FF111821" Style="{StaticResource ActionButton}" Width="216" Height="40" Margin="18,2,0,0" VerticalAlignment="Top" ToolTip="Apply the Easy Install defaults here so you can keep customizing from a known-good baseline." AutomationProperties.Name="Load recommended defaults"/>
+                                        <Button Grid.Column="1" Name="BtnResetCustomDefaults" Content="Recommended defaults" Style="{StaticResource SecondaryActionButton}" Width="216" Height="40" Margin="18,2,0,0" VerticalAlignment="Top" ToolTip="Apply the Easy Install defaults here so you can keep customizing from a known-good baseline." AutomationProperties.Name="Load recommended defaults"/>
                                     </Grid>
                                     <Border Style="{StaticResource SurfaceCard}" Margin="0,0,0,10">
                                         <Grid>
@@ -2176,15 +2181,15 @@ $xaml = @"
                                             <Grid>
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                 <ComboBox Grid.Column="0" Name="CmbLocalProfiles" Height="36" Style="{StaticResource DarkComboBox}" ItemContainerStyle="{StaticResource DarkComboBoxItem}" ToolTip="Named LibreSpot profiles and bundled templates." AutomationProperties.Name="Local profiles"/>
-                                                <Button Grid.Column="2" Name="BtnProfilePreview" Content="Preview" Style="{StaticResource ActionButton}" Height="36" ToolTip="Load the selected profile into Custom without writing config.json." AutomationProperties.Name="Preview selected profile"/>
-                                                <Button Grid.Column="4" Name="BtnProfileApply" Content="Set active" Style="{StaticResource ActionButton}" Height="36" ToolTip="Confirm and write the selected profile to config.json." AutomationProperties.Name="Set selected profile active"/>
+                                                <Button Grid.Column="2" Name="BtnProfilePreview" Content="Preview" Style="{StaticResource SecondaryActionButton}" Height="36" ToolTip="Load the selected profile into Custom without writing config.json." AutomationProperties.Name="Preview selected profile"/>
+                                                <Button Grid.Column="4" Name="BtnProfileApply" Content="Set active" Background="{StaticResource AccentBrush}" Foreground="{StaticResource FgInverseBrush}" BorderBrush="{StaticResource AccentBrush}" Style="{StaticResource ActionButton}" Height="36" ToolTip="Confirm and write the selected profile to config.json." AutomationProperties.Name="Set selected profile active"/>
                                             </Grid>
                                             <Grid Margin="0,10,0,0">
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                 <TextBox Grid.Column="0" Name="TxtProfileName" Text="Custom profile" Style="{StaticResource DarkTextBox}" Height="36" ToolTip="Name for a new local profile saved from the current Custom selections." AutomationProperties.Name="Profile name"/>
-                                                <Button Grid.Column="2" Name="BtnProfileSaveCurrent" Content="Save current" Style="{StaticResource ActionButton}" Height="36" ToolTip="Save the current Custom selections as a new local profile." AutomationProperties.Name="Save current selections as profile"/>
+                                                <Button Grid.Column="2" Name="BtnProfileSaveCurrent" Content="Save current" Style="{StaticResource SecondaryActionButton}" Height="36" ToolTip="Save the current Custom selections as a new local profile." AutomationProperties.Name="Save current selections as profile"/>
                                             </Grid>
-                                            <TextBlock Name="ProfileStatusText" Text="Profiles load when Custom opens." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                            <TextBlock Name="ProfileStatusText" Text="Select a profile to preview or set active. Saving current creates a local profile." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                         </StackPanel>
                                     </Border>
                                     <Grid>
@@ -2574,9 +2579,9 @@ $xaml = @"
                                 </Grid>
                                 <TextBlock Text="Stage markers update with the selected action. You can minimize LibreSpot while setup runs; it will return focus when action is needed or complete." Foreground="{StaticResource FgMutedBrush}" FontSize="11.5" TextWrapping="Wrap" Margin="0,8,0,0"/></StackPanel></Border>
                             <StackPanel Grid.Row="3" Margin="0,16,0,0" Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Name="BtnCopyLog" Content="Copy log" Tag="Copy log" Background="#FF111821" Style="{StaticResource ActionButton}" Width="132" Margin="0,0,8,0" Visibility="Collapsed"/>
-                                <Button Name="BtnBackToConfig" Content="Return to setup" Background="#FF111821" Style="{StaticResource ActionButton}" Width="140" Margin="0,0,8,0" Visibility="Collapsed"/>
-                                <Button Name="CloseBtn" Content="Close" Background="#FF111821" Style="{StaticResource ActionButton}" Width="110" Visibility="Collapsed"/></StackPanel>
+                                <Button Name="BtnCopyLog" Content="Copy log" Tag="Copy log" Style="{StaticResource SecondaryActionButton}" Width="132" Margin="0,0,8,0" Visibility="Collapsed"/>
+                                <Button Name="BtnBackToConfig" Content="Return to setup" Style="{StaticResource SecondaryActionButton}" Width="140" Margin="0,0,8,0" Visibility="Collapsed"/>
+                                <Button Name="CloseBtn" Content="Close" Style="{StaticResource SecondaryActionButton}" Width="110" Visibility="Collapsed"/></StackPanel>
                         </Grid>
                     </Grid>
                 </Grid>
@@ -2711,7 +2716,10 @@ try {
 function Update-LocalProfilePicker {
     if (-not $ui.ContainsKey('CmbLocalProfiles')) { return }
     try {
-        $profiles = @(Get-LibreSpotProfiles)
+        $profiles = @(Get-LibreSpotProfiles | Sort-Object `
+            @{ Expression = { if ($_.IsActive) { 0 } else { 1 } } },
+            @{ Expression = { if ($_.IsBuiltIn) { 0 } else { 1 } } },
+            @{ Expression = { [string]$_.Name } })
         $ui['CmbLocalProfiles'].Items.Clear()
         $activeIndex = -1
         for ($i = 0; $i -lt $profiles.Count; $i++) {
@@ -2727,12 +2735,41 @@ function Update-LocalProfilePicker {
         if ($profiles.Count -gt 0) {
             $ui['CmbLocalProfiles'].SelectedIndex = if ($activeIndex -ge 0) { $activeIndex } else { 0 }
         }
+        foreach ($controlName in @('BtnProfilePreview','BtnProfileApply')) {
+            if ($ui.ContainsKey($controlName)) { $ui[$controlName].IsEnabled = ($profiles.Count -gt 0) }
+        }
         if ($ui.ContainsKey('ProfileStatusText')) {
-            $ui['ProfileStatusText'].Text = if ($profiles.Count -eq 1) { '1 profile is ready.' } else { "$($profiles.Count) profiles are ready." }
+            if ($profiles.Count -gt 0) {
+                $ui['ProfileStatusText'].Text = Get-LocalProfileStatusText -ProfileEntry (Get-SelectedLocalProfileFromUi)
+            } else {
+                $ui['ProfileStatusText'].Text = 'No profiles are available yet. Save the current Custom selections to create one.'
+            }
         }
     } catch {
+        foreach ($controlName in @('BtnProfilePreview','BtnProfileApply')) {
+            if ($ui.ContainsKey($controlName)) { $ui[$controlName].IsEnabled = $false }
+        }
         if ($ui.ContainsKey('ProfileStatusText')) { $ui['ProfileStatusText'].Text = "Profiles could not be loaded: $($_.Exception.Message)" }
     }
+}
+
+function Get-LocalProfileStatusText {
+    param([object]$ProfileEntry)
+
+    if (-not $ProfileEntry) {
+        return 'Select a profile to preview or set active. Saving current creates a local profile.'
+    }
+
+    $description = [string]$ProfileEntry.Description
+    if ($ProfileEntry.IsActive) {
+        return "Active profile. Applying another profile keeps this as the rollback point. $description"
+    }
+
+    if ($ProfileEntry.IsBuiltIn) {
+        return "Bundled template. Preview it first, then save a local copy if you want to customize it. $description"
+    }
+
+    return "Local profile. Preview it first to inspect settings without writing config.json. $description"
 }
 
 function Get-SelectedLocalProfileFromUi {
@@ -3564,8 +3601,7 @@ if ($ui.ContainsKey('CmbLocalProfiles')) {
     $ui['CmbLocalProfiles'].Add_SelectionChanged({
         $selectedProfile = Get-SelectedLocalProfileFromUi
         if ($selectedProfile -and $ui.ContainsKey('ProfileStatusText')) {
-            $state = if ($selectedProfile.IsActive) { 'Active profile.' } elseif ($selectedProfile.IsBuiltIn) { 'Bundled template.' } else { 'Local profile.' }
-            $ui['ProfileStatusText'].Text = "$state $($selectedProfile.Description)"
+            $ui['ProfileStatusText'].Text = Get-LocalProfileStatusText -ProfileEntry $selectedProfile
         }
     })
 }
@@ -3574,7 +3610,7 @@ if ($ui.ContainsKey('BtnProfilePreview')) {
         $selectedProfile = Get-SelectedLocalProfileFromUi
         if (-not $selectedProfile) { return }
         Apply-ConfigToUi -Config $selectedProfile.Configuration -ForceCustomMode
-        if ($ui.ContainsKey('ProfileStatusText')) { $ui['ProfileStatusText'].Text = "$($selectedProfile.Name) is previewed in Custom. config.json was not changed." }
+        if ($ui.ContainsKey('ProfileStatusText')) { $ui['ProfileStatusText'].Text = "Previewing $($selectedProfile.Name) in Custom. config.json was not changed." }
         Update-ModePresentation
     })
 }
@@ -3585,7 +3621,7 @@ if ($ui.ContainsKey('BtnProfileSaveCurrent')) {
             $savedProfile = Save-LibreSpotLocalProfile -Name $name -Description 'Saved from PowerShell Custom mode.' -Configuration (Get-InstallConfig -EasyMode $false)
             Update-LocalProfilePicker
             Select-LocalProfileInPicker -Id $savedProfile.Id
-            if ($ui.ContainsKey('ProfileStatusText')) { $ui['ProfileStatusText'].Text = "$($savedProfile.Name) was saved as a local profile." }
+            if ($ui.ContainsKey('ProfileStatusText')) { $ui['ProfileStatusText'].Text = "Saved $($savedProfile.Name) as a local profile. Preview or set it active when ready." }
         } catch {
             Show-ThemedDialog -Title 'Could not save profile' -Message $_.Exception.Message -Icon 'Error' -PrimaryText 'Close' | Out-Null
         }

@@ -42,6 +42,9 @@ All notable changes to LibreSpot will be documented in this file.
 - WPF Custom profile management now has clearer active/template/local card
   states, a refresh action, selected-profile guidance, live status feedback,
   and safer edit/import/export command grouping.
+- Stable PowerShell Custom profile management now pins the active profile first,
+  separates preview/save secondary actions from the primary Set active action,
+  and uses clearer status copy for preview, save, empty, and rollback states.
 - WPF local profiles now pin the active profile first and use broader profile
   terminology when bundled templates are mixed with local presets.
 - WPF content panes now disable horizontal workspace scrolling so long labels,
