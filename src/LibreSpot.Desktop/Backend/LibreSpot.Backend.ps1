@@ -162,6 +162,18 @@ $global:CommunityExtensionAliases = @{
 $global:CommunityExtensionNames = @($global:CommunityExtensions.Keys)
 $global:DeprecatedCommunityExtensionNames = @('beautifulLyrics.js', 'playlistIcons.js', 'songStats.js')
 $global:AllManagedExtensionNames = $global:BuiltInExtensionNames + $global:CommunityExtensionNames + $global:DeprecatedCommunityExtensionNames
+$global:CommunityCustomApps = @{
+    'stats' = @{
+        DisplayName = 'Stats'
+        Description = 'Detailed listening statistics with top tracks, artists, genres, library charts, and optional Last.fm-backed views.'
+        Url         = 'https://github.com/harbassan/spicetify-apps/releases/download/stats-v1.1.3/spicetify-stats.release.zip'
+        Source      = 'harbassan/spicetify-apps'
+        Version     = '1.1.3'
+        ReleaseTag  = 'stats-v1.1.3'
+        AssetPath   = 'stats'
+        SHA256      = 'c5611ff8caafe9c673ed43de07fbae77296d42fbd14fab868e9cbeac5d2b6cb7'
+    }
+}
 
 $global:CommunityThemeRepos = @{
     'Catppuccin' = @{ Owner = 'catppuccin'; Repo = 'spicetify';       CommitSha = '1ec645c4cf7f42f9792b9eeb1bb7930f94593277'; SHA256 = '59432d5dfba871f288331e72ca5eb9ae48783e94d96cc3835a2992b3df71ed65'; ThemeFolder = '.' }
@@ -208,6 +220,7 @@ $global:EasyDefaults = @{
     Spicetify_Scheme = 'Default'
     Spicetify_Marketplace = $true
     Spicetify_Extensions = @('fullAppDisplay.js', 'shuffle+.js', 'trashbin.js')
+    Spicetify_CustomApps = @()
     CleanInstall = $true
     LaunchAfter = $true
     # Track 4.2 auto-reapply watcher preference. The backend reads this so it
@@ -658,6 +671,23 @@ function Normalize-LibreSpotConfig {
         if (-not $extensions.Contains($name)) { $extensions.Add($name) }
     }
     $normalized.Spicetify_Extensions = @($extensions)
+
+    $customApps = [System.Collections.Generic.List[string]]::new()
+    $rawCustomApps = @()
+    if ($Config -and $Config.ContainsKey('Spicetify_CustomApps')) {
+        if ($Config.Spicetify_CustomApps -is [string]) {
+            $rawCustomApps = @([string]$Config.Spicetify_CustomApps)
+        } elseif ($Config.Spicetify_CustomApps -is [System.Collections.IEnumerable]) {
+            $rawCustomApps = @($Config.Spicetify_CustomApps)
+        }
+    }
+    foreach ($customApp in $rawCustomApps) {
+        $name = [string]$customApp
+        if ([string]::IsNullOrWhiteSpace($name)) { continue }
+        if (-not $global:CommunityCustomApps.Contains($name)) { continue }
+        if (-not $customApps.Contains($name)) { $customApps.Add($name) }
+    }
+    $normalized.Spicetify_CustomApps = @($customApps)
 
     if ($normalized.SpotX_RightSidebarOff) {
         $normalized.SpotX_RightSidebarClr = $false
@@ -3157,6 +3187,90 @@ function Open-SpicetifyMarketplace {
     }
 }
 
+function Module-InstallCustomApps { param($Config)
+    $requestedApps = @($Config.Spicetify_CustomApps | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    $managedApps = @($global:CommunityCustomApps.Keys)
+    $integration = Get-SpicetifyIntegrationContext
+    $customAppsDirectory = $integration.CustomAppsDirectory
+
+    if ($requestedApps.Count -eq 0) {
+        Write-Log 'Custom apps: none selected. Removing LibreSpot-managed custom apps if present...' -Level 'STEP'
+        foreach ($appId in $managedApps) {
+            $null = Remove-PathSafely -Path (Join-Path $customAppsDirectory $appId) -Label "Custom app $appId"
+        }
+        Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @() -ManagedItems $managedApps
+        return
+    }
+
+    Write-Log "Custom apps: $($requestedApps -join ', ')..." -Level 'STEP'
+    New-Item -Path $customAppsDirectory -ItemType Directory -Force | Out-Null
+    $installedApps = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($appId in $requestedApps) {
+        if (-not $global:CommunityCustomApps.Contains($appId)) {
+            Write-Log "Unknown custom app '$appId'. Skipping." -Level 'WARN'
+            continue
+        }
+
+        $info = $global:CommunityCustomApps[$appId]
+        $safeName = ($appId -replace '[^a-zA-Z0-9_-]', '_')
+        $zipPath = New-LibreSpotTempFile -Name "custom-app-$safeName.zip"
+        $unpackPath = New-LibreSpotTempDirectory -Name "custom-app-$safeName-unpack"
+        $destinationPath = Join-Path $customAppsDirectory $appId
+
+        try {
+            Write-Log "Downloading custom app '$($info.DisplayName)' from $($info.Source)..."
+            $expectedHash = [string]$info.SHA256
+            if (-not (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zipPath -Label "Custom app $appId archive")) {
+                try {
+                    Download-FileSafe -Uri $info.Url -OutFile $zipPath
+                } catch {
+                    if (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zipPath -Label "Custom app $appId archive") {
+                        Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
+                    } else { throw }
+                }
+                Confirm-FileHash -Path $zipPath -ExpectedHash $expectedHash -Label "Custom app $appId"
+                Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $expectedHash
+            }
+
+            Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $unpackPath -Label "Custom app $appId" -MaxExpandedBytes 250MB
+            $sourcePath = Join-Path $unpackPath ([string]$info.AssetPath)
+            if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
+                $candidate = Get-ChildItem -LiteralPath $unpackPath -Directory -ErrorAction SilentlyContinue |
+                    Where-Object {
+                        (Test-Path -LiteralPath (Join-Path $_.FullName 'manifest.json') -PathType Leaf) -and
+                        (Test-Path -LiteralPath (Join-Path $_.FullName 'extension.js') -PathType Leaf)
+                    } |
+                    Select-Object -First 1
+                if ($candidate) { $sourcePath = $candidate.FullName }
+            }
+
+            if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
+                throw "Custom app archive did not contain expected folder '$($info.AssetPath)'."
+            }
+
+            foreach ($requiredFile in @('manifest.json', 'extension.js')) {
+                if (-not (Test-Path -LiteralPath (Join-Path $sourcePath $requiredFile) -PathType Leaf)) {
+                    throw "Custom app '$appId' is missing required file '$requiredFile'."
+                }
+            }
+
+            $null = Remove-PathSafely -Path $destinationPath -Label "Custom app $appId"
+            New-Item -Path $destinationPath -ItemType Directory -Force | Out-Null
+            Copy-Item -Path (Join-Path $sourcePath '*') -Destination $destinationPath -Recurse -Force
+            $installedApps.Add($appId)
+            Write-Log "Custom app '$($info.DisplayName)' installed to $destinationPath"
+        } catch {
+            Write-Log "Could not install custom app '$appId': $($_.Exception.Message). Skipping." -Level 'WARN'
+        } finally {
+            Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $unpackPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @($installedApps) -ManagedItems $managedApps
+}
+
 function Repair-Marketplace {
     param($Config)
     if (-not (Test-SpicetifyCliInstalled)) {
@@ -3273,6 +3387,7 @@ function Reapply-SavedSpicetifySetup { param($Config)
     Module-InstallThemes -Config $Config
     Module-InstallExtensions -Config $Config
     Module-InstallMarketplace -Config $Config
+    Module-InstallCustomApps -Config $Config
     Module-ApplySpicetify -Config $Config
 }
 
@@ -3351,10 +3466,18 @@ function Invoke-LibreSpotPlan {
             -WouldChange $true -Reversible $true -Source 'Module-InstallExtensions'
     }
 
-    if (-not $config.Spicetify_SkipMarketplace) {
+    if ($config.Spicetify_Marketplace) {
         Write-PlanEntry -Category 'download' -Target "Marketplace v$($global:PinnedReleases.Marketplace.Version)" `
             -Description 'Download and install Spicetify Marketplace custom app' `
             -WouldChange $true -Reversible $true -Source 'Module-InstallMarketplace'
+    }
+
+    $customAppList = @()
+    if ($config.Spicetify_CustomApps) { $customAppList = @($config.Spicetify_CustomApps) }
+    if ($customAppList.Count -gt 0) {
+        Write-PlanEntry -Category 'download' -Target "Custom apps: $($customAppList -join ', ')" `
+            -Description "Download and install $($customAppList.Count) verified Spicetify custom app(s)" `
+            -WouldChange $true -Reversible $true -Source 'Module-InstallCustomApps'
     }
 
     Write-PlanEntry -Category 'spicetify' -Target 'backup apply' `
@@ -3384,7 +3507,7 @@ function Invoke-LibreSpotPlan {
 function Invoke-LibreSpotInstall {
     $config = Load-LibreSpotConfig
     Write-Log "--- LibreSpot installation started ($($config.Mode)) ---" -Level 'HEADER'
-    $steps = @('SpotX', 'SpicetifyCLI', 'Themes', 'Extensions', 'Marketplace', 'Apply')
+    $steps = @('SpotX', 'SpicetifyCLI', 'Themes', 'Extensions', 'Marketplace', 'CustomApps', 'Apply')
     if ($config.CleanInstall) { $steps = @('Cleanup') + $steps }
 
     $labels = @{
@@ -3394,6 +3517,7 @@ function Invoke-LibreSpotInstall {
         Themes = 'Adding bundled themes'
         Extensions = 'Preparing extensions'
         Marketplace = 'Installing Marketplace'
+        CustomApps = 'Adding custom apps'
         Apply = 'Applying your setup'
     }
 
@@ -3413,6 +3537,7 @@ function Invoke-LibreSpotInstall {
                 'Themes' { Module-InstallThemes -Config $config }
                 'Extensions' { Module-InstallExtensions -Config $config }
                 'Marketplace' { Module-InstallMarketplace -Config $config }
+                'CustomApps' { Module-InstallCustomApps -Config $config }
                 'Apply' { Module-ApplySpicetify -Config $config }
             }
         }

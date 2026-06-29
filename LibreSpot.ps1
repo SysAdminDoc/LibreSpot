@@ -980,6 +980,18 @@ $global:CommunityExtensionAliases = @{
     "playlistIcons.js" = "playlist-icons.js"
 }
 $global:DeprecatedCommunityExtensionNames = @("beautifulLyrics.js", "playlistIcons.js", "songStats.js")
+$global:CommunityCustomApps = [ordered]@{
+    "stats" = @{
+        DisplayName = "Stats"
+        Description = "Detailed listening statistics with top tracks, artists, genres, library charts, and optional Last.fm-backed views."
+        Url         = "https://github.com/harbassan/spicetify-apps/releases/download/stats-v1.1.3/spicetify-stats.release.zip"
+        Source      = "harbassan/spicetify-apps"
+        Version     = "1.1.3"
+        ReleaseTag  = "stats-v1.1.3"
+        AssetPath   = "stats"
+        SHA256      = "c5611ff8caafe9c673ed43de07fbae77296d42fbd14fab868e9cbeac5d2b6cb7"
+    }
+}
 
 $global:EasyDefaults = @{
     SpotX_NewTheme=$true; SpotX_PodcastsOff=$true; SpotX_BlockUpdate=$true; SpotX_AdSectionsOff=$true
@@ -993,6 +1005,7 @@ $global:EasyDefaults = @{
     SpotX_Language=""
     Spicetify_Theme="(None - Marketplace Only)"; Spicetify_Scheme="Default"; Spicetify_Marketplace=$true
     Spicetify_Extensions=@("fullAppDisplay.js","shuffle+.js","trashbin.js")
+    Spicetify_CustomApps=@()
     CleanInstall=$true; LaunchAfter=$true
     # Auto-reapply after Spotify updates (Track 4.2). Off by default — we won't
     # register a scheduled task until the user explicitly opts in from Maintenance.
@@ -1190,6 +1203,23 @@ function Normalize-LibreSpotConfig {
         if (-not $extensions.Contains($name)) { $extensions.Add($name) }
     }
     $normalized.Spicetify_Extensions = @($extensions)
+
+    $customApps = [System.Collections.Generic.List[string]]::new()
+    $rawCustomApps = @()
+    if ($Config -and $Config.ContainsKey('Spicetify_CustomApps')) {
+        if ($Config.Spicetify_CustomApps -is [string]) {
+            $rawCustomApps = @([string]$Config.Spicetify_CustomApps)
+        } elseif ($Config.Spicetify_CustomApps -is [System.Collections.IEnumerable]) {
+            $rawCustomApps = @($Config.Spicetify_CustomApps)
+        }
+    }
+    foreach ($customApp in $rawCustomApps) {
+        $name = [string]$customApp
+        if ([string]::IsNullOrWhiteSpace($name)) { continue }
+        if (-not $global:CommunityCustomApps.Contains($name)) { continue }
+        if (-not $customApps.Contains($name)) { $customApps.Add($name) }
+    }
+    $normalized.Spicetify_CustomApps = @($customApps)
 
     if ($normalized.SpotX_RightSidebarOff) {
         $normalized.SpotX_RightSidebarClr = $false
@@ -2390,6 +2420,15 @@ $xaml = @"
 
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,8,0,0">
                                                     <StackPanel>
+                                                        <TextBlock Text="Community custom apps" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Opt-in Spicetify custom apps installed from pinned release ZIPs. These appear as Spotify apps, not normal extensions." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <CheckBox Name="ChkCustomApp_stats" Content="Stats" Style="{StaticResource DarkCheckBox}" Margin="0"/>
+                                                        <TextBlock Text="Listening charts and library statistics from harbassan/spicetify-apps. Some views can contact Last.fm when you use those features inside Spotify." Style="{StaticResource HelperText}" Margin="30,2,0,0"/>
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <Border Style="{StaticResource InsetPanel}" Margin="0,8,0,0">
+                                                    <StackPanel>
                                                         <TextBlock Text="Install behavior" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
                                                         <TextBlock Text="Control how aggressively LibreSpot resets the current install and whether Spotify opens when the run is done." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <CheckBox Name="ChkCleanInstall" Content="Remove the existing setup first" IsChecked="True" Style="{StaticResource DarkCheckBox}"/>
@@ -2693,6 +2732,7 @@ $ui = @{}
   'ChkExt_fullAppDisplay','ChkExt_shuffle','ChkExt_trashbin','ChkExt_keyboard','ChkExt_bookmark','ChkExt_loopyLoop',
   'ChkExt_popupLyrics','ChkExt_autoSkipVideo','ChkExt_autoSkipExplicit','ChkExt_webNowPlaying',
   'ChkExt_hidePodcasts','ChkExt_beautifulLyrics','ChkExt_playlistIcons','ChkExt_volumePercentage','ChkExt_adblock',
+  'ChkCustomApp_stats',
   'ChkCleanInstall','ChkLaunchAfter',
   'MaintenanceOverviewTitle','MaintenanceOverviewText',
   'MaintenanceMetricStackValue','MaintenanceMetricStackDetail','MaintenanceMetricBackupValue','MaintenanceMetricBackupDetail','MaintenanceMetricNextStepValue','MaintenanceMetricNextStepDetail',
@@ -2807,10 +2847,18 @@ $extCheckboxMap = [ordered]@{
     'ChkExt_adblock'='adblock.js'
 }
 
+$customAppCheckboxMap = [ordered]@{
+    'ChkCustomApp_stats'='stats'
+}
+
 foreach ($ck in $extCheckboxMap.Keys) {
     $ef = $extCheckboxMap[$ck]
     if ($ui[$ck] -and $global:BuiltInExtensions.Contains($ef)) { $ui[$ck].ToolTip = $global:BuiltInExtensions[$ef] }
     if ($ui[$ck] -and $global:CommunityExtensions.Contains($ef)) { $ui[$ck].ToolTip = $global:CommunityExtensions[$ef].Description }
+}
+foreach ($ck in $customAppCheckboxMap.Keys) {
+    $appId = $customAppCheckboxMap[$ck]
+    if ($ui[$ck] -and $global:CommunityCustomApps.Contains($appId)) { $ui[$ck].ToolTip = $global:CommunityCustomApps[$appId].Description }
 }
 
 foreach ($theme in $global:ThemeData.Keys) {
@@ -3054,6 +3102,10 @@ if ($savedCfg) { try {
         $se = @($savedCfg.Spicetify_Extensions)
         foreach ($ck in $extCheckboxMap.Keys) { $ui[$ck].IsChecked = ($se -contains $extCheckboxMap[$ck]) }
     }
+    if ($savedCfg.ContainsKey('Spicetify_CustomApps')) {
+        $sca = @($savedCfg.Spicetify_CustomApps)
+        foreach ($ck in $customAppCheckboxMap.Keys) { $ui[$ck].IsChecked = ($sca -contains $customAppCheckboxMap[$ck]) }
+    }
     if ($savedCfg.ContainsKey('Mode') -and [string]$savedCfg.Mode -eq 'Custom') {
         $ui['ModeCustom'].IsChecked = $true
     }
@@ -3262,6 +3314,7 @@ function Get-ConfigFingerprint {
         Spicetify_Scheme       = [string]$Config.Spicetify_Scheme
         Spicetify_Marketplace  = [bool]$Config.Spicetify_Marketplace
         Spicetify_Extensions   = @($Config.Spicetify_Extensions)
+        Spicetify_CustomApps   = @($Config.Spicetify_CustomApps)
         AutoReapply_Enabled    = [bool]$Config.AutoReapply_Enabled
     }
     return ($normalized | ConvertTo-Json -Depth 4 -Compress)
@@ -3397,6 +3450,13 @@ function Apply-ConfigToUi {
     foreach ($key in $extCheckboxMap.Keys) {
         if ($ui.ContainsKey($key)) {
             $ui[$key].IsChecked = ($selectedExtensions -contains $extCheckboxMap[$key])
+        }
+    }
+
+    $selectedCustomApps = @($normalized.Spicetify_CustomApps)
+    foreach ($key in $customAppCheckboxMap.Keys) {
+        if ($ui.ContainsKey($key)) {
+            $ui[$key].IsChecked = ($selectedCustomApps -contains $customAppCheckboxMap[$key])
         }
     }
 
@@ -3765,6 +3825,7 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
     $cacheVal = 0; try { $cacheVal = [int]$ui['TxtCacheLimit'].Text } catch {}
     if ($cacheVal -lt 0) { $cacheVal = 0 }
     $exts = @(); foreach ($k in $extCheckboxMap.Keys) { if ($ui[$k].IsChecked) { $exts += $extCheckboxMap[$k] } }
+    $customApps = @(); foreach ($k in $customAppCheckboxMap.Keys) { if ($ui[$k].IsChecked) { $customApps += $customAppCheckboxMap[$k] } }
     $c = @{
         Mode='Custom'; CleanInstall=[bool]$ui['ChkCleanInstall'].IsChecked; LaunchAfter=[bool]$ui['ChkLaunchAfter'].IsChecked
         SpotX_NewTheme=[bool]$ui['ChkNewTheme'].IsChecked; SpotX_PodcastsOff=[bool]$ui['ChkPodcastsOff'].IsChecked
@@ -3789,6 +3850,7 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
         SpotX_SpotifyVersionId=$spotifyVerId
         Spicetify_Theme=$sTheme; Spicetify_Scheme=$sScheme
         Spicetify_Marketplace=[bool]$ui['ChkMarketplace'].IsChecked; Spicetify_Extensions=$exts
+        Spicetify_CustomApps=$customApps
         # Maintenance-mode control but persisted in the shared config so both
         # Easy and Custom saves carry the preference forward.
         AutoReapply_Enabled = if ($ui.ContainsKey('ChkAutoReapply')) { [bool]$ui['ChkAutoReapply'].IsChecked } else { $false }
@@ -7153,6 +7215,90 @@ function Open-SpicetifyMarketplace {
     }
 }
 
+function Module-InstallCustomApps { param($Config)
+    $requestedApps = @($Config.Spicetify_CustomApps | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    $managedApps = @($global:CommunityCustomApps.Keys)
+    $integration = Get-SpicetifyIntegrationContext
+    $customAppsDirectory = $integration.CustomAppsDirectory
+
+    if ($requestedApps.Count -eq 0) {
+        Write-Log 'Custom apps: none selected. Removing LibreSpot-managed custom apps if present...' -Level 'STEP'
+        foreach ($appId in $managedApps) {
+            $null = Remove-PathSafely -Path (Join-Path $customAppsDirectory $appId) -Label "Custom app $appId"
+        }
+        Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @() -ManagedItems $managedApps
+        return
+    }
+
+    Write-Log "Custom apps: $($requestedApps -join ', ')..." -Level 'STEP'
+    New-Item -Path $customAppsDirectory -ItemType Directory -Force | Out-Null
+    $installedApps = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($appId in $requestedApps) {
+        if (-not $global:CommunityCustomApps.Contains($appId)) {
+            Write-Log "Unknown custom app '$appId'. Skipping." -Level 'WARN'
+            continue
+        }
+
+        $info = $global:CommunityCustomApps[$appId]
+        $safeName = ($appId -replace '[^a-zA-Z0-9_-]', '_')
+        $zipPath = New-LibreSpotTempFile -Name "custom-app-$safeName.zip"
+        $unpackPath = New-LibreSpotTempDirectory -Name "custom-app-$safeName-unpack"
+        $destinationPath = Join-Path $customAppsDirectory $appId
+
+        try {
+            Write-Log "Downloading custom app '$($info.DisplayName)' from $($info.Source)..."
+            $expectedHash = [string]$info.SHA256
+            if (-not (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zipPath -Label "Custom app $appId archive")) {
+                try {
+                    Download-FileSafe -Uri $info.Url -OutFile $zipPath
+                } catch {
+                    if (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zipPath -Label "Custom app $appId archive") {
+                        Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
+                    } else { throw }
+                }
+                Confirm-FileHash -Path $zipPath -ExpectedHash $expectedHash -Label "Custom app $appId"
+                Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $expectedHash
+            }
+
+            Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $unpackPath -Label "Custom app $appId" -MaxExpandedBytes 250MB
+            $sourcePath = Join-Path $unpackPath ([string]$info.AssetPath)
+            if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
+                $candidate = Get-ChildItem -LiteralPath $unpackPath -Directory -ErrorAction SilentlyContinue |
+                    Where-Object {
+                        (Test-Path -LiteralPath (Join-Path $_.FullName 'manifest.json') -PathType Leaf) -and
+                        (Test-Path -LiteralPath (Join-Path $_.FullName 'extension.js') -PathType Leaf)
+                    } |
+                    Select-Object -First 1
+                if ($candidate) { $sourcePath = $candidate.FullName }
+            }
+
+            if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
+                throw "Custom app archive did not contain expected folder '$($info.AssetPath)'."
+            }
+
+            foreach ($requiredFile in @('manifest.json', 'extension.js')) {
+                if (-not (Test-Path -LiteralPath (Join-Path $sourcePath $requiredFile) -PathType Leaf)) {
+                    throw "Custom app '$appId' is missing required file '$requiredFile'."
+                }
+            }
+
+            $null = Remove-PathSafely -Path $destinationPath -Label "Custom app $appId"
+            New-Item -Path $destinationPath -ItemType Directory -Force | Out-Null
+            Copy-Item -Path (Join-Path $sourcePath '*') -Destination $destinationPath -Recurse -Force
+            $installedApps.Add($appId)
+            Write-Log "Custom app '$($info.DisplayName)' installed to $destinationPath"
+        } catch {
+            Write-Log "Could not install custom app '$appId': $($_.Exception.Message). Skipping." -Level 'WARN'
+        } finally {
+            Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $unpackPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @($installedApps) -ManagedItems $managedApps
+}
+
 function Repair-Marketplace {
     param($Config)
     if (-not (Test-SpicetifyCliInstalled)) {
@@ -7249,6 +7395,7 @@ function Reapply-SavedSpicetifySetup { param($Config)
     Module-InstallThemes -Config $Config
     Module-InstallExtensions -Config $Config
     Module-InstallMarketplace -Config $Config
+    Module-InstallCustomApps -Config $Config
     Module-ApplySpicetify -Config $Config
 }
 
@@ -7292,7 +7439,7 @@ $installBlock = { param($sh,$cfg)
         $modeName = if ($cfg -and $cfg.Mode) { [string]$cfg.Mode } else { 'Unknown' }
         Start-OperationJournalRun -Action 'Install' -Target "LibreSpot install ($modeName)" -WouldChange $true -Reversible $false -RollbackHint 'Use Maintenance > Restore Vanilla or Full Reset to reverse applied customizations.' | Out-Null
         Write-Log "--- LibreSpot Installation Started ---" -Level 'HEADER'; Write-Log "Mode: $($cfg.Mode)"
-        $steps = @('SpotX','SpicetifyCLI','Themes','Extensions','Marketplace','Apply')
+        $steps = @('SpotX','SpicetifyCLI','Themes','Extensions','Marketplace','CustomApps','Apply')
         if ($cfg.CleanInstall) { $steps = @('Cleanup') + $steps }
         $stepLabels = @{
             Cleanup      = 'Removing the old setup'
@@ -7301,6 +7448,7 @@ $installBlock = { param($sh,$cfg)
             Themes       = 'Adding bundled themes'
             Extensions   = 'Preparing extensions'
             Marketplace  = 'Installing Marketplace'
+            CustomApps   = 'Adding custom apps'
             Apply        = 'Applying your setup'
         }
         $total = $steps.Count; $n = 0
@@ -7314,6 +7462,7 @@ $installBlock = { param($sh,$cfg)
                 'Themes'       { Module-InstallThemes -Config $cfg }
                 'Extensions'   { Module-InstallExtensions -Config $cfg }
                 'Marketplace'  { Module-InstallMarketplace -Config $cfg }
+                'CustomApps'   { Module-InstallCustomApps -Config $cfg }
                 'Apply'        { Module-ApplySpicetify -Config $cfg }
             }
         }
@@ -7502,7 +7651,7 @@ $functionNamesForWorker = @(
     'Get-SpotXPatchVerification','Test-SpotifySessionStability',
     'Module-NukeSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
     'Module-InstallThemes','Download-CommunityExtensions','Module-InstallExtensions',
-    'Module-InstallMarketplace','Open-SpicetifyMarketplace','Repair-Marketplace','Module-ApplySpicetify',
+    'Module-InstallMarketplace','Module-InstallCustomApps','Open-SpicetifyMarketplace','Repair-Marketplace','Module-ApplySpicetify',
     'Build-SpotXParams','Load-LibreSpotConfig'
 )
 
@@ -7519,7 +7668,7 @@ $varNamesForWorker = @(
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR','SPICETIFY_INTEGRATION_VERSION',
     'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH','OPERATION_JOURNAL_PATH','RUN_RECEIPT_PATH','CURRENT_OPERATION_ID','CURRENT_OPERATION_ACTION','CACHE_DIR',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
-    'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityExtensionAliases','DeprecatedCommunityExtensionNames','CommunityThemeRepos','ThemesNeedingJS','SpotXLyricsThemes','VERSION','CONFIG_SCHEMA_VERSION'
+    'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityExtensionAliases','DeprecatedCommunityExtensionNames','CommunityCustomApps','CommunityThemeRepos','ThemesNeedingJS','SpotXLyricsThemes','VERSION','CONFIG_SCHEMA_VERSION'
 )
 foreach ($vname in $varNamesForWorker) {
     $val = (Get-Variable -Name $vname -Scope Global -ErrorAction Stop).Value

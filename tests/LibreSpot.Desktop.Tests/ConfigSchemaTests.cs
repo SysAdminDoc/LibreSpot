@@ -42,6 +42,7 @@ public sealed class ConfigSchemaTests
         Assert.Equal(AppCatalog.SpotifyVersionManifest.Select(version => version.Id), GetStringArray(properties.GetProperty(nameof(InstallConfiguration.SpotX_SpotifyVersionId)).GetProperty("enum")));
         Assert.Equal(AppCatalog.LyricsThemes, GetStringArray(properties.GetProperty(nameof(InstallConfiguration.SpotX_LyricsTheme)).GetProperty("enum")));
         Assert.Equal(AppCatalog.ExtensionDefinitions.Select(extension => extension.Key), GetStringArray(properties.GetProperty(nameof(InstallConfiguration.Spicetify_Extensions)).GetProperty("items").GetProperty("enum")));
+        Assert.Equal(AppCatalog.CustomAppDefinitions.Select(app => app.Key), GetStringArray(properties.GetProperty(nameof(InstallConfiguration.Spicetify_CustomApps)).GetProperty("items").GetProperty("enum")));
         Assert.True(properties.GetProperty(nameof(InstallConfiguration.SpotX_CacheLimit)).GetProperty("minimum").GetInt32() == 0);
         Assert.True(properties.GetProperty(nameof(InstallConfiguration.SpotX_CacheLimit)).GetProperty("maximum").GetInt32() == 50_000);
     }

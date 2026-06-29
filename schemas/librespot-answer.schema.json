@@ -239,6 +239,17 @@
           },
           "description": "Spicetify extensions to enable."
         },
+        "customApps": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "stats"
+            ]
+          },
+          "description": "Spicetify custom apps to install and enable through custom_apps."
+        },
         "marketplace": {
           "type": "boolean",
           "description": "Install the Spicetify Marketplace."
@@ -376,6 +387,9 @@
         "extensions": [
           "fullAppDisplay.js",
           "shuffle+.js"
+        ],
+        "customApps": [
+          "stats"
         ],
         "marketplace": true
       },

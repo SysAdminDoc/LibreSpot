@@ -4,7 +4,7 @@
 
 **SpotX + Spicetify Unified Installer**
 
-A single-script PowerShell GUI that installs, configures, and maintains ad-free Spotify with themes, extensions, and the Spicetify Marketplace — no command-line knowledge required.
+A single-script PowerShell GUI that installs, configures, and maintains ad-free Spotify with themes, extensions, custom apps, and the Spicetify Marketplace — no command-line knowledge required.
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -73,9 +73,9 @@ The v4 desktop preview continues that polish with a sharper 6-12 px radius syste
 LibreSpot wraps two powerful open-source projects into one polished interface:
 
 - **[SpotX](https://github.com/SpotX-Official/SpotX)** — patches Spotify to remove ads, block telemetry, and enable experimental UI features
-- **[Spicetify](https://github.com/spicetify)** — injects custom themes, extensions, and the in-app Marketplace into Spotify
+- **[Spicetify](https://github.com/spicetify)** — injects custom themes, extensions, custom apps, and the in-app Marketplace into Spotify
 
-Instead of running multiple scripts, editing config files, and hoping the versions are compatible, LibreSpot handles the entire workflow: clean uninstall, fresh Spotify install, SpotX patching, Spicetify CLI setup, theme installation, extension configuration, and Marketplace deployment — all in the correct order, with full error handling.
+Instead of running multiple scripts, editing config files, and hoping the versions are compatible, LibreSpot handles the entire workflow: clean uninstall, fresh Spotify install, SpotX patching, Spicetify CLI setup, theme installation, extension configuration, verified custom-app installation, and Marketplace deployment — all in the correct order, with full error handling.
 
 ---
 
@@ -104,7 +104,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 **Easy Install** — one click, sensible defaults. Removes any existing installation, applies SpotX ad-blocking with the new UI theme, installs Spicetify CLI with Marketplace, and enables Full App Display, Shuffle+, and Trash Bin extensions.
 
-**Custom Install** — full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), browse 21 themes (16 official + 5 community) through a searchable gallery with per-theme color schemes, select from 15 extensions (10 built-in + 5 community), save and preview named local profiles, and choose between clean or overlay install.
+**Custom Install** — full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), browse 21 themes (16 official + 5 community) through a searchable gallery with per-theme color schemes, select from 15 extensions (10 built-in + 5 community) plus the verified Stats custom app, save and preview named local profiles, and choose between clean or overlay install.
 
 **Maintenance** — manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, export a redacted local support bundle, restore vanilla Spotify, uninstall Spicetify, check for dependency updates, or perform a full system reset.
 
@@ -231,6 +231,10 @@ Each theme ships with its full set of color schemes. **Live theme previews** loa
 | [Volume Percentage](https://github.com/daksh2k/spicetify-stuff) | Exact volume percentage next to the slider |
 | [Ad-block (Spicetify fallback)](https://github.com/rxri/spicetify-extensions) | Spicetify-layer ad blocking for when SpotX patching fails on a newer Spotify build — **a fallback, not a SpotX replacement** |
 
+### Optional Custom Apps
+
+Custom Install also exposes **Stats** from [harbassan/spicetify-apps](https://github.com/harbassan/spicetify-apps). LibreSpot downloads the pinned `stats-v1.1.3` release ZIP, verifies SHA256, installs it to Spicetify's `CustomApps\stats` directory, and registers `custom_apps = stats`. Stats is off by default. Some Stats views can contact Last.fm when opened inside Spotify.
+
 ### Auto-Reapply (new in v3.6.0)
 
 Spotify auto-updates roughly every 1-2 weeks and overwrites the SpotX patches every time. Manually reapplying after every update gets old fast.
@@ -250,6 +254,7 @@ LibreSpot.ps1 -Watch               # run one tick manually (what the task invoke
 - **Threaded UI** — installation runs in background runspaces; the GUI stays responsive with a live log, elapsed timer, and progress bar
 - **Window management** — Spotify and installer windows are automatically hidden during installation; LibreSpot stays on top until finished
 - **Settings persistence** — your Custom Install configuration is saved to `%APPDATA%\LibreSpot\config.json` and restored next launch
+- **Community asset verification** — opt-in community extensions, themes, and custom apps are pinned in `schemas/community-assets.json` with provenance, SHA256, license, and network-behavior metadata
 - **Config backup** — up to 5 rotating Spicetify config backups stored in `%USERPROFILE%\LibreSpot_Backups`
 - **Architecture support** — x64 and ARM64 with per-architecture hash verification
 - **Dual download methods** — falls back to BITS transfer if `Invoke-WebRequest` fails
@@ -269,7 +274,7 @@ Open Maintenance and check the After Spotify update note. LibreSpot compares the
 Yes. Enable "Premium user (skip ad-blocking)" in Custom Install to skip ad-related patches while keeping all other modifications.
 
 **How do I change my theme later?**
-Re-run LibreSpot in Custom mode to pick a different theme, or use the optional Spicetify Marketplace to browse and apply themes from within Spotify. LibreSpot installs your selected themes and extensions directly — Marketplace is an add-on for discovering more, not required.
+Re-run LibreSpot in Custom mode to pick a different theme, or use the optional Spicetify Marketplace to browse and apply themes from within Spotify. LibreSpot installs your selected themes, extensions, and custom apps directly — Marketplace is an add-on for discovering more, not required.
 
 **Marketplace is installed but I do not see it.**
 Use Maintenance > Repair and open Marketplace. LibreSpot reinstalls the custom app, re-enables `custom_apps`, reapplies Spicetify, and opens `spotify:app:marketplace` directly.
@@ -315,7 +320,7 @@ Windows 11 with Smart App Control (SAC) enabled enforces Constrained Language Mo
 - Communicate, *as LibreSpot itself*, with any server other than GitHub (for downloads) and Spotify (normal app traffic)
 - Modify Spotify's authentication, payment, or account systems
 
-> **Note on community extensions:** the bullet above covers LibreSpot itself. Some *opt-in* community extensions you can enable in Custom Install do contact their own services — for example, [Beautiful Lyrics](https://github.com/surfbryce/beautiful-lyrics) fetches lyrics from a third-party backend and uses an external API for optional Discord features. Extensions that talk to a third-party service are flagged in the Custom Install catalog and recorded in [`schemas/community-assets.json`](schemas/community-assets.json) under `networkBehavior`. They are off by default.
+> **Note on community extensions and custom apps:** the bullet above covers LibreSpot itself. Some *opt-in* community entries you can enable in Custom Install do contact their own services — for example, [Beautiful Lyrics](https://github.com/surfbryce/beautiful-lyrics) fetches lyrics from a third-party backend and uses an external API for optional Discord features, while Stats can contact Last.fm-backed views. Entries that talk to a third-party service are flagged in the Custom Install catalog and recorded in [`schemas/community-assets.json`](schemas/community-assets.json) under `networkBehavior`. They are off by default.
 
 **Account risk:**
 Spotify's [Terms of Service](https://www.spotify.com/legal/end-user-agreement/) and [User Guidelines](https://www.spotify.com/legal/user-guidelines/) prohibit circumventing ads and modifying the client. While enforcement against individual users of tools like SpotX has not been publicly documented, using LibreSpot is at your own risk. LibreSpot provides a "Full Reset" option in Maintenance mode to return Spotify to its unmodified state at any time.

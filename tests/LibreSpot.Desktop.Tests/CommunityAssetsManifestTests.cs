@@ -259,6 +259,54 @@ public sealed class CommunityAssetsManifestTests
     }
 
     [Fact]
+    public void Manifest_ListsEveryCommunityCustomAppInScript()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+
+        var scriptApps = Regex.Matches(
+                script,
+                @"\$global:CommunityCustomApps\s*=\s*\[ordered\]@\{(?<body>.+?)\n\}",
+                RegexOptions.Singleline)
+            .SelectMany(m => Regex.Matches(m.Groups["body"].Value, @"""([^""]+)""\s*=\s*@\{"))
+            .Select(m => m.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var manifestApps = Manifest.RootElement
+            .GetProperty("customApps")
+            .EnumerateArray()
+            .Select(e => e.GetProperty("appId").GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var missingFromManifest = scriptApps.Except(manifestApps).ToList();
+        Assert.True(
+            missingFromManifest.Count == 0,
+            $"CommunityCustomApps in script but not in manifest: {string.Join(", ", missingFromManifest)}");
+    }
+
+    [Fact]
+    public void Manifest_CustomAppSha256MatchesScript()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+
+        foreach (var app in Manifest.RootElement.GetProperty("customApps").EnumerateArray())
+        {
+            var appId = app.GetProperty("appId").GetString()!;
+            var manifestHash = app.GetProperty("sha256").GetString()!;
+
+            var hashMatch = Regex.Match(
+                script,
+                $@"""{Regex.Escape(appId)}""\s*=\s*@\{{[^}}]*SHA256\s*=\s*""([A-Fa-f0-9]{{64}})""",
+                RegexOptions.Singleline);
+
+            Assert.True(
+                hashMatch.Success,
+                $"Could not find SHA256 for custom app '{appId}' in script.");
+
+            Assert.Equal(manifestHash, hashMatch.Groups[1].Value);
+        }
+    }
+
+    [Fact]
     public void Manifest_CustomAppsHaveValidLicenses()
     {
         var policy = Manifest.RootElement.GetProperty("policy");

@@ -194,6 +194,16 @@
         ]
       }
     },
+    "Spicetify_CustomApps": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "stats"
+        ]
+      }
+    },
     "AutoReapply_Enabled": {
       "type": "boolean"
     },

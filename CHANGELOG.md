@@ -5,6 +5,9 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added opt-in Spicetify custom-app support for the verified Stats release,
+  including Custom mode UI, CLI answer-file schema support, pinned SHA256
+  catalog metadata, and Last.fm network-behavior disclosure.
 - Added package-manifest safety tests so draft winget, Scoop, Chocolatey, and
   package-channel metadata stay visibly blocked until release-manifest-generated
   hashes, signing, and package identity decisions are ready.

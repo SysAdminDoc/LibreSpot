@@ -69,6 +69,7 @@ public sealed class ProfileSchemaTests
         Assert.True(props.TryGetProperty("Mode", out _));
         Assert.True(props.TryGetProperty("Spicetify_Theme", out _));
         Assert.True(props.TryGetProperty("Spicetify_Scheme", out _));
+        Assert.True(props.TryGetProperty("Spicetify_CustomApps", out _));
         Assert.True(props.TryGetProperty("AutoReapply_Enabled", out _));
     }
 

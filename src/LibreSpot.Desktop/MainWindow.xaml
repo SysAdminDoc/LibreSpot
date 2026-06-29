@@ -1666,6 +1666,22 @@
                         </ItemsControl>
                       </StackPanel>
                     </Border>
+
+                    <Border Style="{StaticResource MinimalSectionStyle}"
+                            BorderThickness="0"
+                            Visibility="{Binding HasVisibleCustomApps, Converter={StaticResource BoolToVisibilityConverter}}">
+                      <StackPanel>
+                        <TextBlock Text="{Binding CustomAppsSectionTitle}" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="{Binding CustomAppsSectionDescription}"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,6,0,14" />
+                        <ItemsControl ItemsSource="{Binding CustomApps}" ItemTemplate="{StaticResource ExtensionTemplate}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                      </StackPanel>
+                    </Border>
                   </StackPanel>
                 </ScrollViewer>
 

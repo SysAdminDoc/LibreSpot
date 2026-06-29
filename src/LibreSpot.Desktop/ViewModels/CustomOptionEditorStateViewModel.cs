@@ -36,6 +36,12 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
                 definition.Title,
                 definition.Description,
                 recommendedBaseline.Spicetify_Extensions.Contains(definition.Key, StringComparer.OrdinalIgnoreCase))));
+        CustomApps = new ObservableCollection<ExtensionToggleViewModel>(
+            AppCatalog.CustomAppDefinitions.Select(definition => new ExtensionToggleViewModel(
+                definition.Key,
+                definition.Title,
+                definition.Description,
+                recommendedBaseline.Spicetify_CustomApps.Contains(definition.Key, StringComparer.OrdinalIgnoreCase))));
     }
 
     public ObservableCollection<string> ThemeNames { get; }
@@ -50,6 +56,7 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
     public ObservableCollection<OptionToggleViewModel> AdvancedOptions { get; }
     public ObservableCollection<OptionToggleViewModel> ExperienceOptions { get; }
     public ObservableCollection<ExtensionToggleViewModel> Extensions { get; }
+    public ObservableCollection<ExtensionToggleViewModel> CustomApps { get; }
 
     public string SelectedTheme
     {

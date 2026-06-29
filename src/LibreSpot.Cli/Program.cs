@@ -909,6 +909,16 @@ public static class CliApplication
                 .Where(item => !string.IsNullOrWhiteSpace(item))
                 .ToList();
         }
+
+        if (spicetify.TryGetProperty("customApps", out var customApps) && customApps.ValueKind == JsonValueKind.Array)
+        {
+            config.Spicetify_CustomApps = customApps
+                .EnumerateArray()
+                .Where(item => item.ValueKind == JsonValueKind.String)
+                .Select(item => item.GetString() ?? string.Empty)
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .ToList();
+        }
     }
 
     private static void ApplyWatcherOptions(JsonElement root, InstallConfiguration config)

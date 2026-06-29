@@ -45,6 +45,7 @@ public sealed class InstallConfiguration
     public string Spicetify_Scheme { get; set; } = "Default";
     public bool Spicetify_Marketplace { get; set; } = true;
     public List<string> Spicetify_Extensions { get; set; } = new() { "fullAppDisplay.js", "shuffle+.js", "trashbin.js" };
+    public List<string> Spicetify_CustomApps { get; set; } = new();
 
     // Track 4.2 auto-reapply watcher. The PowerShell side owns the scheduled
     // task; the WPF shell round-trips the preference so toggling from either
@@ -96,6 +97,7 @@ public sealed class InstallConfiguration
             Spicetify_Scheme = Spicetify_Scheme,
             Spicetify_Marketplace = Spicetify_Marketplace,
             Spicetify_Extensions = new List<string>(Spicetify_Extensions ?? []),
+            Spicetify_CustomApps = new List<string>(Spicetify_CustomApps ?? []),
             AutoReapply_Enabled = AutoReapply_Enabled,
             RiskAcknowledged = RiskAcknowledged
         };
@@ -103,6 +105,7 @@ public sealed class InstallConfiguration
 
 public sealed record OptionDefinition(string Key, string Title, string Description, string Section);
 public sealed record ExtensionDefinition(string Key, string Title, string Description);
+public sealed record CustomAppDefinition(string Key, string Title, string Description);
 public sealed record MaintenanceActionDefinition(string Action, string Title, string Description, string ButtonText, bool IsDestructive = false);
 
 public static class HealthSeverity
@@ -306,6 +309,8 @@ public static class AppCatalog
     public const string SpicetifyWindowsMaxTestedSpotify = "1.2.88";
     public const string PinnedMarketplaceVersion = "1.0.8";
     public const string PinnedThemesCommit = "df033493a7dae30ca6e371de9cec1897871dbb0c";
+    public const string PinnedStatsCustomAppVersion = "1.1.3";
+    public const string PinnedStatsCustomAppReleaseTag = "stats-v1.1.3";
 
     public static IReadOnlyList<string> LyricsThemes { get; } = new ReadOnlyCollection<string>(new[]
     {
@@ -414,6 +419,14 @@ public static class AppCatalog
         new ExtensionDefinition("playlist-icons.js", Strings.Extension_playlist_icons_Title, Strings.Extension_playlist_icons_Description),
         new ExtensionDefinition("volumePercentage.js", Strings.Extension_volumePercentage_Title, Strings.Extension_volumePercentage_Description),
         new ExtensionDefinition("adblock.js", Strings.Extension_adblock_Title, Strings.Extension_adblock_Description)
+    });
+
+    public static IReadOnlyList<CustomAppDefinition> CustomAppDefinitions { get; } = new ReadOnlyCollection<CustomAppDefinition>(new[]
+    {
+        new CustomAppDefinition(
+            "stats",
+            "Stats",
+            "Detailed listening statistics with top tracks, artists, genres, library charts, and optional Last.fm-backed views.")
     });
 
     private static readonly IReadOnlyDictionary<string, string> ExtensionAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -630,6 +643,12 @@ public static class AppCatalog
                 return ExtensionAliases.TryGetValue(name, out var currentName) ? currentName : name;
             })
             .Where(item => !string.IsNullOrWhiteSpace(item) && validExtensions.Contains(item))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var validCustomApps = CustomAppDefinitions.Select(def => def.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        normalized.Spicetify_CustomApps = (source.Spicetify_CustomApps ?? [])
+            .Where(item => !string.IsNullOrWhiteSpace(item) && validCustomApps.Contains(item))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 

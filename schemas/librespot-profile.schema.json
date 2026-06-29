@@ -320,6 +320,17 @@
           },
           "description": "Spicetify extensions to enable."
         },
+        "Spicetify_CustomApps": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "stats"
+            ]
+          },
+          "description": "Spicetify custom apps to install and enable through custom_apps."
+        },
         "AutoReapply_Enabled": {
           "type": "boolean",
           "description": "Enable automatic reapply of settings when Spotify updates."
@@ -382,6 +393,9 @@
           "shuffle+.js",
           "beautiful-lyrics.mjs",
           "hidePodcasts.js"
+        ],
+        "Spicetify_CustomApps": [
+          "stats"
         ],
         "AutoReapply_Enabled": true
       }

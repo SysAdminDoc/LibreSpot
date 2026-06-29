@@ -619,6 +619,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<OptionToggleViewModel> AdvancedOptions => _customOptions.AdvancedOptions;
     public ObservableCollection<OptionToggleViewModel> ExperienceOptions => _customOptions.ExperienceOptions;
     public ObservableCollection<ExtensionToggleViewModel> Extensions => _customOptions.Extensions;
+    public ObservableCollection<ExtensionToggleViewModel> CustomApps => _customOptions.CustomApps;
     public ObservableCollection<MaintenanceActionCardViewModel> SafeMaintenanceActions => _maintenanceActions.SafeActions;
     public ObservableCollection<MaintenanceActionCardViewModel> DestructiveMaintenanceActions => _maintenanceActions.DestructiveActions;
     public ObservableCollection<SupportBundleCategoryViewModel> SupportBundleItems { get; }
@@ -925,6 +926,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    public string SelectedCustomAppCountLabel
+    {
+        get
+        {
+            var selectedCount = CustomApps.Count(item => item.IsSelected);
+            return selectedCount switch
+            {
+                0 => "None",
+                1 => "1 selected",
+                _ => $"{selectedCount} selected"
+            };
+        }
+    }
+
+    public string CustomAppsSectionTitle => "Custom apps";
+
+    public string CustomAppsSectionDescription =>
+        "Optional Spicetify apps installed from pinned release ZIPs. These appear as Spotify apps, not normal extensions.";
+
     public string AccessPostureLabel =>
         NeedsAdministratorRelaunch
             ? "Elevates first"
@@ -997,6 +1017,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public bool HasVisibleExtensions => Extensions.Any(extension => MatchesSettingsSearch(extension.Title, extension.Description));
 
+    public bool HasVisibleCustomApps => CustomApps.Any(app => MatchesSettingsSearch(app.Title, app.Description));
+
     public int CustomSearchMatchCount =>
         CountMatchingOptions(InstallOptions) +
         CountAppearanceMatches() +
@@ -1004,7 +1026,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CountMatchingOptions(InterfaceOptions) +
         CountMatchingOptions(AdvancedOptions) +
         CountMatchingOptions(ExperienceOptions) +
-        Extensions.Count(extension => MatchesSettingsSearch(extension.Title, extension.Description));
+        Extensions.Count(extension => MatchesSettingsSearch(extension.Title, extension.Description)) +
+        CustomApps.Count(app => MatchesSettingsSearch(app.Title, app.Description));
 
     public bool HasAnyCustomSearchMatches => !HasSettingsSearchText || CustomSearchMatchCount > 0;
 
@@ -1131,10 +1154,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             var advancedCount = AdvancedOptions.Count(option => option.IsSelected);
             var selectedExtensions = Extensions.Count(item => item.IsSelected);
+            var selectedCustomApps = CustomApps.Count(item => item.IsSelected);
+            var selectedAddOns = selectedExtensions + selectedCustomApps;
 
             return advancedCount switch
             {
-                0 when selectedExtensions <= 3 => "Near default",
+                0 when selectedAddOns <= 3 => "Near default",
                 <= 2 => "Balanced custom",
                 _ => "Heavy custom"
             };
@@ -1147,8 +1172,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             var advancedCount = AdvancedOptions.Count(option => option.IsSelected);
             var selectedExtensions = Extensions.Count(item => item.IsSelected);
+            var selectedCustomApps = CustomApps.Count(item => item.IsSelected);
+            var selectedAddOns = selectedExtensions + selectedCustomApps;
 
-            if (advancedCount == 0 && selectedExtensions <= 3)
+            if (advancedCount == 0 && selectedAddOns <= 3)
             {
                 return "This stays close to LibreSpot's supported baseline with room for a few deliberate preferences.";
             }
@@ -1733,6 +1760,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CollectionViewSource.GetDefaultView(Extensions).Filter = item =>
             item is ExtensionToggleViewModel extension &&
             MatchesSettingsSearch(extension.Title, extension.Description);
+        CollectionViewSource.GetDefaultView(CustomApps).Filter = item =>
+            item is ExtensionToggleViewModel customApp &&
+            MatchesSettingsSearch(customApp.Title, customApp.Description);
     }
 
     private void ConfigureOptionFilter(ObservableCollection<OptionToggleViewModel> options) =>
@@ -1748,6 +1778,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CollectionViewSource.GetDefaultView(AdvancedOptions).Refresh();
         CollectionViewSource.GetDefaultView(ExperienceOptions).Refresh();
         CollectionViewSource.GetDefaultView(Extensions).Refresh();
+        CollectionViewSource.GetDefaultView(CustomApps).Refresh();
         ClearSettingsSearchCommand.RaiseCanExecuteChanged();
         RaiseCustomSearchChanged();
     }
@@ -1764,6 +1795,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(HasVisibleExperienceOptions));
         RaisePropertyChanged(nameof(HasVisibleAdvancedSection));
         RaisePropertyChanged(nameof(HasVisibleExtensions));
+        RaisePropertyChanged(nameof(HasVisibleCustomApps));
         RaisePropertyChanged(nameof(CustomSearchMatchCount));
         RaisePropertyChanged(nameof(HasAnyCustomSearchMatches));
         RaisePropertyChanged(nameof(ShowCustomSearchEmptyState));
@@ -1801,6 +1833,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         foreach (var extension in Extensions)
         {
             extension.PropertyChanged += OnSelectionItemPropertyChanged;
+        }
+
+        foreach (var customApp in CustomApps)
+        {
+            customApp.PropertyChanged += OnSelectionItemPropertyChanged;
         }
     }
 
@@ -1897,6 +1934,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(DownloadMethodDetail));
         RaisePropertyChanged(nameof(ExtensionSummary));
         RaisePropertyChanged(nameof(SelectedExtensionCountLabel));
+        RaisePropertyChanged(nameof(SelectedCustomAppCountLabel));
         RaisePropertyChanged(nameof(HasSelectedExtensions));
         RaisePropertyChanged(nameof(AccessPostureLabel));
         RaisePropertyChanged(nameof(CustomChangeCountLabel));
@@ -3345,6 +3383,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             extension.IsSelected = extensionLookup.Contains(extension.Key);
         }
 
+        var customAppLookup = configuration.Spicetify_CustomApps.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var customApp in CustomApps)
+        {
+            customApp.IsSelected = customAppLookup.Contains(customApp.Key);
+        }
+
         RaiseSelectionInsightsChanged();
     }
 
@@ -3381,6 +3425,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? Math.Clamp(parsed, 0, 50_000) // match Backend.ps1 upper bound
             : 0;
         configuration.Spicetify_Extensions = Extensions.Where(item => item.IsSelected).Select(item => item.Key).ToList();
+        configuration.Spicetify_CustomApps = CustomApps.Where(item => item.IsSelected).Select(item => item.Key).ToList();
 
         return AppCatalog.NormalizeConfiguration(configuration);
     }
@@ -3403,6 +3448,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             SelectedExtensionLabels.Add(extension.Title);
         }
+
+        var selectedCustomApps = CustomApps.Where(item => item.IsSelected).Select(item => item.Title).ToArray();
 
         var advancedCount = AdvancedOptions.Count(option => option.IsSelected);
 
@@ -3516,12 +3563,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 CurrentDownloadMethodEntry.Label,
                 CurrentDownloadMethodEntry.Detail));
         }
+
+        if (selectedCustomApps.Length > 0)
+        {
+            SelectionInsights.Add(new SelectionInsightViewModel(
+                "info",
+                "Custom apps",
+                $"{string.Join(", ", selectedCustomApps)} will be installed through Spicetify custom_apps."));
+        }
     }
 
     private int CountProfileDifferencesFromRecommended()
     {
         var differences = EnumerateAllOptions().Count(option => option.IsSelected != option.IsRecommendedDefault);
         differences += Extensions.Count(extension => extension.IsSelected != extension.IsRecommendedDefault);
+        differences += CustomApps.Count(customApp => customApp.IsSelected != customApp.IsRecommendedDefault);
 
         if (!string.Equals(SelectedTheme, _recommendedBaseline.Spicetify_Theme, StringComparison.Ordinal))
         {

@@ -104,6 +104,23 @@ function Normalize-LibreSpotConfig {
     }
     $normalized.Spicetify_Extensions = @($extensions)
 
+    $customApps = [System.Collections.Generic.List[string]]::new()
+    $rawCustomApps = @()
+    if ($Config -and $Config.ContainsKey('Spicetify_CustomApps')) {
+        if ($Config.Spicetify_CustomApps -is [string]) {
+            $rawCustomApps = @([string]$Config.Spicetify_CustomApps)
+        } elseif ($Config.Spicetify_CustomApps -is [System.Collections.IEnumerable]) {
+            $rawCustomApps = @($Config.Spicetify_CustomApps)
+        }
+    }
+    foreach ($customApp in $rawCustomApps) {
+        $name = [string]$customApp
+        if ([string]::IsNullOrWhiteSpace($name)) { continue }
+        if (-not $global:CommunityCustomApps.Contains($name)) { continue }
+        if (-not $customApps.Contains($name)) { $customApps.Add($name) }
+    }
+    $normalized.Spicetify_CustomApps = @($customApps)
+
     if ($normalized.SpotX_RightSidebarOff) {
         $normalized.SpotX_RightSidebarClr = $false
     }
