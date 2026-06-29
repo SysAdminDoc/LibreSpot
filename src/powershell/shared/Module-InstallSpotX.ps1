@@ -1,6 +1,7 @@
 function Module-InstallSpotX { param($Config,$SyncHash)
     Write-Log "Installing SpotX v$($global:PinnedReleases.SpotX.Version)..." -Level 'STEP'
     $dest = New-LibreSpotTempFile -Name 'spotx_run.ps1'
+    $customPatchesPath = ''
     try {
         $spotxHash = $global:PinnedReleases.SpotX.SHA256
         if (-not (Get-FromAssetCache -SHA256Hash $spotxHash -DestinationPath $dest -Label 'SpotX run.ps1')) {
@@ -15,6 +16,11 @@ function Module-InstallSpotX { param($Config,$SyncHash)
             Save-ToAssetCache -SourcePath $dest -SHA256Hash $spotxHash
         }
         $params = Build-SpotXParams -Config $Config
+        $customPatchesPath = New-SpotXCustomPatchesFile -Config $Config
+        if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
+            $params = "$params -CustomPatchesPath `"$customPatchesPath`""
+            Write-Log "Custom SpotX patches staged at $customPatchesPath"
+        }
         if (Test-Path $global:SPOTIFY_EXE_PATH) {
             $ver = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
             Write-Log "Spotify $ver detected - SpotX will verify version compatibility"
@@ -62,6 +68,9 @@ function Module-InstallSpotX { param($Config,$SyncHash)
             if ($SyncHash) { $SyncHash.AllowSpotify = $false }
         }
     } finally {
+        if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
+            Remove-Item -LiteralPath $customPatchesPath -Force -ErrorAction SilentlyContinue
+        }
         Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue
     }
 }

@@ -488,6 +488,7 @@ function Invoke-HeadlessReapply {
     if (-not $Config) { throw 'Invoke-HeadlessReapply: missing config' }
 
     $tempDir = Join-Path $global:TEMP_DIR ("LibreSpot_Watcher_" + [guid]::NewGuid().ToString('N').Substring(0,8))
+    $customPatchesPath = ''
     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
     try {
         $spotxRun = Join-Path $tempDir 'spotx_run.ps1'
@@ -518,6 +519,11 @@ function Invoke-HeadlessReapply {
         }
 
         $spotxArgs = Build-SpotXParams -Config $Config
+        $customPatchesPath = New-SpotXCustomPatchesFile -Config $Config
+        if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
+            $spotxArgs = "$spotxArgs -CustomPatchesPath `"$customPatchesPath`""
+            Write-WatcherLog "Custom SpotX patches staged at $customPatchesPath"
+        }
         Write-WatcherLog "Invoking SpotX with: $spotxArgs"
 
         # Use powershell.exe isolation so SpotX can't leak runtime state into our
@@ -559,6 +565,9 @@ function Invoke-HeadlessReapply {
             }
         }
     } finally {
+        if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
+            Remove-Item -LiteralPath $customPatchesPath -Force -ErrorAction SilentlyContinue
+        }
         try { Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue } catch {}
     }
 }
@@ -1003,6 +1012,7 @@ $global:EasyDefaults = @{
     SpotX_DevTools=$false; SpotX_Mirror=$false; SpotX_DownloadMethod=""; SpotX_ConfirmUninstall=$false
     SpotX_SpotifyVersionId="auto"
     SpotX_Language=""
+    SpotX_CustomPatchesEnabled=$false; SpotX_CustomPatchesJson=""
     Spicetify_Theme="(None - Marketplace Only)"; Spicetify_Scheme="Default"; Spicetify_Marketplace=$true
     Spicetify_Extensions=@("fullAppDisplay.js","shuffle+.js","trashbin.js")
     Spicetify_CustomApps=@()
@@ -1132,7 +1142,7 @@ function Normalize-LibreSpotConfig {
         'SpotX_DisableStartup','SpotX_NoShortcut','SpotX_OldLyrics','SpotX_HideColIconOff',
         'SpotX_Plus','SpotX_NewFullscreen','SpotX_FunnyProgress','SpotX_ExpSpotify','SpotX_LyricsBlock',
         'SpotX_SendVersionOff','SpotX_StartSpoti','SpotX_DevTools','SpotX_Mirror','SpotX_ConfirmUninstall',
-        'Spicetify_Marketplace','AutoReapply_Enabled','RiskAcknowledged'
+        'SpotX_CustomPatchesEnabled','Spicetify_Marketplace','AutoReapply_Enabled','RiskAcknowledged'
     )
     foreach ($key in $booleanKeys) {
         if ($Config -and $Config.ContainsKey($key)) {
@@ -1142,6 +1152,14 @@ function Normalize-LibreSpotConfig {
 
     if ($Config -and $Config.ContainsKey('SpotX_CacheLimit')) {
         $normalized.SpotX_CacheLimit = ConvertTo-ConfigInt -Value $Config.SpotX_CacheLimit -Default ([int]$normalized.SpotX_CacheLimit) -Minimum 0 -Maximum 50000
+    }
+
+    if ($Config -and $Config.ContainsKey('SpotX_CustomPatchesJson')) {
+        $patchJson = [string]$Config.SpotX_CustomPatchesJson
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        if ($utf8.GetByteCount($patchJson) -le 65536) {
+            $normalized.SpotX_CustomPatchesJson = $patchJson.Trim()
+        }
     }
 
     $dm = if ($Config -and $Config.ContainsKey('SpotX_DownloadMethod')) { [string]$Config.SpotX_DownloadMethod } else { [string]$normalized.SpotX_DownloadMethod }
@@ -1553,6 +1571,38 @@ function New-LibreSpotTempFile {
 
     $fileName = if ([string]::IsNullOrWhiteSpace($Name)) { 'artifact.tmp' } else { $Name }
     return (Join-Path (Get-LibreSpotTempRoot) ("{0}-{1}" -f [Guid]::NewGuid().ToString('N'), $fileName))
+}
+
+function New-SpotXCustomPatchesFile {
+    param([hashtable]$Config)
+
+    if (-not $Config -or -not $Config.ContainsKey('SpotX_CustomPatchesEnabled')) { return '' }
+    if (-not [bool]$Config.SpotX_CustomPatchesEnabled) { return '' }
+
+    $patchJson = if ($Config.ContainsKey('SpotX_CustomPatchesJson')) { [string]$Config.SpotX_CustomPatchesJson } else { '' }
+    if ([string]::IsNullOrWhiteSpace($patchJson)) {
+        throw 'Custom SpotX patches are enabled, but SpotX_CustomPatchesJson is empty.'
+    }
+
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
+    $byteCount = $utf8.GetByteCount($patchJson)
+    if ($byteCount -gt 65536) {
+        throw "Custom SpotX patches are $byteCount bytes; the maximum is 65536 bytes."
+    }
+
+    try {
+        $null = $patchJson | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        throw "Custom SpotX patches JSON is invalid: $($_.Exception.Message)"
+    }
+
+    $patchPath = New-LibreSpotTempFile -Name 'spotx-custom-patches.json'
+    $patchDir = Split-Path -Path $patchPath -Parent
+    if (-not (Test-Path -LiteralPath $patchDir)) {
+        New-Item -ItemType Directory -Path $patchDir -Force | Out-Null
+    }
+    [System.IO.File]::WriteAllText($patchPath, $patchJson, $utf8)
+    return $patchPath
 }
 
 function New-LibreSpotTempDirectory {
@@ -6875,6 +6925,7 @@ function Module-NukeSpotify {
 function Module-InstallSpotX { param($Config,$SyncHash)
     Write-Log "Installing SpotX v$($global:PinnedReleases.SpotX.Version)..." -Level 'STEP'
     $dest = New-LibreSpotTempFile -Name 'spotx_run.ps1'
+    $customPatchesPath = ''
     try {
         $spotxHash = $global:PinnedReleases.SpotX.SHA256
         if (-not (Get-FromAssetCache -SHA256Hash $spotxHash -DestinationPath $dest -Label 'SpotX run.ps1')) {
@@ -6889,6 +6940,11 @@ function Module-InstallSpotX { param($Config,$SyncHash)
             Save-ToAssetCache -SourcePath $dest -SHA256Hash $spotxHash
         }
         $params = Build-SpotXParams -Config $Config
+        $customPatchesPath = New-SpotXCustomPatchesFile -Config $Config
+        if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
+            $params = "$params -CustomPatchesPath `"$customPatchesPath`""
+            Write-Log "Custom SpotX patches staged at $customPatchesPath"
+        }
         if (Test-Path $global:SPOTIFY_EXE_PATH) {
             $ver = (Get-Item $global:SPOTIFY_EXE_PATH).VersionInfo.FileVersion
             Write-Log "Spotify $ver detected - SpotX will verify version compatibility"
@@ -6936,6 +6992,9 @@ function Module-InstallSpotX { param($Config,$SyncHash)
             if ($SyncHash) { $SyncHash.AllowSpotify = $false }
         }
     } finally {
+        if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
+            Remove-Item -LiteralPath $customPatchesPath -Force -ErrorAction SilentlyContinue
+        }
         Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue
     }
 }
@@ -7642,7 +7701,7 @@ $maintBlock = { param($sh,$action)
 # =============================================================================
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
-    'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-LibreSpotTempDirectory',
+    'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-SpotXCustomPatchesFile','New-LibreSpotTempDirectory',
     'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyIntegrationContext','Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',

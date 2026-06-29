@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:controls="clr-namespace:LibreSpot.Desktop.Controls"
+        xmlns:avalon="clr-namespace:ICSharpCode.AvalonEdit;assembly=ICSharpCode.AvalonEdit"
         xmlns:models="clr-namespace:LibreSpot.Desktop.Models"
         xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
         xmlns:props="clr-namespace:LibreSpot.Desktop.Properties"
@@ -1670,6 +1671,131 @@
                     </Border>
 
                     <Border Style="{StaticResource MinimalSectionStyle}"
+                            Visibility="{Binding HasVisibleCustomPatchesSection, Converter={StaticResource BoolToVisibilityConverter}}">
+                      <StackPanel>
+                        <DockPanel LastChildFill="True">
+                          <StackPanel DockPanel.Dock="Left">
+                            <TextBlock Text="Custom patches"
+                                       Style="{StaticResource SectionTitleTextStyle}" />
+                            <TextBlock Text="Author and dry-run a SpotX patches.json file before LibreSpot stages it for SpotX."
+                                       Style="{StaticResource BodyTextStyle}"
+                                       Margin="0,6,0,0" />
+                          </StackPanel>
+                          <Border Style="{StaticResource MicroBadgeStyle}"
+                                  DockPanel.Dock="Right"
+                                  Margin="12,2,0,0"
+                                  VerticalAlignment="Top">
+                            <TextBlock Text="{Binding CustomPatchesBadge}"
+                                       Style="{StaticResource MicroBadgeTextStyle}" />
+                          </Border>
+                        </DockPanel>
+
+                        <CheckBox Content="Stage custom patches during install and reapply"
+                                  IsChecked="{Binding CustomPatchesEnabled, Mode=TwoWay}"
+                                  Margin="0,14,0,10"
+                                  AutomationProperties.Name="Stage custom SpotX patches"
+                                  AutomationProperties.HelpText="When enabled, LibreSpot validates this JSON and writes a temporary patches.json for SpotX." />
+
+                        <Grid Margin="0,2,0,10">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                          </Grid.ColumnDefinitions>
+                          <TextBox Text="{Binding CustomPatchesImportUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                   Style="{StaticResource TextBoxStylePremium}"
+                                   MinHeight="40"
+                                   ToolTip="HTTPS URL to a SpotX patches.json file"
+                                   AutomationProperties.Name="Custom patches import URL"
+                                   AutomationProperties.HelpText="Enter an HTTPS URL, then import the JSON for local review." />
+                          <Button Grid.Column="1"
+                                  Content="Import URL"
+                                  Command="{Binding ImportCustomPatchesFromUrlCommand}"
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Margin="10,0,0,0"
+                                  MinWidth="112"
+                                  AutomationProperties.Name="Import custom patches from URL" />
+                        </Grid>
+
+                        <Border Background="{StaticResource Surface3Brush}"
+                                BorderBrush="{StaticResource StrokeBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                MinHeight="220">
+                          <avalon:TextEditor x:Name="CustomPatchesTextEditor"
+                                             ShowLineNumbers="True"
+                                             SyntaxHighlighting="JavaScript"
+                                             WordWrap="True"
+                                             FontFamily="Cascadia Mono, Consolas"
+                                             FontSize="13"
+                                             Background="{StaticResource Surface3Brush}"
+                                             Foreground="{StaticResource TextBrush}"
+                                             LineNumbersForeground="{StaticResource MutedTextBrush}"
+                                             HorizontalScrollBarVisibility="Auto"
+                                             VerticalScrollBarVisibility="Auto"
+                                             TextChanged="CustomPatchesTextEditor_OnTextChanged"
+                                             AutomationProperties.Name="SpotX custom patches JSON editor"
+                                             AutomationProperties.HelpText="Paste or edit SpotX patches.json content here, then run a dry run before applying." />
+                        </Border>
+
+                        <UniformGrid Columns="4"
+                                     Margin="0,12,0,8">
+                          <Button Content="Dry run"
+                                  Command="{Binding ValidateCustomPatchesCommand}"
+                                  Style="{StaticResource PrimaryButtonStyle}"
+                                  Margin="0,0,6,0"
+                                  AutomationProperties.Name="Validate custom patches" />
+                          <Button Content="Format JSON"
+                                  Command="{Binding FormatCustomPatchesCommand}"
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Margin="3,0,3,0"
+                                  AutomationProperties.Name="Format custom patches JSON" />
+                          <Button Content="Clear"
+                                  Command="{Binding ClearCustomPatchesCommand}"
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Margin="3,0,3,0"
+                                  AutomationProperties.Name="Clear custom patches" />
+                          <Button Content="Docs"
+                                  Command="{Binding OpenRepositoryCommand}"
+                                  Style="{StaticResource GhostButtonStyle}"
+                                  Margin="6,0,0,0"
+                                  AutomationProperties.Name="Open custom patch documentation" />
+                        </UniformGrid>
+
+                        <TextBlock Text="{Binding CustomPatchesStatus}"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,8" />
+                        <ItemsControl ItemsSource="{Binding CustomPatchFindings}">
+                          <ItemsControl.Style>
+                            <Style TargetType="ItemsControl">
+                              <Setter Property="Visibility" Value="Collapsed" />
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasCustomPatchFindings}" Value="True">
+                                  <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </ItemsControl.Style>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <DockPanel Margin="0,4,0,0">
+                                <Border Width="4"
+                                        Height="14"
+                                        CornerRadius="2"
+                                        Background="{StaticResource WarningBrush}"
+                                        DockPanel.Dock="Left"
+                                        Margin="0,2,10,0" />
+                                <TextBlock Text="{Binding}"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           TextWrapping="Wrap" />
+                              </DockPanel>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource MinimalSectionStyle}"
                             BorderThickness="0"
                             Visibility="{Binding HasVisibleExtensions, Converter={StaticResource BoolToVisibilityConverter}}">
                       <StackPanel>
@@ -2168,6 +2294,19 @@
                                      FontSize="13"
                                      TextWrapping="Wrap"
                                      Margin="0,12,0,0" />
+
+                          <TextBlock Grid.Row="4"
+                                     Text="Patches"
+                                     Style="{StaticResource LabelTextStyle}"
+                                     Margin="0,12,12,0" />
+                          <TextBlock Grid.Row="4"
+                                     Grid.Column="1"
+                                     Text="{Binding CustomPatchesBadge}"
+                                     Foreground="{StaticResource TextBrush}"
+                                     FontWeight="SemiBold"
+                                     FontSize="13"
+                                     TextWrapping="Wrap"
+                                     Margin="0,12,0,0" />
                         </Grid>
 
                         <Border Height="1"
@@ -2204,6 +2343,9 @@
                                    Style="{StaticResource CaptionTextStyle}"
                                    Margin="0,4,0,0" />
                         <TextBlock Text="{Binding CustomSelectionSummary}"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,4,0,0" />
+                        <TextBlock Text="{Binding CustomPatchesSummary}"
                                    Style="{StaticResource CaptionTextStyle}"
                                    Margin="0,4,0,0" />
                         <TextBlock Text="{x:Static props:Strings.CompatibilityTargetLabel}"

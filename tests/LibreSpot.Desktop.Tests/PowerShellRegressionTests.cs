@@ -549,6 +549,59 @@ public sealed class PowerShellRegressionTests
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void PowerShellNormalizer_PreservesBoundedCustomPatchJson(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Normalize-LibreSpotConfig\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Normalize-LibreSpotConfig function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("SpotX_CustomPatchesEnabled", body);
+        Assert.Contains("SpotX_CustomPatchesJson", body);
+        Assert.Contains("GetByteCount($patchJson) -le 65536", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SpotXCustomPatches_AreStagedThroughValidatedTempFile(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var helper = Regex.Match(
+            script,
+            @"function\s+New-SpotXCustomPatchesFile\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        var installer = Regex.Match(
+            script,
+            @"function\s+Module-InstallSpotX\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(helper.Success, $"New-SpotXCustomPatchesFile function block not found in {relativePath}.");
+        Assert.True(installer.Success, $"Module-InstallSpotX function block not found in {relativePath}.");
+        Assert.Contains("ConvertFrom-Json -ErrorAction Stop", helper.Groups["body"].Value);
+        Assert.Contains("New-LibreSpotTempFile -Name 'spotx-custom-patches.json'", helper.Groups["body"].Value);
+        Assert.Contains("[System.IO.File]::WriteAllText($patchPath, $patchJson, $utf8)", helper.Groups["body"].Value);
+        Assert.Contains("New-SpotXCustomPatchesFile -Config $Config", installer.Groups["body"].Value);
+        Assert.Contains("-CustomPatchesPath", installer.Groups["body"].Value);
+        Assert.Contains("Remove-Item -LiteralPath $customPatchesPath", installer.Groups["body"].Value);
+    }
+
+    [Fact]
+    public void SpotXCustomPatches_HelperIsExportedToWorkerRunspace()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var exportBlock = Regex.Match(script, @"\$functionNamesForWorker\s*=\s*@\((?<list>.+?)\)", RegexOptions.Singleline);
+
+        Assert.True(exportBlock.Success, "Could not locate functionNamesForWorker block.");
+        Assert.Contains("'New-SpotXCustomPatchesFile'", exportBlock.Groups["list"].Value);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
     public void BuildSpotXParams_GatesMutuallyExclusiveLyricsFlags(string relativePath)
     {
         var script = ReadFile(relativePath.Split('/'));

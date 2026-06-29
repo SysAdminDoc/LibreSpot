@@ -131,6 +131,24 @@ public sealed class AppCatalogTests
     }
 
     [Fact]
+    public void NormalizeConfiguration_PreservesReviewedCustomPatches()
+    {
+        var configuration = new InstallConfiguration
+        {
+            SpotX_CustomPatchesEnabled = true,
+            SpotX_CustomPatchesJson = "  { \"xpui\": { \"match\": \"one\", \"replace\": \"two\" } }  "
+        };
+
+        var normalized = AppCatalog.NormalizeConfiguration(configuration);
+        var clone = normalized.Clone();
+
+        Assert.True(normalized.SpotX_CustomPatchesEnabled);
+        Assert.Equal("{ \"xpui\": { \"match\": \"one\", \"replace\": \"two\" } }", normalized.SpotX_CustomPatchesJson);
+        Assert.True(clone.SpotX_CustomPatchesEnabled);
+        Assert.Equal(normalized.SpotX_CustomPatchesJson, clone.SpotX_CustomPatchesJson);
+    }
+
+    [Fact]
     public void SpotifyVersionManifest_UsesCurrentPinnedSpotXBaseline()
     {
         var current = Assert.Single(AppCatalog.SpotifyVersionManifest, entry => entry.Id == AppCatalog.PinnedSpotXSpotifyVersionId);

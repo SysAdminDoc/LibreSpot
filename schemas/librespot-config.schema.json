@@ -161,6 +161,13 @@
     "SpotX_Language": {
       "type": "string"
     },
+    "SpotX_CustomPatchesEnabled": {
+      "type": "boolean"
+    },
+    "SpotX_CustomPatchesJson": {
+      "type": "string",
+      "maxLength": 65536
+    },
     "Spicetify_Theme": {
       "type": "string"
     },

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Security.Principal;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
@@ -493,6 +494,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly SupportBundleService _supportBundleService;
     private readonly OperationJournalUndoService _operationJournalUndoService;
     private readonly LocalProfileService _profileService;
+    private readonly CustomPatchService _customPatchService;
     private readonly ActivityRunStateViewModel _activityState = new();
     private readonly CustomOptionEditorStateViewModel _customOptions;
     private readonly EnvironmentSnapshotStateViewModel _environmentState = new();
@@ -521,6 +523,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string _selectedProfileShareStatus = "Select a profile to create an inert share card.";
     private string _selectedProfileComparisonText = "Select a profile to compare it with Recommended.";
     private Task _selectedProfileShareRefreshTask = Task.CompletedTask;
+    private bool _customPatchesEnabled;
+    private string _customPatchesJson = string.Empty;
+    private string _customPatchesImportUrl = string.Empty;
+    private CustomPatchValidationResult _customPatchValidation;
     private SupportBundlePreview _supportBundlePreview = new(
         Array.Empty<SupportBundlePreviewEntry>(),
         0,
@@ -533,7 +539,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         EnvironmentSnapshotService snapshotService,
         SupportBundleService? supportBundleService = null,
         OperationJournalUndoService? operationJournalUndoService = null,
-        LocalProfileService? profileService = null)
+        LocalProfileService? profileService = null,
+        CustomPatchService? customPatchService = null)
     {
         _configurationService = configurationService;
         _backendScriptService = backendScriptService;
@@ -541,6 +548,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _supportBundleService = supportBundleService ?? new SupportBundleService(configurationService.ConfigDirectory);
         _operationJournalUndoService = operationJournalUndoService ?? new OperationJournalUndoService();
         _profileService = profileService ?? new LocalProfileService(configurationService);
+        _customPatchService = customPatchService ?? new CustomPatchService();
+        _customPatchValidation = _customPatchService.Validate(string.Empty, enabled: false);
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _isAdministratorSession = IsAdministrator();
         _recommendedBaseline = AppCatalog.CreateRecommendedConfiguration();
@@ -569,6 +578,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SupportBundleRedactionRules = new ObservableCollection<string>();
         ChangelogHighlights = new ObservableCollection<string>(ChangelogPreviewService.LoadUnreleasedHighlights());
         LocalProfiles = new ObservableCollection<LocalProfileCardViewModel>();
+        CustomPatchFindings = new ObservableCollection<string>();
 
         _maintenanceActions = new MaintenanceActionsStateViewModel(
             AppCatalog.MaintenanceActions,
@@ -596,6 +606,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ImportProfileCommand = new AsyncRelayCommand(ImportLocalProfileAsync, () => !IsRunning, HandleAsyncCommandException);
         CopyProfileShareUriCommand = new RelayCommand(CopyProfileShareUri, () => HasSelectedProfileShareCard);
         CopyProfileComparisonCommand = new RelayCommand(CopyProfileComparison, () => HasSelectedLocalProfile);
+        ValidateCustomPatchesCommand = new RelayCommand(ValidateCustomPatches, () => !IsRunning);
+        FormatCustomPatchesCommand = new RelayCommand(FormatCustomPatches, () => !IsRunning && !string.IsNullOrWhiteSpace(CustomPatchesJson));
+        ClearCustomPatchesCommand = new RelayCommand(ClearCustomPatches, () => !IsRunning && (CustomPatchesEnabled || !string.IsNullOrWhiteSpace(CustomPatchesJson)));
+        ImportCustomPatchesFromUrlCommand = new AsyncRelayCommand(ImportCustomPatchesFromUrlAsync, () => !IsRunning && !string.IsNullOrWhiteSpace(CustomPatchesImportUrl), HandleAsyncCommandException);
         OpenRepositoryCommand = new RelayCommand(() => OpenExternalUri("https://github.com/SysAdminDoc/LibreSpot"));
         OpenSpicetifyCommunityCommand = new RelayCommand(() => OpenExternalUri("https://spicetify.app/docs/advanced-usage/extensions"));
         OpenThemeCatalogCommand = new RelayCommand(() => OpenExternalUri("https://github.com/spicetify/spicetify-themes"));
@@ -644,6 +658,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<string> ChangelogHighlights { get; }
     public ObservableCollection<UndoActionItemViewModel> UndoActionItems => _activityState.UndoActionItems;
     public ObservableCollection<LocalProfileCardViewModel> LocalProfiles { get; }
+    public ObservableCollection<string> CustomPatchFindings { get; }
     public ObservableCollection<LogEntryViewModel> LogEntries => _activityState.LogEntries;
 
     public AsyncRelayCommand ApplyRecommendedCommand { get; }
@@ -666,6 +681,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public AsyncRelayCommand ImportProfileCommand { get; }
     public RelayCommand CopyProfileShareUriCommand { get; }
     public RelayCommand CopyProfileComparisonCommand { get; }
+    public RelayCommand ValidateCustomPatchesCommand { get; }
+    public RelayCommand FormatCustomPatchesCommand { get; }
+    public RelayCommand ClearCustomPatchesCommand { get; }
+    public AsyncRelayCommand ImportCustomPatchesFromUrlCommand { get; }
     public RelayCommand OpenRepositoryCommand { get; }
     public RelayCommand OpenSpicetifyCommunityCommand { get; }
     public RelayCommand OpenThemeCatalogCommand { get; }
@@ -1064,7 +1083,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public bool HasVisibleExperienceOptions => HasVisibleOptions(ExperienceOptions);
 
-    public bool HasVisibleAdvancedSection => HasVisibleAdvancedOptions || HasVisibleExperienceOptions;
+    public bool HasVisibleAdvancedSection => HasVisibleAdvancedOptions || HasVisibleExperienceOptions || HasVisibleCustomPatchesSection;
 
     public bool HasVisibleExtensions => Extensions.Any(extension => MatchesSettingsSearch(extension.Title, extension.Description));
 
@@ -1077,6 +1096,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CountMatchingOptions(InterfaceOptions) +
         CountMatchingOptions(AdvancedOptions) +
         CountMatchingOptions(ExperienceOptions) +
+        (HasVisibleCustomPatchesSection ? 1 : 0) +
         Extensions.Count(extension => MatchesSettingsSearch(extension.Title, extension.Description)) +
         CustomApps.Count(app => MatchesSettingsSearch(app.Title, app.Description));
 
@@ -1259,6 +1279,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 return "Review one conflict";
             }
 
+            if (CustomPatchesEnabled && !_customPatchValidation.IsValid)
+            {
+                return "Patch JSON needs review";
+            }
+
             if (!IsOptionSelected(nameof(InstallConfiguration.CleanInstall)) && !Snapshot.SpotifyInstalled)
             {
                 return "Best on an existing install";
@@ -1287,6 +1312,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 return "Hide right sidebar and clear right sidebar styling are both selected. Hiding the sidebar wins, so the styling option adds noise.";
             }
 
+            if (CustomPatchesEnabled && !_customPatchValidation.IsValid)
+            {
+                return "Run the custom patches dry run and fix the listed JSON or regex issue before applying this profile.";
+            }
+
             if (!IsOptionSelected(nameof(InstallConfiguration.CleanInstall)) && !Snapshot.SpotifyInstalled)
             {
                 return "Skipping a clean start usually helps only when Spotify is already installed. Recommended is safer on a blank machine.";
@@ -1303,7 +1333,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ? "LibreSpot replaces the unreadable config.json with this profile and keeps the recovered copy in the LibreSpot folder."
             : HasConflictingSidebarOptions()
                 ? "You can still apply this profile, but the overlapping right-sidebar toggles are worth simplifying first."
-                : "LibreSpot saves this profile to config.json, then applies it through the original backend.";
+            : CustomPatchesEnabled && !_customPatchValidation.IsValid
+                ? "Fix the custom patches JSON before LibreSpot stages it for SpotX."
+            : "LibreSpot saves this profile to config.json, then applies it through the original backend.";
 
     public bool IsOverviewWorkspaceSelected => SelectedWorkspaceIndex == 0;
 
@@ -1397,6 +1429,65 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         get => _customOptions.CacheLimitText;
         set => _customOptions.CacheLimitText = value;
     }
+
+    public bool CustomPatchesEnabled
+    {
+        get => _customPatchesEnabled;
+        set
+        {
+            if (SetProperty(ref _customPatchesEnabled, value))
+            {
+                RefreshCustomPatchValidation();
+                RaiseSelectionInsightsChanged();
+            }
+        }
+    }
+
+    public string CustomPatchesJson
+    {
+        get => _customPatchesJson;
+        set
+        {
+            if (SetProperty(ref _customPatchesJson, value ?? string.Empty))
+            {
+                RefreshCustomPatchValidation();
+                RaiseSelectionInsightsChanged();
+            }
+        }
+    }
+
+    public string CustomPatchesImportUrl
+    {
+        get => _customPatchesImportUrl;
+        set
+        {
+            if (SetProperty(ref _customPatchesImportUrl, value ?? string.Empty))
+            {
+                ImportCustomPatchesFromUrlCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public string CustomPatchesStatus => _customPatchValidation.Summary;
+
+    public string CustomPatchesBadge =>
+        !CustomPatchesEnabled
+            ? "Off"
+            : _customPatchValidation.IsValid
+                ? "Ready"
+                : "Needs review";
+
+    public string CustomPatchesSummary =>
+        !CustomPatchesEnabled
+            ? "Custom patches are off."
+            : _customPatchValidation.IsValid
+                ? $"{_customPatchValidation.PatchGroupCount} group(s), {_customPatchValidation.PatternCount} regex pattern(s), {_customPatchValidation.ReplacementCount} replacement value(s)."
+                : $"{_customPatchValidation.Errors.Count} blocking issue(s) in patches.json.";
+
+    public bool HasCustomPatchFindings => CustomPatchFindings.Count > 0;
+
+    public bool HasVisibleCustomPatchesSection =>
+        MatchesSettingsSearch("Custom patches", "SpotX patches.json JSON authoring regex validation dry run import URL");
 
     public bool IsActivityVisible
     {
@@ -1649,6 +1740,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RelaunchAsAdministratorCommand.RaiseCanExecuteChanged();
         ConfirmPromptCommand.RaiseCanExecuteChanged();
         CancelPromptCommand.RaiseCanExecuteChanged();
+        ValidateCustomPatchesCommand.RaiseCanExecuteChanged();
+        FormatCustomPatchesCommand.RaiseCanExecuteChanged();
+        ClearCustomPatchesCommand.RaiseCanExecuteChanged();
+        ImportCustomPatchesFromUrlCommand.RaiseCanExecuteChanged();
         RaiseLocalProfileCommandStateChanged();
         RaisePropertyChanged(nameof(ProfileSelectionHint));
         RaiseMaintenanceActionCanExecuteChanged();
@@ -1844,6 +1939,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(HasVisibleBehaviorSection));
         RaisePropertyChanged(nameof(HasVisibleAdvancedOptions));
         RaisePropertyChanged(nameof(HasVisibleExperienceOptions));
+        RaisePropertyChanged(nameof(HasVisibleCustomPatchesSection));
         RaisePropertyChanged(nameof(HasVisibleAdvancedSection));
         RaisePropertyChanged(nameof(HasVisibleExtensions));
         RaisePropertyChanged(nameof(HasVisibleCustomApps));
@@ -1873,6 +1969,30 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private bool MatchesSettingsSearch(string title, string description)
         => _settingsSearch.Matches(title, description);
+
+    private void RefreshCustomPatchValidation()
+    {
+        _customPatchValidation = _customPatchService.Validate(CustomPatchesJson, CustomPatchesEnabled);
+        CustomPatchFindings.Clear();
+        foreach (var finding in _customPatchValidation.Findings)
+        {
+            CustomPatchFindings.Add(finding);
+        }
+
+        RaiseCustomPatchStateChanged();
+    }
+
+    private void RaiseCustomPatchStateChanged()
+    {
+        RaisePropertyChanged(nameof(CustomPatchesStatus));
+        RaisePropertyChanged(nameof(CustomPatchesBadge));
+        RaisePropertyChanged(nameof(CustomPatchesSummary));
+        RaisePropertyChanged(nameof(HasCustomPatchFindings));
+        ValidateCustomPatchesCommand.RaiseCanExecuteChanged();
+        FormatCustomPatchesCommand.RaiseCanExecuteChanged();
+        ClearCustomPatchesCommand.RaiseCanExecuteChanged();
+        ImportCustomPatchesFromUrlCommand.RaiseCanExecuteChanged();
+    }
 
     private void RegisterOptionStateObservers()
     {
@@ -1983,6 +2103,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaisePropertyChanged(nameof(HasArchitectureMismatch));
         RaisePropertyChanged(nameof(DownloadMethodSummary));
         RaisePropertyChanged(nameof(DownloadMethodDetail));
+        RaisePropertyChanged(nameof(CustomPatchesBadge));
+        RaisePropertyChanged(nameof(CustomPatchesSummary));
         RaisePropertyChanged(nameof(ExtensionSummary));
         RaisePropertyChanged(nameof(SelectedExtensionCountLabel));
         RaisePropertyChanged(nameof(SelectedCustomAppCountLabel));
@@ -2380,6 +2502,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             changedAreas.Add("Premium account patch posture");
         }
 
+        if (normalized.SpotX_CustomPatchesEnabled)
+        {
+            changedAreas.Add("custom SpotX patches");
+        }
+
         if (normalized.CleanInstall != recommended.CleanInstall)
         {
             changedAreas.Add(normalized.CleanInstall ? "clean install" : "overlay install");
@@ -2388,7 +2515,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var diffText = changedAreas.Count == 0
             ? "matches the Recommended baseline"
             : $"differs in {string.Join(", ", changedAreas)}";
-        return $"{normalized.Mode} profile {diffText}. Theme: {normalized.Spicetify_Theme}/{normalized.Spicetify_Scheme}; lyrics: {Prettify.Label(normalized.SpotX_LyricsTheme)}; extensions: {normalized.Spicetify_Extensions.Count}; custom apps: {normalized.Spicetify_CustomApps.Count}.";
+        return $"{normalized.Mode} profile {diffText}. Theme: {normalized.Spicetify_Theme}/{normalized.Spicetify_Scheme}; lyrics: {Prettify.Label(normalized.SpotX_LyricsTheme)}; extensions: {normalized.Spicetify_Extensions.Count}; custom apps: {normalized.Spicetify_CustomApps.Count}; custom patches: {(normalized.SpotX_CustomPatchesEnabled ? "on" : "off")}.";
     }
 
     private static bool SetEquals(IEnumerable<string> left, IEnumerable<string> right) =>
@@ -2497,7 +2624,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             1 => "1 extension",
             _ => $"{extensionCount} extensions"
         };
-        return $"{normalized.Mode} profile. Theme: {normalized.Spicetify_Theme} / {normalized.Spicetify_Scheme}. Lyrics: {Prettify.Label(normalized.SpotX_LyricsTheme)}. Extensions: {extensionText}. Premium flag: {(normalized.SpotX_Premium ? "on" : "off")}.";
+        return $"{normalized.Mode} profile. Theme: {normalized.Spicetify_Theme} / {normalized.Spicetify_Scheme}. Lyrics: {Prettify.Label(normalized.SpotX_LyricsTheme)}. Extensions: {extensionText}. Premium flag: {(normalized.SpotX_Premium ? "on" : "off")}. Custom patches: {(normalized.SpotX_CustomPatchesEnabled ? "on" : "off")}.";
     }
 
     private StackHealthComponent? HealthComponent(string id) =>
@@ -2775,6 +2902,60 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DisableAutoReapplyCommand.RaiseCanExecuteChanged();
     }
 
+    private void ValidateCustomPatches()
+    {
+        RefreshCustomPatchValidation();
+        ShowNotice(
+            _customPatchValidation.IsValid ? "Custom patches dry run passed" : "Custom patches need review",
+            _customPatchValidation.Summary,
+            _customPatchValidation.IsValid
+                ? "LibreSpot will stage a temporary patches.json when you apply this profile."
+                : string.Join(" ", _customPatchValidation.Errors.Take(2)));
+    }
+
+    private void FormatCustomPatches()
+    {
+        try
+        {
+            CustomPatchesJson = _customPatchService.Format(CustomPatchesJson);
+            CustomPatchesEnabled = true;
+            RefreshCustomPatchValidation();
+            ShowNotice(
+                "Custom patches formatted",
+                "The patches.json document was normalized with indentation for review.",
+                "Dry run still checks regex patterns and match/replace pairs before Apply.");
+        }
+        catch (JsonException ex)
+        {
+            ShowNotice(
+                "Custom patches need review",
+                $"JSON could not be formatted: {ex.Message}",
+                "Fix the JSON syntax, then run Format again.");
+        }
+    }
+
+    private void ClearCustomPatches()
+    {
+        CustomPatchesEnabled = false;
+        CustomPatchesJson = string.Empty;
+        CustomPatchesImportUrl = string.Empty;
+        RefreshCustomPatchValidation();
+    }
+
+    private async Task ImportCustomPatchesFromUrlAsync()
+    {
+        var imported = await _customPatchService.ImportFromUrlAsync(CustomPatchesImportUrl);
+        CustomPatchesJson = _customPatchService.Format(imported);
+        CustomPatchesEnabled = true;
+        RefreshCustomPatchValidation();
+        ShowNotice(
+            _customPatchValidation.IsValid ? "Custom patches imported" : "Imported patches need review",
+            _customPatchValidation.Summary,
+            _customPatchValidation.IsValid
+                ? "Review the JSON before applying this profile."
+                : string.Join(" ", _customPatchValidation.Errors.Take(2)));
+    }
+
     private async Task ApplyRecommendedAsync()
     {
         var configuration = AppCatalog.CreateRecommendedConfiguration();
@@ -2799,6 +2980,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private async Task ApplyCustomAsync()
     {
         var configuration = BuildConfiguration("Custom");
+        var customPatchValidation = _customPatchService.Validate(configuration.SpotX_CustomPatchesJson, configuration.SpotX_CustomPatchesEnabled);
+        if (!customPatchValidation.IsValid)
+        {
+            _customPatchValidation = customPatchValidation;
+            CustomPatchFindings.Clear();
+            foreach (var finding in customPatchValidation.Findings)
+            {
+                CustomPatchFindings.Add(finding);
+            }
+            RaiseCustomPatchStateChanged();
+            ShowNotice(
+                "Custom patches need review",
+                customPatchValidation.Summary,
+                string.Join(" ", customPatchValidation.Errors.Take(2)));
+            return;
+        }
+
         var planSummary = await CollectPlanSummaryAsync(configuration);
         ShowPrompt(
             "Apply custom profile",
@@ -3599,6 +3797,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             customApp.IsSelected = customAppLookup.Contains(customApp.Key);
         }
 
+        CustomPatchesEnabled = configuration.SpotX_CustomPatchesEnabled;
+        CustomPatchesJson = configuration.SpotX_CustomPatchesJson;
         RaiseSelectionInsightsChanged();
     }
 
@@ -3634,6 +3834,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             out var parsed)
             ? Math.Clamp(parsed, 0, 50_000) // match Backend.ps1 upper bound
             : 0;
+        configuration.SpotX_CustomPatchesEnabled = CustomPatchesEnabled;
+        configuration.SpotX_CustomPatchesJson = CustomPatchesJson;
         configuration.Spicetify_Extensions = Extensions.Where(item => item.IsSelected).Select(item => item.Key).ToList();
         configuration.Spicetify_CustomApps = CustomApps.Where(item => item.IsSelected).Select(item => item.Key).ToList();
 
@@ -3774,6 +3976,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 CurrentDownloadMethodEntry.Detail));
         }
 
+        if (CustomPatchesEnabled)
+        {
+            SelectionInsights.Add(new SelectionInsightViewModel(
+                _customPatchValidation.IsValid ? "accent" : "warning",
+                _customPatchValidation.IsValid ? "Custom Patches Dry Run Ready" : "Custom Patches Need Review",
+                CustomPatchesSummary));
+        }
+
         if (selectedCustomApps.Length > 0)
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
@@ -3823,6 +4033,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         if (!string.Equals(SelectedDownloadMethod, _recommendedBaseline.SpotX_DownloadMethod, StringComparison.Ordinal))
+        {
+            differences++;
+        }
+
+        if (CustomPatchesEnabled != _recommendedBaseline.SpotX_CustomPatchesEnabled)
+        {
+            differences++;
+        }
+
+        if (!string.IsNullOrWhiteSpace(CustomPatchesJson))
         {
             differences++;
         }

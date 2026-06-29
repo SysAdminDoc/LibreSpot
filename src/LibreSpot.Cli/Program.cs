@@ -888,6 +888,8 @@ public static class CliApplication
         SetString(spotx, "lyricsTheme", value => config.SpotX_LyricsTheme = value);
         SetString(spotx, "downloadMethod", value => config.SpotX_DownloadMethod = value);
         SetString(spotx, "language", value => config.SpotX_Language = value);
+        SetBool(spotx, "customPatchesEnabled", value => config.SpotX_CustomPatchesEnabled = value);
+        SetString(spotx, "customPatchesJson", value => config.SpotX_CustomPatchesJson = value);
     }
 
     private static void ApplySpicetifyOptions(JsonElement root, InstallConfiguration config)

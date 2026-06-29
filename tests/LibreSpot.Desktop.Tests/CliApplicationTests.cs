@@ -391,7 +391,9 @@ public sealed class CliApplicationTests
                 "premium": true,
                 "podcastsOff": false,
                 "cacheLimit": 2048,
-                "lyricsTheme": "github"
+                "lyricsTheme": "github",
+                "customPatchesEnabled": true,
+                "customPatchesJson": "{ \"xpui\": { \"match\": \"one\", \"replace\": \"two\" } }"
               },
               "spicetify": {
                 "theme": "Dribbblish",
@@ -438,6 +440,8 @@ public sealed class CliApplicationTests
             Assert.False(config.RootElement.GetProperty("SpotX_PodcastsOff").GetBoolean());
             Assert.Equal(2048, config.RootElement.GetProperty("SpotX_CacheLimit").GetInt32());
             Assert.Equal("github", config.RootElement.GetProperty("SpotX_LyricsTheme").GetString());
+            Assert.True(config.RootElement.GetProperty("SpotX_CustomPatchesEnabled").GetBoolean());
+            Assert.Equal("{ \"xpui\": { \"match\": \"one\", \"replace\": \"two\" } }", config.RootElement.GetProperty("SpotX_CustomPatchesJson").GetString());
             Assert.Equal("1.2.90.451", config.RootElement.GetProperty("SpotX_SpotifyVersionId").GetString());
             Assert.Equal("Dribbblish", config.RootElement.GetProperty("Spicetify_Theme").GetString());
             Assert.Equal("nord-dark", config.RootElement.GetProperty("Spicetify_Scheme").GetString());

@@ -110,6 +110,21 @@ public sealed class WpfUiIntegrationTests
     }
 
     [Fact]
+    public void WpfShell_ExposesCustomPatchEditor()
+    {
+        var xaml = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        var codeBehind = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
+
+        Assert.Contains("ICSharpCode.AvalonEdit", xaml);
+        Assert.Contains("CustomPatchesTextEditor", xaml);
+        Assert.Contains("ValidateCustomPatchesCommand", xaml);
+        Assert.Contains("FormatCustomPatchesCommand", xaml);
+        Assert.Contains("ImportCustomPatchesFromUrlCommand", xaml);
+        Assert.Contains("CustomPatchesTextEditor_OnTextChanged", codeBehind);
+        Assert.Contains("SyncCustomPatchesEditorText", codeBehind);
+    }
+
+    [Fact]
     public void WpfShell_MinimizesToTrayAndUsesClickableTrayNotifications()
     {
         var codeBehind = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");

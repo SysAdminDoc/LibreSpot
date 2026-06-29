@@ -40,6 +40,8 @@ public sealed class InstallConfiguration
     public bool SpotX_ConfirmUninstall { get; set; }
     public string SpotX_SpotifyVersionId { get; set; } = "auto";
     public string SpotX_Language { get; set; } = string.Empty;
+    public bool SpotX_CustomPatchesEnabled { get; set; }
+    public string SpotX_CustomPatchesJson { get; set; } = string.Empty;
 
     public string Spicetify_Theme { get; set; } = "(None - Marketplace Only)";
     public string Spicetify_Scheme { get; set; } = "Default";
@@ -93,6 +95,8 @@ public sealed class InstallConfiguration
             SpotX_ConfirmUninstall = SpotX_ConfirmUninstall,
             SpotX_SpotifyVersionId = SpotX_SpotifyVersionId,
             SpotX_Language = SpotX_Language,
+            SpotX_CustomPatchesEnabled = SpotX_CustomPatchesEnabled,
+            SpotX_CustomPatchesJson = SpotX_CustomPatchesJson,
             Spicetify_Theme = Spicetify_Theme,
             Spicetify_Scheme = Spicetify_Scheme,
             Spicetify_Marketplace = Spicetify_Marketplace,
@@ -594,6 +598,8 @@ public static class AppCatalog
         normalized.SpotX_DevTools = source.SpotX_DevTools;
         normalized.SpotX_Mirror = source.SpotX_Mirror;
         normalized.SpotX_ConfirmUninstall = source.SpotX_ConfirmUninstall;
+        normalized.SpotX_CustomPatchesEnabled = source.SpotX_CustomPatchesEnabled;
+        normalized.SpotX_CustomPatchesJson = TruncateCustomPatchesJson(source.SpotX_CustomPatchesJson);
 
         var rawDm = (source.SpotX_DownloadMethod ?? string.Empty).Trim().ToLowerInvariant();
         normalized.SpotX_DownloadMethod = rawDm is "curl" or "webclient" ? rawDm : "";
@@ -653,5 +659,17 @@ public static class AppCatalog
             .ToList();
 
         return normalized;
+    }
+
+    private static string TruncateCustomPatchesJson(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = json.Trim();
+        const int maxChars = 64 * 1024;
+        return trimmed.Length <= maxChars ? trimmed : trimmed[..maxChars];
     }
 }

@@ -71,6 +71,8 @@ public sealed class ProfileSchemaTests
         Assert.True(props.TryGetProperty("Spicetify_Scheme", out _));
         Assert.True(props.TryGetProperty("Spicetify_CustomApps", out _));
         Assert.True(props.TryGetProperty("AutoReapply_Enabled", out _));
+        Assert.True(props.TryGetProperty("SpotX_CustomPatchesEnabled", out _));
+        Assert.True(props.TryGetProperty("SpotX_CustomPatchesJson", out _));
     }
 
     [Fact]

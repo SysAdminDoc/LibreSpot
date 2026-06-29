@@ -76,6 +76,7 @@ BeforeAll {
         SpotX_DevTools=$false; SpotX_Mirror=$false; SpotX_DownloadMethod=""; SpotX_ConfirmUninstall=$false
         SpotX_SpotifyVersionId="auto"
         SpotX_Language=""
+        SpotX_CustomPatchesEnabled=$false; SpotX_CustomPatchesJson=""
         Spicetify_Theme="(None - Marketplace Only)"; Spicetify_Scheme="Default"; Spicetify_Marketplace=$true
         Spicetify_Extensions=@("fullAppDisplay.js","shuffle+.js","trashbin.js")
         CleanInstall=$true; LaunchAfter=$true
@@ -598,6 +599,19 @@ Describe 'Normalize-LibreSpotConfig' {
         It 'Resets invalid language to empty string' {
             $result = Normalize-LibreSpotConfig -Config @{ SpotX_Language = 'xx-FAKE' }
             $result.SpotX_Language | Should -Be ''
+        }
+    }
+
+    Context 'SpotX custom patches validation' {
+        It 'Preserves enabled bounded custom patch JSON' {
+            $json = '{ "xpui": { "match": "one", "replace": "two" } }'
+            $result = Normalize-LibreSpotConfig -Config @{
+                SpotX_CustomPatchesEnabled = $true
+                SpotX_CustomPatchesJson = "  $json  "
+            }
+
+            $result.SpotX_CustomPatchesEnabled | Should -BeTrue
+            $result.SpotX_CustomPatchesJson | Should -Be $json
         }
     }
 

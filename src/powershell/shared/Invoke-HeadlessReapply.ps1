@@ -6,6 +6,7 @@ function Invoke-HeadlessReapply {
     if (-not $Config) { throw 'Invoke-HeadlessReapply: missing config' }
 
     $tempDir = Join-Path $global:TEMP_DIR ("LibreSpot_Watcher_" + [guid]::NewGuid().ToString('N').Substring(0,8))
+    $customPatchesPath = ''
     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
     try {
         $spotxRun = Join-Path $tempDir 'spotx_run.ps1'
@@ -36,6 +37,11 @@ function Invoke-HeadlessReapply {
         }
 
         $spotxArgs = Build-SpotXParams -Config $Config
+        $customPatchesPath = New-SpotXCustomPatchesFile -Config $Config
+        if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
+            $spotxArgs = "$spotxArgs -CustomPatchesPath `"$customPatchesPath`""
+            Write-WatcherLog "Custom SpotX patches staged at $customPatchesPath"
+        }
         Write-WatcherLog "Invoking SpotX with: $spotxArgs"
 
         # Use powershell.exe isolation so SpotX can't leak runtime state into our
@@ -77,6 +83,9 @@ function Invoke-HeadlessReapply {
             }
         }
     } finally {
+        if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
+            Remove-Item -LiteralPath $customPatchesPath -Force -ErrorAction SilentlyContinue
+        }
         try { Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue } catch {}
     }
 }

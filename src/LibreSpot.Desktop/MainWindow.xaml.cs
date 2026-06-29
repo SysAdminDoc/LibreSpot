@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private IInputElement? _focusBeforeActivity;
     private IInputElement? _focusBeforePrompt;
     private bool _wasRunning;
+    private bool _syncingCustomPatchEditor;
     private Forms.NotifyIcon? _trayIcon;
     private bool _hasShownTrayMinimizeNotice;
 
@@ -121,6 +122,11 @@ public partial class MainWindow : Window
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(MainViewModel.CustomPatchesJson))
+        {
+            Dispatcher.BeginInvoke(SyncCustomPatchesEditorText, DispatcherPriority.Background);
+        }
+
         if (e.PropertyName is nameof(MainViewModel.IsPromptVisible) or nameof(MainViewModel.IsPromptDestructive))
         {
             Dispatcher.BeginInvoke(UpdatePromptFocus, DispatcherPriority.Input);
@@ -140,6 +146,40 @@ public partial class MainWindow : Window
             }
 
             Dispatcher.BeginInvoke(UpdateActivityFocus, DispatcherPriority.Input);
+        }
+    }
+
+    private void CustomPatchesTextEditor_OnTextChanged(object? sender, EventArgs e)
+    {
+        if (_syncingCustomPatchEditor)
+        {
+            return;
+        }
+
+        _viewModel.CustomPatchesJson = CustomPatchesTextEditor.Text ?? string.Empty;
+    }
+
+    private void SyncCustomPatchesEditorText()
+    {
+        if (!IsLoaded)
+        {
+            return;
+        }
+
+        var next = _viewModel.CustomPatchesJson ?? string.Empty;
+        if (string.Equals(CustomPatchesTextEditor.Text, next, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _syncingCustomPatchEditor = true;
+        try
+        {
+            CustomPatchesTextEditor.Text = next;
+        }
+        finally
+        {
+            _syncingCustomPatchEditor = false;
         }
     }
 

@@ -10,7 +10,9 @@
         "premium": false,
         "podcastsOff": true,
         "cacheLimit": 2048,
-        "lyricsTheme": "github"
+        "lyricsTheme": "github",
+        "customPatchesEnabled": false,
+        "customPatchesJson": ""
       },
       "spicetify": {
         "theme": "Catppuccin",

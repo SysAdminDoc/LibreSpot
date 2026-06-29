@@ -5,6 +5,10 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added a WPF Custom mode SpotX `patches.json` editor with AvalonEdit syntax
+  highlighting, JSON formatting, regex and match/replace dry-run validation,
+  HTTPS import review, CLI answer-file support, and backend temp-file staging
+  through SpotX `-CustomPatchesPath`.
 - Added profile sharing cards in WPF Custom mode with local QR rendering,
   share-link copying, selected-profile comparison text, embedded changelog
   preview, and direct community links for repository, Spicetify extensions, and

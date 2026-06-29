@@ -283,6 +283,15 @@
           "type": "string",
           "description": "Language code for SpotX localization."
         },
+        "SpotX_CustomPatchesEnabled": {
+          "type": "boolean",
+          "description": "Stage a reviewed SpotX custom patches.json during install or reapply."
+        },
+        "SpotX_CustomPatchesJson": {
+          "type": "string",
+          "maxLength": 65536,
+          "description": "Reviewed SpotX custom patches.json content stored with the local profile."
+        },
         "Spicetify_Theme": {
           "type": "string",
           "description": "Spicetify theme name."

@@ -65,6 +65,17 @@
       "notes": "NuGet runtime dependency used by the WPF profile-sharing card to render local QR codes for inert librespot:// profile links."
     },
     {
+      "name": "AvalonEdit",
+      "category": "runtime",
+      "version": "6.3.1.120",
+      "sourceUrl": "https://github.com/icsharpcode/AvalonEdit",
+      "spdxLicense": "MIT",
+      "licenseUrl": "https://github.com/icsharpcode/AvalonEdit/blob/master/LICENSE",
+      "copyrightHolder": "ICSharpCode contributors",
+      "redistributionPosture": "allowed",
+      "notes": "NuGet runtime dependency used by the WPF custom patches editor to author and review SpotX patches.json."
+    },
+    {
       "name": "Serilog",
       "category": "runtime",
       "version": "4.3.1",

@@ -198,6 +198,15 @@
         "language": {
           "type": "string",
           "description": "Language code for SpotX localization."
+        },
+        "customPatchesEnabled": {
+          "type": "boolean",
+          "description": "Stage a reviewed SpotX custom patches.json during install or reapply."
+        },
+        "customPatchesJson": {
+          "type": "string",
+          "maxLength": 65536,
+          "description": "Reviewed SpotX custom patches.json content."
         }
       },
       "additionalProperties": false

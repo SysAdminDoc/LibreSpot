@@ -32,7 +32,7 @@ function Normalize-LibreSpotConfig {
         'SpotX_DisableStartup','SpotX_NoShortcut','SpotX_OldLyrics','SpotX_HideColIconOff',
         'SpotX_Plus','SpotX_NewFullscreen','SpotX_FunnyProgress','SpotX_ExpSpotify','SpotX_LyricsBlock',
         'SpotX_SendVersionOff','SpotX_StartSpoti','SpotX_DevTools','SpotX_Mirror','SpotX_ConfirmUninstall',
-        'Spicetify_Marketplace','AutoReapply_Enabled','RiskAcknowledged'
+        'SpotX_CustomPatchesEnabled','Spicetify_Marketplace','AutoReapply_Enabled','RiskAcknowledged'
     )
     foreach ($key in $booleanKeys) {
         if ($Config -and $Config.ContainsKey($key)) {
@@ -42,6 +42,14 @@ function Normalize-LibreSpotConfig {
 
     if ($Config -and $Config.ContainsKey('SpotX_CacheLimit')) {
         $normalized.SpotX_CacheLimit = ConvertTo-ConfigInt -Value $Config.SpotX_CacheLimit -Default ([int]$normalized.SpotX_CacheLimit) -Minimum 0 -Maximum 50000
+    }
+
+    if ($Config -and $Config.ContainsKey('SpotX_CustomPatchesJson')) {
+        $patchJson = [string]$Config.SpotX_CustomPatchesJson
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        if ($utf8.GetByteCount($patchJson) -le 65536) {
+            $normalized.SpotX_CustomPatchesJson = $patchJson.Trim()
+        }
     }
 
     $dm = if ($Config -and $Config.ContainsKey('SpotX_DownloadMethod')) { [string]$Config.SpotX_DownloadMethod } else { [string]$normalized.SpotX_DownloadMethod }
