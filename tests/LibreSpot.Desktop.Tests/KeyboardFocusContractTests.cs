@@ -124,6 +124,24 @@ public sealed class KeyboardFocusContractTests
         Assert.Contains("Maintenance", pages);
     }
 
+    [Theory]
+    [InlineData("Recommended workspace")]
+    [InlineData("Custom settings editor")]
+    [InlineData("Maintenance workspace")]
+    public void ContentScrollRegions_DisableHorizontalScrolling(string automationName)
+    {
+        var xaml = ReadXaml();
+        var nameIndex = xaml.IndexOf($"AutomationProperties.Name=\"{automationName}\"", StringComparison.Ordinal);
+        Assert.True(nameIndex >= 0, $"Scroll region '{automationName}' was not found.");
+
+        var tagStart = xaml.LastIndexOf("<ScrollViewer", nameIndex, StringComparison.Ordinal);
+        var tagEnd = xaml.IndexOf('>', nameIndex);
+        Assert.True(tagStart >= 0 && tagEnd > tagStart, $"Scroll region '{automationName}' did not resolve to a ScrollViewer tag.");
+
+        var openingTag = xaml[tagStart..tagEnd];
+        Assert.Contains("HorizontalScrollBarVisibility=\"Disabled\"", openingTag);
+    }
+
     private static string ReadXaml() =>
         ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
 

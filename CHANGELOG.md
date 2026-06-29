@@ -44,6 +44,8 @@ All notable changes to LibreSpot will be documented in this file.
   and safer edit/import/export command grouping.
 - WPF local profiles now pin the active profile first and use broader profile
   terminology when bundled templates are mixed with local presets.
+- WPF content panes now disable horizontal workspace scrolling so long labels,
+  profile notes, and maintenance text wrap inside the intended layout.
 - Release-trust documentation now reflects the local-only release process:
   checksums, release manifests, SBOM output, and pending SignPath signing are
   documented as current evidence, while absent GitHub workflow/provenance
