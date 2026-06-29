@@ -15,9 +15,11 @@ namespace LibreSpot.Desktop;
 public partial class MainWindow : Window
 {
     private const string UiAutomationSmokeArgumentPrefix = "--uia-smoke=";
+    private const string ProfileShareArgumentPrefix = "--profile-uri=";
     private static readonly Regex NumericInput = new("^[0-9]+$", RegexOptions.Compiled);
     private readonly MainViewModel _viewModel;
     private readonly string? _uiAutomationSmokeState;
+    private readonly string? _profileShareUri;
     private bool _allowCloseWhileRunning;
     private IInputElement? _focusBeforeActivity;
     private IInputElement? _focusBeforePrompt;
@@ -28,6 +30,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _uiAutomationSmokeState = GetUiAutomationSmokeState();
+        _profileShareUri = GetProfileShareUri();
         _viewModel = string.IsNullOrWhiteSpace(_uiAutomationSmokeState)
             ? new MainViewModel(
                 new ConfigurationService(),
@@ -63,6 +66,10 @@ public partial class MainWindow : Window
             if (!string.IsNullOrWhiteSpace(_uiAutomationSmokeState))
             {
                 _viewModel.ApplyUiAutomationSmokeState(_uiAutomationSmokeState);
+            }
+            else if (!string.IsNullOrWhiteSpace(_profileShareUri))
+            {
+                await _viewModel.PreviewSharedProfileUriAsync(_profileShareUri);
             }
         }
         catch (Exception ex)
@@ -268,6 +275,25 @@ public partial class MainWindow : Window
             {
                 var value = arg[UiAutomationSmokeArgumentPrefix.Length..].Trim();
                 return string.IsNullOrWhiteSpace(value) ? "recommended" : value;
+            }
+        }
+
+        return null;
+    }
+
+    private static string? GetProfileShareUri()
+    {
+        foreach (var arg in Environment.GetCommandLineArgs())
+        {
+            if (arg.StartsWith(ProfileShareArgumentPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var value = arg[ProfileShareArgumentPrefix.Length..].Trim();
+                return string.IsNullOrWhiteSpace(value) ? null : value;
+            }
+
+            if (arg.StartsWith("librespot://profile", StringComparison.OrdinalIgnoreCase))
+            {
+                return arg;
             }
         }
 

@@ -2184,14 +2184,28 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             "Import profile",
             Strings.ButtonCancel,
             false,
-            () => ImportLocalProfileConfirmedAsync(preview.SourcePath),
+            () => ImportLocalProfileConfirmedAsync(preview),
             "Imported settings",
             BuildProfileSummary(preview.Configuration));
     }
 
-    private async Task ImportLocalProfileConfirmedAsync(string sourcePath)
+    public async Task PreviewSharedProfileUriAsync(string shareUri)
     {
-        var profile = await _profileService.ImportAsync(sourcePath);
+        var preview = await _profileService.PreviewShareUriAsync(shareUri);
+        ShowPrompt(
+            $"Import shared profile: {preview.Name}",
+            "LibreSpot opened this share link as a preview only. Confirming saves it as a local profile; it does not start setup, reapply Spotify, or acknowledge Spotify risk.",
+            "Save shared profile",
+            Strings.ButtonCancel,
+            false,
+            () => ImportLocalProfileConfirmedAsync(preview),
+            "Shared settings",
+            BuildProfileSummary(preview.Configuration));
+    }
+
+    private async Task ImportLocalProfileConfirmedAsync(LocalProfileImportPreview preview)
+    {
+        var profile = await _profileService.ImportAsync(preview);
         await RefreshLocalProfilesAsync(profile.Summary.Id);
         ProfileOperationStatus = $"{profile.Summary.Name} was imported. Preview or set it active when you are ready.";
         AppendLog($"Imported local profile: {profile.Summary.Name}", "SUCCESS");

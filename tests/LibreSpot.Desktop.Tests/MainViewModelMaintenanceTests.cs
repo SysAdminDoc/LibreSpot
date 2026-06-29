@@ -292,6 +292,41 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task SharedProfileUriPreview_CancelIsInertAndConfirmImports() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+            var shareUri = await fixture.CreateExternalShareUriAsync("Shared Desk");
+            var beforeCancel = BuildConfiguration(viewModel, "Custom");
+
+            await viewModel.PreviewSharedProfileUriAsync(shareUri);
+
+            Assert.True(viewModel.IsPromptVisible);
+            Assert.Equal("Import shared profile: Shared Desk", viewModel.PromptTitle);
+            Assert.Contains("preview only", viewModel.PromptBody, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("Shared settings", viewModel.PromptSummaryTitle);
+            Assert.Contains("Catppuccin", viewModel.PromptSummaryBody, StringComparison.Ordinal);
+            Assert.DoesNotContain(viewModel.LocalProfiles, profile => profile.Name == "Shared Desk");
+
+            viewModel.CancelPromptCommand.Execute(null);
+
+            Assert.False(viewModel.IsPromptVisible);
+            Assert.DoesNotContain(viewModel.LocalProfiles, profile => profile.Name == "Shared Desk");
+            Assert.False(viewModel.IsRunning);
+            Assert.Equal(beforeCancel.Spicetify_Theme, BuildConfiguration(viewModel, "Custom").Spicetify_Theme);
+
+            await viewModel.PreviewSharedProfileUriAsync(shareUri);
+            await InvokePrivateTask(viewModel, "ConfirmPromptAsync");
+
+            Assert.False(viewModel.IsPromptVisible);
+            Assert.False(viewModel.IsRunning);
+            Assert.Contains(viewModel.LocalProfiles, profile => profile.Name == "Shared Desk" && profile.IsEditable);
+            Assert.Contains("Shared Desk was imported", viewModel.ProfileOperationStatus, StringComparison.Ordinal);
+            Assert.Equal(beforeCancel.Spicetify_Theme, BuildConfiguration(viewModel, "Custom").Spicetify_Theme);
+        });
+
+    [Fact]
     public Task PromptDefaultConfirm_OnlyAppliesToNonDestructivePrompts() =>
         RunStaAsync(async () =>
         {
@@ -409,6 +444,18 @@ public sealed class MainViewModelMaintenanceTests
 
             await viewModel.InitializeAsync();
             return viewModel;
+        }
+
+        public async Task<string> CreateExternalShareUriAsync(string name)
+        {
+            var sourceDirectory = Path.Combine(Root, "source-profile-store");
+            var service = new LocalProfileService(new ConfigurationService(sourceDirectory));
+            var config = AppCatalog.CreateRecommendedConfiguration();
+            config.Spicetify_Theme = "Catppuccin";
+            config.Spicetify_Scheme = "mocha";
+            var profile = await service.CreateFromConfigurationAsync(name, "Shared from test", config);
+            var card = await service.CreateShareCardAsync(profile.Summary.Id);
+            return card.ShareUri;
         }
 
         public void WriteSpotify(bool withSpotXMarkers)

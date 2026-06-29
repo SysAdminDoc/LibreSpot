@@ -111,6 +111,86 @@ public sealed class LocalProfileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ShareCard_EmbedsInertPreviewUriAndImportsOnlyAfterConfirmation()
+    {
+        var config = AppCatalog.CreateRecommendedConfiguration();
+        config.Spicetify_Theme = "Catppuccin";
+        config.Spicetify_Scheme = "mocha";
+        var created = await _profileService.CreateFromConfigurationAsync("Share Card", "QR payload", config);
+
+        var card = await _profileService.CreateShareCardAsync(created.Summary.Id);
+
+        Assert.Equal("Share Card", card.Name);
+        Assert.StartsWith("librespot://profile?data=", card.ShareUri);
+        Assert.Equal(card.ShareUri, card.QrPayload);
+
+        var preview = await _profileService.PreviewShareUriAsync(card.ShareUri);
+
+        Assert.Equal("Share Card", preview.Name);
+        Assert.Equal("Catppuccin", preview.Configuration.Spicetify_Theme);
+
+        await _profileService.DeleteAsync(created.Summary.Id);
+        Assert.DoesNotContain(await _profileService.GetProfilesAsync(), profile => profile.Name == "Share Card");
+
+        var imported = await _profileService.ImportAsync(preview);
+
+        Assert.Equal("share-card", imported.Summary.Id);
+        Assert.Equal("mocha", imported.Configuration.Spicetify_Scheme);
+    }
+
+    [Fact]
+    public async Task PreviewShareUri_SupportsLocalFileAndHttpsSources()
+    {
+        var config = AppCatalog.CreateRecommendedConfiguration();
+        config.SpotX_LyricsTheme = "github";
+        var created = await _profileService.CreateFromConfigurationAsync("Remote Share", "Fetched preview", config);
+        var exportPath = Path.Combine(_root, "remote.librespot");
+        await _profileService.ExportAsync(created.Summary.Id, exportPath);
+
+        var localUri = $"librespot://profile?file={Uri.EscapeDataString(exportPath)}";
+        var localPreview = await _profileService.PreviewShareUriAsync(localUri);
+
+        Assert.Equal("Remote Share", localPreview.Name);
+        Assert.Equal("github", localPreview.Configuration.SpotX_LyricsTheme);
+
+        var httpsPreview = await _profileService.PreviewShareUriAsync(
+            "librespot://profile?url=https%3A%2F%2Fexample.test%2Fremote.librespot",
+            (uri, _) =>
+            {
+                Assert.Equal("https://example.test/remote.librespot", uri.ToString());
+                return Task.FromResult<Stream>(new MemoryStream(File.ReadAllBytes(exportPath)));
+            });
+
+        Assert.Equal("Remote Share", httpsPreview.Name);
+        Assert.Equal("Fetched preview", httpsPreview.Description);
+    }
+
+    [Fact]
+    public async Task PreviewShareUri_RejectsMalformedOversizedAndUnsupportedPayloads()
+    {
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _profileService.PreviewShareUriAsync("librespot://install?data=abc"));
+
+        var oversized = EncodeBase64Url(new byte[8193]);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _profileService.PreviewShareUriAsync($"librespot://profile?data={oversized}"));
+
+        var unsupported = EncodeBase64Url(System.Text.Encoding.UTF8.GetBytes(
+            """
+            {
+              "schemaVersion": 99,
+              "profileName": "Future",
+              "settings": {}
+            }
+            """));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _profileService.PreviewShareUriAsync($"librespot://profile?data={unsupported}"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _profileService.PreviewShareUriAsync("librespot://profile?url=http%3A%2F%2Fexample.test%2Fprofile.librespot"));
+    }
+
+    [Fact]
     public async Task ImportAsync_RejectsSharedRiskAcknowledgment()
     {
         Directory.CreateDirectory(_root);
@@ -140,4 +220,10 @@ public sealed class LocalProfileServiceTests : IDisposable
             Directory.Delete(_root, recursive: true);
         }
     }
+
+    private static string EncodeBase64Url(byte[] bytes) =>
+        Convert.ToBase64String(bytes)
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
 }

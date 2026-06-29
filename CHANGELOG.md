@@ -15,6 +15,9 @@ All notable changes to LibreSpot will be documented in this file.
 - Added live FlaUI UIA3 smoke tests for WPF workspace tab navigation,
   settings search/clear, maintenance confirmation-to-activity flow, activity
   overlay dismissal, and prompt confirm/cancel behavior.
+- Added inert `librespot://profile?...` share-link previews for local file,
+  embedded, and HTTPS profile payloads, plus share-card payload generation that
+  does not write config or start setup until the user confirms import.
 - Added a dedicated `LibreSpot.Cli.exe` console project for fleet tooling with
   `--version`, `status --json`, `detect --json`, `detect --intune`, and
   `validate --answer-file` support backed by the existing health report model,
