@@ -5,6 +5,9 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added package-manifest safety tests so draft winget, Scoop, Chocolatey, and
+  package-channel metadata stay visibly blocked until release-manifest-generated
+  hashes, signing, and package identity decisions are ready.
 - Added a dedicated `LibreSpot.Cli.exe` console project for fleet tooling with
   `--version`, `status --json`, `detect --json`, `detect --intune`, and
   `validate --answer-file` support backed by the existing health report model,

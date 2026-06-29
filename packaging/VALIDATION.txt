@@ -1,6 +1,10 @@
 # Package Manifest Validation Commands
 
-All manifests are DRAFT status. Run these commands to validate locally before submission.
+All package-manager manifests are DRAFT status and blocked on package identity,
+signing, and release-channel ownership decisions. These commands are
+parser-only checks for generated output; do not submit or publish these tracked
+templates until they are regenerated from `librespot-release-manifest.json` with
+real release URLs, versions, and SHA256 values.
 
 ## winget
 
