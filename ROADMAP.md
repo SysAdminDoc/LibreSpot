@@ -459,13 +459,6 @@ needs to detect and surface this state, not just show booleans.
 
 ## Research-Driven Additions
 
-- [ ] P1 — Add rendered localization and accessibility smoke coverage for every supported culture
-  Why: Resource parity is tested, but rendered WPF clipping, focus order, and UI Automation names can still regress across Russian, Simplified Chinese, Brazilian Portuguese, and Spanish strings.
-  Evidence: `src/LibreSpot.Desktop/Services/LocalizationService.cs`, `tests/LibreSpot.Desktop.Tests/LocalizationTests.cs`, `tests/LibreSpot.Desktop.Tests/WpfFlaUiSmokeTests.cs`, Microsoft WPF localization and UI Automation docs.
-  Touches: WPF startup/test culture hook, `tests/LibreSpot.Desktop.Tests/WpfFlaUiSmokeTests.cs`, `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`, `src/LibreSpot.Desktop/MainWindow.xaml`.
-  Acceptance: FlaUI launches the shell in `en`, `ru`, `zh-Hans`, `pt-BR`, and `es`, walks Recommended, Custom, Maintenance, confirmation prompt, and activity/status surfaces, and asserts visible primary controls, non-empty UIA names, keyboard focus targets, and no critical button/label clipping at the default window size.
-  Complexity: M
-
 - [ ] P2 — Add asset-cache inventory and health diagnostics
   Why: Verified cache fallback is a reliability primitive, but cache entries are hash-named files without source labels, age/size history, corruption summary, or support-bundle visibility.
   Evidence: `src/powershell/shared/Get-FromAssetCache.ps1`, `src/powershell/shared/Save-ToAssetCache.ps1`, `src/powershell/shared/Clear-LibreSpotCache.ps1`, Environment snapshot/support-bundle flows.

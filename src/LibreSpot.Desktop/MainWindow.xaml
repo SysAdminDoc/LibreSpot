@@ -501,6 +501,7 @@
                   Height="42"
                   Padding="16,0"
                   Content="{Binding ButtonText}"
+                  AutomationProperties.AutomationId="{Binding AutomationId}"
                   AutomationProperties.Name="{Binding ButtonText}"
                   AutomationProperties.HelpText="{Binding Description}"
                   Command="{Binding Command}">
@@ -1100,9 +1101,11 @@
             </TabControl.ItemContainerStyle>
 
             <!-- ═══ Recommended (condensed: big apply button first, everything else below) ═══ -->
-            <TabItem Header="{x:Static props:Strings.ModeRecommendedTitle}">
+            <TabItem Header="{x:Static props:Strings.ModeRecommendedTitle}"
+                     AutomationProperties.AutomationId="WorkspaceTabRecommended">
               <ScrollViewer VerticalScrollBarVisibility="Auto"
                             HorizontalScrollBarVisibility="Disabled"
+                            AutomationProperties.AutomationId="RecommendedWorkspace"
                             AutomationProperties.Name="{services:Loc Ui_RecommendedWorkspace}">
                 <StackPanel Margin="0,12,0,0">
                   <Grid Margin="0,0,0,18">
@@ -1124,6 +1127,7 @@
                                 Margin="0,20,0,0"
                                 FontSize="17"
                                 Style="{StaticResource PrimaryButtonStyle}"
+                                AutomationProperties.AutomationId="RunRecommendedSetupButton"
                                 AutomationProperties.Name="{x:Static props:Strings.ButtonRunRecommendedSetup}"
                                 AutomationProperties.HelpText="{services:Loc Ui_RunsLibreSpotSMostReliableInstallPathWith}"
                                 Command="{Binding ApplyRecommendedCommand}">
@@ -1196,8 +1200,10 @@
             </TabItem>
 
             <!-- ═══ Custom ═══ -->
-            <TabItem Header="{x:Static props:Strings.ModeCustomTitle}">
-              <Grid AutomationProperties.Name="{services:Loc Ui_CustomWorkspace}">
+            <TabItem Header="{x:Static props:Strings.ModeCustomTitle}"
+                     AutomationProperties.AutomationId="WorkspaceTabCustom">
+              <Grid AutomationProperties.AutomationId="CustomWorkspace"
+                    AutomationProperties.Name="{services:Loc Ui_CustomWorkspace}">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="*" />
                   <ColumnDefinition Width="320" />
@@ -1206,6 +1212,7 @@
                 <ScrollViewer Grid.Column="0"
                                VerticalScrollBarVisibility="Auto"
                                HorizontalScrollBarVisibility="Disabled"
+                               AutomationProperties.AutomationId="CustomSettingsEditor"
                                AutomationProperties.Name="{services:Loc Ui_CustomSettingsEditor}"
                                Margin="0,0,22,0">
                   <StackPanel>
@@ -1219,6 +1226,7 @@
                       <TextBox Text="{Binding SettingsSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                Style="{StaticResource TextBoxStylePremium}"
                                Height="42"
+                               AutomationProperties.AutomationId="SettingsSearchBox"
                                AutomationProperties.Name="{x:Static props:Strings.SearchPlaceholder}"
                                AutomationProperties.HelpText="{x:Static props:Strings.SearchHelpText}" />
                       <Button Grid.Column="1"
@@ -1230,6 +1238,7 @@
                               Style="{StaticResource SecondaryButtonStyle}"
                               Visibility="{Binding HasSettingsSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
                               Command="{Binding ClearSettingsSearchCommand}"
+                              AutomationProperties.AutomationId="SettingsSearchClearButton"
                               AutomationProperties.Name="{x:Static props:Strings.ButtonClearSearchName}" />
                     </Grid>
                     <TextBlock Text="{Binding CustomSearchSummary}"
@@ -2456,6 +2465,7 @@
                             Height="48"
                             Margin="0,16,0,0"
                             Style="{StaticResource PrimaryButtonStyle}"
+                            AutomationProperties.AutomationId="ApplyCustomProfileButton"
                             AutomationProperties.Name="{x:Static props:Strings.ButtonApplyCustomProfile}"
                             AutomationProperties.HelpText="{x:Static props:Strings.ButtonApplyCustomProfileHint}"
                             Command="{Binding ApplyCustomCommand}" />
@@ -2470,9 +2480,11 @@
             </TabItem>
 
             <!-- ═══ Maintenance ═══ -->
-            <TabItem Header="{x:Static props:Strings.ModeMaintenanceTitle}">
+            <TabItem Header="{x:Static props:Strings.ModeMaintenanceTitle}"
+                     AutomationProperties.AutomationId="WorkspaceTabMaintenance">
               <ScrollViewer VerticalScrollBarVisibility="Auto"
                             HorizontalScrollBarVisibility="Disabled"
+                            AutomationProperties.AutomationId="MaintenanceWorkspace"
                             AutomationProperties.Name="{services:Loc Ui_MaintenanceWorkspace}">
                 <StackPanel Margin="0,12,0,0">
                   <TextBlock Text="{Binding MaintenanceGuidanceTitle}"
@@ -2818,6 +2830,7 @@
                 VerticalAlignment="Center"
                 Padding="32"
                 Focusable="True"
+                AutomationProperties.AutomationId="ActivityDialogRoot"
                 AutomationProperties.Name="{x:Static props:Strings.ActivityDialogName}"
                 AutomationProperties.HelpText="{x:Static props:Strings.ActivityDialogHint}"
                 Style="{StaticResource ActivityCardStyle}">
@@ -2854,6 +2867,7 @@
                 </TextBlock>
                 <TextBlock Text="{Binding ActivityTitle}" Style="{StaticResource SectionTitleTextStyle}" FontSize="24" />
                 <controls:LiveRegionContentControl Content="{Binding ActivityStatus}"
+                                                   AutomationProperties.AutomationId="RunStatus"
                                                    AutomationProperties.Name="{services:Loc RunStatus}"
                                                    Margin="0,6,0,0">
                   <controls:LiveRegionContentControl.ContentTemplate>
@@ -3202,6 +3216,7 @@
                         Padding="18,0"
                         Margin="0,0,10,0"
                         Style="{StaticResource SecondaryButtonStyle}"
+                        AutomationProperties.AutomationId="ActivityCopyLogButton"
                         AutomationProperties.Name="{x:Static props:Strings.ButtonCopyLogName}"
                         AutomationProperties.HelpText="{x:Static props:Strings.ButtonCopyLogHint}"
                         Command="{Binding CopyLogCommand}" />
@@ -3212,6 +3227,7 @@
                         Padding="18,0"
                         Margin="0,0,10,0"
                         Style="{StaticResource SecondaryButtonStyle}"
+                        AutomationProperties.AutomationId="ActivityOpenLibreSpotFolderButton"
                         AutomationProperties.Name="{x:Static props:Strings.ButtonOpenLibreSpotFolder}"
                         AutomationProperties.HelpText="{x:Static props:Strings.ButtonOpenLibreSpotFolderActivityHint}"
                         Command="{Binding OpenLibreSpotFolderCommand}" />
@@ -3222,6 +3238,7 @@
                         Padding="18,0"
                         Margin="0,0,10,0"
                         Style="{StaticResource DestructiveButtonStyle}"
+                        AutomationProperties.AutomationId="ActivityCancelRunButton"
                         AutomationProperties.Name="{x:Static props:Strings.ButtonCancelRunName}"
                         AutomationProperties.HelpText="{x:Static props:Strings.ButtonCancelRunHint}"
                         Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibilityConverter}}"
@@ -3231,6 +3248,7 @@
                         MinWidth="140"
                         Height="42"
                         Padding="18,0"
+                        AutomationProperties.AutomationId="ActivityCloseButton"
                         AutomationProperties.Name="{services:Loc Ui_CloseActivityPanel}"
                         AutomationProperties.HelpText="{services:Loc Ui_DismissesTheActivityPanelAfterTheRunIs}"
                         Command="{Binding DismissActivityCommand}">
@@ -3281,6 +3299,7 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Padding="30"
+                AutomationProperties.AutomationId="PromptDialogRoot"
                 AutomationProperties.Name="{services:Loc Ui_DecisionPrompt}"
                 AutomationProperties.HelpText="{services:Loc Ui_ConfirmsAnImportantLibreSpotActionBeforeItRuns}"
                 Style="{StaticResource PromptCardStyle}">
@@ -3332,6 +3351,7 @@
                       Padding="18,0"
                       Margin="0,0,10,0"
                       Style="{StaticResource SecondaryButtonStyle}"
+                      AutomationProperties.AutomationId="PromptCancelButton"
                       AutomationProperties.Name="{Binding PromptCancelText}"
                       IsCancel="True"
                       Command="{Binding CancelPromptCommand}" />
@@ -3340,6 +3360,7 @@
                       Height="42"
                       Padding="18,0"
                       Content="{Binding PromptConfirmText}"
+                      AutomationProperties.AutomationId="PromptConfirmButton"
                       AutomationProperties.Name="{Binding PromptConfirmText}"
                       IsDefault="{Binding IsPromptConfirmDefault}"
                       Command="{Binding ConfirmPromptCommand}">

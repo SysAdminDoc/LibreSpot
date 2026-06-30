@@ -317,6 +317,7 @@ public sealed class MaintenanceActionCardViewModel : ObservableObject
 
     public MaintenanceActionDefinition Definition { get; }
     public string Action => Definition.Action;
+    public string AutomationId => $"MaintenanceAction_{Definition.Action}";
     public string Title => Definition.Title;
     public string Description => Definition.Description;
     public string ButtonText => Definition.ButtonText;
@@ -3875,34 +3876,34 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             case "prompt":
                 SelectedWorkspaceIndex = 0;
                 ShowPrompt(
-                    "UI automation prompt",
-                    "This prompt is shown only for UI smoke coverage.",
-                    "Confirm smoke action",
-                    "Cancel smoke action",
+                    _localizationService.GetString("Ui_DecisionPrompt"),
+                    _localizationService.GetString("Ui_ConfirmsAnImportantLibreSpotActionBeforeItRuns"),
+                    Strings.ButtonContinue,
+                    Strings.ButtonCancel,
                     false,
                     () => Task.CompletedTask,
-                    "Smoke coverage",
-                    "Confirms prompt labels, focus order, and modal boundaries without running an install.");
+                    Strings.MaintenanceCardDefaultDetail,
+                    Strings.Maintenance_CheckUpdates_Description);
                 break;
             case "prompt-destructive":
                 SelectedWorkspaceIndex = 0;
                 ShowPrompt(
-                    "UI automation destructive prompt",
-                    "This destructive prompt is shown only for UI smoke coverage.",
-                    "Confirm destructive smoke action",
-                    "Cancel destructive smoke action",
+                    Strings.PromptActionReset,
+                    Strings.Maintenance_FullReset_Description,
+                    Strings.Maintenance_FullReset_ButtonText,
+                    Strings.ButtonCancel,
                     true,
                     () => Task.CompletedTask,
-                    "Smoke coverage",
-                    "Confirms destructive prompt focus order and default-button safety without running an install.");
+                    Strings.MaintenanceCardDestructiveDetail,
+                    Strings.Maintenance_FullReset_Description);
                 break;
             case "activity":
                 SelectedWorkspaceIndex = 0;
                 AppendLog("UI automation smoke activity.", "INFO");
                 ShowNotice(
-                    "UI automation activity",
+                    Strings.ActivityDialogName,
                     Strings.RunComplete,
-                    "No install command was started.");
+                    Strings.ProgressSpotifyReady);
                 ProgressValue = 100;
                 break;
             case "activity-undo":
@@ -3919,9 +3920,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 });
                 AppendLog("UI automation smoke activity with reversible changes.", "INFO");
                 ShowNotice(
-                    "UI automation activity",
+                    Strings.ActivityDialogName,
                     Strings.RunComplete,
-                    "No install command was started.");
+                    Strings.ProgressSpotifyReady);
                 ProgressValue = 100;
                 break;
             default:

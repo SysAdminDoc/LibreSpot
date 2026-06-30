@@ -20,6 +20,9 @@ All notable changes to LibreSpot will be documented in this file.
   `patches.json` payloads now record source URL, fetch timestamp, byte count,
   and SHA256 in config/profile metadata and redacted support bundles, with
   injectable transport coverage for network edge cases.
+- Added rendered localization and accessibility smoke coverage for EN, RU,
+  ZH-Hans, PT-BR, and ES, with culture-aware WPF UIA launch hooks and stable
+  automation IDs for workspace, prompt, activity, and maintenance controls.
 - Added profile sharing cards in WPF Custom mode with local QR rendering,
   share-link copying, selected-profile comparison text, embedded changelog
   preview, and direct community links for repository, Spicetify extensions, and

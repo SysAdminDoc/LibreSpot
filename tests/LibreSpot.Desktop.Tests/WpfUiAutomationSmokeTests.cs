@@ -1,8 +1,11 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.ExceptionServices;
+using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Automation.Peers;
 using LibreSpot.Desktop.Controls;
+using LibreSpot.Desktop.Properties;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -23,12 +26,25 @@ public sealed class WpfUiAutomationSmokeTests
         ControlType.TabItem
     };
 
+    private static readonly string[] SupportedCultures = ["en", "ru", "zh-Hans", "pt-BR", "es"];
+
+    public static TheoryData<string> SupportedCultureData()
+    {
+        var data = new TheoryData<string>();
+        foreach (var culture in SupportedCultures)
+        {
+            data.Add(culture);
+        }
+
+        return data;
+    }
+
     [Theory]
     [InlineData("recommended", "Recommended setup")]
     [InlineData("custom", "Custom settings")]
     [InlineData("maintenance", "Maintenance")]
-    [InlineData("prompt", "UI automation prompt")]
-    [InlineData("activity", "UI automation activity")]
+    [InlineData("prompt", "Decision prompt")]
+    [InlineData("activity", "Run activity dialog")]
     [InlineData("activity-undo", "Reversible changes")]
     public void WpfShell_UiaSmokeStatesExposeNamedActionableControls(string state, string expectedName)
     {
@@ -41,17 +57,7 @@ public sealed class WpfUiAutomationSmokeTests
                 var snapshot = WaitForSnapshotContaining(window, expectedName, TimeSpan.FromSeconds(10));
 
                 Assert.Contains(snapshot, node => string.Equals(node.Name, expectedName, StringComparison.Ordinal));
-
-                var unnamedActionable = snapshot
-                    .Where(node => node.IsEnabled &&
-                                   ActionableTypes.Contains(node.ControlType) &&
-                                   string.IsNullOrWhiteSpace(node.Name))
-                    .ToArray();
-
-                Assert.True(
-                    unnamedActionable.Length == 0,
-                    "Enabled actionable controls must have UIA names: " +
-                    string.Join(", ", unnamedActionable.Select(node => node.DebugLabel)));
+                AssertNoUnnamedActionableControls(snapshot);
             }
             finally
             {
@@ -61,11 +67,11 @@ public sealed class WpfUiAutomationSmokeTests
     }
 
     [Theory]
-    [InlineData("prompt", "Cancel smoke action", "Confirm smoke action")]
-    [InlineData("prompt-destructive", "Cancel destructive smoke action", "Confirm destructive smoke action")]
-    [InlineData("activity", "Open LibreSpot folder", "Close activity panel")]
-    [InlineData("activity-undo", "Open LibreSpot folder", "Close activity panel")]
-    public void WpfShell_UiaOverlaysKeepFocusableActionBoundaries(string state, string firstAction, string secondAction)
+    [InlineData("prompt", "PromptCancelButton", "PromptConfirmButton")]
+    [InlineData("prompt-destructive", "PromptCancelButton", "PromptConfirmButton")]
+    [InlineData("activity", "ActivityOpenLibreSpotFolderButton", "ActivityCloseButton")]
+    [InlineData("activity-undo", "ActivityOpenLibreSpotFolderButton", "ActivityCloseButton")]
+    public void WpfShell_UiaOverlaysKeepFocusableActionBoundaries(string state, string firstActionId, string secondActionId)
     {
         RunOnSta(() =>
         {
@@ -73,15 +79,41 @@ public sealed class WpfUiAutomationSmokeTests
             try
             {
                 var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
-                WaitForSnapshotContaining(window, firstAction, TimeSpan.FromSeconds(10));
+                WaitForSnapshotContainingAutomationId(window, firstActionId, TimeSpan.FromSeconds(10));
 
-                var first = FindByName(window, firstAction)
-                    ?? throw new InvalidOperationException($"Could not find UIA element '{firstAction}'.");
-                var second = FindByName(window, secondAction)
-                    ?? throw new InvalidOperationException($"Could not find UIA element '{secondAction}'.");
+                var first = FindByAutomationId(window, firstActionId)
+                    ?? throw new InvalidOperationException($"Could not find UIA element '{firstActionId}'.");
+                var second = FindByAutomationId(window, secondActionId)
+                    ?? throw new InvalidOperationException($"Could not find UIA element '{secondActionId}'.");
 
-                Assert.True(IsKeyboardFocusable(first), $"{firstAction} must be keyboard focusable.");
-                Assert.True(IsKeyboardFocusable(second), $"{secondAction} must be keyboard focusable.");
+                Assert.True(IsKeyboardFocusable(first), $"{firstActionId} must be keyboard focusable.");
+                Assert.True(IsKeyboardFocusable(second), $"{secondActionId} must be keyboard focusable.");
+            }
+            finally
+            {
+                app.Dispose();
+            }
+        });
+    }
+
+    [Theory]
+    [MemberData(nameof(SupportedCultureData))]
+    public void WpfShell_UiaSupportedCulturesExposeLocalizedFocusTargetsAndSafeBounds(string culture)
+    {
+        var text = LocalizedSmokeText.For(culture);
+        RunOnSta(() =>
+        {
+            using var app = LaunchSmokeState("activity", culture);
+            try
+            {
+                var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
+                var snapshot = WaitForSnapshotContainingAutomationId(window, "ActivityCloseButton", TimeSpan.FromSeconds(10));
+                var windowBounds = UiaNode.From(window).BoundingRectangle;
+
+                AssertLocalizedNode(snapshot, "RunStatus", text.RunStatus, windowBounds);
+                AssertLocalizedNode(snapshot, "ActivityOpenLibreSpotFolderButton", text.OpenLibreSpotFolder, windowBounds, requireFocusable: true);
+                AssertLocalizedNode(snapshot, "ActivityCloseButton", text.CloseActivityPanel, windowBounds, requireFocusable: true);
+                AssertNoUnnamedActionableControls(snapshot);
             }
             finally
             {
@@ -99,9 +131,9 @@ public sealed class WpfUiAutomationSmokeTests
             try
             {
                 var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
-                WaitForSnapshotContaining(window, "Run status", TimeSpan.FromSeconds(10));
+                WaitForSnapshotContainingAutomationId(window, "RunStatus", TimeSpan.FromSeconds(10));
 
-                var runStatus = FindByName(window, "Run status")
+                var runStatus = FindByAutomationId(window, "RunStatus")
                     ?? throw new InvalidOperationException("Could not find the run-status live region.");
 
                 Assert.True(runStatus.Current.IsEnabled, "The run-status element must be present and enabled for assistive technology.");
@@ -175,7 +207,7 @@ public sealed class WpfUiAutomationSmokeTests
         });
     }
 
-    private static SmokeApp LaunchSmokeState(string state)
+    private static SmokeApp LaunchSmokeState(string state, string culture = "en")
     {
         var appPath = Path.Combine(AppContext.BaseDirectory, "LibreSpot.exe");
         Assert.True(File.Exists(appPath), $"Expected WPF executable at {appPath}.");
@@ -190,6 +222,7 @@ public sealed class WpfUiAutomationSmokeTests
             WorkingDirectory = AppContext.BaseDirectory
         };
         startInfo.ArgumentList.Add($"--uia-smoke={state}");
+        startInfo.ArgumentList.Add($"--uia-culture={culture}");
         startInfo.Environment["LIBRESPOT_UIA_ROOT"] = root;
 
         var process = Process.Start(startInfo)
@@ -240,6 +273,29 @@ public sealed class WpfUiAutomationSmokeTests
             string.Join(" | ", snapshot.Take(80).Select(node => node.DebugLabel)));
     }
 
+    private static IReadOnlyList<UiaNode> WaitForSnapshotContainingAutomationId(
+        AutomationElement window,
+        string automationId,
+        TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        IReadOnlyList<UiaNode> snapshot = Array.Empty<UiaNode>();
+        while (DateTime.UtcNow < deadline)
+        {
+            snapshot = Snapshot(window);
+            if (snapshot.Any(node => string.Equals(node.AutomationId, automationId, StringComparison.Ordinal)))
+            {
+                return snapshot;
+            }
+
+            Thread.Sleep(100);
+        }
+
+        throw new TimeoutException(
+            $"Timed out waiting for UIA automation id '{automationId}'. Snapshot: " +
+            string.Join(" | ", snapshot.Take(80).Select(node => node.DebugLabel)));
+    }
+
     private static IReadOnlyList<UiaNode> Snapshot(AutomationElement root)
     {
         var nodes = new List<UiaNode>();
@@ -259,10 +315,10 @@ public sealed class WpfUiAutomationSmokeTests
         }
     }
 
-    private static AutomationElement? FindByName(AutomationElement root, string name) =>
+    private static AutomationElement? FindByAutomationId(AutomationElement root, string automationId) =>
         root.FindFirst(
             TreeScope.Descendants,
-            new PropertyCondition(AutomationElement.NameProperty, name));
+            new PropertyCondition(AutomationElement.AutomationIdProperty, automationId));
 
     private static bool IsKeyboardFocusable(AutomationElement element) =>
         TryGet(element, AutomationElement.IsKeyboardFocusableProperty, false);
@@ -281,6 +337,45 @@ public sealed class WpfUiAutomationSmokeTests
         {
             return fallback;
         }
+    }
+
+    private static void AssertLocalizedNode(
+        IReadOnlyList<UiaNode> snapshot,
+        string automationId,
+        string expectedName,
+        Rect windowBounds,
+        bool requireFocusable = false)
+    {
+        var node = snapshot.FirstOrDefault(item => string.Equals(item.AutomationId, automationId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException($"Could not find UIA node '{automationId}'.");
+
+        Assert.Equal(expectedName, node.Name);
+        Assert.True(node.BoundingRectangle.Width > 1 && node.BoundingRectangle.Height > 1, $"{automationId} has empty bounds.");
+        Assert.True(
+            node.BoundingRectangle.Left >= windowBounds.Left - 2 &&
+            node.BoundingRectangle.Top >= windowBounds.Top - 2 &&
+            node.BoundingRectangle.Right <= windowBounds.Right + 2 &&
+            node.BoundingRectangle.Bottom <= windowBounds.Bottom + 2,
+            $"{automationId} is clipped outside the window. Element={node.BoundingRectangle}; window={windowBounds}.");
+
+        if (requireFocusable)
+        {
+            Assert.True(node.IsKeyboardFocusable, $"{automationId} must be keyboard focusable.");
+        }
+    }
+
+    private static void AssertNoUnnamedActionableControls(IReadOnlyList<UiaNode> snapshot)
+    {
+        var unnamedActionable = snapshot
+            .Where(node => node.IsEnabled &&
+                           ActionableTypes.Contains(node.ControlType) &&
+                           string.IsNullOrWhiteSpace(node.Name))
+            .ToArray();
+
+        Assert.True(
+            unnamedActionable.Length == 0,
+            "Enabled actionable controls must have UIA names: " +
+            string.Join(", ", unnamedActionable.Select(node => node.DebugLabel)));
     }
 
     private static void RunOnSta(Action action)
@@ -307,15 +402,36 @@ public sealed class WpfUiAutomationSmokeTests
         }
     }
 
+    private sealed record LocalizedSmokeText(
+        string ActivityDialog,
+        string RunStatus,
+        string OpenLibreSpotFolder,
+        string CloseActivityPanel)
+    {
+        public static LocalizedSmokeText For(string culture)
+        {
+            var info = CultureInfo.GetCultureInfo(culture);
+            return new LocalizedSmokeText(
+                Get("ActivityDialogName", info),
+                Get("RunStatus", info),
+                Get("ButtonOpenLibreSpotFolder", info),
+                Get("Ui_CloseActivityPanel", info));
+        }
+
+        private static string Get(string key, CultureInfo culture) =>
+            Strings.ResourceManager.GetString(key, culture) ?? key;
+    }
+
     private sealed record UiaNode(
         string Name,
         ControlType ControlType,
         bool IsEnabled,
         bool IsKeyboardFocusable,
-        string AutomationId)
+        string AutomationId,
+        Rect BoundingRectangle)
     {
         public string DebugLabel =>
-            $"{ControlType.ProgrammaticName}:{Name}:{AutomationId}:enabled={IsEnabled}:focusable={IsKeyboardFocusable}";
+            $"{ControlType.ProgrammaticName}:{Name}:{AutomationId}:enabled={IsEnabled}:focusable={IsKeyboardFocusable}:bounds={BoundingRectangle}";
 
         public static UiaNode From(AutomationElement element) =>
             new(
@@ -323,7 +439,8 @@ public sealed class WpfUiAutomationSmokeTests
                 TryGet(element, AutomationElement.ControlTypeProperty, ControlType.Custom),
                 TryGet(element, AutomationElement.IsEnabledProperty, false),
                 TryGet(element, AutomationElement.IsKeyboardFocusableProperty, false),
-                TryGet(element, AutomationElement.AutomationIdProperty, string.Empty));
+                TryGet(element, AutomationElement.AutomationIdProperty, string.Empty),
+                TryGet(element, AutomationElement.BoundingRectangleProperty, Rect.Empty));
     }
 
     private sealed class SmokeApp : IDisposable

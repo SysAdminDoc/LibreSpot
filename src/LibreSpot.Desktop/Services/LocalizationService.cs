@@ -18,8 +18,6 @@ public sealed class LocalizationService : INotifyPropertyChanged
 {
     public const string DefaultCultureName = AppCatalog.DefaultUiCulture;
 
-    public static LocalizationService Current { get; } = new();
-
     public static IReadOnlyList<LocalizationOption> SupportedCultures { get; } =
     [
         new(DefaultCultureName, "English", "English"),
@@ -28,6 +26,8 @@ public sealed class LocalizationService : INotifyPropertyChanged
         new("pt-BR", "Portuguese (Brazil)", "Português (Brasil)"),
         new("es", "Spanish", "Español")
     ];
+
+    public static LocalizationService Current { get; } = new();
 
     private CultureInfo _culture = CultureInfo.GetCultureInfo(DefaultCultureName);
 
@@ -50,7 +50,14 @@ public sealed class LocalizationService : INotifyPropertyChanged
 
     public static string NormalizeCultureName(string? cultureName)
     {
-        return AppCatalog.NormalizeUiCulture(cultureName);
+        if (string.IsNullOrWhiteSpace(cultureName))
+        {
+            return DefaultCultureName;
+        }
+
+        var normalized = SupportedCultures.FirstOrDefault(option =>
+            string.Equals(option.CultureName, cultureName.Trim(), StringComparison.OrdinalIgnoreCase));
+        return normalized?.CultureName ?? DefaultCultureName;
     }
 
     public void ApplyCulture(string? cultureName)

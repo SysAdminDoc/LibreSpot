@@ -18,9 +18,11 @@ namespace LibreSpot.Desktop;
 public partial class MainWindow : Window
 {
     private const string UiAutomationSmokeArgumentPrefix = "--uia-smoke=";
+    private const string UiAutomationCultureArgumentPrefix = "--uia-culture=";
     private static readonly Regex NumericInput = new("^[0-9]+$", RegexOptions.Compiled);
     private readonly MainViewModel _viewModel;
     private readonly string? _uiAutomationSmokeState;
+    private readonly string _uiAutomationSmokeCulture;
     private readonly ShellActivationRequest _shellActivation;
     private bool _allowCloseWhileRunning;
     private IInputElement? _focusBeforeActivity;
@@ -35,13 +37,14 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _uiAutomationSmokeState = GetUiAutomationSmokeState();
+        _uiAutomationSmokeCulture = GetUiAutomationSmokeCulture();
         _shellActivation = ShellActivationService.Parse(Environment.GetCommandLineArgs().Skip(1));
         _viewModel = string.IsNullOrWhiteSpace(_uiAutomationSmokeState)
             ? new MainViewModel(
                 new ConfigurationService(),
                 new BackendScriptService(),
                 new EnvironmentSnapshotService(upstreamDriftProbe: () => UpstreamDriftService.Default.GetReport()))
-            : CreateUiAutomationSmokeViewModel();
+            : CreateUiAutomationSmokeViewModel(_uiAutomationSmokeCulture);
 
         DataContext = _viewModel;
         SourceInitialized += MainWindow_SourceInitialized;
@@ -503,7 +506,21 @@ public partial class MainWindow : Window
         return null;
     }
 
-    private static MainViewModel CreateUiAutomationSmokeViewModel()
+    private static string GetUiAutomationSmokeCulture()
+    {
+        var args = Environment.GetCommandLineArgs();
+        foreach (var arg in args)
+        {
+            if (arg.StartsWith(UiAutomationCultureArgumentPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return LocalizationService.NormalizeCultureName(arg[UiAutomationCultureArgumentPrefix.Length..].Trim());
+            }
+        }
+
+        return LocalizationService.DefaultCultureName;
+    }
+
+    private static MainViewModel CreateUiAutomationSmokeViewModel(string culture)
     {
         var root = Environment.GetEnvironmentVariable("LIBRESPOT_UIA_ROOT");
         if (string.IsNullOrWhiteSpace(root))
@@ -524,6 +541,9 @@ public partial class MainWindow : Window
         Directory.CreateDirectory(configDirectory);
         Directory.CreateDirectory(logDirectory);
         Directory.CreateDirectory(crashDirectory);
+        File.WriteAllText(
+            Path.Combine(configDirectory, "config.json"),
+            $"{{\"UiCulture\":\"{LocalizationService.NormalizeCultureName(culture)}\"}}");
 
         return new MainViewModel(
             new ConfigurationService(configDirectory),
