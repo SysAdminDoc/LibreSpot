@@ -1007,6 +1007,7 @@ public static class CliApplication
             ComponentStatus(snapshot, "auto-reapply-watcher"),
             IssueIds(snapshot),
             RecommendedRepairIds(snapshot),
+            snapshot.UpstreamDriftReport.Dependencies.Select(UpstreamDependencyDocument.From).ToArray(),
             snapshot.HealthReport.Components.Select(ComponentDocument.From).ToArray());
 
     private static DetectionDocument BuildDetectionDocument(EnvironmentSnapshot snapshot, string configPath)
@@ -1298,7 +1299,7 @@ public static class CliApplication
     private static EnvironmentSnapshot GetSnapshot(string configPath, Func<string, EnvironmentSnapshot>? snapshotFactory) =>
         snapshotFactory is not null
             ? snapshotFactory(configPath)
-            : new EnvironmentSnapshotService().GetSnapshot(configPath);
+            : new EnvironmentSnapshotService(upstreamDriftProbe: () => UpstreamDriftService.Default.GetReport()).GetSnapshot(configPath);
 
     private static ParseResult Parse(string[] args)
     {
@@ -1569,7 +1570,36 @@ public sealed record StatusDocument(
     string? LastWatcherOutcome,
     IReadOnlyList<string> IssueIds,
     IReadOnlyList<string> RecommendedRepairIds,
+    IReadOnlyList<UpstreamDependencyDocument> UpstreamDependencies,
     IReadOnlyList<ComponentDocument> Components);
+
+public sealed record UpstreamDependencyDocument(
+    string Id,
+    string Name,
+    string PinnedValue,
+    string CurrentValue,
+    string? LatestValue,
+    string DriftState,
+    string MetadataSource,
+    DateTimeOffset CheckedAtUtc,
+    double? CacheAgeSeconds,
+    bool IsDegraded,
+    string Evidence)
+{
+    public static UpstreamDependencyDocument From(UpstreamDependencyState dependency) =>
+        new(
+            dependency.Id,
+            dependency.Name,
+            dependency.PinnedValue,
+            dependency.CurrentValue,
+            dependency.LatestValue,
+            dependency.DriftState,
+            dependency.MetadataSource,
+            dependency.CheckedAtUtc,
+            dependency.CacheAge?.TotalSeconds,
+            dependency.IsDegraded,
+            dependency.Evidence);
+}
 
 public sealed record ComponentDocument(
     string Id,

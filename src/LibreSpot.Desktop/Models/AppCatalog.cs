@@ -113,6 +113,43 @@ public sealed record OptionDefinition(string Key, string Title, string Descripti
 public sealed record ExtensionDefinition(string Key, string Title, string Description);
 public sealed record CustomAppDefinition(string Key, string Title, string Description);
 public sealed record MaintenanceActionDefinition(string Action, string Title, string Description, string ButtonText, bool IsDestructive = false);
+public sealed record UpstreamDependencyPin(
+    string Id,
+    string Name,
+    string PinnedValue,
+    string ValueKind,
+    string GitRepository,
+    string GitReferencePattern,
+    string? RestLatestReleaseApi,
+    string? ValuePrefixToStrip);
+
+public sealed class UpstreamDriftReport
+{
+    public static UpstreamDriftReport Empty { get; } = new(Array.Empty<UpstreamDependencyState>(), DateTimeOffset.UtcNow);
+
+    public UpstreamDriftReport(IEnumerable<UpstreamDependencyState> dependencies, DateTimeOffset generatedAtUtc)
+    {
+        Dependencies = new ReadOnlyCollection<UpstreamDependencyState>(dependencies.ToArray());
+        GeneratedAtUtc = generatedAtUtc;
+    }
+
+    public IReadOnlyList<UpstreamDependencyState> Dependencies { get; }
+    public DateTimeOffset GeneratedAtUtc { get; }
+    public bool IsDegraded => Dependencies.Any(dependency => dependency.IsDegraded);
+}
+
+public sealed record UpstreamDependencyState(
+    string Id,
+    string Name,
+    string PinnedValue,
+    string CurrentValue,
+    string? LatestValue,
+    string DriftState,
+    string MetadataSource,
+    DateTimeOffset CheckedAtUtc,
+    TimeSpan? CacheAge,
+    bool IsDegraded,
+    string Evidence);
 
 public static class HealthSeverity
 {
@@ -294,6 +331,7 @@ public sealed class EnvironmentSnapshot
     public bool ConfigFolderExists { get; init; }
     public bool AutoReapplyTaskRegistered { get; init; }
     public StackHealthReport HealthReport { get; init; } = StackHealthReport.Empty;
+    public UpstreamDriftReport UpstreamDriftReport { get; init; } = UpstreamDriftReport.Empty;
     public string HostArchitecture { get; init; } = "Unknown";
     public string ProcessArchitecture { get; init; } = "Unknown";
     public bool MarketplaceReady => MarketplaceFilesPresent && MarketplaceRegistered;
@@ -318,6 +356,56 @@ public static class AppCatalog
     public const string PinnedThemesCommit = "df033493a7dae30ca6e371de9cec1897871dbb0c";
     public const string PinnedStatsCustomAppVersion = "1.1.3";
     public const string PinnedStatsCustomAppReleaseTag = "stats-v1.1.3";
+
+    public static IReadOnlyList<UpstreamDependencyPin> UpstreamDependencyPins { get; } =
+        new ReadOnlyCollection<UpstreamDependencyPin>(new[]
+        {
+            new UpstreamDependencyPin(
+                "spotx",
+                "SpotX",
+                PinnedSpotXCommit,
+                "commit",
+                "https://github.com/SpotX-Official/SpotX.git",
+                "refs/heads/main",
+                null,
+                null),
+            new UpstreamDependencyPin(
+                "spicetify-cli",
+                "Spicetify CLI",
+                PinnedSpicetifyCliVersion,
+                "version",
+                "https://github.com/spicetify/cli.git",
+                "refs/tags/v*",
+                "https://api.github.com/repos/spicetify/cli/releases/latest",
+                "v"),
+            new UpstreamDependencyPin(
+                "marketplace",
+                "Marketplace",
+                PinnedMarketplaceVersion,
+                "version",
+                "https://github.com/spicetify/marketplace.git",
+                "refs/tags/v*",
+                "https://api.github.com/repos/spicetify/marketplace/releases/latest",
+                "v"),
+            new UpstreamDependencyPin(
+                "themes",
+                "Spicetify themes",
+                PinnedThemesCommit,
+                "commit",
+                "https://github.com/spicetify/spicetify-themes.git",
+                "refs/heads/master",
+                null,
+                null),
+            new UpstreamDependencyPin(
+                "stats",
+                "Stats custom app",
+                PinnedStatsCustomAppReleaseTag,
+                "version",
+                "https://github.com/harbassan/spicetify-apps.git",
+                "refs/tags/stats-v*",
+                null,
+                "stats-v")
+        });
 
     public static IReadOnlyList<string> SupportedUiCultures { get; } =
         new ReadOnlyCollection<string>(new[] { DefaultUiCulture, "ru", "zh-Hans", "pt-BR", "es" });

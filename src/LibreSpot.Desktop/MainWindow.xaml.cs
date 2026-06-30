@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
 using LibreSpot.Desktop.ViewModels;
 using Wpf.Ui.Controls;
@@ -39,7 +40,7 @@ public partial class MainWindow : Window
             ? new MainViewModel(
                 new ConfigurationService(),
                 new BackendScriptService(),
-                new EnvironmentSnapshotService())
+                new EnvironmentSnapshotService(upstreamDriftProbe: () => UpstreamDriftService.Default.GetReport()))
             : CreateUiAutomationSmokeViewModel();
 
         DataContext = _viewModel;
@@ -537,7 +538,8 @@ public partial class MainWindow : Window
                 crashDirectory: crashDirectory,
                 spotifyVersionProbe: () => "1.2.92",
                 spicetifyVersionProbe: () => "2.43.2",
-                spotifyRunningProbe: () => false),
+                spotifyRunningProbe: () => false,
+                upstreamDriftProbe: () => UpstreamDriftReport.Empty),
             new SupportBundleService(configDirectory, logDirectory, crashDirectory));
     }
 }

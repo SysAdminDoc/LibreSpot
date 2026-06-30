@@ -11,6 +11,8 @@ using CliEnvironmentSnapshot = Cli::LibreSpot.Desktop.Models.EnvironmentSnapshot
 using CliHealthSeverity = Cli::LibreSpot.Desktop.Models.HealthSeverity;
 using CliStackHealthComponent = Cli::LibreSpot.Desktop.Models.StackHealthComponent;
 using CliStackHealthReport = Cli::LibreSpot.Desktop.Models.StackHealthReport;
+using CliUpstreamDependencyState = Cli::LibreSpot.Desktop.Models.UpstreamDependencyState;
+using CliUpstreamDriftReport = Cli::LibreSpot.Desktop.Models.UpstreamDriftReport;
 
 namespace LibreSpot.Desktop.Tests;
 
@@ -43,14 +45,33 @@ public sealed class CliApplicationTests
     [Fact]
     public void StatusJson_UsesHealthReportComponents()
     {
-        var snapshot = Snapshot(
-            spotifyInstalled: true,
-            spicetifyInstalled: true,
+        var upstreamReport = new CliUpstreamDriftReport(
+            new[]
+            {
+                new CliUpstreamDependencyState(
+                    "spotx",
+                    "SpotX",
+                    "3284673df69e276c5c0ee90bb1cc9185cecb9ad4",
+                    "3284673df69e276c5c0ee90bb1cc9185cecb9ad4",
+                    "ba77e8cc0b8e79806b3bcc7c767b9b4bc20f9680",
+                    "behind",
+                    "git ls-remote",
+                    DateTimeOffset.Parse("2026-06-27T12:30:00Z"),
+                    TimeSpan.FromHours(2),
+                    false,
+                    "Pinned/current 3284673d; latest ba77e8cc; drift behind; source git ls-remote; cache age 2 hours.")
+            },
+            DateTimeOffset.Parse("2026-06-27T12:30:00Z"));
+        var snapshot = SnapshotWithUpstream(
+            true,
+            true,
+            upstreamReport,
             Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready, version: "1.2.92"),
             Component("spicetify-cli", "Spicetify CLI", "Detected", CliHealthSeverity.Ready, version: "2.43.2"),
             Component("backups", "Backups", "2 backups", CliHealthSeverity.Ready),
             Component("auto-reapply-watcher", "Auto-reapply watcher", "UpToDate", CliHealthSeverity.Ready),
-            Component("post-spotify-update", "After Spotify update", "No drift", CliHealthSeverity.Ready, changed: DateTime.Parse("2026-06-27T12:00:00Z").ToUniversalTime()));
+            Component("post-spotify-update", "After Spotify update", "No drift", CliHealthSeverity.Ready, changed: DateTime.Parse("2026-06-27T12:00:00Z").ToUniversalTime()),
+            Component("upstream-spotx", "SpotX upstream", "Upstream changed", CliHealthSeverity.Info, version: "ba77e8cc0b8e79806b3bcc7c767b9b4bc20f9680"));
 
         var result = Run(
             new[] { "status", "--json", "--config-path", "C:\\LibreSpot\\config.json" },
@@ -66,6 +87,18 @@ public sealed class CliApplicationTests
         Assert.Equal("2026-06-27T12:00:00+00:00", doc.RootElement.GetProperty("lastPatchTimeUtc").GetString());
         Assert.Equal("spotify", doc.RootElement.GetProperty("components")[0].GetProperty("id").GetString());
         Assert.Equal("1.2.92", doc.RootElement.GetProperty("components")[0].GetProperty("detectedVersion").GetString());
+        var upstream = doc.RootElement.GetProperty("components")
+            .EnumerateArray()
+            .Single(component => component.GetProperty("id").GetString() == "upstream-spotx");
+        Assert.Equal("Upstream changed", upstream.GetProperty("status").GetString());
+        Assert.Equal("ba77e8cc0b8e79806b3bcc7c767b9b4bc20f9680", upstream.GetProperty("detectedVersion").GetString());
+        var upstreamDependency = doc.RootElement.GetProperty("upstreamDependencies")[0];
+        Assert.Equal("spotx", upstreamDependency.GetProperty("id").GetString());
+        Assert.Equal("3284673df69e276c5c0ee90bb1cc9185cecb9ad4", upstreamDependency.GetProperty("pinnedValue").GetString());
+        Assert.Equal("ba77e8cc0b8e79806b3bcc7c767b9b4bc20f9680", upstreamDependency.GetProperty("latestValue").GetString());
+        Assert.Equal("behind", upstreamDependency.GetProperty("driftState").GetString());
+        Assert.Equal("git ls-remote", upstreamDependency.GetProperty("metadataSource").GetString());
+        Assert.Equal(7200, upstreamDependency.GetProperty("cacheAgeSeconds").GetDouble());
     }
 
     [Fact]
@@ -942,6 +975,13 @@ public sealed class CliApplicationTests
         bool spotifyInstalled,
         bool spicetifyInstalled,
         params CliStackHealthComponent[] components) =>
+        SnapshotWithUpstream(spotifyInstalled, spicetifyInstalled, CliUpstreamDriftReport.Empty, components);
+
+    private static CliEnvironmentSnapshot SnapshotWithUpstream(
+        bool spotifyInstalled,
+        bool spicetifyInstalled,
+        CliUpstreamDriftReport upstreamDriftReport,
+        params CliStackHealthComponent[] components) =>
         new()
         {
             SpotifyInstalled = spotifyInstalled,
@@ -953,7 +993,8 @@ public sealed class CliApplicationTests
             AutoReapplyTaskRegistered = false,
             HostArchitecture = "x64",
             ProcessArchitecture = "x64",
-            HealthReport = new CliStackHealthReport(components)
+            HealthReport = new CliStackHealthReport(components),
+            UpstreamDriftReport = upstreamDriftReport
         };
 
     private static CliStackHealthComponent Component(

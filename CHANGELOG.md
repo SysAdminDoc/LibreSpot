@@ -33,6 +33,9 @@ All notable changes to LibreSpot will be documented in this file.
 - Added local release-manifest generation through `Build-Scripts.ps1
   -GenerateReleaseManifest`, including checksum verification, artifact roles,
   runtime identifiers, signing state, and package-validation preflight checks.
+- Added upstream drift monitoring for SpotX, Spicetify CLI, Marketplace,
+  themes, and Stats pins with GitHub REST, `git ls-remote` fallback, cached
+  offline metadata, and structured CLI `status --json` output.
 - Added schema-backed operation receipts: backend runs now write typed
   operation-token entries and `run-receipt.latest.json`, while the WPF undo
   pane consumes the embedded token and receipt schemas before showing

@@ -238,6 +238,40 @@ public sealed class EnvironmentSnapshotServiceTests
     }
 
     [Fact]
+    public void GetSnapshot_HealthReport_IncludesUpstreamDriftComponents()
+    {
+        using var fixture = new SnapshotFixture();
+        var checkedAt = DateTimeOffset.Parse("2026-06-29T12:00:00Z");
+        var report = new UpstreamDriftReport(
+            new[]
+            {
+                new UpstreamDependencyState(
+                    "spotx",
+                    "SpotX",
+                    AppCatalog.PinnedSpotXCommit,
+                    AppCatalog.PinnedSpotXCommit,
+                    "ba77e8cc0b8e79806b3bcc7c767b9b4bc20f9680",
+                    "behind",
+                    "git ls-remote",
+                    checkedAt,
+                    TimeSpan.FromHours(2),
+                    false,
+                    "Pinned/current metadata; latest from git ls-remote; cache age 2 hours.")
+            },
+            checkedAt);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false, upstreamDriftReport: report);
+
+        var component = Assert.Single(snapshot.HealthReport.Components, item => item.Id == "upstream-spotx");
+        Assert.Equal("SpotX upstream", component.Name);
+        Assert.Equal("Upstream changed", component.Status);
+        Assert.Equal(HealthSeverity.Info, component.Severity);
+        Assert.StartsWith("ba77e8cc", component.DetectedVersion);
+        Assert.Contains("git ls-remote", component.Evidence);
+        Assert.Contains("cache age 2 hours", component.Evidence);
+    }
+
+    [Fact]
     public void GetSnapshot_HealthReport_CoversCleanSlate()
     {
         using var fixture = new SnapshotFixture();
@@ -673,7 +707,7 @@ public sealed class EnvironmentSnapshotServiceTests
         public string RollingLogDirectory { get; }
         public string CrashDirectory { get; }
 
-        public EnvironmentSnapshot GetSnapshot(bool autoReapplyRegistered)
+        public EnvironmentSnapshot GetSnapshot(bool autoReapplyRegistered, UpstreamDriftReport? upstreamDriftReport = null)
         {
             var service = new EnvironmentSnapshotService(
                 autoReapplyTaskProbe: () => autoReapplyRegistered,
@@ -685,7 +719,8 @@ public sealed class EnvironmentSnapshotServiceTests
                 crashDirectory: CrashDirectory,
                 spotifyVersionProbe: () => SpotifyVersion,
                 spicetifyVersionProbe: () => SpicetifyVersion,
-                spotifyRunningProbe: () => SpotifyRunning);
+                spotifyRunningProbe: () => SpotifyRunning,
+                upstreamDriftProbe: () => upstreamDriftReport ?? UpstreamDriftReport.Empty);
 
             return service.GetSnapshot(ConfigPath);
         }

@@ -17,6 +17,7 @@ public sealed class EnvironmentSnapshotService
     private readonly Func<string?> _spotifyVersionProbe;
     private readonly Func<string?> _spicetifyVersionProbe;
     private readonly Func<bool> _spotifyRunningProbe;
+    private readonly Func<UpstreamDriftReport> _upstreamDriftProbe;
 
     public EnvironmentSnapshotService(
         Func<bool>? autoReapplyTaskProbe = null,
@@ -28,7 +29,8 @@ public sealed class EnvironmentSnapshotService
         string? crashDirectory = null,
         Func<string?>? spotifyVersionProbe = null,
         Func<string?>? spicetifyVersionProbe = null,
-        Func<bool>? spotifyRunningProbe = null)
+        Func<bool>? spotifyRunningProbe = null,
+        Func<UpstreamDriftReport>? upstreamDriftProbe = null)
     {
         _autoReapplyTaskProbe = autoReapplyTaskProbe ?? IsAutoReapplyTaskRegistered;
         _spotifyPath = string.IsNullOrWhiteSpace(spotifyPath)
@@ -52,6 +54,7 @@ public sealed class EnvironmentSnapshotService
         _spotifyVersionProbe = spotifyVersionProbe ?? (() => GetFileVersion(_spotifyPath));
         _spicetifyVersionProbe = spicetifyVersionProbe ?? (() => GetFileVersion(_spicetifyPath));
         _spotifyRunningProbe = spotifyRunningProbe ?? IsSpotifyRunning;
+        _upstreamDriftProbe = upstreamDriftProbe ?? UpstreamDriftService.Default.GetCachedReport;
     }
 
     // Snapshot probing touches the filesystem and shells out to schtasks.exe
@@ -79,6 +82,7 @@ public sealed class EnvironmentSnapshotService
         var savedConfigExists = !string.IsNullOrWhiteSpace(configPath) && File.Exists(configPath);
         var configFolderExists = Directory.Exists(configDirectory);
         var autoReapplyTaskRegistered = _autoReapplyTaskProbe();
+        var upstreamDriftReport = GetUpstreamDriftReport();
         var healthReport = BuildHealthReport(
             configDirectory,
             configPath,
@@ -91,7 +95,8 @@ public sealed class EnvironmentSnapshotService
             spicetifyInstalled,
             savedConfigExists,
             configFolderExists,
-            autoReapplyTaskRegistered);
+            autoReapplyTaskRegistered,
+            upstreamDriftReport);
 
         return new EnvironmentSnapshot
         {
@@ -103,6 +108,7 @@ public sealed class EnvironmentSnapshotService
             ConfigFolderExists = configFolderExists,
             AutoReapplyTaskRegistered = autoReapplyTaskRegistered,
             HealthReport = healthReport,
+            UpstreamDriftReport = upstreamDriftReport,
             HostArchitecture = GetHostArchitecture(),
             ProcessArchitecture = GetProcessArchitecture()
         };
@@ -120,7 +126,8 @@ public sealed class EnvironmentSnapshotService
         bool spicetifyInstalled,
         bool savedConfigExists,
         bool configFolderExists,
-        bool autoReapplyTaskRegistered)
+        bool autoReapplyTaskRegistered,
+        UpstreamDriftReport upstreamDriftReport)
     {
         var watcherStatePath = Path.Combine(configDirectory, "watcher-state.json");
         var watcherState = ReadWatcherState(watcherStatePath);
@@ -147,8 +154,68 @@ public sealed class EnvironmentSnapshotService
             BuildCrashComponent(),
             BuildSavedProfileComponent(configPath, savedConfigExists, configFolderExists)
         };
+        components.AddRange(BuildUpstreamDriftComponents(upstreamDriftReport));
 
         return new StackHealthReport(components);
+    }
+
+    private UpstreamDriftReport GetUpstreamDriftReport()
+    {
+        try
+        {
+            return _upstreamDriftProbe();
+        }
+        catch (Exception ex)
+        {
+            return new UpstreamDriftReport(
+                AppCatalog.UpstreamDependencyPins.Select(pin =>
+                {
+                    var current = NormalizeUpstreamValue(pin, pin.PinnedValue);
+                    return new UpstreamDependencyState(
+                        pin.Id,
+                        pin.Name,
+                        pin.PinnedValue,
+                        current,
+                        null,
+                        "unknown",
+                        "unavailable",
+                        DateTimeOffset.UtcNow,
+                        null,
+                        true,
+                        $"Pinned {pin.PinnedValue}; current {current}; latest unknown; drift unknown; source unavailable; cache age none. Live upstream metadata is degraded. Detail: {ex.Message}");
+                }),
+                DateTimeOffset.UtcNow);
+        }
+    }
+
+    private static IEnumerable<StackHealthComponent> BuildUpstreamDriftComponents(UpstreamDriftReport report)
+    {
+        foreach (var dependency in report.Dependencies)
+        {
+            var status = dependency.IsDegraded
+                ? string.IsNullOrWhiteSpace(dependency.LatestValue) ? "Latest unknown" : "Cached metadata"
+                : dependency.DriftState switch
+                {
+                    "current" => "Current",
+                    "behind" => "Upstream changed",
+                    "ahead" => "Pinned ahead",
+                    _ => "Latest unknown"
+                };
+            var severity = string.Equals(dependency.DriftState, "current", StringComparison.OrdinalIgnoreCase) &&
+                !dependency.IsDegraded
+                    ? HealthSeverity.Ready
+                    : HealthSeverity.Info;
+
+            yield return Component(
+                $"upstream-{dependency.Id}",
+                $"{dependency.Name} upstream",
+                status,
+                severity,
+                dependency.LatestValue,
+                null,
+                dependency.CheckedAtUtc.LocalDateTime,
+                dependency.Evidence);
+        }
     }
 
     private StackHealthComponent BuildSpotifyComponent(bool installed)
@@ -1189,6 +1256,20 @@ public sealed class EnvironmentSnapshotService
 
     private static string FormatMaybe(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "unknown" : value;
+
+    private static string NormalizeUpstreamValue(UpstreamDependencyPin pin, string value)
+    {
+        var normalized = value.Trim();
+        if (!string.IsNullOrWhiteSpace(pin.ValuePrefixToStrip) &&
+            normalized.StartsWith(pin.ValuePrefixToStrip, StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized[pin.ValuePrefixToStrip.Length..];
+        }
+
+        return string.Equals(pin.ValueKind, "commit", StringComparison.OrdinalIgnoreCase)
+            ? normalized.ToLowerInvariant()
+            : normalized;
+    }
 
     private sealed record WatcherState(
         string? LastKnownVersion,
