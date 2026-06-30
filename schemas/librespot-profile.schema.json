@@ -303,6 +303,30 @@
           "maxLength": 65536,
           "description": "Reviewed SpotX custom patches.json content stored with the local profile."
         },
+        "SpotX_CustomPatchesSourceUrl": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "HTTPS source URL used for the last imported custom patches.json payload, when the profile was created from an import."
+        },
+        "SpotX_CustomPatchesFetchedAtUtc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "UTC timestamp when the custom patches.json payload was fetched."
+        },
+        "SpotX_CustomPatchesSourceByteCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65536,
+          "description": "Byte count of the fetched custom patches.json source payload."
+        },
+        "SpotX_CustomPatchesSourceSha256": {
+          "type": "string",
+          "pattern": "^$|^[0-9a-f]{64}$",
+          "description": "SHA256 of the fetched custom patches.json source payload."
+        },
         "Spicetify_Theme": {
           "type": "string",
           "description": "Spicetify theme name."

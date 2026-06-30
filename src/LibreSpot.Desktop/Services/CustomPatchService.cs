@@ -1,6 +1,7 @@
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -23,17 +24,53 @@ public sealed record CustomPatchValidationResult(
     public IReadOnlyList<string> Findings => Errors.Concat(Warnings).ToArray();
 }
 
+public sealed record CustomPatchImportResult(
+    string Json,
+    string SourceUrl,
+    DateTimeOffset FetchedAtUtc,
+    int ByteCount,
+    string Sha256);
+
+public interface ICustomPatchImportTransport
+{
+    Task<CustomPatchImportResponse> GetAsync(Uri uri, CancellationToken cancellationToken);
+}
+
+public sealed class CustomPatchImportResponse : IDisposable
+{
+    private readonly IDisposable? _owner;
+
+    public CustomPatchImportResponse(
+        HttpStatusCode statusCode,
+        long? contentLength,
+        Stream content,
+        IDisposable? owner = null)
+    {
+        StatusCode = statusCode;
+        ContentLength = contentLength;
+        Content = content;
+        _owner = owner;
+    }
+
+    public HttpStatusCode StatusCode { get; }
+    public long? ContentLength { get; }
+    public Stream Content { get; }
+
+    public void Dispose()
+    {
+        Content.Dispose();
+        _owner?.Dispose();
+    }
+}
+
 public sealed class CustomPatchService
 {
     public const int MaxPatchJsonBytes = 64 * 1024;
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(250);
+    private static readonly UTF8Encoding StrictUtf8NoBom = new(false, true);
     private static readonly JsonSerializerOptions PrettyJsonOptions = new()
     {
         WriteIndented = true
-    };
-    private static readonly HttpClient ImportClient = new()
-    {
-        Timeout = TimeSpan.FromSeconds(12)
     };
     private static readonly HashSet<string> PatternPropertyNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -55,6 +92,15 @@ public sealed class CustomPatchService
         "new",
         "to"
     };
+
+    private readonly ICustomPatchImportTransport _importTransport;
+    private readonly Func<DateTimeOffset> _clock;
+
+    public CustomPatchService(ICustomPatchImportTransport? importTransport = null, Func<DateTimeOffset>? clock = null)
+    {
+        _importTransport = importTransport ?? new HttpClientCustomPatchImportTransport();
+        _clock = clock ?? (() => DateTimeOffset.UtcNow);
+    }
 
     public CustomPatchValidationResult Validate(string? json, bool enabled)
     {
@@ -142,9 +188,9 @@ public sealed class CustomPatchService
         return JsonSerializer.Serialize(document.RootElement, PrettyJsonOptions);
     }
 
-    public async Task<string> ImportFromUrlAsync(string url, CancellationToken cancellationToken = default)
+    public async Task<CustomPatchImportResult> ImportFromUrlAsync(string url, CancellationToken cancellationToken = default)
     {
-        if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri))
+        if (!Uri.TryCreate((url ?? string.Empty).Trim(), UriKind.Absolute, out var uri))
         {
             throw new InvalidOperationException("Enter a complete HTTPS URL for the custom patches.json file.");
         }
@@ -154,32 +200,81 @@ public sealed class CustomPatchService
             throw new InvalidOperationException("Custom patches can only be imported from HTTPS URLs.");
         }
 
-        using var response = await ImportClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        using var response = await _importTransport.GetAsync(uri, cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
             throw new InvalidOperationException("The patches.json URL returned 404 Not Found.");
         }
 
-        response.EnsureSuccessStatusCode();
-        if (response.Content.Headers.ContentLength is > MaxPatchJsonBytes)
+        var statusCode = (int)response.StatusCode;
+        if (statusCode is < 200 or > 299)
+        {
+            throw new InvalidOperationException($"The patches.json URL returned HTTP {statusCode} {response.StatusCode}.");
+        }
+
+        if (response.ContentLength is > MaxPatchJsonBytes)
         {
             throw new InvalidOperationException($"The remote patches.json is larger than {MaxPatchJsonBytes / 1024} KB.");
         }
 
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        await using var stream = response.Content;
         using var buffer = new MemoryStream();
         var chunk = new byte[8192];
         int read;
         while ((read = await stream.ReadAsync(chunk.AsMemory(0, chunk.Length), cancellationToken)) > 0)
         {
-            buffer.Write(chunk, 0, read);
-            if (buffer.Length > MaxPatchJsonBytes)
+            if (buffer.Length + read > MaxPatchJsonBytes)
             {
                 throw new InvalidOperationException($"The remote patches.json is larger than {MaxPatchJsonBytes / 1024} KB.");
             }
+
+            buffer.Write(chunk, 0, read);
         }
 
-        return Encoding.UTF8.GetString(buffer.ToArray());
+        var bytes = buffer.ToArray();
+        var text = DecodeUtf8(bytes);
+        AssertImportJsonIsValid(text);
+
+        return new CustomPatchImportResult(
+            text,
+            uri.ToString(),
+            _clock().ToUniversalTime(),
+            bytes.Length,
+            Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant());
+    }
+
+    private static string DecodeUtf8(byte[] bytes)
+    {
+        try
+        {
+            return StrictUtf8NoBom.GetString(bytes);
+        }
+        catch (DecoderFallbackException ex)
+        {
+            throw new InvalidOperationException("The remote patches.json is not valid UTF-8 text.", ex);
+        }
+    }
+
+    private static void AssertImportJsonIsValid(string json)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(json, new JsonDocumentOptions
+            {
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip,
+                MaxDepth = 64
+            });
+
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                throw new InvalidOperationException("Imported patches.json must be a JSON object at the root.");
+            }
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException($"Imported patches.json is not valid JSON: {ex.Message}", ex);
+        }
     }
 
     private static void InspectElement(
@@ -292,5 +387,32 @@ public sealed class CustomPatchService
         public int PatchGroupCount { get; set; }
         public int PatternCount { get; set; }
         public int ReplacementCount { get; set; }
+    }
+
+    private sealed class HttpClientCustomPatchImportTransport : ICustomPatchImportTransport
+    {
+        private static readonly HttpClient ImportClient = new()
+        {
+            Timeout = TimeSpan.FromSeconds(12)
+        };
+
+        public async Task<CustomPatchImportResponse> GetAsync(Uri uri, CancellationToken cancellationToken)
+        {
+            var response = await ImportClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            try
+            {
+                var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                return new CustomPatchImportResponse(
+                    response.StatusCode,
+                    response.Content.Headers.ContentLength,
+                    stream,
+                    response);
+            }
+            catch
+            {
+                response.Dispose();
+                throw;
+            }
+        }
     }
 }

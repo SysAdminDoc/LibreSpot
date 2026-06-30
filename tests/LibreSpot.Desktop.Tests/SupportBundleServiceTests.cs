@@ -113,6 +113,35 @@ public sealed class SupportBundleServiceTests
     }
 
     [Fact]
+    public async Task ExportAsync_IncludesCustomPatchImportProvenanceWithoutRawSourceSecrets()
+    {
+        using var fixture = new SupportBundleFixture();
+        fixture.WriteStackReadyState();
+        fixture.WriteConfig(
+            """
+            {
+              "ConfigSchemaVersion": 1,
+              "SpotX_CustomPatchesEnabled": true,
+              "SpotX_CustomPatchesJson": "{ \"xpui\": { \"match\": \"one\", \"replace\": \"two\" } }",
+              "SpotX_CustomPatchesSourceUrl": "https://example.test/patches.json?token=topsecret",
+              "SpotX_CustomPatchesFetchedAtUtc": "2026-06-30T12:34:56Z",
+              "SpotX_CustomPatchesSourceByteCount": 54,
+              "SpotX_CustomPatchesSourceSha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+            }
+            """);
+
+        var result = await fixture.ExportAsync(new SupportBundleOptions());
+        var entries = ReadZipText(result.Path);
+        var health = entries["health/health-report.json"];
+
+        Assert.Contains("\"customPatchImport\"", health);
+        Assert.Contains("\"sourceSha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\"", health);
+        Assert.Contains("\"sourceByteCount\": 54", health);
+        Assert.DoesNotContain("topsecret", health, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("redacted", health, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void CreatePreview_ReportsSelectionsEstimateAndRedactionRules()
     {
         using var fixture = new SupportBundleFixture();
@@ -203,6 +232,9 @@ public sealed class SupportBundleServiceTests
             WriteFile(Path.Combine(SpicetifyConfigDirectory, "CustomApps", "marketplace", "manifest.json"), "{}");
             WriteFile(Path.Combine(BackupDirectory, "20260616-100000", "config-xpui.ini"), "current_theme = SpicetifyDefault");
         }
+
+        public void WriteConfig(string content) =>
+            WriteFile(ConfigPath, content);
 
         public void WriteInstallLog(string content) =>
             WriteFile(Path.Combine(ConfigDirectory, "install.log"), content);

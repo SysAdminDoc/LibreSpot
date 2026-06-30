@@ -179,6 +179,26 @@
       "type": "string",
       "maxLength": 65536
     },
+    "SpotX_CustomPatchesSourceUrl": {
+      "type": "string",
+      "maxLength": 2048
+    },
+    "SpotX_CustomPatchesFetchedAtUtc": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "SpotX_CustomPatchesSourceByteCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65536
+    },
+    "SpotX_CustomPatchesSourceSha256": {
+      "type": "string",
+      "pattern": "^$|^[0-9a-f]{64}$"
+    },
     "Spicetify_Theme": {
       "type": "string"
     },

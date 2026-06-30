@@ -1777,6 +1777,11 @@
                                    Style="{StaticResource CaptionTextStyle}"
                                    TextWrapping="Wrap"
                                    Margin="0,0,0,8" />
+                        <TextBlock Text="{Binding CustomPatchesImportProvenance}"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,8"
+                                   Visibility="{Binding HasCustomPatchImportProvenance, Converter={StaticResource BoolToVisibilityConverter}}" />
                         <ItemsControl ItemsSource="{Binding CustomPatchFindings}">
                           <ItemsControl.Style>
                             <Style TargetType="ItemsControl">

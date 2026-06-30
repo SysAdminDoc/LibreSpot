@@ -49,6 +49,11 @@ public sealed class SupportBundleService
         WriteIndented = true
     };
 
+    private static readonly JsonSerializerOptions ConfigJsonOptions = new()
+    {
+        PropertyNamingPolicy = null
+    };
+
     private readonly string _configDirectory;
     private readonly string _rollingLogDirectory;
     private readonly string _crashDirectory;
@@ -246,6 +251,7 @@ public sealed class SupportBundleService
             snapshot.SavedConfigExists,
             snapshot.ConfigFolderExists,
             snapshot.AutoReapplyTaskRegistered,
+            customPatchImport = BuildCustomPatchImportReport(),
             components = snapshot.HealthReport.Components.Select(component => new
             {
                 component.Id,
@@ -259,6 +265,47 @@ public sealed class SupportBundleService
                 recommendedActionIds = component.RecommendedActionIds
             })
         };
+
+    private object? BuildCustomPatchImportReport()
+    {
+        var configuration = ReadSavedConfiguration();
+        if (configuration is null ||
+            string.IsNullOrWhiteSpace(configuration.SpotX_CustomPatchesSourceUrl) ||
+            string.IsNullOrWhiteSpace(configuration.SpotX_CustomPatchesSourceSha256))
+        {
+            return null;
+        }
+
+        return new
+        {
+            enabled = configuration.SpotX_CustomPatchesEnabled,
+            sourceUrl = RedactText(configuration.SpotX_CustomPatchesSourceUrl),
+            fetchedAtUtc = configuration.SpotX_CustomPatchesFetchedAtUtc,
+            sourceByteCount = configuration.SpotX_CustomPatchesSourceByteCount,
+            sourceSha256 = configuration.SpotX_CustomPatchesSourceSha256,
+            reviewedJsonBytes = Encoding.UTF8.GetByteCount(configuration.SpotX_CustomPatchesJson ?? string.Empty)
+        };
+    }
+
+    private InstallConfiguration? ReadSavedConfiguration()
+    {
+        var configPath = Path.Combine(_configDirectory, "config.json");
+        if (!File.Exists(configPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var stream = File.Open(configPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            var configuration = JsonSerializer.Deserialize<InstallConfiguration>(stream, ConfigJsonOptions);
+            return configuration is null ? null : AppCatalog.NormalizeConfiguration(configuration);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     private object BuildRuntimeReport(EnvironmentSnapshot snapshot)
     {
@@ -489,6 +536,7 @@ public sealed class SupportBundleService
                 (new Regex(@"(?im)^(?<prefix>\s*x-(github|oauth|accepted-oauth|ratelimit)-[A-Za-z0-9-]+\s*:\s*).+$", RegexOptions.Compiled), "${prefix}<redacted>"),
                 (new Regex(@"(?i)\b(ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{12,}\b", RegexOptions.Compiled), "<redacted-github-token>"),
                 (new Regex(@"(?i)\b(?<key>[A-Z0-9_]*(TOKEN|SECRET|PASSWORD|PASS|API_KEY|PAT|PROXY)[A-Z0-9_]*)\s*[:=]\s*(?<value>[^\s;]+)", RegexOptions.Compiled), "${key}=<redacted>"),
+                (new Regex(@"(?i)(?<prefix>[?&](token|secret|password|pass|api[_-]?key|pat|proxy)=)[^&#\s""]+", RegexOptions.Compiled), "${prefix}<redacted>"),
                 (new Regex(@"(?i)\b(?<scheme>https?|socks5?)://[^/\s:@]+:[^@\s/]+@", RegexOptions.Compiled), "${scheme}://<redacted>@"),
                 (new Regex(@"(?i)(--?(token|password|secret|api-key|proxy)\s+)(\S+)", RegexOptions.Compiled), "$1<redacted>")
             };

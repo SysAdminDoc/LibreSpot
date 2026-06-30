@@ -572,6 +572,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private bool _customPatchesEnabled;
     private string _customPatchesJson = string.Empty;
     private string _customPatchesImportUrl = string.Empty;
+    private string _customPatchesSourceUrl = string.Empty;
+    private DateTimeOffset? _customPatchesFetchedAtUtc;
+    private int _customPatchesSourceByteCount;
+    private string _customPatchesSourceSha256 = string.Empty;
+    private bool _preserveCustomPatchProvenance;
     private CustomPatchValidationResult _customPatchValidation;
     private LocalizationOption _selectedLocalizationOption = LocalizationService.SupportedCultures[0];
     private bool _applyingCultureFromConfig;
@@ -1526,6 +1531,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (SetProperty(ref _customPatchesJson, value ?? string.Empty))
             {
+                if (!_preserveCustomPatchProvenance)
+                {
+                    ClearCustomPatchProvenance();
+                }
+
                 RefreshCustomPatchValidation();
                 RaiseSelectionInsightsChanged();
             }
@@ -1545,6 +1555,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     public string CustomPatchesStatus => _customPatchValidation.Summary;
+
+    public bool HasCustomPatchImportProvenance => !string.IsNullOrWhiteSpace(_customPatchesSourceSha256);
+
+    public string CustomPatchesImportProvenance =>
+        HasCustomPatchImportProvenance
+            ? $"Imported from {_customPatchesSourceUrl} at {_customPatchesFetchedAtUtc:u}; source {FormatBytes(_customPatchesSourceByteCount)}, SHA256 {_customPatchesSourceSha256}."
+            : string.Empty;
 
     public string CustomPatchesBadge =>
         !CustomPatchesEnabled
@@ -3091,21 +3108,31 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CustomPatchesEnabled = false;
         CustomPatchesJson = string.Empty;
         CustomPatchesImportUrl = string.Empty;
+        ClearCustomPatchProvenance();
         RefreshCustomPatchValidation();
     }
 
     private async Task ImportCustomPatchesFromUrlAsync()
     {
         var imported = await _customPatchService.ImportFromUrlAsync(CustomPatchesImportUrl);
-        CustomPatchesJson = _customPatchService.Format(imported);
-        CustomPatchesEnabled = true;
-        RefreshCustomPatchValidation();
-        ShowNotice(
-            _customPatchValidation.IsValid ? "Custom patches imported" : "Imported patches need review",
-            _customPatchValidation.Summary,
-            _customPatchValidation.IsValid
-                ? "Review the JSON before applying this profile."
-                : string.Join(" ", _customPatchValidation.Errors.Take(2)));
+        _preserveCustomPatchProvenance = true;
+        try
+        {
+            CustomPatchesJson = _customPatchService.Format(imported.Json);
+            SetCustomPatchProvenance(imported);
+            CustomPatchesEnabled = true;
+            RefreshCustomPatchValidation();
+            ShowNotice(
+                _customPatchValidation.IsValid ? "Custom patches imported" : "Imported patches need review",
+                _customPatchValidation.Summary,
+                _customPatchValidation.IsValid
+                    ? $"Review the JSON before applying this profile. Source SHA256 {_customPatchesSourceSha256}."
+                    : string.Join(" ", _customPatchValidation.Errors.Take(2)));
+        }
+        finally
+        {
+            _preserveCustomPatchProvenance = false;
+        }
     }
 
     private async Task ApplyRecommendedAsync()
@@ -3951,7 +3978,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         CustomPatchesEnabled = configuration.SpotX_CustomPatchesEnabled;
-        CustomPatchesJson = configuration.SpotX_CustomPatchesJson;
+        _preserveCustomPatchProvenance = true;
+        try
+        {
+            CustomPatchesJson = configuration.SpotX_CustomPatchesJson;
+            SetCustomPatchProvenance(configuration);
+        }
+        finally
+        {
+            _preserveCustomPatchProvenance = false;
+        }
+
         RaiseSelectionInsightsChanged();
     }
 
@@ -3990,10 +4027,55 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             : 0;
         configuration.SpotX_CustomPatchesEnabled = CustomPatchesEnabled;
         configuration.SpotX_CustomPatchesJson = CustomPatchesJson;
+        configuration.SpotX_CustomPatchesSourceUrl = _customPatchesSourceUrl;
+        configuration.SpotX_CustomPatchesFetchedAtUtc = _customPatchesFetchedAtUtc;
+        configuration.SpotX_CustomPatchesSourceByteCount = _customPatchesSourceByteCount;
+        configuration.SpotX_CustomPatchesSourceSha256 = _customPatchesSourceSha256;
         configuration.Spicetify_Extensions = Extensions.Where(item => item.IsSelected).Select(item => item.Key).ToList();
         configuration.Spicetify_CustomApps = CustomApps.Where(item => item.IsSelected).Select(item => item.Key).ToList();
 
         return AppCatalog.NormalizeConfiguration(configuration);
+    }
+
+    private void SetCustomPatchProvenance(CustomPatchImportResult imported)
+    {
+        _customPatchesSourceUrl = imported.SourceUrl;
+        _customPatchesFetchedAtUtc = imported.FetchedAtUtc;
+        _customPatchesSourceByteCount = imported.ByteCount;
+        _customPatchesSourceSha256 = imported.Sha256;
+        RaiseCustomPatchProvenanceChanged();
+    }
+
+    private void SetCustomPatchProvenance(InstallConfiguration configuration)
+    {
+        _customPatchesSourceUrl = configuration.SpotX_CustomPatchesSourceUrl;
+        _customPatchesFetchedAtUtc = configuration.SpotX_CustomPatchesFetchedAtUtc;
+        _customPatchesSourceByteCount = configuration.SpotX_CustomPatchesSourceByteCount;
+        _customPatchesSourceSha256 = configuration.SpotX_CustomPatchesSourceSha256;
+        RaiseCustomPatchProvenanceChanged();
+    }
+
+    private void ClearCustomPatchProvenance()
+    {
+        if (string.IsNullOrEmpty(_customPatchesSourceUrl) &&
+            _customPatchesFetchedAtUtc is null &&
+            _customPatchesSourceByteCount == 0 &&
+            string.IsNullOrEmpty(_customPatchesSourceSha256))
+        {
+            return;
+        }
+
+        _customPatchesSourceUrl = string.Empty;
+        _customPatchesFetchedAtUtc = null;
+        _customPatchesSourceByteCount = 0;
+        _customPatchesSourceSha256 = string.Empty;
+        RaiseCustomPatchProvenanceChanged();
+    }
+
+    private void RaiseCustomPatchProvenanceChanged()
+    {
+        OnPropertyChanged(nameof(HasCustomPatchImportProvenance));
+        OnPropertyChanged(nameof(CustomPatchesImportProvenance));
     }
 
     private static void ApplyOptionsToConfiguration(IEnumerable<OptionToggleViewModel> options, InstallConfiguration configuration)

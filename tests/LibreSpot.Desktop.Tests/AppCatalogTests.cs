@@ -153,7 +153,11 @@ public sealed class AppCatalogTests
         var configuration = new InstallConfiguration
         {
             SpotX_CustomPatchesEnabled = true,
-            SpotX_CustomPatchesJson = "  { \"xpui\": { \"match\": \"one\", \"replace\": \"two\" } }  "
+            SpotX_CustomPatchesJson = "  { \"xpui\": { \"match\": \"one\", \"replace\": \"two\" } }  ",
+            SpotX_CustomPatchesSourceUrl = " https://example.test/patches.json ",
+            SpotX_CustomPatchesFetchedAtUtc = DateTimeOffset.Parse("2026-06-30T12:34:56-04:00"),
+            SpotX_CustomPatchesSourceByteCount = 42,
+            SpotX_CustomPatchesSourceSha256 = "ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789"
         };
 
         var normalized = AppCatalog.NormalizeConfiguration(configuration);
@@ -161,8 +165,16 @@ public sealed class AppCatalogTests
 
         Assert.True(normalized.SpotX_CustomPatchesEnabled);
         Assert.Equal("{ \"xpui\": { \"match\": \"one\", \"replace\": \"two\" } }", normalized.SpotX_CustomPatchesJson);
+        Assert.Equal("https://example.test/patches.json", normalized.SpotX_CustomPatchesSourceUrl);
+        Assert.Equal(DateTimeOffset.Parse("2026-06-30T16:34:56Z"), normalized.SpotX_CustomPatchesFetchedAtUtc);
+        Assert.Equal(42, normalized.SpotX_CustomPatchesSourceByteCount);
+        Assert.Equal("abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789", normalized.SpotX_CustomPatchesSourceSha256);
         Assert.True(clone.SpotX_CustomPatchesEnabled);
         Assert.Equal(normalized.SpotX_CustomPatchesJson, clone.SpotX_CustomPatchesJson);
+        Assert.Equal(normalized.SpotX_CustomPatchesSourceUrl, clone.SpotX_CustomPatchesSourceUrl);
+        Assert.Equal(normalized.SpotX_CustomPatchesFetchedAtUtc, clone.SpotX_CustomPatchesFetchedAtUtc);
+        Assert.Equal(normalized.SpotX_CustomPatchesSourceByteCount, clone.SpotX_CustomPatchesSourceByteCount);
+        Assert.Equal(normalized.SpotX_CustomPatchesSourceSha256, clone.SpotX_CustomPatchesSourceSha256);
     }
 
     [Fact]

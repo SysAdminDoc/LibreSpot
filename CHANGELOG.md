@@ -16,6 +16,10 @@ All notable changes to LibreSpot will be documented in this file.
   highlighting, JSON formatting, regex and match/replace dry-run validation,
   HTTPS import review, CLI answer-file support, and backend temp-file staging
   through SpotX `-CustomPatchesPath`.
+- Added deterministic custom SpotX patch import provenance: imported
+  `patches.json` payloads now record source URL, fetch timestamp, byte count,
+  and SHA256 in config/profile metadata and redacted support bundles, with
+  injectable transport coverage for network edge cases.
 - Added profile sharing cards in WPF Custom mode with local QR rendering,
   share-link copying, selected-profile comparison text, embedded changelog
   preview, and direct community links for repository, Spicetify extensions, and

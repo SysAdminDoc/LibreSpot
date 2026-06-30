@@ -88,6 +88,12 @@ public sealed class LocalProfileServiceTests : IDisposable
         var config = AppCatalog.CreateRecommendedConfiguration();
         config.SpotX_Premium = true;
         config.RiskAcknowledged = true;
+        config.SpotX_CustomPatchesEnabled = true;
+        config.SpotX_CustomPatchesJson = "{ \"xpui\": { \"match\": \"one\", \"replace\": \"two\" } }";
+        config.SpotX_CustomPatchesSourceUrl = "https://example.test/patches.json";
+        config.SpotX_CustomPatchesFetchedAtUtc = DateTimeOffset.Parse("2026-06-30T12:34:56Z");
+        config.SpotX_CustomPatchesSourceByteCount = 54;
+        config.SpotX_CustomPatchesSourceSha256 = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
         var created = await _profileService.CreateFromConfigurationAsync("Share Me", "Portable setup", config);
         var exportPath = Path.Combine(_root, "share.librespot");
 
@@ -96,11 +102,15 @@ public sealed class LocalProfileServiceTests : IDisposable
         using var exported = JsonDocument.Parse(File.ReadAllText(exportPath));
         Assert.Equal("Share Me", exported.RootElement.GetProperty("profileName").GetString());
         Assert.False(exported.RootElement.GetProperty("settings").TryGetProperty("RiskAcknowledged", out _));
+        Assert.Equal("https://example.test/patches.json", exported.RootElement.GetProperty("settings").GetProperty("SpotX_CustomPatchesSourceUrl").GetString());
+        Assert.Equal("abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789", exported.RootElement.GetProperty("settings").GetProperty("SpotX_CustomPatchesSourceSha256").GetString());
 
         await _profileService.DeleteAsync(created.Summary.Id);
         var preview = await _profileService.PreviewImportAsync(exportPath);
         Assert.Equal("Share Me", preview.Name);
         Assert.True(preview.Configuration.SpotX_Premium);
+        Assert.Equal("https://example.test/patches.json", preview.Configuration.SpotX_CustomPatchesSourceUrl);
+        Assert.Equal(54, preview.Configuration.SpotX_CustomPatchesSourceByteCount);
         Assert.DoesNotContain(await _profileService.GetProfilesAsync(), profile => profile.Name == "Share Me");
 
         var imported = await _profileService.ImportAsync(exportPath);

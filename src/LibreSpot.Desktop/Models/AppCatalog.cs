@@ -43,6 +43,10 @@ public sealed class InstallConfiguration
     public string SpotX_Language { get; set; } = string.Empty;
     public bool SpotX_CustomPatchesEnabled { get; set; }
     public string SpotX_CustomPatchesJson { get; set; } = string.Empty;
+    public string SpotX_CustomPatchesSourceUrl { get; set; } = string.Empty;
+    public DateTimeOffset? SpotX_CustomPatchesFetchedAtUtc { get; set; }
+    public int SpotX_CustomPatchesSourceByteCount { get; set; }
+    public string SpotX_CustomPatchesSourceSha256 { get; set; } = string.Empty;
 
     public string Spicetify_Theme { get; set; } = "(None - Marketplace Only)";
     public string Spicetify_Scheme { get; set; } = "Default";
@@ -99,6 +103,10 @@ public sealed class InstallConfiguration
             SpotX_Language = SpotX_Language,
             SpotX_CustomPatchesEnabled = SpotX_CustomPatchesEnabled,
             SpotX_CustomPatchesJson = SpotX_CustomPatchesJson,
+            SpotX_CustomPatchesSourceUrl = SpotX_CustomPatchesSourceUrl,
+            SpotX_CustomPatchesFetchedAtUtc = SpotX_CustomPatchesFetchedAtUtc,
+            SpotX_CustomPatchesSourceByteCount = SpotX_CustomPatchesSourceByteCount,
+            SpotX_CustomPatchesSourceSha256 = SpotX_CustomPatchesSourceSha256,
             Spicetify_Theme = Spicetify_Theme,
             Spicetify_Scheme = Spicetify_Scheme,
             Spicetify_Marketplace = Spicetify_Marketplace,
@@ -707,6 +715,15 @@ public static class AppCatalog
         normalized.SpotX_ConfirmUninstall = source.SpotX_ConfirmUninstall;
         normalized.SpotX_CustomPatchesEnabled = source.SpotX_CustomPatchesEnabled;
         normalized.SpotX_CustomPatchesJson = TruncateCustomPatchesJson(source.SpotX_CustomPatchesJson);
+        if (!string.IsNullOrWhiteSpace(normalized.SpotX_CustomPatchesJson))
+        {
+            normalized.SpotX_CustomPatchesSourceUrl = NormalizeCustomPatchSourceUrl(source.SpotX_CustomPatchesSourceUrl);
+            normalized.SpotX_CustomPatchesFetchedAtUtc = source.SpotX_CustomPatchesFetchedAtUtc?.ToUniversalTime();
+            normalized.SpotX_CustomPatchesSourceByteCount = source.SpotX_CustomPatchesSourceByteCount is > 0 and <= 64 * 1024
+                ? source.SpotX_CustomPatchesSourceByteCount
+                : 0;
+            normalized.SpotX_CustomPatchesSourceSha256 = NormalizeSha256(source.SpotX_CustomPatchesSourceSha256);
+        }
 
         var rawDm = (source.SpotX_DownloadMethod ?? string.Empty).Trim().ToLowerInvariant();
         normalized.SpotX_DownloadMethod = rawDm is "curl" or "webclient" ? rawDm : "";
@@ -778,5 +795,22 @@ public static class AppCatalog
         var trimmed = json.Trim();
         const int maxChars = 64 * 1024;
         return trimmed.Length <= maxChars ? trimmed : trimmed[..maxChars];
+    }
+
+    private static string NormalizeCustomPatchSourceUrl(string? url)
+    {
+        var trimmed = (url ?? string.Empty).Trim();
+        return Uri.TryCreate(trimmed, UriKind.Absolute, out var uri) &&
+               string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            ? uri.ToString()
+            : string.Empty;
+    }
+
+    private static string NormalizeSha256(string? value)
+    {
+        var trimmed = (value ?? string.Empty).Trim().ToLowerInvariant();
+        return trimmed.Length == 64 && trimmed.All(ch => char.IsAsciiHexDigit(ch))
+            ? trimmed
+            : string.Empty;
     }
 }

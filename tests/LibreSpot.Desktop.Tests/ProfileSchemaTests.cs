@@ -74,6 +74,10 @@ public sealed class ProfileSchemaTests
         Assert.True(props.TryGetProperty("AutoReapply_Enabled", out _));
         Assert.True(props.TryGetProperty("SpotX_CustomPatchesEnabled", out _));
         Assert.True(props.TryGetProperty("SpotX_CustomPatchesJson", out _));
+        Assert.True(props.TryGetProperty("SpotX_CustomPatchesSourceUrl", out _));
+        Assert.True(props.TryGetProperty("SpotX_CustomPatchesFetchedAtUtc", out _));
+        Assert.True(props.TryGetProperty("SpotX_CustomPatchesSourceByteCount", out _));
+        Assert.True(props.TryGetProperty("SpotX_CustomPatchesSourceSha256", out _));
     }
 
     [Fact]
