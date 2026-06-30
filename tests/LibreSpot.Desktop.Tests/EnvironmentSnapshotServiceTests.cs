@@ -272,6 +272,77 @@ public sealed class EnvironmentSnapshotServiceTests
     }
 
     [Fact]
+    public void GetSnapshot_HealthReport_IncludesCommunityAssetComponents()
+    {
+        using var fixture = new SnapshotFixture();
+        var checkedAt = DateTimeOffset.Parse("2026-06-30T12:00:00Z");
+        var report = new CommunityAssetDriftReport(
+            new[]
+            {
+                new CommunityAssetState(
+                    "extension:beautiful-lyrics.mjs",
+                    "extension",
+                    "Beautiful Lyrics",
+                    "https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/61ac582da092311e893423269ca7f09003108705/Extension/Builds/Release/beautiful-lyrics.mjs",
+                    "https://github.com/surfbryce/beautiful-lyrics.git",
+                    "refs/heads/main",
+                    "61ac582da092311e893423269ca7f09003108705",
+                    "93c9ecfcb0a83c832c5ee7ca8fe826bcfaeec7cdd129c0bf05bab84b8ba6ba72",
+                    "61ac582da092311e893423269ca7f09003108705",
+                    "current",
+                    "git ls-remote",
+                    checkedAt,
+                    null,
+                    false,
+                    "NOASSERTION",
+                    "active",
+                    "skip-with-warning",
+                    "third-party-service",
+                    "Fetches lyrics from a third-party lyrics backend.",
+                    true,
+                    "Pinned commit 61ac582; latest 61ac582; license NOASSERTION; network third-party-service; trust review required."),
+                new CommunityAssetState(
+                    "custom-app:stats",
+                    "custom-app",
+                    "Stats",
+                    "https://github.com/harbassan/spicetify-apps/releases/download/stats-v1.1.3/spicetify-stats.release.zip",
+                    "https://github.com/harbassan/spicetify-apps.git",
+                    "refs/heads/main",
+                    "c39fef2b9ac9e9dbcdcd7c851b77c19a9a2eb8c1",
+                    "c5611ff8caafe9c673ed43de07fbae77296d42fbd14fab868e9cbeac5d2b6cb7",
+                    null,
+                    "missing",
+                    "git ls-remote",
+                    checkedAt,
+                    null,
+                    true,
+                    "MIT",
+                    "active",
+                    "skip-with-warning",
+                    "third-party-service",
+                    "Stats can contact Last.fm when users open Last.fm-backed views.",
+                    false,
+                    "Pinned commit c39fef2; latest unknown; drift missing; network third-party-service.")
+            },
+            checkedAt);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false, communityAssetDriftReport: report);
+
+        var review = Assert.Single(snapshot.HealthReport.InfoIssues, component => component.Id == "community-extension-beautiful-lyrics-mjs");
+        Assert.Equal("Beautiful Lyrics community extension", review.Name);
+        Assert.Equal("Review required", review.Status);
+        Assert.Equal(HealthSeverity.Info, review.Severity);
+        Assert.Contains("NOASSERTION", review.Evidence);
+        Assert.Contains("third-party-service", review.Evidence);
+
+        var missing = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "community-custom-app-stats");
+        Assert.Equal("Missing upstream", missing.Status);
+        Assert.Equal(HealthSeverity.Warning, missing.Severity);
+        Assert.Contains("ReviewCommunityAsset", missing.RecommendedActionIds);
+        Assert.Equal("https://github.com/harbassan/spicetify-apps/releases/download/stats-v1.1.3/spicetify-stats.release.zip", missing.Path);
+    }
+
+    [Fact]
     public void GetSnapshot_HealthReport_CoversCleanSlate()
     {
         using var fixture = new SnapshotFixture();
@@ -707,7 +778,10 @@ public sealed class EnvironmentSnapshotServiceTests
         public string RollingLogDirectory { get; }
         public string CrashDirectory { get; }
 
-        public EnvironmentSnapshot GetSnapshot(bool autoReapplyRegistered, UpstreamDriftReport? upstreamDriftReport = null)
+        public EnvironmentSnapshot GetSnapshot(
+            bool autoReapplyRegistered,
+            UpstreamDriftReport? upstreamDriftReport = null,
+            CommunityAssetDriftReport? communityAssetDriftReport = null)
         {
             var service = new EnvironmentSnapshotService(
                 autoReapplyTaskProbe: () => autoReapplyRegistered,
@@ -720,7 +794,8 @@ public sealed class EnvironmentSnapshotServiceTests
                 spotifyVersionProbe: () => SpotifyVersion,
                 spicetifyVersionProbe: () => SpicetifyVersion,
                 spotifyRunningProbe: () => SpotifyRunning,
-                upstreamDriftProbe: () => upstreamDriftReport ?? UpstreamDriftReport.Empty);
+                upstreamDriftProbe: () => upstreamDriftReport ?? UpstreamDriftReport.Empty,
+                communityAssetDriftProbe: () => communityAssetDriftReport ?? CommunityAssetDriftReport.Empty);
 
             return service.GetSnapshot(ConfigPath);
         }

@@ -36,6 +36,9 @@ public sealed record UpstreamMetadataLookupResult(
     public static UpstreamMetadataLookupResult Offline(string source, string message) =>
         new(false, null, source, "offline", message);
 
+    public static UpstreamMetadataLookupResult Missing(string source, string message) =>
+        new(false, null, source, "missing", message);
+
     public static UpstreamMetadataLookupResult Unavailable(string source, string message) =>
         new(false, null, source, "unavailable", message);
 }
@@ -474,12 +477,21 @@ public sealed class GitHubUpstreamMetadataClient : IUpstreamMetadataClient
 
             if (process.ExitCode != 0)
             {
+                if (stderr.Contains("Repository not found", StringComparison.OrdinalIgnoreCase) ||
+                    stderr.Contains("not found", StringComparison.OrdinalIgnoreCase) ||
+                    stderr.Contains("could not read from remote repository", StringComparison.OrdinalIgnoreCase))
+                {
+                    return UpstreamMetadataLookupResult.Missing(
+                        "git ls-remote",
+                        string.IsNullOrWhiteSpace(stderr) ? "Repository or ref was not found." : stderr.Trim());
+                }
+
                 return UpstreamMetadataLookupResult.Unavailable("git ls-remote", string.IsNullOrWhiteSpace(stderr) ? "git returned a nonzero exit code." : stderr.Trim());
             }
 
             var value = SelectGitValue(pin, stdout);
             return string.IsNullOrWhiteSpace(value)
-                ? UpstreamMetadataLookupResult.Unavailable("git ls-remote", "No matching ref was returned.")
+                ? UpstreamMetadataLookupResult.Missing("git ls-remote", "No matching ref was returned.")
                 : UpstreamMetadataLookupResult.Found(value, "git ls-remote");
         }
         catch (OperationCanceledException)

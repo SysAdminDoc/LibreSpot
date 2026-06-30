@@ -43,7 +43,9 @@ public partial class MainWindow : Window
             ? new MainViewModel(
                 new ConfigurationService(),
                 new BackendScriptService(),
-                new EnvironmentSnapshotService(upstreamDriftProbe: () => UpstreamDriftService.Default.GetReport()))
+                new EnvironmentSnapshotService(
+                    upstreamDriftProbe: () => UpstreamDriftService.Default.GetReport(),
+                    communityAssetDriftProbe: () => CommunityAssetDriftService.Default.GetReport()))
             : CreateUiAutomationSmokeViewModel(_uiAutomationSmokeCulture);
 
         DataContext = _viewModel;
@@ -559,7 +561,8 @@ public partial class MainWindow : Window
                 spotifyVersionProbe: () => "1.2.92",
                 spicetifyVersionProbe: () => "2.43.2",
                 spotifyRunningProbe: () => false,
-                upstreamDriftProbe: () => UpstreamDriftReport.Empty),
+                upstreamDriftProbe: () => UpstreamDriftReport.Empty,
+                communityAssetDriftProbe: () => CommunityAssetDriftReport.Empty),
             new SupportBundleService(configDirectory, logDirectory, crashDirectory));
     }
 }

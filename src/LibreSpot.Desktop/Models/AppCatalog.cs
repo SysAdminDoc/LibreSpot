@@ -159,6 +159,63 @@ public sealed record UpstreamDependencyState(
     bool IsDegraded,
     string Evidence);
 
+public sealed record CommunityAssetPin(
+    string Id,
+    string Kind,
+    string Name,
+    string Owner,
+    string Repository,
+    string Branch,
+    string PinnedCommit,
+    string? PinnedHash,
+    string? SourceUrl,
+    string License,
+    string SupportState,
+    string FallbackBehavior,
+    string NetworkBehavior,
+    string? NetworkDetail,
+    bool RequiresTrustReview);
+
+public sealed class CommunityAssetDriftReport
+{
+    public static CommunityAssetDriftReport Empty { get; } = new(Array.Empty<CommunityAssetState>(), DateTimeOffset.UtcNow);
+
+    public CommunityAssetDriftReport(IEnumerable<CommunityAssetState> assets, DateTimeOffset generatedAtUtc)
+    {
+        Assets = new ReadOnlyCollection<CommunityAssetState>(assets.ToArray());
+        GeneratedAtUtc = generatedAtUtc;
+    }
+
+    public IReadOnlyList<CommunityAssetState> Assets { get; }
+    public DateTimeOffset GeneratedAtUtc { get; }
+    public bool IsDegraded => Assets.Any(asset => asset.IsDegraded);
+    public bool HasMissingAssets => Assets.Any(asset => string.Equals(asset.DriftState, "missing", StringComparison.OrdinalIgnoreCase));
+    public bool HasReviewRequiredAssets => Assets.Any(asset => asset.RequiresTrustReview);
+}
+
+public sealed record CommunityAssetState(
+    string Id,
+    string Kind,
+    string Name,
+    string SourceUrl,
+    string GitRepository,
+    string GitReference,
+    string PinnedCommit,
+    string? PinnedHash,
+    string? LatestCommit,
+    string DriftState,
+    string MetadataSource,
+    DateTimeOffset CheckedAtUtc,
+    TimeSpan? CacheAge,
+    bool IsDegraded,
+    string License,
+    string SupportState,
+    string FallbackBehavior,
+    string NetworkBehavior,
+    string? NetworkDetail,
+    bool RequiresTrustReview,
+    string Evidence);
+
 public static class HealthSeverity
 {
     public const string Ready = "ready";
@@ -340,6 +397,7 @@ public sealed class EnvironmentSnapshot
     public bool AutoReapplyTaskRegistered { get; init; }
     public StackHealthReport HealthReport { get; init; } = StackHealthReport.Empty;
     public UpstreamDriftReport UpstreamDriftReport { get; init; } = UpstreamDriftReport.Empty;
+    public CommunityAssetDriftReport CommunityAssetDriftReport { get; init; } = CommunityAssetDriftReport.Empty;
     public string HostArchitecture { get; init; } = "Unknown";
     public string ProcessArchitecture { get; init; } = "Unknown";
     public bool MarketplaceReady => MarketplaceFilesPresent && MarketplaceRegistered;

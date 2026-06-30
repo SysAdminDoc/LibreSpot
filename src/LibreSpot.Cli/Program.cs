@@ -1007,6 +1007,7 @@ public static class CliApplication
             ComponentStatus(snapshot, "auto-reapply-watcher"),
             IssueIds(snapshot),
             RecommendedRepairIds(snapshot),
+            snapshot.CommunityAssetDriftReport.Assets.Select(CommunityAssetDocument.From).ToArray(),
             snapshot.UpstreamDriftReport.Dependencies.Select(UpstreamDependencyDocument.From).ToArray(),
             snapshot.HealthReport.Components.Select(ComponentDocument.From).ToArray());
 
@@ -1299,7 +1300,9 @@ public static class CliApplication
     private static EnvironmentSnapshot GetSnapshot(string configPath, Func<string, EnvironmentSnapshot>? snapshotFactory) =>
         snapshotFactory is not null
             ? snapshotFactory(configPath)
-            : new EnvironmentSnapshotService(upstreamDriftProbe: () => UpstreamDriftService.Default.GetReport()).GetSnapshot(configPath);
+            : new EnvironmentSnapshotService(
+                upstreamDriftProbe: () => UpstreamDriftService.Default.GetReport(),
+                communityAssetDriftProbe: () => CommunityAssetDriftService.Default.GetReport()).GetSnapshot(configPath);
 
     private static ParseResult Parse(string[] args)
     {
@@ -1570,8 +1573,57 @@ public sealed record StatusDocument(
     string? LastWatcherOutcome,
     IReadOnlyList<string> IssueIds,
     IReadOnlyList<string> RecommendedRepairIds,
+    IReadOnlyList<CommunityAssetDocument> CommunityAssets,
     IReadOnlyList<UpstreamDependencyDocument> UpstreamDependencies,
     IReadOnlyList<ComponentDocument> Components);
+
+public sealed record CommunityAssetDocument(
+    string Id,
+    string Kind,
+    string Name,
+    string SourceUrl,
+    string GitRepository,
+    string GitReference,
+    string PinnedCommit,
+    string? PinnedHash,
+    string? LatestCommit,
+    string DriftState,
+    string MetadataSource,
+    DateTimeOffset CheckedAtUtc,
+    double? CacheAgeSeconds,
+    bool IsDegraded,
+    string License,
+    string SupportState,
+    string FallbackBehavior,
+    string NetworkBehavior,
+    string? NetworkDetail,
+    bool RequiresTrustReview,
+    string Evidence)
+{
+    public static CommunityAssetDocument From(CommunityAssetState asset) =>
+        new(
+            asset.Id,
+            asset.Kind,
+            asset.Name,
+            asset.SourceUrl,
+            asset.GitRepository,
+            asset.GitReference,
+            asset.PinnedCommit,
+            asset.PinnedHash,
+            asset.LatestCommit,
+            asset.DriftState,
+            asset.MetadataSource,
+            asset.CheckedAtUtc,
+            asset.CacheAge?.TotalSeconds,
+            asset.IsDegraded,
+            asset.License,
+            asset.SupportState,
+            asset.FallbackBehavior,
+            asset.NetworkBehavior,
+            asset.NetworkDetail,
+            asset.RequiresTrustReview,
+            asset.Evidence);
+}
 
 public sealed record UpstreamDependencyDocument(
     string Id,

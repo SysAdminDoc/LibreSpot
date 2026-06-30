@@ -7,6 +7,8 @@ using Xunit;
 using CliApp = Cli::LibreSpot.Cli.CliApplication;
 using CliBackendMessage = Cli::LibreSpot.Desktop.Services.BackendMessage;
 using CliBackendRunResult = Cli::LibreSpot.Desktop.Services.BackendRunResult;
+using CliCommunityAssetDriftReport = Cli::LibreSpot.Desktop.Models.CommunityAssetDriftReport;
+using CliCommunityAssetState = Cli::LibreSpot.Desktop.Models.CommunityAssetState;
 using CliEnvironmentSnapshot = Cli::LibreSpot.Desktop.Models.EnvironmentSnapshot;
 using CliHealthSeverity = Cli::LibreSpot.Desktop.Models.HealthSeverity;
 using CliStackHealthComponent = Cli::LibreSpot.Desktop.Models.StackHealthComponent;
@@ -62,10 +64,38 @@ public sealed class CliApplicationTests
                     "Pinned/current 3284673d; latest ba77e8cc; drift behind; source git ls-remote; cache age 2 hours.")
             },
             DateTimeOffset.Parse("2026-06-27T12:30:00Z"));
-        var snapshot = SnapshotWithUpstream(
+        var communityReport = new CliCommunityAssetDriftReport(
+            new[]
+            {
+                new CliCommunityAssetState(
+                    "extension:beautiful-lyrics.mjs",
+                    "extension",
+                    "Beautiful Lyrics",
+                    "https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/61ac582da092311e893423269ca7f09003108705/Extension/Builds/Release/beautiful-lyrics.mjs",
+                    "https://github.com/surfbryce/beautiful-lyrics.git",
+                    "refs/heads/main",
+                    "61ac582da092311e893423269ca7f09003108705",
+                    "93c9ecfcb0a83c832c5ee7ca8fe826bcfaeec7cdd129c0bf05bab84b8ba6ba72",
+                    "61ac582da092311e893423269ca7f09003108705",
+                    "current",
+                    "git ls-remote",
+                    DateTimeOffset.Parse("2026-06-27T12:31:00Z"),
+                    null,
+                    false,
+                    "NOASSERTION",
+                    "active",
+                    "skip-with-warning",
+                    "third-party-service",
+                    "Fetches lyrics from a third-party lyrics backend.",
+                    true,
+                    "Pinned/current community metadata; network third-party-service; trust review required.")
+            },
+            DateTimeOffset.Parse("2026-06-27T12:31:00Z"));
+        var snapshot = SnapshotWithReports(
             true,
             true,
             upstreamReport,
+            communityReport,
             Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready, version: "1.2.92"),
             Component("spicetify-cli", "Spicetify CLI", "Detected", CliHealthSeverity.Ready, version: "2.43.2"),
             Component("backups", "Backups", "2 backups", CliHealthSeverity.Ready),
@@ -99,6 +129,11 @@ public sealed class CliApplicationTests
         Assert.Equal("behind", upstreamDependency.GetProperty("driftState").GetString());
         Assert.Equal("git ls-remote", upstreamDependency.GetProperty("metadataSource").GetString());
         Assert.Equal(7200, upstreamDependency.GetProperty("cacheAgeSeconds").GetDouble());
+        var communityAsset = doc.RootElement.GetProperty("communityAssets")[0];
+        Assert.Equal("extension:beautiful-lyrics.mjs", communityAsset.GetProperty("id").GetString());
+        Assert.Equal("NOASSERTION", communityAsset.GetProperty("license").GetString());
+        Assert.Equal("third-party-service", communityAsset.GetProperty("networkBehavior").GetString());
+        Assert.True(communityAsset.GetProperty("requiresTrustReview").GetBoolean());
     }
 
     [Fact]
@@ -982,6 +1017,14 @@ public sealed class CliApplicationTests
         bool spicetifyInstalled,
         CliUpstreamDriftReport upstreamDriftReport,
         params CliStackHealthComponent[] components) =>
+        SnapshotWithReports(spotifyInstalled, spicetifyInstalled, upstreamDriftReport, CliCommunityAssetDriftReport.Empty, components);
+
+    private static CliEnvironmentSnapshot SnapshotWithReports(
+        bool spotifyInstalled,
+        bool spicetifyInstalled,
+        CliUpstreamDriftReport upstreamDriftReport,
+        CliCommunityAssetDriftReport communityAssetDriftReport,
+        params CliStackHealthComponent[] components) =>
         new()
         {
             SpotifyInstalled = spotifyInstalled,
@@ -994,7 +1037,8 @@ public sealed class CliApplicationTests
             HostArchitecture = "x64",
             ProcessArchitecture = "x64",
             HealthReport = new CliStackHealthReport(components),
-            UpstreamDriftReport = upstreamDriftReport
+            UpstreamDriftReport = upstreamDriftReport,
+            CommunityAssetDriftReport = communityAssetDriftReport
         };
 
     private static CliStackHealthComponent Component(

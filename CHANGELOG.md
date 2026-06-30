@@ -43,6 +43,11 @@ All notable changes to LibreSpot will be documented in this file.
 - Added upstream drift monitoring for SpotX, Spicetify CLI, Marketplace,
   themes, and Stats pins with GitHub REST, `git ls-remote` fallback, cached
   offline metadata, and structured CLI `status --json` output.
+- Added community asset drift and trust-review health for curated extensions,
+  themes, and custom apps. Maintenance health, CLI `status --json`, and
+  support bundles now show current/behind/missing/degraded state, pinned
+  commit/hash, license, support state, fallback, and network behavior without
+  failing offline.
 - Added schema-backed operation receipts: backend runs now write typed
   operation-token entries and `run-receipt.latest.json`, while the WPF undo
   pane consumes the embedded token and receipt schemas before showing

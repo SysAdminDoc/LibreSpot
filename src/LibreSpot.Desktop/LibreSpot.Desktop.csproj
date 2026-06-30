@@ -20,6 +20,7 @@
     <Resource Include="..\..\icon.ico" Link="Assets\LibreSpot.ico" />
     <EmbeddedResource Include="Backend\LibreSpot.Backend.ps1" LogicalName="LibreSpot.Desktop.Backend.LibreSpot.Backend.ps1" />
     <EmbeddedResource Include="..\..\CHANGELOG.md" LogicalName="LibreSpot.Desktop.Docs.CHANGELOG.md" />
+    <EmbeddedResource Include="..\..\schemas\community-assets.json" LogicalName="LibreSpot.Desktop.Schemas.community-assets.json" />
     <EmbeddedResource Include="..\..\schemas\operation-token-types.json" LogicalName="LibreSpot.Desktop.Schemas.operation-token-types.json" />
     <EmbeddedResource Include="..\..\schemas\run-receipt-format.json" LogicalName="LibreSpot.Desktop.Schemas.run-receipt-format.json" />
     <EmbeddedResource Update="Properties\Strings.resx">

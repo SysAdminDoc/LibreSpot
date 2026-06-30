@@ -252,6 +252,30 @@ public sealed class SupportBundleService
             snapshot.ConfigFolderExists,
             snapshot.AutoReapplyTaskRegistered,
             customPatchImport = BuildCustomPatchImportReport(),
+            communityAssets = snapshot.CommunityAssetDriftReport.Assets.Select(asset => new
+            {
+                asset.Id,
+                asset.Kind,
+                asset.Name,
+                asset.SourceUrl,
+                asset.GitRepository,
+                asset.GitReference,
+                asset.PinnedCommit,
+                asset.PinnedHash,
+                asset.LatestCommit,
+                asset.DriftState,
+                asset.MetadataSource,
+                asset.CheckedAtUtc,
+                cacheAgeSeconds = asset.CacheAge?.TotalSeconds,
+                asset.IsDegraded,
+                asset.License,
+                asset.SupportState,
+                asset.FallbackBehavior,
+                asset.NetworkBehavior,
+                asset.NetworkDetail,
+                asset.RequiresTrustReview,
+                evidence = RedactNullable(asset.Evidence)
+            }),
             components = snapshot.HealthReport.Components.Select(component => new
             {
                 component.Id,

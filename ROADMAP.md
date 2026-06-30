@@ -473,13 +473,6 @@ needs to detect and surface this state, not just show booleans.
   Acceptance: Tests seed valid cached SpotX, Spicetify CLI, Marketplace, theme, and Stats/custom-app archives, simulate network failure, verify the backend uses only SHA256-verified cached assets with warning-level logs, and fail when the cached hash is missing or wrong.
   Complexity: L
 
-- [ ] P1 — Add community asset drift and trust review health
-  Why: Core upstream drift now covers SpotX, Spicetify CLI, Marketplace, themes archive, and Stats, but reviewed community extensions/themes/custom apps can still disappear, move, or change license/network behavior without a health signal.
-  Evidence: `schemas/community-assets.json`, `tests/LibreSpot.Desktop.Tests/CommunityAssetsManifestTests.cs`, Spicetify Marketplace issues, Windhawk mod provenance model.
-  Touches: `src/LibreSpot.Desktop/Models/AppCatalog.cs`, `src/LibreSpot.Desktop/Services/UpstreamDriftService.cs`, `src/LibreSpot.Desktop/Services/EnvironmentSnapshotService.cs`, `src/LibreSpot.Desktop/Services/SupportBundleService.cs`, `tests/LibreSpot.Desktop.Tests/CommunityAssetsManifestTests.cs`, `tests/LibreSpot.Desktop.Tests/UpstreamDriftServiceTests.cs`.
-  Acceptance: A fixture-backed checker reports every community extension, theme, and custom app as current/behind/missing/degraded with source URL, pinned commit/hash, license, support state, fallback, and network behavior; Maintenance, CLI status JSON, and support bundles show degraded/missing/review-required assets without failing offline; tests fail when a reviewed asset lacks drift metadata.
-  Complexity: M
-
 - [ ] P1 — Add Marketplace post-apply visibility and repair evidence
   Why: LibreSpot verifies Marketplace files and `custom_apps`, but upstream Marketplace reports still include black-screen and no-apply states that need clearer post-apply evidence and recovery guidance.
   Evidence: `src/powershell/shared/Repair-Marketplace.ps1`, `src/LibreSpot.Desktop/Services/EnvironmentSnapshotService.cs`, Spicetify Marketplace issues.

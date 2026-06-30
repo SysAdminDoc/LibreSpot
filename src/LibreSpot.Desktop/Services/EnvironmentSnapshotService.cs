@@ -18,6 +18,7 @@ public sealed class EnvironmentSnapshotService
     private readonly Func<string?> _spicetifyVersionProbe;
     private readonly Func<bool> _spotifyRunningProbe;
     private readonly Func<UpstreamDriftReport> _upstreamDriftProbe;
+    private readonly Func<CommunityAssetDriftReport> _communityAssetDriftProbe;
 
     public EnvironmentSnapshotService(
         Func<bool>? autoReapplyTaskProbe = null,
@@ -30,7 +31,8 @@ public sealed class EnvironmentSnapshotService
         Func<string?>? spotifyVersionProbe = null,
         Func<string?>? spicetifyVersionProbe = null,
         Func<bool>? spotifyRunningProbe = null,
-        Func<UpstreamDriftReport>? upstreamDriftProbe = null)
+        Func<UpstreamDriftReport>? upstreamDriftProbe = null,
+        Func<CommunityAssetDriftReport>? communityAssetDriftProbe = null)
     {
         _autoReapplyTaskProbe = autoReapplyTaskProbe ?? IsAutoReapplyTaskRegistered;
         _spotifyPath = string.IsNullOrWhiteSpace(spotifyPath)
@@ -55,6 +57,7 @@ public sealed class EnvironmentSnapshotService
         _spicetifyVersionProbe = spicetifyVersionProbe ?? (() => GetFileVersion(_spicetifyPath));
         _spotifyRunningProbe = spotifyRunningProbe ?? IsSpotifyRunning;
         _upstreamDriftProbe = upstreamDriftProbe ?? UpstreamDriftService.Default.GetCachedReport;
+        _communityAssetDriftProbe = communityAssetDriftProbe ?? CommunityAssetDriftService.Default.GetCachedReport;
     }
 
     // Snapshot probing touches the filesystem and shells out to schtasks.exe
@@ -83,6 +86,7 @@ public sealed class EnvironmentSnapshotService
         var configFolderExists = Directory.Exists(configDirectory);
         var autoReapplyTaskRegistered = _autoReapplyTaskProbe();
         var upstreamDriftReport = GetUpstreamDriftReport();
+        var communityAssetDriftReport = GetCommunityAssetDriftReport();
         var healthReport = BuildHealthReport(
             configDirectory,
             configPath,
@@ -96,7 +100,8 @@ public sealed class EnvironmentSnapshotService
             savedConfigExists,
             configFolderExists,
             autoReapplyTaskRegistered,
-            upstreamDriftReport);
+            upstreamDriftReport,
+            communityAssetDriftReport);
 
         return new EnvironmentSnapshot
         {
@@ -109,6 +114,7 @@ public sealed class EnvironmentSnapshotService
             AutoReapplyTaskRegistered = autoReapplyTaskRegistered,
             HealthReport = healthReport,
             UpstreamDriftReport = upstreamDriftReport,
+            CommunityAssetDriftReport = communityAssetDriftReport,
             HostArchitecture = GetHostArchitecture(),
             ProcessArchitecture = GetProcessArchitecture()
         };
@@ -127,7 +133,8 @@ public sealed class EnvironmentSnapshotService
         bool savedConfigExists,
         bool configFolderExists,
         bool autoReapplyTaskRegistered,
-        UpstreamDriftReport upstreamDriftReport)
+        UpstreamDriftReport upstreamDriftReport,
+        CommunityAssetDriftReport communityAssetDriftReport)
     {
         var watcherStatePath = Path.Combine(configDirectory, "watcher-state.json");
         var watcherState = ReadWatcherState(watcherStatePath);
@@ -155,6 +162,7 @@ public sealed class EnvironmentSnapshotService
             BuildSavedProfileComponent(configPath, savedConfigExists, configFolderExists)
         };
         components.AddRange(BuildUpstreamDriftComponents(upstreamDriftReport));
+        components.AddRange(BuildCommunityAssetComponents(communityAssetDriftReport));
 
         return new StackHealthReport(components);
     }
@@ -188,6 +196,42 @@ public sealed class EnvironmentSnapshotService
         }
     }
 
+    private CommunityAssetDriftReport GetCommunityAssetDriftReport()
+    {
+        try
+        {
+            return _communityAssetDriftProbe();
+        }
+        catch (Exception ex)
+        {
+            return new CommunityAssetDriftReport(
+                CommunityAssetDriftService.Default.Pins.Select(pin =>
+                    new CommunityAssetState(
+                        pin.Id,
+                        pin.Kind,
+                        pin.Name,
+                        pin.SourceUrl ?? $"https://github.com/{pin.Owner}/{pin.Repository}",
+                        $"https://github.com/{pin.Owner}/{pin.Repository}.git",
+                        $"refs/heads/{pin.Branch}",
+                        pin.PinnedCommit,
+                        pin.PinnedHash,
+                        null,
+                        "degraded",
+                        "unavailable",
+                        DateTimeOffset.UtcNow,
+                        null,
+                        true,
+                        pin.License,
+                        pin.SupportState,
+                        pin.FallbackBehavior,
+                        pin.NetworkBehavior,
+                        pin.NetworkDetail,
+                        pin.RequiresTrustReview,
+                        $"Pinned commit {pin.PinnedCommit}; latest unknown; drift degraded; source unavailable; cache age none. Live community asset metadata is degraded. Detail: {ex.Message}")),
+                DateTimeOffset.UtcNow);
+        }
+    }
+
     private static IEnumerable<StackHealthComponent> BuildUpstreamDriftComponents(UpstreamDriftReport report)
     {
         foreach (var dependency in report.Dependencies)
@@ -216,6 +260,79 @@ public sealed class EnvironmentSnapshotService
                 dependency.CheckedAtUtc.LocalDateTime,
                 dependency.Evidence);
         }
+    }
+
+    private static IEnumerable<StackHealthComponent> BuildCommunityAssetComponents(CommunityAssetDriftReport report)
+    {
+        foreach (var asset in report.Assets)
+        {
+            var status = CommunityAssetStatus(asset);
+            var severity = CommunityAssetSeverity(asset);
+            var actions = severity == HealthSeverity.Warning || string.Equals(asset.DriftState, "behind", StringComparison.OrdinalIgnoreCase)
+                ? new[] { "ReviewCommunityAsset" }
+                : Array.Empty<string>();
+
+            yield return Component(
+                CommunityAssetComponentId(asset),
+                $"{asset.Name} community {asset.Kind}",
+                status,
+                severity,
+                asset.LatestCommit,
+                asset.SourceUrl,
+                asset.CheckedAtUtc.LocalDateTime,
+                asset.Evidence,
+                actions);
+        }
+    }
+
+    private static string CommunityAssetStatus(CommunityAssetState asset)
+    {
+        if (string.Equals(asset.DriftState, "missing", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Missing upstream";
+        }
+
+        if (asset.IsDegraded)
+        {
+            return string.IsNullOrWhiteSpace(asset.LatestCommit) ? "Latest unknown" : "Cached metadata";
+        }
+
+        if (string.Equals(asset.DriftState, "behind", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Upstream changed";
+        }
+
+        if (asset.RequiresTrustReview)
+        {
+            return "Review required";
+        }
+
+        return "Current";
+    }
+
+    private static string CommunityAssetSeverity(CommunityAssetState asset)
+    {
+        if (string.Equals(asset.DriftState, "missing", StringComparison.OrdinalIgnoreCase))
+        {
+            return HealthSeverity.Warning;
+        }
+
+        if (asset.IsDegraded ||
+            string.Equals(asset.DriftState, "behind", StringComparison.OrdinalIgnoreCase) ||
+            asset.RequiresTrustReview)
+        {
+            return HealthSeverity.Info;
+        }
+
+        return HealthSeverity.Ready;
+    }
+
+    private static string CommunityAssetComponentId(CommunityAssetState asset)
+    {
+        var slug = asset.Id
+            .Select(ch => char.IsLetterOrDigit(ch) ? char.ToLowerInvariant(ch) : '-')
+            .ToArray();
+        return "community-" + new string(slug).Trim('-');
     }
 
     private StackHealthComponent BuildSpotifyComponent(bool installed)

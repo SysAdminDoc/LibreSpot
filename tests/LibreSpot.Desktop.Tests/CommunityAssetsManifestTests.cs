@@ -137,7 +137,7 @@ public sealed class CommunityAssetsManifestTests
         foreach (var ext in Manifest.RootElement.GetProperty("extensions").EnumerateArray())
         {
             var filename = ext.GetProperty("filename").GetString()!;
-            var required = new[] { "filename", "displayName", "owner", "repo", "commitSha", "sourceUrl", "sha256", "spdxLicense", "supportState", "fallbackBehavior", "networkBehavior" };
+            var required = new[] { "filename", "displayName", "owner", "repo", "branch", "commitSha", "sourceUrl", "sha256", "spdxLicense", "supportState", "fallbackBehavior", "networkBehavior" };
             foreach (var field in required)
             {
                 Assert.True(
@@ -153,7 +153,7 @@ public sealed class CommunityAssetsManifestTests
         foreach (var theme in Manifest.RootElement.GetProperty("themes").EnumerateArray())
         {
             var themeId = theme.GetProperty("themeId").GetString()!;
-            var required = new[] { "themeId", "displayName", "owner", "repo", "commitSha", "archiveSha256", "spdxLicense", "supportState", "fallbackBehavior", "schemes", "requiresJsInjection", "networkBehavior" };
+            var required = new[] { "themeId", "displayName", "owner", "repo", "branch", "commitSha", "archiveSha256", "spdxLicense", "supportState", "fallbackBehavior", "schemes", "requiresJsInjection", "networkBehavior" };
             foreach (var field in required)
             {
                 Assert.True(
@@ -237,7 +237,7 @@ public sealed class CommunityAssetsManifestTests
         foreach (var app in customApps.EnumerateArray())
         {
             var appId = app.GetProperty("appId").GetString()!;
-            var required = new[] { "appId", "displayName", "description", "owner", "repo", "commitSha", "assetPath", "sha256", "spdxLicense", "supportState", "fallbackBehavior", "networkBehavior", "easyModeDefault" };
+            var required = new[] { "appId", "displayName", "description", "owner", "repo", "branch", "commitSha", "assetPath", "sha256", "spdxLicense", "supportState", "fallbackBehavior", "networkBehavior", "easyModeDefault" };
             foreach (var field in required)
             {
                 Assert.True(
@@ -423,6 +423,39 @@ public sealed class CommunityAssetsManifestTests
                         && !string.IsNullOrWhiteSpace(detail.GetString()),
                     $"Asset '{id}' is networked but has no 'networkDetail' explaining what it contacts.");
             }
+        }
+    }
+
+    [Fact]
+    public void Manifest_AllAssetsHaveDriftMetadata()
+    {
+        IEnumerable<(JsonElement Asset, string Id, string HashProperty)> assets =
+            Manifest.RootElement.GetProperty("extensions").EnumerateArray()
+                .Select(asset => (asset, asset.GetProperty("filename").GetString()!, "sha256"))
+                .Concat(Manifest.RootElement.GetProperty("themes").EnumerateArray()
+                    .Select(asset => (asset, asset.GetProperty("themeId").GetString()!, "archiveSha256")))
+                .Concat(Manifest.RootElement.GetProperty("customApps").EnumerateArray()
+                    .Select(asset => (asset, asset.GetProperty("appId").GetString()!, "sha256")));
+
+        foreach (var (asset, id, hashProperty) in assets)
+        {
+            Assert.True(
+                asset.TryGetProperty("branch", out var branch)
+                    && branch.ValueKind == JsonValueKind.String
+                    && !string.IsNullOrWhiteSpace(branch.GetString()),
+                $"Asset '{id}' must declare the upstream branch used for drift checks.");
+
+            Assert.True(
+                asset.TryGetProperty("commitSha", out var commit)
+                    && commit.ValueKind == JsonValueKind.String
+                    && Regex.IsMatch(commit.GetString()!, @"^[a-f0-9]{40}$"),
+                $"Asset '{id}' must declare a 40-char commitSha for drift checks.");
+
+            Assert.True(
+                asset.TryGetProperty(hashProperty, out var hash)
+                    && hash.ValueKind == JsonValueKind.String
+                    && Regex.IsMatch(hash.GetString()!, @"^[a-f0-9]{64}$"),
+                $"Asset '{id}' must declare a 64-char {hashProperty} for install/cache verification.");
         }
     }
 

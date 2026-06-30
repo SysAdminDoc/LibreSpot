@@ -142,6 +142,51 @@ public sealed class SupportBundleServiceTests
     }
 
     [Fact]
+    public async Task ExportAsync_IncludesCommunityAssetHealth()
+    {
+        using var fixture = new SupportBundleFixture();
+        fixture.WriteStackReadyState();
+        var checkedAt = DateTimeOffset.Parse("2026-06-30T12:00:00Z");
+        var communityReport = new CommunityAssetDriftReport(
+            new[]
+            {
+                new CommunityAssetState(
+                    "extension:beautiful-lyrics.mjs",
+                    "extension",
+                    "Beautiful Lyrics",
+                    "https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/61ac582da092311e893423269ca7f09003108705/Extension/Builds/Release/beautiful-lyrics.mjs",
+                    "https://github.com/surfbryce/beautiful-lyrics.git",
+                    "refs/heads/main",
+                    "61ac582da092311e893423269ca7f09003108705",
+                    "93c9ecfcb0a83c832c5ee7ca8fe826bcfaeec7cdd129c0bf05bab84b8ba6ba72",
+                    "61ac582da092311e893423269ca7f09003108705",
+                    "current",
+                    "git ls-remote",
+                    checkedAt,
+                    null,
+                    false,
+                    "NOASSERTION",
+                    "active",
+                    "skip-with-warning",
+                    "third-party-service",
+                    "Fetches lyrics from a third-party lyrics backend.",
+                    true,
+                    "Pinned/current community metadata; network third-party-service; trust review required.")
+            },
+            checkedAt);
+
+        var result = await fixture.ExportAsync(new SupportBundleOptions(), communityReport);
+        var entries = ReadZipText(result.Path);
+        var health = entries["health/health-report.json"];
+
+        Assert.Contains("\"communityAssets\"", health);
+        Assert.Contains("\"id\": \"extension:beautiful-lyrics.mjs\"", health);
+        Assert.Contains("\"license\": \"NOASSERTION\"", health);
+        Assert.Contains("\"networkBehavior\": \"third-party-service\"", health);
+        Assert.Contains("\"requiresTrustReview\": true", health);
+    }
+
+    [Fact]
     public void CreatePreview_ReportsSelectionsEstimateAndRedactionRules()
     {
         using var fixture = new SupportBundleFixture();
@@ -202,10 +247,12 @@ public sealed class SupportBundleServiceTests
         public string CrashDirectory { get; }
         public SupportBundleService Service { get; }
 
-        public Task<SupportBundleResult> ExportAsync(SupportBundleOptions options) =>
-            Service.ExportAsync(Path.Combine(Root, "support.zip"), GetSnapshot(), options);
+        public Task<SupportBundleResult> ExportAsync(
+            SupportBundleOptions options,
+            CommunityAssetDriftReport? communityAssetDriftReport = null) =>
+            Service.ExportAsync(Path.Combine(Root, "support.zip"), GetSnapshot(communityAssetDriftReport), options);
 
-        public EnvironmentSnapshot GetSnapshot()
+        public EnvironmentSnapshot GetSnapshot(CommunityAssetDriftReport? communityAssetDriftReport = null)
         {
             var service = new EnvironmentSnapshotService(
                 autoReapplyTaskProbe: () => true,
@@ -214,7 +261,9 @@ public sealed class SupportBundleServiceTests
                 spicetifyConfigDirectory: SpicetifyConfigDirectory,
                 backupDirectory: BackupDirectory,
                 rollingLogDirectory: RollingLogDirectory,
-                crashDirectory: CrashDirectory);
+                crashDirectory: CrashDirectory,
+                upstreamDriftProbe: () => UpstreamDriftReport.Empty,
+                communityAssetDriftProbe: () => communityAssetDriftReport ?? CommunityAssetDriftReport.Empty);
 
             return service.GetSnapshot(ConfigPath);
         }
