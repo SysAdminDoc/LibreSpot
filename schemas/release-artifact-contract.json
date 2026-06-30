@@ -24,6 +24,9 @@
     {
       "name": "LibreSpot.exe",
       "description": "PS2EXE compiled PowerShell script (single-file, requires admin)",
+      "packageRole": "stable-script-exe",
+      "runtimeIdentifier": "win-x64",
+      "buildMode": "ps2exe",
       "channels": ["stable", "preview", "rc"],
       "required": true,
       "checksumEntry": true,
@@ -34,6 +37,9 @@
     {
       "name": "LibreSpot.ps1",
       "description": "Raw PowerShell script for iex one-liner installs",
+      "packageRole": "source-script",
+      "runtimeIdentifier": "any",
+      "buildMode": "script",
       "channels": ["stable", "preview", "rc"],
       "required": true,
       "checksumEntry": true,
@@ -44,6 +50,9 @@
     {
       "name": "LibreSpot-Desktop.exe",
       "description": ".NET 10 WPF self-contained single-file executable",
+      "packageRole": "desktop-shell",
+      "runtimeIdentifier": "win-x64",
+      "buildMode": "dotnet-self-contained",
       "channels": ["stable", "preview", "rc"],
       "required": true,
       "checksumEntry": true,
@@ -54,6 +63,9 @@
     {
       "name": "LibreSpot.Cli.exe",
       "description": ".NET 10 console-capable fleet CLI executable",
+      "packageRole": "fleet-cli",
+      "runtimeIdentifier": "win-x64",
+      "buildMode": "dotnet-self-contained",
       "channels": ["stable", "preview", "rc"],
       "required": true,
       "checksumEntry": true,
@@ -64,6 +76,10 @@
     {
       "name": "LibreSpot.sbom.cdx.json",
       "description": "CycloneDX SBOM for the WPF desktop shell",
+      "packageRole": "sbom",
+      "runtimeIdentifier": "any",
+      "buildMode": "metadata",
+      "sbomSubject": "LibreSpot-Desktop.exe",
       "channels": ["stable", "preview", "rc"],
       "required": true,
       "checksumEntry": true,
@@ -74,6 +90,9 @@
     {
       "name": "checksums.txt",
       "description": "SHA256 checksums for all release assets (sha256sum format)",
+      "packageRole": "checksums",
+      "runtimeIdentifier": "any",
+      "buildMode": "metadata",
       "channels": ["stable", "preview", "rc"],
       "required": true,
       "checksumEntry": false,
@@ -84,6 +103,10 @@
     {
       "name": "librespot-release-manifest.json",
       "description": "Machine-readable release manifest with per-artifact SHA256, size, RID, and role for package-manager automation",
+      "packageRole": "release-manifest",
+      "runtimeIdentifier": "any",
+      "buildMode": "metadata",
+      "selfReferential": true,
       "channels": ["stable", "preview", "rc"],
       "required": true,
       "checksumEntry": false,

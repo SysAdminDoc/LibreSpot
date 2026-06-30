@@ -30,6 +30,9 @@ All notable changes to LibreSpot will be documented in this file.
 - Added package-manifest safety tests so draft winget, Scoop, Chocolatey, and
   package-channel metadata stay visibly blocked until release-manifest-generated
   hashes, signing, and package identity decisions are ready.
+- Added local release-manifest generation through `Build-Scripts.ps1
+  -GenerateReleaseManifest`, including checksum verification, artifact roles,
+  runtime identifiers, signing state, and package-validation preflight checks.
 - Added schema-backed operation receipts: backend runs now write typed
   operation-token entries and `run-receipt.latest.json`, while the WPF undo
   pane consumes the embedded token and receipt schemas before showing

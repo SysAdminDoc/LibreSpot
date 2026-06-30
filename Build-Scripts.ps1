@@ -26,14 +26,28 @@ param(
     [switch]$Validate,
     [switch]$Inventory,
     [switch]$Lint,
-    [switch]$SyncSharedToBackend
+    [switch]$SyncSharedToBackend,
+    [switch]$GenerateReleaseManifest,
+    [string]$ReleaseRoot,
+    [string]$ReleaseVersion,
+    [ValidateSet('stable', 'preview', 'rc')]
+    [string]$ReleaseChannel,
+    [string]$ReleaseManifestPath
 )
 
 $ErrorActionPreference = 'Stop'
 
 $mainScript = Join-Path $PSScriptRoot 'LibreSpot.ps1'
 $backendScript = Join-Path $PSScriptRoot 'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1'
+$releaseContractPath = Join-Path $PSScriptRoot 'schemas/release-artifact-contract.json'
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+if ([string]::IsNullOrWhiteSpace($ReleaseRoot)) {
+    $ReleaseRoot = Join-Path $PSScriptRoot 'publish'
+}
+if ([string]::IsNullOrWhiteSpace($ReleaseManifestPath)) {
+    $ReleaseManifestPath = Join-Path $ReleaseRoot 'librespot-release-manifest.json'
+}
 
 if (-not (Test-Path -LiteralPath $mainScript)) {
     throw "Cannot find LibreSpot.ps1 at $mainScript"
@@ -81,6 +95,328 @@ function ConvertTo-NormalizedFunctionBody {
     return ($lines -join "`n")
 }
 
+function Get-JsonFile {
+    param([Parameter(Mandatory)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "JSON file not found: $Path"
+    }
+
+    return Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json
+}
+
+function Get-LibreSpotProjectVersion {
+    $projectPath = Join-Path $PSScriptRoot 'src/LibreSpot.Desktop/LibreSpot.Desktop.csproj'
+    if (-not (Test-Path -LiteralPath $projectPath -PathType Leaf)) {
+        throw "Cannot infer release version; project file not found at $projectPath"
+    }
+
+    [xml]$project = Get-Content -Raw -LiteralPath $projectPath
+    $version = $project.Project.PropertyGroup |
+        ForEach-Object { $_.Version } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
+        Select-Object -First 1
+
+    if ([string]::IsNullOrWhiteSpace([string]$version)) {
+        throw "Cannot infer release version; <Version> is missing from $projectPath"
+    }
+
+    return [string]$version
+}
+
+function Resolve-LibreSpotReleaseChannel {
+    param(
+        [Parameter(Mandatory)][string]$Version,
+        [string]$ExplicitChannel
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($ExplicitChannel)) {
+        return $ExplicitChannel
+    }
+
+    $normalized = $Version.Trim()
+    if ($normalized.StartsWith('v', [System.StringComparison]::OrdinalIgnoreCase)) {
+        $normalized = $normalized.Substring(1)
+    }
+
+    if ($normalized -match '^\d+\.\d+\.\d+-preview\.\d+$') { return 'preview' }
+    if ($normalized -match '^\d+\.\d+\.\d+-rc\.\d+$') { return 'rc' }
+    if ($normalized -match '^\d+\.\d+\.\d+$') { return 'stable' }
+
+    throw "Cannot infer release channel from version '$Version'. Pass -ReleaseChannel stable|preview|rc."
+}
+
+function Get-ReleaseChecksumMap {
+    param([Parameter(Mandatory)][string]$ChecksumsPath)
+
+    if (-not (Test-Path -LiteralPath $ChecksumsPath -PathType Leaf)) {
+        throw "checksums.txt not found at $ChecksumsPath"
+    }
+
+    $map = @{}
+    foreach ($line in [System.IO.File]::ReadLines($ChecksumsPath)) {
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        if ($line -match 'PLACEHOLDER') {
+            throw "checksums.txt contains a placeholder hash: $line"
+        }
+        if ($line -notmatch '^(?<hash>[A-Fa-f0-9]{64})\s+\*?(?<name>.+)$') {
+            throw "checksums.txt contains an invalid sha256sum line: $line"
+        }
+
+        $name = Split-Path -Leaf $Matches.name.Trim()
+        if ($map.ContainsKey($name)) {
+            throw "checksums.txt contains duplicate entry for $name"
+        }
+
+        $map[$name] = $Matches.hash.ToLowerInvariant()
+    }
+
+    return $map
+}
+
+function Get-FileSha256Lower {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $stream = [System.IO.File]::OpenRead($Path)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return (($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') }) -join '')
+    } finally {
+        $stream.Dispose()
+        $sha.Dispose()
+    }
+}
+
+function Get-AuthenticodeState {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$Requirement
+    )
+
+    if ($Requirement -eq 'none') {
+        return 'not-required'
+    }
+
+    if (-not (Get-Command Get-AuthenticodeSignature -ErrorAction SilentlyContinue)) {
+        return 'unavailable'
+    }
+
+    try {
+        return (Get-AuthenticodeSignature -FilePath $Path).Status.ToString()
+    } catch {
+        return "error: $($_.Exception.Message)"
+    }
+}
+
+function Assert-ReleaseArtifactMetadata {
+    param([Parameter(Mandatory)]$Artifact)
+
+    foreach ($field in @('packageRole', 'runtimeIdentifier', 'buildMode')) {
+        if (-not $Artifact.PSObject.Properties[$field] -or [string]::IsNullOrWhiteSpace([string]$Artifact.$field)) {
+            throw "Release artifact '$($Artifact.name)' is missing metadata field '$field'."
+        }
+    }
+}
+
+function New-ReleaseArtifactManifestEntry {
+    param(
+        [Parameter(Mandatory)]$Artifact,
+        [Parameter(Mandatory)][string]$Root,
+        [Parameter(Mandatory)][hashtable]$ChecksumMap,
+        [Parameter(Mandatory)]$SigningContract,
+        [Parameter(Mandatory)][string]$Version,
+        [Parameter(Mandatory)][string]$Channel,
+        [Parameter(Mandatory)][string]$ManifestFileName
+    )
+
+    Assert-ReleaseArtifactMetadata -Artifact $Artifact
+
+    $name = [string]$Artifact.name
+    $isSelfReferential = $Artifact.PSObject.Properties['selfReferential'] -and [bool]$Artifact.selfReferential
+    $path = Join-Path $Root $name
+    $checksumVerified = $null
+    $sha256 = $null
+    $sizeBytes = $null
+
+    if ($isSelfReferential -and $name -eq $ManifestFileName) {
+        # A manifest cannot contain the final hash of itself without changing
+        # its own content. The post-write verifier checks that this entry exists.
+    } else {
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Required release artifact is missing: $path"
+        }
+
+        $sha256 = Get-FileSha256Lower -Path $path
+        $sizeBytes = (Get-Item -LiteralPath $path).Length
+
+        if ([bool]$Artifact.checksumEntry) {
+            if (-not $ChecksumMap.ContainsKey($name)) {
+                throw "checksums.txt is missing required entry for $name"
+            }
+            if ($ChecksumMap[$name] -ne $sha256) {
+                throw "checksums.txt hash for $name does not match the artifact."
+            }
+            $checksumVerified = $true
+        }
+    }
+
+    $distributionChannels = @()
+    if ($Artifact.PSObject.Properties['distributionChannels']) {
+        $distributionChannels = @($Artifact.distributionChannels)
+    }
+
+    $entry = [ordered]@{
+        name                 = $name
+        description          = [string]$Artifact.description
+        packageRole          = [string]$Artifact.packageRole
+        version              = $Version
+        channel              = $Channel
+        buildMode            = [string]$Artifact.buildMode
+        runtimeIdentifier    = [string]$Artifact.runtimeIdentifier
+        path                 = $name
+        sizeBytes            = $sizeBytes
+        sha256               = $sha256
+        checksumEntry        = [bool]$Artifact.checksumEntry
+        checksumVerified     = $checksumVerified
+        signing              = [ordered]@{
+            requirement   = [string]$Artifact.signingRequirement
+            expectedState = if ([string]$Artifact.signingRequirement -eq 'none') { 'not-required' } else { [string]$SigningContract.status }
+            actualState   = if ($sha256) { Get-AuthenticodeState -Path $path -Requirement ([string]$Artifact.signingRequirement) } else { 'self-referential' }
+        }
+        sbomSubject          = if ($Artifact.PSObject.Properties['sbomSubject']) { [string]$Artifact.sbomSubject } else { $null }
+        distributionChannels = $distributionChannels
+        selfReferential      = [bool]$isSelfReferential
+    }
+
+    return [pscustomobject]$entry
+}
+
+function Test-LibreSpotReleaseManifest {
+    param(
+        [Parameter(Mandatory)][string]$ManifestPath,
+        [Parameter(Mandatory)][string]$Root,
+        [Parameter(Mandatory)]$Contract
+    )
+
+    $manifest = Get-JsonFile -Path $ManifestPath
+    if ([int]$manifest.schemaVersion -ne 1) {
+        throw "Release manifest schemaVersion must be 1."
+    }
+
+    $requiredArtifacts = @($Contract.artifacts | Where-Object { [bool]$_.required })
+    $requiredNames = @($requiredArtifacts | ForEach-Object { [string]$_.name })
+    $actualNames = @($manifest.artifacts | ForEach-Object { [string]$_.name })
+
+    foreach ($name in $requiredNames) {
+        if ($actualNames -notcontains $name) {
+            throw "Release manifest is missing required artifact '$name'."
+        }
+    }
+
+    $duplicates = $actualNames | Group-Object | Where-Object { $_.Count -ne 1 }
+    if ($duplicates) {
+        throw "Release manifest has duplicate artifact entries: $($duplicates.Name -join ', ')"
+    }
+
+    foreach ($entry in @($manifest.artifacts)) {
+        foreach ($field in @('name', 'version', 'packageRole', 'runtimeIdentifier', 'buildMode', 'path')) {
+            if (-not $entry.PSObject.Properties[$field] -or [string]::IsNullOrWhiteSpace([string]$entry.$field)) {
+                throw "Manifest artifact '$($entry.name)' is missing '$field'."
+            }
+        }
+
+        if ([bool]$entry.selfReferential) {
+            if ((Split-Path -Leaf $ManifestPath) -ne [string]$entry.name) {
+                throw "Only the manifest artifact may be self-referential."
+            }
+            continue
+        }
+
+        $artifactPath = Join-Path $Root ([string]$entry.path)
+        if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
+            throw "Manifest references a missing artifact: $artifactPath"
+        }
+
+        if ([string]::IsNullOrWhiteSpace([string]$entry.sha256) -or [string]$entry.sha256 -match 'PLACEHOLDER') {
+            throw "Manifest artifact '$($entry.name)' has an invalid SHA256 value."
+        }
+
+        $actualHash = Get-FileSha256Lower -Path $artifactPath
+        if ($actualHash -ne [string]$entry.sha256) {
+            throw "Manifest SHA256 for '$($entry.name)' does not match the artifact."
+        }
+
+        $actualSize = (Get-Item -LiteralPath $artifactPath).Length
+        if ([int64]$entry.sizeBytes -ne $actualSize) {
+            throw "Manifest size for '$($entry.name)' does not match the artifact."
+        }
+
+        if ([bool]$entry.checksumEntry -and -not [bool]$entry.checksumVerified) {
+            throw "Manifest artifact '$($entry.name)' was not verified against checksums.txt."
+        }
+    }
+}
+
+function New-LibreSpotReleaseManifest {
+    param(
+        [Parameter(Mandatory)][string]$Root,
+        [Parameter(Mandatory)][string]$ManifestPath,
+        [string]$Version,
+        [string]$Channel
+    )
+
+    if (-not (Test-Path -LiteralPath $Root -PathType Container)) {
+        throw "Release root not found: $Root"
+    }
+
+    $contract = Get-JsonFile -Path $releaseContractPath
+    if ([string]::IsNullOrWhiteSpace($Version)) {
+        $Version = Get-LibreSpotProjectVersion
+    }
+    $Channel = Resolve-LibreSpotReleaseChannel -Version $Version -ExplicitChannel $Channel
+
+    $checksumsPath = Join-Path $Root 'checksums.txt'
+    $checksumMap = Get-ReleaseChecksumMap -ChecksumsPath $checksumsPath
+    $manifestFileName = Split-Path -Leaf $ManifestPath
+
+    $entries = @()
+    foreach ($artifact in @($contract.artifacts | Where-Object { [bool]$_.required })) {
+        $entries += New-ReleaseArtifactManifestEntry `
+            -Artifact $artifact `
+            -Root $Root `
+            -ChecksumMap $checksumMap `
+            -SigningContract $contract.signingContract `
+            -Version $Version `
+            -Channel $Channel `
+            -ManifestFileName $manifestFileName
+    }
+
+    $manifest = [ordered]@{
+        schemaVersion    = 1
+        contractVersion  = [int]$contract.contractVersion
+        generatedAtUtc   = [DateTime]::UtcNow.ToString('o')
+        generator        = 'Build-Scripts.ps1'
+        version          = $Version
+        channel          = $Channel
+        buildMode        = 'local'
+        signingProvider  = [string]$contract.signingContract.provider
+        signingStatus    = [string]$contract.signingContract.status
+        artifactCount    = $entries.Count
+        artifacts        = $entries
+    }
+
+    $manifestDirectory = Split-Path -Parent $ManifestPath
+    if (-not [string]::IsNullOrWhiteSpace($manifestDirectory)) {
+        New-Item -Path $manifestDirectory -ItemType Directory -Force | Out-Null
+    }
+
+    $json = $manifest | ConvertTo-Json -Depth 12
+    [System.IO.File]::WriteAllText($ManifestPath, $json + [Environment]::NewLine, $utf8NoBom)
+
+    Test-LibreSpotReleaseManifest -ManifestPath $ManifestPath -Root $Root -Contract $contract
+    Write-Host "Release manifest generated and verified: $ManifestPath" -ForegroundColor Green
+}
+
 $mainContent = [System.IO.File]::ReadAllText($mainScript, [System.Text.Encoding]::UTF8)
 $backendContent = [System.IO.File]::ReadAllText($backendScript, [System.Text.Encoding]::UTF8)
 
@@ -108,6 +444,15 @@ $laneSpecificFunctions = @(
     'Module-NukeSpotify'             # Backend streams phase progress; Main owns GUI phase logging
     'Module-ApplySpicetify'          # Backend records watcher apply outcomes
 )
+
+if ($GenerateReleaseManifest) {
+    New-LibreSpotReleaseManifest `
+        -Root $ReleaseRoot `
+        -ManifestPath $ReleaseManifestPath `
+        -Version $ReleaseVersion `
+        -Channel $ReleaseChannel
+    exit 0
+}
 
 if ($Inventory) {
     Write-Host "`n=== SHARED FUNCTION INVENTORY ===" -ForegroundColor Cyan

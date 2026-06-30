@@ -1,4 +1,7 @@
 using System.IO;
+using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Xunit;
@@ -143,7 +146,7 @@ public sealed class ReleaseArtifactContractTests
     [Fact]
     public void Contract_AllArtifactsHaveRequiredFields()
     {
-        var required = new[] { "name", "channels", "required", "checksumEntry", "signingRequirement", "attestation" };
+        var required = new[] { "name", "channels", "required", "checksumEntry", "signingRequirement", "attestation", "packageRole", "runtimeIdentifier", "buildMode" };
 
         foreach (var artifact in Contract.RootElement.GetProperty("artifacts").EnumerateArray())
         {
@@ -154,6 +157,88 @@ public sealed class ReleaseArtifactContractTests
                     artifact.TryGetProperty(field, out _),
                     $"Artifact '{name}' is missing required field '{field}'.");
             }
+        }
+    }
+
+    [Fact]
+    public void Contract_ReleaseManifestArtifactIsSelfReferentialMetadata()
+    {
+        var manifestArtifact = Contract.RootElement
+            .GetProperty("artifacts").EnumerateArray()
+            .Single(a => a.GetProperty("name").GetString() == "librespot-release-manifest.json");
+
+        Assert.Equal("release-manifest", manifestArtifact.GetProperty("packageRole").GetString());
+        Assert.Equal("any", manifestArtifact.GetProperty("runtimeIdentifier").GetString());
+        Assert.Equal("metadata", manifestArtifact.GetProperty("buildMode").GetString());
+        Assert.True(manifestArtifact.GetProperty("selfReferential").GetBoolean());
+    }
+
+    [Fact]
+    public void BuildScripts_GeneratesReleaseManifestFromArtifactsAndChecksums()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), "LibreSpot.ReleaseManifest.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+
+        try
+        {
+            var coveredAssets = Contract.RootElement
+                .GetProperty("checksumContract")
+                .GetProperty("coveredAssets").EnumerateArray()
+                .Select(v => v.GetString()!)
+                .ToArray();
+
+            foreach (var artifact in Contract.RootElement.GetProperty("artifacts").EnumerateArray())
+            {
+                var name = artifact.GetProperty("name").GetString()!;
+                if (name == "librespot-release-manifest.json")
+                    continue;
+
+                File.WriteAllText(Path.Combine(tempRoot, name), $"test artifact: {name}", Encoding.UTF8);
+            }
+
+            var checksumLines = coveredAssets
+                .Select(name => $"{Sha256File(Path.Combine(tempRoot, name))}  {name}");
+
+            File.WriteAllLines(Path.Combine(tempRoot, "checksums.txt"), checksumLines, Encoding.ASCII);
+
+            var process = StartPowerShell(
+                "-NoProfile",
+                "-ExecutionPolicy", "Bypass",
+                "-File", Path.Combine(RepoRoot, "Build-Scripts.ps1"),
+                "-GenerateReleaseManifest",
+                "-ReleaseRoot", tempRoot,
+                "-ReleaseVersion", "4.0.0-preview.6",
+                "-ReleaseChannel", "preview");
+
+            Assert.Equal(0, process.ExitCode);
+
+            var manifestPath = Path.Combine(tempRoot, "librespot-release-manifest.json");
+            Assert.True(File.Exists(manifestPath), "Release manifest should be generated.");
+
+            using var manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
+            var root = manifest.RootElement;
+
+            Assert.Equal(1, root.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal("4.0.0-preview.6", root.GetProperty("version").GetString());
+            Assert.Equal("preview", root.GetProperty("channel").GetString());
+            Assert.Equal("local", root.GetProperty("buildMode").GetString());
+
+            var artifacts = root.GetProperty("artifacts").EnumerateArray().ToArray();
+            Assert.Equal(Contract.RootElement.GetProperty("artifacts").GetArrayLength(), artifacts.Length);
+
+            var cli = artifacts.Single(a => a.GetProperty("name").GetString() == "LibreSpot.Cli.exe");
+            Assert.Equal("fleet-cli", cli.GetProperty("packageRole").GetString());
+            Assert.Equal("win-x64", cli.GetProperty("runtimeIdentifier").GetString());
+            Assert.Equal(Sha256File(Path.Combine(tempRoot, "LibreSpot.Cli.exe")), cli.GetProperty("sha256").GetString());
+            Assert.True(cli.GetProperty("checksumVerified").GetBoolean());
+
+            var self = artifacts.Single(a => a.GetProperty("name").GetString() == "librespot-release-manifest.json");
+            Assert.True(self.GetProperty("selfReferential").GetBoolean());
+            Assert.Equal(JsonValueKind.Null, self.GetProperty("sha256").ValueKind);
+        }
+        finally
+        {
+            TryDeleteDirectory(tempRoot);
         }
     }
 
@@ -280,6 +365,54 @@ public sealed class ReleaseArtifactContractTests
 
     private static string ReadFile(params string[] relativeParts) =>
         File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(relativeParts).ToArray()));
+
+    private static string Sha256File(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+    }
+
+    private static Process StartPowerShell(params string[] arguments)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "powershell",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Could not start powershell.");
+
+        var stdout = process.StandardOutput.ReadToEnd();
+        var stderr = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        if (process.ExitCode != 0)
+        {
+            throw new Xunit.Sdk.XunitException($"PowerShell failed with exit code {process.ExitCode}.\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}");
+        }
+
+        return process;
+    }
+
+    private static void TryDeleteDirectory(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, recursive: true);
+        }
+        catch
+        {
+        }
+    }
 
     private static string ResolveRepoRoot()
     {

@@ -135,6 +135,10 @@ public sealed class PackageManifestSafetyTests
     {
         var runner = ReadFile("packaging/Invoke-ValidationSamples.ps1");
 
+        Assert.Contains("Test-ReleaseManifestForPackageValidation", runner, StringComparison.Ordinal);
+        Assert.Contains("Build-Scripts.ps1 -GenerateReleaseManifest", runner, StringComparison.Ordinal);
+        Assert.Contains("PLACEHOLDER_SHA256", runner, StringComparison.Ordinal);
+        Assert.Contains("Release manifest SHA256 drift", runner, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("winget validate", runner, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("scoop install", runner, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("checkver.ps1", runner, StringComparison.OrdinalIgnoreCase);
