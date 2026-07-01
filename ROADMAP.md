@@ -416,6 +416,34 @@ roots, mismatched package IDs, and stale checksums.
 Add package-channel validation to release preflight — both blocked on package
 identity and signing decisions.)
 
+## Audit-Driven Additions (June 30, 2026)
+
+Items below were surfaced by the June 30, 2026 deep engineering audit
+and not resolved during that pass.
+
+### P2 — Localize computed ViewModel strings 🤖
+
+Why: MainViewModel has ~200 computed properties returning hardcoded
+English for the Custom workspace, Maintenance workspace, profile
+management, and activity overlay. The localization infrastructure
+(Strings.resx, services:Loc) exists and is used in the sidebar and
+workspace heroes, but the computed properties bypass it. All five
+supported locales are affected.
+
+Where: `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs` — all
+computed `string` properties that return inline English text.
+
+### P3 — Scheduled task cleanup during FullReset 🤖
+
+Why: FullReset calls Module-NukeSpotify which removes Spotify-owned
+tasks, but the LibreSpot ReapplyWatcher scheduled task is not
+explicitly unregistered. After a full reset, the orphaned task fires
+on logon, finds no Spotify, and logs a benign skip — but it remains
+in Task Scheduler indefinitely.
+
+Where: `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1` —
+FullReset action handler.
+
 ## Research-Driven Additions
 
 Items below were added by the June 9, 2026 research pass. They cover
