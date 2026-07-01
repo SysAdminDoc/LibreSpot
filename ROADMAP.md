@@ -458,10 +458,3 @@ stopped working" (issue #849) as the #1 complaint — the WPF dashboard
 needs to detect and surface this state, not just show booleans.
 
 ## Research-Driven Additions
-
-- [ ] P2 — Add high-contrast rendered theme smoke coverage
-  Why: High-contrast palette parity is tested statically, but no rendered smoke proves focus rings, disabled states, dialogs, snackbars, log rows, and health cards remain readable when high-contrast resources are active.
-  Evidence: `src/LibreSpot.Desktop/Services/ThemeManager.cs`, `src/LibreSpot.Desktop/Themes/HighContrastPalette.xaml`, `tests/LibreSpot.Desktop.Tests/ThemeManagerTests.cs`, Microsoft high contrast and UI Automation docs.
-  Touches: `src/LibreSpot.Desktop/Services/ThemeManager.cs`, `src/LibreSpot.Desktop/Themes/*.xaml`, `src/LibreSpot.Desktop/MainWindow.xaml`, `tests/LibreSpot.Desktop.Tests/WpfFlaUiSmokeTests.cs`, `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`, `tests/LibreSpot.Desktop.Tests/ThemeManagerTests.cs`.
-  Acceptance: Test hook launches the WPF shell with high-contrast palette active, walks Recommended, Custom, Maintenance, prompt, activity, snackbar/log, and support-bundle surfaces, asserts focusable controls have visible UIA names and resolved high-contrast brushes, and static lint rejects hardcoded colors outside palette files.
-  Complexity: M

@@ -140,6 +140,25 @@ public sealed class ThemeManagerTests
         Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
     }
 
+    [Fact]
+    public void WpfXaml_HardcodedColorsStayInsidePaletteFiles()
+    {
+        var xamlRoot = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop");
+        var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            Path.Combine(xamlRoot, "Themes", "Palette.xaml"),
+            Path.Combine(xamlRoot, "Themes", "HighContrastPalette.xaml")
+        };
+        var offenders = Directory
+            .EnumerateFiles(xamlRoot, "*.xaml", SearchOption.AllDirectories)
+            .Where(file => !allowed.Contains(file))
+            .SelectMany(file => Regex.Matches(File.ReadAllText(file), @"#[0-9A-Fa-f]{6,8}")
+                .Select(match => $"{Path.GetRelativePath(RepoRoot, file)}: hardcoded color {match.Value}"))
+            .ToList();
+
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
     private static HashSet<string> ExtractResourceKeys(string xamlContent)
     {
         var keys = new HashSet<string>(StringComparer.Ordinal);

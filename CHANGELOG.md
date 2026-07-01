@@ -5,6 +5,10 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added offscreen high-contrast WPF rendering smoke coverage for representative
+  buttons, disabled actions, checkbox, ComboBox, TextBox, health card, log,
+  prompt, and snackbar surfaces, plus a XAML lint that rejects hardcoded colors
+  outside palette dictionaries.
 - Added offline asset-cache regression coverage for SpotX, Spicetify CLI,
   Marketplace, official themes, and the Stats custom app. The tests simulate
   network failure, require warning-level verified-cache fallback logs, and prove
