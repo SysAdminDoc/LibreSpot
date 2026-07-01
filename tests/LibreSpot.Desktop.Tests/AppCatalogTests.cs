@@ -178,6 +178,43 @@ public sealed class AppCatalogTests
     }
 
     [Fact]
+    public void Clone_CoversEveryPublicSettableProperty()
+    {
+        var settableProperties = typeof(InstallConfiguration)
+            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Where(p => p.CanWrite)
+            .ToList();
+
+        var source = AppCatalog.CreateRecommendedConfiguration();
+        source.Spicetify_Extensions = new List<string> { "test.js" };
+        source.Spicetify_CustomApps = new List<string> { "stats" };
+        source.SpotX_CustomPatchesJson = "{\"test\": true}";
+        source.SpotX_CustomPatchesSourceUrl = "https://example.test/patches.json";
+        source.SpotX_CustomPatchesFetchedAtUtc = DateTimeOffset.UtcNow;
+        source.SpotX_CustomPatchesSourceByteCount = 42;
+        source.SpotX_CustomPatchesSourceSha256 = "abc123";
+        source.UiCulture = "ru";
+
+        var clone = source.Clone();
+
+        foreach (var property in settableProperties)
+        {
+            var sourceValue = property.GetValue(source);
+            var cloneValue = property.GetValue(clone);
+            if (sourceValue is System.Collections.IList sourceList)
+            {
+                var cloneList = Assert.IsAssignableFrom<System.Collections.IList>(cloneValue);
+                Assert.Equal(sourceList.Count, cloneList.Count);
+                Assert.NotSame(sourceList, cloneList);
+            }
+            else
+            {
+                Assert.Equal(sourceValue, cloneValue);
+            }
+        }
+    }
+
+    [Fact]
     public void SpotifyVersionManifest_UsesCurrentPinnedSpotXBaseline()
     {
         var current = Assert.Single(AppCatalog.SpotifyVersionManifest, entry => entry.Id == AppCatalog.PinnedSpotXSpotifyVersionId);

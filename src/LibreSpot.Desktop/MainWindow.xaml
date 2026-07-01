@@ -198,22 +198,10 @@
               <Border.Style>
                 <Style TargetType="Border" BasedOn="{StaticResource MicroBadgeStyle}">
                   <Style.Triggers>
-                    <MultiDataTrigger>
-                      <MultiDataTrigger.Conditions>
-                        <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
-                        <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
-                      </MultiDataTrigger.Conditions>
+                    <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True">
                       <Setter Property="Background" Value="{StaticResource AccentMistBrush}" />
                       <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
-                    </MultiDataTrigger>
-                    <MultiDataTrigger>
-                      <MultiDataTrigger.Conditions>
-                        <Condition Binding="{Binding IsRecommendedDefault}" Value="False" />
-                        <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
-                      </MultiDataTrigger.Conditions>
-                      <Setter Property="Background" Value="{StaticResource AccentMistBrush}" />
-                      <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
-                    </MultiDataTrigger>
+                    </DataTrigger>
                     <MultiDataTrigger>
                       <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
@@ -285,22 +273,10 @@
               <Border.Style>
                 <Style TargetType="Border" BasedOn="{StaticResource MicroBadgeStyle}">
                   <Style.Triggers>
-                    <MultiDataTrigger>
-                      <MultiDataTrigger.Conditions>
-                        <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
-                        <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
-                      </MultiDataTrigger.Conditions>
+                    <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True">
                       <Setter Property="Background" Value="{StaticResource AccentMistBrush}" />
                       <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
-                    </MultiDataTrigger>
-                    <MultiDataTrigger>
-                      <MultiDataTrigger.Conditions>
-                        <Condition Binding="{Binding IsRecommendedDefault}" Value="False" />
-                        <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
-                      </MultiDataTrigger.Conditions>
-                      <Setter Property="Background" Value="{StaticResource AccentMistBrush}" />
-                      <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
-                    </MultiDataTrigger>
+                    </DataTrigger>
                     <MultiDataTrigger>
                       <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />

@@ -3226,7 +3226,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 }
             });
         }
-        catch { }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            System.Diagnostics.Debug.WriteLine($"Plan summary collection failed: {ex.Message}");
+        }
 
         var compatWarnings = AppCatalog.CheckInstalledSpotifyCompatibility(
             Snapshot.HealthReport.Components
