@@ -1,4 +1,8 @@
-function Module-ApplySpicetify { param($Config)
+function Module-ApplySpicetify {
+    param(
+        $Config,
+        [string]$EvidenceSource = 'Module-ApplySpicetify'
+    )
     Write-Log "Applying Spicetify changes..." -Level 'STEP'
     if ($Config.Spicetify_Theme -eq '(None - Marketplace Only)') {
         try {
@@ -20,10 +24,17 @@ function Module-ApplySpicetify { param($Config)
     # SpotX has patched the client (version mismatch between Spotify and any prior
     # backup). Running them separately causes "version mismatch" failures.
     $applyError = $null
+    $applyStage = 'backup apply'
     try {
         Invoke-SpicetifyCli -Arguments @('backup', 'apply', '--bypass-admin') -FailureMessage 'Could not apply the selected Spicetify setup.'
         Write-Log "Spicetify applied successfully."
-        return
+        $message = 'Spicetify backup apply succeeded.'
+        Write-MarketplaceVisibilityEvidence -Source $EvidenceSource -ApplyStage $applyStage -ApplySucceeded $true -ApplyMessage $message | Out-Null
+        return [pscustomobject]@{
+            Stage     = $applyStage
+            Succeeded = $true
+            Message   = $message
+        }
     } catch {
         $applyError = if ($_.Exception -and $_.Exception.Message) { [string]$_.Exception.Message } else { 'Unknown Spicetify apply error.' }
         Write-Log "Spicetify backup apply failed: $applyError" -Level 'WARN'
@@ -38,8 +49,10 @@ function Module-ApplySpicetify { param($Config)
     }
 
     if ([string]::IsNullOrWhiteSpace($restoreError)) {
+        Write-MarketplaceVisibilityEvidence -Source $EvidenceSource -ApplyStage $applyStage -ApplySucceeded $false -ApplyMessage $applyError | Out-Null
         throw "Spicetify apply failed but LibreSpot restored Spotify to a usable state. Apply error: $applyError"
     }
 
+    Write-MarketplaceVisibilityEvidence -Source $EvidenceSource -ApplyStage $applyStage -ApplySucceeded $false -ApplyMessage "$applyError | Rollback error: $restoreError" | Out-Null
     throw "Spicetify apply failed and rollback also failed. Apply error: $applyError | Rollback error: $restoreError"
 }

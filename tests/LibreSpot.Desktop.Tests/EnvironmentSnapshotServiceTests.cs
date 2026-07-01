@@ -233,7 +233,7 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.Empty(snapshot.HealthReport.WarningIssues);
         Assert.Contains(snapshot.HealthReport.Components, component => component.Id == "spotify" && component.Severity == HealthSeverity.Ready);
         Assert.Contains(snapshot.HealthReport.Components, component => component.Id == "spotx" && component.Status == "Verified");
-        Assert.Contains(snapshot.HealthReport.Components, component => component.Id == "marketplace" && component.Status == "Ready");
+        Assert.Contains(snapshot.HealthReport.Components, component => component.Id == "marketplace" && component.Status == "Files installed");
         Assert.Contains(snapshot.HealthReport.Components, component => component.Id == "active-theme" && component.Status == "Active");
     }
 
@@ -381,6 +381,74 @@ public sealed class EnvironmentSnapshotServiceTests
         var marketplace = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "marketplace");
         Assert.Equal("Files missing", marketplace.Status);
         Assert.Contains("RepairMarketplace", marketplace.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_HealthReport_CoversMarketplaceConfigOnlyRegistration()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+        fixture.WriteMarketplaceEvidence(filesPresent: false, registered: true, likelyVisible: false);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var marketplace = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "marketplace");
+        Assert.Equal("Files missing", marketplace.Status);
+        Assert.False(snapshot.MarketplaceLikelyVisible);
+    }
+
+    [Fact]
+    public void GetSnapshot_HealthReport_CoversMarketplaceApplyFailure()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+        fixture.WriteMarketplaceFiles(manifestVersion: "1.0.8");
+        fixture.WriteMarketplaceEvidence(applySucceeded: false, applyMessage: "Spicetify apply failed.");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var marketplace = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "marketplace");
+        Assert.Equal("Apply failed", marketplace.Status);
+        Assert.Equal("1.0.8", marketplace.DetectedVersion);
+        Assert.Contains("Spicetify apply failed", marketplace.Evidence);
+        Assert.Contains("RepairMarketplace", marketplace.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_HealthReport_CoversMarketplaceOpenUriFailure()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+        fixture.WriteMarketplaceFiles(manifestVersion: "1.0.8");
+        fixture.WriteMarketplaceEvidence(openUriSucceeded: false, openUriMessage: "URI handler failed.");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var marketplace = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "marketplace");
+        Assert.Equal("Open failed", marketplace.Status);
+        Assert.Contains("URI handler failed", marketplace.Evidence);
+        Assert.Contains("OpenMarketplace", marketplace.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_HealthReport_CoversMarketplaceLikelyVisible()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+        fixture.WriteMarketplaceFiles(manifestVersion: "1.0.8");
+        fixture.WriteMarketplaceEvidence(likelyVisible: true, openUriSucceeded: true, spotifyRunningAfterOpen: true);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var marketplace = Assert.Single(snapshot.HealthReport.Components, component => component.Id == "marketplace");
+        Assert.Equal("Likely visible", marketplace.Status);
+        Assert.Equal(HealthSeverity.Ready, marketplace.Severity);
+        Assert.True(snapshot.MarketplaceLikelyVisible);
+        Assert.Contains("Spotify process observed", marketplace.Evidence);
     }
 
     [Fact]
@@ -820,11 +888,54 @@ public sealed class EnvironmentSnapshotServiceTests
             WriteFile(Path.Combine(SpicetifyConfigDirectory, "config-xpui.ini"), configBody);
         }
 
-        public void WriteMarketplaceFiles()
+        public void WriteMarketplaceFiles(string manifestVersion = "1.0.8")
         {
             var marketplaceDirectory = Path.Combine(SpicetifyConfigDirectory, "CustomApps", "marketplace");
             WriteFile(Path.Combine(marketplaceDirectory, "extension.js"), string.Empty);
-            WriteFile(Path.Combine(marketplaceDirectory, "manifest.json"), "{}");
+            WriteFile(Path.Combine(marketplaceDirectory, "manifest.json"), JsonSerializer.Serialize(new { version = manifestVersion }));
+        }
+
+        public void WriteMarketplaceEvidence(
+            bool filesPresent = true,
+            bool registered = true,
+            bool likelyVisible = false,
+            bool? applySucceeded = true,
+            string? applyMessage = "Spicetify backup apply succeeded.",
+            bool? openUriSucceeded = null,
+            string? openUriMessage = null,
+            bool? spotifyRunningAfterOpen = null)
+        {
+            WriteFile(
+                Path.Combine(ConfigDirectory, "marketplace-evidence.json"),
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        schemaVersion = 1,
+                        generatedAtUtc = DateTimeOffset.Parse("2026-06-30T12:00:00Z"),
+                        source = "test-fixture",
+                        filesPresent,
+                        registered,
+                        likelyVisible,
+                        marketplaceStatus = filesPresent && registered ? "Ready" : registered ? "FilesMissing" : "Missing",
+                        marketplacePath = Path.Combine(SpicetifyConfigDirectory, "CustomApps", "marketplace"),
+                        manifestVersion = "1.0.8",
+                        applyStage = "backup apply",
+                        applySucceeded,
+                        applyMessage,
+                        applyCompletedAtUtc = applySucceeded.HasValue
+                            ? DateTimeOffset.Parse("2026-06-30T12:01:00Z")
+                            : (DateTimeOffset?)null,
+                        openUriSucceeded,
+                        openUriMessage,
+                        openUriRequestedAtUtc = openUriSucceeded.HasValue
+                            ? DateTimeOffset.Parse("2026-06-30T12:02:00Z")
+                            : (DateTimeOffset?)null,
+                        spotifyRunningAfterOpen,
+                        lastObservedSpotifySession = spotifyRunningAfterOpen == true ? "spotify-process-running" : "spotify-process-not-running",
+                        lastObservedAtUtc = spotifyRunningAfterOpen.HasValue
+                            ? DateTimeOffset.Parse("2026-06-30T12:03:00Z")
+                            : (DateTimeOffset?)null
+                    }));
         }
 
         public void WriteBackup()

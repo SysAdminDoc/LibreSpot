@@ -473,13 +473,6 @@ needs to detect and surface this state, not just show booleans.
   Acceptance: Tests seed valid cached SpotX, Spicetify CLI, Marketplace, theme, and Stats/custom-app archives, simulate network failure, verify the backend uses only SHA256-verified cached assets with warning-level logs, and fail when the cached hash is missing or wrong.
   Complexity: L
 
-- [ ] P1 — Add Marketplace post-apply visibility and repair evidence
-  Why: LibreSpot verifies Marketplace files and `custom_apps`, but upstream Marketplace reports still include black-screen and no-apply states that need clearer post-apply evidence and recovery guidance.
-  Evidence: `src/powershell/shared/Repair-Marketplace.ps1`, `src/LibreSpot.Desktop/Services/EnvironmentSnapshotService.cs`, Spicetify Marketplace issues.
-  Touches: `src/powershell/shared/Repair-Marketplace.ps1`, `src/powershell/shared/Module-ApplySpicetify.ps1`, `src/LibreSpot.Desktop/Services/EnvironmentSnapshotService.cs`, `src/LibreSpot.Cli/Program.cs`, support bundle export, backend protocol fixtures, environment snapshot tests.
-  Acceptance: Reapply and RepairMarketplace record file presence, manifest version, `custom_apps` registration, Spicetify apply output stage, `spotify:app:marketplace` open attempt, and last observed Spotify process/session result; CLI status and Maintenance distinguish "files installed" from "likely visible"; fixture tests cover missing files, config-only registration, apply failure, open-URI failure, and likely-visible success.
-  Complexity: M
-
 - [ ] P2 — Add high-contrast rendered theme smoke coverage
   Why: High-contrast palette parity is tested statically, but no rendered smoke proves focus rings, disabled states, dialogs, snackbars, log rows, and health cards remain readable when high-contrast resources are active.
   Evidence: `src/LibreSpot.Desktop/Services/ThemeManager.cs`, `src/LibreSpot.Desktop/Themes/HighContrastPalette.xaml`, `tests/LibreSpot.Desktop.Tests/ThemeManagerTests.cs`, Microsoft high contrast and UI Automation docs.

@@ -1001,6 +1001,8 @@ public static class CliApplication
             snapshot.SpotifyInstalled,
             snapshot.SpicetifyInstalled,
             snapshot.MarketplaceReady,
+            snapshot.MarketplaceLikelyVisible,
+            snapshot.MarketplaceVisibilityEvidence is null ? null : MarketplaceVisibilityDocument.From(snapshot.MarketplaceVisibilityEvidence),
             snapshot.AutoReapplyTaskRegistered,
             BackupCount(snapshot),
             ComponentLastChanged(snapshot, "post-spotify-update"),
@@ -1567,6 +1569,8 @@ public sealed record StatusDocument(
     bool SpotifyInstalled,
     bool SpicetifyInstalled,
     bool MarketplaceReady,
+    bool MarketplaceLikelyVisible,
+    MarketplaceVisibilityDocument? MarketplaceVisibility,
     bool AutoReapplyTaskRegistered,
     int BackupCount,
     DateTimeOffset? LastPatchTimeUtc,
@@ -1576,6 +1580,50 @@ public sealed record StatusDocument(
     IReadOnlyList<CommunityAssetDocument> CommunityAssets,
     IReadOnlyList<UpstreamDependencyDocument> UpstreamDependencies,
     IReadOnlyList<ComponentDocument> Components);
+
+public sealed record MarketplaceVisibilityDocument(
+    int SchemaVersion,
+    DateTimeOffset GeneratedAtUtc,
+    string Source,
+    bool FilesPresent,
+    bool Registered,
+    bool LikelyVisible,
+    string MarketplaceStatus,
+    string MarketplacePath,
+    string? ManifestVersion,
+    string? ApplyStage,
+    bool? ApplySucceeded,
+    string? ApplyMessage,
+    DateTimeOffset? ApplyCompletedAtUtc,
+    bool? OpenUriSucceeded,
+    string? OpenUriMessage,
+    DateTimeOffset? OpenUriRequestedAtUtc,
+    bool? SpotifyRunningAfterOpen,
+    string LastObservedSpotifySession,
+    DateTimeOffset? LastObservedAtUtc)
+{
+    public static MarketplaceVisibilityDocument From(MarketplaceVisibilityEvidence evidence) =>
+        new(
+            evidence.SchemaVersion,
+            evidence.GeneratedAtUtc,
+            evidence.Source,
+            evidence.FilesPresent,
+            evidence.Registered,
+            evidence.LikelyVisible,
+            evidence.MarketplaceStatus,
+            evidence.MarketplacePath,
+            evidence.ManifestVersion,
+            evidence.ApplyStage,
+            evidence.ApplySucceeded,
+            evidence.ApplyMessage,
+            evidence.ApplyCompletedAtUtc,
+            evidence.OpenUriSucceeded,
+            evidence.OpenUriMessage,
+            evidence.OpenUriRequestedAtUtc,
+            evidence.SpotifyRunningAfterOpen,
+            evidence.LastObservedSpotifySession,
+            evidence.LastObservedAtUtc);
+}
 
 public sealed record CommunityAssetDocument(
     string Id,

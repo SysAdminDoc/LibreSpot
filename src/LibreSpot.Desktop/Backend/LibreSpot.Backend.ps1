@@ -3245,12 +3245,30 @@ function Module-InstallMarketplace { param($Config)
 }
 
 function Open-SpicetifyMarketplace {
+    $requestedAtUtc = (Get-Date).ToUniversalTime().ToString('o')
     try {
         Start-Process -FilePath 'explorer.exe' -ArgumentList 'spotify:app:marketplace'
         Write-Log 'Requested Spotify Marketplace via spotify:app:marketplace.'
+        Start-Sleep -Milliseconds 500
+        $spotifyRunning = try { @((Get-Process -Name 'Spotify' -ErrorAction SilentlyContinue)).Count -gt 0 } catch { $false }
+        $result = [pscustomobject]@{
+            Succeeded               = $true
+            Message                 = 'spotify:app:marketplace was handed to Windows.'
+            RequestedAtUtc          = $requestedAtUtc
+            SpotifyRunningAfterOpen = $spotifyRunning
+        }
     } catch {
-        Write-Log "Could not open spotify:app:marketplace automatically: $($_.Exception.Message)" -Level 'WARN'
+        $message = "Could not open spotify:app:marketplace automatically: $($_.Exception.Message)"
+        Write-Log $message -Level 'WARN'
+        $result = [pscustomobject]@{
+            Succeeded               = $false
+            Message                 = $message
+            RequestedAtUtc          = $requestedAtUtc
+            SpotifyRunningAfterOpen = $null
+        }
     }
+    Write-MarketplaceVisibilityEvidence -Source 'OpenMarketplace' -OpenUriSucceeded $result.Succeeded -OpenUriMessage $result.Message -OpenUriRequestedAtUtc $result.RequestedAtUtc -SpotifyRunningAfterOpen $result.SpotifyRunningAfterOpen | Out-Null
+    return $result
 }
 
 function Module-InstallCustomApps { param($Config)
@@ -3337,6 +3355,101 @@ function Module-InstallCustomApps { param($Config)
     Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @($installedApps) -ManagedItems $managedApps
 }
 
+function Write-MarketplaceVisibilityEvidence {
+    param(
+        [string]$Source = 'Unknown',
+        [string]$ApplyStage = '',
+        [object]$ApplySucceeded = $null,
+        [string]$ApplyMessage = '',
+        [object]$OpenUriSucceeded = $null,
+        [string]$OpenUriMessage = '',
+        [object]$OpenUriRequestedAtUtc = $null,
+        [object]$SpotifyRunningAfterOpen = $null
+    )
+
+    try {
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
+            New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
+        }
+
+        $health = Get-MarketplaceHealth
+        $manifestPath = Join-Path $health.Path 'manifest.json'
+        $manifestVersion = $null
+        if (Test-Path -LiteralPath $manifestPath -PathType Leaf) {
+            try {
+                $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+                foreach ($property in @('version','Version','marketplaceVersion')) {
+                    if ($manifest.PSObject.Properties.Name -contains $property) {
+                        $value = [string]$manifest.$property
+                        if (-not [string]::IsNullOrWhiteSpace($value)) {
+                            $manifestVersion = $value
+                            break
+                        }
+                    }
+                }
+            } catch {
+                $manifestVersion = $null
+            }
+        }
+
+        $applySucceededValue = if ($null -ne $ApplySucceeded) { [bool]$ApplySucceeded } else { $null }
+        $openSucceededValue = if ($null -ne $OpenUriSucceeded) { [bool]$OpenUriSucceeded } else { $null }
+        $spotifyRunningValue = if ($null -ne $SpotifyRunningAfterOpen) {
+            [bool]$SpotifyRunningAfterOpen
+        } else {
+            try { @((Get-Process -Name 'Spotify' -ErrorAction SilentlyContinue)).Count -gt 0 } catch { $null }
+        }
+        $openRequestedAt = if ($OpenUriRequestedAtUtc) { [string]$OpenUriRequestedAtUtc } else { $null }
+        $applyCompletedAt = if ($null -ne $applySucceededValue) { (Get-Date).ToUniversalTime().ToString('o') } else { $null }
+        $lastObservedAt = if ($null -ne $spotifyRunningValue) { (Get-Date).ToUniversalTime().ToString('o') } else { $null }
+        $lastObservedSession = if ($null -eq $spotifyRunningValue) {
+            'not observed'
+        } elseif ($spotifyRunningValue) {
+            'spotify-process-running'
+        } else {
+            'spotify-process-not-running'
+        }
+        $likelyVisible = [bool]($health.HasFiles -and $health.IsEnabled -and ($applySucceededValue -eq $true) -and ($openSucceededValue -eq $true))
+
+        $doc = [ordered]@{
+            schemaVersion              = 1
+            generatedAtUtc             = (Get-Date).ToUniversalTime().ToString('o')
+            source                     = $Source
+            filesPresent               = [bool]$health.HasFiles
+            registered                 = [bool]$health.IsEnabled
+            likelyVisible              = $likelyVisible
+            marketplaceStatus          = [string]$health.Status
+            marketplacePath            = [string]$health.Path
+            manifestVersion            = $manifestVersion
+            applyStage                 = $ApplyStage
+            applySucceeded             = $applySucceededValue
+            applyMessage               = $ApplyMessage
+            applyCompletedAtUtc        = $applyCompletedAt
+            openUriSucceeded           = $openSucceededValue
+            openUriMessage             = $OpenUriMessage
+            openUriRequestedAtUtc      = $openRequestedAt
+            spotifyRunningAfterOpen    = $spotifyRunningValue
+            lastObservedSpotifySession = $lastObservedSession
+            lastObservedAtUtc          = $lastObservedAt
+        }
+
+        $path = Join-Path $global:CONFIG_DIR 'marketplace-evidence.json'
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($path, ($doc | ConvertTo-Json -Depth 5), $utf8)
+        Write-OperationJournalEntry -Phase 'marketplace' -Target $path -SafetyDecision 'Allowed' -Result 'Recorded' -WouldChange $true -Reversible $false -RollbackHint 'Re-run Repair Marketplace or Reapply to refresh Marketplace visibility evidence.' -Data @{
+            source = $Source
+            marketplaceStatus = $health.Status
+            likelyVisible = $likelyVisible
+            applySucceeded = $applySucceededValue
+            openUriSucceeded = $openSucceededValue
+        }
+        return [pscustomobject]$doc
+    } catch {
+        try { Write-Log "Marketplace visibility evidence could not be recorded: $($_.Exception.Message)" -Level 'WARN' } catch {}
+        return $null
+    }
+}
+
 function Repair-Marketplace {
     param($Config)
     if (-not (Test-SpicetifyCliInstalled)) {
@@ -3350,7 +3463,7 @@ function Repair-Marketplace {
     Write-Log 'Repairing Marketplace files and custom_apps registration...' -Level 'STEP'
     Module-InstallMarketplace -Config $Config
     Write-Log 'Applying Spicetify so Marketplace is discoverable in Spotify...' -Level 'STEP'
-    Module-ApplySpicetify -Config $Config
+    $applyResult = Module-ApplySpicetify -Config $Config -EvidenceSource 'RepairMarketplace'
 
     $health = Get-MarketplaceHealth
     if ($health.IsReady) {
@@ -3358,7 +3471,8 @@ function Repair-Marketplace {
     } else {
         Write-Log "Marketplace repair finished, but status is '$($health.Status)'. Open spotify:app:marketplace directly if the sidebar icon remains hidden." -Level 'WARN'
     }
-    Open-SpicetifyMarketplace
+    $openResult = Open-SpicetifyMarketplace
+    Write-MarketplaceVisibilityEvidence -Source 'RepairMarketplace' -ApplyStage $applyResult.Stage -ApplySucceeded $applyResult.Succeeded -ApplyMessage $applyResult.Message -OpenUriSucceeded $openResult.Succeeded -OpenUriMessage $openResult.Message -OpenUriRequestedAtUtc $openResult.RequestedAtUtc -SpotifyRunningAfterOpen $openResult.SpotifyRunningAfterOpen | Out-Null
 }
 
 function Get-SpicetifyDiagnosticSnapshot {
@@ -3379,7 +3493,10 @@ function Get-SpicetifyDiagnosticSnapshot {
 }
 
 function Module-ApplySpicetify {
-    param($Config)
+    param(
+        $Config,
+        [string]$EvidenceSource = 'Module-ApplySpicetify'
+    )
     Write-Log 'Applying Spicetify changes...' -Level 'STEP'
 
     # Marketplace-only mode: disable theme injection before apply so the apply step
@@ -3413,11 +3530,18 @@ function Module-ApplySpicetify {
     # work from. The combined form matches the legacy LibreSpot.ps1 behavior and the
     # CLI's own "Please run 'spicetify backup apply'" hint.
     $applyError = $null
+    $applyStage = 'backup apply'
     try {
         Invoke-SpicetifyCli -Arguments @('backup', 'apply', '--bypass-admin') -FailureMessage 'Could not backup and apply Spicetify changes.'
         Write-Log 'Spicetify applied successfully.' -Level 'SUCCESS'
         Update-ApplyState -Outcome 'SpicetifyApplySucceeded' -Successful $true
-        return
+        $message = 'Spicetify backup apply succeeded.'
+        Write-MarketplaceVisibilityEvidence -Source $EvidenceSource -ApplyStage $applyStage -ApplySucceeded $true -ApplyMessage $message | Out-Null
+        return [pscustomobject]@{
+            Stage     = $applyStage
+            Succeeded = $true
+            Message   = $message
+        }
     } catch {
         $applyError = if ($_.Exception -and $_.Exception.Message) { [string]$_.Exception.Message } else { 'Unknown Spicetify apply error.' }
         Write-Log "Spicetify apply failed: $applyError" -Level 'WARN'
@@ -3437,9 +3561,11 @@ function Module-ApplySpicetify {
 
     if ([string]::IsNullOrWhiteSpace($restoreError)) {
         Update-ApplyState -Outcome 'SpicetifyApplyRolledBack' -Successful $false -ErrorMessage $applyError
+        Write-MarketplaceVisibilityEvidence -Source $EvidenceSource -ApplyStage $applyStage -ApplySucceeded $false -ApplyMessage $applyError | Out-Null
         throw "Spicetify apply failed but LibreSpot restored Spotify to a usable state. Apply error: $applyError"
     } else {
         Update-ApplyState -Outcome 'SpicetifyApplyRollbackFailed' -Successful $false -ErrorMessage "Apply error: $applyError | Rollback error: $restoreError"
+        Write-MarketplaceVisibilityEvidence -Source $EvidenceSource -ApplyStage $applyStage -ApplySucceeded $false -ApplyMessage "$applyError | Rollback error: $restoreError" | Out-Null
         throw "Spicetify apply failed and rollback also failed. Apply error: $applyError | Rollback error: $restoreError"
     }
 }
@@ -3454,7 +3580,7 @@ function Reapply-SavedSpicetifySetup { param($Config)
     Module-InstallExtensions -Config $Config
     Module-InstallMarketplace -Config $Config
     Module-InstallCustomApps -Config $Config
-    Module-ApplySpicetify -Config $Config
+    Module-ApplySpicetify -Config $Config -EvidenceSource 'Reapply' | Out-Null
 }
 
 function Write-PlanEntry {
@@ -3610,7 +3736,7 @@ function Invoke-LibreSpotInstall {
                 'Extensions' { Module-InstallExtensions -Config $config }
                 'Marketplace' { Module-InstallMarketplace -Config $config }
                 'CustomApps' { Module-InstallCustomApps -Config $config }
-                'Apply' { Module-ApplySpicetify -Config $config }
+                'Apply' { Module-ApplySpicetify -Config $config | Out-Null }
             }
         }
     } finally {
@@ -3676,7 +3802,7 @@ function Invoke-LibreSpotMaintenance {
             if (-not $health.IsReady) {
                 Write-Log "Marketplace status is '$($health.Status)', so open-only launch may fail. Use Repair Marketplace first if Spotify does not show it." -Level 'WARN'
             }
-            Open-SpicetifyMarketplace
+            Open-SpicetifyMarketplace | Out-Null
             Write-Log 'Marketplace launch requested.' -Level 'SUCCESS'
         }
         'SafeMode' {

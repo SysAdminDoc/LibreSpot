@@ -11,7 +11,7 @@ function Repair-Marketplace {
     Write-Log 'Repairing Marketplace files and custom_apps registration...' -Level 'STEP'
     Module-InstallMarketplace -Config $Config
     Write-Log 'Applying Spicetify so Marketplace is discoverable in Spotify...' -Level 'STEP'
-    Module-ApplySpicetify -Config $Config
+    $applyResult = Module-ApplySpicetify -Config $Config -EvidenceSource 'RepairMarketplace'
 
     $health = Get-MarketplaceHealth
     if ($health.IsReady) {
@@ -19,5 +19,6 @@ function Repair-Marketplace {
     } else {
         Write-Log "Marketplace repair finished, but status is '$($health.Status)'. Open spotify:app:marketplace directly if the sidebar icon remains hidden." -Level 'WARN'
     }
-    Open-SpicetifyMarketplace
+    $openResult = Open-SpicetifyMarketplace
+    Write-MarketplaceVisibilityEvidence -Source 'RepairMarketplace' -ApplyStage $applyResult.Stage -ApplySucceeded $applyResult.Succeeded -ApplyMessage $applyResult.Message -OpenUriSucceeded $openResult.Succeeded -OpenUriMessage $openResult.Message -OpenUriRequestedAtUtc $openResult.RequestedAtUtc -SpotifyRunningAfterOpen $openResult.SpotifyRunningAfterOpen | Out-Null
 }

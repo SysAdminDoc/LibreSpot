@@ -48,6 +48,10 @@ All notable changes to LibreSpot will be documented in this file.
   support bundles now show current/behind/missing/degraded state, pinned
   commit/hash, license, support state, fallback, and network behavior without
   failing offline.
+- Added Marketplace visibility evidence for reapply and repair flows. CLI
+  `status --json`, Maintenance health, and support bundles now distinguish
+  files-installed from likely-visible Marketplace state using manifest,
+  `custom_apps`, Spicetify apply, URI-open, and Spotify process observations.
 - Added schema-backed operation receipts: backend runs now write typed
   operation-token entries and `run-receipt.latest.json`, while the WPF undo
   pane consumes the embedded token and receipt schemas before showing

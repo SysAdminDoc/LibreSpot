@@ -262,6 +262,7 @@ LibreSpot.ps1 -Watch               # run one tick manually (what the task invoke
 - **Window management** — Spotify and installer windows are automatically hidden during installation; LibreSpot stays on top until finished
 - **Settings persistence** — your Custom Install configuration is saved to `%APPDATA%\LibreSpot\config.json` and restored next launch
 - **Community asset verification** — opt-in community extensions, themes, and custom apps are pinned in `schemas/community-assets.json` with provenance, SHA256, license, branch, support, fallback, and network-behavior metadata; Maintenance health, `status --json`, and support bundles report current/behind/missing/degraded state without failing offline
+- **Marketplace visibility evidence** — Reapply and Repair Marketplace record the installed files, manifest version, `custom_apps` registration, Spicetify apply stage, direct `spotify:app:marketplace` open attempt, and last observed Spotify process so Maintenance and `status --json` can distinguish files installed from likely visible
 - **Config backup** — up to 5 rotating Spicetify config backups stored in `%USERPROFILE%\LibreSpot_Backups`
 - **Architecture support** — x64 and ARM64 with per-architecture hash verification
 - **Dual download methods** — falls back to BITS transfer if `Invoke-WebRequest` fails

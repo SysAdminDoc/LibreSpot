@@ -2925,7 +2925,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             "CheckUpdates" => true,
             "Reapply" => Snapshot.SpotifyInstalled && (Snapshot.SpicetifyInstalled || HealthReport.HasCriticalIssues || HealthReport.HasWarningIssues),
             "RepairMarketplace" => Snapshot.SpicetifyInstalled && marketplace?.Severity is HealthSeverity.Warning or HealthSeverity.Critical,
-            "OpenMarketplace" => marketplace?.Severity == HealthSeverity.Ready,
+            "OpenMarketplace" => Snapshot.MarketplaceFilesPresent && Snapshot.MarketplaceRegistered,
             "SafeMode" => Snapshot.SpicetifyInstalled && HealthComponent("active-theme")?.Status != "Marketplace or stock",
             "CreateBackup" => Snapshot.SpicetifyInstalled && spicetifyConfig?.Severity == HealthSeverity.Ready,
             "RestoreBackup" => Snapshot.SpicetifyInstalled && backups?.Severity == HealthSeverity.Ready,

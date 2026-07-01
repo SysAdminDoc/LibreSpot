@@ -248,10 +248,12 @@ public sealed class SupportBundleService
             snapshot.MarketplaceFilesPresent,
             snapshot.MarketplaceRegistered,
             snapshot.MarketplaceReady,
+            snapshot.MarketplaceLikelyVisible,
             snapshot.SavedConfigExists,
             snapshot.ConfigFolderExists,
             snapshot.AutoReapplyTaskRegistered,
             customPatchImport = BuildCustomPatchImportReport(),
+            marketplaceVisibility = BuildMarketplaceVisibilityReport(snapshot.MarketplaceVisibilityEvidence),
             communityAssets = snapshot.CommunityAssetDriftReport.Assets.Select(asset => new
             {
                 asset.Id,
@@ -289,6 +291,32 @@ public sealed class SupportBundleService
                 recommendedActionIds = component.RecommendedActionIds
             })
         };
+
+    private object? BuildMarketplaceVisibilityReport(MarketplaceVisibilityEvidence? evidence) =>
+        evidence is null
+            ? null
+            : new
+            {
+                evidence.SchemaVersion,
+                evidence.GeneratedAtUtc,
+                evidence.Source,
+                evidence.FilesPresent,
+                evidence.Registered,
+                evidence.LikelyVisible,
+                evidence.MarketplaceStatus,
+                marketplacePath = RedactNullable(evidence.MarketplacePath),
+                evidence.ManifestVersion,
+                evidence.ApplyStage,
+                evidence.ApplySucceeded,
+                evidence.ApplyMessage,
+                evidence.ApplyCompletedAtUtc,
+                evidence.OpenUriSucceeded,
+                evidence.OpenUriMessage,
+                evidence.OpenUriRequestedAtUtc,
+                evidence.SpotifyRunningAfterOpen,
+                evidence.LastObservedSpotifySession,
+                evidence.LastObservedAtUtc
+            };
 
     private object? BuildCustomPatchImportReport()
     {

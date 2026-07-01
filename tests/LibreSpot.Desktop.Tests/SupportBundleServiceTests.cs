@@ -1,5 +1,6 @@
 using System.IO;
 using System.IO.Compression;
+using System.Text.Json;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
 using Xunit;
@@ -187,6 +188,32 @@ public sealed class SupportBundleServiceTests
     }
 
     [Fact]
+    public async Task ExportAsync_IncludesMarketplaceVisibilityEvidence()
+    {
+        using var fixture = new SupportBundleFixture();
+        fixture.WriteStackReadyState();
+        fixture.WriteMarketplaceEvidence();
+
+        var result = await fixture.ExportAsync(new SupportBundleOptions());
+        var entries = ReadZipText(result.Path);
+        var health = entries["health/health-report.json"];
+
+        Assert.Contains("\"marketplaceVisibility\"", health);
+        Assert.Contains("\"marketplaceLikelyVisible\": true", health);
+        Assert.Contains("\"source\": \"RepairMarketplace\"", health);
+        Assert.Contains("\"manifestVersion\": \"1.0.8\"", health);
+        Assert.Contains("\"applySucceeded\": true", health);
+        Assert.Contains("\"openUriSucceeded\": true", health);
+        Assert.DoesNotContain(fixture.Root, health, StringComparison.OrdinalIgnoreCase);
+        using var healthDocument = JsonDocument.Parse(health);
+        var marketplacePath = healthDocument.RootElement
+            .GetProperty("marketplaceVisibility")
+            .GetProperty("marketplacePath")
+            .GetString();
+        Assert.Contains("<LIBRESPOT_CONFIG>", marketplacePath);
+    }
+
+    [Fact]
     public void CreatePreview_ReportsSelectionsEstimateAndRedactionRules()
     {
         using var fixture = new SupportBundleFixture();
@@ -278,9 +305,36 @@ public sealed class SupportBundleServiceTests
             WriteFile(SpicetifyPath, "spicetify");
             WriteFile(Path.Combine(SpicetifyConfigDirectory, "config-xpui.ini"), "custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
             WriteFile(Path.Combine(SpicetifyConfigDirectory, "CustomApps", "marketplace", "extension.js"), "");
-            WriteFile(Path.Combine(SpicetifyConfigDirectory, "CustomApps", "marketplace", "manifest.json"), "{}");
+            WriteFile(Path.Combine(SpicetifyConfigDirectory, "CustomApps", "marketplace", "manifest.json"), "{\"version\":\"1.0.8\"}");
             WriteFile(Path.Combine(BackupDirectory, "20260616-100000", "config-xpui.ini"), "current_theme = SpicetifyDefault");
         }
+
+        public void WriteMarketplaceEvidence() =>
+            WriteFile(
+                Path.Combine(ConfigDirectory, "marketplace-evidence.json"),
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        schemaVersion = 1,
+                        generatedAtUtc = DateTimeOffset.Parse("2026-06-30T12:00:00Z"),
+                        source = "RepairMarketplace",
+                        filesPresent = true,
+                        registered = true,
+                        likelyVisible = true,
+                        marketplaceStatus = "Ready",
+                        marketplacePath = Path.Combine(ConfigDirectory, "spicetify", "CustomApps", "marketplace"),
+                        manifestVersion = "1.0.8",
+                        applyStage = "backup apply",
+                        applySucceeded = true,
+                        applyMessage = "Spicetify backup apply succeeded.",
+                        applyCompletedAtUtc = DateTimeOffset.Parse("2026-06-30T12:01:00Z"),
+                        openUriSucceeded = true,
+                        openUriMessage = "spotify:app:marketplace was handed to Windows.",
+                        openUriRequestedAtUtc = DateTimeOffset.Parse("2026-06-30T12:02:00Z"),
+                        spotifyRunningAfterOpen = true,
+                        lastObservedSpotifySession = "spotify-process-running",
+                        lastObservedAtUtc = DateTimeOffset.Parse("2026-06-30T12:03:00Z")
+                    }));
 
         public void WriteConfig(string content) =>
             WriteFile(ConfigPath, content);

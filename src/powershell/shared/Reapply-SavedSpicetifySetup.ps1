@@ -7,5 +7,5 @@ function Reapply-SavedSpicetifySetup { param($Config)
     Module-InstallThemes -Config $Config
     Module-InstallExtensions -Config $Config
     Module-InstallMarketplace -Config $Config
-    Module-ApplySpicetify -Config $Config
+    Module-ApplySpicetify -Config $Config -EvidenceSource 'Reapply' | Out-Null
 }

@@ -11,6 +11,7 @@ using CliCommunityAssetDriftReport = Cli::LibreSpot.Desktop.Models.CommunityAsse
 using CliCommunityAssetState = Cli::LibreSpot.Desktop.Models.CommunityAssetState;
 using CliEnvironmentSnapshot = Cli::LibreSpot.Desktop.Models.EnvironmentSnapshot;
 using CliHealthSeverity = Cli::LibreSpot.Desktop.Models.HealthSeverity;
+using CliMarketplaceVisibilityEvidence = Cli::LibreSpot.Desktop.Models.MarketplaceVisibilityEvidence;
 using CliStackHealthComponent = Cli::LibreSpot.Desktop.Models.StackHealthComponent;
 using CliStackHealthReport = Cli::LibreSpot.Desktop.Models.StackHealthReport;
 using CliUpstreamDependencyState = Cli::LibreSpot.Desktop.Models.UpstreamDependencyState;
@@ -96,6 +97,26 @@ public sealed class CliApplicationTests
             true,
             upstreamReport,
             communityReport,
+            new CliMarketplaceVisibilityEvidence(
+                1,
+                DateTimeOffset.Parse("2026-06-27T12:32:00Z"),
+                "RepairMarketplace",
+                true,
+                true,
+                true,
+                "Ready",
+                "C:\\Users\\Test\\AppData\\Roaming\\spicetify\\CustomApps\\marketplace",
+                "1.0.8",
+                "backup apply",
+                true,
+                "Spicetify backup apply succeeded.",
+                DateTimeOffset.Parse("2026-06-27T12:33:00Z"),
+                true,
+                "spotify:app:marketplace was handed to Windows.",
+                DateTimeOffset.Parse("2026-06-27T12:34:00Z"),
+                true,
+                "spotify-process-running",
+                DateTimeOffset.Parse("2026-06-27T12:35:00Z")),
             Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready, version: "1.2.92"),
             Component("spicetify-cli", "Spicetify CLI", "Detected", CliHealthSeverity.Ready, version: "2.43.2"),
             Component("backups", "Backups", "2 backups", CliHealthSeverity.Ready),
@@ -134,6 +155,12 @@ public sealed class CliApplicationTests
         Assert.Equal("NOASSERTION", communityAsset.GetProperty("license").GetString());
         Assert.Equal("third-party-service", communityAsset.GetProperty("networkBehavior").GetString());
         Assert.True(communityAsset.GetProperty("requiresTrustReview").GetBoolean());
+        Assert.True(doc.RootElement.GetProperty("marketplaceLikelyVisible").GetBoolean());
+        var marketplaceVisibility = doc.RootElement.GetProperty("marketplaceVisibility");
+        Assert.Equal("RepairMarketplace", marketplaceVisibility.GetProperty("source").GetString());
+        Assert.Equal("1.0.8", marketplaceVisibility.GetProperty("manifestVersion").GetString());
+        Assert.True(marketplaceVisibility.GetProperty("applySucceeded").GetBoolean());
+        Assert.True(marketplaceVisibility.GetProperty("openUriSucceeded").GetBoolean());
     }
 
     [Fact]
@@ -1017,13 +1044,14 @@ public sealed class CliApplicationTests
         bool spicetifyInstalled,
         CliUpstreamDriftReport upstreamDriftReport,
         params CliStackHealthComponent[] components) =>
-        SnapshotWithReports(spotifyInstalled, spicetifyInstalled, upstreamDriftReport, CliCommunityAssetDriftReport.Empty, components);
+        SnapshotWithReports(spotifyInstalled, spicetifyInstalled, upstreamDriftReport, CliCommunityAssetDriftReport.Empty, null, components);
 
     private static CliEnvironmentSnapshot SnapshotWithReports(
         bool spotifyInstalled,
         bool spicetifyInstalled,
         CliUpstreamDriftReport upstreamDriftReport,
         CliCommunityAssetDriftReport communityAssetDriftReport,
+        CliMarketplaceVisibilityEvidence? marketplaceVisibilityEvidence,
         params CliStackHealthComponent[] components) =>
         new()
         {
@@ -1038,7 +1066,8 @@ public sealed class CliApplicationTests
             ProcessArchitecture = "x64",
             HealthReport = new CliStackHealthReport(components),
             UpstreamDriftReport = upstreamDriftReport,
-            CommunityAssetDriftReport = communityAssetDriftReport
+            CommunityAssetDriftReport = communityAssetDriftReport,
+            MarketplaceVisibilityEvidence = marketplaceVisibilityEvidence
         };
 
     private static CliStackHealthComponent Component(

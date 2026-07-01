@@ -70,6 +70,7 @@ public sealed class EnvironmentSnapshotService
     public EnvironmentSnapshot GetSnapshot(string configPath)
     {
         var configDirectory = ResolveConfigDirectory(configPath);
+        var marketplaceEvidence = ReadMarketplaceVisibilityEvidence(configDirectory);
         var spicetifyConfigPath = Path.Combine(_spicetifyConfigDirectory, "config-xpui.ini");
         var spicetifyConfig = ReadSpicetifyConfigEntries(spicetifyConfigPath);
         var marketplaceDirectory = Path.Combine(_spicetifyConfigDirectory, "CustomApps", "marketplace");
@@ -95,6 +96,7 @@ public sealed class EnvironmentSnapshotService
             marketplaceDirectory,
             marketplaceFilesPresent,
             marketplaceRegistered,
+            marketplaceEvidence,
             spotifyInstalled,
             spicetifyInstalled,
             savedConfigExists,
@@ -115,6 +117,7 @@ public sealed class EnvironmentSnapshotService
             HealthReport = healthReport,
             UpstreamDriftReport = upstreamDriftReport,
             CommunityAssetDriftReport = communityAssetDriftReport,
+            MarketplaceVisibilityEvidence = marketplaceEvidence,
             HostArchitecture = GetHostArchitecture(),
             ProcessArchitecture = GetProcessArchitecture()
         };
@@ -128,6 +131,7 @@ public sealed class EnvironmentSnapshotService
         string marketplaceDirectory,
         bool marketplaceFilesPresent,
         bool marketplaceRegistered,
+        MarketplaceVisibilityEvidence? marketplaceEvidence,
         bool spotifyInstalled,
         bool spicetifyInstalled,
         bool savedConfigExists,
@@ -144,7 +148,7 @@ public sealed class EnvironmentSnapshotService
             BuildSpotXComponent(spotifyInstalled),
             BuildSpicetifyCliComponent(spicetifyInstalled),
             BuildSpicetifyConfigComponent(spicetifyInstalled, spicetifyConfigPath, spicetifyConfig),
-            BuildMarketplaceComponent(spicetifyInstalled, marketplaceDirectory, marketplaceFilesPresent, marketplaceRegistered),
+            BuildMarketplaceComponent(spicetifyInstalled, marketplaceDirectory, marketplaceFilesPresent, marketplaceRegistered, marketplaceEvidence),
             BuildThemeComponent(spicetifyInstalled, spicetifyConfigPath, spicetifyConfig),
             BuildBackupComponent(spicetifyInstalled),
             BuildWatcherComponent(watcherStatePath, watcherState, autoReapplyTaskRegistered),
@@ -510,7 +514,8 @@ public sealed class EnvironmentSnapshotService
         bool spicetifyInstalled,
         string marketplaceDirectory,
         bool filesPresent,
-        bool registered)
+        bool registered,
+        MarketplaceVisibilityEvidence? visibilityEvidence)
     {
         if (!spicetifyInstalled)
         {
@@ -528,15 +533,63 @@ public sealed class EnvironmentSnapshotService
 
         if (filesPresent && registered)
         {
+            var evidence = BuildMarketplaceEvidenceText(visibilityEvidence, "Marketplace files are present and custom_apps includes marketplace.");
+            if (visibilityEvidence?.ApplySucceeded == false)
+            {
+                return Component(
+                    "marketplace",
+                    "Marketplace",
+                    "Apply failed",
+                    HealthSeverity.Warning,
+                    visibilityEvidence.ManifestVersion,
+                    marketplaceDirectory,
+                    GetNewestFileChange(marketplaceDirectory),
+                    evidence,
+                    "Reapply",
+                    "RepairMarketplace",
+                    "OpenLogs");
+            }
+
+            if (visibilityEvidence?.OpenUriSucceeded == false)
+            {
+                return Component(
+                    "marketplace",
+                    "Marketplace",
+                    "Open failed",
+                    HealthSeverity.Warning,
+                    visibilityEvidence.ManifestVersion,
+                    marketplaceDirectory,
+                    GetNewestFileChange(marketplaceDirectory),
+                    evidence,
+                    "OpenMarketplace",
+                    "RepairMarketplace");
+            }
+
+            if (visibilityEvidence?.LikelyVisible == true)
+            {
+                return Component(
+                    "marketplace",
+                    "Marketplace",
+                    "Likely visible",
+                    HealthSeverity.Ready,
+                    visibilityEvidence.ManifestVersion,
+                    marketplaceDirectory,
+                    GetNewestFileChange(marketplaceDirectory),
+                    evidence,
+                    "OpenMarketplace");
+            }
+
             return Component(
                 "marketplace",
                 "Marketplace",
-                "Ready",
-                HealthSeverity.Ready,
-                null,
+                "Files installed",
+                HealthSeverity.Info,
+                visibilityEvidence?.ManifestVersion,
                 marketplaceDirectory,
                 GetNewestFileChange(marketplaceDirectory),
-                "Marketplace files are present and custom_apps includes marketplace.");
+                evidence,
+                "OpenMarketplace",
+                "RepairMarketplace");
         }
 
         if (filesPresent)
@@ -577,6 +630,42 @@ public sealed class EnvironmentSnapshotService
             null,
             "Marketplace is not registered and required files were not found.",
             "RepairMarketplace");
+    }
+
+    private static string BuildMarketplaceEvidenceText(MarketplaceVisibilityEvidence? visibilityEvidence, string fallback)
+    {
+        if (visibilityEvidence is null)
+        {
+            return fallback + " No post-apply visibility evidence has been recorded yet.";
+        }
+
+        var manifest = string.IsNullOrWhiteSpace(visibilityEvidence.ManifestVersion)
+            ? "manifest version unknown"
+            : $"manifest version {visibilityEvidence.ManifestVersion}";
+        var apply = visibilityEvidence.ApplySucceeded.HasValue
+            ? $"{visibilityEvidence.ApplyStage ?? "apply"} {(visibilityEvidence.ApplySucceeded.Value ? "succeeded" : "failed")}"
+            : "apply result not recorded";
+        var open = visibilityEvidence.OpenUriSucceeded.HasValue
+            ? $"open URI {(visibilityEvidence.OpenUriSucceeded.Value ? "succeeded" : "failed")}"
+            : "open URI not recorded";
+        var spotify = visibilityEvidence.SpotifyRunningAfterOpen.HasValue
+            ? visibilityEvidence.SpotifyRunningAfterOpen.Value ? "Spotify process observed after URI request" : "Spotify process not observed after URI request"
+            : visibilityEvidence.LastObservedSpotifySession;
+
+        var text =
+            $"{fallback} Visibility evidence from {visibilityEvidence.Source}: {manifest}; {apply}; {open}; {spotify}; likelyVisible={visibilityEvidence.LikelyVisible}.";
+
+        if (!string.IsNullOrWhiteSpace(visibilityEvidence.ApplyMessage))
+        {
+            text += $" Apply detail: {visibilityEvidence.ApplyMessage}";
+        }
+
+        if (!string.IsNullOrWhiteSpace(visibilityEvidence.OpenUriMessage))
+        {
+            text += $" Open detail: {visibilityEvidence.OpenUriMessage}";
+        }
+
+        return text;
     }
 
     private static StackHealthComponent BuildThemeComponent(
@@ -1342,6 +1431,51 @@ public sealed class EnvironmentSnapshotService
         }
     }
 
+    private static MarketplaceVisibilityEvidence? ReadMarketplaceVisibilityEvidence(string configDirectory)
+    {
+        var path = Path.Combine(configDirectory, "marketplace-evidence.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(path));
+            var root = document.RootElement;
+            var schemaVersion = TryGetInt32(root, "schemaVersion") ?? 0;
+            if (schemaVersion != 1)
+            {
+                return null;
+            }
+
+            return new MarketplaceVisibilityEvidence(
+                schemaVersion,
+                TryGetDateTimeOffset(root, "generatedAtUtc") ?? DateTimeOffset.MinValue,
+                TryGetString(root, "source") ?? "unknown",
+                TryGetBool(root, "filesPresent") ?? false,
+                TryGetBool(root, "registered") ?? false,
+                TryGetBool(root, "likelyVisible") ?? false,
+                TryGetString(root, "marketplaceStatus") ?? "Unknown",
+                TryGetString(root, "marketplacePath") ?? path,
+                TryGetString(root, "manifestVersion"),
+                TryGetString(root, "applyStage"),
+                TryGetBool(root, "applySucceeded"),
+                TryGetString(root, "applyMessage"),
+                TryGetDateTimeOffset(root, "applyCompletedAtUtc"),
+                TryGetBool(root, "openUriSucceeded"),
+                TryGetString(root, "openUriMessage"),
+                TryGetDateTimeOffset(root, "openUriRequestedAtUtc"),
+                TryGetBool(root, "spotifyRunningAfterOpen"),
+                TryGetString(root, "lastObservedSpotifySession") ?? "not observed",
+                TryGetDateTimeOffset(root, "lastObservedAtUtc"));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private static string? TryGetString(JsonElement element, string propertyName)
     {
         if (!element.TryGetProperty(propertyName, out var property))
@@ -1354,11 +1488,47 @@ public sealed class EnvironmentSnapshotService
             : property.ToString();
     }
 
+    private static bool? TryGetBool(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out var property))
+        {
+            return null;
+        }
+
+        return property.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.String when bool.TryParse(property.GetString(), out var parsed) => parsed,
+            _ => null
+        };
+    }
+
+    private static int? TryGetInt32(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out var property))
+        {
+            return null;
+        }
+
+        return property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out var parsed)
+            ? parsed
+            : null;
+    }
+
     private static DateTime? TryGetDateTime(JsonElement element, string propertyName)
     {
         var raw = TryGetString(element, propertyName);
         return DateTime.TryParse(raw, out var parsed)
             ? parsed.ToLocalTime()
+            : null;
+    }
+
+    private static DateTimeOffset? TryGetDateTimeOffset(JsonElement element, string propertyName)
+    {
+        var raw = TryGetString(element, propertyName);
+        return DateTimeOffset.TryParse(raw, out var parsed)
+            ? parsed
             : null;
     }
 

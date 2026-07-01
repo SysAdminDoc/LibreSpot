@@ -216,6 +216,27 @@ public sealed record CommunityAssetState(
     bool RequiresTrustReview,
     string Evidence);
 
+public sealed record MarketplaceVisibilityEvidence(
+    int SchemaVersion,
+    DateTimeOffset GeneratedAtUtc,
+    string Source,
+    bool FilesPresent,
+    bool Registered,
+    bool LikelyVisible,
+    string MarketplaceStatus,
+    string MarketplacePath,
+    string? ManifestVersion,
+    string? ApplyStage,
+    bool? ApplySucceeded,
+    string? ApplyMessage,
+    DateTimeOffset? ApplyCompletedAtUtc,
+    bool? OpenUriSucceeded,
+    string? OpenUriMessage,
+    DateTimeOffset? OpenUriRequestedAtUtc,
+    bool? SpotifyRunningAfterOpen,
+    string LastObservedSpotifySession,
+    DateTimeOffset? LastObservedAtUtc);
+
 public static class HealthSeverity
 {
     public const string Ready = "ready";
@@ -398,9 +419,11 @@ public sealed class EnvironmentSnapshot
     public StackHealthReport HealthReport { get; init; } = StackHealthReport.Empty;
     public UpstreamDriftReport UpstreamDriftReport { get; init; } = UpstreamDriftReport.Empty;
     public CommunityAssetDriftReport CommunityAssetDriftReport { get; init; } = CommunityAssetDriftReport.Empty;
+    public MarketplaceVisibilityEvidence? MarketplaceVisibilityEvidence { get; init; }
     public string HostArchitecture { get; init; } = "Unknown";
     public string ProcessArchitecture { get; init; } = "Unknown";
     public bool MarketplaceReady => MarketplaceFilesPresent && MarketplaceRegistered;
+    public bool MarketplaceLikelyVisible => MarketplaceVisibilityEvidence?.LikelyVisible == true;
 
     public string StatusTitle => HealthReport.StatusTitle;
 
