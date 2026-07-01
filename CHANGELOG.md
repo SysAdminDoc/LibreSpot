@@ -159,6 +159,47 @@ All notable changes to LibreSpot will be documented in this file.
   panel available for full review.
 
 ### Fixed
+- Fixed high-contrast palette crash: all Color key definitions used invalid
+  `{x:Static}` XAML syntax in element content, which would throw at load time
+  when the system high-contrast theme was active. Replaced with valid hex
+  fallback values; Brush keys (which correctly use DynamicResource for real
+  system colors) handle actual rendering.
+- Boosted SubtleTextColor contrast from 4.1:1 to 5.4:1 against the dark canvas,
+  passing WCAG AA 4.5:1 for caption-size text used throughout the sidebar and
+  maintenance panels.
+- Activity error/cancel detection now uses a typed outcome enum instead of
+  parsing localized status strings for English keywords. The previous approach
+  broke IsActivityError and IsActivityCanceled in non-English locales.
+- Profile listing no longer crashes when a single profile JSON file is malformed;
+  corrupt files are skipped with a debug trace.
+- Profile file writes use atomic temp-file + rename pattern, matching the safety
+  level of ConfigurationService.SaveAsync.
+- Save-LibreSpotConfig and Set-WatcherState fallback paths no longer risk losing
+  the original file: the File.Replace catch now renames to `.rescue` before
+  attempting File.Move, restoring the original if the move fails.
+- Simplified duplicate MultiDataTriggers in OptionTemplate and ExtensionTemplate
+  badge borders. Both templates had two identical triggers (recommended+checked vs
+  non-recommended+checked) producing the same accent tint; collapsed to a single
+  DataTrigger on IsChecked.
+- AssetCacheInventoryReport computed properties (PresentCount, MissingCount,
+  CorruptCount, UnindexedCount, TotalBytes) are now cached at construction instead
+  of re-enumerating the collection on every WPF binding access.
+- FilteredThemeGalleryItems is cached with invalidation instead of allocating a
+  new array on every property access from WPF bindings.
+- CustomPatchValidationResult.Findings is now computed once at construction.
+- LogLevelToBrushConverter uses case-insensitive comparison instead of allocating
+  an uppercase string copy on every log entry.
+- CommunityAssetDriftService manifest load catch narrowed to exclude fatal CLR
+  exceptions and now emits a debug trace on failure.
+- CollectPlanSummaryAsync catch narrowed with exception filter and debug trace.
+- EnvironmentSnapshotStateViewModel time format now respects the user's locale and
+  clock convention instead of forcing 12-hour AM/PM via InvariantCulture.
+- Added TerminalBgColor/TerminalFgColor keys to the dark palette so the terminal
+  brush pattern matches every other brush in the palette (Color key → Brush key).
+- Added Clone_CoversEveryPublicSettableProperty test that fails immediately if a
+  new InstallConfiguration property is added without updating Clone().
+- Resolved xUnit2031, xUnit1031, and xUnit2013 analyzer warnings across the test
+  suite.
 - RemoveSelfData now writes a path-free irreversible receipt under
   `%TEMP%\LibreSpot\remove-self-data-receipt.latest.json`, no longer requires
   readable persisted config before erasing it, and avoids recreating
