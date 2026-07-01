@@ -129,6 +129,20 @@
       "aclExpectation": "restricted ACL (current user + Administrators, inheritance disabled)"
     },
     {
+      "id": "remove-self-data-receipt",
+      "path": "%TEMP%\\LibreSpot\\remove-self-data-receipt.latest.json",
+      "owner": "user",
+      "description": "Path-free receipt written after RemoveSelfData deletes the normal LibreSpot config and log roots",
+      "sensitivity": "low",
+      "sensitivityNote": "Contains action result, timestamps, labels, and reversibility state; no raw removed paths or tokens.",
+      "retention": "temporary",
+      "retentionNote": "Persists only until the user or OS temp cleanup removes it",
+      "userDeletePath": "Delete %TEMP%\\LibreSpot\\remove-self-data-receipt.latest.json",
+      "includedInSupportBundle": false,
+      "redactionRules": [],
+      "aclExpectation": "user-only (inherited from %TEMP%)"
+    },
+    {
       "id": "scheduled-task",
       "path": "\\LibreSpot\\ReapplyWatcher (Task Scheduler)",
       "owner": "system",

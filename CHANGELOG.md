@@ -5,6 +5,10 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added temp-root RemoveSelfData regression coverage that seeds LibreSpot-owned
+  config, profiles, journals, logs, crashes, cache, backups, and watcher state
+  with canaries, then proves self-erasure leaves Spotify and Spicetify files
+  untouched and support bundles do not leak the seeded paths or tokens.
 - Added CommunityToolkit.Mvvm 8.4.2 to the WPF shell, replacing the local
   observable/command helpers with Toolkit commands and source-generated
   observable state properties.
@@ -147,6 +151,10 @@ All notable changes to LibreSpot will be documented in this file.
   panel available for full review.
 
 ### Fixed
+- RemoveSelfData now writes a path-free irreversible receipt under
+  `%TEMP%\LibreSpot\remove-self-data-receipt.latest.json`, no longer requires
+  readable persisted config before erasing it, and avoids recreating
+  `%APPDATA%\LibreSpot` with a final file-log write after cleanup.
 - Fleet CLI schema conformance now covers `version --json`, schema-shaped
   dry-run NDJSON with stable `LS` event IDs, Windows alias parsing, and
   tests that fail when implemented verbs diverge from `fleet-cli-contract.json`.

@@ -294,6 +294,9 @@ This is a known upstream issue (spicetify/cli#3837). Themes and extensions insta
 **How do I collect diagnostics without leaking local paths or secrets?**
 Use Maintenance > Support bundle. LibreSpot previews the selected health report, operation journal, log, and crash-report windows, redacts local user/machine paths, GitHub headers, proxy credentials, tokens, passwords, and command-line secret arguments, then writes a local zip. It does not upload the bundle.
 
+**What does Remove LibreSpot Data erase?**
+Maintenance > Remove LibreSpot Data deletes LibreSpot-owned config, local profiles, operation journals, logs, crashes, verified cache, backups, and watcher state while leaving Spotify and Spicetify files untouched. It writes a path-free irreversible receipt to `%TEMP%\LibreSpot\remove-self-data-receipt.latest.json`.
+
 **How do I go back to stock Spotify?**
 Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify, and cleans up every trace.
 

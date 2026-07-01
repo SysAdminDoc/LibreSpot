@@ -472,10 +472,3 @@ needs to detect and surface this state, not just show booleans.
   Touches: `src/LibreSpot.Desktop/Services/ThemeManager.cs`, `src/LibreSpot.Desktop/Themes/*.xaml`, `src/LibreSpot.Desktop/MainWindow.xaml`, `tests/LibreSpot.Desktop.Tests/WpfFlaUiSmokeTests.cs`, `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`, `tests/LibreSpot.Desktop.Tests/ThemeManagerTests.cs`.
   Acceptance: Test hook launches the WPF shell with high-contrast palette active, walks Recommended, Custom, Maintenance, prompt, activity, snackbar/log, and support-bundle surfaces, asserts focusable controls have visible UIA names and resolved high-contrast brushes, and static lint rejects hardcoded colors outside palette files.
   Complexity: M
-
-- [ ] P2 — Add RemoveSelfData privacy-erasure regression coverage
-  Why: LibreSpot documents local data retention and exposes RemoveSelfData, but there is no end-to-end temp-root proof that config, profiles, logs, crashes, cache, backups, and watcher state are erased without later leaking raw paths or tokens.
-  Evidence: `schemas/data-inventory.json`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `src/LibreSpot.Cli/Program.cs`, `tests/LibreSpot.Desktop.Tests/SupportBundleServiceTests.cs`.
-  Touches: backend temp-root hooks, `src/powershell/shared/*`, `src/LibreSpot.Cli/Program.cs`, `tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs`, `tests/LibreSpot.Desktop.Tests/CliApplicationTests.cs`, support bundle tests.
-  Acceptance: A temp-root test seeds config, local profiles, operation journal, logs, crashes, cache, backups, and watcher state with path/token canaries; running RemoveSelfData or CLI uninstall `--purge` deletes LibreSpot-owned data, writes an irreversible receipt, leaves Spotify/Spicetify untouched, and subsequent status/support-bundle output contains no seeded raw paths or tokens.
-  Complexity: M

@@ -1438,9 +1438,12 @@ public sealed class PowerShellRegressionTests
         Assert.True(backupIndex >= 0 && localLogIndex > backupIndex && configIndex > localLogIndex,
             "RemoveSelfData must remove the active LibreSpot config profile last.");
         Assert.Contains("RemovesActiveProfile", body);
+        Assert.Contains("Write-RemoveSelfDataReceipt", body);
         Assert.Contains("Write-EventLine -Kind 'log' -Level 'SUCCESS'", body);
         Assert.DoesNotContain("Write-Log 'LibreSpot self-cleanup complete", body);
         Assert.Contains("if ($Action -ne 'RemoveSelfData')", script);
+        Assert.Contains("'RemoveSelfData', 'ClearCache'", script);
+        Assert.Contains("Write-Log \"--- Maintenance action '$Action' completed successfully ---\"", script);
     }
 
     // ---------------------------------------------------------------------

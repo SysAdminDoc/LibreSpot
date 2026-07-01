@@ -29,7 +29,7 @@ public sealed class CommunitySharingExperienceTests
 
         Assert.NotEmpty(highlights);
         Assert.DoesNotContain(highlights, item => item.Contains("not embedded", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(highlights, item => item.Contains("profile sharing", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(highlights, item => item.Contains("RemoveSelfData", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

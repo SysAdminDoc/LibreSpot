@@ -10,6 +10,21 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
 
+$script:BackendTestRoot = $null
+$testRootValue = [Environment]::GetEnvironmentVariable('LIBRESPOT_TEST_ROOT')
+if (-not [string]::IsNullOrWhiteSpace($testRootValue)) {
+    $script:BackendTestRoot = [System.IO.Path]::GetFullPath($testRootValue)
+    $env:APPDATA = Join-Path $script:BackendTestRoot 'AppData\Roaming'
+    $env:LOCALAPPDATA = Join-Path $script:BackendTestRoot 'AppData\Local'
+    $env:TEMP = Join-Path $script:BackendTestRoot 'Temp'
+    $env:USERPROFILE = Join-Path $script:BackendTestRoot 'UserProfile'
+    foreach ($directory in @($env:APPDATA, $env:LOCALAPPDATA, $env:TEMP, $env:USERPROFILE)) {
+        if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
+            New-Item -Path $directory -ItemType Directory -Force | Out-Null
+        }
+    }
+}
+
 if (-not ('LibreSpotNativeOutputCollector' -as [type])) {
     Add-Type -TypeDefinition @'
 using System;
@@ -107,7 +122,7 @@ $global:CACHE_DIR            = Join-Path $global:CONFIG_DIR 'cache'
 $global:BACKUP_ROOT          = "$env:USERPROFILE\LibreSpot_Backups"
 $global:WATCHER_STATE_PATH   = Join-Path $global:CONFIG_DIR 'watcher-state.json'
 $global:WATCHER_LOG_PATH     = Join-Path $global:CONFIG_DIR 'watcher.log'
-$global:WATCHER_TASK_NAME    = 'LibreSpot\ReapplyWatcher'
+$global:WATCHER_TASK_NAME    = if ($script:BackendTestRoot) { 'LibreSpot\TestReapplyWatcher' } else { 'LibreSpot\ReapplyWatcher' }
 
 $global:ThemeSchemes = [ordered]@{
     '(None - Marketplace Only)' = @('Default')
@@ -557,7 +572,7 @@ function ConvertTo-ConfigInt {
 function Get-LibreSpotConfigSchemaVersion {
     param([hashtable]$Config)
     if (-not $Config -or -not $Config.ContainsKey('ConfigSchemaVersion')) { return 0 }
-    return (ConvertTo-ConfigInt -Value $Config.ConfigSchemaVersion -Default 0 -Minimum 0 -Maximum [int]::MaxValue)
+    return (ConvertTo-ConfigInt -Value $Config.ConfigSchemaVersion -Default 0 -Minimum 0 -Maximum ([int]::MaxValue))
 }
 
 function Assert-LibreSpotConfigSchemaSupported {
@@ -795,6 +810,10 @@ function Load-LibreSpotConfig {
 }
 
 function Ensure-Admin {
+    if ($script:BackendTestRoot) {
+        return
+    }
+
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator
     )
@@ -819,6 +838,34 @@ function Write-WatcherLog {
             [System.IO.File]::WriteAllLines($global:WATCHER_LOG_PATH, $keep, $utf8NoBom)
         }
     } catch {}
+}
+
+function Write-RemoveSelfDataReceipt {
+    param([object[]]$Targets)
+
+    try {
+        $receiptDirectory = Join-Path $global:TEMP_DIR 'LibreSpot'
+        if (-not (Test-Path -LiteralPath $receiptDirectory -PathType Container)) {
+            New-Item -Path $receiptDirectory -ItemType Directory -Force | Out-Null
+        }
+
+        $receiptPath = Join-Path $receiptDirectory 'remove-self-data-receipt.latest.json'
+        $receipt = [ordered]@{
+            schemaVersion  = 1
+            action         = 'RemoveSelfData'
+            result         = 'Succeeded'
+            reversible     = $false
+            generatedAtUtc = (Get-Date).ToUniversalTime().ToString('o')
+            spotifyTouched = $false
+            spicetifyTouched = $false
+            targets        = $Targets
+        }
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($receiptPath, ($receipt | ConvertTo-Json -Depth 8), $utf8)
+        Write-EventLine -Kind 'log' -Level 'INFO' -Payload "RemoveSelfData receipt written to $receiptPath"
+    } catch {
+        Write-EventLine -Kind 'log' -Level 'WARN' -Payload "RemoveSelfData receipt could not be written: $($_.Exception.Message)"
+    }
 }
 
 function Get-WatcherState {
@@ -3978,6 +4025,7 @@ function Invoke-LibreSpotMaintenance {
                 @{ Path = (Join-Path $env:LOCALAPPDATA 'LibreSpot'); Label = 'Log/crash directory' }
                 @{ Path = $global:CONFIG_DIR; Label = 'Config directory'; RemovesActiveProfile = $true }
             )
+            $receiptTargets = @()
             $step = 20
             foreach ($entry in $selfPaths) {
                 Update-BackendState -Progress $step -Status "Removing $($entry.Label)" -Step $entry.Label
@@ -3986,16 +4034,20 @@ function Invoke-LibreSpotMaintenance {
                         if (-not (Test-SafeRemovalTarget -Path $entry.Path)) {
                             Write-OperationJournalEntry -Phase 'remove' -Target $entry.Path -SafetyDecision 'RefusedUnsafeTarget' -Result 'Refused' -WouldChange $false -Reversible $false -RollbackHint 'No files were removed because the target failed LibreSpot safe-removal checks.' -Data @{ label = $entry.Label }
                             Write-Log "Refusing to remove unsafe target: $($entry.Path)" -Level 'WARN'
+                            $receiptTargets += [pscustomobject]@{ label = $entry.Label; result = 'RefusedUnsafeTarget' }
                         } else {
                             Write-OperationJournalEntry -Phase 'remove' -Target $entry.Path -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'This removes LibreSpot profile data by user request.' -Data @{ label = $entry.Label }
                             Remove-Item -LiteralPath $entry.Path -Recurse -Force -ErrorAction Stop
                             Write-EventLine -Kind 'log' -Level 'INFO' -Payload "Removed: $($entry.Label) ($($entry.Path))"
+                            $receiptTargets += [pscustomobject]@{ label = $entry.Label; result = 'Removed' }
                         }
                     } else {
-                        $null = Remove-PathSafely -Path $entry.Path -Label $entry.Label
+                        $removed = Remove-PathSafely -Path $entry.Path -Label $entry.Label
                         Write-Log "Removed: $($entry.Label) ($($entry.Path))"
+                        $receiptTargets += [pscustomobject]@{ label = $entry.Label; result = if ($removed) { 'Removed' } else { 'Skipped' } }
                     }
                 } else {
+                    $receiptTargets += [pscustomobject]@{ label = $entry.Label; result = 'NotFound' }
                     if ($entry.RemovesActiveProfile) {
                         Write-EventLine -Kind 'log' -Level 'INFO' -Payload "Not found: $($entry.Label) ($($entry.Path))"
                     } else {
@@ -4004,6 +4056,7 @@ function Invoke-LibreSpotMaintenance {
                 }
                 $step += 25
             }
+            Write-RemoveSelfDataReceipt -Targets $receiptTargets
             Write-EventLine -Kind 'log' -Level 'SUCCESS' -Payload 'LibreSpot self-cleanup complete. Spotify and Spicetify were not affected.'
         }
         'ClearCache' {
@@ -4036,7 +4089,9 @@ function Invoke-LibreSpotMaintenance {
     }
 
     Update-BackendState -Progress 100 -Status 'Maintenance complete' -Step 'LibreSpot is ready'
-    Write-Log "--- Maintenance action '$Action' completed successfully ---" -Level 'SUCCESS'
+    if ($Action -ne 'RemoveSelfData') {
+        Write-Log "--- Maintenance action '$Action' completed successfully ---" -Level 'SUCCESS'
+    }
 }
 
 try {
@@ -4071,7 +4126,7 @@ try {
 
     # Gate patching actions behind risk acknowledgment. The WPF shell handles
     # the dialog; the backend enforces the invariant as a safety net.
-    if ($Action -notin @('CheckUpdates', 'ClearCache', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')) {
+    if ($Action -notin @('CheckUpdates', 'RemoveSelfData', 'ClearCache', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')) {
         $riskConfig = Load-LibreSpotConfig
         if (-not (ConvertTo-ConfigBoolean -Value $riskConfig['RiskAcknowledged'] -Default $false)) {
             Write-Log 'RiskAcknowledged is false. The desktop shell must present the acknowledgment dialog before running this action.' -Level 'ERROR'
