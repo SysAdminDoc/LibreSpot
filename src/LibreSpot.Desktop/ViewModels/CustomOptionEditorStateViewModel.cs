@@ -14,6 +14,7 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
     private string _selectedDownloadMethod = string.Empty;
     private string _cacheLimitText = "0";
     private string _themeSearchText = string.Empty;
+    private IReadOnlyList<ThemeGalleryItemViewModel>? _filteredThemeGalleryItemsCache;
 
     public CustomOptionEditorStateViewModel(InstallConfiguration recommendedBaseline)
     {
@@ -96,10 +97,10 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
     }
 
     public IReadOnlyList<ThemeGalleryItemViewModel> FilteredThemeGalleryItems =>
-        ThemeGalleryItems.Where(item => item.Matches(ThemeSearchText)).ToArray();
+        _filteredThemeGalleryItemsCache ??= ThemeGalleryItems.Where(item => item.Matches(ThemeSearchText)).ToArray();
 
     public bool HasThemeSearchText => !string.IsNullOrWhiteSpace(ThemeSearchText);
-    public bool ShowThemeGalleryEmptyState => !FilteredThemeGalleryItems.Any();
+    public bool ShowThemeGalleryEmptyState => FilteredThemeGalleryItems.Count == 0;
 
     public string ThemeGalleryEmptyText =>
         HasThemeSearchText
@@ -176,6 +177,7 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
         }
 
         SelectedTheme = selectedTheme;
+        _filteredThemeGalleryItemsCache = null;
         RaiseThemeFilterChanged();
     }
 
@@ -207,6 +209,7 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
 
     private void RaiseThemeFilterChanged()
     {
+        _filteredThemeGalleryItemsCache = null;
         OnPropertyChanged(nameof(FilteredThemeGalleryItems));
         OnPropertyChanged(nameof(ThemeGalleryEmptyText));
         OnPropertyChanged(nameof(ShowThemeGalleryEmptyState));

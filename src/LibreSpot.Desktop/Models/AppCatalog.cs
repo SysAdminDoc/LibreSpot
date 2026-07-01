@@ -234,20 +234,29 @@ public sealed class AssetCacheInventoryReport
         CacheDirectory = cacheDirectory;
         IndexPath = indexPath;
         GeneratedAtUtc = generatedAtUtc;
+
+        EntryCount = Entries.Count;
+        PresentCount = Entries.Count(entry => string.Equals(entry.Status, "present", StringComparison.OrdinalIgnoreCase));
+        MissingCount = Entries.Count(entry => string.Equals(entry.Status, "missing", StringComparison.OrdinalIgnoreCase));
+        CorruptCount = Entries.Count(entry => string.Equals(entry.Status, "corrupt", StringComparison.OrdinalIgnoreCase));
+        UnindexedCount = Entries.Count(entry => string.Equals(entry.Status, "unindexed", StringComparison.OrdinalIgnoreCase));
+        StaleCount = MissingCount + UnindexedCount;
+        TotalBytes = Entries.Where(entry => entry.FilePresent).Sum(entry => entry.ByteSize);
+        HasIssues = CorruptCount > 0 || StaleCount > 0;
     }
 
     public IReadOnlyList<AssetCacheEntryState> Entries { get; }
     public string CacheDirectory { get; }
     public string IndexPath { get; }
     public DateTimeOffset GeneratedAtUtc { get; }
-    public int EntryCount => Entries.Count;
-    public int PresentCount => Entries.Count(entry => string.Equals(entry.Status, "present", StringComparison.OrdinalIgnoreCase));
-    public int MissingCount => Entries.Count(entry => string.Equals(entry.Status, "missing", StringComparison.OrdinalIgnoreCase));
-    public int CorruptCount => Entries.Count(entry => string.Equals(entry.Status, "corrupt", StringComparison.OrdinalIgnoreCase));
-    public int UnindexedCount => Entries.Count(entry => string.Equals(entry.Status, "unindexed", StringComparison.OrdinalIgnoreCase));
-    public int StaleCount => MissingCount + UnindexedCount;
-    public long TotalBytes => Entries.Where(entry => entry.FilePresent).Sum(entry => entry.ByteSize);
-    public bool HasIssues => CorruptCount > 0 || StaleCount > 0;
+    public int EntryCount { get; }
+    public int PresentCount { get; }
+    public int MissingCount { get; }
+    public int CorruptCount { get; }
+    public int UnindexedCount { get; }
+    public int StaleCount { get; }
+    public long TotalBytes { get; }
+    public bool HasIssues { get; }
 }
 
 public sealed record AssetCacheEntryState(

@@ -21,7 +21,7 @@ public sealed record CustomPatchValidationResult(
             ? $"Dry run passed: {PatchGroupCount} patch group(s), {PatternCount} regex pattern(s), and {ReplacementCount} replacement value(s) are ready to stage."
             : $"Dry run blocked: {Errors.Count} issue(s) need review before SpotX can receive this patches.json.";
 
-    public IReadOnlyList<string> Findings => Errors.Concat(Warnings).ToArray();
+    public IReadOnlyList<string> Findings { get; } = Errors.Concat(Warnings).ToArray();
 }
 
 public sealed record CustomPatchImportResult(

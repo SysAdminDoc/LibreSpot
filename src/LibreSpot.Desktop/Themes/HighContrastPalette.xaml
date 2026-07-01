@@ -20,48 +20,53 @@
   <FontFamily x:Key="BodyFont">Segoe UI Variable Text, Segoe UI</FontFamily>
   <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
 
-  <!-- ═══ Surfaces — mapped to system window background ═══ -->
-  <Color x:Key="CanvasColor">{x:Static SystemColors.WindowColor}</Color>
-  <Color x:Key="CanvasShadeColor">{x:Static SystemColors.WindowColor}</Color>
-  <Color x:Key="Surface1Color">{x:Static SystemColors.ControlColor}</Color>
-  <Color x:Key="Surface2Color">{x:Static SystemColors.ControlColor}</Color>
-  <Color x:Key="Surface3Color">{x:Static SystemColors.ControlColor}</Color>
-  <Color x:Key="SurfaceRaisedColor">{x:Static SystemColors.ControlColor}</Color>
-  <Color x:Key="RailColor">{x:Static SystemColors.WindowColor}</Color>
+  <!-- ═══ Surfaces — fallback values for Color key lookups ═══ -->
+  <!-- Brush keys below use DynamicResource to real SystemColors and handle
+       rendering.  These Color keys exist so StaticResource lookups from
+       gradient stops or animation targets resolve without crashing.  They
+       approximate HC Black defaults; actual on-screen colors come from the
+       Brush definitions. -->
+  <Color x:Key="CanvasColor">#000000</Color>
+  <Color x:Key="CanvasShadeColor">#000000</Color>
+  <Color x:Key="Surface1Color">#1A1A1A</Color>
+  <Color x:Key="Surface2Color">#1A1A1A</Color>
+  <Color x:Key="Surface3Color">#1A1A1A</Color>
+  <Color x:Key="SurfaceRaisedColor">#1A1A1A</Color>
+  <Color x:Key="RailColor">#000000</Color>
 
-  <!-- ═══ Strokes — mapped to system control border ═══ -->
-  <Color x:Key="StrokeColor">{x:Static SystemColors.ActiveBorderColor}</Color>
-  <Color x:Key="StrokeSoftColor">{x:Static SystemColors.ActiveBorderColor}</Color>
-  <Color x:Key="StrokeStrongColor">{x:Static SystemColors.WindowFrameColor}</Color>
+  <!-- ═══ Strokes ═══ -->
+  <Color x:Key="StrokeColor">#666666</Color>
+  <Color x:Key="StrokeSoftColor">#666666</Color>
+  <Color x:Key="StrokeStrongColor">#999999</Color>
 
-  <!-- ═══ Text — mapped to system text colors ═══ -->
-  <Color x:Key="TextColor">{x:Static SystemColors.WindowTextColor}</Color>
-  <Color x:Key="TextMutedColor">{x:Static SystemColors.GrayTextColor}</Color>
-  <Color x:Key="TextSubtleColor">{x:Static SystemColors.GrayTextColor}</Color>
-  <Color x:Key="TextOnAccentColor">{x:Static SystemColors.HighlightTextColor}</Color>
+  <!-- ═══ Text ═══ -->
+  <Color x:Key="TextColor">#FFFFFF</Color>
+  <Color x:Key="TextMutedColor">#AAAAAA</Color>
+  <Color x:Key="TextSubtleColor">#AAAAAA</Color>
+  <Color x:Key="TextOnAccentColor">#FFFFFF</Color>
 
-  <!-- ═══ Brand / accent — mapped to system highlight ═══ -->
-  <Color x:Key="AccentColor">{x:Static SystemColors.HighlightColor}</Color>
-  <Color x:Key="AccentHoverColor">{x:Static SystemColors.HighlightColor}</Color>
-  <Color x:Key="AccentDeepColor">{x:Static SystemColors.HighlightColor}</Color>
-  <Color x:Key="AccentSoftColor">{x:Static SystemColors.ControlColor}</Color>
+  <!-- ═══ Brand / accent ═══ -->
+  <Color x:Key="AccentColor">#0078D7</Color>
+  <Color x:Key="AccentHoverColor">#0078D7</Color>
+  <Color x:Key="AccentDeepColor">#0078D7</Color>
+  <Color x:Key="AccentSoftColor">#1A1A1A</Color>
   <Color x:Key="AccentMistColor">Transparent</Color>
-  <Color x:Key="AccentRingColor">{x:Static SystemColors.HighlightColor}</Color>
+  <Color x:Key="AccentRingColor">#0078D7</Color>
 
-  <!-- ═══ Semantic intent — mapped to SystemColors for guaranteed contrast ═══ -->
-  <Color x:Key="DangerColor">{x:Static SystemColors.WindowTextColor}</Color>
-  <Color x:Key="DangerDeepColor">{x:Static SystemColors.WindowTextColor}</Color>
-  <Color x:Key="DangerSoftColor">{x:Static SystemColors.ControlColor}</Color>
-  <Color x:Key="WarningColor">{x:Static SystemColors.HotTrackColor}</Color>
-  <Color x:Key="WarningSoftColor">{x:Static SystemColors.ControlColor}</Color>
-  <Color x:Key="WarningRingColor">{x:Static SystemColors.HotTrackColor}</Color>
-  <Color x:Key="SuccessColor">{x:Static SystemColors.WindowTextColor}</Color>
-  <Color x:Key="SuccessSoftColor">{x:Static SystemColors.ControlColor}</Color>
-  <Color x:Key="InfoColor">{x:Static SystemColors.HotTrackColor}</Color>
+  <!-- ═══ Semantic intent ═══ -->
+  <Color x:Key="DangerColor">#FFFFFF</Color>
+  <Color x:Key="DangerDeepColor">#FFFFFF</Color>
+  <Color x:Key="DangerSoftColor">#1A1A1A</Color>
+  <Color x:Key="WarningColor">#00CCFF</Color>
+  <Color x:Key="WarningSoftColor">#1A1A1A</Color>
+  <Color x:Key="WarningRingColor">#00CCFF</Color>
+  <Color x:Key="SuccessColor">#FFFFFF</Color>
+  <Color x:Key="SuccessSoftColor">#1A1A1A</Color>
+  <Color x:Key="InfoColor">#00CCFF</Color>
 
-  <!-- ═══ Overlays / scrim — opaque for clarity ═══ -->
-  <Color x:Key="OverlayColor">{x:Static SystemColors.WindowColor}</Color>
-  <Color x:Key="ScrimColor">{x:Static SystemColors.WindowColor}</Color>
+  <!-- ═══ Overlays / scrim ═══ -->
+  <Color x:Key="OverlayColor">#000000</Color>
+  <Color x:Key="ScrimColor">#000000</Color>
   <Color x:Key="SheenColor">Transparent</Color>
 
   <!-- ═══ Brushes ═══ -->
@@ -107,6 +112,8 @@
   <SolidColorBrush x:Key="ScrimBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
   <SolidColorBrush x:Key="SheenBrush" Color="Transparent" />
 
+  <Color x:Key="TerminalBgColor">#000000</Color>
+  <Color x:Key="TerminalFgColor">#FFFFFF</Color>
   <SolidColorBrush x:Key="TerminalBgBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
   <SolidColorBrush x:Key="TerminalFgBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
 

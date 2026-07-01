@@ -144,8 +144,9 @@ public sealed class CommunityAssetDriftService
 
             return pins;
         }
-        catch
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
+            System.Diagnostics.Debug.WriteLine($"CommunityAssetDriftService: manifest load failed: {ex.Message}");
             return Array.Empty<CommunityAssetPin>();
         }
     }

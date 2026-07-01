@@ -29,7 +29,7 @@ public sealed class EnvironmentSnapshotStateViewModel : ObservableObject
     public string LastRefreshedText =>
         RefreshedAt is null
             ? string.Empty
-            : $"Last refreshed {RefreshedAt.Value.ToString("h:mm:ss tt", CultureInfo.InvariantCulture)}";
+            : $"Last refreshed {RefreshedAt.Value.ToString("T", CultureInfo.CurrentCulture)}";
 
     public bool IsStale =>
         RefreshedAt is not null &&
@@ -68,7 +68,7 @@ public sealed class EnvironmentSnapshotStateViewModel : ObservableObject
                 return "Use Refresh environment before you decide whether Spotify, Spicetify, or the saved profile need repair.";
             }
 
-            var refreshedAt = RefreshedAt.Value.ToString("h:mm:ss tt", CultureInfo.InvariantCulture);
+            var refreshedAt = RefreshedAt.Value.ToString("T", CultureInfo.CurrentCulture);
             return IsStale
                 ? $"Last checked at {refreshedAt}. Recheck before you repair or reset if anything changed outside LibreSpot."
                 : $"Last checked at {refreshedAt}. Refresh after you change Spotify outside LibreSpot.";

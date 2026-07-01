@@ -19,13 +19,13 @@ public sealed class LogLevelToBrushConverter : IValueConverter
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        var level = (value as string ?? string.Empty).Trim().ToUpperInvariant();
+        var level = (value as string ?? string.Empty).Trim();
         var key = level switch
         {
-            "ERROR" or "FATAL" => "DangerBrush",
-            "WARN" or "WARNING" => "WarningBrush",
-            "SUCCESS" or "OK" or "DONE" => "AccentBrush",
-            "DEBUG" or "TRACE" => "SubtleTextBrush",
+            _ when level.Equals("ERROR", StringComparison.OrdinalIgnoreCase) || level.Equals("FATAL", StringComparison.OrdinalIgnoreCase) => "DangerBrush",
+            _ when level.Equals("WARN", StringComparison.OrdinalIgnoreCase) || level.Equals("WARNING", StringComparison.OrdinalIgnoreCase) => "WarningBrush",
+            _ when level.Equals("SUCCESS", StringComparison.OrdinalIgnoreCase) || level.Equals("OK", StringComparison.OrdinalIgnoreCase) || level.Equals("DONE", StringComparison.OrdinalIgnoreCase) => "AccentBrush",
+            _ when level.Equals("DEBUG", StringComparison.OrdinalIgnoreCase) || level.Equals("TRACE", StringComparison.OrdinalIgnoreCase) => "SubtleTextBrush",
             _ => "MutedTextBrush"
         };
 

@@ -457,9 +457,22 @@ public sealed class LocalProfileService
     {
         Directory.CreateDirectory(_profileDirectory);
         var path = UserProfilePath(document.Id);
-        await using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-        await JsonSerializer.SerializeAsync(stream, document, JsonOptions, cancellationToken);
-        await stream.FlushAsync(cancellationToken);
+        var tempPath = $"{path}.{Environment.ProcessId}.tmp";
+        try
+        {
+            await using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                await JsonSerializer.SerializeAsync(stream, document, JsonOptions, cancellationToken);
+                await stream.FlushAsync(cancellationToken);
+            }
+
+            File.Move(tempPath, path, overwrite: true);
+        }
+        catch
+        {
+            try { File.Delete(tempPath); } catch { }
+            throw;
+        }
     }
 
     private async Task<string> CreateUniqueProfileIdAsync(string name, CancellationToken cancellationToken)
