@@ -543,6 +543,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly CustomPatchService _customPatchService;
     private readonly LocalizationService _localizationService;
     private readonly ActivityRunStateViewModel _activityState = new();
+    private ActivityOutcome _activityOutcome = ActivityOutcome.None;
     private readonly CustomOptionEditorStateViewModel _customOptions;
     private readonly EnvironmentSnapshotStateViewModel _environmentState = new();
     private readonly PromptStateViewModel _promptState = new();
@@ -1651,15 +1652,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     // isn't frozen on "Live run" once work is done. We derive from ActivityStatus
     // because HandleBackendMessage already reconciles status strings per outcome.
     public bool IsActivityError =>
-        !IsRunning &&
-        !string.IsNullOrEmpty(ActivityStatus) &&
-        (ActivityStatus.Contains("attention", StringComparison.OrdinalIgnoreCase) ||
-         ActivityStatus.Contains("failed", StringComparison.OrdinalIgnoreCase));
+        !IsRunning && _activityOutcome == ActivityOutcome.Error;
 
     public bool IsActivityCanceled =>
-        !IsRunning &&
-        !string.IsNullOrEmpty(ActivityStatus) &&
-        ActivityStatus.Contains("canceled", StringComparison.OrdinalIgnoreCase);
+        !IsRunning && _activityOutcome == ActivityOutcome.Canceled;
 
     public string ActivityBadgeText =>
         IsCancelRequested ? "Stopping"
@@ -3354,6 +3350,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SelectedWorkspaceIndex = targetWorkspaceIndex;
         ClearUndoActionItems();
         ClearLog();
+        _activityOutcome = ActivityOutcome.None;
         _activityState.Begin(title, status, Strings.PreparingBackend);
         _runStopwatch.Restart();
         _runElapsedTimer.Start();
@@ -3377,6 +3374,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 catch (OperationCanceledException)
                 {
                     AppendLog("Configuration save was canceled.", "WARN");
+                    _activityOutcome = ActivityOutcome.Canceled;
                     ActivityStatus = Strings.Canceled;
                     ActivityStep = Strings.ConfigSaveCanceled;
                     return;
@@ -3384,6 +3382,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 catch (Exception ex)
                 {
                     AppendLog($"Could not save configuration: {ex.Message}", "ERROR");
+                    _activityOutcome = ActivityOutcome.Error;
                     ActivityStatus = Strings.RunNeedsAttention;
                     ActivityStep = "Configuration save failed";
                     ProgressValue = 100;
@@ -3397,6 +3396,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             if (!result.Success)
             {
                 AppendLog(result.ErrorMessage ?? "LibreSpot reported an unknown backend failure.", "ERROR");
+                _activityOutcome = ActivityOutcome.Error;
                 ActivityStatus = Strings.RunNeedsAttention;
             }
             else
@@ -3407,11 +3407,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         catch (OperationCanceledException)
         {
             AppendLog("Backend run was canceled.", "WARN");
+            _activityOutcome = ActivityOutcome.Canceled;
             ActivityStatus = Strings.Canceled;
         }
         catch (Exception ex)
         {
             AppendLog($"Backend run failed: {ex.Message}", "ERROR");
+            _activityOutcome = ActivityOutcome.Error;
             ActivityStatus = Strings.RunNeedsAttention;
         }
         finally
@@ -3484,12 +3486,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 case "result":
                     if (string.Equals(message.Level, "SUCCESS", StringComparison.OrdinalIgnoreCase))
                     {
+                        _activityOutcome = ActivityOutcome.Success;
                         ActivityStatus = Strings.RunComplete;
                         ActivityStep = "LibreSpot is ready";
                         ProgressValue = 100;
                     }
                     else
                     {
+                        _activityOutcome = ActivityOutcome.Error;
                         ActivityStatus = Strings.RunNeedsAttention;
                     }
 
@@ -4312,4 +4316,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private bool HasConflictingSidebarOptions() =>
         IsOptionSelected(nameof(InstallConfiguration.SpotX_RightSidebarOff)) &&
         IsOptionSelected(nameof(InstallConfiguration.SpotX_RightSidebarClr));
+
+    private enum ActivityOutcome { None, Success, Error, Canceled }
 }

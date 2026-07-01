@@ -430,11 +430,18 @@ public sealed class LocalProfileService
         var profiles = new List<LocalProfile>();
         foreach (var path in Directory.EnumerateFiles(_profileDirectory, "*.json"))
         {
-            await using var stream = File.OpenRead(path);
-            var document = await JsonSerializer.DeserializeAsync<StoredProfileDocument>(stream, JsonOptions, cancellationToken);
-            if (document is not null && document.SchemaVersion == ProfileStoreSchemaVersion)
+            try
             {
-                profiles.Add(ToProfile(document, activeId));
+                await using var stream = File.OpenRead(path);
+                var document = await JsonSerializer.DeserializeAsync<StoredProfileDocument>(stream, JsonOptions, cancellationToken);
+                if (document is not null && document.SchemaVersion == ProfileStoreSchemaVersion)
+                {
+                    profiles.Add(ToProfile(document, activeId));
+                }
+            }
+            catch (Exception ex) when (ex is JsonException or IOException)
+            {
+                System.Diagnostics.Debug.WriteLine($"LocalProfileService: skipping malformed profile {path}: {ex.Message}");
             }
         }
 
