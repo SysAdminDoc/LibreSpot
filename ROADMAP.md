@@ -459,13 +459,6 @@ needs to detect and surface this state, not just show booleans.
 
 ## Research-Driven Additions
 
-- [ ] P2 — Add offline cached-install simulation tests
-  Why: Download modules claim verified cache fallback, but the end-to-end behavior is not covered for network failure after a valid cached asset exists.
-  Evidence: `src/powershell/shared/Module-InstallSpotX.ps1`, `Module-InstallSpicetifyCLI.ps1`, `Module-InstallMarketplace.ps1`, `Module-InstallThemes.ps1`, `Module-InstallCustomApps.ps1`, Intune/PDQ offline deployment expectations.
-  Touches: PowerShell test fixtures, cache helpers, backend protocol fixtures, `tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs`.
-  Acceptance: Tests seed valid cached SpotX, Spicetify CLI, Marketplace, theme, and Stats/custom-app archives, simulate network failure, verify the backend uses only SHA256-verified cached assets with warning-level logs, and fail when the cached hash is missing or wrong.
-  Complexity: L
-
 - [ ] P2 — Add high-contrast rendered theme smoke coverage
   Why: High-contrast palette parity is tested statically, but no rendered smoke proves focus rings, disabled states, dialogs, snackbars, log rows, and health cards remain readable when high-contrast resources are active.
   Evidence: `src/LibreSpot.Desktop/Services/ThemeManager.cs`, `src/LibreSpot.Desktop/Themes/HighContrastPalette.xaml`, `tests/LibreSpot.Desktop.Tests/ThemeManagerTests.cs`, Microsoft high contrast and UI Automation docs.

@@ -5,6 +5,10 @@ All notable changes to LibreSpot will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added offline asset-cache regression coverage for SpotX, Spicetify CLI,
+  Marketplace, official themes, and the Stats custom app. The tests simulate
+  network failure, require warning-level verified-cache fallback logs, and prove
+  missing or corrupt cached assets stop before install side effects.
 - Added temp-root RemoveSelfData regression coverage that seeds LibreSpot-owned
   config, profiles, journals, logs, crashes, cache, backups, and watcher state
   with canaries, then proves self-erasure leaves Spotify and Spicetify files

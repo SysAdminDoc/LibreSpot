@@ -1,3 +1,4 @@
+using System.Globalization;
 using LibreSpot.Desktop.Properties;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
@@ -282,18 +283,32 @@ public sealed class ViewModelStateDomainTests
     [Fact]
     public void CustomOptionEditorState_FiltersThemeGallery()
     {
-        var state = new CustomOptionEditorStateViewModel(AppCatalog.CreateRecommendedConfiguration())
+        var previousCulture = CultureInfo.CurrentCulture;
+        var previousUiCulture = CultureInfo.CurrentUICulture;
+        try
         {
-            ThemeSearchText = "catppuccin"
-        };
+            var english = CultureInfo.GetCultureInfo("en");
+            CultureInfo.CurrentCulture = english;
+            CultureInfo.CurrentUICulture = english;
 
-        Assert.True(state.HasThemeSearchText);
-        Assert.False(state.ShowThemeGalleryEmptyState);
-        Assert.Contains(state.FilteredThemeGalleryItems, item => string.Equals(item.Name, "Catppuccin", StringComparison.Ordinal));
+            var state = new CustomOptionEditorStateViewModel(AppCatalog.CreateRecommendedConfiguration())
+            {
+                ThemeSearchText = "catppuccin"
+            };
 
-        state.ThemeSearchText = "definitely-not-a-theme";
+            Assert.True(state.HasThemeSearchText);
+            Assert.False(state.ShowThemeGalleryEmptyState);
+            Assert.Contains(state.FilteredThemeGalleryItems, item => string.Equals(item.Name, "Catppuccin", StringComparison.Ordinal));
 
-        Assert.True(state.ShowThemeGalleryEmptyState);
-        Assert.Equal(Strings.ThemeGalleryNoResults, state.ThemeGalleryEmptyText);
+            state.ThemeSearchText = "definitely-not-a-theme";
+
+            Assert.True(state.ShowThemeGalleryEmptyState);
+            Assert.Equal(Strings.ThemeGalleryNoResults, state.ThemeGalleryEmptyText);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+            CultureInfo.CurrentUICulture = previousUiCulture;
+        }
     }
 }
