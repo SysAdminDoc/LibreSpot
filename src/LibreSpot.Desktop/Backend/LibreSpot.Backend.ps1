@@ -931,8 +931,15 @@ function Set-WatcherState {
                 [System.IO.File]::Replace($tempPath, $global:WATCHER_STATE_PATH, $backupPath, $true)
                 Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
             } catch {
-                Remove-Item -LiteralPath $global:WATCHER_STATE_PATH -Force -ErrorAction Stop
-                [System.IO.File]::Move($tempPath, $global:WATCHER_STATE_PATH)
+                $rescuePath = "$($global:WATCHER_STATE_PATH).rescue"
+                Move-Item -LiteralPath $global:WATCHER_STATE_PATH -Destination $rescuePath -Force
+                try {
+                    [System.IO.File]::Move($tempPath, $global:WATCHER_STATE_PATH)
+                    Remove-Item -LiteralPath $rescuePath -Force -ErrorAction SilentlyContinue
+                } catch {
+                    Move-Item -LiteralPath $rescuePath -Destination $global:WATCHER_STATE_PATH -Force -ErrorAction SilentlyContinue
+                    throw
+                }
             }
         } else {
             [System.IO.File]::Move($tempPath, $global:WATCHER_STATE_PATH)
@@ -1154,8 +1161,15 @@ function Save-LibreSpotConfig {
                     [System.IO.File]::Replace($tempPath, $global:CONFIG_PATH, $backupPath, $true)
                     Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
                 } catch {
-                    Remove-Item -LiteralPath $global:CONFIG_PATH -Force -ErrorAction Stop
-                    [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)
+                    $rescuePath = "$($global:CONFIG_PATH).rescue"
+                    Move-Item -LiteralPath $global:CONFIG_PATH -Destination $rescuePath -Force
+                    try {
+                        [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)
+                        Remove-Item -LiteralPath $rescuePath -Force -ErrorAction SilentlyContinue
+                    } catch {
+                        Move-Item -LiteralPath $rescuePath -Destination $global:CONFIG_PATH -Force -ErrorAction SilentlyContinue
+                        throw
+                    }
                 }
             } else {
                 [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)
