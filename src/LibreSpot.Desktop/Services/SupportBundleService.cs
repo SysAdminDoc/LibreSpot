@@ -254,6 +254,7 @@ public sealed class SupportBundleService
             snapshot.AutoReapplyTaskRegistered,
             customPatchImport = BuildCustomPatchImportReport(),
             marketplaceVisibility = BuildMarketplaceVisibilityReport(snapshot.MarketplaceVisibilityEvidence),
+            assetCache = BuildAssetCacheReport(snapshot.AssetCacheInventory),
             communityAssets = snapshot.CommunityAssetDriftReport.Assets.Select(asset => new
             {
                 asset.Id,
@@ -289,6 +290,35 @@ public sealed class SupportBundleService
                 lastChanged = component.LastChanged,
                 evidence = RedactNullable(component.Evidence),
                 recommendedActionIds = component.RecommendedActionIds
+            })
+            };
+
+    private object BuildAssetCacheReport(AssetCacheInventoryReport report) =>
+        new
+        {
+            report.EntryCount,
+            report.PresentCount,
+            report.MissingCount,
+            report.CorruptCount,
+            report.UnindexedCount,
+            report.StaleCount,
+            report.TotalBytes,
+            cacheDirectory = RedactText(report.CacheDirectory),
+            indexPath = RedactText(report.IndexPath),
+            report.GeneratedAtUtc,
+            entries = report.Entries.Select(entry => new
+            {
+                entry.Sha256,
+                entry.Label,
+                sourceUrl = RedactNullable(entry.SourceUrl),
+                entry.ByteSize,
+                entry.FirstSeenAtUtc,
+                entry.LastUsedAtUtc,
+                entry.LastVerifiedAtUtc,
+                entry.Status,
+                path = RedactText(entry.Path),
+                entry.FilePresent,
+                evidence = RedactNullable(entry.Evidence)
             })
         };
 

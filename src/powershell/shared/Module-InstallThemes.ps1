@@ -25,7 +25,7 @@ function Module-InstallThemes { param($Config)
                     } else { throw }
                 }
                 Confirm-FileHash -Path $tz -ExpectedHash $themeHash -Label "Community theme '$tn'"
-                Save-ToAssetCache -SourcePath $tz -SHA256Hash $themeHash
+                Save-ToAssetCache -SourcePath $tz -SHA256Hash $themeHash -Label "Community theme '$tn'" -SourceUrl $archiveUrl
             }
             Expand-ArchiveSafely -ZipPath $tz -DestinationPath $tu -Label "Community theme '$tn'"
             $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -74,7 +74,7 @@ function Module-InstallThemes { param($Config)
                     } else { throw }
                 }
                 Confirm-FileHash -Path $tz -ExpectedHash $themesHash -Label "Themes archive"
-                Save-ToAssetCache -SourcePath $tz -SHA256Hash $themesHash
+                Save-ToAssetCache -SourcePath $tz -SHA256Hash $themesHash -Label 'Themes archive' -SourceUrl $global:URL_THEMES_REPO
             }
             Expand-ArchiveSafely -ZipPath $tz -DestinationPath $tu -Label 'Themes archive'
             $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1

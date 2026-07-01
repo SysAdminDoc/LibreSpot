@@ -17,7 +17,7 @@ function Module-InstallSpicetifyCLI {
                 } else { throw }
             }
             Confirm-FileHash -Path $zp -ExpectedHash $expectedHash -Label "Spicetify CLI ($arch)"
-            Save-ToAssetCache -SourcePath $zp -SHA256Hash $expectedHash
+            Save-ToAssetCache -SourcePath $zp -SHA256Hash $expectedHash -Label "Spicetify CLI ($arch)" -SourceUrl $zip
         }
         if (Test-Path -LiteralPath $integration.InstallDirectory) {
             $null = Clear-DirectoryContentsSafely -Path $integration.InstallDirectory -Label 'Spicetify CLI'

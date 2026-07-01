@@ -2819,6 +2819,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 Strings.ButtonOpenLibreSpotFolderActivityHint,
                 false,
                 OpenLibreSpotFolderCommand),
+            "ClearCache" => new HealthIssueActionViewModel(
+                action,
+                "Clear cache",
+                "Remove stale or corrupt cached downloads. Verified assets will be cached again on demand.",
+                false,
+                CreateAsyncCommand(
+                    () => RunMaintenanceAsync(new MaintenanceActionDefinition(
+                        "ClearCache",
+                        "Clear asset cache",
+                        "Remove stale or corrupt cached downloads. Verified assets will be cached again on demand.",
+                        "Clear cache")),
+                    () => !IsRunning)),
             _ => null
         };
     }
@@ -3278,7 +3290,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     private static bool RequiresAdministrator(string action) =>
-        action is not ("CheckUpdates" or "CreateBackup" or "OpenMarketplace" or "RemoveSelfData" or "Plan");
+        action is not ("CheckUpdates" or "CreateBackup" or "OpenMarketplace" or "RemoveSelfData" or "ClearCache" or "Plan");
 
     private void PresentAutoReapplyPrompt(bool enable)
     {
@@ -3759,6 +3771,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         definition.Action switch
         {
             "CheckUpdates" => ("What this does", "LibreSpot compares pinned versions plus the SpotX, Spicetify CLI, Marketplace, and themes compatibility matrix before you decide whether to update."),
+            "ClearCache" => ("What this does", "LibreSpot removes only its verified download cache and writes an operation receipt. Future installs rebuild cache entries after hash verification."),
             "Reapply" => ("What this does", "LibreSpot refreshes SpotX first, then restores the saved Spicetify layer so the stack returns to its last known profile."),
             "RepairMarketplace" => ("What this does", "LibreSpot reinstalls the Marketplace custom app, re-enables it in Spicetify, applies the change, and opens spotify:app:marketplace if Spotify accepts the URI."),
             "OpenMarketplace" => ("What this does", "LibreSpot asks Spotify to open spotify:app:marketplace without reinstalling or changing your Spicetify files."),

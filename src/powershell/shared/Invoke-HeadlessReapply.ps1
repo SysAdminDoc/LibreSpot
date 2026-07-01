@@ -32,7 +32,7 @@ function Invoke-HeadlessReapply {
                 if ($actualHash -ne $expectedHash.ToLowerInvariant()) {
                     throw "SpotX hash mismatch. Expected $expectedHash, got $actualHash. Refusing to run."
                 }
-                Save-ToAssetCache -SourcePath $spotxRun -SHA256Hash $expectedHash
+                Save-ToAssetCache -SourcePath $spotxRun -SHA256Hash $expectedHash -Label 'SpotX run.ps1 (watcher)' -SourceUrl $global:URL_SPOTX
             }
         }
 

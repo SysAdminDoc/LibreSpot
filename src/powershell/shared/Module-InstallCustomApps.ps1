@@ -41,7 +41,7 @@ function Module-InstallCustomApps { param($Config)
                     } else { throw }
                 }
                 Confirm-FileHash -Path $zipPath -ExpectedHash $expectedHash -Label "Custom app $appId"
-                Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $expectedHash
+                Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $expectedHash -Label "Custom app $appId archive" -SourceUrl $info.Url
             }
 
             Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $unpackPath -Label "Custom app $appId" -MaxExpandedBytes 250MB

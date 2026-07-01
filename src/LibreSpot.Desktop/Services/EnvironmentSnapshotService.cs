@@ -1,5 +1,6 @@
 using System.IO;
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text.Json;
 using LibreSpot.Desktop.Models;
 
@@ -71,6 +72,7 @@ public sealed class EnvironmentSnapshotService
     {
         var configDirectory = ResolveConfigDirectory(configPath);
         var marketplaceEvidence = ReadMarketplaceVisibilityEvidence(configDirectory);
+        var assetCacheInventory = ReadAssetCacheInventory(configDirectory);
         var spicetifyConfigPath = Path.Combine(_spicetifyConfigDirectory, "config-xpui.ini");
         var spicetifyConfig = ReadSpicetifyConfigEntries(spicetifyConfigPath);
         var marketplaceDirectory = Path.Combine(_spicetifyConfigDirectory, "CustomApps", "marketplace");
@@ -103,7 +105,8 @@ public sealed class EnvironmentSnapshotService
             configFolderExists,
             autoReapplyTaskRegistered,
             upstreamDriftReport,
-            communityAssetDriftReport);
+            communityAssetDriftReport,
+            assetCacheInventory);
 
         return new EnvironmentSnapshot
         {
@@ -117,6 +120,7 @@ public sealed class EnvironmentSnapshotService
             HealthReport = healthReport,
             UpstreamDriftReport = upstreamDriftReport,
             CommunityAssetDriftReport = communityAssetDriftReport,
+            AssetCacheInventory = assetCacheInventory,
             MarketplaceVisibilityEvidence = marketplaceEvidence,
             HostArchitecture = GetHostArchitecture(),
             ProcessArchitecture = GetProcessArchitecture()
@@ -138,7 +142,8 @@ public sealed class EnvironmentSnapshotService
         bool configFolderExists,
         bool autoReapplyTaskRegistered,
         UpstreamDriftReport upstreamDriftReport,
-        CommunityAssetDriftReport communityAssetDriftReport)
+        CommunityAssetDriftReport communityAssetDriftReport,
+        AssetCacheInventoryReport assetCacheInventory)
     {
         var watcherStatePath = Path.Combine(configDirectory, "watcher-state.json");
         var watcherState = ReadWatcherState(watcherStatePath);
@@ -163,7 +168,8 @@ public sealed class EnvironmentSnapshotService
             BuildExtensionFileIntegrityComponent(spicetifyInstalled, spicetifyConfig),
             BuildLogsComponent(configDirectory),
             BuildCrashComponent(),
-            BuildSavedProfileComponent(configPath, savedConfigExists, configFolderExists)
+            BuildSavedProfileComponent(configPath, savedConfigExists, configFolderExists),
+            BuildAssetCacheComponent(assetCacheInventory)
         };
         components.AddRange(BuildUpstreamDriftComponents(upstreamDriftReport));
         components.AddRange(BuildCommunityAssetComponents(communityAssetDriftReport));
@@ -1086,6 +1092,67 @@ public sealed class EnvironmentSnapshotService
             "Install");
     }
 
+    private static StackHealthComponent BuildAssetCacheComponent(AssetCacheInventoryReport report)
+    {
+        var newest = report.Entries
+            .Select(entry => entry.LastVerifiedAtUtc?.LocalDateTime ?? entry.LastUsedAtUtc?.LocalDateTime ?? entry.FirstSeenAtUtc?.LocalDateTime)
+            .Where(changed => changed.HasValue)
+            .OrderByDescending(changed => changed)
+            .FirstOrDefault();
+        var summary = $"Cache entries: {report.EntryCount}; present: {report.PresentCount}; size: {FormatBytes(report.TotalBytes)}.";
+
+        if (report.CorruptCount > 0)
+        {
+            return Component(
+                "asset-cache",
+                "Asset cache",
+                report.CorruptCount == 1 ? "1 corrupt entry" : $"{report.CorruptCount} corrupt entries",
+                HealthSeverity.Warning,
+                null,
+                report.CacheDirectory,
+                newest,
+                $"{summary} {report.CorruptCount} cached file(s) failed SHA256 verification and should be cleared before relying on offline installs.",
+                "ClearCache");
+        }
+
+        if (report.StaleCount > 0)
+        {
+            return Component(
+                "asset-cache",
+                "Asset cache",
+                report.StaleCount == 1 ? "1 stale entry" : $"{report.StaleCount} stale entries",
+                HealthSeverity.Info,
+                null,
+                report.CacheDirectory,
+                newest,
+                $"{summary} Stale means an index row points at a missing file or a legacy hash file has no source label yet.",
+                "ClearCache");
+        }
+
+        if (report.EntryCount == 0)
+        {
+            return Component(
+                "asset-cache",
+                "Asset cache",
+                "Empty",
+                HealthSeverity.Info,
+                null,
+                report.CacheDirectory,
+                null,
+                "No verified download cache entries were found yet.");
+        }
+
+        return Component(
+            "asset-cache",
+            "Asset cache",
+            report.EntryCount == 1 ? "1 entry" : $"{report.EntryCount} entries",
+            HealthSeverity.Ready,
+            null,
+            report.CacheDirectory,
+            newest,
+            summary);
+    }
+
     private StackHealthComponent BuildExtensionFileIntegrityComponent(
         bool spicetifyInstalled,
         IReadOnlyDictionary<string, string> spicetifyConfig)
@@ -1431,6 +1498,175 @@ public sealed class EnvironmentSnapshotService
         }
     }
 
+    private static AssetCacheInventoryReport ReadAssetCacheInventory(string configDirectory)
+    {
+        var cacheDirectory = Path.Combine(configDirectory, "cache");
+        var indexPath = Path.Combine(cacheDirectory, "asset-cache-index.json");
+        var entries = new List<AssetCacheEntryState>();
+        var indexedHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (File.Exists(indexPath))
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(File.ReadAllText(indexPath));
+                if (document.RootElement.TryGetProperty("entries", out var entryArray) &&
+                    entryArray.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var entry in entryArray.EnumerateArray())
+                    {
+                        var hash = NormalizeSha256(TryGetString(entry, "sha256"));
+                        if (hash is null)
+                        {
+                            continue;
+                        }
+
+                        indexedHashes.Add(hash);
+                        entries.Add(BuildAssetCacheEntry(
+                            cacheDirectory,
+                            hash,
+                            TryGetString(entry, "label") ?? "Cached asset",
+                            TryGetString(entry, "sourceUrl"),
+                            TryGetInt64(entry, "byteSize"),
+                            TryGetDateTimeOffset(entry, "firstSeenAtUtc"),
+                            TryGetDateTimeOffset(entry, "lastUsedAtUtc"),
+                            TryGetDateTimeOffset(entry, "lastVerifiedAtUtc"),
+                            TryGetString(entry, "status"),
+                            indexed: true));
+                    }
+                }
+            }
+            catch
+            {
+                entries.Add(new AssetCacheEntryState(
+                    "asset-cache-index",
+                    "Asset cache index",
+                    null,
+                    File.Exists(indexPath) ? new FileInfo(indexPath).Length : 0,
+                    null,
+                    null,
+                    null,
+                    "corrupt",
+                    indexPath,
+                    File.Exists(indexPath),
+                    "asset-cache-index.json could not be parsed."));
+            }
+        }
+
+        if (Directory.Exists(cacheDirectory))
+        {
+            foreach (var file in Directory.EnumerateFiles(cacheDirectory))
+            {
+                var name = Path.GetFileName(file);
+                var hash = NormalizeSha256(name);
+                if (hash is null || indexedHashes.Contains(hash))
+                {
+                    continue;
+                }
+
+                entries.Add(BuildAssetCacheEntry(
+                    cacheDirectory,
+                    hash,
+                    "Unindexed cached asset",
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    indexed: false));
+            }
+        }
+
+        return new AssetCacheInventoryReport(entries, cacheDirectory, indexPath, DateTimeOffset.UtcNow);
+    }
+
+    private static AssetCacheEntryState BuildAssetCacheEntry(
+        string cacheDirectory,
+        string hash,
+        string label,
+        string? sourceUrl,
+        long? indexedByteSize,
+        DateTimeOffset? firstSeenAtUtc,
+        DateTimeOffset? lastUsedAtUtc,
+        DateTimeOffset? lastVerifiedAtUtc,
+        string? indexedStatus,
+        bool indexed)
+    {
+        var path = Path.Combine(cacheDirectory, hash);
+        if (!File.Exists(path))
+        {
+            var missingStatus = string.Equals(indexedStatus, "corrupt", StringComparison.OrdinalIgnoreCase)
+                ? "corrupt"
+                : "missing";
+            return new AssetCacheEntryState(
+                hash,
+                label,
+                sourceUrl,
+                indexedByteSize ?? 0,
+                firstSeenAtUtc,
+                lastUsedAtUtc,
+                lastVerifiedAtUtc,
+                missingStatus,
+                path,
+                false,
+                missingStatus == "corrupt"
+                    ? "The cache index records this asset as corrupt and the active hash-named file is no longer present."
+                    : "The cache index references this asset, but the hash-named file is missing.");
+        }
+
+        var byteSize = new FileInfo(path).Length;
+        try
+        {
+            var actual = GetFileSha256Lower(path);
+            if (!string.Equals(actual, hash, StringComparison.OrdinalIgnoreCase))
+            {
+                return new AssetCacheEntryState(
+                    hash,
+                    label,
+                    sourceUrl,
+                    byteSize,
+                    firstSeenAtUtc,
+                    lastUsedAtUtc,
+                    lastVerifiedAtUtc,
+                    "corrupt",
+                    path,
+                    true,
+                    $"SHA256 mismatch: expected {hash}, observed {actual}.");
+            }
+        }
+        catch (Exception ex)
+        {
+            return new AssetCacheEntryState(
+                hash,
+                label,
+                sourceUrl,
+                byteSize,
+                firstSeenAtUtc,
+                lastUsedAtUtc,
+                lastVerifiedAtUtc,
+                "corrupt",
+                path,
+                true,
+                $"SHA256 verification failed: {ex.Message}");
+        }
+
+        return new AssetCacheEntryState(
+            hash,
+            label,
+            sourceUrl,
+            byteSize,
+            firstSeenAtUtc,
+            lastUsedAtUtc,
+            lastVerifiedAtUtc,
+            indexed ? "present" : "unindexed",
+            path,
+            true,
+            indexed
+                ? "Hash-named cache file exists and matches the expected SHA256."
+                : "Hash-named cache file verifies, but no source label exists in the cache index yet.");
+    }
+
     private static MarketplaceVisibilityEvidence? ReadMarketplaceVisibilityEvidence(string configDirectory)
     {
         var path = Path.Combine(configDirectory, "marketplace-evidence.json");
@@ -1516,6 +1752,18 @@ public sealed class EnvironmentSnapshotService
             : null;
     }
 
+    private static long? TryGetInt64(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out var property))
+        {
+            return null;
+        }
+
+        return property.ValueKind == JsonValueKind.Number && property.TryGetInt64(out var parsed)
+            ? parsed
+            : null;
+    }
+
     private static DateTime? TryGetDateTime(JsonElement element, string propertyName)
     {
         var raw = TryGetString(element, propertyName);
@@ -1543,6 +1791,38 @@ public sealed class EnvironmentSnapshotService
 
     private static string FormatMaybe(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "unknown" : value;
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB"];
+        var value = Math.Max(0, bytes);
+        var index = 0;
+        var scaled = (double)value;
+        while (scaled >= 1024 && index < units.Length - 1)
+        {
+            scaled /= 1024;
+            index++;
+        }
+
+        return index == 0
+            ? $"{value} {units[index]}"
+            : $"{scaled:0.##} {units[index]}";
+    }
+
+    private static string? NormalizeSha256(string? value)
+    {
+        var normalized = value?.Trim().ToLowerInvariant();
+        return normalized is { Length: 64 } && normalized.All(Uri.IsHexDigit)
+            ? normalized
+            : null;
+    }
+
+    private static string GetFileSha256Lower(string path)
+    {
+        using var stream = File.OpenRead(path);
+        var hash = SHA256.HashData(stream);
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
 
     private static string NormalizeUpstreamValue(UpstreamDependencyPin pin, string value)
     {

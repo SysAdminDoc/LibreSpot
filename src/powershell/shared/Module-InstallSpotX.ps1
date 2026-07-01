@@ -13,7 +13,7 @@ function Module-InstallSpotX { param($Config,$SyncHash)
                 } else { throw }
             }
             Confirm-FileHash -Path $dest -ExpectedHash $spotxHash -Label "SpotX run.ps1"
-            Save-ToAssetCache -SourcePath $dest -SHA256Hash $spotxHash
+            Save-ToAssetCache -SourcePath $dest -SHA256Hash $spotxHash -Label 'SpotX run.ps1' -SourceUrl $global:URL_SPOTX
         }
         $params = Build-SpotXParams -Config $Config
         $customPatchesPath = New-SpotXCustomPatchesFile -Config $Config

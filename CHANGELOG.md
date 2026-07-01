@@ -52,6 +52,11 @@ All notable changes to LibreSpot will be documented in this file.
   `status --json`, Maintenance health, and support bundles now distinguish
   files-installed from likely-visible Marketplace state using manifest,
   `custom_apps`, Spicetify apply, URI-open, and Spotify process observations.
+- Added asset-cache inventory diagnostics. Verified cache writes now maintain
+  source labels, URLs, byte size, first-seen, last-used, and last-verified
+  metadata; corrupt cache hits are quarantined with journal receipts; and
+  Maintenance health, CLI `status --json`, and support bundles expose cache
+  count, size, stale, corrupt, and clear-cache state.
 - Added schema-backed operation receipts: backend runs now write typed
   operation-token entries and `run-receipt.latest.json`, while the WPF undo
   pane consumes the embedded token and receipt schemas before showing

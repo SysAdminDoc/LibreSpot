@@ -142,6 +142,15 @@
       "notes": "Marked IsDestructive in AppCatalog. Does not require admin because it only removes per-user LibreSpot data."
     },
     {
+      "action": "ClearCache",
+      "elevation": "no-admin",
+      "mutating": true,
+      "destructive": false,
+      "toastCompatible": true,
+      "description": "Removes LibreSpot's verified download cache and writes a local operation receipt.",
+      "notes": "Does not require admin because it only removes per-user LibreSpot cache data."
+    },
+    {
       "action": "Plan",
       "elevation": "no-admin",
       "mutating": false,

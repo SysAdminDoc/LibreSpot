@@ -514,7 +514,7 @@ function Invoke-HeadlessReapply {
                 if ($actualHash -ne $expectedHash.ToLowerInvariant()) {
                     throw "SpotX hash mismatch. Expected $expectedHash, got $actualHash. Refusing to run."
                 }
-                Save-ToAssetCache -SourcePath $spotxRun -SHA256Hash $expectedHash
+                Save-ToAssetCache -SourcePath $spotxRun -SHA256Hash $expectedHash -Label 'SpotX run.ps1 (watcher)' -SourceUrl $global:URL_SPOTX
             }
         }
 
@@ -6291,7 +6291,81 @@ function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]
     Write-Log "  SHA256 verified: $Label"
 }
 
-function Save-ToAssetCache { param([string]$SourcePath, [string]$SHA256Hash)
+function Update-AssetCacheIndexEntry {
+    param(
+        [string]$SHA256Hash,
+        [string]$Label = '',
+        [string]$SourceUrl = '',
+        [object]$ByteSize = $null,
+        [string]$Status = 'present',
+        [switch]$MarkUsed,
+        [switch]$MarkVerified,
+        [string]$QuarantinedPath = ''
+    )
+
+    if ([string]::IsNullOrWhiteSpace($SHA256Hash)) { return }
+    $hash = $SHA256Hash.ToLowerInvariant()
+    if ($hash.Length -ne 64) { return }
+
+    try {
+        if (-not (Test-Path -LiteralPath $global:CACHE_DIR -PathType Container)) {
+            New-Item -Path $global:CACHE_DIR -ItemType Directory -Force | Out-Null
+        }
+
+        $indexPath = Join-Path $global:CACHE_DIR 'asset-cache-index.json'
+        $now = (Get-Date).ToUniversalTime().ToString('o')
+        $entries = @()
+        if (Test-Path -LiteralPath $indexPath -PathType Leaf) {
+            try {
+                $existingDoc = Get-Content -LiteralPath $indexPath -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+                if ($existingDoc.entries) {
+                    $entries = @($existingDoc.entries)
+                }
+            } catch {
+                $entries = @()
+            }
+        }
+
+        $existing = $entries | Where-Object { $_.sha256 -eq $hash } | Select-Object -First 1
+        $remaining = @($entries | Where-Object { $_.sha256 -ne $hash })
+        $cachePath = Join-Path $global:CACHE_DIR $hash
+        $resolvedByteSize = $ByteSize
+        if ($null -eq $resolvedByteSize -and (Test-Path -LiteralPath $cachePath -PathType Leaf)) {
+            $resolvedByteSize = (Get-Item -LiteralPath $cachePath).Length
+        }
+        if ($null -eq $resolvedByteSize -and $existing) {
+            $resolvedByteSize = $existing.byteSize
+        }
+        if ($null -eq $resolvedByteSize) {
+            $resolvedByteSize = 0
+        }
+
+        $entry = [ordered]@{
+            sha256            = $hash
+            label             = if (-not [string]::IsNullOrWhiteSpace($Label)) { $Label } elseif ($existing -and $existing.label) { [string]$existing.label } else { 'Cached asset' }
+            sourceUrl         = if (-not [string]::IsNullOrWhiteSpace($SourceUrl)) { $SourceUrl } elseif ($existing -and $existing.sourceUrl) { [string]$existing.sourceUrl } else { $null }
+            byteSize          = [int64]$resolvedByteSize
+            firstSeenAtUtc    = if ($existing -and $existing.firstSeenAtUtc) { [string]$existing.firstSeenAtUtc } else { $now }
+            lastUsedAtUtc     = if ($MarkUsed) { $now } elseif ($existing -and $existing.lastUsedAtUtc) { [string]$existing.lastUsedAtUtc } else { $null }
+            lastVerifiedAtUtc = if ($MarkVerified) { $now } elseif ($existing -and $existing.lastVerifiedAtUtc) { [string]$existing.lastVerifiedAtUtc } else { $null }
+            status            = if ([string]::IsNullOrWhiteSpace($Status)) { 'present' } else { $Status }
+            quarantinedPath   = if ([string]::IsNullOrWhiteSpace($QuarantinedPath)) { $null } else { $QuarantinedPath }
+        }
+
+        $doc = [ordered]@{
+            schemaVersion  = 1
+            generatedAtUtc = $now
+            entries        = @($remaining + [pscustomobject]$entry | Sort-Object sha256)
+        }
+
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($indexPath, ($doc | ConvertTo-Json -Depth 8), $utf8)
+    } catch {
+        try { Write-Log "  Asset cache index update failed: $($_.Exception.Message)" -Level 'WARN' } catch {}
+    }
+}
+
+function Save-ToAssetCache { param([string]$SourcePath, [string]$SHA256Hash, [string]$Label = '', [string]$SourceUrl = '')
     if ([string]::IsNullOrWhiteSpace($SHA256Hash)) { return }
     $hash = $SHA256Hash.ToLowerInvariant()
     if ($hash.Length -ne 64) { return }
@@ -6301,6 +6375,8 @@ function Save-ToAssetCache { param([string]$SourcePath, [string]$SHA256Hash)
         }
         $cachePath = Join-Path $global:CACHE_DIR $hash
         Copy-Item -LiteralPath $SourcePath -Destination $cachePath -Force
+        $byteSize = (Get-Item -LiteralPath $cachePath).Length
+        Update-AssetCacheIndexEntry -SHA256Hash $hash -Label $Label -SourceUrl $SourceUrl -ByteSize $byteSize -Status 'present' -MarkVerified -MarkUsed
         Write-Log "  Cached verified asset (SHA256: $hash)"
     } catch {
         Write-Log "  Asset cache save failed: $($_.Exception.Message)" -Level 'WARN'
@@ -6319,8 +6395,21 @@ function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPat
     try {
         $actual = (Get-FileHash -LiteralPath $cachePath -Algorithm SHA256).Hash.ToLowerInvariant()
         if ($actual -ne $hash) {
-            Write-Log "  Cached asset for $Label failed re-verification (expected $hash, got $actual). Removing stale entry." -Level 'WARN'
-            Remove-Item -LiteralPath $cachePath -Force -ErrorAction SilentlyContinue
+            Write-Log "  Cached asset for $Label failed re-verification (expected $hash, got $actual). Quarantining stale entry." -Level 'WARN'
+            $byteSize = (Get-Item -LiteralPath $cachePath).Length
+            $corruptDirectory = Join-Path $global:CACHE_DIR 'corrupt'
+            if (-not (Test-Path -LiteralPath $corruptDirectory -PathType Container)) {
+                New-Item -Path $corruptDirectory -ItemType Directory -Force | Out-Null
+            }
+            $quarantinePath = Join-Path $corruptDirectory ("$hash-" + (Get-Date).ToUniversalTime().ToString('yyyyMMddHHmmss') + '.bad')
+            Move-Item -LiteralPath $cachePath -Destination $quarantinePath -Force -ErrorAction SilentlyContinue
+            Update-AssetCacheIndexEntry -SHA256Hash $hash -Label $Label -ByteSize $byteSize -Status 'corrupt' -MarkVerified -QuarantinedPath $quarantinePath
+            Write-OperationJournalEntry -Phase 'cache' -Target $cachePath -SafetyDecision 'Allowed' -Result 'Quarantined' -WouldChange $true -Reversible $false -RollbackHint 'The corrupt cached asset was moved aside and will be downloaded again on demand.' -Data @{
+                label = $Label
+                expectedSha256 = $hash
+                observedSha256 = $actual
+                quarantinePath = $quarantinePath
+            }
             return $false
         }
         $outDir = Split-Path -Path $DestinationPath -Parent
@@ -6328,6 +6417,8 @@ function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPat
             New-Item -Path $outDir -ItemType Directory -Force | Out-Null
         }
         Copy-Item -LiteralPath $cachePath -Destination $DestinationPath -Force
+        $byteSize = (Get-Item -LiteralPath $cachePath).Length
+        Update-AssetCacheIndexEntry -SHA256Hash $hash -Label $Label -ByteSize $byteSize -Status 'present' -MarkVerified -MarkUsed
         Write-Log "  Using verified cached copy for $Label (SHA256: $hash)"
         return $true
     } catch {
@@ -6344,11 +6435,20 @@ function Clear-LibreSpotCache {
         return
     }
     if ($PSCmdlet.ShouldProcess($global:CACHE_DIR, 'Clear asset cache')) {
-        Write-OperationJournalEntry -Phase 'cache' -Target $global:CACHE_DIR -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Cache will be rebuilt automatically on next download.'
+        $cacheFiles = @(Get-ChildItem -LiteralPath $global:CACHE_DIR -File -Recurse -ErrorAction SilentlyContinue)
+        $byteMeasure = $cacheFiles | Measure-Object -Property Length -Sum
+        $totalBytes = if ($null -eq $byteMeasure.Sum) { [int64]0 } else { [int64]$byteMeasure.Sum }
+        Write-OperationJournalEntry -Phase 'cache' -Target $global:CACHE_DIR -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Cache will be rebuilt automatically on next download.' -Data @{
+            fileCount = $cacheFiles.Count
+            totalBytes = $totalBytes
+        }
         try {
             Remove-Item -LiteralPath $global:CACHE_DIR -Recurse -Force -ErrorAction Stop
-            Write-OperationJournalEntry -Phase 'cache' -Target $global:CACHE_DIR -SafetyDecision 'Allowed' -Result 'Cleared' -WouldChange $true -Reversible $false -RollbackHint 'Cache will be rebuilt automatically on next download.'
-            Write-Log 'Asset cache cleared.'
+            Write-OperationJournalEntry -Phase 'cache' -Target $global:CACHE_DIR -SafetyDecision 'Allowed' -Result 'Cleared' -WouldChange $true -Reversible $false -RollbackHint 'Cache will be rebuilt automatically on next download.' -Data @{
+                fileCount = $cacheFiles.Count
+                totalBytes = $totalBytes
+            }
+            Write-Log "Asset cache cleared ($($cacheFiles.Count) file(s), $totalBytes bytes)."
         } catch {
             Write-Log "Failed to clear asset cache: $($_.Exception.Message)" -Level 'WARN'
         }
@@ -6943,7 +7043,7 @@ function Module-InstallSpotX { param($Config,$SyncHash)
                 } else { throw }
             }
             Confirm-FileHash -Path $dest -ExpectedHash $spotxHash -Label "SpotX run.ps1"
-            Save-ToAssetCache -SourcePath $dest -SHA256Hash $spotxHash
+            Save-ToAssetCache -SourcePath $dest -SHA256Hash $spotxHash -Label 'SpotX run.ps1' -SourceUrl $global:URL_SPOTX
         }
         $params = Build-SpotXParams -Config $Config
         $customPatchesPath = New-SpotXCustomPatchesFile -Config $Config
@@ -7024,7 +7124,7 @@ function Module-InstallSpicetifyCLI {
                 } else { throw }
             }
             Confirm-FileHash -Path $zp -ExpectedHash $expectedHash -Label "Spicetify CLI ($arch)"
-            Save-ToAssetCache -SourcePath $zp -SHA256Hash $expectedHash
+            Save-ToAssetCache -SourcePath $zp -SHA256Hash $expectedHash -Label "Spicetify CLI ($arch)" -SourceUrl $zip
         }
         if (Test-Path -LiteralPath $integration.InstallDirectory) {
             $null = Clear-DirectoryContentsSafely -Path $integration.InstallDirectory -Label 'Spicetify CLI'
@@ -7071,7 +7171,7 @@ function Module-InstallThemes { param($Config)
                     } else { throw }
                 }
                 Confirm-FileHash -Path $tz -ExpectedHash $themeHash -Label "Community theme '$tn'"
-                Save-ToAssetCache -SourcePath $tz -SHA256Hash $themeHash
+                Save-ToAssetCache -SourcePath $tz -SHA256Hash $themeHash -Label "Community theme '$tn'" -SourceUrl $archiveUrl
             }
             Expand-ArchiveSafely -ZipPath $tz -DestinationPath $tu -Label "Community theme '$tn'"
             $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -7120,7 +7220,7 @@ function Module-InstallThemes { param($Config)
                     } else { throw }
                 }
                 Confirm-FileHash -Path $tz -ExpectedHash $themesHash -Label "Themes archive"
-                Save-ToAssetCache -SourcePath $tz -SHA256Hash $themesHash
+                Save-ToAssetCache -SourcePath $tz -SHA256Hash $themesHash -Label 'Themes archive' -SourceUrl $global:URL_THEMES_REPO
             }
             Expand-ArchiveSafely -ZipPath $tz -DestinationPath $tu -Label 'Themes archive'
             $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -7180,7 +7280,7 @@ function Download-CommunityExtensions { param($Config)
                     continue
                 }
                 Confirm-FileHash -Path $destFile -ExpectedHash $extHash -Label "Community extension $ext"
-                Save-ToAssetCache -SourcePath $destFile -SHA256Hash $extHash
+                Save-ToAssetCache -SourcePath $destFile -SHA256Hash $extHash -Label "Community extension $ext" -SourceUrl $info.Url
             }
             Write-Log "Community extension '$ext' saved to $destFile"
             $verifiedPaths += $destFile
@@ -7249,7 +7349,7 @@ function Module-InstallMarketplace { param($Config)
                 } else { throw }
             }
             Confirm-FileHash -Path $mz -ExpectedHash $marketplaceHash -Label "Marketplace"
-            Save-ToAssetCache -SourcePath $mz -SHA256Hash $marketplaceHash
+            Save-ToAssetCache -SourcePath $mz -SHA256Hash $marketplaceHash -Label 'Marketplace archive' -SourceUrl $global:URL_MARKETPLACE
         }
         Expand-ArchiveSafely -ZipPath $mz -DestinationPath $mu -Label 'Marketplace'
         $sp = if (Test-Path (Join-Path $mu "marketplace-dist")) { Join-Path $mu "marketplace-dist\*" } else { Join-Path $mu "*" }
@@ -7341,7 +7441,7 @@ function Module-InstallCustomApps { param($Config)
                     } else { throw }
                 }
                 Confirm-FileHash -Path $zipPath -ExpectedHash $expectedHash -Label "Custom app $appId"
-                Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $expectedHash
+                Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $expectedHash -Label "Custom app $appId archive" -SourceUrl $info.Url
             }
 
             Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $unpackPath -Label "Custom app $appId" -MaxExpandedBytes 250MB
@@ -7726,7 +7826,7 @@ $maintBlock = { param($sh,$action)
                         } else { throw }
                     }
                     Confirm-FileHash -Path $dest -ExpectedHash $spotxHash -Label "SpotX run.ps1"
-                    Save-ToAssetCache -SourcePath $dest -SHA256Hash $spotxHash
+                    Save-ToAssetCache -SourcePath $dest -SHA256Hash $spotxHash -Label 'SpotX run.ps1' -SourceUrl $global:URL_SPOTX
                 }
                 Write-Log "SpotX will verify version compatibility and overwrite if needed"
                 $sh.AllowSpotify=$true
@@ -7835,7 +7935,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-SpotXCustomPatchesFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyIntegrationContext','Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',

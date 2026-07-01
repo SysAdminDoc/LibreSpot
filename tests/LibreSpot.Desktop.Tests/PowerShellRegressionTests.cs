@@ -1093,7 +1093,7 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("'CheckUpdates'", backend);
         Assert.Contains("'OpenMarketplace'", backend);
         Assert.Contains("RequiresAdministrator(definition.Action)", viewModel);
-        Assert.Contains("\"CheckUpdates\" or \"CreateBackup\" or \"OpenMarketplace\" or \"RemoveSelfData\"", viewModel);
+        Assert.Contains("\"CheckUpdates\" or \"CreateBackup\" or \"OpenMarketplace\" or \"RemoveSelfData\" or \"ClearCache\"", viewModel);
         Assert.Contains("StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2, requiresAdministrator)", viewModel);
     }
 
@@ -1884,6 +1884,25 @@ public sealed class PowerShellRegressionTests
     // Accessibility — icon-only and StackPanel-content controls must have
     // AutomationProperties.Name so screen readers can identify them.
     // ---------------------------------------------------------------------
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void AssetCacheHelpers_UpdateIndexQuarantineCorruptionAndWriteClearReceipt(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("function Update-AssetCacheIndexEntry", script);
+        Assert.Contains("asset-cache-index.json", script);
+        Assert.Contains("Update-AssetCacheIndexEntry -SHA256Hash", script);
+        Assert.Contains("-MarkVerified -MarkUsed", script);
+        Assert.Contains("-Status 'corrupt'", script);
+        Assert.Contains("Move-Item", script);
+        Assert.Contains("-Result 'Quarantined'", script);
+        Assert.Contains("fileCount", script);
+        Assert.Contains("totalBytes", script);
+        Assert.Contains("Asset cache cleared", script);
+    }
+
     [Theory]
     [InlineData("MinimizeBtn", "Minimize window")]
     [InlineData("CloseTitleBtn", "Close window")]

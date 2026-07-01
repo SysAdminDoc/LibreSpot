@@ -5,6 +5,8 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Xunit;
 using CliApp = Cli::LibreSpot.Cli.CliApplication;
+using CliAssetCacheEntryState = Cli::LibreSpot.Desktop.Models.AssetCacheEntryState;
+using CliAssetCacheInventoryReport = Cli::LibreSpot.Desktop.Models.AssetCacheInventoryReport;
 using CliBackendMessage = Cli::LibreSpot.Desktop.Services.BackendMessage;
 using CliBackendRunResult = Cli::LibreSpot.Desktop.Services.BackendRunResult;
 using CliCommunityAssetDriftReport = Cli::LibreSpot.Desktop.Models.CommunityAssetDriftReport;
@@ -92,6 +94,25 @@ public sealed class CliApplicationTests
                     "Pinned/current community metadata; network third-party-service; trust review required.")
             },
             DateTimeOffset.Parse("2026-06-27T12:31:00Z"));
+        var assetCacheReport = new CliAssetCacheInventoryReport(
+            new[]
+            {
+                new CliAssetCacheEntryState(
+                    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                    "SpotX installer",
+                    "https://example.test/spotx-run.ps1",
+                    4096,
+                    DateTimeOffset.Parse("2026-06-27T11:00:00Z"),
+                    DateTimeOffset.Parse("2026-06-27T11:30:00Z"),
+                    DateTimeOffset.Parse("2026-06-27T12:00:00Z"),
+                    "present",
+                    "C:\\Users\\Test\\AppData\\Roaming\\LibreSpot\\cache\\0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                    true,
+                    "Hash-named cache file exists and matches the expected SHA256.")
+            },
+            "C:\\Users\\Test\\AppData\\Roaming\\LibreSpot\\cache",
+            "C:\\Users\\Test\\AppData\\Roaming\\LibreSpot\\cache\\asset-cache-index.json",
+            DateTimeOffset.Parse("2026-06-27T12:00:00Z"));
         var snapshot = SnapshotWithReports(
             true,
             true,
@@ -117,6 +138,7 @@ public sealed class CliApplicationTests
                 true,
                 "spotify-process-running",
                 DateTimeOffset.Parse("2026-06-27T12:35:00Z")),
+            assetCacheReport,
             Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready, version: "1.2.92"),
             Component("spicetify-cli", "Spicetify CLI", "Detected", CliHealthSeverity.Ready, version: "2.43.2"),
             Component("backups", "Backups", "2 backups", CliHealthSeverity.Ready),
@@ -161,6 +183,12 @@ public sealed class CliApplicationTests
         Assert.Equal("1.0.8", marketplaceVisibility.GetProperty("manifestVersion").GetString());
         Assert.True(marketplaceVisibility.GetProperty("applySucceeded").GetBoolean());
         Assert.True(marketplaceVisibility.GetProperty("openUriSucceeded").GetBoolean());
+        var assetCache = doc.RootElement.GetProperty("assetCache");
+        Assert.Equal(1, assetCache.GetProperty("entryCount").GetInt32());
+        Assert.Equal(1, assetCache.GetProperty("presentCount").GetInt32());
+        Assert.Equal(4096, assetCache.GetProperty("totalBytes").GetInt64());
+        Assert.Equal("SpotX installer", assetCache.GetProperty("entries")[0].GetProperty("label").GetString());
+        Assert.Equal("present", assetCache.GetProperty("entries")[0].GetProperty("status").GetString());
     }
 
     [Fact]
@@ -1053,6 +1081,23 @@ public sealed class CliApplicationTests
         CliCommunityAssetDriftReport communityAssetDriftReport,
         CliMarketplaceVisibilityEvidence? marketplaceVisibilityEvidence,
         params CliStackHealthComponent[] components) =>
+        SnapshotWithReports(
+            spotifyInstalled,
+            spicetifyInstalled,
+            upstreamDriftReport,
+            communityAssetDriftReport,
+            marketplaceVisibilityEvidence,
+            CliAssetCacheInventoryReport.Empty,
+            components);
+
+    private static CliEnvironmentSnapshot SnapshotWithReports(
+        bool spotifyInstalled,
+        bool spicetifyInstalled,
+        CliUpstreamDriftReport upstreamDriftReport,
+        CliCommunityAssetDriftReport communityAssetDriftReport,
+        CliMarketplaceVisibilityEvidence? marketplaceVisibilityEvidence,
+        CliAssetCacheInventoryReport assetCacheInventory,
+        params CliStackHealthComponent[] components) =>
         new()
         {
             SpotifyInstalled = spotifyInstalled,
@@ -1067,7 +1112,8 @@ public sealed class CliApplicationTests
             HealthReport = new CliStackHealthReport(components),
             UpstreamDriftReport = upstreamDriftReport,
             CommunityAssetDriftReport = communityAssetDriftReport,
-            MarketplaceVisibilityEvidence = marketplaceVisibilityEvidence
+            MarketplaceVisibilityEvidence = marketplaceVisibilityEvidence,
+            AssetCacheInventory = assetCacheInventory
         };
 
     private static CliStackHealthComponent Component(

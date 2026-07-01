@@ -63,6 +63,7 @@ public static class CliApplication
         "UninstallSpicetify",
         "FullReset",
         "RemoveSelfData",
+        "ClearCache",
         "EnableAutoReapply",
         "DisableAutoReapply"
     ];
@@ -1003,6 +1004,7 @@ public static class CliApplication
             snapshot.MarketplaceReady,
             snapshot.MarketplaceLikelyVisible,
             snapshot.MarketplaceVisibilityEvidence is null ? null : MarketplaceVisibilityDocument.From(snapshot.MarketplaceVisibilityEvidence),
+            AssetCacheDocument.From(snapshot.AssetCacheInventory),
             snapshot.AutoReapplyTaskRegistered,
             BackupCount(snapshot),
             ComponentLastChanged(snapshot, "post-spotify-update"),
@@ -1571,6 +1573,7 @@ public sealed record StatusDocument(
     bool MarketplaceReady,
     bool MarketplaceLikelyVisible,
     MarketplaceVisibilityDocument? MarketplaceVisibility,
+    AssetCacheDocument AssetCache,
     bool AutoReapplyTaskRegistered,
     int BackupCount,
     DateTimeOffset? LastPatchTimeUtc,
@@ -1580,6 +1583,62 @@ public sealed record StatusDocument(
     IReadOnlyList<CommunityAssetDocument> CommunityAssets,
     IReadOnlyList<UpstreamDependencyDocument> UpstreamDependencies,
     IReadOnlyList<ComponentDocument> Components);
+
+public sealed record AssetCacheDocument(
+    int EntryCount,
+    int PresentCount,
+    int MissingCount,
+    int CorruptCount,
+    int UnindexedCount,
+    int StaleCount,
+    long TotalBytes,
+    string CacheDirectory,
+    string IndexPath,
+    DateTimeOffset GeneratedAtUtc,
+    IReadOnlyList<AssetCacheEntryDocument> Entries)
+{
+    public static AssetCacheDocument From(AssetCacheInventoryReport report) =>
+        new(
+            report.EntryCount,
+            report.PresentCount,
+            report.MissingCount,
+            report.CorruptCount,
+            report.UnindexedCount,
+            report.StaleCount,
+            report.TotalBytes,
+            report.CacheDirectory,
+            report.IndexPath,
+            report.GeneratedAtUtc,
+            report.Entries.Select(AssetCacheEntryDocument.From).ToArray());
+}
+
+public sealed record AssetCacheEntryDocument(
+    string Sha256,
+    string Label,
+    string? SourceUrl,
+    long ByteSize,
+    DateTimeOffset? FirstSeenAtUtc,
+    DateTimeOffset? LastUsedAtUtc,
+    DateTimeOffset? LastVerifiedAtUtc,
+    string Status,
+    string Path,
+    bool FilePresent,
+    string Evidence)
+{
+    public static AssetCacheEntryDocument From(AssetCacheEntryState entry) =>
+        new(
+            entry.Sha256,
+            entry.Label,
+            entry.SourceUrl,
+            entry.ByteSize,
+            entry.FirstSeenAtUtc,
+            entry.LastUsedAtUtc,
+            entry.LastVerifiedAtUtc,
+            entry.Status,
+            entry.Path,
+            entry.FilePresent,
+            entry.Evidence);
+}
 
 public sealed record MarketplaceVisibilityDocument(
     int SchemaVersion,

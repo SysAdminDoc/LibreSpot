@@ -1,4 +1,5 @@
 using System.IO;
+using System.Security.Cryptography;
 using System.Text.Json;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
@@ -235,6 +236,73 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.Contains(snapshot.HealthReport.Components, component => component.Id == "spotx" && component.Status == "Verified");
         Assert.Contains(snapshot.HealthReport.Components, component => component.Id == "marketplace" && component.Status == "Files installed");
         Assert.Contains(snapshot.HealthReport.Components, component => component.Id == "active-theme" && component.Status == "Active");
+    }
+
+    [Fact]
+    public void GetSnapshot_AssetCacheInventory_CoversVerifiedIndexedEntry()
+    {
+        using var fixture = new SnapshotFixture();
+        var hash = fixture.WriteAssetCacheEntry(
+            "SpotX installer",
+            "https://example.test/spotx-run.ps1",
+            new byte[] { 0x4c, 0x69, 0x62, 0x72, 0x65 });
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.Equal(1, snapshot.AssetCacheInventory.EntryCount);
+        Assert.Equal(1, snapshot.AssetCacheInventory.PresentCount);
+        Assert.Equal(0, snapshot.AssetCacheInventory.StaleCount);
+        Assert.Equal(5, snapshot.AssetCacheInventory.TotalBytes);
+        var entry = Assert.Single(snapshot.AssetCacheInventory.Entries);
+        Assert.Equal(hash, entry.Sha256);
+        Assert.Equal("SpotX installer", entry.Label);
+        Assert.Equal("https://example.test/spotx-run.ps1", entry.SourceUrl);
+        Assert.Equal("present", entry.Status);
+        Assert.True(entry.FilePresent);
+        Assert.Contains("matches the expected SHA256", entry.Evidence);
+        var component = Assert.Single(snapshot.HealthReport.Components, item => item.Id == "asset-cache");
+        Assert.Equal("1 entry", component.Status);
+        Assert.Equal(HealthSeverity.Ready, component.Severity);
+    }
+
+    [Fact]
+    public void GetSnapshot_AssetCacheInventory_FlagsMissingIndexedEntryAsStale()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteAssetCacheEntry(
+            "Marketplace archive",
+            "https://example.test/marketplace.zip",
+            new byte[] { 0x6d, 0x61, 0x72, 0x6b, 0x65, 0x74 },
+            writeFile: false);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.Equal(1, snapshot.AssetCacheInventory.MissingCount);
+        Assert.Equal(1, snapshot.AssetCacheInventory.StaleCount);
+        var component = Assert.Single(snapshot.HealthReport.InfoIssues, item => item.Id == "asset-cache");
+        Assert.Equal("1 stale entry", component.Status);
+        Assert.Contains("ClearCache", component.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_AssetCacheInventory_FlagsHashMismatchAsCorrupt()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteAssetCacheEntry(
+            "Spicetify CLI archive",
+            "https://example.test/spicetify.zip",
+            new byte[] { 0x67, 0x6f, 0x6f, 0x64 },
+            fileBytes: new byte[] { 0x62, 0x61, 0x64 });
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.Equal(1, snapshot.AssetCacheInventory.CorruptCount);
+        var entry = Assert.Single(snapshot.AssetCacheInventory.Entries);
+        Assert.Equal("corrupt", entry.Status);
+        Assert.Contains("SHA256 mismatch", entry.Evidence);
+        var component = Assert.Single(snapshot.HealthReport.WarningIssues, item => item.Id == "asset-cache");
+        Assert.Equal("1 corrupt entry", component.Status);
+        Assert.Contains("ClearCache", component.RecommendedActionIds);
     }
 
     [Fact]
@@ -971,6 +1039,48 @@ public sealed class EnvironmentSnapshotServiceTests
 
         public void WriteInstallLog() =>
             WriteFile(Path.Combine(ConfigDirectory, "install.log"), "ok");
+
+        public string WriteAssetCacheEntry(
+            string label,
+            string sourceUrl,
+            byte[] indexedBytes,
+            bool writeFile = true,
+            byte[]? fileBytes = null)
+        {
+            var hash = Convert.ToHexString(SHA256.HashData(indexedBytes)).ToLowerInvariant();
+            var cacheDirectory = Path.Combine(ConfigDirectory, "cache");
+            Directory.CreateDirectory(cacheDirectory);
+
+            if (writeFile)
+            {
+                File.WriteAllBytes(Path.Combine(cacheDirectory, hash), fileBytes ?? indexedBytes);
+            }
+
+            WriteFile(
+                Path.Combine(cacheDirectory, "asset-cache-index.json"),
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        schemaVersion = 1,
+                        generatedAtUtc = DateTimeOffset.Parse("2026-06-30T12:00:00Z"),
+                        entries = new[]
+                        {
+                            new
+                            {
+                                sha256 = hash,
+                                label,
+                                sourceUrl,
+                                byteSize = indexedBytes.LongLength,
+                                firstSeenAtUtc = DateTimeOffset.Parse("2026-06-30T11:00:00Z"),
+                                lastUsedAtUtc = DateTimeOffset.Parse("2026-06-30T11:30:00Z"),
+                                lastVerifiedAtUtc = DateTimeOffset.Parse("2026-06-30T12:00:00Z"),
+                                status = "present"
+                            }
+                        }
+                    }));
+
+            return hash;
+        }
 
         public void WriteRecentCrashReport() =>
             WriteFile(Path.Combine(CrashDirectory, "crash-20260616-test.log"), "crash");

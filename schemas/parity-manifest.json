@@ -66,6 +66,7 @@
     { "action": "UninstallSpicetify",  "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Remove Spicetify CLI and all themes/extensions" },
     { "action": "FullReset",           "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Complete teardown: Spicetify, SpotX, tasks, PATH entries" },
     { "action": "RemoveSelfData",     "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Remove LibreSpot config, backups, logs; does not touch Spotify/Spicetify" },
+    { "action": "ClearCache",         "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": false, "notes": "Health-issue repair action for clearing LibreSpot verified download cache" },
     { "action": "EnableAutoReapply",   "script": false, "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": false, "notes": "WPF-only: registers scheduled watcher task" },
     { "action": "DisableAutoReapply",  "script": false, "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": false, "notes": "WPF-only: removes scheduled watcher task" },
     { "action": "WatchAutoReapply",    "script": false, "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": false, "notes": "WPF-only: watcher tick, invoked by scheduled task" },

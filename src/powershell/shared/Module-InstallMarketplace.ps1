@@ -35,7 +35,7 @@ function Module-InstallMarketplace { param($Config)
                 } else { throw }
             }
             Confirm-FileHash -Path $mz -ExpectedHash $marketplaceHash -Label "Marketplace"
-            Save-ToAssetCache -SourcePath $mz -SHA256Hash $marketplaceHash
+            Save-ToAssetCache -SourcePath $mz -SHA256Hash $marketplaceHash -Label 'Marketplace archive' -SourceUrl $global:URL_MARKETPLACE
         }
         Expand-ArchiveSafely -ZipPath $mz -DestinationPath $mu -Label 'Marketplace'
         $sp = if (Test-Path (Join-Path $mu "marketplace-dist")) { Join-Path $mu "marketplace-dist\*" } else { Join-Path $mu "*" }

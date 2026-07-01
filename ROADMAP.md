@@ -459,13 +459,6 @@ needs to detect and surface this state, not just show booleans.
 
 ## Research-Driven Additions
 
-- [ ] P2 — Add asset-cache inventory and health diagnostics
-  Why: Verified cache fallback is a reliability primitive, but cache entries are hash-named files without source labels, age/size history, corruption summary, or support-bundle visibility.
-  Evidence: `src/powershell/shared/Get-FromAssetCache.ps1`, `src/powershell/shared/Save-ToAssetCache.ps1`, `src/powershell/shared/Clear-LibreSpotCache.ps1`, Environment snapshot/support-bundle flows.
-  Touches: `src/powershell/shared/*AssetCache*.ps1`, `src/LibreSpot.Desktop/Services/EnvironmentSnapshotService.cs`, support bundle export, operation journal tests, PowerShell regression tests.
-  Acceptance: Cache writes maintain an index with hash, label, source URL when known, byte size, first seen, last used, and last verified; corrupt entries are removed or quarantined with a journal/log entry; Maintenance and support bundles show cache count, total size, stale/corrupt status, and clear-cache receipt.
-  Complexity: M
-
 - [ ] P2 — Add offline cached-install simulation tests
   Why: Download modules claim verified cache fallback, but the end-to-end behavior is not covered for network failure after a valid cached asset exists.
   Evidence: `src/powershell/shared/Module-InstallSpotX.ps1`, `Module-InstallSpicetifyCLI.ps1`, `Module-InstallMarketplace.ps1`, `Module-InstallThemes.ps1`, `Module-InstallCustomApps.ps1`, Intune/PDQ offline deployment expectations.

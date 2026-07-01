@@ -28,7 +28,7 @@ function Download-CommunityExtensions { param($Config)
                     continue
                 }
                 Confirm-FileHash -Path $destFile -ExpectedHash $extHash -Label "Community extension $ext"
-                Save-ToAssetCache -SourcePath $destFile -SHA256Hash $extHash
+                Save-ToAssetCache -SourcePath $destFile -SHA256Hash $extHash -Label "Community extension $ext" -SourceUrl $info.Url
             }
             Write-Log "Community extension '$ext' saved to $destFile"
             $verifiedPaths += $destFile

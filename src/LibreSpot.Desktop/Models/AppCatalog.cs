@@ -216,6 +216,53 @@ public sealed record CommunityAssetState(
     bool RequiresTrustReview,
     string Evidence);
 
+public sealed class AssetCacheInventoryReport
+{
+    public static AssetCacheInventoryReport Empty { get; } = new(
+        Array.Empty<AssetCacheEntryState>(),
+        string.Empty,
+        string.Empty,
+        DateTimeOffset.UtcNow);
+
+    public AssetCacheInventoryReport(
+        IEnumerable<AssetCacheEntryState> entries,
+        string cacheDirectory,
+        string indexPath,
+        DateTimeOffset generatedAtUtc)
+    {
+        Entries = new ReadOnlyCollection<AssetCacheEntryState>(entries.ToArray());
+        CacheDirectory = cacheDirectory;
+        IndexPath = indexPath;
+        GeneratedAtUtc = generatedAtUtc;
+    }
+
+    public IReadOnlyList<AssetCacheEntryState> Entries { get; }
+    public string CacheDirectory { get; }
+    public string IndexPath { get; }
+    public DateTimeOffset GeneratedAtUtc { get; }
+    public int EntryCount => Entries.Count;
+    public int PresentCount => Entries.Count(entry => string.Equals(entry.Status, "present", StringComparison.OrdinalIgnoreCase));
+    public int MissingCount => Entries.Count(entry => string.Equals(entry.Status, "missing", StringComparison.OrdinalIgnoreCase));
+    public int CorruptCount => Entries.Count(entry => string.Equals(entry.Status, "corrupt", StringComparison.OrdinalIgnoreCase));
+    public int UnindexedCount => Entries.Count(entry => string.Equals(entry.Status, "unindexed", StringComparison.OrdinalIgnoreCase));
+    public int StaleCount => MissingCount + UnindexedCount;
+    public long TotalBytes => Entries.Where(entry => entry.FilePresent).Sum(entry => entry.ByteSize);
+    public bool HasIssues => CorruptCount > 0 || StaleCount > 0;
+}
+
+public sealed record AssetCacheEntryState(
+    string Sha256,
+    string Label,
+    string? SourceUrl,
+    long ByteSize,
+    DateTimeOffset? FirstSeenAtUtc,
+    DateTimeOffset? LastUsedAtUtc,
+    DateTimeOffset? LastVerifiedAtUtc,
+    string Status,
+    string Path,
+    bool FilePresent,
+    string Evidence);
+
 public sealed record MarketplaceVisibilityEvidence(
     int SchemaVersion,
     DateTimeOffset GeneratedAtUtc,
@@ -419,6 +466,7 @@ public sealed class EnvironmentSnapshot
     public StackHealthReport HealthReport { get; init; } = StackHealthReport.Empty;
     public UpstreamDriftReport UpstreamDriftReport { get; init; } = UpstreamDriftReport.Empty;
     public CommunityAssetDriftReport CommunityAssetDriftReport { get; init; } = CommunityAssetDriftReport.Empty;
+    public AssetCacheInventoryReport AssetCacheInventory { get; init; } = AssetCacheInventoryReport.Empty;
     public MarketplaceVisibilityEvidence? MarketplaceVisibilityEvidence { get; init; }
     public string HostArchitecture { get; init; } = "Unknown";
     public string ProcessArchitecture { get; init; } = "Unknown";

@@ -1,5 +1,6 @@
 using System.IO;
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text.Json;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
@@ -214,6 +215,33 @@ public sealed class SupportBundleServiceTests
     }
 
     [Fact]
+    public async Task ExportAsync_IncludesAssetCacheInventory()
+    {
+        using var fixture = new SupportBundleFixture();
+        fixture.WriteStackReadyState();
+        fixture.WriteAssetCacheEntry(
+            "SpotX installer",
+            "https://example.test/spotx-run.ps1?token=secret",
+            new byte[] { 0x4c, 0x69, 0x62, 0x72, 0x65 });
+
+        var result = await fixture.ExportAsync(new SupportBundleOptions());
+        var entries = ReadZipText(result.Path);
+        var health = entries["health/health-report.json"];
+
+        Assert.Contains("\"assetCache\"", health);
+        Assert.Contains("\"entryCount\": 1", health);
+        Assert.Contains("\"presentCount\": 1", health);
+        Assert.Contains("\"label\": \"SpotX installer\"", health);
+        Assert.Contains("redacted", health, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("secret", health, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(fixture.ConfigDirectory, health, StringComparison.OrdinalIgnoreCase);
+        using var healthDocument = JsonDocument.Parse(health);
+        var assetCache = healthDocument.RootElement.GetProperty("assetCache");
+        Assert.Contains("<LIBRESPOT_CONFIG>", assetCache.GetProperty("cacheDirectory").GetString());
+        Assert.Contains("<LIBRESPOT_CONFIG>", assetCache.GetProperty("entries")[0].GetProperty("path").GetString());
+    }
+
+    [Fact]
     public void CreatePreview_ReportsSelectionsEstimateAndRedactionRules()
     {
         using var fixture = new SupportBundleFixture();
@@ -335,6 +363,38 @@ public sealed class SupportBundleServiceTests
                         lastObservedSpotifySession = "spotify-process-running",
                         lastObservedAtUtc = DateTimeOffset.Parse("2026-06-30T12:03:00Z")
                     }));
+
+        public string WriteAssetCacheEntry(string label, string sourceUrl, byte[] content)
+        {
+            var hash = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
+            var cacheDirectory = Path.Combine(ConfigDirectory, "cache");
+            Directory.CreateDirectory(cacheDirectory);
+            File.WriteAllBytes(Path.Combine(cacheDirectory, hash), content);
+            WriteFile(
+                Path.Combine(cacheDirectory, "asset-cache-index.json"),
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        schemaVersion = 1,
+                        generatedAtUtc = DateTimeOffset.Parse("2026-06-30T12:00:00Z"),
+                        entries = new[]
+                        {
+                            new
+                            {
+                                sha256 = hash,
+                                label,
+                                sourceUrl,
+                                byteSize = content.LongLength,
+                                firstSeenAtUtc = DateTimeOffset.Parse("2026-06-30T11:00:00Z"),
+                                lastUsedAtUtc = DateTimeOffset.Parse("2026-06-30T11:30:00Z"),
+                                lastVerifiedAtUtc = DateTimeOffset.Parse("2026-06-30T12:00:00Z"),
+                                status = "present"
+                            }
+                        }
+                    }));
+
+            return hash;
+        }
 
         public void WriteConfig(string content) =>
             WriteFile(ConfigPath, content);
