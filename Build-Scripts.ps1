@@ -32,7 +32,10 @@ param(
     [string]$ReleaseVersion,
     [ValidateSet('stable', 'preview', 'rc')]
     [string]$ReleaseChannel,
-    [string]$ReleaseManifestPath
+    [string]$ReleaseManifestPath,
+    [switch]$DependencyHealth,
+    [string]$DependencyHealthReportPath,
+    [string]$DependencyHealthAllowlistPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -47,6 +50,12 @@ if ([string]::IsNullOrWhiteSpace($ReleaseRoot)) {
 }
 if ([string]::IsNullOrWhiteSpace($ReleaseManifestPath)) {
     $ReleaseManifestPath = Join-Path $ReleaseRoot 'librespot-release-manifest.json'
+}
+if ([string]::IsNullOrWhiteSpace($DependencyHealthReportPath)) {
+    $DependencyHealthReportPath = Join-Path $ReleaseRoot 'dependency-health.json'
+}
+if ([string]::IsNullOrWhiteSpace($DependencyHealthAllowlistPath)) {
+    $DependencyHealthAllowlistPath = Join-Path $PSScriptRoot 'schemas/dependency-health-allowlist.json'
 }
 
 if (-not (Test-Path -LiteralPath $mainScript)) {
@@ -417,6 +426,248 @@ function New-LibreSpotReleaseManifest {
     Write-Host "Release manifest generated and verified: $ManifestPath" -ForegroundColor Green
 }
 
+function ConvertTo-RepoRelativePath {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $root = [System.IO.Path]::GetFullPath($PSScriptRoot).TrimEnd('\', '/')
+    $full = [System.IO.Path]::GetFullPath($Path)
+    if ($full.StartsWith($root, [System.StringComparison]::OrdinalIgnoreCase)) {
+        $full = $full.Substring($root.Length).TrimStart('\', '/')
+    }
+
+    return $full.Replace('\', '/')
+}
+
+function Get-LibreSpotDotNetProjects {
+    @(
+        'src/LibreSpot.Desktop/LibreSpot.Desktop.csproj'
+        'src/LibreSpot.Cli/LibreSpot.Cli.csproj'
+        'tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj'
+    ) | ForEach-Object { Join-Path $PSScriptRoot $_ }
+}
+
+function Invoke-DotNetListPackageJson {
+    param(
+        [Parameter(Mandatory)][string]$ProjectPath,
+        [Parameter(Mandatory)][string[]]$Arguments
+    )
+
+    $dotnetArgs = @('list', $ProjectPath, 'package') + $Arguments + @('--format', 'json')
+    $output = & dotnet @dotnetArgs 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet $($dotnetArgs -join ' ') failed: $($output -join [Environment]::NewLine)"
+    }
+
+    $json = ($output | Out-String).Trim()
+    if ([string]::IsNullOrWhiteSpace($json)) {
+        throw "dotnet $($dotnetArgs -join ' ') returned no JSON."
+    }
+
+    return $json | ConvertFrom-Json
+}
+
+function ConvertTo-DependencyPackageRows {
+    param(
+        [Parameter(Mandatory)]$Document,
+        [Parameter(Mandatory)][string]$Kind
+    )
+
+    $rows = @()
+    foreach ($project in @($Document.projects)) {
+        $projectPath = ConvertTo-RepoRelativePath -Path ([string]$project.path)
+        $projectKind = if ($projectPath.StartsWith('tests/', [System.StringComparison]::OrdinalIgnoreCase)) { 'test' } else { 'runtime' }
+
+        $frameworks = @()
+        if ($project.PSObject.Properties['frameworks']) {
+            $frameworks = @($project.frameworks)
+        }
+
+        foreach ($framework in $frameworks) {
+            if ($null -eq $framework) {
+                continue
+            }
+
+            foreach ($section in @(
+                @{ Name = 'topLevelPackages'; DependencyKind = 'direct' },
+                @{ Name = 'transitivePackages'; DependencyKind = 'transitive' }
+            )) {
+                $sectionName = [string]$section.Name
+                if (-not $framework.PSObject.Properties[$sectionName]) {
+                    continue
+                }
+
+                foreach ($package in @($framework.PSObject.Properties[$sectionName].Value)) {
+                    $vulnerabilities = @()
+                    if ($package.PSObject.Properties['vulnerabilities']) {
+                        foreach ($vulnerability in @($package.vulnerabilities)) {
+                            $vulnerabilities += [pscustomobject][ordered]@{
+                                severity    = [string]$vulnerability.severity
+                                advisoryUrl = [string]$vulnerability.advisoryUrl
+                            }
+                        }
+                    }
+
+                    $rows += [pscustomobject][ordered]@{
+                        projectPath      = $projectPath
+                        projectKind      = $projectKind
+                        framework        = [string]$framework.framework
+                        dependencyKind   = [string]$section.DependencyKind
+                        scope            = "$projectKind-$($section.DependencyKind)"
+                        packageId        = [string]$package.id
+                        requestedVersion = if ($package.PSObject.Properties['requestedVersion']) { [string]$package.requestedVersion } else { $null }
+                        resolvedVersion  = if ($package.PSObject.Properties['resolvedVersion']) { [string]$package.resolvedVersion } else { $null }
+                        latestVersion    = if ($package.PSObject.Properties['latestVersion']) { [string]$package.latestVersion } else { $null }
+                        reportKind       = $Kind
+                        vulnerabilities  = $vulnerabilities
+                    }
+                }
+            }
+        }
+    }
+
+    return @($rows)
+}
+
+function Get-DependencyHealthAllowlist {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $doc = Get-JsonFile -Path $Path
+    if ([int]$doc.schemaVersion -ne 1) {
+        throw "Dependency health allowlist schemaVersion must be 1."
+    }
+
+    $entries = @($doc.acceptedTransitiveLag)
+    foreach ($entry in $entries) {
+        foreach ($field in @('packageId', 'scope', 'projectPath', 'owner', 'reason', 'recheckDate')) {
+            if (-not $entry.PSObject.Properties[$field] -or [string]::IsNullOrWhiteSpace([string]$entry.$field)) {
+                throw "Dependency health allowlist entry is missing '$field'."
+            }
+        }
+
+        [void][DateTime]::Parse([string]$entry.recheckDate)
+        if ([string]$entry.scope -ne 'test-transitive') {
+            throw "Dependency health allowlist only accepts test-transitive lag: $($entry.packageId)."
+        }
+    }
+
+    return $entries
+}
+
+function Test-TransitiveLagAllowed {
+    param(
+        [Parameter(Mandatory)]$Row,
+        [Parameter(Mandatory)]$Allowlist
+    )
+
+    foreach ($entry in @($Allowlist)) {
+        if ([string]$entry.scope -ne [string]$Row.scope) { continue }
+        if (-not [string]::Equals([string]$entry.packageId, [string]$Row.packageId, [System.StringComparison]::OrdinalIgnoreCase)) { continue }
+        if (-not [string]::Equals([string]$entry.projectPath, [string]$Row.projectPath, [System.StringComparison]::OrdinalIgnoreCase)) { continue }
+        return $true
+    }
+
+    return $false
+}
+
+function New-LibreSpotDependencyHealthReport {
+    param(
+        [Parameter(Mandatory)][string]$ReportPath,
+        [Parameter(Mandatory)][string]$AllowlistPath
+    )
+
+    $allowlist = Get-DependencyHealthAllowlist -Path $AllowlistPath
+    $projects = Get-LibreSpotDotNetProjects
+    $outdatedPackages = @()
+    $vulnerablePackages = @()
+
+    foreach ($project in $projects) {
+        if (-not (Test-Path -LiteralPath $project -PathType Leaf)) {
+            throw "Project file not found: $project"
+        }
+
+        $outdatedDocument = Invoke-DotNetListPackageJson -ProjectPath $project -Arguments @('--outdated', '--include-transitive')
+        $vulnerableDocument = Invoke-DotNetListPackageJson -ProjectPath $project -Arguments @('--vulnerable', '--include-transitive')
+        $outdatedPackages += ConvertTo-DependencyPackageRows -Document $outdatedDocument -Kind 'outdated'
+        $vulnerablePackages += ConvertTo-DependencyPackageRows -Document $vulnerableDocument -Kind 'vulnerable'
+    }
+
+    $outdatedDirect = @($outdatedPackages | Where-Object { $_.dependencyKind -eq 'direct' })
+    $outdatedTransitive = @($outdatedPackages | Where-Object { $_.dependencyKind -eq 'transitive' })
+    $allowedTransitive = @($outdatedTransitive | Where-Object { Test-TransitiveLagAllowed -Row $_ -Allowlist $allowlist })
+    $unapprovedTransitive = @($outdatedTransitive | Where-Object { -not (Test-TransitiveLagAllowed -Row $_ -Allowlist $allowlist) })
+    $today = [DateTime]::UtcNow.Date
+    $expiredAllowlist = @($allowlist | Where-Object { [DateTime]::Parse([string]$_.recheckDate).Date -lt $today })
+    $auditPipeline = [string]::Equals([string]$env:AuditPipeline, 'true', [System.StringComparison]::OrdinalIgnoreCase)
+    $moderatePlus = @('moderate', 'high', 'critical')
+    $auditFailures = @()
+
+    if ($auditPipeline) {
+        foreach ($package in $vulnerablePackages) {
+            foreach ($vulnerability in @($package.vulnerabilities)) {
+                if ($moderatePlus -contains ([string]$vulnerability.severity).ToLowerInvariant()) {
+                    $auditFailures += [pscustomobject][ordered]@{
+                        packageId       = $package.packageId
+                        projectPath     = $package.projectPath
+                        severity        = $vulnerability.severity
+                        advisoryUrl     = $vulnerability.advisoryUrl
+                        resolvedVersion = $package.resolvedVersion
+                    }
+                }
+            }
+        }
+    }
+
+    $failures = @()
+    foreach ($package in $outdatedDirect) {
+        $failures += "Direct package drift: $($package.packageId) $($package.resolvedVersion) -> $($package.latestVersion) in $($package.projectPath)."
+    }
+    foreach ($package in $unapprovedTransitive) {
+        $failures += "Unapproved transitive package drift: $($package.packageId) $($package.resolvedVersion) -> $($package.latestVersion) in $($package.projectPath)."
+    }
+    foreach ($entry in $expiredAllowlist) {
+        $failures += "Expired dependency-health allowlist entry: $($entry.packageId) recheckDate $($entry.recheckDate)."
+    }
+    foreach ($failure in $auditFailures) {
+        $failures += "AuditPipeline vulnerability: $($failure.packageId) $($failure.severity) $($failure.advisoryUrl)."
+    }
+
+    $report = [ordered]@{
+        schemaVersion                = 1
+        generatedAtUtc               = [DateTime]::UtcNow.ToString('o')
+        generator                    = 'Build-Scripts.ps1 -DependencyHealth'
+        auditPipeline                = $auditPipeline
+        allowlistPath                = ConvertTo-RepoRelativePath -Path $AllowlistPath
+        projectCount                 = $projects.Count
+        vulnerablePackageCount       = $vulnerablePackages.Count
+        outdatedDirectPackageCount   = $outdatedDirect.Count
+        outdatedTransitivePackageCount = $outdatedTransitive.Count
+        acceptedTransitiveLagCount   = $allowedTransitive.Count
+        failureCount                 = $failures.Count
+        status                       = if ($failures.Count -eq 0) { 'ok' } else { 'failed' }
+        projects                     = @($projects | ForEach-Object { ConvertTo-RepoRelativePath -Path $_ })
+        vulnerablePackages           = $vulnerablePackages
+        outdatedDirectPackages       = $outdatedDirect
+        outdatedTransitivePackages   = $outdatedTransitive
+        acceptedTransitiveLag        = $allowedTransitive
+        failures                     = $failures
+    }
+
+    $reportDirectory = Split-Path -Parent $ReportPath
+    if (-not [string]::IsNullOrWhiteSpace($reportDirectory)) {
+        New-Item -Path $reportDirectory -ItemType Directory -Force | Out-Null
+    }
+
+    [System.IO.File]::WriteAllText($ReportPath, (($report | ConvertTo-Json -Depth 12) + [Environment]::NewLine), $utf8NoBom)
+    Write-Host "Dependency health report written: $ReportPath" -ForegroundColor Green
+
+    if ($failures.Count -gt 0) {
+        foreach ($failure in $failures) {
+            Write-Host "  $failure" -ForegroundColor Red
+        }
+        exit 1
+    }
+}
+
 $mainContent = [System.IO.File]::ReadAllText($mainScript, [System.Text.Encoding]::UTF8)
 $backendContent = [System.IO.File]::ReadAllText($backendScript, [System.Text.Encoding]::UTF8)
 
@@ -444,6 +695,13 @@ $laneSpecificFunctions = @(
     'Module-NukeSpotify'             # Backend streams phase progress; Main owns GUI phase logging
     'Module-ApplySpicetify'          # Backend records watcher apply outcomes
 )
+
+if ($DependencyHealth) {
+    New-LibreSpotDependencyHealthReport `
+        -ReportPath $DependencyHealthReportPath `
+        -AllowlistPath $DependencyHealthAllowlistPath
+    exit 0
+}
 
 if ($GenerateReleaseManifest) {
     New-LibreSpotReleaseManifest `
@@ -637,3 +895,4 @@ Write-Host "  pwsh -File Build-Scripts.ps1 -Validate             # Check shared 
 Write-Host "  pwsh -File Build-Scripts.ps1 -Inventory             # List all functions and their locations"
 Write-Host "  pwsh -File Build-Scripts.ps1 -Lint                   # Run PSScriptAnalyzer on both scripts"
 Write-Host "  pwsh -File Build-Scripts.ps1 -SyncSharedToBackend   # Copy shared function sources into backend"
+Write-Host "  pwsh -File Build-Scripts.ps1 -DependencyHealth       # Emit dependency-health JSON and fail unapproved drift"

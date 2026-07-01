@@ -57,6 +57,11 @@ All notable changes to LibreSpot will be documented in this file.
   metadata; corrupt cache hits are quarantined with journal receipts; and
   Maintenance health, CLI `status --json`, and support bundles expose cache
   count, size, stale, corrupt, and clear-cache state.
+- Added local dependency-health validation. `Build-Scripts.ps1
+  -DependencyHealth` emits a JSON report for vulnerable packages, outdated
+  direct packages, outdated transitive packages, and accepted test-only
+  transitive lag, with direct drift and expired allowlist entries failing the
+  local check.
 - Added schema-backed operation receipts: backend runs now write typed
   operation-token entries and `run-receipt.latest.json`, while the WPF undo
   pane consumes the embedded token and receipt schemas before showing

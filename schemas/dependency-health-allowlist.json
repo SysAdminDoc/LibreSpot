@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "generatedAtUtc": "2026-07-01T00:00:00Z",
+  "acceptedTransitiveLag": [
+    {
+      "packageId": "FSharp.Core",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of the WPF UI automation test stack; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "Microsoft.Win32.SystemEvents",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of Windows desktop test packages; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "Newtonsoft.Json",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of the UI automation test stack; runtime projects do not ship it directly.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "System.CodeDom",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of Windows desktop test packages; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "System.Configuration.ConfigurationManager",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of Windows desktop test packages; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "System.Diagnostics.EventLog",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of Windows desktop test packages; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "System.Diagnostics.PerformanceCounter",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of Windows desktop test packages; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "System.Drawing.Common",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of WPF screenshot and automation test packages; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "System.Management",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of Windows desktop test packages; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "System.Security.Cryptography.ProtectedData",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of Windows desktop test packages; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "System.Security.Permissions",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of Windows desktop test packages; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "System.Windows.Extensions",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of Windows desktop test packages; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "xunit.analyzers",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Analyzer transitive lag in the test project only; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    }
+  ]
+}

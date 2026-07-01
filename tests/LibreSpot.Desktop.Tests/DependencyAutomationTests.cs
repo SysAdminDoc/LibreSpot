@@ -41,6 +41,68 @@ public sealed class DependencyAutomationTests
     }
 
     [Fact]
+    public void BuildScripts_CanEmitDependencyHealthReportAndFailUnapprovedDrift()
+    {
+        var script = ReadRepoFile("Build-Scripts.ps1");
+
+        Assert.Contains("[switch]$DependencyHealth", script);
+        Assert.Contains("dependency-health.json", script);
+        Assert.Contains("dependency-health-allowlist.json", script);
+        Assert.Contains("--outdated', '--include-transitive", script);
+        Assert.Contains("--vulnerable', '--include-transitive", script);
+        Assert.Contains("outdatedDirectPackages", script);
+        Assert.Contains("outdatedTransitivePackages", script);
+        Assert.Contains("vulnerablePackages", script);
+        Assert.Contains("Direct package drift", script);
+        Assert.Contains("Unapproved transitive package drift", script);
+        Assert.Contains("AuditPipeline vulnerability", script);
+        Assert.Contains("acceptedTransitiveLag", script);
+    }
+
+    [Fact]
+    public void DependencyHealthAllowlist_DocumentsAcceptedTestOnlyTransitiveLag()
+    {
+        using var doc = JsonDocument.Parse(ReadRepoFile("schemas", "dependency-health-allowlist.json"));
+        var root = doc.RootElement;
+
+        Assert.Equal(1, root.GetProperty("schemaVersion").GetInt32());
+        var entries = root.GetProperty("acceptedTransitiveLag").EnumerateArray().ToArray();
+        Assert.NotEmpty(entries);
+
+        var packageIds = entries
+            .Select(entry => entry.GetProperty("packageId").GetString())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var expected in new[]
+                 {
+                     "FSharp.Core",
+                     "Microsoft.Win32.SystemEvents",
+                     "Newtonsoft.Json",
+                     "System.CodeDom",
+                     "System.Configuration.ConfigurationManager",
+                     "System.Diagnostics.EventLog",
+                     "System.Diagnostics.PerformanceCounter",
+                     "System.Drawing.Common",
+                     "System.Management",
+                     "System.Security.Cryptography.ProtectedData",
+                     "System.Security.Permissions",
+                     "System.Windows.Extensions",
+                     "xunit.analyzers"
+                 })
+        {
+            Assert.Contains(expected, packageIds);
+        }
+
+        foreach (var entry in entries)
+        {
+            Assert.Equal("test-transitive", entry.GetProperty("scope").GetString());
+            Assert.StartsWith("tests/", entry.GetProperty("projectPath").GetString(), StringComparison.OrdinalIgnoreCase);
+            Assert.False(string.IsNullOrWhiteSpace(entry.GetProperty("owner").GetString()));
+            Assert.False(string.IsNullOrWhiteSpace(entry.GetProperty("reason").GetString()));
+            Assert.True(DateTime.Parse(entry.GetProperty("recheckDate").GetString()!) >= new DateTime(2026, 9, 1));
+        }
+    }
+
+    [Fact]
     public void ScorecardBaseline_DocumentsAcceptedSingleMaintainerRisks()
     {
         using var baseline = JsonDocument.Parse(ReadRepoFile("schemas", "scorecard-baseline.json"));

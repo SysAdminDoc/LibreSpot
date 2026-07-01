@@ -479,10 +479,3 @@ needs to detect and surface this state, not just show booleans.
   Touches: backend temp-root hooks, `src/powershell/shared/*`, `src/LibreSpot.Cli/Program.cs`, `tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs`, `tests/LibreSpot.Desktop.Tests/CliApplicationTests.cs`, support bundle tests.
   Acceptance: A temp-root test seeds config, local profiles, operation journal, logs, crashes, cache, backups, and watcher state with path/token canaries; running RemoveSelfData or CLI uninstall `--purge` deletes LibreSpot-owned data, writes an irreversible receipt, leaves Spotify/Spicetify untouched, and subsequent status/support-bundle output contains no seeded raw paths or tokens.
   Complexity: M
-
-- [ ] P2 — Add dependency freshness and advisory ratchet
-  Why: NuGet audit is clean today, but `dotnet list package --outdated --include-transitive` shows stale test transitives that should be visible before they turn into advisory-driven work.
-  Evidence: `Directory.Build.props`, `tests/LibreSpot.Desktop.Tests/DependencyAutomationTests.cs`, local `dotnet list package --vulnerable --include-transitive`, local `dotnet list package --outdated --include-transitive`, NuGet Audit docs.
-  Touches: `Build-Scripts.ps1`, `Directory.Build.props`, `schemas/third-party-notices.json`, `tests/LibreSpot.Desktop.Tests/DependencyAutomationTests.cs`, package lock files.
-  Acceptance: Local validation can emit a JSON dependency-health report with vulnerable packages, outdated direct packages, and outdated transitive packages; moderate+ vulnerabilities fail under `AuditPipeline`; direct package drift fails unless intentionally updated; accepted test-only transitive lag is recorded in a JSON allowlist with owner, reason, and recheck date.
-  Complexity: S

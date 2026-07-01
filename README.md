@@ -359,6 +359,18 @@ Get-Content  .\checksums.txt
 
 GitHub provenance attestations are not produced by the current local release process because this repository intentionally does not track build workflows. Treat `checksums.txt`, the release manifest, and the SBOM as the current verification evidence until signing/provenance work is reintroduced.
 
+## Local validation
+
+Run dependency-health checks before release packaging:
+
+```powershell
+.\Build-Scripts.ps1 -DependencyHealth
+```
+
+This writes `publish\dependency-health.json`, fails on outdated direct NuGet
+packages, records vulnerable package metadata, and allows only documented
+test-only transitive lag from `schemas\dependency-health-allowlist.json`.
+
 ## Project planning
 
 Development planning is maintained in local working-tree docs. `ROADMAP.md` is the only active queue for incomplete work; completed work is represented by Git history and release notes.
