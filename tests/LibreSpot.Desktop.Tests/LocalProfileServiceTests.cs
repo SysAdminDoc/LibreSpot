@@ -33,7 +33,7 @@ public sealed class LocalProfileServiceTests : IDisposable
         Assert.Contains(profiles, profile => profile.IsBuiltIn && profile.Name == "Lyrics Focus");
         Assert.Contains(profiles, profile => profile.IsBuiltIn && profile.Name == "Premium Account");
         Assert.Contains(profiles, profile => profile.IsBuiltIn && profile.Name == "Recovery / Reapply");
-        var current = Assert.Single(profiles.Where(profile => !profile.IsBuiltIn && profile.Name == "Current"));
+        var current = Assert.Single(profiles, profile => !profile.IsBuiltIn && profile.Name == "Current");
         Assert.True(current.IsActive);
 
         var loaded = await _profileService.LoadProfileAsync(current.Id);

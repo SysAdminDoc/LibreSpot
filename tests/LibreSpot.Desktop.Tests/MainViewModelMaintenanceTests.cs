@@ -24,7 +24,7 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
-    public void MaintenanceActionCommand_RoutesAsyncExceptionsToHandler()
+    public async Task MaintenanceActionCommand_RoutesAsyncExceptionsToHandler()
     {
         var observed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var definition = new MaintenanceActionDefinition(
@@ -40,8 +40,8 @@ public sealed class MainViewModelMaintenanceTests
 
         card.Command.Execute(null);
 
-        Assert.True(observed.Task.Wait(TimeSpan.FromSeconds(2)));
-        Assert.Equal("command exploded", observed.Task.Result);
+        var message = await observed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.Equal("command exploded", message);
     }
 
     [Fact]

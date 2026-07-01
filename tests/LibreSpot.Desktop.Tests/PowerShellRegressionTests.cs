@@ -1131,7 +1131,7 @@ public sealed class PowerShellRegressionTests
         var script = ReadFile(relativePath.Split('/'));
 
         var rawCalls = Regex.Matches(script, @"\[System\.IO\.Compression\.ZipFile\]::ExtractToDirectory");
-        Assert.Equal(1, rawCalls.Count);
+        Assert.Single(rawCalls);
 
         var fnBody = Regex.Match(
             script,
