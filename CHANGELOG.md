@@ -159,6 +159,25 @@ All notable changes to LibreSpot will be documented in this file.
   panel available for full review.
 
 ### Fixed
+- Fixed install crash from undefined `Hide-SpotifyWindows` and
+  `Clear-DirectoryContentsSafely` in the backend script. Both functions
+  existed in the monolith but were never synced to the embedded backend,
+  causing terminating errors under `$ErrorActionPreference = 'Stop'` during
+  the SpotX post-patch launch and Spicetify CLI installation steps.
+- Fixed monolith and shared watcher ignoring the `AutoReapply_Enabled`
+  preference — the scheduled task always reapplied regardless of the user's
+  setting. Now gates on the preference before invoking headless reapply,
+  matching the backend version.
+- Fixed `Compare-LibreSpotVersions` misordering multi-digit pre-release
+  suffixes (e.g. `-preview.10` sorted before `-preview.9`) by extracting
+  the trailing numeric suffix for proper numeric comparison.
+- Closed TOCTOU gap in `Expand-ArchiveSafely`: the function previously
+  validated entries then disposed the zip handle and re-opened with
+  `ExtractToDirectory`. Now validates and extracts within a single open
+  handle using per-entry `ExtractToFile`.
+- Fixed `PrimaryButtonStyle` and `SecondaryButtonStyle` ContentPresenter
+  not consuming the `Padding` property — padding values set on buttons
+  using these styles were silently ignored.
 - Fixed Spotify playback failure after install: the backend script's
   `Normalize-LibreSpotConfig` referenced undefined `$global:ThemeData` and
   `$global:BuiltInExtensions` globals, causing PowerShell to silently strip

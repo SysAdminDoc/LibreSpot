@@ -519,9 +519,21 @@ needs to detect and surface this state, not just show booleans.
   Why: System tray menu items ("Open LibreSpot", "Open LibreSpot folder", "Exit LibreSpot") and balloon tip text are hardcoded English while the app supports 5 locales.
   Where: `src/LibreSpot.Desktop/MainWindow.xaml.cs` (lines 274-326).
 
-- [ ] P2 — Monolith watcher ignores AutoReapply_Enabled preference
-  Why: The shared module version of Invoke-AutoReapplyWatcher loads config and calls Invoke-HeadlessReapply without checking AutoReapply_Enabled. The backend version correctly gates on this preference.
-  Where: `src/powershell/shared/Invoke-AutoReapplyWatcher.ps1`, `LibreSpot.ps1`.
+- [ ] P2 — Share a single static HttpClient between UpstreamDriftService and CommunityAssetDriftService
+  Why: Both services create independent GitHubUpstreamMetadataClient instances, each with its own HttpClient. This doubles connection pool usage for the same endpoint and the class has no IDisposable path.
+  Where: `src/LibreSpot.Desktop/Services/UpstreamDriftService.cs`, `src/LibreSpot.Desktop/Services/CommunityAssetDriftService.cs`.
+
+- [ ] P2 — Add regex timeout to SupportBundleRedactor patterns
+  Why: The seven compiled Regex objects in SupportBundleRedactor have no timeout, allowing ReDoS on crafted log content (especially the credential-matching patterns with nested quantifiers).
+  Where: `src/LibreSpot.Desktop/Services/SupportBundleService.cs` (lines 615-624).
+
+- [ ] P2 — Preserve extra watcher state fields across ticks
+  Why: Get-WatcherState reads only 3 fields but Set-WatcherState writes 8+. Each watcher tick that writes a subset destroys extended fields from the previous tick (LastAppliedSpotifyVersion, LastSuccessfulApplyAt, etc.).
+  Where: `src/powershell/shared/Get-WatcherState.ps1`, `src/powershell/shared/Set-WatcherState.ps1`.
+
+- [ ] P2 — Make Save-LibreSpotConfig and Set-WatcherState fallback paths crash-safe
+  Why: When File.Replace fails, the fallback does Remove-Item then File.Move with a gap between them. A crash during this gap loses the file entirely.
+  Where: `src/powershell/shared/Save-LibreSpotConfig.ps1`, `src/powershell/shared/Set-WatcherState.ps1`.
 
 - [ ] P2 — Migrate tests from deprecated xUnit v2 to xUnit v3
   Why: `dotnet list package --deprecated --include-transitive` reports `xunit 2.9.3` and v2 transitive packages as deprecated/legacy while the repo relies heavily on local tests as release gates.
