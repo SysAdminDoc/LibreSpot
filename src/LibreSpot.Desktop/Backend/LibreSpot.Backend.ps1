@@ -2264,11 +2264,10 @@ function Check-ForUpdates {
 }
 
 function Hide-SpotifyWindows {
-    Get-Process -Name Spotify -EA SilentlyContinue | ForEach-Object {
-        if ($_.MainWindowHandle -ne [IntPtr]::Zero) {
-            [Win32]::ShowWindowAsync($_.MainWindowHandle, [Win32]::SW_HIDE) | Out-Null
-        }
-    }
+    # In the WPF backend, the Start-SpotifyWindowWatcher runspace already polls
+    # every 250ms and hides Spotify/SpotifyInstaller/SpotifySetup windows via
+    # its own [LibreSpotWin32]::ShowWindowAsync. This stub satisfies call sites
+    # shared with the monolith (which defines its own [Win32] P/Invoke type).
 }
 
 function Clear-DirectoryContentsSafely {
