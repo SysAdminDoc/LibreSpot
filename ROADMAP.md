@@ -486,3 +486,21 @@ stopped working" (issue #849) as the #1 complaint — the WPF dashboard
 needs to detect and surface this state, not just show booleans.
 
 ## Research-Driven Additions
+
+### P1
+
+- [ ] P1 — Classify SpotX child-download outages
+  Why: SpotX can fail inside its own downloader path with timeout or Cloudflare-worker errors after LibreSpot has already verified `run.ps1`, leaving users and fleet logs with a generic process-exit failure.
+  Evidence: SpotX issues #870 and #836; `src/powershell/shared/Invoke-ExternalScriptIsolated.ps1`; `src/powershell/shared/Module-InstallSpotX.ps1`; `src/powershell/shared/Get-DownloadFailureHint.ps1`; `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`.
+  Touches: `src/powershell/shared/Invoke-ExternalScriptIsolated.ps1`, `src/powershell/shared/Module-InstallSpotX.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `LibreSpot.ps1`, `tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs`, `tests/LibreSpot.Desktop.Tests/OfflineAssetCacheRegressionTests.cs`.
+  Acceptance: fixture stdout/stderr containing `curl exit code 28`, `ERR_CONNECTION_TIMED_OUT`, Cloudflare suspected-phishing text, and `loadspot.amd64fox1.workers.dev` maps to sanitized warning guidance, stable fleet/support-bundle failure categories, and the original nonzero exit; monolith and embedded backend stay in sync.
+  Complexity: M
+
+### P2
+
+- [ ] P2 — Migrate tests from deprecated xUnit v2 to xUnit v3
+  Why: `dotnet list package --deprecated --include-transitive` reports `xunit 2.9.3` and v2 transitive packages as deprecated/legacy while the repo relies heavily on local tests as release gates.
+  Evidence: local package audit on 2026-07-06; NuGet `xunit` deprecation notice; xUnit v3 migration guide; `tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj`.
+  Touches: `tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj`, `tests/LibreSpot.Desktop.Tests/*.cs`, `tests/LibreSpot.Desktop.Tests/packages.lock.json`, `Build-Scripts.ps1`, `Directory.Build.props`.
+  Acceptance: test project uses supported xUnit v3 packages, `dotnet test .\tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj --no-restore` discovers and runs the existing suite, dependency-health validation has no xUnit v2 deprecation rows, and any required analyzer/API changes are covered by focused commits.
+  Complexity: L
