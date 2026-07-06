@@ -41,6 +41,12 @@ function Invoke-AutoReapplyWatcher {
     }
     $saved = Normalize-LibreSpotConfig -Config $saved
 
+    if (-not (ConvertTo-ConfigBoolean -Value $saved['AutoReapply_Enabled'] -Default $false)) {
+        Write-WatcherLog 'Auto-reapply preference is off; skipping.'
+        Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'PreferenceOff' }
+        return 0
+    }
+
     try {
         Invoke-HeadlessReapply -Config $saved
         Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'Reapplied' }

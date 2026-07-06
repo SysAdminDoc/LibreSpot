@@ -622,6 +622,12 @@ function Invoke-AutoReapplyWatcher {
     }
     $saved = Normalize-LibreSpotConfig -Config $saved
 
+    if (-not (ConvertTo-ConfigBoolean -Value $saved['AutoReapply_Enabled'] -Default $false)) {
+        Write-WatcherLog 'Auto-reapply preference is off; skipping.'
+        Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'PreferenceOff' }
+        return 0
+    }
+
     try {
         Invoke-HeadlessReapply -Config $saved
         Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'Reapplied' }
@@ -4594,10 +4600,15 @@ function Compare-LibreSpotVersions {
         $currentIsStable = ($Current -eq $stripCurrent)
         if ($latestIsStable -and -not $currentIsStable) { return $true }
         if (-not $latestIsStable -and $currentIsStable) { return $false }
-        # Both stable or both pre-release with same numeric prefix: compare the
-        # full suffix lexically. E.g. `-preview.5` > `-preview.4`. If the
-        # suffixes are identical the versions are equal (not "newer").
+        # Both stable or both pre-release with same numeric prefix: extract the
+        # trailing number from the suffix (e.g. `-preview.10` -> 10) and compare
+        # numerically so `-preview.10` > `-preview.9` instead of the wrong lexical
+        # ordering where "1" < "9".
         if ($Latest -eq $Current) { return $false }
+        $latestSuffixNum = 0; $currentSuffixNum = 0
+        if ($Latest -match '\.(\d+)$') { [int]::TryParse($Matches[1], [ref]$latestSuffixNum) | Out-Null }
+        if ($Current -match '\.(\d+)$') { [int]::TryParse($Matches[1], [ref]$currentSuffixNum) | Out-Null }
+        if ($latestSuffixNum -ne $currentSuffixNum) { return ($latestSuffixNum -gt $currentSuffixNum) }
         return ([string]::CompareOrdinal($Latest, $Current) -gt 0)
     } catch {
         # Non-parseable versions: lexical compare is better than claiming all
@@ -6476,6 +6487,7 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
         if ($zip.Entries.Count -gt $MaxEntries) {
             throw "Archive '$Label' contains $($zip.Entries.Count) entries (limit $MaxEntries)."
         }
+        $fullDest = [System.IO.Path]::GetFullPath($DestinationPath).TrimEnd('\') + '\'
         $totalDeclaredBytes = 0L
         foreach ($entry in $zip.Entries) {
             $name = $entry.FullName
@@ -6488,7 +6500,6 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
                 throw "Archive '$Label' contains a path traversal entry: $name"
             }
             $fullTarget = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath $normalized))
-            $fullDest = [System.IO.Path]::GetFullPath($DestinationPath).TrimEnd('\') + '\'
             if (-not $fullTarget.StartsWith($fullDest, [System.StringComparison]::OrdinalIgnoreCase)) {
                 throw "Archive '$Label' entry escapes destination: $name"
             }
@@ -6497,11 +6508,23 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
                 throw "Archive '$Label' declared expanded size exceeds limit ($([math]::Round($MaxExpandedBytes / 1MB))MB)."
             }
         }
+        foreach ($entry in $zip.Entries) {
+            $name = $entry.FullName
+            if ([string]::IsNullOrWhiteSpace($name)) { continue }
+            $targetPath = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath ($name.Replace('/', '\'))))
+            if ($name.EndsWith('/') -or $name.EndsWith('\')) {
+                [System.IO.Directory]::CreateDirectory($targetPath) | Out-Null
+                continue
+            }
+            $parentDir = [System.IO.Path]::GetDirectoryName($targetPath)
+            if (-not [string]::IsNullOrWhiteSpace($parentDir)) {
+                [System.IO.Directory]::CreateDirectory($parentDir) | Out-Null
+            }
+            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $targetPath, $true)
+        }
     } finally {
         if ($zip) { $zip.Dispose() }
     }
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $DestinationPath)
 }
 
 function Hide-SpotifyWindows {

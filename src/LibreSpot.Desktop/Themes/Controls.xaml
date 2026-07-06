@@ -207,6 +207,7 @@
                     IsHitTestVisible="False" />
             <ContentPresenter HorizontalAlignment="Center"
                               VerticalAlignment="Center"
+                              Margin="{TemplateBinding Padding}"
                               TextElement.Foreground="{TemplateBinding Foreground}"
                               RecognizesAccessKey="True" />
           </Grid>
@@ -320,6 +321,7 @@
                     IsHitTestVisible="False" />
             <ContentPresenter HorizontalAlignment="Center"
                               VerticalAlignment="Center"
+                              Margin="{TemplateBinding Padding}"
                               TextElement.Foreground="{TemplateBinding Foreground}"
                               RecognizesAccessKey="True" />
           </Grid>

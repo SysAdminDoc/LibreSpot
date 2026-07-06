@@ -1130,15 +1130,15 @@ public sealed class PowerShellRegressionTests
     {
         var script = ReadFile(relativePath.Split('/'));
 
-        var rawCalls = Regex.Matches(script, @"\[System\.IO\.Compression\.ZipFile\]::ExtractToDirectory");
-        Assert.Single(rawCalls);
+        var rawDirectoryCalls = Regex.Matches(script, @"\[System\.IO\.Compression\.ZipFile\]::ExtractToDirectory");
+        Assert.Empty(rawDirectoryCalls);
 
         var fnBody = Regex.Match(
             script,
             @"function\s+Expand-ArchiveSafely\s*\{(?<body>.+?)^\}",
             RegexOptions.Singleline | RegexOptions.Multiline);
         Assert.True(fnBody.Success);
-        Assert.Contains("ExtractToDirectory", fnBody.Groups["body"].Value);
+        Assert.Contains("ExtractToFile", fnBody.Groups["body"].Value);
     }
 
     [Fact]

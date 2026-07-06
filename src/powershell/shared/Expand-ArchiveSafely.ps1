@@ -6,6 +6,7 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
         if ($zip.Entries.Count -gt $MaxEntries) {
             throw "Archive '$Label' contains $($zip.Entries.Count) entries (limit $MaxEntries)."
         }
+        $fullDest = [System.IO.Path]::GetFullPath($DestinationPath).TrimEnd('\') + '\'
         $totalDeclaredBytes = 0L
         foreach ($entry in $zip.Entries) {
             $name = $entry.FullName
@@ -18,7 +19,6 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
                 throw "Archive '$Label' contains a path traversal entry: $name"
             }
             $fullTarget = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath $normalized))
-            $fullDest = [System.IO.Path]::GetFullPath($DestinationPath).TrimEnd('\') + '\'
             if (-not $fullTarget.StartsWith($fullDest, [System.StringComparison]::OrdinalIgnoreCase)) {
                 throw "Archive '$Label' entry escapes destination: $name"
             }
@@ -27,9 +27,21 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
                 throw "Archive '$Label' declared expanded size exceeds limit ($([math]::Round($MaxExpandedBytes / 1MB))MB)."
             }
         }
+        foreach ($entry in $zip.Entries) {
+            $name = $entry.FullName
+            if ([string]::IsNullOrWhiteSpace($name)) { continue }
+            $targetPath = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath ($name.Replace('/', '\'))))
+            if ($name.EndsWith('/') -or $name.EndsWith('\')) {
+                [System.IO.Directory]::CreateDirectory($targetPath) | Out-Null
+                continue
+            }
+            $parentDir = [System.IO.Path]::GetDirectoryName($targetPath)
+            if (-not [string]::IsNullOrWhiteSpace($parentDir)) {
+                [System.IO.Directory]::CreateDirectory($parentDir) | Out-Null
+            }
+            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $targetPath, $true)
+        }
     } finally {
         if ($zip) { $zip.Dispose() }
     }
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $DestinationPath)
 }

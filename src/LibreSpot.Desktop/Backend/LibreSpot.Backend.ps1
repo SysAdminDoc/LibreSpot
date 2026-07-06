@@ -1911,6 +1911,7 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
         if ($zip.Entries.Count -gt $MaxEntries) {
             throw "Archive '$Label' contains $($zip.Entries.Count) entries (limit $MaxEntries)."
         }
+        $fullDest = [System.IO.Path]::GetFullPath($DestinationPath).TrimEnd('\') + '\'
         $totalDeclaredBytes = 0L
         foreach ($entry in $zip.Entries) {
             $name = $entry.FullName
@@ -1923,7 +1924,6 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
                 throw "Archive '$Label' contains a path traversal entry: $name"
             }
             $fullTarget = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath $normalized))
-            $fullDest = [System.IO.Path]::GetFullPath($DestinationPath).TrimEnd('\') + '\'
             if (-not $fullTarget.StartsWith($fullDest, [System.StringComparison]::OrdinalIgnoreCase)) {
                 throw "Archive '$Label' entry escapes destination: $name"
             }
@@ -1932,11 +1932,23 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
                 throw "Archive '$Label' declared expanded size exceeds limit ($([math]::Round($MaxExpandedBytes / 1MB))MB)."
             }
         }
+        foreach ($entry in $zip.Entries) {
+            $name = $entry.FullName
+            if ([string]::IsNullOrWhiteSpace($name)) { continue }
+            $targetPath = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath ($name.Replace('/', '\'))))
+            if ($name.EndsWith('/') -or $name.EndsWith('\')) {
+                [System.IO.Directory]::CreateDirectory($targetPath) | Out-Null
+                continue
+            }
+            $parentDir = [System.IO.Path]::GetDirectoryName($targetPath)
+            if (-not [string]::IsNullOrWhiteSpace($parentDir)) {
+                [System.IO.Directory]::CreateDirectory($parentDir) | Out-Null
+            }
+            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $targetPath, $true)
+        }
     } finally {
         if ($zip) { $zip.Dispose() }
     }
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $DestinationPath)
 }
 
 # Records the PowerShell security context for support diagnostics. Execution
@@ -2076,10 +2088,15 @@ function Compare-LibreSpotVersions {
         $currentIsStable = ($Current -eq $stripCurrent)
         if ($latestIsStable -and -not $currentIsStable) { return $true }
         if (-not $latestIsStable -and $currentIsStable) { return $false }
-        # Both stable or both pre-release with same numeric prefix: compare the
-        # full suffix lexically. E.g. `-preview.5` > `-preview.4`. If the
-        # suffixes are identical the versions are equal (not "newer").
+        # Both stable or both pre-release with same numeric prefix: extract the
+        # trailing number from the suffix (e.g. `-preview.10` -> 10) and compare
+        # numerically so `-preview.10` > `-preview.9` instead of the wrong lexical
+        # ordering where "1" < "9".
         if ($Latest -eq $Current) { return $false }
+        $latestSuffixNum = 0; $currentSuffixNum = 0
+        if ($Latest -match '\.(\d+)$') { [int]::TryParse($Matches[1], [ref]$latestSuffixNum) | Out-Null }
+        if ($Current -match '\.(\d+)$') { [int]::TryParse($Matches[1], [ref]$currentSuffixNum) | Out-Null }
+        if ($latestSuffixNum -ne $currentSuffixNum) { return ($latestSuffixNum -gt $currentSuffixNum) }
         return ([string]::CompareOrdinal($Latest, $Current) -gt 0)
     } catch {
         # Non-parseable versions: lexical compare is better than claiming all
@@ -2244,6 +2261,29 @@ function Check-ForUpdates {
         }
     }
     Write-Log '=== Update check complete ===' -Level 'STEP'
+}
+
+function Hide-SpotifyWindows {
+    Get-Process -Name Spotify -EA SilentlyContinue | ForEach-Object {
+        if ($_.MainWindowHandle -ne [IntPtr]::Zero) {
+            [Win32]::ShowWindowAsync($_.MainWindowHandle, [Win32]::SW_HIDE) | Out-Null
+        }
+    }
+}
+
+function Clear-DirectoryContentsSafely {
+    param([string]$Path, [string]$Label)
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path -PathType Container)) { return 0 }
+    if (-not (Test-SafeRemovalTarget -Path $Path)) {
+        Write-Log "  Refusing to clear unsafe directory target: $Path" -Level 'WARN'
+        return 0
+    }
+    $removedCount = 0
+    Get-ChildItem -LiteralPath $Path -Force -ErrorAction SilentlyContinue | ForEach-Object {
+        $itemLabel = if ($Label) { "${Label}: $($_.Name)" } else { $_.FullName }
+        $removedCount += Remove-PathSafely -Path $_.FullName -Label $itemLabel
+    }
+    return $removedCount
 }
 
 function Stop-SpotifyProcesses { param([int]$MaxAttempts=5,[int]$RetryDelay=500)

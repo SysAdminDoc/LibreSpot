@@ -17,10 +17,15 @@ function Compare-LibreSpotVersions {
         $currentIsStable = ($Current -eq $stripCurrent)
         if ($latestIsStable -and -not $currentIsStable) { return $true }
         if (-not $latestIsStable -and $currentIsStable) { return $false }
-        # Both stable or both pre-release with same numeric prefix: compare the
-        # full suffix lexically. E.g. `-preview.5` > `-preview.4`. If the
-        # suffixes are identical the versions are equal (not "newer").
+        # Both stable or both pre-release with same numeric prefix: extract the
+        # trailing number from the suffix (e.g. `-preview.10` -> 10) and compare
+        # numerically so `-preview.10` > `-preview.9` instead of the wrong lexical
+        # ordering where "1" < "9".
         if ($Latest -eq $Current) { return $false }
+        $latestSuffixNum = 0; $currentSuffixNum = 0
+        if ($Latest -match '\.(\d+)$') { [int]::TryParse($Matches[1], [ref]$latestSuffixNum) | Out-Null }
+        if ($Current -match '\.(\d+)$') { [int]::TryParse($Matches[1], [ref]$currentSuffixNum) | Out-Null }
+        if ($latestSuffixNum -ne $currentSuffixNum) { return ($latestSuffixNum -gt $currentSuffixNum) }
         return ([string]::CompareOrdinal($Latest, $Current) -gt 0)
     } catch {
         # Non-parseable versions: lexical compare is better than claiming all
