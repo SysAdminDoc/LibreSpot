@@ -9,17 +9,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 # CLI: LibreSpot.Cli.exe reapply --answer-file C:\ProgramData\LibreSpot\librespot-answer.json --profile standard --silent --yes --no-restart --ndjson
-$remoteCommand = @(
-    "'$LibreSpotCliPath'",
-    'reapply',
-    '--answer-file',
-    "'$AnswerFile'",
-    '--profile',
-    $ProfileName,
-    '--silent',
-    '--yes',
-    '--no-restart',
-    '--ndjson'
-) -join ' '
-
-Invoke-Command -ComputerName $ComputerName -ScriptBlock ([scriptblock]::Create($remoteCommand))
+Invoke-Command -ComputerName $ComputerName -ScriptBlock {
+    param($CliPath, $Answer, $Profile)
+    & $CliPath reapply --answer-file $Answer --profile $Profile --silent --yes --no-restart --ndjson
+} -ArgumentList $LibreSpotCliPath, $AnswerFile, $ProfileName

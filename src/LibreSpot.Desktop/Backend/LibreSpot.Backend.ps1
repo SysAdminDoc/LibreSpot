@@ -200,6 +200,20 @@ $global:CommunityThemeRepos = @{
 
 $global:ThemesNeedingJS = @('Dribbblish', 'StarryNight', 'Turntable', 'Catppuccin', 'Comfy', 'Bloom', 'Lucid', 'Hazy')
 
+# ThemeData and BuiltInExtensions are the hashtable forms that
+# Normalize-LibreSpotConfig uses for .Contains() validation.
+# ThemeSchemes is a flat ordered hashtable; ThemeData wraps each entry
+# so the normalization code can call $global:ThemeData.Contains($name)
+# and $global:ThemeData[$name].Schemes consistently.
+$global:ThemeData = [ordered]@{}
+foreach ($themeName in $global:ThemeSchemes.Keys) {
+    $global:ThemeData[$themeName] = @{ Schemes = @($global:ThemeSchemes[$themeName]) }
+}
+$global:BuiltInExtensions = [ordered]@{}
+foreach ($extName in $global:BuiltInExtensionNames) {
+    $global:BuiltInExtensions[$extName] = $extName
+}
+
 $global:EasyDefaults = @{
     UiCulture = 'en'
     SpotX_NewTheme = $true

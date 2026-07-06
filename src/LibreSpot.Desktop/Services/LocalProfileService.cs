@@ -247,7 +247,13 @@ public sealed class LocalProfileService
                 throw new InvalidOperationException("Share URI file path is empty.");
             }
 
-            return await PreviewImportAsync(file, cancellationToken);
+            var resolvedFile = Path.GetFullPath(file);
+            if (!string.Equals(Path.GetExtension(resolvedFile), ".librespot", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Share URI file references must use the .librespot extension.");
+            }
+
+            return await PreviewImportAsync(resolvedFile, cancellationToken);
         }
 
         if (!Uri.TryCreate(url!, UriKind.Absolute, out var sourceUri) ||
@@ -341,10 +347,11 @@ public sealed class LocalProfileService
         return $"librespot://profile?data={EncodeBase64Url(bytes)}";
     }
 
+    private static readonly HttpClient SharedHttpClient = new() { Timeout = TimeSpan.FromSeconds(30) };
+
     private static async Task<Stream> FetchHttpsProfileAsync(Uri uri, CancellationToken cancellationToken)
     {
-        using var client = new HttpClient();
-        using var response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        using var response = await SharedHttpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
 
         if (response.Content.Headers.ContentLength is > MaxRemoteProfileBytes)
@@ -526,10 +533,24 @@ public sealed class LocalProfileService
 
     private static async Task WritePointerAsync(string path, string profileId, CancellationToken cancellationToken)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? Environment.CurrentDirectory);
-        await using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-        await JsonSerializer.SerializeAsync(stream, new ProfilePointerDocument(ProfileStoreSchemaVersion, profileId, DateTimeOffset.UtcNow), JsonOptions, cancellationToken);
-        await stream.FlushAsync(cancellationToken);
+        var directory = Path.GetDirectoryName(path) ?? Environment.CurrentDirectory;
+        Directory.CreateDirectory(directory);
+        var tempPath = Path.Combine(directory, $"pointer.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                await JsonSerializer.SerializeAsync(stream, new ProfilePointerDocument(ProfileStoreSchemaVersion, profileId, DateTimeOffset.UtcNow), JsonOptions, cancellationToken);
+                await stream.FlushAsync(cancellationToken);
+            }
+
+            File.Move(tempPath, path, overwrite: true);
+        }
+        catch
+        {
+            try { File.Delete(tempPath); } catch { }
+            throw;
+        }
     }
 
     private string UserProfilePath(string id) => Path.Combine(_profileDirectory, $"{Slugify(id)}.json");

@@ -1689,6 +1689,7 @@
 
                         <CheckBox Content="{services:Loc Ui_StageCustomPatchesDuringInstallAndReapply}"
                                   IsChecked="{Binding CustomPatchesEnabled, Mode=TwoWay}"
+                                  Style="{StaticResource SettingCheckBoxStyle}"
                                   Margin="0,14,0,10"
                                   AutomationProperties.Name="{services:Loc Ui_StageCustomSpotXPatches}"
                                   AutomationProperties.HelpText="{services:Loc Ui_WhenEnabledLibreSpotValidatesThisJSONAndWrites}" />

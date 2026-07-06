@@ -6903,7 +6903,7 @@ function Module-NukeSpotify {
     if (Test-Path $spotifyExe) {
         try {
             Unlock-SpotifyUpdateFolder
-            $null = cmd /c "`"$spotifyExe`" /UNINSTALL /SILENT" 2>$null
+            $null = Start-Process -FilePath $spotifyExe -ArgumentList @('/UNINSTALL', '/SILENT') -Wait:$false -PassThru -ErrorAction Stop
             $deadline = (Get-Date).AddSeconds(15)
             while ((Get-Process -Name "SpotifyUninstall" -EA SilentlyContinue) -and (Get-Date) -lt $deadline) {
                 Start-Sleep -Milliseconds 500

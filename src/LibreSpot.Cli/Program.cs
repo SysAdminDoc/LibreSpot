@@ -804,8 +804,9 @@ public static class CliApplication
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Console.Error.WriteLine($"Warning: could not read config at {configPath}: {ex.Message}. Using defaults.");
         }
 
         return AppCatalog.CreateRecommendedConfiguration();
