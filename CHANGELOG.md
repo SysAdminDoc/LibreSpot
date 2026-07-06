@@ -159,6 +159,31 @@ All notable changes to LibreSpot will be documented in this file.
   panel available for full review.
 
 ### Fixed
+- Fixed Spotify playback failure after install: the backend script's
+  `Normalize-LibreSpotConfig` referenced undefined `$global:ThemeData` and
+  `$global:BuiltInExtensions` globals, causing PowerShell to silently strip
+  all theme and extension selections during config normalization. The backend
+  now derives both hashtables from `$global:ThemeSchemes` and
+  `$global:BuiltInExtensionNames` at startup.
+- Hardened the `librespot://profile?file=` URI handler to reject paths without
+  the `.librespot` extension, preventing arbitrary local file reads through
+  crafted protocol links.
+- Replaced `cmd /c` uninstall invocations in the monolith and shared module
+  with `Start-Process`, eliminating command injection risk from usernames
+  containing shell metacharacters (e.g., `&`, `|`, `^`).
+- Fixed socket exhaustion from per-call `HttpClient` creation in remote profile
+  import; the service now uses a static shared instance.
+- Profile pointer writes now use atomic temp-file-then-move to prevent data
+  loss on crash during write.
+- CLI `ReadConfigurationOrDefault` now logs config read failures to stderr
+  instead of silently swallowing them.
+- WinRM deployment sample rewritten to pass parameters via `-ArgumentList`
+  instead of `[scriptblock]::Create()` string interpolation, eliminating
+  remote command injection through the `$ProfileName` parameter.
+- Desktop csproj now pins `InformationalVersion` to match the CLI project,
+  preventing git-hash suffix drift in support bundle version strings.
+- Custom patches CheckBox now uses `SettingCheckBoxStyle`, consistent with all
+  other checkboxes in the Custom workspace.
 - Fixed high-contrast palette crash: all Color key definitions used invalid
   `{x:Static}` XAML syntax in element content, which would throw at load time
   when the system high-contrast theme was active. Replaced with valid hex

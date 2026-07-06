@@ -498,6 +498,31 @@ needs to detect and surface this state, not just show booleans.
 
 ### P2
 
+- [ ] P1 — Convert MainWindow.xaml StaticResource brush references to DynamicResource for theme switching
+  Why: MainWindow.xaml uses StaticResource for ~605 brush references. These resolve once at load time, so high-contrast theme swaps and reduced-motion overrides applied by ThemeManager at runtime have no effect on the main window.
+  Where: `src/LibreSpot.Desktop/MainWindow.xaml`, `src/LibreSpot.Desktop/Themes/Controls.xaml` (animation Duration properties also use StaticResource for motion tokens, making ApplyReducedMotion ineffective).
+  Complexity: L
+
+- [ ] P2 — Add ComboBoxItem and ListBoxItem keyboard focus indicators
+  Why: ComboBoxItemPremium sets FocusVisualStyle to null but has no IsKeyboardFocused trigger. Theme gallery, color scheme, and local profile ListBoxItem containers also lack focus visuals. Keyboard-only users see no focus ring.
+  Where: `src/LibreSpot.Desktop/Themes/Controls.xaml` (ComboBoxItemPremium), `src/LibreSpot.Desktop/MainWindow.xaml` (inline ListBoxItem ContainerStyles at lines 1322, 1419, 1897).
+
+- [ ] P2 — Distinguish DangerBrush from SuccessBrush in high-contrast palette
+  Why: HighContrastPalette.xaml maps both DangerColor and SuccessColor to #FFFFFF and both brushes to SystemColors.WindowTextColorKey. Error and success states are visually identical in high-contrast mode.
+  Where: `src/LibreSpot.Desktop/Themes/HighContrastPalette.xaml`.
+
+- [ ] P2 — Re-apply DWM caption colors on high-contrast toggle
+  Why: Win11ShellIntegration.ApplyMicaAndDarkChrome hardcodes dark-palette caption/text/border hex and runs once at SourceInitialized. When ThemeManager swaps to HighContrastPalette at runtime, the title bar retains dark colors.
+  Where: `src/LibreSpot.Desktop/Services/Win11ShellIntegration.cs`.
+
+- [ ] P2 — Localize tray icon context menu items and balloon tip text
+  Why: System tray menu items ("Open LibreSpot", "Open LibreSpot folder", "Exit LibreSpot") and balloon tip text are hardcoded English while the app supports 5 locales.
+  Where: `src/LibreSpot.Desktop/MainWindow.xaml.cs` (lines 274-326).
+
+- [ ] P2 — Monolith watcher ignores AutoReapply_Enabled preference
+  Why: The shared module version of Invoke-AutoReapplyWatcher loads config and calls Invoke-HeadlessReapply without checking AutoReapply_Enabled. The backend version correctly gates on this preference.
+  Where: `src/powershell/shared/Invoke-AutoReapplyWatcher.ps1`, `LibreSpot.ps1`.
+
 - [ ] P2 — Migrate tests from deprecated xUnit v2 to xUnit v3
   Why: `dotnet list package --deprecated --include-transitive` reports `xunit 2.9.3` and v2 transitive packages as deprecated/legacy while the repo relies heavily on local tests as release gates.
   Evidence: local package audit on 2026-07-06; NuGet `xunit` deprecation notice; xUnit v3 migration guide; `tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj`.
