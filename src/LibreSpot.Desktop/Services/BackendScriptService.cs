@@ -115,7 +115,11 @@ public sealed class BackendScriptService
                 throw new InvalidOperationException("Execution copy hash mismatch — the runtime file was modified between extraction and copy.");
             }
 
-            executionCopyGuard.Position = 0;
+            // Release the guard before launching PowerShell. The hash is verified;
+            // holding the stream open with FileShare.Read blocks PS 5.1 from opening
+            // the script (it requests broader sharing than Read-only).
+            executionCopyGuard.Dispose();
+            executionCopyGuard = null;
             scriptPath = executionCopy;
         }
         catch (OperationCanceledException)
