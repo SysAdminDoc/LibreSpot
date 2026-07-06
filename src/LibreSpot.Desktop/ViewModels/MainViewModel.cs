@@ -3153,6 +3153,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         var configuration = AppCatalog.CreateRecommendedConfiguration();
         configuration.Mode = "Easy";
+        configuration.RiskAcknowledged = true;
         var planSummary = await CollectPlanSummaryAsync(configuration);
         ShowPrompt(
             "Run recommended setup",
@@ -3195,6 +3196,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
+        configuration.RiskAcknowledged = true;
         var planSummary = await CollectPlanSummaryAsync(configuration);
         ShowPrompt(
             "Apply custom profile",
