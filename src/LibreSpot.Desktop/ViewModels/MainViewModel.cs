@@ -3146,6 +3146,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private async Task ApplyRecommendedAsync()
     {
+        if (!await EnsureRiskAcknowledgedAsync())
+        {
+            return;
+        }
+
         var configuration = AppCatalog.CreateRecommendedConfiguration();
         configuration.Mode = "Easy";
         var planSummary = await CollectPlanSummaryAsync(configuration);
@@ -3182,6 +3187,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 "Custom patches need review",
                 customPatchValidation.Summary,
                 string.Join(" ", customPatchValidation.Errors.Take(2)));
+            return;
+        }
+
+        if (!await EnsureRiskAcknowledgedAsync())
+        {
             return;
         }
 
@@ -3267,8 +3277,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         return sb.ToString().TrimEnd();
     }
 
-    private Task RunMaintenanceAsync(MaintenanceActionDefinition definition)
+    private async Task RunMaintenanceAsync(MaintenanceActionDefinition definition)
     {
+        if (definition.Action is not ("CheckUpdates" or "EnableAutoReapply" or "DisableAutoReapply"))
+        {
+            if (!await EnsureRiskAcknowledgedAsync())
+            {
+                return;
+            }
+        }
+
         var body = definition.IsDestructive
             ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}This is a deeper reset path and may remove the current customization state. Continue only when you are ready to rebuild."
             : $"{definition.Description}{Environment.NewLine}{Environment.NewLine}LibreSpot will keep this window open and stream backend progress while the action runs.";
@@ -3284,8 +3302,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             () => StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2, requiresAdministrator),
             summaryTitle,
             summaryBody);
-
-        return Task.CompletedTask;
     }
 
     private static bool RequiresAdministrator(string action) =>
@@ -3339,15 +3355,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             PresentAdministratorPrompt();
             return;
-        }
-
-        // First-run risk acknowledgment gate. Non-patching actions are exempt.
-        if (action is not ("CheckUpdates" or "EnableAutoReapply" or "DisableAutoReapply"))
-        {
-            if (!await EnsureRiskAcknowledgedAsync())
-            {
-                return;
-            }
         }
 
         SelectedWorkspaceIndex = targetWorkspaceIndex;
