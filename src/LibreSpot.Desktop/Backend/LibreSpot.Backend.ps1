@@ -73,24 +73,24 @@ $global:CONFIG_SCHEMA_VERSION = 1
 $global:PinnedReleases = @{
     SpotX = @{
         Version = '2.0'
-        Commit  = '3284673df69e276c5c0ee90bb1cc9185cecb9ad4'
-        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/3284673df69e276c5c0ee90bb1cc9185cecb9ad4/run.ps1'
-        SHA256  = '18684432f8b9ec1c6d7d2481192afc0bcad670aa769a306480948a3e690cc823'
+        Commit  = '550bc72cd15f6e2a172a6ecc0873d0991eb1c83c'
+        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/550bc72cd15f6e2a172a6ecc0873d0991eb1c83c/run.ps1'
+        SHA256  = '863cd19429160c911ce7439426d9e2127064028ccabbaf3007b233a393607606'
     }
     SpicetifyCLI = @{
-        Version = '2.43.2'
+        Version = '2.44.0'
         WindowsMinSpotify = '1.2.14'
-        WindowsMaxTestedSpotify = '1.2.88'
-        CompatibilityUrl = 'https://github.com/spicetify/cli/releases/tag/v2.43.2'
+        WindowsMaxTestedSpotify = '1.2.93'
+        CompatibilityUrl = 'https://github.com/spicetify/cli/releases/tag/v2.44.0'
         SHA256  = @{
-            x64   = 'fc6ed7b67f15a8e49e6f676ca0511b63ef74736c05593966abf20a90e06aa80d'
-            arm64 = 'ed90e11d82affdcf7ae2968a886c8b9500c08f521c271598f13d6d9414110473'
+            x64   = '215435095420e3804001a650c072f51befde897b414b0dac054edc2ea258ebea'
+            arm64 = 'a6f827ae6387203bb87ff4af1f5ab21e4671a542ce1a0e3cb82ddc77d2ac7444'
         }
     }
     Marketplace = @{
-        Version = '1.0.8'
-        Url     = 'https://github.com/spicetify/marketplace/releases/download/v1.0.8/marketplace.zip'
-        SHA256  = 'ba20cd30896605ec60c272905004673b995162d2c8ca085351971e409cf80ec7'
+        Version = '1.0.9'
+        Url     = 'https://github.com/spicetify/marketplace/releases/download/v1.0.9/marketplace.zip'
+        SHA256  = '2713054703c2365e391658a58c782dd2ebdd8d573f2015b5a2bab58b7eee8685'
     }
     Themes = @{
         Commit  = 'df033493a7dae30ca6e371de9cec1897871dbb0c'
@@ -274,6 +274,7 @@ $global:SpotXLyricsThemes = @(
 
 $global:SpotifyVersionManifest = @(
     @{ Id = 'auto';            Version = '' }
+    @{ Id = '1.2.93';          Version = '1.2.93' }
     @{ Id = '1.2.92';          Version = '1.2.92' }
     @{ Id = '1.2.90.451';      Version = '1.2.90.451.gb094aab0' }
     @{ Id = '1.2.85.519';      Version = '1.2.85.519.g7c42e2e8' }

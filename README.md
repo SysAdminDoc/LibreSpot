@@ -93,12 +93,12 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 | Component | Pinned Version |
 |---|---|
-| SpotX | `3284673d` (Spotify 1.2.92) |
-| Spicetify CLI | v2.43.2 |
-| Marketplace | v1.0.8 |
+| SpotX | `550bc72c` (Spotify 1.2.93) |
+| Spicetify CLI | v2.44.0 |
+| Marketplace | v1.0.9 |
 | Themes | Commit `df033493` |
 
-**Compatibility matrix:** Maintenance > Check matrix reports SpotX, Spicetify CLI, Marketplace, and theme archive status separately. The current SpotX target is Spotify `1.2.92`, while Spicetify CLI v2.43.2 declares Windows/Microsoft Store compatibility through Spotify `1.2.88`; LibreSpot warns about that gap so you can distinguish "SpotX can patch this build" from "Spicetify CSS maps are max-tested on this build."
+**Compatibility matrix:** Maintenance > Check matrix reports SpotX, Spicetify CLI, Marketplace, and theme archive status separately. The current SpotX target is Spotify `1.2.93`, and Spicetify CLI v2.44.0 declares Windows/Microsoft Store compatibility through Spotify `1.2.93`, so LibreSpot can show a clean aligned baseline instead of the older CSS-map coverage gap warning.
 
 ---
 

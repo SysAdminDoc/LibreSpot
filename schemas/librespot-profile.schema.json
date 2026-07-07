@@ -281,6 +281,7 @@
           "type": "string",
           "enum": [
             "auto",
+            "1.2.93",
             "1.2.92",
             "1.2.90.451",
             "1.2.86.502",
@@ -428,7 +429,7 @@
         "SpotX_DisableStartup": true,
         "SpotX_CacheLimit": 5000,
         "SpotX_SendVersionOff": true,
-        "SpotX_SpotifyVersionId": "1.2.92",
+        "SpotX_SpotifyVersionId": "1.2.93",
         "Spicetify_Theme": "Dribbblish",
         "Spicetify_Scheme": "nord-dark",
         "Spicetify_Marketplace": true,

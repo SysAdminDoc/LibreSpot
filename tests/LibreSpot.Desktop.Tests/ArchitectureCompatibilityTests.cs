@@ -56,9 +56,9 @@ public sealed class ArchitectureCompatibilityTests
     public void X64Entry_WarnsOnX86Host()
     {
         var entry = new AppCatalog.SpotifyVersionEntry(
-            "1.2.92",
-            "1.2.92 (current pinned)",
-            "1.2.92",
+            AppCatalog.PinnedSpotXSpotifyVersionId,
+            $"{AppCatalog.PinnedSpotXSpotifyVersionId} (current pinned)",
+            AppCatalog.PinnedSpotXSpotifyVersion,
             "Current pinned.",
             "x64");
 
@@ -72,9 +72,9 @@ public sealed class ArchitectureCompatibilityTests
     public void X64Entry_IsCompatibleOnX64Host()
     {
         var entry = new AppCatalog.SpotifyVersionEntry(
-            "1.2.92",
-            "1.2.92 (current pinned)",
-            "1.2.92",
+            AppCatalog.PinnedSpotXSpotifyVersionId,
+            $"{AppCatalog.PinnedSpotXSpotifyVersionId} (current pinned)",
+            AppCatalog.PinnedSpotXSpotifyVersion,
             "Current pinned.",
             "x64");
 
@@ -85,9 +85,9 @@ public sealed class ArchitectureCompatibilityTests
     public void X64Entry_WarnsOnArm64Host()
     {
         var entry = new AppCatalog.SpotifyVersionEntry(
-            "1.2.92",
-            "1.2.92 (current pinned)",
-            "1.2.92",
+            AppCatalog.PinnedSpotXSpotifyVersionId,
+            $"{AppCatalog.PinnedSpotXSpotifyVersionId} (current pinned)",
+            AppCatalog.PinnedSpotXSpotifyVersion,
             "Current pinned.",
             "x64");
 

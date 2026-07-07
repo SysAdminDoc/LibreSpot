@@ -669,10 +669,10 @@ public partial class MainWindow : Window
         Directory.CreateDirectory(Path.Combine(backupDirectory, "2026-07-07_104213"));
         File.WriteAllText(Path.Combine(spicetifyConfigDirectory, "config-xpui.ini"), "[AdditionalOptions]\ncustom_apps = marketplace\n");
         File.WriteAllText(Path.Combine(marketplaceDirectory, "extension.js"), string.Empty);
-        File.WriteAllText(Path.Combine(marketplaceDirectory, "manifest.json"), "{\"version\":\"1.0.8\"}");
+        File.WriteAllText(Path.Combine(marketplaceDirectory, "manifest.json"), "{\"version\":\"1.0.9\"}");
         File.WriteAllText(
             Path.Combine(configDirectory, "marketplace-evidence.json"),
-            "{\"schemaVersion\":1,\"generatedAtUtc\":\"2026-07-07T10:42:13Z\",\"source\":\"UiAutomationSmoke\",\"filesPresent\":true,\"registered\":true,\"likelyVisible\":true,\"marketplaceStatus\":\"Likely visible\",\"manifestVersion\":\"1.0.8\",\"applyStage\":\"apply\",\"applySucceeded\":true,\"openUriSucceeded\":true}");
+            "{\"schemaVersion\":1,\"generatedAtUtc\":\"2026-07-07T10:42:13Z\",\"source\":\"UiAutomationSmoke\",\"filesPresent\":true,\"registered\":true,\"likelyVisible\":true,\"marketplaceStatus\":\"Likely visible\",\"manifestVersion\":\"1.0.9\",\"applyStage\":\"apply\",\"applySucceeded\":true,\"openUriSucceeded\":true}");
         File.WriteAllText(
             Path.Combine(configDirectory, "config.json"),
             $"{{\"UiCulture\":\"{LocalizationService.NormalizeCultureName(culture)}\"}}");
@@ -688,8 +688,8 @@ public partial class MainWindow : Window
                 backupDirectory: backupDirectory,
                 rollingLogDirectory: logDirectory,
                 crashDirectory: crashDirectory,
-                spotifyVersionProbe: () => "1.2.92",
-                spicetifyVersionProbe: () => "2.43.2",
+                spotifyVersionProbe: () => "1.2.93",
+                spicetifyVersionProbe: () => "2.44.0",
                 spotifyRunningProbe: () => false,
                 upstreamDriftProbe: () => UpstreamDriftReport.Empty,
                 communityAssetDriftProbe: () => CommunityAssetDriftReport.Empty),

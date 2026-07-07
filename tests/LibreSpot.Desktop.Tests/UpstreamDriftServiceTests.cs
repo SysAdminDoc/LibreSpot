@@ -14,7 +14,7 @@ public sealed class UpstreamDriftServiceTests
         {
             var client = new FakeMetadataClient
             {
-                RestResult = UpstreamMetadataLookupResult.Found("v1.0.9", "GitHub REST"),
+                RestResult = UpstreamMetadataLookupResult.Found("v1.0.10", "GitHub REST"),
                 GitResult = UpstreamMetadataLookupResult.Unavailable("git ls-remote", "not used")
             };
             var service = CreateService(root, client);
@@ -23,8 +23,8 @@ public sealed class UpstreamDriftServiceTests
 
             var dependency = Assert.Single(report.Dependencies);
             Assert.Equal("marketplace", dependency.Id);
-            Assert.Equal("1.0.8", dependency.CurrentValue);
-            Assert.Equal("1.0.9", dependency.LatestValue);
+            Assert.Equal("1.0.9", dependency.CurrentValue);
+            Assert.Equal("1.0.10", dependency.LatestValue);
             Assert.Equal("behind", dependency.DriftState);
             Assert.Equal("GitHub REST", dependency.MetadataSource);
             Assert.False(dependency.IsDegraded);
@@ -47,7 +47,7 @@ public sealed class UpstreamDriftServiceTests
             var client = new FakeMetadataClient
             {
                 RestResult = UpstreamMetadataLookupResult.RateLimited("GitHub REST", "HTTP 403 while reading latest release."),
-                GitResult = UpstreamMetadataLookupResult.Found("v1.0.8", "git ls-remote")
+                GitResult = UpstreamMetadataLookupResult.Found("v1.0.9", "git ls-remote")
             };
             var service = CreateService(root, client);
 
@@ -56,7 +56,7 @@ public sealed class UpstreamDriftServiceTests
             var dependency = Assert.Single(report.Dependencies);
             Assert.Equal("current", dependency.DriftState);
             Assert.Equal("git ls-remote", dependency.MetadataSource);
-            Assert.Equal("1.0.8", dependency.LatestValue);
+            Assert.Equal("1.0.9", dependency.LatestValue);
             Assert.False(dependency.IsDegraded);
             Assert.Equal(1, client.RestCalls);
             Assert.Equal(1, client.GitCalls);
@@ -76,7 +76,7 @@ public sealed class UpstreamDriftServiceTests
         {
             var onlineClient = new FakeMetadataClient
             {
-                RestResult = UpstreamMetadataLookupResult.Found("v1.0.8", "GitHub REST"),
+                RestResult = UpstreamMetadataLookupResult.Found("v1.0.9", "GitHub REST"),
                 GitResult = UpstreamMetadataLookupResult.Unavailable("git ls-remote", "not used")
             };
             var online = CreateService(root, onlineClient, () => now.AddHours(-2));
@@ -93,7 +93,7 @@ public sealed class UpstreamDriftServiceTests
 
             var dependency = Assert.Single(report.Dependencies);
             Assert.Equal("cache", dependency.MetadataSource);
-            Assert.Equal("1.0.8", dependency.LatestValue);
+            Assert.Equal("1.0.9", dependency.LatestValue);
             Assert.Equal("current", dependency.DriftState);
             Assert.True(dependency.IsDegraded);
             Assert.True(dependency.CacheAge >= TimeSpan.FromHours(2));
@@ -138,7 +138,7 @@ public sealed class UpstreamDriftServiceTests
     private static readonly UpstreamDependencyPin MarketplacePin = new(
         "marketplace",
         "Marketplace",
-        "1.0.8",
+        "1.0.9",
         "version",
         "https://github.com/spicetify/marketplace.git",
         "refs/tags/v*",

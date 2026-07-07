@@ -753,12 +753,13 @@ public sealed class PowerShellRegressionTests
     {
         var script = ReadFile(relativePath.Split('/'));
 
-        Assert.Contains("Version = '2.43.2'", script);
+        Assert.Contains("Version = '2.44.0'", script);
         Assert.Contains("WindowsMinSpotify = '1.2.14'", script);
-        Assert.Contains("WindowsMaxTestedSpotify = '1.2.88'", script);
-        Assert.Contains("CompatibilityUrl = 'https://github.com/spicetify/cli/releases/tag/v2.43.2'", script);
-        Assert.Contains("fc6ed7b67f15a8e49e6f676ca0511b63ef74736c05593966abf20a90e06aa80d", script);
-        Assert.Contains("ed90e11d82affdcf7ae2968a886c8b9500c08f521c271598f13d6d9414110473", script);
+        Assert.Contains("WindowsMaxTestedSpotify = '1.2.93'", script);
+        Assert.Contains("CompatibilityUrl = 'https://github.com/spicetify/cli/releases/tag/v2.44.0'", script);
+        Assert.Contains("215435095420e3804001a650c072f51befde897b414b0dac054edc2ea258ebea", script);
+        Assert.Contains("a6f827ae6387203bb87ff4af1f5ab21e4671a542ce1a0e3cb82ddc77d2ac7444", script);
+        Assert.DoesNotContain("Version = '2.43.2'", script);
         Assert.DoesNotContain("Version = '2.43.1'", script);
     }
 
@@ -787,9 +788,10 @@ public sealed class PowerShellRegressionTests
     {
         var script = ReadFile(relativePath.Split('/'));
 
-        Assert.Contains("3284673df69e276c5c0ee90bb1cc9185cecb9ad4", script);
-        Assert.Contains("18684432f8b9ec1c6d7d2481192afc0bcad670aa769a306480948a3e690cc823", script);
-        Assert.Contains("1.2.92", script);
+        Assert.Contains("550bc72cd15f6e2a172a6ecc0873d0991eb1c83c", script);
+        Assert.Contains("863cd19429160c911ce7439426d9e2127064028ccabbaf3007b233a393607606", script);
+        Assert.Contains("1.2.93", script);
+        Assert.DoesNotContain("3284673df69e276c5c0ee90bb1cc9185cecb9ad4", script);
         Assert.DoesNotContain("95882aa5b308832102ac8a206d300bf6f5436bfb", script);
         Assert.DoesNotContain("67e7ad2ec42531712f33959b1170590d48f7b2940a9a478f956b5770a69b1af3", script);
     }

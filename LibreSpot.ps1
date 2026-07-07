@@ -140,24 +140,24 @@ try {
 $global:PinnedReleases = @{
     SpotX = @{
         Version = '2.0'
-        Commit  = '3284673df69e276c5c0ee90bb1cc9185cecb9ad4'
-        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/3284673df69e276c5c0ee90bb1cc9185cecb9ad4/run.ps1'
-        SHA256  = '18684432f8b9ec1c6d7d2481192afc0bcad670aa769a306480948a3e690cc823'
+        Commit  = '550bc72cd15f6e2a172a6ecc0873d0991eb1c83c'
+        Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/550bc72cd15f6e2a172a6ecc0873d0991eb1c83c/run.ps1'
+        SHA256  = '863cd19429160c911ce7439426d9e2127064028ccabbaf3007b233a393607606'
     }
     SpicetifyCLI = @{
-        Version = '2.43.2'
+        Version = '2.44.0'
         WindowsMinSpotify = '1.2.14'
-        WindowsMaxTestedSpotify = '1.2.88'
-        CompatibilityUrl = 'https://github.com/spicetify/cli/releases/tag/v2.43.2'
+        WindowsMaxTestedSpotify = '1.2.93'
+        CompatibilityUrl = 'https://github.com/spicetify/cli/releases/tag/v2.44.0'
         SHA256  = @{
-            x64   = 'fc6ed7b67f15a8e49e6f676ca0511b63ef74736c05593966abf20a90e06aa80d'
-            arm64 = 'ed90e11d82affdcf7ae2968a886c8b9500c08f521c271598f13d6d9414110473'
+            x64   = '215435095420e3804001a650c072f51befde897b414b0dac054edc2ea258ebea'
+            arm64 = 'a6f827ae6387203bb87ff4af1f5ab21e4671a542ce1a0e3cb82ddc77d2ac7444'
         }
     }
     Marketplace = @{
-        Version = '1.0.8'
-        Url     = 'https://github.com/spicetify/marketplace/releases/download/v1.0.8/marketplace.zip'
-        SHA256  = 'ba20cd30896605ec60c272905004673b995162d2c8ca085351971e409cf80ec7'
+        Version = '1.0.9'
+        Url     = 'https://github.com/spicetify/marketplace/releases/download/v1.0.9/marketplace.zip'
+        SHA256  = '2713054703c2365e391658a58c782dd2ebdd8d573f2015b5a2bab58b7eee8685'
     }
     Themes = @{
         Commit  = 'df033493a7dae30ca6e371de9cec1897871dbb0c'
@@ -1064,8 +1064,9 @@ $global:SpotXLyricsThemes = @(
 # list tight — every entry is an explicit compatibility promise.
 $global:SpotifyVersionManifest = @(
     @{ Id='auto';            Label='Auto (use SpotX default)';         Version='';                        Notes='Recommended. Lets SpotX pick the most compatible build.' }
-    @{ Id='1.2.92';          Label='1.2.92 (current pinned)';          Version='1.2.92';                  Notes='Best match for our pinned SpotX commit.' }
-    @{ Id='1.2.90.451';      Label='1.2.90.451 (previous fallback)';   Version='1.2.90.451.gb094aab0';    Notes='Prior pinned build kept for rollback and comparison.' }
+    @{ Id='1.2.93';          Label='1.2.93 (current pinned)';          Version='1.2.93';                  Notes='Best match for our pinned SpotX commit and Spicetify CLI support range.' }
+    @{ Id='1.2.92';          Label='1.2.92 (previous fallback)';       Version='1.2.92';                  Notes='Prior pinned build kept for rollback and comparison.' }
+    @{ Id='1.2.90.451';      Label='1.2.90.451 (older fallback)';      Version='1.2.90.451.gb094aab0';    Notes='Older pinned build kept for rollback and comparison.' }
     @{ Id='1.2.85.519';      Label='1.2.85.519 (older stable)';        Version='1.2.85.519.g7c42e2e8';    Notes='Last Windows release before Canvas-home changes.' }
     @{ Id='1.2.53.440.x86';  Label='1.2.53.440 (x86 / 32-bit only)';   Version='1.2.53.440.g7b2f582a';    Notes='For 32-bit Windows. Do not pick on x64.' }
     @{ Id='1.2.5.1006.win7'; Label='1.2.5.1006 (Windows 7 / 8.1)';     Version='1.2.5.1006.g22820f93';    Notes='Last build supported on legacy Windows.' }

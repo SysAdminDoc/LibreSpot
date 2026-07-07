@@ -3,10 +3,10 @@
 @@LS@@|progress|INFO|5
 @@LS@@|step|INFO|Downloading Spotify
 @@LS@@|progress|INFO|15
-@@LS@@|log|INFO|Fetching Spotify 1.2.92 from official source
+@@LS@@|log|INFO|Fetching Spotify 1.2.93 from official source
 @@LS@@|progress|INFO|30
 @@LS@@|step|INFO|Downloading SpotX
-@@LS@@|log|INFO|SpotX commit 3284673d verified
+@@LS@@|log|INFO|SpotX commit 550bc72c verified
 @@LS@@|progress|INFO|45
 @@LS@@|step|INFO|Applying SpotX patches
 @@LS@@|log|INFO|Running SpotX run.ps1

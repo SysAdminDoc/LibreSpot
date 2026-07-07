@@ -75,12 +75,12 @@ public sealed class MainViewModelMaintenanceTests
             fixture.WriteBackup();
 
             using var viewModel = await fixture.CreateInitializedViewModelAsync(
-                spotifyVersion: "1.2.92.647",
-                spicetifyVersion: "2.43.2");
+                spotifyVersion: "1.2.93.647",
+                spicetifyVersion: "2.44.0");
 
             Assert.Equal(6, viewModel.StatusDashboardItems.Count);
-            Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Spotify version" && item.Value == "1.2.92.647");
-            Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Spicetify version" && item.Value == "2.43.2");
+            Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Spotify version" && item.Value == "1.2.93.647");
+            Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Spicetify version" && item.Value == "2.44.0");
             Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "SpotX state" && item.Value == "Verified");
             Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Last patch" && item.Value != "No patch record");
             Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Watcher" && item.Value == "Disabled");

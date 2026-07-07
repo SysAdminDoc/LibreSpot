@@ -125,7 +125,8 @@ BeforeAll {
 
     $global:SpotifyVersionManifest = @(
         @{ Id='auto'; Label='Auto'; Version=''; Notes='Recommended.' }
-        @{ Id='1.2.92'; Label='1.2.92'; Version='1.2.92'; Notes='Pinned.' }
+        @{ Id='1.2.93'; Label='1.2.93'; Version='1.2.93'; Notes='Pinned.' }
+        @{ Id='1.2.92'; Label='1.2.92'; Version='1.2.92'; Notes='Previous fallback.' }
     )
     $global:SpotifyVersionIds = @($global:SpotifyVersionManifest | ForEach-Object { $_.Id })
 }

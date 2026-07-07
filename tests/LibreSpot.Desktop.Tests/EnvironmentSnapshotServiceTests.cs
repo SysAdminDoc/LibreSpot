@@ -473,7 +473,7 @@ public sealed class EnvironmentSnapshotServiceTests
         fixture.WriteSpotify(withSpotXMarkers: true);
         fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
         fixture.WriteMarketplaceFiles(manifestVersion: "1.0.8");
-        fixture.WriteMarketplaceEvidence(applySucceeded: false, applyMessage: "Spicetify apply failed.");
+        fixture.WriteMarketplaceEvidence(applySucceeded: false, applyMessage: "Spicetify apply failed.", manifestVersion: "1.0.8");
 
         var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
 
@@ -578,7 +578,7 @@ public sealed class EnvironmentSnapshotServiceTests
     [Fact]
     public void GetSnapshot_PostUpdateTriage_CoversWatcherReappliedCurrentSpotify()
     {
-        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.93", SpicetifyVersion = "2.43.2" };
+        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.93", SpicetifyVersion = "2.44.0" };
         fixture.WriteSpotify(withSpotXMarkers: true);
         fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
         fixture.WriteMarketplaceFiles();
@@ -647,7 +647,7 @@ public sealed class EnvironmentSnapshotServiceTests
     [Fact]
     public void GetSnapshot_PostUpdateTriage_CoversSpicetifyApplyRolledBack()
     {
-        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.93", SpicetifyVersion = "2.43.2" };
+        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.93", SpicetifyVersion = "2.44.0" };
         fixture.WriteSpotify(withSpotXMarkers: true);
         fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = Catppuccin\r\ninject_css = 1\r\nreplace_colors = 1");
         fixture.WriteMarketplaceFiles();
@@ -673,7 +673,7 @@ public sealed class EnvironmentSnapshotServiceTests
     [Fact]
     public void GetSnapshot_PostUpdateTriage_CoversMarketplaceStillMissingAfterReapply()
     {
-        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.93", SpicetifyVersion = "2.43.2" };
+        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.93", SpicetifyVersion = "2.44.0" };
         fixture.WriteSpotify(withSpotXMarkers: true);
         fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
         fixture.WriteWatcherState(
@@ -863,7 +863,7 @@ public sealed class EnvironmentSnapshotServiceTests
     [Fact]
     public void GetSnapshot_FullStackWithArchitectureRecordsBothFields()
     {
-        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.92.456", SpicetifyVersion = "2.43.2" };
+        using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.92.456", SpicetifyVersion = "2.44.0" };
         fixture.WriteSavedConfig();
         fixture.WriteSpotify(withSpotXMarkers: true);
         fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = Catppuccin\r\ninject_css = 1\r\nreplace_colors = 1");
@@ -956,7 +956,7 @@ public sealed class EnvironmentSnapshotServiceTests
             WriteFile(Path.Combine(SpicetifyConfigDirectory, "config-xpui.ini"), configBody);
         }
 
-        public void WriteMarketplaceFiles(string manifestVersion = "1.0.8")
+        public void WriteMarketplaceFiles(string manifestVersion = "1.0.9")
         {
             var marketplaceDirectory = Path.Combine(SpicetifyConfigDirectory, "CustomApps", "marketplace");
             WriteFile(Path.Combine(marketplaceDirectory, "extension.js"), string.Empty);
@@ -971,7 +971,8 @@ public sealed class EnvironmentSnapshotServiceTests
             string? applyMessage = "Spicetify backup apply succeeded.",
             bool? openUriSucceeded = null,
             string? openUriMessage = null,
-            bool? spotifyRunningAfterOpen = null)
+            bool? spotifyRunningAfterOpen = null,
+            string manifestVersion = "1.0.9")
         {
             WriteFile(
                 Path.Combine(ConfigDirectory, "marketplace-evidence.json"),
@@ -986,7 +987,7 @@ public sealed class EnvironmentSnapshotServiceTests
                         likelyVisible,
                         marketplaceStatus = filesPresent && registered ? "Ready" : registered ? "FilesMissing" : "Missing",
                         marketplacePath = Path.Combine(SpicetifyConfigDirectory, "CustomApps", "marketplace"),
-                        manifestVersion = "1.0.8",
+                        manifestVersion,
                         applyStage = "backup apply",
                         applySucceeded,
                         applyMessage,

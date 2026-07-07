@@ -202,7 +202,7 @@ public sealed class SupportBundleServiceTests
         Assert.Contains("\"marketplaceVisibility\"", health);
         Assert.Contains("\"marketplaceLikelyVisible\": true", health);
         Assert.Contains("\"source\": \"RepairMarketplace\"", health);
-        Assert.Contains("\"manifestVersion\": \"1.0.8\"", health);
+        Assert.Contains("\"manifestVersion\": \"1.0.9\"", health);
         Assert.Contains("\"applySucceeded\": true", health);
         Assert.Contains("\"openUriSucceeded\": true", health);
         Assert.DoesNotContain(fixture.Root, health, StringComparison.OrdinalIgnoreCase);
@@ -333,7 +333,7 @@ public sealed class SupportBundleServiceTests
             WriteFile(SpicetifyPath, "spicetify");
             WriteFile(Path.Combine(SpicetifyConfigDirectory, "config-xpui.ini"), "custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
             WriteFile(Path.Combine(SpicetifyConfigDirectory, "CustomApps", "marketplace", "extension.js"), "");
-            WriteFile(Path.Combine(SpicetifyConfigDirectory, "CustomApps", "marketplace", "manifest.json"), "{\"version\":\"1.0.8\"}");
+            WriteFile(Path.Combine(SpicetifyConfigDirectory, "CustomApps", "marketplace", "manifest.json"), "{\"version\":\"1.0.9\"}");
             WriteFile(Path.Combine(BackupDirectory, "20260616-100000", "config-xpui.ini"), "current_theme = SpicetifyDefault");
         }
 
@@ -351,7 +351,7 @@ public sealed class SupportBundleServiceTests
                         likelyVisible = true,
                         marketplaceStatus = "Ready",
                         marketplacePath = Path.Combine(ConfigDirectory, "spicetify", "CustomApps", "marketplace"),
-                        manifestVersion = "1.0.8",
+                        manifestVersion = "1.0.9",
                         applyStage = "backup apply",
                         applySucceeded = true,
                         applyMessage = "Spicetify backup apply succeeded.",

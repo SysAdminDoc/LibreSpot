@@ -41,7 +41,7 @@
       "properties": {
         "version": {
           "type": "string",
-          "description": "Spotify version to install. Use 'auto' for latest compatible version, or a specific version string (e.g. '1.2.92')."
+          "description": "Spotify version to install. Use 'auto' for latest compatible version, or a specific version string (e.g. '1.2.93')."
         },
         "architecture": {
           "type": "string",
@@ -392,7 +392,7 @@
       "schemaVersion": 1,
       "installMode": "custom",
       "spotifyTarget": {
-        "version": "1.2.92",
+        "version": "1.2.93",
         "architecture": "x64"
       },
       "spotx": {

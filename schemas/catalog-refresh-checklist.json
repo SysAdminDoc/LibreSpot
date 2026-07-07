@@ -78,7 +78,7 @@
       "license": "MIT",
       "installMethod": "single-file",
       "marketplaceListed": true,
-      "spotifyVersionNotes": "Compatible with Spotify 1.2.92; uses external lyrics API",
+      "spotifyVersionNotes": "Compatible with Spotify 1.2.93; uses external lyrics API",
       "networkBehavior": "third-party-service",
       "decision": "accept",
       "reason": "High demand, active maintenance, MIT license, unique synced lyrics functionality not in built-in extensions. Third-party service disclosed.",

@@ -134,7 +134,7 @@
     },
     {
       "description": "Download verified event",
-      "line": "{\"schemaVersion\":1,\"eventId\":\"LS2002\",\"timestamp\":\"2026-06-19T14:30:05.123Z\",\"level\":\"success\",\"verb\":\"install\",\"operationId\":\"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\"component\":\"download\",\"target\":\"SpotX run.ps1\",\"message\":\"Download verified.\",\"payload\":{\"url\":\"https://github.com/SpotX-Official/SpotX/archive/3284673d.zip\",\"sha256\":\"abc123...\",\"sizeBytes\":45678,\"cached\":false},\"durationMs\":1234}"
+      "line": "{\"schemaVersion\":1,\"eventId\":\"LS2002\",\"timestamp\":\"2026-06-19T14:30:05.123Z\",\"level\":\"success\",\"verb\":\"install\",\"operationId\":\"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\"component\":\"download\",\"target\":\"SpotX run.ps1\",\"message\":\"Download verified.\",\"payload\":{\"url\":\"https://github.com/SpotX-Official/SpotX/archive/550bc72c.zip\",\"sha256\":\"abc123...\",\"sizeBytes\":45678,\"cached\":false},\"durationMs\":1234}"
     },
     {
       "description": "Run complete event with exit code",
