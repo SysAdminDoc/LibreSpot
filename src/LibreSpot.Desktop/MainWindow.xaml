@@ -337,6 +337,12 @@
             <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
             <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}" />
             <Style.Triggers>
+              <!-- Hover affordance for the clickable card. Listed first so the
+                   active/selected accent border always overrides it. -->
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Surface2Brush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
+              </Trigger>
               <DataTrigger Binding="{Binding IsActive}" Value="True">
                 <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                 <Setter Property="Background" Value="{DynamicResource AccentMistBrush}" />
@@ -918,7 +924,8 @@
             <TextBlock Text="{Binding RecommendedRunDuration}"
                        Style="{StaticResource CaptionTextStyle}"
                        Foreground="{DynamicResource MutedTextBrush}"
-                       Margin="0,10,0,0" />
+                       Margin="0,10,0,0"
+                       Visibility="{Binding ShowRailRunDuration, Converter={StaticResource BoolToVisibilityConverter}}" />
 
             <TextBlock Text="{x:Static props:Strings.ProfileRecoveryLabel}"
                        Style="{StaticResource SectionEyebrowTextStyle}"
@@ -1352,6 +1359,11 @@
                                     <Style TargetType="Border">
                                       <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
                                       <Style.Triggers>
+                                        <!-- Hover affordance; selection accent overrides it. -->
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                          <Setter Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
+                                          <Setter Property="Background" Value="{DynamicResource Surface2Brush}" />
+                                        </Trigger>
                                         <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
                                           <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                                         </DataTrigger>
@@ -1452,6 +1464,11 @@
                                     <Style TargetType="Border">
                                       <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
                                       <Style.Triggers>
+                                        <!-- Hover affordance; selection accent overrides it. -->
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                          <Setter Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
+                                          <Setter Property="Background" Value="{DynamicResource Surface2Brush}" />
+                                        </Trigger>
                                         <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
                                           <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                                         </DataTrigger>

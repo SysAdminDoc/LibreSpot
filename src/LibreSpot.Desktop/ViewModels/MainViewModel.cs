@@ -1451,12 +1451,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _selectedWorkspaceIndex, value))
             {
                 OnPropertyChanged(nameof(IsOverviewWorkspaceSelected));
+                OnPropertyChanged(nameof(ShowRailRunDuration));
                 OnPropertyChanged(nameof(WorkspaceHeroEyebrow));
                 OnPropertyChanged(nameof(WorkspaceHeroTitle));
                 OnPropertyChanged(nameof(WorkspaceHeroBody));
             }
         }
     }
+
+    // The Recommended hero already shows RecommendedRunDuration in the main
+    // pane, so repeating it in the always-visible rail on that workspace is a
+    // verbatim on-screen duplicate. Keep the rail hint on Custom/Maintenance,
+    // where the rail is the only place the timing is surfaced.
+    public bool ShowRailRunDuration => !IsOverviewWorkspaceSelected;
 
     public string SelectedTheme
     {
