@@ -186,15 +186,15 @@
       "notes": "Test infrastructure. Not shipped."
     },
     {
-      "name": "xunit",
+      "name": "xunit.v3",
       "category": "test",
-      "version": "2.9.3",
+      "version": "3.2.2",
       "sourceUrl": "https://github.com/xunit/xunit",
       "spdxLicense": "Apache-2.0",
       "licenseUrl": "https://github.com/xunit/xunit/blob/main/LICENSE",
       "copyrightHolder": "xunit contributors",
       "redistributionPosture": "test-only",
-      "notes": "Test framework. Not shipped."
+      "notes": "xUnit.net v3 test framework. Not shipped."
     },
     {
       "name": "xunit.runner.visualstudio",
@@ -219,7 +219,7 @@
       "notes": "Code coverage collector. Not shipped."
     },
     {
-      "name": "FsCheck.Xunit",
+      "name": "FsCheck.Xunit.v3",
       "category": "test",
       "version": "3.3.3",
       "sourceUrl": "https://github.com/fscheck/FsCheck",

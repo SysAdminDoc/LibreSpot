@@ -99,6 +99,54 @@
       "recheckDate": "2026-09-01"
     },
     {
+      "packageId": "Microsoft.ApplicationInsights",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of the xUnit v3 and Microsoft Testing Platform test stack; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "Microsoft.Bcl.AsyncInterfaces",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of the xUnit v3 and Microsoft Testing Platform test stack; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "Microsoft.Testing.Extensions.Telemetry",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of the xUnit v3 and Microsoft Testing Platform test stack; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "Microsoft.Testing.Extensions.TrxReport.Abstractions",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of the xUnit v3 and Microsoft Testing Platform test stack; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "Microsoft.Testing.Platform",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of the xUnit v3 and Microsoft Testing Platform test stack; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
+      "packageId": "Microsoft.Testing.Platform.MSBuild",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Transitive dependency of the xUnit v3 and Microsoft Testing Platform test stack; not shipped in release artifacts.",
+      "recheckDate": "2026-09-01"
+    },
+    {
       "packageId": "xunit.analyzers",
       "scope": "test-transitive",
       "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
