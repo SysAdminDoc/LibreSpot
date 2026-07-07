@@ -1262,7 +1262,7 @@ function Invoke-HeadlessReapply {
             Write-WatcherLog "Custom SpotX patches staged at $customPatchesPath"
         }
         Write-WatcherLog "Invoking SpotX with: $params"
-        Invoke-ExternalScriptIsolated -FilePath $destination -Arguments $params
+        Invoke-ExternalScriptIsolated -FilePath $destination -Arguments $params -ExpectedHash $spotxHash -Label 'SpotX run.ps1'
         Reapply-SavedSpicetifySetup -Config $Config
         Write-WatcherLog 'Auto-reapply completed successfully.' -Level 'SUCCESS'
     } finally {
@@ -1746,6 +1746,45 @@ function Download-FileSafe { param([string]$Uri,[string]$OutFile)
     }
 }
 
+function Open-VerifiedScriptForExecution {
+    param(
+        [string]$FilePath,
+        [string]$ExpectedHash = '',
+        [string]$Label = 'script'
+    )
+
+    if ([string]::IsNullOrWhiteSpace($FilePath)) {
+        throw "No script path was provided for $Label."
+    }
+
+    $fullPath = [System.IO.Path]::GetFullPath($FilePath)
+    $stream = $null
+    try {
+        $stream = [System.IO.File]::Open($fullPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
+        if (-not [string]::IsNullOrWhiteSpace($ExpectedHash)) {
+            $sha = [System.Security.Cryptography.SHA256]::Create()
+            try {
+                $actualHash = -join ($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') })
+            } finally {
+                if ($sha) { $sha.Dispose() }
+            }
+
+            if ($actualHash -ne $ExpectedHash.ToLowerInvariant()) {
+                throw "$Label hash mismatch immediately before execution. Expected $ExpectedHash, got $actualHash. Refusing to run."
+            }
+
+            if ($stream.CanSeek) {
+                $stream.Position = 0
+            }
+        }
+
+        return $stream
+    } catch {
+        if ($stream) { $stream.Dispose() }
+        throw
+    }
+}
+
 function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]$Label)
     if ([string]::IsNullOrWhiteSpace($ExpectedHash)) {
         Write-Log "  Hash verification skipped for $Label (no hash pinned)" -Level 'WARN'
@@ -2091,7 +2130,7 @@ function Get-SpotXChildFailureClassification {
     return $null
 }
 
-function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Arguments,[int]$TimeoutSeconds=600)
+function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Arguments,[int]$TimeoutSeconds=600,[string]$ExpectedHash='',[string]$Label='external script')
     Write-Log "Spawning: $FilePath"
     Write-PowerShellSecurityContext
     $stdoutPath = Join-Path $global:TEMP_DIR ("LibreSpot-stdout-" + [Guid]::NewGuid().ToString('N') + '.log')
@@ -2104,8 +2143,13 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
     # SpotX child-download outages (timeouts, Cloudflare worker failures,
     # phishing-flagged mirrors) otherwise surface as a bare exit code.
     $childFailure = $null
+    $scriptGuard = $null
     $p = $null
     try {
+        $scriptGuard = Open-VerifiedScriptForExecution -FilePath $FilePath -ExpectedHash $ExpectedHash -Label $Label
+        if (-not [string]::IsNullOrWhiteSpace($ExpectedHash)) {
+            Write-Log "  Execution copy verified and locked for $Label"
+        }
         $argString = "-NoProfile -ExecutionPolicy Bypass -File `"$FilePath`" $Arguments"
         $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $argString -NoNewWindow -PassThru -Wait:$false -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -ErrorAction Stop
         $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -2171,6 +2215,7 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
         }
     } finally {
         if ($p) { try { $p.Dispose() } catch {} }
+        if ($scriptGuard) { try { $scriptGuard.Dispose() } catch {} }
         Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
     }
@@ -3273,7 +3318,7 @@ function Module-InstallSpotX { param($Config,$SyncHash)
         Write-Log "Params: $params"
         if ($SyncHash) { $SyncHash.AllowSpotify = $true }
         try {
-            Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $params
+            Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $params -ExpectedHash $spotxHash -Label 'SpotX run.ps1'
             # Verify SpotX patching succeeded
             if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
                 throw "SpotX failed - Spotify.exe not found at $global:SPOTIFY_EXE_PATH. Check the log above for errors."
@@ -4131,7 +4176,7 @@ function Invoke-LibreSpotMaintenance {
                     Save-ToAssetCache -SourcePath $destination -SHA256Hash $spotxHash -Label 'SpotX run.ps1' -SourceUrl $global:URL_SPOTX
                 }
                 $params = Build-SpotXParams -Config $savedConfig
-                Invoke-ExternalScriptIsolated -FilePath $destination -Arguments $params
+                Invoke-ExternalScriptIsolated -FilePath $destination -Arguments $params -ExpectedHash $spotxHash -Label 'SpotX run.ps1'
 
                 Update-BackendState -Progress 60 -Status 'Restoring saved Spicetify state' -Step 'Rebuilding CLI, themes, extensions, and Marketplace'
                 Reapply-SavedSpicetifySetup -Config $savedConfig

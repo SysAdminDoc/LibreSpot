@@ -382,6 +382,19 @@ public sealed class PowerShellRegressionTests
     }
 
     [Fact]
+    public void SelfElevationInlineFallback_VerifiesPayloadHashFromEncodedCommand()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+
+        Assert.Contains("Kind = 'InlinePayload'", script);
+        Assert.Contains("Get-FileHash -LiteralPath $payloadPath -Algorithm SHA256", script);
+        Assert.Contains("LibreSpot elevation payload hash mismatch", script);
+        Assert.Contains("'-EncodedCommand', $encodedBootstrap", script);
+        Assert.Contains("& ([scriptblock]::Create(`$payload)) @forwardedArgs", script);
+        Assert.DoesNotContain("LibreSpot-elevated.ps1", script);
+    }
+
+    [Fact]
     public void SelfElevationFallback_UsesThemedBootstrapNotice()
     {
         var script = ReadFile("LibreSpot.ps1");
@@ -744,6 +757,60 @@ public sealed class PowerShellRegressionTests
         var body = fnBody.Groups["body"].Value;
         Assert.Contains("$null -eq $exitCode", body);
         Assert.Contains("ExitCode was unavailable", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    [InlineData("src/powershell/shared/Invoke-ExternalScriptIsolated.ps1")]
+    public void ExternalScriptRunner_HoldsVerifiedReadLockBeforeSpawn(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Invoke-ExternalScriptIsolated\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Invoke-ExternalScriptIsolated function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("ExpectedHash", body);
+        Assert.Contains("Open-VerifiedScriptForExecution", body);
+        Assert.Contains("$scriptGuard.Dispose()", body);
+        Assert.True(
+            body.IndexOf("Open-VerifiedScriptForExecution", StringComparison.Ordinal) <
+            body.IndexOf("Start-Process", StringComparison.Ordinal),
+            "The script file must be verified and locked before Start-Process receives its path.");
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    [InlineData("src/powershell/shared/Open-VerifiedScriptForExecution.ps1")]
+    public void VerifiedScriptExecutionHelper_UsesReadOnlySharingAndSha256(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Open-VerifiedScriptForExecution\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Open-VerifiedScriptForExecution function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("[System.IO.FileShare]::Read", body);
+        Assert.Contains("[System.Security.Cryptography.SHA256]::Create()", body);
+        Assert.Contains("hash mismatch immediately before execution", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    [InlineData("src/powershell/shared/Module-InstallSpotX.ps1")]
+    public void SpotXLaunches_PassPinnedHashIntoExecutionGuard(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("-ExpectedHash $spotxHash", script);
+        Assert.Contains("-Label 'SpotX run.ps1'", script);
     }
 
     [Theory]
@@ -1891,6 +1958,7 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("'Get-PowerShellSecurityContext'", exportBlock.Groups["list"].Value);
         Assert.Contains("'Write-PowerShellSecurityContext'", exportBlock.Groups["list"].Value);
         Assert.Contains("'Test-IsLanguageModeOrAppControlError'", exportBlock.Groups["list"].Value);
+        Assert.Contains("'Open-VerifiedScriptForExecution'", exportBlock.Groups["list"].Value);
     }
 
     [Fact]

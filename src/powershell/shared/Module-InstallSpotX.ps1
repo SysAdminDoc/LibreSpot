@@ -30,7 +30,7 @@ function Module-InstallSpotX { param($Config,$SyncHash)
         Write-Log "Params: $params"
         if ($SyncHash) { $SyncHash.AllowSpotify = $true }
         try {
-            Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $params
+            Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $params -ExpectedHash $spotxHash -Label 'SpotX run.ps1'
             # Verify SpotX patching succeeded
             if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
                 throw "SpotX failed - Spotify.exe not found at $global:SPOTIFY_EXE_PATH. Check the log above for errors."

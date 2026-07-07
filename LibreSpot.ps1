@@ -548,6 +548,7 @@ function Invoke-HeadlessReapply {
         # own script scope. Exit code is the only signal we care about.
         $psExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
         if (-not (Test-Path -LiteralPath $psExe)) { $psExe = 'powershell.exe' }
+        $spotxGuard = $null
         $pinfo = New-Object System.Diagnostics.ProcessStartInfo
         $pinfo.FileName = $psExe
         $pinfo.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$spotxRun`" $spotxArgs"
@@ -555,20 +556,25 @@ function Invoke-HeadlessReapply {
         $pinfo.RedirectStandardError  = $true
         $pinfo.UseShellExecute = $false
         $pinfo.CreateNoWindow = $true
-        $proc = [System.Diagnostics.Process]::Start($pinfo)
-        # Drain stdout/stderr asynchronously to prevent buffer deadlock.
-        # If SpotX writes more than the OS pipe buffer (~4KB) the process
-        # hangs forever waiting for the buffer to be read.
-        $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
-        $stderrTask = $proc.StandardError.ReadToEndAsync()
-        if (-not $proc.WaitForExit(20 * 60 * 1000)) {
-            try { $proc.Kill() } catch {}
-            throw "SpotX timed out after 20 minutes."
-        }
-        $proc.WaitForExit()  # Ensure async streams are fully flushed
-        if ($proc.ExitCode -ne 0) {
-            $stderrText = if ($stderrTask.IsCompleted) { $stderrTask.Result } else { '(not available)' }
-            throw "SpotX exited with code $($proc.ExitCode). Stderr: $stderrText"
+        try {
+            $spotxGuard = Open-VerifiedScriptForExecution -FilePath $spotxRun -ExpectedHash $expectedHash -Label 'SpotX run.ps1 (watcher)'
+            $proc = [System.Diagnostics.Process]::Start($pinfo)
+            # Drain stdout/stderr asynchronously to prevent buffer deadlock.
+            # If SpotX writes more than the OS pipe buffer (~4KB) the process
+            # hangs forever waiting for the buffer to be read.
+            $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
+            $stderrTask = $proc.StandardError.ReadToEndAsync()
+            if (-not $proc.WaitForExit(20 * 60 * 1000)) {
+                try { $proc.Kill() } catch {}
+                throw "SpotX timed out after 20 minutes."
+            }
+            $proc.WaitForExit()  # Ensure async streams are fully flushed
+            if ($proc.ExitCode -ne 0) {
+                $stderrText = if ($stderrTask.IsCompleted) { $stderrTask.Result } else { '(not available)' }
+                throw "SpotX exited with code $($proc.ExitCode). Stderr: $stderrText"
+            }
+        } finally {
+            if ($spotxGuard) { try { $spotxGuard.Dispose() } catch {} }
         }
         Write-WatcherLog "SpotX completed successfully" -Level 'SUCCESS'
 
@@ -757,13 +763,15 @@ function Get-SelfElevationLaunchTarget {
 
     if (-not [string]::IsNullOrWhiteSpace($inlineSource)) {
         try {
-            $bootstrapDir = Join-Path $env:TEMP 'LibreSpot'
+            $bootstrapDir = Join-Path $env:TEMP ("LibreSpot-Elevate-{0}" -f [guid]::NewGuid().ToString('N'))
             if (-not (Test-Path -LiteralPath $bootstrapDir)) {
                 New-Item -Path $bootstrapDir -ItemType Directory -Force | Out-Null
             }
-            $bootstrapPath = Join-Path $bootstrapDir 'LibreSpot-elevated.ps1'
-            Set-Content -Path $bootstrapPath -Value $inlineSource -Encoding UTF8 -Force
-            return @{ Kind = 'Script'; Path = $bootstrapPath; IsTemp = $true }
+            $payloadPath = Join-Path $bootstrapDir ("LibreSpot-elevation-payload-{0}.ps1" -f [guid]::NewGuid().ToString('N'))
+            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+            [System.IO.File]::WriteAllText($payloadPath, $inlineSource, $utf8NoBom)
+            $payloadHash = (Get-FileHash -LiteralPath $payloadPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            return @{ Kind = 'InlinePayload'; Path = $payloadPath; Hash = $payloadHash; IsTemp = $true }
         } catch {}
     }
 
@@ -887,6 +895,36 @@ if (-not $script:CliWatch -and -not ([Security.Principal.WindowsPrincipal][Secur
                 }
                 if ($elevationArgs.Count -gt 0) { $startArgs.ArgumentList = $elevationArgs }
                 Start-Process @startArgs
+            } elseif ($launchTarget.Kind -eq 'InlinePayload') {
+                $literalPayloadPath = "'" + ([string]$launchTarget.Path).Replace("'", "''") + "'"
+                $literalPayloadHash = "'" + ([string]$launchTarget.Hash).Replace("'", "''") + "'"
+                $literalArgs = @($elevationArgs | ForEach-Object { "'" + ([string]$_).Replace("'", "''") + "'" })
+                $forwardedArgsExpression = if ($literalArgs.Count -gt 0) { "@($($literalArgs -join ', '))" } else { '@()' }
+                $bootstrapCommand = @"
+`$ErrorActionPreference = 'Stop'
+`$payloadPath = $literalPayloadPath
+`$expectedHash = $literalPayloadHash
+`$forwardedArgs = $forwardedArgsExpression
+`$actualHash = (Get-FileHash -LiteralPath `$payloadPath -Algorithm SHA256).Hash.ToLowerInvariant()
+if (`$actualHash -ne `$expectedHash.ToLowerInvariant()) { throw 'LibreSpot elevation payload hash mismatch. Refusing to run.' }
+`$payload = [System.IO.File]::ReadAllText(`$payloadPath, [System.Text.Encoding]::UTF8)
+try {
+    & ([scriptblock]::Create(`$payload)) @forwardedArgs
+} finally {
+    Remove-Item -LiteralPath `$payloadPath -Force -ErrorAction SilentlyContinue
+    `$payloadDir = Split-Path -Path `$payloadPath -Parent
+    if (`$payloadDir -and (Test-Path -LiteralPath `$payloadDir -PathType Container) -and -not (Get-ChildItem -LiteralPath `$payloadDir -Force -ErrorAction SilentlyContinue)) {
+        Remove-Item -LiteralPath `$payloadDir -Force -ErrorAction SilentlyContinue
+    }
+}
+"@
+                $encodedBootstrap = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($bootstrapCommand))
+                $scriptArgs = @(
+                    '-NoProfile',
+                    '-ExecutionPolicy', 'Bypass',
+                    '-EncodedCommand', $encodedBootstrap
+                )
+                Start-Process -FilePath 'powershell.exe' -ArgumentList $scriptArgs -Verb RunAs -WorkingDirectory $workingDir
             } else {
                 $scriptArgs = @(
                     '-NoProfile',
@@ -6337,6 +6375,44 @@ function Download-FileSafe { param([string]$Uri,[string]$OutFile)
         throw
     }
 }
+function Open-VerifiedScriptForExecution {
+    param(
+        [string]$FilePath,
+        [string]$ExpectedHash = '',
+        [string]$Label = 'script'
+    )
+
+    if ([string]::IsNullOrWhiteSpace($FilePath)) {
+        throw "No script path was provided for $Label."
+    }
+
+    $fullPath = [System.IO.Path]::GetFullPath($FilePath)
+    $stream = $null
+    try {
+        $stream = [System.IO.File]::Open($fullPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
+        if (-not [string]::IsNullOrWhiteSpace($ExpectedHash)) {
+            $sha = [System.Security.Cryptography.SHA256]::Create()
+            try {
+                $actualHash = -join ($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') })
+            } finally {
+                if ($sha) { $sha.Dispose() }
+            }
+
+            if ($actualHash -ne $ExpectedHash.ToLowerInvariant()) {
+                throw "$Label hash mismatch immediately before execution. Expected $ExpectedHash, got $actualHash. Refusing to run."
+            }
+
+            if ($stream.CanSeek) {
+                $stream.Position = 0
+            }
+        }
+
+        return $stream
+    } catch {
+        if ($stream) { $stream.Dispose() }
+        throw
+    }
+}
 function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]$Label)
     if ([string]::IsNullOrWhiteSpace($ExpectedHash)) {
         Write-Log "  Hash verification skipped for $Label (no hash pinned)" -Level 'WARN'
@@ -6641,7 +6717,7 @@ function Get-SpotXChildFailureClassification {
     return $null
 }
 
-function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Arguments,[int]$TimeoutSeconds=600)
+function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Arguments,[int]$TimeoutSeconds=600,[string]$ExpectedHash='',[string]$Label='external script')
     Write-Log "Spawning: $FilePath"
     Write-PowerShellSecurityContext
     $stdoutPath = Join-Path $global:TEMP_DIR ("LibreSpot-stdout-" + [Guid]::NewGuid().ToString('N') + '.log')
@@ -6654,8 +6730,13 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
     # SpotX child-download outages (timeouts, Cloudflare worker failures,
     # phishing-flagged mirrors) otherwise surface as a bare exit code.
     $childFailure = $null
+    $scriptGuard = $null
     $p = $null
     try {
+        $scriptGuard = Open-VerifiedScriptForExecution -FilePath $FilePath -ExpectedHash $ExpectedHash -Label $Label
+        if (-not [string]::IsNullOrWhiteSpace($ExpectedHash)) {
+            Write-Log "  Execution copy verified and locked for $Label"
+        }
         $argString = "-NoProfile -ExecutionPolicy Bypass -File `"$FilePath`" $Arguments"
         $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $argString -NoNewWindow -PassThru -Wait:$false -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -ErrorAction Stop
         $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -6721,6 +6802,7 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
         }
     } finally {
         if ($p) { try { $p.Dispose() } catch {} }
+        if ($scriptGuard) { try { $scriptGuard.Dispose() } catch {} }
         Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
     }
@@ -7230,7 +7312,7 @@ function Module-InstallSpotX { param($Config,$SyncHash)
         Write-Log "Params: $params"
         if ($SyncHash) { $SyncHash.AllowSpotify = $true }
         try {
-            Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $params
+            Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $params -ExpectedHash $spotxHash -Label 'SpotX run.ps1'
             # Verify SpotX patching succeeded
             if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
                 throw "SpotX failed - Spotify.exe not found at $global:SPOTIFY_EXE_PATH. Check the log above for errors."
@@ -8008,7 +8090,7 @@ $maintBlock = { param($sh,$action)
                 }
                 Write-Log "SpotX will verify version compatibility and overwrite if needed"
                 $sh.AllowSpotify=$true
-                try { Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $sp } finally { $sh.AllowSpotify=$false }
+                try { Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $sp -ExpectedHash $spotxHash -Label 'SpotX run.ps1' } finally { $sh.AllowSpotify=$false }
             } finally {
                 Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue
             }
@@ -8122,7 +8204,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-SpotXCustomPatchesFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Open-VerifiedScriptForExecution','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Get-SpotXChildFailureClassification','Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyIntegrationContext','Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',

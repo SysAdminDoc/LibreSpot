@@ -48,6 +48,7 @@ function Invoke-HeadlessReapply {
         # own script scope. Exit code is the only signal we care about.
         $psExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
         if (-not (Test-Path -LiteralPath $psExe)) { $psExe = 'powershell.exe' }
+        $spotxGuard = $null
         $pinfo = New-Object System.Diagnostics.ProcessStartInfo
         $pinfo.FileName = $psExe
         $pinfo.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$spotxRun`" $spotxArgs"
@@ -55,20 +56,25 @@ function Invoke-HeadlessReapply {
         $pinfo.RedirectStandardError  = $true
         $pinfo.UseShellExecute = $false
         $pinfo.CreateNoWindow = $true
-        $proc = [System.Diagnostics.Process]::Start($pinfo)
-        # Drain stdout/stderr asynchronously to prevent buffer deadlock.
-        # If SpotX writes more than the OS pipe buffer (~4KB) the process
-        # hangs forever waiting for the buffer to be read.
-        $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
-        $stderrTask = $proc.StandardError.ReadToEndAsync()
-        if (-not $proc.WaitForExit(20 * 60 * 1000)) {
-            try { $proc.Kill() } catch {}
-            throw "SpotX timed out after 20 minutes."
-        }
-        $proc.WaitForExit()  # Ensure async streams are fully flushed
-        if ($proc.ExitCode -ne 0) {
-            $stderrText = if ($stderrTask.IsCompleted) { $stderrTask.Result } else { '(not available)' }
-            throw "SpotX exited with code $($proc.ExitCode). Stderr: $stderrText"
+        try {
+            $spotxGuard = Open-VerifiedScriptForExecution -FilePath $spotxRun -ExpectedHash $expectedHash -Label 'SpotX run.ps1 (watcher)'
+            $proc = [System.Diagnostics.Process]::Start($pinfo)
+            # Drain stdout/stderr asynchronously to prevent buffer deadlock.
+            # If SpotX writes more than the OS pipe buffer (~4KB) the process
+            # hangs forever waiting for the buffer to be read.
+            $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
+            $stderrTask = $proc.StandardError.ReadToEndAsync()
+            if (-not $proc.WaitForExit(20 * 60 * 1000)) {
+                try { $proc.Kill() } catch {}
+                throw "SpotX timed out after 20 minutes."
+            }
+            $proc.WaitForExit()  # Ensure async streams are fully flushed
+            if ($proc.ExitCode -ne 0) {
+                $stderrText = if ($stderrTask.IsCompleted) { $stderrTask.Result } else { '(not available)' }
+                throw "SpotX exited with code $($proc.ExitCode). Stderr: $stderrText"
+            }
+        } finally {
+            if ($spotxGuard) { try { $spotxGuard.Dispose() } catch {} }
         }
         Write-WatcherLog "SpotX completed successfully" -Level 'SUCCESS'
 

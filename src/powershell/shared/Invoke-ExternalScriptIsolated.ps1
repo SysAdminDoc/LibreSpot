@@ -1,4 +1,4 @@
-function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Arguments,[int]$TimeoutSeconds=600)
+function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Arguments,[int]$TimeoutSeconds=600,[string]$ExpectedHash='',[string]$Label='external script')
     Write-Log "Spawning: $FilePath"
     Write-PowerShellSecurityContext
     $stdoutPath = Join-Path $global:TEMP_DIR ("LibreSpot-stdout-" + [Guid]::NewGuid().ToString('N') + '.log')
@@ -11,8 +11,13 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
     # SpotX child-download outages (timeouts, Cloudflare worker failures,
     # phishing-flagged mirrors) otherwise surface as a bare exit code.
     $childFailure = $null
+    $scriptGuard = $null
     $p = $null
     try {
+        $scriptGuard = Open-VerifiedScriptForExecution -FilePath $FilePath -ExpectedHash $ExpectedHash -Label $Label
+        if (-not [string]::IsNullOrWhiteSpace($ExpectedHash)) {
+            Write-Log "  Execution copy verified and locked for $Label"
+        }
         $argString = "-NoProfile -ExecutionPolicy Bypass -File `"$FilePath`" $Arguments"
         $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $argString -NoNewWindow -PassThru -Wait:$false -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -ErrorAction Stop
         $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -78,6 +83,7 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
         }
     } finally {
         if ($p) { try { $p.Dispose() } catch {} }
+        if ($scriptGuard) { try { $scriptGuard.Dispose() } catch {} }
         Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
     }

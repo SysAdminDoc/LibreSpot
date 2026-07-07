@@ -16,6 +16,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Re-routed mouse wheel events from nested WPF scroll regions at their boundaries so settings panes continue scrolling from theme, profile, and custom-patch editor areas.
 - Cleaned up Russian and Simplified Chinese maintenance microcopy, including reapply labels, watcher terminology, and Spicetify spelling in the localized WPF shell.
 - Hardened safe archive extraction so expanded-byte limits are enforced while streaming actual decompressed bytes, with temp-file cleanup on capped or failed entries.
+- Hardened SpotX and elevation temp-file execution by verifying payload hashes immediately before launch and holding read locks on scripts while child PowerShell processes start.
 
 ## [v4.0.0-preview.8] - 2026-07-07
 
