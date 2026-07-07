@@ -132,6 +132,90 @@ public sealed class WpfUiIntegrationTests
         });
     }
 
+    [Theory]
+    [InlineData("Palette.xaml", true)]
+    [InlineData("HighContrastPalette.xaml", false)]
+    public void CompletionSnackbar_RendersSemanticAppearancesOffscreen(string palette, bool assertFillColors)
+    {
+        RunSta(() =>
+        {
+            EnsureApplication();
+            var appResources = Application.Current.Resources;
+            var originalDictionaries = appResources.MergedDictionaries.ToList();
+            appResources.MergedDictionaries.Clear();
+            try
+            {
+                appResources.MergedDictionaries.Add(new ResourceDictionary
+                {
+                    Source = new Uri($"pack://application:,,,/LibreSpot;component/Themes/{palette}")
+                });
+                appResources.MergedDictionaries.Add(new ResourceDictionary
+                {
+                    Source = new Uri("pack://application:,,,/LibreSpot;component/Themes/Controls.xaml")
+                });
+
+                var implicitStyle = appResources[typeof(Wpf.Ui.Controls.Snackbar)] as Style;
+                Assert.True(
+                    implicitStyle is not null,
+                    "Controls.xaml must supply an implicit Wpf.Ui Snackbar style — WPF-UI 4.x ships no themes/generic.xaml, so an unstyled Snackbar renders nothing.");
+
+                var appearances = new (Wpf.Ui.Controls.ControlAppearance Appearance, string FillColorKey)[]
+                {
+                    (Wpf.Ui.Controls.ControlAppearance.Success, "AccentColor"),
+                    (Wpf.Ui.Controls.ControlAppearance.Caution, "WarningFillColor"),
+                    (Wpf.Ui.Controls.ControlAppearance.Danger, "DangerFillColor"),
+                };
+
+                foreach (var (appearance, fillColorKey) in appearances)
+                {
+                    var presenter = new Wpf.Ui.Controls.SnackbarPresenter();
+                    var snackbar = new Wpf.Ui.Controls.Snackbar(presenter)
+                    {
+                        Style = implicitStyle,
+                        Title = "Run complete",
+                        Content = "LibreSpot finished the requested action.",
+                        Appearance = appearance,
+                        IsCloseButtonEnabled = true,
+                        IsShown = true,
+                    };
+
+                    var host = new Grid
+                    {
+                        Width = 420,
+                        Height = 120,
+                        Background = (Brush)appResources["CanvasBrush"]
+                    };
+                    host.Children.Add(snackbar);
+                    host.Measure(new Size(420, 120));
+                    host.Arrange(new Rect(0, 0, 420, 120));
+                    host.UpdateLayout();
+
+                    Assert.True(
+                        VisualTreeHelper.GetChildrenCount(snackbar) > 0,
+                        $"{appearance} snackbar must materialize a non-empty template visual tree.");
+
+                    var rendered = new RenderTargetBitmap(420, 120, 96, 96, PixelFormats.Pbgra32);
+                    rendered.Render(host);
+                    AssertNonBlankRender(rendered);
+
+                    if (assertFillColors)
+                    {
+                        var expected = (Color)appResources[fillColorKey];
+                        AssertRenderContainsColor(rendered, expected, appearance.ToString());
+                    }
+                }
+            }
+            finally
+            {
+                appResources.MergedDictionaries.Clear();
+                foreach (var dictionary in originalDictionaries)
+                {
+                    appResources.MergedDictionaries.Add(dictionary);
+                }
+            }
+        });
+    }
+
     [Fact]
     public void WpfShell_UsesSnackbarPresenterForCompletionFeedback()
     {
@@ -349,6 +433,34 @@ public sealed class WpfUiIntegrationTests
 
         Assert.True(nonTransparentPixels > 10_000, $"High-contrast smoke surface rendered too few pixels: {nonTransparentPixels}.");
         Assert.True(uniqueColors.Count >= 3, $"High-contrast smoke surface rendered too few distinct colors: {uniqueColors.Count}.");
+    }
+
+    private static void AssertRenderContainsColor(BitmapSource bitmap, Color expected, string context)
+    {
+        const int tolerance = 2;
+        var stride = bitmap.PixelWidth * 4;
+        var pixels = new byte[stride * bitmap.PixelHeight];
+        bitmap.CopyPixels(pixels, stride, 0);
+        var matches = 0;
+
+        for (var index = 0; index < pixels.Length; index += 4)
+        {
+            if (pixels[index + 3] != 255)
+            {
+                continue;
+            }
+
+            if (Math.Abs(pixels[index] - expected.B) <= tolerance &&
+                Math.Abs(pixels[index + 1] - expected.G) <= tolerance &&
+                Math.Abs(pixels[index + 2] - expected.R) <= tolerance)
+            {
+                matches++;
+            }
+        }
+
+        Assert.True(
+            matches > 1_000,
+            $"{context} snackbar render contains only {matches} pixels near fill color {expected} — the semantic fill did not render.");
     }
 
     private static void RunSta(Action action)

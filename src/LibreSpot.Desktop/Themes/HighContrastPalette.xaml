@@ -59,6 +59,12 @@
   <Color x:Key="DangerColor">#00CCFF</Color>
   <Color x:Key="DangerDeepColor">#00CCFF</Color>
   <Color x:Key="DangerSoftColor">#1A1A1A</Color>
+  <!-- Fill + text-on-fill pairs: destructive/caution fills flatten to normal control
+       surfaces in HC (label + border carry the meaning, not the fill). -->
+  <Color x:Key="DangerFillColor">#1A1A1A</Color>
+  <Color x:Key="TextOnDangerColor">#FFFFFF</Color>
+  <Color x:Key="WarningFillColor">#1A1A1A</Color>
+  <Color x:Key="TextOnWarningColor">#FFFFFF</Color>
   <Color x:Key="WarningColor">#00CCFF</Color>
   <Color x:Key="WarningSoftColor">#1A1A1A</Color>
   <Color x:Key="WarningRingColor">#00CCFF</Color>
@@ -100,9 +106,15 @@
   <SolidColorBrush x:Key="AccentMistBrush" Color="Transparent" />
   <SolidColorBrush x:Key="AccentRingBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
 
-  <SolidColorBrush x:Key="DangerBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
-  <SolidColorBrush x:Key="DangerDeepBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+  <!-- Danger text/borders map to the HC attention color (HotTrack) so error states
+       are distinguishable from success text, which stays on WindowText. -->
+  <SolidColorBrush x:Key="DangerBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
+  <SolidColorBrush x:Key="DangerDeepBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
   <SolidColorBrush x:Key="DangerSoftBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
+  <SolidColorBrush x:Key="DangerFillBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
+  <SolidColorBrush x:Key="TextOnDangerBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+  <SolidColorBrush x:Key="WarningFillBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
+  <SolidColorBrush x:Key="TextOnWarningBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
   <SolidColorBrush x:Key="WarningBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
   <SolidColorBrush x:Key="WarningSoftBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
   <SolidColorBrush x:Key="WarningRingBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />

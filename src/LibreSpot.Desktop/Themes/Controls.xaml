@@ -1,5 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
+                    xmlns:props="clr-namespace:LibreSpot.Desktop.Properties">
   <!--
     LibreSpot Desktop control styles.
     Conventions:
@@ -399,9 +401,12 @@
     <Setter Property="Tag" Value="{DynamicResource GhostHoverTintBrush}" />
   </Style>
 
+  <!-- Destructive: DangerFill/TextOnDanger pair keeps the label readable on the fill
+       (WCAG AA in the dark palette) and flattens to a normal control surface in HC,
+       where the DangerBrush border + label carry the destructive meaning. -->
   <Style x:Key="DestructiveButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
-    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-    <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextOnDangerBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DangerFillBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
     <Setter Property="Tag" Value="{DynamicResource DangerHoverTintBrush}" />
   </Style>
@@ -687,8 +692,12 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ComboBoxItem">
+          <!-- Constant border thickness: the keyboard focus ring swaps brush only,
+               so focus never shifts layout. -->
           <Border x:Name="Root"
                   Background="Transparent"
+                  BorderBrush="Transparent"
+                  BorderThickness="1.5"
                   CornerRadius="8"
                   Padding="{TemplateBinding Padding}"
                   Margin="2,1">
@@ -699,13 +708,18 @@
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Root" Property="Background" Value="{DynamicResource Surface3Brush}" />
             </Trigger>
+            <!-- Keyboard highlight uses the accent selection pairing (Highlight/HighlightText
+                 in HC) — AccentSoftBrush is indistinguishable from the popup surface. -->
             <Trigger Property="IsHighlighted" Value="True">
-              <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-              <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+              <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentBrush}" />
+              <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}" />
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
               <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentBrush}" />
               <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -1015,9 +1029,12 @@
           <Grid Background="Transparent">
             <Track x:Name="PART_Track"
                    IsDirectionReversed="true">
+              <!-- Invisible page-scroll zones must not be keyboard tab stops. -->
               <Track.DecreaseRepeatButton>
                 <RepeatButton Command="ScrollBar.PageUpCommand"
                               Opacity="0"
+                              Focusable="False"
+                              IsTabStop="False"
                               AutomationProperties.Name="Scroll page up" />
               </Track.DecreaseRepeatButton>
               <Track.Thumb>
@@ -1026,6 +1043,8 @@
               <Track.IncreaseRepeatButton>
                 <RepeatButton Command="ScrollBar.PageDownCommand"
                               Opacity="0"
+                              Focusable="False"
+                              IsTabStop="False"
                               AutomationProperties.Name="Scroll page down" />
               </Track.IncreaseRepeatButton>
             </Track>
@@ -1045,6 +1064,8 @@
                   <Track.DecreaseRepeatButton>
                     <RepeatButton Command="ScrollBar.PageLeftCommand"
                                   Opacity="0"
+                                  Focusable="False"
+                                  IsTabStop="False"
                                   AutomationProperties.Name="Scroll page left" />
                   </Track.DecreaseRepeatButton>
                   <Track.Thumb>
@@ -1053,6 +1074,8 @@
                   <Track.IncreaseRepeatButton>
                     <RepeatButton Command="ScrollBar.PageRightCommand"
                                   Opacity="0"
+                                  Focusable="False"
+                                  IsTabStop="False"
                                   AutomationProperties.Name="Scroll page right" />
                   </Track.IncreaseRepeatButton>
                 </Track>
@@ -1070,6 +1093,155 @@
     <Setter Property="Height" Value="8" />
     <Setter Property="Fill" Value="{DynamicResource MutedTextBrush}" />
     <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!--
+    ═══ Completion snackbar (WPF-UI Snackbar host) ═══
+    WPF-UI 4.x ships no themes/generic.xaml — Snackbar templates only exist in the
+    library's resource dictionaries, which we deliberately do NOT merge: their
+    ControlsDictionary injects implicit styles for TextBlock/ListBox/ScrollViewer
+    that fight this app's token-driven styling, and the upstream Snackbar template
+    hardcodes light/dark colors that ignore the high-contrast palette swap.
+    Instead this implicit style supplies a palette-token template so the completion
+    snackbar renders correctly in both the dark and high-contrast palettes:
+      Success → accent fill + TextOnAccent  (Highlight/HighlightText in HC)
+      Caution → WarningFill + TextOnWarning (normal HC surface, Warning border)
+      Danger  → DangerFill + TextOnDanger   (normal HC surface, Danger border)
+    Show/hide is Setter-driven (no storyboard) so it is instant under reduced
+    motion and high contrast; SnackbarPresenter handles queueing and timeout.
+  -->
+  <Style TargetType="ui:Snackbar">
+    <Setter Property="Background" Value="{DynamicResource Surface3Brush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="ContentForeground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="MinHeight" Value="56" />
+    <Setter Property="MinWidth" Value="320" />
+    <Setter Property="MaxWidth" Value="560" />
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="KeyboardNavigation.IsTabStop" Value="False" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="OverridesDefaultStyle" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ui:Snackbar">
+          <Grid x:Name="Root" Opacity="0" Visibility="Collapsed">
+            <Border Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="12"
+                    Padding="16,12"
+                    Effect="{DynamicResource CardShadow}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ContentPresenter x:Name="IconPresenter"
+                                  Grid.Column="0"
+                                  Margin="0,0,12,0"
+                                  VerticalAlignment="Center"
+                                  Content="{TemplateBinding Icon}"
+                                  TextElement.FontSize="22"
+                                  TextElement.Foreground="{TemplateBinding Foreground}" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                  <ContentPresenter Content="{TemplateBinding Title}"
+                                    ContentTemplate="{TemplateBinding TitleTemplate}"
+                                    TextElement.FontSize="13.5"
+                                    TextElement.FontWeight="SemiBold"
+                                    TextElement.Foreground="{TemplateBinding Foreground}" />
+                  <ContentPresenter Content="{TemplateBinding Content}"
+                                    ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                                    Margin="0,2,0,0"
+                                    TextElement.FontSize="12.5"
+                                    TextElement.Foreground="{TemplateBinding ContentForeground}" />
+                </StackPanel>
+                <Button x:Name="CloseButton"
+                        Grid.Column="2"
+                        Width="28"
+                        Height="28"
+                        Margin="14,0,0,0"
+                        VerticalAlignment="Center"
+                        Cursor="Hand"
+                        Foreground="{TemplateBinding Foreground}"
+                        Command="{Binding TemplateButtonCommand, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"
+                        AutomationProperties.Name="{x:Static props:Strings.ButtonDismiss}">
+                  <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                      <Grid>
+                        <Border x:Name="CloseFocusRing"
+                                Margin="-2"
+                                CornerRadius="10"
+                                BorderBrush="{DynamicResource AccentRingBrush}"
+                                BorderThickness="2"
+                                Opacity="0" />
+                        <Border x:Name="CloseBg"
+                                Background="Transparent"
+                                CornerRadius="8" />
+                        <Path Width="10"
+                              Height="10"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Stretch="Uniform"
+                              Data="M 0 0 L 10 10 M 10 0 L 0 10"
+                              Stroke="{TemplateBinding Foreground}"
+                              StrokeThickness="1.7"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round" />
+                      </Grid>
+                      <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                          <Setter TargetName="CloseBg" Property="Background" Value="{DynamicResource PressTintLightBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                          <Setter TargetName="CloseFocusRing" Property="Opacity" Value="1" />
+                        </Trigger>
+                      </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                  </Button.Template>
+                </Button>
+              </Grid>
+            </Border>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="Icon" Value="{x:Null}">
+              <Setter TargetName="IconPresenter" Property="Margin" Value="0" />
+            </Trigger>
+            <Trigger Property="IsCloseButtonEnabled" Value="False">
+              <Setter TargetName="CloseButton" Property="Visibility" Value="Collapsed" />
+              <Setter TargetName="CloseButton" Property="Margin" Value="0" />
+            </Trigger>
+            <Trigger Property="IsShown" Value="True">
+              <Setter TargetName="Root" Property="Opacity" Value="1" />
+              <Setter TargetName="Root" Property="Visibility" Value="Visible" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <Trigger Property="Appearance" Value="Success">
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}" />
+        <Setter Property="ContentForeground" Value="{DynamicResource TextOnAccentBrush}" />
+      </Trigger>
+      <Trigger Property="Appearance" Value="Caution">
+        <Setter Property="Background" Value="{DynamicResource WarningFillBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource WarningBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnWarningBrush}" />
+        <Setter Property="ContentForeground" Value="{DynamicResource TextOnWarningBrush}" />
+      </Trigger>
+      <Trigger Property="Appearance" Value="Danger">
+        <Setter Property="Background" Value="{DynamicResource DangerFillBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnDangerBrush}" />
+        <Setter Property="ContentForeground" Value="{DynamicResource TextOnDangerBrush}" />
+      </Trigger>
+    </Style.Triggers>
   </Style>
 
   <!-- ═══ Overlay scrim & card entrance motion ═══ -->

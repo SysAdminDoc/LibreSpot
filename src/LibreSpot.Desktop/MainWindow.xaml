@@ -677,15 +677,15 @@
             <BeginStoryboard>
               <Storyboard>
                 <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                 From="0" To="1" Duration="0:0:0.220">
+                                 From="0" To="1" Duration="{StaticResource MotionSlowDuration}">
                   <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
                 </DoubleAnimation>
                 <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleX)"
-                                 From="0.97" To="1" Duration="0:0:0.260">
+                                 From="0.97" To="1" Duration="{StaticResource MotionSlowDuration}">
                   <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
                 </DoubleAnimation>
                 <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleY)"
-                                 From="0.97" To="1" Duration="0:0:0.260">
+                                 From="0.97" To="1" Duration="{StaticResource MotionSlowDuration}">
                   <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
                 </DoubleAnimation>
               </Storyboard>
@@ -711,15 +711,15 @@
             <BeginStoryboard>
               <Storyboard>
                 <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                 From="0" To="1" Duration="0:0:0.200">
+                                 From="0" To="1" Duration="{StaticResource MotionSlowDuration}">
                   <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
                 </DoubleAnimation>
                 <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleX)"
-                                 From="0.97" To="1" Duration="0:0:0.240">
+                                 From="0.97" To="1" Duration="{StaticResource MotionSlowDuration}">
                   <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
                 </DoubleAnimation>
                 <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleY)"
-                                 From="0.97" To="1" Duration="0:0:0.240">
+                                 From="0.97" To="1" Duration="{StaticResource MotionSlowDuration}">
                   <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
                 </DoubleAnimation>
               </Storyboard>
@@ -851,11 +851,13 @@
                     <Border.Style>
                       <Style TargetType="Border" BasedOn="{StaticResource StatusMarkerStyle}">
                         <Style.Triggers>
-                          <DataTrigger Binding="{Binding HasConfigurationRecoveryNotice}" Value="True">
-                            <Setter Property="Background" Value="{StaticResource WarningBrush}" />
-                          </DataTrigger>
+                          <!-- Last matching trigger wins in WPF: the recovery-notice warning
+                               must stay below SavedConfigExists so it overrides the green. -->
                           <DataTrigger Binding="{Binding Snapshot.SavedConfigExists}" Value="True">
                             <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+                          </DataTrigger>
+                          <DataTrigger Binding="{Binding HasConfigurationRecoveryNotice}" Value="True">
+                            <Setter Property="Background" Value="{StaticResource WarningBrush}" />
                           </DataTrigger>
                         </Style.Triggers>
                       </Style>
@@ -1325,9 +1327,17 @@
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                 <Setter Property="VerticalContentAlignment" Value="Stretch" />
                                 <Setter Property="Background" Value="Transparent" />
-                                <Setter Property="BorderThickness" Value="0" />
+                                <!-- Constant thickness: the keyboard focus ring swaps brush
+                                     only, so focus never shifts layout. -->
+                                <Setter Property="BorderBrush" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="2" />
                                 <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
                                 <Setter Property="AutomationProperties.HelpText" Value="{Binding AutomationHelpText}" />
+                                <Style.Triggers>
+                                  <Trigger Property="IsKeyboardFocused" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
+                                  </Trigger>
+                                </Style.Triggers>
                               </Style>
                             </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
@@ -1420,8 +1430,14 @@
                                 <Setter Property="Margin" Value="0,0,8,8" />
                                 <Setter Property="Padding" Value="0" />
                                 <Setter Property="Background" Value="Transparent" />
-                                <Setter Property="BorderThickness" Value="0" />
+                                <Setter Property="BorderBrush" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="2" />
                                 <Setter Property="AutomationProperties.Name" Value="{Binding Converter={StaticResource PrettifyConverter}}" />
+                                <Style.Triggers>
+                                  <Trigger Property="IsKeyboardFocused" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
+                                  </Trigger>
+                                </Style.Triggers>
                               </Style>
                             </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
@@ -1901,9 +1917,15 @@
                               <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                               <Setter Property="VerticalContentAlignment" Value="Stretch" />
                               <Setter Property="Background" Value="Transparent" />
-                              <Setter Property="BorderThickness" Value="0" />
+                              <Setter Property="BorderBrush" Value="Transparent" />
+                              <Setter Property="BorderThickness" Value="2" />
                               <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
                               <Setter Property="AutomationProperties.HelpText" Value="{Binding AutomationHelpText}" />
+                              <Style.Triggers>
+                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                  <Setter Property="BorderBrush" Value="{StaticResource AccentRingBrush}" />
+                                </Trigger>
+                              </Style.Triggers>
                             </Style>
                           </ListBox.ItemContainerStyle>
                         </ListBox>
@@ -2788,7 +2810,7 @@
                   <BeginStoryboard>
                     <Storyboard>
                       <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                       From="0" To="1" Duration="0:0:0.180">
+                                       From="0" To="1" Duration="{StaticResource MotionMedDuration}">
                         <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
                       </DoubleAnimation>
                     </Storyboard>
@@ -3259,7 +3281,7 @@
                   <BeginStoryboard>
                     <Storyboard>
                       <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                       From="0" To="1" Duration="0:0:0.160">
+                                       From="0" To="1" Duration="{StaticResource MotionMedDuration}">
                         <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
                       </DoubleAnimation>
                     </Storyboard>
@@ -3345,9 +3367,9 @@
                   <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
                     <Style.Triggers>
                       <DataTrigger Binding="{Binding IsPromptDestructive}" Value="True">
-                        <Setter Property="Background" Value="{StaticResource DangerBrush}" />
+                        <Setter Property="Background" Value="{StaticResource DangerFillBrush}" />
                         <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
-                        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                        <Setter Property="Foreground" Value="{StaticResource TextOnDangerBrush}" />
                         <Setter Property="Tag" Value="{StaticResource DangerHoverTintBrush}" />
                       </DataTrigger>
                     </Style.Triggers>
