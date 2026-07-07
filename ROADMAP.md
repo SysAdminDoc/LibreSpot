@@ -547,3 +547,39 @@ pass.
 - [ ] P3 — Reword the "Premium Spotify toolkit" subtitle
   Why: for an ad-removal tool, "Premium" in always-visible branding reads as "makes Spotify Premium"; needs a branding decision (e.g., "Spotify setup & recovery toolkit").
   Where: LibreSpot.ps1 (TitleSubtext), src/LibreSpot.Desktop/ViewModels/MainViewModel.cs ("default premium preset" copy)
+
+## Research-Driven Additions
+
+### P1
+
+- [ ] P1 — Refresh July 2026 SpotX, Spicetify, and Marketplace pins
+  Why: live upstream releases now post-date LibreSpot's documented pins, and Spicetify `v2.44.0` explicitly adds Spotify `1.2.93` support.
+  Evidence: `README.md` / `src/LibreSpot.Desktop/Models/AppCatalog.cs` pins SpotX `3284673d`, Spicetify `2.43.2`, Marketplace `1.0.8`; GitHub API shows SpotX pushed 2026-07-06, Spicetify CLI `v2.44.0` published 2026-07-04 with Spotify `1.2.93` support, and Marketplace `v1.0.9` published 2026-07-04.
+  Touches: `LibreSpot.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `src/LibreSpot.Desktop/Models/AppCatalog.cs`, `schemas/community-assets.json`, `tests/LibreSpot.Desktop.Tests/*`, `tests/powershell/LibreSpot.Tests.ps1`, `README.md`, `CHANGELOG.md`, package templates.
+  Acceptance: pins, hashes, compatibility matrix, support-bundle catalog output, upstream-drift tests, and README all agree; local install/reapply validation proves SpotX + Spicetify + Marketplace succeed against the refreshed target or documents a pinned fallback.
+  Complexity: L
+
+### P2
+
+- [ ] P2 — Add a WPF backend host stall watchdog
+  Why: child processes have timeouts and heartbeats, but the desktop host itself can wait indefinitely if the backend script stops emitting protocol events.
+  Evidence: `src/LibreSpot.Desktop/Services/BackendScriptService.cs` waits on `process.WaitForExitAsync(cancellationToken)` with cancellation support but no idle budget; Microsoft Intune/PDQ/Ninite sources set admin expectations for retryable, observable background work.
+  Touches: `src/LibreSpot.Desktop/Services/BackendScriptService.cs`, `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`, `src/LibreSpot.Desktop/Properties/Strings*.resx`, `tests/LibreSpot.Desktop.Tests/BackendScriptServiceTests.cs`, `tests/LibreSpot.Desktop.Tests/BackendEventProtocolTests.cs`.
+  Acceptance: a fixture backend that emits no output for the configured idle window surfaces a visible "still waiting" activity status, writes a warning log entry, and a hard action budget kills the process tree with a categorized error instead of leaving the UI pending forever.
+  Complexity: M
+
+- [ ] P2 — Add current-run failure bundle export to the activity dialog
+  Why: failures currently offer Copy log/Open folder while the full support-bundle export is in a separate workspace; users need one click from the failed run surface.
+  Evidence: `src/LibreSpot.Desktop/MainWindow.xaml` activity footer exposes `ActivityCopyLogButton` and `ActivityOpenLibreSpotFolderButton`; `SupportBundleService` already redacts logs, crash reports, operation journal, and health state; Intune troubleshooting docs emphasize collectable logs from failed installs.
+  Touches: `src/LibreSpot.Desktop/MainWindow.xaml`, `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`, `src/LibreSpot.Desktop/Services/SupportBundleService.cs`, `src/LibreSpot.Desktop/Properties/Strings*.resx`, `tests/LibreSpot.Desktop.Tests/MainViewModelMaintenanceTests.cs`, `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`.
+  Acceptance: a failed backend run shows an Export failure bundle action, the exported zip includes the current run log, operation journal, health snapshot, and backend result metadata, and UIA smoke verifies the action is named/focusable only on failed or canceled runs.
+  Complexity: M
+
+### P3
+
+- [ ] P3 — Gate README WPF screenshots against current shell version
+  Why: README claims refreshed screenshots for `v4.0.0-preview.9`, but the current screenshot assets still display `v4.0.0-preview.8`.
+  Evidence: `assets/screenshots/wpf-recommended.png`, `wpf-custom.png`, `wpf-maintenance.png`, and `wpf-activity-undo.png`; `README.md` version badge and `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs` report `v4.0.0-preview.9`.
+  Touches: `assets/screenshots/*.png`, `src/LibreSpot.Desktop/MainWindow.xaml.cs` capture path, screenshot helper/release validation scripts, `README.md`, `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`.
+  Acceptance: regenerated screenshots show the current shell version and release validation fails when README screenshot assets are older than the WPF display version or capture source build.
+  Complexity: S
