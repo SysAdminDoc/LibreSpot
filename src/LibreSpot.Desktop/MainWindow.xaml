@@ -1826,6 +1826,7 @@
                                    BorderThickness="0"
                                    Padding="0"
                                    MaxHeight="340"
+                                   PreviewMouseWheel="NestedScrollRegion_OnPreviewMouseWheel"
                                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                    ScrollViewer.VerticalScrollBarVisibility="Auto"
                                    KeyboardNavigation.DirectionalNavigation="Contained"
@@ -1939,6 +1940,7 @@
                                    BorderThickness="0"
                                    Padding="0"
                                    IsEnabled="{Binding IsThemeSchemeAvailable}"
+                                   PreviewMouseWheel="NestedScrollRegion_OnPreviewMouseWheel"
                                    AutomationProperties.Name="{x:Static props:Strings.ColorSchemeLabel}"
                                    AutomationProperties.HelpText="{Binding ThemeSchemeHint}"
                                    Margin="0,6,0,6">
@@ -2273,6 +2275,7 @@
                                              LineNumbersForeground="{DynamicResource MutedTextBrush}"
                                              HorizontalScrollBarVisibility="Auto"
                                              VerticalScrollBarVisibility="Auto"
+                                             PreviewMouseWheel="NestedScrollRegion_OnPreviewMouseWheel"
                                              TextChanged="CustomPatchesTextEditor_OnTextChanged"
                                              AutomationProperties.Name="{services:Loc Ui_SpotXCustomPatchesJSONEditor}"
                                              AutomationProperties.HelpText="{services:Loc Ui_PasteOrEditSpotXPatchesJsonContentHere}" />
@@ -2423,6 +2426,7 @@
                                  Padding="0"
                                  MinHeight="120"
                                  MaxHeight="260"
+                                 PreviewMouseWheel="NestedScrollRegion_OnPreviewMouseWheel"
                                  HorizontalContentAlignment="Stretch"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  KeyboardNavigation.DirectionalNavigation="Contained"

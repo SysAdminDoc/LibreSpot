@@ -26,6 +26,22 @@ public sealed class WpfUiIntegrationTests
     }
 
     [Fact]
+    public void NestedScrollRegions_RerouteMouseWheelAtBoundaries()
+    {
+        var xaml = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        var codeBehind = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
+
+        Assert.True(
+            CountOccurrences(xaml, "PreviewMouseWheel=\"NestedScrollRegion_OnPreviewMouseWheel\"") >= 4,
+            "Theme gallery, scheme chips, local profiles, and custom patches editor must let parent panes keep scrolling at boundaries.");
+        Assert.Contains("NestedScrollRegion_OnPreviewMouseWheel", codeBehind);
+        Assert.Contains("CanScrollVertically", codeBehind);
+        Assert.Contains("FindDescendantScrollViewer", codeBehind);
+        Assert.Contains("UIElement.MouseWheelEvent", codeBehind);
+        Assert.Contains("parent.RaiseEvent", codeBehind);
+    }
+
+    [Fact]
     public void WpfUiAssembly_LoadsAndExposesTartetControls()
     {
         var asm = Assembly.Load("Wpf.Ui");
@@ -496,6 +512,9 @@ public sealed class WpfUiIntegrationTests
 
     private static string ReadRepoFile(params string[] parts) =>
         File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(parts).ToArray()));
+
+    private static int CountOccurrences(string text, string value) =>
+        text.Split(value, StringSplitOptions.None).Length - 1;
 
     private static string ResolveRepoRoot()
     {

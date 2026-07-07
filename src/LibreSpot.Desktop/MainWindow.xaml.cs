@@ -248,6 +248,57 @@ public partial class MainWindow : Window
         }
     }
 
+    private void NestedScrollRegion_OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (e.Delta == 0 || sender is not DependencyObject source)
+        {
+            return;
+        }
+
+        var scrollViewer = FindDescendantScrollViewer(source);
+        if (scrollViewer is not null && CanScrollVertically(scrollViewer, e.Delta))
+        {
+            return;
+        }
+
+        if (VisualTreeHelper.GetParent(source) is not UIElement parent)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        parent.RaiseEvent(new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+        {
+            RoutedEvent = UIElement.MouseWheelEvent,
+            Source = sender
+        });
+    }
+
+    private static bool CanScrollVertically(System.Windows.Controls.ScrollViewer scrollViewer, int delta) =>
+        delta < 0
+            ? scrollViewer.VerticalOffset < scrollViewer.ScrollableHeight
+            : scrollViewer.VerticalOffset > 0;
+
+    private static System.Windows.Controls.ScrollViewer? FindDescendantScrollViewer(DependencyObject root)
+    {
+        if (root is System.Windows.Controls.ScrollViewer scrollViewer)
+        {
+            return scrollViewer;
+        }
+
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+        {
+            var child = VisualTreeHelper.GetChild(root, index);
+            var descendant = FindDescendantScrollViewer(child);
+            if (descendant is not null)
+            {
+                return descendant;
+            }
+        }
+
+        return null;
+    }
+
     private void ShowCompletionSnackbar()
     {
         if (!IsLoaded || !_viewModel.IsActivityVisible)
