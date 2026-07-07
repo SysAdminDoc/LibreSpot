@@ -253,6 +253,18 @@ public sealed class LocalProfileService
                 throw new InvalidOperationException("Share URI file references must use the .librespot extension.");
             }
 
+            // librespot:// URIs are launchable by any web page via the OS
+            // protocol handler; a file= source must not become a primitive
+            // for reading and rendering arbitrary attacker-named local paths.
+            // Local files outside the profile store import via the file
+            // dialog or the .librespot file association instead.
+            var profileRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(_profileDirectory));
+            var resolvedDirectory = Path.GetDirectoryName(resolvedFile);
+            if (!string.Equals(resolvedDirectory is null ? null : Path.TrimEndingDirectorySeparator(resolvedDirectory), profileRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Share URI file references must point inside the LibreSpot profiles folder. Use Import from file for other locations.");
+            }
+
             return await PreviewImportAsync(resolvedFile, cancellationToken);
         }
 

@@ -154,7 +154,7 @@ public sealed class LocalProfileServiceTests : IDisposable
         var config = AppCatalog.CreateRecommendedConfiguration();
         config.SpotX_LyricsTheme = "github";
         var created = await _profileService.CreateFromConfigurationAsync("Remote Share", "Fetched preview", config);
-        var exportPath = Path.Combine(_root, "remote.librespot");
+        var exportPath = Path.Combine(_profileService.ProfileDirectory, "remote.librespot");
         await _profileService.ExportAsync(created.Summary.Id, exportPath);
 
         var localUri = $"librespot://profile?file={Uri.EscapeDataString(exportPath)}";
@@ -162,6 +162,14 @@ public sealed class LocalProfileServiceTests : IDisposable
 
         Assert.Equal("Remote Share", localPreview.Name);
         Assert.Equal("github", localPreview.Configuration.SpotX_LyricsTheme);
+
+        // The protocol handler is web-launchable; file= sources outside the
+        // profile store must be refused so a page can't make the app read and
+        // render arbitrary attacker-named local paths.
+        var outsidePath = Path.Combine(_root, "outside.librespot");
+        await _profileService.ExportAsync(created.Summary.Id, outsidePath);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _profileService.PreviewShareUriAsync($"librespot://profile?file={Uri.EscapeDataString(outsidePath)}"));
 
         var httpsPreview = await _profileService.PreviewShareUriAsync(
             "librespot://profile?url=https%3A%2F%2Fexample.test%2Fremote.librespot",

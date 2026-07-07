@@ -6570,6 +6570,40 @@ function Hide-SpotifyWindows {
     }
 }
 
+function Get-SpotXChildFailureClassification {
+    # SpotX can fail inside its OWN downloader after LibreSpot has already
+    # hash-verified run.ps1 (SpotX issues #870, #836). Without classification
+    # those runs surface as a generic "Process exited with code N". Returns
+    # $null when no known signature matches, otherwise a stable category id
+    # plus sanitized guidance (never echoes raw child output, which can
+    # contain attacker-influenced mirror HTML).
+    param([string]$Line)
+    if ([string]::IsNullOrWhiteSpace($Line)) { return $null }
+
+    if ($Line -match 'curl exit code 28|ERR_CONNECTION_TIMED_OUT|Operation timed out after') {
+        return [pscustomobject]@{
+            Category = 'SpotXChildDownloadTimeout'
+            Guidance = "SpotX's own downloader timed out while fetching Spotify components. LibreSpot already verified the SpotX script itself, so this is an upstream network or CDN outage - retry in a few minutes, or choose a different download method under Custom Install > Advanced adjustments."
+        }
+    }
+
+    if ($Line -match 'loadspot\.amd64fox1\.workers\.dev') {
+        return [pscustomobject]@{
+            Category = 'SpotXWorkerEndpointFailure'
+            Guidance = "SpotX's Cloudflare worker download endpoint failed. This is an upstream SpotX outage (see SpotX issues #870/#836), not a problem on this machine - retry later, or choose a different download method under Custom Install > Advanced adjustments."
+        }
+    }
+
+    if ($Line -match 'suspected phishing|reported for potential phishing|This website has been blocked') {
+        return [pscustomobject]@{
+            Category = 'SpotXMirrorBlockedPhishing'
+            Guidance = 'A SpotX download mirror is currently flagged by Cloudflare as suspected phishing, so the download was blocked upstream. Turn off the mirror option (or retry without it) and run the setup again.'
+        }
+    }
+
+    return $null
+}
+
 function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Arguments,[int]$TimeoutSeconds=600)
     Write-Log "Spawning: $FilePath"
     Write-PowerShellSecurityContext
@@ -6580,6 +6614,9 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
     # The spawned powershell.exe can be forced into ConstrainedLanguage by WDAC /
     # AppLocker even when this host is FullLanguage; classify that from stderr.
     $appControlHintShown = $false
+    # SpotX child-download outages (timeouts, Cloudflare worker failures,
+    # phishing-flagged mirrors) otherwise surface as a bare exit code.
+    $childFailure = $null
     $p = $null
     try {
         $argString = "-NoProfile -ExecutionPolicy Bypass -File `"$FilePath`" $Arguments"
@@ -6594,12 +6631,16 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
             }
             $stdoutRead = Read-ProcessOutputDelta -Path $stdoutPath -Offset $stdoutState.Offset -Remainder $stdoutState.Remainder
             $stdoutState = @{ Offset = $stdoutRead.Offset; Remainder = $stdoutRead.Remainder }
-            foreach ($line in $stdoutRead.Lines) { Write-Log $line -Level 'OUT' }
+            foreach ($line in $stdoutRead.Lines) {
+                Write-Log $line -Level 'OUT'
+                if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
+            }
 
             $stderrRead = Read-ProcessOutputDelta -Path $stderrPath -Offset $stderrState.Offset -Remainder $stderrState.Remainder
             $stderrState = @{ Offset = $stderrRead.Offset; Remainder = $stderrRead.Remainder }
             foreach ($line in $stderrRead.Lines) {
                 Write-Log "[STDERR] $line" -Level 'WARN'
+                if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
                 if (-not $appControlHintShown -and (Test-IsLanguageModeOrAppControlError -Message $line)) {
                     $appControlHintShown = $true
                     Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker, Windows Defender Application Control, or Smart App Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these controls. On managed devices, ask your administrator. On personal devices with Smart App Control (Windows 11), adjust it in Settings > Privacy & security > Windows Security. Alternatively, use LibreSpot.exe from the Releases page." -Level 'WARN'
@@ -6612,10 +6653,12 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
         $stdoutRead = Read-ProcessOutputDelta -Path $stdoutPath -Offset $stdoutState.Offset -Remainder $stdoutState.Remainder
         foreach ($line in $stdoutRead.Lines + @($stdoutRead.Remainder) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) {
             Write-Log $line -Level 'OUT'
+            if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
         }
         $stderrRead = Read-ProcessOutputDelta -Path $stderrPath -Offset $stderrState.Offset -Remainder $stderrState.Remainder
         foreach ($line in $stderrRead.Lines + @($stderrRead.Remainder) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) {
             Write-Log "[STDERR] $line" -Level 'WARN'
+            if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
             if (-not $appControlHintShown -and (Test-IsLanguageModeOrAppControlError -Message $line)) {
                 $appControlHintShown = $true
                 Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker, Windows Defender Application Control, or Smart App Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these controls. On managed devices, ask your administrator. On personal devices with Smart App Control (Windows 11), adjust it in Settings > Privacy & security > Windows Security. Alternatively, use LibreSpot.exe from the Releases page." -Level 'WARN'
@@ -6630,6 +6673,13 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
         if ($null -eq $exitCode) {
             Write-Log 'External process finished but ExitCode was unavailable; treating as success.' -Level 'WARN'
         } elseif ($exitCode -ne 0) {
+            if ($childFailure) {
+                Write-Log $childFailure.Guidance -Level 'WARN'
+                try {
+                    Write-OperationJournalEntry -Phase 'external' -Target $FilePath -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint $childFailure.Guidance -Data @{ failureCategory = $childFailure.Category; exitCode = $exitCode }
+                } catch {}
+                throw "Process exited with code $exitCode [$($childFailure.Category)]"
+            }
             throw "Process exited with code $exitCode"
         }
     } finally {
@@ -8036,7 +8086,7 @@ $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-SpotXCustomPatchesFile','New-LibreSpotTempDirectory',
     'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
-    'Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
+    'Get-SpotXChildFailureClassification','Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyIntegrationContext','Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
     'Get-NormalizedPathString','Get-PathEntries','Set-PathEntries','Add-PathEntry','Remove-PathEntry',

@@ -55,6 +55,7 @@ BeforeAll {
         'Assert-LibreSpotConfigSchemaSupported'
         'Normalize-LibreSpotConfig'
         'Compare-LibreSpotVersions'
+        'Get-SpotXChildFailureClassification'
     )
     $blocks = foreach ($fn in $functionsToLoad) {
         $block = Extract-FunctionBlock $scriptContent $fn
@@ -817,6 +818,52 @@ Describe 'Compare-LibreSpotVersions' {
 
         It 'Returns $true when Current is whitespace' {
             Compare-LibreSpotVersions -Latest '1.0.0' -Current '   ' | Should -BeTrue
+        }
+    }
+}
+
+Describe 'Get-SpotXChildFailureClassification' {
+    Context 'Known SpotX child-download outage signatures' {
+        It 'Classifies curl exit code 28 as a child download timeout' {
+            $r = Get-SpotXChildFailureClassification -Line 'Download failed: curl exit code 28 while fetching SpotifyFullSetup.exe'
+            $r | Should -Not -BeNullOrEmpty
+            $r.Category | Should -Be 'SpotXChildDownloadTimeout'
+            $r.Guidance | Should -Match 'timed out'
+        }
+
+        It 'Classifies ERR_CONNECTION_TIMED_OUT as a child download timeout' {
+            $r = Get-SpotXChildFailureClassification -Line 'GET https://download.scdn.co failed: ERR_CONNECTION_TIMED_OUT'
+            $r.Category | Should -Be 'SpotXChildDownloadTimeout'
+        }
+
+        It 'Classifies the Cloudflare worker endpoint host as a worker failure' {
+            $r = Get-SpotXChildFailureClassification -Line 'Error from https://loadspot.amd64fox1.workers.dev/spotify: 522'
+            $r.Category | Should -Be 'SpotXWorkerEndpointFailure'
+            $r.Guidance | Should -Match 'upstream'
+        }
+
+        It 'Classifies Cloudflare suspected-phishing block text' {
+            $r = Get-SpotXChildFailureClassification -Line 'Warning: This website has been reported for potential phishing.'
+            $r.Category | Should -Be 'SpotXMirrorBlockedPhishing'
+            $r.Guidance | Should -Match 'mirror'
+        }
+
+        It 'Does not echo the raw child output in the guidance' {
+            $raw = 'Error from https://loadspot.amd64fox1.workers.dev/spotify?token=secret123: 522'
+            $r = Get-SpotXChildFailureClassification -Line $raw
+            $r.Guidance | Should -Not -Match 'secret123'
+        }
+    }
+
+    Context 'Non-matching input' {
+        It 'Returns $null for unrelated output' {
+            Get-SpotXChildFailureClassification -Line 'Patching xpui.js ... done' | Should -BeNullOrEmpty
+        }
+
+        It 'Returns $null for null/empty/whitespace' {
+            Get-SpotXChildFailureClassification -Line $null | Should -BeNullOrEmpty
+            Get-SpotXChildFailureClassification -Line '' | Should -BeNullOrEmpty
+            Get-SpotXChildFailureClassification -Line '   ' | Should -BeNullOrEmpty
         }
     }
 }

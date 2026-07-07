@@ -8,6 +8,9 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
     # The spawned powershell.exe can be forced into ConstrainedLanguage by WDAC /
     # AppLocker even when this host is FullLanguage; classify that from stderr.
     $appControlHintShown = $false
+    # SpotX child-download outages (timeouts, Cloudflare worker failures,
+    # phishing-flagged mirrors) otherwise surface as a bare exit code.
+    $childFailure = $null
     $p = $null
     try {
         $argString = "-NoProfile -ExecutionPolicy Bypass -File `"$FilePath`" $Arguments"
@@ -22,12 +25,16 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
             }
             $stdoutRead = Read-ProcessOutputDelta -Path $stdoutPath -Offset $stdoutState.Offset -Remainder $stdoutState.Remainder
             $stdoutState = @{ Offset = $stdoutRead.Offset; Remainder = $stdoutRead.Remainder }
-            foreach ($line in $stdoutRead.Lines) { Write-Log $line -Level 'OUT' }
+            foreach ($line in $stdoutRead.Lines) {
+                Write-Log $line -Level 'OUT'
+                if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
+            }
 
             $stderrRead = Read-ProcessOutputDelta -Path $stderrPath -Offset $stderrState.Offset -Remainder $stderrState.Remainder
             $stderrState = @{ Offset = $stderrRead.Offset; Remainder = $stderrRead.Remainder }
             foreach ($line in $stderrRead.Lines) {
                 Write-Log "[STDERR] $line" -Level 'WARN'
+                if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
                 if (-not $appControlHintShown -and (Test-IsLanguageModeOrAppControlError -Message $line)) {
                     $appControlHintShown = $true
                     Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker, Windows Defender Application Control, or Smart App Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these controls. On managed devices, ask your administrator. On personal devices with Smart App Control (Windows 11), adjust it in Settings > Privacy & security > Windows Security. Alternatively, use LibreSpot.exe from the Releases page." -Level 'WARN'
@@ -40,10 +47,12 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
         $stdoutRead = Read-ProcessOutputDelta -Path $stdoutPath -Offset $stdoutState.Offset -Remainder $stdoutState.Remainder
         foreach ($line in $stdoutRead.Lines + @($stdoutRead.Remainder) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) {
             Write-Log $line -Level 'OUT'
+            if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
         }
         $stderrRead = Read-ProcessOutputDelta -Path $stderrPath -Offset $stderrState.Offset -Remainder $stderrState.Remainder
         foreach ($line in $stderrRead.Lines + @($stderrRead.Remainder) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) {
             Write-Log "[STDERR] $line" -Level 'WARN'
+            if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
             if (-not $appControlHintShown -and (Test-IsLanguageModeOrAppControlError -Message $line)) {
                 $appControlHintShown = $true
                 Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker, Windows Defender Application Control, or Smart App Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these controls. On managed devices, ask your administrator. On personal devices with Smart App Control (Windows 11), adjust it in Settings > Privacy & security > Windows Security. Alternatively, use LibreSpot.exe from the Releases page." -Level 'WARN'
@@ -58,6 +67,13 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
         if ($null -eq $exitCode) {
             Write-Log 'External process finished but ExitCode was unavailable; treating as success.' -Level 'WARN'
         } elseif ($exitCode -ne 0) {
+            if ($childFailure) {
+                Write-Log $childFailure.Guidance -Level 'WARN'
+                try {
+                    Write-OperationJournalEntry -Phase 'external' -Target $FilePath -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint $childFailure.Guidance -Data @{ failureCategory = $childFailure.Category; exitCode = $exitCode }
+                } catch {}
+                throw "Process exited with code $exitCode [$($childFailure.Category)]"
+            }
             throw "Process exited with code $exitCode"
         }
     } finally {
