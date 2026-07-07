@@ -21,6 +21,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Implemented Spotify restart detection in the standalone launch-after stability probe so PID replacement during the post-patch wait is surfaced as an unstable session.
 - Unified standalone shell and README naming with the WPF shell by using "Recommended setup" and "True Shuffle" consistently for user-facing defaults.
 - Localized resource-backed WPF ViewModel text for profile management, shell readiness, Custom summaries, Maintenance cards, support-bundle previews, and the activity overlay.
+- Closed WPF color-lint blind spots so short XAML hex colors, named XAML colors, and unallowlisted C# color construction fail local tests instead of bypassing palette review.
 
 ## [v4.0.0-preview.8] - 2026-07-07
 
