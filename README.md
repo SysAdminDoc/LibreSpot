@@ -9,7 +9,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-4.0.0--preview.6-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
-[![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Stable](https://img.shields.io/badge/Stable-3.7.3-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 
 </div>
 
@@ -87,7 +87,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 >
 > If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch. The WPF Maintenance dashboard also flags **After Spotify update** drift and recommends targeted recovery steps before a full reset.
 
-**Pinned dependency versions (v3.7.2):**
+**Pinned dependency versions (v3.7.3):**
 
 | Component | Pinned Version |
 |---|---|
@@ -351,7 +351,7 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 
 Releases ship unsigned today. [SignPath Foundation](https://signpath.org/) OSS enrollment is pending. Once the cert arrives, local release builds will Authenticode-sign `LibreSpot.exe`, `LibreSpot-Desktop.exe`, and `LibreSpot.Cli.exe` before upload and users will stop seeing the "Unknown publisher" SmartScreen warning.
 
-The current latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt` **as GitHub release assets**. The repository itself does not track build artifacts — `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [Releases page](https://github.com/SysAdminDoc/LibreSpot/releases), not against anything in a source checkout. Newer local release builds also add the .NET 10 `LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, CycloneDX SBOM output, and `librespot-release-manifest.json`.
+The current latest stable release, v3.7.3, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt` **as GitHub release assets**. The repository itself does not track build artifacts — `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [Releases page](https://github.com/SysAdminDoc/LibreSpot/releases), not against anything in a source checkout. Newer local release builds also add the .NET 10 `LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, CycloneDX SBOM output, and `librespot-release-manifest.json`.
 
 The recommended Quick Start snippet above verifies `LibreSpot.ps1` automatically. For manual verification of any downloaded release asset:
 

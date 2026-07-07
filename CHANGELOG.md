@@ -2,7 +2,150 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
-## [Unreleased]
+## [v3.7.3] / [v4.0.0-preview.7] - 2026-07-07
+
+Deep end-to-end audit pass: correctness, security, accessibility, theming,
+localization, and release hardening across the stable script, the WPF shell,
+and the fleet CLI.
+
+### Fixed — critical
+
+- **The standalone script did not parse at all under Windows PowerShell 5.1.**
+  `LibreSpot.ps1` was BOM-less UTF-8; PS 5.1 reads such files in the ANSI
+  codepage, and a `U+2139` glyph in the update banner corrupted the token
+  stream into 14 cascading parse errors — every `Run with PowerShell` /
+  `powershell -File` launch failed outright. Both runnable scripts now carry
+  a UTF-8 BOM, `-Lint` gates on BOM presence plus a clean `ParseFile`, and
+  the shared-function sync writes the backend with a BOM.
+- **Every WPF-shell and CLI install/reapply/repair failed at archive
+  extraction.** `Expand-ArchiveSafely` loaded only `System.IO.Compression`;
+  on .NET Framework `ZipFile` lives in `System.IO.Compression.FileSystem`,
+  which nothing in the backend loaded. Fixed in all three script surfaces
+  and re-verified by executing the function in a clean `powershell.exe`.
+- **Successful GUI installs rolled themselves back.** The monolith's worker
+  runspaces were missing `Write-MarketplaceVisibilityEvidence`, so the
+  Spicetify apply success path threw `CommandNotFound`, was misread as an
+  apply failure, and triggered `spicetify restore`. The worker allow-list
+  also gained the journal-retention helper (operation journal was silently
+  dead in workers) and the Spotify version manifest globals (a pinned
+  Spotify version silently degraded to `auto`).
+- **The auto-reapply watcher never worked from the WPF shell.** The
+  scheduled task pointed at the ephemeral `LibreSpot.Backend.<guid>.run.ps1`
+  execution copy that is deleted right after each run; it now targets the
+  canonical runtime script. In the standalone script, the `-watch` handler
+  ran before the reapply pipeline's dependencies were defined (real reapply
+  ticks died with `CommandNotFound`) and was forwarded through the UAC
+  self-elevation gate (a consent prompt every 30 minutes); the watcher now
+  runs non-elevated after all definitions.
+- **The Spotify killer/hider watcher killed the wrong Spotify.** It
+  force-closed the user's running Spotify during read-only Check for
+  Updates, killed the Spotify that `LaunchAfter` had just started during
+  the 20-second stability window (self-inflicting the "server-side
+  enforcement" warning), and killed the Marketplace window Repair had just
+  opened.
+- **The run-completion snackbar never rendered.** WPF-UI ships no
+  generic.xaml and its dictionaries were never merged, so the `Snackbar`
+  control had no template. A palette-token implicit style now renders
+  Success/Caution/Danger completion feedback in both palettes, with
+  offscreen render coverage.
+
+### Fixed — data safety
+
+- Watcher-state saves from the standalone script destroyed the WPF lane's
+  extended fields (`LastAppliedSpotifyVersion`, `LastSuccessfulApplyAt`, …);
+  every lane now merges over the existing `watcher-state.json`.
+- Full Reset left the auto-reapply scheduled task registered forever on a
+  machine with no Spotify; both lanes now unregister it.
+- Plan summaries ran against `config.json` before the user confirmed Apply —
+  cancelling the prompt left the unconfirmed profile (with
+  `RiskAcknowledged=true`) live for the watcher. Plans now use a temp config;
+  the real save happens only on confirmation.
+- UI-driven config saves rebuilt `config.json` purely from controls, wiping
+  config-only settings (`RiskAcknowledged`, `UiCulture`, `SpotX_Language`,
+  custom SpotX patches); saves now merge over the loaded config.
+- Corrupt-config quarantine aborted at startup before the journal helper was
+  defined, leaving the corrupt file in place and repeating the settings-reset
+  dialog every launch.
+- `Remove-PathSafely` deletes reparse points as links instead of recursing
+  into them — PS 5.1 `Remove-Item -Recurse` follows directory junctions and
+  `icacls /T` reset ACLs on the target tree, an elevated delete-anything
+  primitive for anyone able to plant a link in a removal root.
+- The stale shared sources for `Set-WatcherState`/`Save-LibreSpotConfig`
+  still carried the delete-then-move data-loss window; refreshed to the
+  crash-safe rescue-move fallback.
+
+### Fixed — security
+
+- `librespot://profile?file=` (launchable by any web page) accepted arbitrary
+  local paths; it now only reads from the LibreSpot profiles folder.
+- HTTPS profile and custom-patch imports re-validate the scheme after
+  redirects.
+- Support-bundle redaction regexes carry a 2-second match timeout and omit
+  the content window on timeout instead of shipping it un-redacted.
+- Backend admin gate aligned with the shell: `CreateBackup`,
+  `OpenMarketplace`, `RemoveSelfData`, and `Plan` no longer throw a bogus
+  "needs administrator" error in non-elevated sessions; read-only `Plan` is
+  exempt from the risk-acknowledgment gate.
+
+### Fixed — UX, accessibility, and theming
+
+- Maintenance Safe Mode was dead code twice over (a guard on a variable from
+  another function's scope, and no worker branch); it now actually disables
+  customizations.
+- Cancelling a backend run showed the error badge and "Run needs attention";
+  it now reports Canceled.
+- The Remove LibreSpot data confirmation described the wrong action (generic
+  "deeper reset path" scare copy); it now states exactly what is deleted and
+  that Spotify/SpotX/Spicetify are untouched. Full reset copy says plainly
+  that the Spotify app itself is uninstalled.
+- Destructive buttons had invisible text in every high-contrast scheme and
+  3.43:1 contrast in the dark palette; new `DangerFill`/`TextOnDanger` token
+  pairs render 6.1:1 in dark and flatten to normal HC control surfaces. HC
+  danger text maps to HotTrack so error and success states are
+  distinguishable.
+- MainWindow brushes converted to `DynamicResource` (251 references) so the
+  runtime high-contrast palette swap actually restyles the window instead of
+  producing a half-swapped UI; window chrome skips/clears custom DWM colors
+  under high contrast and re-applies on toggle.
+- ComboBox dropdown keyboard highlight was invisible (1.01:1); keyboard focus
+  rings added to ComboBox items and the theme/scheme/profile lists; invisible
+  scrollbar page buttons removed from the tab order; overlay storyboards use
+  the motion tokens so reduced-motion actually flattens them.
+- Sidebar profile status marker no longer shows green while the status line
+  reports recovered defaults.
+
+### Fixed — localization
+
+- Nine translated strings in all four locales had lost every sentence after
+  the first (including the beautiful-lyrics third-party privacy disclosure
+  and the "Spotify and Spicetify are not affected" reassurance); all
+  retranslated, and the localization lint now fails truncated translations.
+- Machine-translation howlers corrected across es/pt-BR/ru/zh-Hans nav,
+  buttons, and status text ("Costumbre", "Claro", "Cerca", "Despedir",
+  "Mercado abierto", "Quitar especiado", "Correr necesita atención", …),
+  including a meaning-inverted safety hint in ru/zh that told users to keep
+  the riskiest options enabled.
+- Tray menu and balloon text localized; backend stdout is UTF-8 so non-ASCII
+  event payloads stop garbling; three dead drifted resx keys removed.
+
+### Added
+
+- SpotX child-download outage classification: timeouts (`curl exit code
+  28`, `ERR_CONNECTION_TIMED_OUT`), the loadspot Cloudflare worker endpoint,
+  and phishing-flagged mirrors now map to stable failure categories with
+  sanitized guidance, recorded in the operation journal for fleet logs and
+  support bundles, instead of a bare process exit code.
+- CLI `--help` documents the implemented `reapply`, `uninstall`, and
+  `repair` verbs and common flags.
+
+### Changed
+
+- `-Validate` excludes the intentional backend `Hide-SpotifyWindows` stub
+  from drift comparison (it exited 1 on every run).
+- Drift services share one `HttpClient`; built-in profile ID checks are
+  cached; the Spicetify version probe uses a randomized temp file.
+
+### Also in this release — accumulated since v3.7.2 / v4.0.0-preview.6
 
 ### Added
 - Added offscreen high-contrast WPF rendering smoke coverage for representative

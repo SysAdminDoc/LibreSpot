@@ -1,10 +1,10 @@
 {
     "$comment": "DRAFT — blocked on: finalized package identity, artifact format decision",
-    "version": "3.7.2",
+    "version": "3.7.3",
     "description": "SpotX + Spicetify unified installer for Spotify customization on Windows",
     "homepage": "https://github.com/SysAdminDoc/LibreSpot",
     "license": "MIT",
-    "url": "https://github.com/SysAdminDoc/LibreSpot/releases/download/v3.7.2/LibreSpot.exe#/LibreSpot.exe",
+    "url": "https://github.com/SysAdminDoc/LibreSpot/releases/download/v3.7.3/LibreSpot.exe#/LibreSpot.exe",
     "hash": "PLACEHOLDER_SHA256",
     "bin": "LibreSpot.exe",
     "checkver": {

@@ -23,13 +23,17 @@ public sealed class CommunitySharingExperienceTests
     }
 
     [Fact]
-    public void ChangelogPreviewService_LoadsEmbeddedUnreleasedHighlights()
+    public void ChangelogPreviewService_LoadsNewestSectionHighlights()
     {
         var highlights = ChangelogPreviewService.LoadUnreleasedHighlights();
 
         Assert.NotEmpty(highlights);
         Assert.DoesNotContain(highlights, item => item.Contains("not embedded", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(highlights, item => item.Contains("RemoveSelfData", StringComparison.OrdinalIgnoreCase));
+        // The preview reads the newest changelog section's bullets, so it must
+        // never surface the empty-section placeholder and every highlight must
+        // be real changelog copy (non-trivial length).
+        Assert.DoesNotContain(highlights, item => item.Contains("No changelog entries", StringComparison.OrdinalIgnoreCase));
+        Assert.All(highlights, item => Assert.True(item.Length > 8));
     }
 
     [Fact]

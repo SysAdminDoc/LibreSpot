@@ -102,7 +102,7 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
 
-$global:VERSION = '3.7.2'
+$global:VERSION = '3.7.3'
 $global:CONFIG_SCHEMA_VERSION = 1
 
 

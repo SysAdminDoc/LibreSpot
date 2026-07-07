@@ -130,7 +130,7 @@
   "examples": [
     {
       "description": "Run start event",
-      "line": "{\"schemaVersion\":1,\"eventId\":\"LS1001\",\"timestamp\":\"2026-06-19T14:30:00.000Z\",\"level\":\"info\",\"verb\":\"install\",\"operationId\":\"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\"correlationId\":\"intune-job-42\",\"component\":\"lifecycle\",\"target\":null,\"message\":\"LibreSpot run started.\",\"payload\":{\"version\":\"3.7.2\",\"action\":\"Install\",\"mode\":\"recommended\"}}"
+      "line": "{\"schemaVersion\":1,\"eventId\":\"LS1001\",\"timestamp\":\"2026-06-19T14:30:00.000Z\",\"level\":\"info\",\"verb\":\"install\",\"operationId\":\"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\"correlationId\":\"intune-job-42\",\"component\":\"lifecycle\",\"target\":null,\"message\":\"LibreSpot run started.\",\"payload\":{\"version\":\"3.7.3\",\"action\":\"Install\",\"mode\":\"recommended\"}}"
     },
     {
       "description": "Download verified event",

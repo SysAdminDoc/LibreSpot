@@ -30,8 +30,8 @@ build machine should:
 
 ## Current State
 
-- Stable script release: v3.7.2.
-- Native WPF shell line: v4.0.0-preview.6.
+- Stable script release: v3.7.3.
+- Native WPF shell line: v4.0.0-preview.7.
 - Release pipeline now builds PS2EXE and WPF artifacts with checksums, SBOMs, and
   build provenance attestations.
 - Auto-reapply watcher, self-update checks, pre-patched Spotify detection,
@@ -433,17 +433,6 @@ supported locales are affected.
 Where: `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs` — all
 computed `string` properties that return inline English text.
 
-### P3 — Scheduled task cleanup during FullReset 🤖
-
-Why: FullReset calls Module-NukeSpotify which removes Spotify-owned
-tasks, but the LibreSpot ReapplyWatcher scheduled task is not
-explicitly unregistered. After a full reset, the orphaned task fires
-on logon, finds no Spotify, and logs a benign skip — but it remains
-in Task Scheduler indefinitely.
-
-Where: `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1` —
-FullReset action handler.
-
 ## Research-Driven Additions
 
 Items below were added by the June 9, 2026 research pass. They cover
@@ -489,39 +478,7 @@ needs to detect and surface this state, not just show booleans.
 
 ### P1
 
-- [ ] P1 — Classify SpotX child-download outages
-  Why: SpotX can fail inside its own downloader path with timeout or Cloudflare-worker errors after LibreSpot has already verified `run.ps1`, leaving users and fleet logs with a generic process-exit failure.
-  Evidence: SpotX issues #870 and #836; `src/powershell/shared/Invoke-ExternalScriptIsolated.ps1`; `src/powershell/shared/Module-InstallSpotX.ps1`; `src/powershell/shared/Get-DownloadFailureHint.ps1`; `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`.
-  Touches: `src/powershell/shared/Invoke-ExternalScriptIsolated.ps1`, `src/powershell/shared/Module-InstallSpotX.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `LibreSpot.ps1`, `tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs`, `tests/LibreSpot.Desktop.Tests/OfflineAssetCacheRegressionTests.cs`.
-  Acceptance: fixture stdout/stderr containing `curl exit code 28`, `ERR_CONNECTION_TIMED_OUT`, Cloudflare suspected-phishing text, and `loadspot.amd64fox1.workers.dev` maps to sanitized warning guidance, stable fleet/support-bundle failure categories, and the original nonzero exit; monolith and embedded backend stay in sync.
-  Complexity: M
-
 ### P2
-
-- [ ] P1 — Convert MainWindow.xaml StaticResource brush references to DynamicResource for theme switching
-  Why: MainWindow.xaml uses StaticResource for ~605 brush references. These resolve once at load time, so high-contrast theme swaps and reduced-motion overrides applied by ThemeManager at runtime have no effect on the main window.
-  Where: `src/LibreSpot.Desktop/MainWindow.xaml`, `src/LibreSpot.Desktop/Themes/Controls.xaml` (animation Duration properties also use StaticResource for motion tokens, making ApplyReducedMotion ineffective).
-  Complexity: L
-
-- [ ] P2 — Localize tray icon context menu items and balloon tip text
-  Why: System tray menu items ("Open LibreSpot", "Open LibreSpot folder", "Exit LibreSpot") and balloon tip text are hardcoded English while the app supports 5 locales.
-  Where: `src/LibreSpot.Desktop/MainWindow.xaml.cs` (lines 274-326).
-
-- [ ] P2 — Share a single static HttpClient between UpstreamDriftService and CommunityAssetDriftService
-  Why: Both services create independent GitHubUpstreamMetadataClient instances, each with its own HttpClient. This doubles connection pool usage for the same endpoint and the class has no IDisposable path.
-  Where: `src/LibreSpot.Desktop/Services/UpstreamDriftService.cs`, `src/LibreSpot.Desktop/Services/CommunityAssetDriftService.cs`.
-
-- [ ] P2 — Add regex timeout to SupportBundleRedactor patterns
-  Why: The seven compiled Regex objects in SupportBundleRedactor have no timeout, allowing ReDoS on crafted log content (especially the credential-matching patterns with nested quantifiers).
-  Where: `src/LibreSpot.Desktop/Services/SupportBundleService.cs` (lines 615-624).
-
-- [ ] P2 — Preserve extra watcher state fields across ticks
-  Why: Get-WatcherState reads only 3 fields but Set-WatcherState writes 8+. Each watcher tick that writes a subset destroys extended fields from the previous tick (LastAppliedSpotifyVersion, LastSuccessfulApplyAt, etc.).
-  Where: `src/powershell/shared/Get-WatcherState.ps1`, `src/powershell/shared/Set-WatcherState.ps1`.
-
-- [ ] P2 — Make Save-LibreSpotConfig and Set-WatcherState fallback paths crash-safe
-  Why: When File.Replace fails, the fallback does Remove-Item then File.Move with a gap between them. A crash during this gap loses the file entirely.
-  Where: `src/powershell/shared/Save-LibreSpotConfig.ps1`, `src/powershell/shared/Set-WatcherState.ps1`.
 
 - [ ] P2 — Migrate tests from deprecated xUnit v2 to xUnit v3
   Why: `dotnet list package --deprecated --include-transitive` reports `xunit 2.9.3` and v2 transitive packages as deprecated/legacy while the repo relies heavily on local tests as release gates.
@@ -529,3 +486,64 @@ needs to detect and surface this state, not just show booleans.
   Touches: `tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj`, `tests/LibreSpot.Desktop.Tests/*.cs`, `tests/LibreSpot.Desktop.Tests/packages.lock.json`, `Build-Scripts.ps1`, `Directory.Build.props`.
   Acceptance: test project uses supported xUnit v3 packages, `dotnet test .\tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj --no-restore` discovers and runs the existing suite, dependency-health validation has no xUnit v2 deprecation rows, and any required analyzer/API changes are covered by focused commits.
   Complexity: L
+
+## Audit-Driven Additions (July 7, 2026)
+
+Items surfaced by the July 7, 2026 deep audit and not resolved during that
+pass.
+
+- [ ] P2 — Localize backend status strings surfaced in the WPF activity panel
+  Why: Update-BackendState status/step strings are English-only by design but render inside a fully localized shell; needs a product decision (backend protocol stays EN vs. localization keys over the event protocol).
+  Where: src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1, schemas/backend-event-protocol.json, src/LibreSpot.Desktop/ViewModels/MainViewModel.cs
+
+- [ ] P3 — Publish the v3.7.3 / v4.0.0-preview.7 GitHub release with the full artifact contract
+  Why: version strings, changelog, and local artifacts are bumped; the release upload (PS2EXE + desktop + CLI + SBOM + manifest + checksums per release-artifact-contract.json) still needs the operator's release pass.
+  Where: Build-Scripts.ps1, schemas/release-artifact-contract.json
+
+- [ ] P3 — Virtualize the run log ItemsControl
+  Why: 2000 realized wrapped-text rows cost layout/memory during busy runs, and RemoveAt(0) eviction churns containers at the head.
+  Where: src/LibreSpot.Desktop/MainWindow.xaml (LogScrollViewer ItemsControl), src/LibreSpot.Desktop/ViewModels/ActivityRunStateViewModel.cs
+
+- [ ] P3 — Re-route mouse wheel from nested scroll regions
+  Why: the theme gallery and profiles ListBoxes plus the AvalonEdit editor swallow wheel events even when they cannot scroll, stalling the outer settings panes.
+  Where: src/LibreSpot.Desktop/MainWindow.xaml (nested ListBoxes ~1322/1897, AvalonEdit region)
+
+- [ ] P3 — Russian microcopy follow-ups and zh-Hans register review
+  Why: RU ButtonClose ("Закрывать") and the RU Reapply button ("Повторно подать заявку" — submit an application again) are still MT-poor; zh-Hans register needs a native pass.
+  Where: src/LibreSpot.Desktop/Properties/Strings.ru.resx, Strings.zh-Hans.resx
+
+- [ ] P3 — Verify HotTrack-based Warning/Info/Danger contrast in HC #1 and HC #2 themes on-device
+  Why: the HC palette maps attention colors to SystemColors.HotTrackColorKey; contrast against Window/Control is not guaranteed by every HC scheme and cannot be computed statically.
+  Where: src/LibreSpot.Desktop/Themes/HighContrastPalette.xaml
+
+- [ ] P3 — Enforce Expand-ArchiveSafely size cap on actual decompressed bytes
+  Why: MaxExpandedBytes sums the central directory's declared entry lengths; ExtractToFile decompresses uncapped, so a crafted zip could exceed the limit. Low practical risk because every archive is SHA256-pinned before expansion.
+  Where: src/powershell/shared/Expand-ArchiveSafely.ps1 (+ both script copies)
+
+- [ ] P3 — Harden verify-then-execute temp files against same-user swaps
+  Why: spotx_run.ps1 and the elevation bootstrap live in user-writable %TEMP% between hash verification and elevated execution. Same-user→admin is not a Windows security boundary, but a locked-down ACL or verify-after-copy-to-admin-only dir would close the window.
+  Where: LibreSpot.ps1 (Invoke-ExternalScriptIsolated call sites, LibreSpot-elevated.ps1 bootstrap), src/powershell/shared/Module-InstallSpotX.ps1
+
+- [ ] P3 — Move Get-UpstreamStalenessNotice off the ThreadPool delegate
+  Why: it runs cmdlet-heavy code (Invoke-WebRequest, ConvertFrom-Json) from a QueueUserWorkItem scriptblock — the exact runspace-affinity pattern the adjacent self-update comment forbids; the self-update path already uses a safe pattern to copy.
+  Where: LibreSpot.ps1 (~3960-3981)
+
+- [ ] P3 — Implement or remove Spotify restart detection in Test-SpotifySessionStability
+  Why: $initialPid is captured but never used, so the "did Spotify restart itself" half of the stability probe is unimplemented.
+  Where: LibreSpot.ps1 (Test-SpotifySessionStability), src/powershell/shared copy if promoted
+
+- [ ] P3 — Unify feature names between the PS1 shell and the WPF shell
+  Why: the same extensions/modes carry different names per shell ("Shuffle+" vs "True Shuffle", "Easy Install" vs "Recommended"), and the README mixes both; users migrating between shells cannot match features.
+  Where: LibreSpot.ps1 catalog strings, src/LibreSpot.Desktop/Properties/Strings.*.resx, README.md
+
+- [ ] P3 — Decide Mica backdrop: make it visible or remove the machinery
+  Why: the DWM backdrop is set but the opaque root Grid covers the entire client area, so Mica can never render; the MicaCanvasBrush plumbing describes a feature that cannot appear (design/operator call).
+  Where: src/LibreSpot.Desktop/Services/Win11ShellIntegration.cs, src/LibreSpot.Desktop/MainWindow.xaml (root Grid), src/LibreSpot.Desktop/Themes/Palette.xaml
+
+- [ ] P3 — Close XAML color-lint blind spots
+  Why: the lint only catches 6/8-digit hex in .xaml; named colors, 3/4-digit hex, and colors constructed in C# (Win11ShellIntegration chrome, MainViewModel swatch synthesis) bypass it.
+  Where: tests/LibreSpot.Desktop.Tests/ThemeManagerTests.cs
+
+- [ ] P3 — Reword the "Premium Spotify toolkit" subtitle
+  Why: for an ad-removal tool, "Premium" in always-visible branding reads as "makes Spotify Premium"; needs a branding decision (e.g., "Spotify setup & recovery toolkit").
+  Where: LibreSpot.ps1 (TitleSubtext), src/LibreSpot.Desktop/ViewModels/MainViewModel.cs ("default premium preset" copy)

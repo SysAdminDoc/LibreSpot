@@ -18,23 +18,27 @@ public static class ChangelogPreviewService
         using var reader = new StreamReader(stream);
         var lines = reader.ReadToEnd().Split(["\r\n", "\n"], StringSplitOptions.None);
         var highlights = new List<string>();
-        var inUnreleased = false;
+        var inNewestSection = false;
 
+        // Read the newest changelog section — the first top-level "## " heading,
+        // whether that is [Unreleased] or the latest dated release. Reading only
+        // [Unreleased] left the in-app "what's new" preview blank after every
+        // release. "### " subsection headings do not end the section.
         foreach (var rawLine in lines)
         {
             var line = rawLine.Trim();
-            if (line.StartsWith("## ", StringComparison.Ordinal))
+            if (line.StartsWith("## ", StringComparison.Ordinal) && !line.StartsWith("### ", StringComparison.Ordinal))
             {
-                if (inUnreleased)
+                if (inNewestSection)
                 {
                     break;
                 }
 
-                inUnreleased = line.Equals("## [Unreleased]", StringComparison.OrdinalIgnoreCase);
+                inNewestSection = true;
                 continue;
             }
 
-            if (!inUnreleased || !line.StartsWith("- ", StringComparison.Ordinal))
+            if (!inNewestSection || !line.StartsWith("- ", StringComparison.Ordinal))
             {
                 continue;
             }
@@ -47,7 +51,7 @@ public static class ChangelogPreviewService
         }
 
         return highlights.Count == 0
-            ? ["No unreleased changelog entries are embedded in this build."]
+            ? ["No changelog entries are embedded in this build."]
             : highlights;
     }
 }
