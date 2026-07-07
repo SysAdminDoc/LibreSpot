@@ -2185,7 +2185,7 @@ public sealed class PowerShellRegressionTests
     [Theory]
     [InlineData("MinimizeBtn", "Minimize window")]
     [InlineData("CloseTitleBtn", "Close window")]
-    [InlineData("ModeEasy", "Easy Install")]
+    [InlineData("ModeEasy", "Recommended setup")]
     [InlineData("ModeCustom", "Custom Install")]
     [InlineData("ModeMaint", "Maintenance")]
     [InlineData("BtnBackupConfig", "Create configuration backup")]
@@ -2206,5 +2206,23 @@ public sealed class PowerShellRegressionTests
 
         Assert.True(match.Success, $"Control '{controlName}' is missing AutomationProperties.Name in LibreSpot.ps1 XAML.");
         Assert.Contains(expectedFragment, match.Groups["name"].Value);
+    }
+
+    [Fact]
+    public void PowerShellAndReadme_UseWpfFeatureNamesForRecommendedDefaults()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var readme = ReadFile("README.md");
+
+        foreach (var text in new[] { script, readme })
+        {
+            Assert.DoesNotContain("Easy Install", text);
+            Assert.DoesNotContain("Shuffle+", text);
+        }
+
+        Assert.Contains("Recommended setup", script);
+        Assert.Contains("Recommended setup", readme);
+        Assert.Contains("True Shuffle", script);
+        Assert.Contains("True Shuffle", readme);
     }
 }

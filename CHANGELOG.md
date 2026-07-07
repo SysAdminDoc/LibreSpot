@@ -19,6 +19,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Hardened SpotX and elevation temp-file execution by verifying payload hashes immediately before launch and holding read locks on scripts while child PowerShell processes start.
 - Moved upstream freshness checks to a runspace-safe async path that keeps cmdlet-heavy cache and UI work on the dispatcher instead of raw ThreadPool delegates.
 - Implemented Spotify restart detection in the standalone launch-after stability probe so PID replacement during the post-patch wait is surfaced as an unstable session.
+- Unified standalone shell and README naming with the WPF shell by using "Recommended setup" and "True Shuffle" consistently for user-facing defaults.
 
 ## [v4.0.0-preview.8] - 2026-07-07
 

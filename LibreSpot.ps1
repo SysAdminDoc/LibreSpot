@@ -1,5 +1,5 @@
 ﻿# LibreSpot - Comprehensive SpotX + Spicetify Installer
-# Easy Mode | Custom Mode | Maintenance Mode
+# Recommended setup | Custom Mode | Maintenance Mode
 #
 # All-in-one installer for SpotX ad-blocking/patching and Spicetify
 # themes, extensions, and Marketplace with full GUI configuration.
@@ -111,7 +111,7 @@ $global:CONFIG_SCHEMA_VERSION = 1
 # `powershell.exe -File LibreSpot.ps1 -clean` via the same $args.
 #
 # Recognized flags:
-#   -clean              Pre-tick Easy mode + CleanInstall for a one-shot rebuild.
+#   -clean              Pre-tick Recommended setup + CleanInstall for a one-shot rebuild.
 #   -watch              Headless auto-reapply check. No UI. Scheduled task uses this.
 #   -installwatcher     Register the scheduled task that calls `-watch` and exit.
 #   -uninstallwatcher   Remove that scheduled task and exit.
@@ -2155,12 +2155,12 @@ $xaml = @"
 
                 <!-- Nav items -->
                 <StackPanel Grid.Row="2">
-                    <RadioButton Name="ModeEasy" Style="{StaticResource ModeRadio}" GroupName="Mode" IsChecked="True" Tag="Fastest clean setup with the recommended Spotify, SpotX, and Marketplace baseline." ToolTip="Fastest clean setup with the recommended baseline." AutomationProperties.Name="Easy Install — Recommended baseline">
+                    <RadioButton Name="ModeEasy" Style="{StaticResource ModeRadio}" GroupName="Mode" IsChecked="True" Tag="Fastest clean setup with the recommended Spotify, SpotX, and Marketplace baseline." ToolTip="Fastest clean setup with the recommended baseline." AutomationProperties.Name="Recommended setup — verified baseline">
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <Path Grid.Column="0" Data="{StaticResource IconSparkle}" Stroke="{StaticResource AccentBrush}" Fill="{StaticResource AccentSoftBgBrush}" StrokeThickness="1.6" Stretch="Uniform" Width="20" Height="20"/>
                             <StackPanel Grid.Column="2">
-                                <TextBlock Text="Easy Install" Foreground="{StaticResource FgPrimaryBrush}" FontSize="13" FontWeight="SemiBold"/>
+                                <TextBlock Text="Recommended setup" Foreground="{StaticResource FgPrimaryBrush}" FontSize="13" FontWeight="SemiBold"/>
                                 <TextBlock Text="Recommended baseline" Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Grid>
@@ -2257,7 +2257,7 @@ $xaml = @"
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="1.15*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="0.85*"/></Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0">
                                             <TextBlock Text="A clean, reliable Spotify setup in one pass" Foreground="{StaticResource FgPrimaryBrush}" FontSize="17" FontWeight="SemiBold"/>
-                                            <TextBlock Text="Easy Install applies the stable default stack: Spotify cleanup, SpotX patching, Spicetify, Marketplace, and a curated extension set with recovery-focused defaults." Foreground="{StaticResource FgSecondaryBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                                            <TextBlock Text="Recommended setup applies the stable default stack: Spotify cleanup, SpotX patching, Spicetify, Marketplace, and a curated extension set with recovery-focused defaults." Foreground="{StaticResource FgSecondaryBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,10,0,0"/>
                                             <WrapPanel Margin="0,18,0,0">
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,18,10"><Rectangle Width="3" Height="14" Fill="#FF22C55E" RadiusX="1.5" RadiusY="1.5" VerticalAlignment="Center"/><TextBlock Text="Clean install" Foreground="#FF86EFAC" FontSize="10.75" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,18,10"><Rectangle Width="3" Height="14" Fill="#FF22C55E" RadiusX="1.5" RadiusY="1.5" VerticalAlignment="Center"/><TextBlock Text="Marketplace included" Foreground="#FF86EFAC" FontSize="10.75" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
@@ -2271,7 +2271,7 @@ $xaml = @"
                                                 <TextBlock Text="Best when you want Spotify working quickly without tuning every option." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,8"/>
                                                 <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="#FF22C55E" Margin="0,6,12,0"/><TextBlock Grid.Column="1" Text="Fresh Spotify with SpotX patching and the new UI theme" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/></Grid>
                                                 <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="#FF22C55E" Margin="0,6,12,0"/><TextBlock Grid.Column="1" Text="Podcasts removed, ad-like sections hidden, and auto-updates blocked" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/></Grid>
-                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="#FF22C55E" Margin="0,6,12,0"/><TextBlock Grid.Column="1" Text="Marketplace plus Full App Display, Shuffle+, and Trash Bin" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/></Grid>
+                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="#FF22C55E" Margin="0,6,12,0"/><TextBlock Grid.Column="1" Text="Marketplace plus Full App Display, True Shuffle, and Trash Bin" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/></Grid>
                                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="#FF93C5FD" Margin="0,6,12,0"/><TextBlock Grid.Column="1" Text="Settings are saved so the same defaults are ready next time" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/></Grid>
                                             </StackPanel>
                                         </Border>
@@ -2294,7 +2294,7 @@ $xaml = @"
                                                 <TextBlock Text="A few expectations up front make the whole flow feel more predictable." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12" Margin="0,4,0,8"/>
                                                 <TextBlock Text="LibreSpot requests administrator permission because it modifies Spotify files and Windows settings." Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,10"/>
                                                 <TextBlock Text="A network connection is required for GitHub downloads, preview images, and update checks." Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,10"/>
-                                                <TextBlock Text="Easy Install removes any existing Spotify and Spicetify setup first so the result is consistent." Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                                <TextBlock Text="Recommended setup removes any existing Spotify and Spicetify setup first so the result is consistent." Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,10"/>
                                                 <TextBlock Text="If you prefer to keep a current install in place, switch to Custom Install and disable full cleanup." Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" TextWrapping="Wrap"/>
                                             </StackPanel>
                                         </Border>
@@ -2309,7 +2309,7 @@ $xaml = @"
                                             <TextBlock Text="Custom install, dialed in" Foreground="{StaticResource FgPrimaryBrush}" FontSize="16" FontWeight="SemiBold"/>
                                             <TextBlock Text="Choose exactly how much cleanup, theming, Marketplace support, and extension prep you want before Spotify opens." Foreground="{StaticResource FgSecondaryBrush}" FontSize="12.5" Margin="0,8,0,0" TextWrapping="Wrap"/>
                                         </StackPanel>
-                                        <Button Grid.Column="1" Name="BtnResetCustomDefaults" Content="Recommended defaults" Style="{StaticResource SecondaryActionButton}" Width="216" Height="40" Margin="18,2,0,0" VerticalAlignment="Top" ToolTip="Apply the Easy Install defaults here so you can keep customizing from a known-good baseline." AutomationProperties.Name="Load recommended defaults"/>
+                                        <Button Grid.Column="1" Name="BtnResetCustomDefaults" Content="Recommended defaults" Style="{StaticResource SecondaryActionButton}" Width="216" Height="40" Margin="18,2,0,0" VerticalAlignment="Top" ToolTip="Apply the Recommended setup defaults here so you can keep customizing from a known-good baseline." AutomationProperties.Name="Load recommended defaults"/>
                                     </Grid>
                                     <Border Style="{StaticResource SurfaceCard}" Margin="0,0,0,10">
                                         <Grid>
@@ -2502,7 +2502,7 @@ $xaml = @"
                                                 <Border Style="{StaticResource InsetPanel}" Margin="0,8,0,0">
                                                     <StackPanel>
                                                         <TextBlock Text="Built-in extensions" Foreground="{StaticResource FgPrimaryBrush}" FontSize="12.5" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="Easy Install ships with Full App Display, Shuffle+, and Trash Bin enabled. Custom Install lets you fine-tune the rest." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Recommended setup ships with Full App Display, True Shuffle, and Trash Bin enabled. Custom Install lets you fine-tune the rest." Foreground="{StaticResource FgMutedBrush}" FontSize="10.5" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                         <Grid Margin="0,6,0,0">
                                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                             <StackPanel Grid.Column="0">
@@ -2518,7 +2518,7 @@ $xaml = @"
                                                                 <TextBlock Text="Automatically avoid tracks flagged as explicit." Style="{StaticResource HelperText}" Margin="30,2,0,0"/>
                                                             </StackPanel>
                                                             <StackPanel Grid.Column="2">
-                                                                <CheckBox Name="ChkExt_shuffle" Content="Shuffle+" IsChecked="True" Style="{StaticResource DarkCheckBox}" Margin="0"/>
+                                                                <CheckBox Name="ChkExt_shuffle" Content="True Shuffle" IsChecked="True" Style="{StaticResource DarkCheckBox}" Margin="0"/>
                                                                 <TextBlock Text="True shuffle instead of Spotify's weighted play order." Style="{StaticResource HelperText}" Margin="30,2,0,4"/>
                                                                 <CheckBox Name="ChkExt_keyboard" Content="Keyboard Shortcuts" Style="{StaticResource DarkCheckBox}" Margin="0"/>
                                                                 <TextBlock Text="Vim-style navigation for faster keyboard-driven control." Style="{StaticResource HelperText}" Margin="30,2,0,4"/>
@@ -3626,7 +3626,7 @@ function Update-ModePresentation {
         $ui['ModeHeadline'].Text = 'Recommended path for a first install'
         $ui['ModeSummaryText'].Text = 'LibreSpot handles cleanup, verified downloads, Spotify patching, Marketplace, and a reliable default extension set with recovery-friendly defaults.'
         $ui['SelectionSummary'].Text = 'Recommended setup: clean install, Marketplace included, three starter extensions, and Spotify opens when everything is ready.'
-        Set-SelectionSnapshotState -Tone 'success' -BadgeText 'Pinned default stack' -DetailText 'Easy Install uses the verified cleanup path and saves the default recovery baseline when setup begins.'
+        Set-SelectionSnapshotState -Tone 'success' -BadgeText 'Pinned default stack' -DetailText 'Recommended setup uses the verified cleanup path and saves the default recovery baseline when setup begins.'
         if ($ui.ContainsKey('ActionFooterNote')) { $ui['ActionFooterNote'].Text = 'Recommended defaults save when setup begins.' }
         $ui['BtnInstall'].Content = 'Start recommended setup'
         Update-CompatibilityWarningBadge
@@ -3656,7 +3656,7 @@ function Update-ModePresentation {
         $memoryNote = if ($script:HasSavedCustomConfig) {
             if ($savedStampText) { " Your previous custom choices were restored from disk. Last saved $savedStampText." } else { ' Your previous custom choices were restored from disk.' }
         } elseif ($script:SavedConfigMode -eq 'Easy') {
-            ' Easy Install was the last saved mode. These custom choices will be remembered after your first custom setup run.'
+            ' Recommended setup was the last saved mode. These custom choices will be remembered after your first custom setup run.'
         } else {
             ' LibreSpot will remember these choices after your first custom setup run.'
         }
@@ -3688,7 +3688,7 @@ function Update-ModePresentation {
             $snapshotBadge = 'Saved custom setup'
             $snapshotDetail = if ($savedStampText) { "Restored from disk. Last saved $savedStampText." } else { 'Restored from disk so reapply and recovery actions stay aligned.' }
         } elseif ($script:SavedConfigMode -eq 'Easy') {
-            $snapshotBadge = 'Switching from Easy'
+            $snapshotBadge = 'Switching from Recommended'
             $snapshotDetail = 'Start one custom run and LibreSpot will remember this tailored setup afterward.'
         }
         $dependencyNotes = @()
@@ -3786,7 +3786,7 @@ $ui['BtnCopyLog'].Add_Click({
 })
 if ($ui.ContainsKey('BtnResetCustomDefaults')) {
     $ui['BtnResetCustomDefaults'].Add_Click({
-        $result = Show-ThemedDialog -Title 'Load recommended defaults' -Message 'LibreSpot will load the Easy Install defaults into Custom Install so you can keep tweaking from a known-good baseline.' -Buttons 'YesNo' -Icon 'Question' -PrimaryText 'Load defaults' -SecondaryText 'Cancel'
+        $result = Show-ThemedDialog -Title 'Load recommended defaults' -Message 'LibreSpot will load the Recommended setup defaults into Custom Install so you can keep tweaking from a known-good baseline.' -Buttons 'YesNo' -Icon 'Question' -PrimaryText 'Load defaults' -SecondaryText 'Cancel'
         if ($result -ne 'Yes') { return }
         $preset = @{ Mode = 'Custom' }
         foreach ($key in $global:EasyDefaults.Keys) { $preset[$key] = $global:EasyDefaults[$key] }
@@ -3940,7 +3940,7 @@ $window.Add_Closing({
 })
 Update-ModePresentation
 
-# Apply -Clean CLI flag: pre-tick Easy mode + CleanInstall so users get a
+# Apply -Clean CLI flag: pre-tick Recommended setup + CleanInstall so users get a
 # single-click "nuke and rebuild" experience without touching Custom Install.
 if ($script:CliClean) {
     try {
@@ -5218,7 +5218,7 @@ function Update-MaintenanceStatus {
     }
     if ($ui.ContainsKey('MaintenanceMetricNextStepValue')) {
         $ui['MaintenanceMetricNextStepValue'].Text = if (-not $sp -and -not $si) {
-            'Run Easy Install'
+            'Run Recommended setup'
         } elseif ($si -and $marketplaceHealth.Status -in @('Hidden','FilesMissing','LegacyPath')) {
             'Repair Marketplace'
         } elseif (-not $bk -and $si) {

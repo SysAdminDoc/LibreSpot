@@ -106,7 +106,7 @@ Instead of running multiple scripts, editing config files, and hoping the versio
 
 ### Three Modes
 
-**Easy Install** — one click, sensible defaults. Removes any existing installation, applies SpotX ad-blocking with the new UI theme, installs Spicetify CLI with Marketplace, and enables Full App Display, Shuffle+, and Trash Bin extensions.
+**Recommended setup** — one click, sensible defaults. Removes any existing installation, applies SpotX ad-blocking with the new UI theme, installs Spicetify CLI with Marketplace, and enables Full App Display, True Shuffle, and Trash Bin extensions.
 
 **Custom Install** — full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), author reviewed SpotX `patches.json` custom patches with JSON formatting, regex safety checks, dry-run feedback, and HTTPS import, browse 21 themes (16 official + 5 community) through a searchable gallery with per-theme color schemes, select from 15 extensions (10 built-in + 5 community) plus the verified Stats custom app, save and preview named local profiles, and choose between clean or overlay install.
 
@@ -217,7 +217,7 @@ Each theme ships with its full set of color schemes. **Live theme previews** loa
 | Extension | Description |
 |---|---|
 | Full App Display | Full-screen album art with blur and playback controls |
-| Shuffle+ | True Fisher-Yates shuffle instead of Spotify's weighted algorithm |
+| True Shuffle | Fisher-Yates shuffle instead of Spotify's weighted algorithm |
 | Trash Bin | Auto-skip songs and artists you've marked as unwanted |
 | Keyboard Shortcuts | Vim-style navigation bindings |
 | Bookmark | Save and recall pages, tracks, albums, and timestamps |
@@ -253,7 +253,7 @@ You can also manage the task from the command line if you prefer:
 LibreSpot.ps1 -InstallWatcher      # register the scheduled task
 LibreSpot.ps1 -UninstallWatcher    # remove it
 LibreSpot.ps1 -Watch               # run one tick manually (what the task invokes)
-LibreSpot.ps1 -Clean               # pre-tick Easy mode + Clean Install for a one-shot rebuild
+LibreSpot.ps1 -Clean               # pre-tick Recommended setup + Clean Install for a one-shot rebuild
 LibreSpot.ps1 -RemoveSelfData      # unregister the watcher and delete all LibreSpot-owned data, then exit
 ```
 
