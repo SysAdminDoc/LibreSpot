@@ -59,7 +59,7 @@
   </data>
   <!-- Navigation modes -->
   <data name="ModeRecommendedTitle" xml:space="preserve">
-    <value>受到推崇的</value>
+    <value>推荐</value>
     <comment>Sidebar nav label for recommended/easy install</comment>
   </data>
   <data name="ModeRecommendedDescription" xml:space="preserve">
@@ -67,7 +67,7 @@
     <comment>Workspace hero subtitle for recommended mode</comment>
   </data>
   <data name="ModeCustomTitle" xml:space="preserve">
-    <value>风俗</value>
+    <value>自定义</value>
     <comment>Sidebar nav label for custom install</comment>
   </data>
   <data name="ModeCustomDescription" xml:space="preserve">
@@ -164,7 +164,7 @@
     <comment>Maintenance action title</comment>
   </data>
   <data name="ActionOpenMarketplace" xml:space="preserve">
-    <value>开放市场</value>
+    <value>打开 Marketplace</value>
     <comment>Maintenance action title</comment>
   </data>
   <data name="ActionSafeMode" xml:space="preserve">
@@ -201,7 +201,7 @@
     <comment>Confirmation dialog continue button</comment>
   </data>
   <data name="ButtonDismiss" xml:space="preserve">
-    <value>解雇</value>
+    <value>关闭</value>
     <comment>Dismiss/close button</comment>
   </data>
   <data name="ButtonCopyLog" xml:space="preserve">
@@ -325,19 +325,6 @@
     <value>Spotify 已准备就绪</value>
     <comment>Final progress substatus</comment>
   </data>
-  <!-- Install options -->
-  <data name="OptionCleanInstall" xml:space="preserve">
-    <value>首先删除当前堆栈</value>
-    <comment>Clean install option title</comment>
-  </data>
-  <data name="OptionCleanInstallDescription" xml:space="preserve">
-    <value>在重新开始之前清除旧的 Spotify 和自定义残留。</value>
-    <comment>Clean install option description</comment>
-  </data>
-  <data name="OptionLaunchAfter" xml:space="preserve">
-    <value>完成后启动 Spotify</value>
-    <comment>Post-install launch option title</comment>
-  </data>
   <!-- Config status -->
   <data name="ConfigSaved" xml:space="preserve">
     <value>个人资料已保存</value>
@@ -349,7 +336,7 @@
   </data>
   <!-- Sidebar / environment -->
   <data name="SidebarDescription" xml:space="preserve">
-    <value>推荐处理稳定路径。</value>
+    <value>推荐模式负责稳定路径。自定义模式让有意的改动保持可见。维护模式专注于恢复。</value>
     <comment>Sidebar mode description paragraph</comment>
   </data>
   <data name="EnvironmentLabel" xml:space="preserve">
@@ -510,7 +497,7 @@
     <comment>Theme gallery no-results state</comment>
   </data>
   <data name="ThemeGalleryRequiresJsBadge" xml:space="preserve">
-    <value>主题.js</value>
+    <value>theme.js</value>
     <comment>Badge for themes that require theme.js</comment>
   </data>
   <data name="ThemeGalleryCommunityBadge" xml:space="preserve">
@@ -546,7 +533,7 @@
     <comment>Accessibility name for cache field</comment>
   </data>
   <data name="CacheLimitHint" xml:space="preserve">
-    <value>设置缓存上限（以兆字节为单位），或保留零以使用 LibreSpot 的默认值。</value>
+    <value>设置缓存上限（以兆字节为单位），或保留零以保持 Spotify 的默认行为。</value>
     <comment>Cache limit accessibility hint</comment>
   </data>
   <data name="CacheLimitUnit" xml:space="preserve">
@@ -606,7 +593,7 @@
     <comment>Custom mode section heading</comment>
   </data>
   <data name="AdvancedAdjustmentsHint" xml:space="preserve">
-    <value>除非您知道需要它们，否则请将它们保留。</value>
+    <value>除非确定需要，否则请保持这些选项关闭。</value>
     <comment>Advanced section warning</comment>
   </data>
   <data name="ExperienceExtrasLabel" xml:space="preserve">
@@ -771,7 +758,7 @@
     <comment>Default file count display</comment>
   </data>
   <data name="SizeNone" xml:space="preserve">
-    <value>0乙</value>
+    <value>0 B</value>
     <comment>Default size display</comment>
   </data>
   <data name="NoBundleExported" xml:space="preserve">
@@ -795,7 +782,7 @@
     <comment>Config save was canceled</comment>
   </data>
   <data name="RunNeedsAttention" xml:space="preserve">
-    <value>跑步需要注意</value>
+    <value>运行需要处理</value>
     <comment>Activity title when run has warnings</comment>
   </data>
   <data name="RunComplete" xml:space="preserve">
@@ -1016,7 +1003,7 @@
     <comment>Option title for SpotX_SendVersionOff</comment>
   </data>
   <data name="Option_SpotX_SendVersionOff_Description" xml:space="preserve">
-    <value>阻止 SpotX 的出站版本通知（2026 年 4 月推出）。</value>
+    <value>阻止 SpotX 的出站版本通知（2026 年 4 月引入）。建议保持开启。</value>
     <comment>Option description for SpotX_SendVersionOff</comment>
   </data>
   <data name="Option_SpotX_DevTools_Title" xml:space="preserve">
@@ -1125,7 +1112,7 @@
     <comment>Extension description for autoSkipExplicit.js</comment>
   </data>
   <data name="Extension_webnowplaying_Title" xml:space="preserve">
-    <value>网络正在播放</value>
+    <value>WebNowPlaying</value>
     <comment>Extension title for webnowplaying.js</comment>
   </data>
   <data name="Extension_webnowplaying_Description" xml:space="preserve">
@@ -1145,7 +1132,7 @@
     <comment>Extension title for beautiful-lyrics.mjs</comment>
   </data>
   <data name="Extension_beautiful_lyrics_Description" xml:space="preserve">
-    <value>具有动态背景和模糊效果的沉浸式同步歌词。</value>
+    <value>沉浸式同步歌词，带动态背景和模糊效果。会连接到第三方歌词服务（不仅是 GitHub/Spotify）。</value>
     <comment>Extension description for beautiful-lyrics.mjs</comment>
   </data>
   <data name="Extension_playlist_icons_Title" xml:space="preserve">
@@ -1169,7 +1156,7 @@
     <comment>Extension title for adblock.js</comment>
   </data>
   <data name="Extension_adblock_Description" xml:space="preserve">
-    <value>当 SpotX 修补在较新的 Spotify 版本上失败时，Spicetify 层广告拦截。</value>
+    <value>当 SpotX 修补在较新的 Spotify 版本上失败时可用的 Spicetify 层广告拦截。不能替代 SpotX。</value>
     <comment>Extension description for adblock.js</comment>
   </data>
   <!-- AppCatalog: Maintenance action titles, descriptions, and button text -->
@@ -1210,7 +1197,7 @@
     <comment>Maintenance action button text for RepairMarketplace</comment>
   </data>
   <data name="Maintenance_OpenMarketplace_Title" xml:space="preserve">
-    <value>开放市场</value>
+    <value>打开 Marketplace</value>
     <comment>Maintenance action title for OpenMarketplace</comment>
   </data>
   <data name="Maintenance_OpenMarketplace_Description" xml:space="preserve">
@@ -1218,7 +1205,7 @@
     <comment>Maintenance action description for OpenMarketplace</comment>
   </data>
   <data name="Maintenance_OpenMarketplace_ButtonText" xml:space="preserve">
-    <value>开放市场</value>
+    <value>打开 Marketplace</value>
     <comment>Maintenance action button text for OpenMarketplace</comment>
   </data>
   <data name="Maintenance_SafeMode_Title" xml:space="preserve">
@@ -1226,7 +1213,7 @@
     <comment>Maintenance action title for SafeMode</comment>
   </data>
   <data name="Maintenance_SafeMode_Description" xml:space="preserve">
-    <value>禁用所有主题和扩展而不卸载。 </value>
+    <value>禁用所有主题和扩展，但不卸载。Spotify 将以原始外观加载——使用“重新应用”恢复您的设置。</value>
     <comment>Maintenance action description for SafeMode</comment>
   </data>
   <data name="Maintenance_SafeMode_ButtonText" xml:space="preserve">
@@ -1238,7 +1225,7 @@
     <comment>Maintenance action title for CreateBackup</comment>
   </data>
   <data name="Maintenance_CreateBackup_Description" xml:space="preserve">
-    <value>保存当前 Spicetify 配置和主题的备份。</value>
+    <value>保存当前 Spicetify 配置和主题的备份。备份存储在您的 LibreSpot 配置文件夹中，之后可以恢复。</value>
     <comment>Maintenance action description for CreateBackup</comment>
   </data>
   <data name="Maintenance_CreateBackup_ButtonText" xml:space="preserve">
@@ -1250,7 +1237,7 @@
     <comment>Maintenance action title for RestoreBackup</comment>
   </data>
   <data name="Maintenance_RestoreBackup_Description" xml:space="preserve">
-    <value>恢复最新的 Spicetify 配置备份，然后重新应用自定义。</value>
+    <value>恢复最新的 Spicetify 配置备份，然后重新应用自定义设置。这不会修改您的 SpotX 或 LibreSpot 设置。</value>
     <comment>Maintenance action description for RestoreBackup</comment>
   </data>
   <data name="Maintenance_RestoreBackup_ButtonText" xml:space="preserve">
@@ -1286,7 +1273,7 @@
     <comment>Maintenance action title for FullReset</comment>
   </data>
   <data name="Maintenance_FullReset_Description" xml:space="preserve">
-    <value>删除 SpotX、Spicetify、Spotify 应用程序状态和相关残留物，以获得真正干净的开始。</value>
+    <value>移除 SpotX 和 Spicetify，卸载 Spotify 应用本身，并清理残留文件，实现真正的全新开始。之后请重新安装 Spotify（或运行推荐设置）。</value>
     <comment>Maintenance action description for FullReset</comment>
   </data>
   <data name="Maintenance_FullReset_ButtonText" xml:space="preserve">
@@ -1298,7 +1285,7 @@
     <comment>Maintenance action title for RemoveSelfData</comment>
   </data>
   <data name="Maintenance_RemoveSelfData_Description" xml:space="preserve">
-    <value>取消注册观察程序任务并删除 LibreSpot 自己的配置、备份、日志和崩溃报告。 </value>
+    <value>取消注册观察程序任务，并删除 LibreSpot 自身的配置、备份、日志和崩溃报告。Spotify 和 Spicetify 不受影响。</value>
     <comment>Maintenance action description for RemoveSelfData</comment>
   </data>
   <data name="Maintenance_RemoveSelfData_ButtonText" xml:space="preserve">
@@ -1328,7 +1315,7 @@
     <comment>User-facing WPF text</comment>
   </data>
   <data name="LanguageHelpText" xml:space="preserve">
-    <value>切换 LibreSpot 界面语言。</value>
+    <value>切换 LibreSpot 界面语言。该设置保存在本地。</value>
     <comment>User-facing WPF text</comment>
   </data>
   <data name="Ui_CustomSettings" xml:space="preserve">
@@ -1722,5 +1709,31 @@
   <data name="Ui_CompletionNotifications" xml:space="preserve">
     <value>完成通知</value>
     <comment>User-facing WPF text</comment>
+  </data>
+
+  <!-- Tray icon -->
+  <data name="Tray_Open" xml:space="preserve">
+    <value>打开 LibreSpot</value>
+    <comment>Tray menu item: reopen the main window</comment>
+  </data>
+  <data name="Tray_OpenFolder" xml:space="preserve">
+    <value>打开 LibreSpot 文件夹</value>
+    <comment>Tray menu item: open the LibreSpot configuration folder</comment>
+  </data>
+  <data name="Tray_Exit" xml:space="preserve">
+    <value>退出 LibreSpot</value>
+    <comment>Tray menu item: close the app from the tray</comment>
+  </data>
+  <data name="Tray_BalloonTitle" xml:space="preserve">
+    <value>LibreSpot 已最小化</value>
+    <comment>Tray balloon title shown when the window minimizes to the tray</comment>
+  </data>
+  <data name="Tray_BalloonText" xml:space="preserve">
+    <value>双击此图标可重新打开 LibreSpot。</value>
+    <comment>Tray balloon text when minimized while idle</comment>
+  </data>
+  <data name="Tray_BalloonTextRunning" xml:space="preserve">
+    <value>LibreSpot 仍在运行。双击此图标可重新打开实时日志。</value>
+    <comment>Tray balloon text when minimized during an active run</comment>
   </data>
 </root>

@@ -271,11 +271,11 @@ public partial class MainWindow : Window
         }
 
         var menu = new Forms.ContextMenuStrip();
-        var openItem = new Forms.ToolStripMenuItem("Open LibreSpot");
+        var openItem = new Forms.ToolStripMenuItem(Properties.Strings.Tray_Open);
         openItem.Click += (_, _) => Dispatcher.BeginInvoke(new Action(RestoreFromTray), DispatcherPriority.Background);
         menu.Items.Add(openItem);
 
-        var folderItem = new Forms.ToolStripMenuItem("Open LibreSpot folder");
+        var folderItem = new Forms.ToolStripMenuItem(Properties.Strings.Tray_OpenFolder);
         folderItem.Click += (_, _) => Dispatcher.BeginInvoke(new Action(() =>
         {
             RestoreFromTray();
@@ -287,7 +287,7 @@ public partial class MainWindow : Window
         menu.Items.Add(folderItem);
 
         menu.Items.Add(new Forms.ToolStripSeparator());
-        var exitItem = new Forms.ToolStripMenuItem("Exit LibreSpot");
+        var exitItem = new Forms.ToolStripMenuItem(Properties.Strings.Tray_Exit);
         exitItem.Click += (_, _) => Dispatcher.BeginInvoke(new Action(() =>
         {
             RestoreFromTray();
@@ -321,9 +321,9 @@ public partial class MainWindow : Window
 
         _hasShownTrayMinimizeNotice = true;
         var detail = _viewModel.IsRunning
-            ? "LibreSpot is still running. Double-click this icon to reopen the live log."
-            : "Double-click this icon to reopen LibreSpot.";
-        _trayIcon.ShowBalloonTip(5000, "LibreSpot is minimized", detail, Forms.ToolTipIcon.Info);
+            ? Properties.Strings.Tray_BalloonTextRunning
+            : Properties.Strings.Tray_BalloonText;
+        _trayIcon.ShowBalloonTip(5000, Properties.Strings.Tray_BalloonTitle, detail, Forms.ToolTipIcon.Info);
     }
 
     private void RestoreFromTray()

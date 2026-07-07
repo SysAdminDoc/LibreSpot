@@ -1,4 +1,4 @@
-
+<div align="center">
 
 # LibreSpot
 
@@ -251,6 +251,8 @@ You can also manage the task from the command line if you prefer:
 LibreSpot.ps1 -InstallWatcher      # register the scheduled task
 LibreSpot.ps1 -UninstallWatcher    # remove it
 LibreSpot.ps1 -Watch               # run one tick manually (what the task invokes)
+LibreSpot.ps1 -Clean               # pre-tick Easy mode + Clean Install for a one-shot rebuild
+LibreSpot.ps1 -RemoveSelfData      # unregister the watcher and delete all LibreSpot-owned data, then exit
 ```
 
 ### Other Details
@@ -280,7 +282,7 @@ SpotX blocks Spotify auto-updates by default. If you manually update Spotify, us
 Open Maintenance and check the After Spotify update note. LibreSpot compares the current Spotify version with the last patched version, watcher status, Spicetify apply result, and Marketplace state, then points to the safest next action: close Spotify, reapply the saved profile, repair Marketplace, restore vanilla Spotify, or open logs.
 
 **Can I use this with a Premium account?**
-Yes. Enable "Premium user (skip ad-blocking)" in Custom Install to skip ad-related patches while keeping all other modifications.
+Yes. Enable "Premium account (skip ad-blocking)" in Custom Install to skip ad-related patches while keeping all other modifications.
 
 **How do I change my theme later?**
 Re-run LibreSpot in Custom mode to pick a different theme, or use the optional Spicetify Marketplace to browse and apply themes from within Spotify. LibreSpot installs your selected themes, extensions, and custom apps directly — Marketplace is an add-on for discovering more, not required.
@@ -295,7 +297,7 @@ This is a known upstream issue (spicetify/cli#3837). Themes and extensions insta
 Use Maintenance > Support bundle. LibreSpot previews the selected health report, operation journal, log, and crash-report windows, redacts local user/machine paths, GitHub headers, proxy credentials, tokens, passwords, and command-line secret arguments, then writes a local zip. It does not upload the bundle.
 
 **What does Remove LibreSpot Data erase?**
-Maintenance > Remove LibreSpot Data deletes LibreSpot-owned config, local profiles, operation journals, logs, crashes, verified cache, backups, and watcher state while leaving Spotify and Spicetify files untouched. It writes a path-free irreversible receipt to `%TEMP%\LibreSpot\remove-self-data-receipt.latest.json`.
+Maintenance > Remove LibreSpot data (in the v4 preview desktop app) deletes LibreSpot-owned config, local profiles, operation journals, logs, crashes, verified cache, backups, and watcher state while leaving Spotify and Spicetify files untouched. It writes a path-free irreversible receipt to `%TEMP%\LibreSpot\remove-self-data-receipt.latest.json`. In the stable script, run `LibreSpot.ps1 -RemoveSelfData` for the same cleanup.
 
 **How do I go back to stock Spotify?**
 Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify, and cleans up every trace.

@@ -1445,11 +1445,15 @@ public static class CliApplication
         writer.WriteLine("  LibreSpot.Cli status [--json] [--config-path <path>]");
         writer.WriteLine("  LibreSpot.Cli detect [--json|--intune] [--config-path <path>]");
         writer.WriteLine("  LibreSpot.Cli validate --answer-file <path> [--json]");
-        writer.WriteLine("  LibreSpot.Cli install --dry-run --answer-file <path> [--ndjson]");
+        writer.WriteLine("  LibreSpot.Cli install [--dry-run] --answer-file <path> [--ndjson]");
+        writer.WriteLine("  LibreSpot.Cli reapply [--dry-run] --answer-file <path> [--ndjson]");
+        writer.WriteLine("  LibreSpot.Cli uninstall [--dry-run] [--keep-spotify] [--ndjson]");
+        writer.WriteLine("  LibreSpot.Cli repair --repair-id <id> [--dry-run] [--ndjson]");
         writer.WriteLine("  LibreSpot.Cli plan --answer-file <path> [--json]");
         writer.WriteLine("  LibreSpot.Cli export-support [--output <path>]");
         writer.WriteLine("  LibreSpot.Cli watcher install [--silent]");
         writer.WriteLine("  LibreSpot.Cli watcher remove [--silent]");
+        writer.WriteLine("Common flags: --silent --yes --keep-spotify --log-dir <path>");
     }
 
     private static bool IsHelp(string arg) =>

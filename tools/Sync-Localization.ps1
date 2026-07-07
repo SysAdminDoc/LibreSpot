@@ -96,6 +96,26 @@ foreach ($culture in $cultures) {
 
         if ([string]::IsNullOrWhiteSpace($targetEntries[$key].Value)) {
             $failures.Add("Strings.$culture.resx key '$key' has an empty value")
+            continue
+        }
+
+        # Truncation lint: machine-translation pipelines have dropped everything after
+        # the first sentence, leaving a trailing space and fewer sentences than the
+        # English source. Catch both symptoms.
+        $sourceValue = $sourceEntries[$key].Value
+        $targetValue = $targetEntries[$key].Value
+
+        if ($targetValue -ne $targetValue.TrimEnd()) {
+            $failures.Add("Strings.$culture.resx key '$key' ends with trailing whitespace (likely truncated translation)")
+        }
+
+        # Terminators: . ! ? plus full-width ideographic stops (U+3002, U+FF01, U+FF1F).
+        # Regex \u escapes keep this file ASCII-only for Windows PowerShell 5.1.
+        $terminatorPattern = '[.!?\u3002\uFF01\uFF1F]'
+        $sourceTerminators = [regex]::Matches($sourceValue, $terminatorPattern).Count
+        $targetTerminators = [regex]::Matches($targetValue, $terminatorPattern).Count
+        if ($targetTerminators -lt $sourceTerminators) {
+            $failures.Add("Strings.$culture.resx key '$key' looks truncated: $targetTerminators sentence terminator(s) vs $sourceTerminators in the source value")
         }
     }
 

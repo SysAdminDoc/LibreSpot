@@ -3308,9 +3308,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
         }
 
-        var body = definition.IsDestructive
-            ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}This is a deeper reset path and may remove the current customization state. Continue only when you are ready to rebuild."
-            : $"{definition.Description}{Environment.NewLine}{Environment.NewLine}LibreSpot will keep this window open and stream backend progress while the action runs.";
+        var body = definition.Action == "RemoveSelfData"
+            ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}Only LibreSpot's own data is removed — Spotify, SpotX patches, and Spicetify are not touched."
+            : definition.IsDestructive
+                ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}This is a deeper reset path and may remove the current customization state. Continue only when you are ready to rebuild."
+                : $"{definition.Description}{Environment.NewLine}{Environment.NewLine}LibreSpot will keep this window open and stream backend progress while the action runs.";
         var (summaryTitle, summaryBody) = BuildMaintenancePromptSummary(definition);
         var requiresAdministrator = RequiresAdministrator(definition.Action);
 
@@ -3819,6 +3821,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             "RestoreVanilla" => ("What this does", "This removes the visible Spicetify layer while leaving SpotX in place, so Spotify returns to a calmer default look."),
             "UninstallSpicetify" => ("What this removes", "LibreSpot restores Spotify first, then removes the Spicetify CLI, config folder, and PATH entry from this machine."),
             "FullReset" => ("What this removes", "LibreSpot clears Spotify customization state and related leftovers so the next install can start from a truly clean baseline."),
+            "RemoveSelfData" => ("What this removes", "LibreSpot deletes its own configuration, profiles, backups, logs, crash reports, and the watcher task. Spotify, SpotX patches, and Spicetify are not touched."),
             _ => definition.IsDestructive
                 ? ("What this removes", "LibreSpot will make a deeper cleanup pass and leave the result visible here afterward.")
                 : ("What this does", "LibreSpot will keep the window open, stream progress here, and leave the result easy to review afterward.")

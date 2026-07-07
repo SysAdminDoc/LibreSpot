@@ -325,19 +325,6 @@
     <value>Spotify is ready</value>
     <comment>Final progress substatus</comment>
   </data>
-  <!-- Install options -->
-  <data name="OptionCleanInstall" xml:space="preserve">
-    <value>Remove current stack first</value>
-    <comment>Clean install option title</comment>
-  </data>
-  <data name="OptionCleanInstallDescription" xml:space="preserve">
-    <value>Clear old Spotify and customization remnants before starting fresh.</value>
-    <comment>Clean install option description</comment>
-  </data>
-  <data name="OptionLaunchAfter" xml:space="preserve">
-    <value>Launch Spotify when finished</value>
-    <comment>Post-install launch option title</comment>
-  </data>
   <!-- Config status -->
   <data name="ConfigSaved" xml:space="preserve">
     <value>Profile saved</value>
@@ -546,7 +533,7 @@
     <comment>Accessibility name for cache field</comment>
   </data>
   <data name="CacheLimitHint" xml:space="preserve">
-    <value>Set a cache ceiling in megabytes, or leave zero to use LibreSpot's default.</value>
+    <value>Set a cache ceiling in megabytes, or leave zero to keep Spotify's default behavior.</value>
     <comment>Cache limit accessibility hint</comment>
   </data>
   <data name="CacheLimitUnit" xml:space="preserve">
@@ -1286,7 +1273,7 @@
     <comment>Maintenance action title for FullReset</comment>
   </data>
   <data name="Maintenance_FullReset_Description" xml:space="preserve">
-    <value>Remove SpotX, Spicetify, Spotify app state, and related leftovers for a truly clean start.</value>
+    <value>Removes SpotX and Spicetify, uninstalls the Spotify app itself, and cleans leftovers for a truly clean start. Reinstall Spotify (or run the Recommended setup) afterward.</value>
     <comment>Maintenance action description for FullReset</comment>
   </data>
   <data name="Maintenance_FullReset_ButtonText" xml:space="preserve">
@@ -1722,5 +1709,31 @@
   <data name="Ui_CompletionNotifications" xml:space="preserve">
     <value>Completion notifications</value>
     <comment>User-facing WPF text</comment>
+  </data>
+
+  <!-- Tray icon -->
+  <data name="Tray_Open" xml:space="preserve">
+    <value>Open LibreSpot</value>
+    <comment>Tray menu item: reopen the main window</comment>
+  </data>
+  <data name="Tray_OpenFolder" xml:space="preserve">
+    <value>Open LibreSpot folder</value>
+    <comment>Tray menu item: open the LibreSpot configuration folder</comment>
+  </data>
+  <data name="Tray_Exit" xml:space="preserve">
+    <value>Exit LibreSpot</value>
+    <comment>Tray menu item: close the app from the tray</comment>
+  </data>
+  <data name="Tray_BalloonTitle" xml:space="preserve">
+    <value>LibreSpot is minimized</value>
+    <comment>Tray balloon title shown when the window minimizes to the tray</comment>
+  </data>
+  <data name="Tray_BalloonText" xml:space="preserve">
+    <value>Double-click this icon to reopen LibreSpot.</value>
+    <comment>Tray balloon text when minimized while idle</comment>
+  </data>
+  <data name="Tray_BalloonTextRunning" xml:space="preserve">
+    <value>LibreSpot is still running. Double-click this icon to reopen the live log.</value>
+    <comment>Tray balloon text when minimized during an active run</comment>
   </data>
 </root>

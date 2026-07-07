@@ -121,11 +121,6 @@
   <data name="ProgressComplete" xml:space="preserve"><value>Setup complete</value><comment>Final progress state</comment></data>
   <data name="ProgressSpotifyReady" xml:space="preserve"><value>Spotify is ready</value><comment>Final progress substatus</comment></data>
 
-  <!-- Install options -->
-  <data name="OptionCleanInstall" xml:space="preserve"><value>Remove current stack first</value><comment>Clean install option title</comment></data>
-  <data name="OptionCleanInstallDescription" xml:space="preserve"><value>Clear old Spotify and customization remnants before starting fresh.</value><comment>Clean install option description</comment></data>
-  <data name="OptionLaunchAfter" xml:space="preserve"><value>Launch Spotify when finished</value><comment>Post-install launch option title</comment></data>
-
   <!-- Config status -->
   <data name="ConfigSaved" xml:space="preserve"><value>Profile saved</value><comment>Shown after config is saved</comment></data>
   <data name="ConfigUnsaved" xml:space="preserve"><value>Unsaved changes</value><comment>Shown when config has unsaved changes</comment></data>
@@ -189,7 +184,7 @@
   <data name="LyricsThemeLabel" xml:space="preserve"><value>Lyrics theme</value><comment>Lyrics theme selector label</comment></data>
   <data name="CacheLimitLabel" xml:space="preserve"><value>Cache limit</value><comment>Cache limit field label</comment></data>
   <data name="CacheLimitName" xml:space="preserve"><value>Cache limit in megabytes</value><comment>Accessibility name for cache field</comment></data>
-  <data name="CacheLimitHint" xml:space="preserve"><value>Set a cache ceiling in megabytes, or leave zero to use LibreSpot's default.</value><comment>Cache limit accessibility hint</comment></data>
+  <data name="CacheLimitHint" xml:space="preserve"><value>Set a cache ceiling in megabytes, or leave zero to keep Spotify's default behavior.</value><comment>Cache limit accessibility hint</comment></data>
   <data name="CacheLimitUnit" xml:space="preserve"><value>MB</value><comment>Cache limit unit suffix</comment></data>
   <data name="CacheLimitDefault" xml:space="preserve"><value>Leave 0 for the default cache behavior.</value><comment>Cache limit helper text</comment></data>
   <data name="CompatibilityTargetLabel" xml:space="preserve"><value>Compatibility target</value><comment>Section label for Spotify version targeting</comment></data>
@@ -388,7 +383,7 @@
   <data name="Maintenance_UninstallSpicetify_Description" xml:space="preserve"><value>Restore Spotify and then remove the Spicetify CLI, config folder, and PATH entry.</value><comment>Maintenance action description for UninstallSpicetify</comment></data>
   <data name="Maintenance_UninstallSpicetify_ButtonText" xml:space="preserve"><value>Remove Spicetify</value><comment>Maintenance action button text for UninstallSpicetify</comment></data>
   <data name="Maintenance_FullReset_Title" xml:space="preserve"><value>Full reset</value><comment>Maintenance action title for FullReset</comment></data>
-  <data name="Maintenance_FullReset_Description" xml:space="preserve"><value>Remove SpotX, Spicetify, Spotify app state, and related leftovers for a truly clean start.</value><comment>Maintenance action description for FullReset</comment></data>
+  <data name="Maintenance_FullReset_Description" xml:space="preserve"><value>Removes SpotX and Spicetify, uninstalls the Spotify app itself, and cleans leftovers for a truly clean start. Reinstall Spotify (or run the Recommended setup) afterward.</value><comment>Maintenance action description for FullReset</comment></data>
   <data name="Maintenance_FullReset_ButtonText" xml:space="preserve"><value>Reset everything</value><comment>Maintenance action button text for FullReset</comment></data>
   <data name="Maintenance_RemoveSelfData_Title" xml:space="preserve"><value>Remove LibreSpot data</value><comment>Maintenance action title for RemoveSelfData</comment></data>
   <data name="Maintenance_RemoveSelfData_Description" xml:space="preserve"><value>Unregister the watcher task and delete LibreSpot's own config, backups, logs, and crash reports. Spotify and Spicetify are not affected.</value><comment>Maintenance action description for RemoveSelfData</comment></data>
@@ -501,4 +496,12 @@
   <data name="Ui_DecisionPrompt" xml:space="preserve"><value>Decision prompt</value><comment>User-facing WPF text</comment></data>
   <data name="Ui_ConfirmsAnImportantLibreSpotActionBeforeItRuns" xml:space="preserve"><value>Confirms an important LibreSpot action before it runs.</value><comment>User-facing WPF text</comment></data>
   <data name="Ui_CompletionNotifications" xml:space="preserve"><value>Completion notifications</value><comment>User-facing WPF text</comment></data>
+
+  <!-- Tray icon -->
+  <data name="Tray_Open" xml:space="preserve"><value>Open LibreSpot</value><comment>Tray menu item: reopen the main window</comment></data>
+  <data name="Tray_OpenFolder" xml:space="preserve"><value>Open LibreSpot folder</value><comment>Tray menu item: open the LibreSpot configuration folder</comment></data>
+  <data name="Tray_Exit" xml:space="preserve"><value>Exit LibreSpot</value><comment>Tray menu item: close the app from the tray</comment></data>
+  <data name="Tray_BalloonTitle" xml:space="preserve"><value>LibreSpot is minimized</value><comment>Tray balloon title shown when the window minimizes to the tray</comment></data>
+  <data name="Tray_BalloonText" xml:space="preserve"><value>Double-click this icon to reopen LibreSpot.</value><comment>Tray balloon text when minimized while idle</comment></data>
+  <data name="Tray_BalloonTextRunning" xml:space="preserve"><value>LibreSpot is still running. Double-click this icon to reopen the live log.</value><comment>Tray balloon text when minimized during an active run</comment></data>
 </root>

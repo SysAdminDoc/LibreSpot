@@ -67,7 +67,7 @@
     <comment>Workspace hero subtitle for recommended mode</comment>
   </data>
   <data name="ModeCustomTitle" xml:space="preserve">
-    <value>Обычай</value>
+    <value>Пользовательский</value>
     <comment>Sidebar nav label for custom install</comment>
   </data>
   <data name="ModeCustomDescription" xml:space="preserve">
@@ -164,7 +164,7 @@
     <comment>Maintenance action title</comment>
   </data>
   <data name="ActionOpenMarketplace" xml:space="preserve">
-    <value>Открытый рынок</value>
+    <value>Открыть Marketplace</value>
     <comment>Maintenance action title</comment>
   </data>
   <data name="ActionSafeMode" xml:space="preserve">
@@ -201,7 +201,7 @@
     <comment>Confirmation dialog continue button</comment>
   </data>
   <data name="ButtonDismiss" xml:space="preserve">
-    <value>Увольнять</value>
+    <value>Закрыть</value>
     <comment>Dismiss/close button</comment>
   </data>
   <data name="ButtonCopyLog" xml:space="preserve">
@@ -213,7 +213,7 @@
     <comment>Open folder in Explorer button</comment>
   </data>
   <data name="ButtonClearSearch" xml:space="preserve">
-    <value>Прозрачный</value>
+    <value>Очистить</value>
     <comment>Clear search button</comment>
   </data>
   <data name="ButtonClearSearchName" xml:space="preserve">
@@ -325,19 +325,6 @@
     <value>Спотифай готов</value>
     <comment>Final progress substatus</comment>
   </data>
-  <!-- Install options -->
-  <data name="OptionCleanInstall" xml:space="preserve">
-    <value>Сначала удалить текущий стек</value>
-    <comment>Clean install option title</comment>
-  </data>
-  <data name="OptionCleanInstallDescription" xml:space="preserve">
-    <value>Очистите старый Spotify и остатки настроек, прежде чем начинать все заново.</value>
-    <comment>Clean install option description</comment>
-  </data>
-  <data name="OptionLaunchAfter" xml:space="preserve">
-    <value>Запустите Spotify, когда закончите.</value>
-    <comment>Post-install launch option title</comment>
-  </data>
   <!-- Config status -->
   <data name="ConfigSaved" xml:space="preserve">
     <value>Профиль сохранен.</value>
@@ -349,7 +336,7 @@
   </data>
   <!-- Sidebar / environment -->
   <data name="SidebarDescription" xml:space="preserve">
-    <value>Рекомендуется обрабатывать стабильный путь. </value>
+    <value>Режим «Рекомендуется» отвечает за стабильный путь установки. Режим «Пользовательский» держит преднамеренные изменения на виду. Режим «Обслуживание» сосредоточен на восстановлении.</value>
     <comment>Sidebar mode description paragraph</comment>
   </data>
   <data name="EnvironmentLabel" xml:space="preserve">
@@ -361,7 +348,7 @@
     <comment>Status dashboard card label</comment>
   </data>
   <data name="DashboardSpicetifyVersionLabel" xml:space="preserve">
-    <value>Версия для специй</value>
+    <value>Версия Spicetify</value>
     <comment>Status dashboard card label</comment>
   </data>
   <data name="DashboardSpotXStateLabel" xml:space="preserve">
@@ -510,7 +497,7 @@
     <comment>Theme gallery no-results state</comment>
   </data>
   <data name="ThemeGalleryRequiresJsBadge" xml:space="preserve">
-    <value>тема.js</value>
+    <value>theme.js</value>
     <comment>Badge for themes that require theme.js</comment>
   </data>
   <data name="ThemeGalleryCommunityBadge" xml:space="preserve">
@@ -546,7 +533,7 @@
     <comment>Accessibility name for cache field</comment>
   </data>
   <data name="CacheLimitHint" xml:space="preserve">
-    <value>Установите потолок кэша в мегабайтах или оставьте ноль, чтобы использовать значение LibreSpot по умолчанию.</value>
+    <value>Установите потолок кэша в мегабайтах или оставьте ноль, чтобы сохранить стандартное поведение Spotify.</value>
     <comment>Cache limit accessibility hint</comment>
   </data>
   <data name="CacheLimitUnit" xml:space="preserve">
@@ -606,7 +593,7 @@
     <comment>Custom mode section heading</comment>
   </data>
   <data name="AdvancedAdjustmentsHint" xml:space="preserve">
-    <value>Оставьте их, если не уверены, что они вам нужны.</value>
+    <value>Не включайте эти параметры, если вы не уверены, что они вам нужны.</value>
     <comment>Advanced section warning</comment>
   </data>
   <data name="ExperienceExtrasLabel" xml:space="preserve">
@@ -795,7 +782,7 @@
     <comment>Config save was canceled</comment>
   </data>
   <data name="RunNeedsAttention" xml:space="preserve">
-    <value>Бег требует внимания</value>
+    <value>Требуется внимание</value>
     <comment>Activity title when run has warnings</comment>
   </data>
   <data name="RunComplete" xml:space="preserve">
@@ -1016,7 +1003,7 @@
     <comment>Option title for SpotX_SendVersionOff</comment>
   </data>
   <data name="Option_SpotX_SendVersionOff_Description" xml:space="preserve">
-    <value>Блокирует уведомление об исходящей версии SpotX (введено в апреле 2026 г.). </value>
+    <value>Блокирует исходящее уведомление SpotX о версии (появилось в апреле 2026 г.). Рекомендуется включить.</value>
     <comment>Option description for SpotX_SendVersionOff</comment>
   </data>
   <data name="Option_SpotX_DevTools_Title" xml:space="preserve">
@@ -1145,7 +1132,7 @@
     <comment>Extension title for beautiful-lyrics.mjs</comment>
   </data>
   <data name="Extension_beautiful_lyrics_Description" xml:space="preserve">
-    <value>Захватывающие синхронизированные тексты с динамическим фоном и размытием. </value>
+    <value>Иммерсивные синхронизированные тексты песен с динамическим фоном и размытием. Подключается к стороннему сервису текстов (не только GitHub/Spotify).</value>
     <comment>Extension description for beautiful-lyrics.mjs</comment>
   </data>
   <data name="Extension_playlist_icons_Title" xml:space="preserve">
@@ -1169,7 +1156,7 @@
     <comment>Extension title for adblock.js</comment>
   </data>
   <data name="Extension_adblock_Description" xml:space="preserve">
-    <value>Блокировка рекламы на уровне Spicetify на случай сбоя исправления SpotX в новой сборке Spotify. </value>
+    <value>Блокировка рекламы на уровне Spicetify на случай, когда патч SpotX не срабатывает на более новой сборке Spotify. Не является заменой SpotX.</value>
     <comment>Extension description for adblock.js</comment>
   </data>
   <!-- AppCatalog: Maintenance action titles, descriptions, and button text -->
@@ -1210,7 +1197,7 @@
     <comment>Maintenance action button text for RepairMarketplace</comment>
   </data>
   <data name="Maintenance_OpenMarketplace_Title" xml:space="preserve">
-    <value>Открытый рынок</value>
+    <value>Открыть Marketplace</value>
     <comment>Maintenance action title for OpenMarketplace</comment>
   </data>
   <data name="Maintenance_OpenMarketplace_Description" xml:space="preserve">
@@ -1218,7 +1205,7 @@
     <comment>Maintenance action description for OpenMarketplace</comment>
   </data>
   <data name="Maintenance_OpenMarketplace_ButtonText" xml:space="preserve">
-    <value>Открытый рынок</value>
+    <value>Открыть Marketplace</value>
     <comment>Maintenance action button text for OpenMarketplace</comment>
   </data>
   <data name="Maintenance_SafeMode_Title" xml:space="preserve">
@@ -1226,7 +1213,7 @@
     <comment>Maintenance action title for SafeMode</comment>
   </data>
   <data name="Maintenance_SafeMode_Description" xml:space="preserve">
-    <value>Отключите все темы и расширения без удаления. </value>
+    <value>Отключает все темы и расширения, не удаляя их. Spotify загрузится в стандартном виде — чтобы восстановить настройки, используйте действие «Повторно примените настройки».</value>
     <comment>Maintenance action description for SafeMode</comment>
   </data>
   <data name="Maintenance_SafeMode_ButtonText" xml:space="preserve">
@@ -1238,7 +1225,7 @@
     <comment>Maintenance action title for CreateBackup</comment>
   </data>
   <data name="Maintenance_CreateBackup_Description" xml:space="preserve">
-    <value>Сохраните резервную копию текущей конфигурации и тем Spicetify. </value>
+    <value>Сохраняет резервную копию текущей конфигурации и тем Spicetify. Резервные копии хранятся в папке профиля LibreSpot, и их можно восстановить позже.</value>
     <comment>Maintenance action description for CreateBackup</comment>
   </data>
   <data name="Maintenance_CreateBackup_ButtonText" xml:space="preserve">
@@ -1250,7 +1237,7 @@
     <comment>Maintenance action title for RestoreBackup</comment>
   </data>
   <data name="Maintenance_RestoreBackup_Description" xml:space="preserve">
-    <value>Восстановите самую последнюю резервную копию конфигурации Spicetify, а затем повторно примените настройки. </value>
+    <value>Восстанавливает последнюю резервную копию конфигурации Spicetify и затем повторно применяет настройки оформления. Настройки SpotX и LibreSpot при этом не изменяются.</value>
     <comment>Maintenance action description for RestoreBackup</comment>
   </data>
   <data name="Maintenance_RestoreBackup_ButtonText" xml:space="preserve">
@@ -1286,7 +1273,7 @@
     <comment>Maintenance action title for FullReset</comment>
   </data>
   <data name="Maintenance_FullReset_Description" xml:space="preserve">
-    <value>Удалите SpotX, Spicetify, состояние приложения Spotify и связанные с ними остатки, чтобы начать по-настоящему чисто.</value>
+    <value>Удаляет SpotX и Spicetify, деинсталлирует само приложение Spotify и очищает остатки для по-настоящему чистого старта. После этого переустановите Spotify (или запустите рекомендуемую настройку).</value>
     <comment>Maintenance action description for FullReset</comment>
   </data>
   <data name="Maintenance_FullReset_ButtonText" xml:space="preserve">
@@ -1298,7 +1285,7 @@
     <comment>Maintenance action title for RemoveSelfData</comment>
   </data>
   <data name="Maintenance_RemoveSelfData_Description" xml:space="preserve">
-    <value>Отмените регистрацию задачи наблюдателя и удалите собственную конфигурацию, резервные копии, журналы и отчеты о сбоях LibreSpot. </value>
+    <value>Отменяет регистрацию задачи наблюдателя и удаляет собственную конфигурацию, резервные копии, журналы и отчеты о сбоях LibreSpot. Spotify и Spicetify не затрагиваются.</value>
     <comment>Maintenance action description for RemoveSelfData</comment>
   </data>
   <data name="Maintenance_RemoveSelfData_ButtonText" xml:space="preserve">
@@ -1328,7 +1315,7 @@
     <comment>User-facing WPF text</comment>
   </data>
   <data name="LanguageHelpText" xml:space="preserve">
-    <value>Переключите язык интерфейса LibreSpot. </value>
+    <value>Переключает язык интерфейса LibreSpot. Настройка сохраняется локально.</value>
     <comment>User-facing WPF text</comment>
   </data>
   <data name="Ui_CustomSettings" xml:space="preserve">
@@ -1722,5 +1709,31 @@
   <data name="Ui_CompletionNotifications" xml:space="preserve">
     <value>Уведомления о завершении</value>
     <comment>User-facing WPF text</comment>
+  </data>
+
+  <!-- Tray icon -->
+  <data name="Tray_Open" xml:space="preserve">
+    <value>Открыть LibreSpot</value>
+    <comment>Tray menu item: reopen the main window</comment>
+  </data>
+  <data name="Tray_OpenFolder" xml:space="preserve">
+    <value>Открыть папку LibreSpot</value>
+    <comment>Tray menu item: open the LibreSpot configuration folder</comment>
+  </data>
+  <data name="Tray_Exit" xml:space="preserve">
+    <value>Выйти из LibreSpot</value>
+    <comment>Tray menu item: close the app from the tray</comment>
+  </data>
+  <data name="Tray_BalloonTitle" xml:space="preserve">
+    <value>LibreSpot свернут</value>
+    <comment>Tray balloon title shown when the window minimizes to the tray</comment>
+  </data>
+  <data name="Tray_BalloonText" xml:space="preserve">
+    <value>Дважды щелкните этот значок, чтобы снова открыть LibreSpot.</value>
+    <comment>Tray balloon text when minimized while idle</comment>
+  </data>
+  <data name="Tray_BalloonTextRunning" xml:space="preserve">
+    <value>LibreSpot все еще работает. Дважды щелкните этот значок, чтобы снова открыть текущий журнал.</value>
+    <comment>Tray balloon text when minimized during an active run</comment>
   </data>
 </root>

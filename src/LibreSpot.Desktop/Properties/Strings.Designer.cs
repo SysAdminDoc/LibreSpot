@@ -591,30 +591,6 @@ namespace LibreSpot.Desktop.Properties {
             }
         }
         /// <summary>
-        ///   Clean install option title
-        /// </summary>
-        public static string OptionCleanInstall {
-            get {
-                return ResourceManager.GetString("OptionCleanInstall", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Clean install option description
-        /// </summary>
-        public static string OptionCleanInstallDescription {
-            get {
-                return ResourceManager.GetString("OptionCleanInstallDescription", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Post-install launch option title
-        /// </summary>
-        public static string OptionLaunchAfter {
-            get {
-                return ResourceManager.GetString("OptionLaunchAfter", resourceCulture);
-            }
-        }
-        /// <summary>
         ///   Shown after config is saved
         /// </summary>
         public static string ConfigSaved {
@@ -2548,6 +2524,54 @@ namespace LibreSpot.Desktop.Properties {
         public static string RecommendedHighlight_4 {
             get {
                 return ResourceManager.GetString("RecommendedHighlight_4", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Tray menu item: reopen the main window
+        /// </summary>
+        public static string Tray_Open {
+            get {
+                return ResourceManager.GetString("Tray_Open", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Tray menu item: open the LibreSpot configuration folder
+        /// </summary>
+        public static string Tray_OpenFolder {
+            get {
+                return ResourceManager.GetString("Tray_OpenFolder", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Tray menu item: close the app from the tray
+        /// </summary>
+        public static string Tray_Exit {
+            get {
+                return ResourceManager.GetString("Tray_Exit", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Tray balloon title shown when the window minimizes to the tray
+        /// </summary>
+        public static string Tray_BalloonTitle {
+            get {
+                return ResourceManager.GetString("Tray_BalloonTitle", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Tray balloon text when minimized while idle
+        /// </summary>
+        public static string Tray_BalloonText {
+            get {
+                return ResourceManager.GetString("Tray_BalloonText", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Tray balloon text when minimized during an active run
+        /// </summary>
+        public static string Tray_BalloonTextRunning {
+            get {
+                return ResourceManager.GetString("Tray_BalloonTextRunning", resourceCulture);
             }
         }
     }
