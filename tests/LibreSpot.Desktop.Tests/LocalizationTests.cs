@@ -141,6 +141,43 @@ public sealed class LocalizationTests
     }
 
     [Fact]
+    public void MainViewModel_RuntimeLocalizationKeysExist()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs"));
+        var usedKeys = Regex.Matches(source, "\"(?<key>Vm_[A-Za-z0-9_]+)\"")
+            .Cast<Match>()
+            .Select(match => match.Groups["key"].Value)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        var resourceKeys = GetResourceKeys(LoadResx());
+
+        Assert.NotEmpty(usedKeys);
+        Assert.Empty(usedKeys.Where(key => !resourceKeys.Contains(key)));
+    }
+
+    [Fact]
+    public void MainViewModel_UserFacingComputedTextUsesResources()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs"));
+        var migratedPhrases = new[]
+        {
+            "No profile selected",
+            "Quick actions",
+            "Ready for upkeep or reset",
+            "Search titles and descriptions across Custom.",
+            "LibreSpot keeps the live log and diagnostics on disk while this runs.",
+            "Estimated local zip size before compression:",
+            "Best on an existing install"
+        };
+
+        foreach (var phrase in migratedPhrases)
+        {
+            Assert.DoesNotContain(phrase, source);
+        }
+    }
+
+    [Fact]
     public void CrowdinConfig_MapsSupportedResourceFiles()
     {
         var path = Path.Combine(RepoRoot, ".crowdin.yml");

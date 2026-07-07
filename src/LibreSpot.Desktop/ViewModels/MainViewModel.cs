@@ -18,6 +18,14 @@ using ImageSource = System.Windows.Media.ImageSource;
 
 namespace LibreSpot.Desktop.ViewModels;
 
+internal static class ViewModelText
+{
+    public static string Get(string key) => LocalizationService.Current.GetString(key);
+
+    public static string Format(string key, params object?[] args) =>
+        string.Format(LocalizationService.Current.Culture, Get(key), args);
+}
+
 public sealed class OptionToggleViewModel : ObservableObject
 {
     private bool _isSelected;
@@ -190,7 +198,9 @@ public sealed class ThemeGalleryItemViewModel
         Label = Prettify.Label(name);
         Schemes = schemes;
         SchemePreview = string.Join(", ", schemes.Take(4).Select(Prettify.Label));
-        SchemeCountText = schemes.Count == 1 ? "1 scheme" : $"{schemes.Count} schemes";
+        SchemeCountText = schemes.Count == 1
+            ? ViewModelText.Get("Vm_ThemeGalleryOneScheme")
+            : ViewModelText.Format("Vm_ThemeGalleryManySchemesFormat", schemes.Count);
         IsMarketplaceOnly = string.Equals(name, "(None - Marketplace Only)", StringComparison.Ordinal);
         IsCommunity = CommunityThemeNames.Contains(name);
         RequiresThemeJs = ThemesNeedingJs.Contains(name);
@@ -246,10 +256,10 @@ public sealed class ThemeGalleryItemViewModel
     public string AutomationName => $"{Label}, {SchemeCountText}";
     public string AutomationHelpText =>
         IsMarketplaceOnly
-            ? "Uses Spicetify Marketplace without installing a bundled theme."
+            ? ViewModelText.Get("Vm_ThemeGalleryMarketplaceHelp")
             : RequiresThemeJs
-                ? $"{Label} includes a theme.js step and {SchemeCountText}."
-                : $"{Label} installs without a theme.js step and has {SchemeCountText}.";
+                ? ViewModelText.Format("Vm_ThemeGalleryRequiresJsHelpFormat", Label, SchemeCountText)
+                : ViewModelText.Format("Vm_ThemeGalleryNoJsHelpFormat", Label, SchemeCountText);
 
     public bool Matches(string query)
     {
@@ -410,7 +420,9 @@ public sealed class SupportBundleCategoryViewModel : ObservableObject
         try
         {
             Detail = entry.Detail;
-            FileCountText = entry.FileCount == 1 ? "1 file" : $"{entry.FileCount} files";
+            FileCountText = entry.FileCount == 1
+                ? ViewModelText.Get("Vm_FileCountOne")
+                : ViewModelText.Format("Vm_FileCountManyFormat", entry.FileCount);
             EstimatedSizeText = MainViewModel.FormatBytes(entry.EstimatedBytes);
             IsSelected = entry.IsSelected;
         }
@@ -421,7 +433,7 @@ public sealed class SupportBundleCategoryViewModel : ObservableObject
     }
 }
 
-public sealed class LocalProfileCardViewModel
+public sealed class LocalProfileCardViewModel : ObservableObject
 {
     public LocalProfileCardViewModel(LocalProfileSummary summary)
     {
@@ -441,23 +453,42 @@ public sealed class LocalProfileCardViewModel
     public DateTimeOffset UpdatedAt { get; }
     public bool IsEditable => !IsBuiltIn;
     public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
-    public string KindBadge => IsBuiltIn ? "Bundled" : "Local";
-    public string StateBadge => IsActive ? "Active" : IsBuiltIn ? "Template" : "Saved";
+    public string KindBadge => IsBuiltIn ? ViewModelText.Get("Vm_ProfileKindBundled") : ViewModelText.Get("Vm_ProfileKindLocal");
+    public string StateBadge => IsActive
+        ? ViewModelText.Get("Vm_ProfileStateActive")
+        : IsBuiltIn
+            ? ViewModelText.Get("Vm_ProfileStateTemplate")
+            : ViewModelText.Get("Vm_ProfileStateSaved");
     public string StateTone => IsActive ? "active" : IsBuiltIn ? "template" : "local";
     public string CapabilityText =>
         IsBuiltIn
-            ? "Read-only"
+            ? ViewModelText.Get("Vm_ProfileCapabilityReadOnly")
             : IsActive
-                ? "Editable active"
-                : "Editable";
-    public string UpdatedText => IsBuiltIn ? "Bundled template" : $"Updated {UpdatedAt.LocalDateTime:g}";
-    public string AutomationName => $"{Name} {(IsBuiltIn ? "Template" : "Local")} profile";
+                ? ViewModelText.Get("Vm_ProfileCapabilityEditableActive")
+                : ViewModelText.Get("Vm_ProfileCapabilityEditable");
+    public string UpdatedText => IsBuiltIn
+        ? ViewModelText.Get("Vm_ProfileUpdatedBundledTemplate")
+        : ViewModelText.Format("Vm_ProfileUpdatedFormat", UpdatedAt.LocalDateTime);
+    public string AutomationName => ViewModelText.Format(
+        "Vm_ProfileAutomationNameFormat",
+        Name,
+        IsBuiltIn ? ViewModelText.Get("Vm_ProfileStateTemplate") : ViewModelText.Get("Vm_ProfileKindLocal"));
     public string AutomationHelpText =>
         IsActive
-            ? $"{Name} is the active LibreSpot profile."
+            ? ViewModelText.Format("Vm_ProfileAutomationHelpActiveFormat", Name)
             : IsBuiltIn
-                ? $"{Name} is a bundled template that can be previewed, applied, or duplicated."
-                : $"{Name} is a local profile that can be previewed, renamed, exported, applied, duplicated, or deleted.";
+                ? ViewModelText.Format("Vm_ProfileAutomationHelpBuiltInFormat", Name)
+                : ViewModelText.Format("Vm_ProfileAutomationHelpLocalFormat", Name);
+
+    public void RefreshLocalizedText()
+    {
+        OnPropertyChanged(nameof(KindBadge));
+        OnPropertyChanged(nameof(StateBadge));
+        OnPropertyChanged(nameof(CapabilityText));
+        OnPropertyChanged(nameof(UpdatedText));
+        OnPropertyChanged(nameof(AutomationName));
+        OnPropertyChanged(nameof(AutomationHelpText));
+    }
 }
 
 public sealed class SelectionInsightViewModel
@@ -615,13 +646,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string? _recoveredConfigurationPath;
     private string? _configurationRecoveryReason;
     private LocalProfileCardViewModel? _selectedLocalProfile;
-    private string _profileNameText = "Custom profile";
-    private string _profileDescriptionText = "Saved from the Custom page.";
-    private string _profileOperationStatus = "Local profiles load when LibreSpot starts.";
+    private string _profileNameText = ViewModelText.Get("Vm_ProfileDefaultName");
+    private string _profileDescriptionText = ViewModelText.Get("Vm_ProfileDefaultDescription");
+    private string _profileOperationStatus = ViewModelText.Get("Vm_ProfileOperationInitial");
     private LocalProfileShareCard? _selectedProfileShareCard;
     private ImageSource? _selectedProfileQrImage;
-    private string _selectedProfileShareStatus = "Select a profile to create an inert share card.";
-    private string _selectedProfileComparisonText = "Select a profile to compare it with Recommended.";
+    private string _selectedProfileShareStatus = ViewModelText.Get("Vm_ProfileShareInitial");
+    private string _selectedProfileComparisonText = ViewModelText.Get("Vm_ProfileComparisonInitial");
     private Task _selectedProfileShareRefreshTask = Task.CompletedTask;
     private bool _customPatchesEnabled;
     private string _customPatchesJson = string.Empty;
@@ -710,9 +741,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ClearAssetCacheCommand = CreateAsyncCommand(
             () => RunMaintenanceAsync(new MaintenanceActionDefinition(
                 "ClearCache",
-                "Clear asset cache",
-                "Remove stale or corrupt cached downloads. Verified assets will be cached again on demand.",
-                "Clear cache")),
+                L("Vm_ShellClearCacheTitle"),
+                L("Vm_ClearCacheActionDescription"),
+                L("Vm_ShellClearCacheTitle"))),
             () => !IsRunning);
         RefreshSupportBundlePreviewCommand = new RelayCommand(RefreshSupportBundlePreview);
         ExportSupportBundleCommand = CreateAsyncCommand(ExportSupportBundleAsync, () => !IsRunning);
@@ -755,6 +786,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaiseSelectionInsightsChanged();
         RaiseSnapshotInsightsChanged();
     }
+
+    private string L(string key) => _localizationService.GetString(key);
+
+    private string LF(string key, params object?[] args) =>
+        string.Format(_localizationService.Culture, L(key), args);
 
     public ObservableCollection<string> RecommendedHighlights { get; }
     public ObservableCollection<string> ThemeNames => _customOptions.ThemeNames;
@@ -923,31 +959,31 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool HasLocalProfiles => LocalProfiles.Count > 0;
     public bool HasSelectedLocalProfile => SelectedLocalProfile is not null;
     public bool CanEditSelectedLocalProfile => SelectedLocalProfile?.IsEditable == true;
-    public string SelectedLocalProfileTitle => SelectedLocalProfile?.Name ?? "No profile selected";
+    public string SelectedLocalProfileTitle => SelectedLocalProfile?.Name ?? L("Vm_ProfileNoSelectionTitle");
     public string SelectedLocalProfileDetail =>
         SelectedLocalProfile is null
-            ? "Refresh profiles, import a .librespot file, or save the current Custom selections as a local profile."
+            ? L("Vm_ProfileNoSelectionDetail")
             : SelectedLocalProfile.IsActive
-                ? "This profile is active. Applying another profile keeps this one as the previous active pointer for rollback."
+                ? L("Vm_ProfileActiveDetail")
                 : SelectedLocalProfile.Description;
 
     public string ProfileSelectionHint =>
         IsRunning
-            ? "Profile actions pause while LibreSpot is running so config.json cannot change mid-run."
+            ? L("Vm_ProfileSelectionPaused")
             : SelectedLocalProfile is null
-                ? "Select a template or local profile to preview, duplicate, export, or set active."
+                ? L("Vm_ProfileSelectionNone")
                 : SelectedLocalProfile.IsBuiltIn
-                    ? "Bundled templates are read-only. Preview one, set it active, or duplicate it before editing."
+                    ? L("Vm_ProfileSelectionBuiltIn")
                     : SelectedLocalProfile.IsActive
-                        ? "This local profile is active. Duplicate it before experimenting, or export it as a restore point."
-                        : "Local profile selected. Preview first when you want to inspect settings without writing config.json.";
+                        ? L("Vm_ProfileSelectionActive")
+                        : L("Vm_ProfileSelectionLocal");
 
     public string ProfileEditorHint =>
         SelectedLocalProfile is null
-            ? "Use a clear name before saving the current Custom selections as a local profile."
+            ? L("Vm_ProfileEditorNoSelection")
             : SelectedLocalProfile.IsBuiltIn
-                ? "The fields are prefilled with a copy name so Duplicate creates an editable local profile."
-                : "Edit the name or notes, then use Rename to update this local profile.";
+                ? L("Vm_ProfileEditorBuiltIn")
+                : L("Vm_ProfileEditorEditable");
 
     public string SessionAccessTitle =>
         IsAdministratorSession ? Strings.ReadyToRun : Strings.AdminStepNeeded;
@@ -957,7 +993,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? Strings.ReadyToRunDescription
             : Strings.AdminStepDescription;
 
-    public string ShellReadinessTitle => "Readiness";
+    public string ShellReadinessTitle => L("Vm_ShellReadinessTitle");
 
     public string ShellReadinessValue =>
         NeedsAdministratorRelaunch
@@ -965,61 +1001,61 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             : HasCriticalHealthIssues
                 ? Strings.RunNeedsAttention
                 : HasWarningHealthIssues
-                    ? "Review warnings"
-                    : "Ready to patch";
+                    ? L("Vm_ShellReviewWarnings")
+                    : L("Vm_ShellReadyToPatch");
 
     public string ShellReadinessDetail =>
         NeedsAdministratorRelaunch
             ? Strings.AdminStepDescription
             : HasCriticalHealthIssues || HasWarningHealthIssues
                 ? HealthIssueSummary
-                : "No blocking issues detected.";
+                : L("Vm_ShellNoBlockingIssues");
 
-    public string ShellQuickActionsTitle => "Quick actions";
-    public string ShellVerifyEnvironmentTitle => "Verify environment";
-    public string ShellVerifyEnvironmentDetail => "Re-check system and dependencies";
-    public string ShellRepairTitle => "Repair";
-    public string ShellRepairDetail => "Fix detected issues";
-    public string ShellClearCacheTitle => "Clear cache";
-    public string ShellClearCacheDetail => "Remove temp files and caches";
-    public string ShellTrustRiskTitle => "Trust and risk";
-    public string ShellTrustedSourcesTitle => "Trusted sources";
-    public string ShellTrustedSourcesDetail => "Pinned downloads are hash-verified before use.";
-    public string ShellSpotifyModificationTitle => "Modifies Spotify";
-    public string ShellSpotifyModificationDetail => "Patches files in the local Spotify directory.";
-    public string ShellBackupCreatedTitle => "Backup ready";
+    public string ShellQuickActionsTitle => L("Vm_ShellQuickActionsTitle");
+    public string ShellVerifyEnvironmentTitle => L("Vm_ShellVerifyEnvironmentTitle");
+    public string ShellVerifyEnvironmentDetail => L("Vm_ShellVerifyEnvironmentDetail");
+    public string ShellRepairTitle => L("Vm_ShellRepairTitle");
+    public string ShellRepairDetail => L("Vm_ShellRepairDetail");
+    public string ShellClearCacheTitle => L("Vm_ShellClearCacheTitle");
+    public string ShellClearCacheDetail => L("Vm_ShellClearCacheDetail");
+    public string ShellTrustRiskTitle => L("Vm_ShellTrustRiskTitle");
+    public string ShellTrustedSourcesTitle => L("Vm_ShellTrustedSourcesTitle");
+    public string ShellTrustedSourcesDetail => L("Vm_ShellTrustedSourcesDetail");
+    public string ShellSpotifyModificationTitle => L("Vm_ShellSpotifyModificationTitle");
+    public string ShellSpotifyModificationDetail => L("Vm_ShellSpotifyModificationDetail");
+    public string ShellBackupCreatedTitle => L("Vm_ShellBackupCreatedTitle");
     public string ShellBackupCreatedDetail => Snapshot.SavedConfigExists
-        ? "Saved profile and restore data are available."
-        : "LibreSpot creates restore data during setup.";
-    public string ShellActivityTitle => "Activity";
-    public string ShellNoActiveTasksText => IsRunning ? ActivityStatus : "No active tasks";
-    public string ShellReadyText => "Ready";
+        ? L("Vm_ShellBackupCreatedSaved")
+        : L("Vm_ShellBackupCreatedPending");
+    public string ShellActivityTitle => L("Vm_ShellActivityTitle");
+    public string ShellNoActiveTasksText => IsRunning ? ActivityStatus : L("Vm_ShellNoActiveTasks");
+    public string ShellReadyText => Strings.SeverityReady;
     public string ShellServiceStatusText => Snapshot.SpotifyInstalled || Snapshot.SpicetifyInstalled
-        ? "LibreSpot stack detected"
-        : "LibreSpot standby";
+        ? L("Vm_ShellServiceDetected")
+        : L("Vm_ShellServiceStandby");
     public string ShellDisplayVersion => "v4.0.0-preview.9";
     public string ShellUpdateStatusTitle => Snapshot.SpicetifyInstalled || Snapshot.SpotifyInstalled
-        ? "LibreSpot is ready"
-        : "LibreSpot is up to date";
+        ? L("Vm_ShellUpdateReady")
+        : L("Vm_ShellUpdateCurrent");
     public string ShellUpdateStatusDetail => Snapshot.SpicetifyInstalled || Snapshot.SpotifyInstalled
-        ? "Stack maintenance is available."
-        : "You have the latest preview.";
-    public string ShellTopThemeLabel => "Theme";
-    public string ShellTopSettingsLabel => "Settings";
-    public string ShellLearnMoreLabel => "Learn more about LibreSpot";
-    public string ShellLogLevelLabel => "All levels";
-    public string ShellClearLogLabel => "Clear";
-    public string ShellAutoScrollLabel => "Auto-scroll";
-    public string ShellLocalEnvironmentTitle => "Local environment";
-    public string ShellDependenciesTitle => "Dependencies";
-    public string ShellDependencyComponentHeader => "Component";
-    public string ShellDependencyInstalledHeader => "Installed";
-    public string ShellDependencyRecommendedHeader => "Recommended";
-    public string ShellDependencyStatusHeader => "Status";
-    public string ShellEnvironmentReportLinkText => "View full environment report";
+        ? L("Vm_ShellUpdateMaintenanceAvailable")
+        : L("Vm_ShellUpdateLatestPreview");
+    public string ShellTopThemeLabel => L("Vm_ShellTopThemeLabel");
+    public string ShellTopSettingsLabel => L("Vm_ShellTopSettingsLabel");
+    public string ShellLearnMoreLabel => L("Vm_ShellLearnMoreLabel");
+    public string ShellLogLevelLabel => L("Vm_ShellLogLevelLabel");
+    public string ShellClearLogLabel => L("Vm_ShellClearLogLabel");
+    public string ShellAutoScrollLabel => L("Vm_ShellAutoScrollLabel");
+    public string ShellLocalEnvironmentTitle => L("Vm_ShellLocalEnvironmentTitle");
+    public string ShellDependenciesTitle => L("Vm_ShellDependenciesTitle");
+    public string ShellDependencyComponentHeader => L("Vm_ShellDependencyComponentHeader");
+    public string ShellDependencyInstalledHeader => L("Vm_ShellDependencyInstalledHeader");
+    public string ShellDependencyRecommendedHeader => L("Vm_ShellDependencyRecommendedHeader");
+    public string ShellDependencyStatusHeader => L("Vm_ShellDependencyStatusHeader");
+    public string ShellEnvironmentReportLinkText => L("Vm_ShellEnvironmentReportLinkText");
     public string ShellDependenciesSummaryText => ShellDependencyRows.Any(row => row.Tone == HealthSeverity.Critical || row.Tone == HealthSeverity.Warning)
-        ? "Review dependency warnings before patching."
-        : "All dependencies are healthy.";
+        ? L("Vm_ShellDependenciesWarning")
+        : L("Vm_ShellDependenciesHealthy");
 
     private string ShellSpotifyTargetDetail
     {
@@ -1027,7 +1063,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (!Snapshot.SpotifyInstalled)
             {
-                return "Per-user Spotify install path.";
+                return L("Vm_ShellSpotifyTargetPerUserPath");
             }
 
             if (Environment.GetCommandLineArgs().Any(arg => arg.StartsWith("--uia-smoke=", StringComparison.OrdinalIgnoreCase)))
@@ -1038,7 +1074,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var path = HealthComponent("spotify")?.Path;
             if (string.IsNullOrWhiteSpace(path))
             {
-                return "Detected per-user install path.";
+                return L("Vm_ShellSpotifyTargetDetectedPath");
             }
 
             return Path.GetDirectoryName(path) ?? path;
@@ -1047,37 +1083,37 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public IReadOnlyList<ShellSummaryItemViewModel> ShellSummaryItems =>
     [
-        new("Status", ShellReadinessValue, ShellReadinessDetail, "check", ShellReadinessTone),
+        new(L("Vm_ShellSummaryStatus"), ShellReadinessValue, ShellReadinessDetail, "check", ShellReadinessTone),
         new(
-            "Last run",
-            LogEntries.LastOrDefault()?.TimestampDisplay ?? "Not run yet",
-            SelectedLocalProfile?.Name is { Length: > 0 } profileName ? $"Profile: {profileName}" : "Profile: Default",
+            L("Vm_ShellSummaryLastRun"),
+            LogEntries.LastOrDefault()?.TimestampDisplay ?? L("Vm_ShellNotRunYet"),
+            SelectedLocalProfile?.Name is { Length: > 0 } profileName ? LF("Vm_ShellProfileNameFormat", profileName) : L("Vm_ShellProfileDefault"),
             "clock",
             HealthSeverity.Info),
         new(
-            "Spotify target",
+            L("Vm_ShellSpotifyTargetLabel"),
             "Spotify.exe",
             ShellSpotifyTargetDetail,
             "spotify",
             Snapshot.SpotifyInstalled ? HealthSeverity.Ready : HealthSeverity.Info),
         new(
-            "Profile",
-            SelectedLocalProfile?.Name ?? "Default",
-            Snapshot.SavedConfigExists ? "Active" : "Will be saved on apply",
+            L("Vm_ShellProfileLabel"),
+            SelectedLocalProfile?.Name ?? L("Vm_ProfileDefaultNameShort"),
+            Snapshot.SavedConfigExists ? L("Vm_ProfileStateActive") : L("Vm_ShellProfileWillSave"),
             "profile",
             Snapshot.SavedConfigExists ? HealthSeverity.Ready : HealthSeverity.Info)
     ];
 
     public IReadOnlyList<ShellEnvironmentRowViewModel> ShellEnvironmentRows =>
     [
-        new("Windows", Environment.OSVersion.VersionString, HealthSeverity.Ready),
-        new(".NET Desktop Runtime", Environment.Version.ToString(), HealthSeverity.Ready),
-        new("PowerShell", "5.1+ available", HealthSeverity.Ready),
+        new(L("Vm_EnvWindows"), Environment.OSVersion.VersionString, HealthSeverity.Ready),
+        new(L("Vm_EnvDotNetDesktopRuntime"), Environment.Version.ToString(), HealthSeverity.Ready),
+        new(L("Vm_EnvPowerShell"), L("Vm_EnvPowerShellAvailable"), HealthSeverity.Ready),
         new(
-            "Spotify (Installed)",
+            L("Vm_EnvSpotifyInstalled"),
             FirstNonEmpty(HealthComponent("spotify")?.DetectedVersion, HealthComponent("spotify")?.Status),
             HealthComponent("spotify")?.Severity ?? HealthSeverity.Info),
-        new("Spotify running", "Not running", Snapshot.SpotifyInstalled ? HealthSeverity.Ready : HealthSeverity.Info)
+        new(L("Vm_EnvSpotifyRunning"), L("Vm_EnvNotRunning"), Snapshot.SpotifyInstalled ? HealthSeverity.Ready : HealthSeverity.Info)
     ];
 
     public IReadOnlyList<ShellDependencyRowViewModel> ShellDependencyRows =>
@@ -1085,8 +1121,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         BuildDependencyRow("Spicetify CLI", HealthComponent("spicetify-cli"), AppCatalog.PinnedSpicetifyCliVersion),
         BuildDependencyRow("SpotX (core)", HealthComponent("spotx"), AppCatalog.PinnedSpotXVersion),
         BuildDependencyRow("Marketplace", HealthComponent("marketplace"), AppCatalog.PinnedMarketplaceVersion),
-        new("Node.js", "Not required", "Optional", HealthSeverity.Ready),
-        new("Python", "Not required", "Optional", HealthSeverity.Ready)
+        new("Node.js", L("Vm_DependencyNotRequired"), L("Vm_DependencyOptional"), HealthSeverity.Ready),
+        new("Python", L("Vm_DependencyNotRequired"), L("Vm_DependencyOptional"), HealthSeverity.Ready)
     ];
 
     public IReadOnlyList<LogEntryViewModel> ShellActivityLogItems =>
@@ -1094,9 +1130,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? LogEntries.ToArray()
             :
             [
-                new LogEntryViewModel(DateTime.Now.AddSeconds(-4), "INFO", "Environment snapshot is ready."),
+                new LogEntryViewModel(DateTime.Now.AddSeconds(-4), "INFO", L("Vm_ShellLogEnvironmentReady")),
                 new LogEntryViewModel(DateTime.Now.AddSeconds(-3), "INFO", Snapshot.StatusDetail),
-                new LogEntryViewModel(DateTime.Now.AddSeconds(-2), "INFO", SelectedLocalProfile?.Name is { Length: > 0 } profileName ? $"Using profile: {profileName}" : "Using profile: Default"),
+                new LogEntryViewModel(DateTime.Now.AddSeconds(-2), "INFO", SelectedLocalProfile?.Name is { Length: > 0 } profileName ? LF("Vm_ShellLogUsingProfileFormat", profileName) : L("Vm_ShellLogUsingDefaultProfile")),
                 new LogEntryViewModel(DateTime.Now.AddSeconds(-1), NeedsAdministratorRelaunch ? "WARN" : "INFO", ShellReadinessDetail)
             ];
 
@@ -1109,24 +1145,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string SpotifyStatusLine =>
         Snapshot.SpotifyInstalled
-            ? "Spotify detected"
-            : "Spotify not installed";
+            ? L("Vm_SpotifyDetected")
+            : L("Vm_SpotifyNotInstalled");
 
     public string CustomizationStatusLine =>
         Snapshot.SpicetifyInstalled
-            ? "Spicetify detected"
-            : "Spicetify not installed";
+            ? L("Vm_SpicetifyDetected")
+            : L("Vm_SpicetifyNotInstalled");
 
     public string MarketplaceStatusLine =>
         !Snapshot.SpicetifyInstalled
-            ? "Marketplace unavailable until Spicetify is installed"
+            ? L("Vm_MarketplaceUnavailable")
             : Snapshot.MarketplaceReady
-                ? "Marketplace ready"
+                ? L("Vm_MarketplaceReady")
                 : Snapshot.MarketplaceFilesPresent
-                    ? "Marketplace hidden - repair available"
+                    ? L("Vm_MarketplaceHidden")
                     : Snapshot.MarketplaceRegistered
-                        ? "Marketplace files missing - repair available"
-                        : "Marketplace not enabled";
+                        ? L("Vm_MarketplaceFilesMissing")
+                        : L("Vm_MarketplaceNotEnabled");
 
     public StackHealthReport HealthReport => Snapshot.HealthReport;
     public IReadOnlyList<HealthIssueViewModel> CriticalHealthIssues => BuildHealthIssues(HealthReport.CriticalIssues);
@@ -1175,76 +1211,76 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string ConfigurationRecoveryTitle =>
         IsForwardIncompatibleConfiguration
-            ? "Profile needs a newer LibreSpot"
-            : "Unreadable profile was recovered";
+            ? L("Vm_ConfigRecoveryNewerTitle")
+            : L("Vm_ConfigRecoveryRecoveredTitle");
 
     private string ConfigurationRecoveryReasonClause =>
         string.IsNullOrWhiteSpace(_configurationRecoveryReason)
             ? string.Empty
-            : $" Reason: {_configurationRecoveryReason.Trim()}";
+            : LF("Vm_ConfigRecoveryReasonFormat", _configurationRecoveryReason.Trim());
 
     public string ConfigurationRecoveryDetail =>
         !HasConfigurationRecoveryNotice
             ? string.Empty
             : IsForwardIncompatibleConfiguration
                 ? string.IsNullOrWhiteSpace(_recoveredConfigurationPath)
-                    ? $"LibreSpot loaded safe defaults because config.json was saved by a newer build.{ConfigurationRecoveryReasonClause} Update LibreSpot before reusing that profile."
-                    : $"LibreSpot kept the config.json from a newer LibreSpot build aside and loaded safe defaults.{ConfigurationRecoveryReasonClause} Update LibreSpot before reusing that profile. Backup kept as {Path.GetFileName(_recoveredConfigurationPath)}."
+                    ? LF("Vm_ConfigRecoveryNewerNoBackupFormat", ConfigurationRecoveryReasonClause)
+                    : LF("Vm_ConfigRecoveryNewerBackupFormat", ConfigurationRecoveryReasonClause, Path.GetFileName(_recoveredConfigurationPath))
             : string.IsNullOrWhiteSpace(_recoveredConfigurationPath)
-                ? $"LibreSpot reopened with safe defaults because config.json could not be read safely.{ConfigurationRecoveryReasonClause} Apply Recommended or Custom to save a fresh profile."
-                : $"LibreSpot moved the unreadable config.json aside and reopened with safe defaults.{ConfigurationRecoveryReasonClause} Apply Recommended or Custom to save a fresh profile. Backup kept as {Path.GetFileName(_recoveredConfigurationPath)}.";
+                ? LF("Vm_ConfigRecoveryUnreadableNoBackupFormat", ConfigurationRecoveryReasonClause)
+                : LF("Vm_ConfigRecoveryUnreadableBackupFormat", ConfigurationRecoveryReasonClause, Path.GetFileName(_recoveredConfigurationPath));
 
     public string ProfileStatusLine =>
         HasConfigurationRecoveryNotice
-            ? "Recovered defaults loaded"
+            ? L("Vm_ProfileRecoveredDefaults")
             : Snapshot.SavedConfigExists
-            ? "Saved LibreSpot profile found"
-            : "No saved profile yet";
+            ? L("Vm_ProfileSavedFound")
+            : L("Vm_ProfileNoSavedProfile");
 
     public string AutoReapplyStatusTitle =>
         Snapshot.AutoReapplyTaskRegistered
-            ? "Auto-reapply watcher active"
-            : "Auto-reapply watcher off";
+            ? L("Vm_AutoReapplyActiveTitle")
+            : L("Vm_AutoReapplyOffTitle");
 
     public string AutoReapplyStatusDetail =>
         Snapshot.AutoReapplyTaskRegistered
-            ? "LibreSpot checks after Windows sign-in and every 30 minutes, then reapplies only after Spotify updates while Spotify is closed."
-            : "Enable the watcher to restore your saved SpotX and Spicetify setup after Spotify updates itself.";
+            ? L("Vm_AutoReapplyActiveDetail")
+            : L("Vm_AutoReapplyOffDetail");
 
     public string AutoReapplyTaskLine =>
         Snapshot.AutoReapplyTaskRegistered
-            ? @"Task: LibreSpot\ReapplyWatcher registered"
-            : @"Task: LibreSpot\ReapplyWatcher not registered";
+            ? L("Vm_AutoReapplyTaskRegistered")
+            : L("Vm_AutoReapplyTaskNotRegistered");
 
     public string AutoReapplyLogLine =>
-        $"Log: {Path.Combine(_configurationService.ConfigDirectory, "watcher.log")}";
+        LF("Vm_AutoReapplyLogFormat", Path.Combine(_configurationService.ConfigDirectory, "watcher.log"));
 
     public string WorkspaceRecommendationTitle =>
         HasConfigurationRecoveryNotice
-            ? "Save a fresh baseline"
+            ? L("Vm_WorkspaceRecommendationRecoverTitle")
             : Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-            ? "Stabilize or fine-tune"
+            ? L("Vm_WorkspaceRecommendationMaintainTitle")
             : Snapshot.SpotifyInstalled
-                ? "Finish setup"
-                : "Start here";
+                ? L("Vm_WorkspaceRecommendationFinishTitle")
+                : L("Vm_WorkspaceRecommendationStartTitle");
 
     public string WorkspaceRecommendationDetail =>
         HasConfigurationRecoveryNotice
-            ? "LibreSpot recovered from an unreadable profile. Recommended writes a clean baseline again, or you can inspect the backup first."
+            ? L("Vm_WorkspaceRecommendationRecoverDetail")
             : Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-            ? "Recommended is still the fastest way back to a clean baseline. Move to Custom once you know what you want to keep."
+            ? L("Vm_WorkspaceRecommendationMaintainDetail")
             : Snapshot.SpotifyInstalled
-                ? "Spotify is already installed. Recommended restores the supported customization layer with the least friction."
-                : "No Spotify stack yet. Recommended is the safest starting point.";
+                ? L("Vm_WorkspaceRecommendationFinishDetail")
+                : L("Vm_WorkspaceRecommendationStartDetail");
 
     public string WorkspaceRecommendationBrief =>
         HasConfigurationRecoveryNotice
-            ? "Best way to save a clean profile again."
+            ? L("Vm_WorkspaceRecommendationRecoverBrief")
             : Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-                ? "Safest path before fine-tuning."
+                ? L("Vm_WorkspaceRecommendationMaintainBrief")
                 : Snapshot.SpotifyInstalled
-                    ? "Fastest way to restore the supported layer."
-                    : "Fastest way to lay down the known-good baseline.";
+                    ? L("Vm_WorkspaceRecommendationFinishBrief")
+                    : L("Vm_WorkspaceRecommendationStartBrief");
 
     public string CustomSelectionSummary
     {
@@ -1253,20 +1289,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var changeCount = CountProfileDifferencesFromRecommended();
             return changeCount switch
             {
-                0 => "Still aligned with the stable Recommended baseline.",
-                1 => "1 deliberate change from the default stable profile.",
-                _ => $"{changeCount} deliberate changes from the default stable profile."
+                0 => L("Vm_CustomSelectionAligned"),
+                1 => L("Vm_CustomSelectionOneChange"),
+                _ => LF("Vm_CustomSelectionManyChangesFormat", changeCount)
             };
         }
     }
 
     public string InstallPostureLabel =>
         IsOptionSelected(nameof(InstallConfiguration.CleanInstall))
-            ? "Clean start"
-            : "Overlay";
+            ? L("Vm_InstallPostureClean")
+            : L("Vm_InstallPostureOverlay");
 
     public string EnabledToggleCountLabel =>
-        $"{EnumerateAllOptions().Count(option => option.IsSelected)} enabled";
+        LF("Vm_EnabledToggleCountFormat", EnumerateAllOptions().Count(option => option.IsSelected));
 
     public string CustomChangeCountLabel
     {
@@ -1275,9 +1311,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var changeCount = CountProfileDifferencesFromRecommended();
             return changeCount switch
             {
-                0 => "Matches Recommended",
-                1 => "1 change",
-                _ => $"{changeCount} changes"
+                0 => L("Vm_CustomChangeMatchesRecommended"),
+                1 => L("Vm_CustomChangeOne"),
+                _ => LF("Vm_CustomChangeManyFormat", changeCount)
             };
         }
     }
@@ -1289,9 +1325,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var selectedCount = Extensions.Count(item => item.IsSelected);
             return selectedCount switch
             {
-                0 => "None",
-                1 => "1 selected",
-                _ => $"{selectedCount} selected"
+                0 => L("Vm_CountNone"),
+                1 => L("Vm_CountOneSelected"),
+                _ => LF("Vm_CountSelectedFormat", selectedCount)
             };
         }
     }
@@ -1303,50 +1339,50 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var selectedCount = CustomApps.Count(item => item.IsSelected);
             return selectedCount switch
             {
-                0 => "None",
-                1 => "1 selected",
-                _ => $"{selectedCount} selected"
+                0 => L("Vm_CountNone"),
+                1 => L("Vm_CountOneSelected"),
+                _ => LF("Vm_CountSelectedFormat", selectedCount)
             };
         }
     }
 
-    public string CustomAppsSectionTitle => "Custom apps";
+    public string CustomAppsSectionTitle => L("Vm_CustomAppsSectionTitle");
 
     public string CustomAppsSectionDescription =>
-        "Optional Spicetify apps installed from pinned release ZIPs. These appear as Spotify apps, not normal extensions.";
+        L("Vm_CustomAppsSectionDescription");
 
     public string AccessPostureLabel =>
         NeedsAdministratorRelaunch
-            ? "Elevates first"
-            : "Current session";
+            ? L("Vm_AccessPostureElevatesFirst")
+            : L("Vm_AccessPostureCurrentSession");
 
     public bool HasSelectedExtensions => SelectedExtensionLabels.Count > 0;
 
     public string ThemeSummary =>
         SelectedTheme == "(None - Marketplace Only)"
-            ? "Marketplace-only (no theme pack)"
-            : $"{SelectedTheme} · {Prettify.Label(SelectedScheme)}";
+            ? L("Vm_ThemeMarketplaceOnly")
+            : LF("Vm_ThemeSummaryFormat", SelectedTheme, Prettify.Label(SelectedScheme));
 
     public bool IsThemeSchemeAvailable => !string.Equals(SelectedTheme, "(None - Marketplace Only)", StringComparison.Ordinal);
 
     public string ThemeSchemeHint =>
         IsThemeSchemeAvailable
-            ? "Color scheme inside the selected theme pack."
-            : "Marketplace-only skips the theme pack, so no extra scheme is applied.";
+            ? L("Vm_ThemeSchemeAvailableHint")
+            : L("Vm_ThemeSchemeMarketplaceOnlyHint");
 
-    public string LyricsSummary => $"Lyrics: {Prettify.Label(SelectedLyricsTheme)}";
+    public string LyricsSummary => LF("Vm_LyricsSummaryFormat", Prettify.Label(SelectedLyricsTheme));
 
     public bool IsLyricsThemeAvailable => IsOptionSelected(nameof(InstallConfiguration.SpotX_LyricsEnabled));
 
     public string LyricsThemeHint =>
         IsLyricsThemeAvailable
-            ? "SpotX restores this lyrics skin after patching."
-            : "Turn on the lyrics patch to make this selection matter.";
+            ? L("Vm_LyricsThemeAvailableHint")
+            : L("Vm_LyricsThemeUnavailableHint");
 
     public string CacheSummary =>
         int.TryParse(CacheLimitText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsed) && parsed > 0
-            ? $"Cache ceiling: {parsed} MB"
-            : "Cache: default";
+            ? LF("Vm_CacheCeilingFormat", parsed)
+            : L("Vm_CacheDefault");
 
     public string SpotifyVersionSummary => CurrentSpotifyVersionEntry.Label;
 
@@ -1408,11 +1444,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         HasSettingsSearchText
             ? CustomSearchMatchCount switch
             {
-                0 => $"No matches for \"{SettingsSearchText.Trim()}\".",
-                1 => $"1 match for \"{SettingsSearchText.Trim()}\".",
-                _ => $"{CustomSearchMatchCount} matches for \"{SettingsSearchText.Trim()}\"."
+                0 => LF("Vm_CustomSearchNoMatchesFormat", SettingsSearchText.Trim()),
+                1 => LF("Vm_CustomSearchOneMatchFormat", SettingsSearchText.Trim()),
+                _ => LF("Vm_CustomSearchManyMatchesFormat", CustomSearchMatchCount, SettingsSearchText.Trim())
             }
-            : "Search titles and descriptions across Custom.";
+            : L("Vm_CustomSearchDefaultSummary");
 
     private AppCatalog.SpotifyVersionEntry CurrentSpotifyVersionEntry =>
         SpotifyVersionOptions.FirstOrDefault(entry => string.Equals(entry.Id, SelectedSpotifyVersionId, StringComparison.Ordinal))
@@ -1429,42 +1465,42 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var selectedCount = Extensions.Count(item => item.IsSelected);
             return selectedCount switch
             {
-                0 => "None selected",
-                1 => "1 extension selected",
-                _ => $"{selectedCount} extensions selected"
+                0 => L("Vm_ExtensionNoneSelected"),
+                1 => L("Vm_ExtensionOneSelected"),
+                _ => LF("Vm_ExtensionManySelectedFormat", selectedCount)
             };
         }
     }
 
     public string MaintenanceGuidanceTitle =>
         Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-            ? "Ready for upkeep or reset"
+            ? L("Vm_MaintenanceReadyTitle")
             : Snapshot.SpotifyInstalled
-                ? "Customization layer is incomplete"
-                : "Maintenance is ready when you need it";
+                ? L("Vm_MaintenanceIncompleteTitle")
+                : L("Vm_MaintenanceReadyWhenNeededTitle");
 
     public string MaintenanceGuidanceDetail =>
         Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-            ? "Start with the safer actions. Use reset only when you want to clear the stack and rebuild."
+            ? L("Vm_MaintenanceReadyDetail")
             : Snapshot.SpotifyInstalled
-                ? "Reapply becomes useful once the customization layer is back in place. Until then, Recommended is usually the better path."
-                : "Most repair actions matter after Spotify is installed. You can still inspect versions, export support details, or prepare a clean reset.";
+                ? L("Vm_MaintenanceIncompleteDetail")
+                : L("Vm_MaintenanceReadyWhenNeededDetail");
 
     private int MaintenanceReadyComponentCount =>
         new[] { "spotify", "spotx", "spicetify-cli", "marketplace", "active-theme" }
             .Count(id => HealthComponent(id)?.Severity == HealthSeverity.Ready);
 
-    public string MaintenanceReadinessValue => $"{MaintenanceReadyComponentCount} of 5 ready";
+    public string MaintenanceReadinessValue => LF("Vm_MaintenanceReadinessValueFormat", MaintenanceReadyComponentCount);
 
     public string MaintenanceReadinessDetail =>
         MaintenanceReadyComponentCount switch
         {
-            5 => "Spotify, SpotX, Spicetify, Marketplace, and theme state are all ready.",
-            0 => "No customization stack components are ready yet.",
-            _ => "Spotify, SpotX, Spicetify, Marketplace, and theme checks are partially ready."
+            5 => L("Vm_MaintenanceReadinessAllReady"),
+            0 => L("Vm_MaintenanceReadinessNoneReady"),
+            _ => L("Vm_MaintenanceReadinessPartial")
         };
 
-    public string MaintenanceBackupValue => HealthComponent("backups")?.Status ?? "Unknown";
+    public string MaintenanceBackupValue => HealthComponent("backups")?.Status ?? Strings.DashboardUnknownValue;
 
     public string MaintenanceBackupDetail
     {
@@ -1473,33 +1509,33 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var backups = HealthComponent("backups");
             if (backups is null)
             {
-                return "Backup state has not been checked yet.";
+                return L("Vm_MaintenanceBackupUnchecked");
             }
 
             return backups.HasLastChanged
-                ? $"{backups.Evidence} Latest: {backups.LastChangedDisplay}."
+                ? LF("Vm_MaintenanceBackupLatestFormat", backups.Evidence, backups.LastChangedDisplay)
                 : backups.Evidence;
         }
     }
 
-    public string MaintenanceMarketplaceValue => HealthComponent("marketplace")?.Status ?? "Unknown";
-    public string MaintenanceMarketplaceDetail => HealthComponent("marketplace")?.Evidence ?? "Marketplace state has not been checked yet.";
-    public string MaintenanceThemeValue => HealthComponent("active-theme")?.Status ?? "Unknown";
-    public string MaintenanceThemeDetail => HealthComponent("active-theme")?.Evidence ?? "Theme state has not been checked yet.";
+    public string MaintenanceMarketplaceValue => HealthComponent("marketplace")?.Status ?? Strings.DashboardUnknownValue;
+    public string MaintenanceMarketplaceDetail => HealthComponent("marketplace")?.Evidence ?? L("Vm_MaintenanceMarketplaceUnchecked");
+    public string MaintenanceThemeValue => HealthComponent("active-theme")?.Status ?? Strings.DashboardUnknownValue;
+    public string MaintenanceThemeDetail => HealthComponent("active-theme")?.Evidence ?? L("Vm_MaintenanceThemeUnchecked");
 
     public string SupportBundlePreviewTitle =>
         _supportBundlePreview.SelectedFileCount switch
         {
-            0 => "Health report only",
-            1 => "1 diagnostic file selected",
-            _ => $"{_supportBundlePreview.SelectedFileCount} diagnostic files selected"
+            0 => L("Vm_SupportBundleHealthOnly"),
+            1 => L("Vm_SupportBundleOneFile"),
+            _ => LF("Vm_SupportBundleManyFilesFormat", _supportBundlePreview.SelectedFileCount)
         };
 
     public string SupportBundlePreviewDetail =>
-        $"Estimated local zip size before compression: {FormatBytes(_supportBundlePreview.EstimatedBytes)}.";
+        LF("Vm_SupportBundleEstimatedSizeFormat", FormatBytes(_supportBundlePreview.EstimatedBytes));
 
     public string SupportBundleRedactionSummary =>
-        "User paths, machine/user names, GitHub headers, proxy credentials, tokens, passwords, and command-line secret arguments are redacted before the zip is written.";
+        L("Vm_SupportBundleRedactionSummary");
 
     public string SupportBundleLastExportText
     {
@@ -1509,15 +1545,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string RecommendedRunDuration =>
         Snapshot.SpotifyInstalled
-            ? "Usually 2-3 minutes, depending on whether Spotify restarts."
-            : "Usually 3-4 minutes because LibreSpot may need to lay down the full stack first.";
+            ? L("Vm_RecommendedDurationExistingSpotify")
+            : L("Vm_RecommendedDurationCleanMachine");
 
     public string RecommendedFollowUpText =>
         HasConfigurationRecoveryNotice
-            ? "This run writes a fresh config.json and keeps the recovered backup in the LibreSpot folder for reference."
+            ? L("Vm_RecommendedFollowUpRecovery")
             : Snapshot.SavedConfigExists
-            ? "The saved LibreSpot profile stays aligned with this run, so reapply and maintenance stay predictable later."
-            : "LibreSpot will create the first saved profile during this run so maintenance has a dependable baseline.";
+            ? L("Vm_RecommendedFollowUpSavedProfile")
+            : L("Vm_RecommendedFollowUpFirstProfile");
 
     public string CustomProfileTitle
     {
@@ -1530,9 +1566,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
             return advancedCount switch
             {
-                0 when selectedAddOns <= 3 => "Near default",
-                <= 2 => "Balanced custom",
-                _ => "Heavy custom"
+                0 when selectedAddOns <= 3 => L("Vm_CustomProfileNearDefault"),
+                <= 2 => L("Vm_CustomProfileBalanced"),
+                _ => L("Vm_CustomProfileHeavy")
             };
         }
     }
@@ -1548,15 +1584,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
             if (advancedCount == 0 && selectedAddOns <= 3)
             {
-                return "This stays close to LibreSpot's supported baseline with room for a few deliberate preferences.";
+                return L("Vm_CustomProfileNearDefaultDetail");
             }
 
             if (advancedCount <= 2)
             {
-                return "You are personalizing the stack without moving far beyond what is usually easy to reapply after updates.";
+                return L("Vm_CustomProfileBalancedDetail");
             }
 
-            return "Several advanced toggles are active, so expect more upkeep after Spotify changes.";
+            return L("Vm_CustomProfileHeavyDetail");
         }
     }
 
@@ -1566,27 +1602,27 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (NeedsAdministratorRelaunch)
             {
-                return "Admin step first";
+                return L("Vm_CustomReadinessAdminFirst");
             }
 
             if (HasConfigurationRecoveryNotice)
             {
-                return "Fresh profile ready";
+                return L("Vm_CustomReadinessFreshProfile");
             }
 
             if (HasConflictingSidebarOptions())
             {
-                return "Review one conflict";
+                return L("Vm_CustomReadinessConflict");
             }
 
             if (CustomPatchesEnabled && !_customPatchValidation.IsValid)
             {
-                return "Patch JSON needs review";
+                return L("Vm_CustomReadinessPatchJson");
             }
 
             if (!IsOptionSelected(nameof(InstallConfiguration.CleanInstall)) && !Snapshot.SpotifyInstalled)
             {
-                return "Best on an existing install";
+                return L("Vm_CustomReadinessExistingInstall");
             }
 
             return Strings.SeverityReady;
@@ -1599,65 +1635,65 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (NeedsAdministratorRelaunch)
             {
-                return "LibreSpot asks Windows for administrator access before it patches Spotify.";
+                return L("Vm_CustomReadinessAdminDetail");
             }
 
             if (HasConfigurationRecoveryNotice)
             {
-                return "Applying now writes a fresh config.json and keeps the recovered backup untouched for reference.";
+                return L("Vm_CustomReadinessRecoveryDetail");
             }
 
             if (HasConflictingSidebarOptions())
             {
-                return "Hide right sidebar and clear right sidebar styling are both selected. Hiding the sidebar wins, so the styling option adds noise.";
+                return L("Vm_CustomReadinessConflictDetail");
             }
 
             if (CustomPatchesEnabled && !_customPatchValidation.IsValid)
             {
-                return "Run the custom patches dry run and fix the listed JSON or regex issue before applying this profile.";
+                return L("Vm_CustomReadinessPatchJsonDetail");
             }
 
             if (!IsOptionSelected(nameof(InstallConfiguration.CleanInstall)) && !Snapshot.SpotifyInstalled)
             {
-                return "Skipping a clean start usually helps only when Spotify is already installed. Recommended is safer on a blank machine.";
+                return L("Vm_CustomReadinessExistingInstallDetail");
             }
 
-            return "LibreSpot saves this profile first, then applies it so maintenance and reapply stay in sync.";
+            return L("Vm_CustomReadinessReadyDetail");
         }
     }
 
     public string CustomApplyCaption =>
         NeedsAdministratorRelaunch
-            ? "LibreSpot relaunches with administrator access before it touches Spotify."
+            ? L("Vm_CustomApplyAdmin")
             : HasConfigurationRecoveryNotice
-                ? "LibreSpot replaces the unreadable config.json with this profile and keeps the recovered copy in the LibreSpot folder."
+                ? L("Vm_CustomApplyRecovery")
             : HasConflictingSidebarOptions()
-                ? "You can still apply this profile, but the overlapping right-sidebar toggles are worth simplifying first."
+                ? L("Vm_CustomApplyConflict")
             : CustomPatchesEnabled && !_customPatchValidation.IsValid
-                ? "Fix the custom patches JSON before LibreSpot stages it for SpotX."
-            : "LibreSpot saves this profile to config.json, then applies it through the original backend.";
+                ? L("Vm_CustomApplyPatchJson")
+            : L("Vm_CustomApplyReady");
 
     public bool IsOverviewWorkspaceSelected => SelectedWorkspaceIndex == 0;
 
     public string WorkspaceHeroEyebrow => SelectedWorkspaceIndex switch
     {
-        1 => "Custom profile",
-        2 => "Recovery lane",
+        1 => L("Vm_WorkspaceHeroCustomEyebrow"),
+        2 => L("Vm_WorkspaceHeroMaintenanceEyebrow"),
         _ => Strings.HeroGuidedSetup
     };
 
     public string WorkspaceHeroTitle => SelectedWorkspaceIndex switch
     {
-        1 => "Custom settings",
-        2 => "Maintenance",
+        1 => L("Vm_WorkspaceHeroCustomTitle"),
+        2 => L("Vm_WorkspaceHeroMaintenanceTitle"),
         _ => Strings.ModeRecommendedDescription
     };
 
     public string WorkspaceHeroBody => SelectedWorkspaceIndex switch
     {
-        1 => "Adjust supported options without losing track of the baseline.",
-        2 => "Use repair, rollback, and reset tools when the stack needs attention.",
-        _ => "Start with the quickest stable path, then move to Custom only when you know what to change."
+        1 => L("Vm_WorkspaceHeroCustomBody"),
+        2 => L("Vm_WorkspaceHeroMaintenanceBody"),
+        _ => L("Vm_WorkspaceHeroRecommendedBody")
     };
 
     public int SelectedWorkspaceIndex
@@ -1786,27 +1822,27 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string CustomPatchesImportProvenance =>
         HasCustomPatchImportProvenance
-            ? $"Imported from {_customPatchesSourceUrl} at {_customPatchesFetchedAtUtc:u}; source {FormatBytes(_customPatchesSourceByteCount)}, SHA256 {_customPatchesSourceSha256}."
+            ? LF("Vm_CustomPatchesImportProvenanceFormat", _customPatchesSourceUrl, _customPatchesFetchedAtUtc, FormatBytes(_customPatchesSourceByteCount), _customPatchesSourceSha256)
             : string.Empty;
 
     public string CustomPatchesBadge =>
         !CustomPatchesEnabled
-            ? "Off"
+            ? L("Vm_CustomPatchesOff")
             : _customPatchValidation.IsValid
-                ? "Ready"
-                : "Needs review";
+                ? Strings.SeverityReady
+                : L("Vm_CustomPatchesNeedsReview");
 
     public string CustomPatchesSummary =>
         !CustomPatchesEnabled
-            ? "Custom patches are off."
+            ? L("Vm_CustomPatchesSummaryOff")
             : _customPatchValidation.IsValid
-                ? $"{_customPatchValidation.PatchGroupCount} group(s), {_customPatchValidation.PatternCount} regex pattern(s), {_customPatchValidation.ReplacementCount} replacement value(s)."
-                : $"{_customPatchValidation.Errors.Count} blocking issue(s) in patches.json.";
+                ? LF("Vm_CustomPatchesSummaryReadyFormat", _customPatchValidation.PatchGroupCount, _customPatchValidation.PatternCount, _customPatchValidation.ReplacementCount)
+                : LF("Vm_CustomPatchesSummaryErrorFormat", _customPatchValidation.Errors.Count);
 
     public bool HasCustomPatchFindings => CustomPatchFindings.Count > 0;
 
     public bool HasVisibleCustomPatchesSection =>
-        MatchesSettingsSearch("Custom patches", "SpotX patches.json JSON authoring regex validation dry run import URL");
+        MatchesSettingsSearch(L("Vm_CustomPatchesSearchTitle"), L("Vm_CustomPatchesSearchDescription"));
 
     public bool IsActivityVisible
     {
@@ -1861,16 +1897,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     // TaskbarItemInfo.ProgressValue expects 0.0..1.0, but our ProgressValue is 0..100.
     public double TaskbarProgressFraction => Math.Clamp(ProgressValue / 100.0, 0.0, 1.0);
 
-    // "— %" reads like a broken UI. When we don't yet have a real percentage
+    // "â€” %" reads like a broken UI. When we don't yet have a real percentage
     // from the backend, say what is actually happening: we're working.
     public string ProgressLabel =>
         IsCancelRequested
-            ? "Stopping…"
+            ? L("Vm_ProgressStopping")
             : IsBusyIndeterminate
-            ? "Working…"
+            ? L("Vm_ProgressWorking")
             : IsRunning
                 ? $"{Math.Round(ProgressValue)}%"
-                : ProgressValue >= 100 ? "Done" : Strings.SeverityReady;
+                : ProgressValue >= 100 ? L("Vm_ProgressDone") : Strings.SeverityReady;
 
     // Activity badge surfaces the run's outcome after completion so the overlay
     // isn't frozen on "Live run" once work is done. We derive from ActivityStatus
@@ -1885,7 +1921,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         !IsRunning && (IsActivityError || IsActivityCanceled);
 
     public string ActivityBadgeText =>
-        IsCancelRequested ? "Stopping"
+        IsCancelRequested ? L("Vm_ActivityBadgeStopping")
         : IsRunning ? Strings.StatusInProgress
         : IsActivityCanceled ? Strings.Canceled
         : IsActivityError ? Strings.StatusNeedsReview
@@ -1917,29 +1953,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string ActivityAssistiveText =>
         IsCancelRequested
-            ? "LibreSpot is stopping the backend and preserving the log gathered so far."
+            ? L("Vm_ActivityAssistiveStopping")
             : IsRunning
-                ? "LibreSpot keeps the live log and diagnostics on disk while this runs. You can cancel here if you need to stop early."
+                ? L("Vm_ActivityAssistiveRunning")
                 : IsActivityCanceled
-                    ? "LibreSpot stopped early. Review the log, then rerun Recommended or Reapply if Spotify looks inconsistent."
+                    ? L("Vm_ActivityAssistiveCanceled")
                 : IsActivityError
-                    ? "Open the LibreSpot folder or copy the log before retrying so the next run starts with better context."
+                    ? L("Vm_ActivityAssistiveError")
                     : ProgressValue >= 100
-                        ? "Your saved profile and maintenance tools are ready for the next pass."
-                        : "You can dismiss this panel or copy the log for reference.";
+                        ? L("Vm_ActivityAssistiveComplete")
+                        : L("Vm_ActivityAssistiveIdle");
 
     public string ActivitySummaryTitle =>
         IsCancelRequested
-            ? "Stopping safely"
+            ? L("Vm_ActivitySummaryStopping")
             : IsRunning
-                ? "While this runs"
+                ? L("Vm_ActivitySummaryRunning")
                 : IsActivityCanceled || IsActivityError
-                    ? "Recommended next step"
+                    ? L("Vm_ActivitySummaryNextStepRecommended")
                     : ProgressValue >= 100
-                        ? "Next step"
-                        : "Session details";
+                        ? L("Vm_ActivitySummaryNextStep")
+                        : L("Vm_ActivitySummarySessionDetails");
 
-    public string ActivityLogPathText => $"Log file: {_configurationService.LogPath}";
+    public string ActivityLogPathText => LF("Vm_ActivityLogPathFormat", _configurationService.LogPath);
 
     public string RunElapsedText =>
         _runStopwatch.Elapsed.TotalHours >= 1
@@ -2268,14 +2304,53 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RefreshSettingsSearch();
         _customOptions.RefreshLocalizedText();
         _environmentState.RefreshFreshness();
+        foreach (var profile in LocalProfiles)
+        {
+            profile.RefreshLocalizedText();
+        }
+
         RebuildSelectionInsights();
         RaiseSnapshotInsightsChanged();
         RaiseLocalProfileStateChanged();
         RaiseActivityDerivedStateChanged();
+        RaiseSupportBundlePreviewChanged();
         OnPropertyChanged(nameof(SelectedLocalizationOption));
+        OnPropertyChanged(nameof(ShellReadinessTitle));
+        OnPropertyChanged(nameof(ShellQuickActionsTitle));
+        OnPropertyChanged(nameof(ShellVerifyEnvironmentTitle));
+        OnPropertyChanged(nameof(ShellVerifyEnvironmentDetail));
+        OnPropertyChanged(nameof(ShellRepairTitle));
+        OnPropertyChanged(nameof(ShellRepairDetail));
+        OnPropertyChanged(nameof(ShellClearCacheTitle));
+        OnPropertyChanged(nameof(ShellClearCacheDetail));
+        OnPropertyChanged(nameof(ShellTrustRiskTitle));
+        OnPropertyChanged(nameof(ShellTrustedSourcesTitle));
+        OnPropertyChanged(nameof(ShellTrustedSourcesDetail));
+        OnPropertyChanged(nameof(ShellSpotifyModificationTitle));
+        OnPropertyChanged(nameof(ShellSpotifyModificationDetail));
+        OnPropertyChanged(nameof(ShellBackupCreatedTitle));
+        OnPropertyChanged(nameof(ShellActivityTitle));
+        OnPropertyChanged(nameof(ShellReadyText));
+        OnPropertyChanged(nameof(ShellTopThemeLabel));
+        OnPropertyChanged(nameof(ShellTopSettingsLabel));
+        OnPropertyChanged(nameof(ShellLearnMoreLabel));
+        OnPropertyChanged(nameof(ShellLogLevelLabel));
+        OnPropertyChanged(nameof(ShellClearLogLabel));
+        OnPropertyChanged(nameof(ShellAutoScrollLabel));
+        OnPropertyChanged(nameof(ShellLocalEnvironmentTitle));
+        OnPropertyChanged(nameof(ShellDependenciesTitle));
+        OnPropertyChanged(nameof(ShellDependencyComponentHeader));
+        OnPropertyChanged(nameof(ShellDependencyInstalledHeader));
+        OnPropertyChanged(nameof(ShellDependencyRecommendedHeader));
+        OnPropertyChanged(nameof(ShellDependencyStatusHeader));
+        OnPropertyChanged(nameof(ShellEnvironmentReportLinkText));
         OnPropertyChanged(nameof(StatusDashboardItems));
         OnPropertyChanged(nameof(ShellPrimaryStatusItems));
+        OnPropertyChanged(nameof(CustomAppsSectionTitle));
+        OnPropertyChanged(nameof(CustomAppsSectionDescription));
+        OnPropertyChanged(nameof(CustomPatchesImportProvenance));
         OnPropertyChanged(nameof(SupportBundleLastExportText));
+        OnPropertyChanged(nameof(ActivityLogPathText));
         OnPropertyChanged(nameof(WorkspaceHeroEyebrow));
         OnPropertyChanged(nameof(WorkspaceHeroTitle));
         OnPropertyChanged(nameof(WorkspaceHeroBody));
@@ -2355,12 +2430,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private int CountAppearanceMatches()
     {
         var count = 0;
-        count += MatchesSettingsSearch("Theme pack", "Choose the Spicetify theme pack LibreSpot restores.") ? 1 : 0;
-        count += MatchesSettingsSearch("Color scheme", ThemeSchemeHint) ? 1 : 0;
-        count += MatchesSettingsSearch("Lyrics theme", LyricsThemeHint) ? 1 : 0;
-        count += MatchesSettingsSearch("Cache limit", "Leave 0 for the default cache behavior.") ? 1 : 0;
-        count += MatchesSettingsSearch("Spotify build", SpotifyVersionNotes) ? 1 : 0;
-        count += MatchesSettingsSearch("Download path", DownloadMethodDetail) ? 1 : 0;
+        count += MatchesSettingsSearch(L("Vm_SearchThemePackTitle"), L("Vm_SearchThemePackDescription")) ? 1 : 0;
+        count += MatchesSettingsSearch(L("Vm_SearchColorSchemeTitle"), ThemeSchemeHint) ? 1 : 0;
+        count += MatchesSettingsSearch(L("Vm_SearchLyricsThemeTitle"), LyricsThemeHint) ? 1 : 0;
+        count += MatchesSettingsSearch(L("Vm_SearchCacheLimitTitle"), L("Vm_SearchCacheLimitDescription")) ? 1 : 0;
+        count += MatchesSettingsSearch(L("Vm_SearchSpotifyBuildTitle"), SpotifyVersionNotes) ? 1 : 0;
+        count += MatchesSettingsSearch(L("Vm_SearchDownloadPathTitle"), DownloadMethodDetail) ? 1 : 0;
         return count;
     }
 
@@ -3555,7 +3630,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var planLines = new List<string>();
         // Plan is read-only, so the candidate configuration goes to a temp
         // file instead of config.json. The persistent save happens in
-        // StartBackendRunAsync only after the user confirms the prompt —
+        // StartBackendRunAsync only after the user confirms the prompt â€”
         // cancelling the prompt must leave the previous config untouched,
         // because the auto-reapply watcher applies whatever config.json holds.
         var planConfigPath = Path.Combine(
@@ -3605,7 +3680,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         if (compatWarnings.Count > 0)
         {
-            sb.AppendLine("⚠ Version compatibility warning:");
+            sb.AppendLine("âš  Version compatibility warning:");
             foreach (var warning in compatWarnings)
             {
                 sb.AppendLine(warning);
@@ -3619,7 +3694,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             sb.AppendLine();
             foreach (var line in planLines)
             {
-                sb.Append("• ");
+                sb.Append("â€¢ ");
                 sb.AppendLine(line);
             }
         }
@@ -3638,7 +3713,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         var body = definition.Action == "RemoveSelfData"
-            ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}Only LibreSpot's own data is removed — Spotify, SpotX patches, and Spicetify are not touched."
+            ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}Only LibreSpot's own data is removed â€” Spotify, SpotX patches, and Spicetify are not touched."
             : definition.IsDestructive
                 ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}This is a deeper reset path and may remove the current customization state. Continue only when you are ready to rebuild."
                 : $"{definition.Description}{Environment.NewLine}{Environment.NewLine}LibreSpot will keep this window open and stream backend progress while the action runs.";
@@ -3809,7 +3884,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Requests cancellation of an in-flight backend run. Safe to call during window
-    /// shutdown — if no run is active or the CTS has already been disposed this is a no-op.
+    /// shutdown â€” if no run is active or the CTS has already been disposed this is a no-op.
     /// </summary>
     public void CancelRunningBackend()
     {
@@ -4061,7 +4136,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
 
             // When running via `dotnet run`, ProcessPath points at dotnet.exe. Relaunching
-            // that as admin would not start LibreSpot — warn instead of confusing the user.
+            // that as admin would not start LibreSpot â€” warn instead of confusing the user.
             var exeName = Path.GetFileName(executablePath);
             if (string.Equals(exeName, "dotnet.exe", StringComparison.OrdinalIgnoreCase))
             {
@@ -4090,7 +4165,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
         {
-            // 1223 = ERROR_CANCELLED. User clicked "No" on the UAC prompt — not an error.
+            // 1223 = ERROR_CANCELLED. User clicked "No" on the UAC prompt â€” not an error.
             ShowNotice(
                 "Administrator relaunch canceled",
                 "LibreSpot is still open in standard mode. You can keep reviewing settings and relaunch when you are ready.",

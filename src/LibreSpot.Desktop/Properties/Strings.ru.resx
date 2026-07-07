@@ -1760,4 +1760,262 @@
     <value>LibreSpot все еще работает. Дважды щелкните этот значок, чтобы снова открыть текущий журнал.</value>
     <comment>Tray balloon text when minimized during an active run</comment>
   </data>
+  <data name="Vm_AccessPostureCurrentSession" xml:space="preserve"><value>Current session</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_AccessPostureElevatesFirst" xml:space="preserve"><value>Elevates first</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivityAssistiveCanceled" xml:space="preserve"><value>LibreSpot stopped early. Review the log, then rerun Recommended or Reapply if Spotify looks inconsistent.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivityAssistiveComplete" xml:space="preserve"><value>Your saved profile and maintenance tools are ready for the next pass.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivityAssistiveError" xml:space="preserve"><value>Open the LibreSpot folder or copy the log before retrying so the next run starts with better context.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivityAssistiveIdle" xml:space="preserve"><value>You can dismiss this panel or copy the log for reference.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivityAssistiveRunning" xml:space="preserve"><value>LibreSpot keeps the live log and diagnostics on disk while this runs. You can cancel here if you need to stop early.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivityAssistiveStopping" xml:space="preserve"><value>LibreSpot is stopping the backend and preserving the log gathered so far.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivityBadgeStopping" xml:space="preserve"><value>Stopping</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivityLogPathFormat" xml:space="preserve"><value>Log file: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivitySummaryNextStep" xml:space="preserve"><value>Next step</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivitySummaryNextStepRecommended" xml:space="preserve"><value>Recommended next step</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivitySummaryRunning" xml:space="preserve"><value>While this runs</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivitySummarySessionDetails" xml:space="preserve"><value>Session details</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivitySummaryStopping" xml:space="preserve"><value>Stopping safely</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_AutoReapplyActiveDetail" xml:space="preserve"><value>LibreSpot checks after Windows sign-in and every 30 minutes, then reapplies only after Spotify updates while Spotify is closed.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_AutoReapplyActiveTitle" xml:space="preserve"><value>Auto-reapply watcher active</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_AutoReapplyLogFormat" xml:space="preserve"><value>Log: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_AutoReapplyOffDetail" xml:space="preserve"><value>Enable the watcher to restore your saved SpotX and Spicetify setup after Spotify updates itself.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_AutoReapplyOffTitle" xml:space="preserve"><value>Auto-reapply watcher off</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_AutoReapplyTaskNotRegistered" xml:space="preserve"><value>Task: LibreSpot\ReapplyWatcher not registered</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_AutoReapplyTaskRegistered" xml:space="preserve"><value>Task: LibreSpot\ReapplyWatcher registered</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CacheCeilingFormat" xml:space="preserve"><value>Cache ceiling: {0} MB</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CacheDefault" xml:space="preserve"><value>Cache: default</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ClearCacheActionDescription" xml:space="preserve"><value>Remove stale or corrupt cached downloads. Verified assets will be cached again on demand.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigRecoveryNewerBackupFormat" xml:space="preserve"><value>LibreSpot kept the config.json from a newer LibreSpot build aside and loaded safe defaults.{0} Update LibreSpot before reusing that profile. Backup kept as {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigRecoveryNewerNoBackupFormat" xml:space="preserve"><value>LibreSpot loaded safe defaults because config.json was saved by a newer build.{0} Update LibreSpot before reusing that profile.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigRecoveryNewerTitle" xml:space="preserve"><value>Profile needs a newer LibreSpot</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigRecoveryReasonFormat" xml:space="preserve"><value> Reason: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigRecoveryRecoveredTitle" xml:space="preserve"><value>Unreadable profile was recovered</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigRecoveryUnreadableBackupFormat" xml:space="preserve"><value>LibreSpot moved the unreadable config.json aside and reopened with safe defaults.{0} Apply Recommended or Custom to save a fresh profile. Backup kept as {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigRecoveryUnreadableNoBackupFormat" xml:space="preserve"><value>LibreSpot reopened with safe defaults because config.json could not be read safely.{0} Apply Recommended or Custom to save a fresh profile.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CountNone" xml:space="preserve"><value>None</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CountOneSelected" xml:space="preserve"><value>1 selected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CountSelectedFormat" xml:space="preserve"><value>{0} selected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomApplyAdmin" xml:space="preserve"><value>LibreSpot relaunches with administrator access before it touches Spotify.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomApplyConflict" xml:space="preserve"><value>You can still apply this profile, but the overlapping right-sidebar toggles are worth simplifying first.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomApplyPatchJson" xml:space="preserve"><value>Fix the custom patches JSON before LibreSpot stages it for SpotX.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomApplyReady" xml:space="preserve"><value>LibreSpot saves this profile to config.json, then applies it through the original backend.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomApplyRecovery" xml:space="preserve"><value>LibreSpot replaces the unreadable config.json with this profile and keeps the recovered copy in the LibreSpot folder.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomAppsSectionDescription" xml:space="preserve"><value>Optional Spicetify apps installed from pinned release ZIPs. These appear as Spotify apps, not normal extensions.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomAppsSectionTitle" xml:space="preserve"><value>Custom apps</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomChangeManyFormat" xml:space="preserve"><value>{0} changes</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomChangeMatchesRecommended" xml:space="preserve"><value>Matches Recommended</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomChangeOne" xml:space="preserve"><value>1 change</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomPatchesImportProvenanceFormat" xml:space="preserve"><value>Imported from {0} at {1:u}; source {2}, SHA256 {3}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomPatchesNeedsReview" xml:space="preserve"><value>Needs review</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomPatchesOff" xml:space="preserve"><value>Off</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomPatchesSearchDescription" xml:space="preserve"><value>SpotX patches.json JSON authoring regex validation dry run import URL</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomPatchesSearchTitle" xml:space="preserve"><value>Custom patches</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomPatchesSummaryErrorFormat" xml:space="preserve"><value>{0} blocking issue(s) in patches.json.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomPatchesSummaryOff" xml:space="preserve"><value>Custom patches are off.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomPatchesSummaryReadyFormat" xml:space="preserve"><value>{0} group(s), {1} regex pattern(s), {2} replacement value(s).</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomProfileBalanced" xml:space="preserve"><value>Balanced custom</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomProfileBalancedDetail" xml:space="preserve"><value>You are personalizing the stack without moving far beyond what is usually easy to reapply after updates.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomProfileHeavy" xml:space="preserve"><value>Heavy custom</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomProfileHeavyDetail" xml:space="preserve"><value>Several advanced toggles are active, so expect more upkeep after Spotify changes.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomProfileNearDefault" xml:space="preserve"><value>Near default</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomProfileNearDefaultDetail" xml:space="preserve"><value>This stays close to LibreSpot&apos;s supported baseline with room for a few deliberate preferences.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomReadinessAdminDetail" xml:space="preserve"><value>LibreSpot asks Windows for administrator access before it patches Spotify.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomReadinessAdminFirst" xml:space="preserve"><value>Admin step first</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomReadinessConflict" xml:space="preserve"><value>Review one conflict</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomReadinessConflictDetail" xml:space="preserve"><value>Hide right sidebar and clear right sidebar styling are both selected. Hiding the sidebar wins, so the styling option adds noise.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomReadinessExistingInstall" xml:space="preserve"><value>Best on an existing install</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomReadinessExistingInstallDetail" xml:space="preserve"><value>Skipping a clean start usually helps only when Spotify is already installed. Recommended is safer on a blank machine.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomReadinessFreshProfile" xml:space="preserve"><value>Fresh profile ready</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomReadinessPatchJson" xml:space="preserve"><value>Patch JSON needs review</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomReadinessPatchJsonDetail" xml:space="preserve"><value>Run the custom patches dry run and fix the listed JSON or regex issue before applying this profile.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomReadinessReadyDetail" xml:space="preserve"><value>LibreSpot saves this profile first, then applies it so maintenance and reapply stay in sync.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomReadinessRecoveryDetail" xml:space="preserve"><value>Applying now writes a fresh config.json and keeps the recovered backup untouched for reference.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomSearchDefaultSummary" xml:space="preserve"><value>Search titles and descriptions across Custom.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomSearchManyMatchesFormat" xml:space="preserve"><value>{0} matches for &quot;{1}&quot;.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomSearchNoMatchesFormat" xml:space="preserve"><value>No matches for &quot;{0}&quot;.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomSearchOneMatchFormat" xml:space="preserve"><value>1 match for &quot;{0}&quot;.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomSelectionAligned" xml:space="preserve"><value>Still aligned with the stable Recommended baseline.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomSelectionManyChangesFormat" xml:space="preserve"><value>{0} deliberate changes from the default stable profile.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomSelectionOneChange" xml:space="preserve"><value>1 deliberate change from the default stable profile.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_DependencyNotRequired" xml:space="preserve"><value>Not required</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_DependencyOptional" xml:space="preserve"><value>Optional</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnabledToggleCountFormat" xml:space="preserve"><value>{0} enabled</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvDotNetDesktopRuntime" xml:space="preserve"><value>.NET Desktop Runtime</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvNotRunning" xml:space="preserve"><value>Not running</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvPowerShell" xml:space="preserve"><value>PowerShell</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvPowerShellAvailable" xml:space="preserve"><value>5.1+ available</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvSpotifyInstalled" xml:space="preserve"><value>Spotify (Installed)</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvSpotifyRunning" xml:space="preserve"><value>Spotify running</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvWindows" xml:space="preserve"><value>Windows</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ExtensionManySelectedFormat" xml:space="preserve"><value>{0} extensions selected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ExtensionNoneSelected" xml:space="preserve"><value>None selected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ExtensionOneSelected" xml:space="preserve"><value>1 extension selected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_FileCountManyFormat" xml:space="preserve"><value>{0} files</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_FileCountOne" xml:space="preserve"><value>1 file</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InstallPostureClean" xml:space="preserve"><value>Clean start</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InstallPostureOverlay" xml:space="preserve"><value>Overlay</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LyricsSummaryFormat" xml:space="preserve"><value>Lyrics: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LyricsThemeAvailableHint" xml:space="preserve"><value>SpotX restores this lyrics skin after patching.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LyricsThemeUnavailableHint" xml:space="preserve"><value>Turn on the lyrics patch to make this selection matter.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceBackupLatestFormat" xml:space="preserve"><value>{0} Latest: {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceBackupUnchecked" xml:space="preserve"><value>Backup state has not been checked yet.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceIncompleteDetail" xml:space="preserve"><value>Reapply becomes useful once the customization layer is back in place. Until then, Recommended is usually the better path.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceIncompleteTitle" xml:space="preserve"><value>Customization layer is incomplete</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceMarketplaceUnchecked" xml:space="preserve"><value>Marketplace state has not been checked yet.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessAllReady" xml:space="preserve"><value>Spotify, SpotX, Spicetify, Marketplace, and theme state are all ready.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessNoneReady" xml:space="preserve"><value>No customization stack components are ready yet.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessPartial" xml:space="preserve"><value>Spotify, SpotX, Spicetify, Marketplace, and theme checks are partially ready.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessValueFormat" xml:space="preserve"><value>{0} of 5 ready</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadyDetail" xml:space="preserve"><value>Start with the safer actions. Use reset only when you want to clear the stack and rebuild.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadyTitle" xml:space="preserve"><value>Ready for upkeep or reset</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadyWhenNeededDetail" xml:space="preserve"><value>Most repair actions matter after Spotify is installed. You can still inspect versions, export support details, or prepare a clean reset.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadyWhenNeededTitle" xml:space="preserve"><value>Maintenance is ready when you need it</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceThemeUnchecked" xml:space="preserve"><value>Theme state has not been checked yet.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MarketplaceFilesMissing" xml:space="preserve"><value>Marketplace files missing - repair available</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MarketplaceHidden" xml:space="preserve"><value>Marketplace hidden - repair available</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MarketplaceNotEnabled" xml:space="preserve"><value>Marketplace not enabled</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MarketplaceReady" xml:space="preserve"><value>Marketplace ready</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MarketplaceUnavailable" xml:space="preserve"><value>Marketplace unavailable until Spicetify is installed</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileActiveDetail" xml:space="preserve"><value>This profile is active. Applying another profile keeps this one as the previous active pointer for rollback.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileAutomationHelpActiveFormat" xml:space="preserve"><value>{0} is the active LibreSpot profile.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileAutomationHelpBuiltInFormat" xml:space="preserve"><value>{0} is a bundled template that can be previewed, applied, or duplicated.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileAutomationHelpLocalFormat" xml:space="preserve"><value>{0} is a local profile that can be previewed, renamed, exported, applied, duplicated, or deleted.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileAutomationNameFormat" xml:space="preserve"><value>{0} {1} profile</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileCapabilityEditable" xml:space="preserve"><value>Editable</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileCapabilityEditableActive" xml:space="preserve"><value>Editable active</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileCapabilityReadOnly" xml:space="preserve"><value>Read-only</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonInitial" xml:space="preserve"><value>Select a profile to compare it with Recommended.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDefaultDescription" xml:space="preserve"><value>Saved from the Custom page.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDefaultName" xml:space="preserve"><value>Custom profile</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDefaultNameShort" xml:space="preserve"><value>Default</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileEditorBuiltIn" xml:space="preserve"><value>The fields are prefilled with a copy name so Duplicate creates an editable local profile.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileEditorEditable" xml:space="preserve"><value>Edit the name or notes, then use Rename to update this local profile.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileEditorNoSelection" xml:space="preserve"><value>Use a clear name before saving the current Custom selections as a local profile.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileKindBundled" xml:space="preserve"><value>Bundled</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileKindLocal" xml:space="preserve"><value>Local</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileNoSavedProfile" xml:space="preserve"><value>No saved profile yet</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileNoSelectionDetail" xml:space="preserve"><value>Refresh profiles, import a .librespot file, or save the current Custom selections as a local profile.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileNoSelectionTitle" xml:space="preserve"><value>No profile selected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileOperationInitial" xml:space="preserve"><value>Local profiles load when LibreSpot starts.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileRecoveredDefaults" xml:space="preserve"><value>Recovered defaults loaded</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSavedFound" xml:space="preserve"><value>Saved LibreSpot profile found</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSelectionActive" xml:space="preserve"><value>This local profile is active. Duplicate it before experimenting, or export it as a restore point.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSelectionBuiltIn" xml:space="preserve"><value>Bundled templates are read-only. Preview one, set it active, or duplicate it before editing.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSelectionLocal" xml:space="preserve"><value>Local profile selected. Preview first when you want to inspect settings without writing config.json.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSelectionNone" xml:space="preserve"><value>Select a template or local profile to preview, duplicate, export, or set active.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSelectionPaused" xml:space="preserve"><value>Profile actions pause while LibreSpot is running so config.json cannot change mid-run.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileShareInitial" xml:space="preserve"><value>Select a profile to create an inert share card.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileStateActive" xml:space="preserve"><value>Active</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileStateSaved" xml:space="preserve"><value>Saved</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileStateTemplate" xml:space="preserve"><value>Template</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileUpdatedBundledTemplate" xml:space="preserve"><value>Bundled template</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileUpdatedFormat" xml:space="preserve"><value>Updated {0:g}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProgressDone" xml:space="preserve"><value>Done</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProgressStopping" xml:space="preserve"><value>Stopping...</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProgressWorking" xml:space="preserve"><value>Working...</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_RecommendedDurationCleanMachine" xml:space="preserve"><value>Usually 3-4 minutes because LibreSpot may need to lay down the full stack first.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_RecommendedDurationExistingSpotify" xml:space="preserve"><value>Usually 2-3 minutes, depending on whether Spotify restarts.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_RecommendedFollowUpFirstProfile" xml:space="preserve"><value>LibreSpot will create the first saved profile during this run so maintenance has a dependable baseline.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_RecommendedFollowUpRecovery" xml:space="preserve"><value>This run writes a fresh config.json and keeps the recovered backup in the LibreSpot folder for reference.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_RecommendedFollowUpSavedProfile" xml:space="preserve"><value>The saved LibreSpot profile stays aligned with this run, so reapply and maintenance stay predictable later.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SearchCacheLimitDescription" xml:space="preserve"><value>Leave 0 for the default cache behavior.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SearchCacheLimitTitle" xml:space="preserve"><value>Cache limit</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SearchColorSchemeTitle" xml:space="preserve"><value>Color scheme</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SearchDownloadPathTitle" xml:space="preserve"><value>Download path</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SearchLyricsThemeTitle" xml:space="preserve"><value>Lyrics theme</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SearchSpotifyBuildTitle" xml:space="preserve"><value>Spotify build</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SearchThemePackDescription" xml:space="preserve"><value>Choose the Spicetify theme pack LibreSpot restores.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SearchThemePackTitle" xml:space="preserve"><value>Theme pack</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActivityTitle" xml:space="preserve"><value>Activity</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellAutoScrollLabel" xml:space="preserve"><value>Auto-scroll</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellBackupCreatedPending" xml:space="preserve"><value>LibreSpot creates restore data during setup.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellBackupCreatedSaved" xml:space="preserve"><value>Saved profile and restore data are available.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellBackupCreatedTitle" xml:space="preserve"><value>Backup ready</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellClearCacheDetail" xml:space="preserve"><value>Remove temp files and caches</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellClearCacheTitle" xml:space="preserve"><value>Clear cache</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellClearLogLabel" xml:space="preserve"><value>Clear</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellDependenciesHealthy" xml:space="preserve"><value>All dependencies are healthy.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellDependenciesTitle" xml:space="preserve"><value>Dependencies</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellDependenciesWarning" xml:space="preserve"><value>Review dependency warnings before patching.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellDependencyComponentHeader" xml:space="preserve"><value>Component</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellDependencyInstalledHeader" xml:space="preserve"><value>Installed</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellDependencyRecommendedHeader" xml:space="preserve"><value>Recommended</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellDependencyStatusHeader" xml:space="preserve"><value>Status</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellEnvironmentReportLinkText" xml:space="preserve"><value>View full environment report</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellLearnMoreLabel" xml:space="preserve"><value>Learn more about LibreSpot</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellLocalEnvironmentTitle" xml:space="preserve"><value>Local environment</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellLogEnvironmentReady" xml:space="preserve"><value>Environment snapshot is ready.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellLogLevelLabel" xml:space="preserve"><value>All levels</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellLogUsingDefaultProfile" xml:space="preserve"><value>Using profile: Default</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellLogUsingProfileFormat" xml:space="preserve"><value>Using profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellNoActiveTasks" xml:space="preserve"><value>No active tasks</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellNoBlockingIssues" xml:space="preserve"><value>No blocking issues detected.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellNotRunYet" xml:space="preserve"><value>Not run yet</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellProfileDefault" xml:space="preserve"><value>Profile: Default</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellProfileLabel" xml:space="preserve"><value>Profile</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellProfileNameFormat" xml:space="preserve"><value>Profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellProfileWillSave" xml:space="preserve"><value>Will be saved on apply</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellQuickActionsTitle" xml:space="preserve"><value>Quick actions</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellReadinessTitle" xml:space="preserve"><value>Readiness</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellReadyToPatch" xml:space="preserve"><value>Ready to patch</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellRepairDetail" xml:space="preserve"><value>Fix detected issues</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellRepairTitle" xml:space="preserve"><value>Repair</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellReviewWarnings" xml:space="preserve"><value>Review warnings</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellServiceDetected" xml:space="preserve"><value>LibreSpot stack detected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellServiceStandby" xml:space="preserve"><value>LibreSpot standby</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellSpotifyModificationDetail" xml:space="preserve"><value>Patches files in the local Spotify directory.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellSpotifyModificationTitle" xml:space="preserve"><value>Modifies Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellSpotifyTargetDetectedPath" xml:space="preserve"><value>Detected per-user install path.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellSpotifyTargetLabel" xml:space="preserve"><value>Spotify target</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellSpotifyTargetPerUserPath" xml:space="preserve"><value>Per-user Spotify install path.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellSummaryLastRun" xml:space="preserve"><value>Last run</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellSummaryStatus" xml:space="preserve"><value>Status</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellTopSettingsLabel" xml:space="preserve"><value>Settings</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellTopThemeLabel" xml:space="preserve"><value>Theme</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellTrustedSourcesDetail" xml:space="preserve"><value>Pinned downloads are hash-verified before use.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellTrustedSourcesTitle" xml:space="preserve"><value>Trusted sources</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellTrustRiskTitle" xml:space="preserve"><value>Trust and risk</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellUpdateCurrent" xml:space="preserve"><value>LibreSpot is up to date</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellUpdateLatestPreview" xml:space="preserve"><value>You have the latest preview.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellUpdateMaintenanceAvailable" xml:space="preserve"><value>Stack maintenance is available.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellUpdateReady" xml:space="preserve"><value>LibreSpot is ready</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellVerifyEnvironmentDetail" xml:space="preserve"><value>Re-check system and dependencies</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellVerifyEnvironmentTitle" xml:space="preserve"><value>Verify environment</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SpicetifyDetected" xml:space="preserve"><value>Spicetify detected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SpicetifyNotInstalled" xml:space="preserve"><value>Spicetify not installed</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SpotifyDetected" xml:space="preserve"><value>Spotify detected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SpotifyNotInstalled" xml:space="preserve"><value>Spotify not installed</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SupportBundleEstimatedSizeFormat" xml:space="preserve"><value>Estimated local zip size before compression: {0}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SupportBundleHealthOnly" xml:space="preserve"><value>Health report only</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SupportBundleManyFilesFormat" xml:space="preserve"><value>{0} diagnostic files selected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SupportBundleOneFile" xml:space="preserve"><value>1 diagnostic file selected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SupportBundleRedactionSummary" xml:space="preserve"><value>User paths, machine/user names, GitHub headers, proxy credentials, tokens, passwords, and command-line secret arguments are redacted before the zip is written.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeMarketplaceOnly" xml:space="preserve"><value>Marketplace-only (no theme pack)</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeSchemeAvailableHint" xml:space="preserve"><value>Color scheme inside the selected theme pack.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeSchemeMarketplaceOnlyHint" xml:space="preserve"><value>Marketplace-only skips the theme pack, so no extra scheme is applied.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeSummaryFormat" xml:space="preserve"><value>{0} - {1}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceHeroCustomBody" xml:space="preserve"><value>Adjust supported options without losing track of the baseline.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceHeroCustomEyebrow" xml:space="preserve"><value>Custom profile</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceHeroCustomTitle" xml:space="preserve"><value>Custom settings</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceHeroMaintenanceBody" xml:space="preserve"><value>Use repair, rollback, and reset tools when the stack needs attention.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceHeroMaintenanceEyebrow" xml:space="preserve"><value>Recovery lane</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceHeroMaintenanceTitle" xml:space="preserve"><value>Maintenance</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceHeroRecommendedBody" xml:space="preserve"><value>Start with the quickest stable path, then move to Custom only when you know what to change.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceRecommendationFinishBrief" xml:space="preserve"><value>Fastest way to restore the supported layer.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceRecommendationFinishDetail" xml:space="preserve"><value>Spotify is already installed. Recommended restores the supported customization layer with the least friction.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceRecommendationFinishTitle" xml:space="preserve"><value>Finish setup</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceRecommendationMaintainBrief" xml:space="preserve"><value>Safest path before fine-tuning.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceRecommendationMaintainDetail" xml:space="preserve"><value>Recommended is still the fastest way back to a clean baseline. Move to Custom once you know what you want to keep.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceRecommendationMaintainTitle" xml:space="preserve"><value>Stabilize or fine-tune</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceRecommendationRecoverBrief" xml:space="preserve"><value>Best way to save a clean profile again.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceRecommendationRecoverDetail" xml:space="preserve"><value>LibreSpot recovered from an unreadable profile. Recommended writes a clean baseline again, or you can inspect the backup first.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceRecommendationRecoverTitle" xml:space="preserve"><value>Save a fresh baseline</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceRecommendationStartBrief" xml:space="preserve"><value>Fastest way to lay down the known-good baseline.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceRecommendationStartDetail" xml:space="preserve"><value>No Spotify stack yet. Recommended is the safest starting point.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceRecommendationStartTitle" xml:space="preserve"><value>Start here</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeGalleryOneScheme" xml:space="preserve"><value>1 scheme</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeGalleryManySchemesFormat" xml:space="preserve"><value>{0} schemes</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeGalleryMarketplaceHelp" xml:space="preserve"><value>Uses Spicetify Marketplace without installing a bundled theme.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeGalleryRequiresJsHelpFormat" xml:space="preserve"><value>{0} includes a theme.js step and {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeGalleryNoJsHelpFormat" xml:space="preserve"><value>{0} installs without a theme.js step and has {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
 </root>
