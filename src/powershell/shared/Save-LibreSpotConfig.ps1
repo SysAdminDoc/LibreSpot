@@ -21,9 +21,17 @@ function Save-LibreSpotConfig {
                 [System.IO.File]::Replace($tempPath, $global:CONFIG_PATH, $backupPath, $true)
                 Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
             } catch {
-                # Replace() can fail on some filesystems; fall back to atomic Move
-                Remove-Item -LiteralPath $global:CONFIG_PATH -Force -ErrorAction Stop
-                [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)
+                # Replace() can fail on some filesystems; fall back to a
+                # rescue-move so a crash mid-fallback never loses the config.
+                $rescuePath = "$($global:CONFIG_PATH).rescue"
+                Move-Item -LiteralPath $global:CONFIG_PATH -Destination $rescuePath -Force
+                try {
+                    [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)
+                    Remove-Item -LiteralPath $rescuePath -Force -ErrorAction SilentlyContinue
+                } catch {
+                    Move-Item -LiteralPath $rescuePath -Destination $global:CONFIG_PATH -Force -ErrorAction SilentlyContinue
+                    throw
+                }
             }
         } else {
             [System.IO.File]::Move($tempPath, $global:CONFIG_PATH)

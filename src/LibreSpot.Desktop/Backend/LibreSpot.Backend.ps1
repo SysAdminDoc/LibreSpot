@@ -4075,6 +4075,11 @@ function Invoke-LibreSpotMaintenance {
             Update-BackendState -Progress 30 -Status 'Removing Spicetify tools' -Step 'Cleaning customization layer'
             $null = Remove-PathSafely -Path $spicetifyIntegration.ConfigDirectory -Label 'Spicetify config directory'
             $null = Remove-PathSafely -Path $spicetifyIntegration.InstallDirectory -Label 'Spicetify CLI directory'
+            Update-BackendState -Progress 45 -Status 'Removing watcher task' -Step 'Unregistering scheduled task'
+            if (Unregister-AutoReapplyTask) {
+                Write-Log 'Auto-reapply scheduled task removed.'
+                Set-AutoReapplyConfigPreference -Enabled $false
+            }
             Update-BackendState -Progress 50 -Status 'Removing Spotify itself' -Step 'Running full cleanup'
             Module-NukeSpotify
             $null = Remove-PathEntry -Entry $spicetifyIntegration.InstallDirectory -Scope 'Process'

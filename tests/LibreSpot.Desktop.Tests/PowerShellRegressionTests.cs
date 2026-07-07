@@ -140,6 +140,58 @@ public sealed class PowerShellRegressionTests
     }
 
     [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/powershell/shared/Set-WatcherState.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SetWatcherState_MergesOverExistingState_SoOtherLaneFieldsSurvive(string relativePath)
+    {
+        // Both the monolith watcher and the WPF backend write the same
+        // watcher-state.json. A save that serializes only its own fields
+        // destroys the other lane's extended fields (LastAppliedSpotifyVersion,
+        // LastSuccessfulApplyAt, ...). Every lane must serialize a merged view.
+        var script = ReadFile(relativePath.Split('/'));
+
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Set-WatcherState\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Set-WatcherState function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("$json = $merged | ConvertTo-Json", body);
+        Assert.DoesNotContain("$json = $State | ConvertTo-Json", body);
+    }
+
+    [Fact]
+    public void FullReset_UnregistersAutoReapplyWatcher_InMonolith()
+    {
+        // A full reset removes Spotify entirely; leaving the reapply watcher
+        // scheduled task behind means it fires at logon forever against a
+        // machine with no Spotify.
+        var script = ReadFile("LibreSpot.ps1");
+
+        var start = script.IndexOf("--- Full Reset ---", StringComparison.Ordinal);
+        var end = script.IndexOf("--- Full Reset Complete ---", StringComparison.Ordinal);
+        Assert.True(start >= 0 && end > start, "Full Reset block not found in LibreSpot.ps1.");
+
+        var block = script.Substring(start, end - start);
+        Assert.Contains("Unregister-AutoReapplyTask", block);
+    }
+
+    [Fact]
+    public void FullReset_UnregistersAutoReapplyWatcher_InBackend()
+    {
+        var script = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+
+        var start = script.IndexOf("'FullReset' {", StringComparison.Ordinal);
+        var end = script.IndexOf("'RemoveSelfData' {", StringComparison.Ordinal);
+        Assert.True(start >= 0 && end > start, "FullReset action block not found in backend script.");
+
+        var block = script.Substring(start, end - start);
+        Assert.Contains("Unregister-AutoReapplyTask", block);
+    }
+
+    [Theory]
     [InlineData("[Version]")]
     [InlineData("-preview")]
     [InlineData("-rc")]
