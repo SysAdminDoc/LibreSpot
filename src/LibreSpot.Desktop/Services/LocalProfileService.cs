@@ -354,6 +354,13 @@ public sealed class LocalProfileService
         using var response = await SharedHttpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
 
+        // The HTTPS-only rule must survive redirects: re-check the scheme of
+        // the URI the client actually landed on.
+        if (!string.Equals(response.RequestMessage?.RequestUri?.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Profile URL redirected to a non-HTTPS address.");
+        }
+
         if (response.Content.Headers.ContentLength is > MaxRemoteProfileBytes)
         {
             throw new InvalidOperationException("Profile payload is too large.");

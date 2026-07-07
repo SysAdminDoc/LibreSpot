@@ -2564,6 +2564,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
+            // A slow load for a previously selected profile must not clobber
+            // state for the profile the user has since selected.
+            if (SelectedLocalProfile?.Id != selected.Id)
+            {
+                return;
+            }
+
             SelectedProfileQrImage = null;
             SelectedProfileShareStatus = $"Couldn't prepare sharing for {selected.Name}: {ex.Message}";
             SelectedProfileComparisonText = "Comparison is unavailable until the profile can be loaded.";
@@ -3217,10 +3224,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private async Task<string> CollectPlanSummaryAsync(InstallConfiguration configuration)
     {
         var planLines = new List<string>();
+        // Plan is read-only, so the candidate configuration goes to a temp
+        // file instead of config.json. The persistent save happens in
+        // StartBackendRunAsync only after the user confirms the prompt —
+        // cancelling the prompt must leave the previous config untouched,
+        // because the auto-reapply watcher applies whatever config.json holds.
+        var planConfigPath = Path.Combine(
+            _configurationService.ConfigDirectory,
+            $"config.plan.{Guid.NewGuid():N}.tmp.json");
         try
         {
-            await _configurationService.SaveAsync(configuration);
-            await _backendScriptService.RunAsync("Plan", _configurationService.ConfigPath, message =>
+            await _configurationService.SaveToPathAsync(configuration, planConfigPath);
+            await _backendScriptService.RunAsync("Plan", planConfigPath, message =>
             {
                 if (message.Kind == "plan")
                 {
@@ -3241,6 +3256,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             System.Diagnostics.Debug.WriteLine($"Plan summary collection failed: {ex.Message}");
+        }
+        finally
+        {
+            try { File.Delete(planConfigPath); } catch { }
         }
 
         var compatWarnings = AppCatalog.CheckInstalledSpotifyCompatibility(
@@ -3405,7 +3424,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
 
             var result = await _backendScriptService.RunAsync(action, _configurationService.ConfigPath, HandleBackendMessage, token);
-            if (!result.Success)
+            if (result.Canceled)
+            {
+                AppendLog(result.ErrorMessage ?? "Backend run was canceled.", "WARN");
+                _activityOutcome = ActivityOutcome.Canceled;
+                ActivityStatus = Strings.Canceled;
+            }
+            else if (!result.Success)
             {
                 AppendLog(result.ErrorMessage ?? "LibreSpot reported an unknown backend failure.", "ERROR");
                 _activityOutcome = ActivityOutcome.Error;

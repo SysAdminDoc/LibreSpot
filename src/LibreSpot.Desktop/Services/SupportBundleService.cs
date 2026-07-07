@@ -606,6 +606,12 @@ public sealed class SupportBundleService
             "Omits binary or unreadable file payloads from text windows."
         };
 
+        // Bundles can embed attacker-influenced log content (upstream release
+        // notes, process output). A match timeout bounds any pathological
+        // backtracking; on timeout the whole window is omitted (fail closed)
+        // rather than shipped un-redacted.
+        private static readonly TimeSpan RuleTimeout = TimeSpan.FromSeconds(2);
+
         private readonly IReadOnlyList<(Regex Pattern, string Replacement)> _regexRules;
         private readonly IReadOnlyList<(string Value, string Replacement)> _literalRules;
 
@@ -614,13 +620,13 @@ public sealed class SupportBundleService
             _literalRules = BuildLiteralRules(configDirectory);
             _regexRules = new[]
             {
-                (new Regex(@"(?im)^(?<prefix>\s*(authorization|proxy-authorization)\s*[:=]\s*).+$", RegexOptions.Compiled), "${prefix}<redacted>"),
-                (new Regex(@"(?im)^(?<prefix>\s*x-(github|oauth|accepted-oauth|ratelimit)-[A-Za-z0-9-]+\s*:\s*).+$", RegexOptions.Compiled), "${prefix}<redacted>"),
-                (new Regex(@"(?i)\b(ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{12,}\b", RegexOptions.Compiled), "<redacted-github-token>"),
-                (new Regex(@"(?i)\b(?<key>[A-Z0-9_]*(TOKEN|SECRET|PASSWORD|PASS|API_KEY|PAT|PROXY)[A-Z0-9_]*)\s*[:=]\s*(?<value>[^\s;]+)", RegexOptions.Compiled), "${key}=<redacted>"),
-                (new Regex(@"(?i)(?<prefix>[?&](token|secret|password|pass|api[_-]?key|pat|proxy)=)[^&#\s""]+", RegexOptions.Compiled), "${prefix}<redacted>"),
-                (new Regex(@"(?i)\b(?<scheme>https?|socks5?)://[^/\s:@]+:[^@\s/]+@", RegexOptions.Compiled), "${scheme}://<redacted>@"),
-                (new Regex(@"(?i)(--?(token|password|secret|api-key|proxy)\s+)(\S+)", RegexOptions.Compiled), "$1<redacted>")
+                (new Regex(@"(?im)^(?<prefix>\s*(authorization|proxy-authorization)\s*[:=]\s*).+$", RegexOptions.Compiled, RuleTimeout), "${prefix}<redacted>"),
+                (new Regex(@"(?im)^(?<prefix>\s*x-(github|oauth|accepted-oauth|ratelimit)-[A-Za-z0-9-]+\s*:\s*).+$", RegexOptions.Compiled, RuleTimeout), "${prefix}<redacted>"),
+                (new Regex(@"(?i)\b(ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{12,}\b", RegexOptions.Compiled, RuleTimeout), "<redacted-github-token>"),
+                (new Regex(@"(?i)\b(?<key>[A-Z0-9_]*(TOKEN|SECRET|PASSWORD|PASS|API_KEY|PAT|PROXY)[A-Z0-9_]*)\s*[:=]\s*(?<value>[^\s;]+)", RegexOptions.Compiled, RuleTimeout), "${key}=<redacted>"),
+                (new Regex(@"(?i)(?<prefix>[?&](token|secret|password|pass|api[_-]?key|pat|proxy)=)[^&#\s""]+", RegexOptions.Compiled, RuleTimeout), "${prefix}<redacted>"),
+                (new Regex(@"(?i)\b(?<scheme>https?|socks5?)://[^/\s:@]+:[^@\s/]+@", RegexOptions.Compiled, RuleTimeout), "${scheme}://<redacted>@"),
+                (new Regex(@"(?i)(--?(token|password|secret|api-key|proxy)\s+)(\S+)", RegexOptions.Compiled, RuleTimeout), "$1<redacted>")
             };
         }
 
@@ -631,21 +637,28 @@ public sealed class SupportBundleService
                 return string.Empty;
             }
 
-            var redacted = text;
-            foreach (var (value, replacement) in _literalRules)
+            try
             {
-                if (!string.IsNullOrWhiteSpace(value))
+                var redacted = text;
+                foreach (var (value, replacement) in _literalRules)
                 {
-                    redacted = Regex.Replace(redacted, Regex.Escape(value), replacement, RegexOptions.IgnoreCase);
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        redacted = Regex.Replace(redacted, Regex.Escape(value), replacement, RegexOptions.IgnoreCase, RuleTimeout);
+                    }
                 }
-            }
 
-            foreach (var (pattern, replacement) in _regexRules)
+                foreach (var (pattern, replacement) in _regexRules)
+                {
+                    redacted = pattern.Replace(redacted, replacement);
+                }
+
+                return redacted;
+            }
+            catch (RegexMatchTimeoutException)
             {
-                redacted = pattern.Replace(redacted, replacement);
+                return "<content omitted: redaction rule timed out>";
             }
-
-            return redacted;
         }
 
         private static IReadOnlyList<(string Value, string Replacement)> BuildLiteralRules(string configDirectory)

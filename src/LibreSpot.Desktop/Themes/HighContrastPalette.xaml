@@ -54,8 +54,10 @@
   <Color x:Key="AccentRingColor">#0078D7</Color>
 
   <!-- ═══ Semantic intent ═══ -->
-  <Color x:Key="DangerColor">#FFFFFF</Color>
-  <Color x:Key="DangerDeepColor">#FFFFFF</Color>
+  <!-- Danger maps to the HC theme's attention color (HotTrack) so error and
+       success states are distinguishable; success stays on WindowText. -->
+  <Color x:Key="DangerColor">#00CCFF</Color>
+  <Color x:Key="DangerDeepColor">#00CCFF</Color>
   <Color x:Key="DangerSoftColor">#1A1A1A</Color>
   <Color x:Key="WarningColor">#00CCFF</Color>
   <Color x:Key="WarningSoftColor">#1A1A1A</Color>

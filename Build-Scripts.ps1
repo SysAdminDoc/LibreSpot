@@ -44,6 +44,12 @@ $mainScript = Join-Path $PSScriptRoot 'LibreSpot.ps1'
 $backendScript = Join-Path $PSScriptRoot 'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1'
 $releaseContractPath = Join-Path $PSScriptRoot 'schemas/release-artifact-contract.json'
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+# The two runnable scripts MUST keep a UTF-8 BOM: Windows PowerShell 5.1 reads
+# BOM-less files in the ANSI codepage, and non-ASCII characters (em-dashes,
+# the U+2139 info glyph) then corrupt the token stream — a single character in
+# a double-quoted string can hard-fail the whole file parse (14 cascading
+# errors observed). JSON/report outputs stay BOM-less.
+$utf8Bom = New-Object System.Text.UTF8Encoding($true)
 
 if ([string]::IsNullOrWhiteSpace($ReleaseRoot)) {
     $ReleaseRoot = Join-Path $PSScriptRoot 'publish'
@@ -811,6 +817,25 @@ if ($Lint) {
 
     foreach ($script in $scripts) {
         $name = Split-Path $script -Leaf
+
+        # Guard the PS 5.1 launch path: BOM-less UTF-8 + non-ASCII content is
+        # read as ANSI by Windows PowerShell and can hard-fail the file parse.
+        $firstBytes = [System.IO.File]::ReadAllBytes($script)[0..2]
+        $hasBom = ($firstBytes.Count -ge 3 -and $firstBytes[0] -eq 0xEF -and $firstBytes[1] -eq 0xBB -and $firstBytes[2] -eq 0xBF)
+        if (-not $hasBom) {
+            Write-Host "  [ERROR] $name has no UTF-8 BOM; Windows PowerShell 5.1 would read it as ANSI." -ForegroundColor Red
+            $totalIssues++
+        }
+        $parseTokens = $null
+        $parseErrors = $null
+        $null = [System.Management.Automation.Language.Parser]::ParseFile($script, [ref]$parseTokens, [ref]$parseErrors)
+        if ($parseErrors.Count -gt 0) {
+            foreach ($pe in $parseErrors) {
+                Write-Host "  [ERROR] Parse: line $($pe.Extent.StartLineNumber): $($pe.Message)" -ForegroundColor Red
+            }
+            $totalIssues += $parseErrors.Count
+        }
+
         Write-Host "Analyzing $name..." -ForegroundColor Cyan
         $results = Invoke-ScriptAnalyzer -Path $script -Settings $settingsPath -Recurse
         if ($results.Count -gt 0) {
@@ -884,7 +909,7 @@ if ($SyncSharedToBackend) {
     }
 
     if ($updatedCount -gt 0) {
-        [System.IO.File]::WriteAllText($backendScript, $backendContent, $utf8NoBom)
+        [System.IO.File]::WriteAllText($backendScript, $backendContent, $utf8Bom)
     }
     Write-Host "`n$updatedCount synced, $excludedCount excluded (lane-specific), $skippedCount skipped (not in backend)." -ForegroundColor Green
     exit 0

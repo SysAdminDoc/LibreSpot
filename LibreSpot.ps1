@@ -1,4 +1,4 @@
-# LibreSpot - Comprehensive SpotX + Spicetify Installer
+﻿# LibreSpot - Comprehensive SpotX + Spicetify Installer
 # Easy Mode | Custom Mode | Maintenance Mode
 #
 # All-in-one installer for SpotX ad-blocking/patching and Spicetify
@@ -6491,7 +6491,10 @@ function Clear-LibreSpotCache {
 }
 
 function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,[string]$Label='archive',[int]$MaxEntries=10000,[long]$MaxExpandedBytes=500MB)
-    Add-Type -AssemblyName System.IO.Compression
+    # ZipFile/ZipFileExtensions live in System.IO.Compression.FileSystem on .NET
+    # Framework (PS 5.1); loading only System.IO.Compression leaves them
+    # unresolvable in a clean powershell.exe process.
+    Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
     $zip = $null
     try {
         $zip = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
@@ -7993,6 +7996,7 @@ $functionNamesForWorker = @(
     'Module-NukeSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
     'Module-InstallThemes','Download-CommunityExtensions','Module-InstallExtensions',
     'Module-InstallMarketplace','Module-InstallCustomApps','Open-SpicetifyMarketplace','Repair-Marketplace','Module-ApplySpicetify',
+    'Write-MarketplaceVisibilityEvidence','Optimize-OperationJournalRetention',
     'Build-SpotXParams','Load-LibreSpotConfig'
 )
 
@@ -8007,9 +8011,9 @@ foreach ($fname in $functionNamesForWorker) {
 $varNamesForWorker = @(
     'URL_SPOTX','URL_MARKETPLACE','URL_THEMES_REPO','URL_SPICETIFY_FMT','PinnedReleases',
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR','SPICETIFY_INTEGRATION_VERSION',
-    'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH','OPERATION_JOURNAL_PATH','RUN_RECEIPT_PATH','CURRENT_OPERATION_ID','CURRENT_OPERATION_ACTION','CACHE_DIR',
+    'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH','OPERATION_JOURNAL_PATH','OPERATION_JOURNAL_MAX_BYTES','OPERATION_JOURNAL_RETAIN_BYTES','RUN_RECEIPT_PATH','CURRENT_OPERATION_ID','CURRENT_OPERATION_ACTION','CACHE_DIR',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
-    'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityExtensionAliases','DeprecatedCommunityExtensionNames','CommunityCustomApps','CommunityThemeRepos','ThemesNeedingJS','SpotXLyricsThemes','VERSION','CONFIG_SCHEMA_VERSION'
+    'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityExtensionAliases','DeprecatedCommunityExtensionNames','CommunityCustomApps','CommunityThemeRepos','ThemesNeedingJS','SpotXLyricsThemes','SpotifyVersionManifest','SpotifyVersionIds','VERSION','CONFIG_SCHEMA_VERSION'
 )
 foreach ($vname in $varNamesForWorker) {
     $val = (Get-Variable -Name $vname -Scope Global -ErrorAction Stop).Value

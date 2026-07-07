@@ -1,5 +1,8 @@
 function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,[string]$Label='archive',[int]$MaxEntries=10000,[long]$MaxExpandedBytes=500MB)
-    Add-Type -AssemblyName System.IO.Compression
+    # ZipFile/ZipFileExtensions live in System.IO.Compression.FileSystem on .NET
+    # Framework (PS 5.1); loading only System.IO.Compression leaves them
+    # unresolvable in a clean powershell.exe process.
+    Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
     $zip = $null
     try {
         $zip = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)

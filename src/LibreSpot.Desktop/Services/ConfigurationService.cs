@@ -95,6 +95,25 @@ public sealed class ConfigurationService
             "config.json did not contain a configuration object.");
     }
 
+    /// <summary>
+    /// Writes a normalized configuration to an arbitrary path without touching
+    /// config.json. Used for read-only backend actions (Plan) that need a
+    /// candidate configuration on disk before the user has confirmed it.
+    /// </summary>
+    public async Task SaveToPathAsync(InstallConfiguration configuration, string path, CancellationToken cancellationToken = default)
+    {
+        var directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var normalizedConfiguration = AppCatalog.NormalizeConfiguration(configuration);
+        await using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
+        await JsonSerializer.SerializeAsync(stream, normalizedConfiguration, SerializerOptions, cancellationToken);
+        await stream.FlushAsync(cancellationToken);
+    }
+
     public async Task SaveAsync(InstallConfiguration configuration, CancellationToken cancellationToken = default)
     {
         Directory.CreateDirectory(ConfigDirectory);

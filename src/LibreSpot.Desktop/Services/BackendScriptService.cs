@@ -9,7 +9,7 @@ using System.Text;
 namespace LibreSpot.Desktop.Services;
 
 public sealed record BackendMessage(string Kind, string Level, string Payload);
-public sealed record BackendRunResult(bool Success, string? ErrorMessage = null);
+public sealed record BackendRunResult(bool Success, string? ErrorMessage = null, bool Canceled = false);
 
 public sealed class BackendScriptService
 {
@@ -55,7 +55,7 @@ public sealed class BackendScriptService
 
         if (cancellationToken.IsCancellationRequested)
         {
-            return new BackendRunResult(false, "LibreSpot canceled the backend run.");
+            return new BackendRunResult(false, "LibreSpot canceled the backend run.", Canceled: true);
         }
 
         if (_noBackendMode)
@@ -126,7 +126,7 @@ public sealed class BackendScriptService
         {
             executionCopyGuard?.Dispose();
             TryDeleteExecutionCopy(executionCopy);
-            return new BackendRunResult(false, "LibreSpot canceled the backend run.");
+            return new BackendRunResult(false, "LibreSpot canceled the backend run.", Canceled: true);
         }
         catch (Exception ex)
         {
@@ -206,7 +206,7 @@ public sealed class BackendScriptService
             try { await Task.Run(process.WaitForExit, CancellationToken.None); } catch { }
             executionCopyGuard?.Dispose();
             TryDeleteExecutionCopy(executionCopy);
-            return new BackendRunResult(false, "LibreSpot canceled the backend run.");
+            return new BackendRunResult(false, "LibreSpot canceled the backend run.", Canceled: true);
         }
 
         // Give the async output pumps a final drain so we don't drop the last few lines.

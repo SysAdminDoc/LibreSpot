@@ -4,7 +4,7 @@ Items moved here from `ROADMAP.md` because they require operator decisions,
 credentials, or policy calls that an implementer cannot resolve autonomously.
 Return items to `ROADMAP.md` once the blocking decision is made.
 
-Last updated: 2026-06-17.
+Last updated: 2026-06-29.
 
 ---
 
@@ -700,3 +700,23 @@ flag is enabled.
 Verify: a test tag/dry-run proves invalid SHA, missing silent switch,
 missing package ID, unsupported artifact role, or unsigned-gated channel
 fails before upload.
+
+## P3 - Add Stryker.NET mutation testing to identify undertested code
+
+| Field | Value |
+|---|---|
+| Source | Research-Driven Additions (June 27, 2026) |
+| Blocker | Requires non-UI runtime logic extracted into a class library first |
+
+Why: the project has many C# tests that validate JSON schema structure rather
+than runtime behavior. Stryker.NET can identify code paths where tests pass even
+when logic is mutated.
+
+Blocked: Stryker cannot mutate the WPF project directly because the desktop
+target uses `net10.0-windows` with `UseWPF=true`. After non-UI logic is
+extracted into a class library, Stryker can target that library without WPF
+analysis failures.
+
+Acceptance: Stryker runs against the extracted non-UI library, produces a
+mutation score report locally, and documents a ratchet threshold that catches
+untested behavioral branches without requiring WPF mutation.

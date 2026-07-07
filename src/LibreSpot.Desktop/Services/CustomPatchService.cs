@@ -401,6 +401,13 @@ public sealed class CustomPatchService
             var response = await ImportClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             try
             {
+                // The HTTPS-only rule must survive redirects: re-check the
+                // scheme of the URI the client actually landed on.
+                if (!string.Equals(response.RequestMessage?.RequestUri?.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("Import URL redirected to a non-HTTPS address.");
+                }
+
                 var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 return new CustomPatchImportResponse(
                     response.StatusCode,

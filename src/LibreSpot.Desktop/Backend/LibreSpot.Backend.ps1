@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'OpenMarketplace', 'SafeMode', 'CreateBackup', 'RestoreBackup', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'RemoveSelfData', 'ClearCache', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply', 'Plan')]
     [string]$Action = 'Install',
     [string]$ConfigPath = "$env:APPDATA\LibreSpot\config.json"
@@ -9,6 +9,10 @@ $ErrorActionPreference = 'Stop'
 try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
+
+# The WPF shell decodes this process's stdout as UTF-8; PS 5.1 defaults to the
+# OEM codepage, which garbles any non-ASCII character in event payloads.
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
 $script:BackendTestRoot = $null
 $testRootValue = [Environment]::GetEnvironmentVariable('LIBRESPOT_TEST_ROOT')
@@ -1009,6 +1013,17 @@ function Get-WatcherLaunchCommand {
     if ([string]::IsNullOrWhiteSpace($entry)) {
         try { $entry = [string]$MyInvocation.MyCommand.Path } catch {}
     }
+    # This process normally runs from an ephemeral execution copy
+    # (LibreSpot.Backend.<guid>.run.ps1) that the shell deletes right after
+    # the run. The scheduled task must target the canonical sibling that
+    # EnsureBackendScriptAsync maintains, or every watcher tick launches a
+    # file that no longer exists.
+    if (-not [string]::IsNullOrWhiteSpace($entry) -and (Split-Path -Path $entry -Leaf) -ne 'LibreSpot.Backend.ps1') {
+        $canonical = Join-Path (Split-Path -Path $entry -Parent) 'LibreSpot.Backend.ps1'
+        if (Test-Path -LiteralPath $canonical -PathType Leaf) {
+            $entry = $canonical
+        }
+    }
     if ([string]::IsNullOrWhiteSpace($entry) -or -not (Test-Path -LiteralPath $entry -PathType Leaf)) {
         return $null
     }
@@ -1904,7 +1919,10 @@ function Clear-LibreSpotCache {
 }
 
 function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,[string]$Label='archive',[int]$MaxEntries=10000,[long]$MaxExpandedBytes=500MB)
-    Add-Type -AssemblyName System.IO.Compression
+    # ZipFile/ZipFileExtensions live in System.IO.Compression.FileSystem on .NET
+    # Framework (PS 5.1); loading only System.IO.Compression leaves them
+    # unresolvable in a clean powershell.exe process.
+    Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
     $zip = $null
     try {
         $zip = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
@@ -4192,13 +4210,19 @@ try {
     Write-EventLine -Kind 'action' -Payload $Action
     $journalWouldChange = ($Action -notin @('CheckUpdates', 'OpenMarketplace', 'WatchAutoReapply', 'Plan'))
     Start-OperationJournalRun -Action $Action -Target "Backend action: $Action" -WouldChange $journalWouldChange -Reversible $false -RollbackHint 'Review individual journal entries for action-specific rollback hints.' | Out-Null
-    if ($Action -notin @('CheckUpdates', 'ClearCache', 'EnableAutoReapply', 'DisableAutoReapply')) {
+    # Keep this exemption list aligned with the shell's RequiresAdministrator
+    # (MainViewModel.cs): the shell launches these without elevation, so an
+    # Ensure-Admin throw here surfaces as a bogus "needs administrator" error
+    # for read-only/self-data actions.
+    if ($Action -notin @('CheckUpdates', 'CreateBackup', 'OpenMarketplace', 'RemoveSelfData', 'ClearCache', 'EnableAutoReapply', 'DisableAutoReapply', 'Plan')) {
         Ensure-Admin
     }
 
     # Gate patching actions behind risk acknowledgment. The WPF shell handles
-    # the dialog; the backend enforces the invariant as a safety net.
-    if ($Action -notin @('CheckUpdates', 'RemoveSelfData', 'ClearCache', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply')) {
+    # the dialog; the backend enforces the invariant as a safety net. Plan is
+    # read-only (it mutates nothing), and it runs before the shell shows the
+    # combined plan+risk prompt, so it must not require prior acknowledgment.
+    if ($Action -notin @('CheckUpdates', 'RemoveSelfData', 'ClearCache', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply', 'Plan')) {
         $riskConfig = Load-LibreSpotConfig
         if (-not (ConvertTo-ConfigBoolean -Value $riskConfig['RiskAcknowledged'] -Default $false)) {
             Write-Log 'RiskAcknowledged is false. The desktop shell must present the acknowledgment dialog before running this action.' -Level 'ERROR'

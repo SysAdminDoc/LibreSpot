@@ -1,5 +1,6 @@
 using System.IO;
 using System.Diagnostics;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
 using LibreSpot.Desktop.Models;
@@ -1766,8 +1767,11 @@ public sealed class EnvironmentSnapshotService
 
     private static DateTime? TryGetDateTime(JsonElement element, string propertyName)
     {
+        // The backend writes these with Get-Date -Format 'o'; parse them
+        // culture-invariantly because the UI thread runs under the user's
+        // selected locale.
         var raw = TryGetString(element, propertyName);
-        return DateTime.TryParse(raw, out var parsed)
+        return DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed)
             ? parsed.ToLocalTime()
             : null;
     }
@@ -1775,7 +1779,7 @@ public sealed class EnvironmentSnapshotService
     private static DateTimeOffset? TryGetDateTimeOffset(JsonElement element, string propertyName)
     {
         var raw = TryGetString(element, propertyName);
-        return DateTimeOffset.TryParse(raw, out var parsed)
+        return DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed)
             ? parsed
             : null;
     }

@@ -373,12 +373,18 @@ public sealed class UpstreamDriftService
 public sealed class GitHubUpstreamMetadataClient : IUpstreamMetadataClient
 {
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(4);
+
+    // UpstreamDriftService and CommunityAssetDriftService both hit the same
+    // GitHub endpoints; a single shared client keeps one connection pool and
+    // avoids socket churn from per-service HttpClient instances.
+    private static readonly HttpClient SharedHttpClient = new() { Timeout = DefaultTimeout };
+
     private readonly HttpClient _httpClient;
     private readonly TimeSpan _gitTimeout;
 
     public GitHubUpstreamMetadataClient(HttpClient? httpClient = null, TimeSpan? timeout = null)
     {
-        _httpClient = httpClient ?? new HttpClient { Timeout = timeout ?? DefaultTimeout };
+        _httpClient = httpClient ?? (timeout is null ? SharedHttpClient : new HttpClient { Timeout = timeout.Value });
         _gitTimeout = timeout ?? DefaultTimeout;
     }
 

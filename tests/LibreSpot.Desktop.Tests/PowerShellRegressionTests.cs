@@ -226,6 +226,14 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("Write-LibreSpotCompatibilityMatrix", listMatch.Value);
         Assert.Contains("Write-SpicetifyCliOutputLine", listMatch.Value);
         Assert.Contains("Get-SpicetifyIntegrationContext", listMatch.Value);
+
+        // Module-ApplySpicetify records marketplace visibility evidence on its
+        // success path; Write-OperationJournalEntry calls the retention helper
+        // inside its try block. Either one missing from the allow-list makes a
+        // successful apply look like a failure (and roll itself back) or makes
+        // the operation journal silently dead inside workers.
+        Assert.Contains("Write-MarketplaceVisibilityEvidence", listMatch.Value);
+        Assert.Contains("Optimize-OperationJournalRetention", listMatch.Value);
     }
 
     [Fact]
@@ -241,6 +249,15 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("SPICETIFY_DIR", listMatch.Value);
         Assert.Contains("SPICETIFY_CONFIG_DIR", listMatch.Value);
         Assert.Contains("SPICETIFY_INTEGRATION_VERSION", listMatch.Value);
+
+        // Build-SpotXParams and Normalize-LibreSpotConfig read the Spotify
+        // version manifest inside workers; without these exports a pinned
+        // SpotX_SpotifyVersionId silently degrades to 'auto'. The journal
+        // retention limits keep Optimize-OperationJournalRetention live.
+        Assert.Contains("SpotifyVersionManifest", listMatch.Value);
+        Assert.Contains("SpotifyVersionIds", listMatch.Value);
+        Assert.Contains("OPERATION_JOURNAL_MAX_BYTES", listMatch.Value);
+        Assert.Contains("OPERATION_JOURNAL_RETAIN_BYTES", listMatch.Value);
     }
 
     [Theory]
