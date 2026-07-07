@@ -453,8 +453,14 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Defer scroll-to-end until after the ItemsControl has laid out the new row.
-        Dispatcher.BeginInvoke(new Action(() => LogScrollViewer?.ScrollToEnd()), DispatcherPriority.Background);
+        // Defer until after the virtualized list has realized the newest row.
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (LogListBox?.Items.Count > 0)
+            {
+                LogListBox.ScrollIntoView(LogListBox.Items[^1]);
+            }
+        }), DispatcherPriority.Background);
     }
 
     private void CacheLimitTextBox_OnPreviewTextInput(object sender, TextCompositionEventArgs e)

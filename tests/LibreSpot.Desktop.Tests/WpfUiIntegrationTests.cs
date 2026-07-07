@@ -13,6 +13,19 @@ public sealed class WpfUiIntegrationTests
     private static readonly string RepoRoot = ResolveRepoRoot();
 
     [Fact]
+    public void ActivityRunLog_UsesRecyclingVirtualization()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml"));
+
+        Assert.Contains("x:Name=\"LogListBox\"", xaml);
+        Assert.Contains("VirtualizingPanel.IsVirtualizing=\"True\"", xaml);
+        Assert.Contains("VirtualizingPanel.VirtualizationMode=\"Recycling\"", xaml);
+        Assert.Contains("<VirtualizingStackPanel />", xaml);
+        Assert.Contains("LogListBox.ScrollIntoView", File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml.cs")));
+        Assert.DoesNotContain("x:Name=\"LogScrollViewer\"", xaml);
+    }
+
+    [Fact]
     public void WpfUiAssembly_LoadsAndExposesTartetControls()
     {
         var asm = Assembly.Load("Wpf.Ui");

@@ -12,6 +12,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Added a WPF backend host watchdog that warns when a run stops emitting output and stops silent stalled backend processes with a categorized error instead of leaving the activity panel pending indefinitely.
 - Added one-click failure-bundle export from the WPF activity panel after failed or canceled runs, including the current run log, operation journal, health snapshot, and backend result metadata in the redacted zip.
 - Migrated the desktop test project from deprecated xUnit v2 packages to xUnit v3/FsCheck v3 packages and refreshed test-only dependency-health policy for the Microsoft Testing Platform transitives.
+- Virtualized the WPF activity run log with a recycling list so busy runs no longer realize all 2,000 retained log rows at once.
 
 ## [v4.0.0-preview.8] - 2026-07-07
 
