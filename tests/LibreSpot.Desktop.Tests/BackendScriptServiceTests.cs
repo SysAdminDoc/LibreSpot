@@ -90,6 +90,95 @@ public sealed class BackendScriptServiceTests
     }
 
     [Fact]
+    public async Task RunAsync_WarnsAndStopsBackendAfterNoOutputStall()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
+        var runtimeDirectory = Path.Combine(tempRoot, "Runtime");
+        var scriptPath = Path.Combine(tempRoot, "silent-backend.ps1");
+        var messages = new List<BackendMessage>();
+        Directory.CreateDirectory(tempRoot);
+        await File.WriteAllTextAsync(scriptPath, "Start-Sleep -Milliseconds 1000\r\nexit 0\r\n");
+
+        try
+        {
+            var service = new BackendScriptService(
+                runtimeDirectory,
+                noBackendMode: false,
+                new BackendWatchdogOptions(
+                    TimeSpan.FromMilliseconds(50),
+                    TimeSpan.FromMilliseconds(150),
+                    TimeSpan.FromMilliseconds(10)),
+                scriptPath);
+
+            var result = await service.RunAsync("Install", Path.Combine(tempRoot, "config.json"), messages.Add);
+
+            Assert.False(result.Success);
+            Assert.Equal("BackendHostStalled", result.ErrorCode);
+            Assert.Contains("watchdog", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(messages, message =>
+                message.Kind == "status" &&
+                message.Level == "WARN" &&
+                message.Payload.Contains("Still waiting", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(messages, message =>
+                message.Kind == "log" &&
+                message.Level == "WARN" &&
+                message.Payload.Contains("No backend output", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(messages, message =>
+                message.Kind == "log" &&
+                message.Level == "ERROR" &&
+                message.Payload.Contains("watchdog", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_ResetsWatchdogWhenBackendKeepsEmittingOutput()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
+        var runtimeDirectory = Path.Combine(tempRoot, "Runtime");
+        var scriptPath = Path.Combine(tempRoot, "chatty-backend.ps1");
+        var messages = new List<BackendMessage>();
+        Directory.CreateDirectory(tempRoot);
+        await File.WriteAllTextAsync(
+            scriptPath,
+            """
+            for ($i = 0; $i -lt 6; $i++) {
+                Write-Output "@@LS@@|status|INFO|tick $i"
+                Start-Sleep -Milliseconds 35
+            }
+            exit 0
+            """);
+
+        try
+        {
+            var service = new BackendScriptService(
+                runtimeDirectory,
+                noBackendMode: false,
+                new BackendWatchdogOptions(
+                    TimeSpan.FromMilliseconds(70),
+                    TimeSpan.FromMilliseconds(140),
+                    TimeSpan.FromMilliseconds(10)),
+                scriptPath);
+
+            var result = await service.RunAsync("Install", Path.Combine(tempRoot, "config.json"), messages.Add);
+
+            Assert.True(result.Success);
+            Assert.Null(result.ErrorCode);
+            Assert.Contains(messages, message => message.Kind == "status" && message.Payload == "tick 5");
+            Assert.DoesNotContain(messages, message =>
+                message.Kind == "log" &&
+                message.Payload.Contains("watchdog", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_ReturnsFailureWhenRuntimeDirectoryCannotBeCreated()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));

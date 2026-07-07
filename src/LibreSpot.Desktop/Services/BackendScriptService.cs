@@ -9,7 +9,18 @@ using System.Text;
 namespace LibreSpot.Desktop.Services;
 
 public sealed record BackendMessage(string Kind, string Level, string Payload);
-public sealed record BackendRunResult(bool Success, string? ErrorMessage = null, bool Canceled = false);
+public sealed record BackendRunResult(bool Success, string? ErrorMessage = null, bool Canceled = false, string? ErrorCode = null);
+
+internal sealed record BackendWatchdogOptions(
+    TimeSpan IdleWarningAfter,
+    TimeSpan StallTimeoutAfter,
+    TimeSpan PollInterval)
+{
+    public static BackendWatchdogOptions Default { get; } = new(
+        TimeSpan.FromSeconds(20),
+        TimeSpan.FromMinutes(10),
+        TimeSpan.FromSeconds(5));
+}
 
 public sealed class BackendScriptService
 {
@@ -27,13 +38,28 @@ public sealed class BackendScriptService
 
     private readonly string _runtimeDirectory;
     private readonly bool _noBackendMode;
+    private readonly BackendWatchdogOptions _watchdogOptions;
+    private readonly string? _backendScriptPathOverride;
 
     public BackendScriptService(string? runtimeDirectory = null, bool noBackendMode = false)
+        : this(runtimeDirectory, noBackendMode, BackendWatchdogOptions.Default, backendScriptPathOverride: null)
+    {
+    }
+
+    internal BackendScriptService(
+        string? runtimeDirectory,
+        bool noBackendMode,
+        BackendWatchdogOptions watchdogOptions,
+        string? backendScriptPathOverride)
     {
         _runtimeDirectory = string.IsNullOrWhiteSpace(runtimeDirectory)
             ? DefaultRuntimeDirectory
             : Path.GetFullPath(runtimeDirectory);
         _noBackendMode = noBackendMode;
+        _watchdogOptions = ValidateWatchdogOptions(watchdogOptions);
+        _backendScriptPathOverride = string.IsNullOrWhiteSpace(backendScriptPathOverride)
+            ? null
+            : Path.GetFullPath(backendScriptPathOverride);
     }
 
     public static string DefaultRuntimeDirectory =>
@@ -164,10 +190,20 @@ public sealed class BackendScriptService
         args.Add("-ConfigPath");
         args.Add(configPath);
 
+        var watchdogState = new BackendWatchdogRunState();
+        var lastBackendActivityTicks = Stopwatch.GetTimestamp();
+
+        void MarkBackendActivity() =>
+            Interlocked.Exchange(ref lastBackendActivityTicks, Stopwatch.GetTimestamp());
+
+        long ReadLastBackendActivityTicks() =>
+            Interlocked.Read(ref lastBackendActivityTicks);
+
         process.OutputDataReceived += (_, ev) =>
         {
             if (!string.IsNullOrWhiteSpace(ev.Data))
             {
+                MarkBackendActivity();
                 Publish(ev.Data, Notify);
             }
         };
@@ -176,15 +212,19 @@ public sealed class BackendScriptService
         {
             if (!string.IsNullOrWhiteSpace(ev.Data))
             {
+                MarkBackendActivity();
                 Notify(new BackendMessage("log", "WARN", ev.Data));
             }
         };
 
         using var registration = cancellationToken.Register(() => TryKillTree(process));
+        using var watchdogStopCts = new CancellationTokenSource();
+        using var watchdogCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, watchdogStopCts.Token);
 
         try
         {
             process.Start();
+            MarkBackendActivity();
         }
         catch (Exception ex)
         {
@@ -195,6 +235,13 @@ public sealed class BackendScriptService
 
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
+        var watchdogTask = MonitorBackendLivenessAsync(
+            process,
+            Notify,
+            ReadLastBackendActivityTicks,
+            _watchdogOptions,
+            watchdogState,
+            watchdogCts.Token);
 
         try
         {
@@ -207,6 +254,11 @@ public sealed class BackendScriptService
             executionCopyGuard?.Dispose();
             TryDeleteExecutionCopy(executionCopy);
             return new BackendRunResult(false, "LibreSpot canceled the backend run.", Canceled: true);
+        }
+        finally
+        {
+            watchdogStopCts.Cancel();
+            await ObserveWatchdogTaskAsync(watchdogTask);
         }
 
         // Give the async output pumps a final drain so we don't drop the last few lines.
@@ -225,9 +277,120 @@ public sealed class BackendScriptService
         executionCopyGuard?.Dispose();
         TryDeleteExecutionCopy(executionCopy);
 
+        if (watchdogState.KilledForStall)
+        {
+            return new BackendRunResult(
+                false,
+                $"LibreSpot backend host watchdog stopped the run after {FormatDuration(watchdogState.IdleDurationAtKill)} with no backend output.",
+                ErrorCode: "BackendHostStalled");
+        }
+
         return process.ExitCode == 0
             ? new BackendRunResult(true)
             : new BackendRunResult(false, $"LibreSpot backend exited with code {process.ExitCode}.");
+    }
+
+    private static BackendWatchdogOptions ValidateWatchdogOptions(BackendWatchdogOptions options)
+    {
+        if (options.IdleWarningAfter <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "Idle warning budget must be greater than zero.");
+        }
+
+        if (options.StallTimeoutAfter <= options.IdleWarningAfter)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "Stall timeout budget must be greater than the idle warning budget.");
+        }
+
+        if (options.PollInterval <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "Watchdog poll interval must be greater than zero.");
+        }
+
+        return options;
+    }
+
+    private static async Task MonitorBackendLivenessAsync(
+        Process process,
+        Action<BackendMessage> notify,
+        Func<long> readLastBackendActivityTicks,
+        BackendWatchdogOptions options,
+        BackendWatchdogRunState state,
+        CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(options.PollInterval, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (ProcessHasExited(process))
+            {
+                return;
+            }
+
+            var idleFor = GetElapsed(readLastBackendActivityTicks());
+            if (!state.WarningPublished && idleFor >= options.IdleWarningAfter)
+            {
+                state.WarningPublished = true;
+                notify(new BackendMessage("status", "WARN", "Still waiting for backend output..."));
+                notify(new BackendMessage(
+                    "log",
+                    "WARN",
+                    $"No backend output for {FormatDuration(idleFor)}; LibreSpot is still monitoring the run."));
+            }
+
+            if (idleFor < options.StallTimeoutAfter)
+            {
+                continue;
+            }
+
+            state.KilledForStall = true;
+            state.IdleDurationAtKill = idleFor;
+            notify(new BackendMessage(
+                "log",
+                "ERROR",
+                $"Backend host watchdog stopped the run after {FormatDuration(idleFor)} with no backend output."));
+            TryKillTree(process, waitForExit: true);
+            return;
+        }
+    }
+
+    private static bool ProcessHasExited(Process process)
+    {
+        try { return process.HasExited; }
+        catch { return true; }
+    }
+
+    private static TimeSpan GetElapsed(long startedAtTicks) =>
+        TimeSpan.FromSeconds((Stopwatch.GetTimestamp() - startedAtTicks) / (double)Stopwatch.Frequency);
+
+    private static string FormatDuration(TimeSpan duration)
+    {
+        if (duration.TotalMinutes >= 1)
+        {
+            return $"{duration.TotalMinutes:F1} minutes";
+        }
+
+        return $"{Math.Max(1, (int)Math.Round(duration.TotalSeconds))} seconds";
+    }
+
+    private static async Task ObserveWatchdogTaskAsync(Task watchdogTask)
+    {
+        try { await watchdogTask; }
+        catch (OperationCanceledException) { }
+    }
+
+    private sealed class BackendWatchdogRunState
+    {
+        public bool WarningPublished { get; set; }
+        public bool KilledForStall { get; set; }
+        public TimeSpan IdleDurationAtKill { get; set; }
     }
 
     private static void TryKillTree(Process process, bool waitForExit = false)
@@ -282,8 +445,7 @@ public sealed class BackendScriptService
         await RuntimeScriptLock.WaitAsync(cancellationToken);
         try
         {
-            await using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName)
-                ?? throw new InvalidOperationException("LibreSpot backend resource was not found.");
+            await using var resourceStream = OpenBackendScriptStream();
 
             var expectedHash = ComputeHash(resourceStream);
             resourceStream.Position = 0;
@@ -326,6 +488,17 @@ public sealed class BackendScriptService
         {
             RuntimeScriptLock.Release();
         }
+    }
+
+    private Stream OpenBackendScriptStream()
+    {
+        if (_backendScriptPathOverride is not null)
+        {
+            return File.Open(_backendScriptPathOverride, FileMode.Open, FileAccess.Read, FileShare.Read);
+        }
+
+        return Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName)
+            ?? throw new InvalidOperationException("LibreSpot backend resource was not found.");
     }
 
     private static string ComputeHash(Stream stream)
