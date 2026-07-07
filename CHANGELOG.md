@@ -15,6 +15,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Virtualized the WPF activity run log with a recycling list so busy runs no longer realize all 2,000 retained log rows at once.
 - Re-routed mouse wheel events from nested WPF scroll regions at their boundaries so settings panes continue scrolling from theme, profile, and custom-patch editor areas.
 - Cleaned up Russian and Simplified Chinese maintenance microcopy, including reapply labels, watcher terminology, and Spicetify spelling in the localized WPF shell.
+- Hardened safe archive extraction so expanded-byte limits are enforced while streaming actual decompressed bytes, with temp-file cleanup on capped or failed entries.
 
 ## [v4.0.0-preview.8] - 2026-07-07
 

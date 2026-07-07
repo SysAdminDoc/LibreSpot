@@ -1218,6 +1218,7 @@ public sealed class PowerShellRegressionTests
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    [InlineData("src/powershell/shared/Expand-ArchiveSafely.ps1")]
     public void ExpandArchiveSafely_ExistsAndValidatesEntries(string relativePath)
     {
         var script = ReadFile(relativePath.Split('/'));
@@ -1235,11 +1236,16 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("MaxEntries", body);
         Assert.Contains("MaxExpandedBytes", body);
         Assert.Contains("escapes destination", body);
+        Assert.Contains("totalActualBytes", body);
+        Assert.Contains("actual expanded size exceeds limit", body);
+        Assert.Contains("entryStream.Read", body);
+        Assert.Contains("[System.IO.File]::Move", body);
     }
 
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    [InlineData("src/powershell/shared/Expand-ArchiveSafely.ps1")]
     public void AllArchiveExtractionUsesExpandArchiveSafely(string relativePath)
     {
         var script = ReadFile(relativePath.Split('/'));
@@ -1252,7 +1258,7 @@ public sealed class PowerShellRegressionTests
             @"function\s+Expand-ArchiveSafely\s*\{(?<body>.+?)^\}",
             RegexOptions.Singleline | RegexOptions.Multiline);
         Assert.True(fnBody.Success);
-        Assert.Contains("ExtractToFile", fnBody.Groups["body"].Value);
+        Assert.DoesNotContain("ExtractToFile", fnBody.Groups["body"].Value);
     }
 
     [Fact]

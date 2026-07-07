@@ -30,6 +30,8 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
                 throw "Archive '$Label' declared expanded size exceeds limit ($([math]::Round($MaxExpandedBytes / 1MB))MB)."
             }
         }
+        $totalActualBytes = 0L
+        $copyBuffer = New-Object byte[] 81920
         foreach ($entry in $zip.Entries) {
             $name = $entry.FullName
             if ([string]::IsNullOrWhiteSpace($name)) { continue }
@@ -42,7 +44,39 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
             if (-not [string]::IsNullOrWhiteSpace($parentDir)) {
                 [System.IO.Directory]::CreateDirectory($parentDir) | Out-Null
             }
-            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $targetPath, $true)
+            $tempTargetPath = "$targetPath.librespot-extract-$([guid]::NewGuid().ToString('N')).tmp"
+            $entryStream = $null
+            $targetStream = $null
+            $entrySucceeded = $false
+            try {
+                $entryStream = $entry.Open()
+                $targetStream = [System.IO.File]::Open($tempTargetPath, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+                while (($bytesRead = $entryStream.Read($copyBuffer, 0, $copyBuffer.Length)) -gt 0) {
+                    $totalActualBytes += $bytesRead
+                    if ($totalActualBytes -gt $MaxExpandedBytes) {
+                        throw "Archive '$Label' actual expanded size exceeds limit ($([math]::Round($MaxExpandedBytes / 1MB))MB)."
+                    }
+                    $targetStream.Write($copyBuffer, 0, $bytesRead)
+                }
+                $entrySucceeded = $true
+            } finally {
+                if ($targetStream) { $targetStream.Dispose() }
+                if ($entryStream) { $entryStream.Dispose() }
+                if (-not $entrySucceeded -and (Test-Path -LiteralPath $tempTargetPath -PathType Leaf)) {
+                    Remove-Item -LiteralPath $tempTargetPath -Force -ErrorAction SilentlyContinue
+                }
+            }
+            try {
+                if (Test-Path -LiteralPath $targetPath -PathType Leaf) {
+                    Remove-Item -LiteralPath $targetPath -Force
+                }
+                [System.IO.File]::Move($tempTargetPath, $targetPath)
+            } catch {
+                if (Test-Path -LiteralPath $tempTargetPath -PathType Leaf) {
+                    Remove-Item -LiteralPath $tempTargetPath -Force -ErrorAction SilentlyContinue
+                }
+                throw
+            }
         }
     } finally {
         if ($zip) { $zip.Dispose() }
