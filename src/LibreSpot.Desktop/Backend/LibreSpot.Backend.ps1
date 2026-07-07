@@ -796,9 +796,13 @@ function Move-ConfigFileToQuarantine {
             }
 
             if ($PSCmdlet.ShouldProcess($global:CONFIG_PATH, 'Quarantine corrupted config')) {
-                Write-OperationJournalEntry -Phase 'config' -Target $global:CONFIG_PATH -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.'
+                # Journal writes are best-effort here: this runs during startup
+                # config load, BEFORE Write-OperationJournalEntry is defined.
+                # A CommandNotFound must not abort the quarantine move, or the
+                # corrupt file stays put and every launch repeats the reset.
+                try { Write-OperationJournalEntry -Phase 'config' -Target $global:CONFIG_PATH -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.' } catch {}
                 Move-Item -LiteralPath $global:CONFIG_PATH -Destination $quarantinePath -ErrorAction Stop
-                Write-OperationJournalEntry -Phase 'config' -Target $global:CONFIG_PATH -SafetyDecision 'Allowed' -Result 'Quarantined' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.'
+                try { Write-OperationJournalEntry -Phase 'config' -Target $global:CONFIG_PATH -SafetyDecision 'Allowed' -Result 'Quarantined' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.' } catch {}
                 $quarantineName = Split-Path -Path $quarantinePath -Leaf
                 $script:ConfigLoadWarning = "LibreSpot reset the saved settings because the config file could not be read safely.$reasonSuffix The previous file was moved to $quarantineName."
             }
@@ -2395,6 +2399,18 @@ function Remove-PathSafely {
     Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
     if ($PSCmdlet.ShouldProcess($Path, 'Remove file or directory')) {
         try {
+            # Junctions/symlinks planted inside removal roots must be deleted
+            # as links, never traversed: PS 5.1 Remove-Item -Recurse follows
+            # directory junctions into their targets, and icacls /T would
+            # reset ACLs on the target tree — an elevated delete-anything
+            # primitive for anyone who can write a link into these folders.
+            $item = Get-Item -LiteralPath $Path -Force -EA Stop
+            if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+                $item.Delete()
+                Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
+                Write-Log "  Removed link (target untouched): $displayLabel"
+                return 1
+            }
             $null = & icacls.exe "$Path" /reset /T /C /Q 2>$null
             Remove-Item -LiteralPath $Path -Recurse -Force -EA Stop
             Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData

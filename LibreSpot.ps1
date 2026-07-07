@@ -863,7 +863,13 @@ function Show-BootstrapNotice {
     }
 }
 
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+# The -watch scheduled task runs unattended at LeastPrivilege every 30 minutes.
+# It must NEVER pass through the self-elevation gate: forwarding it via RunAs
+# pops a UAC prompt on every tick (or a modal bootstrap dialog on failure)
+# from a supposedly headless task. SpotX patches the per-user Spotify install,
+# so the watcher does not need elevation — the WPF backend watcher lane runs
+# non-elevated the same way.
+if (-not $script:CliWatch -and -not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator)) {
     $launchTarget = Get-SelfElevationLaunchTarget
     if ($launchTarget) {
@@ -871,7 +877,6 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
             $workingDir = Split-Path -Path $launchTarget.Path -Parent
             $elevationArgs = @()
             if ($script:CliClean) { $elevationArgs += '-clean' }
-            if ($script:CliWatch) { $elevationArgs += '-watch' }
             if ($script:CliInstallWatcher) { $elevationArgs += '-installwatcher' }
             if ($script:CliUninstallWatcher) { $elevationArgs += '-uninstallwatcher' }
             if ($launchTarget.Kind -eq 'Exe') {
@@ -1327,9 +1332,13 @@ function Move-ConfigFileToQuarantine {
             }
 
             if ($PSCmdlet.ShouldProcess($global:CONFIG_PATH, 'Quarantine corrupted config')) {
-                Write-OperationJournalEntry -Phase 'config' -Target $global:CONFIG_PATH -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.'
+                # Journal writes are best-effort here: this runs during startup
+                # config load, BEFORE Write-OperationJournalEntry is defined.
+                # A CommandNotFound must not abort the quarantine move, or the
+                # corrupt file stays put and every launch repeats the reset.
+                try { Write-OperationJournalEntry -Phase 'config' -Target $global:CONFIG_PATH -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.' } catch {}
                 Move-Item -LiteralPath $global:CONFIG_PATH -Destination $quarantinePath -ErrorAction Stop
-                Write-OperationJournalEntry -Phase 'config' -Target $global:CONFIG_PATH -SafetyDecision 'Allowed' -Result 'Quarantined' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.'
+                try { Write-OperationJournalEntry -Phase 'config' -Target $global:CONFIG_PATH -SafetyDecision 'Allowed' -Result 'Quarantined' -WouldChange $true -Reversible $true -RollbackHint 'Restore the quarantined file manually.' } catch {}
                 $quarantineName = Split-Path -Path $quarantinePath -Leaf
                 $script:ConfigLoadWarning = "LibreSpot reset the saved settings because the config file could not be read safely.$reasonSuffix The previous file was moved to $quarantineName."
             }
@@ -3901,7 +3910,20 @@ if ($script:CliClean) {
 # 8. CONFIG BUILDER
 # =============================================================================
 function Get-InstallConfig { param([bool]$EasyMode = $false)
-    if ($EasyMode) { $c = @{ Mode='Easy' }; foreach ($k in $global:EasyDefaults.Keys) { $c[$k]=$global:EasyDefaults[$k] }; return $c }
+    # Start from the saved config so config-only settings with no UI control
+    # (RiskAcknowledged, UiCulture, SpotX_Language, SpotX_CustomPatchesEnabled/
+    # Json) survive UI-driven saves. Every UI-editable key is overwritten
+    # below, so this changes nothing about what the controls produce.
+    $saved = @{}
+    try {
+        $loaded = Load-LibreSpotConfig
+        if ($loaded) { foreach ($k in $loaded.Keys) { $saved[$k] = $loaded[$k] } }
+    } catch {}
+    if ($EasyMode) {
+        $c = $saved; $c['Mode'] = 'Easy'
+        foreach ($k in $global:EasyDefaults.Keys) { $c[$k]=$global:EasyDefaults[$k] }
+        return $c
+    }
     $lTheme = if($ui['CmbLyricsTheme'].SelectedItem){$ui['CmbLyricsTheme'].SelectedItem.Content}else{'spotify'}
     $sTheme = if($ui['CmbTheme'].SelectedItem){$ui['CmbTheme'].SelectedItem.Content}else{'(None - Marketplace Only)'}
     $sScheme = if($ui['CmbScheme'].SelectedItem){$ui['CmbScheme'].SelectedItem.Content}else{'Default'}
@@ -3941,7 +3963,8 @@ function Get-InstallConfig { param([bool]$EasyMode = $false)
         # Easy and Custom saves carry the preference forward.
         AutoReapply_Enabled = if ($ui.ContainsKey('ChkAutoReapply')) { [bool]$ui['ChkAutoReapply'].IsChecked } else { $false }
     }
-    return $c
+    foreach ($k in $c.Keys) { $saved[$k] = $c[$k] }
+    return $saved
 }
 
 Capture-CustomConfigBaseline
@@ -4040,18 +4063,12 @@ function Build-SpotXParams { param($Config)
     return ($p -join " ")
 }
 
-# -Watch CLI exit point. Placed here (not at the top of the file) because
-# Invoke-AutoReapplyWatcher depends on Build-SpotXParams / Load-LibreSpotConfig /
-# Normalize-LibreSpotConfig — all of which must already be defined when the call
-# fires. PowerShell resolves function names lazily, but they still have to exist
-# by the time the call is reached. No WPF has been instantiated at this point
-# (XamlReader::Load runs much further down), so the watcher stays truly headless.
-if ($script:CliWatch) {
-    $code = 0
-    try { $code = Invoke-AutoReapplyWatcher }
-    catch { Write-WatcherLog "Fatal: $($_.Exception.Message)" -Level 'ERROR'; $code = 1 }
-    exit $code
-}
+# NOTE: the -Watch CLI exit point lives just before section 19 (LAUNCH). The
+# reapply pipeline (Invoke-HeadlessReapply) calls Get-FromAssetCache,
+# Save-ToAssetCache, Invoke-SpicetifyCli, and Test-SpicetifyCliInstalled —
+# functions defined in later sections — so the exit must run after ALL
+# function definitions. An earlier placement here made every actual reapply
+# tick die with CommandNotFound while "nothing changed" ticks kept passing.
 
 function Get-SpicetifyIntegrationContext {
     $version = if ($global:SPICETIFY_INTEGRATION_VERSION) { [string]$global:SPICETIFY_INTEGRATION_VERSION } else { 'v2' }
@@ -5344,7 +5361,11 @@ if ($ui.ContainsKey('ChkAutoReapply')) {
 }
 
 $ui['BtnSafeMode'].Add_Click({
-    if (-not $si) { return }
+    # NOTE: don't guard on $si here — that's a local of Update-MaintenanceStatus
+    # and is always $null in this scope (it made the button permanently dead).
+    # The button's IsEnabled already tracks Spicetify presence; re-check the
+    # real condition defensively.
+    if (-not (Test-SpicetifyCliInstalled)) { return }
     try {
         Switch-ToInstallPage -Title 'Entering safe mode' -Context 'Disabling all themes and extensions — use Reapply to restore your setup.' -PrepareLabel 'Prepare' -RunLabel 'Disable' -VerifyLabel 'Verify' -CompleteLabel 'Complete'
         Start-MaintenanceJob -Action 'SafeMode'
@@ -6892,6 +6913,18 @@ function Remove-PathSafely {
     Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
     if ($PSCmdlet.ShouldProcess($Path, 'Remove file or directory')) {
         try {
+            # Junctions/symlinks planted inside removal roots must be deleted
+            # as links, never traversed: PS 5.1 Remove-Item -Recurse follows
+            # directory junctions into their targets, and icacls /T would
+            # reset ACLs on the target tree — an elevated delete-anything
+            # primitive for anyone who can write a link into these folders.
+            $item = Get-Item -LiteralPath $Path -Force -EA Stop
+            if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+                $item.Delete()
+                Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
+                Write-Log "  Removed link (target untouched): $displayLabel"
+                return 1
+            }
             $null = & icacls.exe "$Path" /reset /T /C /Q 2>$null
             Remove-Item -LiteralPath $Path -Recurse -Force -EA Stop
             Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
@@ -7768,7 +7801,10 @@ public class Win32W {
         }
         if ($procs) {
             for ($i=0;$i -lt 30;$i++) { if (-not $sh.IsRunning -or $sh.AllowSpotify) { break }; Start-Sleep -Milliseconds 100 }
-            if (-not $sh.AllowSpotify) { Stop-Process -Name Spotify -Force -EA SilentlyContinue }
+            # Re-check IsRunning too: when the job finishes while we are in the
+            # grace loop (e.g. Repair just opened the Marketplace), the freshly
+            # launched Spotify must not be killed on the way out.
+            if ($sh.IsRunning -and -not $sh.AllowSpotify) { Stop-Process -Name Spotify -Force -EA SilentlyContinue }
         }
         Start-Sleep -Milliseconds 500
     }
@@ -7818,6 +7854,11 @@ $installBlock = { param($sh,$cfg)
         Write-Log "Temp files cleaned up."
         $finalStep = 'Ready when you are'
         if ($cfg.LaunchAfter -and (Test-Path $global:SPOTIFY_EXE_PATH)) {
+            # Stop the killer/hider watcher BEFORE the handoff: with IsRunning
+            # still true it force-closed the Spotify we just launched during
+            # the 20-second stability window (and with AllowSpotify it would
+            # hide the window instead). All install steps are done here.
+            $sh.IsRunning = $false
             Write-Log "Launching Spotify..." -Level 'SUCCESS'
             Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
             $finalStep = 'Spotify is opening'
@@ -7899,6 +7940,13 @@ $maintBlock = { param($sh,$action)
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Repairing Marketplace custom app"; $sh.ProgressBar.Value=35 })
             Repair-Marketplace -Config $saved
             Write-Log "--- Marketplace Repair Complete ---" -Level 'SUCCESS'
+        } elseif ($action -eq 'SafeMode') {
+            Write-Log "--- Safe Mode ---" -Level 'HEADER'
+            $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Disabling all customizations"; $sh.ProgressBar.Value=30 })
+            if (Restore-SpotifyIfSpicetifyPresent -FailureMessage 'Spicetify restore failed - try Reapply or Restore Vanilla.' -MissingMessage 'Spicetify CLI was not found, so there are no customizations to disable.') {
+                Write-Log "Safe mode active - all customizations disabled. Use Reapply to restore your setup." -Level 'SUCCESS'
+            }
+            Write-Log "--- Safe Mode Complete ---" -Level 'SUCCESS'
         } elseif ($action -eq 'RestoreVanilla') {
             Write-Log "--- Restore Vanilla Spotify ---" -Level 'HEADER'
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Restoring vanilla files"; $sh.ProgressBar.Value=30 })
@@ -8072,11 +8120,17 @@ function Start-MaintenanceJob { param([string]$Action)
         $psMain.Runspace.SessionStateProxy.SetVariable('syncHash', $syncHash)
         $null = $psMain.AddScript($maintBlock.ToString()).AddArgument($syncHash).AddArgument($Action)
         $null = $psMain.BeginInvoke()
-        $rsW = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace()
-        $rsW.ApartmentState = 'STA'; $rsW.Open(); $script:openRunspaces.Add($rsW)
-        $psW = [PowerShell]::Create(); $psW.Runspace = $rsW; $script:openRunspaces.Add($psW)
-        $psW.Runspace.SessionStateProxy.SetVariable('syncHash', $syncHash)
-        $null = $psW.AddScript($watcherBlock.ToString()).AddArgument($syncHash); $null = $psW.BeginInvoke()
+        # The Spotify killer/hider watcher exists so Spotify can't relaunch
+        # itself mid-mutation. Read-only checks must not close the user's
+        # running Spotify, and Repair/Open Marketplace deliberately launch
+        # Spotify at the end — the watcher would kill the window it opened.
+        if ($Action -notin @('CheckUpdates', 'RepairMarketplace')) {
+            $rsW = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace()
+            $rsW.ApartmentState = 'STA'; $rsW.Open(); $script:openRunspaces.Add($rsW)
+            $psW = [PowerShell]::Create(); $psW.Runspace = $rsW; $script:openRunspaces.Add($psW)
+            $psW.Runspace.SessionStateProxy.SetVariable('syncHash', $syncHash)
+            $null = $psW.AddScript($watcherBlock.ToString()).AddArgument($syncHash); $null = $psW.BeginInvoke()
+        }
     } catch {
         if ($script:activeSyncHash) { $script:activeSyncHash.IsRunning = $false }
         Clear-CompletedRunspaceResources | Out-Null
@@ -8117,6 +8171,18 @@ if ($script:CliClean) {
             Reset-UiAfterLaunchFailure -Title 'Could not start clean setup' -Message "LibreSpot couldn't start the clean setup run.`n`n$($_.Exception.Message)"
         }
     })
+}
+
+# -Watch CLI exit point. Every function the watcher needs — including the
+# reapply pipeline's Get-FromAssetCache / Save-ToAssetCache /
+# Invoke-SpicetifyCli / Test-SpicetifyCliInstalled — is defined above this
+# line, and the window has not been shown. The watcher runs non-elevated
+# (the self-elevation gate skips -watch) and exits before ShowDialog.
+if ($script:CliWatch) {
+    $code = 0
+    try { $code = Invoke-AutoReapplyWatcher }
+    catch { Write-WatcherLog "Fatal: $($_.Exception.Message)" -Level 'ERROR'; $code = 1 }
+    exit $code
 }
 
 # =============================================================================

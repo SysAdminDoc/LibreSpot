@@ -353,13 +353,16 @@ public sealed class PowerShellRegressionTests
         var body = blockMatch.Groups["body"].Value;
         Assert.Contains("$script:CliClean", body);
         Assert.Contains("'-clean'", body);
-        Assert.Contains("$script:CliWatch", body);
-        Assert.Contains("'-watch'", body);
         Assert.Contains("$script:CliInstallWatcher", body);
         Assert.Contains("'-installwatcher'", body);
         Assert.Contains("$script:CliUninstallWatcher", body);
         Assert.Contains("'-uninstallwatcher'", body);
         Assert.Contains("ArgumentList", body);
+
+        // -watch must NOT be forwarded through elevation: the watcher task
+        // runs LeastPrivilege and bypasses the gate entirely (a RunAs forward
+        // would pop UAC on every unattended tick).
+        Assert.DoesNotContain("'-watch'", body);
     }
 
     [Fact]
@@ -411,6 +414,30 @@ public sealed class PowerShellRegressionTests
         Assert.True(
             cliWatchIndex > buildDefIndex,
             "-Watch exit branch must be placed AFTER Build-SpotXParams is defined.");
+
+        // The reapply pipeline also needs the asset-cache and Spicetify CLI
+        // helpers, which are defined in much later sections. The exit block
+        // must come after ALL of them or a real reapply tick dies with
+        // CommandNotFound while no-op ticks keep passing.
+        foreach (var dependency in new[]
+                 {
+                     "function Get-FromAssetCache",
+                     "function Save-ToAssetCache",
+                     "function Invoke-SpicetifyCli",
+                     "function Test-SpicetifyCliInstalled"
+                 })
+        {
+            var dependencyIndex = script.IndexOf(dependency, StringComparison.Ordinal);
+            Assert.True(dependencyIndex > 0, $"{dependency} definition not found.");
+            Assert.True(
+                cliWatchIndex > dependencyIndex,
+                $"-Watch exit branch must be placed AFTER {dependency}.");
+        }
+
+        // And the watcher must never pass through the self-elevation gate —
+        // an unattended LeastPrivilege task forwarding -watch via RunAs pops
+        // a UAC prompt every 30 minutes.
+        Assert.Contains("if (-not $script:CliWatch -and -not ([Security.Principal.WindowsPrincipal]", script);
     }
 
     [Fact]
