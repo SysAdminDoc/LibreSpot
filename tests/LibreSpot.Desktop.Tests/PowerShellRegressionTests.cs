@@ -424,6 +424,38 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("QueueUserWorkItem", fnBody.Groups["body"].Value);
     }
 
+    [Fact]
+    public void UpstreamStalenessRefresh_DoesNotRunCmdletsInsideThreadPoolDelegate()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+
+        Assert.Contains("Start-UpstreamStalenessNoticeRefresh", script);
+        Assert.Contains("Invoke-UpstreamStalenessHttp", script);
+        Assert.Contains("Read-UpstreamStalenessCache", script);
+        Assert.Contains("Save-UpstreamStalenessCache", script);
+
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Start-UpstreamStalenessNoticeRefresh\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fnBody.Success, "Start-UpstreamStalenessNoticeRefresh function block not found.");
+        var body = fnBody.Groups["body"].Value;
+
+        Assert.Contains("QueueUserWorkItem", body);
+        Assert.Contains("Invoke-UpstreamStalenessHttp", body);
+        Assert.DoesNotContain("Get-UpstreamStalenessNotice", body);
+        Assert.Contains("Dispatcher.BeginInvoke", body);
+
+        var httpBody = Regex.Match(
+            script,
+            @"function\s+Invoke-UpstreamStalenessHttp\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(httpBody.Success, "Invoke-UpstreamStalenessHttp function block not found.");
+        Assert.DoesNotContain("Invoke-WebRequest", httpBody.Groups["body"].Value);
+        Assert.DoesNotContain("Invoke-GitHubApiSafe", httpBody.Groups["body"].Value);
+        Assert.DoesNotContain("ConvertFrom-Json", httpBody.Groups["body"].Value);
+    }
+
     // ---------------------------------------------------------------------
     // Auto-reapply watcher — Track 4.2 (v3.6.0).
     // ---------------------------------------------------------------------

@@ -4010,37 +4010,17 @@ Capture-CustomConfigBaseline
 Update-LocalProfilePicker
 Update-ModePresentation
 
-# Post-launch housekeeping. Self-update runs truly async (ThreadPool) so a
-# slow GitHub API response never freezes the UI; foreign-patch detection is
-# filesystem-only and stays on the dispatcher at idle priority so the warning
-# dialog doesn't appear before the main window has finished painting.
+# Post-launch housekeeping. Network probes run async without executing cmdlet
+# pipelines inside raw ThreadPool delegates; UI and cache writes marshal back
+# to the dispatcher. Foreign-patch detection is filesystem-only and stays on
+# the dispatcher at idle priority so the warning dialog doesn't appear before
+# the main window has finished painting.
 try {
     Start-SelfUpdateBannerRefresh
+    Start-UpstreamStalenessNoticeRefresh
     $null = $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::ApplicationIdle, [System.Action]{
         try { Test-ForeignPatchWarningIfNeeded } catch {}
     })
-    $null = [System.Threading.ThreadPool]::QueueUserWorkItem([System.Threading.WaitCallback]{
-        param($state)
-        try {
-            $notices = @(Get-UpstreamStalenessNotice)
-            if ($notices.Count -gt 0) {
-                $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::ApplicationIdle, [Action]{
-                    try {
-                        if ($ui.ContainsKey('CompatibilityWarning')) {
-                            $existing = $ui['CompatibilityWarning'].Text
-                            $staleText = ($notices -join ' | ')
-                            if ([string]::IsNullOrWhiteSpace($existing)) {
-                                $ui['CompatibilityWarning'].Text = "ℹ Newer upstream: $staleText"
-                            } else {
-                                $ui['CompatibilityWarning'].Text = "$existing | $staleText"
-                            }
-                            $ui['CompatibilityWarning'].Visibility = 'Visible'
-                        }
-                    } catch {}
-                })
-            }
-        } catch {}
-    }, $null)
 } catch {}
 
 # SECURITY: see SECURITY.md "External process execution contract". $Config MUST
@@ -4816,6 +4796,159 @@ function Invoke-SelfUpdateHttp {
     } catch {
         return $null
     }
+}
+
+function Get-UpstreamStalenessCachePath {
+    Join-Path $global:CONFIG_DIR 'upstream-freshness-cache.json'
+}
+
+function Read-UpstreamStalenessCache {
+    $cachePath = Get-UpstreamStalenessCachePath
+    $cacheMaxAge = [TimeSpan]::FromHours(24)
+    if (-not (Test-Path -LiteralPath $cachePath)) { return $null }
+
+    try {
+        $cache = Get-Content -LiteralPath $cachePath -Raw | ConvertFrom-Json
+        $cacheAge = (Get-Date) - [datetime]$cache.checkedAt
+        if ($cacheAge -ge $cacheMaxAge) { return $null }
+
+        $notices = @()
+        if ($cache.notices -and $cache.notices.Count -gt 0) {
+            $notices = @($cache.notices | ForEach-Object { [string]$_ })
+        }
+        return @{ Notices = [string[]]$notices }
+    } catch {
+        return $null
+    }
+}
+
+function Save-UpstreamStalenessCache {
+    param([string[]]$Notices)
+
+    try {
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
+            New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null
+        }
+        $cacheData = @{ checkedAt = (Get-Date).ToString('o'); notices = @($Notices) }
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText((Get-UpstreamStalenessCachePath), ($cacheData | ConvertTo-Json -Compress), $utf8NoBom)
+    } catch {}
+}
+
+function Invoke-UpstreamStalenessJsonGet {
+    param([string]$Uri)
+
+    $req = [System.Net.HttpWebRequest]::Create($Uri)
+    $req.Method = 'GET'
+    $req.Timeout = 5000
+    $req.ReadWriteTimeout = 5000
+    $req.UserAgent = "LibreSpot/$($global:VERSION)"
+    $req.Accept = 'application/vnd.github+json'
+    $resp = $req.GetResponse()
+    try {
+        $stream = $resp.GetResponseStream()
+        $reader = [System.IO.StreamReader]::new($stream)
+        try { return $reader.ReadToEnd() } finally { $reader.Dispose() }
+    } finally {
+        $resp.Dispose()
+    }
+}
+
+function Test-UpstreamThreadPoolVersionNewer {
+    param([string]$Latest, [string]$Current)
+
+    try {
+        $latestVer  = [Version](($Latest  -replace '-preview.*','') -replace '-rc.*','')
+        $currentVer = [Version](($Current -replace '-preview.*','') -replace '-rc.*','')
+        if     ($latestVer -gt $currentVer) { return $true }
+        elseif ($latestVer -lt $currentVer) { return $false }
+
+        $latestIsStable  = ($Latest  -eq (($Latest  -replace '-preview.*','') -replace '-rc.*',''))
+        $currentIsStable = ($Current -eq (($Current -replace '-preview.*','') -replace '-rc.*',''))
+        if     ($latestIsStable -and -not $currentIsStable) { return $true }
+        elseif (-not $latestIsStable -and $currentIsStable) { return $false }
+        return ($Latest -ne $Current)
+    } catch {
+        return ($Latest -ne $Current)
+    }
+}
+
+function Invoke-UpstreamStalenessHttp {
+    # Pure-.NET HTTP + regex parsing so ThreadPool callers never run cmdlet-heavy
+    # web or JSON pipelines on a borrowed CLR thread.
+    try {
+        $staleItems = [System.Collections.Generic.List[string]]::new()
+
+        try {
+            $json = Invoke-UpstreamStalenessJsonGet -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest'
+            $tagMatch = [regex]::Match($json, '"tag_name"\s*:\s*"([^"]+)"')
+            if ($tagMatch.Success) {
+                $latest = $tagMatch.Groups[1].Value -replace '^v',''
+                $pinned = $global:PinnedReleases.SpicetifyCLI.Version
+                if (Test-UpstreamThreadPoolVersionNewer -Latest $latest -Current $pinned) {
+                    $staleItems.Add("Spicetify CLI v$latest is available (LibreSpot pins v$pinned)")
+                }
+            }
+        } catch {}
+
+        try {
+            $json = Invoke-UpstreamStalenessJsonGet -Uri 'https://api.github.com/repos/SpotX-Official/SpotX/commits/main'
+            $shaMatch = [regex]::Match($json, '"sha"\s*:\s*"([0-9a-fA-F]{40})"')
+            if ($shaMatch.Success) {
+                $latestSha = $shaMatch.Groups[1].Value
+                if ($latestSha -ne $global:PinnedReleases.SpotX.Commit) {
+                    $short = $latestSha.Substring(0,10)
+                    $staleItems.Add("SpotX has newer commits (latest: $short)")
+                }
+            }
+        } catch {}
+
+        return @{ Notices = [string[]]$staleItems.ToArray() }
+    } catch {
+        return $null
+    }
+}
+
+function Add-UpstreamStalenessNoticesToWarning {
+    param([string[]]$Notices)
+
+    if (-not $Notices -or $Notices.Count -eq 0) { return }
+    if (-not $ui.ContainsKey('CompatibilityWarning')) { return }
+
+    $existing = $ui['CompatibilityWarning'].Text
+    $staleText = ($Notices -join ' | ')
+    if ([string]::IsNullOrWhiteSpace($existing)) {
+        $ui['CompatibilityWarning'].Text = "ℹ Newer upstream: $staleText"
+    } else {
+        $ui['CompatibilityWarning'].Text = "$existing | $staleText"
+    }
+    $ui['CompatibilityWarning'].Visibility = 'Visible'
+}
+
+function Start-UpstreamStalenessNoticeRefresh {
+    if (-not $ui.ContainsKey('CompatibilityWarning')) { return }
+
+    $cached = Read-UpstreamStalenessCache
+    if ($cached) {
+        Add-UpstreamStalenessNoticesToWarning -Notices ([string[]]$cached.Notices)
+        return
+    }
+
+    try {
+        $null = [System.Threading.ThreadPool]::QueueUserWorkItem([System.Threading.WaitCallback]{
+            param($state)
+            $result = Invoke-UpstreamStalenessHttp
+            try {
+                $window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::ApplicationIdle, [Action]{
+                    if ($window.Dispatcher.HasShutdownStarted) { return }
+                    if ($result) {
+                        Save-UpstreamStalenessCache -Notices ([string[]]$result.Notices)
+                        Add-UpstreamStalenessNoticesToWarning -Notices ([string[]]$result.Notices)
+                    }
+                }) | Out-Null
+            } catch {}
+        }, $null) | Out-Null
+    } catch {}
 }
 
 function Start-SelfUpdateBannerRefresh {
@@ -6924,52 +7057,15 @@ function Check-ForUpdates {
 }
 
 function Get-UpstreamStalenessNotice {
-    $cachePath = Join-Path $global:CONFIG_DIR 'upstream-freshness-cache.json'
-    $cacheMaxAge = [TimeSpan]::FromHours(24)
-    $staleItems = @()
+    $cached = Read-UpstreamStalenessCache
+    if ($cached) { return [string[]]$cached.Notices }
 
-    if (Test-Path -LiteralPath $cachePath) {
-        try {
-            $cache = Get-Content -LiteralPath $cachePath -Raw | ConvertFrom-Json
-            $cacheAge = (Get-Date) - [datetime]$cache.checkedAt
-            if ($cacheAge -lt $cacheMaxAge) {
-                if ($cache.notices -and $cache.notices.Count -gt 0) {
-                    return [string[]]$cache.notices
-                }
-                return @()
-            }
-        } catch {}
-    }
+    $result = Invoke-UpstreamStalenessHttp
+    if (-not $result) { return @() }
 
-    $headers = @{'User-Agent'="LibreSpot/$global:VERSION"}
-    try {
-        $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest' -Headers $headers -Label 'Spicetify CLI freshness'
-        $latest = $rel.tag_name -replace '^v',''
-        $pinned = $global:PinnedReleases.SpicetifyCLI.Version
-        if (Compare-LibreSpotVersions -Latest $latest -Current $pinned) {
-            $staleItems += "Spicetify CLI v$latest is available (LibreSpot pins v$pinned)"
-        }
-    } catch {}
-
-    try {
-        $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/SpotX-Official/SpotX/commits/main' -Headers $headers -Label 'SpotX freshness'
-        $latestSha = $rel.sha
-        if ($latestSha -ne $global:PinnedReleases.SpotX.Commit) {
-            $short = $latestSha.Substring(0,10)
-            $staleItems += "SpotX has newer commits (latest: $short)"
-        }
-    } catch {}
-
-    try {
-        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
-            New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null
-        }
-        $cacheData = @{ checkedAt = (Get-Date).ToString('o'); notices = $staleItems }
-        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-        [System.IO.File]::WriteAllText($cachePath, ($cacheData | ConvertTo-Json -Compress), $utf8NoBom)
-    } catch {}
-
-    return $staleItems
+    $notices = [string[]]$result.Notices
+    Save-UpstreamStalenessCache -Notices $notices
+    return $notices
 }
 
 # =============================================================================
