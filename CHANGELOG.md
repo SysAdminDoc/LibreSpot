@@ -10,6 +10,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Improved WPF cleanup progress during native Spotify uninstall: the backend now logs that it is continuing after the Microsoft Store check, emits heartbeat/status updates while the native uninstaller is still running, and no longer reports a timed-out uninstaller as completed.
 - Refreshed the pinned upstream compatibility set to SpotX commit `550bc72c` for Spotify `1.2.93`, Spicetify CLI `v2.44.0`, and Marketplace `v1.0.9`, including SHA256 pins for the current Windows assets.
 - Added a WPF backend host watchdog that warns when a run stops emitting output and stops silent stalled backend processes with a categorized error instead of leaving the activity panel pending indefinitely.
+- Added one-click failure-bundle export from the WPF activity panel after failed or canceled runs, including the current run log, operation journal, health snapshot, and backend result metadata in the redacted zip.
 
 ## [v4.0.0-preview.8] - 2026-07-07
 

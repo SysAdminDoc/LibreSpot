@@ -4287,6 +4287,18 @@
                         AutomationProperties.Name="{x:Static props:Strings.ButtonCopyLogName}"
                         AutomationProperties.HelpText="{x:Static props:Strings.ButtonCopyLogHint}"
                         Command="{Binding CopyLogCommand}" />
+                <Button Content="{x:Static props:Strings.ButtonExportFailureBundle}"
+                        x:Name="ActivityExportFailureBundleButton"
+                        MinWidth="132"
+                        Height="42"
+                        Padding="18,0"
+                        Margin="0,0,10,0"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Visibility="{Binding CanExportFailureBundle, Converter={StaticResource BoolToVisibilityConverter}}"
+                        AutomationProperties.AutomationId="ActivityExportFailureBundleButton"
+                        AutomationProperties.Name="{x:Static props:Strings.ButtonExportFailureBundleName}"
+                        AutomationProperties.HelpText="{x:Static props:Strings.ButtonExportFailureBundleHint}"
+                        Command="{Binding ExportFailureBundleCommand}" />
                 <Button Content="{x:Static props:Strings.ButtonOpenFolder}"
                         x:Name="ActivityOpenLibreSpotFolderButton"
                         MinWidth="132"

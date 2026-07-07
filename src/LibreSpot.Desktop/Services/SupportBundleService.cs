@@ -12,7 +12,21 @@ namespace LibreSpot.Desktop.Services;
 public sealed record SupportBundleOptions(
     bool IncludeOperationJournal = true,
     bool IncludeLogs = true,
-    bool IncludeCrashReports = true);
+    bool IncludeCrashReports = true,
+    SupportBundleRunContext? CurrentRun = null);
+
+public sealed record SupportBundleRunContext(
+    string Title,
+    string Status,
+    string Step,
+    string Outcome,
+    string? BackendAction,
+    string? BackendErrorCode,
+    string? BackendErrorMessage,
+    DateTimeOffset? StartedAt,
+    DateTimeOffset? CompletedAt,
+    DateTimeOffset CapturedAt,
+    IReadOnlyList<string> LogLines);
 
 public sealed record SupportBundlePreviewEntry(
     string Id,
@@ -162,6 +176,14 @@ public sealed class SupportBundleService
                     entryCount++;
                 }
 
+                if (options.CurrentRun is not null)
+                {
+                    AddTextEntry(archive, "current-run/activity-log.txt", BuildCurrentRunLog(options.CurrentRun));
+                    entryCount++;
+                    AddJsonEntry(archive, "current-run/backend-result.json", BuildCurrentRunMetadata(options.CurrentRun));
+                    entryCount++;
+                }
+
                 if (options.IncludeLogs)
                 {
                     foreach (var file in LogFiles())
@@ -215,16 +237,37 @@ public sealed class SupportBundleService
         return Path.Combine(_configDirectory, $"LibreSpot-support-{stamp}.zip");
     }
 
+    public string CreateDefaultFailureBundlePath()
+    {
+        var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
+        return Path.Combine(_configDirectory, $"LibreSpot-failure-{stamp}.zip");
+    }
+
     private object BuildManifest(SupportBundlePreview preview, SupportBundleOptions options, EnvironmentSnapshot snapshot) =>
         new
         {
             schemaVersion = 1,
             generatedAt = DateTimeOffset.Now,
             networkUpload = "none",
-            options,
+            options = new
+            {
+                options.IncludeOperationJournal,
+                options.IncludeLogs,
+                options.IncludeCrashReports,
+                includeCurrentRun = options.CurrentRun is not null
+            },
             selectedFileCount = preview.SelectedFileCount,
             estimatedBytes = preview.EstimatedBytes,
             healthStatus = snapshot.HealthReport.StatusTitle,
+            currentRun = options.CurrentRun is null
+                ? null
+                : new
+                {
+                    outcome = options.CurrentRun.Outcome,
+                    backendAction = options.CurrentRun.BackendAction,
+                    backendErrorCode = options.CurrentRun.BackendErrorCode,
+                    logLineCount = options.CurrentRun.LogLines.Count
+                },
             entries = preview.Entries.Select(entry => new
             {
                 entry.Id,
@@ -433,6 +476,48 @@ public sealed class SupportBundleService
             }
         };
     }
+
+    private string BuildCurrentRunLog(SupportBundleRunContext currentRun)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("LibreSpot current run activity log");
+        builder.AppendLine($"Captured: {currentRun.CapturedAt:o}");
+        builder.AppendLine($"Outcome: {RedactText(currentRun.Outcome)}");
+        builder.AppendLine($"Title: {RedactText(currentRun.Title)}");
+        builder.AppendLine($"Status: {RedactText(currentRun.Status)}");
+        builder.AppendLine($"Step: {RedactText(currentRun.Step)}");
+        builder.AppendLine();
+
+        if (currentRun.LogLines.Count == 0)
+        {
+            builder.AppendLine("No in-memory activity log lines were available.");
+            return builder.ToString();
+        }
+
+        foreach (var line in currentRun.LogLines.TakeLast(MaxLogLines))
+        {
+            builder.AppendLine(RedactText(line));
+        }
+
+        return builder.ToString();
+    }
+
+    private object BuildCurrentRunMetadata(SupportBundleRunContext currentRun) =>
+        new
+        {
+            schemaVersion = 1,
+            capturedAt = currentRun.CapturedAt,
+            startedAt = currentRun.StartedAt,
+            completedAt = currentRun.CompletedAt,
+            title = RedactText(currentRun.Title),
+            status = RedactText(currentRun.Status),
+            step = RedactText(currentRun.Step),
+            outcome = RedactText(currentRun.Outcome),
+            backendAction = RedactNullable(currentRun.BackendAction),
+            backendErrorCode = RedactNullable(currentRun.BackendErrorCode),
+            backendErrorMessage = RedactNullable(currentRun.BackendErrorMessage),
+            logLineCount = currentRun.LogLines.Count
+        };
 
     private string BuildOperationJournal()
     {

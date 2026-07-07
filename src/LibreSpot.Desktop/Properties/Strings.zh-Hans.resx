@@ -264,6 +264,18 @@
     <value>使用选定的诊断类别写入本地经过编辑的 LibreSpot 支持 zip。</value>
     <comment>Accessibility help text for export bundle button</comment>
   </data>
+  <data name="ButtonExportFailureBundle" xml:space="preserve">
+    <value>导出失败包</value>
+    <comment>Activity panel failure bundle button</comment>
+  </data>
+  <data name="ButtonExportFailureBundleName" xml:space="preserve">
+    <value>导出失败诊断包</value>
+    <comment>Accessibility name for failure bundle button</comment>
+  </data>
+  <data name="ButtonExportFailureBundleHint" xml:space="preserve">
+    <value>写入本地已脱敏 ZIP，包含本次失败运行的日志、健康快照、操作日志和后端结果元数据。</value>
+    <comment>Accessibility help text for failure bundle button</comment>
+  </data>
   <data name="ButtonEnableWatcher" xml:space="preserve">
     <value>启用观察者</value>
     <comment>Enable auto-reapply button</comment>

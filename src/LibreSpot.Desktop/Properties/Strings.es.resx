@@ -264,6 +264,18 @@
     <value>Escribe un archivo zip de soporte local de LibreSpot redactado utilizando las categorías de diagnóstico seleccionadas.</value>
     <comment>Accessibility help text for export bundle button</comment>
   </data>
+  <data name="ButtonExportFailureBundle" xml:space="preserve">
+    <value>Exportar fallo</value>
+    <comment>Activity panel failure bundle button</comment>
+  </data>
+  <data name="ButtonExportFailureBundleName" xml:space="preserve">
+    <value>Exportar paquete de fallo</value>
+    <comment>Accessibility name for failure bundle button</comment>
+  </data>
+  <data name="ButtonExportFailureBundleHint" xml:space="preserve">
+    <value>Escribe un ZIP local redactado con el registro de esta ejecución fallida, el estado de salud, el diario de operaciones y los metadatos del backend.</value>
+    <comment>Accessibility help text for failure bundle button</comment>
+  </data>
   <data name="ButtonEnableWatcher" xml:space="preserve">
     <value>Habilitar observador</value>
     <comment>Enable auto-reapply button</comment>

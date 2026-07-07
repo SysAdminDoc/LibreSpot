@@ -264,6 +264,18 @@
     <value>Writes a local redacted LibreSpot support zip using the selected diagnostic categories.</value>
     <comment>Accessibility help text for export bundle button</comment>
   </data>
+  <data name="ButtonExportFailureBundle" xml:space="preserve">
+    <value>Export failure</value>
+    <comment>Activity panel failure bundle button</comment>
+  </data>
+  <data name="ButtonExportFailureBundleName" xml:space="preserve">
+    <value>Export failure bundle</value>
+    <comment>Accessibility name for failure bundle button</comment>
+  </data>
+  <data name="ButtonExportFailureBundleHint" xml:space="preserve">
+    <value>Writes a local redacted zip with this failed run's log, health snapshot, operation journal, and backend result metadata.</value>
+    <comment>Accessibility help text for failure bundle button</comment>
+  </data>
   <data name="ButtonEnableWatcher" xml:space="preserve">
     <value>Enable watcher</value>
     <comment>Enable auto-reapply button</comment>

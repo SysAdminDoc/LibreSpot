@@ -471,6 +471,30 @@ namespace LibreSpot.Desktop.Properties {
             }
         }
         /// <summary>
+        ///   Activity panel failure bundle button
+        /// </summary>
+        public static string ButtonExportFailureBundle {
+            get {
+                return ResourceManager.GetString("ButtonExportFailureBundle", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Accessibility name for failure bundle button
+        /// </summary>
+        public static string ButtonExportFailureBundleName {
+            get {
+                return ResourceManager.GetString("ButtonExportFailureBundleName", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Accessibility help text for failure bundle button
+        /// </summary>
+        public static string ButtonExportFailureBundleHint {
+            get {
+                return ResourceManager.GetString("ButtonExportFailureBundleHint", resourceCulture);
+            }
+        }
+        /// <summary>
         ///   Enable auto-reapply button
         /// </summary>
         public static string ButtonEnableWatcher {

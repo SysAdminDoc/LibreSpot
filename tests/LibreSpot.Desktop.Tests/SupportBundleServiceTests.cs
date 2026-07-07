@@ -82,6 +82,49 @@ public sealed class SupportBundleServiceTests
     }
 
     [Fact]
+    public async Task ExportAsync_IncludesCurrentRunLogAndBackendMetadata()
+    {
+        using var fixture = new SupportBundleFixture();
+        fixture.WriteStackReadyState();
+        fixture.WriteOperationJournal("{\"operationId\":\"op-1\",\"result\":\"Failed\"}");
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var currentRun = new SupportBundleRunContext(
+            "Recommended setup",
+            "Needs review",
+            "Installing SpotX",
+            "Error",
+            "Install",
+            "BackendHostStalled",
+            $"Timed out while reading {profile}\\secret.txt --token super-secret",
+            DateTimeOffset.Parse("2026-07-07T15:00:00Z"),
+            DateTimeOffset.Parse("2026-07-07T15:01:00Z"),
+            DateTimeOffset.Parse("2026-07-07T15:02:00Z"),
+            new[]
+            {
+                $"[15:00:01] [ERROR] failed beside {profile}\\secret.txt",
+                "[15:00:02] [WARN] retry unavailable"
+            });
+
+        var result = await fixture.ExportAsync(new SupportBundleOptions(
+            IncludeOperationJournal: true,
+            IncludeLogs: false,
+            IncludeCrashReports: false,
+            CurrentRun: currentRun));
+        var entries = ReadZipText(result.Path);
+
+        Assert.Contains("current-run/activity-log.txt", entries.Keys);
+        Assert.Contains("current-run/backend-result.json", entries.Keys);
+        Assert.Contains("operation/latest-journal.txt", entries.Keys);
+        Assert.Contains("BackendHostStalled", entries["current-run/backend-result.json"]);
+        Assert.Contains("\"backendAction\": \"Install\"", entries["current-run/backend-result.json"]);
+        Assert.Contains("\"currentRun\"", entries["manifest.json"]);
+        Assert.Contains("retry unavailable", entries["current-run/activity-log.txt"]);
+        Assert.Contains("<USERPROFILE>", entries["current-run/activity-log.txt"]);
+        Assert.DoesNotContain(profile, string.Join("\n", entries.Values), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("super-secret", string.Join("\n", entries.Values), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task ExportAsync_OmitsInvalidUtf8DiagnosticWindows()
     {
         using var fixture = new SupportBundleFixture();

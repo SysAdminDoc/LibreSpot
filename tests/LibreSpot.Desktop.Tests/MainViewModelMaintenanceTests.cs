@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
 using LibreSpot.Desktop.ViewModels;
@@ -202,6 +203,42 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task ActivityFailureBundleCommand_ExportsCurrentRunDiagnosticsOnlyForFailedRuns() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            fixture.WriteSpotify(withSpotXMarkers: true);
+            fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+            fixture.WriteMarketplaceFiles();
+            fixture.WriteInstallLog("backend log");
+            fixture.WriteOperationJournal("{\"operationId\":\"op-1\",\"result\":\"Failed\"}");
+
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            Assert.False(viewModel.CanExportFailureBundle);
+            Assert.False(viewModel.ExportFailureBundleCommand.CanExecute(null));
+
+            viewModel.ApplyUiAutomationSmokeState("activity");
+            Assert.False(viewModel.CanExportFailureBundle);
+
+            viewModel.ApplyUiAutomationSmokeState("activity-error");
+            Assert.True(viewModel.CanExportFailureBundle);
+            Assert.True(viewModel.ExportFailureBundleCommand.CanExecute(null));
+
+            await viewModel.ExportFailureBundleCommand.ExecuteAsync(null);
+
+            var bundlePath = Assert.Single(Directory.GetFiles(fixture.ConfigDirectory, "LibreSpot-failure-*.zip"));
+            var entries = ReadZipText(bundlePath);
+
+            Assert.Contains("current-run/activity-log.txt", entries.Keys);
+            Assert.Contains("current-run/backend-result.json", entries.Keys);
+            Assert.Contains("operation/latest-journal.txt", entries.Keys);
+            Assert.Contains("SmokeFailure", entries["current-run/backend-result.json"]);
+            Assert.Contains("UI automation smoke failure", entries["current-run/activity-log.txt"]);
+            Assert.Contains("Failure bundle exported locally", viewModel.LogEntries.Last().Message);
+        });
+
+    [Fact]
     public Task ThemeGallery_SearchAndSelectionUpdateThemeConfigurationFields() =>
         RunStaAsync(async () =>
         {
@@ -368,6 +405,19 @@ public sealed class MainViewModelMaintenanceTests
         return Assert.IsType<InstallConfiguration>(method.Invoke(viewModel, new object[] { mode }));
     }
 
+    private static IReadOnlyDictionary<string, string> ReadZipText(string path)
+    {
+        using var archive = ZipFile.OpenRead(path);
+        return archive.Entries.ToDictionary(
+            entry => entry.FullName,
+            entry =>
+            {
+                using var reader = new StreamReader(entry.Open());
+                return reader.ReadToEnd();
+            },
+            StringComparer.Ordinal);
+    }
+
     private static async Task InvokePrivateTask(MainViewModel viewModel, string methodName, params object[] args)
     {
         var method = typeof(MainViewModel).GetMethod(
@@ -421,7 +471,7 @@ public sealed class MainViewModelMaintenanceTests
         }
 
         private string Root { get; }
-        private string ConfigDirectory { get; }
+        public string ConfigDirectory { get; }
         private string ConfigPath { get; }
         private string SpotifyPath { get; }
         private string SpicetifyPath { get; }
@@ -501,6 +551,9 @@ public sealed class MainViewModelMaintenanceTests
 
         public void WriteInstallLog(string content) =>
             WriteFile(Path.Combine(ConfigDirectory, "install.log"), content);
+
+        public void WriteOperationJournal(string content) =>
+            WriteFile(Path.Combine(ConfigDirectory, "operation-journal.jsonl"), content);
 
         public void WriteRollingLog(string content) =>
             WriteFile(Path.Combine(RollingLogDirectory, "librespot-20260616.log"), content);

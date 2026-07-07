@@ -45,6 +45,7 @@ public sealed class WpfUiAutomationSmokeTests
     [InlineData("maintenance", "Maintenance")]
     [InlineData("prompt", "Decision prompt")]
     [InlineData("activity", "Run activity dialog")]
+    [InlineData("activity-error", "Run activity dialog")]
     [InlineData("activity-undo", "Reversible changes")]
     public void WpfShell_UiaSmokeStatesExposeNamedActionableControls(string state, string expectedName)
     {
@@ -70,6 +71,7 @@ public sealed class WpfUiAutomationSmokeTests
     [InlineData("prompt", "PromptCancelButton", "PromptConfirmButton")]
     [InlineData("prompt-destructive", "PromptCancelButton", "PromptConfirmButton")]
     [InlineData("activity", "ActivityOpenLibreSpotFolderButton", "ActivityCloseButton")]
+    [InlineData("activity-error", "ActivityExportFailureBundleButton", "ActivityCloseButton")]
     [InlineData("activity-undo", "ActivityOpenLibreSpotFolderButton", "ActivityCloseButton")]
     public void WpfShell_UiaOverlaysKeepFocusableActionBoundaries(string state, string firstActionId, string secondActionId)
     {
@@ -92,6 +94,33 @@ public sealed class WpfUiAutomationSmokeTests
             finally
             {
                 app.Dispose();
+            }
+        });
+    }
+
+    [Fact]
+    public void WpfShell_UiaFailureBundleActionOnlyAppearsOnFailedActivity()
+    {
+        RunOnSta(() =>
+        {
+            using (var app = LaunchSmokeState("activity"))
+            {
+                var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
+                WaitForSnapshotContainingAutomationId(window, "ActivityCloseButton", TimeSpan.FromSeconds(10));
+
+                Assert.Null(FindByAutomationId(window, "ActivityExportFailureBundleButton"));
+            }
+
+            using (var app = LaunchSmokeState("activity-error"))
+            {
+                var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
+                WaitForSnapshotContainingAutomationId(window, "ActivityExportFailureBundleButton", TimeSpan.FromSeconds(10));
+
+                var export = FindByAutomationId(window, "ActivityExportFailureBundleButton")
+                    ?? throw new InvalidOperationException("Could not find the failure bundle export action.");
+
+                Assert.True(IsKeyboardFocusable(export), "Failure bundle export must be keyboard focusable.");
+                Assert.Equal(Strings.ButtonExportFailureBundleName, export.Current.Name);
             }
         });
     }

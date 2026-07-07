@@ -264,6 +264,18 @@
     <value>Записывает локальный отредактированный zip-файл поддержки LibreSpot с использованием выбранных диагностических категорий.</value>
     <comment>Accessibility help text for export bundle button</comment>
   </data>
+  <data name="ButtonExportFailureBundle" xml:space="preserve">
+    <value>Экспорт сбоя</value>
+    <comment>Activity panel failure bundle button</comment>
+  </data>
+  <data name="ButtonExportFailureBundleName" xml:space="preserve">
+    <value>Экспорт пакета сбоя</value>
+    <comment>Accessibility name for failure bundle button</comment>
+  </data>
+  <data name="ButtonExportFailureBundleHint" xml:space="preserve">
+    <value>Создает локальный отредактированный ZIP с журналом этого неудачного запуска, снимком состояния, журналом операций и метаданными backend.</value>
+    <comment>Accessibility help text for failure bundle button</comment>
+  </data>
   <data name="ButtonEnableWatcher" xml:space="preserve">
     <value>Включить наблюдатель</value>
     <comment>Enable auto-reapply button</comment>

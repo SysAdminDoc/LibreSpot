@@ -604,6 +604,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly DispatcherTimer _runElapsedTimer;
     private readonly DispatcherTimer _snapshotFreshnessTimer;
     private CancellationTokenSource? _runCts;
+    private string? _lastBackendAction;
+    private BackendRunResult? _lastBackendRunResult;
+    private DateTimeOffset? _lastRunStartedAt;
+    private DateTimeOffset? _lastRunCompletedAt;
 
     private int _selectedWorkspaceIndex;
     private bool _isApplyingSelectionDependencyRules;
@@ -712,6 +716,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             () => !IsRunning);
         RefreshSupportBundlePreviewCommand = new RelayCommand(RefreshSupportBundlePreview);
         ExportSupportBundleCommand = CreateAsyncCommand(ExportSupportBundleAsync, () => !IsRunning);
+        ExportFailureBundleCommand = CreateAsyncCommand(ExportFailureBundleAsync, () => CanExportFailureBundle);
         RefreshProfilesCommand = CreateAsyncCommand(() => RefreshLocalProfilesAsync(), () => !IsRunning);
         PreviewSelectedProfileCommand = CreateAsyncCommand(PreviewSelectedProfileAsync, CanUseSelectedProfile);
         ApplySelectedProfileCommand = CreateAsyncCommand(ApplySelectedProfileAsync, CanUseSelectedProfile);
@@ -790,6 +795,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand ClearAssetCacheCommand { get; }
     public RelayCommand RefreshSupportBundlePreviewCommand { get; }
     public IAsyncRelayCommand ExportSupportBundleCommand { get; }
+    public IAsyncRelayCommand ExportFailureBundleCommand { get; }
     public IAsyncRelayCommand RefreshProfilesCommand { get; }
     public IAsyncRelayCommand PreviewSelectedProfileCommand { get; }
     public IAsyncRelayCommand ApplySelectedProfileCommand { get; }
@@ -1875,6 +1881,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool IsActivityCanceled =>
         !IsRunning && _activityOutcome == ActivityOutcome.Canceled;
 
+    public bool CanExportFailureBundle =>
+        !IsRunning && (IsActivityError || IsActivityCanceled);
+
     public string ActivityBadgeText =>
         IsCancelRequested ? "Stopping"
         : IsRunning ? Strings.StatusInProgress
@@ -2049,6 +2058,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         EnableAutoReapplyCommand.NotifyCanExecuteChanged();
         DisableAutoReapplyCommand.NotifyCanExecuteChanged();
         ExportSupportBundleCommand.NotifyCanExecuteChanged();
+        ExportFailureBundleCommand.NotifyCanExecuteChanged();
         ClearAssetCacheCommand.NotifyCanExecuteChanged();
         RelaunchAsAdministratorCommand.NotifyCanExecuteChanged();
         ConfirmPromptCommand.NotifyCanExecuteChanged();
@@ -2069,12 +2079,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ProgressLabel));
         OnPropertyChanged(nameof(IsActivityError));
         OnPropertyChanged(nameof(IsActivityCanceled));
+        OnPropertyChanged(nameof(CanExportFailureBundle));
         OnPropertyChanged(nameof(ActivityBadgeText));
         OnPropertyChanged(nameof(ActivityDetailLabel));
         OnPropertyChanged(nameof(ActivityAssistiveText));
         OnPropertyChanged(nameof(ActivitySummaryTitle));
         OnPropertyChanged(nameof(TaskbarProgressState));
         OnPropertyChanged(nameof(TaskbarProgressFraction));
+        ExportFailureBundleCommand.NotifyCanExecuteChanged();
         RaiseShellChromeChanged();
     }
 
@@ -3254,11 +3266,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void OnSupportBundleSelectionChanged() => RefreshSupportBundlePreview();
 
-    private SupportBundleOptions BuildSupportBundleOptions() =>
+    private SupportBundleOptions BuildSupportBundleOptions(SupportBundleRunContext? currentRun = null) =>
         new(
             IncludeOperationJournal: SupportBundleItems.FirstOrDefault(item => item.Id == "operation")?.IsSelected ?? true,
             IncludeLogs: SupportBundleItems.FirstOrDefault(item => item.Id == "logs")?.IsSelected ?? true,
-            IncludeCrashReports: SupportBundleItems.FirstOrDefault(item => item.Id == "crashes")?.IsSelected ?? true);
+            IncludeCrashReports: SupportBundleItems.FirstOrDefault(item => item.Id == "crashes")?.IsSelected ?? true,
+            CurrentRun: currentRun);
 
     private void RefreshSupportBundlePreview()
     {
@@ -3325,6 +3338,55 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             SupportBundleLastExportText = $"Export failed: {ex.Message}";
             AppendLog($"Support bundle export failed: {ex.Message}", "ERROR");
         }
+    }
+
+    private async Task ExportFailureBundleAsync()
+    {
+        if (!CanExportFailureBundle)
+        {
+            return;
+        }
+
+        var currentRun = BuildCurrentRunContext();
+        var destination = _supportBundleService.CreateDefaultFailureBundlePath();
+        try
+        {
+            var result = await _supportBundleService.ExportAsync(
+                destination,
+                Snapshot,
+                BuildSupportBundleOptions(currentRun));
+            SupportBundleLastExportText = $"Last failure bundle: {result.Path} ({FormatBytes(result.BytesWritten)}, {result.EntryCount} zip entries).";
+            AppendLog($"Failure bundle exported locally: {result.Path}", "SUCCESS");
+        }
+        catch (Exception ex)
+        {
+            SupportBundleLastExportText = $"Failure bundle export failed: {ex.Message}";
+            AppendLog($"Failure bundle export failed: {ex.Message}", "ERROR");
+        }
+    }
+
+    private SupportBundleRunContext BuildCurrentRunContext()
+    {
+        var outcome = IsActivityCanceled
+            ? "Canceled"
+            : IsActivityError
+                ? "Error"
+                : ProgressValue >= 100
+                    ? "Success"
+                    : "Unknown";
+
+        return new SupportBundleRunContext(
+            ActivityTitle,
+            ActivityStatus,
+            ActivityStep,
+            outcome,
+            _lastBackendAction,
+            _lastBackendRunResult?.ErrorCode,
+            _lastBackendRunResult?.ErrorMessage,
+            _lastRunStartedAt,
+            _lastRunCompletedAt,
+            DateTimeOffset.Now,
+            LogEntries.Select(entry => entry.CopyLine).ToArray());
     }
 
     public static string FormatBytes(long bytes)
@@ -3651,6 +3713,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ClearUndoActionItems();
         ClearLog();
         _activityOutcome = ActivityOutcome.None;
+        _lastBackendAction = action;
+        _lastBackendRunResult = null;
+        _lastRunStartedAt = DateTimeOffset.Now;
+        _lastRunCompletedAt = null;
         _activityState.Begin(title, status, Strings.PreparingBackend);
         _runStopwatch.Restart();
         _runElapsedTimer.Start();
@@ -3693,6 +3759,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
 
             var result = await _backendScriptService.RunAsync(action, _configurationService.ConfigPath, HandleBackendMessage, token);
+            _lastBackendRunResult = result;
             if (result.Canceled)
             {
                 AppendLog(result.ErrorMessage ?? "Backend run was canceled.", "WARN");
@@ -3712,18 +3779,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
+            _lastBackendRunResult = new BackendRunResult(false, "Backend run was canceled.", Canceled: true, ErrorCode: "DesktopCancellation");
             AppendLog("Backend run was canceled.", "WARN");
             _activityOutcome = ActivityOutcome.Canceled;
             ActivityStatus = Strings.Canceled;
         }
         catch (Exception ex)
         {
+            _lastBackendRunResult = new BackendRunResult(false, ex.Message, ErrorCode: "DesktopException");
             AppendLog($"Backend run failed: {ex.Message}", "ERROR");
             _activityOutcome = ActivityOutcome.Error;
             ActivityStatus = Strings.RunNeedsAttention;
         }
         finally
         {
+            _lastRunCompletedAt = DateTimeOffset.Now;
             _runStopwatch.Stop();
             _runElapsedTimer.Stop();
             OnPropertyChanged(nameof(RunElapsedText));
@@ -4229,6 +4299,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                     Strings.RunComplete,
                     Strings.ProgressSpotifyReady);
                 ProgressValue = 100;
+                break;
+            case "activity-error":
+                SelectedWorkspaceIndex = 0;
+                _lastBackendAction = "Install";
+                _lastBackendRunResult = new BackendRunResult(false, "UI automation smoke failure.", ErrorCode: "SmokeFailure");
+                _lastRunStartedAt = DateTimeOffset.Now.AddSeconds(-7);
+                _lastRunCompletedAt = DateTimeOffset.Now;
+                AppendLog("UI automation smoke failure.", "ERROR");
+                ShowNotice(
+                    Strings.ActivityDialogName,
+                    Strings.RunNeedsAttention,
+                    "Backend reported an error");
+                _activityOutcome = ActivityOutcome.Error;
+                ProgressValue = 100;
+                RaiseActivityDerivedStateChanged();
                 break;
             case "activity-undo":
                 SelectedWorkspaceIndex = 0;
