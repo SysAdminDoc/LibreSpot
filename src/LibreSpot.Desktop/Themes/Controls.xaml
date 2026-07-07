@@ -401,6 +401,73 @@
     <Setter Property="Tag" Value="{DynamicResource GhostHoverTintBrush}" />
   </Style>
 
+  <Style x:Key="ShellNavButtonStyle" TargetType="Button">
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="13.5" />
+    <Setter Property="Padding" Value="14,12" />
+    <Setter Property="MinHeight" Value="48" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Tag" Value="{DynamicResource SurfaceRaisedBrush}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Grid RenderTransformOrigin="0.5,0.5">
+            <Grid.RenderTransform>
+              <ScaleTransform x:Name="RootScale" ScaleX="1" ScaleY="1" />
+            </Grid.RenderTransform>
+            <Border x:Name="FocusRing"
+                    Margin="-2"
+                    CornerRadius="10"
+                    BorderBrush="{DynamicResource AccentRingBrush}"
+                    BorderThickness="2"
+                    Opacity="0" />
+            <Border x:Name="Root"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="10" />
+            <Border x:Name="HoverTint"
+                    Background="{TemplateBinding Tag}"
+                    CornerRadius="10"
+                    Opacity="0"
+                    IsHitTestVisible="False" />
+            <Border x:Name="AccentRail"
+                    Width="4"
+                    HorizontalAlignment="Left"
+                    CornerRadius="2"
+                    Background="{DynamicResource AccentBrush}"
+                    Opacity="0" />
+            <ContentPresenter Margin="{TemplateBinding Padding}"
+                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalAlignment="Center"
+                              TextElement.Foreground="{TemplateBinding Foreground}"
+                              RecognizesAccessKey="True" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="HoverTint" Property="Opacity" Value="1" />
+              <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.45" />
+              <Setter Property="Cursor" Value="Arrow" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- Destructive: DangerFill/TextOnDanger pair keeps the label readable on the fill
        (WCAG AA in the dark palette) and flattens to a normal control surface in HC,
        where the DangerBrush border + label carry the destructive meaning. -->
@@ -418,25 +485,18 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="TabControl">
-          <Grid>
+          <Grid KeyboardNavigation.TabNavigation="Local">
             <Grid.RowDefinitions>
-              <RowDefinition Height="Auto" />
+              <RowDefinition Height="0" />
               <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <Border Grid.Row="0"
-                    Background="{DynamicResource Surface1Brush}"
-                    BorderBrush="{DynamicResource StrokeSoftBrush}"
-                    BorderThickness="1"
-                    CornerRadius="10"
-                    Padding="6"
-                    HorizontalAlignment="Left"
-                    Margin="0,0,0,22">
-              <TabPanel Background="Transparent"
-                        IsItemsHost="True" />
-            </Border>
+            <TabPanel Grid.Row="0"
+                      IsItemsHost="True"
+                      Visibility="Collapsed" />
             <ContentPresenter x:Name="PART_SelectedContentHost"
                               Grid.Row="1"
-                              ContentSource="SelectedContent" />
+                              ContentSource="SelectedContent"
+                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
           </Grid>
         </ControlTemplate>
       </Setter.Value>

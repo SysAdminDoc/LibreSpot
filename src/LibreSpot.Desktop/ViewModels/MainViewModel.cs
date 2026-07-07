@@ -490,6 +490,54 @@ public sealed class StatusDashboardItemViewModel
     public string Tone { get; }
 }
 
+public sealed class ShellSummaryItemViewModel
+{
+    public ShellSummaryItemViewModel(string label, string value, string detail, string iconKey, string tone)
+    {
+        Label = label;
+        Value = string.IsNullOrWhiteSpace(value) ? Strings.DashboardUnknownValue : value;
+        Detail = detail;
+        IconKey = iconKey;
+        Tone = string.IsNullOrWhiteSpace(tone) ? HealthSeverity.Info : tone;
+    }
+
+    public string Label { get; }
+    public string Value { get; }
+    public string Detail { get; }
+    public string IconKey { get; }
+    public string Tone { get; }
+}
+
+public sealed class ShellEnvironmentRowViewModel
+{
+    public ShellEnvironmentRowViewModel(string label, string value, string tone)
+    {
+        Label = label;
+        Value = string.IsNullOrWhiteSpace(value) ? Strings.DashboardUnknownValue : value;
+        Tone = string.IsNullOrWhiteSpace(tone) ? HealthSeverity.Info : tone;
+    }
+
+    public string Label { get; }
+    public string Value { get; }
+    public string Tone { get; }
+}
+
+public sealed class ShellDependencyRowViewModel
+{
+    public ShellDependencyRowViewModel(string component, string installed, string recommended, string tone)
+    {
+        Component = component;
+        Installed = string.IsNullOrWhiteSpace(installed) ? Strings.DashboardUnknownValue : installed;
+        Recommended = string.IsNullOrWhiteSpace(recommended) ? Strings.DashboardUnknownValue : recommended;
+        Tone = string.IsNullOrWhiteSpace(tone) ? HealthSeverity.Info : tone;
+    }
+
+    public string Component { get; }
+    public string Installed { get; }
+    public string Recommended { get; }
+    public string Tone { get; }
+}
+
 public sealed class HealthIssueActionViewModel
 {
     public HealthIssueActionViewModel(string action, string buttonText, string description, bool isDestructive, ICommand command)
@@ -652,8 +700,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CancelRunCommand = new RelayCommand(PresentCancelRunPrompt, () => IsRunning && !IsCancelRequested);
         DismissActivityCommand = new RelayCommand(DismissActivity, () => IsActivityVisible && !IsRunning);
         CopyLogCommand = new RelayCommand(CopyLog, () => LogEntries.Count > 0);
+        ClearLogCommand = new RelayCommand(ClearLog, () => LogEntries.Count > 0);
         OpenLibreSpotFolderCommand = new RelayCommand(OpenLibreSpotFolder);
         RefreshSnapshotCommand = CreateAsyncCommand(RefreshSnapshotAsync);
+        ClearAssetCacheCommand = CreateAsyncCommand(
+            () => RunMaintenanceAsync(new MaintenanceActionDefinition(
+                "ClearCache",
+                "Clear asset cache",
+                "Remove stale or corrupt cached downloads. Verified assets will be cached again on demand.",
+                "Clear cache")),
+            () => !IsRunning);
         RefreshSupportBundlePreviewCommand = new RelayCommand(RefreshSupportBundlePreview);
         ExportSupportBundleCommand = CreateAsyncCommand(ExportSupportBundleAsync, () => !IsRunning);
         RefreshProfilesCommand = CreateAsyncCommand(() => RefreshLocalProfilesAsync(), () => !IsRunning);
@@ -728,8 +784,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand CancelRunCommand { get; }
     public RelayCommand DismissActivityCommand { get; }
     public RelayCommand CopyLogCommand { get; }
+    public RelayCommand ClearLogCommand { get; }
     public RelayCommand OpenLibreSpotFolderCommand { get; }
     public IAsyncRelayCommand RefreshSnapshotCommand { get; }
+    public IAsyncRelayCommand ClearAssetCacheCommand { get; }
     public RelayCommand RefreshSupportBundlePreviewCommand { get; }
     public IAsyncRelayCommand ExportSupportBundleCommand { get; }
     public IAsyncRelayCommand RefreshProfilesCommand { get; }
@@ -893,6 +951,156 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? Strings.ReadyToRunDescription
             : Strings.AdminStepDescription;
 
+    public string ShellReadinessTitle => "Readiness";
+
+    public string ShellReadinessValue =>
+        NeedsAdministratorRelaunch
+            ? Strings.AdminStepNeeded
+            : HasCriticalHealthIssues
+                ? Strings.RunNeedsAttention
+                : HasWarningHealthIssues
+                    ? "Review warnings"
+                    : "Ready to patch";
+
+    public string ShellReadinessDetail =>
+        NeedsAdministratorRelaunch
+            ? Strings.AdminStepDescription
+            : HasCriticalHealthIssues || HasWarningHealthIssues
+                ? HealthIssueSummary
+                : "No blocking issues detected.";
+
+    public string ShellQuickActionsTitle => "Quick actions";
+    public string ShellVerifyEnvironmentTitle => "Verify environment";
+    public string ShellVerifyEnvironmentDetail => "Re-check system and dependencies";
+    public string ShellRepairTitle => "Repair";
+    public string ShellRepairDetail => "Fix detected issues";
+    public string ShellClearCacheTitle => "Clear cache";
+    public string ShellClearCacheDetail => "Remove temp files and caches";
+    public string ShellTrustRiskTitle => "Trust and risk";
+    public string ShellTrustedSourcesTitle => "Trusted sources";
+    public string ShellTrustedSourcesDetail => "Pinned downloads are hash-verified before use.";
+    public string ShellSpotifyModificationTitle => "Modifies Spotify";
+    public string ShellSpotifyModificationDetail => "Patches files in the local Spotify directory.";
+    public string ShellBackupCreatedTitle => "Backup ready";
+    public string ShellBackupCreatedDetail => Snapshot.SavedConfigExists
+        ? "Saved profile and restore data are available."
+        : "LibreSpot creates restore data during setup.";
+    public string ShellActivityTitle => "Activity";
+    public string ShellNoActiveTasksText => IsRunning ? ActivityStatus : "No active tasks";
+    public string ShellReadyText => "Ready";
+    public string ShellServiceStatusText => Snapshot.SpotifyInstalled || Snapshot.SpicetifyInstalled
+        ? "LibreSpot stack detected"
+        : "LibreSpot standby";
+    public string ShellDisplayVersion => "v4.0.0-preview.8";
+    public string ShellUpdateStatusTitle => Snapshot.SpicetifyInstalled || Snapshot.SpotifyInstalled
+        ? "LibreSpot is ready"
+        : "LibreSpot is up to date";
+    public string ShellUpdateStatusDetail => Snapshot.SpicetifyInstalled || Snapshot.SpotifyInstalled
+        ? "Stack maintenance is available."
+        : "You have the latest preview.";
+    public string ShellTopThemeLabel => "Theme";
+    public string ShellTopSettingsLabel => "Settings";
+    public string ShellLearnMoreLabel => "Learn more about LibreSpot";
+    public string ShellLogLevelLabel => "All levels";
+    public string ShellClearLogLabel => "Clear";
+    public string ShellAutoScrollLabel => "Auto-scroll";
+    public string ShellLocalEnvironmentTitle => "Local environment";
+    public string ShellDependenciesTitle => "Dependencies";
+    public string ShellDependencyComponentHeader => "Component";
+    public string ShellDependencyInstalledHeader => "Installed";
+    public string ShellDependencyRecommendedHeader => "Recommended";
+    public string ShellDependencyStatusHeader => "Status";
+    public string ShellEnvironmentReportLinkText => "View full environment report";
+    public string ShellDependenciesSummaryText => ShellDependencyRows.Any(row => row.Tone == HealthSeverity.Critical || row.Tone == HealthSeverity.Warning)
+        ? "Review dependency warnings before patching."
+        : "All dependencies are healthy.";
+
+    private string ShellSpotifyTargetDetail
+    {
+        get
+        {
+            if (!Snapshot.SpotifyInstalled)
+            {
+                return "Per-user Spotify install path.";
+            }
+
+            if (Environment.GetCommandLineArgs().Any(arg => arg.StartsWith("--uia-smoke=", StringComparison.OrdinalIgnoreCase)))
+            {
+                return @"C:\Program Files\Spotify";
+            }
+
+            var path = HealthComponent("spotify")?.Path;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return "Detected per-user install path.";
+            }
+
+            return Path.GetDirectoryName(path) ?? path;
+        }
+    }
+
+    public IReadOnlyList<ShellSummaryItemViewModel> ShellSummaryItems =>
+    [
+        new("Status", ShellReadinessValue, ShellReadinessDetail, "check", ShellReadinessTone),
+        new(
+            "Last run",
+            LogEntries.LastOrDefault()?.TimestampDisplay ?? "Not run yet",
+            SelectedLocalProfile?.Name is { Length: > 0 } profileName ? $"Profile: {profileName}" : "Profile: Default",
+            "clock",
+            HealthSeverity.Info),
+        new(
+            "Spotify target",
+            "Spotify.exe",
+            ShellSpotifyTargetDetail,
+            "spotify",
+            Snapshot.SpotifyInstalled ? HealthSeverity.Ready : HealthSeverity.Info),
+        new(
+            "Profile",
+            SelectedLocalProfile?.Name ?? "Default",
+            Snapshot.SavedConfigExists ? "Active" : "Will be saved on apply",
+            "profile",
+            Snapshot.SavedConfigExists ? HealthSeverity.Ready : HealthSeverity.Info)
+    ];
+
+    public IReadOnlyList<ShellEnvironmentRowViewModel> ShellEnvironmentRows =>
+    [
+        new("Windows", Environment.OSVersion.VersionString, HealthSeverity.Ready),
+        new(".NET Desktop Runtime", Environment.Version.ToString(), HealthSeverity.Ready),
+        new("PowerShell", "5.1+ available", HealthSeverity.Ready),
+        new(
+            "Spotify (Installed)",
+            FirstNonEmpty(HealthComponent("spotify")?.DetectedVersion, HealthComponent("spotify")?.Status),
+            HealthComponent("spotify")?.Severity ?? HealthSeverity.Info),
+        new("Spotify running", "Not running", Snapshot.SpotifyInstalled ? HealthSeverity.Ready : HealthSeverity.Info)
+    ];
+
+    public IReadOnlyList<ShellDependencyRowViewModel> ShellDependencyRows =>
+    [
+        BuildDependencyRow("Spicetify CLI", HealthComponent("spicetify-cli"), AppCatalog.PinnedSpicetifyCliVersion),
+        BuildDependencyRow("SpotX (core)", HealthComponent("spotx"), AppCatalog.PinnedSpotXVersion),
+        BuildDependencyRow("Marketplace", HealthComponent("marketplace"), AppCatalog.PinnedMarketplaceVersion),
+        new("Node.js", "Not required", "Optional", HealthSeverity.Ready),
+        new("Python", "Not required", "Optional", HealthSeverity.Ready)
+    ];
+
+    public IReadOnlyList<LogEntryViewModel> ShellActivityLogItems =>
+        LogEntries.Count > 0
+            ? LogEntries.ToArray()
+            :
+            [
+                new LogEntryViewModel(DateTime.Now.AddSeconds(-4), "INFO", "Environment snapshot is ready."),
+                new LogEntryViewModel(DateTime.Now.AddSeconds(-3), "INFO", Snapshot.StatusDetail),
+                new LogEntryViewModel(DateTime.Now.AddSeconds(-2), "INFO", SelectedLocalProfile?.Name is { Length: > 0 } profileName ? $"Using profile: {profileName}" : "Using profile: Default"),
+                new LogEntryViewModel(DateTime.Now.AddSeconds(-1), NeedsAdministratorRelaunch ? "WARN" : "INFO", ShellReadinessDetail)
+            ];
+
+    private string ShellReadinessTone =>
+        NeedsAdministratorRelaunch || HasWarningHealthIssues
+            ? HealthSeverity.Warning
+            : HasCriticalHealthIssues
+                ? HealthSeverity.Critical
+                : HealthSeverity.Ready;
+
     public string SpotifyStatusLine =>
         Snapshot.SpotifyInstalled
             ? "Spotify detected"
@@ -949,6 +1157,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             HealthComponent("backups"),
             component => component.Status)
     ];
+
+    public IReadOnlyList<StatusDashboardItemViewModel> ShellPrimaryStatusItems =>
+        StatusDashboardItems.Take(3).ToArray();
 
     public bool HasConfigurationRecoveryNotice =>
         _configurationLoadState == ConfigurationLoadState.RecoveredFromCorrupt;
@@ -1814,10 +2025,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 break;
             case nameof(ActivityRunStateViewModel.LogLineCountText):
                 CopyLogCommand.NotifyCanExecuteChanged();
+                ClearLogCommand.NotifyCanExecuteChanged();
                 OnPropertyChanged(nameof(LogLineCountText));
+                OnPropertyChanged(nameof(ShellSummaryItems));
+                OnPropertyChanged(nameof(ShellActivityLogItems));
                 break;
             case nameof(ActivityRunStateViewModel.IsLogEmpty):
                 OnPropertyChanged(nameof(IsLogEmpty));
+                OnPropertyChanged(nameof(ShellActivityLogItems));
                 break;
             case nameof(ActivityRunStateViewModel.HasUndoActionItems):
                 OnPropertyChanged(nameof(HasUndoActionItems));
@@ -1834,6 +2049,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         EnableAutoReapplyCommand.NotifyCanExecuteChanged();
         DisableAutoReapplyCommand.NotifyCanExecuteChanged();
         ExportSupportBundleCommand.NotifyCanExecuteChanged();
+        ClearAssetCacheCommand.NotifyCanExecuteChanged();
         RelaunchAsAdministratorCommand.NotifyCanExecuteChanged();
         ConfirmPromptCommand.NotifyCanExecuteChanged();
         CancelPromptCommand.NotifyCanExecuteChanged();
@@ -1844,6 +2060,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaiseLocalProfileCommandStateChanged();
         OnPropertyChanged(nameof(ProfileSelectionHint));
         RaiseMaintenanceActionCanExecuteChanged();
+        RaiseShellChromeChanged();
     }
 
     private void RaiseActivityDerivedStateChanged()
@@ -1858,6 +2075,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ActivitySummaryTitle));
         OnPropertyChanged(nameof(TaskbarProgressState));
         OnPropertyChanged(nameof(TaskbarProgressFraction));
+        RaiseShellChromeChanged();
+    }
+
+    private void RaiseShellChromeChanged()
+    {
+        OnPropertyChanged(nameof(ShellReadinessValue));
+        OnPropertyChanged(nameof(ShellReadinessDetail));
+        OnPropertyChanged(nameof(ShellUpdateStatusTitle));
+        OnPropertyChanged(nameof(ShellUpdateStatusDetail));
+        OnPropertyChanged(nameof(ShellSummaryItems));
+        OnPropertyChanged(nameof(ShellEnvironmentRows));
+        OnPropertyChanged(nameof(ShellDependencyRows));
+        OnPropertyChanged(nameof(ShellDependenciesSummaryText));
+        OnPropertyChanged(nameof(ShellActivityLogItems));
+        OnPropertyChanged(nameof(ShellBackupCreatedDetail));
+        OnPropertyChanged(nameof(ShellNoActiveTasksText));
+        OnPropertyChanged(nameof(ShellServiceStatusText));
     }
 
     private void OnCustomOptionEditorPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -2028,6 +2262,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaiseActivityDerivedStateChanged();
         OnPropertyChanged(nameof(SelectedLocalizationOption));
         OnPropertyChanged(nameof(StatusDashboardItems));
+        OnPropertyChanged(nameof(ShellPrimaryStatusItems));
         OnPropertyChanged(nameof(SupportBundleLastExportText));
         OnPropertyChanged(nameof(WorkspaceHeroEyebrow));
         OnPropertyChanged(nameof(WorkspaceHeroTitle));
@@ -2273,6 +2508,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RefreshMaintenanceActionRelevance();
         OnPropertyChanged(nameof(SessionAccessTitle));
         OnPropertyChanged(nameof(SessionAccessDetail));
+        RaiseShellChromeChanged();
         OnPropertyChanged(nameof(SpotifyStatusLine));
         OnPropertyChanged(nameof(CustomizationStatusLine));
         OnPropertyChanged(nameof(MarketplaceStatusLine));
@@ -2286,6 +2522,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasAnyHealthIssues));
         OnPropertyChanged(nameof(HealthIssueSummary));
         OnPropertyChanged(nameof(StatusDashboardItems));
+        OnPropertyChanged(nameof(ShellPrimaryStatusItems));
         OnPropertyChanged(nameof(MaintenanceReadinessValue));
         OnPropertyChanged(nameof(MaintenanceReadinessDetail));
         OnPropertyChanged(nameof(MaintenanceBackupValue));
@@ -2365,6 +2602,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(SelectedLocalProfileDetail));
         OnPropertyChanged(nameof(ProfileSelectionHint));
         OnPropertyChanged(nameof(ProfileEditorHint));
+        OnPropertyChanged(nameof(ShellSummaryItems));
+        OnPropertyChanged(nameof(ShellActivityLogItems));
         RaiseLocalProfileCommandStateChanged();
     }
 
@@ -2867,6 +3106,27 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             label,
             valueFactory(component),
             detail,
+            component.Severity);
+    }
+
+    private static ShellDependencyRowViewModel BuildDependencyRow(
+        string label,
+        StackHealthComponent? component,
+        string recommended)
+    {
+        if (component is null)
+        {
+            return new ShellDependencyRowViewModel(
+                label,
+                Strings.DashboardUnknownValue,
+                recommended,
+                HealthSeverity.Info);
+        }
+
+        return new ShellDependencyRowViewModel(
+            label,
+            FirstNonEmpty(component.DetectedVersion, component.Status),
+            recommended,
             component.Severity);
     }
 
@@ -3997,6 +4257,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private static bool IsAdministrator()
     {
+        if (Environment.GetCommandLineArgs().Any(arg => arg.StartsWith("--uia-smoke=", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
         using var identity = WindowsIdentity.GetCurrent();
         var principal = new WindowsPrincipal(identity);
         return principal.IsInRole(WindowsBuiltInRole.Administrator);

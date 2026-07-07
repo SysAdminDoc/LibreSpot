@@ -496,6 +496,9 @@
   <data name="Ui_DecisionPrompt" xml:space="preserve"><value>Decision prompt</value><comment>User-facing WPF text</comment></data>
   <data name="Ui_ConfirmsAnImportantLibreSpotActionBeforeItRuns" xml:space="preserve"><value>Confirms an important LibreSpot action before it runs.</value><comment>User-facing WPF text</comment></data>
   <data name="Ui_CompletionNotifications" xml:space="preserve"><value>Completion notifications</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_WindowMinimize" xml:space="preserve"><value>Minimize window</value><comment>Window chrome accessibility label</comment></data>
+  <data name="Ui_WindowMaximize" xml:space="preserve"><value>Maximize window</value><comment>Window chrome accessibility label</comment></data>
+  <data name="Ui_WindowClose" xml:space="preserve"><value>Close window</value><comment>Window chrome accessibility label</comment></data>
 
   <!-- Tray icon -->
   <data name="Tray_Open" xml:space="preserve"><value>Open LibreSpot</value><comment>Tray menu item: reopen the main window</comment></data>

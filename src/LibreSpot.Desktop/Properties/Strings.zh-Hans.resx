@@ -1712,6 +1712,18 @@
   </data>
 
   <!-- Tray icon -->
+  <data name="Ui_WindowMinimize" xml:space="preserve">
+    <value>最小化窗口</value>
+    <comment>Window chrome accessibility label</comment>
+  </data>
+  <data name="Ui_WindowMaximize" xml:space="preserve">
+    <value>最大化窗口</value>
+    <comment>Window chrome accessibility label</comment>
+  </data>
+  <data name="Ui_WindowClose" xml:space="preserve">
+    <value>关闭窗口</value>
+    <comment>Window chrome accessibility label</comment>
+  </data>
   <data name="Tray_Open" xml:space="preserve">
     <value>打开 LibreSpot</value>
     <comment>Tray menu item: reopen the main window</comment>

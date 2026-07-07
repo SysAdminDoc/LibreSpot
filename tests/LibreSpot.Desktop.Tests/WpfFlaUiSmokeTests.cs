@@ -31,14 +31,14 @@ public sealed class WpfFlaUiSmokeTests
         var text = LocalizedSmokeText.For("en");
         WithSmokeWindow("recommended", window =>
         {
-            InvokeOrClick(AssertControl(window, "WorkspaceTabCustom", ControlType.TabItem, text.CustomTab));
+            InvokeOrClick(AssertControl(window, "WorkspaceNavCustom", ControlType.Button, text.CustomNav));
             AssertNamedVisible(window, WaitForElementByAutomationId(window, "CustomSettingsEditor"), text.CustomSettingsEditor);
 
-            InvokeOrClick(AssertControl(window, "WorkspaceTabMaintenance", ControlType.TabItem, text.MaintenanceTab));
+            InvokeOrClick(AssertControl(window, "WorkspaceNavMaintenance", ControlType.Button, text.MaintenanceNav));
             AssertNamedVisible(window, WaitForElementByAutomationId(window, "MaintenanceWorkspace"), text.MaintenanceWorkspace);
 
-            InvokeOrClick(AssertControl(window, "WorkspaceTabRecommended", ControlType.TabItem, text.RecommendedTab));
-            AssertNamedVisible(window, WaitForElementByAutomationId(window, "RecommendedWorkspace"), text.RecommendedWorkspace);
+            InvokeOrClick(AssertControl(window, "WorkspaceNavRecommended", ControlType.Button, text.RecommendedNav));
+            AssertControlByName(window, ControlType.Button, text.RunRecommendedSetup);
         });
     }
 
@@ -109,11 +109,10 @@ public sealed class WpfFlaUiSmokeTests
         var text = LocalizedSmokeText.For(culture);
         WithSmokeWindow("recommended", culture, window =>
         {
-            AssertControl(window, "WorkspaceTabRecommended", ControlType.TabItem, text.RecommendedTab);
-            AssertControl(window, "WorkspaceTabCustom", ControlType.TabItem, text.CustomTab);
-            AssertControl(window, "WorkspaceTabMaintenance", ControlType.TabItem, text.MaintenanceTab);
-            AssertNamedVisible(window, WaitForElementByAutomationId(window, "RecommendedWorkspace"), text.RecommendedWorkspace);
-            AssertControl(window, "RunRecommendedSetupButton", ControlType.Button, text.RunRecommendedSetup);
+            AssertControl(window, "WorkspaceNavRecommended", ControlType.Button, text.RecommendedNav);
+            AssertControl(window, "WorkspaceNavCustom", ControlType.Button, text.CustomNav);
+            AssertControl(window, "WorkspaceNavMaintenance", ControlType.Button, text.MaintenanceNav);
+            AssertControlByName(window, ControlType.Button, text.RunRecommendedSetup);
         });
     }
 
@@ -145,6 +144,7 @@ public sealed class WpfFlaUiSmokeTests
         };
         startInfo.ArgumentList.Add($"--uia-smoke={state}");
         startInfo.ArgumentList.Add($"--uia-culture={culture}");
+        startInfo.ArgumentList.Add("--uia-background");
         startInfo.Environment["LIBRESPOT_UIA_ROOT"] = root;
 
         return new SmokeApp(Application.Launch(startInfo), root);
@@ -166,10 +166,31 @@ public sealed class WpfFlaUiSmokeTests
                 return window;
             }
 
+            var hiddenWindow = FindWindowByProcessId(automation, application.ProcessId);
+            if (hiddenWindow is not null)
+            {
+                return hiddenWindow;
+            }
+
             Thread.Sleep(100);
         }
 
         throw new TimeoutException("Timed out waiting for LibreSpot main window.");
+    }
+
+    private static Window? FindWindowByProcessId(UIA3Automation automation, int processId)
+    {
+        try
+        {
+            return automation.GetDesktop()
+                .FindAllChildren(condition => condition.ByProcessId(processId))
+                .FirstOrDefault(element => SafeControlType(element) == ControlType.Window)
+                ?.AsWindow();
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static AutomationElement AssertControl(
@@ -180,6 +201,17 @@ public sealed class WpfFlaUiSmokeTests
         int timeoutSeconds = 10)
     {
         var element = WaitForControlByAutomationId(window, automationId, controlType, timeoutSeconds);
+        AssertNamedVisible(window, element, expectedName);
+        return element;
+    }
+
+    private static AutomationElement AssertControlByName(
+        Window window,
+        ControlType controlType,
+        string expectedName,
+        int timeoutSeconds = 10)
+    {
+        var element = WaitForControlByName(window, controlType, expectedName, timeoutSeconds);
         AssertNamedVisible(window, element, expectedName);
         return element;
     }
@@ -244,6 +276,27 @@ public sealed class WpfFlaUiSmokeTests
         throw new TimeoutException($"Timed out waiting for FlaUI {controlType} element '{automationId}'. Snapshot: {BuildSnapshot(root)}");
     }
 
+    private static AutomationElement WaitForControlByName(
+        AutomationElement root,
+        ControlType controlType,
+        string name,
+        int timeoutSeconds = 10)
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(timeoutSeconds);
+        while (DateTime.UtcNow < deadline)
+        {
+            var element = FindByNameAndType(root, name, controlType);
+            if (element is not null)
+            {
+                return element;
+            }
+
+            Thread.Sleep(100);
+        }
+
+        throw new TimeoutException($"Timed out waiting for FlaUI {controlType} element named '{name}'. Snapshot: {BuildSnapshot(root)}");
+    }
+
     private static void WaitUntilMissingByAutomationId(AutomationElement root, string automationId, int timeoutSeconds = 5)
     {
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(timeoutSeconds);
@@ -277,13 +330,20 @@ public sealed class WpfFlaUiSmokeTests
     }
 
     private static AutomationElement? FindByAutomationId(AutomationElement root, string automationId) =>
-        root.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+        root.FindAllDescendants()
+            .FirstOrDefault(element => string.Equals(SafeAutomationId(element), automationId, StringComparison.Ordinal));
 
     private static AutomationElement? FindByAutomationIdAndType(AutomationElement root, string automationId, ControlType controlType) =>
         root.FindAllDescendants()
             .FirstOrDefault(element =>
-                string.Equals(element.AutomationId, automationId, StringComparison.Ordinal)
-                && element.ControlType == controlType);
+                string.Equals(SafeAutomationId(element), automationId, StringComparison.Ordinal)
+                && SafeControlType(element) == controlType);
+
+    private static AutomationElement? FindByNameAndType(AutomationElement root, string name, ControlType controlType) =>
+        root.FindAllDescendants()
+            .FirstOrDefault(element =>
+                string.Equals(SafeName(element), name, StringComparison.Ordinal)
+                && SafeControlType(element) == controlType);
 
     private static void InvokeOrClick(AutomationElement element)
     {
@@ -314,7 +374,7 @@ public sealed class WpfFlaUiSmokeTests
             return string.Join(
                 " | ",
                 root.FindAllDescendants()
-                    .Select(element => $"{element.ControlType}:{element.Name}:{element.AutomationId}")
+                    .Select(element => $"{SafeControlType(element)}:{SafeName(element)}:{SafeAutomationId(element)}")
                     .Where(label => !string.IsNullOrWhiteSpace(label))
                     .Take(80));
         }
@@ -324,10 +384,28 @@ public sealed class WpfFlaUiSmokeTests
         }
     }
 
+    private static string SafeAutomationId(AutomationElement element)
+    {
+        try { return element.AutomationId ?? string.Empty; }
+        catch { return string.Empty; }
+    }
+
+    private static string SafeName(AutomationElement element)
+    {
+        try { return element.Name ?? string.Empty; }
+        catch { return string.Empty; }
+    }
+
+    private static ControlType SafeControlType(AutomationElement element)
+    {
+        try { return element.ControlType; }
+        catch { return ControlType.Custom; }
+    }
+
     private sealed record LocalizedSmokeText(
-        string RecommendedTab,
-        string CustomTab,
-        string MaintenanceTab,
+        string RecommendedNav,
+        string CustomNav,
+        string MaintenanceNav,
         string RecommendedWorkspace,
         string RunRecommendedSetup,
         string CustomWorkspace,
@@ -347,8 +425,8 @@ public sealed class WpfFlaUiSmokeTests
         {
             var info = CultureInfo.GetCultureInfo(culture);
             return new LocalizedSmokeText(
-                Get("ModeRecommendedTitle", info),
-                Get("ModeCustomTitle", info),
+                Get("ModeRecommendedDescription", info),
+                Get("Ui_CustomSettings", info),
                 Get("ModeMaintenanceTitle", info),
                 Get("Ui_RecommendedWorkspace", info),
                 Get("ButtonRunRecommendedSetup", info),

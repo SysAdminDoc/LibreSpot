@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.6-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.8-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.3-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 
 </div>
@@ -61,6 +61,8 @@ This path does not verify the release checksum before execution, cannot self-ele
 ---
 
 ## What's New in v3.7
+
+**Desktop command-center redesign.** The v4 preview shell now opens into a modern three-column dark workspace: persistent setup/recovery navigation, a compact stack-health row, the active command surface in the center, a readiness/trust inspector on the right, and a docked activity/log strip that stays visible while you work. The refreshed screenshots above were recaptured from the WPF smoke states.
 
 **Premium UI overhaul.** Win11 Mica backdrop (with graceful fallback on Windows 10), a left sidebar navigation rail with Lucide icons replacing the old top tab bar, semantic design tokens, hover-lift micro-interactions, and a shimmering install progress bar. Compact density pass means every panel fits a 1080-px screen without scrolling. Same install behavior, polished chrome.
 

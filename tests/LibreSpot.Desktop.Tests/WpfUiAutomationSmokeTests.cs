@@ -223,6 +223,7 @@ public sealed class WpfUiAutomationSmokeTests
         };
         startInfo.ArgumentList.Add($"--uia-smoke={state}");
         startInfo.ArgumentList.Add($"--uia-culture={culture}");
+        startInfo.ArgumentList.Add("--uia-background");
         startInfo.Environment["LIBRESPOT_UIA_ROOT"] = root;
 
         var process = Process.Start(startInfo)
@@ -242,15 +243,33 @@ public sealed class WpfUiAutomationSmokeTests
 
             try { process.WaitForInputIdle(250); } catch { }
             process.Refresh();
-            if (process.MainWindowHandle != IntPtr.Zero)
+            var handle = process.MainWindowHandle;
+            if (handle != IntPtr.Zero)
             {
-                return AutomationElement.FromHandle(process.MainWindowHandle);
+                return AutomationElement.FromHandle(handle);
+            }
+
+            var window = FindTopLevelWindowByProcessId(process.Id);
+            if (window is not null)
+            {
+                return window;
             }
 
             Thread.Sleep(100);
         }
 
         throw new TimeoutException("Timed out waiting for LibreSpot main window.");
+    }
+
+    private static AutomationElement? FindTopLevelWindowByProcessId(int processId)
+    {
+        var windows = AutomationElement.RootElement.FindAll(
+            TreeScope.Children,
+            new PropertyCondition(AutomationElement.ProcessIdProperty, processId));
+
+        return windows
+            .OfType<AutomationElement>()
+            .FirstOrDefault();
     }
 
     private static IReadOnlyList<UiaNode> WaitForSnapshotContaining(AutomationElement window, string expectedName, TimeSpan timeout)

@@ -5,6 +5,8 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
@@ -19,10 +21,14 @@ public partial class MainWindow : Window
 {
     private const string UiAutomationSmokeArgumentPrefix = "--uia-smoke=";
     private const string UiAutomationCultureArgumentPrefix = "--uia-culture=";
+    private const string UiAutomationCaptureArgumentPrefix = "--uia-capture=";
+    private const string UiAutomationBackgroundArgument = "--uia-background";
     private static readonly Regex NumericInput = new("^[0-9]+$", RegexOptions.Compiled);
     private readonly MainViewModel _viewModel;
     private readonly string? _uiAutomationSmokeState;
     private readonly string _uiAutomationSmokeCulture;
+    private readonly string? _uiAutomationCapturePath;
+    private readonly bool _uiAutomationBackgroundMode;
     private readonly ShellActivationRequest _shellActivation;
     private bool _allowCloseWhileRunning;
     private IInputElement? _focusBeforeActivity;
@@ -38,6 +44,17 @@ public partial class MainWindow : Window
 
         _uiAutomationSmokeState = GetUiAutomationSmokeState();
         _uiAutomationSmokeCulture = GetUiAutomationSmokeCulture();
+        _uiAutomationCapturePath = GetUiAutomationCapturePath();
+        _uiAutomationBackgroundMode = GetUiAutomationBackgroundMode();
+        if (_uiAutomationBackgroundMode)
+        {
+            ShowActivated = false;
+            ShowInTaskbar = false;
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth + 64;
+            Top = SystemParameters.VirtualScreenTop + 64;
+        }
+
         _shellActivation = ShellActivationService.Parse(Environment.GetCommandLineArgs().Skip(1));
         _viewModel = string.IsNullOrWhiteSpace(_uiAutomationSmokeState)
             ? new MainViewModel(
@@ -64,6 +81,40 @@ public partial class MainWindow : Window
         Win11ShellIntegration.ApplyMicaAndDarkChrome(this);
     }
 
+    private void TitleBar_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2)
+        {
+            ToggleMaximizeRestore();
+            return;
+        }
+
+        try
+        {
+            DragMove();
+        }
+        catch (InvalidOperationException)
+        {
+            // DragMove can throw if WPF receives an already-completed mouse gesture.
+        }
+    }
+
+    private void MinimizeWindow_OnClick(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState.Minimized;
+
+    private void MaximizeWindow_OnClick(object sender, RoutedEventArgs e) =>
+        ToggleMaximizeRestore();
+
+    private void CloseWindow_OnClick(object sender, RoutedEventArgs e) =>
+        Close();
+
+    private void ToggleMaximizeRestore()
+    {
+        WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
+    }
+
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         Loaded -= MainWindow_Loaded;
@@ -78,6 +129,14 @@ public partial class MainWindow : Window
             if (!string.IsNullOrWhiteSpace(_uiAutomationSmokeState))
             {
                 _viewModel.ApplyUiAutomationSmokeState(_uiAutomationSmokeState);
+                if (!string.IsNullOrWhiteSpace(_uiAutomationCapturePath))
+                {
+                    await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                    await Task.Delay(300);
+                    SaveUiAutomationCapture(_uiAutomationCapturePath);
+                    Close();
+                    return;
+                }
             }
             else if (_shellActivation.HasActivation)
             {
@@ -522,6 +581,59 @@ public partial class MainWindow : Window
         return LocalizationService.DefaultCultureName;
     }
 
+    private static string? GetUiAutomationCapturePath()
+    {
+        var args = Environment.GetCommandLineArgs();
+        foreach (var arg in args)
+        {
+            if (arg.StartsWith(UiAutomationCaptureArgumentPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var value = arg[UiAutomationCaptureArgumentPrefix.Length..].Trim();
+                return string.IsNullOrWhiteSpace(value) ? null : Path.GetFullPath(value);
+            }
+        }
+
+        return null;
+    }
+
+    private static bool GetUiAutomationBackgroundMode()
+    {
+        var args = Environment.GetCommandLineArgs();
+        foreach (var arg in args)
+        {
+            if (string.Equals(arg.Trim(), UiAutomationBackgroundArgument, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void SaveUiAutomationCapture(string path)
+    {
+        var directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var transform = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice ?? Matrix.Identity;
+        var dpiX = 96.0 * transform.M11;
+        var dpiY = 96.0 * transform.M22;
+        var pixelWidth = Math.Max(1, (int)Math.Ceiling(ActualWidth * transform.M11));
+        var pixelHeight = Math.Max(1, (int)Math.Ceiling(ActualHeight * transform.M22));
+
+        UpdateLayout();
+        var bitmap = new RenderTargetBitmap(pixelWidth, pixelHeight, dpiX, dpiY, PixelFormats.Pbgra32);
+        bitmap.Render(this);
+
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(path);
+        encoder.Save(stream);
+    }
+
     private static MainViewModel CreateUiAutomationSmokeViewModel(string culture)
     {
         var root = Environment.GetEnvironmentVariable("LIBRESPOT_UIA_ROOT");
@@ -539,10 +651,28 @@ public partial class MainWindow : Window
         var spicetifyPath = Path.Combine(root, "Spicetify", "spicetify.exe");
         var spicetifyConfigDirectory = Path.Combine(root, "spicetify-config");
         var backupDirectory = Path.Combine(root, "backups");
+        var spotifyAppsDirectory = Path.Combine(Path.GetDirectoryName(spotifyPath) ?? root, "Apps");
+        var marketplaceDirectory = Path.Combine(spicetifyConfigDirectory, "CustomApps", "marketplace");
 
         Directory.CreateDirectory(configDirectory);
         Directory.CreateDirectory(logDirectory);
         Directory.CreateDirectory(crashDirectory);
+        Directory.CreateDirectory(Path.GetDirectoryName(spotifyPath) ?? root);
+        Directory.CreateDirectory(Path.GetDirectoryName(spicetifyPath) ?? root);
+        Directory.CreateDirectory(spotifyAppsDirectory);
+        Directory.CreateDirectory(marketplaceDirectory);
+        Directory.CreateDirectory(backupDirectory);
+        File.WriteAllText(spotifyPath, string.Empty);
+        File.WriteAllText(spicetifyPath, string.Empty);
+        File.WriteAllText(Path.Combine(spotifyAppsDirectory, "xpui.spa"), string.Empty);
+        File.WriteAllText(Path.Combine(spotifyAppsDirectory, "xpui.spa.bak"), string.Empty);
+        Directory.CreateDirectory(Path.Combine(backupDirectory, "2026-07-07_104213"));
+        File.WriteAllText(Path.Combine(spicetifyConfigDirectory, "config-xpui.ini"), "[AdditionalOptions]\ncustom_apps = marketplace\n");
+        File.WriteAllText(Path.Combine(marketplaceDirectory, "extension.js"), string.Empty);
+        File.WriteAllText(Path.Combine(marketplaceDirectory, "manifest.json"), "{\"version\":\"1.0.8\"}");
+        File.WriteAllText(
+            Path.Combine(configDirectory, "marketplace-evidence.json"),
+            "{\"schemaVersion\":1,\"generatedAtUtc\":\"2026-07-07T10:42:13Z\",\"source\":\"UiAutomationSmoke\",\"filesPresent\":true,\"registered\":true,\"likelyVisible\":true,\"marketplaceStatus\":\"Likely visible\",\"manifestVersion\":\"1.0.8\",\"applyStage\":\"apply\",\"applySucceeded\":true,\"openUriSucceeded\":true}");
         File.WriteAllText(
             Path.Combine(configDirectory, "config.json"),
             $"{{\"UiCulture\":\"{LocalizationService.NormalizeCultureName(culture)}\"}}");

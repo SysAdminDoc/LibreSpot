@@ -20,34 +20,34 @@
   <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
 
   <!-- ═══ Surfaces (darkest → lightest) ═══ -->
-  <Color x:Key="CanvasColor">#0B0F0D</Color>
-  <Color x:Key="CanvasShadeColor">#101613</Color>
-  <Color x:Key="Surface1Color">#141A17</Color>
-  <Color x:Key="Surface2Color">#1A221E</Color>
-  <Color x:Key="Surface3Color">#202A25</Color>
-  <Color x:Key="SurfaceRaisedColor">#25302B</Color>
-  <Color x:Key="RailColor">#0D1311</Color>
+  <Color x:Key="CanvasColor">#070A09</Color>
+  <Color x:Key="CanvasShadeColor">#0A100E</Color>
+  <Color x:Key="Surface1Color">#0E1512</Color>
+  <Color x:Key="Surface2Color">#121C18</Color>
+  <Color x:Key="Surface3Color">#17241F</Color>
+  <Color x:Key="SurfaceRaisedColor">#203129</Color>
+  <Color x:Key="RailColor">#080D0C</Color>
 
   <!-- ═══ Strokes ═══ -->
-  <Color x:Key="StrokeColor">#2A3630</Color>
-  <Color x:Key="StrokeSoftColor">#222D28</Color>
-  <Color x:Key="StrokeStrongColor">#36463E</Color>
+  <Color x:Key="StrokeColor">#22332D</Color>
+  <Color x:Key="StrokeSoftColor">#17241F</Color>
+  <Color x:Key="StrokeStrongColor">#355348</Color>
 
   <!-- ═══ Text ═══ -->
-  <Color x:Key="TextColor">#EAF2ED</Color>
-  <Color x:Key="TextMutedColor">#A7B4AD</Color>
+  <Color x:Key="TextColor">#F1F7F3</Color>
+  <Color x:Key="TextMutedColor">#B5C2BB</Color>
   <!-- Subtle tier: dimmest readable text. Calibrated to clear WCAG AA (≥4.5:1)
        on every surface tier up to SurfaceRaised, while staying a full step
        below MutedText so the caption hierarchy reads clearly. -->
-  <Color x:Key="TextSubtleColor">#969F98</Color>
+  <Color x:Key="TextSubtleColor">#8D9A93</Color>
   <Color x:Key="TextOnAccentColor">#07110C</Color>
 
   <!-- ═══ Brand / accent — Spotify-green, calibrated for dark canvas ═══ -->
   <Color x:Key="AccentColor">#1DB954</Color>
   <Color x:Key="AccentHoverColor">#1ED760</Color>
   <Color x:Key="AccentDeepColor">#169443</Color>
-  <Color x:Key="AccentSoftColor">#1A241E</Color>
-  <Color x:Key="AccentMistColor">#261DB954</Color>
+  <Color x:Key="AccentSoftColor">#10291B</Color>
+  <Color x:Key="AccentMistColor">#331DB954</Color>
   <Color x:Key="AccentRingColor">#B31DB954</Color>
 
   <!-- ═══ Semantic intent ═══ -->
@@ -66,7 +66,7 @@
   <Color x:Key="WarningRingColor">#66F5A524</Color>
   <Color x:Key="SuccessColor">#1DB954</Color>
   <Color x:Key="SuccessSoftColor">#132419</Color>
-  <Color x:Key="InfoColor">#6AA9FF</Color>
+  <Color x:Key="InfoColor">#4DB8FF</Color>
 
   <!-- ═══ Overlays / scrim ═══ -->
   <Color x:Key="OverlayColor">#C2060A08</Color>
@@ -122,8 +122,8 @@
   <SolidColorBrush x:Key="ScrimBrush" Color="{StaticResource ScrimColor}" />
   <SolidColorBrush x:Key="SheenBrush" Color="{StaticResource SheenColor}" />
 
-  <Color x:Key="TerminalBgColor">#080B0A</Color>
-  <Color x:Key="TerminalFgColor">#D6E4DB</Color>
+  <Color x:Key="TerminalBgColor">#050807</Color>
+  <Color x:Key="TerminalFgColor">#D9E6DE</Color>
   <SolidColorBrush x:Key="TerminalBgBrush" Color="{StaticResource TerminalBgColor}" />
   <SolidColorBrush x:Key="TerminalFgBrush" Color="{StaticResource TerminalFgColor}" />
 
@@ -148,8 +148,8 @@
                        Center="0.5,0.25"
                        RadiusX="0.95"
                        RadiusY="0.65">
-    <GradientStop Color="#2B1DB954" Offset="0" />
-    <GradientStop Color="#000B0F0D" Offset="1" />
+    <GradientStop Color="#331DB954" Offset="0" />
+    <GradientStop Color="#00070A09" Offset="1" />
   </RadialGradientBrush>
 
   <LinearGradientBrush x:Key="SurfaceSheenBrush" StartPoint="0,0" EndPoint="0,1">
@@ -170,8 +170,8 @@
   </LinearGradientBrush>
 
   <!-- ═══ Interactive overlays ═══ -->
-  <SolidColorBrush x:Key="GhostButtonBgBrush" Color="#10FFFFFF" />
-  <SolidColorBrush x:Key="GhostButtonBorderBrush" Color="#1AFFFFFF" />
+  <SolidColorBrush x:Key="GhostButtonBgBrush" Color="#0AFFFFFF" />
+  <SolidColorBrush x:Key="GhostButtonBorderBrush" Color="#182F3F37" />
   <SolidColorBrush x:Key="GhostHoverTintBrush" Color="#18FFFFFF" />
   <SolidColorBrush x:Key="DangerHoverTintBrush" Color="#30FFFFFF" />
   <SolidColorBrush x:Key="PressTintBrush" Color="#33000000" />
@@ -179,10 +179,10 @@
 
   <!-- ═══ Elevation ═══ -->
   <DropShadowEffect x:Key="CardShadow"
-                    BlurRadius="48"
+                    BlurRadius="42"
                     ShadowDepth="0"
                     Direction="270"
-                    Opacity="0.55"
+                    Opacity="0.48"
                     Color="#05070A" />
 
   <DropShadowEffect x:Key="OverlayShadow"

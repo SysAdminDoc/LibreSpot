@@ -29,7 +29,7 @@ public sealed class CliApplicationTests
         var result = Run("--version");
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Equal("LibreSpot.Cli 4.0.0-preview.7", result.Stdout.Trim());
+        Assert.Equal("LibreSpot.Cli 4.0.0-preview.8", result.Stdout.Trim());
         Assert.Equal(string.Empty, result.Stderr);
     }
 
@@ -41,7 +41,7 @@ public sealed class CliApplicationTests
         Assert.Equal(0, result.ExitCode);
         using var doc = JsonDocument.Parse(result.Stdout);
         Assert.Equal(1, doc.RootElement.GetProperty("schemaVersion").GetInt32());
-        Assert.Equal("4.0.0-preview.7", doc.RootElement.GetProperty("productVersion").GetString());
+        Assert.Equal("4.0.0-preview.8", doc.RootElement.GetProperty("productVersion").GetString());
         Assert.Equal("2.43.2", doc.RootElement.GetProperty("dependencies").GetProperty("spicetifyCli").GetProperty("version").GetString());
         Assert.Equal("1.0.8", doc.RootElement.GetProperty("dependencies").GetProperty("marketplaceVersion").GetString());
         Assert.StartsWith("3284673", doc.RootElement.GetProperty("dependencies").GetProperty("spotX").GetProperty("commit").GetString());

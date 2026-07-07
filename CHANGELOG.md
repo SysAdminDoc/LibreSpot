@@ -2,6 +2,15 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
+## [v4.0.0-preview.8] - 2026-07-07
+
+### Changed
+
+- Rebuilt the WPF desktop preview into a three-column command center: left setup/recovery rail, compact stack-health row, center workspace, right readiness/trust inspector, and persistent activity/log footer.
+- Refreshed the desktop palette toward the imagegen concept with deeper graphite surfaces, brighter green action affordances, quieter strokes, and stronger status contrast.
+- Replaced visible workspace tabs with rail navigation while keeping keyboard/UIA workspace switching covered by smoke tests.
+- Recaptured all README WPF screenshots from deterministic smoke states.
+
 ## [v3.7.3] / [v4.0.0-preview.7] - 2026-07-07
 
 Deep end-to-end audit pass: correctness, security, accessibility, theming,
