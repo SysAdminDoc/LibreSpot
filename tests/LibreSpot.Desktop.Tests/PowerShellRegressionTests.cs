@@ -536,6 +536,23 @@ public sealed class PowerShellRegressionTests
     }
 
     [Fact]
+    public void SpotifySessionStability_UsesInitialPidToDetectRestarts()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Test-SpotifySessionStability\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, "Test-SpotifySessionStability function block not found.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("$initialPid", body);
+        Assert.Contains("$afterPids", body);
+        Assert.Contains("-notcontains $initialPid", body);
+        Assert.Contains("Spotify restarted within", body);
+    }
+
+    [Fact]
     public void Watcher_TaskDefinition_EmitsValidXmlShape()
     {
         // The Register-AutoReapplyTask function builds an XML task definition

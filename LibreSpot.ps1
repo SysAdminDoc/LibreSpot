@@ -331,6 +331,11 @@ function Test-SpotifySessionStability {
             Write-Log "Spotify exited within ${WaitSeconds}s of patched launch. This may indicate server-side enforcement. If Spotify keeps closing after patching, check the FAQ in README for current enforcement status." -Level 'WARN'
             return $false
         }
+        $afterPids = @($afterProcs | ForEach-Object { $_.Id })
+        if ($afterPids -notcontains $initialPid) {
+            Write-Log "Spotify restarted within ${WaitSeconds}s of patched launch (initial PID $initialPid was replaced). This may indicate server-side enforcement or a self-repair restart. If Spotify keeps restarting after patching, check the FAQ in README for current enforcement status." -Level 'WARN'
+            return $false
+        }
         return $true
     } catch { return $true }
 }
