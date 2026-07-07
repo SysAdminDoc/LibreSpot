@@ -694,6 +694,7 @@ $laneSpecificFunctions = @(
     'Update-SpicetifyCliProgress'    # Backend streams progress events; Main updates WPF controls directly
     'Module-NukeSpotify'             # Backend streams phase progress; Main owns GUI phase logging
     'Module-ApplySpicetify'          # Backend records watcher apply outcomes
+    'Hide-SpotifyWindows'            # Main: [Win32] ShowWindowAsync; Backend: stub (watcher runspace owns hiding)
 )
 
 if ($DependencyHealth) {
