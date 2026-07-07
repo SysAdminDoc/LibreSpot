@@ -156,7 +156,7 @@
     <comment>Maintenance action title</comment>
   </data>
   <data name="ActionReapply" xml:space="preserve">
-    <value>更新后重新申请</value>
+    <value>更新后重新应用</value>
     <comment>Maintenance action title</comment>
   </data>
   <data name="ActionRepairMarketplace" xml:space="preserve">
@@ -249,7 +249,7 @@
     <comment>Refresh button label</comment>
   </data>
   <data name="ButtonRefreshEnvironmentHint" xml:space="preserve">
-    <value>重新检查 Spotify、Spisetify 和保存的配置文件状态。</value>
+    <value>重新检查 Spotify、Spicetify 和保存的配置文件状态。</value>
     <comment>Refresh button tooltip</comment>
   </data>
   <data name="ButtonExportBundle" xml:space="preserve">
@@ -277,11 +277,11 @@
     <comment>Accessibility help text for failure bundle button</comment>
   </data>
   <data name="ButtonEnableWatcher" xml:space="preserve">
-    <value>启用观察者</value>
+    <value>启用自动重新应用</value>
     <comment>Enable auto-reapply button</comment>
   </data>
   <data name="ButtonEnableWatcherName" xml:space="preserve">
-    <value>启用自动重新应用观察程序</value>
+    <value>启用自动重新应用监视器</value>
     <comment>Accessibility name</comment>
   </data>
   <data name="ButtonEnableWatcherHint" xml:space="preserve">
@@ -289,15 +289,15 @@
     <comment>Accessibility help text</comment>
   </data>
   <data name="ButtonDisableWatcher" xml:space="preserve">
-    <value>禁用观察者</value>
+    <value>禁用自动重新应用</value>
     <comment>Disable auto-reapply button</comment>
   </data>
   <data name="ButtonDisableWatcherName" xml:space="preserve">
-    <value>禁用自动重新应用观察程序</value>
+    <value>禁用自动重新应用监视器</value>
     <comment>Accessibility name</comment>
   </data>
   <data name="ButtonDisableWatcherHint" xml:space="preserve">
-    <value>删除计划的自动重新应用观察程序任务。</value>
+    <value>删除自动重新应用的计划任务。</value>
     <comment>Accessibility help text</comment>
   </data>
   <data name="ButtonCancelRun" xml:space="preserve">
@@ -687,7 +687,7 @@
     <comment>Support bundle section heading</comment>
   </data>
   <data name="AutoReapplyTitle" xml:space="preserve">
-    <value>Spotify 更新后自动重新申请</value>
+    <value>Spotify 更新后自动重新应用</value>
     <comment>Watcher section heading</comment>
   </data>
   <data name="RefreshRecoverSection" xml:space="preserve">
@@ -1047,7 +1047,7 @@
     <comment>Option title for Spicetify_Marketplace</comment>
   </data>
   <data name="Option_Spicetify_Marketplace_Description" xml:space="preserve">
-    <value>默认情况下包含 Spisetify Marketplace 自定义应用程序。</value>
+    <value>默认情况下包含 Spicetify Marketplace 自定义应用程序。</value>
     <comment>Option description for Spicetify_Marketplace</comment>
   </data>
   <!-- AppCatalog: Extension titles and descriptions -->
@@ -1164,7 +1164,7 @@
     <comment>Extension description for volumePercentage.js</comment>
   </data>
   <data name="Extension_adblock_Title" xml:space="preserve">
-    <value>广告拦截（Spisetify 后备）</value>
+    <value>广告拦截（Spicetify 后备）</value>
     <comment>Extension title for adblock.js</comment>
   </data>
   <data name="Extension_adblock_Description" xml:space="preserve">
@@ -1185,7 +1185,7 @@
     <comment>Maintenance action button text for CheckUpdates</comment>
   </data>
   <data name="Maintenance_Reapply_Title" xml:space="preserve">
-    <value>重新应用您的设置</value>
+    <value>重新应用设置</value>
     <comment>Maintenance action title for Reapply</comment>
   </data>
   <data name="Maintenance_Reapply_Description" xml:space="preserve">
@@ -1193,7 +1193,7 @@
     <comment>Maintenance action description for Reapply</comment>
   </data>
   <data name="Maintenance_Reapply_ButtonText" xml:space="preserve">
-    <value>重新申请</value>
+    <value>重新应用</value>
     <comment>Maintenance action button text for Reapply</comment>
   </data>
   <data name="Maintenance_RepairMarketplace_Title" xml:space="preserve">
@@ -1201,11 +1201,11 @@
     <comment>Maintenance action title for RepairMarketplace</comment>
   </data>
   <data name="Maintenance_RepairMarketplace_Description" xml:space="preserve">
-    <value>重新安装 Spisetify Marketplace 自定义应用程序，应用它，然后打开 Spotify:app:marketplace（如果侧边栏条目丢失）。</value>
+    <value>重新安装 Spicetify Marketplace 自定义应用程序，应用它，然后打开 Spotify:app:marketplace（如果侧边栏条目丢失）。</value>
     <comment>Maintenance action description for RepairMarketplace</comment>
   </data>
   <data name="Maintenance_RepairMarketplace_ButtonText" xml:space="preserve">
-    <value>维修市场</value>
+    <value>修复 Marketplace</value>
     <comment>Maintenance action button text for RepairMarketplace</comment>
   </data>
   <data name="Maintenance_OpenMarketplace_Title" xml:space="preserve">
@@ -1297,7 +1297,7 @@
     <comment>Maintenance action title for RemoveSelfData</comment>
   </data>
   <data name="Maintenance_RemoveSelfData_Description" xml:space="preserve">
-    <value>取消注册观察程序任务，并删除 LibreSpot 自身的配置、备份、日志和崩溃报告。Spotify 和 Spicetify 不受影响。</value>
+    <value>取消注册监视器任务，并删除 LibreSpot 自身的配置、备份、日志和崩溃报告。Spotify 和 Spicetify 不受影响。</value>
     <comment>Maintenance action description for RemoveSelfData</comment>
   </data>
   <data name="Maintenance_RemoveSelfData_ButtonText" xml:space="preserve">
@@ -1314,7 +1314,7 @@
     <comment>Recommended mode highlight 2</comment>
   </data>
   <data name="RecommendedHighlight_3" xml:space="preserve">
-    <value>恢复 Spisetify、Marketplace 和入门扩展。</value>
+    <value>恢复 Spicetify、Marketplace 和入门扩展。</value>
     <comment>Recommended mode highlight 3</comment>
   </data>
   <data name="RecommendedHighlight_4" xml:space="preserve">

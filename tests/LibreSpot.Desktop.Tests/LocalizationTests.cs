@@ -109,6 +109,23 @@ public sealed class LocalizationTests
     }
 
     [Fact]
+    public void SatelliteResources_AvoidKnownMachineTranslationRegressions()
+    {
+        var ru = XDocument.Load(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Properties", "Strings.ru.resx"));
+        var zhHans = XDocument.Load(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Properties", "Strings.zh-Hans.resx"));
+        var ruText = string.Join("\n", ru.Root!.Elements("data").Select(e => e.Element("value")?.Value));
+        var zhHansText = string.Join("\n", zhHans.Root!.Elements("data").Select(e => e.Element("value")?.Value));
+
+        Assert.DoesNotContain("Закрывать", ruText);
+        Assert.DoesNotContain("заявк", ruText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("重新申请", zhHansText);
+        Assert.DoesNotContain("观察者", zhHansText);
+        Assert.DoesNotContain("观察程序", zhHansText);
+        Assert.DoesNotContain("Spisetify", zhHansText);
+        Assert.DoesNotContain("维修市场", zhHansText);
+    }
+
+    [Fact]
     public void MainWindow_UserFacingAttributesUseLocalizedBindings()
     {
         var xaml = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml"));
