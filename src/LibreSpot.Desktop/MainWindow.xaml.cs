@@ -1,6 +1,10 @@
+using System.Buffers.Binary;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
+using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
@@ -685,11 +689,112 @@ public partial class MainWindow : Window
         var bitmap = new RenderTargetBitmap(pixelWidth, pixelHeight, dpiX, dpiY, PixelFormats.Pbgra32);
         bitmap.Render(this);
 
+        var metadata = CreateUiAutomationCaptureMetadata();
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        using var stream = File.Create(path);
-        encoder.Save(stream);
+        using (var stream = File.Create(path))
+        {
+            encoder.Save(stream);
+        }
+
+        WritePngTextChunks(path, metadata);
     }
+
+    private Dictionary<string, string> CreateUiAutomationCaptureMetadata() =>
+        new(StringComparer.Ordinal)
+        {
+            ["LibreSpotShellVersion"] = _viewModel.ShellDisplayVersion,
+            ["LibreSpotCaptureAssemblyVersion"] = GetAssemblyInformationalVersion(),
+            ["LibreSpotCaptureState"] = _uiAutomationSmokeState ?? "live",
+            ["LibreSpotCaptureUtc"] = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
+        };
+
+    private static void WritePngTextChunks(string path, IReadOnlyDictionary<string, string> metadata)
+    {
+        var png = File.ReadAllBytes(path);
+        var iendOffset = FindPngIendOffset(png);
+        using var stream = File.Create(path);
+        stream.Write(png, 0, iendOffset);
+        foreach (var (key, value) in metadata)
+        {
+            var chunk = CreatePngTextChunk(key, value);
+            stream.Write(chunk, 0, chunk.Length);
+        }
+
+        stream.Write(png, iendOffset, png.Length - iendOffset);
+    }
+
+    private static int FindPngIendOffset(byte[] png)
+    {
+        ReadOnlySpan<byte> signature = [137, 80, 78, 71, 13, 10, 26, 10];
+        if (png.Length < signature.Length || !png.AsSpan(0, signature.Length).SequenceEqual(signature))
+        {
+            throw new InvalidOperationException("Capture output is not a PNG file.");
+        }
+
+        var offset = signature.Length;
+        while (offset + 12 <= png.Length)
+        {
+            var length = BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(offset, 4));
+            if (length < 0 || offset + 12 + length > png.Length)
+            {
+                throw new InvalidOperationException("Capture output PNG has an invalid chunk table.");
+            }
+
+            var type = Encoding.ASCII.GetString(png, offset + 4, 4);
+            if (string.Equals(type, "IEND", StringComparison.Ordinal))
+            {
+                return offset;
+            }
+
+            offset += 12 + length;
+        }
+
+        throw new InvalidOperationException("Capture output PNG is missing an IEND chunk.");
+    }
+
+    private static byte[] CreatePngTextChunk(string key, string value)
+    {
+        var typeBytes = Encoding.ASCII.GetBytes("tEXt");
+        var keyBytes = Encoding.ASCII.GetBytes(key);
+        var valueBytes = Encoding.ASCII.GetBytes(value);
+        var data = new byte[keyBytes.Length + 1 + valueBytes.Length];
+        Buffer.BlockCopy(keyBytes, 0, data, 0, keyBytes.Length);
+        Buffer.BlockCopy(valueBytes, 0, data, keyBytes.Length + 1, valueBytes.Length);
+
+        var chunk = new byte[12 + data.Length];
+        BinaryPrimitives.WriteInt32BigEndian(chunk.AsSpan(0, 4), data.Length);
+        typeBytes.CopyTo(chunk.AsSpan(4, 4));
+        data.CopyTo(chunk.AsSpan(8, data.Length));
+
+        var crcInput = new byte[typeBytes.Length + data.Length];
+        Buffer.BlockCopy(typeBytes, 0, crcInput, 0, typeBytes.Length);
+        Buffer.BlockCopy(data, 0, crcInput, typeBytes.Length, data.Length);
+        BinaryPrimitives.WriteUInt32BigEndian(chunk.AsSpan(8 + data.Length, 4), ComputeCrc32(crcInput));
+        return chunk;
+    }
+
+    private static uint ComputeCrc32(ReadOnlySpan<byte> bytes)
+    {
+        var crc = 0xFFFFFFFFu;
+        foreach (var value in bytes)
+        {
+            crc ^= value;
+            for (var bit = 0; bit < 8; bit++)
+            {
+                crc = (crc & 1) != 0
+                    ? (crc >> 1) ^ 0xEDB88320u
+                    : crc >> 1;
+            }
+        }
+
+        return ~crc;
+    }
+
+    private static string GetAssemblyInformationalVersion() =>
+        typeof(MainWindow).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? typeof(MainWindow).Assembly.GetName().Version?.ToString()
+        ?? "unknown";
 
     private static MainViewModel CreateUiAutomationSmokeViewModel(string culture)
     {

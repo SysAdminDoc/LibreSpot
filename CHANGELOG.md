@@ -22,6 +22,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Unified standalone shell and README naming with the WPF shell by using "Recommended setup" and "True Shuffle" consistently for user-facing defaults.
 - Localized resource-backed WPF ViewModel text for profile management, shell readiness, Custom summaries, Maintenance cards, support-bundle previews, and the activity overlay.
 - Closed WPF color-lint blind spots so short XAML hex colors, named XAML colors, and unallowlisted C# color construction fail local tests instead of bypassing palette review.
+- Regenerated README WPF screenshots from the preview.9 shell and added PNG metadata validation so stale screenshots fail local release validation.
 
 ## [v4.0.0-preview.8] - 2026-07-07
 

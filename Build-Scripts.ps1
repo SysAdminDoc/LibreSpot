@@ -139,6 +139,160 @@ function Get-LibreSpotProjectVersion {
     return [string]$version
 }
 
+function Get-LibreSpotProjectInformationalVersion {
+    $projectPath = Join-Path $PSScriptRoot 'src/LibreSpot.Desktop/LibreSpot.Desktop.csproj'
+    if (-not (Test-Path -LiteralPath $projectPath -PathType Leaf)) {
+        throw "Cannot infer desktop informational version; project file not found at $projectPath"
+    }
+
+    [xml]$project = Get-Content -Raw -LiteralPath $projectPath
+    $version = $project.Project.PropertyGroup |
+        ForEach-Object { $_.InformationalVersion } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
+        Select-Object -First 1
+
+    if ([string]::IsNullOrWhiteSpace([string]$version)) {
+        throw "Cannot infer desktop informational version; <InformationalVersion> is missing from $projectPath"
+    }
+
+    return [string]$version
+}
+
+function Get-LibreSpotShellDisplayVersion {
+    $viewModelPath = Join-Path $PSScriptRoot 'src/LibreSpot.Desktop/ViewModels/MainViewModel.cs'
+    if (-not (Test-Path -LiteralPath $viewModelPath -PathType Leaf)) {
+        throw "Cannot infer shell display version; MainViewModel.cs not found at $viewModelPath"
+    }
+
+    $content = [System.IO.File]::ReadAllText($viewModelPath, [System.Text.Encoding]::UTF8)
+    $match = [regex]::Match($content, 'ShellDisplayVersion\s*=>\s*"(?<version>v[^"]+)"')
+    if (-not $match.Success) {
+        throw "Cannot infer shell display version; MainViewModel.ShellDisplayVersion must be a literal v-prefixed version."
+    }
+
+    return [string]$match.Groups['version'].Value
+}
+
+function Get-PngTextMetadataValue {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$Key
+    )
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $signature = [byte[]](137, 80, 78, 71, 13, 10, 26, 10)
+    if ($bytes.Length -lt $signature.Length) { return $null }
+    for ($i = 0; $i -lt $signature.Length; $i++) {
+        if ($bytes[$i] -ne $signature[$i]) { return $null }
+    }
+
+    $offset = $signature.Length
+    while ($offset + 12 -le $bytes.Length) {
+        $length = (
+            ([int]$bytes[$offset] -shl 24) -bor
+            ([int]$bytes[($offset + 1)] -shl 16) -bor
+            ([int]$bytes[($offset + 2)] -shl 8) -bor
+            [int]$bytes[($offset + 3)]
+        )
+        if ($length -lt 0 -or $offset + 12 + $length -gt $bytes.Length) { return $null }
+
+        $type = [System.Text.Encoding]::ASCII.GetString($bytes, $offset + 4, 4)
+        if ($type -eq 'tEXt') {
+            $dataOffset = $offset + 8
+            $dataEnd = $dataOffset + $length
+            $split = -1
+            for ($i = $dataOffset; $i -lt $dataEnd; $i++) {
+                if ($bytes[$i] -eq 0) {
+                    $split = $i
+                    break
+                }
+            }
+
+            if ($split -gt $dataOffset) {
+                $chunkKey = [System.Text.Encoding]::ASCII.GetString($bytes, $dataOffset, $split - $dataOffset)
+                if ($chunkKey -eq $Key) {
+                    return [System.Text.Encoding]::ASCII.GetString($bytes, $split + 1, $dataEnd - $split - 1)
+                }
+            }
+        }
+
+        if ($type -eq 'IEND') { break }
+        $offset += 12 + $length
+    }
+
+    return $null
+}
+
+function Test-ReadmeWpfScreenshotMetadata {
+    $readmePath = Join-Path $PSScriptRoot 'README.md'
+    if (-not (Test-Path -LiteralPath $readmePath -PathType Leaf)) {
+        throw "Cannot validate README screenshots; README.md not found."
+    }
+
+    $expectedScreenshots = [ordered]@{
+        'assets/screenshots/wpf-recommended.png'    = 'recommended'
+        'assets/screenshots/wpf-custom.png'         = 'custom'
+        'assets/screenshots/wpf-maintenance.png'    = 'maintenance'
+        'assets/screenshots/wpf-activity-undo.png'  = 'activity-undo'
+    }
+    $expectedShellVersion = Get-LibreSpotShellDisplayVersion
+    $expectedAssemblyVersion = Get-LibreSpotProjectInformationalVersion
+    $readme = [System.IO.File]::ReadAllText($readmePath, [System.Text.Encoding]::UTF8)
+    $referenced = @{}
+    foreach ($match in [regex]::Matches($readme, 'assets/screenshots/(?<file>wpf-[^"]+\.png)')) {
+        $referenced["assets/screenshots/$($match.Groups['file'].Value)"] = $true
+    }
+
+    $failures = @()
+    foreach ($relativePath in $expectedScreenshots.Keys) {
+        $expectedState = [string]$expectedScreenshots[$relativePath]
+        if (-not $referenced.ContainsKey($relativePath)) {
+            $failures += "${relativePath}: README does not reference this WPF screenshot."
+            continue
+        }
+
+        $fullPath = Join-Path $PSScriptRoot ($relativePath -replace '/', [System.IO.Path]::DirectorySeparatorChar)
+        if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
+            $failures += "${relativePath}: screenshot file is missing."
+            continue
+        }
+
+        $shellVersion = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotShellVersion'
+        $assemblyVersion = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotCaptureAssemblyVersion'
+        $state = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotCaptureState'
+        $capturedAt = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotCaptureUtc'
+
+        if ($shellVersion -ne $expectedShellVersion) {
+            $failures += "${relativePath}: LibreSpotShellVersion '$shellVersion' does not match '$expectedShellVersion'."
+        }
+        if ($assemblyVersion -ne $expectedAssemblyVersion) {
+            $failures += "${relativePath}: LibreSpotCaptureAssemblyVersion '$assemblyVersion' does not match '$expectedAssemblyVersion'."
+        }
+        if ($state -ne $expectedState) {
+            $failures += "${relativePath}: LibreSpotCaptureState '$state' does not match '$expectedState'."
+        }
+        if ([string]::IsNullOrWhiteSpace($capturedAt)) {
+            $failures += "${relativePath}: LibreSpotCaptureUtc metadata is missing."
+        } else {
+            $parsedTimestamp = [datetimeoffset]::MinValue
+            if (-not [datetimeoffset]::TryParse($capturedAt, [ref]$parsedTimestamp)) {
+                $failures += "${relativePath}: LibreSpotCaptureUtc '$capturedAt' is not a valid timestamp."
+            }
+        }
+    }
+
+    if ($failures.Count -gt 0) {
+        Write-Host "=== STALE README WPF SCREENSHOTS ===" -ForegroundColor Red
+        foreach ($failure in $failures) {
+            Write-Host "  $failure" -ForegroundColor Red
+        }
+        Write-Host ""
+        throw "README WPF screenshots must be recaptured with the current shell version."
+    }
+
+    Write-Host "README WPF screenshot metadata matches shell version $expectedShellVersion." -ForegroundColor Green
+}
+
 function Resolve-LibreSpotReleaseChannel {
     param(
         [Parameter(Mandatory)][string]$Version,
@@ -796,6 +950,7 @@ if ($Validate) {
     Write-Host ""
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'tools/Sync-Localization.ps1') -Validate -ScanRawStrings
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    Test-ReadmeWpfScreenshotMetadata
     exit 0
 }
 
