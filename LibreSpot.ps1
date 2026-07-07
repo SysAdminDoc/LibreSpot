@@ -4944,7 +4944,9 @@ function Update-MaintenanceStatus {
     $integration = Get-SpicetifyIntegrationContext
     $sExe = $integration.CliPath
     if (Test-Path $sExe) {
-        $tmpOut = Join-Path $global:TEMP_DIR "spicetify_ver.txt"
+        # Randomized name: a fixed spicetify_ver.txt collides when two
+        # LibreSpot instances refresh maintenance status at the same time.
+        $tmpOut = Join-Path $global:TEMP_DIR ("spicetify_ver.{0}.txt" -f [Guid]::NewGuid().ToString('N'))
         try {
             $pr = Start-Process -FilePath $sExe -ArgumentList "-v" -NoNewWindow -PassThru -RedirectStandardOutput $tmpOut -EA Stop
             if (-not $pr.WaitForExit(5000)) {

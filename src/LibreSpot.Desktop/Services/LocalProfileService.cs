@@ -661,7 +661,13 @@ public sealed class LocalProfileService
         return string.IsNullOrWhiteSpace(slug) ? "profile" : slug;
     }
 
-    private static bool IsBuiltInId(string id) => BuiltInProfiles().Any(profile => SameId(profile.Summary.Id, id));
+    // BuiltInProfiles() clones six full configurations per call; ID checks sit
+    // on the profile hot path (uniqueness loops call this per suffix attempt),
+    // so cache just the IDs once.
+    private static readonly Lazy<HashSet<string>> BuiltInIds = new(() =>
+        BuiltInProfiles().Select(profile => profile.Summary.Id).ToHashSet(StringComparer.OrdinalIgnoreCase));
+
+    private static bool IsBuiltInId(string id) => BuiltInIds.Value.Contains(id);
     private static bool SameId(string? left, string? right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 
     private static string RequiredString(JsonElement root, string property)
