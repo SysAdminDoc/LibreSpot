@@ -30,8 +30,8 @@ build machine should:
 
 ## Current State
 
-- Stable script release: v3.7.3.
-- Native WPF shell line: v4.0.0-preview.7.
+- Stable script release: v3.7.4.
+- Native WPF shell line: v4.0.0-preview.9.
 - Release pipeline now builds PS2EXE and WPF artifacts with checksums, SBOMs, and
   build provenance attestations.
 - Auto-reapply watcher, self-update checks, pre-patched Spotify detection,
@@ -496,7 +496,7 @@ pass.
   Why: Update-BackendState status/step strings are English-only by design but render inside a fully localized shell; needs a product decision (backend protocol stays EN vs. localization keys over the event protocol).
   Where: src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1, schemas/backend-event-protocol.json, src/LibreSpot.Desktop/ViewModels/MainViewModel.cs
 
-- [ ] P3 — Publish the v3.7.3 / v4.0.0-preview.7 GitHub release with the full artifact contract
+- [ ] P3 — Publish the v3.7.4 / v4.0.0-preview.9 GitHub release with the full artifact contract
   Why: version strings, changelog, and local artifacts are bumped; the release upload (PS2EXE + desktop + CLI + SBOM + manifest + checksums per release-artifact-contract.json) still needs the operator's release pass.
   Where: Build-Scripts.ps1, schemas/release-artifact-contract.json
 

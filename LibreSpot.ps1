@@ -102,7 +102,7 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
 
-$global:VERSION = '3.7.3'
+$global:VERSION = '3.7.4'
 $global:CONFIG_SCHEMA_VERSION = 1
 
 
@@ -4825,7 +4825,7 @@ function Start-SelfUpdateBannerRefresh {
 # own SpotX runs). Returns a display label or $null.
 function Get-ExistingSpotifyPatchSignature {
     if (-not (Test-Path -LiteralPath $global:SPOTIFY_EXE_PATH)) { return $null }
-    $spotifyDir = Split-Path -LiteralPath $global:SPOTIFY_EXE_PATH -Parent
+    $spotifyDir = [System.IO.Path]::GetDirectoryName($global:SPOTIFY_EXE_PATH)
 
     $signatures = @(
         @{ Path = (Join-Path $spotifyDir 'dpapi.dll');      Label = 'BlockTheSpot-family legacy patcher (dpapi.dll injected next to Spotify.exe)' }
@@ -4863,7 +4863,7 @@ function Get-SpotXPatchVerification {
         return [pscustomobject]$result
     }
 
-    $spotifyDir = Split-Path -LiteralPath $SpotifyExePath -Parent
+    $spotifyDir = [System.IO.Path]::GetDirectoryName($SpotifyExePath)
     $appsDir    = Join-Path $spotifyDir 'Apps'
     $signals    = New-Object System.Collections.Generic.List[string]
 

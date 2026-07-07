@@ -991,7 +991,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string ShellServiceStatusText => Snapshot.SpotifyInstalled || Snapshot.SpicetifyInstalled
         ? "LibreSpot stack detected"
         : "LibreSpot standby";
-    public string ShellDisplayVersion => "v4.0.0-preview.8";
+    public string ShellDisplayVersion => "v4.0.0-preview.9";
     public string ShellUpdateStatusTitle => Snapshot.SpicetifyInstalled || Snapshot.SpotifyInstalled
         ? "LibreSpot is ready"
         : "LibreSpot is up to date";

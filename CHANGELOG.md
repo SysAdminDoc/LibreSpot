@@ -2,6 +2,13 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
+## [v3.7.4] / [v4.0.0-preview.9] - 2026-07-07
+
+### Fixed
+
+- Fixed the post-SpotX verification crash under Windows PowerShell 5.1 by replacing the incompatible `Split-Path -LiteralPath ... -Parent` call with a .NET parent-directory resolver.
+- Improved WPF cleanup progress during native Spotify uninstall: the backend now logs that it is continuing after the Microsoft Store check, emits heartbeat/status updates while the native uninstaller is still running, and no longer reports a timed-out uninstaller as completed.
+
 ## [v4.0.0-preview.8] - 2026-07-07
 
 ### Changed

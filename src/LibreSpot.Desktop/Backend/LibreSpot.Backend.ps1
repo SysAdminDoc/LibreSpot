@@ -68,7 +68,7 @@ public sealed class LibreSpotNativeOutputCollector {
 
 # Keep this aligned with LibreSpot.ps1:$global:VERSION and the WPF shell's
 # csproj <Version>. The release workflow fails the build if these drift.
-$global:VERSION = '3.7.3'
+$global:VERSION = '3.7.4'
 $global:CONFIG_SCHEMA_VERSION = 1
 $global:PinnedReleases = @{
     SpotX = @{
@@ -2980,6 +2980,7 @@ function Module-NukeSpotify {
             $removedCount++
         } else {
             Write-Log 'No Microsoft Store Spotify package was detected.'
+            Write-Log 'Continuing with desktop Spotify cleanup.'
         }
     } catch {
         Write-Log "Store package removal failed: $($_.Exception.Message)" -Level 'WARN'
@@ -2995,15 +2996,31 @@ function Module-NukeSpotify {
             # interprets (&, |, ^, quote-pairs). Start-Process escapes each argument cleanly.
             $uninstaller = Start-Process -FilePath $spotifyExe -ArgumentList @('/UNINSTALL', '/SILENT') -PassThru -Wait:$false -WindowStyle Hidden -ErrorAction Stop
             if ($uninstaller) {
-                $null = $uninstaller.WaitForExit(60000)
+                Write-Log 'Native Spotify uninstaller started; waiting up to 60s before forcing file cleanup.'
+                $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+                $lastLoggedSecond = -5
+                while (-not $uninstaller.HasExited -and $stopwatch.Elapsed.TotalSeconds -lt 60) {
+                    $elapsedSeconds = [int][Math]::Floor($stopwatch.Elapsed.TotalSeconds)
+                    if ($elapsedSeconds -eq 0 -or ($elapsedSeconds - $lastLoggedSecond) -ge 5) {
+                        $lastLoggedSecond = $elapsedSeconds
+                        $progress = [Math]::Min(39, 20 + [int][Math]::Floor(($elapsedSeconds / 60.0) * 19))
+                        Update-BackendState -Progress $progress -Status "Waiting for native Spotify uninstaller ($elapsedSeconds/60s)" -Step 'Removing desktop installation'
+                        Write-Log "Native Spotify uninstaller still running (${elapsedSeconds}s elapsed; timeout 60s)."
+                    }
+                    Start-Sleep -Milliseconds 500
+                }
+
                 if (-not $uninstaller.HasExited) {
                     try { $uninstaller.Kill() } catch {}
-                    Write-Log 'Native uninstaller did not exit within 60s; it was terminated.' -Level 'WARN'
+                    try { $uninstaller.WaitForExit(5000) } catch {}
+                    Write-Log 'Native Spotify uninstaller did not exit within 60s; it was terminated and LibreSpot is continuing with forced file cleanup.' -Level 'WARN'
+                } else {
+                    Write-Log ("Native Spotify uninstaller exited after {0:N1}s." -f $stopwatch.Elapsed.TotalSeconds)
                 }
+                $stopwatch.Stop()
                 try { $uninstaller.Dispose() } catch {}
             }
             Start-Sleep -Seconds 2
-            Write-Log 'Native Spotify uninstaller completed.'
             $removedCount++
         } catch {
             Write-Log "Native uninstaller failed: $($_.Exception.Message)" -Level 'WARN'
@@ -3161,7 +3178,7 @@ function Get-SpotXPatchVerification {
         return [pscustomobject]$result
     }
 
-    $spotifyDir = Split-Path -LiteralPath $SpotifyExePath -Parent
+    $spotifyDir = [System.IO.Path]::GetDirectoryName($SpotifyExePath)
     $appsDir    = Join-Path $spotifyDir 'Apps'
     $signals    = New-Object System.Collections.Generic.List[string]
 

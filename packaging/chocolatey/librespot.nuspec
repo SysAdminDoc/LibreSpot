@@ -3,7 +3,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>librespot</id>
-    <version>3.7.3</version><!-- PLACEHOLDER - update on release -->
+    <version>3.7.4</version><!-- PLACEHOLDER - update on release -->
     <title>LibreSpot</title>
     <authors>SysAdminDoc</authors>
     <owners>SysAdminDoc</owners>
@@ -13,7 +13,7 @@
     <description>SpotX + Spicetify unified installer for Spotify customization on Windows. Easy mode applies recommended settings; Custom mode lets you pick SpotX flags, themes, and extensions individually.</description>
     <summary>One-click Spotify ad-blocking and theming installer</summary>
     <tags>spotify spicetify spotx ad-blocker themes customization</tags>
-    <releaseNotes>https://github.com/SysAdminDoc/LibreSpot/releases/tag/v3.7.3</releaseNotes>
+    <releaseNotes>https://github.com/SysAdminDoc/LibreSpot/releases/tag/v3.7.4</releaseNotes>
   </metadata>
   <files>
     <file src="tools\**" target="tools" />

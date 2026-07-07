@@ -38,7 +38,7 @@ public sealed class PackageManifestSafetyTests
         var localeManifest = ParseSimpleYaml(ReadFile("packaging/winget/SysAdminDoc.LibreSpot.locale.en-US.yaml"));
 
         Assert.Equal("SysAdminDoc.LibreSpot", versionManifest["PackageIdentifier"]);
-        Assert.Equal("3.7.3", versionManifest["PackageVersion"]);
+        Assert.Equal("3.7.4", versionManifest["PackageVersion"]);
         Assert.Equal("version", versionManifest["ManifestType"]);
 
         Assert.Equal(versionManifest["PackageIdentifier"], installerFields["PackageIdentifier"]);
@@ -57,9 +57,9 @@ public sealed class PackageManifestSafetyTests
         using var scoop = JsonDocument.Parse(ReadFile("packaging/scoop/librespot.json"));
         var root = scoop.RootElement;
 
-        Assert.Equal("3.7.3", root.GetProperty("version").GetString());
+        Assert.Equal("3.7.4", root.GetProperty("version").GetString());
         Assert.Equal("PLACEHOLDER_SHA256", root.GetProperty("hash").GetString());
-        Assert.Contains("v3.7.3/LibreSpot.exe", root.GetProperty("url").GetString(), StringComparison.Ordinal);
+        Assert.Contains("v3.7.4/LibreSpot.exe", root.GetProperty("url").GetString(), StringComparison.Ordinal);
 
         var autoupdateHashUrl = root
             .GetProperty("autoupdate")
@@ -80,7 +80,7 @@ public sealed class PackageManifestSafetyTests
             ?? throw new InvalidOperationException("Chocolatey nuspec metadata is missing.");
 
         Assert.Equal("librespot", metadata.Element(ns + "id")?.Value);
-        Assert.Equal("3.7.3", metadata.Element(ns + "version")?.Value);
+        Assert.Equal("3.7.4", metadata.Element(ns + "version")?.Value);
         Assert.Contains("PLACEHOLDER", ReadFile("packaging/chocolatey/librespot.nuspec"), StringComparison.OrdinalIgnoreCase);
 
         var installScript = ReadFile("packaging/chocolatey/tools/chocolateyInstall.ps1");
@@ -88,7 +88,7 @@ public sealed class PackageManifestSafetyTests
 
         Assert.True(checksum.Success, "Chocolatey install script must declare checksum64.");
         Assert.Equal("PLACEHOLDER_SHA256", checksum.Groups["value"].Value);
-        Assert.Contains("v3.7.3/LibreSpot.exe", installScript, StringComparison.Ordinal);
+        Assert.Contains("v3.7.4/LibreSpot.exe", installScript, StringComparison.Ordinal);
     }
 
     [Fact]

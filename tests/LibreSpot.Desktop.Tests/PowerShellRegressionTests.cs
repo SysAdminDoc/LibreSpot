@@ -78,6 +78,22 @@ public sealed class PowerShellRegressionTests
         Assert.DoesNotContain("active foreign patch", script, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void ForeignPatchSignature_UsesPowerShell51SafeParentDirectoryResolution()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var match = Regex.Match(
+            script,
+            @"function\s+Get-ExistingSpotifyPatchSignature\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(match.Success, "Get-ExistingSpotifyPatchSignature function block not found in LibreSpot.ps1.");
+        var body = match.Groups["body"].Value;
+
+        Assert.Contains("[System.IO.Path]::GetDirectoryName($global:SPOTIFY_EXE_PATH)", body);
+        Assert.DoesNotContain("Split-Path -LiteralPath", body);
+    }
+
     // ---------------------------------------------------------------------
     // Version sync — v3.5.1 stale-backend-version guard.
     // ---------------------------------------------------------------------
@@ -1503,6 +1519,27 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("'Update-SpicetifyCliProgress'", script);
     }
 
+    [Fact]
+    public void BackendCleanup_StreamsNativeUninstallerHeartbeat()
+    {
+        var script = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Module-NukeSpotify\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, "Module-NukeSpotify function block not found in backend script.");
+        var body = fnBody.Groups["body"].Value;
+
+        Assert.Contains("Continuing with desktop Spotify cleanup.", body);
+        Assert.Contains("Native Spotify uninstaller started; waiting up to 60s", body);
+        Assert.Contains("Waiting for native Spotify uninstaller", body);
+        Assert.Contains("Update-BackendState", body);
+        Assert.Contains("still running", body);
+        Assert.Contains("continuing with forced file cleanup", body);
+        Assert.DoesNotContain("Native Spotify uninstaller completed.", body);
+    }
+
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
@@ -1583,6 +1620,24 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("'Missing'", body);
         // Verdict requires BOTH the patched bundle and the backup to be present.
         Assert.Contains("$hasBackup -and $hasBundle", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void SpotXPatchVerification_UsesPowerShell51SafeParentDirectoryResolution(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Get-SpotXPatchVerification\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Get-SpotXPatchVerification function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+
+        Assert.Contains("[System.IO.Path]::GetDirectoryName($SpotifyExePath)", body);
+        Assert.DoesNotContain("Split-Path -LiteralPath", body);
     }
 
     [Theory]

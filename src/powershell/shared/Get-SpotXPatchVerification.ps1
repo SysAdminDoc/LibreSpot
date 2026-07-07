@@ -13,7 +13,7 @@ function Get-SpotXPatchVerification {
         return [pscustomobject]$result
     }
 
-    $spotifyDir = Split-Path -LiteralPath $SpotifyExePath -Parent
+    $spotifyDir = [System.IO.Path]::GetDirectoryName($SpotifyExePath)
     $appsDir    = Join-Path $spotifyDir 'Apps'
     $signals    = New-Object System.Collections.Generic.List[string]
 

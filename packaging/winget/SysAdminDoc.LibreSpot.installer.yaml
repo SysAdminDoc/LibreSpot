@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
 # DRAFT — blocked on: code signing certificate, finalized package identity
 PackageIdentifier: SysAdminDoc.LibreSpot
-PackageVersion: 3.7.3  # PLACEHOLDER — update on release
+PackageVersion: 3.7.4  # PLACEHOLDER — update on release
 MinimumOSVersion: 10.0.17763.0
 InstallerType: exe
 Scope: user
@@ -11,7 +11,7 @@ InstallerSwitches:
   SilentWithProgress: "-Easy"
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/SysAdminDoc/LibreSpot/releases/download/v3.7.3/LibreSpot.exe
+    InstallerUrl: https://github.com/SysAdminDoc/LibreSpot/releases/download/v3.7.4/LibreSpot.exe
     InstallerSha256: PLACEHOLDER_SHA256
     ProductCode: LibreSpot
 ManifestType: installer
