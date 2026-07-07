@@ -519,9 +519,28 @@ public sealed class MainViewModelMaintenanceTests
 
         public void Dispose()
         {
-            if (Directory.Exists(Root))
+            // Background work kicked off by the viewmodel (share-card refresh,
+            // QR generation) can briefly hold a profile file open when the
+            // test body finishes; retry instead of flaking the test, and never
+            // fail it over %TEMP% cleanup.
+            for (var attempt = 0; attempt < 5; attempt++)
             {
-                Directory.Delete(Root, recursive: true);
+                try
+                {
+                    if (Directory.Exists(Root))
+                    {
+                        Directory.Delete(Root, recursive: true);
+                    }
+                    return;
+                }
+                catch (IOException)
+                {
+                    Thread.Sleep(100);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    Thread.Sleep(100);
+                }
             }
         }
     }
