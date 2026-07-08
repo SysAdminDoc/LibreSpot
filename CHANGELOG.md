@@ -19,6 +19,8 @@ the version and recaptures WPF screenshots (both operator/UI-gated).
 
 - The read-only log/terminal `TextBox` (`LogTextBoxStyle`) is a keyboard tab stop but its restyled template dropped the platform focus visual, so sighted keyboard users got no focus indicator when they tabbed into it (WCAG 2.2 SC 2.4.7). It now shows an accent focus ring when keyboard-focused.
 
+- Localization sync gate (`tools/Sync-Localization.ps1`, also run by `Build-Scripts.ps1 -Validate`) now rejects format-placeholder mismatches: a translated string whose set of `{0}`/`{1}`/… indices differs from the English source is caught at build time instead of crashing `string.Format` at runtime. Placeholders may be reordered for grammar but not dropped, added, or renumbered. Documented the translation workflow in `.github/CONTRIBUTING.md`.
+
 ### Tests
 
 - Added an accessibility guard (`AutomationNameContractTests`) that fails the build if any interactive control in `MainWindow.xaml` loses its UIA-discoverable name (`AutomationProperties.Name`/`Content`/`Header`/`LabeledBy`), and that pins the `LiveRegionContentControl` polite live-region peer. All 77 interactive controls currently comply; the test locks that in against regression (WCAG 2.2 4.1.2).

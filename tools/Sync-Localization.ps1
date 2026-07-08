@@ -42,6 +42,26 @@ function Save-PrefilledResx {
     Write-Host "Prefilled missing $Culture resource file from source strings." -ForegroundColor Yellow
 }
 
+function Get-FormatPlaceholderIndices {
+    # Returns the set of distinct numbered .NET composite-format placeholder
+    # indices ({0}, {1,-8}, {2:X}, ...) in a resource value, ignoring escaped
+    # braces ({{ and }}). A translation whose placeholder set differs from the
+    # source throws FormatException at runtime, so this is a hard gate.
+    param([string]$Value)
+
+    $indices = [System.Collections.Generic.HashSet[int]]::new()
+    if ([string]::IsNullOrEmpty($Value)) { return , $indices }
+
+    $stripped = $Value -replace '\{\{', '' -replace '\}\}', ''
+    foreach ($match in [regex]::Matches($stripped, '\{(\d+)(?:[,:][^}]*)?\}')) {
+        $null = $indices.Add([int]$match.Groups[1].Value)
+    }
+    # Comma operator: return the HashSet as a single object rather than letting
+    # PowerShell enumerate it into the pipeline (which would collapse a single
+    # index to a scalar int and break .Contains()).
+    return , $indices
+}
+
 function Test-RawXamlStrings {
     $xamlPath = Join-Path $repoRoot 'src/LibreSpot.Desktop/MainWindow.xaml'
     $content = [System.IO.File]::ReadAllText($xamlPath, [System.Text.Encoding]::UTF8)
@@ -116,6 +136,19 @@ foreach ($culture in $cultures) {
         $targetTerminators = [regex]::Matches($targetValue, $terminatorPattern).Count
         if ($targetTerminators -lt $sourceTerminators) {
             $failures.Add("Strings.$culture.resx key '$key' looks truncated: $targetTerminators sentence terminator(s) vs $sourceTerminators in the source value")
+        }
+
+        # Placeholder integrity: the target must use the same set of {N} indices
+        # as the source, or string.Format throws FormatException at runtime.
+        $sourceIndices = Get-FormatPlaceholderIndices -Value $sourceValue
+        $targetIndices = Get-FormatPlaceholderIndices -Value $targetValue
+        $missingIndices = @($sourceIndices | Where-Object { -not $targetIndices.Contains($_) } | Sort-Object)
+        $extraIndices = @($targetIndices | Where-Object { -not $sourceIndices.Contains($_) } | Sort-Object)
+        if ($missingIndices.Count -gt 0 -or $extraIndices.Count -gt 0) {
+            $detail = @()
+            if ($missingIndices.Count -gt 0) { $detail += "missing {$($missingIndices -join '}, {')}" }
+            if ($extraIndices.Count -gt 0) { $detail += "extra {$($extraIndices -join '}, {')}" }
+            $failures.Add("Strings.$culture.resx key '$key' has a format-placeholder mismatch ($($detail -join '; ')) - this would crash string.Format at runtime")
         }
     }
 
