@@ -3280,6 +3280,47 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 RefreshUndoActionItems();
             }
         }
+
+        if (ExitAfterSuccessfulSetup && runSucceeded && ShouldExitAfterSuccessfulRun(action, configuration))
+        {
+            ScheduleApplicationExit();
+        }
+    }
+
+    /// <summary>
+    /// When true, the shell closes itself after a completed setup/change run.
+    /// Off by default so unit tests and the UI-automation smoke view model never
+    /// trigger a shutdown; only the real runtime window opts in.
+    /// </summary>
+    public bool ExitAfterSuccessfulSetup { get; set; }
+
+    // A completed setup/change operation (the same set that restarts Spotify)
+    // leaves the user done with LibreSpot, so the shell closes itself. Read-only
+    // or continue-working actions (Check Updates, backups, watcher toggles) keep
+    // the window open.
+    private static bool ShouldExitAfterSuccessfulRun(string action, InstallConfiguration? configuration) =>
+        ShouldRestartSpotifyAfterSuccessfulRun(action, configuration);
+
+    private void ScheduleApplicationExit()
+    {
+        if (Application.Current is null)
+        {
+            // Headless (no WPF Application) — nothing to close.
+            return;
+        }
+
+        AppendLog("Setup complete — LibreSpot will close.", "INFO");
+        ActivityStep = "Closing LibreSpot";
+
+        // Let the completion state render and the reopened Spotify settle for a
+        // moment, then shut the shell down on the UI thread.
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            try { Application.Current?.Shutdown(); } catch { }
+        };
+        timer.Start();
     }
 
     private async Task RestartSpotifyAfterSuccessfulRunAsync(

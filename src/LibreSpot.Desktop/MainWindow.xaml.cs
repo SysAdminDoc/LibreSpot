@@ -71,6 +71,13 @@ public partial class MainWindow : Window
                     storeSpotifyProbe: EnvironmentSnapshotService.QueryStoreSpotifyPresent))
             : CreateUiAutomationSmokeViewModel(_uiAutomationSmokeCulture);
 
+        // The real runtime shell closes itself after a completed setup/change
+        // run; the UI-automation smoke view model stays open for screenshots.
+        if (string.IsNullOrWhiteSpace(_uiAutomationSmokeState))
+        {
+            _viewModel.ExitAfterSuccessfulSetup = true;
+        }
+
         DataContext = _viewModel;
         SourceInitialized += MainWindow_SourceInitialized;
         Loaded += MainWindow_Loaded;

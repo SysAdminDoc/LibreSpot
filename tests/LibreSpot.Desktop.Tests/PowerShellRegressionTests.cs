@@ -1868,6 +1868,28 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("'Get-SpotXDownloadRetryPlan'", exportBlock.Groups["list"].Value);
     }
 
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    [InlineData("src/powershell/shared/Module-InstallSpotX.ps1")]
+    public void InstallSpotX_ForceClosesSpotifyBeforeTheFirstLaunch(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Module-InstallSpotX\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fnBody.Success, $"Module-InstallSpotX function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+
+        // The first config-generation launch must force-close any running
+        // Spotify before reopening, so it starts from a clean patched process.
+        var killIndex = body.IndexOf("Force-closing any running Spotify", StringComparison.Ordinal);
+        var launchIndex = body.IndexOf("Start-Process -FilePath 'explorer.exe'", StringComparison.Ordinal);
+        Assert.True(killIndex >= 0, "Force-close step missing before the first Spotify launch.");
+        Assert.True(launchIndex > killIndex, "Force-close must run before the Spotify launch.");
+    }
+
     // ---------------------------------------------------------------------
     // CVE-2025-54100: Windows PowerShell 5.1 web-content RCE (CVSS 7.8, fixed
     // in the December 2025 Windows cumulative updates). SHA256 pinning protects

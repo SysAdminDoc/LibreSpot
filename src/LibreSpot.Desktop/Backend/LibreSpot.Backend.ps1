@@ -3468,6 +3468,11 @@ function Module-InstallSpotX { param($Config,$SyncHash)
             }
             Write-Log "Launching Spotify (hidden) to generate config files..."
             if (Test-Path $global:SPOTIFY_EXE_PATH) {
+                # Force-close any Spotify the user (or SpotX) left running so this
+                # first launch starts from a clean, freshly patched process, then
+                # reopen it to generate the config files.
+                Write-Log "Force-closing any running Spotify before the first launch..."
+                Stop-SpotifyProcesses -maxAttempts 5
                 Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
                 Start-Sleep -Milliseconds 800
                 Hide-SpotifyWindows
