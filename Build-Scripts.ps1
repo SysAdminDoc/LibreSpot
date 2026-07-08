@@ -984,6 +984,36 @@ if ($Validate) {
         Write-Host ""
     }
 
+    # --- Critical data-block parity check ---
+    $dataBlockPatterns = @(
+        @{ Name = 'PinnedReleases'; Pattern = '(?ms)\$global:PinnedReleases\s*=\s*@\{.+?^\}' }
+    )
+    $dataBlockDrift = @()
+    foreach ($block in $dataBlockPatterns) {
+        $mainMatch = [regex]::Match($mainContent, $block.Pattern)
+        $backendMatch = [regex]::Match($backendContent, $block.Pattern)
+        if ($mainMatch.Success -and $backendMatch.Success) {
+            $mainNorm = ConvertTo-NormalizedFunctionBody -Body $mainMatch.Value
+            $backendNorm = ConvertTo-NormalizedFunctionBody -Body $backendMatch.Value
+            if ($mainNorm -ne $backendNorm) {
+                $dataBlockDrift += $block.Name
+            }
+        } elseif ($mainMatch.Success -ne $backendMatch.Success) {
+            $dataBlockDrift += "$($block.Name) (present in one script but not the other)"
+        }
+    }
+    if ($dataBlockDrift.Count -gt 0) {
+        Write-Host "=== CRITICAL DATA BLOCK DRIFT ===" -ForegroundColor Red
+        foreach ($d in $dataBlockDrift) { Write-Host "  $d" -ForegroundColor Red }
+        Write-Host ""
+        Write-Host "PinnedReleases, SHA256 hashes, or version manifests differ between scripts." -ForegroundColor Red
+        Write-Host "Users on different lanes will download different (potentially incompatible) versions." -ForegroundColor Red
+        Write-Host ""
+        exit 1
+    }
+    Write-Host "Critical data blocks (PinnedReleases) are in sync." -ForegroundColor Green
+    Write-Host ""
+
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'tools/Sync-Localization.ps1') -Validate -ScanRawStrings
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Test-ReadmeWpfScreenshotMetadata
