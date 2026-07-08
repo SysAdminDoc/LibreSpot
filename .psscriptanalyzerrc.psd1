@@ -66,5 +66,9 @@
             Enable         = $true
             TargetVersions = @('5.1', '7.6')
         }
+        # PSUseCompatibleCommands is intentionally omitted: the monolith defines
+        # 162 project functions (Write-Log, Module-*, etc.) and the rule flags
+        # every call as "not available by default" with no project-function
+        # allowlist. PSUseCompatibleSyntax above catches the real 5.1/7.x breaks.
     }
 }
