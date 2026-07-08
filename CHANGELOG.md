@@ -2,7 +2,7 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
-## [v3.7.4] / [v4.0.0-preview.9] - 2026-07-07
+## [v3.7.4] / [v4.0.0-preview.10] - 2026-07-07
 
 ### Fixed
 
