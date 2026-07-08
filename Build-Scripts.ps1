@@ -562,7 +562,7 @@ function New-LibreSpotReleaseManifest {
 
     $manifest = [ordered]@{
         schemaVersion    = 1
-        contractVersion  = [int]$contract.contractVersion
+        contractVersion  = [int]$contract.schemaVersion
         generatedAtUtc   = [DateTime]::UtcNow.ToString('o')
         generator        = 'Build-Scripts.ps1'
         version          = $Version

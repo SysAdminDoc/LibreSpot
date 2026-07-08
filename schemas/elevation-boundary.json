@@ -1,6 +1,6 @@
 {
   "$comment": "Elevation boundary matrix — classifies every user-facing action by admin requirement. Non-mutating workflows run without elevation; mutating workflows prompt on execution.",
-  "boundaryVersion": 1,
+  "schemaVersion": 1,
   "executionLevel": {
     "powershellScript": "requireAdministrator",
     "ps2exeCompiled": "requireAdministrator",

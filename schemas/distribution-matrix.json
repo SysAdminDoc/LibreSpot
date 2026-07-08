@@ -1,6 +1,6 @@
 {
   "$comment": "Distribution channel matrix — tracks every release channel, its artifact, status, and blocking decisions.",
-  "matrixVersion": 1,
+  "schemaVersion": 1,
   "channels": [
     {
       "channel": "github-releases",

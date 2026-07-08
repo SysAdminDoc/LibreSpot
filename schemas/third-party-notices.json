@@ -1,6 +1,6 @@
 {
   "$comment": "Third-party notices manifest — tracks every dependency, bundled tool, and retrieved asset with license and redistribution metadata. Operator decisions for copyleft/unknown licenses are tracked via the redistributionPosture field.",
-  "noticesVersion": 1,
+  "schemaVersion": 1,
   "projectLicense": "MIT",
   "categories": {
     "runtime": "Ships with or is executed by the released artifact",

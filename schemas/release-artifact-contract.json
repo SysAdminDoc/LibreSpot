@@ -1,6 +1,6 @@
 {
   "$comment": "Release artifact contract — defines expected assets, checksums, signing, and local verification state per release channel. The local post-upload audit should verify the published release matches this contract.",
-  "contractVersion": 1,
+  "schemaVersion": 1,
   "tagPatterns": {
     "stable": "^v\\d+\\.\\d+\\.\\d+$",
     "preview": "^v\\d+\\.\\d+\\.\\d+-preview\\.\\d+$",

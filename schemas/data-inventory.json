@@ -1,6 +1,6 @@
 {
   "$comment": "Local data security and retention inventory — names every LibreSpot-owned file location, its sensitivity, retention, export behavior, and redaction rules.",
-  "inventoryVersion": 1,
+  "schemaVersion": 1,
   "dataLocations": [
     {
       "id": "config",
