@@ -27,6 +27,8 @@
   <Color x:Key="Surface3Color">#17241F</Color>
   <Color x:Key="SurfaceRaisedColor">#203129</Color>
   <Color x:Key="RailColor">#080D0C</Color>
+  <Color x:Key="HeroStartColor">#14231D</Color>
+  <Color x:Key="HeroEndColor">#0B1110</Color>
 
   <!-- ═══ Strokes ═══ -->
   <Color x:Key="StrokeColor">#22332D</Color>
@@ -79,6 +81,8 @@
        Win11 22621+ composites the backdrop under transparent window surfaces. -->
   <SolidColorBrush x:Key="MicaCanvasBrush" Color="Transparent" />
   <SolidColorBrush x:Key="RailBrush" Color="{StaticResource RailColor}" />
+  <SolidColorBrush x:Key="HeroStartBrush" Color="{StaticResource HeroStartColor}" />
+  <SolidColorBrush x:Key="HeroEndBrush" Color="{StaticResource HeroEndColor}" />
 
   <SolidColorBrush x:Key="PanelBrush" Color="{StaticResource Surface1Color}" />
   <SolidColorBrush x:Key="PanelStrongBrush" Color="{StaticResource Surface2Color}" />
@@ -159,6 +163,18 @@
 
   <LinearGradientBrush x:Key="AccentGradientBrush" StartPoint="0,0" EndPoint="1,1">
     <GradientStop Color="{DynamicResource AccentHoverColor}" Offset="0" />
+    <GradientStop Color="{DynamicResource AccentDeepColor}" Offset="1" />
+  </LinearGradientBrush>
+
+  <LinearGradientBrush x:Key="HeroPanelBrush" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Color="{DynamicResource HeroStartColor}" Offset="0" />
+    <GradientStop Color="{DynamicResource Surface2Color}" Offset="0.58" />
+    <GradientStop Color="{DynamicResource HeroEndColor}" Offset="1" />
+  </LinearGradientBrush>
+
+  <LinearGradientBrush x:Key="HeroRingBrush" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Color="{DynamicResource AccentHoverColor}" Offset="0" />
+    <GradientStop Color="{DynamicResource AccentColor}" Offset="0.62" />
     <GradientStop Color="{DynamicResource AccentDeepColor}" Offset="1" />
   </LinearGradientBrush>
 

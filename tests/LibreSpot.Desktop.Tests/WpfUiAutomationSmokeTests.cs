@@ -72,6 +72,7 @@ public sealed class WpfUiAutomationSmokeTests
     [Theory]
     [InlineData("prompt", "PromptCancelButton", "PromptConfirmButton")]
     [InlineData("activity", "ActivityOpenLibreSpotFolderButton", "ActivityCloseButton")]
+    [InlineData("activity-running", "ActivityOpenLibreSpotFolderButton", "ActivityCancelRunButton")]
     [InlineData("activity-error", "ActivityExportFailureBundleButton", "ActivityCloseButton")]
     [InlineData("activity-undo", "ActivityOpenLibreSpotFolderButton", "ActivityCloseButton")]
     public void WpfShell_UiaOverlaysKeepFocusableActionBoundaries(string state, string firstActionId, string secondActionId)

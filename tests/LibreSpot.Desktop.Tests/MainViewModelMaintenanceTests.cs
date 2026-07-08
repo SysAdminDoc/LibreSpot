@@ -406,6 +406,60 @@ public sealed class MainViewModelMaintenanceTests
             Assert.False(viewModel.IsPromptConfirmDefault);
         });
 
+    [Fact]
+    public Task SuccessfulInstallRun_RestartsSpotifyWhenLaunchAfterIsEnabled() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            fixture.WriteSpotify(withSpotXMarkers: true);
+            var spotifyProcessService = new RecordingSpotifyProcessService();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync(
+                spotifyProcessService: spotifyProcessService,
+                noBackendMode: true);
+            var configuration = AppCatalog.CreateRecommendedConfiguration();
+            configuration.LaunchAfter = true;
+
+            await InvokePrivateTask(
+                viewModel,
+                "StartBackendRunAsync",
+                "Install",
+                configuration,
+                "Install",
+                "Installing",
+                0,
+                false);
+
+            Assert.Equal(1, spotifyProcessService.RestartCalls);
+            Assert.Equal(TimeSpan.FromSeconds(3), spotifyProcessService.LastReopenDelay);
+            Assert.Equal("Spotify reopened", viewModel.ActivityStep);
+            Assert.Contains(viewModel.LogEntries, entry => entry.Message.Contains("fresh client session", StringComparison.OrdinalIgnoreCase));
+        });
+
+    [Fact]
+    public Task SuccessfulInstallRun_RespectsLaunchAfterDisabled() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            var spotifyProcessService = new RecordingSpotifyProcessService();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync(
+                spotifyProcessService: spotifyProcessService,
+                noBackendMode: true);
+            var configuration = AppCatalog.CreateRecommendedConfiguration();
+            configuration.LaunchAfter = false;
+
+            await InvokePrivateTask(
+                viewModel,
+                "StartBackendRunAsync",
+                "Install",
+                configuration,
+                "Install",
+                "Installing",
+                0,
+                false);
+
+            Assert.Equal(0, spotifyProcessService.RestartCalls);
+        });
+
     private static MaintenanceActionCardViewModel Card(MainViewModel viewModel, string action) =>
         viewModel.SafeMaintenanceActions
             .Concat(viewModel.DestructiveMaintenanceActions)
@@ -498,11 +552,13 @@ public sealed class MainViewModelMaintenanceTests
 
         public async Task<MainViewModel> CreateInitializedViewModelAsync(
             string? spotifyVersion = null,
-            string? spicetifyVersion = null)
+            string? spicetifyVersion = null,
+            ISpotifyProcessService? spotifyProcessService = null,
+            bool noBackendMode = false)
         {
             var viewModel = new MainViewModel(
                 new ConfigurationService(ConfigDirectory),
-                new BackendScriptService(RuntimeDirectory),
+                new BackendScriptService(RuntimeDirectory, noBackendMode),
                 new EnvironmentSnapshotService(
                     autoReapplyTaskProbe: () => false,
                     spotifyPath: SpotifyPath,
@@ -513,7 +569,8 @@ public sealed class MainViewModelMaintenanceTests
                     crashDirectory: CrashDirectory,
                     spotifyVersionProbe: () => spotifyVersion,
                     spicetifyVersionProbe: () => spicetifyVersion),
-                new SupportBundleService(ConfigDirectory, RollingLogDirectory, CrashDirectory));
+                new SupportBundleService(ConfigDirectory, RollingLogDirectory, CrashDirectory),
+                spotifyProcessService: spotifyProcessService);
 
             await viewModel.InitializeAsync();
             return viewModel;
@@ -610,6 +667,22 @@ public sealed class MainViewModelMaintenanceTests
                     Thread.Sleep(100);
                 }
             }
+        }
+    }
+
+    private sealed class RecordingSpotifyProcessService : ISpotifyProcessService
+    {
+        public int RestartCalls { get; private set; }
+        public TimeSpan? LastReopenDelay { get; private set; }
+
+        public Task<SpotifyRestartResult> RestartAsync(
+            string? preferredSpotifyPath,
+            TimeSpan reopenDelay,
+            CancellationToken cancellationToken)
+        {
+            RestartCalls++;
+            LastReopenDelay = reopenDelay;
+            return Task.FromResult(new SpotifyRestartResult(true, "Spotify was closed and reopened after the run completed."));
         }
     }
 }

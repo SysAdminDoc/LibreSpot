@@ -61,18 +61,11 @@ public sealed class DesktopCancellationRegressionTests
     }
 
     [Fact]
-    public void CancelPrompt_UsesSharedBackendCancellationPath()
+    public void CancelRunCommand_UsesSharedBackendCancellationPathImmediately()
     {
         var source = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
-        var method = Regex.Match(
-            source,
-            @"private\s+void\s+PresentCancelRunPrompt\s*\(\)\s*\{(?<body>.+?)^\s*public\s+void\s+PresentCloseWhileRunningPrompt",
-            RegexOptions.Singleline | RegexOptions.Multiline);
 
-        Assert.True(method.Success, "PresentCancelRunPrompt method not found.");
-        var body = method.Groups["body"].Value;
-
-        Assert.Contains("CancelRunningBackend();", body);
-        Assert.DoesNotContain("_runCts?.Cancel()", body);
+        Assert.Contains("CancelRunCommand = new RelayCommand(CancelRunningBackend, () => IsRunning && !IsCancelRequested);", source);
+        Assert.DoesNotContain("PresentCancelRunPrompt", source);
     }
 }

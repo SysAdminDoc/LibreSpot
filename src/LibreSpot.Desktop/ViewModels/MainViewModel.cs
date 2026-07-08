@@ -621,6 +621,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly LocalProfileService _profileService;
     private readonly CustomPatchService _customPatchService;
     private readonly LocalizationService _localizationService;
+    private readonly ISpotifyProcessService _spotifyProcessService;
     private readonly ActivityRunStateViewModel _activityState = new();
     private ActivityOutcome _activityOutcome = ActivityOutcome.None;
     private readonly CustomOptionEditorStateViewModel _customOptions;
@@ -679,7 +680,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OperationJournalUndoService? operationJournalUndoService = null,
         LocalProfileService? profileService = null,
         CustomPatchService? customPatchService = null,
-        LocalizationService? localizationService = null)
+        LocalizationService? localizationService = null,
+        ISpotifyProcessService? spotifyProcessService = null)
     {
         _configurationService = configurationService;
         _backendScriptService = backendScriptService;
@@ -689,6 +691,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _profileService = profileService ?? new LocalProfileService(configurationService);
         _customPatchService = customPatchService ?? new CustomPatchService();
         _localizationService = localizationService ?? LocalizationService.Current;
+        _spotifyProcessService = spotifyProcessService ?? new SpotifyProcessService();
         _customPatchValidation = _customPatchService.Validate(string.Empty, enabled: false);
         _selectedLocalizationOption = LocalizationService.SupportedCultures.First(option =>
             string.Equals(option.CultureName, _localizationService.CultureName, StringComparison.OrdinalIgnoreCase));
@@ -732,7 +735,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         ApplyRecommendedCommand = CreateAsyncCommand(ApplyRecommendedAsync, () => !IsRunning);
         ApplyCustomCommand = CreateAsyncCommand(ApplyCustomAsync, () => !IsRunning);
-        CancelRunCommand = new RelayCommand(PresentCancelRunPrompt, () => IsRunning && !IsCancelRequested);
+        CancelRunCommand = new RelayCommand(CancelRunningBackend, () => IsRunning && !IsCancelRequested);
         DismissActivityCommand = new RelayCommand(DismissActivity, () => IsActivityVisible && !IsRunning);
         CopyLogCommand = new RelayCommand(CopyLog, () => LogEntries.Count > 0);
         ClearLogCommand = new RelayCommand(ClearLog, () => LogEntries.Count > 0);
@@ -1000,14 +1003,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? Strings.AdminStepNeeded
             : HasCriticalHealthIssues
                 ? Strings.RunNeedsAttention
-                : HasWarningHealthIssues
-                    ? L("Vm_ShellReviewWarnings")
-                    : L("Vm_ShellReadyToPatch");
+                : L("Vm_ShellReadyToPatch");
 
     public string ShellReadinessDetail =>
         NeedsAdministratorRelaunch
             ? Strings.AdminStepDescription
-            : HasCriticalHealthIssues || HasWarningHealthIssues
+            : HasCriticalHealthIssues
                 ? HealthIssueSummary
                 : L("Vm_ShellNoBlockingIssues");
 
@@ -1033,7 +1034,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string ShellServiceStatusText => Snapshot.SpotifyInstalled || Snapshot.SpicetifyInstalled
         ? L("Vm_ShellServiceDetected")
         : L("Vm_ShellServiceStandby");
-    public string ShellDisplayVersion => "v4.0.0-preview.11";
+    public string ShellDisplayVersion => "v4.0.0-preview.12";
     public string ShellUpdateStatusTitle => Snapshot.SpicetifyInstalled || Snapshot.SpotifyInstalled
         ? L("Vm_ShellUpdateReady")
         : L("Vm_ShellUpdateCurrent");
@@ -1137,7 +1138,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ];
 
     private string ShellReadinessTone =>
-        NeedsAdministratorRelaunch || HasWarningHealthIssues
+        NeedsAdministratorRelaunch
             ? HealthSeverity.Warning
             : HasCriticalHealthIssues
                 ? HealthSeverity.Critical
@@ -3842,6 +3843,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             else
             {
                 runSucceeded = true;
+                await RestartSpotifyAfterSuccessfulRunAsync(action, configuration, token);
             }
         }
         catch (OperationCanceledException)
@@ -3873,6 +3875,39 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
         }
     }
+
+    private async Task RestartSpotifyAfterSuccessfulRunAsync(
+        string action,
+        InstallConfiguration? configuration,
+        CancellationToken cancellationToken)
+    {
+        if (!ShouldRestartSpotifyAfterSuccessfulRun(action, configuration))
+        {
+            return;
+        }
+
+        ActivityStatus = "Restarting Spotify";
+        ActivityStep = "Closing spotify.exe";
+        AppendLog("Restarting Spotify so the completed changes load in a fresh client session.", "INFO");
+
+        var result = await _spotifyProcessService.RestartAsync(
+            HealthComponent("spotify")?.Path,
+            TimeSpan.FromSeconds(3),
+            cancellationToken);
+
+        AppendLog(result.Message, result.Reopened ? "INFO" : "WARN");
+        ActivityStatus = Strings.RunComplete;
+        ActivityStep = result.Reopened ? "Spotify reopened" : "Spotify restart skipped";
+        ProgressValue = 100;
+    }
+
+    private static bool ShouldRestartSpotifyAfterSuccessfulRun(string action, InstallConfiguration? configuration) =>
+        action switch
+        {
+            "Install" => configuration?.LaunchAfter ?? true,
+            "Reapply" or "RepairMarketplace" or "SafeMode" or "RestoreBackup" or "RestoreVanilla" => true,
+            _ => false
+        };
 
     /// <summary>
     /// Requests cancellation of an in-flight backend run. Safe to call during window
@@ -3993,30 +4028,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     private void RaiseSnapshotFreshnessChanged() => _environmentState.RefreshFreshness();
-
-    private void PresentCancelRunPrompt()
-    {
-        if (!IsRunning || IsCancelRequested)
-        {
-            return;
-        }
-
-        ShowPrompt(
-            "Cancel Current Run?",
-            "LibreSpot will stop the backend process and keep the progress log collected so far." +
-            Environment.NewLine + Environment.NewLine +
-            "Partial changes may already exist, so reapplying afterward is usually the cleanest recovery path.",
-            "Cancel run",
-            "Keep running",
-            true,
-            () =>
-            {
-                CancelRunningBackend();
-                return Task.CompletedTask;
-            },
-            "If you stop here",
-            "LibreSpot keeps the current log. Review it first, then rerun Recommended or Reapply if Spotify looks inconsistent.");
-    }
 
     public void PresentCloseWhileRunningPrompt(Func<Task> confirmAction)
     {
@@ -4375,6 +4386,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                     Strings.RunComplete,
                     Strings.ProgressSpotifyReady);
                 ProgressValue = 100;
+                break;
+            case "activity-running":
+                SelectedWorkspaceIndex = 0;
+                _activityOutcome = ActivityOutcome.None;
+                _activityState.Begin(
+                    Strings.ActivityDialogName,
+                    Strings.StatusInProgress,
+                    Strings.PreparingBackend);
+                ProgressValue = 42;
+                AppendLog("UI automation smoke active run.", "INFO");
                 break;
             case "activity-error":
                 SelectedWorkspaceIndex = 0;

@@ -145,6 +145,7 @@ public partial class MainWindow : Window
                     await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
                     await Task.Delay(300);
                     SaveUiAutomationCapture(_uiAutomationCapturePath);
+                    _allowCloseWhileRunning = true;
                     Close();
                     return;
                 }

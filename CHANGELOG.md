@@ -2,6 +2,15 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
+## [v4.0.0-preview.12] - 2026-07-08
+
+### Fixed
+
+- Made active WPF runs cancellable directly from the activity panel instead of routing through a second prompt that could leave Continue as the only enabled action.
+- Restarted Spotify after successful patch, reapply, repair, restore-backup, safe-mode, or restore-vanilla runs so completed changes load in a fresh client session.
+- Removed main-page warning and repair-note blocks from the WPF readiness sidebar while keeping detailed diagnostics in Maintenance and support bundles.
+- Refined the WPF shell with a premium command-center hero, larger readiness meter, stronger status hierarchy, and an active-run Cancel affordance that remains visible while work is running.
+
 ## [v3.7.4] / [v4.0.0-preview.11] - 2026-07-08
 
 ### Fixed
@@ -42,7 +51,7 @@ All notable changes to LibreSpot will be documented in this file.
 ### Changed
 
 - Rebuilt the WPF desktop preview into a three-column command center: left setup/recovery rail, compact stack-health row, center workspace, right readiness/trust inspector, and persistent activity/log footer.
-- Refreshed the desktop palette toward the imagegen concept with deeper graphite surfaces, brighter green action affordances, quieter strokes, and stronger status contrast.
+- Refreshed the desktop palette with deeper graphite surfaces, brighter green action affordances, quieter strokes, and stronger status contrast.
 - Replaced visible workspace tabs with rail navigation while keeping keyboard/UIA workspace switching covered by smoke tests.
 - Recaptured all README WPF screenshots from deterministic smoke states.
 
