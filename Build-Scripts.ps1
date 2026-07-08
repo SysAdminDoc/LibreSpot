@@ -27,6 +27,7 @@ param(
     [switch]$Inventory,
     [switch]$Lint,
     [switch]$SyncSharedToBackend,
+    [switch]$SyncSharedToMain,
     [switch]$GenerateReleaseManifest,
     [string]$ReleaseRoot,
     [string]$ReleaseVersion,
@@ -1105,10 +1106,68 @@ if ($SyncSharedToBackend) {
     exit 0
 }
 
+if ($SyncSharedToMain) {
+    $sharedDir = Join-Path $PSScriptRoot 'src/powershell/shared'
+    if (-not (Test-Path -LiteralPath $sharedDir)) {
+        throw "Shared source directory not found at $sharedDir"
+    }
+
+    $sharedFiles = Get-ChildItem -Path $sharedDir -Filter '*.ps1' -File | Sort-Object Name
+    if ($sharedFiles.Count -eq 0) {
+        throw "No .ps1 files found in $sharedDir"
+    }
+
+    Write-Host "Syncing shared functions to standalone script..." -ForegroundColor Cyan
+    Write-Host "  Source:     $sharedDir ($($sharedFiles.Count) files)" -ForegroundColor Gray
+    Write-Host "  Target:     $mainScript" -ForegroundColor Gray
+    Write-Host "  Exclusions: $($laneSpecificFunctions.Count) lane-specific functions" -ForegroundColor Gray
+    Write-Host ""
+
+    $mainContentForSync = [System.IO.File]::ReadAllText($mainScript, [System.Text.Encoding]::UTF8)
+    $updatedCount = 0
+    $skippedCount = 0
+    $excludedCount = 0
+
+    foreach ($file in $sharedFiles) {
+        $fnName = $file.BaseName
+
+        if ($laneSpecificFunctions -contains $fnName) {
+            Write-Host "  EXCL $fnName (lane-specific)" -ForegroundColor DarkGray
+            $excludedCount++
+            continue
+        }
+
+        $sharedBody = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
+
+        $existingBody = Get-FunctionBody -ScriptContent $mainContentForSync -FunctionName $fnName
+        if (-not $existingBody) {
+            Write-Host "  SKIP $fnName (not found in main script)" -ForegroundColor Yellow
+            $skippedCount++
+            continue
+        }
+
+        $sharedNorm = ConvertTo-NormalizedFunctionBody -Body $sharedBody
+        $existingNorm = ConvertTo-NormalizedFunctionBody -Body $existingBody
+
+        if ($sharedNorm -ne $existingNorm) {
+            $mainContentForSync = $mainContentForSync.Replace($existingBody, $sharedBody.TrimEnd())
+            Write-Host "  UPDATED $fnName" -ForegroundColor Green
+            $updatedCount++
+        }
+    }
+
+    if ($updatedCount -gt 0) {
+        [System.IO.File]::WriteAllText($mainScript, $mainContentForSync, $utf8Bom)
+    }
+    Write-Host "`n$updatedCount synced, $excludedCount excluded (lane-specific), $skippedCount skipped (not in main)." -ForegroundColor Green
+    exit 0
+}
+
 # Default: show usage
 Write-Host "Usage:"
 Write-Host "  pwsh -File Build-Scripts.ps1 -Validate             # Check shared functions for drift"
 Write-Host "  pwsh -File Build-Scripts.ps1 -Inventory             # List all functions and their locations"
 Write-Host "  pwsh -File Build-Scripts.ps1 -Lint                   # Run PSScriptAnalyzer on both scripts"
 Write-Host "  pwsh -File Build-Scripts.ps1 -SyncSharedToBackend   # Copy shared function sources into backend"
+Write-Host "  pwsh -File Build-Scripts.ps1 -SyncSharedToMain      # Copy shared function sources into standalone script"
 Write-Host "  pwsh -File Build-Scripts.ps1 -DependencyHealth       # Emit dependency-health JSON and fail unapproved drift"
