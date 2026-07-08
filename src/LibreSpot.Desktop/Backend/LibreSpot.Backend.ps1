@@ -3114,49 +3114,7 @@ function Module-NukeSpotify {
         }
     } catch { Write-Log "Provisioned package removal skipped: $($_.Exception.Message)" -Level 'WARN' }
 
-    Update-BackendState -Progress 20 -Status 'Running the native Spotify uninstaller' -Step 'Removing desktop installation'
-    $spotifyExe = Join-Path $env:APPDATA 'Spotify\Spotify.exe'
-    if (Test-Path -LiteralPath $spotifyExe) {
-        try {
-            Unlock-SpotifyUpdateFolder
-            # Use Start-Process with an array argument list instead of `cmd /c "quoted string"`.
-            # The cmd form breaks if the username or path contains metacharacters that cmd
-            # interprets (&, |, ^, quote-pairs). Start-Process escapes each argument cleanly.
-            $uninstaller = Start-Process -FilePath $spotifyExe -ArgumentList @('/UNINSTALL', '/SILENT') -PassThru -Wait:$false -WindowStyle Hidden -ErrorAction Stop
-            if ($uninstaller) {
-                Write-Log 'Native Spotify uninstaller started; waiting up to 60s before forcing file cleanup.'
-                $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-                $lastLoggedSecond = -5
-                while (-not $uninstaller.HasExited -and $stopwatch.Elapsed.TotalSeconds -lt 60) {
-                    $elapsedSeconds = [int][Math]::Floor($stopwatch.Elapsed.TotalSeconds)
-                    if ($elapsedSeconds -eq 0 -or ($elapsedSeconds - $lastLoggedSecond) -ge 5) {
-                        $lastLoggedSecond = $elapsedSeconds
-                        $progress = [Math]::Min(39, 20 + [int][Math]::Floor(($elapsedSeconds / 60.0) * 19))
-                        Update-BackendState -Progress $progress -Status "Waiting for native Spotify uninstaller ($elapsedSeconds/60s)" -Step 'Removing desktop installation'
-                        Write-Log "Native Spotify uninstaller still running (${elapsedSeconds}s elapsed; timeout 60s)."
-                    }
-                    Start-Sleep -Milliseconds 500
-                }
-
-                if (-not $uninstaller.HasExited) {
-                    try { $uninstaller.Kill() } catch {}
-                    try { $uninstaller.WaitForExit(5000) } catch {}
-                    Write-Log 'Native Spotify uninstaller did not exit within 60s; it was terminated and LibreSpot is continuing with forced file cleanup.' -Level 'WARN'
-                } else {
-                    Write-Log ("Native Spotify uninstaller exited after {0:N1}s." -f $stopwatch.Elapsed.TotalSeconds)
-                }
-                $stopwatch.Stop()
-                try { $uninstaller.Dispose() } catch {}
-            }
-            Start-Sleep -Seconds 2
-            $removedCount++
-        } catch {
-            Write-Log "Native uninstaller failed: $($_.Exception.Message)" -Level 'WARN'
-        }
-    }
-    Stop-SpotifyProcesses -MaxAttempts 3
-
-    Update-BackendState -Progress 40 -Status 'Cleaning files, shortcuts, and leftovers' -Step 'Removing desktop state'
+    Update-BackendState -Progress 30 -Status 'Cleaning files, shortcuts, and leftovers' -Step 'Removing desktop state'
     $desktopPath = Get-DesktopPath
     $targets = @(
         @{ Path = (Join-Path $env:APPDATA 'Spotify'); Label = 'Spotify roaming data' }

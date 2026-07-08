@@ -3,11 +3,11 @@ function Module-NukeSpotify {
     $rc = 0
 
     # --- Phase 1: Kill all Spotify processes ---
-    Write-Log "[Phase 1/8] Terminating Spotify processes..."
+    Write-Log "[Phase 1/7] Terminating Spotify processes..."
     Stop-SpotifyProcesses
 
     # --- Phase 2: Remove Spotify Store (UWP/AppX) ---
-    Write-Log "[Phase 2/8] Checking for Microsoft Store Spotify..."
+    Write-Log "[Phase 2/7] Checking for Microsoft Store Spotify..."
     try {
         if ($PSVersionTable.PSVersion.Major -ge 7) { Import-Module Appx -UseWindowsPowerShell -WarningAction SilentlyContinue }
         $storeApp = Get-AppxPackage -Name "SpotifyAB.SpotifyMusic" -EA SilentlyContinue
@@ -39,25 +39,8 @@ function Module-NukeSpotify {
         }
     } catch { Write-Log "  Provisioned package removal skipped: $($_.Exception.Message)" -Level 'WARN' }
 
-    # --- Phase 3: Run Spotify native uninstaller (silent) ---
-    Write-Log "[Phase 3/8] Running native uninstaller..."
-    $spotifyExe = Join-Path $env:APPDATA "Spotify\Spotify.exe"
-    if (Test-Path $spotifyExe) {
-        try {
-            Unlock-SpotifyUpdateFolder
-            $null = Start-Process -FilePath $spotifyExe -ArgumentList @('/UNINSTALL', '/SILENT') -Wait:$false -PassThru -ErrorAction Stop
-            $deadline = (Get-Date).AddSeconds(15)
-            while ((Get-Process -Name "SpotifyUninstall" -EA SilentlyContinue) -and (Get-Date) -lt $deadline) {
-                Start-Sleep -Milliseconds 500
-            }
-            Start-Sleep -Milliseconds 500
-            Write-Log "  Native uninstaller completed."; $rc++
-        } catch { Write-Log "  Native uninstaller error: $($_.Exception.Message)" -Level 'WARN' }
-    } else { Write-Log "  No native Spotify.exe found, skipping." }
-    Stop-SpotifyProcesses -MaxAttempts 3
-
-    # --- Phase 4: Nuke file system ---
-    Write-Log "[Phase 4/8] Removing Spotify files and folders..."
+    # --- Phase 3: Nuke file system ---
+    Write-Log "[Phase 3/7] Removing Spotify files and folders..."
     $desktopPath = Get-DesktopPath
     $filesToNuke = @(
         @{ Path = (Join-Path $env:APPDATA "Spotify");        Label = "Spotify Roaming (%APPDATA%)" }
@@ -90,8 +73,8 @@ function Module-NukeSpotify {
         }
     }
 
-    # --- Phase 5: Registry cleanup ---
-    Write-Log "[Phase 5/8] Cleaning registry..."
+    # --- Phase 4: Registry cleanup ---
+    Write-Log "[Phase 4/7] Cleaning registry..."
     $regKeys = @(
         "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Spotify"
         "HKCU:\Software\Spotify"
@@ -132,8 +115,8 @@ function Module-NukeSpotify {
         }
     }
 
-    # --- Phase 6: Scheduled tasks ---
-    Write-Log "[Phase 6/8] Removing scheduled tasks..."
+    # --- Phase 5: Scheduled tasks ---
+    Write-Log "[Phase 5/7] Removing scheduled tasks..."
     try {
         $spotifyTaskNames = @('SpotifyMigrator', 'SpotifyUpdateTask', 'Spotify')
         Get-ScheduledTask -EA SilentlyContinue |
@@ -150,8 +133,8 @@ function Module-NukeSpotify {
             }
     } catch { Write-Log "  Task cleanup skipped." }
 
-    # --- Phase 7: Firewall rules ---
-    Write-Log "[Phase 7/8] Removing firewall rules..."
+    # --- Phase 6: Firewall rules ---
+    Write-Log "[Phase 6/7] Removing firewall rules..."
     try {
         Get-NetFirewallRule -EA SilentlyContinue | Where-Object { $_.DisplayName -match 'Spotify' } | ForEach-Object {
             try { Remove-NetFirewallRule -Name $_.Name -EA Stop; Write-Log "  Removed firewall: $($_.DisplayName)"; $rc++ }
@@ -159,8 +142,8 @@ function Module-NukeSpotify {
         }
     } catch { Write-Log "  Firewall cleanup skipped." }
 
-    # --- Phase 8: Verification sweep (amd64fox/Uninstall-Spotify retry pattern) ---
-    Write-Log "[Phase 8/8] Verification sweep..."
+    # --- Phase 7: Verification sweep (amd64fox/Uninstall-Spotify retry pattern) ---
+    Write-Log "[Phase 7/7] Verification sweep..."
     $verifyPaths = @(
         (Join-Path $env:APPDATA "Spotify")
         (Join-Path $env:LOCALAPPDATA "Spotify")
