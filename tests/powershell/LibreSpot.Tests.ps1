@@ -868,3 +868,142 @@ Describe 'Get-SpotXChildFailureClassification' {
         }
     }
 }
+
+# =============================================================================
+# Build-SpotXParams (dot-sourced from shared module)
+# =============================================================================
+Describe 'Build-SpotXParams' {
+    BeforeAll {
+        $sharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
+        $block = Extract-FunctionBlock (Get-Content -Path (Join-Path $sharedDir 'Build-SpotXParams.ps1') -Raw) 'Build-SpotXParams'
+        Invoke-Expression $block
+    }
+
+    It 'Always includes confirm_uninstall_ms_spoti and confirm_spoti_recomended_over' {
+        $config = [pscustomobject]@{}
+        $result = Build-SpotXParams -Config $config
+        $result | Should -Match '-confirm_uninstall_ms_spoti'
+        $result | Should -Match '-confirm_spoti_recomended_over'
+    }
+
+    It 'Includes podcasts_off when config flag is set' {
+        $config = [pscustomobject]@{ SpotX_PodcastsOff = $true }
+        $result = Build-SpotXParams -Config $config
+        $result | Should -Match '-podcasts_off'
+        $result | Should -Not -Match '-podcasts_on'
+    }
+
+    It 'Includes podcasts_on when config flag is not set' {
+        $config = [pscustomobject]@{ SpotX_PodcastsOff = $false }
+        $result = Build-SpotXParams -Config $config
+        $result | Should -Match '-podcasts_on'
+        $result | Should -Not -Match '-podcasts_off'
+    }
+
+    It 'Includes lyrics flags when lyrics enabled with block' {
+        $config = [pscustomobject]@{
+            SpotX_LyricsEnabled = $true
+            SpotX_LyricsTheme = 'spotify'
+            SpotX_LyricsBlock = $true
+            SpotX_OldLyrics = $false
+        }
+        $result = Build-SpotXParams -Config $config
+        $result | Should -Match '-lyrics_stat spotify'
+        $result | Should -Match '-lyrics_block'
+    }
+
+    It 'Includes version flag for non-auto version' {
+        $config = [pscustomobject]@{ SpotX_SpotifyVersionId = '1.2.93' }
+        $result = Build-SpotXParams -Config $config
+        $result | Should -Match '-version 1\.2\.93'
+    }
+
+    It 'Excludes version flag for auto' {
+        $config = [pscustomobject]@{ SpotX_SpotifyVersionId = 'auto' }
+        $result = Build-SpotXParams -Config $config
+        $result | Should -Not -Match '-version'
+    }
+
+    It 'Includes cache_limit when >= 500' {
+        $config = [pscustomobject]@{ SpotX_CacheLimit = 1000 }
+        $result = Build-SpotXParams -Config $config
+        $result | Should -Match '-cache_limit 1000'
+    }
+
+    It 'Excludes cache_limit when < 500' {
+        $config = [pscustomobject]@{ SpotX_CacheLimit = 100 }
+        $result = Build-SpotXParams -Config $config
+        $result | Should -Not -Match '-cache_limit'
+    }
+}
+
+# =============================================================================
+# ConvertTo-NativeArgumentString (dot-sourced from shared module)
+# =============================================================================
+Describe 'ConvertTo-NativeArgumentString' {
+    BeforeAll {
+        $sharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
+        . (Join-Path $sharedDir 'ConvertTo-NativeArgumentString.ps1')
+    }
+
+    It 'Passes through simple arguments unquoted' {
+        ConvertTo-NativeArgumentString -Arguments @('hello', 'world') | Should -Be 'hello world'
+    }
+
+    It 'Quotes arguments with spaces' {
+        ConvertTo-NativeArgumentString -Arguments @('hello world') | Should -Be '"hello world"'
+    }
+
+    It 'Escapes embedded double quotes' {
+        ConvertTo-NativeArgumentString -Arguments @('say "hi"') | Should -Be '"say \"hi\""'
+    }
+
+    It 'Handles empty string argument' {
+        ConvertTo-NativeArgumentString -Arguments @('') | Should -Be '""'
+    }
+
+    It 'Handles backslashes before quotes' {
+        ConvertTo-NativeArgumentString -Arguments @('C:\path\"end') | Should -Be '"C:\path\\\"end"'
+    }
+
+    It 'Handles single argument' {
+        ConvertTo-NativeArgumentString -Arguments @('simple') | Should -Be 'simple'
+    }
+}
+
+# =============================================================================
+# Confirm-FileHash (dot-sourced from shared module)
+# =============================================================================
+Describe 'Confirm-FileHash' {
+    BeforeAll {
+        $sharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
+        function Write-Log { param([string]$Message, [string]$Level) }
+        . (Join-Path $sharedDir 'Confirm-FileHash.ps1')
+    }
+
+    It 'Succeeds when hash matches' {
+        $tempFile = [System.IO.Path]::GetTempFileName()
+        try {
+            [System.IO.File]::WriteAllText($tempFile, 'test content')
+            $expectedHash = (Get-FileHash -LiteralPath $tempFile -Algorithm SHA256).Hash.ToLower()
+            { Confirm-FileHash -Path $tempFile -ExpectedHash $expectedHash -Label 'test' } | Should -Not -Throw
+        } finally {
+            Remove-Item -LiteralPath $tempFile -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'Throws on hash mismatch' {
+        $tempFile = [System.IO.Path]::GetTempFileName()
+        try {
+            [System.IO.File]::WriteAllText($tempFile, 'test content')
+            { Confirm-FileHash -Path $tempFile -ExpectedHash 'aaaa' -Label 'test' } | Should -Throw '*hash mismatch*'
+        } finally {
+            Remove-Item -LiteralPath $tempFile -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'Skips verification when no hash is provided' {
+        { Confirm-FileHash -Path 'nonexistent' -ExpectedHash '' -Label 'test' } | Should -Not -Throw
+        { Confirm-FileHash -Path 'nonexistent' -ExpectedHash $null -Label 'test' } | Should -Not -Throw
+    }
+}
