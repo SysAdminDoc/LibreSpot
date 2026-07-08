@@ -239,6 +239,21 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task CustomSmokeState_DoesNotApplyHiddenSettingsSearchFilter() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            viewModel.ApplyUiAutomationSmokeState("custom");
+
+            Assert.Equal(1, viewModel.SelectedWorkspaceIndex);
+            Assert.Equal(string.Empty, viewModel.SettingsSearchText);
+            Assert.False(viewModel.HasSettingsSearchText);
+            Assert.Equal("Search titles and descriptions across Custom.", viewModel.CustomSearchSummary);
+        });
+
+    [Fact]
     public Task ThemeGallery_SearchAndSelectionUpdateThemeConfigurationFields() =>
         RunStaAsync(async () =>
         {

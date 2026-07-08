@@ -4339,7 +4339,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             case "custom":
                 SelectedWorkspaceIndex = 1;
-                SettingsSearchText = "theme";
                 break;
             case "maintenance":
                 SelectedWorkspaceIndex = 2;
