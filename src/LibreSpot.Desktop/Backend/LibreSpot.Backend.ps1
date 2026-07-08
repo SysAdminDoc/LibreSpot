@@ -4462,13 +4462,10 @@ try {
     Write-EventLine -Kind 'action' -Payload $Action
     $journalWouldChange = ($Action -notin @('CheckUpdates', 'OpenMarketplace', 'WatchAutoReapply', 'Plan'))
     Start-OperationJournalRun -Action $Action -Target "Backend action: $Action" -WouldChange $journalWouldChange -Reversible $false -RollbackHint 'Review individual journal entries for action-specific rollback hints.' | Out-Null
-    # Keep this exemption list aligned with the shell's RequiresAdministrator
-    # (MainViewModel.cs): the shell launches these without elevation, so an
-    # Ensure-Admin throw here surfaces as a bogus "needs administrator" error
-    # for read-only/self-data actions.
-    if ($Action -notin @('CheckUpdates', 'CreateBackup', 'OpenMarketplace', 'RemoveSelfData', 'ClearCache', 'EnableAutoReapply', 'DisableAutoReapply', 'Plan')) {
-        Ensure-Admin
-    }
+    # Admin is not required: SpotX patches per-user %APPDATA%\Spotify and
+    # Spicetify runs --bypass-admin. Operations that genuinely need elevation
+    # (provisioned AppX removal, scheduled tasks, firewall rules) handle
+    # permission failures in their own try/catch blocks.
 
     # Gate patching actions behind risk acknowledgment. The WPF shell handles
     # the dialog; the backend enforces the invariant as a safety net. Plan is

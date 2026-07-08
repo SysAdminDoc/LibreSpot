@@ -1356,16 +1356,13 @@ public sealed class PowerShellRegressionTests
     }
 
     [Fact]
-    public void CheckUpdates_RemainsNonAdminInBackendAndDesktopShell()
+    public void NoBackendActionRequiresAdminElevation()
     {
         var backend = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
         var viewModel = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
 
-        Assert.Contains("'CheckUpdates'", backend);
-        Assert.Contains("'OpenMarketplace'", backend);
-        Assert.Contains("RequiresAdministrator(definition.Action)", viewModel);
-        Assert.Contains("\"CheckUpdates\" or \"CreateBackup\" or \"OpenMarketplace\" or \"RemoveSelfData\" or \"ClearCache\"", viewModel);
-        Assert.Contains("StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2, requiresAdministrator)", viewModel);
+        Assert.DoesNotContain("Ensure-Admin", backend.Split("function Ensure-Admin")[0]);
+        Assert.Contains("RequiresAdministrator(string action) => false", viewModel);
     }
 
     // ---------------------------------------------------------------------
