@@ -29,7 +29,7 @@ public sealed class EnvironmentSnapshotStateViewModel : ObservableObject
     public string LastRefreshedText =>
         RefreshedAt is null
             ? string.Empty
-            : $"Last refreshed {RefreshedAt.Value.ToString("T", CultureInfo.CurrentCulture)}";
+            : ViewModelText.Format("Vm_EnvironmentLastRefreshedFormat", RefreshedAt.Value.ToString("T", CultureInfo.CurrentCulture));
 
     public bool IsStale =>
         RefreshedAt is not null &&
@@ -41,21 +41,23 @@ public sealed class EnvironmentSnapshotStateViewModel : ObservableObject
         {
             if (RefreshedAt is null)
             {
-                return "Status not checked yet";
+                return ViewModelText.Get("Vm_EnvironmentStatusUnchecked");
             }
 
             var age = DateTime.Now - RefreshedAt.Value;
             if (age < TimeSpan.FromMinutes(1))
             {
-                return "Environment checked just now";
+                return ViewModelText.Get("Vm_EnvironmentCheckedJustNow");
             }
 
             if (age < TimeSpan.FromMinutes(3))
             {
-                return "Environment checked recently";
+                return ViewModelText.Get("Vm_EnvironmentCheckedRecently");
             }
 
-            return IsStale ? "Refresh recommended" : "Environment may have changed";
+            return IsStale
+                ? ViewModelText.Get("Vm_EnvironmentRefreshRecommended")
+                : ViewModelText.Get("Vm_EnvironmentMayHaveChanged");
         }
     }
 
@@ -65,13 +67,13 @@ public sealed class EnvironmentSnapshotStateViewModel : ObservableObject
         {
             if (RefreshedAt is null)
             {
-                return "Use Refresh environment before you decide whether Spotify, Spicetify, or the saved profile need repair.";
+                return ViewModelText.Get("Vm_EnvironmentUncheckedDetail");
             }
 
             var refreshedAt = RefreshedAt.Value.ToString("T", CultureInfo.CurrentCulture);
             return IsStale
-                ? $"Last checked at {refreshedAt}. Recheck before you repair or reset if anything changed outside LibreSpot."
-                : $"Last checked at {refreshedAt}. Refresh after you change Spotify outside LibreSpot.";
+                ? ViewModelText.Format("Vm_EnvironmentStaleDetailFormat", refreshedAt)
+                : ViewModelText.Format("Vm_EnvironmentFreshDetailFormat", refreshedAt);
         }
     }
 

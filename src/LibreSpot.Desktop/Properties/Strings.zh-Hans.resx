@@ -1847,6 +1847,15 @@
   <data name="Vm_EnvSpotifyInstalled" xml:space="preserve"><value>Spotify (Installed)</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvSpotifyRunning" xml:space="preserve"><value>Spotify running</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvWindows" xml:space="preserve"><value>Windows</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvironmentCheckedJustNow" xml:space="preserve"><value>Environment checked just now</value><comment>EnvironmentSnapshotStateViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvironmentCheckedRecently" xml:space="preserve"><value>Environment checked recently</value><comment>EnvironmentSnapshotStateViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvironmentFreshDetailFormat" xml:space="preserve"><value>Last checked at {0}. Refresh after you change Spotify outside LibreSpot.</value><comment>EnvironmentSnapshotStateViewModel localized runtime text. {0} is a localized time.</comment></data>
+  <data name="Vm_EnvironmentLastRefreshedFormat" xml:space="preserve"><value>Last refreshed {0}</value><comment>EnvironmentSnapshotStateViewModel localized runtime text. {0} is a localized time.</comment></data>
+  <data name="Vm_EnvironmentMayHaveChanged" xml:space="preserve"><value>Environment may have changed</value><comment>EnvironmentSnapshotStateViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvironmentRefreshRecommended" xml:space="preserve"><value>Refresh recommended</value><comment>EnvironmentSnapshotStateViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvironmentStaleDetailFormat" xml:space="preserve"><value>Last checked at {0}. Recheck before you repair or reset if anything changed outside LibreSpot.</value><comment>EnvironmentSnapshotStateViewModel localized runtime text. {0} is a localized time.</comment></data>
+  <data name="Vm_EnvironmentStatusUnchecked" xml:space="preserve"><value>Status not checked yet</value><comment>EnvironmentSnapshotStateViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvironmentUncheckedDetail" xml:space="preserve"><value>Use Refresh environment before you decide whether Spotify, Spicetify, or the saved profile need repair.</value><comment>EnvironmentSnapshotStateViewModel localized runtime text.</comment></data>
   <data name="Vm_ExtensionManySelectedFormat" xml:space="preserve"><value>{0} extensions selected</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ExtensionNoneSelected" xml:space="preserve"><value>None selected</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ExtensionOneSelected" xml:space="preserve"><value>1 extension selected</value><comment>MainViewModel localized runtime text.</comment></data>

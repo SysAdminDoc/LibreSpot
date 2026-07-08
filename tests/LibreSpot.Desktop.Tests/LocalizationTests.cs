@@ -141,9 +141,12 @@ public sealed class LocalizationTests
     }
 
     [Fact]
-    public void MainViewModel_RuntimeLocalizationKeysExist()
+    public void ViewModels_RuntimeLocalizationKeysExist()
     {
-        var source = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs"));
+        var source = string.Join(
+            "\n",
+            ReadViewModelSource("MainViewModel.cs"),
+            ReadViewModelSource("EnvironmentSnapshotStateViewModel.cs"));
         var usedKeys = Regex.Matches(source, "\"(?<key>Vm_[A-Za-z0-9_]+)\"")
             .Cast<Match>()
             .Select(match => match.Groups["key"].Value)
@@ -157,23 +160,47 @@ public sealed class LocalizationTests
     }
 
     [Fact]
-    public void MainViewModel_UserFacingComputedTextUsesResources()
+    public void ViewModels_UserFacingComputedTextUsesResources()
     {
-        var source = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs"));
-        var migratedPhrases = new[]
+        var checks = new[]
         {
-            "No profile selected",
-            "Quick actions",
-            "Ready for upkeep or reset",
-            "Search titles and descriptions across Custom.",
-            "LibreSpot keeps the live log and diagnostics on disk while this runs.",
-            "Estimated local zip size before compression:",
-            "Best on an existing install"
+            (
+                Source: ReadViewModelSource("MainViewModel.cs"),
+                Phrases: new[]
+                {
+                    "No profile selected",
+                    "Quick actions",
+                    "Ready for upkeep or reset",
+                    "Search titles and descriptions across Custom.",
+                    "LibreSpot keeps the live log and diagnostics on disk while this runs.",
+                    "Estimated local zip size before compression:",
+                    "Best on an existing install"
+                }
+            ),
+            (
+                Source: ReadViewModelSource("EnvironmentSnapshotStateViewModel.cs"),
+                Phrases: new[]
+                {
+                    "Last refreshed ",
+                    "Status not checked yet",
+                    "Environment checked just now",
+                    "Environment checked recently",
+                    "Refresh recommended",
+                    "Environment may have changed",
+                    "Use Refresh environment",
+                    "Last checked at ",
+                    "Refresh after you change Spotify",
+                    "Recheck before you repair or reset"
+                }
+            )
         };
 
-        foreach (var phrase in migratedPhrases)
+        foreach (var check in checks)
         {
-            Assert.DoesNotContain(phrase, source);
+            foreach (var phrase in check.Phrases)
+            {
+                Assert.DoesNotContain(phrase, check.Source);
+            }
         }
     }
 
@@ -225,6 +252,9 @@ public sealed class LocalizationTests
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Select(name => name!)
             .ToHashSet(StringComparer.Ordinal);
+
+    private static string ReadViewModelSource(string fileName) =>
+        File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "ViewModels", fileName));
 
     private static string ResolveRepoRoot()
     {
