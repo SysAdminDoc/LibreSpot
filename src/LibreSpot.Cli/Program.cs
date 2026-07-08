@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LibreSpot.Desktop.Models;
@@ -24,6 +25,7 @@ public static class CliApplication
     private const int NotInstalled = 10;
     private const int DriftDetected = 11;
     private const int RepairNeeded = 12;
+    private const int MaxCustomPatchesJsonBytes = 65536;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -1119,6 +1121,7 @@ public static class CliApplication
             RequireBooleanTrue(root, "riskAcknowledged", errors);
             var settings = ResolveProfileSettings(root, profile, errors);
             ValidateInstallMode(settings ?? root, errors);
+            ValidateCustomPatches(root, settings, profile, errors);
         }
         catch (JsonException ex)
         {
@@ -1301,6 +1304,80 @@ public static class CliApplication
             errors.Add(new ValidationErrorDocument("$.installMode", "installMode must be recommended, custom, or reapply."));
         }
     }
+
+    private static void ValidateCustomPatches(JsonElement root, JsonElement? profileSettings, string? profile, ICollection<ValidationErrorDocument> errors)
+    {
+        var enabled = TryGetSpotXBoolean(root, "customPatchesEnabled");
+        var patches = TryGetSpotXString(root, "customPatchesJson", "$.spotx.customPatchesJson");
+
+        if (profileSettings.HasValue)
+        {
+            enabled = TryGetSpotXBoolean(profileSettings.Value, "customPatchesEnabled") ?? enabled;
+            patches = TryGetSpotXString(profileSettings.Value, "customPatchesJson", ProfilePath(profile, "spotx.customPatchesJson")) ?? patches;
+        }
+
+        if (enabled is not true)
+        {
+            return;
+        }
+
+        var path = patches?.Path ?? (profileSettings.HasValue ? ProfilePath(profile, "spotx.customPatchesJson") : "$.spotx.customPatchesJson");
+        var json = patches?.Value;
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            errors.Add(new ValidationErrorDocument(path, "customPatchesJson is required when customPatchesEnabled is true."));
+            return;
+        }
+
+        var byteCount = Encoding.UTF8.GetByteCount(json);
+        if (byteCount > MaxCustomPatchesJsonBytes)
+        {
+            errors.Add(new ValidationErrorDocument(path, $"customPatchesJson is {byteCount} bytes; the maximum is {MaxCustomPatchesJsonBytes} bytes."));
+            return;
+        }
+
+        try
+        {
+            using var _ = JsonDocument.Parse(json);
+        }
+        catch (JsonException ex)
+        {
+            errors.Add(new ValidationErrorDocument(path, $"customPatchesJson is not valid JSON: {ex.Message}"));
+        }
+    }
+
+    private static bool? TryGetSpotXBoolean(JsonElement root, string property)
+    {
+        if (!root.TryGetProperty("spotx", out var spotx) ||
+            spotx.ValueKind != JsonValueKind.Object ||
+            !spotx.TryGetProperty(property, out var value) ||
+            value.ValueKind is not JsonValueKind.True and not JsonValueKind.False)
+        {
+            return null;
+        }
+
+        return value.GetBoolean();
+    }
+
+    private static AnswerStringValue? TryGetSpotXString(JsonElement root, string property, string path)
+    {
+        if (!root.TryGetProperty("spotx", out var spotx) ||
+            spotx.ValueKind != JsonValueKind.Object ||
+            !spotx.TryGetProperty(property, out var value) ||
+            value.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        return new AnswerStringValue(value.GetString() ?? string.Empty, path);
+    }
+
+    private static string ProfilePath(string? profile, string suffix) =>
+        string.IsNullOrWhiteSpace(profile)
+            ? $"$.{suffix}"
+            : $"$.profiles.{profile}.{suffix}";
+
+    private sealed record AnswerStringValue(string Value, string Path);
 
     private static EnvironmentSnapshot GetSnapshot(string configPath, Func<string, EnvironmentSnapshot>? snapshotFactory) =>
         snapshotFactory is not null

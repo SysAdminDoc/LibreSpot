@@ -667,6 +667,48 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public void InstallInvalidCustomPatchJson_IsRejectedBeforeBackendRuns()
+    {
+        var answerFile = Path.Combine(Path.GetTempPath(), "librespot-answer-" + Guid.NewGuid().ToString("N") + ".json");
+        File.WriteAllText(
+            answerFile,
+            """
+            {
+              "schemaVersion": 1,
+              "installMode": "custom",
+              "spotx": {
+                "customPatchesEnabled": true,
+                "customPatchesJson": "{ not valid json"
+              },
+              "eulaAccepted": true,
+              "riskAcknowledged": true
+            }
+            """);
+
+        try
+        {
+            var backendRan = false;
+            var result = Run(
+                new[] { "install", "--answer-file", answerFile, "--ndjson" },
+                _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+                (_, _, _, _) =>
+                {
+                    backendRan = true;
+                    return Task.FromResult(new CliBackendRunResult(true));
+                });
+
+            Assert.Equal(2, result.ExitCode);
+            Assert.False(backendRan);
+            Assert.Contains("customPatchesJson", result.Stdout);
+            Assert.Contains("not valid JSON", result.Stdout);
+        }
+        finally
+        {
+            File.Delete(answerFile);
+        }
+    }
+
+    [Fact]
     public void UninstallSilentPurge_RunsSpicetifyCleanupAndSelfDataRemoval()
     {
         var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
