@@ -11,6 +11,7 @@ the version and recaptures WPF screenshots (both operator/UI-gated).
 
 - Automatic single retry through the SpotX mirror when SpotX's own downloader hits a classified outage (connection timeout / curl exit 28, or a Cloudflare-worker endpoint failure); a mirror flagged upstream as phishing instead retries once without the mirror. Timeouts and worker failures are the dominant recoverable SpotX install failure, and previously surfaced as a hard error even though a mirror retry usually succeeds.
 - Antivirus exclusion health signal: when Windows Defender real-time protection is on and the Spotify install folder is not excluded, the readiness inspector and CLI `detect`/`status` now surface a warning with a copy-paste `Add-MpPreference -ExclusionPath` command, because SpotX-patched files are commonly quarantined as a HackTool false positive (which code-signing cannot clear). LibreSpot only reports and suggests — it never changes antivirus settings. Third-party AV, disabled protection, an already-excluded folder, or an uninspectable Defender all stay silent.
+- Maintainer drift check `Build-Scripts.ps1 -CheckSpotifyVersionDrift`: compares the pinned Spotify target (the "current pinned" entry in `$global:SpotifyVersionManifest`) against the community-canonical SpotX-Bash `spotx.sh` `buildVer` and flags staleness. Report-only — it never auto-bumps the pin; network/parse failures are treated as indeterminate so the check is not flaky.
 
 ## [v4.0.0-preview.12] - 2026-07-08
 

@@ -36,7 +36,8 @@ param(
     [string]$ReleaseManifestPath,
     [switch]$DependencyHealth,
     [string]$DependencyHealthReportPath,
-    [string]$DependencyHealthAllowlistPath
+    [string]$DependencyHealthAllowlistPath,
+    [switch]$CheckSpotifyVersionDrift
 )
 
 $ErrorActionPreference = 'Stop'
@@ -858,6 +859,84 @@ $laneSpecificFunctions = @(
     'Hide-SpotifyWindows'            # Main: [Win32] ShowWindowAsync; Backend: stub (watcher runspace owns hiding)
 )
 
+function Get-SpotifyVersionCore {
+    # Reduce a Spotify build string to its major.minor.patch core so a pinned
+    # target ('1.2.93') can be compared to SpotX-Bash's fuller buildVer
+    # ('1.2.93.667.g7b5cc0ce').
+    param([string]$Version)
+    if ([string]::IsNullOrWhiteSpace($Version)) { return '' }
+    $m = [regex]::Match($Version.Trim(), '^(\d+\.\d+\.\d+)')
+    if ($m.Success) { return $m.Groups[1].Value }
+    return $Version.Trim()
+}
+
+function Test-SpotifyVersionDrift {
+    # Report-only drift check: compares LibreSpot's pinned Spotify target (the
+    # "current pinned" entry in $global:SpotifyVersionManifest) against the
+    # community-canonical SpotX-Bash spotx.sh buildVer. Never auto-bumps.
+    # Exit 1 only on a confirmed drift; network/parse failures are indeterminate
+    # (exit 0 + warning) so the check is not flaky.
+    param(
+        [string]$SpotxBashUrl = 'https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh'
+    )
+
+    Write-Host "Checking pinned Spotify target against SpotX-Bash buildVer..." -ForegroundColor Cyan
+
+    $pinnedLine = Get-Content -LiteralPath $mainScript | Where-Object {
+        $_ -match 'current pinned' -and $_ -match "Version='"
+    } | Select-Object -First 1
+    if (-not $pinnedLine -or $pinnedLine -notmatch "Version='([^']+)'") {
+        Write-Host "  Could not find the 'current pinned' Spotify entry in $mainScript." -ForegroundColor Red
+        Write-Host "  (Expected a `$global:SpotifyVersionManifest row labelled 'current pinned'.)" -ForegroundColor Red
+        exit 1
+    }
+    $pinned = $Matches[1]
+    $pinnedCore = Get-SpotifyVersionCore -Version $pinned
+    Write-Host "  Pinned target:  $pinned (core $pinnedCore)"
+
+    $spotxScript = $null
+    try {
+        $savedPP = $ProgressPreference; $ProgressPreference = 'SilentlyContinue'
+        try {
+            $spotxScript = (Invoke-WebRequest -Uri $SpotxBashUrl -UseBasicParsing -TimeoutSec 20 -ErrorAction Stop).Content
+        } finally { $ProgressPreference = $savedPP }
+    } catch {
+        Write-Host "  Could not fetch SpotX-Bash spotx.sh: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "  Drift is indeterminate (network unavailable); leaving the pin unchanged." -ForegroundColor Yellow
+        exit 0
+    }
+
+    $buildMatch = [regex]::Match($spotxScript, 'buildVer\s*=\s*["'']?(?<v>\d+\.\d+\.\d+[^"''\s]*)')
+    if (-not $buildMatch.Success) {
+        Write-Host "  Fetched spotx.sh but could not locate a buildVer value." -ForegroundColor Yellow
+        Write-Host "  Drift is indeterminate; leaving the pin unchanged." -ForegroundColor Yellow
+        exit 0
+    }
+    $upstream = $buildMatch.Groups['v'].Value
+    $upstreamCore = Get-SpotifyVersionCore -Version $upstream
+    Write-Host "  SpotX-Bash buildVer: $upstream (core $upstreamCore)"
+    Write-Host ""
+
+    if ($pinnedCore -eq $upstreamCore) {
+        Write-Host "Pinned Spotify target is current with SpotX-Bash ($upstreamCore)." -ForegroundColor Green
+        exit 0
+    }
+
+    Write-Host "=== SPOTIFY TARGET DRIFT ===" -ForegroundColor Red
+    Write-Host "  Pinned:   $pinnedCore" -ForegroundColor Red
+    Write-Host "  Upstream: $upstreamCore (SpotX-Bash buildVer $upstream)" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Update the 'current pinned' entry in `$global:SpotifyVersionManifest (both" -ForegroundColor Red
+    Write-Host "LibreSpot.ps1 and LibreSpot.Backend.ps1) after confirming SpotX + Spicetify" -ForegroundColor Red
+    Write-Host "support the new build. Report-only: no pin was changed." -ForegroundColor Red
+    exit 1
+}
+
+if ($CheckSpotifyVersionDrift) {
+    Test-SpotifyVersionDrift
+    exit 0
+}
+
 if ($DependencyHealth) {
     New-LibreSpotDependencyHealthReport `
         -ReportPath $DependencyHealthReportPath `
@@ -1201,3 +1280,4 @@ Write-Host "  pwsh -File Build-Scripts.ps1 -Lint                   # Run PSScrip
 Write-Host "  pwsh -File Build-Scripts.ps1 -SyncSharedToBackend   # Copy shared function sources into backend"
 Write-Host "  pwsh -File Build-Scripts.ps1 -SyncSharedToMain      # Copy shared function sources into standalone script"
 Write-Host "  pwsh -File Build-Scripts.ps1 -DependencyHealth       # Emit dependency-health JSON and fail unapproved drift"
+Write-Host "  pwsh -File Build-Scripts.ps1 -CheckSpotifyVersionDrift # Compare pinned Spotify target vs SpotX-Bash buildVer (report-only)"
