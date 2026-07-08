@@ -397,6 +397,22 @@ public sealed class StackHealthReport
         Components.FirstOrDefault(component => string.Equals(component.Id, id, StringComparison.OrdinalIgnoreCase));
 }
 
+/// <summary>
+/// Point-in-time Windows Defender facts used to decide whether SpotX-patched
+/// files risk a false-positive quarantine. <see cref="Queried"/> is false when
+/// Defender could not be inspected (third-party AV, cmdlet failure, timeout) -
+/// LibreSpot then stays silent rather than guessing. LibreSpot never mutates
+/// antivirus configuration; it only reports and suggests a manual exclusion.
+/// </summary>
+public sealed record AntivirusExclusionStatus(
+    bool Queried,
+    bool RealtimeProtectionEnabled,
+    IReadOnlyList<string> ExcludedPaths)
+{
+    public static AntivirusExclusionStatus Unavailable { get; } =
+        new(false, false, Array.Empty<string>());
+}
+
 public sealed record StackHealthComponent(
     string Id,
     string Name,

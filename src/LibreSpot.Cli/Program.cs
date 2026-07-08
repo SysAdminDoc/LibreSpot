@@ -1384,7 +1384,8 @@ public static class CliApplication
             ? snapshotFactory(configPath)
             : new EnvironmentSnapshotService(
                 upstreamDriftProbe: () => UpstreamDriftService.Default.GetReport(),
-                communityAssetDriftProbe: () => CommunityAssetDriftService.Default.GetReport()).GetSnapshot(configPath);
+                communityAssetDriftProbe: () => CommunityAssetDriftService.Default.GetReport(),
+                antivirusProbe: EnvironmentSnapshotService.QueryDefenderExclusionStatus).GetSnapshot(configPath);
 
     private static ParseResult Parse(string[] args)
     {

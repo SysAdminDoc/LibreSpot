@@ -21,6 +21,7 @@ public sealed class EnvironmentSnapshotService
     private readonly Func<bool> _spotifyRunningProbe;
     private readonly Func<UpstreamDriftReport> _upstreamDriftProbe;
     private readonly Func<CommunityAssetDriftReport> _communityAssetDriftProbe;
+    private readonly Func<AntivirusExclusionStatus> _antivirusProbe;
 
     public EnvironmentSnapshotService(
         Func<bool>? autoReapplyTaskProbe = null,
@@ -34,8 +35,13 @@ public sealed class EnvironmentSnapshotService
         Func<string?>? spicetifyVersionProbe = null,
         Func<bool>? spotifyRunningProbe = null,
         Func<UpstreamDriftReport>? upstreamDriftProbe = null,
-        Func<CommunityAssetDriftReport>? communityAssetDriftProbe = null)
+        Func<CommunityAssetDriftReport>? communityAssetDriftProbe = null,
+        // Defaults to Unavailable (never shells out) so unit tests and the
+        // UI-automation smoke state stay fast and deterministic. Production
+        // callers pass QueryDefenderExclusionStatus to enable live detection.
+        Func<AntivirusExclusionStatus>? antivirusProbe = null)
     {
+        _antivirusProbe = antivirusProbe ?? (() => AntivirusExclusionStatus.Unavailable);
         _autoReapplyTaskProbe = autoReapplyTaskProbe ?? IsAutoReapplyTaskRegistered;
         _spotifyPath = string.IsNullOrWhiteSpace(spotifyPath)
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Spotify", "Spotify.exe")
@@ -91,6 +97,7 @@ public sealed class EnvironmentSnapshotService
         var autoReapplyTaskRegistered = _autoReapplyTaskProbe();
         var upstreamDriftReport = GetUpstreamDriftReport();
         var communityAssetDriftReport = GetCommunityAssetDriftReport();
+        var antivirusStatus = GetAntivirusStatus();
         var healthReport = BuildHealthReport(
             configDirectory,
             configPath,
@@ -107,7 +114,8 @@ public sealed class EnvironmentSnapshotService
             autoReapplyTaskRegistered,
             upstreamDriftReport,
             communityAssetDriftReport,
-            assetCacheInventory);
+            assetCacheInventory,
+            antivirusStatus);
 
         return new EnvironmentSnapshot
         {
@@ -144,7 +152,8 @@ public sealed class EnvironmentSnapshotService
         bool autoReapplyTaskRegistered,
         UpstreamDriftReport upstreamDriftReport,
         CommunityAssetDriftReport communityAssetDriftReport,
-        AssetCacheInventoryReport assetCacheInventory)
+        AssetCacheInventoryReport assetCacheInventory,
+        AntivirusExclusionStatus antivirusStatus)
     {
         var watcherStatePath = Path.Combine(configDirectory, "watcher-state.json");
         var watcherState = ReadWatcherState(watcherStatePath);
@@ -174,8 +183,86 @@ public sealed class EnvironmentSnapshotService
         };
         components.AddRange(BuildUpstreamDriftComponents(upstreamDriftReport));
         components.AddRange(BuildCommunityAssetComponents(communityAssetDriftReport));
+        components.AddRange(BuildAntivirusComponents(antivirusStatus));
 
         return new StackHealthReport(components);
+    }
+
+    // Only emits a component when there is an actionable finding: Defender was
+    // inspectable, real-time protection is on, and the Spotify install folder
+    // (where SpotX writes its patched binaries) is not already excluded. In
+    // every other case - Defender unavailable/third-party AV, protection off,
+    // or the folder already excluded - LibreSpot stays silent instead of
+    // adding a standing informational note.
+    private IEnumerable<StackHealthComponent> BuildAntivirusComponents(AntivirusExclusionStatus status)
+    {
+        if (!status.Queried || !status.RealtimeProtectionEnabled)
+        {
+            yield break;
+        }
+
+        var spotifyDirectory = Path.GetDirectoryName(_spotifyPath);
+        if (string.IsNullOrWhiteSpace(spotifyDirectory) || IsPathCoveredByExclusions(spotifyDirectory, status.ExcludedPaths))
+        {
+            yield break;
+        }
+
+        yield return new StackHealthComponent(
+            "antivirus-exclusion",
+            "Antivirus exclusion",
+            "Exclusion recommended",
+            HealthSeverity.Warning,
+            null,
+            spotifyDirectory,
+            null,
+            "Windows Defender real-time protection is on and the Spotify folder is not excluded, so SpotX-patched files can be quarantined as a false positive (Defender classifies ad-block patches as HackTool by behavior, which code-signing does not clear). LibreSpot never changes your antivirus settings for you. To add an exclusion yourself, open PowerShell as administrator and run: " +
+            $"Add-MpPreference -ExclusionPath \"{spotifyDirectory}\"",
+            Array.Empty<string>());
+    }
+
+    // A folder is "covered" when it equals, or sits under, any Defender
+    // exclusion path (Defender folder exclusions apply to their whole subtree).
+    private static bool IsPathCoveredByExclusions(string targetDirectory, IReadOnlyList<string> exclusions)
+    {
+        string Normalize(string p) =>
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(p.Trim().Trim('"')))
+                .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+        string target;
+        try { target = Normalize(targetDirectory); }
+        catch { return false; }
+
+        foreach (var raw in exclusions)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                continue;
+            }
+
+            string exclusion;
+            try { exclusion = Normalize(raw); }
+            catch { continue; }
+
+            if (string.Equals(target, exclusion, StringComparison.OrdinalIgnoreCase) ||
+                target.StartsWith(exclusion + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private AntivirusExclusionStatus GetAntivirusStatus()
+    {
+        try
+        {
+            return _antivirusProbe() ?? AntivirusExclusionStatus.Unavailable;
+        }
+        catch
+        {
+            return AntivirusExclusionStatus.Unavailable;
+        }
     }
 
     private UpstreamDriftReport GetUpstreamDriftReport()
@@ -1865,6 +1952,115 @@ public sealed class EnvironmentSnapshotService
         string? LastApplyError)
     {
         public static WatcherState Empty { get; } = new(null, null, null, null, null, null, null, null, null);
+    }
+
+    /// <summary>
+    /// Live Windows Defender inspection for the antivirus health signal. Shells
+    /// out to <c>Get-MpComputerStatus</c>/<c>Get-MpPreference</c> (Defender is
+    /// the only AV with a stable query surface) and returns
+    /// <see cref="AntivirusExclusionStatus.Unavailable"/> on any failure -
+    /// third-party AV, missing cmdlets, timeout, or malformed output - so the
+    /// caller never surfaces a guess. Read-only: never changes AV configuration.
+    /// </summary>
+    public static AntivirusExclusionStatus QueryDefenderExclusionStatus()
+    {
+        const string script =
+            "$ErrorActionPreference='Stop';" +
+            "$s=Get-MpComputerStatus;$p=Get-MpPreference;" +
+            "[pscustomobject]@{realtime=[bool]$s.RealTimeProtectionEnabled;exclusions=@($p.ExclusionPath)}|ConvertTo-Json -Compress";
+
+        try
+        {
+            using var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    ArgumentList = { "-NoProfile", "-NonInteractive", "-Command", script }
+                }
+            };
+
+            if (!process.Start())
+            {
+                return AntivirusExclusionStatus.Unavailable;
+            }
+
+            var stdoutDrain = process.StandardOutput.ReadToEndAsync();
+            var stderrDrain = process.StandardError.ReadToEndAsync();
+
+            if (!process.WaitForExit(5000))
+            {
+                try { process.Kill(); } catch { }
+                try { process.WaitForExit(500); } catch { }
+                return AntivirusExclusionStatus.Unavailable;
+            }
+
+            try { Task.WaitAll(new Task[] { stdoutDrain, stderrDrain }, 500); } catch { }
+
+            if (process.ExitCode != 0)
+            {
+                return AntivirusExclusionStatus.Unavailable;
+            }
+
+            return ParseDefenderStatus(stdoutDrain.Result);
+        }
+        catch
+        {
+            return AntivirusExclusionStatus.Unavailable;
+        }
+    }
+
+    internal static AntivirusExclusionStatus ParseDefenderStatus(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return AntivirusExclusionStatus.Unavailable;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                return AntivirusExclusionStatus.Unavailable;
+            }
+
+            var realtime = root.TryGetProperty("realtime", out var realtimeElement) &&
+                realtimeElement.ValueKind == JsonValueKind.True;
+
+            var exclusions = new List<string>();
+            if (root.TryGetProperty("exclusions", out var exclusionsElement))
+            {
+                // ConvertTo-Json collapses a single-element array to a scalar.
+                if (exclusionsElement.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var item in exclusionsElement.EnumerateArray())
+                    {
+                        if (item.ValueKind == JsonValueKind.String)
+                        {
+                            var value = item.GetString();
+                            if (!string.IsNullOrWhiteSpace(value)) { exclusions.Add(value); }
+                        }
+                    }
+                }
+                else if (exclusionsElement.ValueKind == JsonValueKind.String)
+                {
+                    var value = exclusionsElement.GetString();
+                    if (!string.IsNullOrWhiteSpace(value)) { exclusions.Add(value); }
+                }
+            }
+
+            return new AntivirusExclusionStatus(true, realtime, exclusions);
+        }
+        catch
+        {
+            return AntivirusExclusionStatus.Unavailable;
+        }
     }
 
     private static bool IsAutoReapplyTaskRegistered()

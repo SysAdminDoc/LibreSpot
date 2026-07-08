@@ -884,6 +884,108 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.True(snapshot.SpicetifyInstalled);
     }
 
+    [Fact]
+    public void GetSnapshot_FlagsMissingDefenderExclusionWhenRealtimeProtectionOn()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.AntivirusStatus = new AntivirusExclusionStatus(
+            Queried: true,
+            RealtimeProtectionEnabled: true,
+            ExcludedPaths: new[] { @"C:\SomeOther\Path" });
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var av = Assert.Single(snapshot.HealthReport.WarningIssues, c => c.Id == "antivirus-exclusion");
+        var spotifyDirectory = Path.Combine(fixture.Root, "Spotify");
+        Assert.Equal(HealthSeverity.Warning, av.Severity);
+        Assert.Contains("Add-MpPreference -ExclusionPath", av.Evidence);
+        Assert.Contains(spotifyDirectory, av.Evidence);
+    }
+
+    [Fact]
+    public void GetSnapshot_NoAntivirusComponentWhenSpotifyFolderExcluded()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.AntivirusStatus = new AntivirusExclusionStatus(
+            Queried: true,
+            RealtimeProtectionEnabled: true,
+            ExcludedPaths: new[] { Path.Combine(fixture.Root, "Spotify") });
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.DoesNotContain(snapshot.HealthReport.Components, c => c.Id == "antivirus-exclusion");
+    }
+
+    [Fact]
+    public void GetSnapshot_NoAntivirusComponentWhenParentFolderExcluded()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        // A folder exclusion covers its whole subtree, so excluding Root covers
+        // Root\Spotify too.
+        fixture.AntivirusStatus = new AntivirusExclusionStatus(
+            Queried: true,
+            RealtimeProtectionEnabled: true,
+            ExcludedPaths: new[] { fixture.Root });
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.DoesNotContain(snapshot.HealthReport.Components, c => c.Id == "antivirus-exclusion");
+    }
+
+    [Fact]
+    public void GetSnapshot_NoAntivirusComponentWhenRealtimeProtectionOff()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.AntivirusStatus = new AntivirusExclusionStatus(
+            Queried: true,
+            RealtimeProtectionEnabled: false,
+            ExcludedPaths: Array.Empty<string>());
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.DoesNotContain(snapshot.HealthReport.Components, c => c.Id == "antivirus-exclusion");
+    }
+
+    [Fact]
+    public void GetSnapshot_NoAntivirusComponentWhenStatusUnavailable()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        // Default probe is Unavailable (third-party AV / query failed).
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.DoesNotContain(snapshot.HealthReport.Components, c => c.Id == "antivirus-exclusion");
+    }
+
+    [Theory]
+    [InlineData("{\"realtime\":true,\"exclusions\":[\"C:\\\\a\",\"C:\\\\b\"]}", true, 2)]
+    [InlineData("{\"realtime\":false,\"exclusions\":\"C:\\\\only\"}", false, 1)]
+    [InlineData("{\"realtime\":true,\"exclusions\":null}", true, 0)]
+    public void ParseDefenderStatus_HandlesArrayScalarAndNull(string json, bool expectedRealtime, int expectedCount)
+    {
+        var status = EnvironmentSnapshotService.ParseDefenderStatus(json);
+
+        Assert.True(status.Queried);
+        Assert.Equal(expectedRealtime, status.RealtimeProtectionEnabled);
+        Assert.Equal(expectedCount, status.ExcludedPaths.Count);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("not json")]
+    [InlineData("[1,2,3]")]
+    public void ParseDefenderStatus_ReturnsUnavailableForMalformedOutput(string json)
+    {
+        var status = EnvironmentSnapshotService.ParseDefenderStatus(json);
+
+        Assert.False(status.Queried);
+    }
+
     private sealed class SnapshotFixture : IDisposable
     {
         public SnapshotFixture()
@@ -903,6 +1005,7 @@ public sealed class EnvironmentSnapshotServiceTests
         public string? SpotifyVersion { get; init; }
         public string? SpicetifyVersion { get; init; }
         public bool SpotifyRunning { get; init; }
+        public AntivirusExclusionStatus? AntivirusStatus { get; set; }
 
         public string Root { get; }
         public string ConfigDirectory { get; }
@@ -931,7 +1034,8 @@ public sealed class EnvironmentSnapshotServiceTests
                 spicetifyVersionProbe: () => SpicetifyVersion,
                 spotifyRunningProbe: () => SpotifyRunning,
                 upstreamDriftProbe: () => upstreamDriftReport ?? UpstreamDriftReport.Empty,
-                communityAssetDriftProbe: () => communityAssetDriftReport ?? CommunityAssetDriftReport.Empty);
+                communityAssetDriftProbe: () => communityAssetDriftReport ?? CommunityAssetDriftReport.Empty,
+                antivirusProbe: () => AntivirusStatus ?? AntivirusExclusionStatus.Unavailable);
 
             return service.GetSnapshot(ConfigPath);
         }
