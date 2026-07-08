@@ -4,6 +4,9 @@
 .vs/
 CLAUDE.md
 
+# Mutation testing output
+StrykerOutput/
+
 # .NET / WPF build outputs
 bin/
 obj/
