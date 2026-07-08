@@ -212,6 +212,12 @@ public sealed class LocalProfileService
         Func<Uri, CancellationToken, Task<Stream>>? httpsFetcher = null,
         CancellationToken cancellationToken = default)
     {
+        var rawQueryIndex = (shareUri ?? string.Empty).IndexOf('?');
+        if (rawQueryIndex >= 0 && HasInvalidPercentEncoding(shareUri![(rawQueryIndex + 1)..]))
+        {
+            throw new InvalidOperationException("Share URI query contains invalid percent-encoding.");
+        }
+
         if (!Uri.TryCreate(shareUri, UriKind.Absolute, out var uri) ||
             !string.Equals(uri.Scheme, "librespot", StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(uri.Host, "profile", StringComparison.OrdinalIgnoreCase))
@@ -334,7 +340,7 @@ public sealed class LocalProfileService
     private async Task<ShareProfileDocument> CreateShareProfileDocumentAsync(string id, CancellationToken cancellationToken)
     {
         var profile = await LoadProfileAsync(id, cancellationToken);
-        var settings = JsonSerializer.SerializeToElement(SanitizedConfiguration(profile.Configuration), JsonOptions)
+        var settings = JsonSerializer.SerializeToElement(SanitizedConfiguration(profile.Configuration, redactShareProvenance: true), JsonOptions)
             .EnumerateObject()
             .Where(property => !string.Equals(property.Name, nameof(InstallConfiguration.RiskAcknowledged), StringComparison.Ordinal))
             .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.Ordinal);
@@ -407,10 +413,24 @@ public sealed class LocalProfileService
         foreach (var part in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
         {
             var pair = part.Split('=', 2);
-            var key = Uri.UnescapeDataString(pair[0].Replace("+", "%20"));
-            var value = pair.Length == 2
-                ? Uri.UnescapeDataString(pair[1].Replace("+", "%20"))
-                : string.Empty;
+            if (HasInvalidPercentEncoding(pair[0]) || (pair.Length == 2 && HasInvalidPercentEncoding(pair[1])))
+            {
+                throw new InvalidOperationException("Share URI query contains invalid percent-encoding.");
+            }
+
+            string key;
+            string value;
+            try
+            {
+                key = Uri.UnescapeDataString(pair[0].Replace("+", "%20"));
+                value = pair.Length == 2
+                    ? Uri.UnescapeDataString(pair[1].Replace("+", "%20"))
+                    : string.Empty;
+            }
+            catch (UriFormatException ex)
+            {
+                throw new InvalidOperationException("Share URI query contains invalid percent-encoding.", ex);
+            }
 
             if (values.ContainsKey(key))
             {
@@ -421,6 +441,28 @@ public sealed class LocalProfileService
         }
 
         return values;
+    }
+
+    private static bool HasInvalidPercentEncoding(string value)
+    {
+        for (var index = 0; index < value.Length; index++)
+        {
+            if (value[index] != '%')
+            {
+                continue;
+            }
+
+            if (index + 2 >= value.Length ||
+                !char.IsAsciiHexDigit(value[index + 1]) ||
+                !char.IsAsciiHexDigit(value[index + 2]))
+            {
+                return true;
+            }
+
+            index += 2;
+        }
+
+        return false;
     }
 
     private static string EncodeBase64Url(byte[] bytes) =>
@@ -676,11 +718,34 @@ public sealed class LocalProfileService
             new LocalProfileSummary(id, name, description, IsBuiltIn: true, IsActive: false, DateTimeOffset.UnixEpoch),
             SanitizedConfiguration(configuration));
 
-    private static InstallConfiguration SanitizedConfiguration(InstallConfiguration configuration)
+    private static InstallConfiguration SanitizedConfiguration(InstallConfiguration configuration, bool redactShareProvenance = false)
     {
         var normalized = AppCatalog.NormalizeConfiguration(configuration).Clone();
         normalized.RiskAcknowledged = false;
+        if (redactShareProvenance)
+        {
+            normalized.SpotX_CustomPatchesSourceUrl = RedactShareableUrl(normalized.SpotX_CustomPatchesSourceUrl);
+        }
+
         return normalized;
+    }
+
+    private static string RedactShareableUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+            !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Empty;
+        }
+
+        var builder = new UriBuilder(uri)
+        {
+            UserName = string.Empty,
+            Password = string.Empty,
+            Query = string.Empty,
+            Fragment = string.Empty
+        };
+        return builder.Uri.ToString();
     }
 
     private static string NormalizeProfileName(string name)

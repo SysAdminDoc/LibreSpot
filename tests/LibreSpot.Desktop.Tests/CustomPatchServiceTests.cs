@@ -116,6 +116,23 @@ public sealed class CustomPatchServiceTests
     }
 
     [Fact]
+    public async Task ImportFromUrlAsync_RecordsFinalRedirectedSourceProvenance()
+    {
+        const string json = "{\"xpui\":{\"match\":\"one\",\"replace\":\"two\"}}";
+        var finalUri = new Uri("https://cdn.example.test/reviewed/patches.json");
+        var service = new CustomPatchService(
+            new FakeImportTransport((uri, _) =>
+            {
+                Assert.Equal("https://example.test/redirect", uri.ToString());
+                return Task.FromResult(Response(json, finalUri: finalUri));
+            }));
+
+        var imported = await service.ImportFromUrlAsync("https://example.test/redirect");
+
+        Assert.Equal(finalUri.ToString(), imported.SourceUrl);
+    }
+
+    [Fact]
     public async Task ImportFromUrlAsync_BlocksNonHttpsUrls()
     {
         var service = new CustomPatchService(new FakeImportTransport((_, _) => throw new InvalidOperationException("should not fetch")));
@@ -124,6 +141,18 @@ public sealed class CustomPatchServiceTests
             service.ImportFromUrlAsync("http://example.test/patches.json"));
 
         Assert.Contains("HTTPS", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ImportFromUrlAsync_BlocksRedirectedNonHttpsSource()
+    {
+        var service = new CustomPatchService(new FakeImportTransport((_, _) =>
+            Task.FromResult(Response("{}", finalUri: new Uri("http://example.test/patches.json")))));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ImportFromUrlAsync("https://example.test/patches.json"));
+
+        Assert.Contains("non-HTTPS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -191,13 +220,15 @@ public sealed class CustomPatchServiceTests
         string content,
         HttpStatusCode statusCode = HttpStatusCode.OK,
         long? contentLength = null,
-        bool omitContentLength = false)
+        bool omitContentLength = false,
+        Uri? finalUri = null)
     {
         var bytes = Encoding.UTF8.GetBytes(content);
         return new CustomPatchImportResponse(
             statusCode,
             omitContentLength ? null : contentLength ?? bytes.Length,
-            new MemoryStream(bytes));
+            new MemoryStream(bytes),
+            finalUri: finalUri);
     }
 
     private sealed class FakeImportTransport(Func<Uri, CancellationToken, Task<CustomPatchImportResponse>> handler) : ICustomPatchImportTransport

@@ -44,17 +44,20 @@ public sealed class CustomPatchImportResponse : IDisposable
         HttpStatusCode statusCode,
         long? contentLength,
         Stream content,
-        IDisposable? owner = null)
+        IDisposable? owner = null,
+        Uri? finalUri = null)
     {
         StatusCode = statusCode;
         ContentLength = contentLength;
         Content = content;
+        FinalUri = finalUri;
         _owner = owner;
     }
 
     public HttpStatusCode StatusCode { get; }
     public long? ContentLength { get; }
     public Stream Content { get; }
+    public Uri? FinalUri { get; }
 
     public void Dispose()
     {
@@ -201,6 +204,12 @@ public sealed class CustomPatchService
         }
 
         using var response = await _importTransport.GetAsync(uri, cancellationToken);
+        var sourceUri = response.FinalUri ?? uri;
+        if (!string.Equals(sourceUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Import URL redirected to a non-HTTPS address.");
+        }
+
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
             throw new InvalidOperationException("The patches.json URL returned 404 Not Found.");
@@ -237,7 +246,7 @@ public sealed class CustomPatchService
 
         return new CustomPatchImportResult(
             text,
-            uri.ToString(),
+            sourceUri.ToString(),
             _clock().ToUniversalTime(),
             bytes.Length,
             Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant());
@@ -413,7 +422,8 @@ public sealed class CustomPatchService
                     response.StatusCode,
                     response.Content.Headers.ContentLength,
                     stream,
-                    response);
+                    response,
+                    response.RequestMessage?.RequestUri);
             }
             catch
             {

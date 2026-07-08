@@ -129,7 +129,7 @@ public sealed class LocalProfileServiceTests : IDisposable
         config.RiskAcknowledged = true;
         config.SpotX_CustomPatchesEnabled = true;
         config.SpotX_CustomPatchesJson = "{ \"xpui\": { \"match\": \"one\", \"replace\": \"two\" } }";
-        config.SpotX_CustomPatchesSourceUrl = "https://example.test/patches.json";
+        config.SpotX_CustomPatchesSourceUrl = "https://user:secret@example.test/patches.json?token=topsecret#fragment";
         config.SpotX_CustomPatchesFetchedAtUtc = DateTimeOffset.Parse("2026-06-30T12:34:56Z");
         config.SpotX_CustomPatchesSourceByteCount = 54;
         config.SpotX_CustomPatchesSourceSha256 = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
@@ -145,6 +145,9 @@ public sealed class LocalProfileServiceTests : IDisposable
             exported.RootElement.GetProperty("generatorVersion").GetString());
         Assert.False(exported.RootElement.GetProperty("settings").TryGetProperty("RiskAcknowledged", out _));
         Assert.Equal("https://example.test/patches.json", exported.RootElement.GetProperty("settings").GetProperty("SpotX_CustomPatchesSourceUrl").GetString());
+        Assert.Equal(
+            "{ \"xpui\": { \"match\": \"one\", \"replace\": \"two\" } }",
+            exported.RootElement.GetProperty("settings").GetProperty("SpotX_CustomPatchesJson").GetString());
         Assert.Equal("abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789", exported.RootElement.GetProperty("settings").GetProperty("SpotX_CustomPatchesSourceSha256").GetString());
 
         await _profileService.DeleteAsync(created.Summary.Id);
@@ -238,6 +241,10 @@ public sealed class LocalProfileServiceTests : IDisposable
         var invalidBase64 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _profileService.PreviewShareUriAsync("librespot://profile?data=not-valid!*"));
         Assert.Contains("base64url", invalidBase64.Message);
+
+        var invalidEncoding = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _profileService.PreviewShareUriAsync("librespot://profile?data=%ZZ"));
+        Assert.Contains("percent-encoding", invalidEncoding.Message);
 
         var oversized = EncodeBase64Url(new byte[8193]);
         await Assert.ThrowsAsync<InvalidOperationException>(() =>

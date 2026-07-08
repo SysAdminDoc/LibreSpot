@@ -156,7 +156,7 @@ public sealed class LocalizationTests
         var resourceKeys = GetResourceKeys(LoadResx());
 
         Assert.NotEmpty(usedKeys);
-        Assert.Empty(usedKeys.Where(key => !resourceKeys.Contains(key)));
+        Assert.DoesNotContain(usedKeys, key => !resourceKeys.Contains(key));
     }
 
     [Fact]
