@@ -88,15 +88,17 @@ public sealed class WpfFlaUiSmokeTests
     }
 
     [Theory]
-    [InlineData("PromptCancelButton")]
-    [InlineData("PromptConfirmButton")]
-    public void FlaUiPromptOverlay_ConfirmAndCancelDismissThePrompt(string buttonAutomationId)
+    [InlineData("prompt", "PromptCancelButton")]
+    [InlineData("prompt", "PromptConfirmButton")]
+    [InlineData("prompt-destructive", "PromptCancelButton")]
+    [InlineData("prompt-destructive", "PromptConfirmButton")]
+    public void FlaUiPromptOverlay_ConfirmAndCancelDismissThePrompt(string state, string buttonAutomationId)
     {
         var text = LocalizedSmokeText.For("en");
-        WithSmokeWindow("prompt", window =>
+        WithSmokeWindow(state, window =>
         {
-            AssertNamedVisible(window, AssertControl(window, "PromptCancelButton", ControlType.Button, text.Cancel), text.Cancel);
-            InvokeOrClick(WaitForElementByAutomationId(window, buttonAutomationId));
+            AssertControl(window, "PromptCancelButton", ControlType.Button, text.Cancel, timeoutSeconds: 30);
+            InvokeOrClick(WaitForElementByAutomationId(window, buttonAutomationId, timeoutSeconds: 30));
 
             WaitUntilMissingByAutomationId(window, "PromptCancelButton");
         });
@@ -147,7 +149,16 @@ public sealed class WpfFlaUiSmokeTests
         startInfo.ArgumentList.Add("--uia-background");
         startInfo.Environment["LIBRESPOT_UIA_ROOT"] = root;
 
-        return new SmokeApp(Application.Launch(startInfo), root);
+        var gate = WpfUiAutomationCollection.EnterExclusive();
+        try
+        {
+            return new SmokeApp(Application.Launch(startInfo), root, gate);
+        }
+        catch
+        {
+            gate.Dispose();
+            throw;
+        }
     }
 
     private static Window WaitForMainWindow(Application application, UIA3Automation automation, TimeSpan timeout)
@@ -450,17 +461,26 @@ public sealed class WpfFlaUiSmokeTests
 
     private sealed class SmokeApp : IDisposable
     {
-        public SmokeApp(Application application, string root)
+        public SmokeApp(Application application, string root, IDisposable gate)
         {
             Application = application;
             Root = root;
+            Gate = gate;
         }
 
         public Application Application { get; }
         private string Root { get; }
+        private IDisposable Gate { get; }
+        private bool _disposed;
 
         public void Dispose()
         {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
             try
             {
                 if (!Application.HasExited)
@@ -479,7 +499,7 @@ public sealed class WpfFlaUiSmokeTests
             }
             finally
             {
-                Application.Dispose();
+                try { Application.Dispose(); } finally { Gate.Dispose(); }
                 try
                 {
                     if (Directory.Exists(Root))

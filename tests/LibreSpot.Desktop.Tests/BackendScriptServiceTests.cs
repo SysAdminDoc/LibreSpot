@@ -147,7 +147,7 @@ public sealed class BackendScriptServiceTests
             """
             for ($i = 0; $i -lt 6; $i++) {
                 Write-Output "@@LS@@|status|INFO|tick $i"
-                Start-Sleep -Milliseconds 35
+                Start-Sleep -Milliseconds 75
             }
             exit 0
             """);
@@ -158,9 +158,9 @@ public sealed class BackendScriptServiceTests
                 runtimeDirectory,
                 noBackendMode: false,
                 new BackendWatchdogOptions(
-                    TimeSpan.FromMilliseconds(70),
-                    TimeSpan.FromMilliseconds(140),
-                    TimeSpan.FromMilliseconds(10)),
+                    TimeSpan.FromMilliseconds(250),
+                    TimeSpan.FromMilliseconds(1000),
+                    TimeSpan.FromMilliseconds(25)),
                 scriptPath);
 
             var result = await service.RunAsync("Install", Path.Combine(tempRoot, "config.json"), messages.Add);

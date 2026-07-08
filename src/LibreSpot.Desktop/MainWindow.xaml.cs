@@ -129,10 +129,17 @@ public partial class MainWindow : Window
 
         try
         {
-            await _viewModel.InitializeAsync();
-            if (!string.IsNullOrWhiteSpace(_uiAutomationSmokeState))
+            var hasUiAutomationSmokeState = false;
+            if (_uiAutomationSmokeState is { } uiAutomationSmokeState &&
+                !string.IsNullOrWhiteSpace(uiAutomationSmokeState))
             {
-                _viewModel.ApplyUiAutomationSmokeState(_uiAutomationSmokeState);
+                hasUiAutomationSmokeState = true;
+                _viewModel.ApplyUiAutomationSmokeState(uiAutomationSmokeState);
+            }
+
+            await _viewModel.InitializeAsync();
+            if (hasUiAutomationSmokeState)
+            {
                 if (!string.IsNullOrWhiteSpace(_uiAutomationCapturePath))
                 {
                     await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
