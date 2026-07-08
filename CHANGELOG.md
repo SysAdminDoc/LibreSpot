@@ -13,9 +13,14 @@ the version and recaptures WPF screenshots (both operator/UI-gated).
 - Antivirus exclusion health signal: when Windows Defender real-time protection is on and the Spotify install folder is not excluded, the readiness inspector and CLI `detect`/`status` now surface a warning with a copy-paste `Add-MpPreference -ExclusionPath` command, because SpotX-patched files are commonly quarantined as a HackTool false positive (which code-signing cannot clear). LibreSpot only reports and suggests — it never changes antivirus settings. Third-party AV, disabled protection, an already-excluded folder, or an uninspectable Defender all stay silent.
 - Maintainer drift check `Build-Scripts.ps1 -CheckSpotifyVersionDrift`: compares the pinned Spotify target (the "current pinned" entry in `$global:SpotifyVersionManifest`) against the community-canonical SpotX-Bash `spotx.sh` `buildVer` and flags staleness. Report-only — it never auto-bumps the pin; network/parse failures are treated as indeterminate so the check is not flaky.
 
+### Fixed
+
+- The read-only log/terminal `TextBox` (`LogTextBoxStyle`) is a keyboard tab stop but its restyled template dropped the platform focus visual, so sighted keyboard users got no focus indicator when they tabbed into it (WCAG 2.2 SC 2.4.7). It now shows an accent focus ring when keyboard-focused.
+
 ### Tests
 
 - Added an accessibility guard (`AutomationNameContractTests`) that fails the build if any interactive control in `MainWindow.xaml` loses its UIA-discoverable name (`AutomationProperties.Name`/`Content`/`Header`/`LabeledBy`), and that pins the `LiveRegionContentControl` polite live-region peer. All 77 interactive controls currently comply; the test locks that in against regression (WCAG 2.2 4.1.2).
+- Added focus-visibility guards to `KeyboardFocusContractTests`: broadened the custom-focus-ring theory to TextBox/TabItem/ComboBoxItem, a targeted check that the read-only log textbox keeps a focus ring, and an invariant that the number of keyboard-focus triggers is at least the number of templates that null the default focus visual (so no restyled control can silently drop its focus ring).
 
 ## [v4.0.0-preview.12] - 2026-07-08
 

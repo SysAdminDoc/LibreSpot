@@ -67,12 +67,51 @@ public sealed class KeyboardFocusContractTests
     [InlineData("Button")]
     [InlineData("ComboBox")]
     [InlineData("CheckBox")]
+    [InlineData("TextBox")]
+    [InlineData("TabItem")]
+    [InlineData("ComboBoxItem")]
     public void ControlStyles_HaveCustomFocusRing(string controlType)
     {
         var controls = ReadFile("src", "LibreSpot.Desktop", "Themes", "Controls.xaml");
         Assert.Contains($"TargetType=\"{controlType}\"", controls);
+        // A keyboard-focus visual (either the focused control itself or a
+        // focus-within container) is required because the templates set
+        // FocusVisualStyle="{x:Null}", removing the platform default.
         Assert.Contains("IsKeyboardFocused", controls);
         Assert.Contains("AccentRingBrush", controls);
+    }
+
+    [Fact]
+    public void LogTextBox_ReadOnlyButStillShowsAFocusVisual()
+    {
+        // WCAG 2.2 SC 2.4.7: the read-only log is a tab stop (users focus it to
+        // scroll and copy), so its restyled template must supply a focus ring.
+        var controls = ReadFile("src", "LibreSpot.Desktop", "Themes", "Controls.xaml");
+        var keyIndex = controls.IndexOf("\"LogTextBoxStyle\"", StringComparison.Ordinal);
+        Assert.True(keyIndex >= 0, "LogTextBoxStyle not found.");
+        var endIndex = controls.IndexOf("</Style>", keyIndex, StringComparison.Ordinal);
+        Assert.True(endIndex > keyIndex, "LogTextBoxStyle closing tag not found.");
+        var style = controls[keyIndex..endIndex];
+        Assert.Contains("IsKeyboardFocused", style);
+        Assert.Contains("AccentRingBrush", style);
+    }
+
+    [Fact]
+    public void RestyledTemplates_ThatRemoveDefaultFocusVisual_SupplyTheirOwn()
+    {
+        // Every template that nulls the platform FocusVisualStyle must define at
+        // least one keyboard-focus trigger, or the control becomes invisible to
+        // sighted keyboard users (SC 2.4.7).
+        var controls = ReadFile("src", "LibreSpot.Desktop", "Themes", "Controls.xaml");
+        var nulledFocusVisuals = Regex.Matches(controls, @"FocusVisualStyle""\s*Value=""\{x:Null\}""").Count;
+        var keyboardFocusTriggers =
+            Regex.Matches(controls, @"Property=""IsKeyboardFocus(ed|Within)""\s+Value=""True""").Count;
+
+        Assert.True(
+            keyboardFocusTriggers >= nulledFocusVisuals,
+            $"{nulledFocusVisuals} templates null the default focus visual but only " +
+            $"{keyboardFocusTriggers} keyboard-focus triggers exist — a restyled control " +
+            "dropped its focus ring.");
     }
 
     [Fact]

@@ -1041,13 +1041,23 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="TextBox">
-          <Border Background="{TemplateBinding Background}"
+          <Border x:Name="LogRoot"
+                  Background="{TemplateBinding Background}"
                   BorderBrush="{TemplateBinding BorderBrush}"
                   BorderThickness="{TemplateBinding BorderThickness}"
                   CornerRadius="12">
             <ScrollViewer x:Name="PART_ContentHost"
                           Margin="{TemplateBinding Padding}" />
           </Border>
+          <ControlTemplate.Triggers>
+            <!-- The log is read-only but still a tab stop (users focus it to
+                 scroll and copy), so it needs a visible focus indicator per
+                 WCAG 2.2 SC 2.4.7. -->
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="LogRoot" Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
+              <Setter TargetName="LogRoot" Property="BorderThickness" Value="2" />
+            </Trigger>
+          </ControlTemplate.Triggers>
         </ControlTemplate>
       </Setter.Value>
     </Setter>
