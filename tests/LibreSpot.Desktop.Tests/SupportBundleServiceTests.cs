@@ -158,6 +158,21 @@ public sealed class SupportBundleServiceTests
     }
 
     [Fact]
+    public async Task ExportAsync_DoesNotReuseFixedDestinationTempFile()
+    {
+        using var fixture = new SupportBundleFixture();
+        fixture.WriteStackReadyState();
+        var staleTemp = Path.Combine(fixture.Root, "support.zip.tmp");
+        File.WriteAllText(staleTemp, "existing export temp from another process");
+
+        var result = await fixture.ExportAsync(new SupportBundleOptions());
+
+        Assert.True(File.Exists(result.Path));
+        Assert.Equal("existing export temp from another process", File.ReadAllText(staleTemp));
+        Assert.Empty(Directory.EnumerateFiles(fixture.Root, "support.zip.*.tmp"));
+    }
+
+    [Fact]
     public async Task ExportAsync_IncludesCustomPatchImportProvenanceWithoutRawSourceSecrets()
     {
         using var fixture = new SupportBundleFixture();

@@ -156,11 +156,12 @@ public sealed class SupportBundleService
 
         var preview = CreatePreview(snapshot, options);
         var entryCount = 0;
-        var tempPath = fullPath + ".tmp";
+        var tempDirectory = string.IsNullOrWhiteSpace(directory) ? Environment.CurrentDirectory : directory;
+        var tempPath = Path.Combine(tempDirectory, $"{Path.GetFileName(fullPath)}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp");
 
         try
         {
-            await using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+            await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create))
             {
                 AddJsonEntry(archive, "manifest.json", BuildManifest(preview, options, snapshot));
