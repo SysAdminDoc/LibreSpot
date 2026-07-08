@@ -157,7 +157,7 @@ public sealed class PowerShellRegressionTests
 
     [Theory]
     [InlineData("LibreSpot.ps1")]
-    [InlineData("src/powershell/shared/Set-WatcherState.ps1")]
+    [InlineData("src/powershell/lane-specific/Set-WatcherState.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
     public void SetWatcherState_MergesOverExistingState_SoOtherLaneFieldsSurvive(string relativePath)
     {
@@ -1685,7 +1685,7 @@ public sealed class PowerShellRegressionTests
     }
 
     [Fact]
-    public void BackendCleanup_StreamsNativeUninstallerHeartbeat()
+    public void BackendCleanup_NukesDirectlyWithoutNativeUninstaller()
     {
         var script = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
         var fnBody = Regex.Match(
@@ -1696,13 +1696,12 @@ public sealed class PowerShellRegressionTests
         Assert.True(fnBody.Success, "Module-NukeSpotify function block not found in backend script.");
         var body = fnBody.Groups["body"].Value;
 
-        Assert.Contains("Continuing with desktop Spotify cleanup.", body);
-        Assert.Contains("Native Spotify uninstaller started; waiting up to 60s", body);
-        Assert.Contains("Waiting for native Spotify uninstaller", body);
+        Assert.DoesNotContain("/UNINSTALL", body);
+        Assert.DoesNotContain("Native Spotify uninstaller", body);
+        Assert.Contains("Remove-AppxProvisionedPackage", body);
         Assert.Contains("Update-BackendState", body);
-        Assert.Contains("still running", body);
-        Assert.Contains("continuing with forced file cleanup", body);
-        Assert.DoesNotContain("Native Spotify uninstaller completed.", body);
+        Assert.Contains("Verification retry", body);
+        Assert.Contains("Remove-PathSafely", body);
     }
 
     [Theory]

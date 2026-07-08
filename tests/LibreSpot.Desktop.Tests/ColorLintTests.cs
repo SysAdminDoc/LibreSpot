@@ -175,7 +175,7 @@ public sealed class ColorLintTests
             "src/LibreSpot.Desktop/Converters/LogLevelToBrushConverter.cs" =>
                 (occurrence.Kind == "named color" && occurrence.Value == "Colors.Gray")
                 || occurrence.Kind == "solid brush",
-            "src/LibreSpot.Desktop/ViewModels/MainViewModel.cs" =>
+            "src/LibreSpot.Desktop/ViewModels/ThemeGalleryItemViewModel.cs" =>
                 occurrence.Kind == "interpolated swatch",
             "src/LibreSpot.Desktop/Services/Win11ShellIntegration.cs" =>
                 occurrence.Kind == "colorref bytes",
