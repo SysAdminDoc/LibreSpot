@@ -13,6 +13,8 @@ the version and recaptures WPF screenshots (both operator/UI-gated).
 - Antivirus exclusion health signal: when Windows Defender real-time protection is on and the Spotify install folder is not excluded, the readiness inspector and CLI `detect`/`status` now surface a warning with a copy-paste `Add-MpPreference -ExclusionPath` command, because SpotX-patched files are commonly quarantined as a HackTool false positive (which code-signing cannot clear). LibreSpot only reports and suggests — it never changes antivirus settings. Third-party AV, disabled protection, an already-excluded folder, or an uninspectable Defender all stay silent.
 - Maintainer drift check `Build-Scripts.ps1 -CheckSpotifyVersionDrift`: compares the pinned Spotify target (the "current pinned" entry in `$global:SpotifyVersionManifest`) against the community-canonical SpotX-Bash `spotx.sh` `buildVer` and flags staleness. Report-only — it never auto-bumps the pin; network/parse failures are treated as indeterminate so the check is not flaky.
 
+- Microsoft Store Spotify heads-up: when the Store version of Spotify is installed, the readiness inspector and CLI `detect`/`status` now show a one-line informational note explaining that SpotX will replace it with the standard desktop build during setup (it was already auto-removed, but silently, which read as "where did my Spotify go"). Read-only detection — LibreSpot does not remove the package itself.
+
 ### Fixed
 
 - The read-only log/terminal `TextBox` (`LogTextBoxStyle`) is a keyboard tab stop but its restyled template dropped the platform focus visual, so sighted keyboard users got no focus indicator when they tabbed into it (WCAG 2.2 SC 2.4.7). It now shows an accent focus ring when keyboard-focused.

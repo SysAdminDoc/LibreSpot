@@ -22,6 +22,7 @@ public sealed class EnvironmentSnapshotService
     private readonly Func<UpstreamDriftReport> _upstreamDriftProbe;
     private readonly Func<CommunityAssetDriftReport> _communityAssetDriftProbe;
     private readonly Func<AntivirusExclusionStatus> _antivirusProbe;
+    private readonly Func<bool> _storeSpotifyProbe;
 
     public EnvironmentSnapshotService(
         Func<bool>? autoReapplyTaskProbe = null,
@@ -39,9 +40,13 @@ public sealed class EnvironmentSnapshotService
         // Defaults to Unavailable (never shells out) so unit tests and the
         // UI-automation smoke state stay fast and deterministic. Production
         // callers pass QueryDefenderExclusionStatus to enable live detection.
-        Func<AntivirusExclusionStatus>? antivirusProbe = null)
+        Func<AntivirusExclusionStatus>? antivirusProbe = null,
+        // Same test-safe default: false (never shells out). Production callers
+        // pass QueryStoreSpotifyPresent to enable live Microsoft Store detection.
+        Func<bool>? storeSpotifyProbe = null)
     {
         _antivirusProbe = antivirusProbe ?? (() => AntivirusExclusionStatus.Unavailable);
+        _storeSpotifyProbe = storeSpotifyProbe ?? (() => false);
         _autoReapplyTaskProbe = autoReapplyTaskProbe ?? IsAutoReapplyTaskRegistered;
         _spotifyPath = string.IsNullOrWhiteSpace(spotifyPath)
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Spotify", "Spotify.exe")
@@ -98,6 +103,7 @@ public sealed class EnvironmentSnapshotService
         var upstreamDriftReport = GetUpstreamDriftReport();
         var communityAssetDriftReport = GetCommunityAssetDriftReport();
         var antivirusStatus = GetAntivirusStatus();
+        var storeSpotifyPresent = GetStoreSpotifyPresent();
         var healthReport = BuildHealthReport(
             configDirectory,
             configPath,
@@ -115,7 +121,8 @@ public sealed class EnvironmentSnapshotService
             upstreamDriftReport,
             communityAssetDriftReport,
             assetCacheInventory,
-            antivirusStatus);
+            antivirusStatus,
+            storeSpotifyPresent);
 
         return new EnvironmentSnapshot
         {
@@ -153,7 +160,8 @@ public sealed class EnvironmentSnapshotService
         UpstreamDriftReport upstreamDriftReport,
         CommunityAssetDriftReport communityAssetDriftReport,
         AssetCacheInventoryReport assetCacheInventory,
-        AntivirusExclusionStatus antivirusStatus)
+        AntivirusExclusionStatus antivirusStatus,
+        bool storeSpotifyPresent)
     {
         var watcherStatePath = Path.Combine(configDirectory, "watcher-state.json");
         var watcherState = ReadWatcherState(watcherStatePath);
@@ -184,8 +192,32 @@ public sealed class EnvironmentSnapshotService
         components.AddRange(BuildUpstreamDriftComponents(upstreamDriftReport));
         components.AddRange(BuildCommunityAssetComponents(communityAssetDriftReport));
         components.AddRange(BuildAntivirusComponents(antivirusStatus));
+        components.AddRange(BuildStoreSpotifyComponents(storeSpotifyPresent));
 
         return new StackHealthReport(components);
+    }
+
+    // Only emits when the Microsoft Store Spotify package is present. SpotX
+    // auto-removes it at install (Build-SpotXParams always passes
+    // -confirm_uninstall_ms_spoti), so this is an informational heads-up, not a
+    // problem to repair - it explains why the Store build disappears.
+    private static IEnumerable<StackHealthComponent> BuildStoreSpotifyComponents(bool storeSpotifyPresent)
+    {
+        if (!storeSpotifyPresent)
+        {
+            yield break;
+        }
+
+        yield return new StackHealthComponent(
+            "store-spotify",
+            "Microsoft Store Spotify",
+            "Will be replaced",
+            HealthSeverity.Info,
+            null,
+            null,
+            null,
+            "The Microsoft Store version of Spotify is installed. LibreSpot patches the standard desktop build, so SpotX will remove the Store version and install the desktop build in its place during setup.",
+            Array.Empty<string>());
     }
 
     // Only emits a component when there is an actionable finding: Defender was
@@ -262,6 +294,72 @@ public sealed class EnvironmentSnapshotService
         catch
         {
             return AntivirusExclusionStatus.Unavailable;
+        }
+    }
+
+    private bool GetStoreSpotifyPresent()
+    {
+        try
+        {
+            return _storeSpotifyProbe();
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Live Microsoft Store Spotify (AppX) detection. Shells out to
+    /// <c>Get-AppxPackage SpotifyAB.SpotifyMusic</c> and returns false on any
+    /// failure (Appx module unavailable, timeout, error) so a heads-up is never
+    /// shown on a guess. Read-only: never removes the package (SpotX does that
+    /// during setup).
+    /// </summary>
+    public static bool QueryStoreSpotifyPresent()
+    {
+        const string script =
+            "$ErrorActionPreference='Stop';" +
+            "if (Get-AppxPackage -Name 'SpotifyAB.SpotifyMusic' -ErrorAction SilentlyContinue) { 'present' } else { 'absent' }";
+
+        try
+        {
+            using var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    ArgumentList = { "-NoProfile", "-NonInteractive", "-Command", script }
+                }
+            };
+
+            if (!process.Start())
+            {
+                return false;
+            }
+
+            var stdoutDrain = process.StandardOutput.ReadToEndAsync();
+            var stderrDrain = process.StandardError.ReadToEndAsync();
+
+            if (!process.WaitForExit(5000))
+            {
+                try { process.Kill(); } catch { }
+                try { process.WaitForExit(500); } catch { }
+                return false;
+            }
+
+            try { Task.WaitAll(new Task[] { stdoutDrain, stderrDrain }, 500); } catch { }
+
+            return process.ExitCode == 0 &&
+                stdoutDrain.Result.Contains("present", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
         }
     }
 

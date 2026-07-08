@@ -67,7 +67,8 @@ public partial class MainWindow : Window
                 new EnvironmentSnapshotService(
                     upstreamDriftProbe: () => UpstreamDriftService.Default.GetReport(),
                     communityAssetDriftProbe: () => CommunityAssetDriftService.Default.GetReport(),
-                    antivirusProbe: EnvironmentSnapshotService.QueryDefenderExclusionStatus))
+                    antivirusProbe: EnvironmentSnapshotService.QueryDefenderExclusionStatus,
+                    storeSpotifyProbe: EnvironmentSnapshotService.QueryStoreSpotifyPresent))
             : CreateUiAutomationSmokeViewModel(_uiAutomationSmokeCulture);
 
         DataContext = _viewModel;

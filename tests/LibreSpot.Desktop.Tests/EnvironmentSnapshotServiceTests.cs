@@ -986,6 +986,32 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.False(status.Queried);
     }
 
+    [Fact]
+    public void GetSnapshot_SurfacesStoreSpotifyNoticeWhenPackagePresent()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.StoreSpotifyPresent = true;
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var store = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "store-spotify");
+        Assert.Equal(HealthSeverity.Info, store.Severity);
+        Assert.Contains("Store version", store.Evidence);
+        Assert.Contains("desktop build", store.Evidence);
+    }
+
+    [Fact]
+    public void GetSnapshot_NoStoreSpotifyComponentWhenPackageAbsent()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        // Default StoreSpotifyPresent is false.
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.DoesNotContain(snapshot.HealthReport.Components, c => c.Id == "store-spotify");
+    }
+
     private sealed class SnapshotFixture : IDisposable
     {
         public SnapshotFixture()
@@ -1006,6 +1032,7 @@ public sealed class EnvironmentSnapshotServiceTests
         public string? SpicetifyVersion { get; init; }
         public bool SpotifyRunning { get; init; }
         public AntivirusExclusionStatus? AntivirusStatus { get; set; }
+        public bool StoreSpotifyPresent { get; set; }
 
         public string Root { get; }
         public string ConfigDirectory { get; }
@@ -1035,7 +1062,8 @@ public sealed class EnvironmentSnapshotServiceTests
                 spotifyRunningProbe: () => SpotifyRunning,
                 upstreamDriftProbe: () => upstreamDriftReport ?? UpstreamDriftReport.Empty,
                 communityAssetDriftProbe: () => communityAssetDriftReport ?? CommunityAssetDriftReport.Empty,
-                antivirusProbe: () => AntivirusStatus ?? AntivirusExclusionStatus.Unavailable);
+                antivirusProbe: () => AntivirusStatus ?? AntivirusExclusionStatus.Unavailable,
+                storeSpotifyProbe: () => StoreSpotifyPresent);
 
             return service.GetSnapshot(ConfigPath);
         }
