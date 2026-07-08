@@ -1007,3 +1007,48 @@ Describe 'Confirm-FileHash' {
         { Confirm-FileHash -Path 'nonexistent' -ExpectedHash $null -Label 'test' } | Should -Not -Throw
     }
 }
+
+# =============================================================================
+# Get-SpotXDownloadRetryPlan (dot-sourced from shared module)
+# =============================================================================
+Describe 'Get-SpotXDownloadRetryPlan' {
+    BeforeAll {
+        $sharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
+        . (Join-Path $sharedDir 'Get-SpotXDownloadRetryPlan.ps1')
+    }
+
+    It 'Retries a timeout through the mirror when the mirror was not used' {
+        $plan = Get-SpotXDownloadRetryPlan -Category 'SpotXChildDownloadTimeout' -MirrorAlreadyUsed $false
+        $plan | Should -Not -BeNullOrEmpty
+        $plan.UseMirror | Should -BeTrue
+    }
+
+    It 'Retries a worker-endpoint failure through the mirror when the mirror was not used' {
+        $plan = Get-SpotXDownloadRetryPlan -Category 'SpotXWorkerEndpointFailure' -MirrorAlreadyUsed $false
+        $plan | Should -Not -BeNullOrEmpty
+        $plan.UseMirror | Should -BeTrue
+    }
+
+    It 'Does not retry a timeout when the mirror was already used (no useful toggle)' {
+        Get-SpotXDownloadRetryPlan -Category 'SpotXChildDownloadTimeout' -MirrorAlreadyUsed $true | Should -BeNullOrEmpty
+    }
+
+    It 'Does not retry a worker-endpoint failure when the mirror was already used' {
+        Get-SpotXDownloadRetryPlan -Category 'SpotXWorkerEndpointFailure' -MirrorAlreadyUsed $true | Should -BeNullOrEmpty
+    }
+
+    It 'Retries a phishing-blocked mirror without the mirror when the mirror was used' {
+        $plan = Get-SpotXDownloadRetryPlan -Category 'SpotXMirrorBlockedPhishing' -MirrorAlreadyUsed $true
+        $plan | Should -Not -BeNullOrEmpty
+        $plan.UseMirror | Should -BeFalse
+    }
+
+    It 'Does not retry a phishing block when the mirror was not used (nothing to disable)' {
+        Get-SpotXDownloadRetryPlan -Category 'SpotXMirrorBlockedPhishing' -MirrorAlreadyUsed $false | Should -BeNullOrEmpty
+    }
+
+    It 'Returns null for an unknown or non-download category' {
+        Get-SpotXDownloadRetryPlan -Category 'SomethingElse' -MirrorAlreadyUsed $false | Should -BeNullOrEmpty
+        Get-SpotXDownloadRetryPlan -Category '' -MirrorAlreadyUsed $false | Should -BeNullOrEmpty
+    }
+}

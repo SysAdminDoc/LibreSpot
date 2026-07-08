@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [v4.0.0-preview.12] - 2026-07-08
 
+### Added
+
+- Automatic single retry through the SpotX mirror when SpotX's own downloader hits a classified outage (connection timeout / curl exit 28, or a Cloudflare-worker endpoint failure); a mirror flagged upstream as phishing instead retries once without the mirror. Timeouts and worker failures are the dominant recoverable SpotX install failure, and previously surfaced as a hard error even though a mirror retry usually succeeds.
+
 ### Fixed
 
 - Made active WPF runs cancellable directly from the activity panel instead of routing through a second prompt that could leave Continue as the only enabled action.

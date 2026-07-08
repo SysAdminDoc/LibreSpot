@@ -1838,6 +1838,36 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("'Get-SpotXPatchVerification'", exportBlock.Groups["list"].Value);
     }
 
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    [InlineData("src/powershell/shared/Module-InstallSpotX.ps1")]
+    public void InstallSpotX_RetriesClassifiedDownloadFailureViaMirror(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Module-InstallSpotX\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fnBody.Success, $"Module-InstallSpotX function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+
+        // A classified SpotX download failure must drive a single mirror-toggle
+        // retry, not surface immediately as a hard failure.
+        Assert.Contains("Get-SpotXDownloadRetryPlan", body);
+        Assert.Contains("-mirror", body);
+        Assert.Contains("$spotxAttempt", body);
+    }
+
+    [Fact]
+    public void SpotXDownloadRetryPlan_IsExportedToWorkerRunspace()
+    {
+        var script = ReadFile("LibreSpot.ps1");
+        var exportBlock = Regex.Match(script, @"\$functionNamesForWorker\s*=\s*@\((?<list>.+?)\)", RegexOptions.Singleline);
+        Assert.True(exportBlock.Success, "Worker function export list not found.");
+        Assert.Contains("'Get-SpotXDownloadRetryPlan'", exportBlock.Groups["list"].Value);
+    }
+
     // ---------------------------------------------------------------------
     // CVE-2025-54100: Windows PowerShell 5.1 web-content RCE (CVSS 7.8, fixed
     // in the December 2025 Windows cumulative updates). SHA256 pinning protects

@@ -6880,6 +6880,46 @@ function Get-SpotXChildFailureClassification {
     return $null
 }
 
+function Get-SpotXDownloadRetryPlan {
+    # Maps a classified SpotX child-download failure (from
+    # Get-SpotXChildFailureClassification) to a single automatic-retry plan.
+    # Timeouts and Cloudflare-worker outages retry once through the SpotX
+    # mirror; a mirror flagged as phishing retries once WITHOUT the mirror.
+    # Returns $null when the failure is not download-retryable, or when the
+    # useful mirror toggle was already the state of the failed attempt - this
+    # guarantees at most one automatic retry and that the retry changes the
+    # download path (a same-path retry would just fail the same way).
+    param(
+        [string]$Category,
+        [bool]$MirrorAlreadyUsed
+    )
+
+    switch ($Category) {
+        'SpotXChildDownloadTimeout' {
+            if ($MirrorAlreadyUsed) { return $null }
+            return [pscustomobject]@{
+                UseMirror = $true
+                Reason    = "SpotX's download timed out; retrying once through the SpotX mirror."
+            }
+        }
+        'SpotXWorkerEndpointFailure' {
+            if ($MirrorAlreadyUsed) { return $null }
+            return [pscustomobject]@{
+                UseMirror = $true
+                Reason    = "SpotX's primary download endpoint failed; retrying once through the SpotX mirror."
+            }
+        }
+        'SpotXMirrorBlockedPhishing' {
+            if (-not $MirrorAlreadyUsed) { return $null }
+            return [pscustomobject]@{
+                UseMirror = $false
+                Reason    = 'The SpotX mirror was blocked upstream; retrying once without the mirror.'
+            }
+        }
+        default { return $null }
+    }
+}
+
 function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Arguments,[int]$TimeoutSeconds=600,[string]$ExpectedHash='',[string]$Label='external script')
     Write-Log "Spawning: $FilePath"
     Write-PowerShellSecurityContext
@@ -7437,10 +7477,11 @@ function Module-InstallSpotX { param($Config,$SyncHash)
             Confirm-FileHash -Path $dest -ExpectedHash $spotxHash -Label "SpotX run.ps1"
             Save-ToAssetCache -SourcePath $dest -SHA256Hash $spotxHash -Label 'SpotX run.ps1' -SourceUrl $global:URL_SPOTX
         }
-        $params = Build-SpotXParams -Config $Config
+        $baseParams = Build-SpotXParams -Config $Config
         $customPatchesPath = New-SpotXCustomPatchesFile -Config $Config
+        $patchSuffix = ''
         if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
-            $params = "$params -CustomPatchesPath `"$customPatchesPath`""
+            $patchSuffix = " -CustomPatchesPath `"$customPatchesPath`""
             Write-Log "Custom SpotX patches staged at $customPatchesPath"
         }
         if (Test-Path $global:SPOTIFY_EXE_PATH) {
@@ -7449,10 +7490,38 @@ function Module-InstallSpotX { param($Config,$SyncHash)
         } else {
             Write-Log "Spotify not installed - SpotX will download recommended version"
         }
-        Write-Log "Params: $params"
+        Write-Log "Params: $($baseParams + $patchSuffix)"
         if ($SyncHash) { $SyncHash.AllowSpotify = $true }
         try {
-            Invoke-ExternalScriptIsolated -FilePath $dest -Arguments $params -ExpectedHash $spotxHash -Label 'SpotX run.ps1'
+            # SpotX can fail inside its own downloader after LibreSpot already
+            # hash-verified run.ps1 (timeout, Cloudflare-worker outage, or a
+            # mirror flagged as phishing). Invoke-ExternalScriptIsolated tags
+            # those with a [SpotX...] category. On a classified download
+            # failure, retry exactly once through the SpotX mirror (or, for a
+            # phishing-blocked mirror, without it) before surfacing the error.
+            $spotxMirrorInUse = [bool]$Config.SpotX_Mirror
+            $spotxAttempt = 0
+            while ($true) {
+                $spotxAttempt++
+                try {
+                    Invoke-ExternalScriptIsolated -FilePath $dest -Arguments ($baseParams + $patchSuffix) -ExpectedHash $spotxHash -Label 'SpotX run.ps1'
+                    break
+                } catch {
+                    $spotxCategory = if ($_.Exception.Message -match '\[(SpotX\w+)\]') { $Matches[1] } else { $null }
+                    $spotxRetry = if ($spotxCategory -and $spotxAttempt -eq 1) {
+                        Get-SpotXDownloadRetryPlan -Category $spotxCategory -MirrorAlreadyUsed $spotxMirrorInUse
+                    } else { $null }
+                    if (-not $spotxRetry) { throw }
+                    Write-Log $spotxRetry.Reason -Level 'WARN'
+                    $hasMirror = $baseParams -match '(^|\s)-mirror(\s|$)'
+                    if ($spotxRetry.UseMirror -and -not $hasMirror) {
+                        $baseParams = ($baseParams.Trim() + ' -mirror').Trim()
+                    } elseif ((-not $spotxRetry.UseMirror) -and $hasMirror) {
+                        $baseParams = ($baseParams -replace '(^|\s)-mirror(\s|$)', ' ').Trim()
+                    }
+                    $spotxMirrorInUse = $spotxRetry.UseMirror
+                }
+            }
             # Verify SpotX patching succeeded
             if (-not (Test-Path $global:SPOTIFY_EXE_PATH)) {
                 throw "SpotX failed - Spotify.exe not found at $global:SPOTIFY_EXE_PATH. Check the log above for errors."
@@ -8345,7 +8414,7 @@ $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-SpotXCustomPatchesFile','New-LibreSpotTempDirectory',
     'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Open-VerifiedScriptForExecution','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
-    'Get-SpotXChildFailureClassification','Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
+    'Get-SpotXChildFailureClassification','Get-SpotXDownloadRetryPlan','Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyIntegrationContext','Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
     'Get-NormalizedPathString','Get-PathEntries','Set-PathEntries','Add-PathEntry','Remove-PathEntry',
