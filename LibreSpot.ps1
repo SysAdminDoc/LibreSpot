@@ -7273,6 +7273,20 @@ function Module-NukeSpotify {
         } else { Write-Log "  No Store version found." }
     } catch { Write-Log "  Store removal failed: $($_.Exception.Message)" -Level 'WARN' }
 
+    # Remove the provisioned package so new user profiles don't get Spotify pre-installed
+    try {
+        $provisioned = Get-AppxProvisionedPackage -Online -EA SilentlyContinue | Where-Object { $_.DisplayName -eq 'SpotifyAB.SpotifyMusic' }
+        if ($provisioned) {
+            Write-OperationJournalEntry -Phase 'appx' -Target $provisioned.PackageName -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Reinstall Spotify from the Microsoft Store.'
+            $savedPP = $ProgressPreference; $ProgressPreference = 'SilentlyContinue'
+            try {
+                Remove-AppxProvisionedPackage -Online -PackageName $provisioned.PackageName -EA Stop
+                Write-OperationJournalEntry -Phase 'appx' -Target $provisioned.PackageName -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Reinstall Spotify from the Microsoft Store.'
+                Write-Log "  Removed provisioned Spotify package."; $rc++
+            } finally { $ProgressPreference = $savedPP }
+        }
+    } catch { Write-Log "  Provisioned package removal skipped: $($_.Exception.Message)" -Level 'WARN' }
+
     # --- Phase 3: Run Spotify native uninstaller (silent) ---
     Write-Log "[Phase 3/8] Running native uninstaller..."
     $spotifyExe = Join-Path $env:APPDATA "Spotify\Spotify.exe"
@@ -7400,19 +7414,25 @@ function Module-NukeSpotify {
         }
     } catch { Write-Log "  Firewall cleanup skipped." }
 
-    # --- Phase 8: Verification sweep ---
+    # --- Phase 8: Verification sweep (amd64fox/Uninstall-Spotify retry pattern) ---
     Write-Log "[Phase 8/8] Verification sweep..."
-    $survivors = @()
-    @((Join-Path $env:APPDATA "Spotify"), (Join-Path $env:LOCALAPPDATA "Spotify")) | ForEach-Object {
-        if (Test-Path $_) {
-            Start-Sleep -Milliseconds 1500
-            if (Remove-PathSafely -Path $_ -Label "Spotify cleanup retry") {
-                $rc++
-            } else {
-                $survivors += $_
-            }
+    $verifyPaths = @(
+        (Join-Path $env:APPDATA "Spotify")
+        (Join-Path $env:LOCALAPPDATA "Spotify")
+        (Join-Path $env:APPDATA "spicetify")
+        (Join-Path $env:LOCALAPPDATA "spicetify")
+    )
+    $maxRetries = 5
+    for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
+        $remaining = @($verifyPaths | Where-Object { Test-Path $_ })
+        if ($remaining.Count -eq 0) { break }
+        if ($attempt -gt 1) { Write-Log "  Retry $attempt/$maxRetries ($($remaining.Count) path(s) still locked)..." }
+        Start-Sleep -Milliseconds 1500
+        foreach ($path in $remaining) {
+            if (Remove-PathSafely -Path $path -Label "Cleanup retry: $(Split-Path $path -Leaf)") { $rc++ }
         }
     }
+    $survivors = @($verifyPaths | Where-Object { Test-Path $_ })
     if ($survivors.Count -gt 0) {
         Write-Log "  Could not fully remove $($survivors.Count) path(s) (may need reboot):" -Level 'WARN'
         $survivors | ForEach-Object { Write-Log "    - $_" -Level 'WARN' }

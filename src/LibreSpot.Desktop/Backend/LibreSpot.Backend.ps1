@@ -3099,6 +3099,21 @@ function Module-NukeSpotify {
         Write-Log "Store package removal failed: $($_.Exception.Message)" -Level 'WARN'
     }
 
+    # Remove the provisioned package so new user profiles don't get Spotify pre-installed
+    try {
+        $provisioned = Get-AppxProvisionedPackage -Online -EA SilentlyContinue | Where-Object { $_.DisplayName -eq 'SpotifyAB.SpotifyMusic' }
+        if ($provisioned) {
+            Write-OperationJournalEntry -Phase 'appx' -Target $provisioned.PackageName -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Reinstall Spotify from the Microsoft Store.'
+            $savedProgress = $ProgressPreference; $ProgressPreference = 'SilentlyContinue'
+            try {
+                Remove-AppxProvisionedPackage -Online -PackageName $provisioned.PackageName -EA Stop
+                Write-OperationJournalEntry -Phase 'appx' -Target $provisioned.PackageName -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Reinstall Spotify from the Microsoft Store.'
+                Write-Log 'Removed provisioned Spotify package.'
+                $removedCount++
+            } finally { $ProgressPreference = $savedProgress }
+        }
+    } catch { Write-Log "Provisioned package removal skipped: $($_.Exception.Message)" -Level 'WARN' }
+
     Update-BackendState -Progress 20 -Status 'Running the native Spotify uninstaller' -Step 'Removing desktop installation'
     $spotifyExe = Join-Path $env:APPDATA 'Spotify\Spotify.exe'
     if (Test-Path -LiteralPath $spotifyExe) {
@@ -3161,6 +3176,8 @@ function Module-NukeSpotify {
         'HKCU:\Software\Spotify',
         'HKCU:\Software\Classes\spotify',
         'HKCU:\Software\Classes\spotify-client',
+        'HKCU:\Software\Microsoft\Internet Explorer\Low Rights\ElevationPolicy\{5C0D11B8-C5F6-4be3-AD2C-2B1A3EB94AB6}',
+        'HKCU:\Software\Microsoft\Internet Explorer\Low Rights\DragDrop\{5C0D11B8-C5F6-4be3-AD2C-2B1A3EB94AB6}',
         'HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\Spotify.exe'
     )) {
         if (Test-Path $key) {
@@ -3173,6 +3190,24 @@ function Module-NukeSpotify {
             } catch {
                 Write-OperationJournalEntry -Phase 'registry' -Target $key -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'Retry registry removal manually.'
                 Write-Log "Failed to remove registry key $key" -Level 'WARN'
+            }
+        }
+    }
+
+    foreach ($rv in @(
+        @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'; Name = 'Spotify' },
+        @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'; Name = 'Spotify Web Helper' }
+    )) {
+        if (Get-ItemProperty -Path $rv.Path -Name $rv.Name -EA SilentlyContinue) {
+            $regTarget = "$($rv.Path)\$($rv.Name)"
+            Write-OperationJournalEntry -Phase 'registry' -Target $regTarget -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Registry value cannot be automatically restored.'
+            try {
+                Remove-ItemProperty -Path $rv.Path -Name $rv.Name -Force -EA Stop
+                Write-OperationJournalEntry -Phase 'registry' -Target $regTarget -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Registry value cannot be automatically restored.'
+                Write-Log "Removed startup entry: $($rv.Name)"
+                $removedCount++
+            } catch {
+                Write-OperationJournalEntry -Phase 'registry' -Target $regTarget -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'Retry registry removal manually.'
             }
         }
     }
@@ -3199,10 +3234,26 @@ function Module-NukeSpotify {
     }
 
     Update-BackendState -Progress 85 -Status 'Performing final verification sweep' -Step 'Confirming removal'
-    foreach ($leftover in @((Join-Path $env:APPDATA 'Spotify'), (Join-Path $env:LOCALAPPDATA 'Spotify'))) {
-        if (Test-Path $leftover) {
-            $removedCount += Remove-PathSafely -Path $leftover -Label 'Spotify cleanup retry'
+    $verifyPaths = @(
+        (Join-Path $env:APPDATA 'Spotify')
+        (Join-Path $env:LOCALAPPDATA 'Spotify')
+        (Join-Path $env:APPDATA 'spicetify')
+        (Join-Path $env:LOCALAPPDATA 'spicetify')
+    )
+    $maxRetries = 5
+    for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
+        $remaining = @($verifyPaths | Where-Object { Test-Path $_ })
+        if ($remaining.Count -eq 0) { break }
+        if ($attempt -gt 1) { Write-Log "Verification retry $attempt/$maxRetries ($($remaining.Count) path(s) still locked)..." }
+        Start-Sleep -Milliseconds 1500
+        foreach ($path in $remaining) {
+            $removedCount += Remove-PathSafely -Path $path -Label "Cleanup retry: $(Split-Path $path -Leaf)"
         }
+    }
+    $survivors = @($verifyPaths | Where-Object { Test-Path $_ })
+    if ($survivors.Count -gt 0) {
+        Write-Log "Could not fully remove $($survivors.Count) path(s) (may need reboot):" -Level 'WARN'
+        $survivors | ForEach-Object { Write-Log "  - $_" -Level 'WARN' }
     }
 
     Write-Log "Cleanup complete. $removedCount item(s) were removed." -Level 'SUCCESS'
