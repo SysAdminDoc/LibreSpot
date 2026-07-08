@@ -396,6 +396,9 @@ public partial class MainWindow : Window
                 _viewModel.SelectedWorkspaceIndex = 1;
                 await _viewModel.PreviewSharedProfileUriAsync(activation.Value);
                 break;
+            case ShellActivationKind.ResumeInstallElevated:
+                await _viewModel.ResumeElevatedInstallAsync();
+                break;
         }
     }
 

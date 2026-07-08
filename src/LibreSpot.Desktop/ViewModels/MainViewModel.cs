@@ -37,6 +37,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly SettingsSearchStateViewModel _settingsSearch = new();
     private readonly Dispatcher _dispatcher;
     private readonly bool _isAdministratorSession;
+    private bool _resumeInstallAfterElevation;
     private readonly InstallConfiguration _recommendedBaseline;
     private readonly MaintenanceActionsStateViewModel _maintenanceActions;
     private readonly Stopwatch _runStopwatch = new();
@@ -183,7 +184,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DisableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: false), () => !IsRunning && Snapshot.AutoReapplyTaskRegistered);
         ClearSettingsSearchCommand = new RelayCommand(() => SettingsSearchText = string.Empty, () => HasSettingsSearchText);
         ClearThemeSearchCommand = new RelayCommand(() => ThemeSearchText = string.Empty, () => HasThemeSearchText);
-        RelaunchAsAdministratorCommand = new RelayCommand(PresentAdministratorPrompt, () => NeedsAdministratorRelaunch && !IsRunning);
+        RelaunchAsAdministratorCommand = new RelayCommand(() => PresentAdministratorPrompt(), () => NeedsAdministratorRelaunch && !IsRunning);
         ConfirmPromptCommand = CreateAsyncCommand(ConfirmPromptAsync, () => IsPromptVisible);
         CancelPromptCommand = new RelayCommand(CancelPrompt, () => IsPromptVisible);
         EscapeCommand = new RelayCommand(HandleEscape);
@@ -3179,7 +3180,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         if (requiresAdministrator && !IsAdministratorSession)
         {
-            PresentAdministratorPrompt();
+            // Stage the confirmed setup so the elevated relaunch can resume it
+            // without a second click. The user already confirmed the plan prompt
+            // before reaching here, so persisting the config now is safe.
+            var canResume = false;
+            if (configuration is not null && string.Equals(action, "Install", StringComparison.Ordinal))
+            {
+                try
+                {
+                    await _configurationService.SaveAsync(configuration, CancellationToken.None);
+                    canResume = true;
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"Could not stage configuration for the elevated relaunch: {ex.Message}", "WARN");
+                }
+            }
+
+            PresentAdministratorPrompt(resumeInstall: canResume);
             return;
         }
 
@@ -3565,8 +3583,53 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void PresentAdministratorPrompt()
+    /// <summary>
+    /// Startup hook for the <c>--shell-action=resume-install</c> relaunch: runs
+    /// the setup the standard-mode session staged, so an elevate-and-relaunch
+    /// finishes what the user already confirmed instead of dropping them back at
+    /// "Run recommended setup." Only proceeds when actually elevated and the
+    /// staged config was risk-acknowledged, so it never auto-runs a mutating
+    /// operation the user did not confirm.
+    /// </summary>
+    public async Task ResumeElevatedInstallAsync()
     {
+        if (!IsAdministratorSession)
+        {
+            SelectedWorkspaceIndex = 0;
+            return;
+        }
+
+        InstallConfiguration configuration;
+        try
+        {
+            configuration = await _configurationService.LoadAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"Could not load the staged setup to resume after elevation: {ex.Message}", "WARN");
+            SelectedWorkspaceIndex = 0;
+            return;
+        }
+
+        if (!configuration.RiskAcknowledged)
+        {
+            // No confirmed setup to resume — fall back to the normal landing view.
+            SelectedWorkspaceIndex = 0;
+            return;
+        }
+
+        AppendLog("Resuming the confirmed setup after the administrator relaunch.", "INFO");
+        await StartBackendRunAsync(
+            "Install",
+            configuration,
+            "Applying the setup after elevation",
+            "LibreSpot is resuming the setup you confirmed before relaunching as administrator.",
+            configuration.Mode == "Custom" ? 1 : 0);
+    }
+
+    private void PresentAdministratorPrompt(bool resumeInstall = false)
+    {
+        _resumeInstallAfterElevation = resumeInstall;
         ShowPrompt(
             "Administrator permission required",
             "LibreSpot can open safely in standard mode, but setup and maintenance actions still need elevated access to modify Spotify, SpotX, and Spicetify files." +
@@ -3614,6 +3677,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 UseShellExecute = true,
                 Verb = "runas"
             };
+            if (_resumeInstallAfterElevation)
+            {
+                // Tell the elevated instance to resume the staged setup on
+                // startup, removing the second "Run setup" click.
+                startInfo.ArgumentList.Add("--shell-action=resume-install");
+            }
 
             var process = Process.Start(startInfo);
             if (process is null)

@@ -30,6 +30,7 @@ public sealed class WindowsShellIntegrationTests
     [InlineData("--shell-action=maintenance", ShellActivationKind.NavigateMaintenance)]
     [InlineData("--shell-action=import-profile", ShellActivationKind.ImportProfile)]
     [InlineData("--shell-action=open-folder", ShellActivationKind.OpenLibreSpotFolder)]
+    [InlineData("--shell-action=resume-install", ShellActivationKind.ResumeInstallElevated)]
     public void Activation_ParsesJumpListShellActions(string argument, ShellActivationKind expected)
     {
         var activation = ShellActivationService.Parse([argument]);
