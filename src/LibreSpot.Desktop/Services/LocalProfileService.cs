@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LibreSpot.Desktop.Models;
@@ -410,6 +411,12 @@ public sealed class LocalProfileService
             var value = pair.Length == 2
                 ? Uri.UnescapeDataString(pair[1].Replace("+", "%20"))
                 : string.Empty;
+
+            if (values.ContainsKey(key))
+            {
+                throw new InvalidOperationException($"Share URI contains the '{key}' parameter more than once.");
+            }
+
             values[key] = value;
         }
 
@@ -424,9 +431,16 @@ public sealed class LocalProfileService
 
     private static byte[] DecodeBase64Url(string value)
     {
-        var normalized = value.Replace('-', '+').Replace('_', '/');
-        normalized = normalized.PadRight(normalized.Length + ((4 - normalized.Length % 4) % 4), '=');
-        return Convert.FromBase64String(normalized);
+        try
+        {
+            var normalized = value.Replace('-', '+').Replace('_', '/');
+            normalized = normalized.PadRight(normalized.Length + ((4 - normalized.Length % 4) % 4), '=');
+            return Convert.FromBase64String(normalized);
+        }
+        catch (FormatException ex)
+        {
+            throw new InvalidOperationException("Embedded profile payload is not valid base64url data.", ex);
+        }
     }
 
     private async Task<string> MigrateCurrentConfigurationAsync(CancellationToken cancellationToken)
@@ -460,12 +474,12 @@ public sealed class LocalProfileService
             {
                 await using var stream = File.OpenRead(path);
                 var document = await JsonSerializer.DeserializeAsync<StoredProfileDocument>(stream, JsonOptions, cancellationToken);
-                if (document is not null && document.SchemaVersion == ProfileStoreSchemaVersion)
+                if (TryNormalizeStoredProfileDocument(document, out var normalized))
                 {
-                    profiles.Add(ToProfile(document, activeId));
+                    profiles.Add(ToProfile(normalized, activeId));
                 }
             }
-            catch (Exception ex) when (ex is JsonException or IOException)
+            catch (Exception ex) when (ex is JsonException or IOException or InvalidOperationException)
             {
                 System.Diagnostics.Debug.WriteLine($"LocalProfileService: skipping malformed profile {path}: {ex.Message}");
             }
@@ -483,7 +497,8 @@ public sealed class LocalProfileService
         }
 
         await using var stream = File.OpenRead(path);
-        return await JsonSerializer.DeserializeAsync<StoredProfileDocument>(stream, JsonOptions, cancellationToken);
+        var document = await JsonSerializer.DeserializeAsync<StoredProfileDocument>(stream, JsonOptions, cancellationToken);
+        return TryNormalizeStoredProfileDocument(document, out var normalized) ? normalized : null;
     }
 
     private async Task WriteUserProfileDocumentAsync(StoredProfileDocument document, CancellationToken cancellationToken)
@@ -585,6 +600,34 @@ public sealed class LocalProfileService
                 document.UpdatedAt),
             SanitizedConfiguration(document.Configuration));
 
+    private static bool TryNormalizeStoredProfileDocument(StoredProfileDocument? document, out StoredProfileDocument normalized)
+    {
+        normalized = default!;
+        if (document is null || document.SchemaVersion != ProfileStoreSchemaVersion)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(document.Id) ||
+            IsBuiltInId(document.Id) ||
+            !string.Equals(document.Id, Slugify(document.Id), StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (document.Configuration is null)
+        {
+            return false;
+        }
+
+        normalized = document with
+        {
+            Name = NormalizeProfileName(document.Name),
+            Description = (document.Description ?? string.Empty).Trim()
+        };
+        return true;
+    }
+
     private static IReadOnlyList<LocalProfile> BuiltInProfiles()
     {
         var recommended = AppCatalog.CreateRecommendedConfiguration();
@@ -685,7 +728,9 @@ public sealed class LocalProfileService
     }
 
     private static string AppVersion =>
-        typeof(LocalProfileService).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+        typeof(LocalProfileService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? typeof(LocalProfileService).Assembly.GetName().Version?.ToString(3)
+        ?? "0.0.0";
 
     private sealed record StoredProfileDocument(
         int SchemaVersion,

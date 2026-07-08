@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Reflection;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
 using Xunit;
@@ -64,6 +65,44 @@ public sealed class LocalProfileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetProfilesAsync_SkipsMalformedAndSpoofedLocalProfileDocuments()
+    {
+        Directory.CreateDirectory(_profileService.ProfileDirectory);
+        await File.WriteAllTextAsync(
+            Path.Combine(_profileService.ProfileDirectory, "bad.json"),
+            """
+            {
+              "SchemaVersion": 1,
+              "Id": "bad",
+              "Name": "Bad",
+              "Description": "Missing config should not break the profile gallery.",
+              "CreatedAt": "2026-07-07T00:00:00Z",
+              "UpdatedAt": "2026-07-07T00:00:00Z",
+              "Configuration": null
+            }
+            """);
+        await File.WriteAllTextAsync(
+            Path.Combine(_profileService.ProfileDirectory, "recommended.json"),
+            """
+            {
+              "SchemaVersion": 1,
+              "Id": "recommended",
+              "Name": "Spoofed Recommended",
+              "Description": "Must not masquerade as a bundled template.",
+              "CreatedAt": "2026-07-07T00:00:00Z",
+              "UpdatedAt": "2026-07-07T00:00:00Z",
+              "Configuration": {}
+            }
+            """);
+
+        var profiles = await _profileService.GetProfilesAsync();
+
+        Assert.DoesNotContain(profiles, profile => !profile.IsBuiltIn && profile.Id == "bad");
+        Assert.DoesNotContain(profiles, profile => !profile.IsBuiltIn && profile.Id == "recommended");
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _profileService.LoadProfileAsync("bad"));
+    }
+
+    [Fact]
     public async Task ApplyProfileAsync_WritesConfigAndPreviousActivePointer()
     {
         var firstConfig = AppCatalog.CreateRecommendedConfiguration();
@@ -101,6 +140,9 @@ public sealed class LocalProfileServiceTests : IDisposable
 
         using var exported = JsonDocument.Parse(File.ReadAllText(exportPath));
         Assert.Equal("Share Me", exported.RootElement.GetProperty("profileName").GetString());
+        Assert.Equal(
+            typeof(LocalProfileService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion,
+            exported.RootElement.GetProperty("generatorVersion").GetString());
         Assert.False(exported.RootElement.GetProperty("settings").TryGetProperty("RiskAcknowledged", out _));
         Assert.Equal("https://example.test/patches.json", exported.RootElement.GetProperty("settings").GetProperty("SpotX_CustomPatchesSourceUrl").GetString());
         Assert.Equal("abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789", exported.RootElement.GetProperty("settings").GetProperty("SpotX_CustomPatchesSourceSha256").GetString());
@@ -188,6 +230,14 @@ public sealed class LocalProfileServiceTests : IDisposable
     {
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _profileService.PreviewShareUriAsync("librespot://install?data=abc"));
+
+        var duplicateSource = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _profileService.PreviewShareUriAsync("librespot://profile?data=abc&data=def"));
+        Assert.Contains("more than once", duplicateSource.Message);
+
+        var invalidBase64 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _profileService.PreviewShareUriAsync("librespot://profile?data=not-valid!*"));
+        Assert.Contains("base64url", invalidBase64.Message);
 
         var oversized = EncodeBase64Url(new byte[8193]);
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
