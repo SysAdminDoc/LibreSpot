@@ -37,6 +37,7 @@ public sealed class LocalProfileService
     private const int ProfileStoreSchemaVersion = 1;
     private const int ShareProfileSchemaVersion = 1;
     private const int MaxEmbeddedProfileBytes = 8 * 1024;
+    private const int MaxLocalProfileBytes = 128 * 1024;
     private const int MaxRemoteProfileBytes = 128 * 1024;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -178,10 +179,24 @@ public sealed class LocalProfileService
         var document = await CreateShareProfileDocumentAsync(id, cancellationToken);
 
         var fullPath = Path.GetFullPath(destinationPath);
-        Directory.CreateDirectory(Path.GetDirectoryName(fullPath) ?? Environment.CurrentDirectory);
-        await using var stream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None);
-        await JsonSerializer.SerializeAsync(stream, document, JsonOptions, cancellationToken);
-        await stream.FlushAsync(cancellationToken);
+        var directory = Path.GetDirectoryName(fullPath) ?? Environment.CurrentDirectory;
+        Directory.CreateDirectory(directory);
+        var tempPath = Path.Combine(directory, $"{Path.GetFileName(fullPath)}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                await JsonSerializer.SerializeAsync(stream, document, JsonOptions, cancellationToken);
+                await stream.FlushAsync(cancellationToken);
+            }
+
+            File.Move(tempPath, fullPath, overwrite: true);
+        }
+        catch
+        {
+            try { File.Delete(tempPath); } catch { }
+            throw;
+        }
     }
 
     public async Task<LocalProfileShareCard> CreateShareCardAsync(string id, CancellationToken cancellationToken = default)
@@ -203,8 +218,16 @@ public sealed class LocalProfileService
     public async Task<LocalProfileImportPreview> PreviewImportAsync(string sourcePath, CancellationToken cancellationToken = default)
     {
         var fullPath = Path.GetFullPath(sourcePath);
+        var fileInfo = new FileInfo(fullPath);
+        if (fileInfo.Exists && fileInfo.Length > MaxLocalProfileBytes)
+        {
+            throw new InvalidOperationException("Profile file is too large.");
+        }
+
         await using var stream = File.OpenRead(fullPath);
-        return await PreviewImportStreamAsync(stream, fullPath, cancellationToken);
+        var payload = await ReadLimitedAsync(stream, MaxLocalProfileBytes, cancellationToken);
+        await using var payloadStream = new MemoryStream(payload);
+        return await PreviewImportStreamAsync(payloadStream, fullPath, cancellationToken);
     }
 
     public async Task<LocalProfileImportPreview> PreviewShareUriAsync(

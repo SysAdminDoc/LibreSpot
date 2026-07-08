@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Bounded local `.librespot` profile import files to the same diagnostic-size envelope as remote profile links, and made shared-profile export atomic so cancellation or write failures cannot leave a corrupt final profile file.
 - Fixed a false "SpotX ran but the patch could not be verified" warning on every successful install. SpotX names its pre-patch bundle backup `Apps\xpui.bak` (older builds used `xpui.spa.bak`), but the verifier only looked for `xpui.spa.bak`, which SpotX no longer writes. Patch verification now recognizes `xpui.bak`, the Spicetify-extracted `Apps\xpui` directory, and SpotX's durable patched-binary backups (`Spotify.bak`/`chrome_elf.dll.bak`), across the PowerShell verifier, the Maintenance status card, and the desktop stack-health/`status --json` (`EnvironmentSnapshotService`) detection.
 - Hardened local profile loading so malformed or spoofed profile documents are skipped instead of breaking the profile gallery, duplicate share-URI sources are rejected, invalid embedded profile payloads get a deliberate error, and exported profiles record the preview informational version.
 - Localized the WPF environment freshness/status card through the runtime resource system so secondary shell status text follows the active UI culture instead of bypassing localization.

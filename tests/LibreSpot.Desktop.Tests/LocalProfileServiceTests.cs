@@ -166,6 +166,37 @@ public sealed class LocalProfileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ExportAsync_CanceledWriteDoesNotLeaveCorruptShareFile()
+    {
+        var created = await _profileService.CreateFromConfigurationAsync(
+            "Cancelable Export",
+            "Cancellation should not leave a half-written profile.",
+            AppCatalog.CreateRecommendedConfiguration());
+        var exportPath = Path.Combine(_root, "cancelled.librespot");
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            _profileService.ExportAsync(created.Summary.Id, exportPath, cts.Token));
+
+        Assert.False(File.Exists(exportPath));
+        Assert.Empty(Directory.EnumerateFiles(_root, "cancelled.librespot.*.tmp"));
+    }
+
+    [Fact]
+    public async Task PreviewImportAsync_RejectsOversizedLocalProfileFiles()
+    {
+        Directory.CreateDirectory(_root);
+        var path = Path.Combine(_root, "oversized.librespot");
+        await File.WriteAllBytesAsync(path, new byte[(128 * 1024) + 1]);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _profileService.PreviewImportAsync(path));
+
+        Assert.Contains("too large", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task ShareCard_EmbedsInertPreviewUriAndImportsOnlyAfterConfirmation()
     {
         var config = AppCatalog.CreateRecommendedConfiguration();
