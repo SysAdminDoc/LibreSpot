@@ -553,6 +553,47 @@ public sealed class PowerShellRegressionTests
     }
 
     [Fact]
+    public void BackendInstall_VerifiesSpotifySessionBeforeReportingComplete()
+    {
+        var backend = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+        var fnBody = Regex.Match(
+            backend,
+            @"function\s+Invoke-LibreSpotInstall\s*\{(?<body>.+?)^function\s+Invoke-LibreSpotMaintenance",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, "Invoke-LibreSpotInstall function block not found.");
+        var body = fnBody.Groups["body"].Value;
+        var launchIndex = body.IndexOf("Start-Process -FilePath 'explorer.exe'", StringComparison.Ordinal);
+        var stabilityIndex = body.IndexOf("Test-SpotifySessionStability -WaitSeconds 20", StringComparison.Ordinal);
+        var completeIndex = body.IndexOf("Update-BackendState -Progress 100 -Status 'Setup complete'", StringComparison.Ordinal);
+
+        Assert.True(launchIndex >= 0, "LaunchAfter should still hand Spotify to explorer.exe.");
+        Assert.True(stabilityIndex > launchIndex, "The WPF backend must validate Spotify after launching it.");
+        Assert.True(completeIndex > stabilityIndex, "Setup complete must only be reported after the stability check.");
+        Assert.Contains("Checking patched session stability", body);
+        Assert.Contains("Spotify did not stay open after patching", body);
+        Assert.Contains("Restore-SpotifyIfSpicetifyPresent", body);
+        Assert.Contains("Undoing active Spicetify customizations after an unstable launch", body);
+    }
+
+    [Fact]
+    public void BackendSpotifySessionStability_UsesInitialPidToDetectRestarts()
+    {
+        var backend = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+        var fnBody = Regex.Match(
+            backend,
+            @"function\s+Test-SpotifySessionStability\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, "Backend Test-SpotifySessionStability function block not found.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("$initialPid", body);
+        Assert.Contains("$afterPids", body);
+        Assert.Contains("-notcontains $initialPid", body);
+        Assert.Contains("Spotify restarted within", body);
+    }
+
+    [Fact]
     public void Watcher_TaskDefinition_EmitsValidXmlShape()
     {
         // The Register-AutoReapplyTask function builds an XML task definition

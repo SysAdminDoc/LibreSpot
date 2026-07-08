@@ -158,6 +158,11 @@ public partial class MainWindow : Window
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
     {
+        if (_viewModel.IsRunning && _viewModel.IsCancelRequested)
+        {
+            _allowCloseWhileRunning = true;
+        }
+
         if (_viewModel.IsRunning && !_allowCloseWhileRunning)
         {
             e.Cancel = true;

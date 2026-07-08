@@ -328,12 +328,12 @@ function Test-SpotifySessionStability {
         Start-Sleep -Seconds $WaitSeconds
         $afterProcs = @(Get-Process -Name 'Spotify' -ErrorAction SilentlyContinue)
         if ($afterProcs.Count -eq 0) {
-            Write-Log "Spotify exited within ${WaitSeconds}s of patched launch. This may indicate server-side enforcement. If Spotify keeps closing after patching, check the FAQ in README for current enforcement status." -Level 'WARN'
+            Write-Log "Spotify exited within ${WaitSeconds}s of patched launch. This may indicate server-side enforcement. If Spotify keeps closing after patching, use Maintenance > Restore vanilla or Full reset before retrying." -Level 'WARN'
             return $false
         }
         $afterPids = @($afterProcs | ForEach-Object { $_.Id })
         if ($afterPids -notcontains $initialPid) {
-            Write-Log "Spotify restarted within ${WaitSeconds}s of patched launch (initial PID $initialPid was replaced). This may indicate server-side enforcement or a self-repair restart. If Spotify keeps restarting after patching, check the FAQ in README for current enforcement status." -Level 'WARN'
+            Write-Log "Spotify restarted within ${WaitSeconds}s of patched launch (initial PID $initialPid was replaced). This may indicate server-side enforcement or a self-repair restart. If Spotify keeps restarting after patching, use Maintenance > Restore vanilla or Full reset before retrying." -Level 'WARN'
             return $false
         }
         return $true

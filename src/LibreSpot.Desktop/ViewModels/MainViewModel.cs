@@ -3888,6 +3888,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// </summary>
     public void CancelRunningBackend()
     {
+        if (IsRunning && !IsCancelRequested)
+        {
+            IsCancelRequested = true;
+            ActivityStatus = Strings.StoppingBackend;
+            ActivityStep = "Cancel requested";
+        }
+
         // ObjectDisposedException is possible if Dispose() already ran; treat the same
         // as "nothing to cancel." Any other exception here would indicate a programming
         // bug worth surfacing, so we don't blanket-catch.
@@ -4012,11 +4019,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             true,
             () =>
             {
-                IsCancelRequested = true;
-                ActivityStatus = Strings.StoppingBackend;
-                ActivityStep = "Cancel requested";
-                try { _runCts?.Cancel(); }
-                catch (ObjectDisposedException) { }
+                CancelRunningBackend();
                 return Task.CompletedTask;
             },
             "If you stop here",

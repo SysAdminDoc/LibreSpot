@@ -1013,6 +1013,28 @@ function Test-SpotifyRunning {
     catch { return $false }
 }
 
+function Test-SpotifySessionStability {
+    param([int]$WaitSeconds = 20)
+    if (-not (Test-Path -LiteralPath $global:SPOTIFY_EXE_PATH)) { return $true }
+    try {
+        $procs = @(Get-Process -Name 'Spotify' -ErrorAction SilentlyContinue)
+        if ($procs.Count -eq 0) { return $true }
+        $initialPid = $procs[0].Id
+        Start-Sleep -Seconds $WaitSeconds
+        $afterProcs = @(Get-Process -Name 'Spotify' -ErrorAction SilentlyContinue)
+        if ($afterProcs.Count -eq 0) {
+            Write-Log "Spotify exited within ${WaitSeconds}s of patched launch. This may indicate server-side enforcement. If Spotify keeps closing after patching, use Maintenance > Restore vanilla or Full reset before retrying." -Level 'WARN'
+            return $false
+        }
+        $afterPids = @($afterProcs | ForEach-Object { $_.Id })
+        if ($afterPids -notcontains $initialPid) {
+            Write-Log "Spotify restarted within ${WaitSeconds}s of patched launch (initial PID $initialPid was replaced). This may indicate server-side enforcement or a self-repair restart. If Spotify keeps restarting after patching, use Maintenance > Restore vanilla or Full reset before retrying." -Level 'WARN'
+            return $false
+        }
+        return $true
+    } catch { return $true }
+}
+
 function Get-WatcherLaunchCommand {
     $entry = [string]$PSCommandPath
     if ([string]::IsNullOrWhiteSpace($entry)) {
@@ -4139,12 +4161,39 @@ function Invoke-LibreSpotInstall {
     }
 
     if ($config.LaunchAfter -and (Test-Path -LiteralPath $global:SPOTIFY_EXE_PATH)) {
-        Write-Log 'Launching Spotify...' -Level 'SUCCESS'
+        Write-Log 'Launching Spotify...'
+        Update-BackendState -Progress 98 -Status 'Launching Spotify' -Step 'Checking patched session stability'
         # Launch via explorer.exe so Spotify starts in the desktop user context instead of
         # inheriting our elevated token. A directly-started Spotify would run as Administrator,
         # which Spotify explicitly warns against and which breaks drag-and-drop from Explorer
         # and some web-auth flows.
         Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
+        if (-not (Test-SpotifySessionStability -WaitSeconds 20)) {
+            Update-BackendState -Progress 99 -Status 'Restoring Spotify' -Step 'Undoing active Spicetify customizations after an unstable launch'
+            Write-Log 'Spotify did not stay open after patching; attempting Spicetify restore before stopping the install.' -Level 'WARN'
+            Stop-SpotifyProcesses -MaxAttempts 3
+            $restoreError = $null
+            $restored = $false
+            try {
+                $restored = Restore-SpotifyIfSpicetifyPresent `
+                    -FailureMessage 'Could not restore Spotify after the unstable patched launch.' `
+                    -MissingMessage 'Spicetify CLI was not found, so LibreSpot could not automatically restore active customizations.'
+            } catch {
+                $restoreError = if ($_.Exception -and $_.Exception.Message) { [string]$_.Exception.Message } else { 'Unknown restore error.' }
+                Write-Log "Automatic restore after unstable launch failed: $restoreError" -Level 'ERROR'
+            }
+
+            if ([string]::IsNullOrWhiteSpace($restoreError) -and $restored) {
+                Write-Log 'Spicetify restore completed after the unstable patched launch.' -Level 'SUCCESS'
+                throw 'Spotify did not stay open after patching. LibreSpot restored active Spicetify customizations before stopping; rerun with fewer Spicetify extensions or use Full reset if Spotify still will not open.'
+            }
+
+            if ([string]::IsNullOrWhiteSpace($restoreError)) {
+                throw 'Spotify did not stay open after patching, and automatic Spicetify restore was unavailable. Use Maintenance > Restore vanilla or Full reset before retrying.'
+            }
+
+            throw "Spotify did not stay open after patching, and automatic Spicetify restore failed: $restoreError"
+        }
     }
 
     Update-BackendState -Progress 100 -Status 'Setup complete' -Step 'Spotify is ready'
