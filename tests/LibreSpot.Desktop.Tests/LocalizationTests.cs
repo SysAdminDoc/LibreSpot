@@ -174,7 +174,12 @@ public sealed class LocalizationTests
                     "Search titles and descriptions across Custom.",
                     "LibreSpot keeps the live log and diagnostics on disk while this runs.",
                     "Estimated local zip size before compression:",
-                    "Best on an existing install"
+                    "Best on an existing install",
+                    "Copied profile share link.",
+                    "Clipboard was unavailable. Use Export to share the profile file instead.",
+                    "Copied profile comparison.",
+                    "Clipboard was unavailable. The comparison remains visible here.",
+                    "Clipboard was unavailable. Log is still saved to install.log."
                 }
             ),
             (

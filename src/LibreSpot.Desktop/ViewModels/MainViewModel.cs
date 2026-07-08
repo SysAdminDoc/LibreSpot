@@ -2927,7 +2927,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        TryCopyText(_selectedProfileShareCard.ShareUri, "Copied profile share link.", "Clipboard was unavailable. Use Export to share the profile file instead.");
+        TryCopyText(_selectedProfileShareCard.ShareUri, L("Vm_ProfileShareLinkCopied"), L("Vm_ProfileShareClipboardUnavailable"));
     }
 
     private void CopyProfileComparison()
@@ -2937,20 +2937,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        TryCopyText(SelectedProfileComparisonText, "Copied profile comparison.", "Clipboard was unavailable. The comparison remains visible here.");
+        TryCopyText(SelectedProfileComparisonText, L("Vm_ProfileComparisonCopied"), L("Vm_ProfileComparisonClipboardUnavailable"));
     }
 
     private void TryCopyText(string text, string successMessage, string failureMessage)
     {
-        try
-        {
-            Clipboard.SetText(text);
-            ProfileOperationStatus = successMessage;
-        }
-        catch
-        {
-            ProfileOperationStatus = failureMessage;
-        }
+        ProfileOperationStatus = TrySetClipboardText(text) ? successMessage : failureMessage;
     }
 
     private static string BuildProfileComparison(InstallConfiguration configuration)
@@ -4060,6 +4052,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         var text = string.Join(Environment.NewLine, LogEntries.Select(e => e.CopyLine));
 
+        if (!TrySetClipboardText(text))
+        {
+            AppendLog(L("Vm_ActivityLogClipboardUnavailable"), "WARN");
+        }
+    }
+
+    private bool TrySetClipboardText(string text)
+    {
         // Clipboard is shared with other processes and can be briefly unavailable.
         // Try three times with a short yield before giving up so transient contention
         // (Office, clipboard managers, RDP) doesn't surface as a crash.
@@ -4068,7 +4068,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             try
             {
                 Clipboard.SetText(text);
-                return;
+                return true;
             }
             catch (System.Runtime.InteropServices.COMException)
             {
@@ -4082,12 +4082,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
             catch
             {
-                // Any other clipboard failure is non-fatal; the log text is also on disk.
-                return;
+                return false;
             }
         }
 
-        AppendLog("Clipboard was unavailable. Log is still saved to install.log.", "WARN");
+        return false;
     }
 
     private void OpenLibreSpotFolder()

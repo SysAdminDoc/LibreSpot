@@ -1885,6 +1885,7 @@
   <data name="Vm_MarketplaceNotEnabled" xml:space="preserve"><value>Marketplace not enabled</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MarketplaceReady" xml:space="preserve"><value>Marketplace ready</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MarketplaceUnavailable" xml:space="preserve"><value>Marketplace unavailable until Spicetify is installed</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivityLogClipboardUnavailable" xml:space="preserve"><value>Clipboard was unavailable. Log is still saved to install.log.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileActiveDetail" xml:space="preserve"><value>This profile is active. Applying another profile keeps this one as the previous active pointer for rollback.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileAutomationHelpActiveFormat" xml:space="preserve"><value>{0} is the active LibreSpot profile.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileAutomationHelpBuiltInFormat" xml:space="preserve"><value>{0} is a bundled template that can be previewed, applied, or duplicated.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1893,6 +1894,8 @@
   <data name="Vm_ProfileCapabilityEditable" xml:space="preserve"><value>Editable</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileCapabilityEditableActive" xml:space="preserve"><value>Editable active</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileCapabilityReadOnly" xml:space="preserve"><value>Read-only</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonClipboardUnavailable" xml:space="preserve"><value>Clipboard was unavailable. The comparison remains visible here.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonCopied" xml:space="preserve"><value>Copied profile comparison.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonInitial" xml:space="preserve"><value>Select a profile to compare it with Recommended.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDefaultDescription" xml:space="preserve"><value>Saved from the Custom page.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDefaultName" xml:space="preserve"><value>Custom profile</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1913,7 +1916,9 @@
   <data name="Vm_ProfileSelectionLocal" xml:space="preserve"><value>Local profile selected. Preview first when you want to inspect settings without writing config.json.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileSelectionNone" xml:space="preserve"><value>Select a template or local profile to preview, duplicate, export, or set active.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileSelectionPaused" xml:space="preserve"><value>Profile actions pause while LibreSpot is running so config.json cannot change mid-run.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileShareClipboardUnavailable" xml:space="preserve"><value>Clipboard was unavailable. Use Export to share the profile file instead.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileShareInitial" xml:space="preserve"><value>Select a profile to create an inert share card.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileShareLinkCopied" xml:space="preserve"><value>Copied profile share link.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileStateActive" xml:space="preserve"><value>Active</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileStateSaved" xml:space="preserve"><value>Saved</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileStateTemplate" xml:space="preserve"><value>Template</value><comment>MainViewModel localized runtime text.</comment></data>
