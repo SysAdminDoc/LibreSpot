@@ -70,7 +70,18 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
         try { $exitCode = $p.ExitCode } catch { $exitCode = $null }
 
         if ($null -eq $exitCode) {
-            Write-Log 'External process finished but ExitCode was unavailable; treating as success.' -Level 'WARN'
+            # Windows PowerShell can drop the ExitCode when Start-Process is paired
+            # with redirected output. Don't blindly assume success: if the child's
+            # own output already classified a failure (download outage, phishing
+            # mirror, patch abort), surface it instead of masking it.
+            if ($childFailure) {
+                Write-Log $childFailure.Guidance -Level 'WARN'
+                try {
+                    Write-OperationJournalEntry -Phase 'external' -Target $FilePath -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint $childFailure.Guidance -Data @{ failureCategory = $childFailure.Category; exitCode = 'unavailable' }
+                } catch {}
+                throw "Process reported a failure and its exit code was unavailable [$($childFailure.Category)]"
+            }
+            Write-Log 'External process finished but ExitCode was unavailable and no failure signal was found in its output; treating as success. The caller verifies the result independently.' -Level 'WARN'
         } elseif ($exitCode -ne 0) {
             if ($childFailure) {
                 Write-Log $childFailure.Guidance -Level 'WARN'

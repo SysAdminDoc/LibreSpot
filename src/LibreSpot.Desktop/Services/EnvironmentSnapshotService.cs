@@ -378,9 +378,20 @@ public sealed class EnvironmentSnapshotService
         var spotifyDirectory = Path.GetDirectoryName(_spotifyPath) ?? string.Empty;
         var appsDirectory = Path.Combine(spotifyDirectory, "Apps");
         var bundlePath = Path.Combine(appsDirectory, "xpui.spa");
-        var backupPath = Path.Combine(appsDirectory, "xpui.spa.bak");
-        var hasBundle = File.Exists(bundlePath);
-        var hasBackup = File.Exists(backupPath);
+        // Current SpotX names its pre-patch backup Apps\xpui.bak; older builds used
+        // Apps\xpui.spa.bak. Checking only xpui.spa.bak flagged every successful
+        // install as "Unverified" because SpotX never writes that filename.
+        var backupPath = Path.Combine(appsDirectory, "xpui.bak");
+        var legacyBackupPath = Path.Combine(appsDirectory, "xpui.spa.bak");
+        // After Spicetify applies, the packed bundle is extracted to Apps\xpui and
+        // the SpotX xpui backup is consumed, but SpotX's durable native-binary
+        // backups next to Spotify.exe persist and still prove a SpotX run.
+        var extractedBundlePath = Path.Combine(appsDirectory, "xpui");
+        var spotifyBinBackup = Path.Combine(spotifyDirectory, "Spotify.bak");
+        var chromeElfBackup = Path.Combine(spotifyDirectory, "chrome_elf.dll.bak");
+        var hasBundle = File.Exists(bundlePath) || Directory.Exists(extractedBundlePath);
+        var hasBackup = File.Exists(backupPath) || File.Exists(legacyBackupPath);
+        var hasBinBackup = File.Exists(spotifyBinBackup) || File.Exists(chromeElfBackup);
 
         if (!spotifyInstalled)
         {
@@ -396,7 +407,7 @@ public sealed class EnvironmentSnapshotService
                 "Install");
         }
 
-        if (hasBundle && hasBackup)
+        if (hasBundle && (hasBackup || hasBinBackup))
         {
             return Component(
                 "spotx",
@@ -405,8 +416,8 @@ public sealed class EnvironmentSnapshotService
                 HealthSeverity.Ready,
                 null,
                 appsDirectory,
-                Max(GetLastChanged(bundlePath), GetLastChanged(backupPath)),
-                "Apps\\xpui.spa and Apps\\xpui.spa.bak are both present, matching SpotX's successful patch markers.");
+                Max(GetLastChanged(bundlePath), Max(GetLastChanged(backupPath), GetLastChanged(spotifyBinBackup))),
+                "The Spotify app bundle and a SpotX backup (Apps\\xpui.bak or a patched-binary backup) are present, matching SpotX's successful patch markers.");
         }
 
         if (hasBundle)
@@ -419,7 +430,7 @@ public sealed class EnvironmentSnapshotService
                 null,
                 appsDirectory,
                 GetLastChanged(bundlePath),
-                "Spotify's app bundle exists, but the SpotX backup marker is missing.",
+                "Spotify's app bundle exists, but no SpotX backup marker (Apps\\xpui.bak or a patched-binary backup) was found.",
                 "Reapply");
         }
 

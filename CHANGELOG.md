@@ -6,6 +6,9 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Fixed a false "SpotX ran but the patch could not be verified" warning on every successful install. SpotX names its pre-patch bundle backup `Apps\xpui.bak` (older builds used `xpui.spa.bak`), but the verifier only looked for `xpui.spa.bak`, which SpotX no longer writes. Patch verification now recognizes `xpui.bak`, the Spicetify-extracted `Apps\xpui` directory, and SpotX's durable patched-binary backups (`Spotify.bak`/`chrome_elf.dll.bak`), across the PowerShell verifier, the Maintenance status card, and the desktop stack-health/`status --json` (`EnvironmentSnapshotService`) detection.
+- Hardened isolated external-process (SpotX) execution: when Windows PowerShell drops the child exit code under redirected output, LibreSpot now surfaces any failure its output already classified (download outage, phishing mirror, patch abort) instead of masking every unknown-exit-code run as success.
+- Sped up the standalone native-uninstaller wait: it now waits on the actual uninstaller process handle it launched instead of polling only for a guessed `SpotifyUninstall` process name, so a name mismatch no longer burns the full timeout before file cleanup continues.
 - Fixed the post-SpotX verification crash under Windows PowerShell 5.1 by replacing the incompatible `Split-Path -LiteralPath ... -Parent` call with a .NET parent-directory resolver.
 - Improved WPF cleanup progress during native Spotify uninstall: the backend now logs that it is continuing after the Microsoft Store check, emits heartbeat/status updates while the native uninstaller is still running, and no longer reports a timed-out uninstaller as completed.
 - Refreshed the pinned upstream compatibility set to SpotX commit `550bc72c` for Spotify `1.2.93`, Spicetify CLI `v2.44.0`, and Marketplace `v1.0.9`, including SHA256 pins for the current Windows assets.

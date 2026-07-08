@@ -5044,21 +5044,41 @@ function Get-SpotXPatchVerification {
     $appsDir    = Join-Path $spotifyDir 'Apps'
     $signals    = New-Object System.Collections.Generic.List[string]
 
-    $hasBackup = Test-Path -LiteralPath (Join-Path $appsDir 'xpui.spa.bak')
-    $hasBundle = Test-Path -LiteralPath (Join-Path $appsDir 'xpui.spa')
+    # SpotX backs up the original app bundle before patching. Current SpotX names
+    # that backup Apps\xpui.bak; older SpotX builds used Apps\xpui.spa.bak. Either
+    # one proves SpotX rewrote the bundle. (Checking only xpui.spa.bak produced a
+    # false "patch could not be verified" warning on every successful install.)
+    $hasXpuiBak    = Test-Path -LiteralPath (Join-Path $appsDir 'xpui.bak')
+    $hasXpuiSpaBak = Test-Path -LiteralPath (Join-Path $appsDir 'xpui.spa.bak')
+    $hasBackup     = $hasXpuiBak -or $hasXpuiSpaBak
 
-    if ($hasBackup) { $signals.Add('xpui.spa.bak (SpotX backed up the original bundle before patching)') }
-    if ($hasBundle) { $signals.Add('xpui.spa (Spotify app bundle present)') }
+    # The bundle is a packed xpui.spa, or an extracted Apps\xpui directory once
+    # Spicetify has applied on top of the SpotX-patched client.
+    $hasSpaBundle = Test-Path -LiteralPath (Join-Path $appsDir 'xpui.spa') -PathType Leaf
+    $hasDirBundle = Test-Path -LiteralPath (Join-Path $appsDir 'xpui') -PathType Container
+    $hasBundle    = $hasSpaBundle -or $hasDirBundle
+
+    # SpotX also patches the native binaries and leaves durable .bak copies next to
+    # Spotify.exe. Spicetify's later apply consumes/renames the xpui backup, but the
+    # binary backups persist, so they corroborate a SpotX run after the fact.
+    $hasBinBackup = (Test-Path -LiteralPath (Join-Path $spotifyDir 'Spotify.bak')) -or `
+                    (Test-Path -LiteralPath (Join-Path $spotifyDir 'chrome_elf.dll.bak'))
+
+    if ($hasXpuiBak)    { $signals.Add('xpui.bak (SpotX backed up the original bundle before patching)') }
+    if ($hasXpuiSpaBak) { $signals.Add('xpui.spa.bak (legacy SpotX bundle backup)') }
+    if ($hasBinBackup)  { $signals.Add('Spotify.bak/chrome_elf.dll.bak (SpotX patched the native binaries)') }
+    if ($hasSpaBundle)  { $signals.Add('xpui.spa (Spotify app bundle present)') }
+    elseif ($hasDirBundle) { $signals.Add('Apps\xpui (bundle extracted by Spicetify)') }
     $result.Signals = @($signals)
 
-    if ($hasBackup -and $hasBundle) {
+    if (($hasBackup -or $hasBinBackup) -and $hasBundle) {
         $result.Verified = $true
         $result.Status   = 'Verified'
-        $result.Reason   = 'SpotX left a patched xpui.spa and a backup of the original, so the patch was applied.'
+        $result.Reason   = 'SpotX left a patched app bundle and a backup of the original, so the patch was applied.'
     }
     elseif ($hasBundle) {
         $result.Status = 'Unverified'
-        $result.Reason = 'Spotify is present but no SpotX backup (xpui.spa.bak) was found, so the patch may not have been applied. Signature protection on newer Spotify builds can let SpotX exit cleanly without patching.'
+        $result.Reason = 'Spotify is present but no SpotX backup (Apps\xpui.bak or a patched-binary backup) was found, so the patch may not have been applied. Signature protection on newer Spotify builds can let SpotX exit cleanly without patching.'
     }
     else {
         $result.Status = 'Unverified'
@@ -5100,7 +5120,12 @@ function Update-MaintenanceStatus {
     }
 
     $spotxFound = $false
-    if (Test-Path "$env:APPDATA\Spotify\Apps\xpui.spa.bak") { $spotxFound = $true }
+    if (Test-Path $global:SPOTIFY_EXE_PATH) {
+        # Reuse the shared verifier so Maintenance agrees with the install log
+        # (checks xpui.bak / xpui.spa.bak / patched-binary backups, not just the
+        # stale xpui.spa.bak filename SpotX no longer writes).
+        try { if ((Get-SpotXPatchVerification -SpotifyExePath $global:SPOTIFY_EXE_PATH).Verified) { $spotxFound = $true } } catch {}
+    }
     if (-not $spotxFound) { try { if (Get-ChildItem (Join-Path $global:TEMP_DIR "SpotX_Temp*") -EA SilentlyContinue) { $spotxFound = $true } } catch {} }
     if ($spotxFound) {
         $ui['StatusSpotX'].Text = 'Patched and ready'
@@ -6927,7 +6952,18 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
         try { $exitCode = $p.ExitCode } catch { $exitCode = $null }
 
         if ($null -eq $exitCode) {
-            Write-Log 'External process finished but ExitCode was unavailable; treating as success.' -Level 'WARN'
+            # Windows PowerShell can drop the ExitCode when Start-Process is paired
+            # with redirected output. Don't blindly assume success: if the child's
+            # own output already classified a failure (download outage, phishing
+            # mirror, patch abort), surface it instead of masking it.
+            if ($childFailure) {
+                Write-Log $childFailure.Guidance -Level 'WARN'
+                try {
+                    Write-OperationJournalEntry -Phase 'external' -Target $FilePath -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint $childFailure.Guidance -Data @{ failureCategory = $childFailure.Category; exitCode = 'unavailable' }
+                } catch {}
+                throw "Process reported a failure and its exit code was unavailable [$($childFailure.Category)]"
+            }
+            Write-Log 'External process finished but ExitCode was unavailable and no failure signal was found in its output; treating as success. The caller verifies the result independently.' -Level 'WARN'
         } elseif ($exitCode -ne 0) {
             if ($childFailure) {
                 Write-Log $childFailure.Guidance -Level 'WARN'
@@ -7243,9 +7279,16 @@ function Module-NukeSpotify {
     if (Test-Path $spotifyExe) {
         try {
             Unlock-SpotifyUpdateFolder
-            $null = Start-Process -FilePath $spotifyExe -ArgumentList @('/UNINSTALL', '/SILENT') -Wait:$false -PassThru -ErrorAction Stop
-            $deadline = (Get-Date).AddSeconds(15)
-            while ((Get-Process -Name "SpotifyUninstall" -EA SilentlyContinue) -and (Get-Date) -lt $deadline) {
+            $uninstProc = Start-Process -FilePath $spotifyExe -ArgumentList @('/UNINSTALL', '/SILENT') -Wait:$false -PassThru -ErrorAction Stop
+            $deadline = (Get-Date).AddSeconds(30)
+            # Wait on the actual uninstaller handle we launched; only fall back to
+            # the named process the installer may spawn. Polling a guessed process
+            # name alone burned the full timeout whenever the name did not match.
+            while ((Get-Date) -lt $deadline) {
+                $stillRunning = $false
+                try { if ($uninstProc -and -not $uninstProc.HasExited) { $stillRunning = $true } } catch {}
+                if (-not $stillRunning -and (Get-Process -Name "SpotifyUninstall" -EA SilentlyContinue)) { $stillRunning = $true }
+                if (-not $stillRunning) { break }
                 Start-Sleep -Milliseconds 500
             }
             Start-Sleep -Milliseconds 500

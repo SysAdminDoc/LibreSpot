@@ -1776,15 +1776,20 @@ public sealed class PowerShellRegressionTests
         Assert.True(fnBody.Success, $"Get-SpotXPatchVerification function block not found in {relativePath}.");
         var body = fnBody.Groups["body"].Value;
 
-        // The discriminating signal is SpotX's pre-patch backup of the original bundle.
+        // The discriminating signal is SpotX's pre-patch backup of the original
+        // bundle. Current SpotX writes Apps\xpui.bak; older builds used xpui.spa.bak.
+        Assert.Contains("xpui.bak", body);
         Assert.Contains("xpui.spa.bak", body);
         Assert.Contains("xpui.spa", body);
+        // Durable patched-binary backups corroborate a SpotX run after Spicetify
+        // has consumed the xpui backup.
+        Assert.Contains("Spotify.bak", body);
         // All three verdict states must be reachable from the function body.
         Assert.Contains("'Verified'", body);
         Assert.Contains("'Unverified'", body);
         Assert.Contains("'Missing'", body);
-        // Verdict requires BOTH the patched bundle and the backup to be present.
-        Assert.Contains("$hasBackup -and $hasBundle", body);
+        // Verdict requires the patched bundle plus a backup or patched-binary marker.
+        Assert.Contains("($hasBackup -or $hasBinBackup) -and $hasBundle", body);
     }
 
     [Theory]
