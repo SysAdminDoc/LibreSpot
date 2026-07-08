@@ -948,6 +948,41 @@ if ($Validate) {
     Write-Host "All $($validatedNames.Count) generated shared functions are in sync." -ForegroundColor Green
     Write-Host "$($laneSpecificFunctions.Count) host-specific wrappers are excluded from body comparison." -ForegroundColor Green
     Write-Host ""
+
+    # --- Shared-module source-of-truth check ---
+    $sharedDir = Join-Path $PSScriptRoot 'src/powershell/shared'
+    if (Test-Path -LiteralPath $sharedDir) {
+        $sharedDrift = @()
+        $sharedFiles = Get-ChildItem -Path $sharedDir -Filter '*.ps1' -File | Sort-Object Name
+        foreach ($file in $sharedFiles) {
+            $fnName = $file.BaseName
+            if ($laneSpecificFunctions -contains $fnName) { continue }
+
+            $sharedBody = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
+            $sharedNorm = ConvertTo-NormalizedFunctionBody -Body $sharedBody
+
+            foreach ($lane in @(@{ Name = 'main'; Content = $mainContent }, @{ Name = 'backend'; Content = $backendContent })) {
+                $laneBody = Get-FunctionBody -ScriptContent $lane.Content -FunctionName $fnName
+                if (-not $laneBody) { continue }
+                $laneNorm = ConvertTo-NormalizedFunctionBody -Body $laneBody
+                if ($sharedNorm -ne $laneNorm) {
+                    $sharedDrift += "$fnName ($($lane.Name) differs from shared source)"
+                }
+            }
+        }
+        if ($sharedDrift.Count -gt 0) {
+            Write-Host "=== SHARED SOURCE DRIFT ($($sharedDrift.Count)) ===" -ForegroundColor Red
+            foreach ($d in $sharedDrift) { Write-Host "  $d" -ForegroundColor Red }
+            Write-Host ""
+            Write-Host "These functions in the scripts differ from src/powershell/shared/." -ForegroundColor Red
+            Write-Host "Run -SyncSharedToBackend and manually update LibreSpot.ps1, or edit the shared source." -ForegroundColor Red
+            Write-Host ""
+            exit 1
+        }
+        Write-Host "All shared module files match their script counterparts." -ForegroundColor Green
+        Write-Host ""
+    }
+
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'tools/Sync-Localization.ps1') -Validate -ScanRawStrings
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Test-ReadmeWpfScreenshotMetadata
