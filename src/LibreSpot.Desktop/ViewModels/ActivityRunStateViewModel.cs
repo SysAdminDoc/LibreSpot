@@ -27,7 +27,7 @@ public sealed partial class ActivityRunStateViewModel : ObservableObject
     private string _status = Strings.ActivityPickPath;
 
     [ObservableProperty]
-    private string _step = "Idle";
+    private string _step = ViewModelText.Get("Vm_ActivityStepIdle");
 
     public ActivityRunStateViewModel()
     {
@@ -41,9 +41,9 @@ public sealed partial class ActivityRunStateViewModel : ObservableObject
     public string LogLineCountText =>
         LogEntries.Count switch
         {
-            0 => "No log output yet",
-            1 => "1 log line",
-            _ => $"{LogEntries.Count} log lines"
+            0 => ViewModelText.Get("Vm_LogNoOutputYet"),
+            1 => ViewModelText.Get("Vm_LogOneLine"),
+            _ => ViewModelText.Format("Vm_LogManyLinesFormat", LogEntries.Count)
         };
 
     public bool IsLogEmpty => LogEntries.Count == 0;
@@ -117,6 +117,18 @@ public sealed partial class ActivityRunStateViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(HasUndoActionItems));
+    }
+
+    public void RefreshLocalizedText()
+    {
+        if (!IsVisible && !IsRunning)
+        {
+            Title = Strings.ActivityReady;
+            Status = Strings.ActivityPickPath;
+            Step = ViewModelText.Get("Vm_ActivityStepIdle");
+        }
+
+        OnPropertyChanged(nameof(LogLineCountText));
     }
 
     private void RaiseLogStateChanged()

@@ -1770,6 +1770,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RebuildSelectionInsights();
         RaiseSnapshotInsightsChanged();
         RaiseLocalProfileStateChanged();
+        _activityState.RefreshLocalizedText();
+        if (SelectedLocalProfile is null)
+        {
+            SelectedProfileShareStatus = L("Vm_ProfileShareInitial");
+            SelectedProfileComparisonText = L("Vm_ProfileComparisonInitial");
+        }
+        else
+        {
+            _selectedProfileShareRefreshTask = RefreshSelectedProfileShareCardAsync();
+        }
+
         RaiseActivityDerivedStateChanged();
         RaiseSupportBundlePreviewChanged();
         OnPropertyChanged(nameof(SelectedLocalizationOption));
@@ -2133,8 +2144,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         await _selectedProfileShareRefreshTask;
 
         ProfileOperationStatus = LocalProfiles.Count == 0
-            ? "No profiles are available yet. Save the current Custom selections to create one."
-            : $"{LocalProfiles.Count} profile choices ready. Preview before applying if you want to inspect the settings first.";
+            ? L("Vm_ProfileNoChoicesStatus")
+            : LocalProfiles.Count == 1
+                ? L("Vm_ProfileOneChoiceReady")
+                : LF("Vm_ProfileManyChoicesReadyFormat", LocalProfiles.Count);
         RaiseLocalProfileStateChanged();
     }
 
@@ -2142,8 +2155,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         if (SelectedLocalProfile is null)
         {
-            ProfileNameText = "Custom profile";
-            ProfileDescriptionText = "Saved from the Custom page.";
+            ProfileNameText = L("Vm_ProfileDefaultName");
+            ProfileDescriptionText = L("Vm_ProfileDefaultDescription");
             return;
         }
 
@@ -2196,8 +2209,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         var profile = await _profileService.LoadProfileAsync(SelectedLocalProfile.Id);
         ApplyConfigurationToEditor(profile.Configuration);
-        ProfileOperationStatus = $"{profile.Summary.Name} is previewed in Custom. No files were changed.";
-        AppendLog($"Previewed local profile: {profile.Summary.Name}", "INFO");
+        ProfileOperationStatus = LF("Vm_ProfilePreviewedStatusFormat", profile.Summary.Name);
+        AppendLog(LF("Vm_ProfilePreviewedLogFormat", profile.Summary.Name), "INFO");
     }
 
     private async Task ApplySelectedProfileAsync()
@@ -2209,13 +2222,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         var profile = await _profileService.LoadProfileAsync(SelectedLocalProfile.Id);
         ShowPrompt(
-            $"Set active profile: {profile.Summary.Name}",
-            "LibreSpot will write this profile to config.json and keep the previous active profile pointer for rollback. This does not start an install by itself.",
-            "Set active",
+            LF("Vm_ProfileSetActiveTitleFormat", profile.Summary.Name),
+            L("Vm_ProfileSetActiveBody"),
+            L("Vm_ProfileSetActiveConfirm"),
             Strings.ButtonCancel,
             false,
             () => SetActiveProfileAsync(profile.Summary.Id),
-            "Profile preview",
+            L("Vm_ProfilePreviewSummaryTitle"),
             BuildProfileSummary(profile.Configuration));
     }
 
@@ -2226,8 +2239,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ApplyConfigurationToEditor(profile.Configuration);
         await RefreshLocalProfilesAsync(profile.Summary.Id);
         await RefreshSnapshotAsync();
-        ProfileOperationStatus = $"{profile.Summary.Name} is active. The previous active profile pointer is kept for rollback.";
-        AppendLog($"Set active local profile: {profile.Summary.Name}", "SUCCESS");
+        ProfileOperationStatus = LF("Vm_ProfileActiveStatusFormat", profile.Summary.Name);
+        AppendLog(LF("Vm_ProfileActiveLogFormat", profile.Summary.Name), "SUCCESS");
     }
 
     private async Task CreateLocalProfileAsync()
@@ -2237,8 +2250,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ProfileDescriptionText,
             BuildConfiguration("Custom"));
         await RefreshLocalProfilesAsync(profile.Summary.Id);
-        ProfileOperationStatus = $"{profile.Summary.Name} was saved from the current Custom selections.";
-        AppendLog($"Saved local profile: {profile.Summary.Name}", "SUCCESS");
+        ProfileOperationStatus = LF("Vm_ProfileSavedStatusFormat", profile.Summary.Name);
+        AppendLog(LF("Vm_ProfileSavedLogFormat", profile.Summary.Name), "SUCCESS");
     }
 
     private async Task DuplicateLocalProfileAsync()
@@ -2251,8 +2264,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var sourceName = SelectedLocalProfile.Name;
         var profile = await _profileService.DuplicateAsync(SelectedLocalProfile.Id, CreateCopyName(sourceName));
         await RefreshLocalProfilesAsync(profile.Summary.Id);
-        ProfileOperationStatus = $"{profile.Summary.Name} was duplicated from {sourceName}.";
-        AppendLog($"Duplicated local profile: {profile.Summary.Name}", "SUCCESS");
+        ProfileOperationStatus = LF("Vm_ProfileDuplicatedStatusFormat", profile.Summary.Name, sourceName);
+        AppendLog(LF("Vm_ProfileDuplicatedLogFormat", profile.Summary.Name), "SUCCESS");
     }
 
     private async Task RenameLocalProfileAsync()
@@ -2264,8 +2277,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         var profile = await _profileService.RenameAsync(SelectedLocalProfile.Id, ProfileNameText);
         await RefreshLocalProfilesAsync(profile.Summary.Id);
-        ProfileOperationStatus = $"{profile.Summary.Name} was renamed.";
-        AppendLog($"Renamed local profile: {profile.Summary.Name}", "SUCCESS");
+        ProfileOperationStatus = LF("Vm_ProfileRenamedStatusFormat", profile.Summary.Name);
+        AppendLog(LF("Vm_ProfileRenamedLogFormat", profile.Summary.Name), "SUCCESS");
     }
 
     private Task DeleteLocalProfileAsync()
@@ -2277,14 +2290,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         var profile = SelectedLocalProfile;
         ShowPrompt(
-            $"Delete profile: {profile.Name}",
-            "LibreSpot will remove this local profile file. Bundled templates are kept, and deleting the active profile falls back to Recommended.",
-            "Delete profile",
-            "Keep profile",
+            LF("Vm_ProfileDeleteTitleFormat", profile.Name),
+            L("Vm_ProfileDeleteBody"),
+            L("Vm_ProfileDeleteConfirm"),
+            L("Vm_ProfileDeleteCancel"),
             true,
             () => DeleteLocalProfileConfirmedAsync(profile.Id, profile.Name),
-            "What this removes",
-            "Only the selected local profile JSON file is deleted. config.json and bundled templates are left intact.");
+            L("Vm_ProfileDeleteSummaryTitle"),
+            L("Vm_ProfileDeleteSummaryBody"));
         return Task.CompletedTask;
     }
 
@@ -2293,8 +2306,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         await _profileService.DeleteAsync(id);
         await RefreshLocalProfilesAsync();
         await RefreshSnapshotAsync();
-        ProfileOperationStatus = $"{name} was deleted. Active fallback is visible in the profile list.";
-        AppendLog($"Deleted local profile: {name}", "WARN");
+        ProfileOperationStatus = LF("Vm_ProfileDeletedStatusFormat", name);
+        AppendLog(LF("Vm_ProfileDeletedLogFormat", name), "WARN");
     }
 
     private async Task ExportLocalProfileAsync()
@@ -2307,8 +2320,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var fileName = $"{SlugifyForFile(SelectedLocalProfile.Name)}.librespot";
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Title = "Export LibreSpot profile",
-            Filter = "LibreSpot profiles (*.librespot)|*.librespot",
+            Title = L("Vm_ProfileExportDialogTitle"),
+            Filter = L("Vm_ProfileExportDialogFilter"),
             DefaultExt = ".librespot",
             AddExtension = true,
             OverwritePrompt = true,
@@ -2321,8 +2334,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         await _profileService.ExportAsync(SelectedLocalProfile.Id, dialog.FileName);
-        ProfileOperationStatus = $"{SelectedLocalProfile.Name} was exported to {dialog.FileName}.";
-        AppendLog($"Exported local profile: {dialog.FileName}", "SUCCESS");
+        ProfileOperationStatus = LF("Vm_ProfileExportedStatusFormat", SelectedLocalProfile.Name, dialog.FileName);
+        AppendLog(LF("Vm_ProfileExportedLogFormat", dialog.FileName), "SUCCESS");
     }
 
     private async Task RefreshSelectedProfileShareCardAsync()
@@ -2331,11 +2344,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _selectedProfileShareCard = null;
         SelectedProfileQrImage = null;
         SelectedProfileShareStatus = selected is null
-            ? "Select a profile to create an inert share card."
-            : "Preparing share card...";
+            ? L("Vm_ProfileShareInitial")
+            : L("Vm_ProfileSharePreparing");
         SelectedProfileComparisonText = selected is null
-            ? "Select a profile to compare it with Recommended."
-            : "Comparing with Recommended...";
+            ? L("Vm_ProfileComparisonInitial")
+            : L("Vm_ProfileComparisonPreparing");
         RaiseProfileShareCardStateChanged();
 
         if (selected is null)
@@ -2358,12 +2371,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             try
             {
                 SelectedProfileQrImage = QrCodeImageService.CreateImage(shareCard.QrPayload);
-                SelectedProfileShareStatus = "QR card and share link are ready. Import still opens as a preview before saving.";
+                SelectedProfileShareStatus = L("Vm_ProfileShareReady");
             }
             catch (Exception ex)
             {
                 SelectedProfileQrImage = null;
-                SelectedProfileShareStatus = $"Share link is ready, but this profile is too large for a QR card: {ex.Message}";
+                SelectedProfileShareStatus = LF("Vm_ProfileShareQrTooLargeFormat", ex.Message);
             }
 
             RaiseProfileShareCardStateChanged();
@@ -2378,8 +2391,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
 
             SelectedProfileQrImage = null;
-            SelectedProfileShareStatus = $"Couldn't prepare sharing for {selected.Name}: {ex.Message}";
-            SelectedProfileComparisonText = "Comparison is unavailable until the profile can be loaded.";
+            SelectedProfileShareStatus = LF("Vm_ProfileShareFailedFormat", selected.Name, ex.Message);
+            SelectedProfileComparisonText = L("Vm_ProfileComparisonUnavailable");
             RaiseProfileShareCardStateChanged();
         }
     }
@@ -2389,6 +2402,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasSelectedProfileShareCard));
         OnPropertyChanged(nameof(SelectedProfileShareUri));
         OnPropertyChanged(nameof(HasSelectedProfileQrImage));
+        OnPropertyChanged(nameof(SelectedProfileShareStatus));
+        OnPropertyChanged(nameof(SelectedProfileComparisonText));
         CopyProfileShareUriCommand.NotifyCanExecuteChanged();
         CopyProfileComparisonCommand.NotifyCanExecuteChanged();
     }
@@ -2418,7 +2433,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ProfileOperationStatus = TrySetClipboardText(text) ? successMessage : failureMessage;
     }
 
-    private static string BuildProfileComparison(InstallConfiguration configuration)
+    private string BuildProfileComparison(InstallConfiguration configuration)
     {
         var normalized = AppCatalog.NormalizeConfiguration(configuration);
         var recommended = AppCatalog.CreateRecommendedConfiguration();
@@ -2427,43 +2442,52 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (!string.Equals(normalized.Spicetify_Theme, recommended.Spicetify_Theme, StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(normalized.Spicetify_Scheme, recommended.Spicetify_Scheme, StringComparison.OrdinalIgnoreCase))
         {
-            changedAreas.Add($"theme {normalized.Spicetify_Theme}/{normalized.Spicetify_Scheme}");
+            changedAreas.Add(LF("Vm_ProfileComparisonAreaThemeFormat", normalized.Spicetify_Theme, normalized.Spicetify_Scheme));
         }
 
         if (!string.Equals(normalized.SpotX_LyricsTheme, recommended.SpotX_LyricsTheme, StringComparison.OrdinalIgnoreCase))
         {
-            changedAreas.Add($"lyrics color {Prettify.Label(normalized.SpotX_LyricsTheme)}");
+            changedAreas.Add(LF("Vm_ProfileComparisonAreaLyricsFormat", Prettify.Label(normalized.SpotX_LyricsTheme)));
         }
 
         if (!SetEquals(normalized.Spicetify_Extensions, recommended.Spicetify_Extensions))
         {
-            changedAreas.Add($"{normalized.Spicetify_Extensions.Count} extensions");
+            changedAreas.Add(LF("Vm_ProfileComparisonAreaExtensionsFormat", normalized.Spicetify_Extensions.Count));
         }
 
         if (normalized.Spicetify_CustomApps.Count > 0)
         {
-            changedAreas.Add($"{normalized.Spicetify_CustomApps.Count} custom apps");
+            changedAreas.Add(LF("Vm_ProfileComparisonAreaCustomAppsFormat", normalized.Spicetify_CustomApps.Count));
         }
 
         if (normalized.SpotX_Premium != recommended.SpotX_Premium)
         {
-            changedAreas.Add("Premium account patch posture");
+            changedAreas.Add(L("Vm_ProfileComparisonAreaPremiumPatch"));
         }
 
         if (normalized.SpotX_CustomPatchesEnabled)
         {
-            changedAreas.Add("custom SpotX patches");
+            changedAreas.Add(L("Vm_ProfileComparisonAreaCustomPatches"));
         }
 
         if (normalized.CleanInstall != recommended.CleanInstall)
         {
-            changedAreas.Add(normalized.CleanInstall ? "clean install" : "overlay install");
+            changedAreas.Add(normalized.CleanInstall ? L("Vm_ProfileComparisonAreaCleanInstall") : L("Vm_ProfileComparisonAreaOverlayInstall"));
         }
 
         var diffText = changedAreas.Count == 0
-            ? "matches the Recommended baseline"
-            : $"differs in {string.Join(", ", changedAreas)}";
-        return $"{normalized.Mode} profile {diffText}. Theme: {normalized.Spicetify_Theme}/{normalized.Spicetify_Scheme}; lyrics: {Prettify.Label(normalized.SpotX_LyricsTheme)}; extensions: {normalized.Spicetify_Extensions.Count}; custom apps: {normalized.Spicetify_CustomApps.Count}; custom patches: {(normalized.SpotX_CustomPatchesEnabled ? "on" : "off")}.";
+            ? L("Vm_ProfileComparisonMatchesBaseline")
+            : LF("Vm_ProfileComparisonDiffersFormat", string.Join(", ", changedAreas));
+        return LF(
+            "Vm_ProfileComparisonSummaryFormat",
+            normalized.Mode,
+            diffText,
+            normalized.Spicetify_Theme,
+            normalized.Spicetify_Scheme,
+            Prettify.Label(normalized.SpotX_LyricsTheme),
+            normalized.Spicetify_Extensions.Count,
+            normalized.Spicetify_CustomApps.Count,
+            normalized.SpotX_CustomPatchesEnabled ? L("Vm_ToggleOn") : L("Vm_ToggleOff"));
     }
 
     private static bool SetEquals(IEnumerable<string> left, IEnumerable<string> right) =>
@@ -2481,7 +2505,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            ProfileOperationStatus = $"Couldn't open link: {ex.Message}";
+            ProfileOperationStatus = LF("Vm_OpenLinkFailedFormat", ex.Message);
         }
     }
 
@@ -2489,8 +2513,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Import LibreSpot profile",
-            Filter = "LibreSpot profiles (*.librespot)|*.librespot|JSON files (*.json)|*.json",
+            Title = L("Vm_ProfileImportDialogTitle"),
+            Filter = L("Vm_ProfileImportDialogFilter"),
             CheckFileExists = true,
             Multiselect = false
         };
@@ -2502,13 +2526,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         var preview = await _profileService.PreviewImportAsync(dialog.FileName);
         ShowPrompt(
-            $"Import profile: {preview.Name}",
-            "LibreSpot validated the profile file and will save it as a local profile only after you confirm. Importing does not start an install or acknowledge Spotify risk.",
-            "Import profile",
+            LF("Vm_ProfileImportTitleFormat", preview.Name),
+            L("Vm_ProfileImportBody"),
+            L("Vm_ProfileImportConfirm"),
             Strings.ButtonCancel,
             false,
             () => ImportLocalProfileConfirmedAsync(preview),
-            "Imported settings",
+            L("Vm_ProfileImportedSettingsTitle"),
             BuildProfileSummary(preview.Configuration));
     }
 
@@ -2516,13 +2540,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         var preview = await _profileService.PreviewShareUriAsync(shareUri);
         ShowPrompt(
-            $"Import shared profile: {preview.Name}",
-            "LibreSpot opened this share link as a preview only. Confirming saves it as a local profile; it does not start setup, reapply Spotify, or acknowledge Spotify risk.",
-            "Save shared profile",
+            LF("Vm_ProfileImportSharedTitleFormat", preview.Name),
+            L("Vm_ProfileImportSharedBody"),
+            L("Vm_ProfileImportSharedConfirm"),
             Strings.ButtonCancel,
             false,
             () => ImportLocalProfileConfirmedAsync(preview),
-            "Shared settings",
+            L("Vm_ProfileSharedSettingsTitle"),
             BuildProfileSummary(preview.Configuration));
     }
 
@@ -2530,8 +2554,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         var profile = await _profileService.ImportAsync(preview);
         await RefreshLocalProfilesAsync(profile.Summary.Id);
-        ProfileOperationStatus = $"{profile.Summary.Name} was imported. Preview or set it active when you are ready.";
-        AppendLog($"Imported local profile: {profile.Summary.Name}", "SUCCESS");
+        ProfileOperationStatus = LF("Vm_ProfileImportedStatusFormat", profile.Summary.Name);
+        AppendLog(LF("Vm_ProfileImportedLogFormat", profile.Summary.Name), "SUCCESS");
     }
 
     private string CreateCopyName(string sourceName)
@@ -2562,17 +2586,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         return string.IsNullOrWhiteSpace(compact) ? "profile" : compact;
     }
 
-    private static string BuildProfileSummary(InstallConfiguration configuration)
+    private string BuildProfileSummary(InstallConfiguration configuration)
     {
         var normalized = AppCatalog.NormalizeConfiguration(configuration);
         var extensionCount = normalized.Spicetify_Extensions.Count;
         var extensionText = extensionCount switch
         {
-            0 => "no extensions",
-            1 => "1 extension",
-            _ => $"{extensionCount} extensions"
+            0 => L("Vm_ProfileSummaryNoExtensions"),
+            1 => L("Vm_ProfileSummaryOneExtension"),
+            _ => LF("Vm_ProfileSummaryManyExtensionsFormat", extensionCount)
         };
-        return $"{normalized.Mode} profile. Theme: {normalized.Spicetify_Theme} / {normalized.Spicetify_Scheme}. Lyrics: {Prettify.Label(normalized.SpotX_LyricsTheme)}. Extensions: {extensionText}. Premium flag: {(normalized.SpotX_Premium ? "on" : "off")}. Custom patches: {(normalized.SpotX_CustomPatchesEnabled ? "on" : "off")}.";
+        return LF(
+            "Vm_ProfileSummaryFormat",
+            normalized.Mode,
+            normalized.Spicetify_Theme,
+            normalized.Spicetify_Scheme,
+            Prettify.Label(normalized.SpotX_LyricsTheme),
+            extensionText,
+            normalized.SpotX_Premium ? L("Vm_ToggleOn") : L("Vm_ToggleOff"),
+            normalized.SpotX_CustomPatchesEnabled ? L("Vm_ToggleOn") : L("Vm_ToggleOff"));
     }
 
     private StackHealthComponent? HealthComponent(string id) =>
@@ -2622,15 +2654,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 OpenLibreSpotFolderCommand),
             "ClearCache" => new HealthIssueActionViewModel(
                 action,
-                "Clear cache",
-                "Remove stale or corrupt cached downloads. Verified assets will be cached again on demand.",
+                L("Vm_ShellClearCacheTitle"),
+                L("Vm_ClearCacheActionDescription"),
                 false,
                 CreateAsyncCommand(
                     () => RunMaintenanceAsync(new MaintenanceActionDefinition(
                         "ClearCache",
-                        "Clear asset cache",
-                        "Remove stale or corrupt cached downloads. Verified assets will be cached again on demand.",
-                        "Clear cache")),
+                        L("Vm_ClearAssetCacheTitle"),
+                        L("Vm_ClearCacheActionDescription"),
+                        L("Vm_ShellClearCacheTitle"))),
                     () => !IsRunning)),
             _ => null
         };
@@ -2741,9 +2773,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         AppendLog($"Desktop command failed: {ex.Message}", "ERROR");
         ShowNotice(
-            "Action could not finish",
+            L("Vm_ActionCouldNotFinish"),
             ex.Message,
-            "Review the run log before trying again.");
+            L("Vm_ActionCouldNotFinishDetail"));
     }
 
     private bool IsMaintenanceActionRelevant(string action)
@@ -3306,7 +3338,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                     AppendLog($"Could not save configuration: {ex.Message}", "ERROR");
                     _activityOutcome = ActivityOutcome.Error;
                     ActivityStatus = Strings.RunNeedsAttention;
-                    ActivityStep = "Configuration save failed";
+                    ActivityStep = L("Vm_ConfigSaveFailed");
                     ProgressValue = 100;
                     return;
                 }
@@ -3391,8 +3423,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        AppendLog("Setup complete — LibreSpot will close.", "INFO");
-        ActivityStep = "Closing LibreSpot";
+        AppendLog(L("Vm_SetupCompleteClosingLog"), "INFO");
+        ActivityStep = L("Vm_ClosingLibreSpot");
 
         // Let the completion state render and the reopened Spotify settle for a
         // moment, then shut the shell down on the UI thread.
@@ -3415,9 +3447,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        ActivityStatus = "Restarting Spotify";
-        ActivityStep = "Closing spotify.exe";
-        AppendLog("Restarting Spotify so the completed changes load in a fresh client session.", "INFO");
+        ActivityStatus = L("Vm_RestartingSpotify");
+        ActivityStep = L("Vm_ClosingSpotifyProcess");
+        AppendLog(L("Vm_RestartingSpotifyLog"), "INFO");
 
         var result = await _spotifyProcessService.RestartAsync(
             HealthComponent("spotify")?.Path,
@@ -3426,7 +3458,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         AppendLog(result.Message, result.Reopened ? "INFO" : "WARN");
         ActivityStatus = Strings.RunComplete;
-        ActivityStep = result.Reopened ? "Spotify reopened" : "Spotify restart skipped";
+        ActivityStep = result.Reopened ? L("Vm_SpotifyReopened") : L("Vm_SpotifyRestartSkipped");
         ProgressValue = 100;
     }
 
@@ -3448,7 +3480,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             IsCancelRequested = true;
             ActivityStatus = Strings.StoppingBackend;
-            ActivityStep = "Cancel requested";
+            ActivityStep = L("Vm_CancelRequested");
         }
 
         // ObjectDisposedException is possible if Dispose() already ran; treat the same
@@ -3502,7 +3534,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                     {
                         _activityOutcome = ActivityOutcome.Success;
                         ActivityStatus = Strings.RunComplete;
-                        ActivityStep = "LibreSpot is ready";
+                        ActivityStep = L("Vm_LibreSpotReady");
                         ProgressValue = 100;
                     }
                     else
@@ -4197,81 +4229,81 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 "accent",
-                "Conservative Core",
-                "Advanced toggles are off, so this profile stays closer to the setup LibreSpot can reapply most predictably."));
+                L("Vm_InsightConservativeCoreTitle"),
+                L("Vm_InsightConservativeCoreDetail")));
         }
         else if (advancedCount <= 2)
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 "accent",
-                "Balanced Customization",
-                "A few advanced tweaks are active, but the profile still reads like a deliberate daily-driver rather than an experiment bundle."));
+                L("Vm_InsightBalancedCustomizationTitle"),
+                L("Vm_InsightBalancedCustomizationDetail")));
         }
         else
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 "warning",
-                "Experimental Territory",
-                "Several advanced options are enabled. Expect a more distinctive shell, with a little more maintenance after Spotify updates."));
+                L("Vm_InsightExperimentalTerritoryTitle"),
+                L("Vm_InsightExperimentalTerritoryDetail")));
         }
 
         if (HasConflictingSidebarOptions())
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 "warning",
-                "Right Sidebar Settings Overlap",
-                "Hide right sidebar and clear right sidebar styling both target the same surface. Hiding the sidebar wins, so simplify this pair if you want a cleaner config."));
+                L("Vm_InsightRightSidebarOverlapTitle"),
+                L("Vm_InsightRightSidebarOverlapDetail")));
         }
         else if (!IsOptionSelected(nameof(InstallConfiguration.CleanInstall)) && Snapshot.SpotifyInstalled)
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 "warning",
-                "Overlay Install Selected",
-                "LibreSpot will work on top of the current Spotify files. This is faster, but it leaves more room for older patch state to linger."));
+                L("Vm_InsightOverlayInstallTitle"),
+                L("Vm_InsightOverlayInstallDetail")));
         }
         else if (!IsOptionSelected(nameof(InstallConfiguration.CleanInstall)))
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 "warning",
-                "Skipping A Clean Start",
-                "Because Spotify is not currently detected, overlay mode is unlikely to save time. A clean start is usually the calmer path."));
+                L("Vm_InsightSkippingCleanStartTitle"),
+                L("Vm_InsightSkippingCleanStartDetail")));
         }
         else
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 "muted",
-                "Fresh Baseline",
-                "Clean install is on, so LibreSpot will clear more leftovers before rebuilding the stack."));
+                L("Vm_InsightFreshBaselineTitle"),
+                L("Vm_InsightFreshBaselineDetail")));
         }
 
         if (!IsLyricsThemeAvailable)
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 "muted",
-                "Lyrics Styling Is Parked",
-                "The lyrics theme stays selected in your profile, but it will not apply until the lyrics patch is turned back on."));
+                L("Vm_InsightLyricsStylingParkedTitle"),
+                L("Vm_InsightLyricsStylingParkedDetail")));
         }
         else if (!IsThemeSchemeAvailable)
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 "muted",
-                "Marketplace-First Visual Stack",
-                "You are skipping the theme pack, so LibreSpot will lean on Marketplace and SpotX presentation tweaks instead of a bundled skin."));
+                L("Vm_InsightMarketplaceFirstTitle"),
+                L("Vm_InsightMarketplaceFirstDetail")));
         }
         else
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 "accent",
-                "Theme Restore Ready",
-                $"{SelectedTheme} with {Prettify.Label(SelectedScheme)} will be restored after the backend run completes."));
+                L("Vm_InsightThemeRestoreReadyTitle"),
+                LF("Vm_InsightThemeRestoreReadyDetailFormat", SelectedTheme, Prettify.Label(SelectedScheme))));
         }
 
         if (!IsOptionSelected(nameof(InstallConfiguration.Spicetify_Marketplace)) && SelectedExtensionLabels.Count == 0 && !IsThemeSchemeAvailable)
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 "warning",
-                "Minimal Spicetify Layer",
-                "Marketplace, theme pack, and built-in extensions are all pared back. This keeps the shell lean, but removes most of LibreSpot's customization layer."));
+                L("Vm_InsightMinimalSpicetifyTitle"),
+                L("Vm_InsightMinimalSpicetifyDetail")));
         }
 
         if (!string.Equals(SelectedSpotifyVersionId, "auto", StringComparison.Ordinal))
@@ -4284,7 +4316,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
             SelectionInsights.Add(new SelectionInsightViewModel(
                 versionTone,
-                "Pinned Compatibility Target",
+                L("Vm_InsightPinnedCompatibilityTitle"),
                 CurrentSpotifyVersionEntry.Notes));
         }
 
@@ -4292,7 +4324,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 "warning",
-                "Architecture Mismatch",
+                L("Vm_InsightArchitectureMismatchTitle"),
                 ArchitectureMismatchWarning!));
         }
 
@@ -4308,7 +4340,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 _customPatchValidation.IsValid ? "accent" : "warning",
-                _customPatchValidation.IsValid ? "Custom Patches Dry Run Ready" : "Custom Patches Need Review",
+                _customPatchValidation.IsValid ? L("Vm_InsightCustomPatchesReadyTitle") : L("Vm_InsightCustomPatchesReviewTitle"),
                 CustomPatchesSummary));
         }
 
@@ -4316,8 +4348,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             SelectionInsights.Add(new SelectionInsightViewModel(
                 "info",
-                "Custom apps",
-                $"{string.Join(", ", selectedCustomApps)} will be installed through Spicetify custom_apps."));
+                L("Vm_InsightCustomAppsTitle"),
+                LF("Vm_InsightCustomAppsDetailFormat", string.Join(", ", selectedCustomApps))));
         }
     }
 

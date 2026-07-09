@@ -2066,4 +2066,114 @@
   <data name="Vm_ShellWindows10" xml:space="preserve"><value>Windows 10</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellWindows11" xml:space="preserve"><value>Windows 11</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellWritePermissionsLabel" xml:space="preserve"><value>Write permissions</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActionCouldNotFinish" xml:space="preserve"><value>Action could not finish</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActionCouldNotFinishDetail" xml:space="preserve"><value>Review the run log before trying again.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivityStepIdle" xml:space="preserve"><value>Idle</value><comment>ActivityRunStateViewModel localized runtime text.</comment></data>
+  <data name="Vm_CancelRequested" xml:space="preserve"><value>Cancel requested</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ClearAssetCacheTitle" xml:space="preserve"><value>Clear asset cache</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ClosingLibreSpot" xml:space="preserve"><value>Closing LibreSpot</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ClosingSpotifyProcess" xml:space="preserve"><value>Closing spotify.exe</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigSaveFailed" xml:space="preserve"><value>Configuration save failed</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightArchitectureMismatchTitle" xml:space="preserve"><value>Architecture mismatch</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightBalancedCustomizationDetail" xml:space="preserve"><value>A few advanced tweaks are active, but the profile still reads like a deliberate daily-driver rather than an experiment bundle.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightBalancedCustomizationTitle" xml:space="preserve"><value>Balanced customization</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightConservativeCoreDetail" xml:space="preserve"><value>Advanced toggles are off, so this profile stays closer to the setup LibreSpot can reapply most predictably.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightConservativeCoreTitle" xml:space="preserve"><value>Conservative core</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightCustomAppsDetailFormat" xml:space="preserve"><value>{0} will be installed through Spicetify custom_apps.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightCustomAppsTitle" xml:space="preserve"><value>Custom apps</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightCustomPatchesReadyTitle" xml:space="preserve"><value>Custom patches dry run ready</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightCustomPatchesReviewTitle" xml:space="preserve"><value>Custom patches need review</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightExperimentalTerritoryDetail" xml:space="preserve"><value>Several advanced options are enabled. Expect a more distinctive shell, with a little more maintenance after Spotify updates.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightExperimentalTerritoryTitle" xml:space="preserve"><value>Experimental territory</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightFreshBaselineDetail" xml:space="preserve"><value>Clean install is on, so LibreSpot will clear more leftovers before rebuilding the stack.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightFreshBaselineTitle" xml:space="preserve"><value>Fresh baseline</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightLyricsStylingParkedDetail" xml:space="preserve"><value>The lyrics theme stays selected in your profile, but it will not apply until the lyrics patch is turned back on.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightLyricsStylingParkedTitle" xml:space="preserve"><value>Lyrics styling is parked</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightMarketplaceFirstDetail" xml:space="preserve"><value>You are skipping the theme pack, so LibreSpot will lean on Marketplace and SpotX presentation tweaks instead of a bundled skin.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightMarketplaceFirstTitle" xml:space="preserve"><value>Marketplace-first visual stack</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightMinimalSpicetifyDetail" xml:space="preserve"><value>Marketplace, theme pack, and built-in extensions are all pared back. This keeps the shell lean, but removes most of LibreSpot&apos;s customization layer.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightMinimalSpicetifyTitle" xml:space="preserve"><value>Minimal Spicetify layer</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightOverlayInstallDetail" xml:space="preserve"><value>LibreSpot will work on top of the current Spotify files. This is faster, but it leaves more room for older patch state to linger.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightOverlayInstallTitle" xml:space="preserve"><value>Overlay install selected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightPinnedCompatibilityTitle" xml:space="preserve"><value>Pinned compatibility target</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightRightSidebarOverlapDetail" xml:space="preserve"><value>Hide right sidebar and clear right sidebar styling both target the same surface. Hiding the sidebar wins, so simplify this pair if you want a cleaner config.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightRightSidebarOverlapTitle" xml:space="preserve"><value>Right sidebar settings overlap</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightSkippingCleanStartDetail" xml:space="preserve"><value>Because Spotify is not currently detected, overlay mode is unlikely to save time. A clean start is usually the calmer path.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightSkippingCleanStartTitle" xml:space="preserve"><value>Skipping a clean start</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightThemeRestoreReadyDetailFormat" xml:space="preserve"><value>{0} with {1} will be restored after the backend run completes.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightThemeRestoreReadyTitle" xml:space="preserve"><value>Theme restore ready</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LibreSpotReady" xml:space="preserve"><value>LibreSpot is ready</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogManyLinesFormat" xml:space="preserve"><value>{0} log lines</value><comment>ActivityRunStateViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogNoOutputYet" xml:space="preserve"><value>No log output yet</value><comment>ActivityRunStateViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogOneLine" xml:space="preserve"><value>1 log line</value><comment>ActivityRunStateViewModel localized runtime text.</comment></data>
+  <data name="Vm_OpenLinkFailedFormat" xml:space="preserve"><value>Couldn&apos;t open link: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileActiveLogFormat" xml:space="preserve"><value>Set active local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileActiveStatusFormat" xml:space="preserve"><value>{0} is active. The previous active profile pointer is kept for rollback.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaCleanInstall" xml:space="preserve"><value>clean install</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaCustomAppsFormat" xml:space="preserve"><value>{0} custom apps</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaCustomPatches" xml:space="preserve"><value>custom SpotX patches</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaExtensionsFormat" xml:space="preserve"><value>{0} extensions</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaLyricsFormat" xml:space="preserve"><value>lyrics color {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaOverlayInstall" xml:space="preserve"><value>overlay install</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaPremiumPatch" xml:space="preserve"><value>Premium account patch posture</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaThemeFormat" xml:space="preserve"><value>theme {0}/{1}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonDiffersFormat" xml:space="preserve"><value>differs in {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonMatchesBaseline" xml:space="preserve"><value>matches the Recommended baseline</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonPreparing" xml:space="preserve"><value>Comparing with Recommended...</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonSummaryFormat" xml:space="preserve"><value>{0} profile {1}. Theme: {2}/{3}; lyrics: {4}; extensions: {5}; custom apps: {6}; custom patches: {7}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonUnavailable" xml:space="preserve"><value>Comparison is unavailable until the profile can be loaded.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDeleteBody" xml:space="preserve"><value>LibreSpot will remove this local profile file. Bundled templates are kept, and deleting the active profile falls back to Recommended.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDeleteCancel" xml:space="preserve"><value>Keep profile</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDeleteConfirm" xml:space="preserve"><value>Delete profile</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDeleteSummaryBody" xml:space="preserve"><value>Only the selected local profile JSON file is deleted. config.json and bundled templates are left intact.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDeleteSummaryTitle" xml:space="preserve"><value>What this removes</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDeleteTitleFormat" xml:space="preserve"><value>Delete profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDeletedLogFormat" xml:space="preserve"><value>Deleted local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDeletedStatusFormat" xml:space="preserve"><value>{0} was deleted. Active fallback is visible in the profile list.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDuplicatedLogFormat" xml:space="preserve"><value>Duplicated local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDuplicatedStatusFormat" xml:space="preserve"><value>{0} was duplicated from {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileExportDialogFilter" xml:space="preserve"><value>LibreSpot profiles (*.librespot)|*.librespot</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileExportDialogTitle" xml:space="preserve"><value>Export LibreSpot profile</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileExportedLogFormat" xml:space="preserve"><value>Exported local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileExportedStatusFormat" xml:space="preserve"><value>{0} was exported to {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileImportBody" xml:space="preserve"><value>LibreSpot validated the profile file and will save it as a local profile only after you confirm. Importing does not start an install or acknowledge Spotify risk.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileImportConfirm" xml:space="preserve"><value>Import profile</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileImportDialogFilter" xml:space="preserve"><value>LibreSpot profiles (*.librespot)|*.librespot|JSON files (*.json)|*.json</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileImportDialogTitle" xml:space="preserve"><value>Import LibreSpot profile</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileImportSharedBody" xml:space="preserve"><value>LibreSpot opened this share link as a preview only. Confirming saves it as a local profile; it does not start setup, reapply Spotify, or acknowledge Spotify risk.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileImportSharedConfirm" xml:space="preserve"><value>Save shared profile</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileImportSharedTitleFormat" xml:space="preserve"><value>Import shared profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileImportTitleFormat" xml:space="preserve"><value>Import profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileImportedLogFormat" xml:space="preserve"><value>Imported local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileImportedSettingsTitle" xml:space="preserve"><value>Imported settings</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileImportedStatusFormat" xml:space="preserve"><value>{0} was imported. Preview or set it active when you are ready.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileManyChoicesReadyFormat" xml:space="preserve"><value>{0} profile choices ready. Preview before applying if you want to inspect the settings first.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileNoChoicesStatus" xml:space="preserve"><value>No profiles are available yet. Save the current Custom selections to create one.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileOneChoiceReady" xml:space="preserve"><value>1 profile choice ready. Preview before applying if you want to inspect the settings first.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfilePreviewedLogFormat" xml:space="preserve"><value>Previewed local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfilePreviewedStatusFormat" xml:space="preserve"><value>{0} is previewed in Custom. No files were changed.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfilePreviewSummaryTitle" xml:space="preserve"><value>Profile preview</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileRenamedLogFormat" xml:space="preserve"><value>Renamed local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileRenamedStatusFormat" xml:space="preserve"><value>{0} was renamed.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSavedLogFormat" xml:space="preserve"><value>Saved local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSavedStatusFormat" xml:space="preserve"><value>{0} was saved from the current Custom selections.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSetActiveBody" xml:space="preserve"><value>LibreSpot will write this profile to config.json and keep the previous active profile pointer for rollback. This does not start an install by itself.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSetActiveConfirm" xml:space="preserve"><value>Set active</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSetActiveTitleFormat" xml:space="preserve"><value>Set active profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileShareFailedFormat" xml:space="preserve"><value>Couldn&apos;t prepare sharing for {0}: {1}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSharePreparing" xml:space="preserve"><value>Preparing share card...</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileShareQrTooLargeFormat" xml:space="preserve"><value>Share link is ready, but this profile is too large for a QR card: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileShareReady" xml:space="preserve"><value>QR card and share link are ready. Import still opens as a preview before saving.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSharedSettingsTitle" xml:space="preserve"><value>Shared settings</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSummaryFormat" xml:space="preserve"><value>{0} profile. Theme: {1} / {2}. Lyrics: {3}. Extensions: {4}. Premium flag: {5}. Custom patches: {6}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSummaryManyExtensionsFormat" xml:space="preserve"><value>{0} extensions</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSummaryNoExtensions" xml:space="preserve"><value>no extensions</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSummaryOneExtension" xml:space="preserve"><value>1 extension</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_RestartingSpotify" xml:space="preserve"><value>Restarting Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_RestartingSpotifyLog" xml:space="preserve"><value>Restarting Spotify so the completed changes load in a fresh client session.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SetupCompleteClosingLog" xml:space="preserve"><value>Setup complete - LibreSpot will close.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SpotifyReopened" xml:space="preserve"><value>Spotify reopened</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SpotifyRestartSkipped" xml:space="preserve"><value>Spotify restart skipped</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ToggleOff" xml:space="preserve"><value>off</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ToggleOn" xml:space="preserve"><value>on</value><comment>MainViewModel localized runtime text.</comment></data>
 </root>

@@ -146,6 +146,7 @@ public sealed class LocalizationTests
         var source = string.Join(
             "\n",
             ReadViewModelSource("MainViewModel.cs"),
+            ReadViewModelSource("ActivityRunStateViewModel.cs"),
             ReadViewModelSource("EnvironmentSnapshotStateViewModel.cs"));
         var usedKeys = Regex.Matches(source, "\"(?<key>Vm_[A-Za-z0-9_]+)\"")
             .Cast<Match>()
@@ -180,6 +181,14 @@ public sealed class LocalizationTests
                     "Copied profile comparison.",
                     "Clipboard was unavailable. The comparison remains visible here.",
                     "Clipboard was unavailable. Log is still saved to install.log."
+                }
+            ),
+            (
+                Source: ReadViewModelSource("ActivityRunStateViewModel.cs"),
+                Phrases: new[]
+                {
+                    "No log output yet",
+                    "1 log line"
                 }
             ),
             (
