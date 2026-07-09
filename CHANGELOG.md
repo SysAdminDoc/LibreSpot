@@ -2,6 +2,18 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
+## [v4.0.0-preview.14] - 2026-07-09
+
+### Changed
+
+- Refined the WPF command-center hierarchy across Recommended, Custom, Maintenance, prompt, and activity surfaces so secondary workspaces fill the viewport cleanly without repeating the recommended setup CTA.
+- Rebalanced failed-run activity recovery: error/canceled progress now uses warning/error tone and copy, and Export failure is the primary action while Close becomes secondary.
+- Tightened desktop rail accessibility names and mapped About to the repository action instead of switching to Maintenance.
+
+### Tests
+
+- Recaptured WPF smoke screenshots for the preview.14 desktop shell and added a failed-run progress-label regression.
+
 ## [v4.0.0-preview.13] - 2026-07-09
 
 Deep audit release after the v4.0.0-preview.12 tag.
