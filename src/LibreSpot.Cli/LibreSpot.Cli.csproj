@@ -6,10 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <AssemblyName>LibreSpot.Cli</AssemblyName>
-    <Version>4.0.0-preview.15</Version>
-    <AssemblyVersion>4.0.0.15</AssemblyVersion>
-    <FileVersion>4.0.0.15</FileVersion>
-    <InformationalVersion>4.0.0-preview.15</InformationalVersion>
+    <Version>4.0.0-preview.16</Version>
+    <AssemblyVersion>4.0.0.16</AssemblyVersion>
+    <FileVersion>4.0.0.16</FileVersion>
+    <InformationalVersion>4.0.0-preview.16</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
   </PropertyGroup>

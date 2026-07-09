@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.15-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.16-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.4-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 
 </div>
@@ -68,11 +68,11 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 ---
 
-## What's New in v3.7
+## What's New in v4.0.0-preview.16
 
-**Desktop command-center redesign.** The v4 preview shell now opens into a modern three-column dark workspace: persistent setup/recovery navigation, a compact stack-health row, the active command surface in the center, a readiness/trust inspector on the right, and a docked activity/log strip that stays visible while you work. The refreshed screenshots above were recaptured from the WPF smoke states.
+**Premium desktop command center.** The image-led redesign deepens the graphite workspace, introduces a restrained cyan/emerald hierarchy, separates stack status into scannable cards, adds a true active-navigation rail, and replaces stacked platform selection chrome with clean card-owned states. Buttons, borders, focus rings, hover treatments, and motion now share one deliberate visual system with high-contrast and reduced-motion fallbacks.
 
-**Premium UI overhaul.** Win11 Mica backdrop (with graceful fallback on Windows 10), a left sidebar navigation rail with Lucide icons replacing the old top tab bar, semantic design tokens, hover-lift micro-interactions, and a shimmering install progress bar. Compact density pass means every panel fits a 1080-px screen without scrolling. Same install behavior, polished chrome.
+**Truthful, resilient UX.** Readiness starts in a checking state, failures expose an amber retry path, and setup stays disabled until the environment snapshot is verified. The activity dock now shows real task entries, working severity filters, an honest empty state, and successful results that remain available until dismissed. Modal overlays disable the workspace behind them, live culture changes refresh secondary labels, and compact layouts adapt to the Windows work area without stealing foreground focus during smoke tests.
 
 The v4 desktop preview continues that polish with a sharper 6-12 px radius system, quieter scrollbars, cleaner first-run guidance, readable Custom setting cards, a searchable theme gallery, a local profile manager with safe `.librespot` import/export, profile share QR cards, in-app profile comparison text, forced dark native window chrome, completion notifications, a compact status dashboard, issue-level repair buttons, a post-run reversible-changes pane, and calmer activity/support-bundle feedback for assistive technology.
 

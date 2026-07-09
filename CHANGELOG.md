@@ -2,6 +2,29 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
+## [v4.0.0-preview.16] - 2026-07-09
+
+Premium desktop command-center release.
+
+### Changed
+
+- Reimagined the WPF shell from an image-generated premium concept with a deeper graphite workspace, cyan/emerald hierarchy, separate stack-health cards, a slim active-navigation rail, restrained card gradients, cleaner button geometry, and selection states that no longer expose the platform's pale list chrome.
+- Made the shell responsive to the Windows work area: rail density, workspace gutters, inspector visibility, and activity-dock height now adapt at compact widths and heights while the UI-automation mode remains non-activating and tray-free.
+- Replaced static XAML resource lookups with live localization bindings throughout the main window, and refreshed maintenance card copy when the culture changes.
+- Kept successful setup results reviewable until explicit dismissal instead of closing the shell automatically.
+
+### Fixed
+
+- Readiness now exposes explicit checking and retry states, disables setup until the environment snapshot is verified, and carries warning/error state through the inspector ring, summary rows, and status labels.
+- The activity dock now reflects real log entries, cycles through all/warnings/errors filters, provides a truthful empty state, and uses a valid scheduled-task undo token in its smoke fixture.
+- Prompt and activity overlays now disable the underlying workspace so keyboard and assistive-technology focus cannot interact through a modal surface.
+- Reduced-motion mode now disables the indeterminate progress sweep in addition to the existing transitions.
+
+### Tests
+
+- Added premium-shell source contracts covering live localization, modal isolation, readiness/activity states, compact work-area behavior, result retention, and visual-system tokens.
+- Recaptured the four README WPF screenshots from deterministic background smoke states.
+
 ## [v4.0.0-preview.15] - 2026-07-09
 
 Deep audit release.
