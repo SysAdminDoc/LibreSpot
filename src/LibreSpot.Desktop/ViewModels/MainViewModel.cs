@@ -477,6 +477,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string ShellClearLogLabel => L("Vm_ShellClearLogLabel");
     public string ShellAutoScrollLabel => L("Vm_ShellAutoScrollLabel");
     public string ShellRunRecommendedCaption => L("Vm_ShellRunRecommendedCaption");
+    public bool ShowRecommendedRunBand => SelectedWorkspaceIndex == 0;
     public string ShellActiveRunTitle => L("Vm_ShellActiveRunTitle");
     public string ShellLocalEnvironmentTitle => L("Vm_ShellLocalEnvironmentTitle");
     public string ShellDependenciesTitle => L("Vm_ShellDependenciesTitle");
@@ -1166,6 +1167,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(WorkspaceHeroEyebrow));
                 OnPropertyChanged(nameof(WorkspaceHeroTitle));
                 OnPropertyChanged(nameof(WorkspaceHeroBody));
+                OnPropertyChanged(nameof(ShowRecommendedRunBand));
             }
         }
     }
