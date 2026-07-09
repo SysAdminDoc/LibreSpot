@@ -2,6 +2,20 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
+## [v4.0.0-preview.15] - 2026-07-09
+
+Deep audit release.
+
+### Fixed
+
+- The close-while-running prompt, run-pipeline log entries, and prompt fallback summaries used 18 hardcoded English strings that bypassed the runtime localization system, leaving those surfaces in English when the UI culture was set to RU, ZH-Hans, PT-BR, or ES. All strings moved to `Strings.resx` with `Vm_` keys and translated across all 5 satellite cultures.
+- `Process.Start` calls in `OpenExternalUri`, `OpenLibreSpotFolder`, `RelaunchAsAdministrator`, and `SpotifyProcessService.StartThroughShell` did not dispose the returned `Process` handle, leaking native OS handles on every invocation.
+- `PromptStateViewModel.Show` fallback summary strings ("What happens next", destructive/non-destructive body text) were hardcoded English instead of using runtime localization resources.
+
+### Tests
+
+- Expanded the localization regression guard to cover `PromptStateViewModel.cs` in the `ViewModels_RuntimeLocalizationKeysExist` check and added 14 removed English phrases to the `ViewModels_UserFacingComputedTextUsesResources` regression list.
+
 ## [v4.0.0-preview.14] - 2026-07-09
 
 ### Changed
