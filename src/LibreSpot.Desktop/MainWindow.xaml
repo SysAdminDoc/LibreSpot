@@ -4266,9 +4266,21 @@
                              Maximum="100"
                              Value="{Binding ProgressValue, Mode=OneWay}"
                              IsIndeterminate="{Binding IsBusyIndeterminate, Mode=OneWay}"
-                             Style="{StaticResource ProgressBarStylePremium}"
                              VerticalAlignment="Center"
-                             AutomationProperties.Name="{x:Static props:Strings.ProgressBarName}" />
+                             AutomationProperties.Name="{x:Static props:Strings.ProgressBarName}">
+                  <ProgressBar.Style>
+                    <Style TargetType="ProgressBar" BasedOn="{StaticResource ProgressBarStylePremium}">
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsActivityError}" Value="True">
+                          <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsActivityCanceled}" Value="True">
+                          <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </ProgressBar.Style>
+                </ProgressBar>
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
                             Margin="14,0,0,0"
@@ -4277,8 +4289,21 @@
                              VerticalAlignment="Center"
                              FontFamily="{StaticResource MonoFont}"
                              FontWeight="SemiBold"
-                             Foreground="{DynamicResource TextBrush}"
-                             MinWidth="72" />
+                             MinWidth="72">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsActivityError}" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                          </DataTrigger>
+                          <DataTrigger Binding="{Binding IsActivityCanceled}" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
                 </StackPanel>
               </Grid>
             </Border>
@@ -4614,7 +4639,7 @@
                         Height="42"
                         Padding="18,0"
                         Margin="0,0,10,0"
-                        Style="{StaticResource SecondaryButtonStyle}"
+                        Style="{StaticResource PrimaryButtonStyle}"
                         Visibility="{Binding CanExportFailureBundle, Converter={StaticResource BoolToVisibilityConverter}}"
                         AutomationProperties.AutomationId="ActivityExportFailureBundleButton"
                         AutomationProperties.Name="{x:Static props:Strings.ButtonExportFailureBundleName}"
@@ -4657,6 +4682,18 @@
                       <Style.Triggers>
                         <DataTrigger Binding="{Binding IsRunning}" Value="True">
                           <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsActivityError}" Value="True">
+                          <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                          <Setter Property="Background" Value="{DynamicResource Surface3Brush}" />
+                          <Setter Property="BorderBrush" Value="{DynamicResource StrokeBrush}" />
+                          <Setter Property="Tag" Value="{DynamicResource SurfaceRaisedBrush}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsActivityCanceled}" Value="True">
+                          <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                          <Setter Property="Background" Value="{DynamicResource Surface3Brush}" />
+                          <Setter Property="BorderBrush" Value="{DynamicResource StrokeBrush}" />
+                          <Setter Property="Tag" Value="{DynamicResource SurfaceRaisedBrush}" />
                         </DataTrigger>
                       </Style.Triggers>
                     </Style>

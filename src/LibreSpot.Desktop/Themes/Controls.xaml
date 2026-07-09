@@ -970,7 +970,7 @@
   <!-- ═══ Progress bar — determinate fill + indeterminate shimmer sweep ═══ -->
   <Style x:Key="ProgressBarStylePremium" TargetType="ProgressBar">
     <Setter Property="Height" Value="8" />
-    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentGradientBrush}" />
     <Setter Property="Background" Value="{DynamicResource Surface3Brush}" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Template">
@@ -986,7 +986,7 @@
             <Border x:Name="PART_Indicator"
                     HorizontalAlignment="Left"
                     CornerRadius="4"
-                    Background="{DynamicResource AccentGradientBrush}"
+                    Background="{TemplateBinding Foreground}"
                     Visibility="Visible" />
             <!-- Indeterminate shimmer: translucent sweep across the full track -->
             <Border x:Name="Shimmer"

@@ -1366,6 +1366,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? L("Vm_ProgressWorking")
             : IsRunning
                 ? $"{Math.Round(ProgressValue)}%"
+                : IsActivityCanceled ? Strings.Canceled
+                : IsActivityError ? Strings.RunNeedsAttention
                 : ProgressValue >= 100 ? L("Vm_ProgressDone") : Strings.SeverityReady;
 
     // Activity badge surfaces the run's outcome after completion so the overlay

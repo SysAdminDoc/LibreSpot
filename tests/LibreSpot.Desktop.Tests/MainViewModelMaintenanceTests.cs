@@ -1,6 +1,7 @@
 using System.IO;
 using System.IO.Compression;
 using LibreSpot.Desktop.Models;
+using LibreSpot.Desktop.Properties;
 using LibreSpot.Desktop.Services;
 using LibreSpot.Desktop.ViewModels;
 using Xunit;
@@ -224,6 +225,7 @@ public sealed class MainViewModelMaintenanceTests
             viewModel.ApplyUiAutomationSmokeState("activity-error");
             Assert.True(viewModel.CanExportFailureBundle);
             Assert.True(viewModel.ExportFailureBundleCommand.CanExecute(null));
+            Assert.Equal(Strings.RunNeedsAttention, viewModel.ProgressLabel);
 
             await viewModel.ExportFailureBundleCommand.ExecuteAsync(null);
 
