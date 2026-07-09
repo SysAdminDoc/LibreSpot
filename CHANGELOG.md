@@ -2,10 +2,9 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
-## [Unreleased]
+## [v4.0.0-preview.13] - 2026-07-09
 
-Landed on `main` after the v4.0.0-preview.12 tag. The next release pass assigns
-the version and recaptures WPF screenshots (both operator/UI-gated).
+Deep audit release after the v4.0.0-preview.12 tag.
 
 ### Added
 

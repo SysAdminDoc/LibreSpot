@@ -57,7 +57,7 @@ public sealed class DesktopCancellationRegressionTests
         Assert.True(stateIndex >= 0, "Cancellation must update visible state.");
         Assert.True(cancelIndex > stateIndex, "Visible stopping state should be set before the process tree cancel request.");
         Assert.Contains("ActivityStatus = Strings.StoppingBackend;", body);
-        Assert.Contains("ActivityStep = \"Cancel requested\";", body);
+        Assert.Contains("ActivityStep = L(\"Vm_CancelRequested\");", body);
     }
 
     [Fact]
