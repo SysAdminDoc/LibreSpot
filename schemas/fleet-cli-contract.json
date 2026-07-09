@@ -64,7 +64,7 @@
       "supportsDryRun": false,
       "supportsJson": true,
       "supportsNdjson": false,
-      "defaultExitCodes": [0, 1, 2, 10, 11, 12],
+      "defaultExitCodes": [0, 1, 2, 10, 11, 12, 20],
       "flags": [
         "--json",
         "--config-path",

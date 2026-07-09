@@ -183,6 +183,7 @@ function Get-FileHash {
 
 $sharedRoot = Join-Path $RepoRoot 'src\powershell\shared'
 foreach ($name in @(
+    'Get-FileSha256Lower',
     'Confirm-FileHash',
     'Update-AssetCacheIndexEntry',
     'Get-FromAssetCache',

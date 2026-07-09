@@ -192,6 +192,48 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public void StatusScopeMachine_UsesProgramDataConfigPath()
+    {
+        string? observedConfigPath = null;
+        var result = Run(
+            new[] { "status", "--json", "--scope", "machine" },
+            path =>
+            {
+                observedConfigPath = path;
+                return Snapshot(
+                    spotifyInstalled: true,
+                    spicetifyInstalled: true,
+                    Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready));
+            });
+
+        var expectedPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "LibreSpot",
+            "config.json");
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(expectedPath, observedConfigPath);
+        using var doc = JsonDocument.Parse(result.Stdout);
+        Assert.Equal(expectedPath, doc.RootElement.GetProperty("configPath").GetString());
+    }
+
+    [Fact]
+    public void StatusInvalidScope_IsRejectedBeforeSnapshot()
+    {
+        var snapshotRead = false;
+        var result = Run(
+            new[] { "status", "--scope", "tenant" },
+            _ =>
+            {
+                snapshotRead = true;
+                return Snapshot(spotifyInstalled: true, spicetifyInstalled: true);
+            });
+
+        Assert.Equal(2, result.ExitCode);
+        Assert.False(snapshotRead);
+        Assert.Contains("--scope must be user or machine", result.Stderr);
+    }
+
+    [Fact]
     public void DetectJson_MapsCleanSlateToNotInstalledExitCode()
     {
         var snapshot = Snapshot(
@@ -238,6 +280,23 @@ public sealed class CliApplicationTests
         Assert.Equal(11, result.ExitCode);
         Assert.Equal(string.Empty, result.Stdout);
         Assert.Contains("LibreSpot drifted", result.Stderr);
+    }
+
+    [Fact]
+    public void DetectIntuneJson_EmitsOnlyJsonWithIntuneExitCode()
+    {
+        var snapshot = Snapshot(
+            spotifyInstalled: true,
+            spicetifyInstalled: true,
+            Component("marketplace", "Marketplace", "Files missing", CliHealthSeverity.Warning, action: "RepairMarketplace"));
+
+        var result = Run(new[] { "detect", "--intune", "--json" }, _ => snapshot);
+
+        Assert.Equal(11, result.ExitCode);
+        Assert.Equal(string.Empty, result.Stderr);
+        using var doc = JsonDocument.Parse(result.Stdout);
+        Assert.Equal("drifted", doc.RootElement.GetProperty("state").GetString());
+        Assert.Equal(11, doc.RootElement.GetProperty("exitCode").GetInt32());
     }
 
     [Fact]
@@ -302,6 +361,59 @@ public sealed class CliApplicationTests
         Assert.Equal(0, result.ExitCode);
         using var doc = JsonDocument.Parse(result.Stdout);
         Assert.True(doc.RootElement.GetProperty("valid").GetBoolean());
+    }
+
+    [Fact]
+    public void ValidateAnswerFile_RejectsSchemaValuesTheCliWouldOtherwiseNormalize()
+    {
+        var answerFile = Path.Combine(Path.GetTempPath(), "librespot-answer-" + Guid.NewGuid().ToString("N") + ".json");
+        File.WriteAllText(
+            answerFile,
+            """
+            {
+              "schemaVersion": 1,
+              "installMode": "recommended",
+              "uiCulture": "de",
+              "spotx": {
+                "cacheLimit": 90000,
+                "lyricsTheme": "not-a-theme"
+              },
+              "spicetify": {
+                "extensions": ["fullAppDisplay.js", "unknown.js", "fullAppDisplay.js"]
+              },
+              "profiles": {
+                "strict": {
+                  "spotx": {
+                    "downloadMethod": "bits"
+                  }
+                }
+              },
+              "eulaAccepted": true,
+              "riskAcknowledged": true
+            }
+            """);
+
+        try
+        {
+            var result = Run("validate", "--answer-file", answerFile, "--json");
+
+            Assert.Equal(2, result.ExitCode);
+            using var doc = JsonDocument.Parse(result.Stdout);
+            Assert.False(doc.RootElement.GetProperty("valid").GetBoolean());
+            var errors = doc.RootElement.GetProperty("errors").EnumerateArray()
+                .Select(error => $"{error.GetProperty("path").GetString()} {error.GetProperty("message").GetString()}")
+                .ToArray();
+            Assert.Contains(errors, error => error.Contains("$.uiCulture", StringComparison.Ordinal));
+            Assert.Contains(errors, error => error.Contains("$.spotx.cacheLimit", StringComparison.Ordinal));
+            Assert.Contains(errors, error => error.Contains("$.spotx.lyricsTheme", StringComparison.Ordinal));
+            Assert.Contains(errors, error => error.Contains("$.spicetify.extensions[1]", StringComparison.Ordinal));
+            Assert.Contains(errors, error => error.Contains("$.spicetify.extensions[2]", StringComparison.Ordinal));
+            Assert.Contains(errors, error => error.Contains("$.profiles.strict.spotx.downloadMethod", StringComparison.Ordinal));
+        }
+        finally
+        {
+            File.Delete(answerFile);
+        }
     }
 
     [Fact]
@@ -709,6 +821,68 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public void InstallBackendFailure_PreservesDocumentedBackendExitCode()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
+        var sample = Path.Combine(ResolveRepoRoot(), "samples", "minimal.json");
+        var configPath = Path.Combine(root, "config.json");
+        var logDir = Path.Combine(root, "logs");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var result = Run(
+                new[] { "install", "--answer-file", sample, "--config-path", configPath, "--log-dir", logDir, "--ndjson" },
+                _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+                (_, _, _, _) => Task.FromResult(new CliBackendRunResult(false, "installer busy", ExitCode: 1618)));
+
+            Assert.Equal(1618, result.ExitCode);
+            Assert.Contains("installer busy", result.Stderr);
+            var lines = result.Stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+            using var failed = JsonDocument.Parse(lines[^1]);
+            Assert.Equal("LS1003", failed.RootElement.GetProperty("eventId").GetString());
+            Assert.Equal(1618, failed.RootElement.GetProperty("exitCode").GetInt32());
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void InstallBackendSoftReboot_ReturnsSoftRebootExitCode()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
+        var sample = Path.Combine(ResolveRepoRoot(), "samples", "minimal.json");
+        var configPath = Path.Combine(root, "config.json");
+        var logDir = Path.Combine(root, "logs");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var result = Run(
+                new[] { "install", "--answer-file", sample, "--config-path", configPath, "--log-dir", logDir, "--ndjson" },
+                _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+                (_, _, _, _) => Task.FromResult(new CliBackendRunResult(true, ExitCode: 3010)));
+
+            Assert.Equal(3010, result.ExitCode);
+            Assert.Equal(string.Empty, result.Stderr);
+            var lines = result.Stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+            using var completed = JsonDocument.Parse(lines[^1]);
+            Assert.Equal("LS1002", completed.RootElement.GetProperty("eventId").GetString());
+            Assert.Equal(3010, completed.RootElement.GetProperty("exitCode").GetInt32());
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void UninstallSilentPurge_RunsSpicetifyCleanupAndSelfDataRemoval()
     {
         var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
@@ -971,6 +1145,9 @@ public sealed class CliApplicationTests
             Assert.Contains(examples, example => example.Contains("uninstall --silent --yes --keep-spotify", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(examples, example => example.Contains("reapply --answer-file", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(examples, example => example.Contains("detect --json", StringComparison.OrdinalIgnoreCase));
+            var winrmSample = File.ReadAllText(Path.Combine(repoRoot, "samples", "deployment", "winrm-reapply-standard.ps1"));
+            Assert.Contains("$LASTEXITCODE", winrmSample);
+            Assert.Contains("exit [int]$exitCode", winrmSample);
 
             foreach (var example in examples)
             {

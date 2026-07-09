@@ -289,7 +289,8 @@ public sealed class ReleaseArtifactContractTests
         Assert.Contains("checksums.txt", bootstrapSection);
         Assert.Contains("LibreSpot.ps1", bootstrapSection);
         Assert.Contains("SHA256", bootstrapSection);
-        Assert.Contains("Get-FileHash", bootstrapSection);
+        Assert.Contains("Get-LibreSpotBootstrapSha256", bootstrapSection);
+        Assert.Contains("System.Security.Cryptography.SHA256", bootstrapSection);
 
         Assert.True(
             bootstrapSection.Contains("mismatch") || bootstrapSection.Contains("Mismatch"),

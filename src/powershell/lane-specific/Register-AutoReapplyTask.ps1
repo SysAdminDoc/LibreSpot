@@ -19,6 +19,7 @@ function Register-AutoReapplyTask {
     # but the XML schema can. Repetition Duration=PT0S means "forever" per
     # MS-TSCH 2.3.5.2; Interval=PT30M is every 30 minutes.
     $escapedCommand = [System.Security.SecurityElement]::Escape($launch.Command)
+    $escapedArguments = [System.Security.SecurityElement]::Escape($launch.Arguments)
     # Use the current user's SID for domain-joined machines where bare USERNAME
     # may not resolve.  Fall back to USERDOMAIN\USERNAME, then bare USERNAME.
     $userId = $null
@@ -80,6 +81,7 @@ function Register-AutoReapplyTask {
   <Actions Context="Author">
     <Exec>
       <Command>$escapedCommand</Command>
+      <Arguments>$escapedArguments</Arguments>
     </Exec>
   </Actions>
 </Task>

@@ -978,6 +978,7 @@ Describe 'Confirm-FileHash' {
     BeforeAll {
         $sharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
         function Write-Log { param([string]$Message, [string]$Level) }
+        . (Join-Path $sharedDir 'Get-FileSha256Lower.ps1')
         . (Join-Path $sharedDir 'Confirm-FileHash.ps1')
     }
 
@@ -985,7 +986,7 @@ Describe 'Confirm-FileHash' {
         $tempFile = [System.IO.Path]::GetTempFileName()
         try {
             [System.IO.File]::WriteAllText($tempFile, 'test content')
-            $expectedHash = (Get-FileHash -LiteralPath $tempFile -Algorithm SHA256).Hash.ToLower()
+            $expectedHash = Get-FileSha256Lower -Path $tempFile
             { Confirm-FileHash -Path $tempFile -ExpectedHash $expectedHash -Label 'test' } | Should -Not -Throw
         } finally {
             Remove-Item -LiteralPath $tempFile -Force -ErrorAction SilentlyContinue

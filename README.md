@@ -22,8 +22,16 @@ $d = "$env:LOCALAPPDATA\LibreSpot\bootstrap"; New-Item -ItemType Directory -Path
 $base = 'https://github.com/SysAdminDoc/LibreSpot/releases/latest/download'
 Invoke-WebRequest "$base/LibreSpot.ps1" -OutFile "$d\LibreSpot.ps1" -UseBasicParsing
 Invoke-WebRequest "$base/checksums.txt" -OutFile "$d\checksums.txt" -UseBasicParsing
-$expected = ((Get-Content "$d\checksums.txt" | Where-Object { $_ -match 'LibreSpot\.ps1$' }) -split '\s+')[0]
-$actual = (Get-FileHash "$d\LibreSpot.ps1" -Algorithm SHA256).Hash
+function Get-LibreSpotBootstrapSha256 {
+  param([string]$Path)
+  $cmd = Get-Command Get-FileHash -ErrorAction SilentlyContinue
+  if ($cmd) { return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToUpperInvariant() }
+  $stream = [System.IO.File]::OpenRead($Path); $sha = [System.Security.Cryptography.SHA256]::Create()
+  try { return (($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') }) -join '').ToUpperInvariant() }
+  finally { $stream.Dispose(); $sha.Dispose() }
+}
+$expected = (((Get-Content "$d\checksums.txt" | Where-Object { $_ -match 'LibreSpot\.ps1$' }) -split '\s+')[0]).ToUpperInvariant()
+$actual = Get-LibreSpotBootstrapSha256 "$d\LibreSpot.ps1"
 if ($actual -ne $expected) { Remove-Item "$d\LibreSpot.ps1" -Force; throw "SHA256 mismatch — expected $expected, got $actual. The download may be corrupted or tampered with." }
 Write-Host "SHA256 verified: $actual" -ForegroundColor Green
 & "$d\LibreSpot.ps1"
@@ -359,8 +367,16 @@ The recommended Quick Start snippet above verifies `LibreSpot.ps1` automatically
 
 ```powershell
 # Compare the hash of each downloaded asset to its line in checksums.txt
-Get-FileHash .\LibreSpot.exe  -Algorithm SHA256
-Get-FileHash .\LibreSpot.ps1  -Algorithm SHA256
+function Get-Sha256 {
+  param([string]$Path)
+  $cmd = Get-Command Get-FileHash -ErrorAction SilentlyContinue
+  if ($cmd) { return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToUpperInvariant() }
+  $stream = [System.IO.File]::OpenRead($Path); $sha = [System.Security.Cryptography.SHA256]::Create()
+  try { return (($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') }) -join '').ToUpperInvariant() }
+  finally { $stream.Dispose(); $sha.Dispose() }
+}
+Get-Sha256 .\LibreSpot.exe
+Get-Sha256 .\LibreSpot.ps1
 Get-Content  .\checksums.txt
 ```
 

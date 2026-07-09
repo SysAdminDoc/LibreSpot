@@ -25,12 +25,22 @@ the version and recaptures WPF screenshots (both operator/UI-gated).
 
 ### Fixed
 
+- Fleet CLI `--scope machine` now resolves the default config under `%ProgramData%\LibreSpot\config.json` instead of silently using the per-user config; invalid scope values fail before reads or mutations.
+- `detect --intune --json` now emits the JSON detection document while preserving the Intune exit code, and the fleet contract lists the reachable blocked exit code `20`.
+- Fleet answer-file validation now rejects consumed schema enum/range/type errors (culture, SpotX lyrics/download/cache settings, Spicetify extension lists, profiles, watcher/logging/reboot policy) before backend runs can normalize or drop bad intent.
+- Backend process exit codes now propagate through CLI operations and NDJSON events for retry, permission, canceled, installer-busy, and reboot outcomes instead of collapsing to exit `1`.
+- Standalone PowerShell verification no longer depends on `Get-FileHash`; SHA256 checks use the shared .NET fallback in normal, worker-runspace, backend, and README bootstrap paths.
+- Standalone auto-reapply scheduled tasks now split executable and arguments into separate Task Scheduler XML elements, so quoted paths are registered as the executable path rather than a single malformed command.
+- Community extension downloads now verify HTML/error-page and SHA256 checks in a temporary file before moving the asset into the live Spicetify Extensions folder.
+- The standalone watcher now uses LibreSpot's guarded downloader for SpotX, keeping CVE/download diagnostics consistent with user-triggered install and reapply.
+- The WinRM reapply deployment sample now exits with the remote `LibreSpot.Cli.exe` exit code instead of hiding remote failures behind a successful local PowerShell invocation.
 - The read-only log/terminal `TextBox` (`LogTextBoxStyle`) is a keyboard tab stop but its restyled template dropped the platform focus visual, so sighted keyboard users got no focus indicator when they tabbed into it (WCAG 2.2 SC 2.4.7). It now shows an accent focus ring when keyboard-focused.
 
 - Localization sync gate (`tools/Sync-Localization.ps1`, also run by `Build-Scripts.ps1 -Validate`) now rejects format-placeholder mismatches: a translated string whose set of `{0}`/`{1}`/… indices differs from the English source is caught at build time instead of crashing `string.Format` at runtime. Placeholders may be reordered for grammar but not dropped, added, or renumbered. Documented the translation workflow in `.github/CONTRIBUTING.md`.
 
 ### Tests
 
+- Added focused regression coverage for CLI scope resolution, Intune JSON detection, strict answer-file validation, backend exit-code propagation, WinRM exit propagation, worker-runspace hash exports, watcher Task Scheduler XML, guarded watcher downloads, and temp-file community extension verification.
 - Added an accessibility guard (`AutomationNameContractTests`) that fails the build if any interactive control in `MainWindow.xaml` loses its UIA-discoverable name (`AutomationProperties.Name`/`Content`/`Header`/`LabeledBy`), and that pins the `LiveRegionContentControl` polite live-region peer. All 77 interactive controls currently comply; the test locks that in against regression (WCAG 2.2 4.1.2).
 - Added focus-visibility guards to `KeyboardFocusContractTests`: broadened the custom-focus-ring theory to TextBox/TabItem/ComboBoxItem, a targeted check that the read-only log textbox keeps a focus ring, and an invariant that the number of keyboard-focus triggers is at least the number of templates that null the default focus visual (so no restyled control can silently drop its focus ring).
 

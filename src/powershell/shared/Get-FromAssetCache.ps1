@@ -8,7 +8,7 @@ function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPat
         return $false
     }
     try {
-        $actual = (Get-FileHash -LiteralPath $cachePath -Algorithm SHA256).Hash.ToLowerInvariant()
+        $actual = Get-FileSha256Lower -Path $cachePath
         if ($actual -ne $hash) {
             Write-Log "  Cached asset for $Label failed re-verification (expected $hash, got $actual). Quarantining stale entry." -Level 'WARN'
             $byteSize = (Get-Item -LiteralPath $cachePath).Length

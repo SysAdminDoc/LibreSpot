@@ -10,12 +10,12 @@ function Get-WatcherLaunchCommand {
 
     $ext = [System.IO.Path]::GetExtension($entry).ToLowerInvariant()
     if ($ext -eq '.exe') {
-        return @{ Command = "`"$entry`" -Watch"; Entry = $entry }
+        return @{ Command = $entry; Arguments = '-Watch'; Entry = $entry }
     }
     if ($ext -eq '.ps1') {
         $ps = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
         if (-not (Test-Path -LiteralPath $ps)) { $ps = 'powershell.exe' }
-        return @{ Command = "`"$ps`" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$entry`" -Watch"; Entry = $entry }
+        return @{ Command = $ps; Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$entry`" -Watch"; Entry = $entry }
     }
     return $null
 }

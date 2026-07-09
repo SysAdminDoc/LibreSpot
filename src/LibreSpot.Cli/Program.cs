@@ -27,6 +27,42 @@ public static class CliApplication
     private const int RepairNeeded = 12;
     private const int MaxCustomPatchesJsonBytes = 65536;
 
+    private static readonly HashSet<int> PublicBackendExitCodes = new()
+    {
+        20, 30, 40, 50, 60, 1618, 3010, 1641
+    };
+
+    private static readonly HashSet<string> SupportedCultures = new(StringComparer.Ordinal)
+    {
+        "en", "ru", "zh-Hans", "pt-BR", "es"
+    };
+
+    private static readonly HashSet<string> SpotXLyricsThemes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "spotify", "blueberry", "blue", "discord", "forest", "fresh", "github", "lavender",
+        "orange", "pumpkin", "purple", "red", "strawberry", "turquoise", "yellow", "oceano",
+        "royal", "krux", "pinkle", "zing", "radium", "sandbar", "postlight", "relish",
+        "drot", "default", "spotify#2"
+    };
+
+    private static readonly HashSet<string> SpotXDownloadMethods = new(StringComparer.OrdinalIgnoreCase)
+    {
+        string.Empty, "curl", "webclient"
+    };
+
+    private static readonly HashSet<string> SpicetifyExtensions = new(StringComparer.Ordinal)
+    {
+        "fullAppDisplay.js", "shuffle+.js", "trashbin.js", "keyboardShortcut.js", "bookmark.js",
+        "loopyLoop.js", "popupLyrics.js", "autoSkipVideo.js", "autoSkipExplicit.js",
+        "webnowplaying.js", "hidePodcasts.js", "beautiful-lyrics.mjs", "playlist-icons.js",
+        "volumePercentage.js", "adblock.js"
+    };
+
+    private static readonly HashSet<string> SpicetifyCustomApps = new(StringComparer.Ordinal)
+    {
+        "stats"
+    };
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -157,7 +193,12 @@ public static class CliApplication
             return ValidationError;
         }
 
-        var configPath = options.GetValue("--config-path") ?? DefaultConfigPath;
+        if (!TryResolveConfigPath(options, out var configPath, out var configPathError))
+        {
+            stderr.WriteLine(configPathError);
+            return ValidationError;
+        }
+
         var snapshot = GetSnapshot(configPath, snapshotFactory);
         var document = BuildStatusDocument(snapshot, configPath);
 
@@ -205,11 +246,21 @@ public static class CliApplication
             return ValidationError;
         }
 
-        var configPath = options.GetValue("--config-path") ?? DefaultConfigPath;
+        if (!TryResolveConfigPath(options, out var configPath, out var configPathError))
+        {
+            stderr.WriteLine(configPathError);
+            return ValidationError;
+        }
+
         var snapshot = GetSnapshot(configPath, snapshotFactory);
         var detection = BuildDetectionDocument(snapshot, configPath);
 
-        if (options.HasFlag("--intune"))
+        if (options.HasFlag("--json"))
+        {
+            WriteJson(stdout, detection);
+            return detection.ExitCode;
+        }
+        else if (options.HasFlag("--intune"))
         {
             if (detection.ExitCode == Success)
             {
@@ -223,14 +274,7 @@ public static class CliApplication
             return detection.ExitCode;
         }
 
-        if (options.HasFlag("--json"))
-        {
-            WriteJson(stdout, detection);
-        }
-        else
-        {
-            stdout.WriteLine($"{detection.State}: {detection.Summary}");
-        }
+        stdout.WriteLine($"{detection.State}: {detection.Summary}");
 
         return detection.ExitCode;
     }
@@ -324,13 +368,19 @@ public static class CliApplication
         }
 
         var action = operation == "install" ? "EnableAutoReapply" : "DisableAutoReapply";
+        if (!TryResolveConfigPath(options, out var configPath, out var configPathError))
+        {
+            stderr.WriteLine(configPathError);
+            return ValidationError;
+        }
+
         var quiet = options.HasFlag("--quiet") || options.HasFlag("--silent");
-        var runner = backendRunner ?? ((backendAction, configPath, onMessage, token) =>
-            new BackendScriptService().RunAsync(backendAction, configPath, onMessage, token));
+        var runner = backendRunner ?? ((backendAction, backendConfigPath, onMessage, token) =>
+            new BackendScriptService().RunAsync(backendAction, backendConfigPath, onMessage, token));
 
         var result = runner(
                 action,
-                DefaultConfigPath,
+                configPath,
                 message =>
                 {
                     if (!quiet && message.Kind is "status" or "step")
@@ -351,7 +401,7 @@ public static class CliApplication
         if (!result.Success)
         {
             stderr.WriteLine(result.ErrorMessage ?? $"watcher {operation} failed.");
-            return UnhandledFailure;
+            return ResolveBackendExitCode(result);
         }
 
         if (!quiet)
@@ -410,6 +460,12 @@ public static class CliApplication
         var answerFile = options.GetValue("--answer-file");
         ValidationDocument? validation = null;
         string? repairError = null;
+        if (!TryResolveConfigPath(options, out var configPath, out var configPathError))
+        {
+            stderr.WriteLine(configPathError);
+            return ValidationError;
+        }
+
         var repairAction = operation == "repair"
             ? ResolveRepairAction(options.GetValue("--repair-id"), out repairError)
             : null;
@@ -469,7 +525,7 @@ public static class CliApplication
             return RunBackendOperation(operation, options, stdout, stderr, validation, repairAction, backendRunner);
         }
 
-        var plan = BuildPlan(operation, options, validation, repairAction);
+        var plan = BuildPlan(operation, options, validation, configPath, repairAction);
         if (options.HasFlag("--ndjson"))
         {
             using var ndjsonLog = CreateNdjsonLogWriter(options, operation, defaultToFleetDirectory: false, stderr);
@@ -542,7 +598,12 @@ public static class CliApplication
             return ValidationError;
         }
 
-        var configPath = options.GetValue("--config-path") ?? DefaultConfigPath;
+        if (!TryResolveConfigPath(options, out var configPath, out var configPathError))
+        {
+            stderr.WriteLine(configPathError);
+            return ValidationError;
+        }
+
         try
         {
             if (operation is "install" or "reapply")
@@ -598,6 +659,7 @@ public static class CliApplication
             stdout.WriteLine($"Starting LibreSpot {operation}...");
         }
 
+        var finalExitCode = Success;
         foreach (var action in actions)
         {
             var result = runner(
@@ -611,6 +673,7 @@ public static class CliApplication
             if (!result.Success)
             {
                 var message = result.ErrorMessage ?? $"LibreSpot backend action {action} failed.";
+                var exitCode = ResolveBackendExitCode(result);
                 if (ndjson)
                 {
                     WriteNdjson(stdout, NdjsonEvent(
@@ -622,12 +685,17 @@ public static class CliApplication
                             new { action, error = message, logPath = ndjsonLog?.Path },
                             options,
                             operationId,
-                            exitCode: UnhandledFailure),
+                            exitCode: exitCode),
                         ndjsonLog);
                 }
 
                 stderr.WriteLine(message);
-                return UnhandledFailure;
+                return exitCode;
+            }
+
+            if (result.ExitCode is 3010 or 1641)
+            {
+                finalExitCode = result.ExitCode.Value;
             }
         }
 
@@ -642,7 +710,7 @@ public static class CliApplication
                     new { actionCount = actions.Count, logPath = ndjsonLog?.Path },
                     options,
                     operationId,
-                    exitCode: Success),
+                    exitCode: finalExitCode),
                 ndjsonLog);
         }
         else if (!quiet)
@@ -650,7 +718,7 @@ public static class CliApplication
             stdout.WriteLine($"LibreSpot {operation} completed.");
         }
 
-        return Success;
+        return finalExitCode;
     }
 
     private static IReadOnlyList<string> BackendActionsFor(string operation, CliOptions options, string? repairAction = null) =>
@@ -1119,8 +1187,9 @@ public static class CliApplication
             RequireSchemaVersion(root, errors);
             RequireBooleanTrue(root, "eulaAccepted", errors);
             RequireBooleanTrue(root, "riskAcknowledged", errors);
+            ValidateAnswerSettings(root, "$", errors);
+            ValidateProfiles(root, errors);
             var settings = ResolveProfileSettings(root, profile, errors);
-            ValidateInstallMode(settings ?? root, errors);
             ValidateCustomPatches(root, settings, profile, errors);
         }
         catch (JsonException ex)
@@ -1179,6 +1248,7 @@ public static class CliApplication
         string operation,
         CliOptions options,
         ValidationDocument? validation,
+        string configPath,
         string? repairAction = null)
     {
         var answerFile = validation?.AnswerFile;
@@ -1200,7 +1270,7 @@ public static class CliApplication
             "Read local health report",
             false,
             false,
-            options.GetValue("--config-path") ?? DefaultConfigPath,
+            configPath,
             "The same environment snapshot used by the WPF dashboard informs fleet planning."));
 
         if (operation is "install" or "reapply")
@@ -1285,25 +1355,280 @@ public static class CliApplication
         }
     }
 
-    private static void ValidateInstallMode(JsonElement root, ICollection<ValidationErrorDocument> errors)
+    private static void ValidateAnswerSettings(JsonElement root, string pathPrefix, ICollection<ValidationErrorDocument> errors)
+    {
+        ValidateInstallMode(root, pathPrefix, errors);
+        ValidateStringEnum(root, "uiCulture", SupportedCultures, pathPrefix, errors);
+
+        if (TryGetObject(root, "spotifyTarget", pathPrefix, errors, out var spotifyTarget))
+        {
+            ValidateKnownProperties(spotifyTarget, ChildPath(pathPrefix, "spotifyTarget"), new[] { "version", "architecture" }, errors);
+            ValidateStringProperty(spotifyTarget, "version", ChildPath(pathPrefix, "spotifyTarget"), errors);
+            ValidateStringEnum(spotifyTarget, "architecture", new HashSet<string>(StringComparer.Ordinal) { "x64", "x86" }, ChildPath(pathPrefix, "spotifyTarget"), errors);
+        }
+
+        if (TryGetObject(root, "spotx", pathPrefix, errors, out var spotx))
+        {
+            var spotxPath = ChildPath(pathPrefix, "spotx");
+            var booleans = new[]
+            {
+                "newTheme", "podcastsOff", "blockUpdate", "adSectionsOff", "premium", "lyricsEnabled",
+                "topSearch", "rightSidebarOff", "rightSidebarClr", "canvasHomeOff", "homeSubOff",
+                "disableStartup", "noShortcut", "plus", "newFullscreen", "funnyProgress", "expSpotify",
+                "lyricsBlock", "oldLyrics", "hideColIconOff", "sendVersionOff", "startSpoti", "devTools",
+                "mirror", "confirmUninstall", "customPatchesEnabled"
+            };
+            ValidateKnownProperties(spotx, spotxPath, booleans.Concat(new[] { "cacheLimit", "lyricsTheme", "downloadMethod", "language", "customPatchesJson" }), errors);
+            foreach (var property in booleans)
+            {
+                ValidateBooleanProperty(spotx, property, spotxPath, errors);
+            }
+
+            ValidateIntegerRange(spotx, "cacheLimit", 0, 50000, spotxPath, errors);
+            ValidateStringEnum(spotx, "lyricsTheme", SpotXLyricsThemes, spotxPath, errors);
+            ValidateStringEnum(spotx, "downloadMethod", SpotXDownloadMethods, spotxPath, errors);
+            ValidateStringProperty(spotx, "language", spotxPath, errors);
+            ValidateStringProperty(spotx, "customPatchesJson", spotxPath, errors);
+        }
+
+        if (TryGetObject(root, "spicetify", pathPrefix, errors, out var spicetify))
+        {
+            var spicetifyPath = ChildPath(pathPrefix, "spicetify");
+            ValidateKnownProperties(spicetify, spicetifyPath, new[] { "theme", "scheme", "extensions", "customApps", "marketplace" }, errors);
+            ValidateStringProperty(spicetify, "theme", spicetifyPath, errors);
+            ValidateStringProperty(spicetify, "scheme", spicetifyPath, errors);
+            ValidateStringArray(spicetify, "extensions", SpicetifyExtensions, spicetifyPath, errors);
+            ValidateStringArray(spicetify, "customApps", SpicetifyCustomApps, spicetifyPath, errors);
+            ValidateBooleanProperty(spicetify, "marketplace", spicetifyPath, errors);
+        }
+
+        if (TryGetObject(root, "watcher", pathPrefix, errors, out var watcher))
+        {
+            var watcherPath = ChildPath(pathPrefix, "watcher");
+            ValidateKnownProperties(watcher, watcherPath, new[] { "enabled", "intervalMinutes" }, errors);
+            ValidateBooleanProperty(watcher, "enabled", watcherPath, errors);
+            ValidateIntegerRange(watcher, "intervalMinutes", 1, int.MaxValue, watcherPath, errors);
+        }
+
+        ValidateStringEnum(root, "repairPolicy", new HashSet<string>(StringComparer.Ordinal) { "skip", "warn", "auto" }, pathPrefix, errors);
+        ValidateStringEnum(root, "rebootPolicy", new HashSet<string>(StringComparer.Ordinal) { "never", "ifNeeded", "always" }, pathPrefix, errors);
+
+        if (TryGetObject(root, "logging", pathPrefix, errors, out var logging))
+        {
+            var loggingPath = ChildPath(pathPrefix, "logging");
+            ValidateKnownProperties(logging, loggingPath, new[] { "level", "directory", "ndjson" }, errors);
+            ValidateStringEnum(logging, "level", new HashSet<string>(StringComparer.Ordinal) { "silent", "error", "warn", "info", "debug", "trace" }, loggingPath, errors);
+            ValidateStringProperty(logging, "directory", loggingPath, errors);
+            ValidateBooleanProperty(logging, "ndjson", loggingPath, errors);
+        }
+    }
+
+    private static void ValidateProfiles(JsonElement root, ICollection<ValidationErrorDocument> errors)
+    {
+        if (!root.TryGetProperty("profiles", out var profiles))
+        {
+            return;
+        }
+
+        if (profiles.ValueKind != JsonValueKind.Object)
+        {
+            errors.Add(new ValidationErrorDocument("$.profiles", "profiles must be a JSON object."));
+            return;
+        }
+
+        foreach (var profile in profiles.EnumerateObject())
+        {
+            var profilePath = ProfilePath(profile.Name, string.Empty);
+            if (profile.Value.ValueKind != JsonValueKind.Object)
+            {
+                errors.Add(new ValidationErrorDocument(profilePath, $"Profile '{profile.Name}' must be a JSON object."));
+                continue;
+            }
+
+            ValidateKnownProperties(
+                profile.Value,
+                profilePath,
+                new[] { "installMode", "spotifyTarget", "spotx", "spicetify", "watcher", "repairPolicy", "logging", "rebootPolicy" },
+                errors);
+            ValidateAnswerSettings(profile.Value, profilePath, errors);
+        }
+    }
+
+    private static void ValidateInstallMode(JsonElement root, string pathPrefix, ICollection<ValidationErrorDocument> errors)
     {
         if (!root.TryGetProperty("installMode", out var value))
         {
             return;
         }
 
+        var path = ChildPath(pathPrefix, "installMode");
         if (value.ValueKind != JsonValueKind.String)
         {
-            errors.Add(new ValidationErrorDocument("$.installMode", "installMode must be a string."));
+            errors.Add(new ValidationErrorDocument(path, "installMode must be a string."));
             return;
         }
 
         var mode = value.GetString();
         if (mode is not ("recommended" or "custom" or "reapply"))
         {
-            errors.Add(new ValidationErrorDocument("$.installMode", "installMode must be recommended, custom, or reapply."));
+            errors.Add(new ValidationErrorDocument(path, "installMode must be recommended, custom, or reapply."));
         }
     }
+
+    private static bool TryGetObject(
+        JsonElement root,
+        string property,
+        string pathPrefix,
+        ICollection<ValidationErrorDocument> errors,
+        out JsonElement value)
+    {
+        value = default;
+        if (!root.TryGetProperty(property, out var candidate))
+        {
+            return false;
+        }
+
+        if (candidate.ValueKind != JsonValueKind.Object)
+        {
+            errors.Add(new ValidationErrorDocument(ChildPath(pathPrefix, property), $"{property} must be a JSON object."));
+            return false;
+        }
+
+        value = candidate;
+        return true;
+    }
+
+    private static void ValidateKnownProperties(
+        JsonElement root,
+        string pathPrefix,
+        IEnumerable<string> allowedProperties,
+        ICollection<ValidationErrorDocument> errors)
+    {
+        var allowed = allowedProperties.ToHashSet(StringComparer.Ordinal);
+        foreach (var property in root.EnumerateObject())
+        {
+            if (!allowed.Contains(property.Name))
+            {
+                errors.Add(new ValidationErrorDocument(ChildPath(pathPrefix, property.Name), $"{property.Name} is not a supported answer-file property."));
+            }
+        }
+    }
+
+    private static void ValidateStringProperty(JsonElement root, string property, string pathPrefix, ICollection<ValidationErrorDocument> errors)
+    {
+        if (root.TryGetProperty(property, out var value) && value.ValueKind != JsonValueKind.String)
+        {
+            errors.Add(new ValidationErrorDocument(ChildPath(pathPrefix, property), $"{property} must be a string."));
+        }
+    }
+
+    private static void ValidateStringEnum(
+        JsonElement root,
+        string property,
+        IReadOnlySet<string> allowedValues,
+        string pathPrefix,
+        ICollection<ValidationErrorDocument> errors)
+    {
+        if (!root.TryGetProperty(property, out var value))
+        {
+            return;
+        }
+
+        var path = ChildPath(pathPrefix, property);
+        if (value.ValueKind != JsonValueKind.String)
+        {
+            errors.Add(new ValidationErrorDocument(path, $"{property} must be a string."));
+            return;
+        }
+
+        var actual = value.GetString() ?? string.Empty;
+        if (!allowedValues.Contains(actual))
+        {
+            errors.Add(new ValidationErrorDocument(path, $"{property} has unsupported value '{actual}'."));
+        }
+    }
+
+    private static void ValidateBooleanProperty(JsonElement root, string property, string pathPrefix, ICollection<ValidationErrorDocument> errors)
+    {
+        if (root.TryGetProperty(property, out var value) && value.ValueKind is not JsonValueKind.True and not JsonValueKind.False)
+        {
+            errors.Add(new ValidationErrorDocument(ChildPath(pathPrefix, property), $"{property} must be true or false."));
+        }
+    }
+
+    private static void ValidateIntegerRange(
+        JsonElement root,
+        string property,
+        int minimum,
+        int maximum,
+        string pathPrefix,
+        ICollection<ValidationErrorDocument> errors)
+    {
+        if (!root.TryGetProperty(property, out var value))
+        {
+            return;
+        }
+
+        var path = ChildPath(pathPrefix, property);
+        if (value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out var number))
+        {
+            errors.Add(new ValidationErrorDocument(path, $"{property} must be an integer."));
+            return;
+        }
+
+        if (number < minimum || number > maximum)
+        {
+            errors.Add(new ValidationErrorDocument(path, $"{property} must be between {minimum} and {maximum}."));
+        }
+    }
+
+    private static void ValidateStringArray(
+        JsonElement root,
+        string property,
+        IReadOnlySet<string> allowedValues,
+        string pathPrefix,
+        ICollection<ValidationErrorDocument> errors)
+    {
+        if (!root.TryGetProperty(property, out var value))
+        {
+            return;
+        }
+
+        var path = ChildPath(pathPrefix, property);
+        if (value.ValueKind != JsonValueKind.Array)
+        {
+            errors.Add(new ValidationErrorDocument(path, $"{property} must be an array."));
+            return;
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var index = 0;
+        foreach (var item in value.EnumerateArray())
+        {
+            var itemPath = $"{path}[{index}]";
+            if (item.ValueKind != JsonValueKind.String)
+            {
+                errors.Add(new ValidationErrorDocument(itemPath, $"{property} entries must be strings."));
+            }
+            else
+            {
+                var actual = item.GetString() ?? string.Empty;
+                if (!allowedValues.Contains(actual))
+                {
+                    errors.Add(new ValidationErrorDocument(itemPath, $"{property} entry '{actual}' is not supported."));
+                }
+                else if (!seen.Add(actual))
+                {
+                    errors.Add(new ValidationErrorDocument(itemPath, $"{property} entries must be unique."));
+                }
+            }
+
+            index++;
+        }
+    }
+
+    private static string ChildPath(string pathPrefix, string property) =>
+        pathPrefix == "$" ? $"$.{property}" : $"{pathPrefix}.{property}";
 
     private static void ValidateCustomPatches(JsonElement root, JsonElement? profileSettings, string? profile, ICollection<ValidationErrorDocument> errors)
     {
@@ -1372,10 +1697,16 @@ public static class CliApplication
         return new AnswerStringValue(value.GetString() ?? string.Empty, path);
     }
 
-    private static string ProfilePath(string? profile, string suffix) =>
-        string.IsNullOrWhiteSpace(profile)
-            ? $"$.{suffix}"
-            : $"$.profiles.{profile}.{suffix}";
+    private static string ProfilePath(string? profile, string suffix)
+    {
+        if (string.IsNullOrWhiteSpace(profile))
+        {
+            return string.IsNullOrWhiteSpace(suffix) ? "$" : $"$.{suffix}";
+        }
+
+        var root = $"$.profiles.{profile}";
+        return string.IsNullOrWhiteSpace(suffix) ? root : $"{root}.{suffix}";
+    }
 
     private sealed record AnswerStringValue(string Value, string Path);
 
@@ -1550,8 +1881,56 @@ public static class CliApplication
         ?? typeof(CliApplication).Assembly.GetName().Version?.ToString()
         ?? "unknown";
 
+    private static bool TryResolveConfigPath(CliOptions options, out string configPath, out string? error)
+    {
+        var explicitPath = options.GetValue("--config-path");
+        if (!string.IsNullOrWhiteSpace(explicitPath))
+        {
+            configPath = explicitPath;
+            error = null;
+            return true;
+        }
+
+        var scope = options.GetValue("--scope");
+        if (string.IsNullOrWhiteSpace(scope) || scope.Equals("user", StringComparison.OrdinalIgnoreCase))
+        {
+            configPath = DefaultConfigPath;
+            error = null;
+            return true;
+        }
+
+        if (scope.Equals("machine", StringComparison.OrdinalIgnoreCase))
+        {
+            configPath = MachineConfigPath;
+            error = null;
+            return true;
+        }
+
+        configPath = string.Empty;
+        error = "--scope must be user or machine.";
+        return false;
+    }
+
+    private static int ResolveBackendExitCode(BackendRunResult result)
+    {
+        if (result.Canceled)
+        {
+            return 60;
+        }
+
+        if (result.ExitCode is { } exitCode && PublicBackendExitCodes.Contains(exitCode))
+        {
+            return exitCode;
+        }
+
+        return UnhandledFailure;
+    }
+
     private static string DefaultConfigPath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LibreSpot", "config.json");
+
+    private static string MachineConfigPath =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "LibreSpot", "config.json");
 
     private static string DefaultFleetLogDirectory =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "LibreSpot", "logs");

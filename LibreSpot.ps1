@@ -352,12 +352,12 @@ function Get-WatcherLaunchCommand {
 
     $ext = [System.IO.Path]::GetExtension($entry).ToLowerInvariant()
     if ($ext -eq '.exe') {
-        return @{ Command = "`"$entry`" -Watch"; Entry = $entry }
+        return @{ Command = $entry; Arguments = '-Watch'; Entry = $entry }
     }
     if ($ext -eq '.ps1') {
         $ps = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
         if (-not (Test-Path -LiteralPath $ps)) { $ps = 'powershell.exe' }
-        return @{ Command = "`"$ps`" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$entry`" -Watch"; Entry = $entry }
+        return @{ Command = $ps; Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$entry`" -Watch"; Entry = $entry }
     }
     return $null
 }
@@ -390,6 +390,7 @@ function Register-AutoReapplyTask {
     # but the XML schema can. Repetition Duration=PT0S means "forever" per
     # MS-TSCH 2.3.5.2; Interval=PT30M is every 30 minutes.
     $escapedCommand = [System.Security.SecurityElement]::Escape($launch.Command)
+    $escapedArguments = [System.Security.SecurityElement]::Escape($launch.Arguments)
     # Use the current user's SID for domain-joined machines where bare USERNAME
     # may not resolve.  Fall back to USERDOMAIN\USERNAME, then bare USERNAME.
     $userId = $null
@@ -451,6 +452,7 @@ function Register-AutoReapplyTask {
   <Actions Context="Author">
     <Exec>
       <Command>$escapedCommand</Command>
+      <Arguments>$escapedArguments</Arguments>
     </Exec>
   </Actions>
 </Task>
@@ -516,15 +518,14 @@ function Invoke-HeadlessReapply {
     try {
         $spotxRun = Join-Path $tempDir 'spotx_run.ps1'
 
-        # Download + hash-verify SpotX. We DON'T fall back to BITS here because
-        # the watcher runs unattended and we'd rather silently skip than use a
-        # different download backend than the user-triggered install path.
+        # Download + hash-verify SpotX through the same guarded downloader as
+        # user-triggered install/reapply so CVE and network diagnostics stay consistent.
         $expectedHash = [string]$global:PinnedReleases.SpotX.SHA256
         if (-not (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $spotxRun -Label 'SpotX run.ps1 (watcher)')) {
             $downloadFailed = $false
             try {
                 Write-WatcherLog "Downloading SpotX run.ps1"
-                Invoke-WebRequest -Uri $global:URL_SPOTX -OutFile $spotxRun -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+                Download-FileSafe -Uri $global:URL_SPOTX -OutFile $spotxRun
             } catch {
                 $downloadFailed = $true
                 if (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $spotxRun -Label 'SpotX run.ps1 (watcher)') {
@@ -533,7 +534,7 @@ function Invoke-HeadlessReapply {
                 } else { throw }
             }
             if (-not $downloadFailed) {
-                $actualHash = (Get-FileHash -LiteralPath $spotxRun -Algorithm SHA256).Hash.ToLowerInvariant()
+                $actualHash = Get-FileSha256Lower -Path $spotxRun
                 if ($actualHash -ne $expectedHash.ToLowerInvariant()) {
                     throw "SpotX hash mismatch. Expected $expectedHash, got $actualHash. Refusing to run."
                 }
@@ -775,7 +776,14 @@ function Get-SelfElevationLaunchTarget {
             $payloadPath = Join-Path $bootstrapDir ("LibreSpot-elevation-payload-{0}.ps1" -f [guid]::NewGuid().ToString('N'))
             $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
             [System.IO.File]::WriteAllText($payloadPath, $inlineSource, $utf8NoBom)
-            $payloadHash = (Get-FileHash -LiteralPath $payloadPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $payloadStream = [System.IO.File]::OpenRead($payloadPath)
+            $payloadSha = [System.Security.Cryptography.SHA256]::Create()
+            try {
+                $payloadHash = (($payloadSha.ComputeHash($payloadStream) | ForEach-Object { $_.ToString('x2') }) -join '')
+            } finally {
+                $payloadStream.Dispose()
+                $payloadSha.Dispose()
+            }
             return @{ Kind = 'InlinePayload'; Path = $payloadPath; Hash = $payloadHash; IsTemp = $true }
         } catch {}
     }
@@ -910,7 +918,14 @@ if (-not $script:CliWatch -and -not ([Security.Principal.WindowsPrincipal][Secur
 `$payloadPath = $literalPayloadPath
 `$expectedHash = $literalPayloadHash
 `$forwardedArgs = $forwardedArgsExpression
-`$actualHash = (Get-FileHash -LiteralPath `$payloadPath -Algorithm SHA256).Hash.ToLowerInvariant()
+`$payloadStream = [System.IO.File]::OpenRead(`$payloadPath)
+`$payloadSha = [System.Security.Cryptography.SHA256]::Create()
+try {
+    `$actualHash = ((`$payloadSha.ComputeHash(`$payloadStream) | ForEach-Object { `$_.ToString('x2') }) -join '')
+} finally {
+    `$payloadStream.Dispose()
+    `$payloadSha.Dispose()
+}
 if (`$actualHash -ne `$expectedHash.ToLowerInvariant()) { throw 'LibreSpot elevation payload hash mismatch. Refusing to run.' }
 `$payload = [System.IO.File]::ReadAllText(`$payloadPath, [System.Text.Encoding]::UTF8)
 try {
@@ -6576,13 +6591,27 @@ function Open-VerifiedScriptForExecution {
         throw
     }
 }
+
+function Get-FileSha256Lower {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $stream = [System.IO.File]::OpenRead($Path)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return (($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') }) -join '')
+    } finally {
+        $stream.Dispose()
+        $sha.Dispose()
+    }
+}
+
 function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]$Label)
     if ([string]::IsNullOrWhiteSpace($ExpectedHash)) {
         Write-Log "  Hash verification skipped for $Label (no hash pinned)" -Level 'WARN'
         return
     }
-    $actual = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLower()
-    $expected = $ExpectedHash.ToLower()
+    $actual = Get-FileSha256Lower -Path $Path
+    $expected = $ExpectedHash.ToLowerInvariant()
     if ($actual -ne $expected) {
         throw "SHA256 hash mismatch for ${Label}`n  Expected: $expected`n  Actual:   $actual`n  File may be corrupted or tampered with. Update pinned hash if this is a legitimate new version."
     }
@@ -6691,7 +6720,7 @@ function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPat
         return $false
     }
     try {
-        $actual = (Get-FileHash -LiteralPath $cachePath -Algorithm SHA256).Hash.ToLowerInvariant()
+        $actual = Get-FileSha256Lower -Path $cachePath
         if ($actual -ne $hash) {
             Write-Log "  Cached asset for $Label failed re-verification (expected $hash, got $actual). Quarantining stale entry." -Level 'WARN'
             $byteSize = (Get-Item -LiteralPath $cachePath).Length
@@ -7725,33 +7754,40 @@ function Download-CommunityExtensions { param($Config)
         if (-not $global:CommunityExtensions.Contains($ext)) { continue }
         $info = $global:CommunityExtensions[$ext]
         $destFile = Join-Path $extDir $ext
+        $tempFile = Join-Path $extDir (".librespot-$ext.$PID.$([Guid]::NewGuid().ToString('N')).tmp")
         try {
             Write-Log "Downloading community extension: $ext from $($info.Source)..."
             $extHash = $info.SHA256
-            if (-not (Get-FromAssetCache -SHA256Hash $extHash -DestinationPath $destFile -Label "Community extension $ext")) {
+            $fromCache = Get-FromAssetCache -SHA256Hash $extHash -DestinationPath $tempFile -Label "Community extension $ext"
+            if (-not $fromCache) {
                 try {
-                    Download-FileSafe -Uri $info.Url -OutFile $destFile
+                    Download-FileSafe -Uri $info.Url -OutFile $tempFile
                 } catch {
-                    if (Get-FromAssetCache -SHA256Hash $extHash -DestinationPath $destFile -Label "Community extension $ext") {
+                    if (Get-FromAssetCache -SHA256Hash $extHash -DestinationPath $tempFile -Label "Community extension $ext") {
+                        $fromCache = $true
                         Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
                     } else { throw }
                 }
-                # Sanity check: make sure we got JavaScript, not a 404 HTML page.
-                # Read just the first 512 bytes to avoid loading a huge file.
-                $head = Get-Content -LiteralPath $destFile -TotalCount 5 -ErrorAction SilentlyContinue
-                $headStr = ($head -join "`n").TrimStart()
-                if ($headStr -match '^<(!DOCTYPE|html)' -or $headStr -match '^404:') {
-                    Remove-Item -LiteralPath $destFile -Force -ErrorAction SilentlyContinue
-                    Write-Log "Community extension '$ext' downloaded but appears to be an HTML error page, not JavaScript. The URL may have changed. Skipping." -Level 'WARN'
-                    continue
-                }
-                Confirm-FileHash -Path $destFile -ExpectedHash $extHash -Label "Community extension $ext"
-                Save-ToAssetCache -SourcePath $destFile -SHA256Hash $extHash -Label "Community extension $ext" -SourceUrl $info.Url
             }
+            # Sanity check: make sure we got JavaScript, not a 404 HTML page.
+            # Read just the first 512 bytes to avoid loading a huge file.
+            $head = Get-Content -LiteralPath $tempFile -TotalCount 5 -ErrorAction SilentlyContinue
+            $headStr = ($head -join "`n").TrimStart()
+            if ($headStr -match '^<(!DOCTYPE|html)' -or $headStr -match '^404:') {
+                Write-Log "Community extension '$ext' downloaded but appears to be an HTML error page, not JavaScript. The URL may have changed. Skipping." -Level 'WARN'
+                continue
+            }
+            Confirm-FileHash -Path $tempFile -ExpectedHash $extHash -Label "Community extension $ext"
+            if (-not $fromCache) {
+                Save-ToAssetCache -SourcePath $tempFile -SHA256Hash $extHash -Label "Community extension $ext" -SourceUrl $info.Url
+            }
+            Move-Item -LiteralPath $tempFile -Destination $destFile -Force
             Write-Log "Community extension '$ext' saved to $destFile"
             $verifiedPaths += $destFile
         } catch {
             Write-Log "Could not download community extension '$ext': $($_.Exception.Message). Skipping." -Level 'WARN'
+        } finally {
+            Remove-Item -LiteralPath $tempFile -Force -ErrorAction SilentlyContinue
         }
     }
     # A file LibreSpot just verified that has since vanished is the classic
@@ -8418,7 +8454,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-SpotXCustomPatchesFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Open-VerifiedScriptForExecution','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Open-VerifiedScriptForExecution','Get-FileSha256Lower','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Get-SpotXChildFailureClassification','Get-SpotXDownloadRetryPlan','Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyIntegrationContext','Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',

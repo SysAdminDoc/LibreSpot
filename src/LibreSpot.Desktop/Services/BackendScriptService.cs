@@ -9,7 +9,7 @@ using System.Text;
 namespace LibreSpot.Desktop.Services;
 
 public sealed record BackendMessage(string Kind, string Level, string Payload);
-public sealed record BackendRunResult(bool Success, string? ErrorMessage = null, bool Canceled = false, string? ErrorCode = null);
+public sealed record BackendRunResult(bool Success, string? ErrorMessage = null, bool Canceled = false, string? ErrorCode = null, int? ExitCode = null);
 
 internal sealed record BackendWatchdogOptions(
     TimeSpan IdleWarningAfter,
@@ -285,9 +285,12 @@ public sealed class BackendScriptService
                 ErrorCode: "BackendHostStalled");
         }
 
-        return process.ExitCode == 0
-            ? new BackendRunResult(true)
-            : new BackendRunResult(false, $"LibreSpot backend exited with code {process.ExitCode}.");
+        return process.ExitCode switch
+        {
+            0 => new BackendRunResult(true),
+            3010 or 1641 => new BackendRunResult(true, ExitCode: process.ExitCode),
+            _ => new BackendRunResult(false, $"LibreSpot backend exited with code {process.ExitCode}.", ExitCode: process.ExitCode)
+        };
     }
 
     private static BackendWatchdogOptions ValidateWatchdogOptions(BackendWatchdogOptions options)

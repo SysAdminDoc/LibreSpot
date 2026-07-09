@@ -11,15 +11,14 @@ function Invoke-HeadlessReapply {
     try {
         $spotxRun = Join-Path $tempDir 'spotx_run.ps1'
 
-        # Download + hash-verify SpotX. We DON'T fall back to BITS here because
-        # the watcher runs unattended and we'd rather silently skip than use a
-        # different download backend than the user-triggered install path.
+        # Download + hash-verify SpotX through the same guarded downloader as
+        # user-triggered install/reapply so CVE and network diagnostics stay consistent.
         $expectedHash = [string]$global:PinnedReleases.SpotX.SHA256
         if (-not (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $spotxRun -Label 'SpotX run.ps1 (watcher)')) {
             $downloadFailed = $false
             try {
                 Write-WatcherLog "Downloading SpotX run.ps1"
-                Invoke-WebRequest -Uri $global:URL_SPOTX -OutFile $spotxRun -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+                Download-FileSafe -Uri $global:URL_SPOTX -OutFile $spotxRun
             } catch {
                 $downloadFailed = $true
                 if (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $spotxRun -Label 'SpotX run.ps1 (watcher)') {
@@ -28,7 +27,7 @@ function Invoke-HeadlessReapply {
                 } else { throw }
             }
             if (-not $downloadFailed) {
-                $actualHash = (Get-FileHash -LiteralPath $spotxRun -Algorithm SHA256).Hash.ToLowerInvariant()
+                $actualHash = Get-FileSha256Lower -Path $spotxRun
                 if ($actualHash -ne $expectedHash.ToLowerInvariant()) {
                     throw "SpotX hash mismatch. Expected $expectedHash, got $actualHash. Refusing to run."
                 }

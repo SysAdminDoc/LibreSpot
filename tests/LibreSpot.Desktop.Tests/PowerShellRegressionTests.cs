@@ -242,6 +242,7 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("Write-LibreSpotCompatibilityMatrix", listMatch.Value);
         Assert.Contains("Write-SpicetifyCliOutputLine", listMatch.Value);
         Assert.Contains("Get-SpicetifyIntegrationContext", listMatch.Value);
+        Assert.Contains("Get-FileSha256Lower", listMatch.Value);
 
         // Module-ApplySpicetify records marketplace visibility evidence on its
         // success path; Write-OperationJournalEntry calls the retention helper
@@ -387,7 +388,7 @@ public sealed class PowerShellRegressionTests
         var script = ReadFile("LibreSpot.ps1");
 
         Assert.Contains("Kind = 'InlinePayload'", script);
-        Assert.Contains("Get-FileHash -LiteralPath $payloadPath -Algorithm SHA256", script);
+        Assert.Contains("[System.Security.Cryptography.SHA256]::Create()", script);
         Assert.Contains("LibreSpot elevation payload hash mismatch", script);
         Assert.Contains("'-EncodedCommand', $encodedBootstrap", script);
         Assert.Contains("& ([scriptblock]::Create(`$payload)) @forwardedArgs", script);
@@ -614,6 +615,7 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("<LogonTrigger>", body);
         Assert.Contains("<Repetition>", body);
         Assert.Contains("<Actions Context=\"Author\">", body);
+        Assert.Contains("<Arguments>$escapedArguments</Arguments>", body);
         Assert.Contains("<RunLevel>LeastPrivilege</RunLevel>", body);
         // schtasks /Create /XML requires UTF-16 LE — a UTF-8 write makes
         // schtasks emit "ERROR: Invalid XML" without explaining why.
@@ -636,7 +638,9 @@ public sealed class PowerShellRegressionTests
         Assert.True(fn.Success, "Invoke-HeadlessReapply function block not found.");
 
         var body = fn.Groups["body"].Value;
-        Assert.Contains("Get-FileHash", body);
+        Assert.Contains("Get-FileSha256Lower -Path $spotxRun", body);
+        Assert.Contains("Download-FileSafe -Uri $global:URL_SPOTX -OutFile $spotxRun", body);
+        Assert.DoesNotContain("Invoke-WebRequest -Uri $global:URL_SPOTX", body);
         Assert.Contains("PinnedReleases.SpotX.SHA256", body);
         Assert.Contains("hash mismatch", body);
     }
@@ -999,7 +1003,8 @@ public sealed class PowerShellRegressionTests
         Assert.DoesNotContain("/main/dist/", catalog);
         Assert.DoesNotContain("Shinyhero36/spicetify-song-stats", catalog);
         Assert.DoesNotContain("'songStats.js'        = @{", catalog);
-        Assert.Contains("Confirm-FileHash -Path $destFile -ExpectedHash $extHash", script);
+        Assert.Contains("Confirm-FileHash -Path $tempFile -ExpectedHash $extHash", script);
+        Assert.Contains("Move-Item -LiteralPath $tempFile -Destination $destFile -Force", script);
     }
 
     [Fact]

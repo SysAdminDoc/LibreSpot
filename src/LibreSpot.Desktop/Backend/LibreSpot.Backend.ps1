@@ -1807,13 +1807,26 @@ function Open-VerifiedScriptForExecution {
     }
 }
 
+function Get-FileSha256Lower {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $stream = [System.IO.File]::OpenRead($Path)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return (($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') }) -join '')
+    } finally {
+        $stream.Dispose()
+        $sha.Dispose()
+    }
+}
+
 function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]$Label)
     if ([string]::IsNullOrWhiteSpace($ExpectedHash)) {
         Write-Log "  Hash verification skipped for $Label (no hash pinned)" -Level 'WARN'
         return
     }
-    $actual = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLower()
-    $expected = $ExpectedHash.ToLower()
+    $actual = Get-FileSha256Lower -Path $Path
+    $expected = $ExpectedHash.ToLowerInvariant()
     if ($actual -ne $expected) {
         throw "SHA256 hash mismatch for ${Label}`n  Expected: $expected`n  Actual:   $actual`n  File may be corrupted or tampered with. Update pinned hash if this is a legitimate new version."
     }
@@ -1922,7 +1935,7 @@ function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPat
         return $false
     }
     try {
-        $actual = (Get-FileHash -LiteralPath $cachePath -Algorithm SHA256).Hash.ToLowerInvariant()
+        $actual = Get-FileSha256Lower -Path $cachePath
         if ($actual -ne $hash) {
             Write-Log "  Cached asset for $Label failed re-verification (expected $hash, got $actual). Quarantining stale entry." -Level 'WARN'
             $byteSize = (Get-Item -LiteralPath $cachePath).Length
@@ -3663,33 +3676,40 @@ function Download-CommunityExtensions { param($Config)
         if (-not $global:CommunityExtensions.Contains($ext)) { continue }
         $info = $global:CommunityExtensions[$ext]
         $destFile = Join-Path $extDir $ext
+        $tempFile = Join-Path $extDir (".librespot-$ext.$PID.$([Guid]::NewGuid().ToString('N')).tmp")
         try {
             Write-Log "Downloading community extension: $ext from $($info.Source)..."
             $extHash = $info.SHA256
-            if (-not (Get-FromAssetCache -SHA256Hash $extHash -DestinationPath $destFile -Label "Community extension $ext")) {
+            $fromCache = Get-FromAssetCache -SHA256Hash $extHash -DestinationPath $tempFile -Label "Community extension $ext"
+            if (-not $fromCache) {
                 try {
-                    Download-FileSafe -Uri $info.Url -OutFile $destFile
+                    Download-FileSafe -Uri $info.Url -OutFile $tempFile
                 } catch {
-                    if (Get-FromAssetCache -SHA256Hash $extHash -DestinationPath $destFile -Label "Community extension $ext") {
+                    if (Get-FromAssetCache -SHA256Hash $extHash -DestinationPath $tempFile -Label "Community extension $ext") {
+                        $fromCache = $true
                         Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
                     } else { throw }
                 }
-                # Sanity check: make sure we got JavaScript, not a 404 HTML page.
-                # Read just the first 512 bytes to avoid loading a huge file.
-                $head = Get-Content -LiteralPath $destFile -TotalCount 5 -ErrorAction SilentlyContinue
-                $headStr = ($head -join "`n").TrimStart()
-                if ($headStr -match '^<(!DOCTYPE|html)' -or $headStr -match '^404:') {
-                    Remove-Item -LiteralPath $destFile -Force -ErrorAction SilentlyContinue
-                    Write-Log "Community extension '$ext' downloaded but appears to be an HTML error page, not JavaScript. The URL may have changed. Skipping." -Level 'WARN'
-                    continue
-                }
-                Confirm-FileHash -Path $destFile -ExpectedHash $extHash -Label "Community extension $ext"
-                Save-ToAssetCache -SourcePath $destFile -SHA256Hash $extHash -Label "Community extension $ext" -SourceUrl $info.Url
             }
+            # Sanity check: make sure we got JavaScript, not a 404 HTML page.
+            # Read just the first 512 bytes to avoid loading a huge file.
+            $head = Get-Content -LiteralPath $tempFile -TotalCount 5 -ErrorAction SilentlyContinue
+            $headStr = ($head -join "`n").TrimStart()
+            if ($headStr -match '^<(!DOCTYPE|html)' -or $headStr -match '^404:') {
+                Write-Log "Community extension '$ext' downloaded but appears to be an HTML error page, not JavaScript. The URL may have changed. Skipping." -Level 'WARN'
+                continue
+            }
+            Confirm-FileHash -Path $tempFile -ExpectedHash $extHash -Label "Community extension $ext"
+            if (-not $fromCache) {
+                Save-ToAssetCache -SourcePath $tempFile -SHA256Hash $extHash -Label "Community extension $ext" -SourceUrl $info.Url
+            }
+            Move-Item -LiteralPath $tempFile -Destination $destFile -Force
             Write-Log "Community extension '$ext' saved to $destFile"
             $verifiedPaths += $destFile
         } catch {
             Write-Log "Could not download community extension '$ext': $($_.Exception.Message). Skipping." -Level 'WARN'
+        } finally {
+            Remove-Item -LiteralPath $tempFile -Force -ErrorAction SilentlyContinue
         }
     }
     # A file LibreSpot just verified that has since vanished is the classic
