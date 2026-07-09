@@ -1015,4 +1015,22 @@
   <data name="Vm_RiskPromptConfirm" xml:space="preserve"><value>I understand, continue</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptSummaryTitle" xml:space="preserve"><value>What this means</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptSummaryBody" xml:space="preserve"><value>LibreSpot will record your acknowledgment so this dialog does not appear again. No data leaves your machine.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningTitle" xml:space="preserve"><value>Close LibreSpot now?</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningBody" xml:space="preserve"><value>LibreSpot is still modifying Spotify.{0}Closing now will stop the active backend run, dismiss the live progress shell, and leave any partial changes for a later reapply pass if you need one.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningConfirm" xml:space="preserve"><value>Close and stop run</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningCancel" xml:space="preserve"><value>Keep LibreSpot open</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningSummaryTitle" xml:space="preserve"><value>Safer choice</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningSummaryBody" xml:space="preserve"><value>Keep LibreSpot open if you want the current backend step to finish and the final result to stay visible here.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogConfigSaveCanceled" xml:space="preserve"><value>Configuration save was canceled.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogBackendCanceled" xml:space="preserve"><value>Backend run was canceled.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogResumingElevatedSetup" xml:space="preserve"><value>Resuming the confirmed setup after the administrator relaunch.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogConfigStageFailed" xml:space="preserve"><value>Could not stage configuration for the elevated relaunch: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_PromptSummaryDefaultTitle" xml:space="preserve"><value>What happens next</value><comment>PromptStateViewModel fallback summary title.</comment></data>
+  <data name="Vm_PromptSummaryDefaultBody" xml:space="preserve"><value>LibreSpot will keep the window open, stream progress here, and leave the result easy to review afterward.</value><comment>PromptStateViewModel fallback summary for non-destructive prompts.</comment></data>
+  <data name="Vm_PromptSummaryDestructiveBody" xml:space="preserve"><value>LibreSpot will make the requested change and leave the result visible here so you can review it afterward.</value><comment>PromptStateViewModel fallback summary for destructive prompts.</comment></data>
+  <data name="Vm_LogDesktopCommandFailed" xml:space="preserve"><value>Desktop command failed: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogConfigSaveFailed" xml:space="preserve"><value>Could not save configuration: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogBackendRunFailed" xml:space="preserve"><value>Backend run failed: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogOpenFolderFailed" xml:space="preserve"><value>Could not open the LibreSpot folder: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogElevatedResumeFailed" xml:space="preserve"><value>Could not load the staged setup to resume after elevation: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
 </root>

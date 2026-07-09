@@ -2505,7 +2505,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             {
                 FileName = uri,
                 UseShellExecute = true
-            });
+            })?.Dispose();
         }
         catch (Exception ex)
         {
@@ -2775,7 +2775,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        AppendLog($"Desktop command failed: {ex.Message}", "ERROR");
+        AppendLog(LF("Vm_LogDesktopCommandFailed", ex.Message), "ERROR");
         ShowNotice(
             L("Vm_ActionCouldNotFinish"),
             ex.Message,
@@ -3293,7 +3293,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    AppendLog($"Could not stage configuration for the elevated relaunch: {ex.Message}", "WARN");
+                    AppendLog(LF("Vm_LogConfigStageFailed", ex.Message), "WARN");
                 }
             }
 
@@ -3331,7 +3331,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 }
                 catch (OperationCanceledException)
                 {
-                    AppendLog("Configuration save was canceled.", "WARN");
+                    AppendLog(L("Vm_LogConfigSaveCanceled"), "WARN");
                     _activityOutcome = ActivityOutcome.Canceled;
                     ActivityStatus = Strings.Canceled;
                     ActivityStep = Strings.ConfigSaveCanceled;
@@ -3339,7 +3339,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    AppendLog($"Could not save configuration: {ex.Message}", "ERROR");
+                    AppendLog(LF("Vm_LogConfigSaveFailed", ex.Message), "ERROR");
                     _activityOutcome = ActivityOutcome.Error;
                     ActivityStatus = Strings.RunNeedsAttention;
                     ActivityStep = L("Vm_ConfigSaveFailed");
@@ -3354,7 +3354,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             _lastBackendRunResult = result;
             if (result.Canceled)
             {
-                AppendLog(result.ErrorMessage ?? "Backend run was canceled.", "WARN");
+                AppendLog(result.ErrorMessage ?? L("Vm_LogBackendCanceled"), "WARN");
                 _activityOutcome = ActivityOutcome.Canceled;
                 ActivityStatus = Strings.Canceled;
             }
@@ -3372,15 +3372,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
-            _lastBackendRunResult = new BackendRunResult(false, "Backend run was canceled.", Canceled: true, ErrorCode: "DesktopCancellation");
-            AppendLog("Backend run was canceled.", "WARN");
+            _lastBackendRunResult = new BackendRunResult(false, L("Vm_LogBackendCanceled"), Canceled: true, ErrorCode: "DesktopCancellation");
+            AppendLog(L("Vm_LogBackendCanceled"), "WARN");
             _activityOutcome = ActivityOutcome.Canceled;
             ActivityStatus = Strings.Canceled;
         }
         catch (Exception ex)
         {
             _lastBackendRunResult = new BackendRunResult(false, ex.Message, ErrorCode: "DesktopException");
-            AppendLog($"Backend run failed: {ex.Message}", "ERROR");
+            AppendLog(LF("Vm_LogBackendRunFailed", ex.Message), "ERROR");
             _activityOutcome = ActivityOutcome.Error;
             ActivityStatus = Strings.RunNeedsAttention;
         }
@@ -3602,16 +3602,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         ShowPrompt(
-            "Close LibreSpot now?",
-            "LibreSpot is still modifying Spotify." +
-            Environment.NewLine + Environment.NewLine +
-            "Closing now will stop the active backend run, dismiss the live progress shell, and leave any partial changes for a later reapply pass if you need one.",
-            "Close and stop run",
-            "Keep LibreSpot open",
+            L("Vm_CloseWhileRunningTitle"),
+            LF("Vm_CloseWhileRunningBody", Environment.NewLine + Environment.NewLine),
+            L("Vm_CloseWhileRunningConfirm"),
+            L("Vm_CloseWhileRunningCancel"),
             true,
             confirmAction,
-            "Safer choice",
-            "Keep LibreSpot open if you want the current backend step to finish and the final result to stay visible here.");
+            L("Vm_CloseWhileRunningSummaryTitle"),
+            L("Vm_CloseWhileRunningSummaryBody"));
     }
 
     private void DismissActivity()
@@ -3675,11 +3673,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 FileName = _configurationService.ConfigDirectory,
                 UseShellExecute = true,
                 WorkingDirectory = _configurationService.ConfigDirectory
-            });
+            })?.Dispose();
         }
         catch (Exception ex)
         {
-            AppendLog($"Couldn't open the LibreSpot folder: {ex.Message}", "WARN");
+            AppendLog(LF("Vm_LogOpenFolderFailed", ex.Message), "WARN");
         }
     }
 
@@ -3706,7 +3704,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            AppendLog($"Could not load the staged setup to resume after elevation: {ex.Message}", "WARN");
+            AppendLog(LF("Vm_LogElevatedResumeFailed", ex.Message), "WARN");
             SelectedWorkspaceIndex = 0;
             return;
         }
@@ -3718,7 +3716,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        AppendLog("Resuming the confirmed setup after the administrator relaunch.", "INFO");
+        AppendLog(L("Vm_LogResumingElevatedSetup"), "INFO");
         await StartBackendRunAsync(
             "Install",
             configuration,
@@ -3788,6 +3786,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ShowNotice(L("Vm_RelaunchFailedTitle"), L("Vm_RelaunchFailedStatus"), L("Vm_RelaunchStayStandard"));
                 return;
             }
+            process.Dispose();
             Application.Current.Shutdown();
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)

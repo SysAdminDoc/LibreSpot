@@ -116,7 +116,7 @@ public sealed class SpotifyProcessService : ISpotifyProcessService
             FileName = "explorer.exe",
             Arguments = QuoteForExplorer(spotifyPath),
             UseShellExecute = true
-        });
+        })?.Dispose();
     }
 
     private static string QuoteForExplorer(string path) => '"' + path.Replace("\"", "\\\"", StringComparison.Ordinal) + '"';

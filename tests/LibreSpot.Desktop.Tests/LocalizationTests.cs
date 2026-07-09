@@ -147,7 +147,8 @@ public sealed class LocalizationTests
             "\n",
             ReadViewModelSource("MainViewModel.cs"),
             ReadViewModelSource("ActivityRunStateViewModel.cs"),
-            ReadViewModelSource("EnvironmentSnapshotStateViewModel.cs"));
+            ReadViewModelSource("EnvironmentSnapshotStateViewModel.cs"),
+            ReadViewModelSource("PromptStateViewModel.cs"));
         var usedKeys = Regex.Matches(source, "\"(?<key>Vm_[A-Za-z0-9_]+)\"")
             .Cast<Match>()
             .Select(match => match.Groups["key"].Value)
@@ -188,7 +189,22 @@ public sealed class LocalizationTests
                     "LibreSpot will download, verify, and apply the selected setup.",
                     "Keep current setup",
                     "Administrator permission required",
-                    "Risk acknowledgment"
+                    "Risk acknowledgment",
+                    "Close LibreSpot now?",
+                    "Close and stop run",
+                    "Keep LibreSpot open",
+                    "Safer choice",
+                    "Configuration save was canceled.",
+                    "Backend run was canceled.",
+                    "Resuming the confirmed setup after the administrator relaunch.",
+                    "What happens next",
+                    "LibreSpot will make the requested change and leave the result visible here so you can review it afterward.",
+                    "LibreSpot will keep the window open, stream progress here, and leave the result easy to review afterward.",
+                    "Desktop command failed:",
+                    "Could not save configuration:",
+                    "Backend run failed:",
+                    "Couldn't open the LibreSpot folder:",
+                    "Could not load the staged setup to resume after elevation:"
                 }
             ),
             (

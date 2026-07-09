@@ -2265,4 +2265,22 @@
   <data name="Vm_RiskPromptConfirm" xml:space="preserve"><value>I understand, continue</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptSummaryTitle" xml:space="preserve"><value>What this means</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptSummaryBody" xml:space="preserve"><value>LibreSpot will record your acknowledgment so this dialog does not appear again. No data leaves your machine.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningTitle" xml:space="preserve"><value>现在关闭 LibreSpot 吗？</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningBody" xml:space="preserve"><value>LibreSpot 仍在修改 Spotify。{0}现在关闭将停止正在运行的后端任务，关闭实时进度窗口，并将未完成的更改保留以便稍后重新应用。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningConfirm" xml:space="preserve"><value>关闭并停止运行</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningCancel" xml:space="preserve"><value>保持 LibreSpot 打开</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningSummaryTitle" xml:space="preserve"><value>更安全的选择</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningSummaryBody" xml:space="preserve"><value>如果您希望当前后端步骤完成并在此处保持最终结果可见，请保持 LibreSpot 打开。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogConfigSaveCanceled" xml:space="preserve"><value>配置保存已被取消。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogBackendCanceled" xml:space="preserve"><value>后端运行已被取消。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogResumingElevatedSetup" xml:space="preserve"><value>在以管理员身份重新启动后，正在恢复已确认的设置。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogConfigStageFailed" xml:space="preserve"><value>无法为提升权限的重新启动准备配置：{0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_PromptSummaryDefaultTitle" xml:space="preserve"><value>接下来会发生什么</value><comment>PromptStateViewModel fallback summary title.</comment></data>
+  <data name="Vm_PromptSummaryDefaultBody" xml:space="preserve"><value>LibreSpot 将保持窗口打开，在此处显示进度，并在完成后保留结果以便于查看。</value><comment>PromptStateViewModel fallback summary for non-destructive prompts.</comment></data>
+  <data name="Vm_PromptSummaryDestructiveBody" xml:space="preserve"><value>LibreSpot 将执行请求的更改，并将结果保留在此处以便您查看。</value><comment>PromptStateViewModel fallback summary for destructive prompts.</comment></data>
+  <data name="Vm_LogDesktopCommandFailed" xml:space="preserve"><value>桌面命令失败：{0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogConfigSaveFailed" xml:space="preserve"><value>无法保存配置：{0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogBackendRunFailed" xml:space="preserve"><value>后端运行失败：{0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogOpenFolderFailed" xml:space="preserve"><value>无法打开 LibreSpot 文件夹：{0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogElevatedResumeFailed" xml:space="preserve"><value>无法加载已准备的设置以在提升权限后恢复：{0}</value><comment>MainViewModel localized runtime text.</comment></data>
 </root>

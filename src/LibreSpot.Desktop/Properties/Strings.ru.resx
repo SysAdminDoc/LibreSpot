@@ -2265,4 +2265,22 @@
   <data name="Vm_RiskPromptConfirm" xml:space="preserve"><value>I understand, continue</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptSummaryTitle" xml:space="preserve"><value>What this means</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptSummaryBody" xml:space="preserve"><value>LibreSpot will record your acknowledgment so this dialog does not appear again. No data leaves your machine.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningTitle" xml:space="preserve"><value>Закрыть LibreSpot сейчас?</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningBody" xml:space="preserve"><value>LibreSpot всё ещё модифицирует Spotify.{0}Закрытие сейчас остановит активный запуск серверной части, скроет окно прогресса и оставит частичные изменения для последующей повторной применения, если потребуется.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningConfirm" xml:space="preserve"><value>Закрыть и остановить выполнение</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningCancel" xml:space="preserve"><value>Оставить LibreSpot открытым</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningSummaryTitle" xml:space="preserve"><value>Безопасный вариант</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningSummaryBody" xml:space="preserve"><value>Оставьте LibreSpot открытым, если хотите, чтобы текущий шаг серверной части завершился, а итоговый результат остался видимым здесь.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogConfigSaveCanceled" xml:space="preserve"><value>Сохранение конфигурации было отменено.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogBackendCanceled" xml:space="preserve"><value>Выполнение серверной части было отменено.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogResumingElevatedSetup" xml:space="preserve"><value>Возобновление подтверждённой настройки после перезапуска с правами администратора.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogConfigStageFailed" xml:space="preserve"><value>Не удалось подготовить конфигурацию для перезапуска с повышенными привилегиями: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_PromptSummaryDefaultTitle" xml:space="preserve"><value>Что произойдёт дальше</value><comment>PromptStateViewModel fallback summary title.</comment></data>
+  <data name="Vm_PromptSummaryDefaultBody" xml:space="preserve"><value>LibreSpot оставит окно открытым, покажет прогресс здесь и сохранит результат для удобного просмотра после завершения.</value><comment>PromptStateViewModel fallback summary for non-destructive prompts.</comment></data>
+  <data name="Vm_PromptSummaryDestructiveBody" xml:space="preserve"><value>LibreSpot выполнит запрошенное изменение и оставит результат видимым здесь, чтобы вы могли его проверить.</value><comment>PromptStateViewModel fallback summary for destructive prompts.</comment></data>
+  <data name="Vm_LogDesktopCommandFailed" xml:space="preserve"><value>Команда рабочего стола не выполнена: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogConfigSaveFailed" xml:space="preserve"><value>Не удалось сохранить конфигурацию: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogBackendRunFailed" xml:space="preserve"><value>Выполнение серверной части завершилось ошибкой: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogOpenFolderFailed" xml:space="preserve"><value>Не удалось открыть папку LibreSpot: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogElevatedResumeFailed" xml:space="preserve"><value>Не удалось загрузить подготовленную настройку для возобновления после повышения привилегий: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
 </root>

@@ -1,4 +1,5 @@
 using LibreSpot.Desktop.Properties;
+using LibreSpot.Desktop.Services;
 
 namespace LibreSpot.Desktop.ViewModels;
 
@@ -90,11 +91,11 @@ public sealed class PromptStateViewModel : ObservableObject
         Body = body;
         ConfirmText = confirmText;
         CancelText = cancelText;
-        SummaryTitle = summaryTitle ?? "What happens next";
+        SummaryTitle = summaryTitle ?? Strings.ResourceManager.GetString("Vm_PromptSummaryDefaultTitle", LocalizationService.Current.Culture) ?? "What happens next";
         SummaryBody = summaryBody ??
             (isDestructive
-                ? "LibreSpot will make the requested change and leave the result visible here so you can review it afterward."
-                : "LibreSpot will keep the window open, stream progress here, and leave the result easy to review afterward.");
+                ? Strings.ResourceManager.GetString("Vm_PromptSummaryDestructiveBody", LocalizationService.Current.Culture) ?? string.Empty
+                : Strings.ResourceManager.GetString("Vm_PromptSummaryDefaultBody", LocalizationService.Current.Culture) ?? string.Empty);
         IsDestructive = isDestructive;
         _confirmAction = confirmAction;
         IsVisible = true;
