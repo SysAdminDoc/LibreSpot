@@ -1217,15 +1217,13 @@
 
             <TextBlock Text="{services:Loc LanguageLabel}"
                        Style="{StaticResource LabelTextStyle}"
-                       Margin="0,18,0,6"
-                       Visibility="Collapsed" />
+                       Margin="0,18,0,6" />
             <ComboBox ItemsSource="{Binding LocalizationOptions}"
                       SelectedItem="{Binding SelectedLocalizationOption, Mode=TwoWay}"
                       Height="38"
                       Style="{StaticResource ComboBoxStylePremium}"
                       AutomationProperties.Name="{services:Loc LanguageLabel}"
-                      AutomationProperties.HelpText="{services:Loc LanguageHelpText}"
-                      Visibility="Collapsed">
+                      AutomationProperties.HelpText="{services:Loc LanguageHelpText}">
               <ComboBox.ItemTemplate>
                 <DataTemplate>
                   <TextBlock Text="{Binding DisplayName}"
@@ -4031,7 +4029,6 @@
                     Width="128"
                     Height="32"
                     Margin="0,0,8,0"
-                    Visibility="Collapsed"
                     Style="{StaticResource ComboBoxStylePremium}"
                     AutomationProperties.Name="{services:Loc LanguageLabel}"
                     AutomationProperties.HelpText="{services:Loc LanguageHelpText}">

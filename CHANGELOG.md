@@ -25,6 +25,9 @@ the version and recaptures WPF screenshots (both operator/UI-gated).
 
 ### Fixed
 
+- The WPF language selector is now reachable from both the sidebar and title bar instead of being bound in the ViewModel but hidden in XAML.
+- UI automation smoke setup now writes both current (`Apps\xpui.bak`) and legacy (`Apps\xpui.spa.bak`) SpotX backup markers so smoke states exercise the same readiness path as current SpotX installs.
+- WPF UIA/FlaUI smoke harnesses now use a longer main-window startup budget while keeping interaction waits tight, fixing custom-search and sequential smoke-state timeouts on loaded desktops.
 - Fleet CLI `--scope machine` now resolves the default config under `%ProgramData%\LibreSpot\config.json` instead of silently using the per-user config; invalid scope values fail before reads or mutations.
 - `detect --intune --json` now emits the JSON detection document while preserving the Intune exit code, and the fleet contract lists the reachable blocked exit code `20`.
 - Fleet answer-file validation now rejects consumed schema enum/range/type errors (culture, SpotX lyrics/download/cache settings, Spicetify extension lists, profiles, watcher/logging/reboot policy) before backend runs can normalize or drop bad intent.
@@ -40,6 +43,7 @@ the version and recaptures WPF screenshots (both operator/UI-gated).
 
 ### Tests
 
+- Recaptured the README WPF screenshots from the current smoke states and added integration guards that keep language selectors visible and the UIA fixture aligned with current SpotX backup markers.
 - Added focused regression coverage for CLI scope resolution, Intune JSON detection, strict answer-file validation, backend exit-code propagation, WinRM exit propagation, worker-runspace hash exports, watcher Task Scheduler XML, guarded watcher downloads, and temp-file community extension verification.
 - Added an accessibility guard (`AutomationNameContractTests`) that fails the build if any interactive control in `MainWindow.xaml` loses its UIA-discoverable name (`AutomationProperties.Name`/`Content`/`Header`/`LabeledBy`), and that pins the `LiveRegionContentControl` polite live-region peer. All 77 interactive controls currently comply; the test locks that in against regression (WCAG 2.2 4.1.2).
 - Added focus-visibility guards to `KeyboardFocusContractTests`: broadened the custom-focus-ring theory to TextBox/TabItem/ComboBoxItem, a targeted check that the read-only log textbox keeps a focus ring, and an invariant that the number of keyboard-focus triggers is at least the number of templates that null the default focus visual (so no restyled control can silently drop its focus ring).

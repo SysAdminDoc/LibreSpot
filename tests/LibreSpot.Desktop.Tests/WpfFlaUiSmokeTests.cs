@@ -12,6 +12,7 @@ namespace LibreSpot.Desktop.Tests;
 [Collection(WpfUiAutomationCollection.Name)]
 public sealed class WpfFlaUiSmokeTests
 {
+    private static readonly TimeSpan MainWindowTimeout = TimeSpan.FromSeconds(45);
     private static readonly string[] SupportedCultures = ["en", "ru", "zh-Hans", "pt-BR", "es"];
 
     public static TheoryData<string> SupportedCultureData()
@@ -125,7 +126,7 @@ public sealed class WpfFlaUiSmokeTests
     {
         using var app = LaunchSmokeState(state, culture);
         using var automation = new UIA3Automation();
-        var window = WaitForMainWindow(app.Application, automation, TimeSpan.FromSeconds(20));
+        var window = WaitForMainWindow(app.Application, automation, MainWindowTimeout);
 
         action(window);
     }

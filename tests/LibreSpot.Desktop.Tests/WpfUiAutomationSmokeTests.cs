@@ -13,6 +13,7 @@ namespace LibreSpot.Desktop.Tests;
 [Collection(WpfUiAutomationCollection.Name)]
 public sealed class WpfUiAutomationSmokeTests
 {
+    private static readonly TimeSpan MainWindowTimeout = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan SmokeReadyTimeout = TimeSpan.FromSeconds(30);
 
     private static readonly HashSet<ControlType> ActionableTypes = new()
@@ -56,7 +57,7 @@ public sealed class WpfUiAutomationSmokeTests
             using var app = LaunchSmokeState(state);
             try
             {
-                var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
+                var window = WaitForMainWindow(app.Process, MainWindowTimeout);
                 var snapshot = WaitForSnapshotContaining(window, expectedName, TimeSpan.FromSeconds(10));
 
                 Assert.Contains(snapshot, node => string.Equals(node.Name, expectedName, StringComparison.Ordinal));
@@ -82,7 +83,7 @@ public sealed class WpfUiAutomationSmokeTests
             using var app = LaunchSmokeState(state);
             try
             {
-                var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
+                var window = WaitForMainWindow(app.Process, MainWindowTimeout);
                 var snapshot = WaitForSnapshotContainingAutomationId(window, firstActionId, SmokeReadyTimeout);
 
                 var first = FindSnapshotNode(snapshot, firstActionId);
@@ -105,7 +106,7 @@ public sealed class WpfUiAutomationSmokeTests
         {
             using (var app = LaunchSmokeState("activity"))
             {
-                var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
+                var window = WaitForMainWindow(app.Process, MainWindowTimeout);
                 var snapshot = WaitForSnapshotContainingAutomationId(window, "ActivityCloseButton", SmokeReadyTimeout);
 
                 Assert.DoesNotContain(snapshot, node => string.Equals(node.AutomationId, "ActivityExportFailureBundleButton", StringComparison.Ordinal));
@@ -113,7 +114,7 @@ public sealed class WpfUiAutomationSmokeTests
 
             using (var app = LaunchSmokeState("activity-error"))
             {
-                var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
+                var window = WaitForMainWindow(app.Process, MainWindowTimeout);
                 var snapshot = WaitForSnapshotContainingAutomationId(window, "ActivityExportFailureBundleButton", SmokeReadyTimeout);
 
                 var export = FindSnapshotNode(snapshot, "ActivityExportFailureBundleButton");
@@ -134,7 +135,7 @@ public sealed class WpfUiAutomationSmokeTests
             using var app = LaunchSmokeState("activity", culture);
             try
             {
-                var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
+                var window = WaitForMainWindow(app.Process, MainWindowTimeout);
                 var snapshot = WaitForSnapshotContainingAutomationId(window, "ActivityCloseButton", SmokeReadyTimeout);
                 var windowBounds = UiaNode.From(window).BoundingRectangle;
 
@@ -158,7 +159,7 @@ public sealed class WpfUiAutomationSmokeTests
             using var app = LaunchSmokeState("activity");
             try
             {
-                var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
+                var window = WaitForMainWindow(app.Process, MainWindowTimeout);
                 var snapshot = WaitForSnapshotContainingAutomationId(window, "RunStatus", SmokeReadyTimeout);
 
                 var runStatus = FindSnapshotNode(snapshot, "RunStatus");
@@ -182,7 +183,7 @@ public sealed class WpfUiAutomationSmokeTests
             using var app = LaunchSmokeState("custom");
             try
             {
-                var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
+                    var window = WaitForMainWindow(app.Process, MainWindowTimeout);
                 var snapshot = WaitForSnapshotContaining(window, "Search themes and schemes", SmokeReadyTimeout);
 
                 Assert.Contains(snapshot, node => string.Equals(node.Name, "Local profiles", StringComparison.Ordinal));
@@ -208,7 +209,7 @@ public sealed class WpfUiAutomationSmokeTests
             using var app = LaunchSmokeState("activity-undo");
             try
             {
-                var window = WaitForMainWindow(app.Process, TimeSpan.FromSeconds(20));
+                var window = WaitForMainWindow(app.Process, MainWindowTimeout);
                 var snapshot = WaitForSnapshotContaining(window, "Unregister the scheduled task to undo.", SmokeReadyTimeout);
 
                 Assert.Contains(snapshot, node => string.Equals(node.Name, "Reversible changes", StringComparison.Ordinal));

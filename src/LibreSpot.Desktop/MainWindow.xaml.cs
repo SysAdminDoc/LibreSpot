@@ -138,17 +138,13 @@ public partial class MainWindow : Window
 
         try
         {
-            var hasUiAutomationSmokeState = false;
-            if (_uiAutomationSmokeState is { } uiAutomationSmokeState &&
-                !string.IsNullOrWhiteSpace(uiAutomationSmokeState))
-            {
-                hasUiAutomationSmokeState = true;
-                _viewModel.ApplyUiAutomationSmokeState(uiAutomationSmokeState);
-            }
+            var uiAutomationSmokeState = _uiAutomationSmokeState;
+            var hasUiAutomationSmokeState = !string.IsNullOrWhiteSpace(uiAutomationSmokeState);
 
             await _viewModel.InitializeAsync();
             if (hasUiAutomationSmokeState)
             {
+                _viewModel.ApplyUiAutomationSmokeState(uiAutomationSmokeState!);
                 if (!string.IsNullOrWhiteSpace(_uiAutomationCapturePath))
                 {
                     await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
@@ -852,6 +848,7 @@ public partial class MainWindow : Window
         File.WriteAllText(spotifyPath, string.Empty);
         File.WriteAllText(spicetifyPath, string.Empty);
         File.WriteAllText(Path.Combine(spotifyAppsDirectory, "xpui.spa"), string.Empty);
+        File.WriteAllText(Path.Combine(spotifyAppsDirectory, "xpui.bak"), string.Empty);
         File.WriteAllText(Path.Combine(spotifyAppsDirectory, "xpui.spa.bak"), string.Empty);
         Directory.CreateDirectory(Path.Combine(backupDirectory, "2026-07-07_104213"));
         File.WriteAllText(Path.Combine(spicetifyConfigDirectory, "config-xpui.ini"), "[AdditionalOptions]\ncustom_apps = marketplace\n");

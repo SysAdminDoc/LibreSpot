@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -23,6 +24,40 @@ public sealed class WpfUiIntegrationTests
         Assert.Contains("<VirtualizingStackPanel />", xaml);
         Assert.Contains("LogListBox.ScrollIntoView", File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml.cs")));
         Assert.DoesNotContain("x:Name=\"LogScrollViewer\"", xaml);
+    }
+
+    [Fact]
+    public void LanguageSelectors_AreVisibleWhereTheyAreBound()
+    {
+        var xaml = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        var selectors = Regex.Matches(
+            xaml,
+            @"<ComboBox[^>]+SelectedItem=""\{Binding SelectedLocalizationOption, Mode=TwoWay\}""[^>]*>",
+            RegexOptions.Singleline);
+
+        Assert.Equal(2, selectors.Count);
+        foreach (Match selector in selectors)
+        {
+            Assert.DoesNotContain("Visibility=\"Collapsed\"", selector.Value);
+            Assert.Contains("AutomationProperties.Name=\"{services:Loc LanguageLabel}\"", selector.Value);
+            Assert.Contains("AutomationProperties.HelpText=\"{services:Loc LanguageHelpText}\"", selector.Value);
+        }
+
+        var sidebarLabel = Regex.Match(
+            xaml,
+            @"<TextBlock[^>]+Text=""\{services:Loc LanguageLabel\}""[^>]*>",
+            RegexOptions.Singleline);
+        Assert.True(sidebarLabel.Success, "Sidebar language label must be present.");
+        Assert.DoesNotContain("Visibility=\"Collapsed\"", sidebarLabel.Value);
+    }
+
+    [Fact]
+    public void UiaSmokeFixture_WritesCurrentAndLegacySpotXBackupMarkers()
+    {
+        var codeBehind = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
+
+        Assert.Contains("Path.Combine(spotifyAppsDirectory, \"xpui.bak\")", codeBehind);
+        Assert.Contains("Path.Combine(spotifyAppsDirectory, \"xpui.spa.bak\")", codeBehind);
     }
 
     [Fact]
