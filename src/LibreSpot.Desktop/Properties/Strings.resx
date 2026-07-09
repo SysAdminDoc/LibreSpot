@@ -730,7 +730,7 @@
   <data name="Vm_ShellSpotifyModificationDetail" xml:space="preserve"><value>Patches files in the local Spotify directory.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellSpotifyModificationTitle" xml:space="preserve"><value>Modifies Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellSpotifyTargetDetectedPath" xml:space="preserve"><value>Detected per-user install path.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellSpotifyTargetLabel" xml:space="preserve"><value>Spotify target</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellSpotifyTargetLabel" xml:space="preserve"><value>Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellSpotifyTargetPerUserPath" xml:space="preserve"><value>Per-user Spotify install path.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellSummaryLastRun" xml:space="preserve"><value>Last run</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellSummaryStatus" xml:space="preserve"><value>Status</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -764,7 +764,7 @@
   <data name="Vm_WorkspaceHeroMaintenanceBody" xml:space="preserve"><value>Use repair, rollback, and reset tools when the stack needs attention.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceHeroMaintenanceEyebrow" xml:space="preserve"><value>Recovery lane</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceHeroMaintenanceTitle" xml:space="preserve"><value>Maintenance</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_WorkspaceHeroRecommendedBody" xml:space="preserve"><value>Start with the quickest stable path, then move to Custom only when you know what to change.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_WorkspaceHeroRecommendedBody" xml:space="preserve"><value>Everything looks good. You're ready to run the recommended setup.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceRecommendationFinishBrief" xml:space="preserve"><value>Fastest way to restore the supported layer.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceRecommendationFinishDetail" xml:space="preserve"><value>Spotify is already installed. Recommended restores the supported customization layer with the least friction.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceRecommendationFinishTitle" xml:space="preserve"><value>Finish setup</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -782,4 +782,38 @@
   <data name="Vm_ThemeGalleryMarketplaceHelp" xml:space="preserve"><value>Uses Spicetify Marketplace without installing a bundled theme.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeGalleryRequiresJsHelpFormat" xml:space="preserve"><value>{0} includes a theme.js step and {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeGalleryNoJsHelpFormat" xml:space="preserve"><value>{0} installs without a theme.js step and has {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="NavHome" xml:space="preserve"><value>Home</value><comment>User-facing WPF text</comment></data>
+  <data name="NavSetup" xml:space="preserve"><value>Setup</value><comment>User-facing WPF text</comment></data>
+  <data name="NavUnblock" xml:space="preserve"><value>Unblock</value><comment>User-facing WPF text</comment></data>
+  <data name="NavTools" xml:space="preserve"><value>Tools</value><comment>User-facing WPF text</comment></data>
+  <data name="NavSettings" xml:space="preserve"><value>Settings</value><comment>User-facing WPF text</comment></data>
+  <data name="NavAbout" xml:space="preserve"><value>About</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_EnvAdministrator" xml:space="preserve"><value>Administrator</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvMachine" xml:space="preserve"><value>Machine</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvPermissions" xml:space="preserve"><value>Permissions</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvStandardUser" xml:space="preserve"><value>Standard user</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvUser" xml:space="preserve"><value>User</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnvWorkingDirectory" xml:space="preserve"><value>Working directory</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionRunSetupDetail" xml:space="preserve"><value>Apply all recommended patches and configuration.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionRunSetupTitle" xml:space="preserve"><value>Run setup</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionToolsDetail" xml:space="preserve"><value>View logs, backup files, and advanced utilities.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionToolsTitle" xml:space="preserve"><value>Tools</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionUnblockDetail" xml:space="preserve"><value>Remove restrictions and enable updates.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionUnblockTitle" xml:space="preserve"><value>Unblock Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActiveRunTitle" xml:space="preserve"><value>Active run</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellCheckOkLabel" xml:space="preserve"><value>OK</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellDependenciesLabel" xml:space="preserve"><value>Dependencies</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellNeedsReviewShort" xml:space="preserve"><value>Review</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellNextActionsTitle" xml:space="preserve"><value>Next actions</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellNoSetupRunYet" xml:space="preserve"><value>No setup has run yet</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellOsBuildFormat" xml:space="preserve"><value>Build {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellRunRecommendedCaption" xml:space="preserve"><value>Applies all recommended patches and configuration for LibreSpot.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellSpotifyDetectedLabel" xml:space="preserve"><value>Spotify detected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellSpotifyInstalled" xml:space="preserve"><value>Installed</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellSpotifyNotDetected" xml:space="preserve"><value>Not detected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellSummaryOs" xml:space="preserve"><value>OS</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellSystemChecksLabel" xml:space="preserve"><value>System checks</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellWindows10" xml:space="preserve"><value>Windows 10</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellWindows11" xml:space="preserve"><value>Windows 11</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellWritePermissionsLabel" xml:space="preserve"><value>Write permissions</value><comment>MainViewModel localized runtime text.</comment></data>
 </root>

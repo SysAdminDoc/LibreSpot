@@ -20,37 +20,37 @@
   <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
 
   <!-- ═══ Surfaces (darkest → lightest) ═══ -->
-  <Color x:Key="CanvasColor">#070A09</Color>
-  <Color x:Key="CanvasShadeColor">#0A100E</Color>
-  <Color x:Key="Surface1Color">#0E1512</Color>
-  <Color x:Key="Surface2Color">#121C18</Color>
-  <Color x:Key="Surface3Color">#17241F</Color>
-  <Color x:Key="SurfaceRaisedColor">#203129</Color>
-  <Color x:Key="RailColor">#080D0C</Color>
-  <Color x:Key="HeroStartColor">#14231D</Color>
-  <Color x:Key="HeroEndColor">#0B1110</Color>
+  <Color x:Key="CanvasColor">#070B10</Color>
+  <Color x:Key="CanvasShadeColor">#0A1118</Color>
+  <Color x:Key="Surface1Color">#0D151C</Color>
+  <Color x:Key="Surface2Color">#101A23</Color>
+  <Color x:Key="Surface3Color">#14232E</Color>
+  <Color x:Key="SurfaceRaisedColor">#1B2C36</Color>
+  <Color x:Key="RailColor">#081017</Color>
+  <Color x:Key="HeroStartColor">#142430</Color>
+  <Color x:Key="HeroEndColor">#0B1219</Color>
 
   <!-- ═══ Strokes ═══ -->
-  <Color x:Key="StrokeColor">#22332D</Color>
-  <Color x:Key="StrokeSoftColor">#17241F</Color>
-  <Color x:Key="StrokeStrongColor">#355348</Color>
+  <Color x:Key="StrokeColor">#263744</Color>
+  <Color x:Key="StrokeSoftColor">#1A2833</Color>
+  <Color x:Key="StrokeStrongColor">#425867</Color>
 
   <!-- ═══ Text ═══ -->
-  <Color x:Key="TextColor">#F1F7F3</Color>
-  <Color x:Key="TextMutedColor">#B5C2BB</Color>
+  <Color x:Key="TextColor">#F3F7F6</Color>
+  <Color x:Key="TextMutedColor">#B9C4C7</Color>
   <!-- Subtle tier: dimmest readable text. Calibrated to clear WCAG AA (≥4.5:1)
        on every surface tier up to SurfaceRaised, while staying a full step
        below MutedText so the caption hierarchy reads clearly. -->
-  <Color x:Key="TextSubtleColor">#8D9A93</Color>
-  <Color x:Key="TextOnAccentColor">#07110C</Color>
+  <Color x:Key="TextSubtleColor">#8D9AA0</Color>
+  <Color x:Key="TextOnAccentColor">#06120B</Color>
 
   <!-- ═══ Brand / accent — Spotify-green, calibrated for dark canvas ═══ -->
-  <Color x:Key="AccentColor">#1DB954</Color>
-  <Color x:Key="AccentHoverColor">#1ED760</Color>
-  <Color x:Key="AccentDeepColor">#169443</Color>
-  <Color x:Key="AccentSoftColor">#10291B</Color>
-  <Color x:Key="AccentMistColor">#331DB954</Color>
-  <Color x:Key="AccentRingColor">#B31DB954</Color>
+  <Color x:Key="AccentColor">#50C878</Color>
+  <Color x:Key="AccentHoverColor">#6DE391</Color>
+  <Color x:Key="AccentDeepColor">#2B9E55</Color>
+  <Color x:Key="AccentSoftColor">#122B1C</Color>
+  <Color x:Key="AccentMistColor">#3650C878</Color>
+  <Color x:Key="AccentRingColor">#B850C878</Color>
 
   <!-- ═══ Semantic intent ═══ -->
   <Color x:Key="DangerColor">#E5484D</Color>

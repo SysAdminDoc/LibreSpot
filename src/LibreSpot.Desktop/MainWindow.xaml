@@ -13,8 +13,8 @@
         xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
         mc:Ignorable="d"
         Title="{services:Loc AppTitle}"
-        Width="1500"
-        Height="940"
+        Width="1584"
+        Height="990"
         MinWidth="1360"
         MinHeight="820"
         Icon="pack://application:,,,/Assets/LibreSpot.ico"
@@ -673,157 +673,116 @@
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type viewModels:ShellSummaryItemViewModel}" x:Key="ShellSummaryItemTemplate">
-      <Border Padding="18,12"
+      <Border Padding="20,14"
               BorderBrush="{DynamicResource StrokeSoftBrush}"
               BorderThickness="0,0,1,0"
               AutomationProperties.Name="{Binding Label}"
               AutomationProperties.HelpText="{Binding Detail}">
         <Grid>
           <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="42" />
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="48" />
           </Grid.ColumnDefinitions>
-          <StackPanel>
+          <Path Width="28"
+                Height="28"
+                Stretch="Uniform"
+                StrokeThickness="2"
+                StrokeStartLineCap="Round"
+                StrokeEndLineCap="Round"
+                StrokeLineJoin="Round"
+                VerticalAlignment="Top"
+                Margin="0,3,14,0">
+            <Path.Style>
+              <Style TargetType="Path">
+                <Setter Property="Data" Value="M 12 2 L 21 6 V 12 C 21 17 17.5 20 12 22 C 6.5 20 3 17 3 12 V 6 Z M 8 12 L 11 15 L 16 9" />
+                <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding IconKey}" Value="spotify">
+                    <Setter Property="Data" Value="M 4 5 H 20 V 15 H 4 Z M 12 15 V 20 M 8 20 H 16" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding IconKey}" Value="os">
+                    <Setter Property="Data" Value="M 3 5 L 11 4 V 12 H 3 Z M 13 4 L 21 3 V 12 H 13 Z M 3 14 H 11 V 22 L 3 21 Z M 13 14 H 21 V 23 L 13 22 Z" />
+                    <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding IconKey}" Value="clock">
+                    <Setter Property="Data" Value="M 12 3 A 9 9 0 1 0 12 21 A 9 9 0 1 0 12 3 M 12 7 V 12 L 16 15" />
+                    <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Warning}">
+                    <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Critical}">
+                    <Setter Property="Data" Value="M 3 3 L 21 21 M 21 3 L 3 21" />
+                    <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Path.Style>
+          </Path>
+          <StackPanel Grid.Column="1">
             <TextBlock Text="{Binding Label}"
-                       Style="{StaticResource LabelTextStyle}" />
-            <TextBlock Text="{Binding Value}"
-                       FontSize="14.5"
-                       FontWeight="SemiBold"
                        Foreground="{DynamicResource TextBrush}"
-                       Margin="0,7,0,0"
+                       FontWeight="SemiBold"
+                       FontSize="13" />
+            <TextBlock Text="{Binding Value}"
+                       FontSize="13.5"
+                       Foreground="{DynamicResource MutedTextBrush}"
+                       Margin="0,4,0,0"
                        TextWrapping="Wrap" />
             <TextBlock Text="{Binding Detail}"
                        Style="{StaticResource CaptionTextStyle}"
-                       Margin="0,4,0,0"
+                       Margin="0,3,0,0"
                        TextWrapping="Wrap" />
           </StackPanel>
-          <Grid Grid.Column="1"
-                Width="38"
-                Height="38"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Center">
-            <Ellipse StrokeThickness="2.2">
-              <Ellipse.Style>
-                <Style TargetType="Ellipse">
-                  <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
-                  <Style.Triggers>
-                    <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Ready}">
-                      <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Warning}">
-                      <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Critical}">
-                      <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
-                    </DataTrigger>
-                  </Style.Triggers>
-                </Style>
-              </Ellipse.Style>
-            </Ellipse>
-            <Path Width="18"
-                  Height="14"
-                  Stretch="Uniform"
-                  Data="M 1 7 L 6 12 L 17 1"
-                  StrokeThickness="2.3"
-                  StrokeStartLineCap="Round"
-                  StrokeEndLineCap="Round"
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Center">
-              <Path.Style>
-                <Style TargetType="Path">
-                  <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
-                  <Style.Triggers>
-                    <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Ready}">
-                      <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Warning}">
-                      <Setter Property="Data" Value="M 9 2 L 17 16 H 1 Z M 9 6 V 10 M 9 13 V 14" />
-                      <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Critical}">
-                      <Setter Property="Data" Value="M 2 2 L 16 16 M 16 2 L 2 16" />
-                      <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
-                    </DataTrigger>
-                  </Style.Triggers>
-                </Style>
-              </Path.Style>
-            </Path>
-          </Grid>
         </Grid>
       </Border>
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type viewModels:ShellEnvironmentRowViewModel}" x:Key="ShellEnvironmentRowTemplate">
-      <Grid Margin="0,0,0,10">
+      <Grid Margin="0,0,0,14">
         <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="34" />
+          <ColumnDefinition Width="150" />
           <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="Auto" />
-          <ColumnDefinition Width="24" />
         </Grid.ColumnDefinitions>
-        <TextBlock Text="{Binding Label}"
-                   Foreground="{DynamicResource TextBrush}"
-                   FontSize="13" />
+        <Path Width="22"
+              Height="22"
+              Stretch="Uniform"
+              Data="M 12 2 L 21 6 V 12 C 21 17 17.5 20 12 22 C 6.5 20 3 17 3 12 V 6 Z M 8 12 L 11 15 L 16 9"
+              Stroke="{DynamicResource AccentBrush}"
+              StrokeThickness="1.8"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round"
+              StrokeLineJoin="Round"
+              VerticalAlignment="Center" />
         <TextBlock Grid.Column="1"
+                   Text="{Binding Label}"
+                   Foreground="{DynamicResource TextBrush}"
+                   FontWeight="SemiBold"
+                   FontSize="13"
+                   VerticalAlignment="Center" />
+        <TextBlock Grid.Column="2"
                    Text="{Binding Value}"
                    Foreground="{DynamicResource MutedTextBrush}"
                    FontSize="13"
                    TextAlignment="Right"
-                   Margin="16,0,12,0" />
-        <Ellipse Grid.Column="2"
-                 Width="16"
-                 Height="16"
-                 StrokeThickness="1.8"
-                 HorizontalAlignment="Right">
-          <Ellipse.Style>
-            <Style TargetType="Ellipse">
-              <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
-              <Style.Triggers>
-                <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Ready}">
-                  <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Warning}">
-                  <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Critical}">
-                  <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
-                </DataTrigger>
-              </Style.Triggers>
-            </Style>
-          </Ellipse.Style>
-        </Ellipse>
+                   TextTrimming="CharacterEllipsis"
+                   VerticalAlignment="Center"
+                   Margin="16,0,0,0" />
       </Grid>
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type viewModels:ShellDependencyRowViewModel}" x:Key="ShellDependencyRowTemplate">
-      <Grid MinHeight="30">
+      <Grid MinHeight="38"
+            Margin="0,0,0,4">
         <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="1.25*" />
-          <ColumnDefinition Width="0.9*" />
-          <ColumnDefinition Width="0.9*" />
-          <ColumnDefinition Width="42" />
+          <ColumnDefinition Width="32" />
+          <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <Border Grid.ColumnSpan="4"
-                BorderBrush="{DynamicResource StrokeSoftBrush}"
-                BorderThickness="0,1,0,0" />
-        <TextBlock Text="{Binding Component}"
-                   Foreground="{DynamicResource TextBrush}"
-                   VerticalAlignment="Center"
-                   Margin="0,6" />
-        <TextBlock Grid.Column="1"
-                   Text="{Binding Installed}"
-                   Foreground="{DynamicResource MutedTextBrush}"
-                   VerticalAlignment="Center"
-                   Margin="10,6" />
-        <TextBlock Grid.Column="2"
-                   Text="{Binding Recommended}"
-                   Foreground="{DynamicResource MutedTextBrush}"
-                   VerticalAlignment="Center"
-                   Margin="10,6" />
-        <Ellipse Grid.Column="3"
-                 Width="15"
-                 Height="15"
-                 StrokeThickness="1.8"
-                 HorizontalAlignment="Center"
+        <Ellipse Width="18"
+                 Height="18"
+                 StrokeThickness="1.5"
+                 HorizontalAlignment="Left"
                  VerticalAlignment="Center">
           <Ellipse.Style>
             <Style TargetType="Ellipse">
@@ -842,24 +801,65 @@
             </Style>
           </Ellipse.Style>
         </Ellipse>
+        <Path Width="9"
+              Height="7"
+              Stretch="Uniform"
+              Data="M 1 4 L 3.5 6.5 L 8 1"
+              Stroke="{DynamicResource AccentBrush}"
+              StrokeThickness="1.4"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round"
+              VerticalAlignment="Center"
+              HorizontalAlignment="Left"
+              Margin="4,0,0,0" />
+        <StackPanel Grid.Column="1"
+                    Margin="0,0,0,0"
+                    VerticalAlignment="Center">
+          <TextBlock Text="{Binding Component}"
+                     Foreground="{DynamicResource TextBrush}"
+                     FontWeight="SemiBold"
+                     FontSize="13" />
+          <TextBlock Text="{Binding Detail}"
+                     Foreground="{DynamicResource MutedTextBrush}"
+                     FontSize="12.5"
+                     Margin="0,2,0,0"
+                     TextTrimming="CharacterEllipsis" />
+        </StackPanel>
       </Grid>
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type viewModels:LogEntryViewModel}" x:Key="ShellLogRowTemplate">
-      <Grid Margin="0,0,0,5">
+      <Grid MinHeight="32"
+            Margin="0">
         <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="70" />
-          <ColumnDefinition Width="62" />
+          <ColumnDefinition Width="36" />
+          <ColumnDefinition Width="132" />
+          <ColumnDefinition Width="82" />
           <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <TextBlock Text="{Binding TimestampDisplay}"
-                   FontFamily="{StaticResource MonoFont}"
-                   Foreground="{DynamicResource MutedTextBrush}" />
-        <Border Grid.Column="1"
+        <Border Grid.ColumnSpan="4"
+                BorderBrush="{DynamicResource StrokeSoftBrush}"
+                BorderThickness="0,0,0,1" />
+        <Path Width="15"
+              Height="15"
+              Stretch="Uniform"
+              Data="M 9 2 A 7 7 0 1 0 9 16 A 7 7 0 1 0 9 2 M 9 6 V 9 M 9 12 V 12.5"
+              Stroke="{DynamicResource MutedTextBrush}"
+              StrokeThickness="1.7"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round"
+              VerticalAlignment="Center"
+              HorizontalAlignment="Center" />
+        <TextBlock Grid.Column="1"
+                   Text="{Binding TimestampDisplay}"
+                   Foreground="{DynamicResource MutedTextBrush}"
+                   VerticalAlignment="Center" />
+        <Border Grid.Column="2"
                 CornerRadius="6"
                 BorderThickness="1"
                 Padding="6,1"
-                HorizontalAlignment="Left">
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center">
           <Border.Style>
             <Style TargetType="Border">
               <Setter Property="BorderBrush" Value="{DynamicResource InfoBrush}" />
@@ -885,16 +885,15 @@
             </Style>
           </Border.Style>
           <TextBlock Text="{Binding Level}"
-                     FontFamily="{StaticResource MonoFont}"
                      FontSize="11"
                      FontWeight="SemiBold" />
         </Border>
-        <TextBlock Grid.Column="2"
+        <TextBlock Grid.Column="3"
                    Text="{Binding Message}"
-                   FontFamily="{StaticResource MonoFont}"
                    Foreground="{DynamicResource TextBrush}"
                    TextWrapping="NoWrap"
-                   TextTrimming="CharacterEllipsis" />
+                   TextTrimming="CharacterEllipsis"
+                   VerticalAlignment="Center" />
       </Grid>
     </DataTemplate>
 
@@ -976,11 +975,11 @@
   <Grid Background="{DynamicResource CanvasBrush}">
     <Grid>
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="260" />
-        <ColumnDefinition Width="20" />
+        <ColumnDefinition Width="248" />
+        <ColumnDefinition Width="28" />
         <ColumnDefinition Width="*" />
-        <ColumnDefinition Width="12" />
-        <ColumnDefinition Width="340" />
+        <ColumnDefinition Width="18" />
+        <ColumnDefinition Width="320" />
       </Grid.ColumnDefinitions>
 
       <!-- ═══ Sidebar ═══ -->
@@ -989,19 +988,19 @@
               BorderBrush="{DynamicResource StrokeSoftBrush}"
               BorderThickness="0,0,1,0"
               CornerRadius="0"
-              Padding="38,48,18,14">
+              Padding="18,44,18,18">
         <ScrollViewer VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       Focusable="False">
         <DockPanel LastChildFill="True">
           <StackPanel DockPanel.Dock="Top">
-            <Grid Margin="0,0,0,30">
+            <Grid Margin="6,0,0,28">
               <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="52" />
+                <ColumnDefinition Width="50" />
                 <ColumnDefinition Width="*" />
               </Grid.ColumnDefinitions>
-              <Grid Width="46"
-                    Height="46"
+              <Grid Width="44"
+                    Height="44"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Top">
                 <Path Stretch="Uniform"
@@ -1024,7 +1023,7 @@
                           Margin="8,0,0,0">
                 <TextBlock Text="{services:Loc AppTitle}"
                            Style="{StaticResource RailTitleTextStyle}"
-                           FontSize="21" />
+                           FontSize="23" />
                 <TextBlock Text="{Binding ShellDisplayVersion}"
                            Style="{StaticResource CaptionTextStyle}"
                            Margin="0,3,0,0" />
@@ -1060,7 +1059,7 @@
                         StrokeLineJoin="Round"
                         Data="M 2 9 L 9 3 L 16 9 M 4 8 V 16 H 14 V 8" />
                   <TextBlock Grid.Column="1"
-                             Text="{x:Static props:Strings.ModeRecommendedDescription}"
+                             Text="{services:Loc NavHome}"
                              Margin="12,0,0,0"
                              VerticalAlignment="Center"
                              TextWrapping="Wrap" />
@@ -1095,7 +1094,7 @@
                         StrokeEndLineCap="Round"
                         Data="M 3 5 H 15 M 6 3 V 7 M 3 11 H 15 M 12 9 V 13 M 3 17 H 15 M 8 15 V 19" />
                   <TextBlock Grid.Column="1"
-                             Text="{services:Loc Ui_CustomSettings}"
+                             Text="{services:Loc NavSetup}"
                              Margin="12,0,0,0"
                              VerticalAlignment="Center"
                              TextWrapping="Wrap" />
@@ -1131,14 +1130,14 @@
                         StrokeLineJoin="Round"
                         Data="M 13 2 L 16 5 L 11 10 L 8 7 Z M 10 9 L 4 15 A 2 2 0 0 0 7 18 L 13 12" />
                   <TextBlock Grid.Column="1"
-                             Text="{x:Static props:Strings.ModeMaintenanceTitle}"
+                             Text="{services:Loc NavUnblock}"
                              Margin="12,0,0,0"
                              VerticalAlignment="Center"
                              TextWrapping="Wrap" />
                 </Grid>
               </Button>
 
-              <Button Command="{Binding ShowCustomWorkspaceCommand}"
+              <Button Command="{Binding ShowMaintenanceWorkspaceCommand}"
                       Margin="0,8,0,0"
                       Style="{StaticResource ShellNavButtonStyle}"
                       AutomationProperties.AutomationId="WorkspaceNavProfiles"
@@ -1157,7 +1156,33 @@
                         StrokeLineJoin="Round"
                         Data="M 2 6 H 7 L 9 8 H 16 V 17 H 2 Z" />
                   <TextBlock Grid.Column="1"
-                             Text="{services:Loc Ui_LocalProfiles}"
+                             Text="{services:Loc NavTools}"
+                             Margin="12,0,0,0"
+                             VerticalAlignment="Center"
+                             TextWrapping="Wrap" />
+                </Grid>
+              </Button>
+
+              <Button Command="{Binding ShowCustomWorkspaceCommand}"
+                      Margin="0,8,0,0"
+                      Style="{StaticResource ShellNavButtonStyle}"
+                      AutomationProperties.AutomationId="WorkspaceNavSettings"
+                      AutomationProperties.Name="{services:Loc Ui_CustomSettings}">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Path Width="18" Height="18"
+                        Stretch="Uniform"
+                        Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        StrokeThickness="2"
+                        StrokeStartLineCap="Round"
+                        StrokeEndLineCap="Round"
+                        StrokeLineJoin="Round"
+                        Data="M 9 2 V 4 M 9 14 V 16 M 4 9 H 2 M 16 9 H 14 M 13.95 4.05 L 12.54 5.46 M 5.46 12.54 L 4.05 13.95 M 13.95 13.95 L 12.54 12.54 M 5.46 5.46 L 4.05 4.05 M 9 6 A 3 3 0 1 0 9 12 A 3 3 0 1 0 9 6" />
+                  <TextBlock Grid.Column="1"
+                             Text="{services:Loc NavSettings}"
                              Margin="12,0,0,0"
                              VerticalAlignment="Center"
                              TextWrapping="Wrap" />
@@ -1182,7 +1207,7 @@
                         StrokeEndLineCap="Round"
                         Data="M 9 2 A 7 7 0 1 0 9 16 A 7 7 0 1 0 9 2 M 9 5 V 10 M 9 13 V 13.5" />
                   <TextBlock Grid.Column="1"
-                             Text="{x:Static props:Strings.SupportBundleTitle}"
+                             Text="{services:Loc NavAbout}"
                              Margin="12,0,0,0"
                              VerticalAlignment="Center"
                              TextWrapping="Wrap" />
@@ -1439,8 +1464,8 @@
       <!-- ═══ Main content ═══ -->
       <Border Grid.Column="2"
               Style="{StaticResource SurfaceCardStyle}"
-              Margin="0,58,0,38"
-              Padding="18,18,18,14">
+              Margin="0,64,0,220"
+              Padding="18">
         <Grid>
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -1449,7 +1474,7 @@
             <RowDefinition Height="Auto" />
           </Grid.RowDefinitions>
 
-          <Grid Grid.Row="0" Margin="0,0,0,16" MinHeight="146">
+          <Grid Grid.Row="0" Margin="0,0,0,16" MinHeight="124">
             <Grid.RowDefinitions>
               <RowDefinition Height="Auto" />
               <RowDefinition Height="Auto" />
@@ -1457,11 +1482,10 @@
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" />
               <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="320" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.RowSpan="2"
-                    Grid.ColumnSpan="3"
+                    Grid.ColumnSpan="2"
                     Background="{DynamicResource HeroPanelBrush}"
                     BorderBrush="{DynamicResource StrokeBrush}"
                     BorderThickness="1"
@@ -1469,9 +1493,9 @@
                     Effect="{DynamicResource CardShadow}" />
 
             <Grid Grid.Column="0"
-                  Width="86"
-                  Height="86"
-                  Margin="22,26,0,26"
+                  Width="78"
+                  Height="78"
+                  Margin="22,22,0,22"
                   VerticalAlignment="Center">
               <Ellipse Fill="{DynamicResource AccentSoftBrush}"
                        Stroke="{DynamicResource HeroRingBrush}"
@@ -1489,91 +1513,20 @@
                     VerticalAlignment="Center" />
             </Grid>
 
-            <StackPanel Grid.Column="1" Margin="22,24,24,22" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Margin="22,22,26,20" VerticalAlignment="Center">
               <TextBlock Text="{Binding WorkspaceHeroEyebrow}"
                          Style="{StaticResource SectionEyebrowTextStyle}"
                          Foreground="{DynamicResource AccentBrush}"
                          Visibility="Collapsed" />
               <TextBlock Text="{Binding WorkspaceHeroTitle}"
                          Style="{StaticResource HeadlineTextStyle}"
-                         FontSize="28"
-                         LineHeight="36" />
+                         FontSize="27"
+                         LineHeight="34" />
               <TextBlock Text="{Binding WorkspaceHeroBody}"
                          Style="{StaticResource CaptionTextStyle}"
                          Margin="0,8,0,0"
                          MaxWidth="760"
                          TextWrapping="Wrap" />
-            </StackPanel>
-
-            <StackPanel Grid.Column="2"
-                        Margin="0,0,22,0"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center">
-              <WrapPanel HorizontalAlignment="Right"
-                         Margin="0,0,0,12"
-                         Visibility="Collapsed">
-                <Button Content="{Binding ShellTopThemeLabel}"
-                        Height="36"
-                        MinWidth="84"
-                        Padding="14,0"
-                        Margin="0,0,8,0"
-                        Style="{StaticResource GhostButtonStyle}"
-                        AutomationProperties.Name="{services:Loc Ui_OpenSpicetifyThemeCatalog}"
-                        Command="{Binding OpenThemeCatalogCommand}" />
-                <ComboBox ItemsSource="{Binding LocalizationOptions}"
-                          SelectedItem="{Binding SelectedLocalizationOption, Mode=TwoWay}"
-                          Width="128"
-                          Height="36"
-                          Margin="0,0,8,0"
-                          Style="{StaticResource ComboBoxStylePremium}"
-                          AutomationProperties.Name="{services:Loc LanguageLabel}"
-                          AutomationProperties.HelpText="{services:Loc LanguageHelpText}">
-                  <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                      <TextBlock Text="{Binding DisplayName}"
-                                 TextTrimming="CharacterEllipsis"
-                                 TextWrapping="NoWrap" />
-                    </DataTemplate>
-                  </ComboBox.ItemTemplate>
-                </ComboBox>
-                <Button Content="{Binding ShellTopSettingsLabel}"
-                        Height="36"
-                        MinWidth="88"
-                        Padding="14,0"
-                        Style="{StaticResource GhostButtonStyle}"
-                        AutomationProperties.Name="{services:Loc Ui_CustomSettings}"
-                        Command="{Binding ShowCustomWorkspaceCommand}" />
-              </WrapPanel>
-              <Button Content="{x:Static props:Strings.ButtonRunRecommendedSetup}"
-                      Height="58"
-                      MinWidth="292"
-                      Padding="18,0"
-                      Margin="0,8,0,8"
-                      FontSize="15"
-                      Style="{StaticResource PrimaryButtonStyle}"
-                      AutomationProperties.AutomationId="RunRecommendedSetupButton"
-                      AutomationProperties.Name="{x:Static props:Strings.ButtonRunRecommendedSetup}"
-                      AutomationProperties.HelpText="{services:Loc Ui_RunsLibreSpotSMostReliableInstallPathWith}"
-                      Command="{Binding ApplyRecommendedCommand}" />
-              <TextBlock Text="{Binding SessionAccessTitle}"
-                         Style="{StaticResource LabelTextStyle}"
-                         TextAlignment="Right"
-                         Visibility="Collapsed" />
-              <TextBlock Text="{Binding SessionAccessDetail}"
-                         Style="{StaticResource CaptionTextStyle}"
-                         TextAlignment="Right"
-                         TextWrapping="Wrap"
-                         Width="260"
-                         Margin="0,6,0,0"
-                         Visibility="Collapsed" />
-              <Button Content="{services:Loc Ui_RelaunchAsAdministrator}"
-                      Height="40"
-                      Margin="0,14,0,0"
-                      Style="{StaticResource SecondaryButtonStyle}"
-                      AutomationProperties.Name="{services:Loc Ui_RelaunchLibreSpotAsAdministrator}"
-                      AutomationProperties.HelpText="{services:Loc Ui_RestartsLibreSpotWithAdministratorAccessBeforeApplyingChanges}"
-                      Visibility="Collapsed"
-                      Command="{Binding RelaunchAsAdministratorCommand}" />
             </StackPanel>
 
             <Border Grid.Row="1"
@@ -1602,10 +1555,51 @@
             </ItemsControl>
           </Border>
 
+          <Border Grid.Row="2"
+                  Background="{DynamicResource Surface2Brush}"
+                  BorderBrush="{DynamicResource StrokeSoftBrush}"
+                  BorderThickness="1"
+                  CornerRadius="10"
+                  Margin="0,0,0,10"
+                  MinHeight="112"
+                  Padding="20">
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+              <Button Height="58"
+                      MinWidth="320"
+                      Padding="20,0"
+                      FontSize="16"
+                      Style="{StaticResource PrimaryButtonStyle}"
+                      AutomationProperties.AutomationId="RunRecommendedSetupButton"
+                      AutomationProperties.Name="{x:Static props:Strings.ButtonRunRecommendedSetup}"
+                      AutomationProperties.HelpText="{services:Loc Ui_RunsLibreSpotSMostReliableInstallPathWith}"
+                      Command="{Binding ApplyRecommendedCommand}">
+                <StackPanel Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                  <Path Width="16"
+                        Height="16"
+                        Stretch="Uniform"
+                        Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                        Data="M 3 2 L 16 8.5 L 3 15 Z"
+                        Margin="0,0,14,0" />
+                  <TextBlock Text="{x:Static props:Strings.ButtonRunRecommendedSetup}"
+                             FontWeight="SemiBold"
+                             VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <TextBlock Text="{Binding ShellRunRecommendedCaption}"
+                         Style="{StaticResource CaptionTextStyle}"
+                         Foreground="{DynamicResource MutedTextBrush}"
+                         HorizontalAlignment="Center"
+                         TextAlignment="Center"
+                         Margin="0,12,0,0" />
+            </StackPanel>
+          </Border>
+
           <!-- Workspace tabs -->
-          <TabControl Grid.Row="2"
+          <TabControl Grid.Row="3"
                       Style="{StaticResource WorkspaceTabControlStyle}"
-                      MaxHeight="400"
+                      MaxHeight="310"
                       SelectedIndex="{Binding SelectedWorkspaceIndex}">
             <TabControl.ItemContainerStyle>
               <Style TargetType="TabItem" BasedOn="{StaticResource WorkspaceTabItemStyle}" />
@@ -1619,71 +1613,48 @@
                 <ContentControl Focusable="True"
                                 AutomationProperties.AutomationId="RecommendedWorkspace"
                                 AutomationProperties.Name="{services:Loc Ui_RecommendedWorkspace}">
-                <StackPanel Margin="0,8,0,0">
-                  <Grid Margin="0,0,0,0">
+                <Border Style="{StaticResource SubtleCardStyle}"
+                        Background="{DynamicResource Surface2Brush}"
+                        Padding="18"
+                        Margin="0">
+                  <Grid>
                     <Grid.ColumnDefinitions>
                       <ColumnDefinition Width="0.9*" />
+                      <ColumnDefinition Width="1" />
                       <ColumnDefinition Width="1.1*" />
                     </Grid.ColumnDefinitions>
 
-                    <Border Style="{StaticResource SubtleCardStyle}"
-                            Padding="16"
-                            Margin="0,0,8,0">
-                      <StackPanel>
-                        <TextBlock Text="{Binding ShellLocalEnvironmentTitle}"
-                                   Style="{StaticResource SectionTitleTextStyle}"
-                                   FontSize="16" />
-                        <Border Height="1"
-                                Background="{DynamicResource StrokeSoftBrush}"
-                                Margin="0,10,0,14" />
-                        <ItemsControl ItemsSource="{Binding ShellEnvironmentRows}"
-                                      ItemTemplate="{StaticResource ShellEnvironmentRowTemplate}" />
-                        <Button Content="{Binding ShellEnvironmentReportLinkText}"
-                                Height="34"
-                                Margin="0,6,0,0"
-                                Padding="0"
-                                HorizontalAlignment="Left"
-                                Style="{StaticResource GhostButtonStyle}"
-                                Foreground="{DynamicResource AccentBrush}"
-                                AutomationProperties.Name="{Binding ShellEnvironmentReportLinkText}"
-                                Command="{Binding RefreshSnapshotCommand}" />
-                      </StackPanel>
-                    </Border>
+                    <StackPanel Margin="0,0,18,0">
+                      <TextBlock Text="{Binding ShellLocalEnvironmentTitle}"
+                                 Style="{StaticResource SectionTitleTextStyle}"
+                                 FontSize="15.5" />
+                      <Border Height="1"
+                              Background="{DynamicResource StrokeSoftBrush}"
+                              Margin="0,10,0,14" />
+                      <ItemsControl ItemsSource="{Binding ShellEnvironmentRows}"
+                                    ItemTemplate="{StaticResource ShellEnvironmentRowTemplate}" />
+                    </StackPanel>
 
                     <Border Grid.Column="1"
-                            Style="{StaticResource SubtleCardStyle}"
-                            Padding="16"
-                            Margin="8,0,0,0">
-                      <StackPanel>
-                        <TextBlock Text="{Binding ShellDependenciesTitle}"
-                                   Style="{StaticResource SectionTitleTextStyle}"
-                                   FontSize="16" />
-                        <Grid Margin="0,10,0,0">
-                          <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.25*" />
-                            <ColumnDefinition Width="0.9*" />
-                            <ColumnDefinition Width="0.9*" />
-                            <ColumnDefinition Width="42" />
-                          </Grid.ColumnDefinitions>
-                          <Border Grid.ColumnSpan="4"
-                                  Height="1"
-                                  Background="{DynamicResource StrokeSoftBrush}"
-                                  VerticalAlignment="Bottom" />
-                          <TextBlock Text="{Binding ShellDependencyComponentHeader}" Style="{StaticResource LabelTextStyle}" />
-                          <TextBlock Grid.Column="1" Text="{Binding ShellDependencyInstalledHeader}" Style="{StaticResource LabelTextStyle}" Margin="10,0" />
-                          <TextBlock Grid.Column="2" Text="{Binding ShellDependencyRecommendedHeader}" Style="{StaticResource LabelTextStyle}" Margin="10,0" />
-                          <TextBlock Grid.Column="3" Text="{Binding ShellDependencyStatusHeader}" Style="{StaticResource LabelTextStyle}" TextAlignment="Center" />
-                        </Grid>
-                        <ItemsControl ItemsSource="{Binding ShellDependencyRows}"
-                                      ItemTemplate="{StaticResource ShellDependencyRowTemplate}" />
-                        <TextBlock Text="{Binding ShellDependenciesSummaryText}"
-                                   Style="{StaticResource CaptionTextStyle}"
-                                   Foreground="{DynamicResource AccentBrush}"
-                                   Margin="0,8,0,0" />
-                      </StackPanel>
-                    </Border>
+                            Background="{DynamicResource StrokeSoftBrush}"
+                            Margin="0,0,18,0" />
+
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Text="{Binding ShellDependenciesTitle}"
+                                 Style="{StaticResource SectionTitleTextStyle}"
+                                 FontSize="15.5" />
+                      <Border Height="1"
+                              Background="{DynamicResource StrokeSoftBrush}"
+                              Margin="0,10,0,14" />
+                      <ItemsControl ItemsSource="{Binding ShellDependencyRows}"
+                                    ItemTemplate="{StaticResource ShellDependencyRowTemplate}" />
+                      <TextBlock Text="{Binding ShellDependenciesSummaryText}"
+                                 Style="{StaticResource CaptionTextStyle}"
+                                 Foreground="{DynamicResource AccentBrush}"
+                                 Margin="0,8,0,0" />
+                    </StackPanel>
                   </Grid>
-                </StackPanel>
+                </Border>
                 </ContentControl>
               </ScrollViewer>
             </TabItem>
@@ -3318,6 +3289,7 @@
           </TabControl>
 
           <Border Grid.Row="3"
+                  Visibility="Collapsed"
                   Style="{StaticResource SubtleCardStyle}"
                   Background="{DynamicResource Surface1Brush}"
                   BorderBrush="{DynamicResource StrokeBrush}"
@@ -3433,7 +3405,175 @@
         </Grid>
       </Border>
 
+      <StackPanel Grid.Column="4"
+                  Margin="0,64,16,220">
+        <Border Style="{StaticResource SurfaceCardStyle}"
+                Background="{DynamicResource Surface2Brush}"
+                Padding="20"
+                Margin="0,0,0,18">
+          <StackPanel>
+            <TextBlock Text="{Binding ShellReadinessValue}"
+                       Style="{StaticResource SectionTitleTextStyle}"
+                       FontSize="18" />
+            <Grid Width="144"
+                  Height="144"
+                  HorizontalAlignment="Center"
+                  Margin="0,22,0,20">
+              <Ellipse Stroke="{DynamicResource StrokeStrongBrush}"
+                       StrokeThickness="14"
+                       Fill="{DynamicResource Surface1Brush}" />
+              <Ellipse StrokeThickness="14"
+                       Margin="1">
+                <Ellipse.Style>
+                  <Style TargetType="Ellipse">
+                    <Setter Property="Stroke" Value="{DynamicResource HeroRingBrush}" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
+                        <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Ellipse.Style>
+              </Ellipse>
+              <StackPanel HorizontalAlignment="Center"
+                          VerticalAlignment="Center">
+                <TextBlock Text="{Binding ShellReadinessPercent}"
+                           Foreground="{DynamicResource TextBrush}"
+                           FontSize="25"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding ShellReadinessShortLabel}"
+                           Style="{StaticResource CaptionTextStyle}"
+                           Foreground="{DynamicResource MutedTextBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,3,0,0" />
+              </StackPanel>
+            </Grid>
+
+            <Grid Margin="0,0,0,10">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="24" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Ellipse Width="16" Height="16" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.5" />
+              <Path Width="8" Height="6" Data="M 1 3 L 3 5 L 7 1" Stretch="Uniform" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+              <TextBlock Grid.Column="1" Text="{Binding ShellSystemChecksLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
+              <TextBlock Grid.Column="2" Text="{Binding ShellCheckOkLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
+            </Grid>
+            <Grid Margin="0,0,0,10">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="24" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Ellipse Width="16" Height="16" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.5" />
+              <Path Width="8" Height="6" Data="M 1 3 L 3 5 L 7 1" Stretch="Uniform" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+              <TextBlock Grid.Column="1" Text="{Binding ShellSpotifyDetectedLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
+              <TextBlock Grid.Column="2" Text="{Binding ShellCheckOkLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
+            </Grid>
+            <Grid Margin="0,0,0,10">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="24" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Ellipse Width="16" Height="16" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.5" />
+              <Path Width="8" Height="6" Data="M 1 3 L 3 5 L 7 1" Stretch="Uniform" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+              <TextBlock Grid.Column="1" Text="{Binding ShellWritePermissionsLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
+              <TextBlock Grid.Column="2" Text="{Binding ShellCheckOkLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
+            </Grid>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="24" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Ellipse Width="16" Height="16" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.5" />
+              <Path Width="8" Height="6" Data="M 1 3 L 3 5 L 7 1" Stretch="Uniform" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+              <TextBlock Grid.Column="1" Text="{Binding ShellDependenciesLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
+              <TextBlock Grid.Column="2" Text="{Binding ShellCheckOkLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource SurfaceCardStyle}"
+                Background="{DynamicResource Surface2Brush}"
+                Padding="20">
+          <StackPanel>
+            <TextBlock Text="{Binding ShellNextActionsTitle}"
+                       Style="{StaticResource SectionTitleTextStyle}"
+                       FontSize="18"
+                       Margin="0,0,0,16" />
+            <Button Style="{StaticResource GhostButtonStyle}"
+                    Background="Transparent"
+                    BorderBrush="Transparent"
+                    MinHeight="58"
+                    Padding="0"
+                    Margin="0,0,0,10"
+                    HorizontalContentAlignment="Stretch"
+                    AutomationProperties.Name="{Binding ShellActionRunSetupTitle}"
+                    Command="{Binding ApplyRecommendedCommand}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="42" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Ellipse Width="34" Height="34" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.5" />
+                <Path Width="11" Height="12" Data="M 2 1 L 10 6 L 2 11 Z" Fill="{DynamicResource TextBrush}" Stretch="Uniform" />
+                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                  <TextBlock Text="{Binding ShellActionRunSetupTitle}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding ShellActionRunSetupDetail}" Style="{StaticResource CaptionTextStyle}" />
+                </StackPanel>
+              </Grid>
+            </Button>
+            <Button Style="{StaticResource GhostButtonStyle}"
+                    Background="Transparent"
+                    BorderBrush="Transparent"
+                    MinHeight="58"
+                    Padding="0"
+                    Margin="0,0,0,10"
+                    HorizontalContentAlignment="Stretch"
+                    AutomationProperties.Name="{Binding ShellActionUnblockTitle}"
+                    Command="{Binding ShowMaintenanceWorkspaceCommand}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="42" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Path Width="30" Height="30" Data="M 8 12 V 8 A 4 4 0 0 1 16 8 V 12 M 6 12 H 18 V 22 H 6 Z M 12 16 V 19" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stretch="Uniform" />
+                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                  <TextBlock Text="{Binding ShellActionUnblockTitle}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding ShellActionUnblockDetail}" Style="{StaticResource CaptionTextStyle}" />
+                </StackPanel>
+              </Grid>
+            </Button>
+            <Button Style="{StaticResource GhostButtonStyle}"
+                    Background="Transparent"
+                    BorderBrush="Transparent"
+                    MinHeight="58"
+                    Padding="0"
+                    HorizontalContentAlignment="Stretch"
+                    AutomationProperties.Name="{Binding ShellActionToolsTitle}"
+                    Command="{Binding ShowMaintenanceWorkspaceCommand}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="42" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Path Width="30" Height="30" Data="M 18 4 L 20 6 L 15 11 L 12 8 Z M 14 10 L 5 19 A 2 2 0 0 0 8 22 L 17 13" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stretch="Uniform" />
+                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                  <TextBlock Text="{Binding ShellActionToolsTitle}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding ShellActionToolsDetail}" Style="{StaticResource CaptionTextStyle}" />
+                </StackPanel>
+              </Grid>
+            </Button>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
       <Border Grid.Column="4"
+              Visibility="Collapsed"
               Background="{DynamicResource PanelStrongBrush}"
               BorderBrush="{DynamicResource StrokeSoftBrush}"
               BorderThickness="1"
@@ -3702,16 +3842,161 @@
           </StackPanel>
         </ScrollViewer>
       </Border>
+
+      <Border Grid.Column="2"
+              Grid.ColumnSpan="3"
+              Height="184"
+              VerticalAlignment="Bottom"
+              Background="{DynamicResource Surface1Brush}"
+              BorderBrush="{DynamicResource StrokeBrush}"
+              BorderThickness="1"
+              CornerRadius="10"
+              Margin="0,0,16,38"
+              ClipToBounds="True">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="38" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <Border Background="{DynamicResource CanvasBrush}"
+                  BorderBrush="{DynamicResource StrokeSoftBrush}"
+                  BorderThickness="0,0,0,1">
+            <Grid Margin="14,0,14,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Text="{Binding ShellActivityTitle}"
+                         Foreground="{DynamicResource TextBrush}"
+                         FontWeight="SemiBold"
+                         FontSize="13.5"
+                         VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1"
+                          Orientation="Horizontal"
+                          VerticalAlignment="Center">
+                <Button Content="{Binding ShellLogLevelLabel}"
+                        Height="28"
+                        MinWidth="116"
+                        Padding="10,0"
+                        Margin="0,0,12,0"
+                        Style="{StaticResource GhostButtonStyle}"
+                        AutomationProperties.Name="{Binding ShellLogLevelLabel}" />
+                <Button Content="{Binding ShellClearLogLabel}"
+                        Height="28"
+                        MinWidth="92"
+                        Padding="10,0"
+                        Style="{StaticResource GhostButtonStyle}"
+                        AutomationProperties.Name="{Binding ShellClearLogLabel}"
+                        Command="{Binding ClearLogCommand}" />
+              </StackPanel>
+            </Grid>
+          </Border>
+          <ScrollViewer Grid.Row="1"
+                        VerticalScrollBarVisibility="Auto"
+                        HorizontalScrollBarVisibility="Disabled"
+                        AutomationProperties.Name="{services:Loc RunLogLabel}">
+            <ItemsControl ItemsSource="{Binding ShellActivityLogItems}"
+                          ItemTemplate="{StaticResource ShellLogRowTemplate}" />
+          </ScrollViewer>
+
+          <Border Grid.Row="1"
+                  Width="680"
+                  Height="56"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Bottom"
+                  Margin="0,0,28,0"
+                  Background="{DynamicResource CanvasBrush}"
+                  BorderBrush="{DynamicResource StrokeBrush}"
+                  BorderThickness="1"
+                  CornerRadius="10"
+                  Padding="16,0"
+                  Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.Name="{Binding ActivityStatus}"
+                  AutomationProperties.HelpText="{Binding ActivityAssistiveText}">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="104" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="160" />
+                <ColumnDefinition Width="54" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Ellipse Width="12"
+                       Height="12"
+                       Fill="{DynamicResource AccentBrush}"
+                       VerticalAlignment="Center"
+                       Margin="0,0,12,0" />
+              <TextBlock Grid.Column="1"
+                         Text="{Binding ShellActiveRunTitle}"
+                         Foreground="{DynamicResource AccentBrush}"
+                         FontWeight="SemiBold"
+                         VerticalAlignment="Center"
+                         Margin="0,0,18,0" />
+              <TextBlock Grid.Column="2"
+                         Text="{Binding ActivityStep}"
+                         Style="{StaticResource CaptionTextStyle}"
+                         TextTrimming="CharacterEllipsis"
+                         VerticalAlignment="Center"
+                         Margin="0,0,12,0" />
+              <ProgressBar Grid.Column="3"
+                           Width="148"
+                           Height="6"
+                           Maximum="100"
+                           Value="{Binding ProgressValue, Mode=OneWay}"
+                           IsIndeterminate="{Binding IsBusyIndeterminate, Mode=OneWay}"
+                           Style="{StaticResource ProgressBarStylePremium}"
+                           VerticalAlignment="Center" />
+              <TextBlock Grid.Column="4"
+                         Text="{Binding ProgressLabel}"
+                         Foreground="{DynamicResource TextBrush}"
+                         FontWeight="SemiBold"
+                         VerticalAlignment="Center"
+                         Margin="12,0,18,0" />
+              <Button Grid.Column="5"
+                      Content="{x:Static props:Strings.ButtonCancelRun}"
+                      MinWidth="132"
+                      Height="38"
+                      Padding="16,0"
+                      Style="{StaticResource DestructiveButtonStyle}"
+                      AutomationProperties.AutomationId="InlineActivityCancelRunButton"
+                      AutomationProperties.Name="{x:Static props:Strings.ButtonCancelRunName}"
+                      AutomationProperties.HelpText="{x:Static props:Strings.ButtonCancelRunHint}"
+                      Command="{Binding CancelRunCommand}" />
+            </Grid>
+          </Border>
+        </Grid>
+      </Border>
     </Grid>
 
     <!-- ═══ Activity overlay ═══ -->
-    <Border Height="48"
+    <Border Height="38"
             VerticalAlignment="Top"
             Background="{DynamicResource CanvasBrush}"
             BorderBrush="{DynamicResource StrokeSoftBrush}"
             BorderThickness="0,0,0,1"
             MouseLeftButtonDown="TitleBar_OnMouseLeftButtonDown">
       <Grid>
+        <StackPanel Orientation="Horizontal"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Left"
+                    Margin="18,0,0,0">
+          <Path Width="18"
+                Height="18"
+                Stretch="Uniform"
+                Data="M 12 2 L 21 6 V 12 C 21 17 17.5 20 12 22 C 6.5 20 3 17 3 12 V 6 Z M 8 12 L 11 15 L 16 9"
+                Stroke="{DynamicResource AccentBrush}"
+                StrokeThickness="1.8"
+                StrokeStartLineCap="Round"
+                StrokeEndLineCap="Round"
+                StrokeLineJoin="Round" />
+          <TextBlock Text="{services:Loc AppTitle}"
+                     Foreground="{DynamicResource TextBrush}"
+                     FontWeight="SemiBold"
+                     FontSize="13.5"
+                     Margin="8,0,0,0"
+                     VerticalAlignment="Center" />
+        </StackPanel>
         <StackPanel HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Orientation="Horizontal"
@@ -3721,6 +4006,7 @@
                   MinWidth="92"
                   Padding="10,0"
                   Margin="0,0,8,0"
+                  Visibility="Collapsed"
                   Style="{StaticResource GhostButtonStyle}"
                   AutomationProperties.Name="{services:Loc Ui_OpenSpicetifyThemeCatalog}"
                   Command="{Binding OpenThemeCatalogCommand}">
@@ -3745,6 +4031,7 @@
                     Width="128"
                     Height="32"
                     Margin="0,0,8,0"
+                    Visibility="Collapsed"
                     Style="{StaticResource ComboBoxStylePremium}"
                     AutomationProperties.Name="{services:Loc LanguageLabel}"
                     AutomationProperties.HelpText="{services:Loc LanguageHelpText}">
@@ -3761,6 +4048,7 @@
                   MinWidth="104"
                   Padding="10,0"
                   Margin="0,0,22,0"
+                  Visibility="Collapsed"
                   Style="{StaticResource GhostButtonStyle}"
                   AutomationProperties.Name="{services:Loc Ui_CustomSettings}"
                   Command="{Binding ShowCustomWorkspaceCommand}">
@@ -3830,7 +4118,8 @@
             VerticalAlignment="Bottom"
             Background="{DynamicResource CanvasBrush}"
             BorderBrush="{DynamicResource StrokeSoftBrush}"
-            BorderThickness="0,1,0,0">
+            BorderThickness="0,1,0,0"
+            Visibility="Collapsed">
       <Grid Margin="26,0,28,0">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />

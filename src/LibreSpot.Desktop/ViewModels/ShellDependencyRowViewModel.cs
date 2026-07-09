@@ -17,4 +17,8 @@ public sealed class ShellDependencyRowViewModel
     public string Installed { get; }
     public string Recommended { get; }
     public string Tone { get; }
+    public string Detail =>
+        string.Equals(Installed, Recommended, StringComparison.OrdinalIgnoreCase)
+            ? Installed
+            : $"{Installed} / {Recommended}";
 }

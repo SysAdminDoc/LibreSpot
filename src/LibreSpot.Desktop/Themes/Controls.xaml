@@ -128,7 +128,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{StaticResource RadiusXl}" />
-    <Setter Property="Padding" Value="26" />
+    <Setter Property="Padding" Value="22" />
     <Setter Property="Effect" Value="{DynamicResource CardShadow}" />
   </Style>
 
@@ -408,8 +408,8 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="FontSize" Value="13.5" />
-    <Setter Property="Padding" Value="14,12" />
-    <Setter Property="MinHeight" Value="48" />
+    <Setter Property="Padding" Value="16,10" />
+    <Setter Property="MinHeight" Value="44" />
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -424,7 +424,7 @@
             </Grid.RenderTransform>
             <Border x:Name="FocusRing"
                     Margin="-2"
-                    CornerRadius="10"
+                    CornerRadius="8"
                     BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
@@ -432,10 +432,10 @@
                     Background="{TemplateBinding Background}"
                     BorderBrush="{TemplateBinding BorderBrush}"
                     BorderThickness="{TemplateBinding BorderThickness}"
-                    CornerRadius="10" />
+                    CornerRadius="8" />
             <Border x:Name="HoverTint"
                     Background="{TemplateBinding Tag}"
-                    CornerRadius="10"
+                    CornerRadius="8"
                     Opacity="0"
                     IsHitTestVisible="False" />
             <Border x:Name="AccentRail"

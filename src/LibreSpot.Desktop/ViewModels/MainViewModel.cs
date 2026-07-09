@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text.Json;
 using System.Windows;
@@ -420,7 +421,27 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ? HealthIssueSummary
                 : L("Vm_ShellNoBlockingIssues");
 
+    public string ShellReadinessPercent =>
+        NeedsAdministratorRelaunch || HasCriticalHealthIssues ? "0%" : "100%";
+
+    public string ShellReadinessShortLabel =>
+        NeedsAdministratorRelaunch || HasCriticalHealthIssues
+            ? L("Vm_ShellNeedsReviewShort")
+            : Strings.SeverityReady;
+
     public string ShellQuickActionsTitle => L("Vm_ShellQuickActionsTitle");
+    public string ShellNextActionsTitle => L("Vm_ShellNextActionsTitle");
+    public string ShellActionRunSetupTitle => L("Vm_ShellActionRunSetupTitle");
+    public string ShellActionRunSetupDetail => L("Vm_ShellActionRunSetupDetail");
+    public string ShellActionUnblockTitle => L("Vm_ShellActionUnblockTitle");
+    public string ShellActionUnblockDetail => L("Vm_ShellActionUnblockDetail");
+    public string ShellActionToolsTitle => L("Vm_ShellActionToolsTitle");
+    public string ShellActionToolsDetail => L("Vm_ShellActionToolsDetail");
+    public string ShellSystemChecksLabel => L("Vm_ShellSystemChecksLabel");
+    public string ShellSpotifyDetectedLabel => L("Vm_ShellSpotifyDetectedLabel");
+    public string ShellWritePermissionsLabel => L("Vm_ShellWritePermissionsLabel");
+    public string ShellDependenciesLabel => L("Vm_ShellDependenciesLabel");
+    public string ShellCheckOkLabel => L("Vm_ShellCheckOkLabel");
     public string ShellVerifyEnvironmentTitle => L("Vm_ShellVerifyEnvironmentTitle");
     public string ShellVerifyEnvironmentDetail => L("Vm_ShellVerifyEnvironmentDetail");
     public string ShellRepairTitle => L("Vm_ShellRepairTitle");
@@ -455,6 +476,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string ShellLogLevelLabel => L("Vm_ShellLogLevelLabel");
     public string ShellClearLogLabel => L("Vm_ShellClearLogLabel");
     public string ShellAutoScrollLabel => L("Vm_ShellAutoScrollLabel");
+    public string ShellRunRecommendedCaption => L("Vm_ShellRunRecommendedCaption");
+    public string ShellActiveRunTitle => L("Vm_ShellActiveRunTitle");
     public string ShellLocalEnvironmentTitle => L("Vm_ShellLocalEnvironmentTitle");
     public string ShellDependenciesTitle => L("Vm_ShellDependenciesTitle");
     public string ShellDependencyComponentHeader => L("Vm_ShellDependencyComponentHeader");
@@ -490,39 +513,62 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    private string ShellOperatingSystemName
+    {
+        get
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                var version = Environment.OSVersion.Version;
+                if (version.Major >= 10 && version.Build >= 22000)
+                {
+                    return L("Vm_ShellWindows11");
+                }
+
+                if (version.Major >= 10)
+                {
+                    return L("Vm_ShellWindows10");
+                }
+            }
+
+            return RuntimeInformation.OSDescription;
+        }
+    }
+
+    private string ShellOperatingSystemDetail =>
+        OperatingSystem.IsWindows()
+            ? LF("Vm_ShellOsBuildFormat", Environment.OSVersion.Version.Build)
+            : RuntimeInformation.OSArchitecture.ToString();
+
     public IReadOnlyList<ShellSummaryItemViewModel> ShellSummaryItems =>
     [
-        new(L("Vm_ShellSummaryStatus"), ShellReadinessValue, ShellReadinessDetail, "check", ShellReadinessTone),
-        new(
-            L("Vm_ShellSummaryLastRun"),
-            LogEntries.LastOrDefault()?.TimestampDisplay ?? L("Vm_ShellNotRunYet"),
-            SelectedLocalProfile?.Name is { Length: > 0 } profileName ? LF("Vm_ShellProfileNameFormat", profileName) : L("Vm_ShellProfileDefault"),
-            "clock",
-            HealthSeverity.Info),
+        new(L("Vm_ShellSummaryStatus"), ShellReadinessValue, ShellReadinessDetail, "status", ShellReadinessTone),
         new(
             L("Vm_ShellSpotifyTargetLabel"),
-            "Spotify.exe",
-            ShellSpotifyTargetDetail,
+            Snapshot.SpotifyInstalled ? L("Vm_ShellSpotifyInstalled") : L("Vm_ShellSpotifyNotDetected"),
+            FirstNonEmpty(HealthComponent("spotify")?.DetectedVersion, ShellSpotifyTargetDetail),
             "spotify",
             Snapshot.SpotifyInstalled ? HealthSeverity.Ready : HealthSeverity.Info),
         new(
-            L("Vm_ShellProfileLabel"),
-            SelectedLocalProfile?.Name ?? L("Vm_ProfileDefaultNameShort"),
-            Snapshot.SavedConfigExists ? L("Vm_ProfileStateActive") : L("Vm_ShellProfileWillSave"),
-            "profile",
-            Snapshot.SavedConfigExists ? HealthSeverity.Ready : HealthSeverity.Info)
+            L("Vm_ShellSummaryOs"),
+            ShellOperatingSystemName,
+            ShellOperatingSystemDetail,
+            "os",
+            HealthSeverity.Ready),
+        new(
+            L("Vm_ShellSummaryLastRun"),
+            LogEntries.LastOrDefault()?.TimestampDisplay ?? L("Vm_ShellNotRunYet"),
+            SelectedLocalProfile?.Name is { Length: > 0 } profileName ? LF("Vm_ShellProfileNameFormat", profileName) : L("Vm_ShellNoSetupRunYet"),
+            "clock",
+            HealthSeverity.Info)
     ];
 
     public IReadOnlyList<ShellEnvironmentRowViewModel> ShellEnvironmentRows =>
     [
-        new(L("Vm_EnvWindows"), Environment.OSVersion.VersionString, HealthSeverity.Ready),
-        new(L("Vm_EnvDotNetDesktopRuntime"), Environment.Version.ToString(), HealthSeverity.Ready),
-        new(L("Vm_EnvPowerShell"), L("Vm_EnvPowerShellAvailable"), HealthSeverity.Ready),
-        new(
-            L("Vm_EnvSpotifyInstalled"),
-            FirstNonEmpty(HealthComponent("spotify")?.DetectedVersion, HealthComponent("spotify")?.Status),
-            HealthComponent("spotify")?.Severity ?? HealthSeverity.Info),
-        new(L("Vm_EnvSpotifyRunning"), L("Vm_EnvNotRunning"), Snapshot.SpotifyInstalled ? HealthSeverity.Ready : HealthSeverity.Info)
+        new(L("Vm_EnvUser"), Environment.UserName, HealthSeverity.Ready),
+        new(L("Vm_EnvMachine"), Environment.MachineName, HealthSeverity.Ready),
+        new(L("Vm_EnvWorkingDirectory"), Environment.CurrentDirectory, HealthSeverity.Ready),
+        new(L("Vm_EnvPermissions"), IsAdministratorSession ? L("Vm_EnvAdministrator") : L("Vm_EnvStandardUser"), IsAdministratorSession ? HealthSeverity.Ready : HealthSeverity.Warning)
     ];
 
     public IReadOnlyList<ShellDependencyRowViewModel> ShellDependencyRows =>
@@ -530,8 +576,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         BuildDependencyRow("Spicetify CLI", HealthComponent("spicetify-cli"), AppCatalog.PinnedSpicetifyCliVersion),
         BuildDependencyRow("SpotX (core)", HealthComponent("spotx"), AppCatalog.PinnedSpotXVersion),
         BuildDependencyRow("Marketplace", HealthComponent("marketplace"), AppCatalog.PinnedMarketplaceVersion),
-        new("Node.js", L("Vm_DependencyNotRequired"), L("Vm_DependencyOptional"), HealthSeverity.Ready),
-        new("Python", L("Vm_DependencyNotRequired"), L("Vm_DependencyOptional"), HealthSeverity.Ready)
+        new(
+            "Spotify",
+            FirstNonEmpty(HealthComponent("spotify")?.DetectedVersion, ShellSpotifyTargetDetail),
+            L("Vm_ShellSpotifyInstalled"),
+            Snapshot.SpotifyInstalled ? HealthSeverity.Ready : HealthSeverity.Warning)
     ];
 
     public IReadOnlyList<LogEntryViewModel> ShellActivityLogItems =>
@@ -1725,7 +1774,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RaiseSupportBundlePreviewChanged();
         OnPropertyChanged(nameof(SelectedLocalizationOption));
         OnPropertyChanged(nameof(ShellReadinessTitle));
+        OnPropertyChanged(nameof(ShellReadinessShortLabel));
         OnPropertyChanged(nameof(ShellQuickActionsTitle));
+        OnPropertyChanged(nameof(ShellNextActionsTitle));
+        OnPropertyChanged(nameof(ShellActionRunSetupTitle));
+        OnPropertyChanged(nameof(ShellActionRunSetupDetail));
+        OnPropertyChanged(nameof(ShellActionUnblockTitle));
+        OnPropertyChanged(nameof(ShellActionUnblockDetail));
+        OnPropertyChanged(nameof(ShellActionToolsTitle));
+        OnPropertyChanged(nameof(ShellActionToolsDetail));
+        OnPropertyChanged(nameof(ShellSystemChecksLabel));
+        OnPropertyChanged(nameof(ShellSpotifyDetectedLabel));
+        OnPropertyChanged(nameof(ShellWritePermissionsLabel));
+        OnPropertyChanged(nameof(ShellDependenciesLabel));
+        OnPropertyChanged(nameof(ShellCheckOkLabel));
         OnPropertyChanged(nameof(ShellVerifyEnvironmentTitle));
         OnPropertyChanged(nameof(ShellVerifyEnvironmentDetail));
         OnPropertyChanged(nameof(ShellRepairTitle));
@@ -1746,6 +1808,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShellLogLevelLabel));
         OnPropertyChanged(nameof(ShellClearLogLabel));
         OnPropertyChanged(nameof(ShellAutoScrollLabel));
+        OnPropertyChanged(nameof(ShellRunRecommendedCaption));
+        OnPropertyChanged(nameof(ShellActiveRunTitle));
         OnPropertyChanged(nameof(ShellLocalEnvironmentTitle));
         OnPropertyChanged(nameof(ShellDependenciesTitle));
         OnPropertyChanged(nameof(ShellDependencyComponentHeader));
