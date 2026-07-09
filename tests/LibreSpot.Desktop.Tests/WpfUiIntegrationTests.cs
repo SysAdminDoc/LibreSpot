@@ -17,12 +17,15 @@ public sealed class WpfUiIntegrationTests
     public void ActivityRunLog_UsesRecyclingVirtualization()
     {
         var xaml = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml"));
+        var codeBehind = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml.cs"));
 
         Assert.Contains("x:Name=\"LogListBox\"", xaml);
         Assert.Contains("VirtualizingPanel.IsVirtualizing=\"True\"", xaml);
         Assert.Contains("VirtualizingPanel.VirtualizationMode=\"Recycling\"", xaml);
         Assert.Contains("<VirtualizingStackPanel />", xaml);
-        Assert.Contains("LogListBox.ScrollIntoView", File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml.cs")));
+        Assert.Contains("LogListBox.ScrollIntoView", codeBehind);
+        Assert.Contains("_isLogScrollPending", codeBehind);
+        Assert.Contains("e.Action != NotifyCollectionChangedAction.Add || _isLogScrollPending", codeBehind);
         Assert.DoesNotContain("x:Name=\"LogScrollViewer\"", xaml);
     }
 

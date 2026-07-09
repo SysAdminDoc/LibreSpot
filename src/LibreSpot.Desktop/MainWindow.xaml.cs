@@ -39,6 +39,7 @@ public partial class MainWindow : Window
     private IInputElement? _focusBeforePrompt;
     private bool _wasRunning;
     private bool _syncingCustomPatchEditor;
+    private bool _isLogScrollPending;
     private Forms.NotifyIcon? _trayIcon;
     private bool _hasShownTrayMinimizeNotice;
 
@@ -524,17 +525,25 @@ public partial class MainWindow : Window
 
     private void OnLogEntriesChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action != NotifyCollectionChangedAction.Add)
+        if (e.Action != NotifyCollectionChangedAction.Add || _isLogScrollPending)
         {
             return;
         }
 
+        _isLogScrollPending = true;
         // Defer until after the virtualized list has realized the newest row.
         Dispatcher.BeginInvoke(new Action(() =>
         {
-            if (LogListBox?.Items.Count > 0)
+            try
             {
-                LogListBox.ScrollIntoView(LogListBox.Items[^1]);
+                if (LogListBox?.Items.Count > 0)
+                {
+                    LogListBox.ScrollIntoView(LogListBox.Items[^1]);
+                }
+            }
+            finally
+            {
+                _isLogScrollPending = false;
             }
         }), DispatcherPriority.Background);
     }
