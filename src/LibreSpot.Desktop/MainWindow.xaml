@@ -1138,7 +1138,8 @@
                       Margin="0,8,0,0"
                       Style="{StaticResource ShellNavButtonStyle}"
                       AutomationProperties.AutomationId="WorkspaceNavProfiles"
-                      AutomationProperties.Name="{services:Loc Ui_LocalProfiles}">
+                      AutomationProperties.Name="{services:Loc NavTools}"
+                      AutomationProperties.HelpText="{services:Loc Vm_ShellActionToolsDetail}">
                 <Grid>
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -1164,7 +1165,8 @@
                       Margin="0,8,0,0"
                       Style="{StaticResource ShellNavButtonStyle}"
                       AutomationProperties.AutomationId="WorkspaceNavSettings"
-                      AutomationProperties.Name="{services:Loc Ui_CustomSettings}">
+                      AutomationProperties.Name="{services:Loc NavSettings}"
+                      AutomationProperties.HelpText="{services:Loc Vm_WorkspaceHeroCustomBody}">
                 <Grid>
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -1186,11 +1188,12 @@
                 </Grid>
               </Button>
 
-              <Button Command="{Binding ShowMaintenanceWorkspaceCommand}"
+              <Button Command="{Binding OpenRepositoryCommand}"
                       Margin="0,8,0,0"
                       Style="{StaticResource ShellNavButtonStyle}"
                       AutomationProperties.AutomationId="WorkspaceNavSupport"
-                      AutomationProperties.Name="{x:Static props:Strings.SupportBundleTitle}">
+                      AutomationProperties.Name="{services:Loc NavAbout}"
+                      AutomationProperties.HelpText="{Binding ShellLearnMoreLabel}">
                 <Grid>
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
