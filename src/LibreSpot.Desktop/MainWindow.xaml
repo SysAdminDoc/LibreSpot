@@ -7,7 +7,6 @@
         xmlns:avalon="clr-namespace:ICSharpCode.AvalonEdit;assembly=ICSharpCode.AvalonEdit"
         xmlns:models="clr-namespace:LibreSpot.Desktop.Models"
         xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
-        xmlns:props="clr-namespace:LibreSpot.Desktop.Properties"
         xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
@@ -15,8 +14,8 @@
         Title="{services:Loc AppTitle}"
         Width="1584"
         Height="990"
-        MinWidth="1360"
-        MinHeight="820"
+        MinWidth="1180"
+        MinHeight="720"
         Icon="pack://application:,,,/Assets/LibreSpot.ico"
         WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True"
@@ -76,11 +75,53 @@
     </Style>
 
     <Style x:Key="MinimalSectionStyle" TargetType="Border">
-      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Background" Value="{DynamicResource Surface1Brush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
-      <Setter Property="BorderThickness" Value="0,0,0,1" />
-      <Setter Property="Padding" Value="0,0,0,18" />
-      <Setter Property="Margin" Value="0,0,0,18" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}" />
+      <Setter Property="Padding" Value="18" />
+      <Setter Property="Margin" Value="0,0,0,14" />
+    </Style>
+
+    <Style x:Key="ReadinessCheckEllipseStyle" TargetType="Ellipse">
+      <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsSnapshotLoading}" Value="True">
+          <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
+          <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding NeedsAdministratorRelaunch}" Value="True">
+          <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
+          <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="ReadinessCheckPathStyle" TargetType="Path">
+      <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Data" Value="M 1 3 L 3 5 L 7 1" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsSnapshotLoading}" Value="True">
+          <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
+          <Setter Property="Data" Value="M 1 4 H 2 M 3.5 4 H 4.5 M 6 4 H 7" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
+          <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+          <Setter Property="Data" Value="M 4 0 V 5 M 4 7 V 7.5" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding NeedsAdministratorRelaunch}" Value="True">
+          <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+          <Setter Property="Data" Value="M 4 0 V 5 M 4 7 V 7.5" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
+          <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
+          <Setter Property="Data" Value="M 1 1 L 7 7 M 7 1 L 1 7" />
+        </DataTrigger>
+      </Style.Triggers>
     </Style>
 
     <DataTemplate DataType="{x:Type viewModels:HealthIssueActionViewModel}" x:Key="HealthIssueActionTemplate">
@@ -227,14 +268,14 @@
               <TextBlock>
                 <TextBlock.Style>
                   <Style TargetType="TextBlock" BasedOn="{StaticResource MicroBadgeTextStyle}">
-                    <Setter Property="Text" Value="{x:Static props:Strings.OptionStatusOptional}" />
+                    <Setter Property="Text" Value="{services:Loc OptionStatusOptional}" />
                     <Style.Triggers>
                       <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
                           <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
                           <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
                         </MultiDataTrigger.Conditions>
-                        <Setter Property="Text" Value="{x:Static props:Strings.OptionStatusRecommended}" />
+                        <Setter Property="Text" Value="{services:Loc OptionStatusRecommended}" />
                         <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
                       </MultiDataTrigger>
                       <MultiDataTrigger>
@@ -242,7 +283,7 @@
                           <Condition Binding="{Binding IsRecommendedDefault}" Value="False" />
                           <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
                         </MultiDataTrigger.Conditions>
-                        <Setter Property="Text" Value="{x:Static props:Strings.OptionStatusAdded}" />
+                        <Setter Property="Text" Value="{services:Loc OptionStatusAdded}" />
                         <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
                       </MultiDataTrigger>
                       <MultiDataTrigger>
@@ -250,7 +291,7 @@
                           <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
                           <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="False" />
                         </MultiDataTrigger.Conditions>
-                        <Setter Property="Text" Value="{x:Static props:Strings.OptionStatusRemoved}" />
+                        <Setter Property="Text" Value="{services:Loc OptionStatusRemoved}" />
                         <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
                       </MultiDataTrigger>
                     </Style.Triggers>
@@ -302,14 +343,14 @@
               <TextBlock>
                 <TextBlock.Style>
                   <Style TargetType="TextBlock" BasedOn="{StaticResource MicroBadgeTextStyle}">
-                    <Setter Property="Text" Value="{x:Static props:Strings.ExtensionStatusAvailable}" />
+                    <Setter Property="Text" Value="{services:Loc ExtensionStatusAvailable}" />
                     <Style.Triggers>
                       <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
                           <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
                           <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
                         </MultiDataTrigger.Conditions>
-                        <Setter Property="Text" Value="{x:Static props:Strings.ExtensionStatusDefault}" />
+                        <Setter Property="Text" Value="{services:Loc ExtensionStatusDefault}" />
                         <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
                       </MultiDataTrigger>
                       <MultiDataTrigger>
@@ -317,7 +358,7 @@
                           <Condition Binding="{Binding IsRecommendedDefault}" Value="False" />
                           <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="True" />
                         </MultiDataTrigger.Conditions>
-                        <Setter Property="Text" Value="{x:Static props:Strings.OptionStatusAdded}" />
+                        <Setter Property="Text" Value="{services:Loc OptionStatusAdded}" />
                         <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
                       </MultiDataTrigger>
                       <MultiDataTrigger>
@@ -325,7 +366,7 @@
                           <Condition Binding="{Binding IsRecommendedDefault}" Value="True" />
                           <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=CheckBox}}" Value="False" />
                         </MultiDataTrigger.Conditions>
-                        <Setter Property="Text" Value="{x:Static props:Strings.OptionStatusRemoved}" />
+                        <Setter Property="Text" Value="{services:Loc OptionStatusRemoved}" />
                         <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
                       </MultiDataTrigger>
                     </Style.Triggers>
@@ -469,11 +510,11 @@
             <TextBlock Margin="0,10,0,0">
               <TextBlock.Style>
                 <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
-                  <Setter Property="Text" Value="{x:Static props:Strings.MaintenanceCardDefaultDetail}" />
+                  <Setter Property="Text" Value="{services:Loc MaintenanceCardDefaultDetail}" />
                   <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
                   <Style.Triggers>
                     <DataTrigger Binding="{Binding IsDestructive}" Value="True">
-                      <Setter Property="Text" Value="{x:Static props:Strings.MaintenanceCardDestructiveDetail}" />
+                      <Setter Property="Text" Value="{services:Loc MaintenanceCardDestructiveDetail}" />
                       <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
                     </DataTrigger>
                   </Style.Triggers>
@@ -670,9 +711,12 @@
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type viewModels:ShellSummaryItemViewModel}" x:Key="ShellSummaryItemTemplate">
-      <Border Padding="20,14"
-              BorderBrush="{DynamicResource StrokeSoftBrush}"
-              BorderThickness="0,0,1,0"
+      <Border Padding="18,14"
+              Margin="0,0,10,0"
+              Background="{DynamicResource SurfaceCardBrush}"
+              BorderBrush="{DynamicResource StrokeBrush}"
+              BorderThickness="1"
+              CornerRadius="{StaticResource RadiusLg}"
               AutomationProperties.Name="{Binding Label}"
               AutomationProperties.HelpText="{Binding Detail}">
         <Grid>
@@ -901,7 +945,8 @@
       attachment — a Visibility toggle doesn't re-fire Loaded.
     -->
     <Style x:Key="ActivityCardStyle" TargetType="Border" BasedOn="{StaticResource SurfaceCardStyle}">
-      <Setter Property="Background" Value="{DynamicResource PanelStrongBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
       <Setter Property="Effect" Value="{StaticResource OverlayShadow}" />
       <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
       <Setter Property="Opacity" Value="0" />
@@ -935,7 +980,8 @@
     </Style>
 
     <Style x:Key="PromptCardStyle" TargetType="Border" BasedOn="{StaticResource SurfaceCardStyle}">
-      <Setter Property="Background" Value="{DynamicResource PanelStrongBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
       <Setter Property="Effect" Value="{StaticResource OverlayShadow}" />
       <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
       <Setter Property="Opacity" Value="0" />
@@ -969,19 +1015,20 @@
     </Style>
   </Window.Resources>
 
-  <Grid Background="{DynamicResource CanvasBrush}">
-    <Grid>
+  <Grid Background="{DynamicResource WorkspaceBackdropBrush}">
+    <Grid x:Name="ShellWorkspaceHost"
+          IsEnabled="{Binding IsShellInteractionEnabled}">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="248" />
-        <ColumnDefinition Width="28" />
+        <ColumnDefinition x:Name="ShellRailColumn" Width="248" />
+        <ColumnDefinition x:Name="ShellRailGutterColumn" Width="28" />
         <ColumnDefinition Width="*" />
-        <ColumnDefinition Width="18" />
-        <ColumnDefinition Width="320" />
+        <ColumnDefinition x:Name="ShellInspectorGutterColumn" Width="18" />
+        <ColumnDefinition x:Name="ShellInspectorColumn" Width="320" />
       </Grid.ColumnDefinitions>
 
       <!-- ═══ Sidebar ═══ -->
       <Border Grid.Column="0"
-              Background="{DynamicResource RailBrush}"
+              Background="{DynamicResource RailPanelBrush}"
               BorderBrush="{DynamicResource StrokeSoftBrush}"
               BorderThickness="0,0,1,0"
               CornerRadius="0"
@@ -1030,7 +1077,7 @@
             <StackPanel Margin="0,0,0,0">
               <Button Command="{Binding ShowRecommendedWorkspaceCommand}"
                       AutomationProperties.AutomationId="WorkspaceNavRecommended"
-                      AutomationProperties.Name="{x:Static props:Strings.ModeRecommendedDescription}">
+                      AutomationProperties.Name="{services:Loc ModeRecommendedDescription}">
                 <Button.Style>
                   <Style TargetType="Button" BasedOn="{StaticResource ShellNavButtonStyle}">
                     <Style.Triggers>
@@ -1101,7 +1148,7 @@
               <Button Command="{Binding ShowMaintenanceWorkspaceCommand}"
                       Margin="0,8,0,0"
                       AutomationProperties.AutomationId="WorkspaceNavMaintenance"
-                      AutomationProperties.Name="{x:Static props:Strings.ModeMaintenanceTitle}">
+                      AutomationProperties.Name="{services:Loc ModeMaintenanceTitle}">
                 <Button.Style>
                   <Style TargetType="Button" BasedOn="{StaticResource ShellNavButtonStyle}">
                     <Style.Triggers>
@@ -1237,7 +1284,7 @@
                     Background="{DynamicResource StrokeSoftBrush}"
                     Margin="0,18,0,18" />
 
-            <TextBlock Text="{x:Static props:Strings.EnvironmentLabel}" Style="{StaticResource SectionEyebrowTextStyle}" Visibility="Collapsed" />
+            <TextBlock Text="{services:Loc EnvironmentLabel}" Style="{StaticResource SectionEyebrowTextStyle}" Visibility="Collapsed" />
             <Border Style="{StaticResource MetricCardStyle}" Visibility="Collapsed">
               <StackPanel>
                 <TextBlock Text="{Binding Snapshot.StatusTitle}"
@@ -1330,7 +1377,7 @@
               </StackPanel>
             </Border>
 
-            <TextBlock Text="{x:Static props:Strings.NextStepLabel}" Style="{StaticResource SectionEyebrowTextStyle}" Margin="0,20,0,8" Visibility="Collapsed" />
+            <TextBlock Text="{services:Loc NextStepLabel}" Style="{StaticResource SectionEyebrowTextStyle}" Margin="0,20,0,8" Visibility="Collapsed" />
             <TextBlock Text="{Binding WorkspaceRecommendationTitle}"
                        Foreground="{DynamicResource TextBrush}"
                        FontFamily="{StaticResource HeadingFont}"
@@ -1347,7 +1394,7 @@
                        Margin="0,10,0,0"
                        Visibility="Collapsed" />
 
-            <TextBlock Text="{x:Static props:Strings.ProfileRecoveryLabel}"
+            <TextBlock Text="{services:Loc ProfileRecoveryLabel}"
                        Style="{StaticResource SectionEyebrowTextStyle}"
                        Margin="0,22,0,10"
                        Visibility="{Binding HasConfigurationRecoveryNotice, Converter={StaticResource BoolToVisibilityConverter}}" />
@@ -1365,12 +1412,12 @@
                 <TextBlock Text="{Binding ConfigurationRecoveryDetail}"
                            Style="{StaticResource CaptionTextStyle}"
                            Margin="0,6,0,0" />
-                <Button Content="{x:Static props:Strings.ButtonOpenLibreSpotFolder}"
+                <Button Content="{services:Loc ButtonOpenLibreSpotFolder}"
                         Height="40"
                         Margin="0,14,0,0"
                         Style="{StaticResource SecondaryButtonStyle}"
-                        AutomationProperties.Name="{x:Static props:Strings.ButtonOpenLibreSpotFolder}"
-                        AutomationProperties.HelpText="{x:Static props:Strings.ButtonOpenLibreSpotFolderHint}"
+                        AutomationProperties.Name="{services:Loc ButtonOpenLibreSpotFolder}"
+                        AutomationProperties.HelpText="{services:Loc ButtonOpenLibreSpotFolderHint}"
                         Command="{Binding OpenLibreSpotFolderCommand}" />
               </StackPanel>
             </Border>
@@ -1401,13 +1448,13 @@
                 </StackPanel>
               </Grid>
             </Border>
-            <Button Content="{x:Static props:Strings.ButtonRefreshEnvironment}"
+            <Button Content="{services:Loc ButtonRefreshEnvironment}"
                     Style="{StaticResource GhostButtonStyle}"
                     Height="40"
                     Visibility="Collapsed"
-                    ToolTip="{x:Static props:Strings.ButtonRefreshEnvironmentHint}"
-                    AutomationProperties.Name="{x:Static props:Strings.ButtonRefreshEnvironment}"
-                    AutomationProperties.HelpText="{x:Static props:Strings.ButtonRefreshEnvironmentHint}"
+                    ToolTip="{services:Loc ButtonRefreshEnvironmentHint}"
+                    AutomationProperties.Name="{services:Loc ButtonRefreshEnvironment}"
+                    AutomationProperties.HelpText="{services:Loc ButtonRefreshEnvironmentHint}"
                     Command="{Binding RefreshSnapshotCommand}" />
             <Border Margin="0,12,0,0">
               <Border.Style>
@@ -1424,7 +1471,7 @@
                 </Style>
               </Border.Style>
               <StackPanel>
-                <TextBlock Text="{x:Static props:Strings.StackSnapshotLabel}">
+                <TextBlock Text="{services:Loc StackSnapshotLabel}">
                   <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource LabelTextStyle}">
                       <Style.Triggers>
@@ -1448,7 +1495,7 @@
                            Margin="0,6,0,0" />
               </StackPanel>
             </Border>
-            <TextBlock Text="{x:Static props:Strings.StackSnapshotHint}"
+            <TextBlock Text="{services:Loc StackSnapshotHint}"
                        Style="{StaticResource CaptionTextStyle}"
                        Foreground="{DynamicResource SubtleTextBrush}"
                        TextAlignment="Left"
@@ -1460,7 +1507,8 @@
       </Border>
 
       <!-- ═══ Main content ═══ -->
-      <Border Grid.Column="2"
+      <Border x:Name="WorkspaceSurface"
+              Grid.Column="2"
               Style="{StaticResource SurfaceCardStyle}"
               Margin="0,64,0,220"
               Padding="18">
@@ -1536,15 +1584,14 @@
           </Grid>
 
           <Border Grid.Row="1"
-                  Background="{DynamicResource Surface2Brush}"
-                  BorderBrush="{DynamicResource StrokeBrush}"
-                  BorderThickness="1"
-                  CornerRadius="10"
+                  Background="Transparent"
+                  BorderThickness="0"
                   Margin="0,0,0,14"
                   ClipToBounds="True">
             <ItemsControl ItemsSource="{Binding ShellSummaryItems}"
                           ItemTemplate="{StaticResource ShellSummaryItemTemplate}"
-                          AutomationProperties.Name="{x:Static props:Strings.EnvironmentLabel}">
+                          Margin="0,0,-10,0"
+                          AutomationProperties.Name="{services:Loc EnvironmentLabel}">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                   <UniformGrid Columns="4" />
@@ -1570,7 +1617,7 @@
                       FontSize="16"
                       Style="{StaticResource PrimaryButtonStyle}"
                       AutomationProperties.AutomationId="RunRecommendedSetupButton"
-                      AutomationProperties.Name="{x:Static props:Strings.ButtonRunRecommendedSetup}"
+                      AutomationProperties.Name="{services:Loc ButtonRunRecommendedSetup}"
                       AutomationProperties.HelpText="{services:Loc Ui_RunsLibreSpotSMostReliableInstallPathWith}"
                       Command="{Binding ApplyRecommendedCommand}">
                 <StackPanel Orientation="Horizontal"
@@ -1581,7 +1628,7 @@
                         Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                         Data="M 3 2 L 16 8.5 L 3 15 Z"
                         Margin="0,0,14,0" />
-                  <TextBlock Text="{x:Static props:Strings.ButtonRunRecommendedSetup}"
+                  <TextBlock Text="{services:Loc ButtonRunRecommendedSetup}"
                              FontWeight="SemiBold"
                              VerticalAlignment="Center" />
                 </StackPanel>
@@ -1604,7 +1651,7 @@
             </TabControl.ItemContainerStyle>
 
             <!-- ═══ Recommended (condensed: big apply button first, everything else below) ═══ -->
-            <TabItem Header="{x:Static props:Strings.ModeRecommendedTitle}"
+            <TabItem Header="{services:Loc ModeRecommendedTitle}"
                      AutomationProperties.AutomationId="WorkspaceTabRecommended">
               <ScrollViewer VerticalScrollBarVisibility="Auto"
                             HorizontalScrollBarVisibility="Disabled">
@@ -1658,7 +1705,7 @@
             </TabItem>
 
             <!-- ═══ Custom ═══ -->
-            <TabItem Header="{x:Static props:Strings.ModeCustomTitle}"
+            <TabItem Header="{services:Loc ModeCustomTitle}"
                      AutomationProperties.AutomationId="WorkspaceTabCustom">
               <Grid AutomationProperties.AutomationId="CustomWorkspace"
                     AutomationProperties.Name="{services:Loc Ui_CustomWorkspace}">
@@ -1674,7 +1721,7 @@
                                AutomationProperties.Name="{services:Loc Ui_CustomSettingsEditor}"
                                Margin="0,0,22,0">
                   <StackPanel>
-                    <TextBlock Text="{x:Static props:Strings.SearchPlaceholder}"
+                    <TextBlock Text="{services:Loc SearchPlaceholder}"
                                Style="{StaticResource LabelTextStyle}" />
                     <Grid Margin="0,8,0,0">
                       <Grid.ColumnDefinitions>
@@ -1685,10 +1732,10 @@
                                Style="{StaticResource TextBoxStylePremium}"
                                Height="42"
                                AutomationProperties.AutomationId="SettingsSearchBox"
-                               AutomationProperties.Name="{x:Static props:Strings.SearchPlaceholder}"
-                               AutomationProperties.HelpText="{x:Static props:Strings.SearchHelpText}" />
+                               AutomationProperties.Name="{services:Loc SearchPlaceholder}"
+                               AutomationProperties.HelpText="{services:Loc SearchHelpText}" />
                       <Button Grid.Column="1"
-                              Content="{x:Static props:Strings.ButtonClearSearch}"
+                              Content="{services:Loc ButtonClearSearch}"
                               Height="42"
                               MinWidth="84"
                               Margin="10,0,0,0"
@@ -1697,7 +1744,7 @@
                               Visibility="{Binding HasSettingsSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
                               Command="{Binding ClearSettingsSearchCommand}"
                               AutomationProperties.AutomationId="SettingsSearchClearButton"
-                              AutomationProperties.Name="{x:Static props:Strings.ButtonClearSearchName}" />
+                              AutomationProperties.Name="{services:Loc ButtonClearSearchName}" />
                     </Grid>
                     <TextBlock Text="{Binding CustomSearchSummary}"
                                Style="{StaticResource CaptionTextStyle}"
@@ -1722,9 +1769,9 @@
                                 Margin="0,2,12,0"
                                 VerticalAlignment="Top" />
                         <StackPanel Grid.Column="1">
-                          <TextBlock Text="{x:Static props:Strings.SearchNoResults}"
+                          <TextBlock Text="{services:Loc SearchNoResults}"
                                      Style="{StaticResource EmptyStateTitleTextStyle}" />
-                          <TextBlock Text="{x:Static props:Strings.SearchNoResultsHint}"
+                          <TextBlock Text="{services:Loc SearchNoResultsHint}"
                                      Style="{StaticResource EmptyStateBodyTextStyle}"
                                      Margin="0,6,0,0" />
                         </StackPanel>
@@ -1734,8 +1781,8 @@
                     <Border Style="{StaticResource MinimalSectionStyle}"
                             Visibility="{Binding HasVisibleInstallOptions, Converter={StaticResource BoolToVisibilityConverter}}">
                       <StackPanel>
-                        <TextBlock Text="{x:Static props:Strings.InstallPostureSection}" Style="{StaticResource SectionTitleTextStyle}" />
-                        <TextBlock Text="{x:Static props:Strings.InstallPostureDescription}"
+                        <TextBlock Text="{services:Loc InstallPostureSection}" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="{services:Loc InstallPostureDescription}"
                                    Style="{StaticResource BodyTextStyle}"
                                    Margin="0,6,0,14" />
                         <ItemsControl ItemsSource="{Binding InstallOptions}" ItemTemplate="{StaticResource OptionTemplate}">
@@ -1755,12 +1802,12 @@
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Margin="0,0,20,0">
-                          <TextBlock Text="{x:Static props:Strings.AppearanceSection}" Style="{StaticResource SectionTitleTextStyle}" />
-                          <TextBlock Text="{x:Static props:Strings.AppearanceDescription}"
+                          <TextBlock Text="{services:Loc AppearanceSection}" Style="{StaticResource SectionTitleTextStyle}" />
+                          <TextBlock Text="{services:Loc AppearanceDescription}"
                                      Style="{StaticResource BodyTextStyle}"
                                      Margin="0,6,0,16" />
 
-                          <TextBlock Text="{x:Static props:Strings.ThemePackLabel}" Style="{StaticResource LabelTextStyle}" />
+                          <TextBlock Text="{services:Loc ThemePackLabel}" Style="{StaticResource LabelTextStyle}" />
                           <Grid Margin="0,6,0,10">
                             <Grid.ColumnDefinitions>
                               <ColumnDefinition Width="*" />
@@ -1769,10 +1816,10 @@
                             <TextBox Text="{Binding ThemeSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource TextBoxStylePremium}"
                                      Height="42"
-                                     AutomationProperties.Name="{x:Static props:Strings.ThemeGallerySearchName}"
-                                     AutomationProperties.HelpText="{x:Static props:Strings.ThemeGallerySearchHint}" />
+                                     AutomationProperties.Name="{services:Loc ThemeGallerySearchName}"
+                                     AutomationProperties.HelpText="{services:Loc ThemeGallerySearchHint}" />
                             <Button Grid.Column="1"
-                                    Content="{x:Static props:Strings.ButtonClearSearch}"
+                                    Content="{services:Loc ButtonClearSearch}"
                                     Height="42"
                                     MinWidth="84"
                                     Margin="10,0,0,0"
@@ -1780,7 +1827,7 @@
                                     Style="{StaticResource SecondaryButtonStyle}"
                                     Visibility="{Binding HasThemeSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
                                     Command="{Binding ClearThemeSearchCommand}"
-                                    AutomationProperties.Name="{x:Static props:Strings.ButtonClearSearchName}" />
+                                    AutomationProperties.Name="{services:Loc ButtonClearSearchName}" />
                           </Grid>
 
                           <ListBox ItemsSource="{Binding FilteredThemeGalleryItems}"
@@ -1793,8 +1840,8 @@
                                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                    ScrollViewer.VerticalScrollBarVisibility="Auto"
                                    KeyboardNavigation.DirectionalNavigation="Contained"
-                                   AutomationProperties.Name="{x:Static props:Strings.ThemePackLabel}"
-                                   AutomationProperties.HelpText="{x:Static props:Strings.ThemePackHint}"
+                                   AutomationProperties.Name="{services:Loc ThemePackLabel}"
+                                   AutomationProperties.HelpText="{services:Loc ThemePackHint}"
                                    Margin="0,0,0,14">
                             <ListBox.ItemsPanel>
                               <ItemsPanelTemplate>
@@ -1802,7 +1849,7 @@
                               </ItemsPanelTemplate>
                             </ListBox.ItemsPanel>
                             <ListBox.ItemContainerStyle>
-                              <Style TargetType="ListBoxItem">
+                              <Style TargetType="ListBoxItem" BasedOn="{StaticResource CardListBoxItemStyle}">
                                 <Setter Property="Margin" Value="0,0,10,10" />
                                 <Setter Property="Padding" Value="0" />
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -1896,7 +1943,7 @@
                                      Visibility="{Binding ShowThemeGalleryEmptyState, Converter={StaticResource BoolToVisibilityConverter}}"
                                      Margin="0,0,0,14" />
 
-                          <TextBlock Text="{x:Static props:Strings.ColorSchemeLabel}" Style="{StaticResource LabelTextStyle}" />
+                          <TextBlock Text="{services:Loc ColorSchemeLabel}" Style="{StaticResource LabelTextStyle}" />
                           <ListBox ItemsSource="{Binding SchemeOptions}"
                                    SelectedItem="{Binding SelectedScheme, Mode=TwoWay}"
                                    Background="Transparent"
@@ -1904,7 +1951,7 @@
                                    Padding="0"
                                    IsEnabled="{Binding IsThemeSchemeAvailable}"
                                    PreviewMouseWheel="NestedScrollRegion_OnPreviewMouseWheel"
-                                   AutomationProperties.Name="{x:Static props:Strings.ColorSchemeLabel}"
+                                   AutomationProperties.Name="{services:Loc ColorSchemeLabel}"
                                    AutomationProperties.HelpText="{Binding ThemeSchemeHint}"
                                    Margin="0,6,0,6">
                             <ListBox.ItemsPanel>
@@ -1913,7 +1960,7 @@
                               </ItemsPanelTemplate>
                             </ListBox.ItemsPanel>
                             <ListBox.ItemContainerStyle>
-                              <Style TargetType="ListBoxItem">
+                              <Style TargetType="ListBoxItem" BasedOn="{StaticResource CardListBoxItemStyle}">
                                 <Setter Property="Margin" Value="0,0,8,8" />
                                 <Setter Property="Padding" Value="0" />
                                 <Setter Property="Background" Value="Transparent" />
@@ -1963,12 +2010,12 @@
                                      Style="{StaticResource CaptionTextStyle}"
                                      Margin="0,0,0,14" />
 
-                          <TextBlock Text="{x:Static props:Strings.LyricsThemeLabel}" Style="{StaticResource LabelTextStyle}" />
+                          <TextBlock Text="{services:Loc LyricsThemeLabel}" Style="{StaticResource LabelTextStyle}" />
                           <ComboBox ItemsSource="{Binding LyricsThemes}"
                                      SelectedItem="{Binding SelectedLyricsTheme, Mode=TwoWay}"
                                      Style="{StaticResource ComboBoxStylePremium}"
                                      IsEnabled="{Binding IsLyricsThemeAvailable}"
-                                     AutomationProperties.Name="{x:Static props:Strings.LyricsThemeLabel}"
+                                     AutomationProperties.Name="{services:Loc LyricsThemeLabel}"
                                      AutomationProperties.HelpText="{Binding LyricsThemeHint}"
                                      Margin="0,6,0,6">
                             <ComboBox.ItemTemplate>
@@ -1982,7 +2029,7 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="1">
-                          <TextBlock Text="{x:Static props:Strings.CacheLimitLabel}" Style="{StaticResource LabelTextStyle}" />
+                          <TextBlock Text="{services:Loc CacheLimitLabel}" Style="{StaticResource LabelTextStyle}" />
                           <Grid Margin="0,6,0,8">
                             <Grid.ColumnDefinitions>
                               <ColumnDefinition Width="*" />
@@ -1991,27 +2038,27 @@
                             <TextBox Text="{Binding CacheLimitText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource TextBoxStylePremium}"
                                      MaxLength="6"
-                                     AutomationProperties.Name="{x:Static props:Strings.CacheLimitName}"
-                                     AutomationProperties.HelpText="{x:Static props:Strings.CacheLimitHint}"
+                                     AutomationProperties.Name="{services:Loc CacheLimitName}"
+                                     AutomationProperties.HelpText="{services:Loc CacheLimitHint}"
                                      DataObject.Pasting="CacheLimitTextBox_OnPasting"
                                      PreviewTextInput="CacheLimitTextBox_OnPreviewTextInput" />
                             <TextBlock Grid.Column="1"
-                                       Text="{x:Static props:Strings.CacheLimitUnit}"
+                                       Text="{services:Loc CacheLimitUnit}"
                                        Foreground="{DynamicResource MutedTextBrush}"
                                        FontWeight="SemiBold"
                                        VerticalAlignment="Center"
                                        Margin="10,0,0,0" />
                           </Grid>
-                          <TextBlock Text="{x:Static props:Strings.CacheLimitDefault}"
+                          <TextBlock Text="{services:Loc CacheLimitDefault}"
                                      Style="{StaticResource CaptionTextStyle}" />
 
                           <Border Height="1"
                                   Background="{DynamicResource StrokeSoftBrush}"
                                   Margin="0,16,0,16" />
 
-                          <TextBlock Text="{x:Static props:Strings.CompatibilityTargetLabel}"
+                          <TextBlock Text="{services:Loc CompatibilityTargetLabel}"
                                      Style="{StaticResource LabelTextStyle}" />
-                          <TextBlock Text="{x:Static props:Strings.SpotifyBuildLabel}"
+                          <TextBlock Text="{services:Loc SpotifyBuildLabel}"
                                      Style="{StaticResource SectionTitleTextStyle}"
                                      FontSize="16"
                                      Margin="0,6,0,0" />
@@ -2019,8 +2066,8 @@
                                      SelectedValue="{Binding SelectedSpotifyVersionId, Mode=TwoWay}"
                                      SelectedValuePath="Id"
                                      Style="{StaticResource ComboBoxStylePremium}"
-                                     AutomationProperties.Name="{x:Static props:Strings.SpotifyCompatibilityName}"
-                                     AutomationProperties.HelpText="{x:Static props:Strings.SpotifyCompatibilityHint}"
+                                     AutomationProperties.Name="{services:Loc SpotifyCompatibilityName}"
+                                     AutomationProperties.HelpText="{services:Loc SpotifyCompatibilityHint}"
                                      Margin="0,10,0,6">
                             <ComboBox.ItemTemplate>
                               <DataTemplate>
@@ -2031,15 +2078,15 @@
                           <TextBlock Text="{Binding SpotifyVersionNotes}"
                                      Style="{StaticResource CaptionTextStyle}" />
 
-                          <TextBlock Text="{x:Static props:Strings.DownloadPathLabel}"
+                          <TextBlock Text="{services:Loc DownloadPathLabel}"
                                      Style="{StaticResource LabelTextStyle}"
                                      Margin="0,16,0,0" />
                           <ComboBox ItemsSource="{Binding DownloadMethodOptions}"
                                      SelectedValue="{Binding SelectedDownloadMethod, Mode=TwoWay}"
                                      SelectedValuePath="Id"
                                      Style="{StaticResource ComboBoxStylePremium}"
-                                     AutomationProperties.Name="{x:Static props:Strings.DownloadMethodName}"
-                                     AutomationProperties.HelpText="{x:Static props:Strings.DownloadMethodHint}"
+                                     AutomationProperties.Name="{services:Loc DownloadMethodName}"
+                                     AutomationProperties.HelpText="{services:Loc DownloadMethodHint}"
                                      Margin="0,10,0,6">
                             <ComboBox.ItemTemplate>
                               <DataTemplate>
@@ -2056,12 +2103,12 @@
                     <Border Style="{StaticResource MinimalSectionStyle}"
                             Visibility="{Binding HasVisibleBehaviorSection, Converter={StaticResource BoolToVisibilityConverter}}">
                       <StackPanel>
-                        <TextBlock Text="{x:Static props:Strings.PlaybackBehaviorSection}" Style="{StaticResource SectionTitleTextStyle}" />
-                        <TextBlock Text="{x:Static props:Strings.PlaybackBehaviorDescription}"
+                        <TextBlock Text="{services:Loc PlaybackBehaviorSection}" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="{services:Loc PlaybackBehaviorDescription}"
                                    Style="{StaticResource BodyTextStyle}"
                                    Margin="0,6,0,14" />
 
-                        <TextBlock Text="{x:Static props:Strings.CoreBehaviorLabel}"
+                        <TextBlock Text="{services:Loc CoreBehaviorLabel}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Margin="0,0,0,8"
                                    Visibility="{Binding HasVisibleCoreOptions, Converter={StaticResource BoolToVisibilityConverter}}" />
@@ -2097,7 +2144,7 @@
                           </Border.Style>
                         </Border>
 
-                        <TextBlock Text="{x:Static props:Strings.InterfaceTuningLabel}"
+                        <TextBlock Text="{services:Loc InterfaceTuningLabel}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Margin="0,0,0,8"
                                    Visibility="{Binding HasVisibleInterfaceOptions, Converter={StaticResource BoolToVisibilityConverter}}" />
@@ -2121,8 +2168,8 @@
                     <Border Style="{StaticResource MinimalSectionStyle}"
                             Visibility="{Binding HasVisibleAdvancedSection, Converter={StaticResource BoolToVisibilityConverter}}">
                       <StackPanel>
-                        <TextBlock Text="{x:Static props:Strings.AdvancedAdjustmentsSection}" Style="{StaticResource SectionTitleTextStyle}" />
-                        <TextBlock Text="{x:Static props:Strings.AdvancedAdjustmentsHint}"
+                        <TextBlock Text="{services:Loc AdvancedAdjustmentsSection}" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="{services:Loc AdvancedAdjustmentsHint}"
                                    Style="{StaticResource BodyTextStyle}"
                                    Margin="0,6,0,14" />
                         <ItemsControl ItemsSource="{Binding AdvancedOptions}" ItemTemplate="{StaticResource OptionTemplate}">
@@ -2157,7 +2204,7 @@
                           </Border.Style>
                         </Border>
 
-                        <TextBlock Text="{x:Static props:Strings.ExperienceExtrasLabel}"
+                        <TextBlock Text="{services:Loc ExperienceExtrasLabel}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Margin="0,0,0,8"
                                    Visibility="{Binding HasVisibleExperienceOptions, Converter={StaticResource BoolToVisibilityConverter}}" />
@@ -2311,8 +2358,8 @@
                             BorderThickness="0"
                             Visibility="{Binding HasVisibleExtensions, Converter={StaticResource BoolToVisibilityConverter}}">
                       <StackPanel>
-                        <TextBlock Text="{x:Static props:Strings.BuiltInExtensionsSection}" Style="{StaticResource SectionTitleTextStyle}" />
-                        <TextBlock Text="{x:Static props:Strings.BuiltInExtensionsDescription}"
+                        <TextBlock Text="{services:Loc BuiltInExtensionsSection}" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="{services:Loc BuiltInExtensionsDescription}"
                                    Style="{StaticResource BodyTextStyle}"
                                    Margin="0,6,0,14" />
                         <ItemsControl ItemsSource="{Binding Extensions}" ItemTemplate="{StaticResource ExtensionTemplate}">
@@ -2344,8 +2391,8 @@
                 <!-- Sticky selection summary -->
                 <Border Grid.Column="1"
                         Style="{StaticResource SubtleCardStyle}"
-                        Background="{DynamicResource Surface1Brush}"
-                        BorderBrush="{DynamicResource StrokeSoftBrush}">
+                        Background="{DynamicResource SurfaceCardBrush}"
+                        BorderBrush="{DynamicResource StrokeBrush}">
                   <Grid>
                     <Grid.RowDefinitions>
                       <RowDefinition Height="*" />
@@ -2405,7 +2452,7 @@
                             </Style>
                           </ListBox.Style>
                           <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
+                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource CardListBoxItemStyle}">
                               <Setter Property="Margin" Value="0" />
                               <Setter Property="Padding" Value="0" />
                               <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -2734,7 +2781,7 @@
                                 Background="{DynamicResource StrokeSoftBrush}"
                                 Margin="0,12,0,16" />
 
-                        <TextBlock Text="{x:Static props:Strings.ProfileSummaryLabel}"
+                        <TextBlock Text="{services:Loc ProfileSummaryLabel}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Foreground="{DynamicResource AccentBrush}" />
                         <TextBlock Text="{Binding CustomProfileTitle}"
@@ -2765,7 +2812,7 @@
                             <RowDefinition Height="Auto" />
                           </Grid.RowDefinitions>
 
-                          <TextBlock Text="{x:Static props:Strings.InstallPostureLabel}"
+                          <TextBlock Text="{services:Loc InstallPostureLabel}"
                                      Style="{StaticResource LabelTextStyle}"
                                      Margin="0,2,12,0" />
                           <TextBlock Grid.Column="1"
@@ -2776,7 +2823,7 @@
                                      TextWrapping="Wrap" />
 
                           <TextBlock Grid.Row="1"
-                                     Text="{x:Static props:Strings.ProfileChangesLabel}"
+                                     Text="{services:Loc ProfileChangesLabel}"
                                      Style="{StaticResource LabelTextStyle}"
                                      Margin="0,12,12,0" />
                           <TextBlock Grid.Row="1"
@@ -2789,7 +2836,7 @@
                                      Margin="0,12,0,0" />
 
                           <TextBlock Grid.Row="2"
-                                     Text="{x:Static props:Strings.ExtensionsLabel}"
+                                     Text="{services:Loc ExtensionsLabel}"
                                      Style="{StaticResource LabelTextStyle}"
                                      Margin="0,12,12,0" />
                           <TextBlock Grid.Row="2"
@@ -2802,7 +2849,7 @@
                                      Margin="0,12,0,0" />
 
                           <TextBlock Grid.Row="3"
-                                     Text="{x:Static props:Strings.AccessLabel}"
+                                     Text="{services:Loc AccessLabel}"
                                      Style="{StaticResource LabelTextStyle}"
                                      Margin="0,12,12,0" />
                           <TextBlock Grid.Row="3"
@@ -2832,7 +2879,7 @@
                                 Background="{DynamicResource StrokeSoftBrush}"
                                 Margin="0,16,0,16" />
 
-                        <TextBlock Text="{x:Static props:Strings.RunReadinessLabel}"
+                        <TextBlock Text="{services:Loc RunReadinessLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding CustomRunReadinessTitle}"
                                    Foreground="{DynamicResource TextBrush}"
@@ -2847,7 +2894,7 @@
                                 Background="{DynamicResource StrokeSoftBrush}"
                                 Margin="0,16,0,16" />
 
-                        <TextBlock Text="{x:Static props:Strings.CurrentSelectionsLabel}"
+                        <TextBlock Text="{services:Loc CurrentSelectionsLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding ThemeSummary}"
                                    Foreground="{DynamicResource TextBrush}"
@@ -2867,7 +2914,7 @@
                         <TextBlock Text="{Binding CustomPatchesSummary}"
                                    Style="{StaticResource CaptionTextStyle}"
                                    Margin="0,4,0,0" />
-                        <TextBlock Text="{x:Static props:Strings.CompatibilityTargetLabel}"
+                        <TextBlock Text="{services:Loc CompatibilityTargetLabel}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Margin="0,12,0,0" />
                         <TextBlock Text="{Binding SpotifyVersionSummary}"
@@ -2879,7 +2926,7 @@
                         <TextBlock Text="{Binding SpotifyVersionNotes}"
                                    Style="{StaticResource CaptionTextStyle}"
                                    Margin="0,4,0,0" />
-                        <TextBlock Text="{x:Static props:Strings.DownloadRouteLabel}"
+                        <TextBlock Text="{services:Loc DownloadRouteLabel}"
                                    Style="{StaticResource LabelTextStyle}"
                                    Margin="0,12,0,0" />
                         <TextBlock Text="{Binding DownloadMethodSummary}"
@@ -2896,7 +2943,7 @@
                                 Background="{DynamicResource StrokeSoftBrush}"
                                 Margin="0,16,0,16" />
 
-                        <TextBlock Text="{x:Static props:Strings.WhatToWatchLabel}"
+                        <TextBlock Text="{services:Loc WhatToWatchLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <ItemsControl ItemsSource="{Binding SelectionInsights}"
                                       ItemTemplate="{StaticResource SelectionInsightTemplate}"
@@ -2906,7 +2953,7 @@
                                 Background="{DynamicResource StrokeSoftBrush}"
                                 Margin="0,6,0,16" />
 
-                        <TextBlock Text="{x:Static props:Strings.ExtensionsLabel}"
+                        <TextBlock Text="{services:Loc ExtensionsLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding ExtensionSummary}"
                                    Foreground="{DynamicResource TextBrush}"
@@ -2942,11 +2989,11 @@
                               </Style.Triggers>
                             </Style>
                           </StackPanel.Style>
-                          <TextBlock Text="{x:Static props:Strings.NoExtensionsSelected}"
+                          <TextBlock Text="{services:Loc NoExtensionsSelected}"
                                      Foreground="{DynamicResource TextBrush}"
                                      FontWeight="SemiBold"
                                      FontSize="12.5" />
-                          <TextBlock Text="{x:Static props:Strings.NoExtensionsHint}"
+                          <TextBlock Text="{services:Loc NoExtensionsHint}"
                                      Style="{StaticResource CaptionTextStyle}"
                                      Margin="0,6,0,0" />
                         </StackPanel>
@@ -2954,13 +3001,13 @@
                     </ScrollViewer>
 
                     <Button Grid.Row="1"
-                            Content="{x:Static props:Strings.ButtonApplyCustomProfile}"
+                            Content="{services:Loc ButtonApplyCustomProfile}"
                             Height="48"
                             Margin="0,16,0,0"
                             Style="{StaticResource PrimaryButtonStyle}"
                             AutomationProperties.AutomationId="ApplyCustomProfileButton"
-                            AutomationProperties.Name="{x:Static props:Strings.ButtonApplyCustomProfile}"
-                            AutomationProperties.HelpText="{x:Static props:Strings.ButtonApplyCustomProfileHint}"
+                            AutomationProperties.Name="{services:Loc ButtonApplyCustomProfile}"
+                            AutomationProperties.HelpText="{services:Loc ButtonApplyCustomProfileHint}"
                             Command="{Binding ApplyCustomCommand}" />
                     <TextBlock Grid.Row="2"
                                Text="{Binding CustomApplyCaption}"
@@ -2973,7 +3020,7 @@
             </TabItem>
 
             <!-- ═══ Maintenance ═══ -->
-            <TabItem Header="{x:Static props:Strings.ModeMaintenanceTitle}"
+            <TabItem Header="{services:Loc ModeMaintenanceTitle}"
                      AutomationProperties.AutomationId="WorkspaceTabMaintenance">
               <ScrollViewer VerticalScrollBarVisibility="Auto"
                             HorizontalScrollBarVisibility="Disabled"
@@ -2996,12 +3043,12 @@
                           Background="{DynamicResource StrokeSoftBrush}"
                           Margin="0,18,0,18" />
 
-                  <TextBlock Text="{x:Static props:Strings.EnvironmentLabel}"
+                  <TextBlock Text="{services:Loc EnvironmentLabel}"
                              Style="{StaticResource SectionEyebrowTextStyle}"
                              Margin="0,0,0,10" />
                   <ItemsControl ItemsSource="{Binding StatusDashboardItems}"
                                 ItemTemplate="{StaticResource StatusDashboardItemTemplate}"
-                                AutomationProperties.Name="{x:Static props:Strings.EnvironmentLabel}"
+                                AutomationProperties.Name="{services:Loc EnvironmentLabel}"
                                 Margin="0,0,0,6">
                     <ItemsControl.ItemsPanel>
                       <ItemsPanelTemplate>
@@ -3014,7 +3061,7 @@
                                Margin="0,0,0,14">
                     <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">
                       <StackPanel>
-                        <TextBlock Text="{x:Static props:Strings.StackLabel}"
+                        <TextBlock Text="{services:Loc StackLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding MaintenanceReadinessValue}"
                                    Foreground="{DynamicResource TextBrush}"
@@ -3030,7 +3077,7 @@
 
                     <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">
                       <StackPanel>
-                        <TextBlock Text="{x:Static props:Strings.BackupsLabel}"
+                        <TextBlock Text="{services:Loc BackupsLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding MaintenanceBackupValue}"
                                    Foreground="{DynamicResource TextBrush}"
@@ -3046,7 +3093,7 @@
 
                     <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">
                       <StackPanel>
-                        <TextBlock Text="{x:Static props:Strings.MarketplaceLabel}"
+                        <TextBlock Text="{services:Loc MarketplaceLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding MaintenanceMarketplaceValue}"
                                    Foreground="{DynamicResource TextBrush}"
@@ -3062,7 +3109,7 @@
 
                     <Border Style="{StaticResource SubtleCardStyle}">
                       <StackPanel>
-                        <TextBlock Text="{x:Static props:Strings.ThemeLabel}"
+                        <TextBlock Text="{services:Loc ThemeLabel}"
                                    Style="{StaticResource LabelTextStyle}" />
                         <TextBlock Text="{Binding MaintenanceThemeValue}"
                                    Foreground="{DynamicResource TextBrush}"
@@ -3085,7 +3132,7 @@
                           <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Margin="0,0,18,0">
-                          <TextBlock Text="{x:Static props:Strings.SupportBundleTitle}"
+                          <TextBlock Text="{services:Loc SupportBundleTitle}"
                                      Style="{StaticResource SectionTitleTextStyle}"
                                      FontSize="18" />
                           <TextBlock Text="{Binding SupportBundlePreviewTitle}"
@@ -3107,10 +3154,10 @@
                                 MinWidth="170"
                                 Height="42"
                                 Padding="16,0"
-                                Content="{x:Static props:Strings.ButtonExportBundle}"
+                                Content="{services:Loc ButtonExportBundle}"
                                 Style="{StaticResource PrimaryButtonStyle}"
-                                AutomationProperties.Name="{x:Static props:Strings.ButtonExportBundleName}"
-                                AutomationProperties.HelpText="{x:Static props:Strings.ButtonExportBundleHint}"
+                                AutomationProperties.Name="{services:Loc ButtonExportBundleName}"
+                                AutomationProperties.HelpText="{services:Loc ButtonExportBundleHint}"
                                 Command="{Binding ExportSupportBundleCommand}" />
                       </Grid>
 
@@ -3170,7 +3217,7 @@
                           <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                          <TextBlock Text="{x:Static props:Strings.AutoReapplyTitle}"
+                          <TextBlock Text="{services:Loc AutoReapplyTitle}"
                                      Style="{StaticResource SectionTitleTextStyle}"
                                      FontSize="18" />
                           <TextBlock Text="{Binding AutoReapplyStatusDetail}"
@@ -3223,22 +3270,22 @@
                       <WrapPanel Grid.Row="2"
                                  Margin="0,18,0,0"
                                  HorizontalAlignment="Right">
-                        <Button Content="{x:Static props:Strings.ButtonEnableWatcher}"
+                        <Button Content="{services:Loc ButtonEnableWatcher}"
                                 MinWidth="136"
                                 Height="38"
                                 Padding="16,0"
                                 Margin="0,0,10,0"
                                 Style="{StaticResource PrimaryButtonStyle}"
-                                AutomationProperties.Name="{x:Static props:Strings.ButtonEnableWatcherName}"
-                                AutomationProperties.HelpText="{x:Static props:Strings.ButtonEnableWatcherHint}"
+                                AutomationProperties.Name="{services:Loc ButtonEnableWatcherName}"
+                                AutomationProperties.HelpText="{services:Loc ButtonEnableWatcherHint}"
                                 Command="{Binding EnableAutoReapplyCommand}" />
-                        <Button Content="{x:Static props:Strings.ButtonDisableWatcher}"
+                        <Button Content="{services:Loc ButtonDisableWatcher}"
                                 MinWidth="136"
                                 Height="38"
                                 Padding="16,0"
                                 Style="{StaticResource SecondaryButtonStyle}"
-                                AutomationProperties.Name="{x:Static props:Strings.ButtonDisableWatcherName}"
-                                AutomationProperties.HelpText="{x:Static props:Strings.ButtonDisableWatcherHint}"
+                                AutomationProperties.Name="{services:Loc ButtonDisableWatcherName}"
+                                AutomationProperties.HelpText="{services:Loc ButtonDisableWatcherHint}"
                                 Command="{Binding DisableAutoReapplyCommand}" />
                       </WrapPanel>
                     </Grid>
@@ -3246,10 +3293,10 @@
 
                   <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,14">
                     <StackPanel>
-                      <TextBlock Text="{x:Static props:Strings.RefreshRecoverSection}"
+                      <TextBlock Text="{services:Loc RefreshRecoverSection}"
                                  Style="{StaticResource SectionTitleTextStyle}"
                                  FontSize="18" />
-                      <TextBlock Text="{x:Static props:Strings.RefreshRecoverDescription}"
+                      <TextBlock Text="{services:Loc RefreshRecoverDescription}"
                                  Style="{StaticResource CaptionTextStyle}"
                                  Foreground="{DynamicResource TextBrush}"
                                  Margin="0,8,0,12" />
@@ -3262,11 +3309,11 @@
                           Background="{DynamicResource Surface1Brush}"
                           BorderBrush="{DynamicResource StrokeSoftBrush}">
                     <StackPanel>
-                      <TextBlock Text="{x:Static props:Strings.ResetSection}"
+                      <TextBlock Text="{services:Loc ResetSection}"
                                  Style="{StaticResource SectionTitleTextStyle}"
                                  FontSize="18"
                                  Foreground="{DynamicResource DangerBrush}" />
-                      <TextBlock Text="{x:Static props:Strings.ResetDescription}"
+                      <TextBlock Text="{services:Loc ResetDescription}"
                                  Style="{StaticResource CaptionTextStyle}"
                                  Foreground="{DynamicResource TextBrush}"
                                  Margin="0,8,0,12" />
@@ -3275,7 +3322,7 @@
                     </StackPanel>
                   </Border>
 
-                  <TextBlock Text="{x:Static props:Strings.MaintenanceClosingHint}"
+                  <TextBlock Text="{services:Loc MaintenanceClosingHint}"
                              Style="{StaticResource CaptionTextStyle}"
                              Foreground="{DynamicResource MutedTextBrush}"
                              Margin="0,16,0,0"
@@ -3338,7 +3385,8 @@
                           MinWidth="86"
                           Padding="10,0"
                           Style="{StaticResource GhostButtonStyle}"
-                          AutomationProperties.Name="{Binding ShellLogLevelLabel}" />
+                          AutomationProperties.Name="{Binding ShellLogLevelLabel}"
+                          Command="{Binding CycleShellLogFilterCommand}" />
                 </StackPanel>
               </Grid>
 
@@ -3373,14 +3421,14 @@
                                  Style="{StaticResource ProgressBarStylePremium}" />
                   </StackPanel>
                   <Button Grid.Column="1"
-                          Content="{x:Static props:Strings.ButtonCancelRun}"
+                          Content="{services:Loc ButtonCancelRun}"
                           MinWidth="132"
                           Height="38"
                           Padding="16,0"
                           Style="{StaticResource DestructiveButtonStyle}"
                           AutomationProperties.AutomationId="InlineActivityCancelRunButton"
-                          AutomationProperties.Name="{x:Static props:Strings.ButtonCancelRunName}"
-                          AutomationProperties.HelpText="{x:Static props:Strings.ButtonCancelRunHint}"
+                          AutomationProperties.Name="{services:Loc ButtonCancelRunName}"
+                          AutomationProperties.HelpText="{services:Loc ButtonCancelRunHint}"
                           Command="{Binding CancelRunCommand}" />
                 </Grid>
               </Border>
@@ -3403,10 +3451,11 @@
         </Grid>
       </Border>
 
-      <StackPanel Grid.Column="4"
+      <StackPanel x:Name="InspectorPanel"
+                  Grid.Column="4"
                   Margin="0,64,16,220">
         <Border Style="{StaticResource SurfaceCardStyle}"
-                Background="{DynamicResource Surface2Brush}"
+                Background="{DynamicResource SurfaceCardBrush}"
                 Padding="20"
                 Margin="0,0,0,18">
           <StackPanel>
@@ -3426,6 +3475,15 @@
                   <Style TargetType="Ellipse">
                     <Setter Property="Stroke" Value="{DynamicResource HeroRingBrush}" />
                     <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsSnapshotLoading}" Value="True">
+                        <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
+                        <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding NeedsAdministratorRelaunch}" Value="True">
+                        <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+                      </DataTrigger>
                       <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
                         <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
                       </DataTrigger>
@@ -3454,10 +3512,10 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
-              <Ellipse Width="16" Height="16" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.5" />
-              <Path Width="8" Height="6" Data="M 1 3 L 3 5 L 7 1" Stretch="Uniform" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+              <Ellipse Width="16" Height="16" StrokeThickness="1.5" Style="{StaticResource ReadinessCheckEllipseStyle}" />
+              <Path Width="8" Height="6" Stretch="Uniform" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Style="{StaticResource ReadinessCheckPathStyle}" />
               <TextBlock Grid.Column="1" Text="{Binding ShellSystemChecksLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
-              <TextBlock Grid.Column="2" Text="{Binding ShellCheckOkLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
+              <TextBlock Grid.Column="2" Text="{Binding ShellCheckStatusLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
             </Grid>
             <Grid Margin="0,0,0,10">
               <Grid.ColumnDefinitions>
@@ -3465,10 +3523,10 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
-              <Ellipse Width="16" Height="16" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.5" />
-              <Path Width="8" Height="6" Data="M 1 3 L 3 5 L 7 1" Stretch="Uniform" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+              <Ellipse Width="16" Height="16" StrokeThickness="1.5" Style="{StaticResource ReadinessCheckEllipseStyle}" />
+              <Path Width="8" Height="6" Stretch="Uniform" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Style="{StaticResource ReadinessCheckPathStyle}" />
               <TextBlock Grid.Column="1" Text="{Binding ShellSpotifyDetectedLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
-              <TextBlock Grid.Column="2" Text="{Binding ShellCheckOkLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
+              <TextBlock Grid.Column="2" Text="{Binding ShellCheckStatusLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
             </Grid>
             <Grid Margin="0,0,0,10">
               <Grid.ColumnDefinitions>
@@ -3476,10 +3534,10 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
-              <Ellipse Width="16" Height="16" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.5" />
-              <Path Width="8" Height="6" Data="M 1 3 L 3 5 L 7 1" Stretch="Uniform" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+              <Ellipse Width="16" Height="16" StrokeThickness="1.5" Style="{StaticResource ReadinessCheckEllipseStyle}" />
+              <Path Width="8" Height="6" Stretch="Uniform" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Style="{StaticResource ReadinessCheckPathStyle}" />
               <TextBlock Grid.Column="1" Text="{Binding ShellWritePermissionsLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
-              <TextBlock Grid.Column="2" Text="{Binding ShellCheckOkLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
+              <TextBlock Grid.Column="2" Text="{Binding ShellCheckStatusLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
             </Grid>
             <Grid>
               <Grid.ColumnDefinitions>
@@ -3487,16 +3545,16 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
-              <Ellipse Width="16" Height="16" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.5" />
-              <Path Width="8" Height="6" Data="M 1 3 L 3 5 L 7 1" Stretch="Uniform" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+              <Ellipse Width="16" Height="16" StrokeThickness="1.5" Style="{StaticResource ReadinessCheckEllipseStyle}" />
+              <Path Width="8" Height="6" Stretch="Uniform" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Style="{StaticResource ReadinessCheckPathStyle}" />
               <TextBlock Grid.Column="1" Text="{Binding ShellDependenciesLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
-              <TextBlock Grid.Column="2" Text="{Binding ShellCheckOkLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
+              <TextBlock Grid.Column="2" Text="{Binding ShellCheckStatusLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
             </Grid>
           </StackPanel>
         </Border>
 
         <Border Style="{StaticResource SurfaceCardStyle}"
-                Background="{DynamicResource Surface2Brush}"
+                Background="{DynamicResource SurfaceCardBrush}"
                 Padding="20">
           <StackPanel>
             <TextBlock Text="{Binding ShellNextActionsTitle}"
@@ -3841,11 +3899,12 @@
         </ScrollViewer>
       </Border>
 
-      <Border Grid.Column="2"
+      <Border x:Name="ActivityDock"
+              Grid.Column="2"
               Grid.ColumnSpan="3"
               Height="184"
               VerticalAlignment="Bottom"
-              Background="{DynamicResource Surface1Brush}"
+              Background="{DynamicResource SurfaceCardBrush}"
               BorderBrush="{DynamicResource StrokeBrush}"
               BorderThickness="1"
               CornerRadius="10"
@@ -3878,7 +3937,8 @@
                         Padding="10,0"
                         Margin="0,0,12,0"
                         Style="{StaticResource GhostButtonStyle}"
-                        AutomationProperties.Name="{Binding ShellLogLevelLabel}" />
+                        AutomationProperties.Name="{Binding ShellLogLevelLabel}"
+                        Command="{Binding CycleShellLogFilterCommand}" />
                 <Button Content="{Binding ShellClearLogLabel}"
                         Height="28"
                         MinWidth="92"
@@ -3892,10 +3952,40 @@
           <ScrollViewer Grid.Row="1"
                         VerticalScrollBarVisibility="Auto"
                         HorizontalScrollBarVisibility="Disabled"
+                        Visibility="{Binding HasShellActivityLogItems, Converter={StaticResource BoolToVisibilityConverter}}"
                         AutomationProperties.Name="{services:Loc RunLogLabel}">
             <ItemsControl ItemsSource="{Binding ShellActivityLogItems}"
                           ItemTemplate="{StaticResource ShellLogRowTemplate}" />
           </ScrollViewer>
+
+          <Border Grid.Row="1"
+                  Background="{DynamicResource CanvasShadeBrush}"
+                  Visibility="{Binding ShowShellActivityEmptyState, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.Name="{Binding ShellActivityEmptyTitle}"
+                  AutomationProperties.HelpText="{Binding ShellActivityEmptyDetail}">
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal">
+              <Path Width="22"
+                    Height="22"
+                    Margin="0,0,12,0"
+                    Stretch="Uniform"
+                    Data="M 12 3 A 9 9 0 1 0 12 21 A 9 9 0 1 0 12 3 M 12 7 V 12 L 16 15"
+                    Stroke="{DynamicResource SubtleTextBrush}"
+                    StrokeThickness="1.7"
+                    StrokeStartLineCap="Round"
+                    StrokeEndLineCap="Round" />
+              <StackPanel>
+                <TextBlock Text="{Binding ShellActivityEmptyTitle}"
+                           Foreground="{DynamicResource TextBrush}"
+                           FontWeight="SemiBold"
+                           FontSize="13" />
+                <TextBlock Text="{Binding ShellActivityEmptyDetail}"
+                           Style="{StaticResource CaptionTextStyle}"
+                           Margin="0,3,0,0" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
 
           <Border Grid.Row="1"
                   Width="680"
@@ -3952,14 +4042,14 @@
                          VerticalAlignment="Center"
                          Margin="12,0,18,0" />
               <Button Grid.Column="5"
-                      Content="{x:Static props:Strings.ButtonCancelRun}"
+                      Content="{services:Loc ButtonCancelRun}"
                       MinWidth="132"
                       Height="38"
                       Padding="16,0"
                       Style="{StaticResource DestructiveButtonStyle}"
                       AutomationProperties.AutomationId="InlineActivityCancelRunButton"
-                      AutomationProperties.Name="{x:Static props:Strings.ButtonCancelRunName}"
-                      AutomationProperties.HelpText="{x:Static props:Strings.ButtonCancelRunHint}"
+                      AutomationProperties.Name="{services:Loc ButtonCancelRunName}"
+                      AutomationProperties.HelpText="{services:Loc ButtonCancelRunHint}"
                       Command="{Binding CancelRunCommand}" />
             </Grid>
           </Border>
@@ -4095,7 +4185,7 @@
           </Button>
           <Button Width="38"
                   Height="32"
-                  Style="{StaticResource GhostButtonStyle}"
+                  Style="{StaticResource TitleBarCloseButtonStyle}"
                   Click="CloseWindow_OnClick"
                   AutomationProperties.Name="{services:Loc Ui_WindowClose}">
             <Path Width="11"
@@ -4192,8 +4282,8 @@
                 Padding="32"
                 Focusable="True"
                 AutomationProperties.AutomationId="ActivityDialogRoot"
-                AutomationProperties.Name="{x:Static props:Strings.ActivityDialogName}"
-                AutomationProperties.HelpText="{x:Static props:Strings.ActivityDialogHint}"
+                AutomationProperties.Name="{services:Loc ActivityDialogName}"
+                AutomationProperties.HelpText="{services:Loc ActivityDialogHint}"
                 Style="{StaticResource ActivityCardStyle}">
           <Grid>
             <Grid.RowDefinitions>
@@ -4242,7 +4332,7 @@
                           HorizontalAlignment="Right"
                           VerticalAlignment="Top"
                           Margin="20,0,0,0">
-                <TextBlock Text="{x:Static props:Strings.ElapsedLabel}"
+                <TextBlock Text="{services:Loc ElapsedLabel}"
                            Style="{StaticResource LabelTextStyle}"
                            TextAlignment="Right" />
                 <TextBlock Text="{Binding RunElapsedText}"
@@ -4267,7 +4357,7 @@
                              Value="{Binding ProgressValue, Mode=OneWay}"
                              IsIndeterminate="{Binding IsBusyIndeterminate, Mode=OneWay}"
                              VerticalAlignment="Center"
-                             AutomationProperties.Name="{x:Static props:Strings.ProgressBarName}">
+                             AutomationProperties.Name="{services:Loc ProgressBarName}">
                   <ProgressBar.Style>
                     <Style TargetType="ProgressBar" BasedOn="{StaticResource ProgressBarStylePremium}">
                       <Style.Triggers>
@@ -4404,7 +4494,7 @@
                       BorderThickness="1"
                       CornerRadius="12"
                       Padding="16"
-                      AutomationProperties.Name="{x:Static props:Strings.UndoPaneTitle}"
+                      AutomationProperties.Name="{services:Loc UndoPaneTitle}"
                       Visibility="{Binding HasUndoActionItems, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid>
                   <Grid.ColumnDefinitions>
@@ -4416,10 +4506,10 @@
                           CornerRadius="2"
                           Background="{DynamicResource AccentBrush}" />
                   <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                    <TextBlock Text="{x:Static props:Strings.UndoPaneTitle}"
+                    <TextBlock Text="{services:Loc UndoPaneTitle}"
                                Style="{StaticResource LabelTextStyle}"
                                Foreground="{DynamicResource AccentBrush}" />
-                    <TextBlock Text="{x:Static props:Strings.UndoPaneDescription}"
+                    <TextBlock Text="{services:Loc UndoPaneDescription}"
                                Style="{StaticResource CaptionTextStyle}"
                                Foreground="{DynamicResource TextBrush}"
                                Margin="0,4,0,10"
@@ -4456,7 +4546,7 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                               </Grid.ColumnDefinitions>
-                              <TextBlock Text="{x:Static props:Strings.UndoPaneUndoLabel}"
+                              <TextBlock Text="{services:Loc UndoPaneUndoLabel}"
                                          Style="{StaticResource CaptionTextStyle}"
                                          Foreground="{DynamicResource MutedTextBrush}"
                                          FontWeight="SemiBold"
@@ -4481,10 +4571,10 @@
                   <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
-                  <TextBlock Text="{x:Static props:Strings.RunLogLabel}"
+                  <TextBlock Text="{services:Loc RunLogLabel}"
                              Style="{StaticResource LabelTextStyle}"
                              VerticalAlignment="Center" />
-                  <TextBlock Text="{x:Static props:Strings.RunLogDescription}"
+                  <TextBlock Text="{services:Loc RunLogDescription}"
                              Style="{StaticResource CaptionTextStyle}"
                              Margin="0,6,0,0" />
                 </StackPanel>
@@ -4516,11 +4606,11 @@
                         </Style.Triggers>
                       </Style>
                     </StackPanel.Style>
-                    <TextBlock Text="{x:Static props:Strings.LogEmptyStateTitle}"
+                    <TextBlock Text="{services:Loc LogEmptyStateTitle}"
                                Style="{StaticResource EmptyStateTitleTextStyle}"
                                TextAlignment="Center"
                                HorizontalAlignment="Center" />
-                    <TextBlock Text="{x:Static props:Strings.LogEmptyStateHint}"
+                    <TextBlock Text="{services:Loc LogEmptyStateHint}"
                                Style="{StaticResource EmptyStateBodyTextStyle}"
                                TextAlignment="Center"
                                Margin="0,6,0,0"
@@ -4622,7 +4712,7 @@
               <StackPanel Grid.Column="1"
                           Orientation="Horizontal"
                           HorizontalAlignment="Right">
-                <Button Content="{x:Static props:Strings.ButtonCopyLog}"
+                <Button Content="{services:Loc ButtonCopyLog}"
                         x:Name="ActivityCopyLogButton"
                         MinWidth="120"
                         Height="42"
@@ -4630,10 +4720,10 @@
                         Margin="0,0,10,0"
                         Style="{StaticResource SecondaryButtonStyle}"
                         AutomationProperties.AutomationId="ActivityCopyLogButton"
-                        AutomationProperties.Name="{x:Static props:Strings.ButtonCopyLogName}"
-                        AutomationProperties.HelpText="{x:Static props:Strings.ButtonCopyLogHint}"
+                        AutomationProperties.Name="{services:Loc ButtonCopyLogName}"
+                        AutomationProperties.HelpText="{services:Loc ButtonCopyLogHint}"
                         Command="{Binding CopyLogCommand}" />
-                <Button Content="{x:Static props:Strings.ButtonExportFailureBundle}"
+                <Button Content="{services:Loc ButtonExportFailureBundle}"
                         x:Name="ActivityExportFailureBundleButton"
                         MinWidth="132"
                         Height="42"
@@ -4642,10 +4732,10 @@
                         Style="{StaticResource PrimaryButtonStyle}"
                         Visibility="{Binding CanExportFailureBundle, Converter={StaticResource BoolToVisibilityConverter}}"
                         AutomationProperties.AutomationId="ActivityExportFailureBundleButton"
-                        AutomationProperties.Name="{x:Static props:Strings.ButtonExportFailureBundleName}"
-                        AutomationProperties.HelpText="{x:Static props:Strings.ButtonExportFailureBundleHint}"
+                        AutomationProperties.Name="{services:Loc ButtonExportFailureBundleName}"
+                        AutomationProperties.HelpText="{services:Loc ButtonExportFailureBundleHint}"
                         Command="{Binding ExportFailureBundleCommand}" />
-                <Button Content="{x:Static props:Strings.ButtonOpenFolder}"
+                <Button Content="{services:Loc ButtonOpenFolder}"
                         x:Name="ActivityOpenLibreSpotFolderButton"
                         MinWidth="132"
                         Height="42"
@@ -4653,10 +4743,10 @@
                         Margin="0,0,10,0"
                         Style="{StaticResource SecondaryButtonStyle}"
                         AutomationProperties.AutomationId="ActivityOpenLibreSpotFolderButton"
-                        AutomationProperties.Name="{x:Static props:Strings.ButtonOpenLibreSpotFolder}"
-                        AutomationProperties.HelpText="{x:Static props:Strings.ButtonOpenLibreSpotFolderActivityHint}"
+                        AutomationProperties.Name="{services:Loc ButtonOpenLibreSpotFolder}"
+                        AutomationProperties.HelpText="{services:Loc ButtonOpenLibreSpotFolderActivityHint}"
                         Command="{Binding OpenLibreSpotFolderCommand}" />
-                <Button Content="{x:Static props:Strings.ButtonCancelRun}"
+                <Button Content="{services:Loc ButtonCancelRun}"
                         x:Name="ActivityCancelRunButton"
                         MinWidth="140"
                         Height="42"
@@ -4664,11 +4754,11 @@
                         Margin="0,0,10,0"
                         Style="{StaticResource DestructiveButtonStyle}"
                         AutomationProperties.AutomationId="ActivityCancelRunButton"
-                        AutomationProperties.Name="{x:Static props:Strings.ButtonCancelRunName}"
-                        AutomationProperties.HelpText="{x:Static props:Strings.ButtonCancelRunHint}"
+                        AutomationProperties.Name="{services:Loc ButtonCancelRunName}"
+                        AutomationProperties.HelpText="{services:Loc ButtonCancelRunHint}"
                         Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibilityConverter}}"
                         Command="{Binding CancelRunCommand}" />
-                <Button Content="{x:Static props:Strings.ButtonClose}"
+                <Button Content="{services:Loc ButtonClose}"
                         x:Name="ActivityCloseButton"
                         MinWidth="140"
                         Height="42"
@@ -4745,11 +4835,11 @@
                        FontSize="11">
               <TextBlock.Style>
                 <Style TargetType="TextBlock" BasedOn="{StaticResource LabelTextStyle}">
-                  <Setter Property="Text" Value="{x:Static props:Strings.PromptActionConfirm}" />
+                  <Setter Property="Text" Value="{services:Loc PromptActionConfirm}" />
                   <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
                   <Style.Triggers>
                     <DataTrigger Binding="{Binding IsPromptDestructive}" Value="True">
-                      <Setter Property="Text" Value="{x:Static props:Strings.PromptActionReset}" />
+                      <Setter Property="Text" Value="{services:Loc PromptActionReset}" />
                       <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
                     </DataTrigger>
                   </Style.Triggers>

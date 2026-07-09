@@ -42,4 +42,12 @@ public sealed class MaintenanceActionsStateViewModel
             card.Command.NotifyCanExecuteChanged();
         }
     }
+
+    public void RefreshLocalizedText()
+    {
+        foreach (var card in _cards)
+        {
+            card.RefreshLocalizedText();
+        }
+    }
 }

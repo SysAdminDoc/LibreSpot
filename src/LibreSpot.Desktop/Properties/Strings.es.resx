@@ -1960,6 +1960,16 @@
   <data name="Vm_ShellLocalEnvironmentTitle" xml:space="preserve"><value>Local environment</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellLogEnvironmentReady" xml:space="preserve"><value>Environment snapshot is ready.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellLogLevelLabel" xml:space="preserve"><value>All levels</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellLogWarningsAndErrors" xml:space="preserve"><value>Advertencias + errores</value><comment>Activity log filter label.</comment></data>
+  <data name="Vm_ShellLogErrorsOnly" xml:space="preserve"><value>Solo errores</value><comment>Activity log filter label.</comment></data>
+  <data name="Vm_ShellActivityEmptyDetail" xml:space="preserve"><value>Las ejecuciones, reparaciones y notas de recuperación aparecerán aquí.</value><comment>Activity dock empty-state guidance.</comment></data>
+  <data name="Vm_ShellActivityFilterEmptyDetail" xml:space="preserve"><value>Ninguna actividad coincide con este filtro.</value><comment>Activity dock filtered empty-state guidance.</comment></data>
+  <data name="Vm_ShellCheckingSystem" xml:space="preserve"><value>Comprobando el sistema</value><comment>Readiness title while environment checks run.</comment></data>
+  <data name="Vm_ShellCheckingSystemDetail" xml:space="preserve"><value>Verificando Spotify, permisos y dependencias...</value><comment>Readiness detail while environment checks run.</comment></data>
+  <data name="Vm_ShellSnapshotUnavailable" xml:space="preserve"><value>Comprobación no disponible</value><comment>Readiness title after an environment check fails.</comment></data>
+  <data name="Vm_ShellSnapshotUnavailableDetail" xml:space="preserve"><value>LibreSpot no pudo verificar este equipo. Selecciona Verificar entorno para intentarlo de nuevo antes de ejecutar la configuración.</value><comment>Actionable environment-check failure guidance.</comment></data>
+  <data name="Vm_ShellCheckingShort" xml:space="preserve"><value>Comprobando</value><comment>Compact environment-check status.</comment></data>
+  <data name="Vm_ShellRetryShort" xml:space="preserve"><value>Reintentar</value><comment>Compact environment-check failure status.</comment></data>
   <data name="Vm_ShellLogUsingDefaultProfile" xml:space="preserve"><value>Using profile: Default</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellLogUsingProfileFormat" xml:space="preserve"><value>Using profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellNoActiveTasks" xml:space="preserve"><value>No active tasks</value><comment>MainViewModel localized runtime text.</comment></data>

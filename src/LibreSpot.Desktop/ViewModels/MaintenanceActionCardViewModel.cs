@@ -1,4 +1,5 @@
 using LibreSpot.Desktop.Models;
+using LibreSpot.Desktop.Services;
 
 namespace LibreSpot.Desktop.ViewModels;
 
@@ -18,7 +19,7 @@ public sealed class MaintenanceActionCardViewModel : ObservableObject
             {
                 try
                 {
-                    await runAsync(Definition);
+                    await runAsync(CreateLocalizedDefinition());
                 }
                 catch (Exception ex)
                 {
@@ -31,9 +32,9 @@ public sealed class MaintenanceActionCardViewModel : ObservableObject
     public MaintenanceActionDefinition Definition { get; }
     public string Action => Definition.Action;
     public string AutomationId => $"MaintenanceAction_{Definition.Action}";
-    public string Title => Definition.Title;
-    public string Description => Definition.Description;
-    public string ButtonText => Definition.ButtonText;
+    public string Title => LocalizedValue("Title", Definition.Title);
+    public string Description => LocalizedValue("Description", Definition.Description);
+    public string ButtonText => LocalizedValue("ButtonText", Definition.ButtonText);
     public bool IsDestructive => Definition.IsDestructive;
     public IAsyncRelayCommand Command { get; }
 
@@ -53,5 +54,22 @@ public sealed class MaintenanceActionCardViewModel : ObservableObject
     {
         IsRelevant = isRelevant;
         Command.NotifyCanExecuteChanged();
+    }
+
+    public void RefreshLocalizedText()
+    {
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Description));
+        OnPropertyChanged(nameof(ButtonText));
+    }
+
+    private MaintenanceActionDefinition CreateLocalizedDefinition() =>
+        new(Action, Title, Description, ButtonText, IsDestructive);
+
+    private string LocalizedValue(string suffix, string fallback)
+    {
+        var key = $"Maintenance_{Action}_{suffix}";
+        var value = LocalizationService.Current.GetString(key);
+        return string.Equals(value, key, StringComparison.Ordinal) ? fallback : value;
     }
 }

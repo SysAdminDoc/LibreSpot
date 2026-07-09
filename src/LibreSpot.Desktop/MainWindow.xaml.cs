@@ -59,6 +59,11 @@ public partial class MainWindow : Window
             Left = SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth + 64;
             Top = SystemParameters.VirtualScreenTop + 64;
         }
+        else
+        {
+            ConstrainToWorkArea();
+            SizeChanged += MainWindow_SizeChanged;
+        }
 
         _shellActivation = ShellActivationService.Parse(Environment.GetCommandLineArgs().Skip(1));
         _viewModel = string.IsNullOrWhiteSpace(_uiAutomationSmokeState)
@@ -71,13 +76,6 @@ public partial class MainWindow : Window
                     antivirusProbe: EnvironmentSnapshotService.QueryDefenderExclusionStatus,
                     storeSpotifyProbe: EnvironmentSnapshotService.QueryStoreSpotifyPresent))
             : CreateUiAutomationSmokeViewModel(_uiAutomationSmokeCulture);
-
-        // The real runtime shell closes itself after a completed setup/change
-        // run; the UI-automation smoke view model stays open for screenshots.
-        if (string.IsNullOrWhiteSpace(_uiAutomationSmokeState))
-        {
-            _viewModel.ExitAfterSuccessfulSetup = true;
-        }
 
         DataContext = _viewModel;
         SourceInitialized += MainWindow_SourceInitialized;
@@ -129,11 +127,45 @@ public partial class MainWindow : Window
             : WindowState.Maximized;
     }
 
+    private void ConstrainToWorkArea()
+    {
+        var workArea = SystemParameters.WorkArea;
+        Width = Math.Min(Width, Math.Max(MinWidth, workArea.Width - 24));
+        Height = Math.Min(Height, Math.Max(MinHeight, workArea.Height - 24));
+    }
+
+    private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e) =>
+        ApplyResponsiveShellLayout();
+
+    private void ApplyResponsiveShellLayout()
+    {
+        var shellWidth = ActualWidth > 0 ? ActualWidth : Width;
+        var shellHeight = ActualHeight > 0 ? ActualHeight : Height;
+        var isNarrow = shellWidth < 1240;
+        var isCompact = shellWidth < 1480;
+
+        ShellRailColumn.Width = new GridLength(isCompact ? 220 : 248);
+        ShellRailGutterColumn.Width = new GridLength(isCompact ? 20 : 28);
+        ShellInspectorGutterColumn.Width = new GridLength(isNarrow ? 0 : isCompact ? 14 : 18);
+        ShellInspectorColumn.Width = new GridLength(isNarrow ? 0 : isCompact ? 296 : 320);
+        InspectorPanel.Visibility = isNarrow ? Visibility.Collapsed : Visibility.Visible;
+
+        var activityHeight = shellHeight < 780 ? 104 : shellHeight < 900 ? 132 : 184;
+        var activityOffset = activityHeight + 36;
+        ActivityDock.Height = activityHeight;
+        WorkspaceSurface.Margin = new Thickness(0, 64, 0, activityOffset);
+        InspectorPanel.Margin = new Thickness(0, 64, 16, activityOffset);
+    }
+
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         Loaded -= MainWindow_Loaded;
 
-        InitializeTrayIcon();
+        if (!_uiAutomationBackgroundMode)
+        {
+            ApplyResponsiveShellLayout();
+            InitializeTrayIcon();
+        }
         _viewModel.LogEntries.CollectionChanged += OnLogEntriesChanged;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
