@@ -124,8 +124,8 @@
 
   <!-- ═══ Cards / Surfaces ═══ -->
   <Style x:Key="SurfaceCardStyle" TargetType="Border">
-    <Setter Property="Background" Value="{DynamicResource Surface2Brush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{StaticResource RadiusXl}" />
     <Setter Property="Padding" Value="22" />
@@ -186,7 +186,7 @@
             </Grid.RenderTransform>
             <Border x:Name="FocusRing"
                     Margin="-3"
-                    CornerRadius="12"
+                    CornerRadius="{StaticResource RadiusLg}"
                     BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
@@ -194,17 +194,17 @@
                     Background="{TemplateBinding Background}"
                     BorderBrush="{TemplateBinding BorderBrush}"
                     BorderThickness="{TemplateBinding BorderThickness}"
-                    CornerRadius="12" />
+                    CornerRadius="{StaticResource RadiusMd}" />
             <!-- Hover tint overlay; opacity fades 0→1 -->
             <Border x:Name="HoverTint"
                     Background="{TemplateBinding Tag}"
-                    CornerRadius="12"
+                    CornerRadius="{StaticResource RadiusMd}"
                     Opacity="0"
                     IsHitTestVisible="False" />
             <!-- Pressed overlay (subtle darkening) -->
             <Border x:Name="PressTint"
                     Background="{DynamicResource PressTintBrush}"
-                    CornerRadius="12"
+                    CornerRadius="{StaticResource RadiusMd}"
                     Opacity="0"
                     IsHitTestVisible="False" />
             <ContentPresenter HorizontalAlignment="Center"
@@ -302,7 +302,7 @@
             </Grid.RenderTransform>
             <Border x:Name="FocusRing"
                     Margin="-3"
-                    CornerRadius="12"
+                    CornerRadius="{StaticResource RadiusLg}"
                     BorderBrush="{DynamicResource AccentRingBrush}"
                     BorderThickness="2"
                     Opacity="0" />
@@ -310,15 +310,15 @@
                     Background="{TemplateBinding Background}"
                     BorderBrush="{TemplateBinding BorderBrush}"
                     BorderThickness="{TemplateBinding BorderThickness}"
-                    CornerRadius="12" />
+                    CornerRadius="{StaticResource RadiusMd}" />
             <Border x:Name="HoverTint"
                     Background="{TemplateBinding Tag}"
-                    CornerRadius="12"
+                    CornerRadius="{StaticResource RadiusMd}"
                     Opacity="0"
                     IsHitTestVisible="False" />
             <Border x:Name="PressTint"
                     Background="{DynamicResource PressTintBrush}"
-                    CornerRadius="12"
+                    CornerRadius="{StaticResource RadiusMd}"
                     Opacity="0"
                     IsHitTestVisible="False" />
             <ContentPresenter HorizontalAlignment="Center"
@@ -401,6 +401,17 @@
     <Setter Property="Tag" Value="{DynamicResource GhostHoverTintBrush}" />
   </Style>
 
+  <Style x:Key="TitleBarCloseButtonStyle" TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{DynamicResource DangerFillBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnDangerBrush}" />
+        <Setter Property="Tag" Value="{DynamicResource DangerHoverTintBrush}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
   <Style x:Key="ShellNavButtonStyle" TargetType="Button">
     <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
     <Setter Property="Background" Value="Transparent" />
@@ -430,7 +441,7 @@
                     Opacity="0" />
             <Border x:Name="Root"
                     Background="{TemplateBinding Background}"
-                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderBrush="Transparent"
                     BorderThickness="{TemplateBinding BorderThickness}"
                     CornerRadius="8" />
             <Border x:Name="HoverTint"
@@ -441,9 +452,8 @@
             <Border x:Name="AccentRail"
                     Width="4"
                     HorizontalAlignment="Left"
-                    CornerRadius="2"
-                    Background="{DynamicResource AccentBrush}"
-                    Opacity="0" />
+                    CornerRadius="0,2,2,0"
+                    Background="{TemplateBinding BorderBrush}" />
             <ContentPresenter Margin="{TemplateBinding Padding}"
                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                               VerticalAlignment="Center"
@@ -563,6 +573,40 @@
     </Setter>
   </Style>
 
+  <!-- Neutralizes platform selection chrome so card templates own hover,
+       selection, and focus without stacked pale rectangles. -->
+  <Style x:Key="CardListBoxItemStyle" TargetType="ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ListBoxItem">
+          <Border Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{StaticResource RadiusLg}">
+            <ContentPresenter Margin="{TemplateBinding Padding}"
+                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.45" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- ═══ Checkbox card (used for every toggle) ═══ -->
   <Style x:Key="SettingCheckBoxStyle" TargetType="CheckBox">
     <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
@@ -662,14 +706,6 @@
                                      Storyboard.TargetProperty="Opacity"
                                      To="1"
                                      Duration="{StaticResource MotionMedDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
-                                     Storyboard.TargetProperty="ScaleX"
-                                     To="1.01"
-                                     Duration="{StaticResource MotionMedDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
-                                     Storyboard.TargetProperty="ScaleY"
-                                     To="1.01"
-                                     Duration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
@@ -679,14 +715,6 @@
                     <DoubleAnimation Storyboard.TargetName="HoverTint"
                                      Storyboard.TargetProperty="Opacity"
                                      To="0"
-                                     Duration="{StaticResource MotionSlowDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
-                                     Storyboard.TargetProperty="ScaleX"
-                                     To="1"
-                                     Duration="{StaticResource MotionSlowDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
-                                     Storyboard.TargetProperty="ScaleY"
-                                     To="1"
                                      Duration="{StaticResource MotionSlowDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
@@ -1012,7 +1040,7 @@
                     <DoubleAnimation Storyboard.TargetName="ShimmerTranslate"
                                      Storyboard.TargetProperty="X"
                                      From="-400" To="1400"
-                                     Duration="0:0:1.6" />
+                                     Duration="{StaticResource IndeterminateSweepDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>

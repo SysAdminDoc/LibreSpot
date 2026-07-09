@@ -93,6 +93,9 @@
   <SolidColorBrush x:Key="Surface3Brush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
   <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
   <SolidColorBrush x:Key="CanvasShadeBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+  <SolidColorBrush x:Key="WorkspaceBackdropBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+  <SolidColorBrush x:Key="RailPanelBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+  <SolidColorBrush x:Key="SurfaceCardBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
 
   <SolidColorBrush x:Key="StrokeBrush" Color="{DynamicResource {x:Static SystemColors.ActiveBorderColorKey}}" />
   <SolidColorBrush x:Key="StrokeSoftBrush" Color="{DynamicResource {x:Static SystemColors.ActiveBorderColorKey}}" />
@@ -176,6 +179,7 @@
   <Duration x:Key="MotionFastDuration">0:0:0.001</Duration>
   <Duration x:Key="MotionMedDuration">0:0:0.001</Duration>
   <Duration x:Key="MotionSlowDuration">0:0:0.001</Duration>
+  <Duration x:Key="IndeterminateSweepDuration">0:0:0.001</Duration>
 
   <CubicEase x:Key="StandardEase" EasingMode="EaseOut" />
   <QuadraticEase x:Key="SoftEase" EasingMode="EaseOut" />

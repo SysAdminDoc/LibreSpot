@@ -64,6 +64,7 @@ public static class ThemeManager
         app.Resources["MotionFastDuration"] = InstantDuration;
         app.Resources["MotionMedDuration"] = InstantDuration;
         app.Resources["MotionSlowDuration"] = InstantDuration;
+        app.Resources["IndeterminateSweepDuration"] = InstantDuration;
         app.Resources["MotionFast"] = 0.0;
         app.Resources["MotionMed"] = 0.0;
         app.Resources["MotionSlow"] = 0.0;
@@ -74,7 +75,8 @@ public static class ThemeManager
         string[] motionKeys =
         [
             "MotionFast", "MotionMed", "MotionSlow",
-            "MotionFastDuration", "MotionMedDuration", "MotionSlowDuration"
+            "MotionFastDuration", "MotionMedDuration", "MotionSlowDuration",
+            "IndeterminateSweepDuration"
         ];
         foreach (var key in motionKeys)
         {

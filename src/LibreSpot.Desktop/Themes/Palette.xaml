@@ -20,20 +20,20 @@
   <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
 
   <!-- ═══ Surfaces (darkest → lightest) ═══ -->
-  <Color x:Key="CanvasColor">#070B10</Color>
-  <Color x:Key="CanvasShadeColor">#0A1118</Color>
-  <Color x:Key="Surface1Color">#0D151C</Color>
-  <Color x:Key="Surface2Color">#101A23</Color>
-  <Color x:Key="Surface3Color">#14232E</Color>
-  <Color x:Key="SurfaceRaisedColor">#1B2C36</Color>
-  <Color x:Key="RailColor">#081017</Color>
-  <Color x:Key="HeroStartColor">#142430</Color>
-  <Color x:Key="HeroEndColor">#0B1219</Color>
+  <Color x:Key="CanvasColor">#050A0F</Color>
+  <Color x:Key="CanvasShadeColor">#071018</Color>
+  <Color x:Key="Surface1Color">#0A151E</Color>
+  <Color x:Key="Surface2Color">#0D1B25</Color>
+  <Color x:Key="Surface3Color">#122632</Color>
+  <Color x:Key="SurfaceRaisedColor">#193443</Color>
+  <Color x:Key="RailColor">#07111A</Color>
+  <Color x:Key="HeroStartColor">#102938</Color>
+  <Color x:Key="HeroEndColor">#08131C</Color>
 
   <!-- ═══ Strokes ═══ -->
-  <Color x:Key="StrokeColor">#263744</Color>
-  <Color x:Key="StrokeSoftColor">#1A2833</Color>
-  <Color x:Key="StrokeStrongColor">#425867</Color>
+  <Color x:Key="StrokeColor">#294351</Color>
+  <Color x:Key="StrokeSoftColor">#19303D</Color>
+  <Color x:Key="StrokeStrongColor">#456576</Color>
 
   <!-- ═══ Text ═══ -->
   <Color x:Key="TextColor">#F3F7F6</Color>
@@ -91,6 +91,28 @@
   <SolidColorBrush x:Key="Surface3Brush" Color="{StaticResource Surface3Color}" />
   <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="{StaticResource SurfaceRaisedColor}" />
   <SolidColorBrush x:Key="CanvasShadeBrush" Color="{StaticResource CanvasShadeColor}" />
+
+  <!-- Premium shell layers: a restrained top-left glow, a quieter rail fade,
+       and a barely lifted card face. All three flatten in high-contrast mode. -->
+  <RadialGradientBrush x:Key="WorkspaceBackdropBrush"
+                       GradientOrigin="0.12,0.02"
+                       Center="0.12,0.02"
+                       RadiusX="1.08"
+                       RadiusY="0.92">
+    <GradientStop Color="#1E24506A" Offset="0" />
+    <GradientStop Color="{DynamicResource CanvasShadeColor}" Offset="0.36" />
+    <GradientStop Color="{DynamicResource CanvasColor}" Offset="0.78" />
+  </RadialGradientBrush>
+
+  <LinearGradientBrush x:Key="RailPanelBrush" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Color="{DynamicResource RailColor}" Offset="0" />
+    <GradientStop Color="{DynamicResource CanvasShadeColor}" Offset="1" />
+  </LinearGradientBrush>
+
+  <LinearGradientBrush x:Key="SurfaceCardBrush" StartPoint="0,0" EndPoint="0.9,1">
+    <GradientStop Color="{DynamicResource Surface2Color}" Offset="0" />
+    <GradientStop Color="{DynamicResource Surface1Color}" Offset="1" />
+  </LinearGradientBrush>
 
   <SolidColorBrush x:Key="StrokeBrush" Color="{StaticResource StrokeColor}" />
   <SolidColorBrush x:Key="StrokeSoftBrush" Color="{StaticResource StrokeSoftColor}" />
@@ -224,6 +246,7 @@
   <Duration x:Key="MotionFastDuration">0:0:0.090</Duration>
   <Duration x:Key="MotionMedDuration">0:0:0.150</Duration>
   <Duration x:Key="MotionSlowDuration">0:0:0.220</Duration>
+  <Duration x:Key="IndeterminateSweepDuration">0:0:1.600</Duration>
 
   <!-- Expressive but restrained ease-out (no overshoot) -->
   <CubicEase x:Key="StandardEase" EasingMode="EaseOut" />
