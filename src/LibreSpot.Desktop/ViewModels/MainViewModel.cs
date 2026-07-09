@@ -2808,31 +2808,31 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SupportBundleItems.Clear();
         SupportBundleItems.Add(new SupportBundleCategoryViewModel(
             "health",
-            "Health report",
+            L("Vm_SupportBundleCategoryHealthTitle"),
             true,
             true,
-            "Required redacted health report, runtime metadata, and catalog pin baseline.",
+            L("Vm_SupportBundleCategoryHealthDetail"),
             OnSupportBundleSelectionChanged));
         SupportBundleItems.Add(new SupportBundleCategoryViewModel(
             "operation",
-            "Operation journal",
+            L("Vm_SupportBundleCategoryOperationTitle"),
             false,
             true,
-            "Recent install and watcher state from the LibreSpot profile.",
+            L("Vm_SupportBundleCategoryOperationDetail"),
             OnSupportBundleSelectionChanged));
         SupportBundleItems.Add(new SupportBundleCategoryViewModel(
             "logs",
-            "Logs",
+            L("Vm_SupportBundleCategoryLogsTitle"),
             false,
             true,
-            "Selected install, watcher, and desktop rolling logs.",
+            L("Vm_SupportBundleCategoryLogsDetail"),
             OnSupportBundleSelectionChanged));
         SupportBundleItems.Add(new SupportBundleCategoryViewModel(
             "crashes",
-            "Crash reports",
+            L("Vm_SupportBundleCategoryCrashesTitle"),
             false,
             true,
-            "Newest crash report windows when present.",
+            L("Vm_SupportBundleCategoryCrashesDetail"),
             OnSupportBundleSelectionChanged));
     }
 
@@ -2883,7 +2883,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
             Title = Strings.ExportBundleTitle,
-            Filter = "Zip archives (*.zip)|*.zip",
+            Filter = L("Vm_ZipArchiveDialogFilter"),
             DefaultExt = ".zip",
             AddExtension = true,
             OverwritePrompt = true,
@@ -2902,13 +2902,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 dialog.FileName,
                 Snapshot,
                 BuildSupportBundleOptions());
-            SupportBundleLastExportText = $"Last export: {result.Path} ({FormatBytes(result.BytesWritten)}, {result.EntryCount} zip entries).";
-            AppendLog($"Support bundle exported locally: {result.Path}", "SUCCESS");
+            SupportBundleLastExportText = LF("Vm_SupportBundleLastExportFormat", result.Path, FormatBytes(result.BytesWritten), result.EntryCount);
+            AppendLog(LF("Vm_SupportBundleExportedLogFormat", result.Path), "SUCCESS");
         }
         catch (Exception ex)
         {
-            SupportBundleLastExportText = $"Export failed: {ex.Message}";
-            AppendLog($"Support bundle export failed: {ex.Message}", "ERROR");
+            SupportBundleLastExportText = LF("Vm_SupportBundleExportFailedFormat", ex.Message);
+            AppendLog(LF("Vm_SupportBundleExportFailedLogFormat", ex.Message), "ERROR");
         }
     }
 
@@ -2927,13 +2927,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 destination,
                 Snapshot,
                 BuildSupportBundleOptions(currentRun));
-            SupportBundleLastExportText = $"Last failure bundle: {result.Path} ({FormatBytes(result.BytesWritten)}, {result.EntryCount} zip entries).";
-            AppendLog($"Failure bundle exported locally: {result.Path}", "SUCCESS");
+            SupportBundleLastExportText = LF("Vm_SupportBundleLastFailureExportFormat", result.Path, FormatBytes(result.BytesWritten), result.EntryCount);
+            AppendLog(LF("Vm_FailureBundleExportedLogFormat", result.Path), "SUCCESS");
         }
         catch (Exception ex)
         {
-            SupportBundleLastExportText = $"Failure bundle export failed: {ex.Message}";
-            AppendLog($"Failure bundle export failed: {ex.Message}", "ERROR");
+            SupportBundleLastExportText = LF("Vm_FailureBundleExportFailedFormat", ex.Message);
+            AppendLog(LF("Vm_FailureBundleExportFailedLogFormat", ex.Message), "ERROR");
         }
     }
 
@@ -2992,10 +2992,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         RefreshCustomPatchValidation();
         ShowNotice(
-            _customPatchValidation.IsValid ? "Custom patches dry run passed" : "Custom patches need review",
+            _customPatchValidation.IsValid ? L("Vm_CustomPatchesDryRunPassed") : L("Vm_CustomPatchesNeedReviewTitle"),
             _customPatchValidation.Summary,
             _customPatchValidation.IsValid
-                ? "LibreSpot will stage a temporary patches.json when you apply this profile."
+                ? L("Vm_CustomPatchesDryRunPassedDetail")
                 : string.Join(" ", _customPatchValidation.Errors.Take(2)));
     }
 
@@ -3007,16 +3007,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             CustomPatchesEnabled = true;
             RefreshCustomPatchValidation();
             ShowNotice(
-                "Custom patches formatted",
-                "The patches.json document was normalized with indentation for review.",
-                "Dry run still checks regex patterns and match/replace pairs before Apply.");
+                L("Vm_CustomPatchesFormattedTitle"),
+                L("Vm_CustomPatchesFormattedStatus"),
+                L("Vm_CustomPatchesFormattedDetail"));
         }
         catch (JsonException ex)
         {
             ShowNotice(
-                "Custom patches need review",
-                $"JSON could not be formatted: {ex.Message}",
-                "Fix the JSON syntax, then run Format again.");
+                L("Vm_CustomPatchesNeedReviewTitle"),
+                LF("Vm_CustomPatchesFormatFailedFormat", ex.Message),
+                L("Vm_CustomPatchesFormatFailedDetail"));
         }
     }
 
@@ -3040,10 +3040,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             CustomPatchesEnabled = true;
             RefreshCustomPatchValidation();
             ShowNotice(
-                _customPatchValidation.IsValid ? "Custom patches imported" : "Imported patches need review",
+                _customPatchValidation.IsValid ? L("Vm_CustomPatchesImportedTitle") : L("Vm_CustomPatchesImportedNeedReviewTitle"),
                 _customPatchValidation.Summary,
                 _customPatchValidation.IsValid
-                    ? $"Review the JSON before applying this profile. Source SHA256 {_customPatchesSourceSha256}."
+                    ? LF("Vm_CustomPatchesImportedDetailFormat", _customPatchesSourceSha256)
                     : string.Join(" ", _customPatchValidation.Errors.Take(2)));
         }
         finally
@@ -3064,7 +3064,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         configuration.RiskAcknowledged = true;
         var planSummary = await CollectPlanSummaryAsync(configuration);
         ShowPrompt(
-            "Run recommended setup",
+            L("Vm_RecommendedSetupPromptTitle"),
             planSummary,
             Strings.ButtonRunSetup,
             Strings.ButtonCancel,
@@ -3072,11 +3072,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             () => StartBackendRunAsync(
                 "Install",
                 configuration,
-                "Applying the recommended setup",
-                "LibreSpot is rebuilding the tested SpotX and Spicetify stack with the default premium preset.",
+                L("Vm_RecommendedSetupActivityTitle"),
+                L("Vm_RecommendedSetupActivityStatus"),
                 0),
-            "What this will do",
-            "LibreSpot will download, verify, and apply each step listed above. The window stays open so you can follow progress.");
+            L("Vm_PromptWhatThisWillDo"),
+            L("Vm_SetupPromptSummaryBody"));
     }
 
     private async Task ApplyCustomAsync()
@@ -3093,7 +3093,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
             RaiseCustomPatchStateChanged();
             ShowNotice(
-                "Custom patches need review",
+                L("Vm_CustomPatchesNeedReviewTitle"),
                 customPatchValidation.Summary,
                 string.Join(" ", customPatchValidation.Errors.Take(2)));
             return;
@@ -3107,7 +3107,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         configuration.RiskAcknowledged = true;
         var planSummary = await CollectPlanSummaryAsync(configuration);
         ShowPrompt(
-            "Apply custom profile",
+            L("Vm_CustomSetupPromptTitle"),
             planSummary,
             Strings.ButtonRunSetup,
             Strings.ButtonCancel,
@@ -3115,11 +3115,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             () => StartBackendRunAsync(
                 "Install",
                 configuration,
-                "Applying your custom setup",
-                "LibreSpot is validating your selections before it patches Spotify and restores the chosen visual stack.",
+                L("Vm_CustomSetupActivityTitle"),
+                L("Vm_CustomSetupActivityStatus"),
                 1),
-            "What this will do",
-            "LibreSpot will download, verify, and apply each step listed above. The window stays open so you can follow progress.");
+            L("Vm_PromptWhatThisWillDo"),
+            L("Vm_SetupPromptSummaryBody"));
     }
 
     private async Task<string> CollectPlanSummaryAsync(InstallConfiguration configuration)
@@ -3170,14 +3170,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         if (planLines.Count == 0 && compatWarnings.Count == 0)
         {
-            return "LibreSpot will download, verify, and apply the selected setup.";
+            return L("Vm_PlanSummaryDefault");
         }
 
         var sb = new System.Text.StringBuilder();
 
         if (compatWarnings.Count > 0)
         {
-            sb.AppendLine("âš  Version compatibility warning:");
+            sb.AppendLine(L("Vm_PlanSummaryCompatibilityWarning"));
             foreach (var warning in compatWarnings)
             {
                 sb.AppendLine(warning);
@@ -3187,11 +3187,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         if (planLines.Count > 0)
         {
-            sb.AppendLine("LibreSpot will perform these steps:");
+            sb.AppendLine(L("Vm_PlanSummaryStepsTitle"));
             sb.AppendLine();
             foreach (var line in planLines)
             {
-                sb.Append("â€¢ ");
+                sb.Append("- ");
                 sb.AppendLine(line);
             }
         }
@@ -3210,10 +3210,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         var body = definition.Action == "RemoveSelfData"
-            ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}Only LibreSpot's own data is removed â€” Spotify, SpotX patches, and Spicetify are not touched."
+            ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}{L("Vm_MaintenanceRemoveSelfDataBodySuffix")}"
             : definition.IsDestructive
-                ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}This is a deeper reset path and may remove the current customization state. Continue only when you are ready to rebuild."
-                : $"{definition.Description}{Environment.NewLine}{Environment.NewLine}LibreSpot will keep this window open and stream backend progress while the action runs.";
+                ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}{L("Vm_MaintenanceDestructiveBodySuffix")}"
+                : $"{definition.Description}{Environment.NewLine}{Environment.NewLine}{L("Vm_MaintenanceStandardBodySuffix")}";
         var (summaryTitle, summaryBody) = BuildMaintenancePromptSummary(definition);
         var requiresAdministrator = RequiresAdministrator(definition.Action);
 
@@ -3221,7 +3221,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             definition.Title,
             body,
             definition.ButtonText,
-            definition.IsDestructive ? "Keep current setup" : Strings.ButtonCancel,
+            definition.IsDestructive ? L("Vm_KeepCurrentSetup") : Strings.ButtonCancel,
             definition.IsDestructive,
             () => StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2, requiresAdministrator),
             summaryTitle,
@@ -3238,23 +3238,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         var action = enable ? "EnableAutoReapply" : "DisableAutoReapply";
-        var title = enable ? "Enable auto-reapply watcher" : "Disable auto-reapply watcher";
-        var status = enable ? "Registering the auto-reapply watcher" : "Removing the auto-reapply watcher";
+        var title = enable ? L("Vm_AutoReapplyEnablePromptTitle") : L("Vm_AutoReapplyDisablePromptTitle");
+        var status = enable ? L("Vm_AutoReapplyEnableActivityStatus") : L("Vm_AutoReapplyDisableActivityStatus");
         var body = enable
-            ? "LibreSpot will create a per-user scheduled task that runs after Windows sign-in and every 30 minutes. The watcher records the first Spotify version it sees, then reapplies your saved SpotX and Spicetify setup only after a version change while Spotify is closed."
-            : "LibreSpot will remove the scheduled task and keep your saved profile untouched. Manual Reapply will still restore the same saved setup from Maintenance.";
+            ? L("Vm_AutoReapplyEnablePromptBody")
+            : L("Vm_AutoReapplyDisablePromptBody");
         var summaryBody = enable
-            ? "Creates LibreSpot\\ReapplyWatcher, writes watcher.log in the LibreSpot profile folder, and saves AutoReapply_Enabled in config.json."
-            : "Deletes LibreSpot\\ReapplyWatcher if present and saves AutoReapply_Enabled=false in config.json.";
+            ? L("Vm_AutoReapplyEnablePromptSummary")
+            : L("Vm_AutoReapplyDisablePromptSummary");
 
         ShowPrompt(
             title,
             body,
-            enable ? "Enable watcher" : "Disable watcher",
+            enable ? Strings.ButtonEnableWatcher : Strings.ButtonDisableWatcher,
             Strings.ButtonCancel,
             false,
             () => StartBackendRunAsync(action, null, title, status, 2, requiresAdministrator: false),
-            "What this does",
+            L("Vm_PromptWhatThisDoes"),
             summaryBody);
     }
 
@@ -3683,8 +3683,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// Startup hook for the <c>--shell-action=resume-install</c> relaunch: runs
     /// the setup the standard-mode session staged, so an elevate-and-relaunch
     /// finishes what the user already confirmed instead of dropping them back at
-    /// "Run recommended setup." Only proceeds when actually elevated and the
-    /// staged config was risk-acknowledged, so it never auto-runs a mutating
+    /// the normal setup entry point. Only proceeds when actually elevated and
+    /// the staged config was risk-acknowledged, so it never auto-runs a mutating
     /// operation the user did not confirm.
     /// </summary>
     public async Task ResumeElevatedInstallAsync()
@@ -3718,8 +3718,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         await StartBackendRunAsync(
             "Install",
             configuration,
-            "Applying the setup after elevation",
-            "LibreSpot is resuming the setup you confirmed before relaunching as administrator.",
+            L("Vm_ElevatedResumeActivityTitle"),
+            L("Vm_ElevatedResumeActivityStatus"),
             configuration.Mode == "Custom" ? 1 : 0);
     }
 
@@ -3727,20 +3727,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         _resumeInstallAfterElevation = resumeInstall;
         ShowPrompt(
-            "Administrator permission required",
-            "LibreSpot can open safely in standard mode, but setup and maintenance actions still need elevated access to modify Spotify, SpotX, and Spicetify files." +
-            Environment.NewLine + Environment.NewLine +
-            "Relaunching as administrator keeps the same desktop shell and unlocks apply, reapply, and reset actions.",
-            "Relaunch as administrator",
-            "Keep reviewing settings",
+            L("Vm_AdminPromptTitle"),
+            LF("Vm_AdminPromptBodyFormat", Environment.NewLine + Environment.NewLine),
+            L("Ui_RelaunchAsAdministrator"),
+            L("Vm_AdminPromptKeepReviewing"),
             false,
             () =>
             {
                 RelaunchAsAdministrator();
                 return Task.CompletedTask;
             },
-            "Before you continue",
-            "Nothing changes until Windows approves the relaunch. You can stay here and keep reviewing settings if you are not ready.");
+            L("Vm_AdminPromptSummaryTitle"),
+            L("Vm_AdminPromptSummaryBody"));
     }
 
     private void RelaunchAsAdministrator()
@@ -3750,7 +3748,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var executablePath = Environment.ProcessPath;
             if (string.IsNullOrWhiteSpace(executablePath) || !File.Exists(executablePath))
             {
-                ShowNotice("Unable to relaunch", "LibreSpot could not resolve its current executable path.", "Stay in standard mode");
+                ShowNotice(L("Vm_RelaunchUnableTitle"), L("Vm_RelaunchMissingPathStatus"), L("Vm_RelaunchStayStandard"));
                 return;
             }
 
@@ -3760,9 +3758,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             if (string.Equals(exeName, "dotnet.exe", StringComparison.OrdinalIgnoreCase))
             {
                 ShowNotice(
-                    "Run LibreSpot.exe as administrator",
-                    "LibreSpot is currently hosted by dotnet.exe (developer mode). Build a release binary and relaunch that as administrator.",
-                    "Developer session");
+                    L("Vm_RelaunchDeveloperTitle"),
+                    L("Vm_RelaunchDeveloperStatus"),
+                    L("Vm_RelaunchDeveloperStep"));
                 return;
             }
 
@@ -3783,7 +3781,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var process = Process.Start(startInfo);
             if (process is null)
             {
-                ShowNotice("Relaunch failed", "The elevated process could not be started. Try right-clicking LibreSpot.exe and selecting 'Run as administrator' manually.", "Stay in standard mode");
+                ShowNotice(L("Vm_RelaunchFailedTitle"), L("Vm_RelaunchFailedStatus"), L("Vm_RelaunchStayStandard"));
                 return;
             }
             Application.Current.Shutdown();
@@ -3792,17 +3790,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             // 1223 = ERROR_CANCELLED. User clicked "No" on the UAC prompt â€” not an error.
             ShowNotice(
-                "Administrator relaunch canceled",
-                "LibreSpot is still open in standard mode. You can keep reviewing settings and relaunch when you are ready.",
-                "Waiting for elevation");
+                L("Vm_RelaunchCanceledTitle"),
+                L("Vm_RelaunchCanceledStatus"),
+                L("Vm_RelaunchWaitingStep"));
         }
         catch (Exception ex)
         {
             AppendLog(ex.Message, "WARN");
             ShowNotice(
-                "Unable to relaunch",
-                "Windows did not start the elevated LibreSpot session. You can still close this window and run the app as administrator manually.",
-                "Elevation failed");
+                L("Vm_RelaunchUnableTitle"),
+                L("Vm_RelaunchExceptionStatus"),
+                L("Vm_RelaunchElevationFailedStep"));
         }
     }
 
@@ -3847,21 +3845,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void ClearPrompt() => _promptState.Clear();
 
-    private static (string Title, string Body) BuildMaintenancePromptSummary(MaintenanceActionDefinition definition) =>
+    private (string Title, string Body) BuildMaintenancePromptSummary(MaintenanceActionDefinition definition) =>
         definition.Action switch
         {
-            "CheckUpdates" => ("What this does", "LibreSpot compares pinned versions plus the SpotX, Spicetify CLI, Marketplace, and themes compatibility matrix before you decide whether to update."),
-            "ClearCache" => ("What this does", "LibreSpot removes only its verified download cache and writes an operation receipt. Future installs rebuild cache entries after hash verification."),
-            "Reapply" => ("What this does", "LibreSpot refreshes SpotX first, then restores the saved Spicetify layer so the stack returns to its last known profile."),
-            "RepairMarketplace" => ("What this does", "LibreSpot reinstalls the Marketplace custom app, re-enables it in Spicetify, applies the change, and opens spotify:app:marketplace if Spotify accepts the URI."),
-            "OpenMarketplace" => ("What this does", "LibreSpot asks Spotify to open spotify:app:marketplace without reinstalling or changing your Spicetify files."),
-            "RestoreVanilla" => ("What this does", "This removes the visible Spicetify layer while leaving SpotX in place, so Spotify returns to a calmer default look."),
-            "UninstallSpicetify" => ("What this removes", "LibreSpot restores Spotify first, then removes the Spicetify CLI, config folder, and PATH entry from this machine."),
-            "FullReset" => ("What this removes", "LibreSpot clears Spotify customization state and related leftovers so the next install can start from a truly clean baseline."),
-            "RemoveSelfData" => ("What this removes", "LibreSpot deletes its own configuration, profiles, backups, logs, crash reports, and the watcher task. Spotify, SpotX patches, and Spicetify are not touched."),
+            "CheckUpdates" => (L("Vm_PromptWhatThisDoes"), L("Vm_MaintenanceSummaryCheckUpdates")),
+            "ClearCache" => (L("Vm_PromptWhatThisDoes"), L("Vm_MaintenanceSummaryClearCache")),
+            "Reapply" => (L("Vm_PromptWhatThisDoes"), L("Vm_MaintenanceSummaryReapply")),
+            "RepairMarketplace" => (L("Vm_PromptWhatThisDoes"), L("Vm_MaintenanceSummaryRepairMarketplace")),
+            "OpenMarketplace" => (L("Vm_PromptWhatThisDoes"), L("Vm_MaintenanceSummaryOpenMarketplace")),
+            "RestoreVanilla" => (L("Vm_PromptWhatThisDoes"), L("Vm_MaintenanceSummaryRestoreVanilla")),
+            "UninstallSpicetify" => (L("Vm_PromptWhatThisRemoves"), L("Vm_MaintenanceSummaryUninstallSpicetify")),
+            "FullReset" => (L("Vm_PromptWhatThisRemoves"), L("Vm_MaintenanceSummaryFullReset")),
+            "RemoveSelfData" => (L("Vm_PromptWhatThisRemoves"), L("Vm_MaintenanceSummaryRemoveSelfData")),
             _ => definition.IsDestructive
-                ? ("What this removes", "LibreSpot will make a deeper cleanup pass and leave the result visible here afterward.")
-                : ("What this does", "LibreSpot will keep the window open, stream progress here, and leave the result easy to review afterward.")
+                ? (L("Vm_PromptWhatThisRemoves"), L("Vm_MaintenanceSummaryDefaultDestructive"))
+                : (L("Vm_PromptWhatThisDoes"), L("Vm_MaintenanceSummaryDefaultStandard"))
         };
 
     /// <summary>
@@ -3887,17 +3885,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var tcs = new TaskCompletionSource<bool>();
 
         ShowPrompt(
-            "Risk acknowledgment",
-            "LibreSpot modifies your Spotify installation to remove ads and apply themes. " +
-            "This violates Spotify's Terms of Service and User Guidelines " +
-            "(https://spotify.com/legal/user-guidelines/). " +
-            "While enforcement against individual users has not been publicly documented, " +
-            "your account could be affected." +
-            Environment.NewLine + Environment.NewLine +
-            "By continuing, you acknowledge this risk and agree to proceed at your own discretion." +
-            Environment.NewLine + Environment.NewLine +
-            "You can restore stock Spotify at any time using Maintenance > Full Reset.",
-            "I understand, continue",
+            L("Vm_RiskPromptTitle"),
+            LF("Vm_RiskPromptBodyFormat", Environment.NewLine + Environment.NewLine),
+            L("Vm_RiskPromptConfirm"),
             Strings.ButtonCancel,
             false,
             async () =>
@@ -3918,9 +3908,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                     // Best-effort save; the backend will re-check.
                 }
             },
-            "What this means",
-            "LibreSpot will record your acknowledgment so this dialog does not appear again. " +
-            "No data leaves your machine.");
+            L("Vm_RiskPromptSummaryTitle"),
+            L("Vm_RiskPromptSummaryBody"));
 
         // The prompt is non-blocking UI; we need to wait for the user to act.
         // ConfirmPromptAsync calls ClearPrompt() (setting IsPromptVisible=false)

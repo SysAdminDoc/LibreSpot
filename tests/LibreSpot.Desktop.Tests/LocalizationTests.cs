@@ -180,7 +180,15 @@ public sealed class LocalizationTests
                     "Clipboard was unavailable. Use Export to share the profile file instead.",
                     "Copied profile comparison.",
                     "Clipboard was unavailable. The comparison remains visible here.",
-                    "Clipboard was unavailable. Log is still saved to install.log."
+                    "Clipboard was unavailable. Log is still saved to install.log.",
+                    "Health report",
+                    "Custom patches dry run passed",
+                    "Run recommended setup",
+                    "Apply custom profile",
+                    "LibreSpot will download, verify, and apply the selected setup.",
+                    "Keep current setup",
+                    "Administrator permission required",
+                    "Risk acknowledgment"
                 }
             ),
             (
