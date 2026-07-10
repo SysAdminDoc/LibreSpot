@@ -205,9 +205,8 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             // Prevent async void exception from crashing the app on startup.
-            // Log the error; the CrashReporter will also catch it if it propagates,
-            // but catching here avoids the unhandled-exception termination path.
             Serilog.Log.Error(ex, "InitializeAsync failed during window load");
+            _viewModel.ApplyInitializationFailure();
         }
     }
 

@@ -23,11 +23,48 @@ public sealed class PremiumShellContractTests
         var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
         var viewModel = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
 
-        Assert.Contains("ShellCheckStatusLabel", xaml);
+        Assert.Contains("ShellReadinessChecks", xaml);
+        Assert.Contains("ShellReadinessCheckItemTemplate", xaml);
+        Assert.DoesNotContain("ShellCheckStatusLabel", xaml);
+        Assert.Contains("checks.Count(check => check.IsPassing)", viewModel);
         Assert.Contains("CycleShellLogFilterCommand", xaml);
+        Assert.Contains("ShellLogFilterHint", xaml);
+        Assert.Contains("ShellClearLogHint", xaml);
         Assert.Contains("ShowShellActivityEmptyState", xaml);
         Assert.DoesNotContain("DateTime.Now.AddSeconds(-4)", viewModel);
         Assert.Contains("TokenKind: \"ScheduledTask\"", viewModel);
+    }
+
+    [Fact]
+    public void LiveRegionsExposeChangingContentAndPromptsConstrainLongCopy()
+    {
+        var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        var liveRegion = ReadFile("src", "LibreSpot.Desktop", "Controls", "LiveRegionContentControl.cs");
+
+        Assert.Contains("Content=\"{Binding ActivityLiveAnnouncement}\"", xaml);
+        Assert.Contains("AutomationProperties.HelpText=\"{services:Loc RunStatus}\"", xaml);
+        Assert.DoesNotContain("AutomationProperties.Name=\"{services:Loc RunStatus}\"", xaml);
+        Assert.Contains("owner.Content?.ToString()", liveRegion);
+        Assert.Contains("protected override string GetNameCore()", liveRegion);
+        Assert.Contains("x:Name=\"PromptDialogRoot\"", xaml);
+        Assert.Contains("MaxHeight=\"660\"", xaml);
+        Assert.Contains("VerticalScrollBarVisibility=\"Auto\"", xaml);
+        Assert.Contains("Text=\"{Binding PromptTitle}\"", xaml);
+        Assert.Contains("Text=\"{Binding PromptBody}\"", xaml);
+    }
+
+    [Fact]
+    public void StartupFailuresBecomeRetryableShellState()
+    {
+        var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        var codeBehind = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
+        var viewModel = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
+
+        Assert.Contains("_viewModel.ApplyInitializationFailure();", codeBehind);
+        Assert.Contains("public void ApplyInitializationFailure()", viewModel);
+        Assert.Contains("SetSnapshotQueryState(isLoading: false, loadFailed: true)", viewModel);
+        Assert.Contains("AutomationProperties.AutomationId=\"InspectorRetryEnvironmentButton\"", xaml);
+        Assert.Contains("Command=\"{Binding RefreshSnapshotCommand}\"", xaml);
     }
 
     [Fact]

@@ -32,6 +32,14 @@ public sealed class LiveRegionContentControl : ContentControl
 
         protected override string GetClassNameCore() => nameof(LiveRegionContentControl);
 
+        protected override string GetNameCore()
+        {
+            var contentName = owner.Content?.ToString();
+            return string.IsNullOrWhiteSpace(contentName)
+                ? base.GetNameCore()
+                : contentName;
+        }
+
         protected override AutomationLiveSetting GetLiveSettingCore() =>
             AutomationLiveSetting.Polite;
     }

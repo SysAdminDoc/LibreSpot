@@ -546,7 +546,7 @@
   <data name="Vm_CountOneSelected" xml:space="preserve"><value>1 selected</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CountSelectedFormat" xml:space="preserve"><value>{0} selected</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomApplyAdmin" xml:space="preserve"><value>LibreSpot relaunches with administrator access before it touches Spotify.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CustomApplyConflict" xml:space="preserve"><value>You can still apply this profile, but the overlapping right-sidebar toggles are worth simplifying first.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomApplyConflict" xml:space="preserve"><value>Turn off either Hide right sidebar or Clear right sidebar styling; when both are selected, hiding wins.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomApplyPatchJson" xml:space="preserve"><value>Fix the custom patches JSON before LibreSpot stages it for SpotX.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomApplyReady" xml:space="preserve"><value>LibreSpot saves this profile to config.json, then applies it through the original backend.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomApplyRecovery" xml:space="preserve"><value>LibreSpot replaces the unreadable config.json with this profile and keeps the recovered copy in the LibreSpot folder.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -697,7 +697,10 @@
   <data name="Vm_ShellBackupCreatedTitle" xml:space="preserve"><value>Backup ready</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellClearCacheDetail" xml:space="preserve"><value>Remove temp files and caches</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellClearCacheTitle" xml:space="preserve"><value>Clear cache</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellClearLogLabel" xml:space="preserve"><value>Clear</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellClearLogLabel" xml:space="preserve"><value>Clear activity view</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellClearLogHint" xml:space="preserve"><value>Clears the activity rows shown here. The install.log file remains on disk.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellLogFilterHint" xml:space="preserve"><value>Cycles the activity view through all levels, warnings and errors, and errors only.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_UnknownBackendFailure" xml:space="preserve"><value>LibreSpot reported an unknown backend failure.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesHealthy" xml:space="preserve"><value>All dependencies are healthy.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesTitle" xml:space="preserve"><value>Dependencies</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesWarning" xml:space="preserve"><value>Review dependency warnings before patching.</value><comment>MainViewModel localized runtime text.</comment></data>

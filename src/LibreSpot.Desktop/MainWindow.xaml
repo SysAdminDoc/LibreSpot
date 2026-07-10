@@ -83,46 +83,88 @@
       <Setter Property="Margin" Value="0,0,0,14" />
     </Style>
 
-    <Style x:Key="ReadinessCheckEllipseStyle" TargetType="Ellipse">
-      <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
-      <Style.Triggers>
-        <DataTrigger Binding="{Binding IsSnapshotLoading}" Value="True">
-          <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
-          <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding NeedsAdministratorRelaunch}" Value="True">
-          <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
-          <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
-        </DataTrigger>
-      </Style.Triggers>
-    </Style>
-
-    <Style x:Key="ReadinessCheckPathStyle" TargetType="Path">
-      <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
-      <Setter Property="Data" Value="M 1 3 L 3 5 L 7 1" />
-      <Style.Triggers>
-        <DataTrigger Binding="{Binding IsSnapshotLoading}" Value="True">
-          <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
-          <Setter Property="Data" Value="M 1 4 H 2 M 3.5 4 H 4.5 M 6 4 H 7" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
-          <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
-          <Setter Property="Data" Value="M 4 0 V 5 M 4 7 V 7.5" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding NeedsAdministratorRelaunch}" Value="True">
-          <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
-          <Setter Property="Data" Value="M 4 0 V 5 M 4 7 V 7.5" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
-          <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
-          <Setter Property="Data" Value="M 1 1 L 7 7 M 7 1 L 1 7" />
-        </DataTrigger>
-      </Style.Triggers>
-    </Style>
+    <DataTemplate x:Key="ShellReadinessCheckItemTemplate"
+                  DataType="{x:Type viewModels:ShellReadinessCheckItemViewModel}">
+      <Grid Margin="0,0,0,10"
+            AutomationProperties.Name="{Binding AutomationText}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="24" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <Ellipse Width="16"
+                 Height="16"
+                 StrokeThickness="1.5">
+          <Ellipse.Style>
+            <Style TargetType="Ellipse">
+              <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding Tone}" Value="info">
+                  <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Tone}" Value="warning">
+                  <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Tone}" Value="critical">
+                  <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Ellipse.Style>
+        </Ellipse>
+        <Path Width="8"
+              Height="6"
+              Stretch="Uniform"
+              StrokeThickness="1.4"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round">
+          <Path.Style>
+            <Style TargetType="Path">
+              <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+              <Setter Property="Data" Value="M 1 3 L 3 5 L 7 1" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding Tone}" Value="info">
+                  <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
+                  <Setter Property="Data" Value="M 1 3 H 7" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Tone}" Value="warning">
+                  <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+                  <Setter Property="Data" Value="M 4 0 V 4.5 M 4 6 V 6.5" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Tone}" Value="critical">
+                  <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
+                  <Setter Property="Data" Value="M 1 1 L 7 7 M 7 1 L 1 7" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Path.Style>
+        </Path>
+        <TextBlock Grid.Column="1"
+                   Text="{Binding Label}"
+                   Style="{StaticResource CaptionTextStyle}"
+                   Foreground="{DynamicResource MutedTextBrush}" />
+        <TextBlock Grid.Column="2"
+                   Text="{Binding Status}">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
+              <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+              <Setter Property="FontWeight" Value="SemiBold" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding Tone}" Value="info">
+                  <Setter Property="Foreground" Value="{DynamicResource InfoBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Tone}" Value="warning">
+                  <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Tone}" Value="critical">
+                  <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
+      </Grid>
+    </DataTemplate>
 
     <DataTemplate DataType="{x:Type viewModels:HealthIssueActionViewModel}" x:Key="HealthIssueActionTemplate">
       <Button Content="{Binding ButtonText}"
@@ -1550,20 +1592,70 @@
                   Height="78"
                   Margin="22,22,0,22"
                   VerticalAlignment="Center">
-              <Ellipse Fill="{DynamicResource AccentSoftBrush}"
-                       Stroke="{DynamicResource HeroRingBrush}"
-                       StrokeThickness="2.4"
-                       Effect="{DynamicResource AccentGlow}" />
+              <Ellipse StrokeThickness="2.4">
+                <Ellipse.Style>
+                  <Style TargetType="Ellipse">
+                    <Setter Property="Fill" Value="{DynamicResource AccentSoftBrush}" />
+                    <Setter Property="Stroke" Value="{DynamicResource HeroRingBrush}" />
+                    <Setter Property="Effect" Value="{DynamicResource AccentGlow}" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsSnapshotLoading}" Value="True">
+                        <Setter Property="Fill" Value="{DynamicResource Surface2Brush}" />
+                        <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
+                        <Setter Property="Effect" Value="{x:Null}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
+                        <Setter Property="Fill" Value="{DynamicResource WarningSoftBrush}" />
+                        <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+                        <Setter Property="Effect" Value="{x:Null}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding NeedsAdministratorRelaunch}" Value="True">
+                        <Setter Property="Fill" Value="{DynamicResource WarningSoftBrush}" />
+                        <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+                        <Setter Property="Effect" Value="{x:Null}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
+                        <Setter Property="Fill" Value="{DynamicResource DangerSoftBrush}" />
+                        <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
+                        <Setter Property="Effect" Value="{x:Null}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Ellipse.Style>
+              </Ellipse>
               <Path Width="38"
                     Height="30"
                     Stretch="Uniform"
-                    Data="M 2 15 L 14 27 L 36 4"
-                    Stroke="{DynamicResource AccentBrush}"
                     StrokeThickness="4"
                     StrokeStartLineCap="Round"
                     StrokeEndLineCap="Round"
                     HorizontalAlignment="Center"
-                    VerticalAlignment="Center" />
+                    VerticalAlignment="Center">
+                <Path.Style>
+                  <Style TargetType="Path">
+                    <Setter Property="Data" Value="M 2 15 L 14 27 L 36 4" />
+                    <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsSnapshotLoading}" Value="True">
+                        <Setter Property="Data" Value="M 4 15 H 7 M 17 15 H 20 M 30 15 H 33" />
+                        <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
+                        <Setter Property="Data" Value="M 19 4 V 20 M 19 26 V 27" />
+                        <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding NeedsAdministratorRelaunch}" Value="True">
+                        <Setter Property="Data" Value="M 19 4 V 20 M 19 26 V 27" />
+                        <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
+                        <Setter Property="Data" Value="M 7 4 L 31 27 M 31 4 L 7 27" />
+                        <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Path.Style>
+              </Path>
             </Grid>
 
             <StackPanel Grid.Column="1" Margin="22,22,26,20" VerticalAlignment="Center">
@@ -2543,7 +2635,7 @@
                                     VerticalAlignment="Stretch" />
                             <controls:LiveRegionContentControl Grid.Column="1"
                                                                Content="{Binding ProfileOperationStatus}"
-                                                               AutomationProperties.Name="{services:Loc Ui_ProfileOperationStatus}">
+                                                               AutomationProperties.HelpText="{services:Loc Ui_ProfileOperationStatus}">
                               <controls:LiveRegionContentControl.ContentTemplate>
                                 <DataTemplate>
                                   <TextBlock Text="{Binding}"
@@ -3484,15 +3576,23 @@
                     <Style.Triggers>
                       <DataTrigger Binding="{Binding IsSnapshotLoading}" Value="True">
                         <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
+                        <Setter Property="StrokeDashArray" Value="1,1" />
+                        <Setter Property="Opacity" Value="0.72" />
                       </DataTrigger>
                       <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
                         <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+                        <Setter Property="StrokeDashArray" Value="1,2.2" />
+                        <Setter Property="Opacity" Value="0.72" />
                       </DataTrigger>
                       <DataTrigger Binding="{Binding NeedsAdministratorRelaunch}" Value="True">
                         <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+                        <Setter Property="StrokeDashArray" Value="1,2.2" />
+                        <Setter Property="Opacity" Value="0.72" />
                       </DataTrigger>
                       <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
                         <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
+                        <Setter Property="StrokeDashArray" Value="1,2.2" />
+                        <Setter Property="Opacity" Value="0.72" />
                       </DataTrigger>
                     </Style.Triggers>
                   </Style>
@@ -3513,50 +3613,8 @@
               </StackPanel>
             </Grid>
 
-            <Grid Margin="0,0,0,10">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="24" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-              </Grid.ColumnDefinitions>
-              <Ellipse Width="16" Height="16" StrokeThickness="1.5" Style="{StaticResource ReadinessCheckEllipseStyle}" />
-              <Path Width="8" Height="6" Stretch="Uniform" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Style="{StaticResource ReadinessCheckPathStyle}" />
-              <TextBlock Grid.Column="1" Text="{Binding ShellSystemChecksLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
-              <TextBlock Grid.Column="2" Text="{Binding ShellCheckStatusLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
-            </Grid>
-            <Grid Margin="0,0,0,10">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="24" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-              </Grid.ColumnDefinitions>
-              <Ellipse Width="16" Height="16" StrokeThickness="1.5" Style="{StaticResource ReadinessCheckEllipseStyle}" />
-              <Path Width="8" Height="6" Stretch="Uniform" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Style="{StaticResource ReadinessCheckPathStyle}" />
-              <TextBlock Grid.Column="1" Text="{Binding ShellSpotifyDetectedLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
-              <TextBlock Grid.Column="2" Text="{Binding ShellCheckStatusLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
-            </Grid>
-            <Grid Margin="0,0,0,10">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="24" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-              </Grid.ColumnDefinitions>
-              <Ellipse Width="16" Height="16" StrokeThickness="1.5" Style="{StaticResource ReadinessCheckEllipseStyle}" />
-              <Path Width="8" Height="6" Stretch="Uniform" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Style="{StaticResource ReadinessCheckPathStyle}" />
-              <TextBlock Grid.Column="1" Text="{Binding ShellWritePermissionsLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
-              <TextBlock Grid.Column="2" Text="{Binding ShellCheckStatusLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
-            </Grid>
-            <Grid>
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="24" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-              </Grid.ColumnDefinitions>
-              <Ellipse Width="16" Height="16" StrokeThickness="1.5" Style="{StaticResource ReadinessCheckEllipseStyle}" />
-              <Path Width="8" Height="6" Stretch="Uniform" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Style="{StaticResource ReadinessCheckPathStyle}" />
-              <TextBlock Grid.Column="1" Text="{Binding ShellDependenciesLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
-              <TextBlock Grid.Column="2" Text="{Binding ShellCheckStatusLabel}" Style="{StaticResource CaptionTextStyle}" Foreground="{DynamicResource MutedTextBrush}" />
-            </Grid>
+            <ItemsControl ItemsSource="{Binding ShellReadinessChecks}"
+                          ItemTemplate="{StaticResource ShellReadinessCheckItemTemplate}" />
           </StackPanel>
         </Border>
 
@@ -3568,6 +3626,48 @@
                        Style="{StaticResource SectionTitleTextStyle}"
                        FontSize="18"
                        Margin="0,0,0,16" />
+            <Button Style="{StaticResource InspectorActionButtonStyle}"
+                    Margin="0,0,0,10"
+                    Visibility="{Binding HasSnapshotLoadError, Converter={StaticResource BoolToVisibilityConverter}}"
+                    AutomationProperties.AutomationId="InspectorRetryEnvironmentButton"
+                    AutomationProperties.Name="{services:Loc ButtonRefreshEnvironment}"
+                    AutomationProperties.HelpText="{services:Loc ButtonRefreshEnvironmentHint}"
+                    Command="{Binding RefreshSnapshotCommand}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="42" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="18" />
+                </Grid.ColumnDefinitions>
+                <Path Width="26"
+                      Height="26"
+                      Data="M 18 6 A 8 8 0 1 0 20 14 M 18 2 V 7 H 13"
+                      Stretch="Uniform"
+                      Stroke="{DynamicResource WarningBrush}"
+                      StrokeThickness="1.8"
+                      StrokeStartLineCap="Round"
+                      StrokeEndLineCap="Round"
+                      StrokeLineJoin="Round" />
+                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                  <TextBlock Text="{services:Loc ButtonRefreshEnvironment}"
+                             Foreground="{DynamicResource TextBrush}"
+                             FontWeight="SemiBold" />
+                  <TextBlock Text="{services:Loc ButtonRefreshEnvironmentHint}"
+                             Style="{StaticResource CaptionTextStyle}" />
+                </StackPanel>
+                <Path Grid.Column="2"
+                      Width="7"
+                      Height="12"
+                      Data="M 1 1 L 6 6 L 1 11"
+                      Stretch="Uniform"
+                      Stroke="{DynamicResource WarningBrush}"
+                      StrokeThickness="1.6"
+                      StrokeStartLineCap="Round"
+                      StrokeEndLineCap="Round"
+                      StrokeLineJoin="Round"
+                      VerticalAlignment="Center" />
+              </Grid>
+            </Button>
             <Button Style="{StaticResource InspectorActionButtonStyle}"
                     Margin="0,0,0,10"
                     AutomationProperties.Name="{Binding ShellActionRunSetupTitle}"
@@ -3969,13 +4069,17 @@
                         Margin="0,0,12,0"
                         Style="{StaticResource GhostButtonStyle}"
                         AutomationProperties.Name="{Binding ShellLogLevelLabel}"
+                        AutomationProperties.HelpText="{Binding ShellLogFilterHint}"
+                        ToolTip="{Binding ShellLogFilterHint}"
                         Command="{Binding CycleShellLogFilterCommand}" />
                 <Button Content="{Binding ShellClearLogLabel}"
                         Height="28"
-                        MinWidth="92"
+                        MinWidth="148"
                         Padding="10,0"
                         Style="{StaticResource GhostButtonStyle}"
                         AutomationProperties.Name="{Binding ShellClearLogLabel}"
+                        AutomationProperties.HelpText="{Binding ShellClearLogHint}"
+                        ToolTip="{Binding ShellClearLogHint}"
                         Command="{Binding ClearLogCommand}" />
               </StackPanel>
             </Grid>
@@ -4147,6 +4251,7 @@
 
           <ComboBox ItemsSource="{Binding LocalizationOptions}"
                     SelectedItem="{Binding SelectedLocalizationOption, Mode=TwoWay}"
+                    IsEnabled="{Binding IsShellInteractionEnabled}"
                     Width="128"
                     Height="32"
                     Margin="0,0,8,0"
@@ -4348,9 +4453,9 @@
                   </TextBlock.Style>
                 </TextBlock>
                 <TextBlock Text="{Binding ActivityTitle}" Style="{StaticResource SectionTitleTextStyle}" FontSize="24" />
-                <controls:LiveRegionContentControl Content="{Binding ActivityStatus}"
+                <controls:LiveRegionContentControl Content="{Binding ActivityLiveAnnouncement}"
                                                    AutomationProperties.AutomationId="RunStatus"
-                                                   AutomationProperties.Name="{services:Loc RunStatus}"
+                                                   AutomationProperties.HelpText="{services:Loc RunStatus}"
                                                    Margin="0,6,0,0">
                   <controls:LiveRegionContentControl.ContentTemplate>
                     <DataTemplate>
@@ -4854,6 +4959,7 @@
       <Grid Margin="64">
         <Border x:Name="PromptDialogRoot"
                 Width="540"
+                MaxHeight="660"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Padding="30"
@@ -4861,7 +4967,15 @@
                 AutomationProperties.Name="{services:Loc Ui_DecisionPrompt}"
                 AutomationProperties.HelpText="{services:Loc Ui_ConfirmsAnImportantLibreSpotActionBeforeItRuns}"
                 Style="{StaticResource PromptCardStyle}">
-          <StackPanel>
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="*" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <ScrollViewer Grid.Row="0"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+              <StackPanel>
             <TextBlock FontWeight="SemiBold"
                        FontSize="11">
               <TextBlock.Style>
@@ -4878,8 +4992,14 @@
               </TextBlock.Style>
             </TextBlock>
 
-            <TextBlock Text="{Binding PromptTitle}" Style="{StaticResource SectionTitleTextStyle}" FontSize="22" />
-            <TextBlock Text="{Binding PromptBody}" Style="{StaticResource BodyTextStyle}" Margin="0,12,0,0" />
+            <TextBlock Text="{Binding PromptTitle}"
+                       Style="{StaticResource SectionTitleTextStyle}"
+                       FontSize="22"
+                       TextWrapping="Wrap" />
+            <TextBlock Text="{Binding PromptBody}"
+                       Style="{StaticResource BodyTextStyle}"
+                       Margin="0,12,0,0"
+                       TextWrapping="Wrap" />
             <Border Height="1"
                     Background="{DynamicResource StrokeSoftBrush}"
                     Margin="0,18,0,16" />
@@ -4898,12 +5018,14 @@
                        Style="{StaticResource CaptionTextStyle}"
                        Margin="0,6,0,0"
                        TextWrapping="Wrap" />
+              </StackPanel>
+            </ScrollViewer>
 
-            <StackPanel Orientation="Horizontal"
+            <StackPanel Grid.Row="1"
+                        Orientation="Horizontal"
                         HorizontalAlignment="Right"
                         Margin="0,24,0,0">
-              <Button Content="{Binding PromptCancelText}"
-                      x:Name="PromptCancelButton"
+              <Button x:Name="PromptCancelButton"
                       MinWidth="160"
                       Height="42"
                       Padding="18,0"
@@ -4912,16 +5034,24 @@
                       AutomationProperties.AutomationId="PromptCancelButton"
                       AutomationProperties.Name="{Binding PromptCancelText}"
                       IsCancel="True"
-                      Command="{Binding CancelPromptCommand}" />
+                      Command="{Binding CancelPromptCommand}">
+                <TextBlock Text="{Binding PromptCancelText}"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center" />
+              </Button>
               <Button MinWidth="200"
                       x:Name="PromptConfirmButton"
                       Height="42"
                       Padding="18,0"
-                      Content="{Binding PromptConfirmText}"
                       AutomationProperties.AutomationId="PromptConfirmButton"
                       AutomationProperties.Name="{Binding PromptConfirmText}"
                       IsDefault="{Binding IsPromptConfirmDefault}"
                       Command="{Binding ConfirmPromptCommand}">
+                <Button.Content>
+                  <TextBlock Text="{Binding PromptConfirmText}"
+                             TextWrapping="Wrap"
+                             TextAlignment="Center" />
+                </Button.Content>
                 <Button.Style>
                   <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
                     <Style.Triggers>
@@ -4936,7 +5066,7 @@
                 </Button.Style>
               </Button>
             </StackPanel>
-          </StackPanel>
+          </Grid>
         </Border>
       </Grid>
     </Grid>

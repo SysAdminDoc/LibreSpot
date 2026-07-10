@@ -434,10 +434,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ? HealthIssueSummary
                 : L("Vm_ShellNoBlockingIssues");
 
-    public string ShellReadinessPercent =>
-        IsSnapshotLoading || HasSnapshotLoadError
-            ? "—"
-            : NeedsAdministratorRelaunch || HasCriticalHealthIssues ? "0%" : "100%";
+    public string ShellReadinessPercent
+    {
+        get
+        {
+            if (IsSnapshotLoading || HasSnapshotLoadError)
+            {
+                return "—";
+            }
+
+            var checks = ShellReadinessChecks;
+            var passed = checks.Count(check => check.IsPassing);
+            return $"{(int)Math.Round(passed * 100.0 / checks.Count)}%";
+        }
+    }
 
     public string ShellReadinessShortLabel =>
         IsSnapshotLoading
@@ -465,10 +475,63 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string ShellWritePermissionsLabel => L("Vm_ShellWritePermissionsLabel");
     public string ShellDependenciesLabel => L("Vm_ShellDependenciesLabel");
     public string ShellCheckOkLabel => L("Vm_ShellCheckOkLabel");
-    public string ShellCheckStatusLabel =>
-        IsSnapshotLoading || HasSnapshotLoadError || NeedsAdministratorRelaunch || HasCriticalHealthIssues
-            ? ShellReadinessShortLabel
-            : ShellCheckOkLabel;
+    public IReadOnlyList<ShellReadinessCheckItemViewModel> ShellReadinessChecks
+    {
+        get
+        {
+            if (IsSnapshotLoading)
+            {
+                return
+                [
+                    new(ShellSystemChecksLabel, L("Vm_ShellCheckingShort"), HealthSeverity.Info, false),
+                    new(ShellSpotifyDetectedLabel, L("Vm_ShellCheckingShort"), HealthSeverity.Info, false),
+                    new(ShellWritePermissionsLabel, L("Vm_ShellCheckingShort"), HealthSeverity.Info, false),
+                    new(ShellDependenciesLabel, L("Vm_ShellCheckingShort"), HealthSeverity.Info, false)
+                ];
+            }
+
+            if (HasSnapshotLoadError)
+            {
+                return
+                [
+                    new(ShellSystemChecksLabel, L("Vm_ShellRetryShort"), HealthSeverity.Warning, false),
+                    new(ShellSpotifyDetectedLabel, Strings.DashboardUnknownValue, HealthSeverity.Info, false),
+                    new(ShellWritePermissionsLabel, Strings.DashboardUnknownValue, HealthSeverity.Info, false),
+                    new(ShellDependenciesLabel, Strings.DashboardUnknownValue, HealthSeverity.Info, false)
+                ];
+            }
+
+            var systemPassing = !HasCriticalHealthIssues;
+            var permissionsPassing = !NeedsAdministratorRelaunch;
+            var dependencyRows = ShellDependencyRows.Take(3).ToArray();
+            var dependenciesPassing = dependencyRows.All(row => row.Tone != HealthSeverity.Critical);
+            var dependenciesInstalled = dependencyRows.All(row => row.Tone == HealthSeverity.Ready);
+
+            return
+            [
+                new(
+                    ShellSystemChecksLabel,
+                    systemPassing ? ShellCheckOkLabel : L("Vm_ShellNeedsReviewShort"),
+                    systemPassing ? HealthSeverity.Ready : HealthSeverity.Critical,
+                    systemPassing),
+                new(
+                    ShellSpotifyDetectedLabel,
+                    Snapshot.SpotifyInstalled ? L("Vm_ShellSpotifyInstalled") : L("Vm_ShellSpotifyNotDetected"),
+                    Snapshot.SpotifyInstalled ? HealthSeverity.Ready : HealthSeverity.Info,
+                    true),
+                new(
+                    ShellWritePermissionsLabel,
+                    permissionsPassing ? ShellCheckOkLabel : L("Vm_ShellNeedsReviewShort"),
+                    permissionsPassing ? HealthSeverity.Ready : HealthSeverity.Warning,
+                    permissionsPassing),
+                new(
+                    ShellDependenciesLabel,
+                    dependenciesInstalled ? ShellCheckOkLabel : ShellReadyText,
+                    dependenciesPassing ? (dependenciesInstalled ? HealthSeverity.Ready : HealthSeverity.Info) : HealthSeverity.Critical,
+                    dependenciesPassing)
+            ];
+        }
+    }
     public string ShellVerifyEnvironmentTitle => L("Vm_ShellVerifyEnvironmentTitle");
     public string ShellVerifyEnvironmentDetail => L("Vm_ShellVerifyEnvironmentDetail");
     public string ShellRepairTitle => L("Vm_ShellRepairTitle");
@@ -507,6 +570,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _ => L("Vm_ShellLogLevelLabel")
     };
     public string ShellClearLogLabel => L("Vm_ShellClearLogLabel");
+    public string ShellClearLogHint => L("Vm_ShellClearLogHint");
+    public string ShellLogFilterHint => L("Vm_ShellLogFilterHint");
     public string ShellActivityEmptyTitle => LogEntries.Count == 0 ? ShellNoActiveTasksText : ShellLogLevelLabel;
     public string ShellActivityEmptyDetail => LogEntries.Count == 0
         ? L("Vm_ShellActivityEmptyDetail")
@@ -1186,7 +1251,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         1 => L("Vm_WorkspaceHeroCustomBody"),
         2 => L("Vm_WorkspaceHeroMaintenanceBody"),
-        _ => L("Vm_WorkspaceHeroRecommendedBody")
+        _ => IsSnapshotLoading
+            ? L("Vm_ShellCheckingSystemDetail")
+            : HasSnapshotLoadError
+                ? L("Vm_ShellSnapshotUnavailableDetail")
+                : NeedsAdministratorRelaunch
+                    ? Strings.AdminStepDescription
+                    : HasCriticalHealthIssues
+                        ? HealthIssueSummary
+                        : L("Vm_WorkspaceHeroRecommendedBody")
     };
 
     public int SelectedWorkspaceIndex
@@ -1447,6 +1520,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         private set => _activityState.Step = value;
     }
 
+    public string ActivityLiveAnnouncement =>
+        string.Join(". ", new[] { ActivityStatus, ActivityStep }.Where(value => !string.IsNullOrWhiteSpace(value)));
+
     public string ActivityAssistiveText =>
         IsCancelRequested
             ? L("Vm_ActivityAssistiveStopping")
@@ -1560,10 +1636,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 break;
             case nameof(ActivityRunStateViewModel.Status):
                 OnPropertyChanged(nameof(ActivityStatus));
+                OnPropertyChanged(nameof(ActivityLiveAnnouncement));
                 RaiseActivityDerivedStateChanged();
                 break;
             case nameof(ActivityRunStateViewModel.Step):
                 OnPropertyChanged(nameof(ActivityStep));
+                OnPropertyChanged(nameof(ActivityLiveAnnouncement));
                 break;
             case nameof(ActivityRunStateViewModel.LogLineCountText):
                 CopyLogCommand.NotifyCanExecuteChanged();
@@ -1647,7 +1725,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShellBackupCreatedDetail));
         OnPropertyChanged(nameof(ShellNoActiveTasksText));
         OnPropertyChanged(nameof(ShellServiceStatusText));
-        OnPropertyChanged(nameof(ShellCheckStatusLabel));
+        OnPropertyChanged(nameof(ShellReadinessChecks));
+        OnPropertyChanged(nameof(ShellReadinessPercent));
+        OnPropertyChanged(nameof(WorkspaceHeroBody));
     }
 
     private void OnCustomOptionEditorPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -1851,7 +1931,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShellWritePermissionsLabel));
         OnPropertyChanged(nameof(ShellDependenciesLabel));
         OnPropertyChanged(nameof(ShellCheckOkLabel));
-        OnPropertyChanged(nameof(ShellCheckStatusLabel));
+        OnPropertyChanged(nameof(ShellReadinessChecks));
         OnPropertyChanged(nameof(ShellVerifyEnvironmentTitle));
         OnPropertyChanged(nameof(ShellVerifyEnvironmentDetail));
         OnPropertyChanged(nameof(ShellRepairTitle));
@@ -1871,6 +1951,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShellLearnMoreLabel));
         OnPropertyChanged(nameof(ShellLogLevelLabel));
         OnPropertyChanged(nameof(ShellClearLogLabel));
+        OnPropertyChanged(nameof(ShellClearLogHint));
+        OnPropertyChanged(nameof(ShellLogFilterHint));
         OnPropertyChanged(nameof(ShellActivityEmptyTitle));
         OnPropertyChanged(nameof(ShellActivityEmptyDetail));
         OnPropertyChanged(nameof(ShellAutoScrollLabel));
@@ -1905,6 +1987,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ApplyConfigurationToEditor(loadResult.Configuration);
         await RefreshLocalProfilesAsync();
         await RefreshSnapshotAsync();
+    }
+
+    public void ApplyInitializationFailure()
+    {
+        SetSnapshotQueryState(isLoading: false, loadFailed: true);
+        AppendLog(L("Vm_ShellSnapshotUnavailableDetail"), "ERROR");
     }
 
     private void ConfigureSettingsSearchFilters()
@@ -3411,7 +3499,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
             else if (!result.Success)
             {
-                AppendLog(result.ErrorMessage ?? "LibreSpot reported an unknown backend failure.", "ERROR");
+                AppendLog(result.ErrorMessage ?? L("Vm_UnknownBackendFailure"), "ERROR");
                 _activityOutcome = ActivityOutcome.Error;
                 ActivityStatus = Strings.RunNeedsAttention;
             }

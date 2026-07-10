@@ -139,7 +139,7 @@ public sealed class WpfUiAutomationSmokeTests
                 var snapshot = WaitForSnapshotContainingAutomationId(window, "ActivityCloseButton", SmokeReadyTimeout);
                 var windowBounds = UiaNode.From(window).BoundingRectangle;
 
-                AssertLocalizedNode(snapshot, "RunStatus", text.RunStatus, windowBounds);
+                AssertLocalizedNode(snapshot, "RunStatus", text.RunStatusAnnouncement, windowBounds);
                 AssertLocalizedNode(snapshot, "ActivityOpenLibreSpotFolderButton", text.OpenLibreSpotFolder, windowBounds, requireFocusable: true);
                 AssertLocalizedNode(snapshot, "ActivityCloseButton", text.CloseActivityPanel, windowBounds, requireFocusable: true);
                 AssertNoUnnamedActionableControls(snapshot);
@@ -167,6 +167,8 @@ public sealed class WpfUiAutomationSmokeTests
                 Assert.True(runStatus.IsEnabled, "The run-status element must be present and enabled for assistive technology.");
                 Assert.Equal("LiveRegionContentControl", runStatus.ClassName);
                 Assert.Equal(ControlType.Text, runStatus.ControlType);
+                Assert.Contains("Run complete", runStatus.Name, StringComparison.Ordinal);
+                Assert.Contains("Spotify is ready", runStatus.Name, StringComparison.Ordinal);
             }
             finally
             {
@@ -189,7 +191,8 @@ public sealed class WpfUiAutomationSmokeTests
                 Assert.Contains(snapshot, node => string.Equals(node.Name, "Local profiles", StringComparison.Ordinal));
                 Assert.Contains(snapshot, node => string.Equals(node.Name, "Refresh local profiles", StringComparison.Ordinal));
                 Assert.Contains(snapshot, node => string.Equals(node.Name, "Minimal / Marketplace-only Template profile", StringComparison.Ordinal));
-                Assert.Contains(snapshot, node => string.Equals(node.Name, "Profile operation status", StringComparison.Ordinal));
+                Assert.Contains(snapshot, node => node.Name.Contains("profile choice", StringComparison.OrdinalIgnoreCase));
+                Assert.DoesNotContain(snapshot, node => string.Equals(node.Name, "Profile operation status", StringComparison.Ordinal));
                 Assert.Contains(snapshot, node => string.Equals(node.Name, "Set selected profile active", StringComparison.Ordinal));
                 Assert.Contains(snapshot, node => string.Equals(node.Name, "Theme pack", StringComparison.Ordinal));
                 Assert.Contains(snapshot, node => node.Name.Contains("Marketplace only", StringComparison.Ordinal));
@@ -232,6 +235,10 @@ public sealed class WpfUiAutomationSmokeTests
                 ?? throw new InvalidOperationException("Could not create the live-region automation peer.");
 
             Assert.Equal(AutomationLiveSetting.Polite, peer.GetLiveSetting());
+            Assert.Equal("Run complete", peer.GetName());
+
+            control.Content = "Retry environment check";
+            Assert.Equal("Retry environment check", peer.GetName());
         });
     }
 
@@ -490,7 +497,7 @@ public sealed class WpfUiAutomationSmokeTests
 
     private sealed record LocalizedSmokeText(
         string ActivityDialog,
-        string RunStatus,
+        string RunStatusAnnouncement,
         string OpenLibreSpotFolder,
         string CloseActivityPanel)
     {
@@ -499,7 +506,7 @@ public sealed class WpfUiAutomationSmokeTests
             var info = CultureInfo.GetCultureInfo(culture);
             return new LocalizedSmokeText(
                 Get("ActivityDialogName", info),
-                Get("RunStatus", info),
+                $"{Get("RunComplete", info)}. {Get("ProgressSpotifyReady", info)}",
                 Get("ButtonOpenLibreSpotFolder", info),
                 Get("Ui_CloseActivityPanel", info));
         }

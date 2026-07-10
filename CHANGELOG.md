@@ -8,15 +8,20 @@ All notable changes to LibreSpot will be documented in this file.
 
 - Refined the v2 command-center design with truthful primary-vs-quick-link rail hierarchy, quieter secondary navigation, chevron-backed inspector actions, consistent action-row help text, and an updated implementation mockup.
 - Moved the inspector breakpoint above the cramped Custom-layout range and added a short-window activity/workspace rhythm so dense screens retain usable editor width and vertical space.
+- Replaced the readiness inspector's repeated aggregate result with four independent system, Spotify, permission, and dependency states plus a passed-check percentage; loading, unavailable, warning, and critical states now change the hero artwork and readiness ring instead of retaining a success check.
+- Made activity clearing explicit that it only clears the visible activity view, documented the cycling severity filter for assistive technology, and replaced layout-dependent Custom-conflict copy with the two setting names users need to resolve.
 
 ### Fixed
 
 - Restored setting-card press scale after pointer release, and removed the ComboBox slide animation that bypassed the reduced-motion token system.
 - Stabilized dense offscreen WPF captures by draining layout and the full card-animation window before rendering, preventing intermittently incomplete Custom screenshots.
+- Startup and snapshot failures now leave checking state, expose a visible Refresh environment recovery action, keep setup disabled, and replace the Recommended hero's success copy with actionable failure guidance.
+- Live regions now announce their changing profile/run content (including the current activity step), translated prompts wrap and scroll within the work area, title-bar language selection is disabled behind modals, and an untranslated backend-failure fallback now comes from localization resources.
 
 ### Tests
 
 - Expanded premium-shell contracts for breakpoint behavior, capture settling, primary/quick-link navigation separation, inspector action affordances, motion-safe popups, and restored press transforms.
+- Added contracts and runtime UIA assertions for per-check readiness, dynamic live-region names, retryable initialization failure, localized activity announcements, prompt bounds, and corrected visible-label navigation names.
 
 ## [v4.0.0-preview.16] - 2026-07-09
 
