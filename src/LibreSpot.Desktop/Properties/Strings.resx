@@ -1046,4 +1046,24 @@
   <data name="Vm_LogBackendRunFailed" xml:space="preserve"><value>Backend run failed: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_LogOpenFolderFailed" xml:space="preserve"><value>Could not open the LibreSpot folder: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_LogElevatedResumeFailed" xml:space="preserve"><value>Could not load the staged setup to resume after elevation: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="CrashWindowTitle" xml:space="preserve"><value>LibreSpot recovery</value><comment>Crash and recovery dialog window title.</comment></data>
+  <data name="CrashRecoverableTitle" xml:space="preserve"><value>LibreSpot saved a crash report</value><comment>Recoverable crash dialog title.</comment></data>
+  <data name="CrashFatalTitle" xml:space="preserve"><value>LibreSpot hit an unexpected error and needs to close</value><comment>Fatal crash dialog title.</comment></data>
+  <data name="CrashRecoverableEyebrow" xml:space="preserve"><value>RECOVERY AVAILABLE</value><comment>Recoverable crash status eyebrow.</comment></data>
+  <data name="CrashFatalEyebrow" xml:space="preserve"><value>CRASH REPORT SAVED</value><comment>Fatal crash status eyebrow.</comment></data>
+  <data name="CrashRecoverableBody" xml:space="preserve"><value>LibreSpot can keep running, but something failed in the background. Review the report if anything looks off before you continue.</value><comment>Recoverable crash explanation.</comment></data>
+  <data name="CrashFatalBody" xml:space="preserve"><value>LibreSpot wrote a crash report so you can inspect what failed, reopen safely, and share the details if you need help.</value><comment>Fatal crash explanation.</comment></data>
+  <data name="CrashRecoverableSummaryTitle" xml:space="preserve"><value>What you can do now</value><comment>Recoverable crash next-step heading.</comment></data>
+  <data name="CrashFatalSummaryTitle" xml:space="preserve"><value>Before you reopen</value><comment>Fatal crash next-step heading.</comment></data>
+  <data name="CrashRecoverableSummaryBody" xml:space="preserve"><value>Copy the report path or open the crash folder now. If the app still behaves strangely, restart LibreSpot before you keep working.</value><comment>Recoverable crash next-step detail.</comment></data>
+  <data name="CrashFatalSummaryBody" xml:space="preserve"><value>Copy the report path or open the crash folder now. When you reopen LibreSpot, the saved profile and logs will still be available for troubleshooting.</value><comment>Fatal crash next-step detail.</comment></data>
+  <data name="CrashExceptionSummaryLabel" xml:space="preserve"><value>EXCEPTION SUMMARY</value><comment>Crash exception card label.</comment></data>
+  <data name="CrashReportPathLabel" xml:space="preserve"><value>REPORT PATH</value><comment>Crash report path label.</comment></data>
+  <data name="CrashSourceFolderFormat" xml:space="preserve"><value>Source: {0} - Crash folder: {1}</value><comment>Crash source and folder detail.</comment></data>
+  <data name="CrashFooter" xml:space="preserve"><value>LibreSpot keeps the crash report and rolling session logs on disk after this dialog closes.</value><comment>Crash report retention note.</comment></data>
+  <data name="CrashCopyReportPath" xml:space="preserve"><value>Copy report path</value><comment>Crash dialog copy action.</comment></data>
+  <data name="CrashOpenFolder" xml:space="preserve"><value>Open crash folder</value><comment>Crash dialog open-folder action.</comment></data>
+  <data name="CrashContinue" xml:space="preserve"><value>Continue</value><comment>Recoverable crash dialog dismiss action.</comment></data>
+  <data name="CrashClose" xml:space="preserve"><value>Close LibreSpot</value><comment>Fatal crash dialog dismiss action.</comment></data>
+  <data name="CrashNoExceptionMessage" xml:space="preserve"><value>No exception message was provided.</value><comment>Fallback crash exception detail.</comment></data>
 </root>

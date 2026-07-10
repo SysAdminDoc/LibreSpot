@@ -109,6 +109,21 @@ public sealed class PremiumShellContractTests
     }
 
     [Fact]
+    public void CrashRecoveryWindowUsesSharedThemeLocalizationAndResponsiveScrolling()
+    {
+        var crashReporter = ReadFile("src", "LibreSpot.Desktop", "Services", "CrashReporter.cs");
+
+        Assert.Contains("ThemeBrush(\"WorkspaceBackdropBrush\"", crashReporter);
+        Assert.Contains("ThemeStyle(isPrimary ? \"PrimaryButtonStyle\" : \"SecondaryButtonStyle\")", crashReporter);
+        Assert.Contains("Win11ShellIntegration.ApplyMicaAndDarkChrome(dialog)", crashReporter);
+        Assert.Contains("L(\"CrashRecoverableTitle\")", crashReporter);
+        Assert.Contains("VerticalScrollBarVisibility = ScrollBarVisibility.Auto", crashReporter);
+        Assert.Contains("AutomationProperties.SetName(button, text)", crashReporter);
+        Assert.DoesNotContain("CreateBrush(", crashReporter);
+        Assert.DoesNotContain("new BrushConverter", crashReporter);
+    }
+
+    [Fact]
     public void Theme_UsesPremiumLayersAndMotionAwareShimmer()
     {
         var palette = ReadFile("src", "LibreSpot.Desktop", "Themes", "Palette.xaml");

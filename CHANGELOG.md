@@ -10,6 +10,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Moved the inspector breakpoint above the cramped Custom-layout range and added a short-window activity/workspace rhythm so dense screens retain usable editor width and vertical space.
 - Replaced the readiness inspector's repeated aggregate result with four independent system, Spotify, permission, and dependency states plus a passed-check percentage; loading, unavailable, warning, and critical states now change the hero artwork and readiness ring instead of retaining a success check.
 - Made activity clearing explicit that it only clears the visible activity view, documented the cycling severity filter for assistive technology, and replaced layout-dependent Custom-conflict copy with the two setting names users need to resolve.
+- Rebuilt the crash/recovery window on the shared palette, typography, radius, input, and button resources; it now uses dark native chrome, system-color high-contrast fallbacks, localized copy, wrapped automation-named actions, and resizable work-area-constrained scrolling instead of a hardcoded legacy theme.
 
 ### Fixed
 
@@ -22,6 +23,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 - Expanded premium-shell contracts for breakpoint behavior, capture settling, primary/quick-link navigation separation, inspector action affordances, motion-safe popups, and restored press transforms.
 - Added contracts and runtime UIA assertions for per-check readiness, dynamic live-region names, retryable initialization failure, localized activity announcements, prompt bounds, and corrected visible-label navigation names.
+- Removed the crash reporter from the C# hardcoded-color allowlist and added a non-activating crash-preview capture path plus contracts for shared theming, localization, scrolling, dark chrome, and action semantics.
 
 ## [v4.0.0-preview.16] - 2026-07-09
 

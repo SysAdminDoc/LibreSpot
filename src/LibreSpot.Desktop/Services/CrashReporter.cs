@@ -2,6 +2,7 @@ using System.IO;
 using System.Threading;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Threading;
@@ -210,42 +211,46 @@ public static class CrashReporter
         var owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(window => window.IsVisible);
         var isRecoverable = !isTerminating && !string.Equals(source, "Dispatcher", StringComparison.OrdinalIgnoreCase);
 
-        var canvasBrush = CreateBrush("#09110E");
-        var surfaceBrush = CreateBrush("#121A16");
-        var sectionBrush = CreateBrush("#18221D");
-        var strokeBrush = CreateBrush("#26362D");
-        var accentBrush = CreateBrush("#1ED760");
-        var dangerBrush = CreateBrush("#EB5757");
-        var warningBrush = CreateBrush("#D6A548");
-        var textBrush = CreateBrush("#F3F7F4");
-        var mutedBrush = CreateBrush("#A6B9AF");
-        var subtleBrush = CreateBrush("#81938A");
+        var canvasBrush = ThemeBrush("WorkspaceBackdropBrush", System.Windows.SystemColors.WindowBrush);
+        var surfaceBrush = ThemeBrush("SurfaceCardBrush", System.Windows.SystemColors.ControlBrush);
+        var strokeBrush = ThemeBrush("StrokeBrush", System.Windows.SystemColors.ActiveBorderBrush);
+        var accentBrush = ThemeBrush("AccentBrush", System.Windows.SystemColors.HighlightBrush);
+        var dangerBrush = ThemeBrush("DangerBrush", System.Windows.SystemColors.HotTrackBrush);
+        var warningBrush = ThemeBrush("WarningBrush", System.Windows.SystemColors.HotTrackBrush);
+        var textBrush = ThemeBrush("TextBrush", System.Windows.SystemColors.WindowTextBrush);
+        var mutedBrush = ThemeBrush("MutedTextBrush", System.Windows.SystemColors.GrayTextBrush);
+        var subtleBrush = ThemeBrush("SubtleTextBrush", System.Windows.SystemColors.GrayTextBrush);
+        var headingFont = ThemeFont("HeadingFont", System.Windows.SystemFonts.MessageFontFamily);
+        var bodyFont = ThemeFont("BodyFont", System.Windows.SystemFonts.MessageFontFamily);
 
         var title = isRecoverable
-            ? "LibreSpot saved a crash report"
-            : "LibreSpot hit an unexpected error and needs to close";
-        var eyebrow = isRecoverable ? "RECOVERY AVAILABLE" : "CRASH REPORT SAVED";
+            ? L("CrashRecoverableTitle")
+            : L("CrashFatalTitle");
+        var eyebrow = isRecoverable ? L("CrashRecoverableEyebrow") : L("CrashFatalEyebrow");
         var body = isRecoverable
-            ? "LibreSpot can keep running, but something failed in the background. Review the report if anything looks off before you continue."
-            : "LibreSpot wrote a crash report so you can inspect what failed, reopen safely, and share the details if you need help.";
-        var summaryTitle = isRecoverable ? "What you can do now" : "Before you reopen";
+            ? L("CrashRecoverableBody")
+            : L("CrashFatalBody");
+        var summaryTitle = isRecoverable ? L("CrashRecoverableSummaryTitle") : L("CrashFatalSummaryTitle");
         var summaryBody = isRecoverable
-            ? "Copy the report path or open the crash folder now. If the app still behaves strangely, restart LibreSpot before you keep working."
-            : "Copy the report path or open the crash folder now. When you reopen LibreSpot, the saved profile and logs will still be available for troubleshooting.";
+            ? L("CrashRecoverableSummaryBody")
+            : L("CrashFatalSummaryBody");
         var exceptionSummary = BuildExceptionSummary(exception);
 
         var dialog = new Window
         {
-            Title = "LibreSpot recovery",
-            Width = 640,
+            Title = L("CrashWindowTitle"),
+            Width = 700,
             SizeToContent = SizeToContent.Height,
-            MinHeight = 390,
-            ResizeMode = ResizeMode.NoResize,
+            MinHeight = 420,
+            MaxHeight = Math.Max(520, SystemParameters.WorkArea.Height - 80),
+            ResizeMode = ResizeMode.CanResizeWithGrip,
             WindowStartupLocation = WindowStartupLocation.CenterScreen,
             ShowInTaskbar = false,
             Background = canvasBrush,
-            Foreground = textBrush
+            Foreground = textBrush,
+            FontFamily = bodyFont
         };
+        dialog.SourceInitialized += (_, _) => Win11ShellIntegration.ApplyMicaAndDarkChrome(dialog);
         // Setting Owner on a closing/disposed window throws InvalidOperationException.
         try { if (owner is { IsVisible: true }) dialog.Owner = owner; } catch { /* fall back to CenterScreen */ }
 
@@ -277,6 +282,7 @@ public static class CrashReporter
             Text = title,
             FontSize = 26,
             FontWeight = FontWeights.SemiBold,
+            FontFamily = headingFont,
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 10, 0, 0),
             Foreground = textBrush
@@ -324,7 +330,7 @@ public static class CrashReporter
         {
             Margin = new Thickness(0, 16, 0, 0),
             Padding = new Thickness(18),
-            CornerRadius = new CornerRadius(12),
+            CornerRadius = ThemeCornerRadius("RadiusXl", new CornerRadius(12)),
             Background = surfaceBrush,
             BorderBrush = strokeBrush,
             BorderThickness = new Thickness(1)
@@ -332,7 +338,7 @@ public static class CrashReporter
         var detailsStack = new StackPanel();
         detailsStack.Children.Add(new TextBlock
         {
-            Text = "EXCEPTION SUMMARY",
+            Text = L("CrashExceptionSummaryLabel"),
             FontSize = 12,
             FontWeight = FontWeights.SemiBold,
             Foreground = subtleBrush
@@ -347,13 +353,13 @@ public static class CrashReporter
         });
         detailsStack.Children.Add(new TextBlock
         {
-            Text = "REPORT PATH",
+            Text = L("CrashReportPathLabel"),
             Margin = new Thickness(0, 16, 0, 0),
             FontSize = 12,
             FontWeight = FontWeights.SemiBold,
             Foreground = subtleBrush
         });
-        detailsStack.Children.Add(new TextBox
+        var reportPathBox = new TextBox
         {
             Text = crashPath,
             Margin = new Thickness(0, 8, 0, 0),
@@ -364,10 +370,13 @@ public static class CrashReporter
             BorderThickness = new Thickness(1),
             Foreground = textBrush,
             Padding = new Thickness(10, 8, 10, 8)
-        });
+        };
+        reportPathBox.Style = ThemeStyle("TextBoxStylePremium");
+        AutomationProperties.SetName(reportPathBox, L("CrashReportPathLabel"));
+        detailsStack.Children.Add(reportPathBox);
         detailsStack.Children.Add(new TextBlock
         {
-            Text = $"Source: {source}  •  Crash folder: {CrashRoot}",
+            Text = LF("CrashSourceFolderFormat", source, CrashRoot),
             Margin = new Thickness(0, 10, 0, 0),
             TextWrapping = TextWrapping.Wrap,
             Foreground = subtleBrush,
@@ -379,7 +388,7 @@ public static class CrashReporter
 
         var footerText = new TextBlock
         {
-            Text = "LibreSpot keeps the crash report and rolling session logs on disk after this dialog closes.",
+            Text = L("CrashFooter"),
             Margin = new Thickness(0, 16, 0, 0),
             TextWrapping = TextWrapping.Wrap,
             Foreground = subtleBrush,
@@ -388,16 +397,16 @@ public static class CrashReporter
         Grid.SetRow(footerText, 3);
         grid.Children.Add(footerText);
 
-        var buttonRow = new StackPanel
+        var buttonRow = new WrapPanel
         {
             Margin = new Thickness(0, 22, 0, 0),
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right
         };
 
-        var copyButton = CreateDialogButton("Copy report path", false, () => TryCopyTextToClipboard(crashPath));
-        var openButton = CreateDialogButton("Open crash folder", false, TryOpenCrashFolder);
-        var closeButton = CreateDialogButton(isRecoverable ? "Continue" : "Close LibreSpot", true, () => dialog.Close());
+        var copyButton = CreateDialogButton(L("CrashCopyReportPath"), false, () => TryCopyTextToClipboard(crashPath));
+        var openButton = CreateDialogButton(L("CrashOpenFolder"), false, TryOpenCrashFolder);
+        var closeButton = CreateDialogButton(isRecoverable ? L("CrashContinue") : L("CrashClose"), true, () => dialog.Close());
 
         copyButton.Margin = new Thickness(0, 0, 10, 0);
         openButton.Margin = new Thickness(0, 0, 0, 0);
@@ -409,28 +418,41 @@ public static class CrashReporter
         Grid.SetRow(buttonRow, 4);
         grid.Children.Add(buttonRow);
 
-        dialog.Content = root;
+        dialog.Content = new ScrollViewer
+        {
+            Content = root,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            MaxHeight = Math.Max(480, SystemParameters.WorkArea.Height - 120),
+            Background = canvasBrush
+        };
         return dialog;
     }
 
+    internal static Window BuildPreviewDialogForUiAutomation() =>
+        BuildCrashDialog(
+            Path.Combine(Path.GetTempPath(), "LibreSpot", "crashes", "crash-preview.log"),
+            new InvalidOperationException(L("CrashNoExceptionMessage")),
+            nameof(BuildPreviewDialogForUiAutomation),
+            isTerminating: false);
+
     private static Button CreateDialogButton(string text, bool isPrimary, Action action)
     {
-        var background = isPrimary ? CreateBrush("#1ED760") : CreateBrush("#18221D");
-        var borderBrush = isPrimary ? CreateBrush("#1ED760") : CreateBrush("#2A3B32");
-        var foreground = isPrimary ? CreateBrush("#08100C") : CreateBrush("#F3F7F4");
-
         var button = new Button
         {
-            Content = text,
-            MinWidth = isPrimary ? 160 : 148,
-            Height = 40,
+            Content = new TextBlock
+            {
+                Text = text,
+                TextWrapping = TextWrapping.Wrap,
+                TextAlignment = TextAlignment.Center
+            },
+            MinWidth = isPrimary ? 154 : 142,
+            MinHeight = 42,
             Padding = new Thickness(18, 0, 18, 0),
-            Background = background,
-            BorderBrush = borderBrush,
-            BorderThickness = new Thickness(1),
-            Foreground = foreground,
-            FontWeight = FontWeights.SemiBold
+            FontWeight = FontWeights.SemiBold,
+            Style = ThemeStyle(isPrimary ? "PrimaryButtonStyle" : "SecondaryButtonStyle")
         };
+        AutomationProperties.SetName(button, text);
         button.Click += (_, _) => action();
         return button;
     }
@@ -439,7 +461,7 @@ public static class CrashReporter
     {
         var baseException = exception.GetBaseException();
         var message = string.IsNullOrWhiteSpace(baseException.Message)
-            ? "No exception message was provided."
+            ? L("CrashNoExceptionMessage")
             : baseException.Message.Trim();
 
         return $"{baseException.GetType().Name}: {message}";
@@ -474,10 +496,20 @@ public static class CrashReporter
         }
     }
 
-    private static SolidColorBrush CreateBrush(string hex)
-    {
-        var brush = (SolidColorBrush)new BrushConverter().ConvertFromString(hex)!;
-        brush.Freeze();
-        return brush;
-    }
+    private static System.Windows.Media.Brush ThemeBrush(string key, System.Windows.Media.Brush fallback) =>
+        Application.Current?.TryFindResource(key) as System.Windows.Media.Brush ?? fallback;
+
+    private static System.Windows.Media.FontFamily ThemeFont(string key, System.Windows.Media.FontFamily fallback) =>
+        Application.Current?.TryFindResource(key) as System.Windows.Media.FontFamily ?? fallback;
+
+    private static Style? ThemeStyle(string key) =>
+        Application.Current?.TryFindResource(key) as Style;
+
+    private static CornerRadius ThemeCornerRadius(string key, CornerRadius fallback) =>
+        Application.Current?.TryFindResource(key) is CornerRadius radius ? radius : fallback;
+
+    private static string L(string key) => LocalizationService.Current.GetString(key);
+
+    private static string LF(string key, params object?[] args) =>
+        string.Format(LocalizationService.Current.Culture, L(key), args);
 }

@@ -170,8 +170,6 @@ public sealed class ColorLintTests
         var path = occurrence.RelativePath;
         return path switch
         {
-            "src/LibreSpot.Desktop/Services/CrashReporter.cs" =>
-                occurrence.Kind is "hex string" or "brush converter" or "converter parsing",
             "src/LibreSpot.Desktop/Converters/LogLevelToBrushConverter.cs" =>
                 (occurrence.Kind == "named color" && occurrence.Value == "Colors.Gray")
                 || occurrence.Kind == "solid brush",

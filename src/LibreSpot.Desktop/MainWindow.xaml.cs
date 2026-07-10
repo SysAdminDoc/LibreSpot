@@ -191,7 +191,24 @@ public partial class MainWindow : Window
                     await Dispatcher.InvokeAsync(PrepareUiAutomationCapture, DispatcherPriority.Loaded);
                     await Task.Delay(900);
                     await Dispatcher.InvokeAsync(PrepareUiAutomationCapture, DispatcherPriority.ApplicationIdle);
-                    SaveUiAutomationCapture(_uiAutomationCapturePath);
+                    if (string.Equals(uiAutomationSmokeState, "crash", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var preview = CrashReporter.BuildPreviewDialogForUiAutomation();
+                        preview.ShowActivated = false;
+                        preview.ShowInTaskbar = false;
+                        preview.WindowStartupLocation = WindowStartupLocation.Manual;
+                        preview.Left = Left + 72;
+                        preview.Top = Top + 72;
+                        preview.Show();
+                        await Dispatcher.InvokeAsync(preview.UpdateLayout, DispatcherPriority.ApplicationIdle);
+                        await Task.Delay(200);
+                        SaveUiAutomationCapture(_uiAutomationCapturePath, preview);
+                        preview.Close();
+                    }
+                    else
+                    {
+                        SaveUiAutomationCapture(_uiAutomationCapturePath, this);
+                    }
                     _allowCloseWhileRunning = true;
                     Close();
                     return;
@@ -750,7 +767,7 @@ public partial class MainWindow : Window
         return false;
     }
 
-    private void SaveUiAutomationCapture(string path)
+    private void SaveUiAutomationCapture(string path, FrameworkElement target)
     {
         var directory = Path.GetDirectoryName(path);
         if (!string.IsNullOrWhiteSpace(directory))
@@ -758,15 +775,15 @@ public partial class MainWindow : Window
             Directory.CreateDirectory(directory);
         }
 
-        var transform = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice ?? Matrix.Identity;
+        var transform = PresentationSource.FromVisual(target)?.CompositionTarget?.TransformToDevice ?? Matrix.Identity;
         var dpiX = 96.0 * transform.M11;
         var dpiY = 96.0 * transform.M22;
-        var pixelWidth = Math.Max(1, (int)Math.Ceiling(ActualWidth * transform.M11));
-        var pixelHeight = Math.Max(1, (int)Math.Ceiling(ActualHeight * transform.M22));
+        var pixelWidth = Math.Max(1, (int)Math.Ceiling(target.ActualWidth * transform.M11));
+        var pixelHeight = Math.Max(1, (int)Math.Ceiling(target.ActualHeight * transform.M22));
 
-        UpdateLayout();
+        target.UpdateLayout();
         var bitmap = new RenderTargetBitmap(pixelWidth, pixelHeight, dpiX, dpiY, PixelFormats.Pbgra32);
-        bitmap.Render(this);
+        bitmap.Render(target);
 
         var metadata = CreateUiAutomationCaptureMetadata();
         var encoder = new PngBitmapEncoder();
