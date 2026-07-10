@@ -26,6 +26,7 @@ public partial class MainWindow : Window
     private const string UiAutomationSmokeArgumentPrefix = "--uia-smoke=";
     private const string UiAutomationCultureArgumentPrefix = "--uia-culture=";
     private const string UiAutomationCaptureArgumentPrefix = "--uia-capture=";
+    private const string UiAutomationSizeArgumentPrefix = "--uia-size=";
     private const string UiAutomationBackgroundArgument = "--uia-background";
     private static readonly Regex NumericInput = new("^[0-9]+$", RegexOptions.Compiled);
     private readonly MainViewModel _viewModel;
@@ -53,6 +54,12 @@ public partial class MainWindow : Window
         _uiAutomationBackgroundMode = GetUiAutomationBackgroundMode();
         if (_uiAutomationBackgroundMode)
         {
+            if (GetUiAutomationCaptureSize() is { } captureSize)
+            {
+                Width = captureSize.Width;
+                Height = captureSize.Height;
+            }
+
             ShowActivated = false;
             ShowInTaskbar = false;
             WindowStartupLocation = WindowStartupLocation.Manual;
@@ -189,7 +196,9 @@ public partial class MainWindow : Window
                     // Waiting through two dispatcher drains avoids partially empty
                     // RenderTargetBitmap captures without changing the live renderer.
                     await Dispatcher.InvokeAsync(PrepareUiAutomationCapture, DispatcherPriority.Loaded);
-                    await Task.Delay(900);
+                    await Task.Delay(1600);
+                    await Dispatcher.InvokeAsync(PrepareUiAutomationCapture, DispatcherPriority.Render);
+                    await Task.Delay(150);
                     await Dispatcher.InvokeAsync(PrepareUiAutomationCapture, DispatcherPriority.ApplicationIdle);
                     if (string.Equals(uiAutomationSmokeState, "crash", StringComparison.OrdinalIgnoreCase))
                     {
@@ -765,6 +774,29 @@ public partial class MainWindow : Window
         }
 
         return false;
+    }
+
+    private System.Windows.Size? GetUiAutomationCaptureSize()
+    {
+        foreach (var arg in Environment.GetCommandLineArgs())
+        {
+            if (!arg.StartsWith(UiAutomationSizeArgumentPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var value = arg[UiAutomationSizeArgumentPrefix.Length..].Trim();
+            var parts = value.Split(['x', 'X'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length == 2 &&
+                double.TryParse(parts[0], NumberStyles.Number, CultureInfo.InvariantCulture, out var width) &&
+                double.TryParse(parts[1], NumberStyles.Number, CultureInfo.InvariantCulture, out var height) &&
+                width >= MinWidth && height >= MinHeight)
+            {
+                return new System.Windows.Size(width, height);
+            }
+        }
+
+        return null;
     }
 
     private void SaveUiAutomationCapture(string path, FrameworkElement target)

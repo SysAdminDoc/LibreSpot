@@ -77,8 +77,11 @@ public sealed class PremiumShellContractTests
         Assert.Contains("ApplyResponsiveShellLayout", codeBehind);
         Assert.Contains("shellWidth < 1520", codeBehind);
         Assert.Contains("PrepareUiAutomationCapture", codeBehind);
-        Assert.Contains("Task.Delay(900)", codeBehind);
+        Assert.Contains("Task.Delay(1600)", codeBehind);
+        Assert.Contains("DispatcherPriority.Render", codeBehind);
         Assert.DoesNotContain("RenderMode.SoftwareOnly", codeBehind);
+        Assert.Contains("--uia-size=", codeBehind);
+        Assert.Contains("GetUiAutomationCaptureSize", codeBehind);
         Assert.Contains("if (!_uiAutomationBackgroundMode)", codeBehind);
         Assert.Contains("x:Name=\"ActivityDock\"", xaml);
         Assert.Contains("x:Name=\"ShellInspectorColumn\"", xaml);
@@ -143,6 +146,18 @@ public sealed class PremiumShellContractTests
         Assert.Contains("Storyboard.TargetProperty=\"ScaleX\"", controls);
         Assert.Contains("Storyboard.TargetProperty=\"ScaleY\"", controls);
         Assert.Contains("To=\"1\"", controls);
+    }
+
+    [Fact]
+    public void UiAutomationCanRenderTheRealHighContrastPalette()
+    {
+        var app = ReadFile("src", "LibreSpot.Desktop", "App.xaml.cs");
+        var themeManager = ReadFile("src", "LibreSpot.Desktop", "Services", "ThemeManager.cs");
+
+        Assert.Contains("--uia-theme=high-contrast", app);
+        Assert.Contains("forceHighContrast: e.Args.Any", app);
+        Assert.Contains("forceHighContrast || IsHighContrast", themeManager);
+        Assert.Contains("useHighContrast ? HighContrastPaletteSource : PaletteSource", themeManager);
     }
 
     private static string ReadFile(params string[] parts) =>

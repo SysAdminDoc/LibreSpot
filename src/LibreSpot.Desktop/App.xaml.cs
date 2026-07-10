@@ -7,13 +7,14 @@ namespace LibreSpot.Desktop;
 public partial class App : Application
 {
     private const string UiAutomationCultureArgumentPrefix = "--uia-culture=";
+    private const string UiAutomationHighContrastArgument = "--uia-theme=high-contrast";
 
     protected override void OnStartup(StartupEventArgs e)
     {
         CrashReporter.Initialize();
         BackendScriptService.CleanStaleExecutionCopies();
         LocalizationService.Current.ApplyCulture(GetStartupCulture(e.Args));
-        ThemeManager.Initialize(this);
+        ThemeManager.Initialize(this, forceHighContrast: e.Args.Any(IsUiAutomationHighContrastArgument));
         base.OnStartup(e);
         ShellIntegrationService.RegisterCurrentUserShellHooksIfPossible();
         ShellIntegrationService.ConfigureJumpListIfPossible();
@@ -34,4 +35,7 @@ public partial class App : Application
 
         return LocalizationService.DefaultCultureName;
     }
+
+    private static bool IsUiAutomationHighContrastArgument(string arg) =>
+        string.Equals(arg.Trim(), UiAutomationHighContrastArgument, StringComparison.OrdinalIgnoreCase);
 }

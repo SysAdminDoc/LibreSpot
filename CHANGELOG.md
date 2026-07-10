@@ -24,6 +24,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Expanded premium-shell contracts for breakpoint behavior, capture settling, primary/quick-link navigation separation, inspector action affordances, motion-safe popups, and restored press transforms.
 - Added contracts and runtime UIA assertions for per-check readiness, dynamic live-region names, retryable initialization failure, localized activity announcements, prompt bounds, and corrected visible-label navigation names.
 - Removed the crash reporter from the C# hardcoded-color allowlist and added a non-activating crash-preview capture path plus contracts for shared theming, localization, scrolling, dark chrome, and action semantics.
+- Added deterministic compact-window and real high-contrast capture switches so the responsive and system-palette variants can be rendered and reviewed without activating the app on the desktop.
 
 ## [v4.0.0-preview.16] - 2026-07-09
 

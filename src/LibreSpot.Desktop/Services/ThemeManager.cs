@@ -12,23 +12,24 @@ public static class ThemeManager
     public static bool IsHighContrast => SystemParameters.HighContrast;
     public static bool IsMotionReduced => !SystemParameters.ClientAreaAnimation;
 
-    public static void Initialize(Application app)
+    public static void Initialize(Application app, bool forceHighContrast = false)
     {
-        ApplyTheme(app);
+        ApplyTheme(app, forceHighContrast);
         SystemParameters.StaticPropertyChanged += (_, e) =>
         {
             if (e.PropertyName is nameof(SystemParameters.HighContrast)
                               or nameof(SystemParameters.ClientAreaAnimation))
             {
-                ApplyTheme(app);
+                ApplyTheme(app, forceHighContrast);
             }
         };
     }
 
-    private static void ApplyTheme(Application app)
+    private static void ApplyTheme(Application app, bool forceHighContrast)
     {
         var dictionaries = app.Resources.MergedDictionaries;
-        var targetSource = IsHighContrast ? HighContrastPaletteSource : PaletteSource;
+        var useHighContrast = forceHighContrast || IsHighContrast;
+        var targetSource = useHighContrast ? HighContrastPaletteSource : PaletteSource;
         var targetUri = new Uri(targetSource, UriKind.Relative);
 
         var paletteIndex = -1;
@@ -49,7 +50,7 @@ public static class ThemeManager
             dictionaries[paletteIndex] = new ResourceDictionary { Source = targetUri };
         }
 
-        if (IsMotionReduced && !IsHighContrast)
+        if (IsMotionReduced && !useHighContrast)
         {
             ApplyReducedMotion(app);
         }
