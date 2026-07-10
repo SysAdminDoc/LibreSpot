@@ -48,6 +48,7 @@ public sealed class ReadmeScreenshotTests
                 continue;
             }
 
+            AssertPngVisualContent(relativePath, fullPath, offenders);
             var metadata = ReadPngTextMetadata(fullPath);
             AssertMetadata(relativePath, "LibreSpotShellVersion", expectedShellVersion, metadata, offenders);
             AssertMetadata(relativePath, "LibreSpotCaptureAssemblyVersion", expectedAssemblyVersion, metadata, offenders);
@@ -60,6 +61,29 @@ public sealed class ReadmeScreenshotTests
         }
 
         Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    private static void AssertPngVisualContent(string relativePath, string fullPath, ICollection<string> offenders)
+    {
+        var png = File.ReadAllBytes(fullPath);
+        if (png.Length < 100_000)
+        {
+            offenders.Add($"{relativePath}: PNG is unexpectedly small ({png.Length:N0} bytes) and may not contain the rendered shell.");
+            return;
+        }
+
+        if (png.Length < 24 || !Encoding.ASCII.GetString(png, 12, 4).Equals("IHDR", StringComparison.Ordinal))
+        {
+            offenders.Add($"{relativePath}: PNG does not contain a valid IHDR header.");
+            return;
+        }
+
+        var width = BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(16, 4));
+        var height = BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(20, 4));
+        if (width < 1_000 || height < 700)
+        {
+            offenders.Add($"{relativePath}: rendered size is {width}x{height}, expected at least 1000x700.");
+        }
     }
 
     private static void AssertMetadata(

@@ -553,7 +553,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string ShellServiceStatusText => Snapshot.SpotifyInstalled || Snapshot.SpicetifyInstalled
         ? L("Vm_ShellServiceDetected")
         : L("Vm_ShellServiceStandby");
-    public string ShellDisplayVersion => "v4.0.0-preview.16";
+    public string ShellDisplayVersion => "v4.0.0-preview.17";
     public string ShellUpdateStatusTitle => Snapshot.SpicetifyInstalled || Snapshot.SpotifyInstalled
         ? L("Vm_ShellUpdateReady")
         : L("Vm_ShellUpdateCurrent");
@@ -4223,10 +4223,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                         "Unregister the scheduled task to undo.",
                         TokenKind: "ScheduledTask")
                 });
-                AppendLog("UI automation smoke activity with reversible changes.", "INFO");
+                AppendLog(L("Vm_LibreSpotReady"), "INFO");
                 ShowNotice(
-                    Strings.ActivityDialogName,
                     Strings.RunComplete,
+                    L("Vm_LibreSpotReady"),
                     Strings.ProgressSpotifyReady);
                 ProgressValue = 100;
                 break;

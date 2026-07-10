@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0-preview.17] - 2026-07-09
+
+Premium command-center parity and resilience release.
+
 ### Changed
 
 - Refined the v2 command-center design with truthful primary-vs-quick-link rail hierarchy, quieter secondary navigation, chevron-backed inspector actions, consistent action-row help text, and an updated implementation mockup.

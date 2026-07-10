@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.16-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.17-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.4-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 
 </div>
@@ -68,11 +68,11 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 ---
 
-## What's New in v4.0.0-preview.16
+## What's New in v4.0.0-preview.17
 
-**Premium desktop command center.** The image-led redesign deepens the graphite workspace, introduces a restrained cyan/emerald hierarchy, separates stack status into scannable cards, adds a true active-navigation rail, and replaces stacked platform selection chrome with clean card-owned states. Buttons, borders, focus rings, hover treatments, and motion now share one deliberate visual system with high-contrast and reduced-motion fallbacks.
+**Premium desktop command center.** The image-led redesign now carries a stronger primary-navigation hierarchy, quieter utility links, wider dense workspaces, individual readiness checks, and a shared recovery-dialog visual system. The graphite shell, restrained cyan/emerald hierarchy, scannable status cards, controls, focus rings, hover treatments, and motion read as one deliberate product across Recommended, Custom, Maintenance, activity, prompt, failure, and crash states.
 
-**Truthful, resilient UX.** Readiness starts in a checking state, failures expose an amber retry path, and setup stays disabled until the environment snapshot is verified. The activity dock now shows real task entries, working severity filters, an honest empty state, and successful results that remain available until dismissed. Modal overlays disable the workspace behind them, live culture changes refresh secondary labels, and compact layouts adapt to the Windows work area without stealing foreground focus during smoke tests.
+**Truthful, resilient UX.** Readiness starts in a checking state, reports system, Spotify, permission, and dependency results independently, and replaces success artwork with actionable loading or failure guidance when appropriate. Snapshot failures expose Refresh environment recovery; activity updates announce changing content; translated prompts wrap and scroll safely; compact layouts preserve editor space; and high-contrast, reduced-motion, modal, and crash-recovery variants share the same interaction contract.
 
 The v4 desktop preview continues that polish with a sharper 6-12 px radius system, quieter scrollbars, cleaner first-run guidance, readable Custom setting cards, a searchable theme gallery, a local profile manager with safe `.librespot` import/export, profile share QR cards, in-app profile comparison text, forced dark native window chrome, completion notifications, a compact status dashboard, issue-level repair buttons, a post-run reversible-changes pane, and calmer activity/support-bundle feedback for assistive technology.
 
