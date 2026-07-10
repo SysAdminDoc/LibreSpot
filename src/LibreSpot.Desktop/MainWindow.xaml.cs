@@ -141,8 +141,9 @@ public partial class MainWindow : Window
     {
         var shellWidth = ActualWidth > 0 ? ActualWidth : Width;
         var shellHeight = ActualHeight > 0 ? ActualHeight : Height;
-        var isNarrow = shellWidth < 1240;
-        var isCompact = shellWidth < 1480;
+        var isNarrow = shellWidth < 1520;
+        var isCompact = shellWidth < 1580;
+        var isShort = shellHeight < 800;
 
         ShellRailColumn.Width = new GridLength(isCompact ? 220 : 248);
         ShellRailGutterColumn.Width = new GridLength(isCompact ? 20 : 28);
@@ -150,20 +151,23 @@ public partial class MainWindow : Window
         ShellInspectorColumn.Width = new GridLength(isNarrow ? 0 : isCompact ? 296 : 320);
         InspectorPanel.Visibility = isNarrow ? Visibility.Collapsed : Visibility.Visible;
 
-        var activityHeight = shellHeight < 780 ? 104 : shellHeight < 900 ? 132 : 184;
-        var activityOffset = activityHeight + 36;
+        var activityHeight = isShort ? 92 : shellHeight < 900 ? 132 : 184;
+        var activityBottom = isShort ? 20 : 38;
+        var activityOffset = activityHeight + activityBottom - 2;
+        var workspaceTop = isShort ? 52 : 64;
         ActivityDock.Height = activityHeight;
-        WorkspaceSurface.Margin = new Thickness(0, 64, 0, activityOffset);
-        InspectorPanel.Margin = new Thickness(0, 64, 16, activityOffset);
+        ActivityDock.Margin = new Thickness(0, 0, 16, activityBottom);
+        WorkspaceSurface.Margin = new Thickness(0, workspaceTop, 0, activityOffset);
+        InspectorPanel.Margin = new Thickness(0, workspaceTop, 16, activityOffset);
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         Loaded -= MainWindow_Loaded;
 
+        ApplyResponsiveShellLayout();
         if (!_uiAutomationBackgroundMode)
         {
-            ApplyResponsiveShellLayout();
             InitializeTrayIcon();
         }
         _viewModel.LogEntries.CollectionChanged += OnLogEntriesChanged;
@@ -180,8 +184,13 @@ public partial class MainWindow : Window
                 _viewModel.ApplyUiAutomationSmokeState(uiAutomationSmokeState!);
                 if (!string.IsNullOrWhiteSpace(_uiAutomationCapturePath))
                 {
-                    await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
-                    await Task.Delay(300);
+                    // Selection/card animations run for up to 220 ms and a dense
+                    // Custom workspace can enqueue another layout pass afterward.
+                    // Waiting through two dispatcher drains avoids partially empty
+                    // RenderTargetBitmap captures without changing the live renderer.
+                    await Dispatcher.InvokeAsync(PrepareUiAutomationCapture, DispatcherPriority.Loaded);
+                    await Task.Delay(900);
+                    await Dispatcher.InvokeAsync(PrepareUiAutomationCapture, DispatcherPriority.ApplicationIdle);
                     SaveUiAutomationCapture(_uiAutomationCapturePath);
                     _allowCloseWhileRunning = true;
                     Close();
@@ -200,6 +209,15 @@ public partial class MainWindow : Window
             // but catching here avoids the unhandled-exception termination path.
             Serilog.Log.Error(ex, "InitializeAsync failed during window load");
         }
+    }
+
+    private void PrepareUiAutomationCapture()
+    {
+        ApplyResponsiveShellLayout();
+        InvalidateMeasure();
+        InvalidateArrange();
+        InvalidateVisual();
+        UpdateLayout();
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)

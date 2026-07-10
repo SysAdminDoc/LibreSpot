@@ -478,6 +478,30 @@
     </Setter>
   </Style>
 
+  <!-- Secondary rail actions intentionally look quieter than the three primary
+       workspaces so opening a tool or external resource never implies that a
+       fourth workspace was selected. -->
+  <Style x:Key="ShellQuickLinkButtonStyle"
+         TargetType="Button"
+         BasedOn="{StaticResource ShellNavButtonStyle}">
+    <Setter Property="Foreground" Value="{DynamicResource SubtleTextBrush}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="MinHeight" Value="40" />
+    <Setter Property="Padding" Value="16,8" />
+  </Style>
+
+  <!-- Inspector actions share one interactive row treatment. The chevron is
+       supplied by the content so the complete row remains one 44px+ target. -->
+  <Style x:Key="InspectorActionButtonStyle"
+         TargetType="Button"
+         BasedOn="{StaticResource GhostButtonStyle}">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="MinHeight" Value="62" />
+    <Setter Property="Padding" Value="8,4" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+
   <!-- Destructive: DangerFill/TextOnDanger pair keeps the label readable on the fill
        (WCAG AA in the dark palette) and flattens to a normal control surface in HC,
        where the DangerBrush border + label carry the destructive meaning. -->
@@ -753,6 +777,14 @@
                                      Storyboard.TargetProperty="Opacity"
                                      To="0"
                                      Duration="{StaticResource MotionMedDuration}" />
+                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     Storyboard.TargetProperty="ScaleX"
+                                     To="1"
+                                     Duration="{StaticResource MotionMedDuration}" />
+                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     Storyboard.TargetProperty="ScaleY"
+                                     To="1"
+                                     Duration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -915,7 +947,7 @@
                    IsOpen="{TemplateBinding IsDropDownOpen}"
                    Placement="Bottom"
                    AllowsTransparency="True"
-                   PopupAnimation="Slide">
+                   PopupAnimation="None">
               <Border Background="{DynamicResource Surface2Brush}"
                       BorderBrush="{DynamicResource StrokeBrush}"
                       BorderThickness="1"

@@ -38,9 +38,29 @@ public sealed class PremiumShellContractTests
 
         Assert.Contains("ConstrainToWorkArea", codeBehind);
         Assert.Contains("ApplyResponsiveShellLayout", codeBehind);
+        Assert.Contains("shellWidth < 1520", codeBehind);
+        Assert.Contains("PrepareUiAutomationCapture", codeBehind);
+        Assert.Contains("Task.Delay(900)", codeBehind);
+        Assert.DoesNotContain("RenderMode.SoftwareOnly", codeBehind);
         Assert.Contains("if (!_uiAutomationBackgroundMode)", codeBehind);
         Assert.Contains("x:Name=\"ActivityDock\"", xaml);
         Assert.Contains("x:Name=\"ShellInspectorColumn\"", xaml);
+    }
+
+    [Fact]
+    public void Shell_SeparatesPrimaryNavigationFromQuickLinksAndUsesActionChevrons()
+    {
+        var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        var controls = ReadFile("src", "LibreSpot.Desktop", "Themes", "Controls.xaml");
+
+        Assert.Contains("AutomationProperties.Name=\"{services:Loc NavHome}\"", xaml);
+        Assert.Contains("AutomationProperties.Name=\"{services:Loc NavSetup}\"", xaml);
+        Assert.Contains("AutomationProperties.Name=\"{services:Loc NavUnblock}\"", xaml);
+        Assert.Contains("ShellQuickLinkButtonStyle", xaml);
+        Assert.Contains("InspectorActionButtonStyle", xaml);
+        Assert.Contains("x:Key=\"ShellQuickLinkButtonStyle\"", controls);
+        Assert.Contains("x:Key=\"InspectorActionButtonStyle\"", controls);
+        Assert.True(xaml.Split(["Data=\"M 1 1 L 6 6 L 1 11\""], StringSplitOptions.None).Length >= 4);
     }
 
     [Fact]
@@ -67,6 +87,10 @@ public sealed class PremiumShellContractTests
         Assert.Contains("CardListBoxItemStyle", controls);
         Assert.Contains("TitleBarCloseButtonStyle", controls);
         Assert.Contains("Duration=\"{StaticResource IndeterminateSweepDuration}\"", controls);
+        Assert.Contains("PopupAnimation=\"None\"", controls);
+        Assert.Contains("Storyboard.TargetProperty=\"ScaleX\"", controls);
+        Assert.Contains("Storyboard.TargetProperty=\"ScaleY\"", controls);
+        Assert.Contains("To=\"1\"", controls);
     }
 
     private static string ReadFile(params string[] parts) =>

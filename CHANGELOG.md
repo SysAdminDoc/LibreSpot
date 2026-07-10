@@ -2,6 +2,22 @@
 
 All notable changes to LibreSpot will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- Refined the v2 command-center design with truthful primary-vs-quick-link rail hierarchy, quieter secondary navigation, chevron-backed inspector actions, consistent action-row help text, and an updated implementation mockup.
+- Moved the inspector breakpoint above the cramped Custom-layout range and added a short-window activity/workspace rhythm so dense screens retain usable editor width and vertical space.
+
+### Fixed
+
+- Restored setting-card press scale after pointer release, and removed the ComboBox slide animation that bypassed the reduced-motion token system.
+- Stabilized dense offscreen WPF captures by draining layout and the full card-animation window before rendering, preventing intermittently incomplete Custom screenshots.
+
+### Tests
+
+- Expanded premium-shell contracts for breakpoint behavior, capture settling, primary/quick-link navigation separation, inspector action affordances, motion-safe popups, and restored press transforms.
+
 ## [v4.0.0-preview.16] - 2026-07-09
 
 Premium desktop command-center release.

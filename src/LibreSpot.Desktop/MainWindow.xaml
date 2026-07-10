@@ -1077,7 +1077,8 @@
             <StackPanel Margin="0,0,0,0">
               <Button Command="{Binding ShowRecommendedWorkspaceCommand}"
                       AutomationProperties.AutomationId="WorkspaceNavRecommended"
-                      AutomationProperties.Name="{services:Loc ModeRecommendedDescription}">
+                      AutomationProperties.Name="{services:Loc NavHome}"
+                      AutomationProperties.HelpText="{services:Loc ModeRecommendedDescription}">
                 <Button.Style>
                   <Style TargetType="Button" BasedOn="{StaticResource ShellNavButtonStyle}">
                     <Style.Triggers>
@@ -1113,7 +1114,8 @@
               <Button Command="{Binding ShowCustomWorkspaceCommand}"
                       Margin="0,8,0,0"
                       AutomationProperties.AutomationId="WorkspaceNavCustom"
-                      AutomationProperties.Name="{services:Loc Ui_CustomSettings}">
+                      AutomationProperties.Name="{services:Loc NavSetup}"
+                      AutomationProperties.HelpText="{services:Loc Vm_WorkspaceHeroCustomBody}">
                 <Button.Style>
                   <Style TargetType="Button" BasedOn="{StaticResource ShellNavButtonStyle}">
                     <Style.Triggers>
@@ -1148,7 +1150,8 @@
               <Button Command="{Binding ShowMaintenanceWorkspaceCommand}"
                       Margin="0,8,0,0"
                       AutomationProperties.AutomationId="WorkspaceNavMaintenance"
-                      AutomationProperties.Name="{services:Loc ModeMaintenanceTitle}">
+                      AutomationProperties.Name="{services:Loc NavUnblock}"
+                      AutomationProperties.HelpText="{services:Loc Vm_WorkspaceHeroMaintenanceBody}">
                 <Button.Style>
                   <Style TargetType="Button" BasedOn="{StaticResource ShellNavButtonStyle}">
                     <Style.Triggers>
@@ -1181,9 +1184,13 @@
                 </Grid>
               </Button>
 
+              <Border Height="1"
+                      Background="{DynamicResource StrokeSoftBrush}"
+                      Margin="0,18,0,10" />
+
               <Button Command="{Binding ShowMaintenanceWorkspaceCommand}"
                       Margin="0,8,0,0"
-                      Style="{StaticResource ShellNavButtonStyle}"
+                      Style="{StaticResource ShellQuickLinkButtonStyle}"
                       AutomationProperties.AutomationId="WorkspaceNavProfiles"
                       AutomationProperties.Name="{services:Loc NavTools}"
                       AutomationProperties.HelpText="{services:Loc Vm_ShellActionToolsDetail}">
@@ -1210,7 +1217,7 @@
 
               <Button Command="{Binding ShowCustomWorkspaceCommand}"
                       Margin="0,8,0,0"
-                      Style="{StaticResource ShellNavButtonStyle}"
+                      Style="{StaticResource ShellQuickLinkButtonStyle}"
                       AutomationProperties.AutomationId="WorkspaceNavSettings"
                       AutomationProperties.Name="{services:Loc NavSettings}"
                       AutomationProperties.HelpText="{services:Loc Vm_WorkspaceHeroCustomBody}">
@@ -1237,7 +1244,7 @@
 
               <Button Command="{Binding OpenRepositoryCommand}"
                       Margin="0,8,0,0"
-                      Style="{StaticResource ShellNavButtonStyle}"
+                      Style="{StaticResource ShellQuickLinkButtonStyle}"
                       AutomationProperties.AutomationId="WorkspaceNavSupport"
                       AutomationProperties.Name="{services:Loc NavAbout}"
                       AutomationProperties.HelpText="{Binding ShellLearnMoreLabel}">
@@ -3561,19 +3568,16 @@
                        Style="{StaticResource SectionTitleTextStyle}"
                        FontSize="18"
                        Margin="0,0,0,16" />
-            <Button Style="{StaticResource GhostButtonStyle}"
-                    Background="Transparent"
-                    BorderBrush="Transparent"
-                    MinHeight="58"
-                    Padding="0"
+            <Button Style="{StaticResource InspectorActionButtonStyle}"
                     Margin="0,0,0,10"
-                    HorizontalContentAlignment="Stretch"
                     AutomationProperties.Name="{Binding ShellActionRunSetupTitle}"
+                    AutomationProperties.HelpText="{Binding ShellActionRunSetupDetail}"
                     Command="{Binding ApplyRecommendedCommand}">
               <Grid>
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="42" />
                   <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="18" />
                 </Grid.ColumnDefinitions>
                 <Ellipse Width="34" Height="34" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.5" />
                 <Path Width="11" Height="12" Data="M 2 1 L 10 6 L 2 11 Z" Fill="{DynamicResource TextBrush}" Stretch="Uniform" />
@@ -3581,47 +3585,74 @@
                   <TextBlock Text="{Binding ShellActionRunSetupTitle}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" />
                   <TextBlock Text="{Binding ShellActionRunSetupDetail}" Style="{StaticResource CaptionTextStyle}" />
                 </StackPanel>
+                <Path Grid.Column="2"
+                      Width="7"
+                      Height="12"
+                      Data="M 1 1 L 6 6 L 1 11"
+                      Stretch="Uniform"
+                      Stroke="{DynamicResource MutedTextBrush}"
+                      StrokeThickness="1.6"
+                      StrokeStartLineCap="Round"
+                      StrokeEndLineCap="Round"
+                      StrokeLineJoin="Round"
+                      VerticalAlignment="Center" />
               </Grid>
             </Button>
-            <Button Style="{StaticResource GhostButtonStyle}"
-                    Background="Transparent"
-                    BorderBrush="Transparent"
-                    MinHeight="58"
-                    Padding="0"
+            <Button Style="{StaticResource InspectorActionButtonStyle}"
                     Margin="0,0,0,10"
-                    HorizontalContentAlignment="Stretch"
                     AutomationProperties.Name="{Binding ShellActionUnblockTitle}"
+                    AutomationProperties.HelpText="{Binding ShellActionUnblockDetail}"
                     Command="{Binding ShowMaintenanceWorkspaceCommand}">
               <Grid>
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="42" />
                   <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="18" />
                 </Grid.ColumnDefinitions>
                 <Path Width="30" Height="30" Data="M 8 12 V 8 A 4 4 0 0 1 16 8 V 12 M 6 12 H 18 V 22 H 6 Z M 12 16 V 19" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stretch="Uniform" />
                 <StackPanel Grid.Column="1" Margin="8,0,0,0">
                   <TextBlock Text="{Binding ShellActionUnblockTitle}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" />
                   <TextBlock Text="{Binding ShellActionUnblockDetail}" Style="{StaticResource CaptionTextStyle}" />
                 </StackPanel>
+                <Path Grid.Column="2"
+                      Width="7"
+                      Height="12"
+                      Data="M 1 1 L 6 6 L 1 11"
+                      Stretch="Uniform"
+                      Stroke="{DynamicResource MutedTextBrush}"
+                      StrokeThickness="1.6"
+                      StrokeStartLineCap="Round"
+                      StrokeEndLineCap="Round"
+                      StrokeLineJoin="Round"
+                      VerticalAlignment="Center" />
               </Grid>
             </Button>
-            <Button Style="{StaticResource GhostButtonStyle}"
-                    Background="Transparent"
-                    BorderBrush="Transparent"
-                    MinHeight="58"
-                    Padding="0"
-                    HorizontalContentAlignment="Stretch"
+            <Button Style="{StaticResource InspectorActionButtonStyle}"
                     AutomationProperties.Name="{Binding ShellActionToolsTitle}"
+                    AutomationProperties.HelpText="{Binding ShellActionToolsDetail}"
                     Command="{Binding ShowMaintenanceWorkspaceCommand}">
               <Grid>
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="42" />
                   <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="18" />
                 </Grid.ColumnDefinitions>
                 <Path Width="30" Height="30" Data="M 18 4 L 20 6 L 15 11 L 12 8 Z M 14 10 L 5 19 A 2 2 0 0 0 8 22 L 17 13" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stretch="Uniform" />
                 <StackPanel Grid.Column="1" Margin="8,0,0,0">
                   <TextBlock Text="{Binding ShellActionToolsTitle}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" />
                   <TextBlock Text="{Binding ShellActionToolsDetail}" Style="{StaticResource CaptionTextStyle}" />
                 </StackPanel>
+                <Path Grid.Column="2"
+                      Width="7"
+                      Height="12"
+                      Data="M 1 1 L 6 6 L 1 11"
+                      Stretch="Uniform"
+                      Stroke="{DynamicResource MutedTextBrush}"
+                      StrokeThickness="1.6"
+                      StrokeStartLineCap="Round"
+                      StrokeEndLineCap="Round"
+                      StrokeLineJoin="Round"
+                      VerticalAlignment="Center" />
               </Grid>
             </Button>
           </StackPanel>
