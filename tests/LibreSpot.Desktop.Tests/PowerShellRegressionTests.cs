@@ -1390,7 +1390,9 @@ public sealed class PowerShellRegressionTests
         var body = fnBody.Groups["body"].Value;
 
         Assert.Contains("IsPathRooted", body);
-        Assert.Contains(@"'..\'" , body);
+        // Traversal guard rejects genuine ".." path segments; the resolved
+        // destination-prefix StartsWith check below is the authoritative escape guard.
+        Assert.Contains("path traversal entry", body);
         Assert.Contains("StartsWith", body);
         Assert.Contains("MaxEntries", body);
         Assert.Contains("MaxExpandedBytes", body);

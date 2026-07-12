@@ -400,7 +400,7 @@ public sealed class CustomPatchService
 
     private sealed class HttpClientCustomPatchImportTransport : ICustomPatchImportTransport
     {
-        private static readonly HttpClient ImportClient = new()
+        private static readonly HttpClient ImportClient = new(PrivateNetworkGuard.CreateGuardedHandler())
         {
             Timeout = TimeSpan.FromSeconds(12)
         };

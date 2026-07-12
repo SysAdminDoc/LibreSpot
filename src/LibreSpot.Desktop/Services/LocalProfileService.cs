@@ -389,7 +389,10 @@ public sealed class LocalProfileService
         return $"librespot://profile?data={EncodeBase64Url(bytes)}";
     }
 
-    private static readonly HttpClient SharedHttpClient = new() { Timeout = TimeSpan.FromSeconds(30) };
+    // Shared-profile imports can be triggered without confirmation via the
+    // librespot:// protocol handler, so the fetch is SSRF-guarded at connect
+    // time against loopback / link-local / private / metadata addresses.
+    private static readonly HttpClient SharedHttpClient = new(PrivateNetworkGuard.CreateGuardedHandler()) { Timeout = TimeSpan.FromSeconds(30) };
 
     private static async Task<Stream> FetchHttpsProfileAsync(Uri uri, CancellationToken cancellationToken)
     {

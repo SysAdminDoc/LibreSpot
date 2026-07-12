@@ -4,6 +4,19 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+
+- Guarded the two "import from an HTTPS URL" surfaces (custom patches and shared profiles) against SSRF: both fetches now validate the resolved IP at socket-connect time and refuse loopback, link-local, RFC1918, CGNAT, unique-local, and cloud-metadata addresses across redirect hops. These fetches can be triggered without confirmation via `librespot://` protocol activation, so the guard runs before any preview.
+- Restricted the upstream-drift `git ls-remote` fallback to HTTPS transports so a tampered dependency manifest cannot hand git a remote-helper URL (`ext::`, `file://`) that executes commands or reads local paths.
+- Hardened standalone `-removeselfdata` to delete its data directories with a reparse-point-aware walk that unlinks nested junctions/symlinks instead of traversing them, closing a delete-anything vector for anyone who can plant a link under `%APPDATA%\LibreSpot`.
+
+### Fixed
+
+- Fixed `Unlock-SpotifyUpdateFolder` throwing "collection modified" and unlocking nothing when the Update folder carried more than one Deny ACE — the exact multi-ACE case it exists to clear; Deny rules are now snapshotted before removal.
+- Fixed the in-app "what's new" preview going blank whenever the changelog's leading `[Unreleased]` section was empty (the normal state right after a release); the preview now falls through to the newest section that actually has content.
+- Stopped run-receipt undo entries from mislabelling the operation token kind as the operation "phase" in the undo history; receipt entries have no phase, so the field now reads as unknown instead of showing the token kind.
+- Relaxed the archive-extraction traversal guard so legitimate entry names that merely begin or end with two dots (e.g. `..gitkeep`) are no longer rejected, while the authoritative resolved-destination prefix check still blocks real path traversal.
+
 ## [v4.0.0-preview.17] - 2026-07-09
 
 Premium command-center parity and resilience release.

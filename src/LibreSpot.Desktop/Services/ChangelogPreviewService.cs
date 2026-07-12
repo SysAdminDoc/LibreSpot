@@ -20,16 +20,18 @@ public static class ChangelogPreviewService
         var highlights = new List<string>();
         var inNewestSection = false;
 
-        // Read the newest changelog section — the first top-level "## " heading,
-        // whether that is [Unreleased] or the latest dated release. Reading only
-        // [Unreleased] left the in-app "what's new" preview blank after every
-        // release. "### " subsection headings do not end the section.
+        // Read the newest changelog section that actually has content — the
+        // first top-level "## " heading whose bullets are non-empty, whether
+        // that is [Unreleased] or the latest dated release. An empty leading
+        // "## [Unreleased]" section (the normal state right after a release)
+        // is skipped rather than kept as the newest section, which would blank
+        // the in-app "what's new" preview. "### " subsections don't end a section.
         foreach (var rawLine in lines)
         {
             var line = rawLine.Trim();
             if (line.StartsWith("## ", StringComparison.Ordinal) && !line.StartsWith("### ", StringComparison.Ordinal))
             {
-                if (inNewestSection)
+                if (highlights.Count > 0)
                 {
                     break;
                 }

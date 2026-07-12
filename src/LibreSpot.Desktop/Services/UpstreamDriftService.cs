@@ -445,6 +445,16 @@ public sealed class GitHubUpstreamMetadataClient : IUpstreamMetadataClient
         UpstreamDependencyPin pin,
         CancellationToken cancellationToken)
     {
+        // Defense in depth: git remote-helper URLs such as "ext::sh -c ..." or
+        // "file://" execute commands / read local paths. The pins ship in an
+        // embedded manifest today, but never hand git a non-HTTPS transport.
+        if (!IsAllowedGitTransport(pin.GitRepository))
+        {
+            return UpstreamMetadataLookupResult.Unavailable(
+                "git ls-remote",
+                "Repository URL is not an allowed HTTPS transport.");
+        }
+
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(_gitTimeout);
         Process? process = null;
@@ -525,6 +535,11 @@ public sealed class GitHubUpstreamMetadataClient : IUpstreamMetadataClient
             process?.Dispose();
         }
     }
+
+    private static bool IsAllowedGitTransport(string? repository) =>
+        !string.IsNullOrWhiteSpace(repository)
+        && Uri.TryCreate(repository, UriKind.Absolute, out var uri)
+        && uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
 
     private static string? SelectGitValue(UpstreamDependencyPin pin, string stdout)
     {

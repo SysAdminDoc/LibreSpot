@@ -18,7 +18,10 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
             if ([System.IO.Path]::IsPathRooted($normalized)) {
                 throw "Archive '$Label' contains an absolute path entry: $name"
             }
-            if ($normalized.Contains('..\') -or $normalized.StartsWith('..') -or $normalized.EndsWith('..')) {
+            # Reject only genuine '..' path segments, not legitimate names that
+            # merely begin or end with two dots (e.g. '..gitkeep', 'changelog..').
+            # The resolved-prefix check below is the authoritative escape guard.
+            if ($normalized -split '\\' | Where-Object { $_ -eq '..' }) {
                 throw "Archive '$Label' contains a path traversal entry: $name"
             }
             $fullTarget = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath $normalized))

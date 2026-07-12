@@ -684,6 +684,26 @@ if ($script:CliUninstallWatcher) {
     exit 0
 }
 
+function Remove-LibreSpotDataTreeSafely {
+    # Reparse-point-aware recursive delete for -removeselfdata, which runs before
+    # the main function library (Remove-PathSafely) is defined. Never traverses a
+    # junction/symlink: nested reparse points are deleted as links so a link
+    # planted inside %APPDATA%\LibreSpot cannot turn a plain -Recurse delete into
+    # a delete-anything primitive against the link's target tree.
+    param([Parameter(Mandatory)][string]$Path)
+    $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+        $item.Delete()
+        return
+    }
+    if ($item.PSIsContainer) {
+        foreach ($child in @(Get-ChildItem -LiteralPath $Path -Force -ErrorAction Stop)) {
+            Remove-LibreSpotDataTreeSafely -Path $child.FullName
+        }
+    }
+    Remove-Item -LiteralPath $Path -Force -ErrorAction Stop
+}
+
 if ($script:CliRemoveSelfData) {
     Write-Host "Removing all LibreSpot-owned data..."
     $removed = @()
@@ -697,7 +717,7 @@ if ($script:CliRemoveSelfData) {
     foreach ($entry in $selfPaths) {
         if (Test-Path -LiteralPath $entry.Path) {
             try {
-                Remove-Item -LiteralPath $entry.Path -Recurse -Force -ErrorAction Stop
+                Remove-LibreSpotDataTreeSafely -Path $entry.Path
                 $removed += $entry.Label
                 Write-Host "  Removed: $($entry.Label)"
             } catch {
@@ -6802,7 +6822,10 @@ function Expand-ArchiveSafely { param([string]$ZipPath,[string]$DestinationPath,
             if ([System.IO.Path]::IsPathRooted($normalized)) {
                 throw "Archive '$Label' contains an absolute path entry: $name"
             }
-            if ($normalized.Contains('..\') -or $normalized.StartsWith('..') -or $normalized.EndsWith('..')) {
+            # Reject only genuine '..' path segments, not legitimate names that
+            # merely begin or end with two dots (e.g. '..gitkeep', 'changelog..').
+            # The resolved-prefix check below is the authoritative escape guard.
+            if ($normalized -split '\\' | Where-Object { $_ -eq '..' }) {
                 throw "Archive '$Label' contains a path traversal entry: $name"
             }
             $fullTarget = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath $normalized))
@@ -7199,10 +7222,13 @@ function Unlock-SpotifyUpdateFolder {
     try {
         $acl = Get-Acl $updateDir
         $changed = $false
-        foreach ($rule in $acl.Access) {
-            if ($rule.AccessControlType -eq 'Deny') {
-                $null = $acl.RemoveAccessRule($rule); $changed = $true
-            }
+        # Snapshot the Deny rules before mutating: RemoveAccessRule mutates the
+        # underlying collection, so iterating $acl.Access directly throws
+        # "collection modified" on the second Deny ACE -- the exact multi-ACE
+        # case this function exists to clear.
+        $denyRules = @($acl.Access | Where-Object { $_.AccessControlType -eq 'Deny' })
+        foreach ($rule in $denyRules) {
+            $null = $acl.RemoveAccessRule($rule); $changed = $true
         }
         if ($changed) { Set-Acl $updateDir $acl; Write-Log "Unlocked Update folder ACLs." }
     } catch { Write-Log "Could not unlock Update folder: $($_.Exception.Message)" -Level 'WARN' }

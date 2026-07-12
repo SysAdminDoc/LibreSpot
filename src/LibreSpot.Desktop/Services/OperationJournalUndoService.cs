@@ -262,15 +262,19 @@ public sealed class OperationJournalUndoService
             return null;
         }
 
+        // Run-receipt operation entries have no "phase" concept (see
+        // run-receipt-format.json operationEntryFields), so Phase/RollbackHint
+        // stay empty rather than being mislabelled with the token kind -- the
+        // token kind flows through the dedicated TokenKind slot instead.
         return new OperationJournalEntry(
             operationId,
             action,
-            tokenKind,
+            Phase: string.Empty,
             GetString(operation, "target"),
             GetString(operation, "result"),
             WouldChange: true,
             GetBoolean(operation, "reversible"),
-            GetString(operation, "undoAction"),
+            RollbackHint: string.Empty,
             tokenKind,
             GetString(operation, "previousStateRef"),
             GetString(operation, "newState"),
