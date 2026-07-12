@@ -10,6 +10,11 @@ All notable changes to LibreSpot will be documented in this file.
 - Restricted the upstream-drift `git ls-remote` fallback to HTTPS transports so a tampered dependency manifest cannot hand git a remote-helper URL (`ext::`, `file://`) that executes commands or reads local paths.
 - Hardened standalone `-removeselfdata` to delete its data directories with a reparse-point-aware walk that unlinks nested junctions/symlinks instead of traversing them, closing a delete-anything vector for anyone who can plant a link under `%APPDATA%\LibreSpot`.
 
+### Accessibility
+
+- The dependency-status rows now change glyph shape per severity (check / dash / exclamation / cross) instead of relying on ring colour alone, so warning and critical states stay distinguishable in high-contrast mode where both can map to the same system colour.
+- Raised the snackbar dismiss button to the app's 32px minimum touch-target size.
+
 ### Fixed
 
 - Fixed `Unlock-SpotifyUpdateFolder` throwing "collection modified" and unlocking nothing when the Update folder carried more than one Deny ACE — the exact multi-ACE case it exists to clear; Deny rules are now snapshotted before removal.

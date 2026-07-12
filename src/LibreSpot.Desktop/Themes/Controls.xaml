@@ -1291,8 +1291,8 @@
                 </StackPanel>
                 <Button x:Name="CloseButton"
                         Grid.Column="2"
-                        Width="28"
-                        Height="28"
+                        Width="32"
+                        Height="32"
                         Margin="14,0,0,0"
                         VerticalAlignment="Center"
                         Cursor="Hand"
