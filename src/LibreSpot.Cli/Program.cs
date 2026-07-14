@@ -26,6 +26,8 @@ public static class CliApplication
     private const int DriftDetected = 11;
     private const int RepairNeeded = 12;
     private const int MaxCustomPatchesJsonBytes = 65536;
+    private const int MaxAnswerFileBytes = 1024 * 1024;
+    private const int MaxConfigurationBytes = 1024 * 1024;
 
     private static readonly HashSet<int> PublicBackendExitCodes = new()
     {
@@ -812,6 +814,7 @@ public static class CliApplication
         }
 
         using var stream = File.OpenRead(answerFile);
+        EnsureFileSize(stream, MaxAnswerFileBytes, "Answer file");
         using var doc = JsonDocument.Parse(stream, new JsonDocumentOptions { AllowTrailingCommas = true });
         var root = doc.RootElement;
         var settings = ResolveProfileSettings(root, options.GetValue("--profile"));
@@ -867,6 +870,7 @@ public static class CliApplication
             if (File.Exists(configPath))
             {
                 using var stream = File.OpenRead(configPath);
+                EnsureFileSize(stream, MaxConfigurationBytes, "Configuration file");
                 var config = JsonSerializer.Deserialize<InstallConfiguration>(stream, ConfigurationJsonOptions);
                 if (config is not null)
                 {
@@ -1176,6 +1180,7 @@ public static class CliApplication
         try
         {
             using var stream = File.OpenRead(fullPath);
+            EnsureFileSize(stream, MaxAnswerFileBytes, "Answer file");
             using var doc = JsonDocument.Parse(stream, new JsonDocumentOptions { AllowTrailingCommas = true });
             if (doc.RootElement.ValueKind != JsonValueKind.Object)
             {
@@ -1200,8 +1205,20 @@ public static class CliApplication
         {
             errors.Add(new ValidationErrorDocument("$", $"Could not read answer file: {ex.Message}"));
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            errors.Add(new ValidationErrorDocument("$", $"Could not read answer file: {ex.Message}"));
+        }
 
         return new ValidationDocument(1, fullPath, errors.Count == 0, errors);
+    }
+
+    private static void EnsureFileSize(FileStream stream, int maxBytes, string label)
+    {
+        if (stream.Length > maxBytes)
+        {
+            throw new IOException($"{label} is {stream.Length} bytes; the maximum is {maxBytes} bytes.");
+        }
     }
 
     private static JsonElement? ResolveProfileSettings(JsonElement root, string? profile)

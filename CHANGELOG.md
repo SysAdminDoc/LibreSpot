@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Security
 
+- Bounded CLI answer files, desktop/CLI configuration JSON, run receipts, operation-journal recovery, and support-bundle diagnostic windows; oversized or tampered local state now fails safely or reads only a 1 MiB tail instead of driving unbounded parsing or full-file scans.
 - Redacted every string value in support-bundle JSON at the serializer boundary, so newly added diagnostic fields cannot leak local paths, credentials, or command-line secrets when a projection omits a field-specific redaction call.
 - Preserved raw expandable user-PATH tokens and `REG_EXPAND_SZ` typing across Spicetify installs/removals, broadcast PATH changes to running shells, and replaced recursive ACL/delete operations with a depth-first removal engine that unlinks nested junctions without traversing their targets.
 - Guarded the two "import from an HTTPS URL" surfaces (custom patches and shared profiles) against SSRF: both fetches now validate the resolved IP at socket-connect time and refuse loopback, link-local, RFC1918, CGNAT, unique-local, and cloud-metadata addresses across redirect hops. These fetches can be triggered without confirmation via `librespot://` protocol activation, so the guard runs before any preview.

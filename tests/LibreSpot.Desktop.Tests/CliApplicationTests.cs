@@ -380,6 +380,26 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public void ValidateAnswerFile_RejectsOversizedInputBeforeParsing()
+    {
+        var answerFile = Path.Combine(Path.GetTempPath(), "librespot-answer-" + Guid.NewGuid().ToString("N") + ".json");
+        File.WriteAllBytes(answerFile, new byte[(1024 * 1024) + 1]);
+        try
+        {
+            var result = Run("validate", "--answer-file", answerFile, "--json");
+
+            Assert.Equal(2, result.ExitCode);
+            using var doc = JsonDocument.Parse(result.Stdout);
+            var error = Assert.Single(doc.RootElement.GetProperty("errors").EnumerateArray());
+            Assert.Contains("maximum is 1048576 bytes", error.GetProperty("message").GetString());
+        }
+        finally
+        {
+            File.Delete(answerFile);
+        }
+    }
+
+    [Fact]
     public void ValidateAnswerFile_RejectsSchemaValuesTheCliWouldOtherwiseNormalize()
     {
         var answerFile = Path.Combine(Path.GetTempPath(), "librespot-answer-" + Guid.NewGuid().ToString("N") + ".json");

@@ -20,6 +20,8 @@ public sealed record ConfigurationLoadResult(
 
 public sealed class ConfigurationService
 {
+    internal const int MaxConfigBytes = 1024 * 1024;
+
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNamingPolicy = null,
@@ -57,6 +59,11 @@ public sealed class ConfigurationService
         try
         {
             await using var stream = File.Open(ConfigPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            if (stream.Length > MaxConfigBytes)
+            {
+                throw new InvalidDataException($"config.json is {stream.Length} bytes; the maximum is {MaxConfigBytes} bytes.");
+            }
+
             var config = await JsonSerializer.DeserializeAsync<InstallConfiguration>(stream, SerializerOptions, cancellationToken);
             if (config is not null)
             {

@@ -1,5 +1,6 @@
 using System.IO;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 
 namespace LibreSpot.Desktop.Services;
@@ -20,6 +21,8 @@ public sealed record OperationJournalUndoItem(
 public sealed class OperationJournalUndoService
 {
     private const int MaxJournalLines = 500;
+    private const int MaxJournalReadBytes = 1024 * 1024;
+    private const int MaxReceiptBytes = 1024 * 1024;
     private const string ReceiptFileName = "run-receipt.latest.json";
     private const string TokenTypesResourceName = "LibreSpot.Desktop.Schemas.operation-token-types.json";
     private const string RunReceiptResourceName = "LibreSpot.Desktop.Schemas.run-receipt-format.json";
@@ -74,7 +77,23 @@ public sealed class OperationJournalUndoService
             return Array.Empty<OperationJournalUndoItem>();
         }
 
-        var entries = ReadEntries(journalPath).ToArray();
+        OperationJournalEntry[] entries;
+        try
+        {
+            entries = ReadEntries(journalPath).ToArray();
+        }
+        catch (IOException)
+        {
+            return Array.Empty<OperationJournalUndoItem>();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Array.Empty<OperationJournalUndoItem>();
+        }
+        catch (DecoderFallbackException)
+        {
+            return Array.Empty<OperationJournalUndoItem>();
+        }
         if (entries.Length == 0)
         {
             return Array.Empty<OperationJournalUndoItem>();
@@ -110,7 +129,13 @@ public sealed class OperationJournalUndoService
     {
         try
         {
-            using var document = JsonDocument.Parse(File.ReadAllText(receiptPath));
+            using var stream = File.Open(receiptPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            if (stream.Length > MaxReceiptBytes)
+            {
+                return null;
+            }
+
+            using var document = JsonDocument.Parse(stream);
             var root = document.RootElement;
             var status = GetString(root, "status");
             if (!_receiptStatuses.Contains(status)
@@ -200,7 +225,7 @@ public sealed class OperationJournalUndoService
 
     private static IEnumerable<OperationJournalEntry> ReadEntries(string journalPath)
     {
-        foreach (var line in File.ReadLines(journalPath).TakeLast(MaxJournalLines))
+        foreach (var line in ReadTailLines(journalPath, MaxJournalReadBytes).TakeLast(MaxJournalLines))
         {
             if (string.IsNullOrWhiteSpace(line))
             {
@@ -221,6 +246,44 @@ public sealed class OperationJournalUndoService
             {
                 yield return entry;
             }
+        }
+    }
+
+    private static IEnumerable<string> ReadTailLines(string path, int maxBytes)
+    {
+        using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        var start = Math.Max(0, stream.Length - maxBytes);
+        stream.Seek(start, SeekOrigin.Begin);
+
+        var buffer = new byte[(int)Math.Min(maxBytes, stream.Length - start)];
+        var total = 0;
+        while (total < buffer.Length)
+        {
+            var read = stream.Read(buffer, total, buffer.Length - total);
+            if (read == 0)
+            {
+                break;
+            }
+
+            total += read;
+        }
+
+        var decodeOffset = 0;
+        if (start > 0)
+        {
+            var firstNewline = Array.IndexOf(buffer, (byte)'\n', 0, total);
+            if (firstNewline < 0)
+            {
+                yield break;
+            }
+
+            decodeOffset = firstNewline + 1;
+        }
+
+        var text = new UTF8Encoding(false, true).GetString(buffer, decodeOffset, total - decodeOffset);
+        foreach (var line in text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            yield return line;
         }
     }
 

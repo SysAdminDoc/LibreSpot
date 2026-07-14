@@ -143,6 +143,23 @@ public sealed class SupportBundleServiceTests
     }
 
     [Fact]
+    public async Task ExportAsync_CapturesOnlyBoundedTailOfOversizedDiagnostics()
+    {
+        using var fixture = new SupportBundleFixture();
+        fixture.WriteStackReadyState();
+        fixture.WriteInstallLog(new string('x', (1024 * 1024) + 128) + Environment.NewLine + "latest diagnostic line");
+
+        var result = await fixture.ExportAsync(new SupportBundleOptions(
+            IncludeOperationJournal: true,
+            IncludeLogs: false,
+            IncludeCrashReports: false));
+        var operation = ReadZipText(result.Path)["operation/latest-journal.txt"];
+
+        Assert.Contains("latest diagnostic line", operation);
+        Assert.DoesNotContain(new string('x', 100), operation);
+    }
+
+    [Fact]
     public async Task ExportAsync_IncludesRuntimePinsAndNoNetworkUploadManifest()
     {
         using var fixture = new SupportBundleFixture();

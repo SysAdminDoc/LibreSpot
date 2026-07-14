@@ -64,6 +64,35 @@ public sealed class OperationJournalUndoServiceTests
     }
 
     [Fact]
+    public void ReadLatestUndoItems_ReadsOnlyBoundedTailOfOversizedJournal()
+    {
+        using var fixture = new OperationJournalFixture();
+        fixture.WriteJournal(
+            new string('x', (1024 * 1024) + 128),
+            "{\"operationId\":\"op-new\",\"action\":\"EnableAutoReapply\",\"phase\":\"task\",\"target\":\"LibreSpot\\\\ReapplyWatcher\",\"result\":\"Registered\",\"wouldChange\":true,\"reversible\":true,\"rollbackHint\":\"Unregister task.\",\"tokenKind\":\"watcherTaskRegister\",\"previousStateRef\":\"target:LibreSpot\\\\ReapplyWatcher\"}",
+            "{\"operationId\":\"op-new\",\"action\":\"EnableAutoReapply\",\"phase\":\"complete\",\"target\":\"Backend action: EnableAutoReapply\",\"result\":\"Succeeded\",\"wouldChange\":false,\"reversible\":false}");
+
+        var item = Assert.Single(new OperationJournalUndoService().ReadLatestUndoItems(fixture.ConfigDirectory));
+
+        Assert.Equal("op-new", item.OperationId);
+        Assert.Equal("LibreSpot\\ReapplyWatcher", item.Target);
+    }
+
+    [Fact]
+    public void ReadLatestUndoItems_FallsBackToJournalWhenReceiptIsOversized()
+    {
+        using var fixture = new OperationJournalFixture();
+        fixture.WriteReceipt(new string('x', (1024 * 1024) + 1));
+        fixture.WriteJournal(
+            "{\"operationId\":\"op-new\",\"action\":\"EnableAutoReapply\",\"phase\":\"task\",\"target\":\"LibreSpot\\\\ReapplyWatcher\",\"result\":\"Registered\",\"wouldChange\":true,\"reversible\":true,\"rollbackHint\":\"Unregister task.\",\"tokenKind\":\"watcherTaskRegister\",\"previousStateRef\":\"target:LibreSpot\\\\ReapplyWatcher\"}",
+            "{\"operationId\":\"op-new\",\"action\":\"EnableAutoReapply\",\"phase\":\"complete\",\"target\":\"Backend action: EnableAutoReapply\",\"result\":\"Succeeded\",\"wouldChange\":false,\"reversible\":false}");
+
+        var item = Assert.Single(new OperationJournalUndoService().ReadLatestUndoItems(fixture.ConfigDirectory));
+
+        Assert.Equal("op-new", item.OperationId);
+    }
+
+    [Fact]
     public void ReadLatestUndoItems_UsesRunReceiptAndSchemaTokenMetadata()
     {
         using var fixture = new OperationJournalFixture();

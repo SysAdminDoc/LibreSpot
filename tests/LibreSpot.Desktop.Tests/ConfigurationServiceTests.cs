@@ -55,6 +55,30 @@ public sealed class ConfigurationServiceTests
     }
 
     [Fact]
+    public async Task LoadResultAsync_QuarantinesOversizedConfigBeforeParsing()
+    {
+        var configDirectory = CreateTempDirectory();
+        try
+        {
+            var service = new ConfigurationService(configDirectory);
+            await File.WriteAllBytesAsync(service.ConfigPath, new byte[ConfigurationService.MaxConfigBytes + 1]);
+
+            var result = await service.LoadResultAsync();
+            var recoveredFilePath = Assert.IsType<string>(result.RecoveredFilePath);
+
+            Assert.Equal(ConfigurationLoadState.RecoveredFromCorrupt, result.State);
+            Assert.Contains("maximum is 1048576 bytes", result.RecoveryReason);
+            AssertRecommendedDefaults(result.Configuration);
+            Assert.False(File.Exists(service.ConfigPath));
+            Assert.Equal(ConfigurationService.MaxConfigBytes + 1, new FileInfo(recoveredFilePath).Length);
+        }
+        finally
+        {
+            DeleteDirectory(configDirectory);
+        }
+    }
+
+    [Fact]
     public async Task LoadResultAsync_QuarantinesFutureSchemaVersion()
     {
         var configDirectory = CreateTempDirectory();

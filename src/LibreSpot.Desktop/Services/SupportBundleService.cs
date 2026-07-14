@@ -55,6 +55,7 @@ public sealed class SupportBundleService
     private const int MaxCrashLines = 900;
     private const int MaxRollingLogFiles = 3;
     private const int MaxCrashFiles = 3;
+    private const int MaxDiagnosticWindowBytes = 1024 * 1024;
     private const long MetadataEstimateBytes = 16 * 1024;
     private static readonly Encoding StrictUtf8NoBom = new UTF8Encoding(false, true);
 
@@ -647,7 +648,7 @@ public sealed class SupportBundleService
     {
         try
         {
-            var lines = File.ReadLines(path, StrictUtf8NoBom)
+            var lines = ReadBoundedTailLines(path, MaxDiagnosticWindowBytes)
                 .TakeLast(maxLines);
             return RedactText(string.Join(Environment.NewLine, lines));
         }
@@ -662,6 +663,45 @@ public sealed class SupportBundleService
         catch (UnauthorizedAccessException ex)
         {
             return RedactText($"<unavailable: {ex.Message}>");
+        }
+    }
+
+    private static IEnumerable<string> ReadBoundedTailLines(string path, int maxBytes)
+    {
+        using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        var start = Math.Max(0, stream.Length - maxBytes);
+        stream.Seek(start, SeekOrigin.Begin);
+
+        var buffer = new byte[(int)Math.Min(maxBytes, stream.Length - start)];
+        var total = 0;
+        while (total < buffer.Length)
+        {
+            var read = stream.Read(buffer, total, buffer.Length - total);
+            if (read == 0)
+            {
+                break;
+            }
+
+            total += read;
+        }
+
+        var decodeOffset = 0;
+        if (start > 0)
+        {
+            var firstNewline = Array.IndexOf(buffer, (byte)'\n', 0, total);
+            if (firstNewline < 0)
+            {
+                yield return "<omitted: final diagnostic line exceeds the capture limit>";
+                yield break;
+            }
+
+            decodeOffset = firstNewline + 1;
+        }
+
+        var text = StrictUtf8NoBom.GetString(buffer, decodeOffset, total - decodeOffset);
+        foreach (var line in text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            yield return line;
         }
     }
 
