@@ -4019,7 +4019,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public void ApplyUiAutomationSmokeState(string state)
     {
         var normalizedState = state.Trim().ToLowerInvariant();
-        if (normalizedState is "recommended" or "custom" or "maintenance" or "provenance")
+        if (normalizedState is "recommended" or "custom" or "maintenance" or "provenance" or "profile" or "support-bundle")
         {
             SeedUiAutomationActivityLog();
         }
@@ -4032,9 +4032,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             case "maintenance":
                 SelectedWorkspaceIndex = 2;
                 break;
+            case "profile":
+                SelectedWorkspaceIndex = 1;
+                break;
+            case "support-bundle":
+                SelectedWorkspaceIndex = 2;
+                break;
             case "activity-empty":
                 SelectedWorkspaceIndex = 0;
                 ClearLog();
+                break;
+            case "snapshot-loading":
+                SelectedWorkspaceIndex = 0;
+                ClearLog();
+                SetSnapshotQueryState(isLoading: true, loadFailed: false);
                 break;
             case "snapshot-error":
                 SelectedWorkspaceIndex = 0;

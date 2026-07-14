@@ -409,6 +409,21 @@ The harness isolates all watcher files under `%TEMP%`, covers success and
 failure/cancellation state transitions, emits Scheduler evidence on failure,
 and removes its task and temp data in a `finally` block.
 
+Run the rendered WPF state matrix without activating foreground windows:
+
+```powershell
+.\tools\Invoke-WpfQaMatrix.ps1
+```
+
+The command captures and verifies Recommended, Custom, Maintenance, undo,
+support-bundle, profile, prompt, empty, loading, error, success, and nested
+crash-dialog surfaces across the supported dark/high-contrast palettes and
+English/Spanish locales. It rejects unnamed actions, clipped primary text,
+missing focus rings, incomplete renders, and mismatched capture metadata.
+Captures use a temporary directory and are removed after a passing run; pass
+`-OutputPath <directory>` to retain them for review or `-Quick` for the
+English dark-state sweep plus one Spanish high-contrast proof.
+
 ## Project planning
 
 Development planning is maintained in local working-tree docs. `ROADMAP.md` is the only active queue for incomplete work; completed work is represented by Git history and release notes.

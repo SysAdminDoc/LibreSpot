@@ -27,13 +27,19 @@ public partial class MainWindow : Window
     private const string UiAutomationCultureArgumentPrefix = "--uia-culture=";
     private const string UiAutomationCaptureArgumentPrefix = "--uia-capture=";
     private const string UiAutomationSizeArgumentPrefix = "--uia-size=";
+    private const string UiAutomationThemeArgumentPrefix = "--uia-theme=";
+    private const string UiAutomationFocusArgumentPrefix = "--uia-focus=";
     private const string UiAutomationBackgroundArgument = "--uia-background";
+    private const string UiAutomationCaptureKeepOpenArgument = "--uia-capture-keep-open";
     private static readonly Regex NumericInput = new("^[0-9]+$", RegexOptions.Compiled);
     private readonly MainViewModel _viewModel;
     private readonly string? _uiAutomationSmokeState;
     private readonly string _uiAutomationSmokeCulture;
+    private readonly string _uiAutomationSmokeTheme;
     private readonly string? _uiAutomationCapturePath;
+    private readonly string? _uiAutomationFocusTarget;
     private readonly bool _uiAutomationBackgroundMode;
+    private readonly bool _uiAutomationCaptureKeepOpen;
     private readonly ShellActivationRequest _shellActivation;
     private bool _allowCloseWhileRunning;
     private IInputElement? _focusBeforeActivity;
@@ -43,6 +49,7 @@ public partial class MainWindow : Window
     private bool _isLogScrollPending;
     private Forms.NotifyIcon? _trayIcon;
     private bool _hasShownTrayMinimizeNotice;
+    private bool _uiAutomationFocusVisualApplied;
 
     public MainWindow()
     {
@@ -50,8 +57,11 @@ public partial class MainWindow : Window
 
         _uiAutomationSmokeState = GetUiAutomationSmokeState();
         _uiAutomationSmokeCulture = GetUiAutomationSmokeCulture();
+        _uiAutomationSmokeTheme = GetUiAutomationSmokeTheme();
         _uiAutomationCapturePath = GetUiAutomationCapturePath();
+        _uiAutomationFocusTarget = GetUiAutomationFocusTarget();
         _uiAutomationBackgroundMode = GetUiAutomationBackgroundMode();
+        _uiAutomationCaptureKeepOpen = HasUiAutomationArgument(UiAutomationCaptureKeepOpenArgument);
         if (_uiAutomationBackgroundMode)
         {
             if (GetUiAutomationCaptureSize() is { } captureSize)
@@ -223,15 +233,18 @@ public partial class MainWindow : Window
                         preview.Show();
                         await Dispatcher.InvokeAsync(preview.UpdateLayout, DispatcherPriority.ApplicationIdle);
                         await Task.Delay(200);
-                        SaveUiAutomationCapture(_uiAutomationCapturePath, preview);
+                        await SaveStabilizedUiAutomationCaptureAsync(_uiAutomationCapturePath, preview, preview.UpdateLayout);
                         preview.Close();
                     }
                     else
                     {
-                        SaveUiAutomationCapture(_uiAutomationCapturePath, this);
+                        await SaveStabilizedUiAutomationCaptureAsync(_uiAutomationCapturePath, this, PrepareUiAutomationCapture);
                     }
                     _allowCloseWhileRunning = true;
-                    Close();
+                    if (!_uiAutomationCaptureKeepOpen)
+                    {
+                        Close();
+                    }
                     return;
                 }
             }
@@ -255,10 +268,19 @@ public partial class MainWindow : Window
         {
             ScrollProvenanceIntoView();
         }
+        else if (string.Equals(_uiAutomationSmokeState, "support-bundle", StringComparison.OrdinalIgnoreCase))
+        {
+            SupportBundleQaSurface.BringIntoView();
+        }
+        else if (string.Equals(_uiAutomationSmokeState, "profile", StringComparison.OrdinalIgnoreCase))
+        {
+            ProfileQaSurface.BringIntoView();
+        }
         InvalidateMeasure();
         InvalidateArrange();
         InvalidateVisual();
         UpdateLayout();
+        ApplyUiAutomationFocusVisual();
     }
 
     private void ScrollProvenanceIntoView()
@@ -270,6 +292,63 @@ public partial class MainWindow : Window
         }
 
         InspectorPanel.UpdateLayout();
+    }
+
+    private void ApplyUiAutomationFocusVisual()
+    {
+        _uiAutomationFocusVisualApplied = false;
+        if (string.IsNullOrWhiteSpace(_uiAutomationFocusTarget))
+        {
+            return;
+        }
+
+        var target = FindDescendantByAutomationId(this, _uiAutomationFocusTarget);
+        if (target is null || !target.Focusable || !target.IsEnabled)
+        {
+            return;
+        }
+
+        target.BringIntoView();
+        target.UpdateLayout();
+        FocusManager.SetFocusedElement(this, target);
+
+        if (target is System.Windows.Controls.Control control)
+        {
+            control.ApplyTemplate();
+            if (control.Template?.FindName("FocusRing", control) is UIElement focusRing)
+            {
+                focusRing.Opacity = 1;
+                _uiAutomationFocusVisualApplied = true;
+                return;
+            }
+
+            control.BorderBrush = (System.Windows.Media.Brush)FindResource("AccentRingBrush");
+            control.BorderThickness = new Thickness(2);
+            _uiAutomationFocusVisualApplied = true;
+        }
+    }
+
+    private static FrameworkElement? FindDescendantByAutomationId(DependencyObject root, string automationId)
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+        {
+            var child = VisualTreeHelper.GetChild(root, index);
+            if (child is FrameworkElement element &&
+                string.Equals(
+                    System.Windows.Automation.AutomationProperties.GetAutomationId(element),
+                    automationId,
+                    StringComparison.Ordinal))
+            {
+                return element;
+            }
+
+            if (FindDescendantByAutomationId(child, automationId) is { } descendant)
+            {
+                return descendant;
+            }
+        }
+
+        return null;
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
@@ -775,6 +854,40 @@ public partial class MainWindow : Window
         return LocalizationService.DefaultCultureName;
     }
 
+    private static string GetUiAutomationSmokeTheme()
+    {
+        foreach (var arg in Environment.GetCommandLineArgs())
+        {
+            if (!arg.StartsWith(UiAutomationThemeArgumentPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            return string.Equals(
+                arg[UiAutomationThemeArgumentPrefix.Length..].Trim(),
+                "high-contrast",
+                StringComparison.OrdinalIgnoreCase)
+                ? "high-contrast"
+                : "dark";
+        }
+
+        return "dark";
+    }
+
+    private static string? GetUiAutomationFocusTarget()
+    {
+        foreach (var arg in Environment.GetCommandLineArgs())
+        {
+            if (arg.StartsWith(UiAutomationFocusArgumentPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var value = arg[UiAutomationFocusArgumentPrefix.Length..].Trim();
+                return string.IsNullOrWhiteSpace(value) || value.Length > 128 ? null : value;
+            }
+        }
+
+        return null;
+    }
+
     private static string? GetUiAutomationCapturePath()
     {
         var args = Environment.GetCommandLineArgs();
@@ -803,6 +916,9 @@ public partial class MainWindow : Window
 
         return false;
     }
+
+    private static bool HasUiAutomationArgument(string expected) =>
+        Environment.GetCommandLineArgs().Any(arg => string.Equals(arg.Trim(), expected, StringComparison.OrdinalIgnoreCase));
 
     private System.Windows.Size? GetUiAutomationCaptureSize()
     {
@@ -856,12 +972,85 @@ public partial class MainWindow : Window
         WritePngTextChunks(path, metadata);
     }
 
+    private async Task SaveStabilizedUiAutomationCaptureAsync(
+        string path,
+        FrameworkElement target,
+        Action prepare)
+    {
+        var warmupPath = path + ".warmup-" + Guid.NewGuid().ToString("N") + ".png";
+        try
+        {
+            prepare();
+            SaveUiAutomationCapture(warmupPath, target);
+            await Task.Delay(350);
+            await Dispatcher.InvokeAsync(
+                () =>
+                {
+                    prepare();
+                    target.UpdateLayout();
+                },
+                DispatcherPriority.ApplicationIdle);
+            SaveUiAutomationCapture(path, target);
+            for (var retry = 0; retry < 3 && CaptureHasRenderDropout(path); retry++)
+            {
+                await Task.Delay(450);
+                await Dispatcher.InvokeAsync(
+                    () =>
+                    {
+                        prepare();
+                        target.UpdateLayout();
+                    },
+                    DispatcherPriority.ApplicationIdle);
+                SaveUiAutomationCapture(path, target);
+            }
+
+            if (CaptureHasRenderDropout(path))
+            {
+                throw new InvalidOperationException("WPF capture remained incomplete after render retries.");
+            }
+        }
+        finally
+        {
+            try { File.Delete(warmupPath); } catch { }
+        }
+    }
+
+    private bool CaptureHasRenderDropout(string path)
+    {
+        if (!string.Equals(_uiAutomationSmokeTheme, "high-contrast", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        using var bitmap = new Drawing.Bitmap(path);
+        var samples = 0;
+        var missing = 0;
+        for (var y = 0; y < bitmap.Height; y += 12)
+        {
+            for (var x = 0; x < bitmap.Width; x += 12)
+            {
+                var color = bitmap.GetPixel(x, y);
+                samples++;
+                if (color.A < 240 || (color.R < 3 && color.G < 3 && color.B < 3))
+                {
+                    missing++;
+                }
+            }
+        }
+
+        return samples > 0 && missing / (double)samples > 0.12;
+    }
+
     private Dictionary<string, string> CreateUiAutomationCaptureMetadata() =>
         new(StringComparer.Ordinal)
         {
             ["LibreSpotShellVersion"] = _viewModel.ShellDisplayVersion,
             ["LibreSpotCaptureAssemblyVersion"] = GetAssemblyInformationalVersion(),
             ["LibreSpotCaptureState"] = _uiAutomationSmokeState ?? "live",
+            ["LibreSpotCaptureCulture"] = _uiAutomationSmokeCulture,
+            ["LibreSpotCaptureTheme"] = _uiAutomationSmokeTheme,
+            ["LibreSpotCaptureFocusTarget"] = _uiAutomationFocusTarget ?? string.Empty,
+            ["LibreSpotCaptureFocusVisualApplied"] = _uiAutomationFocusVisualApplied.ToString(CultureInfo.InvariantCulture),
             ["LibreSpotCaptureUtc"] = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
         };
 

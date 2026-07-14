@@ -2594,7 +2594,8 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                           </Grid.ColumnDefinitions>
-                          <TextBlock Text="{services:Loc Ui_LocalProfiles}"
+                          <TextBlock x:Name="ProfileQaSurface"
+                                     Text="{services:Loc Ui_LocalProfiles}"
                                      Style="{StaticResource LabelTextStyle}"
                                      Foreground="{DynamicResource AccentBrush}"
                                      VerticalAlignment="Center" />
@@ -2836,6 +2837,7 @@
                                   Margin="6,0,0,0"
                                   Style="{StaticResource PrimaryButtonStyle}"
                                   Command="{Binding ApplySelectedProfileCommand}"
+                                  AutomationProperties.AutomationId="ProfileSetActiveButton"
                                   AutomationProperties.Name="{services:Loc Ui_SetSelectedProfileActive}"
                                   AutomationProperties.HelpText="{services:Loc Ui_ConfirmsAndWritesTheSelectedProfileToConfig}" />
                         </Grid>
@@ -3309,7 +3311,11 @@
                     </Border>
                   </UniformGrid>
 
-                  <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,14">
+                  <Border x:Name="SupportBundleQaSurface"
+                          Style="{StaticResource SubtleCardStyle}"
+                          Margin="0,0,0,14"
+                          AutomationProperties.AutomationId="SupportBundleQaSurface"
+                          AutomationProperties.Name="{services:Loc SupportBundleTitle}">
                     <StackPanel>
                       <Grid>
                         <Grid.ColumnDefinitions>
@@ -3341,6 +3347,7 @@
                                 Padding="16,0"
                                 Content="{services:Loc ButtonExportBundle}"
                                 Style="{StaticResource PrimaryButtonStyle}"
+                                AutomationProperties.AutomationId="SupportBundleExportButton"
                                 AutomationProperties.Name="{services:Loc ButtonExportBundleName}"
                                 AutomationProperties.HelpText="{services:Loc ButtonExportBundleHint}"
                                 Command="{Binding ExportSupportBundleCommand}" />
