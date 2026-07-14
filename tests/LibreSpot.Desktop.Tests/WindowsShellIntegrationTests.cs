@@ -19,9 +19,30 @@ public sealed class WindowsShellIntegrationTests
     {
         var activation = ShellActivationService.Parse(["--profile-file", @"C:\Profiles\desk.librespot"]);
 
+        Assert.Equal(ShellActivationKind.ProfileFile, activation.Kind);
+        Assert.Equal(@"C:\Profiles\desk.librespot", activation.Value);
+    }
+
+    [Theory]
+    [InlineData(@"--profile-file=C:\Profiles\desk.librespot")]
+    [InlineData(@"C:\Profiles\desk.librespot")]
+    public void Activation_RecognizesExplorerProfileFileForms(string argument)
+    {
+        var activation = ShellActivationService.Parse([argument]);
+
+        Assert.Equal(ShellActivationKind.ProfileFile, activation.Kind);
+        Assert.Equal(@"C:\Profiles\desk.librespot", activation.Value);
+    }
+
+    [Fact]
+    public void Activation_KeepsProtocolFileSourceInRestrictedUriPath()
+    {
+        const string uri = "librespot://profile?file=C%3A%5CProfiles%5Cdesk.librespot";
+
+        var activation = ShellActivationService.Parse([uri]);
+
         Assert.Equal(ShellActivationKind.ProfileShareUri, activation.Kind);
-        Assert.StartsWith("librespot://profile?file=", activation.Value);
-        Assert.Contains("desk.librespot", Uri.UnescapeDataString(activation.Value!));
+        Assert.Equal(uri, activation.Value);
     }
 
     [Theory]

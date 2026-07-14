@@ -17,6 +17,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Restored `.librespot` Explorer imports from arbitrary local folders: file-association activations now enter the validated preview/confirm flow directly instead of being converted into a store-confined protocol URI, while malformed, missing, oversized, and wrong-extension inputs fail without crashing startup.
 - Removed the WPF shell's obsolete whole-app UAC relaunch: Recommended, Custom, and maintenance actions now run in the current standard-user token, readiness no longer treats a standard session as blocked, and the elevation boundary tests require every desktop backend action to remain no-admin.
 - Fixed `Unlock-SpotifyUpdateFolder` throwing "collection modified" and unlocking nothing when the Update folder carried more than one Deny ACE — the exact multi-ACE case it exists to clear; Deny rules are now snapshotted before removal.
 - Fixed the in-app "what's new" preview going blank whenever the changelog's leading `[Unreleased]` section was empty (the normal state right after a release); the preview now falls through to the newest section that actually has content.

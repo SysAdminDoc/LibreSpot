@@ -268,7 +268,7 @@ LibreSpot.ps1 -RemoveSelfData      # unregister the watcher and delete all Libre
 ### Other Details
 
 - **Threaded UI** — installation runs in background runspaces; the GUI stays responsive with a live log, elapsed timer, and progress bar
-- **Windows shell integration** — WPF builds register `librespot://` and `.librespot` handlers, expose jump-list/taskbar actions, and minimize to a tray icon with clickable completion notices
+- **Windows shell integration** — WPF builds register `librespot://` sharing and `.librespot` Explorer handlers, route double-clicked profile files through the validated preview/confirm flow, expose jump-list/taskbar actions, and minimize to a tray icon with clickable completion notices
 - **Least-privilege desktop workflow** — WPF setup and maintenance run in the current standard-user session without relaunching the whole app through UAC; the legacy PowerShell and PS2EXE entry points retain their existing self-elevation behavior
 - **Profile sharing cards** — WPF Custom mode renders an inert local share URI, QR card, selected-profile comparison, embedded changelog preview, and community links without requiring a hosted sharing service
 - **Runtime localization** — WPF builds include a persisted language selector with EN, RU, ZH-Hans, PT-BR, and ES resources plus local validation for raw UI strings

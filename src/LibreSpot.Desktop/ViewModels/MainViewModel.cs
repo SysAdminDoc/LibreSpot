@@ -2631,6 +2631,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         var preview = await _profileService.PreviewImportAsync(dialog.FileName);
+        ShowLocalProfileImportPrompt(preview);
+    }
+
+    public async Task PreviewLocalProfileFileAsync(string filePath)
+    {
+        try
+        {
+            var preview = await _profileService.PreviewImportAsync(filePath);
+            ShowLocalProfileImportPrompt(preview);
+        }
+        catch (OperationCanceledException)
+        {
+            // Startup activation can be canceled during shutdown.
+        }
+        catch (Exception ex)
+        {
+            ProfileOperationStatus = ex.Message;
+            HandleAsyncCommandException(ex);
+        }
+    }
+
+    private void ShowLocalProfileImportPrompt(LocalProfileImportPreview preview)
+    {
         ShowPrompt(
             LF("Vm_ProfileImportTitleFormat", preview.Name),
             L("Vm_ProfileImportBody"),

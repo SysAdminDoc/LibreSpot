@@ -197,6 +197,24 @@ public sealed class LocalProfileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task PreviewImportAsync_RejectsMissingMalformedAndNonProfileFiles()
+    {
+        Directory.CreateDirectory(_root);
+        await Assert.ThrowsAsync<FileNotFoundException>(() =>
+            _profileService.PreviewImportAsync(Path.Combine(_root, "missing.librespot")));
+
+        var malformedPath = Path.Combine(_root, "malformed.librespot");
+        await File.WriteAllTextAsync(malformedPath, "not json");
+        await Assert.ThrowsAnyAsync<JsonException>(() => _profileService.PreviewImportAsync(malformedPath));
+
+        var wrongExtensionPath = Path.Combine(_root, "profile.json");
+        await File.WriteAllTextAsync(wrongExtensionPath, "{}");
+        var extensionError = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _profileService.PreviewImportAsync(wrongExtensionPath));
+        Assert.Contains(".librespot extension", extensionError.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task ShareCard_EmbedsInertPreviewUriAndImportsOnlyAfterConfirmation()
     {
         var config = AppCatalog.CreateRecommendedConfiguration();

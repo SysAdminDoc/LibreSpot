@@ -10,6 +10,7 @@ public enum ShellActivationKind
     NavigateMaintenance,
     ImportProfile,
     OpenLibreSpotFolder,
+    ProfileFile,
     ProfileShareUri
 }
 
@@ -83,17 +84,11 @@ public static class ShellActivationService
         return ShellActivationRequest.None;
     }
 
-    public static string BuildProfileShareUriFromFile(string path)
-    {
-        var fullPath = Path.GetFullPath(path);
-        return $"{ProfileUriPrefix}?file={Uri.EscapeDataString(fullPath)}";
-    }
-
     private static ShellActivationRequest BuildProfileFileActivation(string path)
     {
         return string.IsNullOrWhiteSpace(path)
             ? ShellActivationRequest.None
-            : new ShellActivationRequest(ShellActivationKind.ProfileShareUri, BuildProfileShareUriFromFile(path));
+            : new ShellActivationRequest(ShellActivationKind.ProfileFile, path);
     }
 
     private static ShellActivationRequest ParseShellAction(string value)

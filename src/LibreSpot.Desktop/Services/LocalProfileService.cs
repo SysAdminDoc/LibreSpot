@@ -218,6 +218,11 @@ public sealed class LocalProfileService
     public async Task<LocalProfileImportPreview> PreviewImportAsync(string sourcePath, CancellationToken cancellationToken = default)
     {
         var fullPath = Path.GetFullPath(sourcePath);
+        if (!string.Equals(Path.GetExtension(fullPath), ".librespot", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Profile files must use the .librespot extension.");
+        }
+
         var fileInfo = new FileInfo(fullPath);
         if (fileInfo.Exists && fileInfo.Length > MaxLocalProfileBytes)
         {

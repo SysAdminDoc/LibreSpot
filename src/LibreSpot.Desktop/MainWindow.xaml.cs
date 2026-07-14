@@ -464,6 +464,10 @@ public partial class MainWindow : Window
                     _viewModel.OpenLibreSpotFolderCommand.Execute(null);
                 }
                 break;
+            case ShellActivationKind.ProfileFile when !string.IsNullOrWhiteSpace(activation.Value):
+                _viewModel.SelectedWorkspaceIndex = 1;
+                await _viewModel.PreviewLocalProfileFileAsync(activation.Value);
+                break;
             case ShellActivationKind.ProfileShareUri when !string.IsNullOrWhiteSpace(activation.Value):
                 _viewModel.SelectedWorkspaceIndex = 1;
                 await _viewModel.PreviewSharedProfileUriAsync(activation.Value);

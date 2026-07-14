@@ -389,6 +389,30 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task ExplorerProfileActivation_PreviewsExternalFileAndFailsSafely() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+            var profilePath = await fixture.CreateExternalProfileFileAsync("Explorer Desk");
+            var activation = ShellActivationService.Parse([ShellActivationService.ProfileFileArgument, profilePath]);
+
+            Assert.Equal(ShellActivationKind.ProfileFile, activation.Kind);
+            await viewModel.PreviewLocalProfileFileAsync(activation.Value!);
+
+            Assert.True(viewModel.IsPromptVisible);
+            Assert.Equal("Import profile: Explorer Desk", viewModel.PromptTitle);
+            Assert.Contains("validated the profile file", viewModel.PromptBody, StringComparison.OrdinalIgnoreCase);
+            viewModel.CancelPromptCommand.Execute(null);
+
+            await viewModel.PreviewLocalProfileFileAsync(Path.Combine(fixture.ConfigDirectory, "missing.librespot"));
+
+            Assert.False(viewModel.IsPromptVisible);
+            Assert.True(viewModel.IsActivityVisible);
+            Assert.Contains("missing.librespot", viewModel.ProfileOperationStatus, StringComparison.OrdinalIgnoreCase);
+        });
+
+    [Fact]
     public Task PromptDefaultConfirm_OnlyAppliesToNonDestructivePrompts() =>
         RunStaAsync(async () =>
         {
@@ -586,6 +610,19 @@ public sealed class MainViewModelMaintenanceTests
             var profile = await service.CreateFromConfigurationAsync(name, "Shared from test", config);
             var card = await service.CreateShareCardAsync(profile.Summary.Id);
             return card.ShareUri;
+        }
+
+        public async Task<string> CreateExternalProfileFileAsync(string name)
+        {
+            var sourceDirectory = Path.Combine(Root, "source-profile-store");
+            var service = new LocalProfileService(new ConfigurationService(sourceDirectory));
+            var config = AppCatalog.CreateRecommendedConfiguration();
+            config.Spicetify_Theme = "Catppuccin";
+            config.Spicetify_Scheme = "mocha";
+            var profile = await service.CreateFromConfigurationAsync(name, "Opened from Explorer", config);
+            var exportPath = Path.Combine(Root, "Explorer", $"{name}.librespot");
+            await service.ExportAsync(profile.Summary.Id, exportPath);
+            return exportPath;
         }
 
         public void WriteSpotify(bool withSpotXMarkers)
