@@ -26,6 +26,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- Refreshed GitHub issue and pull-request intake around Recommended/Custom/Maintenance/Fleet surfaces, current versions, operation IDs, reviewed support bundles, and the repository's actual local validation commands.
 - Added a stable per-run operation GUID across WPF activity, PowerShell backend events and journals, CLI JSON/plain output, rolling logs, crash evidence, and support-bundle manifests, plus an opt-in local `LibreSpot-Operations` EventSource for ETW/EventPipe collection without uploads.
 - Added receipt-backed undo preview and confirmation to the WPF activity pane plus `LibreSpot.Cli undo`; successful and failed attempts emit new operation evidence while retaining source provenance and snapshots for idempotent retries.
 - Added one migration-safe customization ownership report across WPF health, CLI status schema v3, support bundles, legacy PowerShell warnings, and backend plans. LibreSpot now distinguishes its own SpotX/Spicetify state from raw SpotX, standalone Spicetify, and likely BlockTheSpot-family injectors; standalone Spicetify state is preserved before setup, and foreign state is journaled before maintenance instead of being changed silently.

@@ -12,14 +12,16 @@ body:
   - type: dropdown
     id: mode
     attributes:
-      label: Install Mode
-      description: Which mode were you using when the issue occurred?
+      label: Product Surface
+      description: Which LibreSpot surface or workflow showed the issue?
       options:
-        - Easy Install
-        - Custom Install
+        - Recommended setup
+        - Custom setup
         - Maintenance
-        - CLI / One-liner
+        - Fleet CLI
+        - Stable PowerShell script / one-liner
         - Auto-reapply watcher
+        - Crash / recovery window
     validations:
       required: true
 
@@ -27,8 +29,8 @@ body:
     id: librespot-version
     attributes:
       label: LibreSpot Version
-      description: "Found in the title bar or via `$global:VERSION` in the script"
-      placeholder: "e.g. v3.7.2 or v4.0.0-preview.6"
+      description: "Found in the title bar, the script header, or `LibreSpot.Cli.exe version --json`"
+      placeholder: "e.g. v3.7.4 or v4.0.0-preview.17"
     validations:
       required: true
 
@@ -41,6 +43,7 @@ body:
         - PowerShell script (LibreSpot.ps1)
         - Compiled executable (LibreSpot.exe)
         - WPF Desktop shell (LibreSpot-Desktop.exe)
+        - Fleet CLI (LibreSpot.Cli.exe)
     validations:
       required: true
 
@@ -90,8 +93,8 @@ body:
       description: List the steps to reproduce the issue.
       placeholder: |
         1. Open LibreSpot
-        2. Select Easy Install
-        3. Click Install
+        2. Open Recommended setup
+        3. Select Apply recommended setup
         4. ...
     validations:
       required: true
@@ -110,18 +113,27 @@ body:
     attributes:
       label: Support Bundle
       description: |
-        **Preferred:** In the WPF Desktop shell, go to Maintenance > Export Support Bundle, then drag the `.zip` file here.
-        The bundle is local-only, redacted (no usernames or tokens), and you can preview its contents before exporting.
-        If you cannot export a bundle, paste log output in the field below instead.
-      placeholder: "Drag and drop the .zip file here, or paste the manifest hash from the export dialog."
+        **Preferred:** In the WPF Desktop shell, go to Maintenance > Support bundle, review the selected evidence, export it, then drag the `.zip` file here.
+        The bundle is local-only, redacted, and never uploaded by LibreSpot. Review it before attaching.
+        If export is unavailable, provide only the concise error text below; do not paste config files, tokens, or full raw logs.
+      placeholder: "Drag and drop the reviewed .zip file here."
+    validations:
+      required: false
+
+  - type: input
+    id: operation-id
+    attributes:
+      label: Operation ID
+      description: "Copy it from the WPF activity dialog, CLI JSON/plain output, crash report, or support-bundle manifest. Leave blank if no run started."
+      placeholder: "e.g. a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     validations:
       required: false
 
   - type: textarea
     id: logs
     attributes:
-      label: Relevant Log Output (fallback)
-      description: "If you cannot attach a support bundle, paste the install log (Copy Log button) or error message here. **Remove any file paths that contain your Windows username if you prefer privacy.**"
+      label: Concise Error Text (fallback)
+      description: "If you cannot attach a support bundle, paste only the relevant error message after removing usernames, local paths, credentials, tokens, and private URLs."
       render: text
     validations:
       required: false

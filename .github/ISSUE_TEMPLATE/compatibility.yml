@@ -11,7 +11,7 @@ body:
     id: librespot-version
     attributes:
       label: LibreSpot Version
-      placeholder: "e.g. v3.7.2"
+      placeholder: "e.g. v3.7.4 or v4.0.0-preview.17"
     validations:
       required: true
 
@@ -67,6 +67,7 @@ body:
         - PowerShell script (LibreSpot.ps1)
         - Compiled executable (LibreSpot.exe)
         - WPF Desktop shell (LibreSpot-Desktop.exe)
+        - Fleet CLI (LibreSpot.Cli.exe)
     validations:
       required: true
 
@@ -84,10 +85,19 @@ body:
     attributes:
       label: Support Bundle
       description: |
-        **Preferred:** In the WPF Desktop shell, go to Maintenance > Export Support Bundle, then drag the `.zip` file here.
-        The bundle is local-only, redacted (no usernames or tokens), and you can preview its contents before exporting.
-        If you cannot export a bundle, paste log output in the field below instead.
-      placeholder: "Drag and drop the .zip file here, or paste the manifest hash from the export dialog."
+        **Preferred:** In the WPF Desktop shell, go to Maintenance > Support bundle, review the selected evidence, export it, then drag the `.zip` file here.
+        The bundle is local-only, redacted, and never uploaded by LibreSpot. Review it before attaching.
+        If export is unavailable, provide only concise redacted error text below; do not paste config files, tokens, or full raw logs.
+      placeholder: "Drag and drop the reviewed .zip file here."
+    validations:
+      required: false
+
+  - type: input
+    id: operation-id
+    attributes:
+      label: Operation ID
+      description: "Copy it from WPF activity, CLI output, a crash report, or the support-bundle manifest."
+      placeholder: "e.g. a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     validations:
       required: false
 
@@ -95,6 +105,6 @@ body:
     id: description
     attributes:
       label: Details
-      description: Any additional context about what changed and when. If you cannot attach a support bundle above, paste relevant log output here.
+      description: Any additional context about what changed and when. If no support bundle is available, include only concise error text with private data removed.
     validations:
       required: false

@@ -25,7 +25,7 @@ body:
       options:
         - PowerShell script UI
         - WPF Desktop shell
-        - CLI / automation
+        - Fleet CLI / automation
         - SpotX integration
         - Spicetify / themes / extensions
         - Auto-reapply watcher
