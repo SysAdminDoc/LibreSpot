@@ -15,11 +15,13 @@ public sealed class RemoveSelfDataRegressionTests
         var root = Path.Combine(Path.GetTempPath(), "LibreSpot.RemoveSelfData.Tests", Guid.NewGuid().ToString("N"));
         var appData = Path.Combine(root, "AppData", "Roaming");
         var localAppData = Path.Combine(root, "AppData", "Local");
+        var programData = Path.Combine(root, "ProgramData");
         var temp = Path.Combine(root, "Temp");
         var userProfile = Path.Combine(root, "UserProfile");
         var configDirectory = Path.Combine(appData, "LibreSpot");
         var configPath = Path.Combine(configDirectory, "config.json");
         var localLibreSpot = Path.Combine(localAppData, "LibreSpot");
+        var machineLibreSpot = Path.Combine(programData, "LibreSpot");
         var backupRoot = Path.Combine(userProfile, "LibreSpot_Backups");
         var spotifyPath = Path.Combine(appData, "Spotify", "Spotify.exe");
         var spicetifyExe = Path.Combine(localAppData, "spicetify", "spicetify.exe");
@@ -33,14 +35,31 @@ public sealed class RemoveSelfDataRegressionTests
             config.RiskAcknowledged = true;
             WriteFile(configPath, JsonSerializer.Serialize(config));
             WriteFile(Path.Combine(configDirectory, "profiles", "local.json"), canary);
+            WriteFile(Path.Combine(configDirectory, "active-profile.json"), canary);
+            WriteFile(Path.Combine(configDirectory, "active-profile.previous.json"), canary);
+            WriteFile(Path.Combine(configDirectory, "profile-activation.lock"), canary);
+            WriteFile(Path.Combine(configDirectory, "profile-activation.pending.json"), canary);
+            WriteFile(Path.Combine(configDirectory, "profile-activation.test.previous.staged.json"), canary);
+            WriteFile(Path.Combine(configDirectory, "profile-activation.test.next.staged.json"), canary);
             WriteFile(Path.Combine(configDirectory, "operation-journal.jsonl"), canary);
+            WriteFile(Path.Combine(configDirectory, "run-receipt.latest.json"), canary);
             WriteFile(Path.Combine(configDirectory, "install.log"), canary);
             WriteFile(Path.Combine(configDirectory, "watcher-state.json"), $$"""{"Canary":"{{canary}}"}""");
             WriteFile(Path.Combine(configDirectory, "watcher.log"), canary);
             WriteFile(Path.Combine(configDirectory, "cache", "asset"), canary);
+            WriteFile(Path.Combine(configDirectory, "config.corrupt.test.json"), canary);
+            WriteFile(Path.Combine(configDirectory, "update-check.json"), canary);
+            WriteFile(Path.Combine(configDirectory, "upstream-freshness-cache.json"), canary);
+            WriteFile(Path.Combine(configDirectory, "marketplace-evidence.json"), canary);
+            WriteFile(Path.Combine(configDirectory, "spicetify-preservation-latest.json"), canary);
+            WriteFile(Path.Combine(configDirectory, "LibreSpot-support-test.zip"), canary);
             WriteFile(Path.Combine(localLibreSpot, "logs", "librespot-test.log"), canary);
             WriteFile(Path.Combine(localLibreSpot, "crashes", "crash-test.log"), canary);
             WriteFile(Path.Combine(localLibreSpot, "runtime", "LibreSpot.Backend.test.run.ps1"), canary);
+            WriteFile(Path.Combine(localLibreSpot, "upstream-drift-cache.json"), canary);
+            WriteFile(Path.Combine(localLibreSpot, "community-asset-drift-cache.json"), canary);
+            WriteFile(Path.Combine(machineLibreSpot, "config.json"), canary);
+            WriteFile(Path.Combine(machineLibreSpot, "logs", "librespot-install-test.ndjson"), canary);
             WriteFile(Path.Combine(backupRoot, "20260701-010101", "config-xpui.ini"), canary);
             WriteFile(spotifyPath, "spotify-stays");
             WriteFile(spicetifyExe, "spicetify-stays");
@@ -54,6 +73,7 @@ public sealed class RemoveSelfDataRegressionTests
             Assert.Contains("LibreSpot self-cleanup complete", result.Stdout);
             Assert.False(Directory.Exists(configDirectory), result.Stdout);
             Assert.False(Directory.Exists(localLibreSpot), result.Stdout);
+            Assert.False(Directory.Exists(machineLibreSpot), result.Stdout);
             Assert.False(Directory.Exists(backupRoot), result.Stdout);
             Assert.True(File.Exists(spotifyPath));
             Assert.True(File.Exists(spicetifyExe));
@@ -89,6 +109,7 @@ public sealed class RemoveSelfDataRegressionTests
             Assert.DoesNotContain(canary, supportText);
             Assert.DoesNotContain(configDirectory, supportText, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain(localLibreSpot, supportText, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(machineLibreSpot, supportText, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain(backupRoot, supportText, StringComparison.OrdinalIgnoreCase);
         }
         finally

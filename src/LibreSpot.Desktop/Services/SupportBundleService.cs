@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using LibreSpot.Desktop.Models;
@@ -597,7 +598,7 @@ public sealed class SupportBundleService
                 continue;
             }
 
-            builder.AppendLine(ReadTailRedacted(file.Path, MaxOperationLines));
+            builder.AppendLine(ReadSupportFileWindow(file.Path, MaxOperationLines));
             builder.AppendLine();
         }
 
@@ -640,8 +641,91 @@ public sealed class SupportBundleService
         var leaf = MakeSafeFileName(System.IO.Path.GetFileName(file.Path));
         var entryName = $"{folder}/{leaf}.tail.txt";
         var header = $"{file.Label}{Environment.NewLine}Source: {RedactText(file.Path)}{Environment.NewLine}{Environment.NewLine}";
-        AddTextEntry(archive, entryName, header + ReadTailRedacted(file.Path, maxLines));
+        AddTextEntry(archive, entryName, header + ReadSupportFileWindow(file.Path, maxLines));
         return true;
+    }
+
+    private string ReadSupportFileWindow(string path, int maxLines) =>
+        string.Equals(Path.GetFileName(path), "operation-journal.jsonl", StringComparison.OrdinalIgnoreCase)
+            ? ReadOperationJournalRedacted(path, maxLines)
+            : ReadTailRedacted(path, maxLines);
+
+    private string ReadOperationJournalRedacted(string path, int maxLines)
+    {
+        try
+        {
+            var output = new List<string>();
+            foreach (var line in ReadBoundedTailLines(path, MaxDiagnosticWindowBytes).TakeLast(maxLines))
+            {
+                try
+                {
+                    var node = JsonNode.Parse(line);
+                    if (node is null)
+                    {
+                        continue;
+                    }
+
+                    RemovePreviousStatePayloads(node);
+                    output.Add(node.ToJsonString());
+                }
+                catch (JsonException)
+                {
+                    output.Add(line);
+                }
+            }
+
+            return RedactText(string.Join(Environment.NewLine, output));
+        }
+        catch (DecoderFallbackException)
+        {
+            return "<omitted: file is not UTF-8 text>";
+        }
+        catch (IOException ex)
+        {
+            return RedactText($"<unavailable: {ex.Message}>");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return RedactText($"<unavailable: {ex.Message}>");
+        }
+    }
+
+    private static void RemovePreviousStatePayloads(JsonNode node)
+    {
+        if (node is JsonObject obj)
+        {
+            foreach (var property in obj.ToArray())
+            {
+                var normalizedName = property.Key
+                    .Replace("_", string.Empty, StringComparison.Ordinal)
+                    .Replace("-", string.Empty, StringComparison.Ordinal)
+                    .ToLowerInvariant();
+                if (normalizedName is "previousstate" or "previousstateref" or "previousvalue" or "oldvalue" or
+                    "originalvalue" or "profilecontents" or "configurationcontents" or "rawpayload")
+                {
+                    obj.Remove(property.Key);
+                    continue;
+                }
+
+                if (property.Value is not null)
+                {
+                    RemovePreviousStatePayloads(property.Value);
+                }
+            }
+
+            return;
+        }
+
+        if (node is JsonArray array)
+        {
+            foreach (var item in array)
+            {
+                if (item is not null)
+                {
+                    RemovePreviousStatePayloads(item);
+                }
+            }
+        }
     }
 
     private string ReadTailRedacted(string path, int maxLines)

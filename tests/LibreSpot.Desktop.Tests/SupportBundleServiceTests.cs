@@ -348,6 +348,37 @@ public sealed class SupportBundleServiceTests
     }
 
     [Fact]
+    public async Task ExportAsync_ExcludesProfilesActivationStagesAndRawPreviousState()
+    {
+        using var fixture = new SupportBundleFixture();
+        fixture.WriteStackReadyState();
+        var canary = "private-previous-state-" + Guid.NewGuid().ToString("N");
+        fixture.WritePrivateProfileArtifacts(canary);
+        fixture.WriteOperationJournal(
+            JsonSerializer.Serialize(new
+            {
+                schemaVersion = 1,
+                operationId = "op-private-state",
+                action = "ActivateProfile",
+                previousStateRef = canary,
+                previousState = new { configuration = canary },
+                oldValue = canary,
+                data = new { previousValue = canary, safeEvidence = "safe-evidence-retained" }
+            }));
+
+        var result = await fixture.ExportAsync(new SupportBundleOptions());
+        var entries = ReadZipText(result.Path);
+        var allText = string.Join("\n", entries.Values);
+
+        Assert.DoesNotContain(canary, allText, StringComparison.Ordinal);
+        Assert.Contains("safe-evidence-retained", allText, StringComparison.Ordinal);
+        Assert.DoesNotContain("previousStateRef", allText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("previousState", allText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(entries.Keys, name => name.Contains("profile", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(entries.Keys, name => name.Contains("run-receipt", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public async Task ExportAsync_IncludesAssetCacheInventory()
     {
         using var fixture = new SupportBundleFixture();
@@ -558,6 +589,17 @@ public sealed class SupportBundleServiceTests
 
         public void WriteOperationJournal(string content) =>
             WriteFile(Path.Combine(ConfigDirectory, "operation-journal.jsonl"), content);
+
+        public void WritePrivateProfileArtifacts(string canary)
+        {
+            WriteFile(Path.Combine(ConfigDirectory, "profiles", "private-profile.json"), canary);
+            WriteFile(Path.Combine(ConfigDirectory, "active-profile.json"), canary);
+            WriteFile(Path.Combine(ConfigDirectory, "active-profile.previous.json"), canary);
+            WriteFile(Path.Combine(ConfigDirectory, "profile-activation.pending.json"), canary);
+            WriteFile(Path.Combine(ConfigDirectory, "profile-activation.transaction.previous.staged.json"), canary);
+            WriteFile(Path.Combine(ConfigDirectory, "profile-activation.transaction.next.staged.json"), canary);
+            WriteFile(Path.Combine(ConfigDirectory, "run-receipt.latest.json"), canary);
+        }
 
         public void WriteRollingLog(string content) =>
             WriteFile(Path.Combine(RollingLogDirectory, "librespot-20260616.log"), content);

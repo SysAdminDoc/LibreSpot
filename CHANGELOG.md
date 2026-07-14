@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Security
 
+- Omitted previous-state references and nested previous/old-value payloads from operation-journal support exports, while retaining independently useful redacted evidence.
 - Added a fail-closed external-script gate for Microsoft Defender preference/exclusion mutations: the current safe SpotX pin remains argument-compatible, while any future mutating pin must declare and receive the exact upstream opt-out across interactive, backend, watcher, repair, and cached execution lanes.
 - Bounded CLI answer files, desktop/CLI configuration JSON, run receipts, operation-journal recovery, and support-bundle diagnostic windows; oversized or tampered local state now fails safely or reads only a 1 MiB tail instead of driving unbounded parsing or full-file scans.
 - Redacted every string value in support-bundle JSON at the serializer boundary, so newly added diagnostic fields cannot leak local paths, credentials, or command-line secrets when a projection omits a field-specific redaction call.
@@ -24,6 +25,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- Turned the local-data inventory into an enforceable 28-location contract covering user and machine configuration, profiles, activation recovery, journals/receipts, caches, evidence, logs, backups, runtime files, temporary workspaces, support archives, and the watcher task; RemoveSelfData now also clears machine-scope Fleet data.
 - Consolidated the WPF shell onto a ten-step product type scale and a shared 2px extra-small radius token, removing one-off 5px checkbox corners and 11.5/12.5/13.5/14.5/15/15.5/17/22/23/25/27px text sizes that caused subtle visual drift.
 - Updated Serilog to 4.4.0 and Microsoft.NET.Test.Sdk to 18.8.1, refreshing runtime/test transitive pins and clearing the live dependency-health drift gate with no known vulnerable NuGet packages.
 - Added pinned-asset provenance to the WPF readiness inspector, Fleet CLI `status --json` schema v2, and redacted support bundles: each core/community asset now carries its version or commit, source URL, last-verification date, changelog/release link, and current/stale/indeterminate freshness state.
@@ -46,6 +48,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Tests
 
+- Added data-inventory write-site, deletion-root, retention-policy, support-export, and private-profile exclusion contracts plus an end-to-end machine-data removal fixture.
 - Added before/after SpotX fixtures plus live pinned-entrypoint hash/policy validation so Defender mutations, missing opt-outs, unsupported safe-pin arguments, and lane adapter drift fail the build.
 - Added fault injection at every profile-activation write boundary plus hidden-process WPF/PowerShell concurrency and cross-host recovery coverage.
 - Stabilized FlaUI interaction checks for virtualized maintenance controls by scrolling only offscreen elements, waiting for the UIA layout update, and rejecting disabled targets before invocation instead of silently dropping clicks.

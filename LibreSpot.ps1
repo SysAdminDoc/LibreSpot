@@ -717,6 +717,7 @@ if ($script:CliRemoveSelfData) {
         @{ Path = $global:CONFIG_DIR;    Label = 'Config directory (%APPDATA%\LibreSpot)' }
         @{ Path = $global:BACKUP_ROOT;   Label = 'Backup directory (%USERPROFILE%\LibreSpot_Backups)' }
         @{ Path = (Join-Path $env:LOCALAPPDATA 'LibreSpot'); Label = 'Log/crash directory (%LOCALAPPDATA%\LibreSpot)' }
+        @{ Path = (Join-Path $env:ProgramData 'LibreSpot'); Label = 'Machine data and fleet logs (%ProgramData%\LibreSpot)' }
     )
     foreach ($entry in $selfPaths) {
         if (Test-Path -LiteralPath $entry.Path) {

@@ -20,9 +20,10 @@ if (-not [string]::IsNullOrWhiteSpace($testRootValue)) {
     $script:BackendTestRoot = [System.IO.Path]::GetFullPath($testRootValue)
     $env:APPDATA = Join-Path $script:BackendTestRoot 'AppData\Roaming'
     $env:LOCALAPPDATA = Join-Path $script:BackendTestRoot 'AppData\Local'
+    $env:ProgramData = Join-Path $script:BackendTestRoot 'ProgramData'
     $env:TEMP = Join-Path $script:BackendTestRoot 'Temp'
     $env:USERPROFILE = Join-Path $script:BackendTestRoot 'UserProfile'
-    foreach ($directory in @($env:APPDATA, $env:LOCALAPPDATA, $env:TEMP, $env:USERPROFILE)) {
+    foreach ($directory in @($env:APPDATA, $env:LOCALAPPDATA, $env:ProgramData, $env:TEMP, $env:USERPROFILE)) {
         if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
             New-Item -Path $directory -ItemType Directory -Force | Out-Null
         }
@@ -4887,6 +4888,7 @@ function Invoke-LibreSpotMaintenance {
             $selfPaths = @(
                 @{ Path = $global:BACKUP_ROOT; Label = 'Backup directory' }
                 @{ Path = (Join-Path $env:LOCALAPPDATA 'LibreSpot'); Label = 'Log/crash directory' }
+                @{ Path = (Join-Path $env:ProgramData 'LibreSpot'); Label = 'Machine data and fleet logs' }
                 @{ Path = $global:CONFIG_DIR; Label = 'Config directory'; RemovesActiveProfile = $true }
             )
             $receiptTargets = @()
