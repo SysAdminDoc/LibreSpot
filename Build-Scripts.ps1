@@ -37,7 +37,8 @@ param(
     [switch]$DependencyHealth,
     [string]$DependencyHealthReportPath,
     [string]$DependencyHealthAllowlistPath,
-    [switch]$CheckSpotifyVersionDrift
+    [switch]$CheckSpotifyVersionDrift,
+    [switch]$ReleaseTruth
 )
 
 $ErrorActionPreference = 'Stop'
@@ -160,6 +161,36 @@ function Get-LibreSpotProjectInformationalVersion {
     return [string]$version
 }
 
+function Get-LibreSpotCliProjectVersion {
+    $projectPath = Join-Path $PSScriptRoot 'src/LibreSpot.Cli/LibreSpot.Cli.csproj'
+    if (-not (Test-Path -LiteralPath $projectPath -PathType Leaf)) {
+        throw "Cannot infer CLI version; project file not found at $projectPath"
+    }
+
+    [xml]$project = Get-Content -Raw -LiteralPath $projectPath
+    $version = $project.Project.PropertyGroup |
+        ForEach-Object { $_.Version } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
+        Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace([string]$version)) {
+        throw "Cannot infer CLI version; <Version> is missing from $projectPath"
+    }
+
+    return [string]$version
+}
+
+function Get-LibreSpotScriptVersion {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $content = [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8)
+    $match = [regex]::Match($content, "(?m)^\`$global:VERSION\s*=\s*'(?<version>[^']+)'\s*$")
+    if (-not $match.Success) {
+        throw "Cannot infer script version; `$global:VERSION is missing from $Path"
+    }
+
+    return [string]$match.Groups['version'].Value
+}
+
 function Get-LibreSpotShellDisplayVersion {
     $viewModelPath = Join-Path $PSScriptRoot 'src/LibreSpot.Desktop/ViewModels/MainViewModel.cs'
     if (-not (Test-Path -LiteralPath $viewModelPath -PathType Leaf)) {
@@ -173,6 +204,87 @@ function Get-LibreSpotShellDisplayVersion {
     }
 
     return [string]$match.Groups['version'].Value
+}
+
+function Test-LocalReleaseTruth {
+    $readmePath = Join-Path $PSScriptRoot 'README.md'
+    if (-not (Test-Path -LiteralPath $readmePath -PathType Leaf)) {
+        throw 'Cannot validate release truth; README.md not found.'
+    }
+
+    $desktopVersion = Get-LibreSpotProjectVersion
+    $desktopInformationalVersion = Get-LibreSpotProjectInformationalVersion
+    $cliVersion = Get-LibreSpotCliProjectVersion
+    $shellVersion = Get-LibreSpotShellDisplayVersion
+    $mainVersion = Get-LibreSpotScriptVersion -Path $mainScript
+    $backendVersion = Get-LibreSpotScriptVersion -Path $backendScript
+    $readme = [System.IO.File]::ReadAllText($readmePath, [System.Text.Encoding]::UTF8)
+    $badgeVersion = $desktopVersion.Replace('-', '--')
+    $failures = @()
+
+    if ($cliVersion -ne $desktopVersion) {
+        $failures += "CLI version '$cliVersion' does not match Desktop version '$desktopVersion'."
+    }
+    if ($desktopInformationalVersion -ne $desktopVersion) {
+        $failures += "Desktop InformationalVersion '$desktopInformationalVersion' does not match Version '$desktopVersion'."
+    }
+    if ($shellVersion -ne "v$desktopVersion") {
+        $failures += "WPF display version '$shellVersion' does not match project version 'v$desktopVersion'."
+    }
+    if ($backendVersion -ne $mainVersion) {
+        $failures += "Backend script version '$backendVersion' does not match standalone script version '$mainVersion'."
+    }
+    if (-not $readme.Contains("Version-$badgeVersion-brightgreen.svg")) {
+        $failures += "README preview badge does not name '$desktopVersion'."
+    }
+    if (-not $readme.Contains("## What's New in v$desktopVersion")) {
+        $failures += "README What's New heading does not name 'v$desktopVersion'."
+    }
+    if (-not $readme.Contains("Current source script version: **v$mainVersion**")) {
+        $failures += "README does not distinguish current source script version 'v$mainVersion'."
+    }
+
+    if ($failures.Count -gt 0) {
+        Write-Host '=== LOCAL RELEASE TRUTH DRIFT ===' -ForegroundColor Red
+        foreach ($failure in $failures) { Write-Host "  $failure" -ForegroundColor Red }
+        throw 'README and executable version claims must agree.'
+    }
+
+    Write-Host "Local release truth matches script v$mainVersion and preview v$desktopVersion." -ForegroundColor Green
+}
+
+function Test-PublicReleaseTruth {
+    Test-LocalReleaseTruth
+    $headers = @{ 'User-Agent' = 'LibreSpot-ReleaseTruth-Validator' }
+    $uri = 'https://api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest'
+    try {
+        $release = Invoke-RestMethod -Uri $uri -Headers $headers -TimeoutSec 20 -ErrorAction Stop
+    } catch {
+        throw "Could not query the public GitHub latest-release channel: $($_.Exception.Message)"
+    }
+
+    if ($release.draft -or $release.prerelease -or [string]::IsNullOrWhiteSpace([string]$release.tag_name)) {
+        throw "GitHub latest-release response is not a published stable release."
+    }
+
+    $tag = [string]$release.tag_name
+    $stableVersion = $tag.TrimStart('v')
+    $assetNames = @($release.assets | ForEach-Object { [string]$_.name })
+    $requiredAssets = @('LibreSpot.ps1', 'LibreSpot.exe', 'checksums.txt')
+    $missingAssets = @($requiredAssets | Where-Object { $_ -notin $assetNames })
+    if ($missingAssets.Count -gt 0) {
+        throw "Public stable $tag is missing documented assets: $($missingAssets -join ', ')."
+    }
+
+    $readme = [System.IO.File]::ReadAllText((Join-Path $PSScriptRoot 'README.md'), [System.Text.Encoding]::UTF8)
+    if (-not $readme.Contains("Stable-$stableVersion-blue.svg")) {
+        throw "README stable badge does not match public latest release $tag."
+    }
+    if (-not $readme.Contains("public latest stable release, $tag")) {
+        throw "README release guidance does not identify the public latest stable release as $tag."
+    }
+
+    Write-Host "Public release truth matches $tag ($($assetNames.Count) assets)." -ForegroundColor Green
 }
 
 function Get-PngTextMetadataValue {
@@ -932,6 +1044,11 @@ function Test-SpotifyVersionDrift {
     exit 1
 }
 
+if ($ReleaseTruth) {
+    Test-PublicReleaseTruth
+    exit 0
+}
+
 if ($CheckSpotifyVersionDrift) {
     Test-SpotifyVersionDrift
     exit 0
@@ -1096,6 +1213,7 @@ if ($Validate) {
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'tools/Sync-Localization.ps1') -Validate -ScanRawStrings
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Test-ReadmeWpfScreenshotMetadata
+    Test-LocalReleaseTruth
     exit 0
 }
 
@@ -1281,3 +1399,4 @@ Write-Host "  pwsh -File Build-Scripts.ps1 -SyncSharedToBackend   # Copy shared 
 Write-Host "  pwsh -File Build-Scripts.ps1 -SyncSharedToMain      # Copy shared function sources into standalone script"
 Write-Host "  pwsh -File Build-Scripts.ps1 -DependencyHealth       # Emit dependency-health JSON and fail unapproved drift"
 Write-Host "  pwsh -File Build-Scripts.ps1 -CheckSpotifyVersionDrift # Compare pinned Spotify target vs SpotX-Bash buildVer (report-only)"
+Write-Host "  pwsh -File Build-Scripts.ps1 -ReleaseTruth          # Compare README claims with projects, scripts, and GitHub latest stable"

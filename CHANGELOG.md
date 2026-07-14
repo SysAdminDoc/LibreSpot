@@ -16,6 +16,10 @@ All notable changes to LibreSpot will be documented in this file.
 - The dependency-status rows now change glyph shape per severity (check / dash / exclamation / cross) instead of relying on ring colour alone, so warning and critical states stay distinguishable in high-contrast mode where both can map to the same system colour.
 - Raised the snackbar dismiss button to the app's 32px minimum touch-target size.
 
+### Changed
+
+- Release guidance now distinguishes the current v3.7.4 script source from GitHub's public latest stable v3.7.2 and validates preview parity locally plus stable tag/assets against the live GitHub latest-release channel.
+
 ### Fixed
 
 - Restored `.librespot` Explorer imports from arbitrary local folders: file-association activations now enter the validated preview/confirm flow directly instead of being converted into a store-confined protocol URI, while malformed, missing, oversized, and wrong-extension inputs fail without crashing startup.
