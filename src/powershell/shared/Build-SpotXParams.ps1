@@ -4,6 +4,13 @@ function Build-SpotXParams { param($Config)
     $p += "-confirm_uninstall_ms_spoti"
     # Let SpotX manage Spotify version compatibility (auto-overwrite unsupported versions)
     $p += "-confirm_spoti_recomended_over"
+    if ([bool]$global:PinnedReleases.SpotX.DefenderMutations) {
+        $defenderOptOut = [string]$global:PinnedReleases.SpotX.DefenderOptOut
+        if ($defenderOptOut -cne '-defender_exclusions_off') {
+            throw 'The pinned SpotX adapter does not declare the required Microsoft Defender opt-out.'
+        }
+        $p += $defenderOptOut
+    }
     if ($Config.SpotX_NewTheme)        { $p += "-new_theme" }
     if ($Config.SpotX_PodcastsOff)     { $p += "-podcasts_off" } else { $p += "-podcasts_on" }
     if ($Config.SpotX_AdSectionsOff)   { $p += "-adsections_off" }

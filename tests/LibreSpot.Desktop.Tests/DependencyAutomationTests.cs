@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using System.Text.Json;
+using LibreSpot.Desktop.Models;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -57,6 +58,36 @@ public sealed class DependencyAutomationTests
         Assert.Contains("Unapproved transitive package drift", script);
         Assert.Contains("AuditPipeline vulnerability", script);
         Assert.Contains("acceptedTransitiveLag", script);
+        Assert.Contains("[switch]$SpotXSecurityPolicy", script);
+        Assert.Contains("Get-PinnedSpotXSecurityPolicy", script);
+        Assert.Contains("Add-MpPreference", script);
+        Assert.Contains("Set-MpPreference", script);
+        Assert.Contains("ExclusionPath", script);
+        Assert.Contains("ExclusionProcess", script);
+        Assert.Contains("spotXSecurityPolicy", script);
+    }
+
+    [Fact]
+    public void SpotXDefenderPolicy_CurrentPinStaysArgumentCompatibleAndMetadataMatchesDesktop()
+    {
+        var script = ReadRepoFile("LibreSpot.ps1");
+        var block = Regex.Match(
+            script,
+            @"(?ms)^\s{4}SpotX\s*=\s*@\{(?<body>.+?)^\s{4}\}");
+        Assert.True(block.Success, "PinnedReleases.SpotX block was not found.");
+        var body = block.Groups["body"].Value;
+
+        Assert.Matches(@"(?mi)^\s*DefenderMutations\s*=\s*\$false\s*$", body);
+        Assert.Matches(@"(?mi)^\s*DefenderOptOut\s*=\s*''\s*$", body);
+        Assert.False(AppCatalog.PinnedSpotXContainsDefenderMutations);
+        Assert.Empty(AppCatalog.PinnedSpotXDefenderOptOutArgument);
+
+        var buildParams = Regex.Match(
+            script,
+            @"(?ms)^function\s+Build-SpotXParams\s*\{(?<body>.+?)^\}");
+        Assert.True(buildParams.Success);
+        Assert.Contains("PinnedReleases.SpotX.DefenderMutations", buildParams.Groups["body"].Value);
+        Assert.Contains("PinnedReleases.SpotX.DefenderOptOut", buildParams.Groups["body"].Value);
     }
 
     [Fact]

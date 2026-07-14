@@ -14,7 +14,7 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
     $scriptGuard = $null
     $p = $null
     try {
-        $scriptGuard = Open-VerifiedScriptForExecution -FilePath $FilePath -ExpectedHash $ExpectedHash -Label $Label
+        $scriptGuard = Open-VerifiedScriptForExecution -FilePath $FilePath -ExpectedHash $ExpectedHash -Label $Label -Arguments $Arguments
         if (-not [string]::IsNullOrWhiteSpace($ExpectedHash)) {
             Write-Log "  Execution copy verified and locked for $Label"
         }

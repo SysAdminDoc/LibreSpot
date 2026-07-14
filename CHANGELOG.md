@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Security
 
+- Added a fail-closed external-script gate for Microsoft Defender preference/exclusion mutations: the current safe SpotX pin remains argument-compatible, while any future mutating pin must declare and receive the exact upstream opt-out across interactive, backend, watcher, repair, and cached execution lanes.
 - Bounded CLI answer files, desktop/CLI configuration JSON, run receipts, operation-journal recovery, and support-bundle diagnostic windows; oversized or tampered local state now fails safely or reads only a 1 MiB tail instead of driving unbounded parsing or full-file scans.
 - Redacted every string value in support-bundle JSON at the serializer boundary, so newly added diagnostic fields cannot leak local paths, credentials, or command-line secrets when a projection omits a field-specific redaction call.
 - Preserved raw expandable user-PATH tokens and `REG_EXPAND_SZ` typing across Spicetify installs/removals, broadcast PATH changes to running shells, and replaced recursive ACL/delete operations with a depth-first removal engine that unlinks nested junctions without traversing their targets.
@@ -45,6 +46,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Tests
 
+- Added before/after SpotX fixtures plus live pinned-entrypoint hash/policy validation so Defender mutations, missing opt-outs, unsupported safe-pin arguments, and lane adapter drift fail the build.
 - Added fault injection at every profile-activation write boundary plus hidden-process WPF/PowerShell concurrency and cross-host recovery coverage.
 - Stabilized FlaUI interaction checks for virtualized maintenance controls by scrolling only offscreen elements, waiting for the UIA layout update, and rejecting disabled targets before invocation instead of silently dropping clicks.
 - Added a single non-activating rendered-WPF QA command covering 13 shell/overlay states plus the nested crash dialog across dark/high-contrast and English/Spanish; every capture verifies localized primary bounds, accessible action names, focus-ring rendering, metadata, dimensions, and render-dropout retries.

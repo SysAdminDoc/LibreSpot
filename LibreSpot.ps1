@@ -143,6 +143,8 @@ $global:PinnedReleases = @{
         Commit  = '550bc72cd15f6e2a172a6ecc0873d0991eb1c83c'
         Url     = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/550bc72cd15f6e2a172a6ecc0873d0991eb1c83c/run.ps1'
         SHA256  = '863cd19429160c911ce7439426d9e2127064028ccabbaf3007b233a393607606'
+        DefenderMutations = $false
+        DefenderOptOut = ''
     }
     SpicetifyCLI = @{
         Version = '2.44.0'
@@ -565,7 +567,7 @@ function Invoke-HeadlessReapply {
         $pinfo.UseShellExecute = $false
         $pinfo.CreateNoWindow = $true
         try {
-            $spotxGuard = Open-VerifiedScriptForExecution -FilePath $spotxRun -ExpectedHash $expectedHash -Label 'SpotX run.ps1 (watcher)'
+            $spotxGuard = Open-VerifiedScriptForExecution -FilePath $spotxRun -ExpectedHash $expectedHash -Label 'SpotX run.ps1 (watcher)' -Arguments $spotxArgs
             $proc = [System.Diagnostics.Process]::Start($pinfo)
             # Drain stdout/stderr asynchronously to prevent buffer deadlock.
             # If SpotX writes more than the OS pipe buffer (~4KB) the process
@@ -4352,6 +4354,13 @@ function Build-SpotXParams { param($Config)
     $p += "-confirm_uninstall_ms_spoti"
     # Let SpotX manage Spotify version compatibility (auto-overwrite unsupported versions)
     $p += "-confirm_spoti_recomended_over"
+    if ([bool]$global:PinnedReleases.SpotX.DefenderMutations) {
+        $defenderOptOut = [string]$global:PinnedReleases.SpotX.DefenderOptOut
+        if ($defenderOptOut -cne '-defender_exclusions_off') {
+            throw 'The pinned SpotX adapter does not declare the required Microsoft Defender opt-out.'
+        }
+        $p += $defenderOptOut
+    }
     if ($Config.SpotX_NewTheme)        { $p += "-new_theme" }
     if ($Config.SpotX_PodcastsOff)     { $p += "-podcasts_off" } else { $p += "-podcasts_on" }
     if ($Config.SpotX_AdSectionsOff)   { $p += "-adsections_off" }
@@ -7185,11 +7194,43 @@ function Download-FileSafe { param([string]$Uri,[string]$OutFile)
         throw
     }
 }
+function Assert-LibreSpotExternalScriptDefenderPolicy {
+    param(
+        [Parameter(Mandatory)][System.IO.Stream]$Stream,
+        [string]$Arguments = '',
+        [string]$Label = 'script'
+    )
+
+    if (-not $Stream.CanSeek) {
+        throw "$Label cannot be inspected for Microsoft Defender mutations. Refusing to run."
+    }
+
+    $Stream.Position = 0
+    $reader = New-Object System.IO.StreamReader($Stream, [System.Text.Encoding]::UTF8, $true, 4096, $true)
+    try {
+        $content = $reader.ReadToEnd()
+    } finally {
+        $reader.Dispose()
+        $Stream.Position = 0
+    }
+
+    $containsDefenderMutation = $content -match '(?i)\b(?:Add|Set)-MpPreference\b|-(?:ExclusionPath|ExclusionProcess)\b'
+    if (-not $containsDefenderMutation) { return }
+
+    $isSpotX = $Label -like 'SpotX*'
+    $declaresOptOut = $content -match '(?i)\bdefender_exclusions_off\b'
+    $passesOptOut = $Arguments -match '(?i)(?:^|\s)-defender_exclusions_off(?:\s|$)'
+    if (-not $isSpotX -or -not $declaresOptOut -or -not $passesOptOut) {
+        throw "$Label contains Microsoft Defender preference or exclusion commands without a proven, passed -defender_exclusions_off adapter. Refusing to run."
+    }
+}
+
 function Open-VerifiedScriptForExecution {
     param(
         [string]$FilePath,
         [string]$ExpectedHash = '',
-        [string]$Label = 'script'
+        [string]$Label = 'script',
+        [string]$Arguments = ''
     )
 
     if ([string]::IsNullOrWhiteSpace($FilePath)) {
@@ -7216,6 +7257,8 @@ function Open-VerifiedScriptForExecution {
                 $stream.Position = 0
             }
         }
+
+        Assert-LibreSpotExternalScriptDefenderPolicy -Stream $stream -Arguments $Arguments -Label $Label
 
         return $stream
     } catch {
@@ -7600,7 +7643,7 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
     $scriptGuard = $null
     $p = $null
     try {
-        $scriptGuard = Open-VerifiedScriptForExecution -FilePath $FilePath -ExpectedHash $ExpectedHash -Label $Label
+        $scriptGuard = Open-VerifiedScriptForExecution -FilePath $FilePath -ExpectedHash $ExpectedHash -Label $Label -Arguments $Arguments
         if (-not [string]::IsNullOrWhiteSpace($ExpectedHash)) {
             Write-Log "  Execution copy verified and locked for $Label"
         }
@@ -9149,7 +9192,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-SpotXCustomPatchesFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Open-VerifiedScriptForExecution','Get-FileSha256Lower','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Assert-LibreSpotExternalScriptDefenderPolicy','Open-VerifiedScriptForExecution','Get-FileSha256Lower','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Get-SpotXChildFailureClassification','Get-SpotXDownloadRetryPlan','Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyIntegrationContext','Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',

@@ -37,6 +37,8 @@ param(
     [switch]$DependencyHealth,
     [string]$DependencyHealthReportPath,
     [string]$DependencyHealthAllowlistPath,
+    [switch]$SpotXSecurityPolicy,
+    [string]$SpotXScriptPath,
     [switch]$CheckSpotifyVersionDrift,
     [switch]$ReleaseTruth,
     [switch]$WatcherIntegration
@@ -471,6 +473,143 @@ function Get-FileSha256Lower {
     }
 }
 
+function Get-PinnedSpotXSecurityMetadata {
+    $content = [System.IO.File]::ReadAllText($mainScript, [System.Text.Encoding]::UTF8)
+    $match = [regex]::Match($content, '(?ms)^\s{4}SpotX\s*=\s*@\{(?<body>.+?)^\s{4}\}')
+    if (-not $match.Success) {
+        throw 'PinnedReleases.SpotX block was not found in LibreSpot.ps1.'
+    }
+
+    $body = $match.Groups['body'].Value
+    $fields = @{}
+    foreach ($name in @('Commit', 'Url', 'SHA256', 'DefenderOptOut')) {
+        $field = [regex]::Match($body, "(?m)^\s*$name\s*=\s*'(?<value>[^']*)'\s*$")
+        if (-not $field.Success) { throw "PinnedReleases.SpotX.$name is missing." }
+        $fields[$name] = [string]$field.Groups['value'].Value
+    }
+    $mutationField = [regex]::Match($body, '(?mi)^\s*DefenderMutations\s*=\s*\$(?<value>true|false)\s*$')
+    if (-not $mutationField.Success) { throw 'PinnedReleases.SpotX.DefenderMutations is missing.' }
+
+    return [pscustomobject][ordered]@{
+        commit            = $fields.Commit
+        url               = $fields.Url
+        sha256            = $fields.SHA256.ToLowerInvariant()
+        defenderMutations = [string]$mutationField.Groups['value'].Value -eq 'true'
+        defenderOptOut    = $fields.DefenderOptOut
+    }
+}
+
+function Test-SpotXInstallerSecurityPolicy {
+    param(
+        [Parameter(Mandatory)][string]$ScriptPath,
+        [Parameter(Mandatory)][string]$ExpectedHash,
+        [Parameter(Mandatory)][bool]$DeclaredDefenderMutations,
+        [AllowEmptyString()][string]$DeclaredDefenderOptOut
+    )
+
+    if (-not (Test-Path -LiteralPath $ScriptPath -PathType Leaf)) {
+        throw "SpotX entrypoint not found: $ScriptPath"
+    }
+    $info = Get-Item -LiteralPath $ScriptPath
+    if ($info.Length -le 0 -or $info.Length -gt 1048576) {
+        throw "SpotX entrypoint has an invalid size: $($info.Length) bytes."
+    }
+    $actualHash = Get-FileSha256Lower -Path $ScriptPath
+    if ($actualHash -ne $ExpectedHash.ToLowerInvariant()) {
+        throw "SpotX entrypoint hash mismatch. Expected $ExpectedHash, got $actualHash."
+    }
+
+    $content = [System.IO.File]::ReadAllText($ScriptPath, [System.Text.Encoding]::UTF8)
+    $indicators = @()
+    foreach ($indicator in @(
+        @{ Name = 'Add-MpPreference'; Pattern = '(?i)\bAdd-MpPreference\b' },
+        @{ Name = 'Set-MpPreference'; Pattern = '(?i)\bSet-MpPreference\b' },
+        @{ Name = 'ExclusionPath'; Pattern = '(?i)-ExclusionPath\b' },
+        @{ Name = 'ExclusionProcess'; Pattern = '(?i)-ExclusionProcess\b' }
+    )) {
+        if ([regex]::IsMatch($content, [string]$indicator.Pattern)) { $indicators += [string]$indicator.Name }
+    }
+    $containsMutations = $indicators.Count -gt 0
+    $declaresUpstreamOptOut = [regex]::IsMatch($content, '(?i)\bdefender_exclusions_off\b')
+
+    if ($containsMutations -ne $DeclaredDefenderMutations) {
+        throw "SpotX Defender-mutation metadata does not match the pinned entrypoint (detected: $containsMutations; declared: $DeclaredDefenderMutations)."
+    }
+    if ($containsMutations) {
+        if (-not $declaresUpstreamOptOut -or $DeclaredDefenderOptOut -cne '-defender_exclusions_off') {
+            throw 'SpotX contains Defender mutations but its pinned adapter does not prove the exact upstream -defender_exclusions_off switch.'
+        }
+    } elseif (-not [string]::IsNullOrWhiteSpace($DeclaredDefenderOptOut)) {
+        throw 'The safe SpotX pin must not receive an unsupported Defender opt-out argument.'
+    }
+
+    return [pscustomobject][ordered]@{
+        status                     = 'ok'
+        sha256                     = $actualHash
+        containsDefenderMutations  = $containsMutations
+        defenderMutationIndicators = @($indicators)
+        declaresUpstreamOptOut     = $declaresUpstreamOptOut
+        adapterOptOut              = $DeclaredDefenderOptOut
+    }
+}
+
+function Get-PinnedSpotXSecurityPolicy {
+    param([string]$ScriptPath)
+
+    $metadata = Get-PinnedSpotXSecurityMetadata
+    $downloadedPath = $null
+    try {
+        if ([string]::IsNullOrWhiteSpace($ScriptPath)) {
+            $downloadedPath = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-spotx-policy-{0}.ps1" -f [Guid]::NewGuid().ToString('N'))
+            Invoke-WebRequest -UseBasicParsing -Uri $metadata.url -OutFile $downloadedPath
+            $ScriptPath = $downloadedPath
+        }
+
+        $policy = Test-SpotXInstallerSecurityPolicy `
+            -ScriptPath $ScriptPath `
+            -ExpectedHash $metadata.sha256 `
+            -DeclaredDefenderMutations $metadata.defenderMutations `
+            -DeclaredDefenderOptOut $metadata.defenderOptOut
+        return [pscustomobject][ordered]@{
+            commit = $metadata.commit
+            url = $metadata.url
+            policy = $policy
+        }
+    } finally {
+        if ($downloadedPath) { Remove-Item -LiteralPath $downloadedPath -Force -ErrorAction SilentlyContinue }
+    }
+}
+
+function Test-PinnedSpotXSecurityAdapter {
+    $metadata = Get-PinnedSpotXSecurityMetadata
+    $mainContent = [System.IO.File]::ReadAllText($mainScript, [System.Text.Encoding]::UTF8)
+    $backendContent = [System.IO.File]::ReadAllText($backendScript, [System.Text.Encoding]::UTF8)
+    foreach ($lane in @(
+        @{ Name = 'main'; Content = $mainContent },
+        @{ Name = 'backend'; Content = $backendContent }
+    )) {
+        if (-not $lane.Content.Contains('Assert-LibreSpotExternalScriptDefenderPolicy -Stream $stream -Arguments $Arguments -Label $Label')) {
+            throw "The $($lane.Name) execution gate does not enforce the Defender policy."
+        }
+        if (-not $lane.Content.Contains('Open-VerifiedScriptForExecution -FilePath $FilePath -ExpectedHash $ExpectedHash -Label $Label -Arguments $Arguments')) {
+            throw "The $($lane.Name) external-script adapter does not pass arguments into the Defender policy."
+        }
+        if (-not $lane.Content.Contains('$global:PinnedReleases.SpotX.DefenderMutations') -or
+            -not $lane.Content.Contains('$global:PinnedReleases.SpotX.DefenderOptOut')) {
+            throw "The $($lane.Name) SpotX adapter does not consume Defender policy metadata."
+        }
+    }
+    if (-not $mainContent.Contains("-Label 'SpotX run.ps1 (watcher)' -Arguments `$spotxArgs")) {
+        throw 'The stable watcher does not pass SpotX arguments into the Defender policy.'
+    }
+    if ((-not $metadata.defenderMutations) -and -not [string]::IsNullOrWhiteSpace($metadata.defenderOptOut)) {
+        throw 'The current safe SpotX pin declares an unsupported Defender opt-out argument.'
+    }
+    if ($metadata.defenderMutations -and $metadata.defenderOptOut -cne '-defender_exclusions_off') {
+        throw 'A Defender-mutating SpotX pin must declare the exact upstream opt-out.'
+    }
+}
+
 function Get-AuthenticodeState {
     param(
         [Parameter(Mandatory)][string]$Path,
@@ -847,10 +986,12 @@ function Test-TransitiveLagAllowed {
 function New-LibreSpotDependencyHealthReport {
     param(
         [Parameter(Mandatory)][string]$ReportPath,
-        [Parameter(Mandatory)][string]$AllowlistPath
+        [Parameter(Mandatory)][string]$AllowlistPath,
+        [string]$SpotXScriptPath
     )
 
     $allowlist = Get-DependencyHealthAllowlist -Path $AllowlistPath
+    $spotXSecurityPolicy = Get-PinnedSpotXSecurityPolicy -ScriptPath $SpotXScriptPath
     $projects = Get-LibreSpotDotNetProjects
     $outdatedPackages = @()
     $vulnerablePackages = @()
@@ -924,6 +1065,7 @@ function New-LibreSpotDependencyHealthReport {
         outdatedDirectPackages       = $outdatedDirect
         outdatedTransitivePackages   = $outdatedTransitive
         acceptedTransitiveLag        = $allowedTransitive
+        spotXSecurityPolicy           = $spotXSecurityPolicy
         failures                     = $failures
     }
 
@@ -1064,10 +1206,16 @@ if ($CheckSpotifyVersionDrift) {
     exit 0
 }
 
+if ($SpotXSecurityPolicy) {
+    Get-PinnedSpotXSecurityPolicy -ScriptPath $SpotXScriptPath | ConvertTo-Json -Depth 8
+    exit 0
+}
+
 if ($DependencyHealth) {
     New-LibreSpotDependencyHealthReport `
         -ReportPath $DependencyHealthReportPath `
-        -AllowlistPath $DependencyHealthAllowlistPath
+        -AllowlistPath $DependencyHealthAllowlistPath `
+        -SpotXScriptPath $SpotXScriptPath
     exit 0
 }
 
@@ -1218,6 +1366,8 @@ if ($Validate) {
         exit 1
     }
     Write-Host "Critical data blocks (PinnedReleases) are in sync." -ForegroundColor Green
+    Test-PinnedSpotXSecurityAdapter
+    Write-Host "Pinned SpotX Defender policy metadata and execution adapters are consistent." -ForegroundColor Green
     Write-Host ""
 
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'tools/Sync-Localization.ps1') -Validate -ScanRawStrings
@@ -1408,6 +1558,7 @@ Write-Host "  pwsh -File Build-Scripts.ps1 -Lint                   # Run PSScrip
 Write-Host "  pwsh -File Build-Scripts.ps1 -SyncSharedToBackend   # Copy shared function sources into backend"
 Write-Host "  pwsh -File Build-Scripts.ps1 -SyncSharedToMain      # Copy shared function sources into standalone script"
 Write-Host "  pwsh -File Build-Scripts.ps1 -DependencyHealth       # Emit dependency-health JSON and fail unapproved drift"
+Write-Host "  pwsh -File Build-Scripts.ps1 -SpotXSecurityPolicy    # Hash and inspect the pinned SpotX entrypoint for Defender mutations"
 Write-Host "  pwsh -File Build-Scripts.ps1 -CheckSpotifyVersionDrift # Compare pinned Spotify target vs SpotX-Bash buildVer (report-only)"
 Write-Host "  pwsh -File Build-Scripts.ps1 -ReleaseTruth          # Compare README claims with projects, scripts, and GitHub latest stable"
 Write-Host "  pwsh -File Build-Scripts.ps1 -WatcherIntegration    # Exercise the watcher through a disposable Task Scheduler task"

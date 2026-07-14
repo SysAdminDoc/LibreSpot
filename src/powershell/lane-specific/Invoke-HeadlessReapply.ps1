@@ -56,7 +56,7 @@ function Invoke-HeadlessReapply {
         $pinfo.UseShellExecute = $false
         $pinfo.CreateNoWindow = $true
         try {
-            $spotxGuard = Open-VerifiedScriptForExecution -FilePath $spotxRun -ExpectedHash $expectedHash -Label 'SpotX run.ps1 (watcher)'
+            $spotxGuard = Open-VerifiedScriptForExecution -FilePath $spotxRun -ExpectedHash $expectedHash -Label 'SpotX run.ps1 (watcher)' -Arguments $spotxArgs
             $proc = [System.Diagnostics.Process]::Start($pinfo)
             # Drain stdout/stderr asynchronously to prevent buffer deadlock.
             # If SpotX writes more than the OS pipe buffer (~4KB) the process

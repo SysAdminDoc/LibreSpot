@@ -2,7 +2,8 @@ function Open-VerifiedScriptForExecution {
     param(
         [string]$FilePath,
         [string]$ExpectedHash = '',
-        [string]$Label = 'script'
+        [string]$Label = 'script',
+        [string]$Arguments = ''
     )
 
     if ([string]::IsNullOrWhiteSpace($FilePath)) {
@@ -29,6 +30,8 @@ function Open-VerifiedScriptForExecution {
                 $stream.Position = 0
             }
         }
+
+        Assert-LibreSpotExternalScriptDefenderPolicy -Stream $stream -Arguments $Arguments -Label $Label
 
         return $stream
     } catch {

@@ -589,6 +589,8 @@ public static class AppCatalog
     public const string PinnedSpotXCommit = "550bc72cd15f6e2a172a6ecc0873d0991eb1c83c";
     public const string PinnedSpotXSpotifyVersionId = "1.2.93";
     public const string PinnedSpotXSpotifyVersion = "1.2.93";
+    public const bool PinnedSpotXContainsDefenderMutations = false;
+    public const string PinnedSpotXDefenderOptOutArgument = "";
     public const string PinnedSpicetifyCliVersion = "2.44.0";
     public const string SpicetifyWindowsMinTestedSpotify = "1.2.14";
     public const string SpicetifyWindowsMaxTestedSpotify = "1.2.93";
