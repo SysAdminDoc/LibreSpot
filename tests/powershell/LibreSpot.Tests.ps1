@@ -210,6 +210,69 @@ Describe 'Get-NormalizedPathString' {
 }
 
 # =============================================================================
+# Remove-PathSafely
+# =============================================================================
+Describe 'Remove-PathSafely' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Remove-PathSafely.ps1')
+
+        function Test-SafeRemovalTarget { param([string]$Path) return $true }
+        function Write-OperationJournalEntry {
+            param(
+                [string]$Phase,
+                [string]$Target,
+                [string]$SafetyDecision,
+                [string]$Result,
+                [bool]$WouldChange,
+                [bool]$Reversible,
+                [string]$RollbackHint,
+                [hashtable]$Data
+            )
+        }
+        function Write-Log { param([string]$Message, [string]$Level) }
+    }
+
+    It 'Unlinks a nested junction without touching its external target' {
+        $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('LibreSpot.RemoveSafe.' + [guid]::NewGuid().ToString('N'))
+        $approvedRoot = Join-Path $testRoot 'approved'
+        $nestedRoot = Join-Path $approvedRoot 'nested'
+        $externalRoot = Join-Path $testRoot 'external'
+        $junctionPath = Join-Path $nestedRoot 'escape'
+        $sentinelPath = Join-Path $externalRoot 'must-survive.txt'
+
+        try {
+            [System.IO.Directory]::CreateDirectory($nestedRoot) | Out-Null
+            [System.IO.Directory]::CreateDirectory($externalRoot) | Out-Null
+            [System.IO.File]::WriteAllText($sentinelPath, 'outside approved root')
+            $null = & cmd.exe /d /c "mklink /J `"$junctionPath`" `"$externalRoot`""
+            $LASTEXITCODE | Should -Be 0
+
+            Remove-PathSafely -Path $approvedRoot -Label 'test root' -Confirm:$false | Should -Be 1
+
+            Test-Path -LiteralPath $approvedRoot | Should -BeFalse
+            Test-Path -LiteralPath $sentinelPath -PathType Leaf | Should -BeTrue
+            [System.IO.File]::ReadAllText($sentinelPath) | Should -BeExactly 'outside approved root'
+        } finally {
+            if (Test-Path -LiteralPath $junctionPath) {
+                $junction = Get-Item -LiteralPath $junctionPath -Force
+                if ($junction.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+                    $junction.Delete()
+                }
+            }
+            if (Test-Path -LiteralPath $approvedRoot) {
+                Remove-Item -LiteralPath $approvedRoot -Recurse -Force
+            }
+            if (Test-Path -LiteralPath $externalRoot) {
+                Remove-Item -LiteralPath $externalRoot -Recurse -Force
+            }
+            if (Test-Path -LiteralPath $testRoot) {
+                Remove-Item -LiteralPath $testRoot -Force
+            }
+        }
+    }
+}
+
+# =============================================================================
 # ConvertTo-ConfigInt
 # =============================================================================
 Describe 'ConvertTo-ConfigInt' {

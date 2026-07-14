@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Security
 
+- Preserved raw expandable user-PATH tokens and `REG_EXPAND_SZ` typing across Spicetify installs/removals, broadcast PATH changes to running shells, and replaced recursive ACL/delete operations with a depth-first removal engine that unlinks nested junctions without traversing their targets.
 - Guarded the two "import from an HTTPS URL" surfaces (custom patches and shared profiles) against SSRF: both fetches now validate the resolved IP at socket-connect time and refuse loopback, link-local, RFC1918, CGNAT, unique-local, and cloud-metadata addresses across redirect hops. These fetches can be triggered without confirmation via `librespot://` protocol activation, so the guard runs before any preview.
 - Restricted the upstream-drift `git ls-remote` fallback to HTTPS transports so a tampered dependency manifest cannot hand git a remote-helper URL (`ext::`, `file://`) that executes commands or reads local paths.
 - Hardened standalone `-removeselfdata` to delete its data directories with a reparse-point-aware walk that unlinks nested junctions/symlinks instead of traversing them, closing a delete-anything vector for anyone who can plant a link under `%APPDATA%\LibreSpot`.

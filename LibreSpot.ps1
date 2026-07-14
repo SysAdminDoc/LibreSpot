@@ -4829,7 +4829,26 @@ function Get-NormalizedPathString {
 
 function Get-PathEntries {
     param([ValidateSet('User','Process')] [string]$Scope = 'User')
-    $rawPath = if ($Scope -eq 'Process') { $env:PATH } else { [Environment]::GetEnvironmentVariable('PATH', $Scope) }
+    if ($Scope -eq 'Process') {
+        $rawPath = $env:PATH
+    } else {
+        # Environment.GetEnvironmentVariable expands REG_EXPAND_SZ values.
+        # Read the registry value directly so a PATH edit preserves tokens
+        # such as %USERPROFILE% and %JAVA_HOME% byte-for-byte.
+        $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $false)
+        try {
+            $rawPath = if ($null -eq $environmentKey) {
+                $null
+            } else {
+                $environmentKey.GetValue(
+                    'Path',
+                    $null,
+                    [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+            }
+        } finally {
+            if ($null -ne $environmentKey) { $environmentKey.Dispose() }
+        }
+    }
     if ([string]::IsNullOrWhiteSpace($rawPath)) { return @() }
     return @($rawPath -split ';' | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 }
@@ -4857,7 +4876,49 @@ function Set-PathEntries {
         if ($Scope -eq 'Process') {
             $env:PATH = $pathValue
         } else {
-            [Environment]::SetEnvironmentVariable('PATH', $pathValue, $Scope)
+            # SetEnvironmentVariable writes a REG_SZ value and therefore
+            # destroys expandable PATH tokens. Keep the user PATH explicitly
+            # typed as REG_EXPAND_SZ, then notify already-running shells.
+            $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
+            try {
+                if ($null -eq $environmentKey) { throw 'Unable to open the current user environment registry key.' }
+                $environmentKey.SetValue('Path', $pathValue, [Microsoft.Win32.RegistryValueKind]::ExpandString)
+            } finally {
+                if ($null -ne $environmentKey) { $environmentKey.Dispose() }
+            }
+
+            if (-not ('LibreSpot.EnvironmentChangeNativeMethods' -as [type])) {
+                Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+namespace LibreSpot
+{
+    public static class EnvironmentChangeNativeMethods
+    {
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern IntPtr SendMessageTimeout(
+            IntPtr hWnd,
+            uint message,
+            UIntPtr wParam,
+            string lParam,
+            uint flags,
+            uint timeout,
+            out UIntPtr result);
+    }
+ }
+'@
+            }
+
+            $broadcastResult = [UIntPtr]::Zero
+            $null = [LibreSpot.EnvironmentChangeNativeMethods]::SendMessageTimeout(
+                [IntPtr]0xffff,
+                0x001A,
+                [UIntPtr]::Zero,
+                'Environment',
+                0x0002,
+                5000,
+                [ref]$broadcastResult)
         }
         Write-OperationJournalEntry -Phase 'path' -Target "$Scope PATH" -SafetyDecision 'Allowed' -Result 'Updated' -WouldChange $true -Reversible $true -RollbackHint 'Restore the previous PATH value.'
     }
@@ -7588,11 +7649,11 @@ function Remove-PathSafely {
     Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
     if ($PSCmdlet.ShouldProcess($Path, 'Remove file or directory')) {
         try {
-            # Junctions/symlinks planted inside removal roots must be deleted
-            # as links, never traversed: PS 5.1 Remove-Item -Recurse follows
-            # directory junctions into their targets, and icacls /T would
-            # reset ACLs on the target tree — an elevated delete-anything
-            # primitive for anyone who can write a link into these folders.
+            # Never use a recursive filesystem or ACL operation here. A nested
+            # junction can redirect both Remove-Item -Recurse and icacls /T
+            # outside the approved root on Windows PowerShell 5.1. Enumerate
+            # ordinary directories ourselves, unlink every reparse point without
+            # traversing it, delete files, then remove directories bottom-up.
             $item = Get-Item -LiteralPath $Path -Force -EA Stop
             if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
                 $item.Delete()
@@ -7600,14 +7661,67 @@ function Remove-PathSafely {
                 Write-Log "  Removed link (target untouched): $displayLabel"
                 return 1
             }
-            $null = & icacls.exe "$Path" /reset /T /C /Q 2>$null
-            Remove-Item -LiteralPath $Path -Recurse -Force -EA Stop
+
+            if ($item -is [System.IO.DirectoryInfo]) {
+                $pendingDirectories = [System.Collections.Generic.Stack[System.IO.DirectoryInfo]]::new()
+                $visitedDirectories = [System.Collections.Generic.List[System.IO.DirectoryInfo]]::new()
+                $pendingDirectories.Push($item)
+
+                while ($pendingDirectories.Count -gt 0) {
+                    $directory = $pendingDirectories.Pop()
+                    $visitedDirectories.Add($directory)
+                    $children = @($directory.EnumerateFileSystemInfos())
+                    foreach ($child in $children) {
+                        if ($child.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+                            $child.Delete()
+                            continue
+                        }
+                        if ($child -is [System.IO.DirectoryInfo]) {
+                            $pendingDirectories.Push($child)
+                            continue
+                        }
+
+                        try {
+                            $child.Attributes = [System.IO.FileAttributes]::Normal
+                            $child.Delete()
+                        } catch {
+                            $null = & icacls.exe "$($child.FullName)" /reset /C /Q 2>$null
+                            $child.Refresh()
+                            $child.Attributes = [System.IO.FileAttributes]::Normal
+                            $child.Delete()
+                        }
+                    }
+                }
+
+                $directoriesDeepestFirst = @($visitedDirectories | Sort-Object { $_.FullName.Length } -Descending)
+                foreach ($directory in $directoriesDeepestFirst) {
+                    try {
+                        $directory.Attributes = [System.IO.FileAttributes]::Directory
+                        $directory.Delete($false)
+                    } catch {
+                        $null = & icacls.exe "$($directory.FullName)" /reset /C /Q 2>$null
+                        $directory.Refresh()
+                        $directory.Attributes = [System.IO.FileAttributes]::Directory
+                        $directory.Delete($false)
+                    }
+                }
+            } else {
+                try {
+                    $item.Attributes = [System.IO.FileAttributes]::Normal
+                    $item.Delete()
+                } catch {
+                    $null = & icacls.exe "$Path" /reset /C /Q 2>$null
+                    $item.Refresh()
+                    $item.Attributes = [System.IO.FileAttributes]::Normal
+                    $item.Delete()
+                }
+            }
             Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Removed' -WouldChange $true -Reversible $false -RollbackHint 'Restore from a backup if one exists.' -Data $journalData
             Write-Log "  Removed: $displayLabel"
             return 1
         } catch {
             $journalData['error'] = [string]$_.Exception.Message
-            Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'The target may be partially unchanged; review the error before retrying.' -Data $journalData
+            Write-OperationJournalEntry -Phase 'remove' -Target $Path -SafetyDecision 'Allowed' -Result 'Failed' -WouldChange $true -Reversible $false -RollbackHint 'The approved root may be partially removed, but reparse-point targets were not traversed; review the error before retrying.' -Data $journalData
             Write-Log "  Failed to remove: $Path ($($_.Exception.Message))" -Level 'WARN'
             return 0
         }

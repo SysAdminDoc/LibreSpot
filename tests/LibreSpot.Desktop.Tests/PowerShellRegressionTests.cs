@@ -1677,6 +1677,57 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("Restore from a backup", body);
     }
 
+    [Theory]
+    [InlineData("src/powershell/shared/Remove-PathSafely.ps1")]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void RemovePathSafely_NeverRecursesThroughNestedReparsePoints(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var remover = Regex.Match(
+            script,
+            @"function\s+Remove-PathSafely\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(remover.Success, $"Remove-PathSafely function block not found in {relativePath}.");
+        var body = remover.Groups["body"].Value;
+
+        Assert.Contains("EnumerateFileSystemInfos", body);
+        Assert.Contains("FileAttributes]::ReparsePoint", body);
+        Assert.Contains("$child.Delete()", body);
+        Assert.Contains("$directory.Delete($false)", body);
+        Assert.DoesNotContain("Remove-Item -LiteralPath $Path -Recurse", body);
+        Assert.DoesNotContain("/reset /T", body);
+    }
+
+    [Theory]
+    [InlineData("src/powershell/shared/Get-PathEntries.ps1", "src/powershell/shared/Set-PathEntries.ps1")]
+    [InlineData("LibreSpot.ps1", "LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1", "src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void UserPathMutation_PreservesExpandableRegistryTokens(string getterPath, string setterPath)
+    {
+        var getterScript = ReadFile(getterPath.Split('/'));
+        var setterScript = ReadFile(setterPath.Split('/'));
+        var getter = Regex.Match(
+            getterScript,
+            @"function\s+Get-PathEntries\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        var setter = Regex.Match(
+            setterScript,
+            @"function\s+Set-PathEntries\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(getter.Success, $"Get-PathEntries function block not found in {getterPath}.");
+        Assert.True(setter.Success, $"Set-PathEntries function block not found in {setterPath}.");
+
+        Assert.Contains("Registry]::CurrentUser.OpenSubKey('Environment'", getter.Groups["body"].Value);
+        Assert.Contains("DoNotExpandEnvironmentNames", getter.Groups["body"].Value);
+        Assert.Contains("RegistryValueKind]::ExpandString", setter.Groups["body"].Value);
+        Assert.Contains("SendMessageTimeout", setter.Groups["body"].Value);
+        Assert.Contains("'Environment'", setter.Groups["body"].Value);
+        Assert.DoesNotContain("SetEnvironmentVariable('PATH'", setter.Groups["body"].Value);
+    }
+
     [Fact]
     public void OperationJournalHelpers_AreExportedToWorkerRunspace()
     {
