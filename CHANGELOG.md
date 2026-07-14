@@ -12,6 +12,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Accessibility
 
+- Made all 38 WPF storyboard animations respond to the live OS animation/high-contrast setting through freeze-safe motion-aware clocks; one-shot transitions snap to their final state and the repeating progress shimmer holds still when motion is suppressed.
 - The dependency-status rows now change glyph shape per severity (check / dash / exclamation / cross) instead of relying on ring colour alone, so warning and critical states stay distinguishable in high-contrast mode where both can map to the same system colour.
 - Raised the snackbar dismiss button to the app's 32px minimum touch-target size.
 

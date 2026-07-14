@@ -1024,18 +1024,18 @@
           <DataTrigger.EnterActions>
             <BeginStoryboard>
               <Storyboard>
-                <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                 From="0" To="1" Duration="{StaticResource MotionSlowDuration}">
-                  <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
-                </DoubleAnimation>
-                <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleX)"
-                                 From="0.97" To="1" Duration="{StaticResource MotionSlowDuration}">
-                  <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
-                </DoubleAnimation>
-                <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleY)"
-                                 From="0.97" To="1" Duration="{StaticResource MotionSlowDuration}">
-                  <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
-                </DoubleAnimation>
+                <controls:MotionAwareDoubleAnimation Storyboard.TargetProperty="Opacity"
+                                 From="0" To="1" StandardDuration="{StaticResource MotionSlowDuration}">
+                  <controls:MotionAwareDoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></controls:MotionAwareDoubleAnimation.EasingFunction>
+                </controls:MotionAwareDoubleAnimation>
+                <controls:MotionAwareDoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleX)"
+                                 From="0.97" To="1" StandardDuration="{StaticResource MotionSlowDuration}">
+                  <controls:MotionAwareDoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></controls:MotionAwareDoubleAnimation.EasingFunction>
+                </controls:MotionAwareDoubleAnimation>
+                <controls:MotionAwareDoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleY)"
+                                 From="0.97" To="1" StandardDuration="{StaticResource MotionSlowDuration}">
+                  <controls:MotionAwareDoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></controls:MotionAwareDoubleAnimation.EasingFunction>
+                </controls:MotionAwareDoubleAnimation>
               </Storyboard>
             </BeginStoryboard>
           </DataTrigger.EnterActions>
@@ -1059,18 +1059,18 @@
           <DataTrigger.EnterActions>
             <BeginStoryboard>
               <Storyboard>
-                <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                 From="0" To="1" Duration="{StaticResource MotionSlowDuration}">
-                  <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
-                </DoubleAnimation>
-                <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleX)"
-                                 From="0.97" To="1" Duration="{StaticResource MotionSlowDuration}">
-                  <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
-                </DoubleAnimation>
-                <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleY)"
-                                 From="0.97" To="1" Duration="{StaticResource MotionSlowDuration}">
-                  <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
-                </DoubleAnimation>
+                <controls:MotionAwareDoubleAnimation Storyboard.TargetProperty="Opacity"
+                                 From="0" To="1" StandardDuration="{StaticResource MotionSlowDuration}">
+                  <controls:MotionAwareDoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></controls:MotionAwareDoubleAnimation.EasingFunction>
+                </controls:MotionAwareDoubleAnimation>
+                <controls:MotionAwareDoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleX)"
+                                 From="0.97" To="1" StandardDuration="{StaticResource MotionSlowDuration}">
+                  <controls:MotionAwareDoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></controls:MotionAwareDoubleAnimation.EasingFunction>
+                </controls:MotionAwareDoubleAnimation>
+                <controls:MotionAwareDoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleY)"
+                                 From="0.97" To="1" StandardDuration="{StaticResource MotionSlowDuration}">
+                  <controls:MotionAwareDoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></controls:MotionAwareDoubleAnimation.EasingFunction>
+                </controls:MotionAwareDoubleAnimation>
               </Storyboard>
             </BeginStoryboard>
           </DataTrigger.EnterActions>
@@ -4405,10 +4405,10 @@
                 <DataTrigger.EnterActions>
                   <BeginStoryboard>
                     <Storyboard>
-                      <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                       From="0" To="1" Duration="{StaticResource MotionMedDuration}">
-                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
-                      </DoubleAnimation>
+                      <controls:MotionAwareDoubleAnimation Storyboard.TargetProperty="Opacity"
+                                       From="0" To="1" StandardDuration="{StaticResource MotionMedDuration}">
+                        <controls:MotionAwareDoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></controls:MotionAwareDoubleAnimation.EasingFunction>
+                      </controls:MotionAwareDoubleAnimation>
                     </Storyboard>
                   </BeginStoryboard>
                 </DataTrigger.EnterActions>
@@ -4952,10 +4952,10 @@
                 <DataTrigger.EnterActions>
                   <BeginStoryboard>
                     <Storyboard>
-                      <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                       From="0" To="1" Duration="{StaticResource MotionMedDuration}">
-                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
-                      </DoubleAnimation>
+                      <controls:MotionAwareDoubleAnimation Storyboard.TargetProperty="Opacity"
+                                       From="0" To="1" StandardDuration="{StaticResource MotionMedDuration}">
+                        <controls:MotionAwareDoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></controls:MotionAwareDoubleAnimation.EasingFunction>
+                      </controls:MotionAwareDoubleAnimation>
                     </Storyboard>
                   </BeginStoryboard>
                 </DataTrigger.EnterActions>

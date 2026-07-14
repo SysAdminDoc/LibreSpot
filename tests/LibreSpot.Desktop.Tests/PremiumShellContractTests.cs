@@ -141,7 +141,7 @@ public sealed class PremiumShellContractTests
 
         Assert.Contains("CardListBoxItemStyle", controls);
         Assert.Contains("TitleBarCloseButtonStyle", controls);
-        Assert.Contains("Duration=\"{StaticResource IndeterminateSweepDuration}\"", controls);
+        Assert.Contains("StandardDuration=\"{StaticResource IndeterminateSweepDuration}\"", controls);
         Assert.Contains("PopupAnimation=\"None\"", controls);
         Assert.Contains("Storyboard.TargetProperty=\"ScaleX\"", controls);
         Assert.Contains("Storyboard.TargetProperty=\"ScaleY\"", controls);

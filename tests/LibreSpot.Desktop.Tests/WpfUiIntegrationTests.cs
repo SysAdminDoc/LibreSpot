@@ -4,7 +4,10 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using LibreSpot.Desktop.Controls;
+using LibreSpot.Desktop.Services;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -149,6 +152,74 @@ public sealed class WpfUiIntegrationTests
             Assert.True(resources.Contains("CanvasBrush"), "Palette must resolve CanvasBrush.");
             Assert.True(resources.Contains("AccentBrush"), "Palette must resolve AccentBrush.");
             Assert.True(resources.Contains("MotionMedDuration"), "Palette must resolve MotionMedDuration.");
+        });
+    }
+
+    [Fact]
+    public void MotionStoryboardDuration_UsesRuntimeAccessibilityStateAndStillSeals()
+    {
+        RunSta(() =>
+        {
+            EnsureApplication();
+            var appResources = Application.Current.Resources;
+            var originalDictionaries = appResources.MergedDictionaries.ToList();
+            appResources.MergedDictionaries.Clear();
+            try
+            {
+                appResources.MergedDictionaries.Add(new ResourceDictionary
+                {
+                    Source = new Uri("pack://application:,,,/LibreSpot;component/Themes/Palette.xaml")
+                });
+                appResources.MergedDictionaries.Add(new ResourceDictionary
+                {
+                    Source = new Uri("pack://application:,,,/LibreSpot;component/Themes/Controls.xaml")
+                });
+
+                var style = Assert.IsType<Style>(appResources["PrimaryButtonStyle"]);
+                var template = Assert.IsType<ControlTemplate>(style.Setters
+                    .OfType<Setter>()
+                    .Single(setter => setter.Property == Button.TemplateProperty)
+                    .Value);
+                var hoverTrigger = template.Triggers
+                    .OfType<Trigger>()
+                    .Single(trigger => trigger.Property == UIElement.IsMouseOverProperty && Equals(trigger.Value, true));
+                var storyboard = Assert.IsType<BeginStoryboard>(Assert.Single(hoverTrigger.EnterActions)).Storyboard;
+                var animation = Assert.IsType<MotionAwareDoubleAnimation>(Assert.Single(storyboard.Children));
+                Assert.False(animation.Duration.HasTimeSpan);
+                Assert.Equal(TimeSpan.FromMilliseconds(150), animation.StandardDuration.TimeSpan);
+
+                var forceField = typeof(ThemeManager).GetField("_forceHighContrast", BindingFlags.NonPublic | BindingFlags.Static);
+                Assert.NotNull(forceField);
+                var originalForceValue = (bool)forceField!.GetValue(null)!;
+                try
+                {
+                    forceField.SetValue(null, true);
+                    var reducedClock = animation.CreateClock();
+                    Assert.Equal(TimeSpan.FromMilliseconds(1), reducedClock.NaturalDuration.TimeSpan);
+                    Assert.Equal(1, animation.GetSuppressedValue(0, 1));
+
+                    var heldAnimation = new MotionAwareDoubleAnimation
+                    {
+                        From = -400,
+                        To = 1400,
+                        HoldWhenMotionSuppressed = true,
+                        StandardDuration = new Duration(TimeSpan.FromSeconds(1.6))
+                    };
+                    Assert.Equal(-400, heldAnimation.GetSuppressedValue(-400, 1400));
+                }
+                finally
+                {
+                    forceField.SetValue(null, originalForceValue);
+                }
+            }
+            finally
+            {
+                appResources.MergedDictionaries.Clear();
+                foreach (var dictionary in originalDictionaries)
+                {
+                    appResources.MergedDictionaries.Add(dictionary);
+                }
+            }
         });
     }
 

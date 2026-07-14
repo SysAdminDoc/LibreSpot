@@ -49,6 +49,27 @@ public sealed class ThemeManagerTests
     }
 
     [Fact]
+    public void StoryboardDurations_UseFreezeSafeMotionAnimations()
+    {
+        var xamlFiles = new[]
+        {
+            ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml"),
+            ReadFile("src", "LibreSpot.Desktop", "Themes", "Controls.xaml")
+        };
+        var references = xamlFiles
+            .SelectMany(content => Regex.Matches(
+                content,
+                @"StandardDuration=""\{(?<kind>StaticResource|DynamicResource) (?<key>Motion(?:Fast|Med|Slow)Duration|IndeterminateSweepDuration)\}""")
+                .Cast<Match>())
+            .ToList();
+
+        Assert.Equal(38, references.Count);
+        Assert.All(references, reference => Assert.Equal("StaticResource", reference.Groups["kind"].Value));
+        Assert.All(xamlFiles, content => Assert.DoesNotContain("<DoubleAnimation", content));
+        Assert.Contains("HoldWhenMotionSuppressed=\"True\"", xamlFiles[1]);
+    }
+
+    [Fact]
     public void HighContrastPalette_MapsToSystemColors()
     {
         var content = ReadFile("src", "LibreSpot.Desktop", "Themes", "HighContrastPalette.xaml");
@@ -70,25 +91,12 @@ public sealed class ThemeManagerTests
     }
 
     [Fact]
-    public void ThemeManager_ClearsReducedMotionOverridesWhenReenabled()
+    public void ThemeManager_UsesRuntimeMotionStateInsteadOfResourceOverrides()
     {
         var source = ReadFile("src", "LibreSpot.Desktop", "Services", "ThemeManager.cs");
-        Assert.Contains("ClearReducedMotionOverrides", source);
-        Assert.Contains("app.Resources.Remove(key)", source);
-    }
-
-    [Fact]
-    public void ThemeManager_ClearsAllMotionKeysSetByApplyReducedMotion()
-    {
-        var source = ReadFile("src", "LibreSpot.Desktop", "Services", "ThemeManager.cs");
-
-        var setKeys = new[] { "MotionFast", "MotionMed", "MotionSlow", "MotionFastDuration", "MotionMedDuration", "MotionSlowDuration" };
-        foreach (var key in setKeys)
-        {
-            Assert.True(
-                source.Contains($"\"{key}\""),
-                $"ClearReducedMotionOverrides must include \"{key}\" so it clears everything ApplyReducedMotion sets.");
-        }
+        Assert.Contains("ShouldSuppressMotion", source);
+        Assert.DoesNotContain("ApplyReducedMotion", source);
+        Assert.DoesNotContain("app.Resources[\"Motion", source);
     }
 
     [Fact]

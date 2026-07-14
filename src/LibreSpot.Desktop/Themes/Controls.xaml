@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:LibreSpot.Desktop.Controls"
                     xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
                     xmlns:props="clr-namespace:LibreSpot.Desktop.Properties">
   <!--
@@ -218,18 +219,18 @@
               <Trigger.EnterActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="HoverTint"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="HoverTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="1" Duration="{StaticResource MotionMedDuration}" />
+                                     To="1" StandardDuration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
               <Trigger.ExitActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="HoverTint"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="HoverTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="0" Duration="{StaticResource MotionSlowDuration}" />
+                                     To="0" StandardDuration="{StaticResource MotionSlowDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -238,30 +239,30 @@
               <Trigger.EnterActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="PressTint"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="PressTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="1" Duration="{StaticResource MotionFastDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     To="1" StandardDuration="{StaticResource MotionFastDuration}" />
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleX"
-                                     To="0.985" Duration="{StaticResource MotionFastDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     To="0.985" StandardDuration="{StaticResource MotionFastDuration}" />
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleY"
-                                     To="0.985" Duration="{StaticResource MotionFastDuration}" />
+                                     To="0.985" StandardDuration="{StaticResource MotionFastDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
               <Trigger.ExitActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="PressTint"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="PressTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="0" Duration="{StaticResource MotionMedDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     To="0" StandardDuration="{StaticResource MotionMedDuration}" />
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleX"
-                                     To="1.0" Duration="{StaticResource MotionMedDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     To="1.0" StandardDuration="{StaticResource MotionMedDuration}" />
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleY"
-                                     To="1.0" Duration="{StaticResource MotionMedDuration}" />
+                                     To="1.0" StandardDuration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -332,18 +333,18 @@
               <Trigger.EnterActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="HoverTint"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="HoverTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="1" Duration="{StaticResource MotionMedDuration}" />
+                                     To="1" StandardDuration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
               <Trigger.ExitActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="HoverTint"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="HoverTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="0" Duration="{StaticResource MotionSlowDuration}" />
+                                     To="0" StandardDuration="{StaticResource MotionSlowDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -352,30 +353,30 @@
               <Trigger.EnterActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="PressTint"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="PressTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="1" Duration="{StaticResource MotionFastDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     To="1" StandardDuration="{StaticResource MotionFastDuration}" />
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleX"
-                                     To="0.985" Duration="{StaticResource MotionFastDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     To="0.985" StandardDuration="{StaticResource MotionFastDuration}" />
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleY"
-                                     To="0.985" Duration="{StaticResource MotionFastDuration}" />
+                                     To="0.985" StandardDuration="{StaticResource MotionFastDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
               <Trigger.ExitActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="PressTint"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="PressTint"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="0" Duration="{StaticResource MotionMedDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     To="0" StandardDuration="{StaticResource MotionMedDuration}" />
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleX"
-                                     To="1.0" Duration="{StaticResource MotionMedDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     To="1.0" StandardDuration="{StaticResource MotionMedDuration}" />
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleY"
-                                     To="1.0" Duration="{StaticResource MotionMedDuration}" />
+                                     To="1.0" StandardDuration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -705,18 +706,18 @@
               <Trigger.EnterActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="Mark"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="Mark"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="1" Duration="{StaticResource MotionFastDuration}" />
+                                     To="1" StandardDuration="{StaticResource MotionFastDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
               <Trigger.ExitActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="Mark"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="Mark"
                                      Storyboard.TargetProperty="Opacity"
-                                     To="0" Duration="{StaticResource MotionFastDuration}" />
+                                     To="0" StandardDuration="{StaticResource MotionFastDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -726,20 +727,20 @@
               <Trigger.EnterActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="HoverTint"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="HoverTint"
                                      Storyboard.TargetProperty="Opacity"
                                      To="1"
-                                     Duration="{StaticResource MotionMedDuration}" />
+                                     StandardDuration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
               <Trigger.ExitActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="HoverTint"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="HoverTint"
                                      Storyboard.TargetProperty="Opacity"
                                      To="0"
-                                     Duration="{StaticResource MotionSlowDuration}" />
+                                     StandardDuration="{StaticResource MotionSlowDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -755,36 +756,36 @@
               <Trigger.EnterActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="PressTint"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="PressTint"
                                      Storyboard.TargetProperty="Opacity"
                                      To="1"
-                                     Duration="{StaticResource MotionFastDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     StandardDuration="{StaticResource MotionFastDuration}" />
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleX"
                                      To="0.992"
-                                     Duration="{StaticResource MotionFastDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     StandardDuration="{StaticResource MotionFastDuration}" />
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleY"
                                      To="0.992"
-                                     Duration="{StaticResource MotionFastDuration}" />
+                                     StandardDuration="{StaticResource MotionFastDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
               <Trigger.ExitActions>
                 <BeginStoryboard>
                   <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="PressTint"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="PressTint"
                                      Storyboard.TargetProperty="Opacity"
                                      To="0"
-                                     Duration="{StaticResource MotionMedDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     StandardDuration="{StaticResource MotionMedDuration}" />
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleX"
                                      To="1"
-                                     Duration="{StaticResource MotionMedDuration}" />
-                    <DoubleAnimation Storyboard.TargetName="RootScale"
+                                     StandardDuration="{StaticResource MotionMedDuration}" />
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="RootScale"
                                      Storyboard.TargetProperty="ScaleY"
                                      To="1"
-                                     Duration="{StaticResource MotionMedDuration}" />
+                                     StandardDuration="{StaticResource MotionMedDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.ExitActions>
@@ -914,18 +915,18 @@
                       <Trigger.EnterActions>
                         <BeginStoryboard>
                           <Storyboard>
-                            <DoubleAnimation Storyboard.TargetName="ChevronRotate"
+                            <controls:MotionAwareDoubleAnimation Storyboard.TargetName="ChevronRotate"
                                              Storyboard.TargetProperty="Angle"
-                                             To="180" Duration="{StaticResource MotionMedDuration}" />
+                                             To="180" StandardDuration="{StaticResource MotionMedDuration}" />
                           </Storyboard>
                         </BeginStoryboard>
                       </Trigger.EnterActions>
                       <Trigger.ExitActions>
                         <BeginStoryboard>
                           <Storyboard>
-                            <DoubleAnimation Storyboard.TargetName="ChevronRotate"
+                            <controls:MotionAwareDoubleAnimation Storyboard.TargetName="ChevronRotate"
                                              Storyboard.TargetProperty="Angle"
-                                             To="0" Duration="{StaticResource MotionMedDuration}" />
+                                             To="0" StandardDuration="{StaticResource MotionMedDuration}" />
                           </Storyboard>
                         </BeginStoryboard>
                       </Trigger.ExitActions>
@@ -1069,10 +1070,11 @@
               <Trigger.EnterActions>
                 <BeginStoryboard>
                   <Storyboard RepeatBehavior="Forever">
-                    <DoubleAnimation Storyboard.TargetName="ShimmerTranslate"
+                    <controls:MotionAwareDoubleAnimation Storyboard.TargetName="ShimmerTranslate"
                                      Storyboard.TargetProperty="X"
                                      From="-400" To="1400"
-                                     Duration="{StaticResource IndeterminateSweepDuration}" />
+                                     HoldWhenMotionSuppressed="True"
+                                     StandardDuration="{StaticResource IndeterminateSweepDuration}" />
                   </Storyboard>
                 </BeginStoryboard>
               </Trigger.EnterActions>
@@ -1376,12 +1378,12 @@
 
   <!-- ═══ Overlay scrim & card entrance motion ═══ -->
   <Storyboard x:Key="OverlayEnterStoryboard">
-    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+    <controls:MotionAwareDoubleAnimation Storyboard.TargetProperty="Opacity"
                      From="0" To="1"
-                     Duration="{StaticResource MotionSlowDuration}">
-      <DoubleAnimation.EasingFunction>
+                     StandardDuration="{StaticResource MotionSlowDuration}">
+      <controls:MotionAwareDoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
-      </DoubleAnimation.EasingFunction>
-    </DoubleAnimation>
+      </controls:MotionAwareDoubleAnimation.EasingFunction>
+    </controls:MotionAwareDoubleAnimation>
   </Storyboard>
 </ResourceDictionary>
