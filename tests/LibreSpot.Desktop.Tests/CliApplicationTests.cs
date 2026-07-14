@@ -161,7 +161,7 @@ public sealed class CliApplicationTests
 
         Assert.Equal(0, result.ExitCode);
         using var doc = JsonDocument.Parse(result.Stdout);
-        Assert.Equal(2, doc.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(3, doc.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("Stack ready", doc.RootElement.GetProperty("statusTitle").GetString());
         Assert.Equal("C:\\LibreSpot\\config.json", doc.RootElement.GetProperty("configPath").GetString());
         Assert.Equal(2, doc.RootElement.GetProperty("backupCount").GetInt32());
@@ -169,6 +169,8 @@ public sealed class CliApplicationTests
         Assert.Equal("2026-06-27T12:00:00+00:00", doc.RootElement.GetProperty("lastPatchTimeUtc").GetString());
         Assert.Equal("spotify", doc.RootElement.GetProperty("components")[0].GetProperty("id").GetString());
         Assert.Equal("1.2.93", doc.RootElement.GetProperty("components")[0].GetProperty("detectedVersion").GetString());
+        Assert.Equal("unmodified", doc.RootElement.GetProperty("patcherOwnership").GetProperty("ownership").GetString());
+        Assert.False(doc.RootElement.GetProperty("patcherOwnership").GetProperty("hasForeignState").GetBoolean());
         var upstream = doc.RootElement.GetProperty("components")
             .EnumerateArray()
             .Single(component => component.GetProperty("id").GetString() == "upstream-spotx");

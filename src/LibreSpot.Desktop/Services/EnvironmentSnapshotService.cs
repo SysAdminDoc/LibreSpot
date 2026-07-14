@@ -105,6 +105,11 @@ public sealed class EnvironmentSnapshotService
         var communityAssetDriftReport = GetCommunityAssetDriftReport();
         var antivirusStatus = GetAntivirusStatus();
         var storeSpotifyPresent = GetStoreSpotifyPresent();
+        var patcherOwnershipReport = BuildPatcherOwnershipReport(
+            configDirectory,
+            spicetifyConfigPath,
+            spotifyInstalled,
+            spicetifyInstalled);
         var healthReport = BuildHealthReport(
             configDirectory,
             configPath,
@@ -123,7 +128,8 @@ public sealed class EnvironmentSnapshotService
             communityAssetDriftReport,
             assetCacheInventory,
             antivirusStatus,
-            storeSpotifyPresent);
+            storeSpotifyPresent,
+            patcherOwnershipReport);
 
         return new EnvironmentSnapshot
         {
@@ -138,6 +144,7 @@ public sealed class EnvironmentSnapshotService
             UpstreamDriftReport = upstreamDriftReport,
             CommunityAssetDriftReport = communityAssetDriftReport,
             AssetCacheInventory = assetCacheInventory,
+            PatcherOwnershipReport = patcherOwnershipReport,
             MarketplaceVisibilityEvidence = marketplaceEvidence,
             HostArchitecture = GetHostArchitecture(),
             ProcessArchitecture = GetProcessArchitecture()
@@ -162,7 +169,8 @@ public sealed class EnvironmentSnapshotService
         CommunityAssetDriftReport communityAssetDriftReport,
         AssetCacheInventoryReport assetCacheInventory,
         AntivirusExclusionStatus antivirusStatus,
-        bool storeSpotifyPresent)
+        bool storeSpotifyPresent,
+        PatcherOwnershipReport patcherOwnershipReport)
     {
         var watcherStatePath = Path.Combine(configDirectory, "watcher-state.json");
         var watcherState = ReadWatcherState(watcherStatePath);
@@ -190,12 +198,154 @@ public sealed class EnvironmentSnapshotService
             BuildSavedProfileComponent(configPath, savedConfigExists, configFolderExists),
             BuildAssetCacheComponent(assetCacheInventory)
         };
+        components.Add(BuildPatcherOwnershipComponent(patcherOwnershipReport));
         components.AddRange(BuildUpstreamDriftComponents(upstreamDriftReport));
         components.AddRange(BuildCommunityAssetComponents(communityAssetDriftReport));
         components.AddRange(BuildAntivirusComponents(antivirusStatus));
         components.AddRange(BuildStoreSpotifyComponents(storeSpotifyPresent));
 
         return new StackHealthReport(components);
+    }
+
+    private PatcherOwnershipReport BuildPatcherOwnershipReport(
+        string configDirectory,
+        string spicetifyConfigPath,
+        bool spotifyInstalled,
+        bool spicetifyInstalled)
+    {
+        var spotifyDirectory = Path.GetDirectoryName(_spotifyPath) ?? string.Empty;
+        var appsDirectory = Path.Combine(spotifyDirectory, "Apps");
+        var activeBundlePresent = File.Exists(Path.Combine(appsDirectory, "xpui.spa")) ||
+                                  Directory.Exists(Path.Combine(appsDirectory, "xpui"));
+        var spotXEvidence = new[]
+            {
+                Path.Combine(appsDirectory, "xpui.bak"),
+                Path.Combine(appsDirectory, "xpui.spa.bak"),
+                Path.Combine(spotifyDirectory, "Spotify.bak"),
+                Path.Combine(spotifyDirectory, "chrome_elf.dll.bak")
+            }
+            .Where(File.Exists)
+            .ToArray();
+        var injectorEvidence = new[]
+            {
+                Path.Combine(spotifyDirectory, "dpapi.dll"),
+                Path.Combine(spotifyDirectory, "config.ini"),
+                Path.Combine(spotifyDirectory, "version.dll"),
+                Path.Combine(spotifyDirectory, "winmm.dll")
+            }
+            .Where(File.Exists)
+            .ToArray();
+        var libreSpotEvidence = new[]
+            {
+                Path.Combine(configDirectory, "operation-journal.jsonl"),
+                Path.Combine(configDirectory, "install.log"),
+                Path.Combine(configDirectory, "spicetify-preservation-latest.json")
+            }
+            .Where(File.Exists)
+            .ToArray();
+        var footprints = new List<PatcherFootprint>();
+
+        if (injectorEvidence.Length > 0)
+        {
+            footprints.Add(new PatcherFootprint(
+                "likely-blockthespot",
+                "Likely BlockTheSpot-family injector",
+                "likely",
+                PatcherOwnership.Foreign,
+                injectorEvidence,
+                "Create a Spicetify backup if applicable, then use Full Reset for a clean migration. LibreSpot will not remove these files outside an explicitly confirmed cleanup."));
+        }
+
+        var spotXPresent = spotifyInstalled && activeBundlePresent && spotXEvidence.Length > 0;
+        var spicetifyPresent = spicetifyInstalled || File.Exists(spicetifyConfigPath);
+        var libreSpotOwned = libreSpotEvidence.Length > 0;
+        if (spotXPresent)
+        {
+            footprints.Add(new PatcherFootprint(
+                libreSpotOwned ? "librespot-spotx" : "raw-spotx",
+                libreSpotOwned ? "LibreSpot-managed SpotX" : "Raw SpotX",
+                "verified",
+                libreSpotOwned ? PatcherOwnership.LibreSpot : PatcherOwnership.Foreign,
+                spotXEvidence,
+                libreSpotOwned
+                    ? "Continue with LibreSpot maintenance actions."
+                    : "Keep the existing SpotX backups and use setup without Clean Install to adopt this state; choose Full Reset only when you intend to remove it."));
+        }
+
+        if (spicetifyPresent)
+        {
+            var evidence = new[] { _spicetifyPath, spicetifyConfigPath }
+                .Where(File.Exists)
+                .ToArray();
+            footprints.Add(new PatcherFootprint(
+                libreSpotOwned ? "librespot-spicetify" : "standalone-spicetify",
+                libreSpotOwned ? "LibreSpot-managed Spicetify" : "Standalone Spicetify",
+                "verified",
+                libreSpotOwned ? PatcherOwnership.LibreSpot : PatcherOwnership.Foreign,
+                evidence,
+                libreSpotOwned
+                    ? "Continue with LibreSpot maintenance actions."
+                    : "Create a backup before setup. LibreSpot preserves the existing config and CustomApps state during migration."));
+        }
+
+        if (footprints.Count == 0)
+        {
+            return PatcherOwnershipReport.Empty;
+        }
+
+        var hasForeign = footprints.Any(footprint => footprint.Ownership == PatcherOwnership.Foreign);
+        var hasLibreSpot = footprints.Any(footprint => footprint.Ownership == PatcherOwnership.LibreSpot);
+        var ownership = hasForeign && hasLibreSpot
+            ? PatcherOwnership.Mixed
+            : hasForeign
+                ? PatcherOwnership.Foreign
+                : PatcherOwnership.LibreSpot;
+        var foreignNames = footprints
+            .Where(footprint => footprint.Ownership == PatcherOwnership.Foreign)
+            .Select(footprint => footprint.Name)
+            .ToArray();
+        var summary = hasForeign
+            ? $"Detected foreign customization state: {string.Join(", ", foreignNames)}."
+            : "Detected only LibreSpot-managed customization state.";
+        var recommendation = hasForeign
+            ? string.Join(" ", footprints
+                .Where(footprint => footprint.Ownership == PatcherOwnership.Foreign)
+                .Select(footprint => footprint.Recommendation)
+                .Distinct(StringComparer.Ordinal))
+            : "Continue with LibreSpot maintenance actions.";
+
+        return new PatcherOwnershipReport(ownership, summary, recommendation, footprints);
+    }
+
+    private static StackHealthComponent BuildPatcherOwnershipComponent(PatcherOwnershipReport report)
+    {
+        var severity = report.HasForeignState ? HealthSeverity.Warning : HealthSeverity.Ready;
+        var status = report.Ownership switch
+        {
+            PatcherOwnership.Mixed => L("HealthStatusOwnershipMixed"),
+            PatcherOwnership.Foreign => L("HealthStatusOwnershipForeign"),
+            PatcherOwnership.LibreSpot => L("HealthStatusOwnershipLibreSpot"),
+            _ => L("HealthStatusOwnershipNone")
+        };
+        var evidencePaths = report.Footprints.SelectMany(footprint => footprint.EvidencePaths).ToArray();
+        var actions = report.HasForeignState && report.Footprints.Any(footprint =>
+                footprint.Id.Contains("spicetify", StringComparison.OrdinalIgnoreCase))
+            ? new[] { "CreateBackup" }
+            : Array.Empty<string>();
+        DateTime? lastChanged = evidencePaths.Length > 0
+            ? evidencePaths.Select(File.GetLastWriteTime).Max()
+            : null;
+
+        return Component(
+            "patcher-ownership",
+            L("HealthNamePatcherOwnership"),
+            status,
+            severity,
+            null,
+            evidencePaths.FirstOrDefault(),
+            lastChanged,
+            F("HealthEvidencePatcherOwnershipFormat", report.Summary, report.Recommendation),
+            actions);
     }
 
     // Only emits when the Microsoft Store Spotify package is present. SpotX

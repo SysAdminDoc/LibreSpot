@@ -25,6 +25,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- Added one migration-safe customization ownership report across WPF health, CLI status schema v3, support bundles, legacy PowerShell warnings, and backend plans. LibreSpot now distinguishes its own SpotX/Spicetify state from raw SpotX, standalone Spicetify, and likely BlockTheSpot-family injectors; standalone Spicetify state is preserved before setup, and foreign state is journaled before maintenance instead of being changed silently.
 - Replaced separate shared-function sync commands with one composition contract and `Build-Scripts.ps1 -ComposeHosts`; both executable PowerShell hosts now consume canonical shared modules, host-specific wrapper sets, and pinned-release data, and release-manifest generation refuses stale hosts.
 - Turned the local-data inventory into an enforceable 28-location contract covering user and machine configuration, profiles, activation recovery, journals/receipts, caches, evidence, logs, backups, runtime files, temporary workspaces, support archives, and the watcher task; RemoveSelfData now also clears machine-scope Fleet data.
 - Consolidated the WPF shell onto a ten-step product type scale and a shared 2px extra-small radius token, removing one-off 5px checkbox corners and 11.5/12.5/13.5/14.5/15/15.5/17/22/23/25/27px text sizes that caused subtle visual drift.
@@ -49,6 +50,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Tests
 
+- Added synthetic C# and Pester ownership fixtures for raw SpotX, standalone Spicetify, LibreSpot-managed state, mixed BlockTheSpot residue, redacted support export, backend plan disclosure, and migration preservation.
 - Added deterministic byte-generation, stale-host, missing/duplicate export, invalid-order, and Windows PowerShell 5.1/PowerShell 7.6 import/parse composition coverage.
 - Added data-inventory write-site, deletion-root, retention-policy, support-export, and private-profile exclusion contracts plus an end-to-end machine-data removal fixture.
 - Added before/after SpotX fixtures plus live pinned-entrypoint hash/policy validation so Defender mutations, missing opt-outs, unsupported safe-pin arguments, and lane adapter drift fail the build.

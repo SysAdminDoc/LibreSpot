@@ -239,6 +239,60 @@ public sealed class EnvironmentSnapshotServiceTests
     }
 
     [Fact]
+    public void GetSnapshot_ClassifiesRawSpotXAndStandaloneSpicetifyAsForeign()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = foreign-app");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.Equal(PatcherOwnership.Foreign, snapshot.PatcherOwnershipReport.Ownership);
+        Assert.True(snapshot.PatcherOwnershipReport.HasForeignState);
+        Assert.Contains(snapshot.PatcherOwnershipReport.Footprints, footprint => footprint.Id == "raw-spotx");
+        Assert.Contains(snapshot.PatcherOwnershipReport.Footprints, footprint => footprint.Id == "standalone-spicetify");
+        var component = Assert.Single(snapshot.HealthReport.WarningIssues, item => item.Id == "patcher-ownership");
+        Assert.Contains("CreateBackup", component.RecommendedActionIds);
+        Assert.Contains("without Clean Install", component.Evidence);
+    }
+
+    [Fact]
+    public void GetSnapshot_DistinguishesLibreSpotOwnedStateFromForeignInjectorResidue()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace");
+        fixture.WriteInstallLog();
+        fixture.WriteForeignInjector("dpapi.dll");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.Equal(PatcherOwnership.Mixed, snapshot.PatcherOwnershipReport.Ownership);
+        Assert.Contains(snapshot.PatcherOwnershipReport.Footprints, footprint =>
+            footprint.Id == "likely-blockthespot" && footprint.Confidence == "likely" && footprint.Ownership == PatcherOwnership.Foreign);
+        Assert.Contains(snapshot.PatcherOwnershipReport.Footprints, footprint => footprint.Id == "librespot-spotx");
+        Assert.Contains(snapshot.PatcherOwnershipReport.Footprints, footprint => footprint.Id == "librespot-spicetify");
+        Assert.Contains("explicitly confirmed cleanup", snapshot.PatcherOwnershipReport.Recommendation);
+    }
+
+    [Fact]
+    public void GetSnapshot_ReportsOnlyLibreSpotOwnedStateWhenOperationEvidenceExists()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace");
+        fixture.WriteInstallLog();
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.Equal(PatcherOwnership.LibreSpot, snapshot.PatcherOwnershipReport.Ownership);
+        Assert.False(snapshot.PatcherOwnershipReport.HasForeignState);
+        Assert.DoesNotContain(snapshot.HealthReport.WarningIssues, item => item.Id == "patcher-ownership");
+        Assert.Contains(snapshot.HealthReport.Components, item =>
+            item.Id == "patcher-ownership" && item.Status == "LibreSpot-owned");
+    }
+
+    [Fact]
     public void GetSnapshot_AssetCacheInventory_CoversVerifiedIndexedEntry()
     {
         using var fixture = new SnapshotFixture();
@@ -1172,6 +1226,9 @@ public sealed class EnvironmentSnapshotServiceTests
 
         public void WriteInstallLog() =>
             WriteFile(Path.Combine(ConfigDirectory, "install.log"), "ok");
+
+        public void WriteForeignInjector(string fileName) =>
+            WriteFile(Path.Combine(Path.GetDirectoryName(SpotifyPath)!, fileName), "foreign patcher marker");
 
         public string WriteAssetCacheEntry(
             string label,

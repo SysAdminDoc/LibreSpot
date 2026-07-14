@@ -1065,7 +1065,7 @@ public static class CliApplication
 
     private static StatusDocument BuildStatusDocument(EnvironmentSnapshot snapshot, string configPath) =>
         new(
-            2,
+            3,
             ProductVersion,
             DateTimeOffset.UtcNow,
             configPath,
@@ -1079,6 +1079,7 @@ public static class CliApplication
             snapshot.MarketplaceReady,
             snapshot.MarketplaceLikelyVisible,
             snapshot.MarketplaceVisibilityEvidence is null ? null : MarketplaceVisibilityDocument.From(snapshot.MarketplaceVisibilityEvidence),
+            PatcherOwnershipDocument.From(snapshot.PatcherOwnershipReport),
             AssetCacheDocument.From(snapshot.AssetCacheInventory),
             snapshot.AutoReapplyTaskRegistered,
             BackupCount(snapshot),

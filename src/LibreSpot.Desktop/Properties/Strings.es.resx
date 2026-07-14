@@ -2510,4 +2510,10 @@
   <data name="Vm_ShellProvenanceAhead" xml:space="preserve"><value>Pin ahead</value><comment>Upstream provenance freshness status when the pin is newer than latest metadata.</comment></data>
   <data name="Vm_ShellProvenanceOpenSource" xml:space="preserve"><value>Open source</value><comment>Button that opens the upstream source repository.</comment></data>
   <data name="Vm_ShellProvenanceOpenReleaseNotes" xml:space="preserve"><value>View changes</value><comment>Button that opens the upstream release notes or compare view.</comment></data>
+  <data name="HealthNamePatcherOwnership" xml:space="preserve"><value>Propiedad de la personalización</value><comment>Health component name for LibreSpot versus third-party patcher state.</comment></data>
+  <data name="HealthStatusOwnershipMixed" xml:space="preserve"><value>Propiedad mixta</value></data>
+  <data name="HealthStatusOwnershipForeign" xml:space="preserve"><value>Se requiere revisar la migración</value></data>
+  <data name="HealthStatusOwnershipLibreSpot" xml:space="preserve"><value>Administrado por LibreSpot</value></data>
+  <data name="HealthStatusOwnershipNone" xml:space="preserve"><value>Sin estado de parcheador</value></data>
+  <data name="HealthEvidencePatcherOwnershipFormat" xml:space="preserve"><value>{0} {1}</value></data>
 </root>

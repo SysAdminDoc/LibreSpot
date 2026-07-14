@@ -304,6 +304,22 @@ public sealed class SupportBundleService
             snapshot.SavedConfigExists,
             snapshot.ConfigFolderExists,
             snapshot.AutoReapplyTaskRegistered,
+            patcherOwnership = new
+            {
+                snapshot.PatcherOwnershipReport.Ownership,
+                snapshot.PatcherOwnershipReport.Summary,
+                snapshot.PatcherOwnershipReport.Recommendation,
+                snapshot.PatcherOwnershipReport.HasForeignState,
+                footprints = snapshot.PatcherOwnershipReport.Footprints.Select(footprint => new
+                {
+                    footprint.Id,
+                    footprint.Name,
+                    footprint.Confidence,
+                    footprint.Ownership,
+                    evidencePaths = footprint.EvidencePaths.Select(RedactNullable),
+                    footprint.Recommendation
+                })
+            },
             customPatchImport = BuildCustomPatchImportReport(),
             marketplaceVisibility = BuildMarketplaceVisibilityReport(snapshot.MarketplaceVisibilityEvidence),
             assetCache = BuildAssetCacheReport(snapshot.AssetCacheInventory),

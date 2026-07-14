@@ -22,7 +22,7 @@ public sealed class PowerShellCompositionTests
         var sharedDirectory = Path.Combine(RepoRoot, shared.GetProperty("directory").GetString()!.Replace('/', Path.DirectorySeparatorChar));
         var sharedFiles = Directory.GetFiles(sharedDirectory, shared.GetProperty("pattern").GetString()!);
         Assert.Equal(shared.GetProperty("expectedCount").GetInt32(), sharedFiles.Length);
-        Assert.Equal(104, sharedFiles.Length);
+        Assert.Equal(105, sharedFiles.Length);
 
         var expectedLaneNames = root.GetProperty("laneFunctions")
             .EnumerateArray()
@@ -100,7 +100,7 @@ public sealed class PowerShellCompositionTests
                 contract["componentOrder"] = new JsonArray("sharedFunctions", "dataBlocks", "laneFunctions");
                 break;
             case "missing":
-                contract["sharedFunctions"]!["expectedCount"] = 105;
+                contract["sharedFunctions"]!["expectedCount"] = 106;
                 break;
             case "duplicate":
                 contract["laneFunctions"]!.AsArray().Add("Write-Log");
@@ -116,7 +116,7 @@ public sealed class PowerShellCompositionTests
             mutation switch
             {
                 "order" => "Invalid composition order",
-                "missing" => "expected 105 shared modules",
+                "missing" => "expected 106 shared modules",
                 _ => "Duplicate lane function export"
             },
             result.Output,

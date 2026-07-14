@@ -1260,4 +1260,10 @@
   <data name="Vm_ShellProvenanceAhead" xml:space="preserve"><value>Pin ahead</value><comment>Upstream provenance freshness status when the pin is newer than latest metadata.</comment></data>
   <data name="Vm_ShellProvenanceOpenSource" xml:space="preserve"><value>Open source</value><comment>Button that opens the upstream source repository.</comment></data>
   <data name="Vm_ShellProvenanceOpenReleaseNotes" xml:space="preserve"><value>View changes</value><comment>Button that opens the upstream release notes or compare view.</comment></data>
+  <data name="HealthNamePatcherOwnership" xml:space="preserve"><value>Customization ownership</value><comment>Health component name for LibreSpot versus third-party patcher state.</comment></data>
+  <data name="HealthStatusOwnershipMixed" xml:space="preserve"><value>Mixed ownership</value><comment>Health status when LibreSpot-managed and foreign patcher state are both present.</comment></data>
+  <data name="HealthStatusOwnershipForeign" xml:space="preserve"><value>Migration review needed</value><comment>Health status when only foreign patcher state is present.</comment></data>
+  <data name="HealthStatusOwnershipLibreSpot" xml:space="preserve"><value>LibreSpot-owned</value><comment>Health status when customization state has LibreSpot operation evidence.</comment></data>
+  <data name="HealthStatusOwnershipNone" xml:space="preserve"><value>No patcher state</value><comment>Health status when no patcher footprint is detected.</comment></data>
+  <data name="HealthEvidencePatcherOwnershipFormat" xml:space="preserve"><value>{0} {1}</value><comment>Health evidence combining {0}=ownership summary and {1}=migration recommendation.</comment></data>
 </root>

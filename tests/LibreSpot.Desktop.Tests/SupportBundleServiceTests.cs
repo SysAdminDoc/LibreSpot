@@ -176,6 +176,27 @@ public sealed class SupportBundleServiceTests
     }
 
     [Fact]
+    public async Task ExportAsync_IncludesRedactedPatcherOwnershipReport()
+    {
+        using var fixture = new SupportBundleFixture();
+        fixture.WriteStackReadyState();
+        fixture.WriteForeignInjector("dpapi.dll");
+
+        var result = await fixture.ExportAsync(new SupportBundleOptions());
+        var health = ReadZipText(result.Path)["health/health-report.json"];
+
+        using var document = JsonDocument.Parse(health);
+        var report = document.RootElement.GetProperty("patcherOwnership");
+        Assert.True(report.GetProperty("hasForeignState").GetBoolean());
+        Assert.Contains(report.GetProperty("footprints").EnumerateArray(), footprint =>
+            footprint.GetProperty("id").GetString() == "likely-blockthespot");
+        Assert.DoesNotContain(fixture.Root, health, StringComparison.OrdinalIgnoreCase);
+        var injector = report.GetProperty("footprints").EnumerateArray().Single(footprint =>
+            footprint.GetProperty("id").GetString() == "likely-blockthespot");
+        Assert.StartsWith("<", injector.GetProperty("evidencePaths")[0].GetString());
+    }
+
+    [Fact]
     public async Task ExportAsync_DoesNotReuseFixedDestinationTempFile()
     {
         using var fixture = new SupportBundleFixture();
@@ -586,6 +607,9 @@ public sealed class SupportBundleServiceTests
 
         public void WriteInstallLog(string content) =>
             WriteFile(Path.Combine(ConfigDirectory, "install.log"), content);
+
+        public void WriteForeignInjector(string fileName) =>
+            WriteFile(Path.Combine(Path.GetDirectoryName(SpotifyPath)!, fileName), "foreign patcher marker");
 
         public void WriteOperationJournal(string content) =>
             WriteFile(Path.Combine(ConfigDirectory, "operation-journal.jsonl"), content);

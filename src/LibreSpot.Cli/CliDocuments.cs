@@ -18,6 +18,7 @@ public sealed record StatusDocument(
     bool MarketplaceReady,
     bool MarketplaceLikelyVisible,
     MarketplaceVisibilityDocument? MarketplaceVisibility,
+    PatcherOwnershipDocument PatcherOwnership,
     AssetCacheDocument AssetCache,
     bool AutoReapplyTaskRegistered,
     int BackupCount,
@@ -28,6 +29,40 @@ public sealed record StatusDocument(
     IReadOnlyList<CommunityAssetDocument> CommunityAssets,
     IReadOnlyList<UpstreamDependencyDocument> UpstreamDependencies,
     IReadOnlyList<ComponentDocument> Components);
+
+public sealed record PatcherOwnershipDocument(
+    string Ownership,
+    string Summary,
+    string Recommendation,
+    bool HasForeignState,
+    IReadOnlyList<PatcherFootprintDocument> Footprints)
+{
+    public static PatcherOwnershipDocument From(PatcherOwnershipReport report) =>
+        new(
+            report.Ownership,
+            report.Summary,
+            report.Recommendation,
+            report.HasForeignState,
+            report.Footprints.Select(PatcherFootprintDocument.From).ToArray());
+}
+
+public sealed record PatcherFootprintDocument(
+    string Id,
+    string Name,
+    string Confidence,
+    string Ownership,
+    IReadOnlyList<string> EvidencePaths,
+    string Recommendation)
+{
+    public static PatcherFootprintDocument From(PatcherFootprint footprint) =>
+        new(
+            footprint.Id,
+            footprint.Name,
+            footprint.Confidence,
+            footprint.Ownership,
+            footprint.EvidencePaths,
+            footprint.Recommendation);
+}
 
 public sealed record AssetCacheDocument(
     int EntryCount,

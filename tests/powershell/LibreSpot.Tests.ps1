@@ -56,6 +56,7 @@ BeforeAll {
         'Normalize-LibreSpotConfig'
         'Compare-LibreSpotVersions'
         'Get-SpotXChildFailureClassification'
+        'Get-ThirdPartyPatcherReport'
         'Copy-DirectorySnapshotSafely'
         'Merge-DirectorySnapshotMissingFiles'
         'New-SpicetifyStatePreservationSnapshot'
@@ -140,6 +141,53 @@ BeforeAll {
         @{ Id='1.2.92'; Label='1.2.92'; Version='1.2.92'; Notes='Previous fallback.' }
     )
     $global:SpotifyVersionIds = @($global:SpotifyVersionManifest | ForEach-Object { $_.Id })
+}
+
+Describe 'Get-ThirdPartyPatcherReport' {
+    BeforeEach {
+        $script:patcherRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("LibreSpot-PatcherReport-" + [Guid]::NewGuid().ToString('N'))
+        $script:spotifyPath = Join-Path $script:patcherRoot 'Spotify\Spotify.exe'
+        $script:configDirectory = Join-Path $script:patcherRoot 'LibreSpot'
+        $script:spicetifyPath = Join-Path $script:patcherRoot 'spicetify\spicetify.exe'
+        $script:spicetifyConfigPath = Join-Path $script:patcherRoot 'spicetify-config\config-xpui.ini'
+        New-Item -Path (Split-Path $script:spotifyPath -Parent) -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath $script:spotifyPath -Value 'spotify' -Encoding UTF8
+    }
+
+    AfterEach {
+        Remove-Item -LiteralPath $script:patcherRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'distinguishes raw SpotX and standalone Spicetify from LibreSpot-owned state' {
+        New-Item -Path (Join-Path (Split-Path $script:spotifyPath -Parent) 'Apps') -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path (Split-Path $script:spotifyPath -Parent) 'Apps\xpui.spa') -Value 'bundle' -Encoding UTF8
+        Set-Content -LiteralPath (Join-Path (Split-Path $script:spotifyPath -Parent) 'Apps\xpui.bak') -Value 'backup' -Encoding UTF8
+        New-Item -Path (Split-Path $script:spicetifyPath -Parent) -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath $script:spicetifyPath -Value 'cli' -Encoding UTF8
+
+        $foreign = Get-ThirdPartyPatcherReport -SpotifyExePath $script:spotifyPath -ConfigDirectory $script:configDirectory -SpicetifyPath $script:spicetifyPath -SpicetifyConfigPath $script:spicetifyConfigPath
+        $foreign.Ownership | Should -Be 'foreign'
+        $foreign.Footprints.Id | Should -Contain 'raw-spotx'
+        $foreign.Footprints.Id | Should -Contain 'standalone-spicetify'
+
+        New-Item -Path $script:configDirectory -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $script:configDirectory 'operation-journal.jsonl') -Value '{}' -Encoding UTF8
+        $owned = Get-ThirdPartyPatcherReport -SpotifyExePath $script:spotifyPath -ConfigDirectory $script:configDirectory -SpicetifyPath $script:spicetifyPath -SpicetifyConfigPath $script:spicetifyConfigPath
+        $owned.Ownership | Should -Be 'librespot'
+        $owned.Footprints.Id | Should -Contain 'librespot-spotx'
+        $owned.Footprints.Id | Should -Contain 'librespot-spicetify'
+    }
+
+    It 'keeps BlockTheSpot-family injector residue foreign even beside LibreSpot evidence' {
+        New-Item -Path $script:configDirectory -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $script:configDirectory 'install.log') -Value 'ok' -Encoding UTF8
+        Set-Content -LiteralPath (Join-Path (Split-Path $script:spotifyPath -Parent) 'dpapi.dll') -Value 'injector' -Encoding UTF8
+
+        $report = Get-ThirdPartyPatcherReport -SpotifyExePath $script:spotifyPath -ConfigDirectory $script:configDirectory -SpicetifyPath $script:spicetifyPath -SpicetifyConfigPath $script:spicetifyConfigPath
+        $report.HasForeignState | Should -BeTrue
+        $report.Footprints.Id | Should -Contain 'likely-blockthespot'
+        $report.Recommendation | Should -Match 'explicitly confirmed cleanup'
+    }
 }
 
 # =============================================================================

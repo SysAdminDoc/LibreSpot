@@ -68,13 +68,15 @@ public sealed class PowerShellRegressionTests
     }
 
     [Fact]
-    public void ForeignPatchWarning_UsesBlockTheSpotMigrationCopy()
+    public void ForeignPatchWarning_UsesStructuredMigrationReport()
     {
         var script = ReadFile("LibreSpot.ps1");
 
         Assert.Contains("BlockTheSpot-family legacy patcher", script);
         Assert.Contains("Legacy BlockTheSpot config.ini", script);
-        Assert.Contains("LibreSpot can cleanly replace BlockTheSpot-family DLL-injection artifacts", script);
+        Assert.Contains("Get-ThirdPartyPatcherReport", script);
+        Assert.Contains("has customization state that LibreSpot did not create", script);
+        Assert.Contains("LibreSpot will not remove these files outside an explicitly confirmed cleanup", script);
         Assert.DoesNotContain("active foreign patch", script, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -92,6 +94,22 @@ public sealed class PowerShellRegressionTests
 
         Assert.Contains("[System.IO.Path]::GetDirectoryName($global:SPOTIFY_EXE_PATH)", body);
         Assert.DoesNotContain("Split-Path -LiteralPath", body);
+    }
+
+    [Fact]
+    public void Backend_ForeignPatcherPlanAndMigrationAreNonSilent()
+    {
+        var script = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+        var plan = ExtractFunction(script, "Invoke-LibreSpotPlan");
+        var install = ExtractFunction(script, "Invoke-LibreSpotInstall");
+        var maintenance = ExtractFunction(script, "Invoke-LibreSpotMaintenance");
+
+        Assert.Contains("Get-ThirdPartyPatcherReport", plan);
+        Assert.Contains("-Category 'migration'", plan);
+        Assert.Contains("Migration review:", plan);
+        Assert.Contains("-Phase 'foreign-patcher-detection'", install);
+        Assert.Contains("Invoke-WithSpicetifyStatePreservation -Action 'InstallMigration'", install);
+        Assert.Contains("-Phase 'foreign-patcher-detection'", maintenance);
     }
 
     // ---------------------------------------------------------------------
@@ -2393,5 +2411,14 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("Recommended setup", readme);
         Assert.Contains("True Shuffle", script);
         Assert.Contains("True Shuffle", readme);
+    }
+
+    private static string ExtractFunction(string script, string functionName)
+    {
+        var marker = $"function {functionName}";
+        var start = script.IndexOf(marker, StringComparison.Ordinal);
+        Assert.True(start >= 0, $"Function '{functionName}' was not found.");
+        var end = script.IndexOf("\nfunction ", start + marker.Length, StringComparison.Ordinal);
+        return end < 0 ? script[start..] : script[start..end];
     }
 }

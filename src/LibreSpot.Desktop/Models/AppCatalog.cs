@@ -512,6 +512,38 @@ public sealed record StackHealthComponent(
         Strings.ResourceManager.GetString(key, Strings.Culture) ?? key;
 }
 
+public static class PatcherOwnership
+{
+    public const string Unmodified = "unmodified";
+    public const string LibreSpot = "librespot";
+    public const string Foreign = "foreign";
+    public const string Mixed = "mixed";
+}
+
+public sealed record PatcherFootprint(
+    string Id,
+    string Name,
+    string Confidence,
+    string Ownership,
+    IReadOnlyList<string> EvidencePaths,
+    string Recommendation);
+
+public sealed record PatcherOwnershipReport(
+    string Ownership,
+    string Summary,
+    string Recommendation,
+    IReadOnlyList<PatcherFootprint> Footprints)
+{
+    public static PatcherOwnershipReport Empty { get; } = new(
+        PatcherOwnership.Unmodified,
+        "No customization footprint was detected.",
+        "No migration action is needed.",
+        Array.Empty<PatcherFootprint>());
+
+    public bool HasForeignState => Footprints.Any(footprint =>
+        string.Equals(footprint.Ownership, PatcherOwnership.Foreign, StringComparison.OrdinalIgnoreCase));
+}
+
 public static class Prettify
 {
     /// <summary>
@@ -570,6 +602,7 @@ public sealed class EnvironmentSnapshot
     public UpstreamDriftReport UpstreamDriftReport { get; init; } = UpstreamDriftReport.Empty;
     public CommunityAssetDriftReport CommunityAssetDriftReport { get; init; } = CommunityAssetDriftReport.Empty;
     public AssetCacheInventoryReport AssetCacheInventory { get; init; } = AssetCacheInventoryReport.Empty;
+    public PatcherOwnershipReport PatcherOwnershipReport { get; init; } = PatcherOwnershipReport.Empty;
     public MarketplaceVisibilityEvidence? MarketplaceVisibilityEvidence { get; init; }
     public string HostArchitecture { get; init; } = "Unknown";
     public string ProcessArchitecture { get; init; } = "Unknown";
