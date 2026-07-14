@@ -9,7 +9,7 @@
 
     Token shape:
       Color / Brush  → semantic surfaces, text, accents
-      CornerRadius   → Sm (6), Md (8), Lg (10), Xl (12), Badge (8)
+      CornerRadius   → Xs (2), Sm (6), Md (8), Lg (10), Xl (12), Badge (8)
       Thickness      → 4-based spacing scale (SpaceXs..SpaceXxl)
       Motion         → Fast (90ms) / Med (150ms) / Slow (220ms), all cubic-out
   -->
@@ -158,6 +158,7 @@
   <SolidColorBrush x:Key="TerminalFgBrush" Color="{StaticResource TerminalFgColor}" />
 
   <!-- ═══ Radius rhythm ═══ -->
+  <CornerRadius x:Key="RadiusXs">2</CornerRadius>
   <CornerRadius x:Key="RadiusSm">6</CornerRadius>
   <CornerRadius x:Key="RadiusMd">8</CornerRadius>
   <CornerRadius x:Key="RadiusLg">10</CornerRadius>

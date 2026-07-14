@@ -163,6 +163,54 @@ public sealed class ThemeManagerTests
     }
 
     [Fact]
+    public void XamlCornerRadii_DoNotBypassTheSharedScaleWithRawTwoOrFivePixelValues()
+    {
+        var palette = ReadFile("src", "LibreSpot.Desktop", "Themes", "Palette.xaml");
+        var highContrast = ReadFile("src", "LibreSpot.Desktop", "Themes", "HighContrastPalette.xaml");
+        var productionXaml = string.Join(
+            Environment.NewLine,
+            ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml"),
+            ReadFile("src", "LibreSpot.Desktop", "Themes", "Controls.xaml"));
+
+        Assert.Contains("x:Key=\"RadiusXs\">2</CornerRadius>", palette);
+        Assert.Contains("x:Key=\"RadiusXs\">2</CornerRadius>", highContrast);
+        Assert.DoesNotMatch(@"CornerRadius\s*=\s*""(?:2|5)""", productionXaml);
+        Assert.DoesNotMatch(@"Property=""CornerRadius""\s+Value=""(?:2|5)""", productionXaml);
+    }
+
+    [Fact]
+    public void WpfTypography_UsesTheTenStepProductTypeScale()
+    {
+        var allowed = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "10.5", "11", "12", "13", "14", "16", "18", "20", "24", "30"
+        };
+        var files = new[]
+        {
+            Path.Combine("src", "LibreSpot.Desktop", "MainWindow.xaml"),
+            Path.Combine("src", "LibreSpot.Desktop", "Themes", "Controls.xaml")
+        };
+        var offenders = new List<string>();
+
+        foreach (var file in files)
+        {
+            var content = ReadFile(file.Split(Path.DirectorySeparatorChar));
+            foreach (Match match in Regex.Matches(
+                         content,
+                         @"(?:FontSize|TextElement\.FontSize)=""(?<value>[0-9.]+)""|Property=""FontSize""\s+Value=""(?<value>[0-9.]+)"""))
+            {
+                var value = match.Groups["value"].Value;
+                if (!allowed.Contains(value))
+                {
+                    offenders.Add($"{file}: FontSize {value} is outside the product type scale.");
+                }
+            }
+        }
+
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    [Fact]
     public void WpfXaml_HardcodedColorsStayInsidePaletteFiles()
     {
         var xamlRoot = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop");

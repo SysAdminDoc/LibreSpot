@@ -7,7 +7,7 @@
   <!--
     LibreSpot Desktop control styles.
     Conventions:
-      • Radius rhythm:    6 inline, 8 badges, 10 controls, 12 cards.
+      • Radius rhythm:    2 markers, 6 inline, 8 badges, 10 controls, 12 cards.
       • Focus visual:     overlay ring that never changes container thickness,
                           so focus never shifts layout.
       • State transitions: short (~150ms) ease-out on color/opacity for hover,
@@ -20,7 +20,7 @@
     <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     <Setter Property="FontFamily" Value="{StaticResource BodyFont}" />
-    <Setter Property="FontSize" Value="13.5" />
+    <Setter Property="FontSize" Value="14" />
     <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
     <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
     <Setter Property="UseLayoutRounding" Value="True" />
@@ -420,7 +420,7 @@
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="FontSize" Value="13.5" />
+    <Setter Property="FontSize" Value="14" />
     <Setter Property="Padding" Value="16,10" />
     <Setter Property="MinHeight" Value="44" />
     <Setter Property="Cursor" Value="Hand" />
@@ -678,7 +678,7 @@
                 <Border x:Name="Box"
                         Width="18"
                         Height="18"
-                        CornerRadius="5"
+                        CornerRadius="{StaticResource RadiusSm}"
                         Background="{DynamicResource Surface3Brush}"
                         BorderBrush="{DynamicResource StrokeStrongBrush}"
                         BorderThickness="1.2" />
@@ -1277,19 +1277,19 @@
                                   Margin="0,0,12,0"
                                   VerticalAlignment="Center"
                                   Content="{TemplateBinding Icon}"
-                                  TextElement.FontSize="22"
+                                  TextElement.FontSize="24"
                                   TextElement.Foreground="{TemplateBinding Foreground}" />
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                   <ContentPresenter Content="{TemplateBinding Title}"
                                     ContentTemplate="{TemplateBinding TitleTemplate}"
-                                    TextElement.FontSize="13.5"
+                                    TextElement.FontSize="14"
                                     TextElement.FontWeight="SemiBold"
                                     TextElement.Foreground="{TemplateBinding Foreground}" />
                   <ContentPresenter Content="{TemplateBinding Content}"
                                     ContentStringFormat="{TemplateBinding ContentStringFormat}"
                                     ContentTemplate="{TemplateBinding ContentTemplate}"
                                     Margin="0,2,0,0"
-                                    TextElement.FontSize="12.5"
+                                    TextElement.FontSize="13"
                                     TextElement.Foreground="{TemplateBinding ContentForeground}" />
                 </StackPanel>
                 <Button x:Name="CloseButton"
