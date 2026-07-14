@@ -28,7 +28,8 @@ public sealed record SupportBundleRunContext(
     DateTimeOffset? StartedAt,
     DateTimeOffset? CompletedAt,
     DateTimeOffset CapturedAt,
-    IReadOnlyList<string> LogLines);
+    IReadOnlyList<string> LogLines,
+    string? OperationId = null);
 
 public sealed record SupportBundlePreviewEntry(
     string Id,
@@ -47,7 +48,7 @@ public sealed record SupportBundlePreview(
     public int SelectedFileCount => Entries.Where(entry => entry.IsSelected).Sum(entry => entry.FileCount);
 }
 
-public sealed record SupportBundleResult(string Path, int EntryCount, long BytesWritten);
+public sealed record SupportBundleResult(string Path, int EntryCount, long BytesWritten, string? OperationId = null);
 
 public sealed class SupportBundleService
 {
@@ -161,6 +162,7 @@ public sealed class SupportBundleService
         }
 
         var preview = CreatePreview(snapshot, options);
+        var operationId = ResolveOperationId(options.CurrentRun);
         var entryCount = 0;
         var tempDirectory = string.IsNullOrWhiteSpace(directory) ? Environment.CurrentDirectory : directory;
         var tempPath = Path.Combine(tempDirectory, $"{Path.GetFileName(fullPath)}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp");
@@ -170,7 +172,7 @@ public sealed class SupportBundleService
             await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create))
             {
-                AddJsonEntry(archive, "manifest.json", BuildManifest(preview, options, snapshot));
+                AddJsonEntry(archive, "manifest.json", BuildManifest(preview, options, snapshot, operationId));
                 entryCount++;
                 AddJsonEntry(archive, "health/health-report.json", BuildHealthReport(snapshot));
                 entryCount++;
@@ -187,9 +189,9 @@ public sealed class SupportBundleService
 
                 if (options.CurrentRun is not null)
                 {
-                    AddTextEntry(archive, "current-run/activity-log.txt", BuildCurrentRunLog(options.CurrentRun));
+                    AddTextEntry(archive, "current-run/activity-log.txt", BuildCurrentRunLog(options.CurrentRun, operationId));
                     entryCount++;
-                    AddJsonEntry(archive, "current-run/backend-result.json", BuildCurrentRunMetadata(options.CurrentRun));
+                    AddJsonEntry(archive, "current-run/backend-result.json", BuildCurrentRunMetadata(options.CurrentRun, operationId));
                     entryCount++;
                 }
 
@@ -237,7 +239,7 @@ public sealed class SupportBundleService
         }
 
         var writtenBytes = new FileInfo(fullPath).Length;
-        return new SupportBundleResult(fullPath, entryCount, writtenBytes);
+        return new SupportBundleResult(fullPath, entryCount, writtenBytes, operationId);
     }
 
     public string CreateDefaultBundlePath()
@@ -252,11 +254,16 @@ public sealed class SupportBundleService
         return Path.Combine(_configDirectory, $"LibreSpot-failure-{stamp}.zip");
     }
 
-    private object BuildManifest(SupportBundlePreview preview, SupportBundleOptions options, EnvironmentSnapshot snapshot) =>
+    private object BuildManifest(
+        SupportBundlePreview preview,
+        SupportBundleOptions options,
+        EnvironmentSnapshot snapshot,
+        string? operationId) =>
         new
         {
             schemaVersion = 1,
             generatedAt = DateTimeOffset.Now,
+            operationId,
             networkUpload = "none",
             options = new
             {
@@ -272,6 +279,7 @@ public sealed class SupportBundleService
                 ? null
                 : new
                 {
+                    operationId,
                     outcome = options.CurrentRun.Outcome,
                     backendAction = options.CurrentRun.BackendAction,
                     backendErrorCode = options.CurrentRun.BackendErrorCode,
@@ -553,11 +561,12 @@ public sealed class SupportBundleService
         };
     }
 
-    private string BuildCurrentRunLog(SupportBundleRunContext currentRun)
+    private string BuildCurrentRunLog(SupportBundleRunContext currentRun, string? operationId)
     {
         var builder = new StringBuilder();
         builder.AppendLine("LibreSpot current run activity log");
         builder.AppendLine($"Captured: {currentRun.CapturedAt:o}");
+        builder.AppendLine($"Operation ID: {operationId ?? "Unavailable"}");
         builder.AppendLine($"Outcome: {RedactText(currentRun.Outcome)}");
         builder.AppendLine($"Title: {RedactText(currentRun.Title)}");
         builder.AppendLine($"Status: {RedactText(currentRun.Status)}");
@@ -578,10 +587,11 @@ public sealed class SupportBundleService
         return builder.ToString();
     }
 
-    private object BuildCurrentRunMetadata(SupportBundleRunContext currentRun) =>
+    private object BuildCurrentRunMetadata(SupportBundleRunContext currentRun, string? operationId) =>
         new
         {
             schemaVersion = 1,
+            operationId,
             capturedAt = currentRun.CapturedAt,
             startedAt = currentRun.StartedAt,
             completedAt = currentRun.CompletedAt,
@@ -594,6 +604,74 @@ public sealed class SupportBundleService
             backendErrorMessage = RedactNullable(currentRun.BackendErrorMessage),
             logLineCount = currentRun.LogLines.Count
         };
+
+    private string? ResolveOperationId(SupportBundleRunContext? currentRun)
+    {
+        var currentRunId = NormalizeOperationId(currentRun?.OperationId);
+        if (currentRunId is not null)
+        {
+            return currentRunId;
+        }
+
+        var receiptId = TryReadOperationIdFromJson(Path.Combine(_configDirectory, "run-receipt.latest.json"));
+        if (receiptId is not null)
+        {
+            return receiptId;
+        }
+
+        var journalPath = Path.Combine(_configDirectory, "operation-journal.jsonl");
+        try
+        {
+            foreach (var line in ReadBoundedTailLines(journalPath, MaxDiagnosticWindowBytes).Reverse())
+            {
+                try
+                {
+                    using var document = JsonDocument.Parse(line);
+                    if (document.RootElement.TryGetProperty("operationId", out var value))
+                    {
+                        var journalId = NormalizeOperationId(value.GetString());
+                        if (journalId is not null)
+                        {
+                            return journalId;
+                        }
+                    }
+                }
+                catch (JsonException)
+                {
+                    // A malformed historical line must not prevent bundle export.
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or DecoderFallbackException)
+        {
+            // Correlation is best-effort; the diagnostics themselves remain exportable.
+        }
+
+        return null;
+    }
+
+    private static string? TryReadOperationIdFromJson(string path)
+    {
+        try
+        {
+            if (!File.Exists(path) || new FileInfo(path).Length > MaxDiagnosticWindowBytes)
+            {
+                return null;
+            }
+
+            using var document = JsonDocument.Parse(File.ReadAllBytes(path));
+            return document.RootElement.TryGetProperty("operationId", out var value)
+                ? NormalizeOperationId(value.GetString())
+                : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string? NormalizeOperationId(string? value) =>
+        Guid.TryParse(value, out var parsed) ? parsed.ToString() : null;
 
     private string BuildOperationJournal()
     {

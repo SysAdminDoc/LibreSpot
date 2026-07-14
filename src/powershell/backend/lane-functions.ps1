@@ -3,7 +3,8 @@ function Write-Log {
         [string]$Message,
         [string]$Level = 'INFO'
     )
-    $timestamped = "[{0}] [{1}] {2}" -f (Get-Date -Format 'HH:mm:ss'), $Level, $Message
+    $operationLabel = if ([string]::IsNullOrWhiteSpace([string]$global:CURRENT_OPERATION_ID)) { 'none' } else { [string]$global:CURRENT_OPERATION_ID }
+    $timestamped = "[{0}] [{1}] [op:{2}] {3}" -f (Get-Date -Format 'HH:mm:ss'), $Level, $operationLabel, $Message
     try {
         Ensure-LogDirectory
         [System.IO.File]::AppendAllText($global:LOG_PATH, $timestamped + [Environment]::NewLine)

@@ -462,7 +462,15 @@ function Update-SpicetifyCliProgress {
     }
 }
 
-function Write-Log { param([string]$Message,[string]$Level='INFO'); Update-UI -Message $Message -Level $Level -IsHeader ($Level -eq 'STEP' -or $Level -eq 'HEADER') }
+function Write-Log {
+    param([string]$Message,[string]$Level='INFO')
+    $displayMessage = if ([string]::IsNullOrWhiteSpace([string]$global:CURRENT_OPERATION_ID)) {
+        $Message
+    } else {
+        "[op:$global:CURRENT_OPERATION_ID] $Message"
+    }
+    Update-UI -Message $displayMessage -Level $Level -IsHeader ($Level -eq 'STEP' -or $Level -eq 'HEADER')
+}
 
 function Hide-SpotifyWindows {
     Get-Process -Name Spotify -EA SilentlyContinue | ForEach-Object {

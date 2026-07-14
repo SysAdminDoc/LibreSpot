@@ -1,7 +1,8 @@
 ﻿param(
     [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'OpenMarketplace', 'SafeMode', 'CreateBackup', 'RestoreBackup', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'RemoveSelfData', 'ClearCache', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply', 'Plan')]
     [string]$Action = 'Install',
-    [string]$ConfigPath = "$env:APPDATA\LibreSpot\config.json"
+    [string]$ConfigPath = "$env:APPDATA\LibreSpot\config.json",
+    [string]$OperationId = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -293,7 +294,8 @@ function Write-EventLine {
         [string]$Payload = ''
     )
     $cleanPayload = if ($null -eq $Payload) { '' } else { ([string]$Payload -replace "`r?`n", ' ') }
-    [Console]::Out.WriteLine("@@LS@@|$Kind|$Level|$cleanPayload")
+    $eventOperationId = if ([string]::IsNullOrWhiteSpace([string]$global:CURRENT_OPERATION_ID)) { '' } else { [string]$global:CURRENT_OPERATION_ID }
+    [Console]::Out.WriteLine("@@LS@@|$eventOperationId|$Kind|$Level|$cleanPayload")
 }
 
 function Ensure-LogDirectory {
@@ -307,7 +309,8 @@ function Write-Log {
         [string]$Message,
         [string]$Level = 'INFO'
     )
-    $timestamped = "[{0}] [{1}] {2}" -f (Get-Date -Format 'HH:mm:ss'), $Level, $Message
+    $operationLabel = if ([string]::IsNullOrWhiteSpace([string]$global:CURRENT_OPERATION_ID)) { 'none' } else { [string]$global:CURRENT_OPERATION_ID }
+    $timestamped = "[{0}] [{1}] [op:{2}] {3}" -f (Get-Date -Format 'HH:mm:ss'), $Level, $operationLabel, $Message
     try {
         Ensure-LogDirectory
         [System.IO.File]::AppendAllText($global:LOG_PATH, $timestamped + [Environment]::NewLine)
@@ -455,9 +458,18 @@ function Start-OperationJournalRun {
         [string]$Target = '',
         [bool]$WouldChange = $true,
         [bool]$Reversible = $false,
-        [string]$RollbackHint = ''
+        [string]$RollbackHint = '',
+        [string]$OperationId = ''
     )
-    $global:CURRENT_OPERATION_ID = [Guid]::NewGuid().ToString()
+    if ([string]::IsNullOrWhiteSpace($OperationId)) {
+        $global:CURRENT_OPERATION_ID = [Guid]::NewGuid().ToString()
+    } else {
+        $parsedOperationId = [Guid]::Empty
+        if (-not [Guid]::TryParse($OperationId, [ref]$parsedOperationId)) {
+            throw "OperationId must be a GUID. Received '$OperationId'."
+        }
+        $global:CURRENT_OPERATION_ID = $parsedOperationId.ToString()
+    }
     $global:CURRENT_OPERATION_ACTION = $Action
     Write-OperationJournalEntry -OperationId $global:CURRENT_OPERATION_ID -Action $Action -Phase 'planned' -Target $Target -SafetyDecision 'Pending' -Result 'Started' -WouldChange $WouldChange -Reversible $Reversible -RollbackHint $RollbackHint
     Write-Log "Operation id: $global:CURRENT_OPERATION_ID"
@@ -5179,9 +5191,9 @@ try {
         exit $code
     }
 
-    Write-EventLine -Kind 'action' -Payload $Action
     $journalWouldChange = ($Action -notin @('CheckUpdates', 'OpenMarketplace', 'WatchAutoReapply', 'Plan'))
-    Start-OperationJournalRun -Action $Action -Target "Backend action: $Action" -WouldChange $journalWouldChange -Reversible $false -RollbackHint 'Review individual journal entries for action-specific rollback hints.' | Out-Null
+    Start-OperationJournalRun -Action $Action -Target "Backend action: $Action" -WouldChange $journalWouldChange -Reversible $false -RollbackHint 'Review individual journal entries for action-specific rollback hints.' -OperationId $OperationId | Out-Null
+    Write-EventLine -Kind 'action' -Payload $Action
     # Admin is not required: SpotX patches per-user %APPDATA%\Spotify and
     # Spicetify runs --bypass-admin. Operations that genuinely need elevation
     # (provisioned AppX removal, scheduled tasks, firewall rules) handle

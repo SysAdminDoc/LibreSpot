@@ -2536,4 +2536,10 @@
   <data name="Vm_UndoComplete" xml:space="preserve"><value>As alterações selecionadas foram desfeitas</value></data>
   <data name="Vm_UndoNeedsReview" xml:space="preserve"><value>Algumas alterações selecionadas precisam de revisão</value></data>
   <data name="Vm_UndoResultFormat" xml:space="preserve"><value>{0} concluído(s); {1} com falha. Os IDs das operações estão no log de atividades.</value></data>
+  <data name="Vm_OperationIdLabel" xml:space="preserve"><value>ID da operação</value></data>
+  <data name="Vm_CopyOperationIdName" xml:space="preserve"><value>Copiar ID da operação</value></data>
+  <data name="Vm_CopyOperationIdHelp" xml:space="preserve"><value>Copie este ID para relacionar a atividade, os logs, os relatórios de falha e os pacotes de suporte.</value></data>
+  <data name="Vm_OperationStartedFormat" xml:space="preserve"><value>A operação {0} foi iniciada.</value></data>
+  <data name="Vm_OperationIdCopied" xml:space="preserve"><value>ID da operação copiado.</value></data>
+  <data name="Vm_OperationIdClipboardUnavailable" xml:space="preserve"><value>A área de transferência está indisponível. Selecione o ID da operação e copie-o manualmente.</value></data>
 </root>

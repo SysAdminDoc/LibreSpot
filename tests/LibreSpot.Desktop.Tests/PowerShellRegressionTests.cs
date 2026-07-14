@@ -1669,6 +1669,20 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("ConvertFrom-Json", completer.Groups["body"].Value);
         Assert.Contains("journal-retention", script);
         Assert.Contains("result         = 'Trimmed'", script);
+        Assert.Contains("[string]$OperationId", starter.Groups["body"].Value);
+        Assert.Contains("[Guid]::TryParse", starter.Groups["body"].Value);
+        Assert.Contains("$parsedOperationId.ToString()", starter.Groups["body"].Value);
+    }
+
+    [Fact]
+    public void DesktopBackend_EmitsCallerOperationIdInEveryStructuredEvent()
+    {
+        var script = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+
+        Assert.Contains("[string]$OperationId = ''", script);
+        Assert.Contains("Start-OperationJournalRun -Action $Action", script);
+        Assert.Contains("-OperationId $OperationId", script);
+        Assert.Contains("@@LS@@|$eventOperationId|$Kind|$Level|$cleanPayload", script);
     }
 
     [Theory]

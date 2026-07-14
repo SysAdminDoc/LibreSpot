@@ -452,6 +452,10 @@ public static class CliApplication
 
         stdout.WriteLine($"Support bundle exported: {result.Path}");
         stdout.WriteLine($"Entries: {result.EntryCount}; Bytes: {result.BytesWritten}");
+        if (!string.IsNullOrWhiteSpace(result.OperationId))
+        {
+            stdout.WriteLine($"Operation ID: {result.OperationId}");
+        }
         return Success;
     }
 
@@ -476,8 +480,14 @@ public static class CliApplication
         }
 
         var quiet = options.HasFlag("--quiet") || options.HasFlag("--silent");
+        var operationId = Guid.NewGuid();
         var runner = backendRunner ?? ((backendAction, backendConfigPath, onMessage, token) =>
-            new BackendScriptService().RunAsync(backendAction, backendConfigPath, onMessage, token));
+            new BackendScriptService().RunAsync(backendAction, backendConfigPath, onMessage, operationId, token));
+
+        if (!quiet)
+        {
+            stdout.WriteLine($"Operation ID: {operationId}");
+        }
 
         var result = runner(
                 action,
@@ -623,10 +633,10 @@ public static class CliApplication
 
         if (!planVerb && !options.HasFlag("--dry-run"))
         {
-            return RunBackendOperation(operation, options, stdout, stderr, validation, repairAction, backendRunner);
+            return RunBackendOperation(operation, options, stdout, stderr, validation, repairAction, operationId, backendRunner);
         }
 
-        var plan = BuildPlan(operation, options, validation, configPath, repairAction);
+        var plan = BuildPlan(operation, options, validation, configPath, operationId, repairAction);
         if (options.HasFlag("--ndjson"))
         {
             using var ndjsonLog = CreateNdjsonLogWriter(options, operation, defaultToFleetDirectory: false, stderr);
@@ -679,6 +689,7 @@ public static class CliApplication
         else
         {
             stdout.WriteLine($"{operation} dry-run plan: {plan.Steps.Count} steps, no changes will be made.");
+            stdout.WriteLine($"Operation ID: {operationId}");
         }
 
         return Success;
@@ -691,6 +702,7 @@ public static class CliApplication
         TextWriter stderr,
         ValidationDocument? validation,
         string? repairAction,
+        Guid operationId,
         Func<string, string, Action<BackendMessage>, CancellationToken, Task<BackendRunResult>>? backendRunner)
     {
         if ((operation == "uninstall" || operation == "repair") && !options.HasFlag("--yes") && !options.HasFlag("--silent"))
@@ -730,12 +742,11 @@ public static class CliApplication
             return UnhandledFailure;
         }
 
-        var operationId = Guid.NewGuid();
         var quiet = options.HasFlag("--quiet") || options.HasFlag("--silent");
         var ndjson = options.HasFlag("--ndjson");
         var actions = BackendActionsFor(operation, options, repairAction);
         var runner = backendRunner ?? ((backendAction, backendConfigPath, onMessage, token) =>
-            new BackendScriptService().RunAsync(backendAction, backendConfigPath, onMessage, token));
+            new BackendScriptService().RunAsync(backendAction, backendConfigPath, onMessage, operationId, token));
         using var ndjsonLog = ndjson ? CreateNdjsonLogWriter(options, operation, defaultToFleetDirectory: true, stderr) : null;
         if (ndjsonLog?.InitializationFailed == true)
         {
@@ -758,6 +769,7 @@ public static class CliApplication
         else if (!quiet)
         {
             stdout.WriteLine($"Starting LibreSpot {operation}...");
+            stdout.WriteLine($"Operation ID: {operationId}");
         }
 
         var finalExitCode = Success;
@@ -868,6 +880,12 @@ public static class CliApplication
         bool ndjson,
         NdjsonLogWriter? ndjsonLog)
     {
+        if (message.OperationId is Guid reportedOperationId && reportedOperationId != operationId)
+        {
+            stderr.WriteLine($"Ignored backend message with mismatched operation ID {reportedOperationId}.");
+            return;
+        }
+
         var level = NormalizeLogLevel(message.Level);
         if (ndjson)
         {
@@ -1366,6 +1384,7 @@ public static class CliApplication
         CliOptions options,
         ValidationDocument? validation,
         string configPath,
+        Guid operationId,
         string? repairAction = null)
     {
         var answerFile = validation?.AnswerFile;
@@ -1432,6 +1451,7 @@ public static class CliApplication
             1,
             ProductVersion,
             DateTimeOffset.UtcNow,
+            operationId,
             operation,
             true,
             false,

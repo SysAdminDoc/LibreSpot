@@ -536,6 +536,7 @@ public sealed class CliApplicationTests
         Assert.Equal("install", doc.RootElement.GetProperty("operation").GetString());
         Assert.True(doc.RootElement.GetProperty("dryRun").GetBoolean());
         Assert.False(doc.RootElement.GetProperty("mutates").GetBoolean());
+        Assert.True(Guid.TryParse(doc.RootElement.GetProperty("operationId").GetString(), out _));
         Assert.Contains(
             doc.RootElement.GetProperty("steps").EnumerateArray(),
             step => step.GetProperty("id").GetString() == "run-backend-plan" &&

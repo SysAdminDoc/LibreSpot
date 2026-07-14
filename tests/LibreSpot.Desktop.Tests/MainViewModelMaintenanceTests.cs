@@ -246,6 +246,8 @@ public sealed class MainViewModelMaintenanceTests
             Assert.False(viewModel.CanExportFailureBundle);
 
             viewModel.ApplyUiAutomationSmokeState("activity-error");
+            Assert.Equal("33333333-3333-3333-3333-333333333333", viewModel.ActivityOperationId);
+            Assert.True(viewModel.HasActivityOperationId);
             Assert.True(viewModel.CanExportFailureBundle);
             Assert.True(viewModel.ExportFailureBundleCommand.CanExecute(null));
             Assert.Equal(Strings.RunNeedsAttention, viewModel.ProgressLabel);
@@ -259,6 +261,7 @@ public sealed class MainViewModelMaintenanceTests
             Assert.Contains("current-run/backend-result.json", entries.Keys);
             Assert.Contains("operation/latest-journal.txt", entries.Keys);
             Assert.Contains("SmokeFailure", entries["current-run/backend-result.json"]);
+            Assert.Contains("33333333-3333-3333-3333-333333333333", entries["manifest.json"]);
             Assert.Contains("UI automation smoke failure", entries["current-run/activity-log.txt"]);
             Assert.Contains("Failure bundle exported locally", viewModel.LogEntries.Last().Message);
         });

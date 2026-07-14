@@ -26,6 +26,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- Added a stable per-run operation GUID across WPF activity, PowerShell backend events and journals, CLI JSON/plain output, rolling logs, crash evidence, and support-bundle manifests, plus an opt-in local `LibreSpot-Operations` EventSource for ETW/EventPipe collection without uploads.
 - Added receipt-backed undo preview and confirmation to the WPF activity pane plus `LibreSpot.Cli undo`; successful and failed attempts emit new operation evidence while retaining source provenance and snapshots for idempotent retries.
 - Added one migration-safe customization ownership report across WPF health, CLI status schema v3, support bundles, legacy PowerShell warnings, and backend plans. LibreSpot now distinguishes its own SpotX/Spicetify state from raw SpotX, standalone Spicetify, and likely BlockTheSpot-family injectors; standalone Spicetify state is preserved before setup, and foreign state is journaled before maintenance instead of being changed silently.
 - Replaced separate shared-function sync commands with one composition contract and `Build-Scripts.ps1 -ComposeHosts`; both executable PowerShell hosts now consume canonical shared modules, host-specific wrapper sets, and pinned-release data, and release-manifest generation refuses stale hosts.
@@ -52,6 +53,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Tests
 
+- Added correlation regression coverage for caller-supplied PowerShell IDs, legacy/new backend protocols, mismatch refusal, WPF activity and bundle evidence, CLI plans, and local EventSource start/message/completion events.
 - Added policy-refusal, stale-state, missing-value, registry-type, idempotent CLI retry, partial-failure recovery, receipt-provenance, WPF selection, Fleet-contract, and PowerShell composition coverage for executable undo.
 - Added synthetic C# and Pester ownership fixtures for raw SpotX, standalone Spicetify, LibreSpot-managed state, mixed BlockTheSpot residue, redacted support export, backend plan disclosure, and migration preservation.
 - Added deterministic byte-generation, stale-host, missing/duplicate export, invalid-order, and Windows PowerShell 5.1/PowerShell 7.6 import/parse composition coverage.

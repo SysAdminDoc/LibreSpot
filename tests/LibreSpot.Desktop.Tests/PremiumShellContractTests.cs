@@ -139,6 +139,8 @@ public sealed class PremiumShellContractTests
         Assert.Contains("L(\"CrashRecoverableTitle\")", crashReporter);
         Assert.Contains("VerticalScrollBarVisibility = ScrollBarVisibility.Auto", crashReporter);
         Assert.Contains("AutomationProperties.SetName(button, text)", crashReporter);
+        Assert.Contains("OperationCorrelation.CurrentOrLastOperationId", crashReporter);
+        Assert.Contains("operation-id:", crashReporter);
         Assert.DoesNotContain("CreateBrush(", crashReporter);
         Assert.DoesNotContain("new BrushConverter", crashReporter);
     }

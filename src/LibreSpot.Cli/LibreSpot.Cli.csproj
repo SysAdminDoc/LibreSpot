@@ -22,6 +22,7 @@
     <Compile Include="..\LibreSpot.Desktop\Services\CommunityAssetDriftService.cs" Link="Shared\CommunityAssetDriftService.cs" />
     <Compile Include="..\LibreSpot.Desktop\Services\SupportBundleService.cs" Link="Shared\SupportBundleService.cs" />
     <Compile Include="..\LibreSpot.Desktop\Services\OperationJournalUndoService.cs" Link="Shared\OperationJournalUndoService.cs" />
+    <Compile Include="..\LibreSpot.Desktop\Services\OperationCorrelation.cs" Link="Shared\OperationCorrelation.cs" />
     <Compile Include="..\LibreSpot.Desktop\Properties\Strings.Designer.cs" Link="Properties\Strings.Designer.cs" />
     <EmbeddedResource Include="..\LibreSpot.Desktop\Backend\LibreSpot.Backend.ps1" LogicalName="LibreSpot.Desktop.Backend.LibreSpot.Backend.ps1" />
     <EmbeddedResource Include="..\..\schemas\community-assets.json" LogicalName="LibreSpot.Desktop.Schemas.community-assets.json" />

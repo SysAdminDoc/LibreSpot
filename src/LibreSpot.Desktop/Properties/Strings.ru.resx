@@ -2536,4 +2536,10 @@
   <data name="Vm_UndoComplete" xml:space="preserve"><value>Выбранные изменения отменены</value></data>
   <data name="Vm_UndoNeedsReview" xml:space="preserve"><value>Некоторые выбранные изменения требуют проверки</value></data>
   <data name="Vm_UndoResultFormat" xml:space="preserve"><value>Успешно: {0}; с ошибкой: {1}. Идентификаторы операций указаны в журнале действий.</value></data>
+  <data name="Vm_OperationIdLabel" xml:space="preserve"><value>Идентификатор операции</value></data>
+  <data name="Vm_CopyOperationIdName" xml:space="preserve"><value>Копировать идентификатор операции</value></data>
+  <data name="Vm_CopyOperationIdHelp" xml:space="preserve"><value>Скопируйте этот идентификатор, чтобы сопоставить действия, журналы, отчеты о сбоях и пакеты поддержки.</value></data>
+  <data name="Vm_OperationStartedFormat" xml:space="preserve"><value>Операция {0} запущена.</value></data>
+  <data name="Vm_OperationIdCopied" xml:space="preserve"><value>Идентификатор операции скопирован.</value></data>
+  <data name="Vm_OperationIdClipboardUnavailable" xml:space="preserve"><value>Буфер обмена недоступен. Выберите идентификатор операции и скопируйте его вручную.</value></data>
 </root>

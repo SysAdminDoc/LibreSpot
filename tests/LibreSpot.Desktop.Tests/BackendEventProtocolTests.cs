@@ -55,6 +55,19 @@ public sealed class BackendEventProtocolTests
     }
 
     [Fact]
+    public void Publish_CorrelatedStructuredMessagePreservesOperationIdAndPipes()
+    {
+        var operationId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var messages = ParseLines(new[] { $"@@LS@@|{operationId}|status|INFO|Preparing|install" });
+
+        var message = Assert.Single(messages);
+        Assert.Equal(operationId, message.OperationId);
+        Assert.Equal("status", message.Kind);
+        Assert.Equal("INFO", message.Level);
+        Assert.Equal("Preparing|install", message.Payload);
+    }
+
+    [Fact]
     public void Publish_InsufficientPartsBecomesLogInfo()
     {
         var messages = ParseLines(new[] { "@@LS@@|only-two-parts" });

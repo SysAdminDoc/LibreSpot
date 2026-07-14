@@ -98,7 +98,7 @@ public sealed class ViewModelStateDomainTests
     {
         var state = new ActivityRunStateViewModel();
 
-        state.Begin("Applying profile", "Preparing backend", "Preparing");
+        state.Begin("Applying profile", "Preparing backend", "Preparing", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
         Assert.True(state.IsVisible);
         Assert.True(state.IsRunning);
@@ -107,6 +107,8 @@ public sealed class ViewModelStateDomainTests
         Assert.Equal("Applying profile", state.Title);
         Assert.Equal("Preparing backend", state.Status);
         Assert.Equal("Preparing", state.Step);
+        Assert.True(state.HasOperationId);
+        Assert.Equal("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", state.OperationId);
 
         state.ShowNotice("Run complete", "Done", "No backend started");
 
@@ -115,6 +117,7 @@ public sealed class ViewModelStateDomainTests
         Assert.Equal("Done", state.Status);
         Assert.Equal("No backend started", state.Step);
         Assert.Equal(0, state.ProgressValue);
+        Assert.False(state.HasOperationId);
     }
 
     [Fact]

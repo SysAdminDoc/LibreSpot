@@ -2536,4 +2536,10 @@
   <data name="Vm_UndoComplete" xml:space="preserve"><value>所选更改已撤销</value></data>
   <data name="Vm_UndoNeedsReview" xml:space="preserve"><value>部分所选更改需要检查</value></data>
   <data name="Vm_UndoResultFormat" xml:space="preserve"><value>成功 {0} 个；失败 {1} 个。操作 ID 位于活动日志中。</value></data>
+  <data name="Vm_OperationIdLabel" xml:space="preserve"><value>操作 ID</value></data>
+  <data name="Vm_CopyOperationIdName" xml:space="preserve"><value>复制操作 ID</value></data>
+  <data name="Vm_CopyOperationIdHelp" xml:space="preserve"><value>使用此 ID 可关联活动、日志、崩溃报告和支持包。</value></data>
+  <data name="Vm_OperationStartedFormat" xml:space="preserve"><value>操作 {0} 已开始。</value></data>
+  <data name="Vm_OperationIdCopied" xml:space="preserve"><value>已复制操作 ID。</value></data>
+  <data name="Vm_OperationIdClipboardUnavailable" xml:space="preserve"><value>剪贴板不可用。请选择操作 ID 并手动复制。</value></data>
 </root>

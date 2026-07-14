@@ -2536,4 +2536,10 @@
   <data name="Vm_UndoComplete" xml:space="preserve"><value>Selected changes were undone</value></data>
   <data name="Vm_UndoNeedsReview" xml:space="preserve"><value>Some selected changes need review</value></data>
   <data name="Vm_UndoResultFormat" xml:space="preserve"><value>{0} succeeded; {1} failed. Operation IDs are in the activity log.</value></data>
+  <data name="Vm_OperationIdLabel" xml:space="preserve"><value>Operation ID</value></data>
+  <data name="Vm_CopyOperationIdName" xml:space="preserve"><value>Copy operation ID</value></data>
+  <data name="Vm_CopyOperationIdHelp" xml:space="preserve"><value>Copy this ID when matching activity, logs, crash reports, and support bundles.</value></data>
+  <data name="Vm_OperationStartedFormat" xml:space="preserve"><value>Operation {0} started.</value></data>
+  <data name="Vm_OperationIdCopied" xml:space="preserve"><value>Operation ID copied.</value></data>
+  <data name="Vm_OperationIdClipboardUnavailable" xml:space="preserve"><value>Clipboard is unavailable. Select the operation ID and copy it manually.</value></data>
 </root>

@@ -314,6 +314,7 @@ public sealed record PlanDocument(
     int SchemaVersion,
     string ProductVersion,
     DateTimeOffset GeneratedAtUtc,
+    Guid OperationId,
     string Operation,
     bool DryRun,
     bool Mutates,

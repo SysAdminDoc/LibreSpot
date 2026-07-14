@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Threading;
 using System.Windows.Media;
 using Serilog;
+using Serilog.Core;
 using Serilog.Events;
 using Application = System.Windows.Application;
 using Button = System.Windows.Controls.Button;
@@ -65,11 +66,12 @@ public static class CrashReporter
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Is(LogEventLevel.Information)
             .Enrich.WithProperty("ProcessId", Environment.ProcessId)
+            .Enrich.With(new OperationIdEnricher())
             .WriteTo.File(
                 path: Path.Combine(LogRoot, "librespot-.log"),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 14,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [op:{OperationId}] {Message:lj}{NewLine}{Exception}",
                 shared: true)
             .CreateLogger();
 
@@ -119,11 +121,13 @@ public static class CrashReporter
         try
         {
             var path = CreateCrashReportPath(source);
+            var operationId = OperationCorrelation.CurrentOrLastOperationId;
 
             var body = new StringBuilder();
             body.AppendLine($"LibreSpot crash report");
             body.AppendLine($"  timestamp:      {DateTime.Now:o}");
             body.AppendLine($"  source:         {source}");
+            body.AppendLine($"  operation-id:   {operationId ?? "none"}");
             body.AppendLine($"  terminating:    {isTerminating}");
             body.AppendLine($"  version:        {typeof(CrashReporter).Assembly.GetName().Version}");
             body.AppendLine($"  os:             {Environment.OSVersion.VersionString}");
@@ -137,7 +141,7 @@ public static class CrashReporter
             Log.Fatal(exception, "Unhandled exception from {Source} (terminating={IsTerminating}). Report at {Path}",
                 source, isTerminating, path);
 
-            ShowCrashDialog(path, exception, source, isTerminating);
+            ShowCrashDialog(path, exception, source, isTerminating, operationId);
         }
         catch
         {
@@ -171,7 +175,12 @@ public static class CrashReporter
         return Path.Combine(CrashRoot, $"crash-{Guid.NewGuid():N}-{safeSource}.log");
     }
 
-    private static void ShowCrashDialog(string crashPath, Exception exception, string source, bool isTerminating)
+    private static void ShowCrashDialog(
+        string crashPath,
+        Exception exception,
+        string source,
+        bool isTerminating,
+        string? operationId)
     {
         if (Interlocked.Exchange(ref _crashDialogOpen, 1) == 1)
         {
@@ -193,7 +202,7 @@ public static class CrashReporter
         {
             try
             {
-                BuildCrashDialog(crashPath, exception, source, isTerminating).ShowDialog();
+                BuildCrashDialog(crashPath, exception, source, isTerminating, operationId).ShowDialog();
             }
             catch
             {
@@ -206,7 +215,12 @@ public static class CrashReporter
         });
     }
 
-    private static Window BuildCrashDialog(string crashPath, Exception exception, string source, bool isTerminating)
+    private static Window BuildCrashDialog(
+        string crashPath,
+        Exception exception,
+        string source,
+        bool isTerminating,
+        string? operationId)
     {
         var owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(window => window.IsVisible);
         var isRecoverable = !isTerminating && !string.Equals(source, "Dispatcher", StringComparison.OrdinalIgnoreCase);
@@ -351,6 +365,31 @@ public static class CrashReporter
             Foreground = textBrush,
             FontSize = 13
         });
+        if (!string.IsNullOrWhiteSpace(operationId))
+        {
+            detailsStack.Children.Add(new TextBlock
+            {
+                Text = L("Vm_OperationIdLabel"),
+                Margin = new Thickness(0, 16, 0, 0),
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = subtleBrush
+            });
+            var operationIdBox = new TextBox
+            {
+                Text = operationId,
+                Margin = new Thickness(0, 8, 0, 0),
+                IsReadOnly = true,
+                Background = canvasBrush,
+                BorderBrush = strokeBrush,
+                BorderThickness = new Thickness(1),
+                Foreground = textBrush,
+                Padding = new Thickness(10, 8, 10, 8)
+            };
+            operationIdBox.Style = ThemeStyle("TextBoxStylePremium");
+            AutomationProperties.SetName(operationIdBox, L("Vm_OperationIdLabel"));
+            detailsStack.Children.Add(operationIdBox);
+        }
         detailsStack.Children.Add(new TextBlock
         {
             Text = L("CrashReportPathLabel"),
@@ -434,7 +473,16 @@ public static class CrashReporter
             Path.Combine(Path.GetTempPath(), "LibreSpot", "crashes", "crash-preview.log"),
             new InvalidOperationException(L("CrashNoExceptionMessage")),
             nameof(BuildPreviewDialogForUiAutomation),
-            isTerminating: false);
+            isTerminating: false,
+            operationId: "55555555-5555-5555-5555-555555555555");
+
+    private sealed class OperationIdEnricher : ILogEventEnricher
+    {
+        public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory) =>
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
+                "OperationId",
+                OperationCorrelation.CurrentOrLastOperationId ?? "none"));
+    }
 
     private static Button CreateDialogButton(string text, bool isPrimary, Action action)
     {

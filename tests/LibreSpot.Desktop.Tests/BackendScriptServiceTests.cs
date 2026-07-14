@@ -179,6 +179,79 @@ public sealed class BackendScriptServiceTests
     }
 
     [Fact]
+    public async Task RunAsync_UsesCallerOperationIdForBackendArgumentsAndMessages()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
+        var runtimeDirectory = Path.Combine(tempRoot, "Runtime");
+        var scriptPath = Path.Combine(tempRoot, "correlated-backend.ps1");
+        var operationId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var messages = new List<BackendMessage>();
+        Directory.CreateDirectory(tempRoot);
+        await File.WriteAllTextAsync(
+            scriptPath,
+            "param([string]$Action,[string]$ConfigPath,[string]$OperationId)\r\n" +
+            "Write-Output \"@@LS@@|$OperationId|status|INFO|$Action correlated\"\r\nexit 0\r\n");
+
+        try
+        {
+            var service = new BackendScriptService(
+                runtimeDirectory,
+                noBackendMode: false,
+                BackendWatchdogOptions.Default,
+                backendScriptPathOverride: scriptPath);
+
+            var result = await service.RunAsync(
+                "Install",
+                Path.Combine(tempRoot, "config.json"),
+                messages.Add,
+                operationId);
+
+            Assert.True(result.Success, result.ErrorMessage);
+            var message = Assert.Single(messages);
+            Assert.Equal(operationId, message.OperationId);
+            Assert.Equal("Install correlated", message.Payload);
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_RejectsBackendMessageWithDifferentOperationId()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
+        var runtimeDirectory = Path.Combine(tempRoot, "Runtime");
+        var scriptPath = Path.Combine(tempRoot, "mismatched-backend.ps1");
+        Directory.CreateDirectory(tempRoot);
+        await File.WriteAllTextAsync(
+            scriptPath,
+            "param([string]$Action,[string]$ConfigPath,[string]$OperationId)\r\n" +
+            "Write-Output '@@LS@@|bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb|status|INFO|wrong run'\r\nexit 0\r\n");
+
+        try
+        {
+            var service = new BackendScriptService(
+                runtimeDirectory,
+                noBackendMode: false,
+                BackendWatchdogOptions.Default,
+                backendScriptPathOverride: scriptPath);
+            var result = await service.RunAsync(
+                "Install",
+                Path.Combine(tempRoot, "config.json"),
+                _ => { },
+                Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"));
+
+            Assert.False(result.Success);
+            Assert.Contains("correlation mismatch", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_ReturnsFailureWhenRuntimeDirectoryCannotBeCreated()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));

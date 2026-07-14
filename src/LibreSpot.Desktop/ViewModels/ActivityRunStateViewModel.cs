@@ -29,6 +29,9 @@ public sealed partial class ActivityRunStateViewModel : ObservableObject
     [ObservableProperty]
     private string _step = ViewModelText.Get("Vm_ActivityStepIdle");
 
+    [ObservableProperty]
+    private string _operationId = string.Empty;
+
     public ActivityRunStateViewModel()
     {
         LogEntries = new ObservableCollection<LogEntryViewModel>();
@@ -50,23 +53,26 @@ public sealed partial class ActivityRunStateViewModel : ObservableObject
 
     public bool HasUndoActionItems => UndoActionItems.Count > 0;
     public bool HasExecutableUndoActionItems => UndoActionItems.Any(item => item.IsExecutable);
+    public bool HasOperationId => !string.IsNullOrWhiteSpace(OperationId);
 
-    public void Begin(string title, string status, string step)
+    public void Begin(string title, string status, string step, string? operationId = null)
     {
         Title = title;
         Status = status;
         Step = step;
+        OperationId = operationId ?? string.Empty;
         ProgressValue = 0;
         IsVisible = true;
         IsRunning = true;
         IsCancelRequested = false;
     }
 
-    public void ShowNotice(string title, string status, string step)
+    public void ShowNotice(string title, string status, string step, string? operationId = null)
     {
         Title = title;
         Status = status;
         Step = step;
+        OperationId = operationId ?? string.Empty;
         ProgressValue = 0;
         IsVisible = true;
     }
@@ -139,4 +145,6 @@ public sealed partial class ActivityRunStateViewModel : ObservableObject
         OnPropertyChanged(nameof(LogLineCountText));
         OnPropertyChanged(nameof(IsLogEmpty));
     }
+
+    partial void OnOperationIdChanged(string value) => OnPropertyChanged(nameof(HasOperationId));
 }

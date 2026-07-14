@@ -58,7 +58,7 @@ public sealed class SupportBundleServiceTests
         fixture.WriteStackReadyState();
         fixture.WriteInstallLog("install journal");
         var journalTarget = Path.Combine(fixture.ConfigDirectory, "secret.txt");
-        fixture.WriteOperationJournal($"{{\"operationId\":\"op-1\",\"target\":\"{journalTarget.Replace("\\", "\\\\")}\",\"result\":\"Removed\"}}");
+        fixture.WriteOperationJournal($"{{\"operationId\":\"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb\",\"target\":\"{journalTarget.Replace("\\", "\\\\")}\",\"result\":\"Removed\"}}");
         fixture.WriteRollingLog("desktop log");
         fixture.WriteCrashReport("crash log");
 
@@ -74,6 +74,8 @@ public sealed class SupportBundleServiceTests
         Assert.Contains("health/provenance.json", entries.Keys);
         Assert.Contains("health/runtime.json", entries.Keys);
         Assert.Contains("operation/latest-journal.txt", entries.Keys);
+        Assert.Equal("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", result.OperationId);
+        Assert.Contains("\"operationId\": \"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb\"", entries["manifest.json"]);
         Assert.Contains("Operation journal JSONL", entries["operation/latest-journal.txt"]);
         Assert.Contains("<LIBRESPOT_CONFIG>", entries["operation/latest-journal.txt"]);
         Assert.DoesNotContain(journalTarget, entries["operation/latest-journal.txt"]);
@@ -104,7 +106,8 @@ public sealed class SupportBundleServiceTests
             {
                 $"[15:00:01] [ERROR] failed beside {profile}\\secret.txt",
                 "[15:00:02] [WARN] retry unavailable"
-            });
+            },
+            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
         var result = await fixture.ExportAsync(new SupportBundleOptions(
             IncludeOperationJournal: true,
@@ -119,6 +122,8 @@ public sealed class SupportBundleServiceTests
         Assert.Contains("BackendHostStalled", entries["current-run/backend-result.json"]);
         Assert.Contains("\"backendAction\": \"Install\"", entries["current-run/backend-result.json"]);
         Assert.Contains("\"currentRun\"", entries["manifest.json"]);
+        Assert.Contains("\"operationId\": \"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\"", entries["manifest.json"]);
+        Assert.Equal("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", result.OperationId);
         Assert.Contains("retry unavailable", entries["current-run/activity-log.txt"]);
         Assert.Contains("<USERPROFILE>", entries["current-run/activity-log.txt"]);
         Assert.DoesNotContain(profile, string.Join("\n", entries.Values), StringComparison.OrdinalIgnoreCase);

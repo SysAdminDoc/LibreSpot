@@ -4590,6 +4590,23 @@
                            FontSize="13"
                            Margin="0,6,0,0"
                            TextAlignment="Right" />
+                <StackPanel Margin="0,14,0,0"
+                            Visibility="{Binding HasActivityOperationId, Converter={StaticResource BoolToVisibilityConverter}}">
+                  <TextBlock Text="{services:Loc Vm_OperationIdLabel}"
+                             Style="{StaticResource LabelTextStyle}"
+                             TextAlignment="Right" />
+                  <Button Content="{Binding ActivityOperationId}"
+                          Command="{Binding CopyOperationIdCommand}"
+                          Style="{StaticResource GhostButtonStyle}"
+                          Padding="10,6"
+                          MinHeight="36"
+                          Margin="0,6,0,0"
+                          FontFamily="{StaticResource MonoFont}"
+                          FontSize="11"
+                          AutomationProperties.AutomationId="ActivityOperationIdButton"
+                          AutomationProperties.Name="{services:Loc Vm_CopyOperationIdName}"
+                          AutomationProperties.HelpText="{services:Loc Vm_CopyOperationIdHelp}" />
+                </StackPanel>
               </StackPanel>
             </Grid>
 

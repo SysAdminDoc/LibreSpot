@@ -148,6 +148,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ApplyCustomCommand = CreateAsyncCommand(ApplyCustomAsync, () => !IsRunning && IsEnvironmentReadyForActions);
         CancelRunCommand = new RelayCommand(CancelRunningBackend, () => IsRunning && !IsCancelRequested);
         DismissActivityCommand = new RelayCommand(DismissActivity, () => IsActivityVisible && !IsRunning);
+        CopyOperationIdCommand = new RelayCommand(CopyOperationId, () => HasActivityOperationId);
         CopyLogCommand = new RelayCommand(CopyLog, () => LogEntries.Count > 0);
         ClearLogCommand = new RelayCommand(ClearLog, () => LogEntries.Count > 0);
         PreviewSelectedUndoCommand = new RelayCommand(PreviewSelectedUndo, () => !IsRunning && HasExecutableUndoActionItems);
@@ -240,6 +241,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand ApplyCustomCommand { get; }
     public RelayCommand CancelRunCommand { get; }
     public RelayCommand DismissActivityCommand { get; }
+    public RelayCommand CopyOperationIdCommand { get; }
     public RelayCommand CopyLogCommand { get; }
     public RelayCommand ClearLogCommand { get; }
     public RelayCommand PreviewSelectedUndoCommand { get; }
@@ -1495,6 +1497,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         private set => _activityState.Step = value;
     }
 
+    public string ActivityOperationId => _activityState.OperationId;
+    public bool HasActivityOperationId => _activityState.HasOperationId;
+
     public string ActivityLiveAnnouncement =>
         string.Join(". ", new[] { ActivityStatus, ActivityStep }.Where(value => !string.IsNullOrWhiteSpace(value)));
 
@@ -1617,6 +1622,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             case nameof(ActivityRunStateViewModel.Step):
                 OnPropertyChanged(nameof(ActivityStep));
                 OnPropertyChanged(nameof(ActivityLiveAnnouncement));
+                break;
+            case nameof(ActivityRunStateViewModel.OperationId):
+                OnPropertyChanged(nameof(ActivityOperationId));
+                OnPropertyChanged(nameof(HasActivityOperationId));
+                CopyOperationIdCommand.NotifyCanExecuteChanged();
                 break;
             case nameof(ActivityRunStateViewModel.LogLineCountText):
                 CopyLogCommand.NotifyCanExecuteChanged();
@@ -3159,7 +3169,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             _lastRunStartedAt,
             _lastRunCompletedAt,
             DateTimeOffset.Now,
-            LogEntries.Select(entry => entry.CopyLine).ToArray());
+            LogEntries.Select(entry => entry.CopyLine).ToArray(),
+            ActivityOperationId);
     }
 
     public static string FormatBytes(long bytes)
@@ -3479,7 +3490,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _lastBackendRunResult = null;
         _lastRunStartedAt = DateTimeOffset.Now;
         _lastRunCompletedAt = null;
-        _activityState.Begin(title, status, Strings.PreparingBackend);
+        var operationId = OperationCorrelation.Begin("WPF", action);
+        _activityState.Begin(title, status, Strings.PreparingBackend, operationId.ToString());
+        AppendLog(LF("Vm_OperationStartedFormat", operationId), "INFO");
         _runStopwatch.Restart();
         _runElapsedTimer.Start();
         OnPropertyChanged(nameof(RunElapsedText));
@@ -3520,7 +3533,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ApplyConfigurationToEditor(configuration);
             }
 
-            var result = await _backendScriptService.RunAsync(action, _configurationService.ConfigPath, HandleBackendMessage, token);
+            var result = await _backendScriptService.RunAsync(
+                action,
+                _configurationService.ConfigPath,
+                HandleBackendMessage,
+                operationId,
+                token);
             _lastBackendRunResult = result;
             if (result.Canceled)
             {
@@ -3562,6 +3580,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(RunElapsedText));
             IsRunning = false;
             IsCancelRequested = false;
+            OperationCorrelation.Complete(operationId, "WPF", action, _activityOutcome.ToString());
             await RefreshSnapshotAsync();
             if (runSucceeded)
             {
@@ -3822,8 +3841,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private async Task ExecuteSelectedUndoConfirmedAsync(IReadOnlyList<UndoActionItemViewModel> selected)
     {
+        var operationId = OperationCorrelation.Begin("WPF", "Undo");
         _activityOutcome = ActivityOutcome.None;
-        _activityState.Begin(L("Vm_UndoActivityTitle"), L("Vm_UndoActivityStatus"), LF("Vm_UndoActivityStepFormat", selected.Count));
+        _activityState.Begin(
+            L("Vm_UndoActivityTitle"),
+            L("Vm_UndoActivityStatus"),
+            LF("Vm_UndoActivityStepFormat", selected.Count),
+            operationId.ToString());
+        AppendLog(LF("Vm_OperationStartedFormat", operationId), "INFO");
         var succeeded = 0;
         var failed = 0;
         try
@@ -3847,6 +3872,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         finally
         {
             IsRunning = false;
+            OperationCorrelation.Complete(operationId, "WPF", "Undo", _activityOutcome.ToString());
             RefreshUndoActionItems();
             await RefreshSnapshotAsync();
         }
@@ -3922,6 +3948,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             AppendLog(L("Vm_ActivityLogClipboardUnavailable"), "WARN");
         }
+    }
+
+    private void CopyOperationId()
+    {
+        if (!HasActivityOperationId)
+        {
+            return;
+        }
+
+        var copied = TrySetClipboardText(ActivityOperationId);
+        AppendLog(
+            copied ? L("Vm_OperationIdCopied") : L("Vm_OperationIdClipboardUnavailable"),
+            copied ? "INFO" : "WARN");
     }
 
     private bool TrySetClipboardText(string text)
@@ -4106,11 +4145,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void ShowNotice(string title, string status, string step)
+    private void ShowNotice(string title, string status, string step, string? operationId = null)
     {
         _runStopwatch.Reset();
         _runElapsedTimer.Stop();
-        _activityState.ShowNotice(title, status, step);
+        _activityState.ShowNotice(title, status, step, operationId);
         OnPropertyChanged(nameof(RunElapsedText));
     }
 
@@ -4184,7 +4223,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ShowNotice(
                     Strings.ActivityDialogName,
                     Strings.RunComplete,
-                    Strings.ProgressSpotifyReady);
+                    Strings.ProgressSpotifyReady,
+                    "11111111-1111-1111-1111-111111111111");
                 ProgressValue = 100;
                 break;
             case "activity-running":
@@ -4193,7 +4233,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 _activityState.Begin(
                     Strings.ActivityDialogName,
                     Strings.StatusInProgress,
-                    Strings.PreparingBackend);
+                    Strings.PreparingBackend,
+                    "22222222-2222-2222-2222-222222222222");
                 ProgressValue = 42;
                 AppendLog("UI automation smoke active run.", "INFO");
                 break;
@@ -4207,7 +4248,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ShowNotice(
                     Strings.ActivityDialogName,
                     Strings.RunNeedsAttention,
-                    "Backend reported an error");
+                    "Backend reported an error",
+                    "33333333-3333-3333-3333-333333333333");
                 _activityOutcome = ActivityOutcome.Error;
                 ProgressValue = 100;
                 RaiseActivityDerivedStateChanged();
@@ -4229,7 +4271,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ShowNotice(
                     Strings.RunComplete,
                     L("Vm_LibreSpotReady"),
-                    Strings.ProgressSpotifyReady);
+                    Strings.ProgressSpotifyReady,
+                    "44444444-4444-4444-4444-444444444444");
                 ProgressValue = 100;
                 break;
             default:

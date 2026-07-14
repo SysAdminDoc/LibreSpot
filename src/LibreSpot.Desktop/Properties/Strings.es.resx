@@ -2536,4 +2536,10 @@
   <data name="Vm_UndoComplete" xml:space="preserve"><value>Se deshicieron los cambios seleccionados</value></data>
   <data name="Vm_UndoNeedsReview" xml:space="preserve"><value>Algunos cambios seleccionados requieren revisión</value></data>
   <data name="Vm_UndoResultFormat" xml:space="preserve"><value>{0} correctos; {1} fallidos. Los identificadores de operación están en el registro de actividad.</value></data>
+  <data name="Vm_OperationIdLabel" xml:space="preserve"><value>ID de operación</value></data>
+  <data name="Vm_CopyOperationIdName" xml:space="preserve"><value>Copiar ID de operación</value></data>
+  <data name="Vm_CopyOperationIdHelp" xml:space="preserve"><value>Copia este ID para relacionar la actividad, los registros, los informes de fallos y los paquetes de soporte.</value></data>
+  <data name="Vm_OperationStartedFormat" xml:space="preserve"><value>La operación {0} se inició.</value></data>
+  <data name="Vm_OperationIdCopied" xml:space="preserve"><value>ID de operación copiado.</value></data>
+  <data name="Vm_OperationIdClipboardUnavailable" xml:space="preserve"><value>El portapapeles no está disponible. Selecciona el ID de operación y cópialo manualmente.</value></data>
 </root>

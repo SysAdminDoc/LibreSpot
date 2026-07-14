@@ -8,7 +8,7 @@ using System.Text;
 
 namespace LibreSpot.Desktop.Services;
 
-public sealed record BackendMessage(string Kind, string Level, string Payload);
+public sealed record BackendMessage(string Kind, string Level, string Payload, Guid? OperationId = null);
 public sealed record BackendRunResult(bool Success, string? ErrorMessage = null, bool Canceled = false, string? ErrorCode = null, int? ExitCode = null);
 
 internal sealed record BackendWatchdogOptions(
@@ -67,7 +67,49 @@ public sealed class BackendScriptService
 
     private string RuntimeDirectory => _runtimeDirectory;
 
-    public async Task<BackendRunResult> RunAsync(string action, string configPath, Action<BackendMessage> onMessage, CancellationToken cancellationToken = default)
+    public Task<BackendRunResult> RunAsync(
+        string action,
+        string configPath,
+        Action<BackendMessage> onMessage,
+        CancellationToken cancellationToken = default) =>
+        RunAsync(action, configPath, onMessage, Guid.NewGuid(), cancellationToken);
+
+    public async Task<BackendRunResult> RunAsync(
+        string action,
+        string configPath,
+        Action<BackendMessage> onMessage,
+        Guid operationId,
+        CancellationToken cancellationToken = default)
+    {
+        var outcome = "failed";
+        LibreSpotOperationEventSource.Log.OperationStarted(operationId.ToString(), "BackendScriptService", action);
+        try
+        {
+            var result = await RunCoreAsync(action, configPath, onMessage, operationId, cancellationToken);
+            outcome = result.Canceled ? "canceled" : result.Success ? "succeeded" : "failed";
+            return result;
+        }
+        catch
+        {
+            outcome = "exception";
+            throw;
+        }
+        finally
+        {
+            LibreSpotOperationEventSource.Log.OperationCompleted(
+                operationId.ToString(),
+                "BackendScriptService",
+                action,
+                outcome);
+        }
+    }
+
+    private async Task<BackendRunResult> RunCoreAsync(
+        string action,
+        string configPath,
+        Action<BackendMessage> onMessage,
+        Guid operationId,
+        CancellationToken cancellationToken)
     {
         if (!AllowedActions.Contains(action))
         {
@@ -86,9 +128,9 @@ public sealed class BackendScriptService
 
         if (_noBackendMode)
         {
-            onMessage(new BackendMessage("status", "INFO", "UI automation no-backend mode"));
-            onMessage(new BackendMessage("step", "INFO", $"Skipped backend action: {action}"));
-            onMessage(new BackendMessage("progress", "INFO", "100"));
+            onMessage(new BackendMessage("status", "INFO", "UI automation no-backend mode", operationId));
+            onMessage(new BackendMessage("step", "INFO", $"Skipped backend action: {action}", operationId));
+            onMessage(new BackendMessage("progress", "INFO", "100", operationId));
             return new BackendRunResult(true);
         }
 
@@ -108,7 +150,20 @@ public sealed class BackendScriptService
         {
             try
             {
-                onMessage(message);
+                if (message.OperationId is { } reportedOperationId && reportedOperationId != operationId)
+                {
+                    throw new InvalidDataException(
+                        $"Backend correlation mismatch: expected operation '{operationId}', received '{reportedOperationId}'.");
+                }
+
+                var correlatedMessage = message with { OperationId = operationId };
+                LibreSpotOperationEventSource.Log.BackendMessage(
+                    operationId.ToString(),
+                    action,
+                    correlatedMessage.Kind,
+                    correlatedMessage.Level,
+                    correlatedMessage.Payload);
+                onMessage(correlatedMessage);
             }
             catch (Exception ex)
             {
@@ -189,6 +244,8 @@ public sealed class BackendScriptService
         args.Add(action);
         args.Add("-ConfigPath");
         args.Add(configPath);
+        args.Add("-OperationId");
+        args.Add(operationId.ToString());
 
         var watchdogState = new BackendWatchdogRunState();
         var lastBackendActivityTicks = Stopwatch.GetTimestamp();
@@ -423,14 +480,21 @@ public sealed class BackendScriptService
             return;
         }
 
-        var parts = line.Split('|', 4, StringSplitOptions.None);
+        var parts = line.Split('|', 5, StringSplitOptions.None);
+        if (parts.Length >= 5 && Guid.TryParse(parts[1], out var parsedOperationId))
+        {
+            onMessage(new BackendMessage(parts[2], parts[3], parts[4], parsedOperationId));
+            return;
+        }
+
         if (parts.Length < 4)
         {
             onMessage(new BackendMessage("log", "INFO", line));
             return;
         }
 
-        onMessage(new BackendMessage(parts[1], parts[2], parts[3]));
+        var payload = parts.Length == 5 ? $"{parts[3]}|{parts[4]}" : parts[3];
+        onMessage(new BackendMessage(parts[1], parts[2], payload));
     }
 
     private static string GetPowerShellPath()
