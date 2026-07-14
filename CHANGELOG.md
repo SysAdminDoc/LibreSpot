@@ -23,12 +23,18 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Made watcher state replacement fail cleanly when another process interrupts the atomic update instead of leaking a non-terminating `Move-Item` error before recovery.
 - Restored `.librespot` Explorer imports from arbitrary local folders: file-association activations now enter the validated preview/confirm flow directly instead of being converted into a store-confined protocol URI, while malformed, missing, oversized, and wrong-extension inputs fail without crashing startup.
 - Removed the WPF shell's obsolete whole-app UAC relaunch: Recommended, Custom, and maintenance actions now run in the current standard-user token, readiness no longer treats a standard session as blocked, and the elevation boundary tests require every desktop backend action to remain no-admin.
 - Fixed `Unlock-SpotifyUpdateFolder` throwing "collection modified" and unlocking nothing when the Update folder carried more than one Deny ACE — the exact multi-ACE case it exists to clear; Deny rules are now snapshotted before removal.
 - Fixed the in-app "what's new" preview going blank whenever the changelog's leading `[Unreleased]` section was empty (the normal state right after a release); the preview now falls through to the newest section that actually has content.
 - Stopped run-receipt undo entries from mislabelling the operation token kind as the operation "phase" in the undo history; receipt entries have no phase, so the field now reads as unknown instead of showing the token kind.
 - Relaxed the archive-extraction traversal guard so legitimate entry names that merely begin or end with two dots (e.g. `..gitkeep`) are no longer rejected, while the authoritative resolved-destination prefix check still blocks real path traversal.
+
+### Tests
+
+- Added direct Pester coverage for the lane-specific watcher launch, registration, first-run, preference, active-Spotify, failed-reapply, missing-config, and interrupted-state-write contracts.
+- Added `Build-Scripts.ps1 -WatcherIntegration`, which registers and exports a unique least-privilege task, runs seven isolated watcher process-boundary scenarios, captures Task Scheduler evidence on failure, and always removes the disposable task and temp root.
 
 ## [v4.0.0-preview.17] - 2026-07-09
 

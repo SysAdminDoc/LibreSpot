@@ -398,6 +398,17 @@ This writes `publish\dependency-health.json`, fails on outdated direct NuGet
 packages, records vulnerable package metadata, and allows only documented
 test-only transitive lag from `schemas\dependency-health-allowlist.json`.
 
+Exercise the auto-reapply watcher through a uniquely named, standard-user,
+disposable Task Scheduler task:
+
+```powershell
+.\Build-Scripts.ps1 -WatcherIntegration
+```
+
+The harness isolates all watcher files under `%TEMP%`, covers success and
+failure/cancellation state transitions, emits Scheduler evidence on failure,
+and removes its task and temp data in a `finally` block.
+
 ## Project planning
 
 Development planning is maintained in local working-tree docs. `ROADMAP.md` is the only active queue for incomplete work; completed work is represented by Git history and release notes.

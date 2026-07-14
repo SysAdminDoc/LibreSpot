@@ -38,7 +38,8 @@ param(
     [string]$DependencyHealthReportPath,
     [string]$DependencyHealthAllowlistPath,
     [switch]$CheckSpotifyVersionDrift,
-    [switch]$ReleaseTruth
+    [switch]$ReleaseTruth,
+    [switch]$WatcherIntegration
 )
 
 $ErrorActionPreference = 'Stop'
@@ -1049,6 +1050,15 @@ if ($ReleaseTruth) {
     exit 0
 }
 
+if ($WatcherIntegration) {
+    $watcherIntegrationPath = Join-Path $PSScriptRoot 'tests/powershell/Invoke-WatcherIntegration.ps1'
+    if (-not (Test-Path -LiteralPath $watcherIntegrationPath -PathType Leaf)) {
+        throw "Watcher integration harness not found at $watcherIntegrationPath"
+    }
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $watcherIntegrationPath
+    exit $LASTEXITCODE
+}
+
 if ($CheckSpotifyVersionDrift) {
     Test-SpotifyVersionDrift
     exit 0
@@ -1400,3 +1410,4 @@ Write-Host "  pwsh -File Build-Scripts.ps1 -SyncSharedToMain      # Copy shared 
 Write-Host "  pwsh -File Build-Scripts.ps1 -DependencyHealth       # Emit dependency-health JSON and fail unapproved drift"
 Write-Host "  pwsh -File Build-Scripts.ps1 -CheckSpotifyVersionDrift # Compare pinned Spotify target vs SpotX-Bash buildVer (report-only)"
 Write-Host "  pwsh -File Build-Scripts.ps1 -ReleaseTruth          # Compare README claims with projects, scripts, and GitHub latest stable"
+Write-Host "  pwsh -File Build-Scripts.ps1 -WatcherIntegration    # Exercise the watcher through a disposable Task Scheduler task"

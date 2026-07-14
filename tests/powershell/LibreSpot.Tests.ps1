@@ -61,6 +61,12 @@ BeforeAll {
         'New-SpicetifyStatePreservationSnapshot'
         'Restore-SpicetifyStatePreservationSnapshot'
         'Invoke-WithSpicetifyStatePreservation'
+        'Get-WatcherLaunchCommand'
+        'Get-WatcherState'
+        'Set-WatcherState'
+        'Invoke-AutoReapplyWatcher'
+        'Invoke-HeadlessReapply'
+        'Register-AutoReapplyTask'
     )
     $blocks = foreach ($fn in $functionsToLoad) {
         $block = Extract-FunctionBlock $scriptContent $fn
@@ -1148,5 +1154,117 @@ Describe 'Spicetify state preservation' {
         {
             Copy-DirectorySnapshotSafely -SourcePath $script:customAppsDirectory -DestinationPath $destination -MaxBytes 4
         } | Should -Throw '*preservation limit*'
+    }
+}
+
+# =============================================================================
+# Lane-specific auto-reapply watcher
+# =============================================================================
+Describe 'Lane-specific auto-reapply watcher' {
+    BeforeEach {
+        $script:watcherRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("LibreSpot.Watcher.Tests\" + [Guid]::NewGuid().ToString('N'))
+        $global:CONFIG_DIR = Join-Path $script:watcherRoot 'config'
+        $global:WATCHER_STATE_PATH = Join-Path $global:CONFIG_DIR 'watcher-state.json'
+        $global:WATCHER_TASK_NAME = 'LibreSpot\PesterWatcher'
+        $script:watcherWrites = @()
+        New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
+
+        function Write-WatcherLog { param($Message, $Level) }
+        function Write-OperationJournalEntry { param($Phase, $Target, $SafetyDecision, $Result, $WouldChange, $Reversible, $RollbackHint) }
+        function Unregister-AutoReapplyTask { return $true }
+    }
+
+    AfterEach {
+        Remove-Item -LiteralPath $script:watcherRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'Builds a hidden PowerShell launch command for a durable script entry point' {
+        $entry = Join-Path $script:watcherRoot 'LibreSpot.ps1'
+        Set-Content -LiteralPath $entry -Value '# test entry' -Encoding UTF8
+        $script:EntryCommandPath = $entry
+
+        $launch = Get-WatcherLaunchCommand
+
+        $launch.Entry | Should -Be $entry
+        $launch.Arguments | Should -Match '-NoProfile'
+        $launch.Arguments | Should -Match '-WindowStyle Hidden'
+        $launch.Arguments | Should -Match '-Watch'
+    }
+
+    It 'Builds least-privilege task XML without mutating under WhatIf' {
+        $entry = Join-Path $script:watcherRoot 'LibreSpot.ps1'
+        Set-Content -LiteralPath $entry -Value '# test entry' -Encoding UTF8
+        $script:EntryCommandPath = $entry
+
+        Register-AutoReapplyTask -WhatIf | Should -BeFalse
+    }
+
+    It 'Initializes a first watcher tick without reapplying' {
+        function Get-InstalledSpotifyVersion { return '2.0.0.0' }
+        function Get-WatcherState { return @{ LastKnownVersion = $null } }
+        function Set-WatcherState { param($State) $script:watcherWrites += $State }
+        function Test-SpotifyRunning { return $false }
+
+        Invoke-AutoReapplyWatcher | Should -Be 0
+        $script:watcherWrites[-1].LastOutcome | Should -Be 'Initialized'
+    }
+
+    It 'Honors the disabled config gate after a version change' {
+        function Get-InstalledSpotifyVersion { return '2.0.0.0' }
+        function Get-WatcherState { return @{ LastKnownVersion = '1.0.0.0' } }
+        function Set-WatcherState { param($State) $script:watcherWrites += $State }
+        function Test-SpotifyRunning { return $false }
+        function Load-LibreSpotConfig { return @{ AutoReapply_Enabled = $false } }
+        function Normalize-LibreSpotConfig { param($Config) return $Config }
+
+        Invoke-AutoReapplyWatcher | Should -Be 0
+        $script:watcherWrites[-1].LastOutcome | Should -Be 'PreferenceOff'
+    }
+
+    It 'Defers while Spotify is active and retains the old version' {
+        function Get-InstalledSpotifyVersion { return '2.0.0.0' }
+        function Get-WatcherState { return @{ LastKnownVersion = '1.0.0.0' } }
+        function Set-WatcherState { param($State) $script:watcherWrites += $State }
+        function Test-SpotifyRunning { return $true }
+
+        Invoke-AutoReapplyWatcher | Should -Be 0
+        $script:watcherWrites[-1].LastOutcome | Should -Be 'DeferredSpotifyRunning'
+        $script:watcherWrites[-1].LastKnownVersion | Should -Be '1.0.0.0'
+    }
+
+    It 'Retains the old version when the reapply boundary fails' {
+        function Get-InstalledSpotifyVersion { return '2.0.0.0' }
+        function Get-WatcherState { return @{ LastKnownVersion = '1.0.0.0' } }
+        function Set-WatcherState { param($State) $script:watcherWrites += $State }
+        function Test-SpotifyRunning { return $false }
+        function Load-LibreSpotConfig { return @{ AutoReapply_Enabled = $true } }
+        function Normalize-LibreSpotConfig { param($Config) return $Config }
+        function Invoke-HeadlessReapply { throw 'Synthetic network failure.' }
+
+        Invoke-AutoReapplyWatcher | Should -Be 1
+        $script:watcherWrites[-1].LastKnownVersion | Should -Be '1.0.0.0'
+        $script:watcherWrites[-1].LastOutcome | Should -Match '^Error:'
+    }
+
+    It 'Rejects a headless reapply without config before touching temp state' {
+        { Invoke-HeadlessReapply -Config $null } | Should -Throw '*missing config*'
+    }
+
+    It 'Leaves the prior state intact when its atomic replacement is interrupted' {
+        $original = '{"LastKnownVersion":"1.0.0.0","LastOutcome":"Seeded"}'
+        [System.IO.File]::WriteAllText($global:WATCHER_STATE_PATH, $original)
+        $lock = [System.IO.File]::Open(
+            $global:WATCHER_STATE_PATH,
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::ReadWrite,
+            [System.IO.FileShare]::None)
+        try {
+            Set-WatcherState -State @{ LastKnownVersion = '2.0.0.0'; LastOutcome = 'Reapplied' }
+        } finally {
+            $lock.Dispose()
+        }
+
+        [System.IO.File]::ReadAllText($global:WATCHER_STATE_PATH) | Should -Be $original
+        @(Get-ChildItem -LiteralPath $global:CONFIG_DIR -Force | Where-Object Name -Match '^watcher-state\..+\.(tmp|bak|rescue)$').Count | Should -Be 0
     }
 }

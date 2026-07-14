@@ -942,7 +942,7 @@ function Set-WatcherState {
                 Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
             } catch {
                 $rescuePath = "$($global:WATCHER_STATE_PATH).rescue"
-                Move-Item -LiteralPath $global:WATCHER_STATE_PATH -Destination $rescuePath -Force
+                Move-Item -LiteralPath $global:WATCHER_STATE_PATH -Destination $rescuePath -Force -ErrorAction Stop
                 try {
                     [System.IO.File]::Move($tempPath, $global:WATCHER_STATE_PATH)
                     Remove-Item -LiteralPath $rescuePath -Force -ErrorAction SilentlyContinue
