@@ -40,7 +40,7 @@
     <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="QRCoder" Version="1.8.0" />
-    <PackageReference Include="Serilog" Version="4.3.1" />
+    <PackageReference Include="Serilog" Version="4.4.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <!-- v4 shell controls use the active lepo.co package identity: WPF-UI.
          Do not switch to the older similarly named Wpf.Ui package ID. -->

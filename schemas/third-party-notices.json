@@ -89,7 +89,7 @@
     {
       "name": "Serilog",
       "category": "runtime",
-      "version": "4.3.1",
+      "version": "4.4.0",
       "sourceUrl": "https://github.com/serilog/serilog",
       "spdxLicense": "Apache-2.0",
       "licenseUrl": "https://github.com/serilog/serilog/blob/dev/LICENSE",
@@ -177,7 +177,7 @@
     {
       "name": "Microsoft.NET.Test.Sdk",
       "category": "test",
-      "version": "18.7.0",
+      "version": "18.8.1",
       "sourceUrl": "https://github.com/microsoft/vstest",
       "spdxLicense": "MIT",
       "licenseUrl": "https://github.com/microsoft/vstest/blob/main/LICENSE",
