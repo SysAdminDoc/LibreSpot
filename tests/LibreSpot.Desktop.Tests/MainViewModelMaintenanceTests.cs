@@ -510,6 +510,73 @@ public sealed class MainViewModelMaintenanceTests
             Assert.Equal(0, spotifyProcessService.RestartCalls);
         });
 
+    [Fact]
+    public Task GlobalSearch_CoversEverySupportedProductArea() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            var cases = new (string Query, string CategoryKey)[]
+            {
+                ("recommended", "Vm_GlobalSearchCategorySetup"),
+                ("cache storage", "Vm_GlobalSearchCategorySettings"),
+                ("Catppuccin", "Vm_GlobalSearchCategoryThemesAssets"),
+                (viewModel.LocalProfiles.First().Name, "Vm_GlobalSearchCategoryProfiles"),
+                ("check updates", "Vm_GlobalSearchCategoryMaintenance"),
+                ("support bundle", "Vm_GlobalSearchCategorySupport"),
+                ("health trust", "Vm_GlobalSearchCategoryHealthTrust")
+            };
+
+            foreach (var (query, categoryKey) in cases)
+            {
+                viewModel.GlobalSearchText = query;
+
+                Assert.True(viewModel.HasGlobalSearchResults, $"Expected '{query}' to return a result.");
+                Assert.Contains(
+                    viewModel.GlobalSearchResults,
+                    result => result.Category == LocalizationService.Current.GetString(categoryKey));
+            }
+        });
+
+    [Fact]
+    public Task GlobalSearch_OpensResultAndClearsTransientQuery() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+            viewModel.SelectedWorkspaceIndex = 0;
+            viewModel.GlobalSearchText = "Catppuccin";
+            var result = Assert.Single(
+                viewModel.GlobalSearchResults,
+                item => item.Title.Equals("Catppuccin", StringComparison.OrdinalIgnoreCase));
+
+            result.OpenCommand.Execute(null);
+
+            Assert.Equal(1, viewModel.SelectedWorkspaceIndex);
+            Assert.Equal("Catppuccin", viewModel.ThemeSearchText);
+            Assert.Equal(string.Empty, viewModel.GlobalSearchText);
+            Assert.False(viewModel.HasGlobalSearchText);
+        });
+
+    [Fact]
+    public Task GlobalSearch_ExposesKeyboardFocusAndLocalizedNoResultState() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+            var focusRequests = 0;
+            viewModel.GlobalSearchFocusRequested += (_, _) => focusRequests++;
+
+            viewModel.FocusGlobalSearchCommand.Execute(null);
+            viewModel.GlobalSearchText = "no-such-libre-spot-feature";
+
+            Assert.Equal(1, focusRequests);
+            Assert.True(viewModel.ShowGlobalSearchEmptyState);
+            Assert.Contains("no-such-libre-spot-feature", viewModel.GlobalSearchSummary, StringComparison.Ordinal);
+            Assert.False(viewModel.HasGlobalSearchResults);
+        });
+
     private static MaintenanceActionCardViewModel Card(MainViewModel viewModel, string action) =>
         viewModel.SafeMaintenanceActions
             .Concat(viewModel.DestructiveMaintenanceActions)

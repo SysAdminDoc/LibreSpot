@@ -35,6 +35,7 @@
   <Window.InputBindings>
     <KeyBinding Key="Escape" Command="{Binding EscapeCommand}" />
     <KeyBinding Key="F5" Command="{Binding RefreshSnapshotCommand}" />
+    <KeyBinding Key="K" Modifiers="Control" Command="{Binding FocusGlobalSearchCommand}" />
   </Window.InputBindings>
 
   <Window.TaskbarItemInfo>
@@ -1758,6 +1759,46 @@
                          Margin="0,8,0,0"
                          MaxWidth="760"
                          TextWrapping="Wrap" />
+              <TextBlock Text="{services:Loc Vm_GlobalSearchLabel}"
+                         Style="{StaticResource LabelTextStyle}"
+                         Margin="0,12,0,0" />
+              <Grid Margin="0,6,0,0"
+                    MaxWidth="720"
+                    HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="GlobalSearchBox"
+                         Text="{Binding GlobalSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource TextBoxStylePremium}"
+                         Height="42"
+                         MinWidth="360"
+                         ToolTip="{services:Loc Vm_GlobalSearchHelp}"
+                         AutomationProperties.AutomationId="GlobalSearchBox"
+                         AutomationProperties.Name="{services:Loc Vm_GlobalSearchLabel}"
+                         AutomationProperties.HelpText="{services:Loc Vm_GlobalSearchHelp}" />
+                <Button Grid.Column="1"
+                        Content="{services:Loc Vm_GlobalSearchClear}"
+                        Command="{Binding ClearGlobalSearchCommand}"
+                        Height="42"
+                        MinWidth="72"
+                        Margin="8,0,0,0"
+                        Padding="14,0"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Visibility="{Binding HasGlobalSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
+                        AutomationProperties.AutomationId="GlobalSearchClearButton"
+                        AutomationProperties.Name="{services:Loc Vm_GlobalSearchClear}" />
+                <Border Grid.Column="2"
+                        Style="{StaticResource MicroBadgeStyle}"
+                        Margin="8,5,0,5"
+                        VerticalAlignment="Center">
+                  <TextBlock Text="{services:Loc Vm_GlobalSearchShortcutText}"
+                             Style="{StaticResource MicroBadgeTextStyle}"
+                             AutomationProperties.Name="{services:Loc Vm_GlobalSearchShortcutHelp}" />
+                </Border>
+              </Grid>
             </StackPanel>
 
             <Border Grid.Row="1"
@@ -1767,6 +1808,93 @@
                     Margin="0,18,0,0"
                     Visibility="Collapsed" />
           </Grid>
+
+          <Border Grid.Row="0"
+                  Grid.RowSpan="4"
+                  Panel.ZIndex="40"
+                  Width="640"
+                  MaxHeight="470"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Top"
+                  Margin="0,198,0,0"
+                  Padding="18"
+                  Style="{StaticResource SurfaceCardStyle}"
+                  Background="{DynamicResource SurfaceCardBrush}"
+                  BorderBrush="{DynamicResource StrokeStrongBrush}"
+                  Effect="{StaticResource OverlayShadow}"
+                  Visibility="{Binding HasGlobalSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.AutomationId="GlobalSearchResultsPanel"
+                  AutomationProperties.Name="{services:Loc Vm_GlobalSearchResultsLabel}">
+            <StackPanel>
+              <TextBlock Text="{services:Loc Vm_GlobalSearchResultsLabel}"
+                         Style="{StaticResource LabelTextStyle}"
+                         Foreground="{DynamicResource TextBrush}"
+                         Margin="2,0,2,4" />
+              <TextBlock Text="{Binding GlobalSearchSummary}"
+                         Style="{StaticResource CaptionTextStyle}"
+                         Foreground="{DynamicResource TextBrush}"
+                         Margin="2,0,2,12"
+                         TextWrapping="Wrap" />
+              <ScrollViewer MaxHeight="390"
+                            VerticalScrollBarVisibility="Auto"
+                            HorizontalScrollBarVisibility="Disabled"
+                            Visibility="{Binding HasGlobalSearchResults, Converter={StaticResource BoolToVisibilityConverter}}">
+                <ItemsControl ItemsSource="{Binding GlobalSearchResults}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Button Command="{Binding OpenCommand}"
+                              Margin="0,0,0,8"
+                              Padding="14,12"
+                              HorizontalContentAlignment="Stretch"
+                              Style="{StaticResource SecondaryButtonStyle}"
+                              AutomationProperties.AutomationId="{Binding AutomationId}"
+                              AutomationProperties.Name="{Binding AutomationName}"
+                              AutomationProperties.HelpText="{Binding OpenHelpText}">
+                        <Grid>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="4" />
+                            <ColumnDefinition Width="*" />
+                          </Grid.ColumnDefinitions>
+                          <Border Background="{DynamicResource AccentBrush}"
+                                  CornerRadius="{StaticResource RadiusXs}"
+                                  Margin="0,2,12,2" />
+                          <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                            <TextBlock Text="{Binding Category}"
+                                       Style="{StaticResource SectionEyebrowTextStyle}"
+                                       Foreground="{DynamicResource AccentBrush}" />
+                            <TextBlock Text="{Binding Title}"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       Margin="0,4,0,0"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Description}"
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       Margin="0,4,0,0"
+                                       MaxHeight="42"
+                                       TextTrimming="CharacterEllipsis"
+                                       TextWrapping="Wrap" />
+                          </StackPanel>
+                        </Grid>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+              <Border Style="{StaticResource SubtleCardStyle}"
+                      Background="{DynamicResource Surface1Brush}"
+                      Visibility="{Binding ShowGlobalSearchEmptyState, Converter={StaticResource BoolToVisibilityConverter}}">
+                <StackPanel>
+                  <TextBlock Text="{services:Loc Vm_GlobalSearchEmptyTitle}"
+                             Style="{StaticResource EmptyStateTitleTextStyle}" />
+                  <TextBlock Text="{services:Loc Vm_GlobalSearchEmptyHint}"
+                             Style="{StaticResource EmptyStateBodyTextStyle}"
+                             Margin="0,6,0,0" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </Border>
 
           <Border Grid.Row="1"
                   Background="Transparent"

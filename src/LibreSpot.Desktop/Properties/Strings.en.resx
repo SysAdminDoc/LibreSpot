@@ -2542,4 +2542,23 @@
   <data name="Vm_OperationStartedFormat" xml:space="preserve"><value>Operation {0} started.</value></data>
   <data name="Vm_OperationIdCopied" xml:space="preserve"><value>Operation ID copied.</value></data>
   <data name="Vm_OperationIdClipboardUnavailable" xml:space="preserve"><value>Clipboard is unavailable. Select the operation ID and copy it manually.</value></data>
+  <data name="Vm_GlobalSearchLabel" xml:space="preserve"><value>Search LibreSpot</value></data>
+  <data name="Vm_GlobalSearchHelp" xml:space="preserve"><value>Search setup, settings, themes, profiles, actions, and system health. Press Ctrl+K from anywhere.</value></data>
+  <data name="Vm_GlobalSearchClear" xml:space="preserve"><value>Clear search</value></data>
+  <data name="Vm_GlobalSearchShortcutText" xml:space="preserve"><value>Ctrl+K</value></data>
+  <data name="Vm_GlobalSearchShortcutHelp" xml:space="preserve"><value>Ctrl+K focuses Search LibreSpot.</value></data>
+  <data name="Vm_GlobalSearchResultsLabel" xml:space="preserve"><value>Search results</value></data>
+  <data name="Vm_GlobalSearchNoMatchesFormat" xml:space="preserve"><value>No matches for “{0}”.</value></data>
+  <data name="Vm_GlobalSearchOneMatchFormat" xml:space="preserve"><value>1 result for “{0}”.</value></data>
+  <data name="Vm_GlobalSearchManyMatchesFormat" xml:space="preserve"><value>{0} results for “{1}”.</value></data>
+  <data name="Vm_GlobalSearchOpenResultHelpFormat" xml:space="preserve"><value>Open {0} in {1}.</value></data>
+  <data name="Vm_GlobalSearchEmptyTitle" xml:space="preserve"><value>Nothing matched</value></data>
+  <data name="Vm_GlobalSearchEmptyHint" xml:space="preserve"><value>Try a feature name, setting, theme, profile, repair action, or health status.</value></data>
+  <data name="Vm_GlobalSearchCategorySetup" xml:space="preserve"><value>Setup</value></data>
+  <data name="Vm_GlobalSearchCategorySettings" xml:space="preserve"><value>Settings</value></data>
+  <data name="Vm_GlobalSearchCategoryThemesAssets" xml:space="preserve"><value>Themes &amp; assets</value></data>
+  <data name="Vm_GlobalSearchCategoryProfiles" xml:space="preserve"><value>Profiles</value></data>
+  <data name="Vm_GlobalSearchCategoryMaintenance" xml:space="preserve"><value>Maintenance</value></data>
+  <data name="Vm_GlobalSearchCategorySupport" xml:space="preserve"><value>Support</value></data>
+  <data name="Vm_GlobalSearchCategoryHealthTrust" xml:space="preserve"><value>Health &amp; trust</value></data>
 </root>

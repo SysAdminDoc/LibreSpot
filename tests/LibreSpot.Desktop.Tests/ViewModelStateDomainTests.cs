@@ -94,6 +94,29 @@ public sealed class ViewModelStateDomainTests
     }
 
     [Fact]
+    public void GlobalSearchResult_ScoresExactPhraseAndTokenizedMatches()
+    {
+        var opened = false;
+        var result = new GlobalSearchResultViewModel(
+            "GlobalSearchResult_Test",
+            1,
+            "Settings",
+            "Cache limit",
+            "Control the storage used by Spotify.",
+            "download storage spotify",
+            "Open Cache limit in Settings.",
+            () => opened = true);
+
+        Assert.Equal(0, result.MatchScore("cache limit"));
+        Assert.Equal(3, result.MatchScore("download"));
+        Assert.Equal(5, result.MatchScore("spotify storage"));
+        Assert.Equal(int.MaxValue, result.MatchScore("profiles"));
+
+        result.OpenCommand.Execute(null);
+        Assert.True(opened);
+    }
+
+    [Fact]
     public void ActivityRunState_BeginAndNoticeOwnProgressVisibilityAndStatus()
     {
         var state = new ActivityRunStateViewModel();

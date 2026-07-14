@@ -53,6 +53,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private bool _snapshotLoadFailed;
 
     private int _selectedWorkspaceIndex;
+    private string _globalSearchText = string.Empty;
     private bool _isApplyingSelectionDependencyRules;
     private ConfigurationLoadState _configurationLoadState = ConfigurationLoadState.Loaded;
     private string? _recoveredConfigurationPath;
@@ -134,6 +135,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SupportBundleRedactionRules = new ObservableCollection<string>();
         ChangelogHighlights = new ObservableCollection<string>(ChangelogPreviewService.LoadUnreleasedHighlights());
         LocalProfiles = new ObservableCollection<LocalProfileCardViewModel>();
+        GlobalSearchResults = new ObservableCollection<GlobalSearchResultViewModel>();
         CustomPatchFindings = new ObservableCollection<string>();
         LocalizationOptions = new ObservableCollection<LocalizationOption>(LocalizationService.SupportedCultures);
         _localizationService.CultureChanged += OnLocalizationCultureChanged;
@@ -191,6 +193,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DisableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: false), () => !IsRunning && Snapshot.AutoReapplyTaskRegistered);
         ClearSettingsSearchCommand = new RelayCommand(() => SettingsSearchText = string.Empty, () => HasSettingsSearchText);
         ClearThemeSearchCommand = new RelayCommand(() => ThemeSearchText = string.Empty, () => HasThemeSearchText);
+        ClearGlobalSearchCommand = new RelayCommand(() => GlobalSearchText = string.Empty, () => HasGlobalSearchText);
+        FocusGlobalSearchCommand = new RelayCommand(() => GlobalSearchFocusRequested?.Invoke(this, EventArgs.Empty));
         ConfirmPromptCommand = CreateAsyncCommand(ConfirmPromptAsync, () => IsPromptVisible);
         CancelPromptCommand = new RelayCommand(CancelPrompt, () => IsPromptVisible);
         EscapeCommand = new RelayCommand(HandleEscape);
@@ -233,6 +237,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<string> ChangelogHighlights { get; }
     public ObservableCollection<UndoActionItemViewModel> UndoActionItems => _activityState.UndoActionItems;
     public ObservableCollection<LocalProfileCardViewModel> LocalProfiles { get; }
+    public ObservableCollection<GlobalSearchResultViewModel> GlobalSearchResults { get; }
     public ObservableCollection<string> CustomPatchFindings { get; }
     public ObservableCollection<LocalizationOption> LocalizationOptions { get; }
     public ObservableCollection<LogEntryViewModel> LogEntries => _activityState.LogEntries;
@@ -278,9 +283,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand DisableAutoReapplyCommand { get; }
     public RelayCommand ClearSettingsSearchCommand { get; }
     public RelayCommand ClearThemeSearchCommand { get; }
+    public RelayCommand ClearGlobalSearchCommand { get; }
+    public RelayCommand FocusGlobalSearchCommand { get; }
     public IAsyncRelayCommand ConfirmPromptCommand { get; }
     public RelayCommand CancelPromptCommand { get; }
     public RelayCommand EscapeCommand { get; }
+
+    public event EventHandler? GlobalSearchFocusRequested;
 
     public EnvironmentSnapshot Snapshot => _environmentState.Snapshot;
 
@@ -953,6 +962,28 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     public bool HasSettingsSearchText => _settingsSearch.HasText;
+
+    public string GlobalSearchText
+    {
+        get => _globalSearchText;
+        set
+        {
+            if (SetProperty(ref _globalSearchText, value ?? string.Empty))
+            {
+                RefreshGlobalSearch();
+            }
+        }
+    }
+
+    public bool HasGlobalSearchText => !string.IsNullOrWhiteSpace(GlobalSearchText);
+    public bool HasGlobalSearchResults => GlobalSearchResults.Count > 0;
+    public bool ShowGlobalSearchEmptyState => HasGlobalSearchText && !HasGlobalSearchResults;
+    public string GlobalSearchSummary => GlobalSearchResults.Count switch
+    {
+        0 => LF("Vm_GlobalSearchNoMatchesFormat", GlobalSearchText.Trim()),
+        1 => LF("Vm_GlobalSearchOneMatchFormat", GlobalSearchText.Trim()),
+        _ => LF("Vm_GlobalSearchManyMatchesFormat", GlobalSearchResults.Count, GlobalSearchText.Trim())
+    };
 
     public bool HasVisibleInstallOptions => HasVisibleOptions(InstallOptions);
 
@@ -2072,6 +2103,177 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private bool MatchesSettingsSearch(string title, string description)
         => _settingsSearch.Matches(title, description);
 
+    private void RefreshGlobalSearch()
+    {
+        GlobalSearchResults.Clear();
+        if (!HasGlobalSearchText)
+        {
+            RaiseGlobalSearchChanged();
+            return;
+        }
+
+        var query = GlobalSearchText.Trim();
+        var candidates = new List<GlobalSearchResultViewModel>();
+
+        void Add(
+            int categoryOrder,
+            string categoryKey,
+            string title,
+            string description,
+            string keywords,
+            Action open)
+        {
+            var category = L(categoryKey);
+            var id = $"GlobalSearchResult_{categoryOrder}_{candidates.Count}";
+            candidates.Add(new GlobalSearchResultViewModel(
+                id,
+                categoryOrder,
+                category,
+                title,
+                description,
+                keywords,
+                LF("Vm_GlobalSearchOpenResultHelpFormat", title, category),
+                () =>
+                {
+                    open();
+                    GlobalSearchText = string.Empty;
+                }));
+        }
+
+        Add(0, "Vm_GlobalSearchCategorySetup", L("ModeRecommendedTitle"), L("ModeRecommendedDescription"),
+            $"recommended install apply {L("ButtonRunRecommendedSetup")}", () => OpenGlobalWorkspace(0));
+        Add(0, "Vm_GlobalSearchCategorySetup", L("ModeCustomTitle"), L("Vm_WorkspaceHeroCustomBody"),
+            "custom configure settings profile", () => OpenGlobalWorkspace(1));
+        Add(0, "Vm_GlobalSearchCategorySetup", L("ModeMaintenanceTitle"), L("Vm_WorkspaceHeroMaintenanceBody"),
+            "maintenance repair diagnostics support", () => OpenGlobalWorkspace(2));
+
+        foreach (var option in EnumerateAllOptions())
+        {
+            Add(1, "Vm_GlobalSearchCategorySettings", option.Title, option.Description, option.Key,
+                () => OpenGlobalCustomFilter(option.Title));
+        }
+
+        Add(1, "Vm_GlobalSearchCategorySettings", L("Vm_SearchColorSchemeTitle"), ThemeSchemeHint, "color palette appearance",
+            () => OpenGlobalCustomFilter(L("Vm_SearchColorSchemeTitle")));
+        Add(1, "Vm_GlobalSearchCategorySettings", L("Vm_SearchLyricsThemeTitle"), LyricsThemeHint, "lyrics colors appearance",
+            () => OpenGlobalCustomFilter(L("Vm_SearchLyricsThemeTitle")));
+        Add(1, "Vm_GlobalSearchCategorySettings", L("Vm_SearchCacheLimitTitle"), L("Vm_SearchCacheLimitDescription"), "cache storage",
+            () => OpenGlobalCustomFilter(L("Vm_SearchCacheLimitTitle")));
+        Add(1, "Vm_GlobalSearchCategorySettings", L("Vm_SearchSpotifyBuildTitle"), SpotifyVersionNotes, "spotify version architecture",
+            () => OpenGlobalCustomFilter(L("Vm_SearchSpotifyBuildTitle")));
+        Add(1, "Vm_GlobalSearchCategorySettings", L("Vm_SearchDownloadPathTitle"), DownloadMethodDetail, "download method network",
+            () => OpenGlobalCustomFilter(L("Vm_SearchDownloadPathTitle")));
+        Add(1, "Vm_GlobalSearchCategorySettings", L("Vm_CustomPatchesSearchTitle"), L("Vm_CustomPatchesSearchDescription"), "spotx json patches advanced",
+            () => OpenGlobalCustomFilter(L("Vm_CustomPatchesSearchTitle")));
+
+        foreach (var theme in ThemeGalleryItems)
+        {
+            Add(2, "Vm_GlobalSearchCategoryThemesAssets", theme.Label, theme.AutomationHelpText,
+                $"theme {theme.Name} {theme.SourceBadge} {theme.JsBadge} {theme.SchemePreview}",
+                () => OpenGlobalTheme(theme));
+        }
+
+        foreach (var extension in Extensions.Concat(CustomApps))
+        {
+            Add(2, "Vm_GlobalSearchCategoryThemesAssets", extension.Title, extension.Description,
+                $"extension custom app asset {extension.Key}", () => OpenGlobalCustomFilter(extension.Title));
+        }
+
+        foreach (var profile in LocalProfiles)
+        {
+            Add(3, "Vm_GlobalSearchCategoryProfiles", profile.Name,
+                profile.HasDescription ? profile.Description : profile.CapabilityText,
+                $"profile preset {profile.Id} {profile.KindBadge} {profile.StateBadge}",
+                () => OpenGlobalProfile(profile));
+        }
+
+        foreach (var action in SafeMaintenanceActions.Concat(DestructiveMaintenanceActions))
+        {
+            Add(4, "Vm_GlobalSearchCategoryMaintenance", action.Title, action.Description,
+                $"{action.Action} {action.ButtonText} repair action", () => OpenGlobalWorkspace(2));
+        }
+
+        Add(5, "Vm_GlobalSearchCategorySupport", L("SupportBundleTitle"), SupportBundleRedactionSummary,
+            $"{L("ButtonExportBundle")} diagnostics logs crash journal", () => OpenGlobalWorkspace(2));
+        foreach (var item in SupportBundleItems)
+        {
+            Add(5, "Vm_GlobalSearchCategorySupport", item.Title, item.Detail,
+                $"support bundle {item.Id}", () => OpenGlobalWorkspace(2));
+        }
+
+        foreach (var issue in HealthReport.CriticalIssues
+                     .Concat(HealthReport.WarningIssues)
+                     .Concat(HealthReport.InfoIssues))
+        {
+            Add(6, "Vm_GlobalSearchCategoryHealthTrust", issue.Name,
+                $"{issue.Status}. {issue.Evidence}",
+                $"health trust {issue.Id} {issue.RecommendedActionText}", () => OpenGlobalWorkspace(2));
+        }
+
+        foreach (var provenance in ShellProvenanceItems)
+        {
+            Add(6, "Vm_GlobalSearchCategoryHealthTrust", provenance.Name,
+                $"{provenance.PinnedDetail}. {provenance.VerifiedDetail}",
+                $"trust source provenance {provenance.FreshnessText} {provenance.SourceUrl}", () => OpenGlobalWorkspace(0));
+        }
+
+        foreach (var result in candidates
+                     .Select(candidate => (Candidate: candidate, Score: candidate.MatchScore(query)))
+                     .Where(match => match.Score != int.MaxValue)
+                     .OrderBy(match => match.Score)
+                     .ThenBy(match => match.Candidate.CategoryOrder)
+                     .ThenBy(match => match.Candidate.Title, StringComparer.CurrentCultureIgnoreCase)
+                     .Take(48)
+                     .Select(match => match.Candidate))
+        {
+            GlobalSearchResults.Add(result);
+        }
+
+        RaiseGlobalSearchChanged();
+    }
+
+    private void RaiseGlobalSearchChanged()
+    {
+        OnPropertyChanged(nameof(HasGlobalSearchText));
+        OnPropertyChanged(nameof(HasGlobalSearchResults));
+        OnPropertyChanged(nameof(ShowGlobalSearchEmptyState));
+        OnPropertyChanged(nameof(GlobalSearchSummary));
+        ClearGlobalSearchCommand.NotifyCanExecuteChanged();
+    }
+
+    private void OpenGlobalWorkspace(int workspaceIndex)
+    {
+        SelectedWorkspaceIndex = workspaceIndex;
+        if (workspaceIndex == 1)
+        {
+            SettingsSearchText = string.Empty;
+            ThemeSearchText = string.Empty;
+        }
+    }
+
+    private void OpenGlobalCustomFilter(string filter)
+    {
+        SelectedWorkspaceIndex = 1;
+        ThemeSearchText = string.Empty;
+        SettingsSearchText = filter;
+    }
+
+    private void OpenGlobalTheme(ThemeGalleryItemViewModel theme)
+    {
+        SelectedWorkspaceIndex = 1;
+        SettingsSearchText = L("Vm_SearchThemePackTitle");
+        ThemeSearchText = theme.Label;
+        SelectedThemeGalleryItem = theme;
+    }
+
+    private void OpenGlobalProfile(LocalProfileCardViewModel profile)
+    {
+        SelectedWorkspaceIndex = 1;
+        SettingsSearchText = string.Empty;
+        ThemeSearchText = string.Empty;
+        SelectedLocalProfile = profile;
+    }
+
     private void RefreshCustomPatchValidation()
     {
         _customPatchValidation = _customPatchService.Validate(CustomPatchesJson, CustomPatchesEnabled);
@@ -2264,6 +2466,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CustomRunReadinessTitle));
         OnPropertyChanged(nameof(CustomRunReadinessDetail));
         OnPropertyChanged(nameof(CustomApplyCaption));
+        RefreshGlobalSearch();
         RebuildSelectionInsights();
     }
 
@@ -2294,6 +2497,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ? L("Vm_ProfileOneChoiceReady")
                 : LF("Vm_ProfileManyChoicesReadyFormat", LocalProfiles.Count);
         RaiseLocalProfileStateChanged();
+        RefreshGlobalSearch();
     }
 
     private void RefreshProfileFormFromSelection()
@@ -4045,6 +4249,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
+        if (HasGlobalSearchText)
+        {
+            GlobalSearchText = string.Empty;
+            return;
+        }
+
         if (IsActivityVisible && !IsRunning)
         {
             IsActivityVisible = false;
@@ -4192,6 +4402,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             case "custom-no-results":
                 SelectedWorkspaceIndex = 1;
                 SettingsSearchText = "__no_matching_setting__";
+                break;
+            case "global-search":
+                SelectedWorkspaceIndex = 0;
+                GlobalSearchText = "marketplace";
                 break;
             case "prompt":
                 SelectedWorkspaceIndex = 0;

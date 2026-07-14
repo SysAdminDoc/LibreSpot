@@ -42,6 +42,7 @@ public sealed class WpfQaMatrixTests
             ("prompt", "ButtonContinue", "PromptConfirmButton"),
             ("activity-empty", "Vm_ShellNoActiveTasks", "WorkspaceNavRecommended"),
             ("custom-no-results", "SearchNoResults", "SettingsSearchClearButton"),
+            ("global-search", "Vm_GlobalSearchResultsLabel", "GlobalSearchBox"),
             ("snapshot-loading", "Vm_ShellCheckingSystem", "WorkspaceNavRecommended"),
             ("snapshot-error", "Vm_ShellSnapshotUnavailable", "InspectorRetryEnvironmentButton"),
             ("activity-error", "RunNeedsAttention", "ActivityExportFailureBundleButton"),

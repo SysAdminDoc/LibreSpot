@@ -2542,4 +2542,23 @@
   <data name="Vm_OperationStartedFormat" xml:space="preserve"><value>Операция {0} запущена.</value></data>
   <data name="Vm_OperationIdCopied" xml:space="preserve"><value>Идентификатор операции скопирован.</value></data>
   <data name="Vm_OperationIdClipboardUnavailable" xml:space="preserve"><value>Буфер обмена недоступен. Выберите идентификатор операции и скопируйте его вручную.</value></data>
+  <data name="Vm_GlobalSearchLabel" xml:space="preserve"><value>Поиск в LibreSpot</value></data>
+  <data name="Vm_GlobalSearchHelp" xml:space="preserve"><value>Ищите режимы установки, настройки, темы, профили, действия и состояние системы. Нажмите Ctrl+K в любом разделе.</value></data>
+  <data name="Vm_GlobalSearchClear" xml:space="preserve"><value>Очистить поиск</value></data>
+  <data name="Vm_GlobalSearchShortcutText" xml:space="preserve"><value>Ctrl+K</value></data>
+  <data name="Vm_GlobalSearchShortcutHelp" xml:space="preserve"><value>Ctrl+K переводит фокус в поле поиска LibreSpot.</value></data>
+  <data name="Vm_GlobalSearchResultsLabel" xml:space="preserve"><value>Результаты поиска</value></data>
+  <data name="Vm_GlobalSearchNoMatchesFormat" xml:space="preserve"><value>По запросу «{0}» ничего не найдено.</value></data>
+  <data name="Vm_GlobalSearchOneMatchFormat" xml:space="preserve"><value>По запросу «{0}» найден 1 результат.</value></data>
+  <data name="Vm_GlobalSearchManyMatchesFormat" xml:space="preserve"><value>По запросу «{1}» найдено результатов: {0}.</value></data>
+  <data name="Vm_GlobalSearchOpenResultHelpFormat" xml:space="preserve"><value>Открыть «{0}» в разделе «{1}».</value></data>
+  <data name="Vm_GlobalSearchEmptyTitle" xml:space="preserve"><value>Ничего не найдено</value></data>
+  <data name="Vm_GlobalSearchEmptyHint" xml:space="preserve"><value>Попробуйте указать функцию, настройку, тему, профиль, действие восстановления или состояние системы.</value></data>
+  <data name="Vm_GlobalSearchCategorySetup" xml:space="preserve"><value>Установка</value></data>
+  <data name="Vm_GlobalSearchCategorySettings" xml:space="preserve"><value>Настройки</value></data>
+  <data name="Vm_GlobalSearchCategoryThemesAssets" xml:space="preserve"><value>Темы и ресурсы</value></data>
+  <data name="Vm_GlobalSearchCategoryProfiles" xml:space="preserve"><value>Профили</value></data>
+  <data name="Vm_GlobalSearchCategoryMaintenance" xml:space="preserve"><value>Обслуживание</value></data>
+  <data name="Vm_GlobalSearchCategorySupport" xml:space="preserve"><value>Поддержка</value></data>
+  <data name="Vm_GlobalSearchCategoryHealthTrust" xml:space="preserve"><value>Состояние и доверие</value></data>
 </root>

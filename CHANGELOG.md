@@ -18,6 +18,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Accessibility
 
+- Added a visible, keyboard-accessible LibreSpot-wide search (`Ctrl+K`) with localized category, count, empty-state, action, and shortcut text across all six resource sets.
 - Added an AA-safe danger-text token (at least 5.17:1 across every dark raised surface), migrated destructive/error copy to it, and retained system attention colours in Windows high-contrast themes.
 - Localized every stack-health component name, status, evidence template, fallback action label, and shared scrollbar automation name through the runtime culture resources; the first Spanish health and scrollbar translations now prove the end-to-end non-English path.
 - Made all 38 WPF storyboard animations respond to the live OS animation/high-contrast setting through freeze-safe motion-aware clocks; one-shot transitions snap to their final state and the repeating progress shimmer holds still when motion is suppressed.
@@ -26,6 +27,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- Added one categorized search surface for setup modes, SpotX settings, themes and extensions, local profiles, maintenance actions, support evidence, and health/provenance issues; opening a result navigates to the existing detailed surface without bypassing its safety controls.
 - Refreshed GitHub issue and pull-request intake around Recommended/Custom/Maintenance/Fleet surfaces, current versions, operation IDs, reviewed support bundles, and the repository's actual local validation commands.
 - Added a stable per-run operation GUID across WPF activity, PowerShell backend events and journals, CLI JSON/plain output, rolling logs, crash evidence, and support-bundle manifests, plus an opt-in local `LibreSpot-Operations` EventSource for ETW/EventPipe collection without uploads.
 - Added receipt-backed undo preview and confirmation to the WPF activity pane plus `LibreSpot.Cli undo`; successful and failed attempts emit new operation evidence while retaining source provenance and snapshots for idempotent retries.
@@ -54,6 +56,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Tests
 
+- Added search-domain, navigation, empty-state, shortcut-focus, multi-token matching, localized-resource, UI Automation, and hidden rendered-WPF coverage for the global search surface.
 - Added correlation regression coverage for caller-supplied PowerShell IDs, legacy/new backend protocols, mismatch refusal, WPF activity and bundle evidence, CLI plans, and local EventSource start/message/completion events.
 - Added policy-refusal, stale-state, missing-value, registry-type, idempotent CLI retry, partial-failure recovery, receipt-provenance, WPF selection, Fleet-contract, and PowerShell composition coverage for executable undo.
 - Added synthetic C# and Pester ownership fixtures for raw SpotX, standalone Spicetify, LibreSpot-managed state, mixed BlockTheSpot residue, redacted support export, backend plan disclosure, and migration preservation.

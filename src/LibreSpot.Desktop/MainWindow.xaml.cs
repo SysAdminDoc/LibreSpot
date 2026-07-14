@@ -95,6 +95,7 @@ public partial class MainWindow : Window
             : CreateUiAutomationSmokeViewModel(_uiAutomationSmokeCulture);
 
         DataContext = _viewModel;
+        _viewModel.GlobalSearchFocusRequested += OnGlobalSearchFocusRequested;
         SourceInitialized += MainWindow_SourceInitialized;
         Loaded += MainWindow_Loaded;
         StateChanged += MainWindow_StateChanged;
@@ -384,10 +385,20 @@ public partial class MainWindow : Window
             _viewModel.LogEntries.CollectionChanged -= OnLogEntriesChanged;
         }
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _viewModel.GlobalSearchFocusRequested -= OnGlobalSearchFocusRequested;
         StateChanged -= MainWindow_StateChanged;
         DisposeTrayIcon();
         _viewModel.Dispose();
     }
+
+    private void OnGlobalSearchFocusRequested(object? sender, EventArgs e) =>
+        Dispatcher.BeginInvoke(
+            () =>
+            {
+                GlobalSearchBox.Focus();
+                GlobalSearchBox.SelectAll();
+            },
+            DispatcherPriority.Input);
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {

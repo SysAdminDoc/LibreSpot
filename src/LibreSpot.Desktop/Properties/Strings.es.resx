@@ -2542,4 +2542,23 @@
   <data name="Vm_OperationStartedFormat" xml:space="preserve"><value>La operación {0} se inició.</value></data>
   <data name="Vm_OperationIdCopied" xml:space="preserve"><value>ID de operación copiado.</value></data>
   <data name="Vm_OperationIdClipboardUnavailable" xml:space="preserve"><value>El portapapeles no está disponible. Selecciona el ID de operación y cópialo manualmente.</value></data>
+  <data name="Vm_GlobalSearchLabel" xml:space="preserve"><value>Buscar en LibreSpot</value></data>
+  <data name="Vm_GlobalSearchHelp" xml:space="preserve"><value>Busca configuración inicial, ajustes, temas, perfiles, acciones y estado del sistema. Pulsa Ctrl+K desde cualquier lugar.</value></data>
+  <data name="Vm_GlobalSearchClear" xml:space="preserve"><value>Borrar búsqueda</value></data>
+  <data name="Vm_GlobalSearchShortcutText" xml:space="preserve"><value>Ctrl+K</value></data>
+  <data name="Vm_GlobalSearchShortcutHelp" xml:space="preserve"><value>Ctrl+K lleva el foco a Buscar en LibreSpot.</value></data>
+  <data name="Vm_GlobalSearchResultsLabel" xml:space="preserve"><value>Resultados de búsqueda</value></data>
+  <data name="Vm_GlobalSearchNoMatchesFormat" xml:space="preserve"><value>No hay coincidencias para «{0}».</value></data>
+  <data name="Vm_GlobalSearchOneMatchFormat" xml:space="preserve"><value>1 resultado para «{0}».</value></data>
+  <data name="Vm_GlobalSearchManyMatchesFormat" xml:space="preserve"><value>{0} resultados para «{1}».</value></data>
+  <data name="Vm_GlobalSearchOpenResultHelpFormat" xml:space="preserve"><value>Abrir {0} en {1}.</value></data>
+  <data name="Vm_GlobalSearchEmptyTitle" xml:space="preserve"><value>Sin coincidencias</value></data>
+  <data name="Vm_GlobalSearchEmptyHint" xml:space="preserve"><value>Prueba con una función, ajuste, tema, perfil, acción de reparación o estado del sistema.</value></data>
+  <data name="Vm_GlobalSearchCategorySetup" xml:space="preserve"><value>Configuración inicial</value></data>
+  <data name="Vm_GlobalSearchCategorySettings" xml:space="preserve"><value>Ajustes</value></data>
+  <data name="Vm_GlobalSearchCategoryThemesAssets" xml:space="preserve"><value>Temas y recursos</value></data>
+  <data name="Vm_GlobalSearchCategoryProfiles" xml:space="preserve"><value>Perfiles</value></data>
+  <data name="Vm_GlobalSearchCategoryMaintenance" xml:space="preserve"><value>Mantenimiento</value></data>
+  <data name="Vm_GlobalSearchCategorySupport" xml:space="preserve"><value>Soporte</value></data>
+  <data name="Vm_GlobalSearchCategoryHealthTrust" xml:space="preserve"><value>Estado y confianza</value></data>
 </root>

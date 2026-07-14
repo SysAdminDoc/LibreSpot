@@ -1292,4 +1292,23 @@
   <data name="Vm_OperationStartedFormat" xml:space="preserve"><value>Operation {0} started.</value><comment>Activity log line. {0} is a stable operation GUID.</comment></data>
   <data name="Vm_OperationIdCopied" xml:space="preserve"><value>Operation ID copied.</value><comment>Activity log confirmation after copying the stable operation GUID.</comment></data>
   <data name="Vm_OperationIdClipboardUnavailable" xml:space="preserve"><value>Clipboard is unavailable. Select the operation ID and copy it manually.</value><comment>Activity log recovery guidance when the operation GUID cannot be copied.</comment></data>
+  <data name="Vm_GlobalSearchLabel" xml:space="preserve"><value>Search LibreSpot</value><comment>Visible label and accessible name for the application-wide search field.</comment></data>
+  <data name="Vm_GlobalSearchHelp" xml:space="preserve"><value>Search setup, settings, themes, profiles, actions, and system health. Press Ctrl+K from anywhere.</value><comment>Help text describing the global search scope and shortcut.</comment></data>
+  <data name="Vm_GlobalSearchClear" xml:space="preserve"><value>Clear search</value><comment>Button that clears the application-wide search query.</comment></data>
+  <data name="Vm_GlobalSearchShortcutText" xml:space="preserve"><value>Ctrl+K</value><comment>Keyboard shortcut badge shown beside the global search field.</comment></data>
+  <data name="Vm_GlobalSearchShortcutHelp" xml:space="preserve"><value>Ctrl+K focuses Search LibreSpot.</value><comment>Accessible description of the global search keyboard shortcut.</comment></data>
+  <data name="Vm_GlobalSearchResultsLabel" xml:space="preserve"><value>Search results</value><comment>Accessible name for the global search result panel.</comment></data>
+  <data name="Vm_GlobalSearchNoMatchesFormat" xml:space="preserve"><value>No matches for “{0}”.</value><comment>Global search summary when the query has no matches; {0}=query.</comment></data>
+  <data name="Vm_GlobalSearchOneMatchFormat" xml:space="preserve"><value>1 result for “{0}”.</value><comment>Global search summary when the query has one match; {0}=query.</comment></data>
+  <data name="Vm_GlobalSearchManyMatchesFormat" xml:space="preserve"><value>{0} results for “{1}”.</value><comment>Global search summary; {0}=result count and {1}=query.</comment></data>
+  <data name="Vm_GlobalSearchOpenResultHelpFormat" xml:space="preserve"><value>Open {0} in {1}.</value><comment>Accessible help for a global result; {0}=title and {1}=category.</comment></data>
+  <data name="Vm_GlobalSearchEmptyTitle" xml:space="preserve"><value>Nothing matched</value><comment>Title for the global search no-results state.</comment></data>
+  <data name="Vm_GlobalSearchEmptyHint" xml:space="preserve"><value>Try a feature name, setting, theme, profile, repair action, or health status.</value><comment>Recovery guidance for the global search no-results state.</comment></data>
+  <data name="Vm_GlobalSearchCategorySetup" xml:space="preserve"><value>Setup</value><comment>Global search category for setup modes.</comment></data>
+  <data name="Vm_GlobalSearchCategorySettings" xml:space="preserve"><value>Settings</value><comment>Global search category for configuration options.</comment></data>
+  <data name="Vm_GlobalSearchCategoryThemesAssets" xml:space="preserve"><value>Themes &amp; assets</value><comment>Global search category for themes, extensions, and custom apps.</comment></data>
+  <data name="Vm_GlobalSearchCategoryProfiles" xml:space="preserve"><value>Profiles</value><comment>Global search category for local profiles.</comment></data>
+  <data name="Vm_GlobalSearchCategoryMaintenance" xml:space="preserve"><value>Maintenance</value><comment>Global search category for repair and maintenance actions.</comment></data>
+  <data name="Vm_GlobalSearchCategorySupport" xml:space="preserve"><value>Support</value><comment>Global search category for diagnostics and support bundles.</comment></data>
+  <data name="Vm_GlobalSearchCategoryHealthTrust" xml:space="preserve"><value>Health &amp; trust</value><comment>Global search category for detected health and provenance issues.</comment></data>
 </root>
