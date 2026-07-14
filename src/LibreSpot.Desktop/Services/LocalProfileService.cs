@@ -356,7 +356,11 @@ public sealed class LocalProfileService
     private async Task EnsureInitializedAsync(CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(_profileDirectory);
-        if (!File.Exists(_activeProfilePath))
+        var activePointer = await ReadPointerAsync(_activeProfilePath, cancellationToken);
+        var targetExists = activePointer is not null &&
+            (IsBuiltInId(activePointer.ProfileId) ||
+             await ReadUserProfileDocumentAsync(activePointer.ProfileId, cancellationToken) is not null);
+        if (!targetExists)
         {
             var activeId = File.Exists(_configurationService.ConfigPath)
                 ? await MigrateCurrentConfigurationAsync(cancellationToken)
@@ -519,12 +523,19 @@ public sealed class LocalProfileService
     private async Task<string> MigrateCurrentConfigurationAsync(CancellationToken cancellationToken)
     {
         var existing = await _configurationService.LoadAsync(cancellationToken);
-        var id = await CreateUniqueProfileIdAsync("Current", cancellationToken);
+        var existingProfiles = await ReadUserProfilesAsync(cancellationToken);
+        var name = existingProfiles.Any(profile =>
+            string.Equals(profile.Summary.Name, "Current", StringComparison.CurrentCultureIgnoreCase))
+            ? NextRecoveryProfileName(existingProfiles)
+            : "Current";
+        var id = await CreateUniqueProfileIdAsync(name, cancellationToken);
         var document = new StoredProfileDocument(
             ProfileStoreSchemaVersion,
             id,
-            "Current",
-            "Migrated from the existing config.json.",
+            name,
+            name == "Current"
+                ? "Migrated from the existing config.json."
+                : "Recovered from config.json after the active profile pointer became unavailable.",
             DateTimeOffset.UtcNow,
             DateTimeOffset.UtcNow,
             SanitizedConfiguration(existing));
@@ -569,9 +580,21 @@ public sealed class LocalProfileService
             return null;
         }
 
-        await using var stream = File.OpenRead(path);
-        var document = await JsonSerializer.DeserializeAsync<StoredProfileDocument>(stream, JsonOptions, cancellationToken);
-        return TryNormalizeStoredProfileDocument(document, out var normalized) ? normalized : null;
+        try
+        {
+            await using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            var document = await JsonSerializer.DeserializeAsync<StoredProfileDocument>(stream, JsonOptions, cancellationToken);
+            return TryNormalizeStoredProfileDocument(document, out var normalized) ? normalized : null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or InvalidOperationException)
+        {
+            System.Diagnostics.Debug.WriteLine($"LocalProfileService: profile {path} is unreadable: {ex.Message}");
+            return null;
+        }
     }
 
     private async Task WriteUserProfileDocumentAsync(StoredProfileDocument document, CancellationToken cancellationToken)
@@ -634,8 +657,29 @@ public sealed class LocalProfileService
             return null;
         }
 
-        await using var stream = File.OpenRead(path);
-        return await JsonSerializer.DeserializeAsync<ProfilePointerDocument>(stream, JsonOptions, cancellationToken);
+        try
+        {
+            await using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            var pointer = await JsonSerializer.DeserializeAsync<ProfilePointerDocument>(stream, JsonOptions, cancellationToken);
+            if (pointer is null ||
+                pointer.SchemaVersion != ProfileStoreSchemaVersion ||
+                string.IsNullOrWhiteSpace(pointer.ProfileId) ||
+                !string.Equals(pointer.ProfileId, Slugify(pointer.ProfileId), StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            return pointer;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or InvalidOperationException)
+        {
+            System.Diagnostics.Debug.WriteLine($"LocalProfileService: ignoring malformed pointer {path}: {ex.Message}");
+            return null;
+        }
     }
 
     private static async Task WritePointerAsync(string path, string profileId, CancellationToken cancellationToken)
@@ -788,6 +832,27 @@ public sealed class LocalProfileService
         }
 
         return normalized.Length <= 100 ? normalized : normalized[..100];
+    }
+
+    private static string NextRecoveryProfileName(IReadOnlyList<LocalProfile> profiles)
+    {
+        const string baseName = "Recovered Current";
+        var names = profiles
+            .Select(profile => profile.Summary.Name)
+            .ToHashSet(StringComparer.CurrentCultureIgnoreCase);
+        if (!names.Contains(baseName))
+        {
+            return baseName;
+        }
+
+        for (var suffix = 2; ; suffix++)
+        {
+            var candidate = $"{baseName} {suffix.ToString(CultureInfo.InvariantCulture)}";
+            if (!names.Contains(candidate))
+            {
+                return candidate;
+            }
+        }
     }
 
     private static string Slugify(string value)

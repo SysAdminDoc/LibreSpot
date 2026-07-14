@@ -103,6 +103,77 @@ public sealed class LocalProfileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetProfilesAsync_RecoversMalformedActivePointerWithoutDiscardingConfiguration()
+    {
+        await _profileService.GetProfilesAsync();
+        var configuration = AppCatalog.CreateRecommendedConfiguration();
+        configuration.SpotX_Premium = true;
+        await _configurationService.SaveAsync(configuration);
+        await File.WriteAllTextAsync(
+            Path.Combine(_root, "active-profile.json"),
+            "{ not valid JSON");
+
+        var profiles = await _profileService.GetProfilesAsync();
+
+        var recovered = Assert.Single(profiles, profile => !profile.IsBuiltIn && profile.IsActive);
+        Assert.Equal("Current", recovered.Name);
+        Assert.True((await _profileService.LoadProfileAsync(recovered.Id)).Configuration.SpotX_Premium);
+        using var pointer = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(_root, "active-profile.json")));
+        Assert.Equal(1, pointer.RootElement.GetProperty("SchemaVersion").GetInt32());
+        Assert.Equal(recovered.Id, pointer.RootElement.GetProperty("ProfileId").GetString());
+    }
+
+    [Fact]
+    public async Task GetProfilesAsync_UsesUniqueRecoveryProfileWhenCurrentAlreadyExists()
+    {
+        var configuration = AppCatalog.CreateRecommendedConfiguration();
+        configuration.SpotX_LyricsTheme = "github";
+        await _configurationService.SaveAsync(configuration);
+        await _profileService.GetProfilesAsync();
+
+        configuration.SpotX_LyricsTheme = "lavender";
+        await _configurationService.SaveAsync(configuration);
+        await File.WriteAllTextAsync(
+            Path.Combine(_root, "active-profile.json"),
+            "{ \"SchemaVersion\": 99, \"ProfileId\": \"current\" }");
+
+        var profiles = await _profileService.GetProfilesAsync();
+
+        Assert.Contains(profiles, profile => profile.Name == "Current" && !profile.IsActive);
+        var recovered = Assert.Single(profiles, profile => profile.Name == "Recovered Current" && profile.IsActive);
+        Assert.Equal("lavender", (await _profileService.LoadProfileAsync(recovered.Id)).Configuration.SpotX_LyricsTheme);
+    }
+
+    [Fact]
+    public async Task GetProfilesAsync_RecoversPointerToMissingProfile()
+    {
+        await _profileService.GetProfilesAsync();
+        var configuration = AppCatalog.CreateRecommendedConfiguration();
+        configuration.SpotX_LyricsTheme = "lavender";
+        await _configurationService.SaveAsync(configuration);
+        await File.WriteAllTextAsync(
+            Path.Combine(_root, "active-profile.json"),
+            "{ \"SchemaVersion\": 1, \"ProfileId\": \"missing-profile\", \"UpdatedAt\": \"2026-07-14T00:00:00Z\" }");
+
+        var profiles = await _profileService.GetProfilesAsync();
+
+        var recovered = Assert.Single(profiles, profile => !profile.IsBuiltIn && profile.IsActive);
+        Assert.Equal("Current", recovered.Name);
+        Assert.Equal("lavender", (await _profileService.LoadProfileAsync(recovered.Id)).Configuration.SpotX_LyricsTheme);
+    }
+
+    [Fact]
+    public async Task ReadPreviousActiveProfileIdAsync_IgnoresMalformedPointer()
+    {
+        Directory.CreateDirectory(_root);
+        await File.WriteAllTextAsync(
+            Path.Combine(_root, "active-profile.previous.json"),
+            "[]");
+
+        Assert.Null(await _profileService.ReadPreviousActiveProfileIdAsync());
+    }
+
+    [Fact]
     public async Task ApplyProfileAsync_WritesConfigAndPreviousActivePointer()
     {
         var firstConfig = AppCatalog.CreateRecommendedConfiguration();

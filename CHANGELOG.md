@@ -27,6 +27,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Recovered malformed, unsupported, or dangling active-profile pointers without losing the current configuration: LibreSpot now preserves it as a uniquely named recovery profile, rewrites a valid pointer, and treats malformed previous-profile metadata as unavailable instead of crashing the gallery.
 - Made upstream and community drift caches tolerate null or duplicate records and replace cache JSON atomically, preserving the last valid health snapshot across concurrent writers, process interruption, or malformed local state.
 - Made watcher state replacement fail cleanly when another process interrupts the atomic update instead of leaking a non-terminating `Move-Item` error before recovery.
 - Restored `.librespot` Explorer imports from arbitrary local folders: file-association activations now enter the validated preview/confirm flow directly instead of being converted into a store-confined protocol URI, while malformed, missing, oversized, and wrong-extension inputs fail without crashing startup.
