@@ -182,6 +182,8 @@ $global:CONFIG_PATH            = "$env:APPDATA\LibreSpot\config.json"
 $global:PROFILE_DIR            = "$env:APPDATA\LibreSpot\profiles"
 $global:ACTIVE_PROFILE_PATH    = "$env:APPDATA\LibreSpot\active-profile.json"
 $global:PREVIOUS_PROFILE_PATH  = "$env:APPDATA\LibreSpot\active-profile.previous.json"
+$global:PROFILE_ACTIVATION_LOCK_PATH = "$env:APPDATA\LibreSpot\profile-activation.lock"
+$global:PROFILE_ACTIVATION_TRANSACTION_PATH = "$env:APPDATA\LibreSpot\profile-activation.pending.json"
 $global:LOG_PATH               = "$env:APPDATA\LibreSpot\install.log"
 $global:OPERATION_JOURNAL_PATH = "$env:APPDATA\LibreSpot\operation-journal.jsonl"
 $global:RUN_RECEIPT_PATH       = "$env:APPDATA\LibreSpot\run-receipt.latest.json"
@@ -1565,6 +1567,227 @@ function Get-LibreSpotBuiltInProfiles {
     )
 }
 
+function Enter-LibreSpotProfileActivationLock {
+    if (-not (Test-Path -LiteralPath $global:CONFIG_DIR -PathType Container)) {
+        New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+
+    $deadline = [DateTime]::UtcNow.AddSeconds(30)
+    while ($true) {
+        try {
+            return (New-Object System.IO.FileStream(
+                $global:PROFILE_ACTIVATION_LOCK_PATH,
+                [System.IO.FileMode]::OpenOrCreate,
+                [System.IO.FileAccess]::ReadWrite,
+                [System.IO.FileShare]::None,
+                1,
+                [System.IO.FileOptions]::None))
+        } catch [System.IO.IOException] {
+            if ([DateTime]::UtcNow -ge $deadline) {
+                throw 'Timed out waiting for another LibreSpot profile activation to finish.'
+            }
+            Start-Sleep -Milliseconds 50
+        }
+    }
+}
+
+function Write-LibreSpotFileDurable {
+    param([Parameter(Mandatory)][string]$Path, [AllowEmptyString()][string]$Content)
+
+    $directory = Split-Path -Path $Path -Parent
+    if ($directory -and -not (Test-Path -LiteralPath $directory -PathType Container)) {
+        New-Item -Path $directory -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
+    $stream = New-Object System.IO.FileStream($Path, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+    $writer = New-Object System.IO.StreamWriter($stream, $utf8)
+    try {
+        $writer.Write($Content)
+        $writer.Flush()
+        $stream.Flush($true)
+    } finally {
+        $writer.Dispose()
+    }
+}
+
+function Copy-LibreSpotFileDurable {
+    param([Parameter(Mandatory)][string]$SourcePath, [Parameter(Mandatory)][string]$DestinationPath)
+
+    $source = New-Object System.IO.FileStream($SourcePath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
+    $destination = New-Object System.IO.FileStream($DestinationPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+    try {
+        $source.CopyTo($destination)
+        $destination.Flush($true)
+    } finally {
+        $destination.Dispose()
+        $source.Dispose()
+    }
+}
+
+function Install-LibreSpotStagedConfig {
+    param([Parameter(Mandatory)][string]$StagePath, [Parameter(Mandatory)][string]$DestinationPath)
+
+    $directory = Split-Path -Path $DestinationPath -Parent
+    if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
+        New-Item -Path $directory -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+    $tempPath = Join-Path $directory ("profile-activation.{0}.commit.tmp" -f [Guid]::NewGuid().ToString('N'))
+    $backupPath = Join-Path $directory ("profile-activation.{0}.commit.bak" -f [Guid]::NewGuid().ToString('N'))
+    try {
+        Copy-LibreSpotFileDurable -SourcePath $StagePath -DestinationPath $tempPath
+        if (Test-Path -LiteralPath $DestinationPath -PathType Leaf) {
+            try {
+                [System.IO.File]::Replace($tempPath, $DestinationPath, $backupPath, $true)
+                Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
+            } catch {
+                $rescuePath = "$DestinationPath.rescue"
+                Move-Item -LiteralPath $DestinationPath -Destination $rescuePath -Force -ErrorAction Stop
+                try {
+                    [System.IO.File]::Move($tempPath, $DestinationPath)
+                    Remove-Item -LiteralPath $rescuePath -Force -ErrorAction SilentlyContinue
+                } catch {
+                    Move-Item -LiteralPath $rescuePath -Destination $DestinationPath -Force -ErrorAction SilentlyContinue
+                    throw
+                }
+            }
+        } else {
+            [System.IO.File]::Move($tempPath, $DestinationPath)
+        }
+    } finally {
+        Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Write-LibreSpotJsonAtomically {
+    param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][object]$Document, [int]$Depth = 12)
+
+    $directory = Split-Path -Path $Path -Parent
+    if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
+        New-Item -Path $directory -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+    $tempPath = Join-Path $directory ("profile-activation.{0}.json.tmp" -f [Guid]::NewGuid().ToString('N'))
+    try {
+        Write-LibreSpotFileDurable -Path $tempPath -Content ($Document | ConvertTo-Json -Depth $Depth)
+        Install-LibreSpotStagedConfig -StagePath $tempPath -DestinationPath $Path
+    } finally {
+        Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Get-LibreSpotFileFingerprint {
+    param([Parameter(Mandatory)][string]$Path, [switch]$MissingAsEmpty)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        if (-not $MissingAsEmpty) { throw "File not found: $Path" }
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            return (($sha.ComputeHash([byte[]]@()) | ForEach-Object { $_.ToString('x2') }) -join '')
+        } finally {
+            $sha.Dispose()
+        }
+    }
+    return (Get-FileSha256Lower -Path $Path)
+}
+
+function Test-LibreSpotProfileActivationTransaction {
+    param([Parameter(Mandatory)][object]$Transaction)
+
+    $transactionId = [string]$Transaction.TransactionId
+    $parsedId = [Guid]::Empty
+    if ([int]$Transaction.SchemaVersion -ne 1 -or
+        -not [Guid]::TryParseExact($transactionId, 'N', [ref]$parsedId) -or
+        [string]::IsNullOrWhiteSpace([string]$Transaction.OldProfileId) -or
+        [string]::IsNullOrWhiteSpace([string]$Transaction.NewProfileId) -or
+        (ConvertTo-LibreSpotProfileId -Name ([string]$Transaction.OldProfileId)) -cne [string]$Transaction.OldProfileId -or
+        (ConvertTo-LibreSpotProfileId -Name ([string]$Transaction.NewProfileId)) -cne [string]$Transaction.NewProfileId -or
+        [string]$Transaction.OldConfigFingerprint -notmatch '^[0-9a-fA-F]{64}$' -or
+        [string]$Transaction.NewConfigFingerprint -notmatch '^[0-9a-fA-F]{64}$' -or
+        [string]$Transaction.OldConfigStageFile -cne "profile-activation.$transactionId.previous.staged.json" -or
+        [string]$Transaction.NewConfigStageFile -cne "profile-activation.$transactionId.next.staged.json") {
+        return $false
+    }
+    return $true
+}
+
+function Complete-LibreSpotProfileActivationTransaction {
+    param([string]$OldStagePath, [string]$NewStagePath)
+
+    Remove-Item -LiteralPath $global:PROFILE_ACTIVATION_TRANSACTION_PATH -Force -ErrorAction Stop
+    Remove-Item -LiteralPath $OldStagePath -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $NewStagePath -Force -ErrorAction SilentlyContinue
+    Get-ChildItem -LiteralPath $global:CONFIG_DIR -Filter 'profile-activation.*.staged.json' -File -ErrorAction SilentlyContinue |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+}
+
+function Resolve-LibreSpotProfileActivationTransaction {
+    if (-not (Test-Path -LiteralPath $global:PROFILE_ACTIVATION_TRANSACTION_PATH -PathType Leaf)) {
+        Get-ChildItem -LiteralPath $global:CONFIG_DIR -Filter 'profile-activation.*.staged.json' -File -ErrorAction SilentlyContinue |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+        return
+    }
+
+    try {
+        $transaction = Get-Content -LiteralPath $global:PROFILE_ACTIVATION_TRANSACTION_PATH -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        throw 'The pending profile activation record is unreadable. Move profile-activation.pending.json aside before retrying.'
+    }
+    if (-not (Test-LibreSpotProfileActivationTransaction -Transaction $transaction)) {
+        throw 'The pending profile activation record contains invalid fields. Move profile-activation.pending.json aside before retrying.'
+    }
+
+    $oldStagePath = Join-Path $global:CONFIG_DIR ([string]$transaction.OldConfigStageFile)
+    $newStagePath = Join-Path $global:CONFIG_DIR ([string]$transaction.NewConfigStageFile)
+    $activeId = Read-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH
+    $currentFingerprint = Get-LibreSpotFileFingerprint -Path $global:CONFIG_PATH -MissingAsEmpty
+    $currentIsNew = $currentFingerprint -eq [string]$transaction.NewConfigFingerprint
+
+    if ([string]$activeId -eq [string]$transaction.NewProfileId -and $currentIsNew) {
+        Write-LibreSpotProfilePointer -Path $global:PREVIOUS_PROFILE_PATH -ProfileId ([string]$transaction.OldProfileId)
+        Complete-LibreSpotProfileActivationTransaction -OldStagePath $oldStagePath -NewStagePath $newStagePath
+        return
+    }
+
+    $configExists = Test-Path -LiteralPath $global:CONFIG_PATH -PathType Leaf
+    $currentIsOld = $currentFingerprint -eq [string]$transaction.OldConfigFingerprint -and
+        ([bool]$transaction.OldConfigExisted -or -not $configExists)
+    $oldStageIsValid = (Test-Path -LiteralPath $oldStagePath -PathType Leaf) -and
+        (Get-LibreSpotFileFingerprint -Path $oldStagePath) -eq [string]$transaction.OldConfigFingerprint
+
+    if ($currentIsOld -or $oldStageIsValid) {
+        if (-not $currentIsOld) {
+            if ([bool]$transaction.OldConfigExisted) {
+                Install-LibreSpotStagedConfig -StagePath $oldStagePath -DestinationPath $global:CONFIG_PATH
+            } else {
+                Remove-Item -LiteralPath $global:CONFIG_PATH -Force -ErrorAction SilentlyContinue
+            }
+        }
+        Write-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH -ProfileId ([string]$transaction.OldProfileId)
+        if ([string]::IsNullOrWhiteSpace([string]$transaction.PreviousProfileId)) {
+            Remove-Item -LiteralPath $global:PREVIOUS_PROFILE_PATH -Force -ErrorAction SilentlyContinue
+        } else {
+            Write-LibreSpotProfilePointer -Path $global:PREVIOUS_PROFILE_PATH -ProfileId ([string]$transaction.PreviousProfileId)
+        }
+        Complete-LibreSpotProfileActivationTransaction -OldStagePath $oldStagePath -NewStagePath $newStagePath
+        return
+    }
+
+    $newStageIsValid = (Test-Path -LiteralPath $newStagePath -PathType Leaf) -and
+        (Get-LibreSpotFileFingerprint -Path $newStagePath) -eq [string]$transaction.NewConfigFingerprint
+    if (-not $currentIsNew -and $newStageIsValid) {
+        Install-LibreSpotStagedConfig -StagePath $newStagePath -DestinationPath $global:CONFIG_PATH
+        $currentIsNew = $true
+    }
+    if ($currentIsNew) {
+        Write-LibreSpotProfilePointer -Path $global:PREVIOUS_PROFILE_PATH -ProfileId ([string]$transaction.OldProfileId)
+        Write-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH -ProfileId ([string]$transaction.NewProfileId)
+        Complete-LibreSpotProfileActivationTransaction -OldStagePath $oldStagePath -NewStagePath $newStagePath
+        return
+    }
+
+    throw 'The pending profile activation cannot be recovered because neither staged configuration matches its recorded fingerprint.'
+}
+
 function Read-LibreSpotProfilePointer {
     param([string]$Path)
     try {
@@ -1582,34 +1805,40 @@ function Write-LibreSpotProfilePointer {
         ProfileId     = $ProfileId
         UpdatedAt     = (Get-Date).ToUniversalTime().ToString('o')
     }
-    $utf8 = New-Object System.Text.UTF8Encoding($false)
-    [System.IO.File]::WriteAllText($Path, ($document | ConvertTo-Json -Depth 4), $utf8)
+    Write-LibreSpotJsonAtomically -Path $Path -Document $document -Depth 4
 }
 
 function Initialize-LibreSpotProfileStore {
-    if (-not (Test-Path -LiteralPath $global:PROFILE_DIR)) { New-Item -Path $global:PROFILE_DIR -ItemType Directory -Force | Out-Null }
-    if (Test-Path -LiteralPath $global:ACTIVE_PROFILE_PATH) { return }
+    param([switch]$LockHeld)
+    $activationLock = $null
+    if (-not $LockHeld) { $activationLock = Enter-LibreSpotProfileActivationLock }
+    try {
+        Resolve-LibreSpotProfileActivationTransaction
+        if (-not (Test-Path -LiteralPath $global:PROFILE_DIR)) { New-Item -Path $global:PROFILE_DIR -ItemType Directory -Force | Out-Null }
+        if (Test-Path -LiteralPath $global:ACTIVE_PROFILE_PATH) { return }
 
-    $activeId = 'recommended'
-    $currentConfig = $null
-    try { $currentConfig = Load-LibreSpotConfig } catch { $currentConfig = $null }
-    if ($currentConfig) {
-        $activeId = 'current'
-        $profilePath = Join-Path $global:PROFILE_DIR 'current.json'
-        if (Test-Path -LiteralPath $profilePath) {
-            $activeId = "current-$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
-            $profilePath = Join-Path $global:PROFILE_DIR "$activeId.json"
+        $activeId = 'recommended'
+        $currentConfig = $null
+        try { $currentConfig = Load-LibreSpotConfig } catch { $currentConfig = $null }
+        if ($currentConfig) {
+            $activeId = 'current'
+            $profilePath = Join-Path $global:PROFILE_DIR 'current.json'
+            if (Test-Path -LiteralPath $profilePath) {
+                $activeId = "current-$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
+                $profilePath = Join-Path $global:PROFILE_DIR "$activeId.json"
+            }
+            $document = New-LibreSpotProfileDocument -Id $activeId -Name 'Current' -Description 'Migrated from the existing config.json.' -Configuration $currentConfig
+            Write-LibreSpotJsonAtomically -Path $profilePath -Document $document -Depth 8
         }
-        $document = New-LibreSpotProfileDocument -Id $activeId -Name 'Current' -Description 'Migrated from the existing config.json.' -Configuration $currentConfig
-        $utf8 = New-Object System.Text.UTF8Encoding($false)
-        [System.IO.File]::WriteAllText($profilePath, ($document | ConvertTo-Json -Depth 8), $utf8)
+        Write-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH -ProfileId $activeId
+    } finally {
+        if ($activationLock) { $activationLock.Dispose() }
     }
-
-    Write-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH -ProfileId $activeId
 }
 
 function Get-LibreSpotProfiles {
-    Initialize-LibreSpotProfileStore
+    param([switch]$LockHeld)
+    Initialize-LibreSpotProfileStore -LockHeld:$LockHeld
     $activeId = Read-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH
     $profiles = @()
     foreach ($profileEntry in Get-LibreSpotBuiltInProfiles) {
@@ -1638,8 +1867,8 @@ function Get-LibreSpotProfiles {
 }
 
 function Get-LibreSpotProfileById {
-    param([string]$Id)
-    foreach ($profileEntry in Get-LibreSpotProfiles) {
+    param([string]$Id, [switch]$LockHeld)
+    foreach ($profileEntry in Get-LibreSpotProfiles -LockHeld:$LockHeld) {
         if ([string]$profileEntry.Id -eq [string]$Id) { return $profileEntry }
     }
     return $null
@@ -1666,16 +1895,64 @@ function Save-LibreSpotLocalProfile {
 
 function Apply-LibreSpotProfile {
     param([string]$Id)
-    $profileEntry = Get-LibreSpotProfileById -Id $Id
-    if (-not $profileEntry) { throw "Profile '$Id' was not found." }
-    $previousId = Read-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH
-    if (-not [string]::IsNullOrWhiteSpace($previousId)) {
+    $activationLock = Enter-LibreSpotProfileActivationLock
+    $oldStagePath = $null
+    $newStagePath = $null
+    $transactionWritten = $false
+    try {
+        Resolve-LibreSpotProfileActivationTransaction
+        $profileEntry = Get-LibreSpotProfileById -Id $Id -LockHeld
+        if (-not $profileEntry) { throw "Profile '$Id' was not found." }
+        $previousId = Read-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH
+        if ([string]::IsNullOrWhiteSpace($previousId)) { throw 'The active profile pointer is unavailable.' }
+        $priorPreviousId = Read-LibreSpotProfilePointer -Path $global:PREVIOUS_PROFILE_PATH
+        $transactionId = [Guid]::NewGuid().ToString('N')
+        $oldStageFile = "profile-activation.$transactionId.previous.staged.json"
+        $newStageFile = "profile-activation.$transactionId.next.staged.json"
+        $oldStagePath = Join-Path $global:CONFIG_DIR $oldStageFile
+        $newStagePath = Join-Path $global:CONFIG_DIR $newStageFile
+        $oldConfigExisted = Test-Path -LiteralPath $global:CONFIG_PATH -PathType Leaf
+        if ($oldConfigExisted) {
+            Copy-LibreSpotFileDurable -SourcePath $global:CONFIG_PATH -DestinationPath $oldStagePath
+        } else {
+            Write-LibreSpotFileDurable -Path $oldStagePath -Content ''
+        }
+
+        $normalizedConfig = Normalize-LibreSpotConfig -Config $profileEntry.Configuration
+        $orderedConfig = [ordered]@{}
+        foreach ($key in $normalizedConfig.Keys) { $orderedConfig[$key] = $normalizedConfig[$key] }
+        Write-LibreSpotJsonAtomically -Path $newStagePath -Document $orderedConfig -Depth 4
+        $transaction = [ordered]@{
+            SchemaVersion        = 1
+            TransactionId        = $transactionId
+            OldProfileId         = [string]$previousId
+            NewProfileId         = [string]$profileEntry.Id
+            PreviousProfileId    = if ([string]::IsNullOrWhiteSpace($priorPreviousId)) { $null } else { [string]$priorPreviousId }
+            OldConfigExisted     = [bool]$oldConfigExisted
+            OldConfigFingerprint = Get-LibreSpotFileFingerprint -Path $oldStagePath
+            NewConfigFingerprint = Get-LibreSpotFileFingerprint -Path $newStagePath
+            OldConfigStageFile   = $oldStageFile
+            NewConfigStageFile   = $newStageFile
+            StartedAt            = (Get-Date).ToUniversalTime().ToString('o')
+        }
+        Write-LibreSpotJsonAtomically -Path $global:PROFILE_ACTIVATION_TRANSACTION_PATH -Document $transaction -Depth 8
+        $transactionWritten = $true
+
         Write-LibreSpotProfilePointer -Path $global:PREVIOUS_PROFILE_PATH -ProfileId $previousId
+        Install-LibreSpotStagedConfig -StagePath $newStagePath -DestinationPath $global:CONFIG_PATH
+        Write-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH -ProfileId $profileEntry.Id
+        Remove-Item -LiteralPath $global:PROFILE_ACTIVATION_TRANSACTION_PATH -Force -ErrorAction Stop
+        $transactionWritten = $false
+        Remove-Item -LiteralPath $oldStagePath -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $newStagePath -Force -ErrorAction SilentlyContinue
+        return $profileEntry
+    } finally {
+        if (-not $transactionWritten) {
+            if ($oldStagePath) { Remove-Item -LiteralPath $oldStagePath -Force -ErrorAction SilentlyContinue }
+            if ($newStagePath) { Remove-Item -LiteralPath $newStagePath -Force -ErrorAction SilentlyContinue }
+        }
+        $activationLock.Dispose()
     }
-    $saved = Save-LibreSpotConfig -Config $profileEntry.Configuration
-    if (-not $saved) { throw "LibreSpot could not write config.json for profile '$($profileEntry.Name)'." }
-    Write-LibreSpotProfilePointer -Path $global:ACTIVE_PROFILE_PATH -ProfileId $profileEntry.Id
-    return $profileEntry
 }
 
 function Get-LibreSpotTempRoot {

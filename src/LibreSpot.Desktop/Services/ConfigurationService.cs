@@ -119,6 +119,7 @@ public sealed class ConfigurationService
         await using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
         await JsonSerializer.SerializeAsync(stream, normalizedConfiguration, SerializerOptions, cancellationToken);
         await stream.FlushAsync(cancellationToken);
+        stream.Flush(flushToDisk: true);
     }
 
     public async Task SaveAsync(InstallConfiguration configuration, CancellationToken cancellationToken = default)
@@ -135,6 +136,7 @@ public sealed class ConfigurationService
                 await JsonSerializer.SerializeAsync(stream, normalizedConfiguration, SerializerOptions, cancellationToken);
                 // Ensure contents hit disk before we swap over the real file.
                 await stream.FlushAsync(cancellationToken);
+                stream.Flush(flushToDisk: true);
             }
 
             // Atomic replace. File.Move(source, dest, overwrite) is atomic on the same

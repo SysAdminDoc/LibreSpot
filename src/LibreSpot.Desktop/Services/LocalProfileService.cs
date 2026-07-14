@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LibreSpot.Desktop.Models;
@@ -32,6 +33,17 @@ public sealed record LocalProfileShareCard(
     string ShareUri,
     string QrPayload);
 
+internal enum ProfileActivationStage
+{
+    PreviousConfigStaged,
+    NewConfigStaged,
+    TransactionWritten,
+    PreviousPointerWritten,
+    ConfigWritten,
+    ActivePointerWritten,
+    TransactionRemoved
+}
+
 public sealed class LocalProfileService
 {
     private const int ProfileStoreSchemaVersion = 1;
@@ -50,13 +62,26 @@ public sealed class LocalProfileService
     private readonly string _profileDirectory;
     private readonly string _activeProfilePath;
     private readonly string _previousActiveProfilePath;
+    private readonly string _activationLockPath;
+    private readonly string _activationTransactionPath;
+    private readonly Action<ProfileActivationStage>? _activationFaultInjector;
 
     public LocalProfileService(ConfigurationService configurationService)
+        : this(configurationService, null)
+    {
+    }
+
+    internal LocalProfileService(
+        ConfigurationService configurationService,
+        Action<ProfileActivationStage>? activationFaultInjector)
     {
         _configurationService = configurationService;
         _profileDirectory = Path.Combine(configurationService.ConfigDirectory, "profiles");
         _activeProfilePath = Path.Combine(configurationService.ConfigDirectory, "active-profile.json");
         _previousActiveProfilePath = Path.Combine(configurationService.ConfigDirectory, "active-profile.previous.json");
+        _activationLockPath = Path.Combine(configurationService.ConfigDirectory, "profile-activation.lock");
+        _activationTransactionPath = Path.Combine(configurationService.ConfigDirectory, "profile-activation.pending.json");
+        _activationFaultInjector = activationFaultInjector;
     }
 
     public string ProfileDirectory => _profileDirectory;
@@ -78,6 +103,11 @@ public sealed class LocalProfileService
     public async Task<LocalProfile> LoadProfileAsync(string id, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync(cancellationToken);
+        return await LoadProfileCoreAsync(id, cancellationToken);
+    }
+
+    private async Task<LocalProfile> LoadProfileCoreAsync(string id, CancellationToken cancellationToken)
+    {
         var activeId = await ReadActiveProfileIdAsync(cancellationToken);
         var builtIn = BuiltInProfiles().FirstOrDefault(profile => SameId(profile.Summary.Id, id));
         if (builtIn is not null)
@@ -142,6 +172,10 @@ public sealed class LocalProfileService
             throw new InvalidOperationException("Built-in profiles cannot be deleted.");
         }
 
+        await using var activationLock = await AcquireActivationLockAsync(cancellationToken);
+        await RecoverInterruptedActivationAsync(cancellationToken);
+        await EnsureInitializedCoreAsync(cancellationToken);
+
         var path = UserProfilePath(id);
         if (!File.Exists(path))
         {
@@ -157,15 +191,81 @@ public sealed class LocalProfileService
 
     public async Task ApplyProfileAsync(string id, CancellationToken cancellationToken = default)
     {
-        var profile = await LoadProfileAsync(id, cancellationToken);
+        await using var activationLock = await AcquireActivationLockAsync(cancellationToken);
+        await RecoverInterruptedActivationAsync(cancellationToken);
+        await EnsureInitializedCoreAsync(cancellationToken);
+
+        var profile = await LoadProfileCoreAsync(id, cancellationToken);
         var previousActiveId = await ReadActiveProfileIdAsync(cancellationToken);
-        if (!string.IsNullOrWhiteSpace(previousActiveId))
+        if (string.IsNullOrWhiteSpace(previousActiveId))
         {
-            await WritePointerAsync(_previousActiveProfilePath, previousActiveId, cancellationToken);
+            throw new InvalidOperationException("The active profile pointer is unavailable.");
         }
 
-        await _configurationService.SaveAsync(profile.Configuration, cancellationToken);
-        await WriteActiveProfileIdAsync(profile.Summary.Id, cancellationToken);
+        var priorPreviousId = await ReadPreviousActiveProfileIdAsync(cancellationToken);
+        var transactionId = Guid.NewGuid().ToString("N");
+        var oldConfigStageFile = $"profile-activation.{transactionId}.previous.staged.json";
+        var newConfigStageFile = $"profile-activation.{transactionId}.next.staged.json";
+        var oldConfigStagePath = Path.Combine(_configurationService.ConfigDirectory, oldConfigStageFile);
+        var newConfigStagePath = Path.Combine(_configurationService.ConfigDirectory, newConfigStageFile);
+        var oldConfigExisted = File.Exists(_configurationService.ConfigPath);
+        var transactionWritten = false;
+
+        try
+        {
+            if (oldConfigExisted)
+            {
+                await CopyFileDurablyAsync(_configurationService.ConfigPath, oldConfigStagePath, cancellationToken);
+            }
+            else
+            {
+                await WriteBytesDurablyAsync(oldConfigStagePath, [], cancellationToken);
+            }
+            InjectActivationFault(ProfileActivationStage.PreviousConfigStaged);
+
+            await _configurationService.SaveToPathAsync(profile.Configuration, newConfigStagePath, cancellationToken);
+            InjectActivationFault(ProfileActivationStage.NewConfigStaged);
+
+            var transaction = new ProfileActivationTransactionDocument(
+                ProfileStoreSchemaVersion,
+                transactionId,
+                previousActiveId,
+                profile.Summary.Id,
+                priorPreviousId,
+                oldConfigExisted,
+                await ComputeFileSha256Async(oldConfigStagePath, cancellationToken),
+                await ComputeFileSha256Async(newConfigStagePath, cancellationToken),
+                oldConfigStageFile,
+                newConfigStageFile,
+                DateTimeOffset.UtcNow);
+            await WriteJsonAtomicallyAsync(_activationTransactionPath, transaction, cancellationToken);
+            transactionWritten = true;
+            InjectActivationFault(ProfileActivationStage.TransactionWritten);
+
+            await WritePointerAsync(_previousActiveProfilePath, previousActiveId, cancellationToken);
+            InjectActivationFault(ProfileActivationStage.PreviousPointerWritten);
+
+            await ReplaceFromStageAsync(newConfigStagePath, _configurationService.ConfigPath, cancellationToken);
+            InjectActivationFault(ProfileActivationStage.ConfigWritten);
+
+            await WriteActiveProfileIdAsync(profile.Summary.Id, cancellationToken);
+            InjectActivationFault(ProfileActivationStage.ActivePointerWritten);
+
+            File.Delete(_activationTransactionPath);
+            transactionWritten = false;
+            InjectActivationFault(ProfileActivationStage.TransactionRemoved);
+            DeleteFileBestEffort(oldConfigStagePath);
+            DeleteFileBestEffort(newConfigStagePath);
+        }
+        catch
+        {
+            if (!transactionWritten)
+            {
+                DeleteFileBestEffort(oldConfigStagePath);
+                DeleteFileBestEffort(newConfigStagePath);
+            }
+            throw;
+        }
     }
 
     public async Task<string?> ReadPreviousActiveProfileIdAsync(CancellationToken cancellationToken = default)
@@ -355,6 +455,13 @@ public sealed class LocalProfileService
 
     private async Task EnsureInitializedAsync(CancellationToken cancellationToken)
     {
+        await using var activationLock = await AcquireActivationLockAsync(cancellationToken);
+        await RecoverInterruptedActivationAsync(cancellationToken);
+        await EnsureInitializedCoreAsync(cancellationToken);
+    }
+
+    private async Task EnsureInitializedCoreAsync(CancellationToken cancellationToken)
+    {
         Directory.CreateDirectory(_profileDirectory);
         var activePointer = await ReadPointerAsync(_activeProfilePath, cancellationToken);
         var targetExists = activePointer is not null &&
@@ -368,6 +475,250 @@ public sealed class LocalProfileService
             await WriteActiveProfileIdAsync(activeId, cancellationToken);
         }
     }
+
+    private async Task<FileStream> AcquireActivationLockAsync(CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(_configurationService.ConfigDirectory);
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                return new FileStream(
+                    _activationLockPath,
+                    FileMode.OpenOrCreate,
+                    FileAccess.ReadWrite,
+                    FileShare.None,
+                    bufferSize: 1,
+                    FileOptions.Asynchronous);
+            }
+            catch (IOException) when (DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(50, cancellationToken);
+            }
+        }
+    }
+
+    private async Task RecoverInterruptedActivationAsync(CancellationToken cancellationToken)
+    {
+        if (!File.Exists(_activationTransactionPath))
+        {
+            CleanupOrphanedActivationStages();
+            return;
+        }
+
+        ProfileActivationTransactionDocument transaction;
+        try
+        {
+            var info = new FileInfo(_activationTransactionPath);
+            if (info.Length is <= 0 or > MaxLocalProfileBytes)
+            {
+                throw new InvalidDataException("Profile activation transaction has an invalid size.");
+            }
+
+            await using var stream = File.Open(_activationTransactionPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            transaction = await JsonSerializer.DeserializeAsync<ProfileActivationTransactionDocument>(stream, JsonOptions, cancellationToken)
+                ?? throw new InvalidDataException("Profile activation transaction is empty.");
+            ValidateActivationTransaction(transaction);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or InvalidDataException or InvalidOperationException)
+        {
+            throw new InvalidOperationException(
+                "The pending profile activation record is unreadable. Move profile-activation.pending.json aside before retrying.",
+                ex);
+        }
+
+        var oldStagePath = Path.Combine(_configurationService.ConfigDirectory, transaction.OldConfigStageFile);
+        var newStagePath = Path.Combine(_configurationService.ConfigDirectory, transaction.NewConfigStageFile);
+        var activeId = await ReadActiveProfileIdAsync(cancellationToken);
+        var currentFingerprint = File.Exists(_configurationService.ConfigPath)
+            ? await ComputeFileSha256Async(_configurationService.ConfigPath, cancellationToken)
+            : EmptySha256;
+
+        if (SameId(activeId, transaction.NewProfileId) &&
+            string.Equals(currentFingerprint, transaction.NewConfigFingerprint, StringComparison.OrdinalIgnoreCase))
+        {
+            await WritePointerAsync(_previousActiveProfilePath, transaction.OldProfileId, cancellationToken);
+            CompleteActivationRecovery(oldStagePath, newStagePath);
+            return;
+        }
+
+        var currentIsOld = string.Equals(currentFingerprint, transaction.OldConfigFingerprint, StringComparison.OrdinalIgnoreCase) &&
+            (transaction.OldConfigExisted || !File.Exists(_configurationService.ConfigPath));
+        var oldStageIsValid = await HasExpectedFingerprintAsync(oldStagePath, transaction.OldConfigFingerprint, cancellationToken);
+        if (currentIsOld || oldStageIsValid)
+        {
+            if (!currentIsOld)
+            {
+                if (transaction.OldConfigExisted)
+                {
+                    await ReplaceFromStageAsync(oldStagePath, _configurationService.ConfigPath, cancellationToken);
+                }
+                else
+                {
+                    File.Delete(_configurationService.ConfigPath);
+                }
+            }
+
+            await WriteActiveProfileIdAsync(transaction.OldProfileId, cancellationToken);
+            if (string.IsNullOrWhiteSpace(transaction.PreviousProfileId))
+            {
+                File.Delete(_previousActiveProfilePath);
+            }
+            else
+            {
+                await WritePointerAsync(_previousActiveProfilePath, transaction.PreviousProfileId, cancellationToken);
+            }
+            CompleteActivationRecovery(oldStagePath, newStagePath);
+            return;
+        }
+
+        var currentIsNew = string.Equals(currentFingerprint, transaction.NewConfigFingerprint, StringComparison.OrdinalIgnoreCase);
+        var newStageIsValid = await HasExpectedFingerprintAsync(newStagePath, transaction.NewConfigFingerprint, cancellationToken);
+        if (!currentIsNew && newStageIsValid)
+        {
+            await ReplaceFromStageAsync(newStagePath, _configurationService.ConfigPath, cancellationToken);
+            currentIsNew = true;
+        }
+
+        if (currentIsNew)
+        {
+            await WritePointerAsync(_previousActiveProfilePath, transaction.OldProfileId, cancellationToken);
+            await WriteActiveProfileIdAsync(transaction.NewProfileId, cancellationToken);
+            CompleteActivationRecovery(oldStagePath, newStagePath);
+            return;
+        }
+
+        throw new InvalidOperationException("The pending profile activation cannot be recovered because neither staged configuration matches its recorded fingerprint.");
+    }
+
+    private void CompleteActivationRecovery(string oldStagePath, string newStagePath)
+    {
+        File.Delete(_activationTransactionPath);
+        DeleteFileBestEffort(oldStagePath);
+        DeleteFileBestEffort(newStagePath);
+        CleanupOrphanedActivationStages();
+    }
+
+    private void CleanupOrphanedActivationStages()
+    {
+        if (!Directory.Exists(_configurationService.ConfigDirectory))
+        {
+            return;
+        }
+
+        foreach (var path in Directory.EnumerateFiles(_configurationService.ConfigDirectory, "profile-activation.*.staged.json"))
+        {
+            DeleteFileBestEffort(path);
+        }
+    }
+
+    private static void ValidateActivationTransaction(ProfileActivationTransactionDocument transaction)
+    {
+        if (transaction.SchemaVersion != ProfileStoreSchemaVersion ||
+            string.IsNullOrWhiteSpace(transaction.TransactionId) ||
+            !Guid.TryParseExact(transaction.TransactionId, "N", out _) ||
+            string.IsNullOrWhiteSpace(transaction.OldProfileId) ||
+            string.IsNullOrWhiteSpace(transaction.NewProfileId) ||
+            !string.Equals(transaction.OldProfileId, Slugify(transaction.OldProfileId), StringComparison.Ordinal) ||
+            !string.Equals(transaction.NewProfileId, Slugify(transaction.NewProfileId), StringComparison.Ordinal) ||
+            !IsSha256(transaction.OldConfigFingerprint) ||
+            !IsSha256(transaction.NewConfigFingerprint) ||
+            !IsActivationStageFile(transaction.OldConfigStageFile, transaction.TransactionId, "previous") ||
+            !IsActivationStageFile(transaction.NewConfigStageFile, transaction.TransactionId, "next"))
+        {
+            throw new InvalidDataException("Profile activation transaction fields are invalid.");
+        }
+    }
+
+    private static bool IsActivationStageFile(string fileName, string transactionId, string role) =>
+        string.Equals(fileName, $"profile-activation.{transactionId}.{role}.staged.json", StringComparison.Ordinal);
+
+    private static bool IsSha256(string? value) =>
+        value is { Length: 64 } && value.All(char.IsAsciiHexDigit);
+
+    private static async Task<bool> HasExpectedFingerprintAsync(string path, string expected, CancellationToken cancellationToken) =>
+        File.Exists(path) && string.Equals(await ComputeFileSha256Async(path, cancellationToken), expected, StringComparison.OrdinalIgnoreCase);
+
+    private static async Task<string> ComputeFileSha256Async(string path, CancellationToken cancellationToken)
+    {
+        await using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return Convert.ToHexString(await SHA256.HashDataAsync(stream, cancellationToken)).ToLowerInvariant();
+    }
+
+    private static async Task CopyFileDurablyAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken)
+    {
+        var info = new FileInfo(sourcePath);
+        if (info.Length > ConfigurationService.MaxConfigBytes)
+        {
+            throw new InvalidDataException($"config.json is {info.Length} bytes; the maximum is {ConfigurationService.MaxConfigBytes} bytes.");
+        }
+
+        await using var source = File.Open(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        await using var destination = new FileStream(destinationPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        await source.CopyToAsync(destination, cancellationToken);
+        await destination.FlushAsync(cancellationToken);
+        destination.Flush(flushToDisk: true);
+    }
+
+    private static async Task WriteBytesDurablyAsync(string path, byte[] bytes, CancellationToken cancellationToken)
+    {
+        await using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        await stream.WriteAsync(bytes, cancellationToken);
+        await stream.FlushAsync(cancellationToken);
+        stream.Flush(flushToDisk: true);
+    }
+
+    private static async Task ReplaceFromStageAsync(string stagePath, string destinationPath, CancellationToken cancellationToken)
+    {
+        var directory = Path.GetDirectoryName(destinationPath) ?? Environment.CurrentDirectory;
+        Directory.CreateDirectory(directory);
+        var tempPath = Path.Combine(directory, $"profile-activation.{Guid.NewGuid():N}.commit.tmp");
+        try
+        {
+            await CopyFileDurablyAsync(stagePath, tempPath, cancellationToken);
+            File.Move(tempPath, destinationPath, overwrite: true);
+        }
+        finally
+        {
+            DeleteFileBestEffort(tempPath);
+        }
+    }
+
+    private static async Task WriteJsonAtomicallyAsync<T>(string path, T document, CancellationToken cancellationToken)
+    {
+        var directory = Path.GetDirectoryName(path) ?? Environment.CurrentDirectory;
+        Directory.CreateDirectory(directory);
+        var tempPath = Path.Combine(directory, $"profile-activation.{Guid.NewGuid():N}.marker.tmp");
+        try
+        {
+            await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                await JsonSerializer.SerializeAsync(stream, document, JsonOptions, cancellationToken);
+                await stream.FlushAsync(cancellationToken);
+                stream.Flush(flushToDisk: true);
+            }
+            File.Move(tempPath, path, overwrite: true);
+        }
+        finally
+        {
+            DeleteFileBestEffort(tempPath);
+        }
+    }
+
+    private static void DeleteFileBestEffort(string path)
+    {
+        try { File.Delete(path); } catch { }
+    }
+
+    private void InjectActivationFault(ProfileActivationStage stage) => _activationFaultInjector?.Invoke(stage);
+
+    private static readonly string EmptySha256 = Convert.ToHexString(SHA256.HashData([])).ToLowerInvariant();
 
     private async Task<ShareProfileDocument> CreateShareProfileDocumentAsync(string id, CancellationToken cancellationToken)
     {
@@ -693,6 +1044,7 @@ public sealed class LocalProfileService
             {
                 await JsonSerializer.SerializeAsync(stream, new ProfilePointerDocument(ProfileStoreSchemaVersion, profileId, DateTimeOffset.UtcNow), JsonOptions, cancellationToken);
                 await stream.FlushAsync(cancellationToken);
+                stream.Flush(flushToDisk: true);
             }
 
             File.Move(tempPath, path, overwrite: true);
@@ -915,4 +1267,17 @@ public sealed class LocalProfileService
         int SchemaVersion,
         string ProfileId,
         DateTimeOffset UpdatedAt);
+
+    private sealed record ProfileActivationTransactionDocument(
+        int SchemaVersion,
+        string TransactionId,
+        string OldProfileId,
+        string NewProfileId,
+        string? PreviousProfileId,
+        bool OldConfigExisted,
+        string OldConfigFingerprint,
+        string NewConfigFingerprint,
+        string OldConfigStageFile,
+        string NewConfigStageFile,
+        DateTimeOffset StartedAt);
 }

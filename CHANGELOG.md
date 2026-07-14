@@ -31,6 +31,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Made profile activation crash-consistent across the WPF and stable PowerShell hosts: both now share a cross-process lock and durable old/new fingerprint marker, recover interrupted commits to one complete state, and preserve the previous-profile rollback pointer.
 - Made activity-log severity colours follow live theme changes by replacing frozen converter brushes with dynamic semantic-resource triggers; already-realized rows now update immediately when high contrast is toggled.
 - Recovered malformed, unsupported, or dangling active-profile pointers without losing the current configuration: LibreSpot now preserves it as a uniquely named recovery profile, rewrites a valid pointer, and treats malformed previous-profile metadata as unavailable instead of crashing the gallery.
 - Made upstream and community drift caches tolerate null or duplicate records and replace cache JSON atomically, preserving the last valid health snapshot across concurrent writers, process interruption, or malformed local state.
@@ -44,6 +45,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Tests
 
+- Added fault injection at every profile-activation write boundary plus hidden-process WPF/PowerShell concurrency and cross-host recovery coverage.
 - Stabilized FlaUI interaction checks for virtualized maintenance controls by scrolling only offscreen elements, waiting for the UIA layout update, and rejecting disabled targets before invocation instead of silently dropping clicks.
 - Added a single non-activating rendered-WPF QA command covering 13 shell/overlay states plus the nested crash dialog across dark/high-contrast and English/Spanish; every capture verifies localized primary bounds, accessible action names, focus-ring rendering, metadata, dimensions, and render-dropout retries.
 - Expanded localization scanning from `MainWindow.xaml` to all production XAML and health-component construction, with Spanish snapshot and shared-control automation-name regression coverage.

@@ -174,6 +174,27 @@ public sealed class LocalProfileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetProfilesAsync_RejectsMalformedActivationMarkerWithActionableError()
+    {
+        Directory.CreateDirectory(_root);
+        await File.WriteAllTextAsync(
+            Path.Combine(_root, "profile-activation.pending.json"),
+            """
+            {
+              "SchemaVersion": 1,
+              "TransactionId": "00000000000000000000000000000000",
+              "OldProfileId": "recommended",
+              "NewProfileId": "recommended",
+              "OldConfigFingerprint": null
+            }
+            """);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => _profileService.GetProfilesAsync());
+
+        Assert.Contains("pending profile activation record is unreadable", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task ApplyProfileAsync_WritesConfigAndPreviousActivePointer()
     {
         var firstConfig = AppCatalog.CreateRecommendedConfiguration();
@@ -190,6 +211,89 @@ public sealed class LocalProfileServiceTests : IDisposable
         var active = await _configurationService.LoadAsync();
         Assert.Equal("lavender", active.SpotX_LyricsTheme);
         Assert.Equal(first.Summary.Id, await _profileService.ReadPreviousActiveProfileIdAsync());
+    }
+
+    [Theory]
+    [InlineData((int)ProfileActivationStage.PreviousConfigStaged, false)]
+    [InlineData((int)ProfileActivationStage.NewConfigStaged, false)]
+    [InlineData((int)ProfileActivationStage.TransactionWritten, false)]
+    [InlineData((int)ProfileActivationStage.PreviousPointerWritten, false)]
+    [InlineData((int)ProfileActivationStage.ConfigWritten, false)]
+    [InlineData((int)ProfileActivationStage.ActivePointerWritten, true)]
+    [InlineData((int)ProfileActivationStage.TransactionRemoved, true)]
+    public async Task ApplyProfileAsync_RecoversEveryInterruptedWriteBoundary(
+        int interruptedAfterValue,
+        bool commitsNewProfile)
+    {
+        var interruptedAfter = (ProfileActivationStage)interruptedAfterValue;
+        var firstConfig = AppCatalog.CreateRecommendedConfiguration();
+        firstConfig.SpotX_LyricsTheme = "github";
+        var secondConfig = AppCatalog.CreateRecommendedConfiguration();
+        secondConfig.SpotX_LyricsTheme = "lavender";
+        var first = await _profileService.CreateFromConfigurationAsync("Fault First", "", firstConfig);
+        var second = await _profileService.CreateFromConfigurationAsync("Fault Second", "", secondConfig);
+        await _profileService.ApplyProfileAsync(first.Summary.Id);
+
+        var faulting = new LocalProfileService(
+            _configurationService,
+            stage =>
+            {
+                if (stage == interruptedAfter)
+                {
+                    throw new SimulatedProcessTerminationException(stage);
+                }
+            });
+
+        await Assert.ThrowsAsync<SimulatedProcessTerminationException>(() =>
+            faulting.ApplyProfileAsync(second.Summary.Id));
+
+        var recovered = new LocalProfileService(_configurationService);
+        var profiles = await recovered.GetProfilesAsync();
+        var active = Assert.Single(profiles, profile => profile.IsActive);
+        var activeConfiguration = await _configurationService.LoadAsync();
+
+        Assert.Equal(commitsNewProfile ? second.Summary.Id : first.Summary.Id, active.Id);
+        Assert.Equal(commitsNewProfile ? "lavender" : "github", activeConfiguration.SpotX_LyricsTheme);
+        Assert.Equal(
+            commitsNewProfile ? first.Summary.Id : "recommended",
+            await recovered.ReadPreviousActiveProfileIdAsync());
+        Assert.False(File.Exists(Path.Combine(_root, "profile-activation.pending.json")));
+        Assert.Empty(Directory.EnumerateFiles(_root, "profile-activation.*.staged.json"));
+    }
+
+    [Fact]
+    public async Task ApplyProfileAsync_SerializesConcurrentDesktopHostsWithoutSplitBrain()
+    {
+        var firstConfig = AppCatalog.CreateRecommendedConfiguration();
+        firstConfig.SpotX_LyricsTheme = "github";
+        var secondConfig = AppCatalog.CreateRecommendedConfiguration();
+        secondConfig.SpotX_LyricsTheme = "lavender";
+        var thirdConfig = AppCatalog.CreateRecommendedConfiguration();
+        thirdConfig.SpotX_LyricsTheme = "github";
+        thirdConfig.SpotX_Premium = true;
+        var first = await _profileService.CreateFromConfigurationAsync("Concurrent First", "", firstConfig);
+        var second = await _profileService.CreateFromConfigurationAsync("Concurrent Second", "", secondConfig);
+        var third = await _profileService.CreateFromConfigurationAsync("Concurrent Third", "", thirdConfig);
+        await _profileService.ApplyProfileAsync(first.Summary.Id);
+
+        var hostA = new LocalProfileService(new ConfigurationService(_root));
+        var hostB = new LocalProfileService(new ConfigurationService(_root));
+        await Task.WhenAll(
+            hostA.ApplyProfileAsync(second.Summary.Id),
+            hostB.ApplyProfileAsync(third.Summary.Id));
+
+        var profiles = await _profileService.GetProfilesAsync();
+        var active = Assert.Single(profiles, profile => profile.IsActive);
+        var activeConfiguration = await _configurationService.LoadAsync();
+        var previousId = await _profileService.ReadPreviousActiveProfileIdAsync();
+
+        Assert.Contains(active.Id, new[] { second.Summary.Id, third.Summary.Id });
+        Assert.Equal(
+            active.Id == second.Summary.Id ? "lavender" : "github",
+            activeConfiguration.SpotX_LyricsTheme);
+        Assert.Equal(active.Id == third.Summary.Id, activeConfiguration.SpotX_Premium);
+        Assert.Equal(active.Id == second.Summary.Id ? third.Summary.Id : second.Summary.Id, previousId);
+        Assert.False(File.Exists(Path.Combine(_root, "profile-activation.pending.json")));
     }
 
     [Fact]
@@ -421,4 +525,7 @@ public sealed class LocalProfileServiceTests : IDisposable
             .TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');
+
+    private sealed class SimulatedProcessTerminationException(ProfileActivationStage stage)
+        : Exception($"Simulated termination after {stage}.");
 }
