@@ -1,6 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:controls="clr-namespace:LibreSpot.Desktop.Controls"
+                    xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
                     xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
                     xmlns:props="clr-namespace:LibreSpot.Desktop.Properties">
   <!--
@@ -1167,7 +1168,7 @@
                               Opacity="0"
                               Focusable="False"
                               IsTabStop="False"
-                              AutomationProperties.Name="Scroll page up" />
+                              AutomationProperties.Name="{services:Loc ScrollPageUpAutomation}" />
               </Track.DecreaseRepeatButton>
               <Track.Thumb>
                 <Thumb Style="{StaticResource ScrollBarThumbStyle}" />
@@ -1177,7 +1178,7 @@
                               Opacity="0"
                               Focusable="False"
                               IsTabStop="False"
-                              AutomationProperties.Name="Scroll page down" />
+                              AutomationProperties.Name="{services:Loc ScrollPageDownAutomation}" />
               </Track.IncreaseRepeatButton>
             </Track>
           </Grid>
@@ -1198,7 +1199,7 @@
                                   Opacity="0"
                                   Focusable="False"
                                   IsTabStop="False"
-                                  AutomationProperties.Name="Scroll page left" />
+                                  AutomationProperties.Name="{services:Loc ScrollPageLeftAutomation}" />
                   </Track.DecreaseRepeatButton>
                   <Track.Thumb>
                     <Thumb Style="{StaticResource ScrollBarThumbStyle}" />
@@ -1208,7 +1209,7 @@
                                   Opacity="0"
                                   Focusable="False"
                                   IsTabStop="False"
-                                  AutomationProperties.Name="Scroll page right" />
+                                  AutomationProperties.Name="{services:Loc ScrollPageRightAutomation}" />
                   </Track.IncreaseRepeatButton>
                 </Track>
               </Grid>

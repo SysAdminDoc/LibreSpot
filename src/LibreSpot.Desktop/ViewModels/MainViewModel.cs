@@ -1819,7 +1819,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     private void OnLocalizationCultureChanged(object? sender, EventArgs e) =>
-        _dispatcher.BeginInvoke(RaiseLocalizedTextChanged, DispatcherPriority.Background);
+        _dispatcher.BeginInvoke(
+            new Action(() =>
+            {
+                RaiseLocalizedTextChanged();
+                if (!_applyingCultureFromConfig)
+                {
+                    _ = RefreshSnapshotAsync();
+                }
+            }),
+            DispatcherPriority.Background);
 
     private void ApplyCultureFromConfiguration(string? cultureName)
     {
@@ -2812,7 +2821,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         var detail = component.HasLastChanged
-            ? $"{component.Evidence} Last changed: {component.LastChangedDisplay}."
+            ? LF("Vm_HealthEvidenceLastChangedFormat", component.Evidence, component.LastChangedDisplay)
             : component.Evidence;
 
         return new StatusDashboardItemViewModel(
@@ -2921,7 +2930,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             "Reapply" => Snapshot.SpotifyInstalled && (Snapshot.SpicetifyInstalled || HealthReport.HasCriticalIssues || HealthReport.HasWarningIssues),
             "RepairMarketplace" => Snapshot.SpicetifyInstalled && marketplace?.Severity is HealthSeverity.Warning or HealthSeverity.Critical,
             "OpenMarketplace" => Snapshot.MarketplaceFilesPresent && Snapshot.MarketplaceRegistered,
-            "SafeMode" => Snapshot.SpicetifyInstalled && HealthComponent("active-theme")?.Status != "Marketplace or stock",
+            "SafeMode" => Snapshot.SpicetifyInstalled && HealthComponent("active-theme")?.Status != L("HealthStatusMarketplaceOrStock"),
             "CreateBackup" => Snapshot.SpicetifyInstalled && spicetifyConfig?.Severity == HealthSeverity.Ready,
             "RestoreBackup" => Snapshot.SpicetifyInstalled && backups?.Severity == HealthSeverity.Ready,
             "RestoreVanilla" => Snapshot.SpicetifyInstalled,

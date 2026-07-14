@@ -1,11 +1,17 @@
+using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using LibreSpot.Desktop.Services;
+using Strings = LibreSpot.Desktop.Properties.Strings;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
 
+[CollectionDefinition("Localization", DisableParallelization = true)]
+public sealed class LocalizationTestCollection;
+
+[Collection("Localization")]
 public sealed class LocalizationTests
 {
     private static readonly string RepoRoot = ResolveRepoRoot();
@@ -126,18 +132,81 @@ public sealed class LocalizationTests
     }
 
     [Fact]
-    public void MainWindow_UserFacingAttributesUseLocalizedBindings()
+    public void ProductionXaml_UserFacingAttributesUseLocalizedBindings()
     {
-        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml"));
-        var matches = Regex.Matches(
-                xaml,
-                "\\b(?:Text|Content|Header|ToolTip|Description|Title|AutomationProperties\\.Name|AutomationProperties\\.HelpText)=\"(?<value>[^\\{][^\"]*)\"")
-            .Cast<Match>()
-            .Where(match => !match.Groups["value"].Value.StartsWith("pack://", StringComparison.OrdinalIgnoreCase))
-            .Select(match => match.Value)
+        var desktopRoot = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop");
+        var matches = Directory.EnumerateFiles(desktopRoot, "*.xaml", SearchOption.AllDirectories)
+            .Where(path => !path.Split(Path.DirectorySeparatorChar).Any(part => part is "bin" or "obj"))
+            .SelectMany(path => Regex.Matches(
+                    File.ReadAllText(path),
+                    "\\b(?:Text|Content|Header|ToolTip|Description|Title|AutomationProperties\\.Name|AutomationProperties\\.HelpText)=\"(?<value>[^\\{][^\"]*)\"")
+                .Cast<Match>()
+                .Where(match => !match.Groups["value"].Value.StartsWith("pack://", StringComparison.OrdinalIgnoreCase))
+                .Select(match => $"{Path.GetRelativePath(RepoRoot, path)}: {match.Value}"))
             .ToArray();
 
         Assert.Empty(matches);
+    }
+
+    [Fact]
+    public void HealthComponents_UserFacingConstructionTextUsesResources()
+    {
+        var source = File.ReadAllText(Path.Combine(
+            RepoRoot,
+            "src",
+            "LibreSpot.Desktop",
+            "Services",
+            "EnvironmentSnapshotService.cs"));
+        var violations = Regex.Matches(source, @"(?ms)(?:Component|new StackHealthComponent)\(.+?\);")
+            .Cast<Match>()
+            .SelectMany(block => Regex.Matches(
+                    block.Value,
+                    "(?<![A-Za-z])\"(?<value>[^\"\\r\\n]*[^\\S\\r\\n]+[^\"\\r\\n]*)\"")
+                .Cast<Match>())
+            .Where(match => Regex.IsMatch(match.Groups["value"].Value, @"[\p{L}\p{N}]"))
+            .Select(match => match.Groups["value"].Value)
+            .ToArray();
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void HealthSnapshot_UsesSelectedNonEnglishResources()
+    {
+        var originalCulture = Strings.Culture;
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Localization.Tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            Strings.Culture = CultureInfo.GetCultureInfo("es");
+            var service = new EnvironmentSnapshotService(
+                autoReapplyTaskProbe: () => false,
+                spotifyPath: Path.Combine(root, "Spotify", "Spotify.exe"),
+                spicetifyPath: Path.Combine(root, "Spicetify", "spicetify.exe"),
+                spicetifyConfigDirectory: Path.Combine(root, "SpicetifyConfig"),
+                backupDirectory: Path.Combine(root, "Backups"),
+                rollingLogDirectory: Path.Combine(root, "Logs"),
+                crashDirectory: Path.Combine(root, "Crashes"),
+                upstreamDriftProbe: () => LibreSpot.Desktop.Models.UpstreamDriftReport.Empty,
+                communityAssetDriftProbe: () => LibreSpot.Desktop.Models.CommunityAssetDriftReport.Empty);
+
+            var snapshot = service.GetSnapshot(Path.Combine(root, "Profile", "config.json"));
+            var spotify = Assert.Single(snapshot.HealthReport.Components, component => component.Id == "spotify");
+            var spotX = Assert.Single(snapshot.HealthReport.Components, component => component.Id == "spotx");
+
+            Assert.Equal("No instalado", spotify.Status);
+            Assert.Contains("No se encontró Spotify.exe", spotify.Evidence);
+            Assert.Equal("Ejecute la configuración recomendada", spotify.RecommendedActionText);
+            Assert.Equal("Parche de SpotX", spotX.Name);
+        }
+        finally
+        {
+            Strings.Culture = originalCulture;
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
     }
 
     [Fact]

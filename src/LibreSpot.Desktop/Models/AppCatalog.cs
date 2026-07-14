@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using LibreSpot.Desktop.Properties;
 
 namespace LibreSpot.Desktop.Models;
@@ -430,8 +431,31 @@ public sealed record StackHealthComponent(
     public bool HasRecommendedActions => RecommendedActionIds.Count > 0;
     public string LastChangedDisplay => LastChanged?.ToString("yyyy-MM-dd HH:mm") ?? string.Empty;
     public string RecommendedActionText => HasRecommendedActions
-        ? string.Join(", ", RecommendedActionIds)
-        : "No action";
+        ? string.Join(", ", RecommendedActionIds.Select(LocalizeActionId))
+        : Resource("HealthActionNoAction");
+
+    private static string LocalizeActionId(string actionId) => actionId switch
+    {
+        "Install" => Resource("ButtonRunRecommendedSetup"),
+        "Reapply" => Resource("ActionReapply"),
+        "FullReset" => Resource("ActionFullReset"),
+        "RepairMarketplace" => Resource("ActionRepairMarketplace"),
+        "OpenMarketplace" => Resource("ActionOpenMarketplace"),
+        "CreateBackup" => Resource("ActionCreateBackup"),
+        "SafeMode" => Resource("ActionSafeMode"),
+        "RestoreVanilla" => Resource("ActionRestoreVanilla"),
+        "EnableAutoReapply" => Resource("ButtonEnableWatcherName"),
+        "WatchAutoReapply" or "OpenLogs" => Resource("ButtonOpenLibreSpotFolder"),
+        "ClearCache" => Resource("Vm_ShellClearCacheTitle"),
+        "ReviewCommunityAsset" => Resource("HealthActionReviewCommunityAsset"),
+        _ => string.Format(
+            Strings.Culture ?? CultureInfo.CurrentCulture,
+            Resource("HealthActionUnknownFormat"),
+            actionId)
+    };
+
+    private static string Resource(string key) =>
+        Strings.ResourceManager.GetString(key, Strings.Culture) ?? key;
 }
 
 public static class Prettify

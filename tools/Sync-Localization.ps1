@@ -42,6 +42,42 @@ function Save-PrefilledResx {
     Write-Host "Prefilled missing $Culture resource file from source strings." -ForegroundColor Yellow
 }
 
+function Add-MissingResxEntries {
+    param(
+        [string]$Culture,
+        [string]$TargetPath,
+        [System.Collections.IDictionary]$SourceEntries,
+        [System.Collections.IDictionary]$TargetEntries
+    )
+
+    $missing = @($SourceEntries.Keys | Where-Object { -not $TargetEntries.Contains($_) })
+    $content = [System.IO.File]::ReadAllText($TargetPath, [System.Text.Encoding]::UTF8)
+    $firstNewline = [regex]::Match($content, '\r?\n').Value
+    $newline = if ([string]::IsNullOrEmpty($firstNewline)) { [Environment]::NewLine } else { $firstNewline }
+    $normalizedContent = [regex]::Replace($content, '\r?\n', $newline)
+
+    if ($missing.Count -eq 0) {
+        if ($normalizedContent -cne $content) {
+            [System.IO.File]::WriteAllText($TargetPath, $normalizedContent, $utf8NoBom)
+            Write-Host "Normalized $Culture resource line endings." -ForegroundColor Yellow
+        }
+        return
+    }
+
+    $lines = foreach ($key in $missing) {
+        $entry = $SourceEntries[$key]
+        $escapedKey = [System.Security.SecurityElement]::Escape([string]$key)
+        $escapedValue = [System.Security.SecurityElement]::Escape([string]$entry.Value)
+        $escapedComment = [System.Security.SecurityElement]::Escape([string]$entry.Comment)
+        "  <data name=`"$escapedKey`" xml:space=`"preserve`"><value>$escapedValue</value><comment>$escapedComment</comment></data>"
+    }
+
+    $insertion = ($lines -join $newline) + $newline
+    $content = $normalizedContent.Replace('</root>', $insertion + '</root>')
+    [System.IO.File]::WriteAllText($TargetPath, $content, $utf8NoBom)
+    Write-Host "Prefilled $($missing.Count) missing $Culture resource key(s) from source strings." -ForegroundColor Yellow
+}
+
 function Get-FormatPlaceholderIndices {
     # Returns the set of distinct numbered .NET composite-format placeholder
     # indices ({0}, {1,-8}, {2:X}, ...) in a resource value, ignoring escaped
@@ -63,19 +99,33 @@ function Get-FormatPlaceholderIndices {
 }
 
 function Test-RawXamlStrings {
-    $xamlPath = Join-Path $repoRoot 'src/LibreSpot.Desktop/MainWindow.xaml'
-    $content = [System.IO.File]::ReadAllText($xamlPath, [System.Text.Encoding]::UTF8)
     $pattern = '\b(?:Text|Content|Header|ToolTip|Description|Title|AutomationProperties\.Name|AutomationProperties\.HelpText)="(?<value>[^\{][^"]*)"'
-    $violations = [regex]::Matches($content, $pattern) |
-        Where-Object {
-            $value = $_.Groups['value'].Value
-            -not [string]::IsNullOrWhiteSpace($value) -and
-            -not $value.StartsWith('pack://', [System.StringComparison]::OrdinalIgnoreCase)
-        } |
-        ForEach-Object { $_.Value }
+    $desktopRoot = Join-Path $repoRoot 'src/LibreSpot.Desktop'
+    $violations = @()
+    foreach ($xamlPath in @(Get-ChildItem -LiteralPath $desktopRoot -Filter '*.xaml' -File -Recurse |
+        Where-Object { $_.FullName -notmatch '[\\/](?:bin|obj)[\\/]' })) {
+        $content = [System.IO.File]::ReadAllText($xamlPath.FullName, [System.Text.Encoding]::UTF8)
+        $violations += [regex]::Matches($content, $pattern) |
+            Where-Object {
+                $value = $_.Groups['value'].Value
+                -not [string]::IsNullOrWhiteSpace($value) -and
+                -not $value.StartsWith('pack://', [System.StringComparison]::OrdinalIgnoreCase)
+            } |
+            ForEach-Object { "$($xamlPath.FullName): $($_.Value)" }
+    }
+
+    $healthPath = Join-Path $desktopRoot 'Services/EnvironmentSnapshotService.cs'
+    $healthContent = [System.IO.File]::ReadAllText($healthPath, [System.Text.Encoding]::UTF8)
+    foreach ($block in [regex]::Matches($healthContent, '(?ms)(?:Component|new StackHealthComponent)\(.+?\);')) {
+        foreach ($literal in [regex]::Matches($block.Value, '(?<![A-Za-z])"(?<value>[^"\r\n]*[^\S\r\n]+[^"\r\n]*)"')) {
+            if ($literal.Groups['value'].Value -match '[\p{L}\p{N}]') {
+                $violations += "${healthPath}: raw health text `"$($literal.Groups['value'].Value)`""
+            }
+        }
+    }
 
     if ($violations.Count -gt 0) {
-        Write-Host "Raw user-facing XAML strings must use resource bindings:" -ForegroundColor Red
+        Write-Host "Raw user-facing XAML and health strings must use resource bindings:" -ForegroundColor Red
         foreach ($violation in $violations) {
             Write-Host "  $violation" -ForegroundColor Red
         }
@@ -103,6 +153,10 @@ foreach ($culture in $cultures) {
     }
 
     $targetEntries = Get-ResxEntries -Path $targetPath
+    if ($PrefillMissing) {
+        Add-MissingResxEntries -Culture $culture -TargetPath $targetPath -SourceEntries $sourceEntries -TargetEntries $targetEntries
+        $targetEntries = Get-ResxEntries -Path $targetPath
+    }
     $targetKeys = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
     foreach ($key in $targetEntries.Keys) {
         $null = $targetKeys.Add($key)

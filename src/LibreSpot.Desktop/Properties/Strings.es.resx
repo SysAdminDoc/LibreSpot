@@ -2316,4 +2316,186 @@
   <data name="CrashContinue" xml:space="preserve"><value>Continue</value><comment>Recoverable crash dialog dismiss action.</comment></data>
   <data name="CrashClose" xml:space="preserve"><value>Close LibreSpot</value><comment>Fatal crash dialog dismiss action.</comment></data>
   <data name="CrashNoExceptionMessage" xml:space="preserve"><value>No exception message was provided.</value><comment>Fallback crash exception detail.</comment></data>
+  <data name="ScrollPageUpAutomation" xml:space="preserve"><value>Desplazar una página hacia arriba</value><comment>Automation name for the vertical scrollbar page-up button.</comment></data>
+  <data name="ScrollPageDownAutomation" xml:space="preserve"><value>Desplazar una página hacia abajo</value><comment>Automation name for the vertical scrollbar page-down button.</comment></data>
+  <data name="ScrollPageLeftAutomation" xml:space="preserve"><value>Desplazar una página hacia la izquierda</value><comment>Automation name for the horizontal scrollbar page-left button.</comment></data>
+  <data name="ScrollPageRightAutomation" xml:space="preserve"><value>Desplazar una página hacia la derecha</value><comment>Automation name for the horizontal scrollbar page-right button.</comment></data>
+  <data name="HealthActionNoAction" xml:space="preserve"><value>Ninguna acción</value><comment>Fallback label when a health component has no recommended action.</comment></data>
+  <data name="HealthActionReviewCommunityAsset" xml:space="preserve"><value>Revisar recurso comunitario</value><comment>Fallback health action label for a community asset trust review.</comment></data>
+  <data name="Vm_HealthEvidenceLastChangedFormat" xml:space="preserve"><value>{0} Último cambio: {1}.</value><comment>Health evidence followed by its local last-change timestamp.</comment></data>
+  <data name="HealthNameStoreSpotify" xml:space="preserve"><value>Microsoft Store Spotify</value><comment>Health component name.</comment></data>
+  <data name="HealthNameAntivirusExclusion" xml:space="preserve"><value>Antivirus exclusion</value><comment>Health component name.</comment></data>
+  <data name="HealthNameSpotify" xml:space="preserve"><value>Spotify</value><comment>Health component name.</comment></data>
+  <data name="HealthNameSpotXPatch" xml:space="preserve"><value>Parche de SpotX</value><comment>Health component name.</comment></data>
+  <data name="HealthNameSpicetifyCli" xml:space="preserve"><value>Spicetify CLI</value><comment>Health component name.</comment></data>
+  <data name="HealthNameSpicetifyConfig" xml:space="preserve"><value>Spicetify config</value><comment>Health component name.</comment></data>
+  <data name="HealthNameMarketplace" xml:space="preserve"><value>Marketplace</value><comment>Health component name.</comment></data>
+  <data name="HealthNameActiveTheme" xml:space="preserve"><value>Active theme</value><comment>Health component name.</comment></data>
+  <data name="HealthNameBackups" xml:space="preserve"><value>Backups</value><comment>Health component name.</comment></data>
+  <data name="HealthNameWatcher" xml:space="preserve"><value>Auto-reapply watcher</value><comment>Health component name.</comment></data>
+  <data name="HealthNamePostUpdate" xml:space="preserve"><value>After Spotify update</value><comment>Health component name.</comment></data>
+  <data name="HealthNameLogs" xml:space="preserve"><value>Logs</value><comment>Health component name.</comment></data>
+  <data name="HealthNameCrashReports" xml:space="preserve"><value>Crash reports</value><comment>Health component name.</comment></data>
+  <data name="HealthNameSavedProfile" xml:space="preserve"><value>Saved LibreSpot profile</value><comment>Health component name.</comment></data>
+  <data name="HealthNameAssetCache" xml:space="preserve"><value>Asset cache</value><comment>Health component name.</comment></data>
+  <data name="HealthNameExtensionFiles" xml:space="preserve"><value>Extension files</value><comment>Health component name.</comment></data>
+  <data name="HealthNameUpstreamFormat" xml:space="preserve"><value>{0} upstream</value><comment>Health component name for a named upstream dependency.</comment></data>
+  <data name="HealthNameCommunityAssetFormat" xml:space="preserve"><value>{0} community {1}</value><comment>Health component name for a named community asset and kind.</comment></data>
+  <data name="HealthStatusWillBeReplaced" xml:space="preserve"><value>Will be replaced</value><comment>Health status.</comment></data>
+  <data name="HealthStatusExclusionRecommended" xml:space="preserve"><value>Exclusion recommended</value><comment>Health status.</comment></data>
+  <data name="HealthStatusLatestUnknown" xml:space="preserve"><value>Latest unknown</value><comment>Health status.</comment></data>
+  <data name="HealthStatusCachedMetadata" xml:space="preserve"><value>Cached metadata</value><comment>Health status.</comment></data>
+  <data name="HealthStatusCurrent" xml:space="preserve"><value>Current</value><comment>Health status.</comment></data>
+  <data name="HealthStatusUpstreamChanged" xml:space="preserve"><value>Upstream changed</value><comment>Health status.</comment></data>
+  <data name="HealthStatusPinnedAhead" xml:space="preserve"><value>Pinned ahead</value><comment>Health status.</comment></data>
+  <data name="HealthStatusMissingUpstream" xml:space="preserve"><value>Missing upstream</value><comment>Health status.</comment></data>
+  <data name="HealthStatusReviewRequired" xml:space="preserve"><value>Review required</value><comment>Health status.</comment></data>
+  <data name="HealthStatusNotInstalled" xml:space="preserve"><value>No instalado</value><comment>Health status.</comment></data>
+  <data name="HealthStatusDetected" xml:space="preserve"><value>Detectado</value><comment>Health status.</comment></data>
+  <data name="HealthStatusNotChecked" xml:space="preserve"><value>Not checked</value><comment>Health status.</comment></data>
+  <data name="HealthStatusVerified" xml:space="preserve"><value>Verified</value><comment>Health status.</comment></data>
+  <data name="HealthStatusUnverified" xml:space="preserve"><value>Unverified</value><comment>Health status.</comment></data>
+  <data name="HealthStatusBundleMissing" xml:space="preserve"><value>Bundle missing</value><comment>Health status.</comment></data>
+  <data name="HealthStatusNotAvailable" xml:space="preserve"><value>Not available</value><comment>Health status.</comment></data>
+  <data name="HealthStatusMissing" xml:space="preserve"><value>Missing</value><comment>Health status.</comment></data>
+  <data name="HealthStatusReadable" xml:space="preserve"><value>Readable</value><comment>Health status.</comment></data>
+  <data name="HealthStatusApplyFailed" xml:space="preserve"><value>Apply failed</value><comment>Health status.</comment></data>
+  <data name="HealthStatusOpenFailed" xml:space="preserve"><value>Open failed</value><comment>Health status.</comment></data>
+  <data name="HealthStatusLikelyVisible" xml:space="preserve"><value>Likely visible</value><comment>Health status.</comment></data>
+  <data name="HealthStatusFilesInstalled" xml:space="preserve"><value>Files installed</value><comment>Health status.</comment></data>
+  <data name="HealthStatusHidden" xml:space="preserve"><value>Hidden</value><comment>Health status.</comment></data>
+  <data name="HealthStatusFilesMissing" xml:space="preserve"><value>Files missing</value><comment>Health status.</comment></data>
+  <data name="HealthStatusNotEnabled" xml:space="preserve"><value>Not enabled</value><comment>Health status.</comment></data>
+  <data name="HealthStatusMarketplaceOrStock" xml:space="preserve"><value>Marketplace or stock</value><comment>Health status.</comment></data>
+  <data name="HealthStatusInjectionDisabled" xml:space="preserve"><value>Injection disabled</value><comment>Health status.</comment></data>
+  <data name="HealthStatusActive" xml:space="preserve"><value>Active</value><comment>Health status.</comment></data>
+  <data name="HealthStatusOneBackup" xml:space="preserve"><value>1 backup</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusBackupsFormat" xml:space="preserve"><value>{0} backups</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusNoneYet" xml:space="preserve"><value>None yet</value><comment>Health status.</comment></data>
+  <data name="HealthStatusDisabled" xml:space="preserve"><value>Disabled</value><comment>Health status.</comment></data>
+  <data name="HealthStatusNoRunRecorded" xml:space="preserve"><value>No run recorded</value><comment>Health status.</comment></data>
+  <data name="HealthStatusLastTickFailed" xml:space="preserve"><value>Last tick failed</value><comment>Health status.</comment></data>
+  <data name="HealthStatusStale" xml:space="preserve"><value>Stale</value><comment>Health status.</comment></data>
+  <data name="HealthStatusWatcherInitialized" xml:space="preserve"><value>Initialized</value><comment>Localized watcher outcome.</comment></data>
+  <data name="HealthStatusWatcherUpToDate" xml:space="preserve"><value>Up to date</value><comment>Localized watcher outcome.</comment></data>
+  <data name="HealthStatusWatcherDeferred" xml:space="preserve"><value>Deferred while Spotify is running</value><comment>Localized watcher outcome.</comment></data>
+  <data name="HealthStatusWatcherNoConfig" xml:space="preserve"><value>No saved config</value><comment>Localized watcher outcome.</comment></data>
+  <data name="HealthStatusWatcherPreferenceOff" xml:space="preserve"><value>Preference off</value><comment>Localized watcher outcome.</comment></data>
+  <data name="HealthStatusWatcherOutcomeFormat" xml:space="preserve"><value>Outcome: {0}</value><comment>Fallback localized wrapper for a watcher outcome token.</comment></data>
+  <data name="HealthStatusNotApplicable" xml:space="preserve"><value>Not applicable</value><comment>Health status.</comment></data>
+  <data name="HealthStatusNoWatcherHistory" xml:space="preserve"><value>No watcher history</value><comment>Health status.</comment></data>
+  <data name="HealthStatusWatcherNotEnabled" xml:space="preserve"><value>Watcher not enabled</value><comment>Health status.</comment></data>
+  <data name="HealthStatusMarketplaceStillMissing" xml:space="preserve"><value>Marketplace still missing</value><comment>Health status.</comment></data>
+  <data name="HealthStatusReapplied" xml:space="preserve"><value>Reapplied</value><comment>Health status.</comment></data>
+  <data name="HealthStatusCloseSpotifyFirst" xml:space="preserve"><value>Close Spotify first</value><comment>Health status.</comment></data>
+  <data name="HealthStatusSpotXReapplyFailed" xml:space="preserve"><value>SpotX reapply failed</value><comment>Health status.</comment></data>
+  <data name="HealthStatusWatcherFailed" xml:space="preserve"><value>Watcher failed</value><comment>Health status.</comment></data>
+  <data name="HealthStatusSpicetifyRolledBack" xml:space="preserve"><value>Spicetify rolled back</value><comment>Health status.</comment></data>
+  <data name="HealthStatusReapplyNeeded" xml:space="preserve"><value>Reapply needed</value><comment>Health status.</comment></data>
+  <data name="HealthStatusNoDrift" xml:space="preserve"><value>No drift</value><comment>Health status.</comment></data>
+  <data name="HealthStatusNoLogsYet" xml:space="preserve"><value>No logs yet</value><comment>Health status.</comment></data>
+  <data name="HealthStatusAvailable" xml:space="preserve"><value>Available</value><comment>Health status.</comment></data>
+  <data name="HealthStatusOneRecentCrash" xml:space="preserve"><value>1 recent crash</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusRecentCrashesFormat" xml:space="preserve"><value>{0} recent crashes</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusNoRecentCrashes" xml:space="preserve"><value>No recent crashes</value><comment>Health status.</comment></data>
+  <data name="HealthStatusNotSaved" xml:space="preserve"><value>Not saved</value><comment>Health status.</comment></data>
+  <data name="HealthStatusProfileFolderMissing" xml:space="preserve"><value>Profile folder missing</value><comment>Health status.</comment></data>
+  <data name="HealthStatusOneCorruptEntry" xml:space="preserve"><value>1 corrupt entry</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusCorruptEntriesFormat" xml:space="preserve"><value>{0} corrupt entries</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusOneStaleEntry" xml:space="preserve"><value>1 stale entry</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusStaleEntriesFormat" xml:space="preserve"><value>{0} stale entries</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusEmpty" xml:space="preserve"><value>Empty</value><comment>Health status.</comment></data>
+  <data name="HealthStatusOneEntry" xml:space="preserve"><value>1 entry</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusEntriesFormat" xml:space="preserve"><value>{0} entries</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusNoneRegistered" xml:space="preserve"><value>None registered</value><comment>Health status.</comment></data>
+  <data name="HealthStatusInvalidEntry" xml:space="preserve"><value>Invalid entry</value><comment>Health status.</comment></data>
+  <data name="HealthStatusInvalidEntriesFormat" xml:space="preserve"><value>{0} invalid entries</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusExtensionMissingFormat" xml:space="preserve"><value>&apos;{0}&apos; missing</value><comment>Health status for one missing extension file.</comment></data>
+  <data name="HealthStatusExtensionFilesMissingFormat" xml:space="preserve"><value>{0} files missing</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusAllPresent" xml:space="preserve"><value>All present</value><comment>Health status.</comment></data>
+  <data name="HealthValueUnknown" xml:space="preserve"><value>unknown</value><comment>Unknown health evidence value.</comment></data>
+  <data name="HealthValueApply" xml:space="preserve"><value>apply</value><comment>Spicetify apply stage label in health evidence.</comment></data>
+  <data name="HealthValueSucceeded" xml:space="preserve"><value>succeeded</value><comment>Successful health evidence result.</comment></data>
+  <data name="HealthValueFailed" xml:space="preserve"><value>failed</value><comment>Failed health evidence result.</comment></data>
+  <data name="HealthEvidenceStoreSpotify" xml:space="preserve"><value>The Microsoft Store version of Spotify is installed. LibreSpot patches the standard desktop build, so SpotX will replace the Store version during setup.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceAntivirusExclusionFormat" xml:space="preserve"><value>Windows Defender real-time protection is on and the Spotify folder is not excluded, so patched files may be quarantined as a false positive. LibreSpot never changes antivirus settings. To add an exclusion yourself, open PowerShell as administrator and run: Add-MpPreference -ExclusionPath &quot;{0}&quot;</value><comment>Health evidence with the Spotify directory.</comment></data>
+  <data name="HealthEvidenceUpstreamUnavailableFormat" xml:space="preserve"><value>Pinned {0}; current {1}; live upstream metadata is unavailable. Detail: {2}</value><comment>Degraded upstream health evidence.</comment></data>
+  <data name="HealthEvidenceCommunityUnavailableFormat" xml:space="preserve"><value>Pinned commit {0}; live community asset metadata is unavailable. Detail: {1}</value><comment>Degraded community asset health evidence.</comment></data>
+  <data name="HealthEvidenceUpstreamFormat" xml:space="preserve"><value>Fijado: {0}; actual: {1}; último: {2}; deriva: {3}; fuente: {4}; antigüedad de caché {5}.</value><comment>Structured upstream dependency health evidence.</comment></data>
+  <data name="HealthEvidenceCommunityAssetFormat" xml:space="preserve"><value>Pinned commit: {0}; latest: {1}; drift: {2}; source: {3}; license: {4}; network behavior: {5}.</value><comment>Structured community asset health evidence.</comment></data>
+  <data name="HealthEvidenceSpotifyMissing" xml:space="preserve"><value>No se encontró Spotify.exe en la ruta de instalación por usuario esperada.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpotifyDetected" xml:space="preserve"><value>Spotify.exe existe y se puede usar como destino del parche.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpotXNotChecked" xml:space="preserve"><value>SpotX patch markers are only meaningful after Spotify is installed.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpotXVerified" xml:space="preserve"><value>The Spotify app bundle and a SpotX backup are present, matching successful patch markers.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpotXUnverified" xml:space="preserve"><value>Spotify&apos;s app bundle exists, but no SpotX backup marker was found.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpotXBundleMissing" xml:space="preserve"><value>Apps\xpui.spa is missing, so patch state cannot be considered reliable.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpicetifyCliMissing" xml:space="preserve"><value>spicetify.exe was not found in the expected per-user location.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpicetifyCliDetected" xml:space="preserve"><value>spicetify.exe exists and maintenance actions can call it.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpicetifyConfigUnavailable" xml:space="preserve"><value>Spicetify config is created after the CLI is installed.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpicetifyConfigMissing" xml:space="preserve"><value>config-xpui.ini is missing, so saved theme and extension state cannot be inspected.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpicetifyConfigNoTheme" xml:space="preserve"><value>config-xpui.ini exists; current_theme is not set.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpicetifyConfigThemeFormat" xml:space="preserve"><value>config-xpui.ini exists; current_theme={0}.</value><comment>Health evidence with the active theme.</comment></data>
+  <data name="HealthEvidenceSpicetifyConfigAppsFormat" xml:space="preserve"><value>custom_apps={0}.</value><comment>Health evidence with enabled custom apps.</comment></data>
+  <data name="HealthEvidenceMarketplaceUnavailable" xml:space="preserve"><value>Marketplace is installed through Spicetify.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceMarketplaceReady" xml:space="preserve"><value>Marketplace files are present and custom_apps includes marketplace.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceMarketplaceHidden" xml:space="preserve"><value>Marketplace files exist, but custom_apps does not include marketplace.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceMarketplaceFilesMissing" xml:space="preserve"><value>custom_apps includes marketplace, but required files were not found.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceMarketplaceNotEnabled" xml:space="preserve"><value>Marketplace is not registered and required files were not found.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceMarketplaceNoVisibility" xml:space="preserve"><value>No post-apply visibility evidence has been recorded yet.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceManifestUnknown" xml:space="preserve"><value>manifest version unknown</value><comment>Marketplace visibility evidence.</comment></data>
+  <data name="HealthEvidenceManifestFormat" xml:space="preserve"><value>manifest version {0}</value><comment>Marketplace visibility evidence.</comment></data>
+  <data name="HealthEvidenceApplyResultFormat" xml:space="preserve"><value>{0} {1}</value><comment>Marketplace visibility apply stage and result.</comment></data>
+  <data name="HealthEvidenceApplyNotRecorded" xml:space="preserve"><value>apply result not recorded</value><comment>Marketplace visibility evidence.</comment></data>
+  <data name="HealthEvidenceOpenResultFormat" xml:space="preserve"><value>open URI {0}</value><comment>Marketplace visibility open result.</comment></data>
+  <data name="HealthEvidenceOpenNotRecorded" xml:space="preserve"><value>open URI not recorded</value><comment>Marketplace visibility evidence.</comment></data>
+  <data name="HealthEvidenceSpotifyObserved" xml:space="preserve"><value>Spotify process observed after URI request</value><comment>Marketplace visibility evidence.</comment></data>
+  <data name="HealthEvidenceSpotifyNotObserved" xml:space="preserve"><value>Spotify process not observed after URI request</value><comment>Marketplace visibility evidence.</comment></data>
+  <data name="HealthEvidenceMarketplaceVisibilityFormat" xml:space="preserve"><value>{0} Visibility evidence from {1}: {2}; {3}; {4}; {5}; likely visible={6}.</value><comment>Combined Marketplace visibility evidence.</comment></data>
+  <data name="HealthEvidenceApplyDetailFormat" xml:space="preserve"><value>Apply detail: {0}</value><comment>Marketplace apply detail.</comment></data>
+  <data name="HealthEvidenceOpenDetailFormat" xml:space="preserve"><value>Open detail: {0}</value><comment>Marketplace open detail.</comment></data>
+  <data name="HealthEvidenceThemeUnavailable" xml:space="preserve"><value>Theme state is available after Spicetify writes config-xpui.ini.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceThemeStock" xml:space="preserve"><value>No bundled theme is active; Marketplace-only and stock looks are valid states.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceThemeInjectionDisabledFormat" xml:space="preserve"><value>Theme &apos;{0}&apos; is selected, but inject_css or replace_colors is disabled.</value><comment>Health evidence with the selected theme.</comment></data>
+  <data name="HealthEvidenceThemeActiveFormat" xml:space="preserve"><value>Theme &apos;{0}&apos; is selected with CSS and color replacement enabled.</value><comment>Health evidence with the selected theme.</comment></data>
+  <data name="HealthEvidenceBackupsAvailable" xml:space="preserve"><value>At least one LibreSpot backup directory is available for restore.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceBackupsMissing" xml:space="preserve"><value>Spicetify is installed, but no LibreSpot backup directory is available.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceBackupsPending" xml:space="preserve"><value>Backups are created after Spicetify has something to save.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceWatcherDisabled" xml:space="preserve"><value>The watcher task is not registered; auto-reapply is opt-in.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceWatcherNoRun" xml:space="preserve"><value>The scheduled task exists, but watcher-state.json has no recorded tick yet.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceWatcherFailedFormat" xml:space="preserve"><value>The last watcher tick failed: {0}</value><comment>Health evidence with the watcher outcome.</comment></data>
+  <data name="HealthEvidenceWatcherStale" xml:space="preserve"><value>The scheduled task exists, but it has not recorded a tick in more than seven days.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceWatcherActive" xml:space="preserve"><value>The scheduled task is registered and watcher state is recent.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidencePostUpdateNotApplicable" xml:space="preserve"><value>Post-update drift checks start after Spotify is installed.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidencePostUpdateNoHistory" xml:space="preserve"><value>LibreSpot has not recorded a patched Spotify version yet. Run setup or reapply once so future updates can be compared.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidencePostUpdateWatcherDisabled" xml:space="preserve"><value>La reaplicación automática no está habilitada y no hay ninguna versión parcheada de Spotify registrada para comparaciones futuras.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidencePostUpdateMarketplaceMissingFormat" xml:space="preserve"><value>The watcher reapplied Spotify {0}, but Marketplace is not ready. Last successful apply: {1}. Spicetify: {2}.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidencePostUpdateReappliedFormat" xml:space="preserve"><value>The watcher reapplied the current Spotify version. Last successful apply: {0}. Spicetify: {1}.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidencePostUpdateDeferredFormat" xml:space="preserve"><value>Spotify changed from {0} to {1}, but the watcher deferred because Spotify was running. Close Spotify, then reapply the saved profile.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidencePostUpdateWatcherFailedFormat" xml:space="preserve"><value>The watcher could not finish after Spotify changed from {0} to {1}. {2}</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidencePostUpdateRolledBackFormat" xml:space="preserve"><value>Spicetify apply failed after the Spotify update, but LibreSpot restored Spotify. Error: {0}</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidencePostUpdateReapplyNeededFormat" xml:space="preserve"><value>Spotify changed from {0} to {1}. Reapply the saved profile before escalating to reset.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidencePostUpdateNoDriftFormat" xml:space="preserve"><value>The current Spotify version matches the last known patched version. Spicetify: {0}.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceLogsMissing" xml:space="preserve"><value>No backend install log or desktop rolling log was found yet.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceLogsAvailable" xml:space="preserve"><value>Backend and desktop logs are available for local troubleshooting.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceRecentCrashes" xml:space="preserve"><value>Recent crash reports exist; inspect them before treating the shell as stable.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceNoCrashReports" xml:space="preserve"><value>No crash reports were found.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceNoRecentCrashes" xml:space="preserve"><value>Crash reports exist, but none are recent.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSavedProfileAvailable" xml:space="preserve"><value>config.json exists and can seed reapply, watcher, and custom install flows.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSavedProfileNotSaved" xml:space="preserve"><value>The LibreSpot profile folder exists, but config.json has not been saved yet.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSavedProfileFolderMissing" xml:space="preserve"><value>The LibreSpot profile folder will be created on the first save.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceCacheSummaryFormat" xml:space="preserve"><value>Cache entries: {0}; present: {1}; size: {2}.</value><comment>Asset-cache health summary.</comment></data>
+  <data name="HealthEvidenceCacheCorruptFormat" xml:space="preserve"><value>{0} {1} cached file(s) failed SHA256 verification and should be cleared before relying on offline installs.</value><comment>Corrupt asset-cache health evidence.</comment></data>
+  <data name="HealthEvidenceCacheStaleFormat" xml:space="preserve"><value>{0} Stale means an index row points at a missing file or a legacy hash file has no source label yet.</value><comment>Stale asset-cache health evidence.</comment></data>
+  <data name="HealthEvidenceCacheEmpty" xml:space="preserve"><value>No verified download cache entries were found yet.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceExtensionsNotApplicable" xml:space="preserve"><value>Extension file checks run after Spicetify is installed.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceExtensionsNoneRegistered" xml:space="preserve"><value>No Spicetify extensions are registered in config-xpui.ini.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceExtensionsInvalid" xml:space="preserve"><value>Extension entries must be plain file names under the Extensions folder; unsafe paths and invalid names are ignored.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceExtensionsMissingFormat" xml:space="preserve"><value>Registered extensions are missing from disk: {0}. A security product may have quarantined them; check Windows Security protection history.</value><comment>Health evidence with missing extension names.</comment></data>
+  <data name="HealthEvidenceExtensionsAllPresentFormat" xml:space="preserve"><value>All {0} registered extension file(s) exist on disk.</value><comment>Health evidence with extension count.</comment></data>
+  <data name="HealthActionUnknownFormat" xml:space="preserve"><value>Revisar acción: {0}</value><comment>Localized fallback wrapper for an unrecognized health action identifier.</comment></data>
+  <data name="HealthValueNone" xml:space="preserve"><value>ninguna</value><comment>Absent health evidence value.</comment></data>
+  <data name="HealthCacheAgeSecondsFormat" xml:space="preserve"><value>{0} segundos</value><comment>Age of cached health metadata in seconds.</comment></data>
+  <data name="HealthCacheAgeMinutesFormat" xml:space="preserve"><value>{0} minutos</value><comment>Age of cached health metadata in minutes.</comment></data>
+  <data name="HealthCacheAgeHoursFormat" xml:space="preserve"><value>{0} horas</value><comment>Age of cached health metadata in hours.</comment></data>
+  <data name="HealthCacheAgeDaysFormat" xml:space="preserve"><value>{0} días</value><comment>Age of cached health metadata in days.</comment></data>
 </root>

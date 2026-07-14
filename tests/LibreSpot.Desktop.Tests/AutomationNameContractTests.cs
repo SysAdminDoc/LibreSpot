@@ -58,6 +58,27 @@ public sealed class AutomationNameContractTests
         Assert.Contains("AutomationEvents.LiveRegionChanged", control);
     }
 
+    [Fact]
+    public void SharedScrollbarAutomationNames_ResolveFromLocaleResources()
+    {
+        var controls = File.ReadAllText(
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Themes", "Controls.xaml"));
+        var resourceKeys = new[]
+        {
+            "ScrollPageUpAutomation",
+            "ScrollPageDownAutomation",
+            "ScrollPageLeftAutomation",
+            "ScrollPageRightAutomation"
+        };
+
+        foreach (var key in resourceKeys)
+        {
+            Assert.Contains($"AutomationProperties.Name=\"{{services:Loc {key}}}\"", controls);
+        }
+
+        Assert.DoesNotContain("AutomationProperties.Name=\"Scroll page", controls);
+    }
+
     private static bool HasNameSource(XElement element)
     {
         foreach (var attribute in element.Attributes())

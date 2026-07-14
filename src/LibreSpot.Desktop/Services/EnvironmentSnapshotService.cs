@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
 using LibreSpot.Desktop.Models;
+using Strings = LibreSpot.Desktop.Properties.Strings;
 
 namespace LibreSpot.Desktop.Services;
 
@@ -210,13 +211,13 @@ public sealed class EnvironmentSnapshotService
 
         yield return new StackHealthComponent(
             "store-spotify",
-            "Microsoft Store Spotify",
-            "Will be replaced",
+            L("HealthNameStoreSpotify"),
+            L("HealthStatusWillBeReplaced"),
             HealthSeverity.Info,
             null,
             null,
             null,
-            "The Microsoft Store version of Spotify is installed. LibreSpot patches the standard desktop build, so SpotX will remove the Store version and install the desktop build in its place during setup.",
+            L("HealthEvidenceStoreSpotify"),
             Array.Empty<string>());
     }
 
@@ -241,14 +242,13 @@ public sealed class EnvironmentSnapshotService
 
         yield return new StackHealthComponent(
             "antivirus-exclusion",
-            "Antivirus exclusion",
-            "Exclusion recommended",
+            L("HealthNameAntivirusExclusion"),
+            L("HealthStatusExclusionRecommended"),
             HealthSeverity.Warning,
             null,
             spotifyDirectory,
             null,
-            "Windows Defender real-time protection is on and the Spotify folder is not excluded, so SpotX-patched files can be quarantined as a false positive (Defender classifies ad-block patches as HackTool by behavior, which code-signing does not clear). LibreSpot never changes your antivirus settings for you. To add an exclusion yourself, open PowerShell as administrator and run: " +
-            $"Add-MpPreference -ExclusionPath \"{spotifyDirectory}\"",
+            F("HealthEvidenceAntivirusExclusionFormat", spotifyDirectory),
             Array.Empty<string>());
     }
 
@@ -386,7 +386,7 @@ public sealed class EnvironmentSnapshotService
                         DateTimeOffset.UtcNow,
                         null,
                         true,
-                        $"Pinned {pin.PinnedValue}; current {current}; latest unknown; drift unknown; source unavailable; cache age none. Live upstream metadata is degraded. Detail: {ex.Message}");
+                        F("HealthEvidenceUpstreamUnavailableFormat", pin.PinnedValue, current, ex.Message));
                 }),
                 DateTimeOffset.UtcNow);
         }
@@ -423,7 +423,7 @@ public sealed class EnvironmentSnapshotService
                         pin.NetworkBehavior,
                         pin.NetworkDetail,
                         pin.RequiresTrustReview,
-                        $"Pinned commit {pin.PinnedCommit}; latest unknown; drift degraded; source unavailable; cache age none. Live community asset metadata is degraded. Detail: {ex.Message}")),
+                        F("HealthEvidenceCommunityUnavailableFormat", pin.PinnedCommit, ex.Message))),
                 DateTimeOffset.UtcNow);
         }
     }
@@ -433,13 +433,13 @@ public sealed class EnvironmentSnapshotService
         foreach (var dependency in report.Dependencies)
         {
             var status = dependency.IsDegraded
-                ? string.IsNullOrWhiteSpace(dependency.LatestValue) ? "Latest unknown" : "Cached metadata"
+                ? string.IsNullOrWhiteSpace(dependency.LatestValue) ? L("HealthStatusLatestUnknown") : L("HealthStatusCachedMetadata")
                 : dependency.DriftState switch
                 {
-                    "current" => "Current",
-                    "behind" => "Upstream changed",
-                    "ahead" => "Pinned ahead",
-                    _ => "Latest unknown"
+                    "current" => L("HealthStatusCurrent"),
+                    "behind" => L("HealthStatusUpstreamChanged"),
+                    "ahead" => L("HealthStatusPinnedAhead"),
+                    _ => L("HealthStatusLatestUnknown")
                 };
             var severity = string.Equals(dependency.DriftState, "current", StringComparison.OrdinalIgnoreCase) &&
                 !dependency.IsDegraded
@@ -448,13 +448,20 @@ public sealed class EnvironmentSnapshotService
 
             yield return Component(
                 $"upstream-{dependency.Id}",
-                $"{dependency.Name} upstream",
+                F("HealthNameUpstreamFormat", dependency.Name),
                 status,
                 severity,
                 dependency.LatestValue,
                 null,
                 dependency.CheckedAtUtc.LocalDateTime,
-                dependency.Evidence);
+                F(
+                    "HealthEvidenceUpstreamFormat",
+                    dependency.PinnedValue,
+                    dependency.CurrentValue,
+                    dependency.LatestValue ?? L("HealthValueUnknown"),
+                    dependency.DriftState,
+                    dependency.MetadataSource,
+                    FormatCacheAge(dependency.CacheAge)));
         }
     }
 
@@ -470,13 +477,20 @@ public sealed class EnvironmentSnapshotService
 
             yield return Component(
                 CommunityAssetComponentId(asset),
-                $"{asset.Name} community {asset.Kind}",
+                F("HealthNameCommunityAssetFormat", asset.Name, asset.Kind),
                 status,
                 severity,
                 asset.LatestCommit,
                 asset.SourceUrl,
                 asset.CheckedAtUtc.LocalDateTime,
-                asset.Evidence,
+                F(
+                    "HealthEvidenceCommunityAssetFormat",
+                    asset.PinnedCommit,
+                    asset.LatestCommit ?? L("HealthValueUnknown"),
+                    asset.DriftState,
+                    asset.MetadataSource,
+                    asset.License,
+                    asset.NetworkBehavior),
                 actions);
         }
     }
@@ -485,25 +499,25 @@ public sealed class EnvironmentSnapshotService
     {
         if (string.Equals(asset.DriftState, "missing", StringComparison.OrdinalIgnoreCase))
         {
-            return "Missing upstream";
+            return L("HealthStatusMissingUpstream");
         }
 
         if (asset.IsDegraded)
         {
-            return string.IsNullOrWhiteSpace(asset.LatestCommit) ? "Latest unknown" : "Cached metadata";
+            return string.IsNullOrWhiteSpace(asset.LatestCommit) ? L("HealthStatusLatestUnknown") : L("HealthStatusCachedMetadata");
         }
 
         if (string.Equals(asset.DriftState, "behind", StringComparison.OrdinalIgnoreCase))
         {
-            return "Upstream changed";
+            return L("HealthStatusUpstreamChanged");
         }
 
         if (asset.RequiresTrustReview)
         {
-            return "Review required";
+            return L("HealthStatusReviewRequired");
         }
 
-        return "Current";
+        return L("HealthStatusCurrent");
     }
 
     private static string CommunityAssetSeverity(CommunityAssetState asset)
@@ -537,25 +551,25 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "spotify",
-                "Spotify",
-                "Not installed",
+                L("HealthNameSpotify"),
+                L("HealthStatusNotInstalled"),
                 HealthSeverity.Info,
                 null,
                 _spotifyPath,
                 null,
-                "Spotify.exe was not found in the expected per-user install path.",
+                L("HealthEvidenceSpotifyMissing"),
                 "Install");
         }
 
         return Component(
             "spotify",
-            "Spotify",
-            "Detected",
+            L("HealthNameSpotify"),
+            L("HealthStatusDetected"),
             HealthSeverity.Ready,
             _spotifyVersionProbe(),
             _spotifyPath,
             GetLastChanged(_spotifyPath),
-            "Spotify.exe exists and can be used as the patch target.");
+            L("HealthEvidenceSpotifyDetected"));
     }
 
     private StackHealthComponent BuildSpotXComponent(bool spotifyInstalled)
@@ -582,13 +596,13 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "spotx",
-                "SpotX patch",
-                "Not checked",
+                L("HealthNameSpotXPatch"),
+                L("HealthStatusNotChecked"),
                 HealthSeverity.Info,
                 null,
                 appsDirectory,
                 null,
-                "SpotX patch markers are only meaningful after Spotify is installed.",
+                L("HealthEvidenceSpotXNotChecked"),
                 "Install");
         }
 
@@ -596,38 +610,38 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "spotx",
-                "SpotX patch",
-                "Verified",
+                L("HealthNameSpotXPatch"),
+                L("HealthStatusVerified"),
                 HealthSeverity.Ready,
                 null,
                 appsDirectory,
                 Max(GetLastChanged(bundlePath), Max(GetLastChanged(backupPath), GetLastChanged(spotifyBinBackup))),
-                "The Spotify app bundle and a SpotX backup (Apps\\xpui.bak or a patched-binary backup) are present, matching SpotX's successful patch markers.");
+                L("HealthEvidenceSpotXVerified"));
         }
 
         if (hasBundle)
         {
             return Component(
                 "spotx",
-                "SpotX patch",
-                "Unverified",
+                L("HealthNameSpotXPatch"),
+                L("HealthStatusUnverified"),
                 HealthSeverity.Warning,
                 null,
                 appsDirectory,
                 GetLastChanged(bundlePath),
-                "Spotify's app bundle exists, but no SpotX backup marker (Apps\\xpui.bak or a patched-binary backup) was found.",
+                L("HealthEvidenceSpotXUnverified"),
                 "Reapply");
         }
 
         return Component(
             "spotx",
-            "SpotX patch",
-            "Bundle missing",
+            L("HealthNameSpotXPatch"),
+            L("HealthStatusBundleMissing"),
             HealthSeverity.Critical,
             null,
             appsDirectory,
             null,
-            "Apps\\xpui.spa is missing, so patch state cannot be considered reliable.",
+            L("HealthEvidenceSpotXBundleMissing"),
             "Reapply",
             "FullReset");
     }
@@ -638,25 +652,25 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "spicetify-cli",
-                "Spicetify CLI",
-                "Not installed",
+                L("HealthNameSpicetifyCli"),
+                L("HealthStatusNotInstalled"),
                 HealthSeverity.Info,
                 null,
                 _spicetifyPath,
                 null,
-                "spicetify.exe was not found in the expected per-user location.",
+                L("HealthEvidenceSpicetifyCliMissing"),
                 "Install");
         }
 
         return Component(
             "spicetify-cli",
-            "Spicetify CLI",
-            "Detected",
+            L("HealthNameSpicetifyCli"),
+            L("HealthStatusDetected"),
             HealthSeverity.Ready,
             _spicetifyVersionProbe(),
             _spicetifyPath,
             GetLastChanged(_spicetifyPath),
-            "spicetify.exe exists and maintenance actions can call it.");
+            L("HealthEvidenceSpicetifyCliDetected"));
     }
 
     private static StackHealthComponent BuildSpicetifyConfigComponent(
@@ -668,13 +682,13 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "spicetify-config",
-                "Spicetify config",
-                "Not available",
+                L("HealthNameSpicetifyConfig"),
+                L("HealthStatusNotAvailable"),
                 HealthSeverity.Info,
                 null,
                 configPath,
                 null,
-                "Spicetify config is created after the CLI is installed.",
+                L("HealthEvidenceSpicetifyConfigUnavailable"),
                 "Install");
         }
 
@@ -682,30 +696,30 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "spicetify-config",
-                "Spicetify config",
-                "Missing",
+                L("HealthNameSpicetifyConfig"),
+                L("HealthStatusMissing"),
                 HealthSeverity.Warning,
                 null,
                 configPath,
                 null,
-                "config-xpui.ini is missing, so saved theme and extension state cannot be inspected.",
+                L("HealthEvidenceSpicetifyConfigMissing"),
                 "Reapply");
         }
 
         var currentTheme = config.TryGetValue("current_theme", out var theme) ? theme : string.Empty;
         var customApps = config.TryGetValue("custom_apps", out var apps) ? apps : string.Empty;
         var evidence = string.IsNullOrWhiteSpace(currentTheme)
-            ? "config-xpui.ini exists; current_theme is not set."
-            : $"config-xpui.ini exists; current_theme={currentTheme}.";
+            ? L("HealthEvidenceSpicetifyConfigNoTheme")
+            : F("HealthEvidenceSpicetifyConfigThemeFormat", currentTheme);
         if (!string.IsNullOrWhiteSpace(customApps))
         {
-            evidence += $" custom_apps={customApps}.";
+            evidence += " " + F("HealthEvidenceSpicetifyConfigAppsFormat", customApps);
         }
 
         return Component(
             "spicetify-config",
-            "Spicetify config",
-            "Readable",
+            L("HealthNameSpicetifyConfig"),
+            L("HealthStatusReadable"),
             HealthSeverity.Ready,
             null,
             configPath,
@@ -724,25 +738,25 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "marketplace",
-                "Marketplace",
-                "Not available",
+                L("HealthNameMarketplace"),
+                L("HealthStatusNotAvailable"),
                 HealthSeverity.Info,
                 null,
                 marketplaceDirectory,
                 null,
-                "Marketplace is installed through Spicetify.",
+                L("HealthEvidenceMarketplaceUnavailable"),
                 "Install");
         }
 
         if (filesPresent && registered)
         {
-            var evidence = BuildMarketplaceEvidenceText(visibilityEvidence, "Marketplace files are present and custom_apps includes marketplace.");
+            var evidence = BuildMarketplaceEvidenceText(visibilityEvidence, L("HealthEvidenceMarketplaceReady"));
             if (visibilityEvidence?.ApplySucceeded == false)
             {
                 return Component(
                     "marketplace",
-                    "Marketplace",
-                    "Apply failed",
+                    L("HealthNameMarketplace"),
+                    L("HealthStatusApplyFailed"),
                     HealthSeverity.Warning,
                     visibilityEvidence.ManifestVersion,
                     marketplaceDirectory,
@@ -757,8 +771,8 @@ public sealed class EnvironmentSnapshotService
             {
                 return Component(
                     "marketplace",
-                    "Marketplace",
-                    "Open failed",
+                    L("HealthNameMarketplace"),
+                    L("HealthStatusOpenFailed"),
                     HealthSeverity.Warning,
                     visibilityEvidence.ManifestVersion,
                     marketplaceDirectory,
@@ -772,8 +786,8 @@ public sealed class EnvironmentSnapshotService
             {
                 return Component(
                     "marketplace",
-                    "Marketplace",
-                    "Likely visible",
+                    L("HealthNameMarketplace"),
+                    L("HealthStatusLikelyVisible"),
                     HealthSeverity.Ready,
                     visibilityEvidence.ManifestVersion,
                     marketplaceDirectory,
@@ -784,8 +798,8 @@ public sealed class EnvironmentSnapshotService
 
             return Component(
                 "marketplace",
-                "Marketplace",
-                "Files installed",
+                L("HealthNameMarketplace"),
+                L("HealthStatusFilesInstalled"),
                 HealthSeverity.Info,
                 visibilityEvidence?.ManifestVersion,
                 marketplaceDirectory,
@@ -799,13 +813,13 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "marketplace",
-                "Marketplace",
-                "Hidden",
+                L("HealthNameMarketplace"),
+                L("HealthStatusHidden"),
                 HealthSeverity.Warning,
                 null,
                 marketplaceDirectory,
                 GetNewestFileChange(marketplaceDirectory),
-                "Marketplace files exist, but custom_apps does not include marketplace.",
+                L("HealthEvidenceMarketplaceHidden"),
                 "RepairMarketplace");
         }
 
@@ -813,25 +827,25 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "marketplace",
-                "Marketplace",
-                "Files missing",
+                L("HealthNameMarketplace"),
+                L("HealthStatusFilesMissing"),
                 HealthSeverity.Warning,
                 null,
                 marketplaceDirectory,
                 null,
-                "custom_apps includes marketplace, but required files were not found.",
+                L("HealthEvidenceMarketplaceFilesMissing"),
                 "RepairMarketplace");
         }
 
         return Component(
             "marketplace",
-            "Marketplace",
-            "Not enabled",
+            L("HealthNameMarketplace"),
+            L("HealthStatusNotEnabled"),
             HealthSeverity.Warning,
             null,
             marketplaceDirectory,
             null,
-            "Marketplace is not registered and required files were not found.",
+            L("HealthEvidenceMarketplaceNotEnabled"),
             "RepairMarketplace");
     }
 
@@ -839,33 +853,43 @@ public sealed class EnvironmentSnapshotService
     {
         if (visibilityEvidence is null)
         {
-            return fallback + " No post-apply visibility evidence has been recorded yet.";
+            return fallback + " " + L("HealthEvidenceMarketplaceNoVisibility");
         }
 
         var manifest = string.IsNullOrWhiteSpace(visibilityEvidence.ManifestVersion)
-            ? "manifest version unknown"
-            : $"manifest version {visibilityEvidence.ManifestVersion}";
+            ? L("HealthEvidenceManifestUnknown")
+            : F("HealthEvidenceManifestFormat", visibilityEvidence.ManifestVersion);
         var apply = visibilityEvidence.ApplySucceeded.HasValue
-            ? $"{visibilityEvidence.ApplyStage ?? "apply"} {(visibilityEvidence.ApplySucceeded.Value ? "succeeded" : "failed")}"
-            : "apply result not recorded";
+            ? F(
+                "HealthEvidenceApplyResultFormat",
+                visibilityEvidence.ApplyStage ?? L("HealthValueApply"),
+                visibilityEvidence.ApplySucceeded.Value ? L("HealthValueSucceeded") : L("HealthValueFailed"))
+            : L("HealthEvidenceApplyNotRecorded");
         var open = visibilityEvidence.OpenUriSucceeded.HasValue
-            ? $"open URI {(visibilityEvidence.OpenUriSucceeded.Value ? "succeeded" : "failed")}"
-            : "open URI not recorded";
+            ? F("HealthEvidenceOpenResultFormat", visibilityEvidence.OpenUriSucceeded.Value ? L("HealthValueSucceeded") : L("HealthValueFailed"))
+            : L("HealthEvidenceOpenNotRecorded");
         var spotify = visibilityEvidence.SpotifyRunningAfterOpen.HasValue
-            ? visibilityEvidence.SpotifyRunningAfterOpen.Value ? "Spotify process observed after URI request" : "Spotify process not observed after URI request"
-            : visibilityEvidence.LastObservedSpotifySession;
+            ? visibilityEvidence.SpotifyRunningAfterOpen.Value ? L("HealthEvidenceSpotifyObserved") : L("HealthEvidenceSpotifyNotObserved")
+            : visibilityEvidence.LastObservedSpotifySession ?? L("HealthValueUnknown");
 
-        var text =
-            $"{fallback} Visibility evidence from {visibilityEvidence.Source}: {manifest}; {apply}; {open}; {spotify}; likelyVisible={visibilityEvidence.LikelyVisible}.";
+        var text = F(
+            "HealthEvidenceMarketplaceVisibilityFormat",
+            fallback,
+            visibilityEvidence.Source,
+            manifest,
+            apply,
+            open,
+            spotify,
+            visibilityEvidence.LikelyVisible);
 
         if (!string.IsNullOrWhiteSpace(visibilityEvidence.ApplyMessage))
         {
-            text += $" Apply detail: {visibilityEvidence.ApplyMessage}";
+            text += " " + F("HealthEvidenceApplyDetailFormat", visibilityEvidence.ApplyMessage);
         }
 
         if (!string.IsNullOrWhiteSpace(visibilityEvidence.OpenUriMessage))
         {
-            text += $" Open detail: {visibilityEvidence.OpenUriMessage}";
+            text += " " + F("HealthEvidenceOpenDetailFormat", visibilityEvidence.OpenUriMessage);
         }
 
         return text;
@@ -880,13 +904,13 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "active-theme",
-                "Active theme",
-                "Not available",
+                L("HealthNameActiveTheme"),
+                L("HealthStatusNotAvailable"),
                 HealthSeverity.Info,
                 null,
                 configPath,
                 null,
-                "Theme state is available after Spicetify writes config-xpui.ini.",
+                L("HealthEvidenceThemeUnavailable"),
                 "Install");
         }
 
@@ -898,39 +922,39 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "active-theme",
-                "Active theme",
-                "Marketplace or stock",
+                L("HealthNameActiveTheme"),
+                L("HealthStatusMarketplaceOrStock"),
                 HealthSeverity.Ready,
                 null,
                 configPath,
                 GetLastChanged(configPath),
-                "No bundled theme is active; Marketplace-only and stock looks are valid states.");
+                L("HealthEvidenceThemeStock"));
         }
 
         if (!injectCss || !replaceColors)
         {
             return Component(
                 "active-theme",
-                "Active theme",
-                "Injection disabled",
+                L("HealthNameActiveTheme"),
+                L("HealthStatusInjectionDisabled"),
                 HealthSeverity.Warning,
                 null,
                 configPath,
                 GetLastChanged(configPath),
-                $"Theme '{theme}' is selected, but inject_css or replace_colors is disabled.",
+                F("HealthEvidenceThemeInjectionDisabledFormat", theme),
                 "Reapply",
                 "SafeMode");
         }
 
         return Component(
             "active-theme",
-            "Active theme",
-            "Active",
+            L("HealthNameActiveTheme"),
+            L("HealthStatusActive"),
             HealthSeverity.Ready,
             null,
             configPath,
             GetLastChanged(configPath),
-            $"Theme '{theme}' is selected with CSS and color replacement enabled.");
+            F("HealthEvidenceThemeActiveFormat", theme));
     }
 
     private StackHealthComponent BuildBackupComponent(bool spicetifyInstalled)
@@ -940,26 +964,26 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "backups",
-                "Backups",
-                backupCount == 1 ? "1 backup" : $"{backupCount} backups",
+                L("HealthNameBackups"),
+                backupCount == 1 ? L("HealthStatusOneBackup") : F("HealthStatusBackupsFormat", backupCount),
                 HealthSeverity.Ready,
                 null,
                 _backupDirectory,
                 GetNewestDirectoryChange(_backupDirectory),
-                "At least one LibreSpot backup directory is available for restore.");
+                L("HealthEvidenceBackupsAvailable"));
         }
 
         return Component(
             "backups",
-            "Backups",
-            "None yet",
+            L("HealthNameBackups"),
+            L("HealthStatusNoneYet"),
             spicetifyInstalled ? HealthSeverity.Warning : HealthSeverity.Info,
             null,
             _backupDirectory,
             null,
             spicetifyInstalled
-                ? "Spicetify is installed, but no LibreSpot backup directory is available."
-                : "Backups are created after Spicetify has something to save.",
+                ? L("HealthEvidenceBackupsMissing")
+                : L("HealthEvidenceBackupsPending"),
             spicetifyInstalled ? "CreateBackup" : "Install");
     }
 
@@ -969,13 +993,13 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "auto-reapply-watcher",
-                "Auto-reapply watcher",
-                "Disabled",
+                L("HealthNameWatcher"),
+                L("HealthStatusDisabled"),
                 HealthSeverity.Info,
                 state.LastKnownVersion,
                 statePath,
                 state.LastRunAt,
-                "The watcher task is not registered; auto-reapply is opt-in.",
+                L("HealthEvidenceWatcherDisabled"),
                 "EnableAutoReapply");
         }
 
@@ -983,13 +1007,13 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "auto-reapply-watcher",
-                "Auto-reapply watcher",
-                "No run recorded",
+                L("HealthNameWatcher"),
+                L("HealthStatusNoRunRecorded"),
                 HealthSeverity.Warning,
                 state.LastKnownVersion,
                 statePath,
                 null,
-                "The scheduled task exists, but watcher-state.json has no recorded tick yet.",
+                L("HealthEvidenceWatcherNoRun"),
                 "WatchAutoReapply");
         }
 
@@ -997,13 +1021,13 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "auto-reapply-watcher",
-                "Auto-reapply watcher",
-                "Last tick failed",
+                L("HealthNameWatcher"),
+                L("HealthStatusLastTickFailed"),
                 HealthSeverity.Warning,
                 state.LastKnownVersion,
                 statePath,
                 state.LastRunAt,
-                state.LastOutcome,
+                F("HealthEvidenceWatcherFailedFormat", state.LastOutcome),
                 "WatchAutoReapply",
                 "Reapply");
         }
@@ -1012,25 +1036,25 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "auto-reapply-watcher",
-                "Auto-reapply watcher",
-                "Stale",
+                L("HealthNameWatcher"),
+                L("HealthStatusStale"),
                 HealthSeverity.Warning,
                 state.LastKnownVersion,
                 statePath,
                 state.LastRunAt,
-                "The scheduled task exists, but it has not recorded a tick in more than seven days.",
+                L("HealthEvidenceWatcherStale"),
                 "WatchAutoReapply");
         }
 
         return Component(
             "auto-reapply-watcher",
-            "Auto-reapply watcher",
-            string.IsNullOrWhiteSpace(state.LastOutcome) ? "Active" : state.LastOutcome,
+            L("HealthNameWatcher"),
+            LocalizeWatcherOutcome(state.LastOutcome),
             HealthSeverity.Ready,
             state.LastKnownVersion,
             statePath,
             state.LastRunAt,
-            "The scheduled task is registered and watcher state is recent.");
+            L("HealthEvidenceWatcherActive"));
     }
 
     private StackHealthComponent BuildPostUpdateTriageComponent(
@@ -1055,13 +1079,13 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "post-spotify-update",
-                "After Spotify update",
-                "Not applicable",
+                L("HealthNamePostUpdate"),
+                L("HealthStatusNotApplicable"),
                 HealthSeverity.Info,
                 null,
                 statePath,
                 LatestStateChange(state),
-                "Post-update drift checks start after Spotify is installed.",
+                L("HealthEvidencePostUpdateNotApplicable"),
                 "Install");
         }
 
@@ -1069,15 +1093,15 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "post-spotify-update",
-                "After Spotify update",
-                autoReapplyTaskRegistered ? "No watcher history" : "Watcher not enabled",
+                L("HealthNamePostUpdate"),
+                autoReapplyTaskRegistered ? L("HealthStatusNoWatcherHistory") : L("HealthStatusWatcherNotEnabled"),
                 HealthSeverity.Info,
                 currentSpotifyVersion,
                 statePath,
                 LatestStateChange(state),
                 autoReapplyTaskRegistered
-                    ? "LibreSpot has not recorded a patched Spotify version yet. Run the setup or reapply once so future Spotify updates can be compared accurately."
-                    : "Auto-reapply is not enabled and LibreSpot has no recorded patched Spotify version to compare against future updates.",
+                    ? L("HealthEvidencePostUpdateNoHistory")
+                    : L("HealthEvidencePostUpdateWatcherDisabled"),
                 spicetifyInstalled ? "Reapply" : "Install");
         }
 
@@ -1089,39 +1113,39 @@ public sealed class EnvironmentSnapshotService
             {
                 return Component(
                     "post-spotify-update",
-                    "After Spotify update",
-                    "Marketplace still missing",
+                    L("HealthNamePostUpdate"),
+                    L("HealthStatusMarketplaceStillMissing"),
                     HealthSeverity.Warning,
                     currentSpotifyVersion,
                     statePath,
                     LatestStateChange(state),
-                    $"Watcher reapplied Spotify {currentSpotifyVersion}, but Marketplace is not ready. Last successful apply: {FormatMaybe(state.LastSuccessfulApplyAt)}. Spicetify: {FormatMaybe(spicetifyVersion)}.",
+                    F("HealthEvidencePostUpdateMarketplaceMissingFormat", currentSpotifyVersion, FormatMaybe(state.LastSuccessfulApplyAt), FormatMaybe(spicetifyVersion)),
                     "RepairMarketplace",
                     "OpenLogs");
             }
 
             return Component(
                 "post-spotify-update",
-                "After Spotify update",
-                "Reapplied",
+                L("HealthNamePostUpdate"),
+                L("HealthStatusReapplied"),
                 HealthSeverity.Ready,
                 currentSpotifyVersion,
                 statePath,
                 LatestStateChange(state),
-                $"Watcher reapplied the current Spotify version. Last successful apply: {FormatMaybe(state.LastSuccessfulApplyAt)}. Spicetify: {FormatMaybe(spicetifyVersion)}.");
+                F("HealthEvidencePostUpdateReappliedFormat", FormatMaybe(state.LastSuccessfulApplyAt), FormatMaybe(spicetifyVersion)));
         }
 
         if (string.Equals(state.LastOutcome, "DeferredSpotifyRunning", StringComparison.OrdinalIgnoreCase) || (spotifyVersionChanged && _spotifyRunningProbe()))
         {
             return Component(
                 "post-spotify-update",
-                "After Spotify update",
-                "Close Spotify first",
+                L("HealthNamePostUpdate"),
+                L("HealthStatusCloseSpotifyFirst"),
                 HealthSeverity.Warning,
                 currentSpotifyVersion,
                 statePath,
                 LatestStateChange(state),
-                $"Spotify changed from {FormatMaybe(lastPatchedVersion)} to {FormatMaybe(currentSpotifyVersion)}, but the watcher deferred because Spotify was running. Close Spotify, then reapply the saved profile.",
+                F("HealthEvidencePostUpdateDeferredFormat", FormatMaybe(lastPatchedVersion), FormatMaybe(currentSpotifyVersion)),
                 "Reapply",
                 "OpenLogs");
         }
@@ -1131,13 +1155,13 @@ public sealed class EnvironmentSnapshotService
             var failedDuringSpotX = state.LastOutcome.Contains("spotx", StringComparison.OrdinalIgnoreCase);
             return Component(
                 "post-spotify-update",
-                "After Spotify update",
-                failedDuringSpotX ? "SpotX reapply failed" : "Watcher failed",
+                L("HealthNamePostUpdate"),
+                failedDuringSpotX ? L("HealthStatusSpotXReapplyFailed") : L("HealthStatusWatcherFailed"),
                 failedDuringSpotX ? HealthSeverity.Critical : HealthSeverity.Warning,
                 currentSpotifyVersion,
                 statePath,
                 LatestStateChange(state),
-                $"Watcher could not finish after Spotify changed from {FormatMaybe(lastPatchedVersion)} to {FormatMaybe(currentSpotifyVersion)}. {state.LastOutcome}",
+                F("HealthEvidencePostUpdateWatcherFailedFormat", FormatMaybe(lastPatchedVersion), FormatMaybe(currentSpotifyVersion), state.LastOutcome),
                 "Reapply",
                 "OpenLogs");
         }
@@ -1147,13 +1171,13 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "post-spotify-update",
-                "After Spotify update",
-                "Spicetify rolled back",
+                L("HealthNamePostUpdate"),
+                L("HealthStatusSpicetifyRolledBack"),
                 HealthSeverity.Warning,
                 currentSpotifyVersion,
                 statePath,
                 LatestStateChange(state),
-                $"Spicetify apply failed after the Spotify update, but LibreSpot restored Spotify. Error: {FormatMaybe(state.LastApplyError)}",
+                F("HealthEvidencePostUpdateRolledBackFormat", FormatMaybe(state.LastApplyError)),
                 "Reapply",
                 "RestoreVanilla",
                 "OpenLogs");
@@ -1163,26 +1187,26 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "post-spotify-update",
-                "After Spotify update",
-                "Reapply needed",
+                L("HealthNamePostUpdate"),
+                L("HealthStatusReapplyNeeded"),
                 HealthSeverity.Warning,
                 currentSpotifyVersion,
                 statePath,
                 LatestStateChange(state),
-                $"Spotify changed from {FormatMaybe(lastPatchedVersion)} to {FormatMaybe(currentSpotifyVersion)}. Reapply the saved profile before escalating to reset.",
+                F("HealthEvidencePostUpdateReapplyNeededFormat", FormatMaybe(lastPatchedVersion), FormatMaybe(currentSpotifyVersion)),
                 "Reapply",
                 "OpenLogs");
         }
 
         return Component(
             "post-spotify-update",
-            "After Spotify update",
-            "No drift",
+            L("HealthNamePostUpdate"),
+            L("HealthStatusNoDrift"),
             HealthSeverity.Ready,
             currentSpotifyVersion,
             statePath,
             LatestStateChange(state),
-            $"Current Spotify version matches the last known patched version. Spicetify: {FormatMaybe(spicetifyVersion)}.");
+            F("HealthEvidencePostUpdateNoDriftFormat", FormatMaybe(spicetifyVersion)));
     }
 
     private StackHealthComponent BuildLogsComponent(string configDirectory)
@@ -1196,24 +1220,24 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "logs",
-                "Logs",
-                "No logs yet",
+                L("HealthNameLogs"),
+                L("HealthStatusNoLogsYet"),
                 HealthSeverity.Info,
                 null,
                 installLogPath,
                 null,
-                "No backend install log or desktop rolling log was found yet.");
+                L("HealthEvidenceLogsMissing"));
         }
 
         return Component(
             "logs",
-            "Logs",
-            "Available",
+            L("HealthNameLogs"),
+            L("HealthStatusAvailable"),
             HealthSeverity.Ready,
             null,
             installLogChanged is null ? _rollingLogDirectory : installLogPath,
             latest,
-            "Backend and desktop logs are available for local troubleshooting.");
+            L("HealthEvidenceLogsAvailable"));
     }
 
     private StackHealthComponent BuildCrashComponent()
@@ -1234,27 +1258,27 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "crash-reports",
-                "Crash reports",
-                recentCrashCount == 1 ? "1 recent crash" : $"{recentCrashCount} recent crashes",
+                L("HealthNameCrashReports"),
+                recentCrashCount == 1 ? L("HealthStatusOneRecentCrash") : F("HealthStatusRecentCrashesFormat", recentCrashCount),
                 HealthSeverity.Warning,
                 null,
                 _crashDirectory,
                 newest,
-                "Recent crash reports exist; inspect them before treating the shell as stable.",
+                L("HealthEvidenceRecentCrashes"),
                 "OpenLogs");
         }
 
         return Component(
             "crash-reports",
-            "Crash reports",
-            "No recent crashes",
+            L("HealthNameCrashReports"),
+            L("HealthStatusNoRecentCrashes"),
             HealthSeverity.Ready,
             null,
             _crashDirectory,
             newest,
             crashFiles.Length == 0
-                ? "No crash reports were found."
-                : "Crash reports exist, but none are recent.");
+                ? L("HealthEvidenceNoCrashReports")
+                : L("HealthEvidenceNoRecentCrashes"));
     }
 
     private static StackHealthComponent BuildSavedProfileComponent(
@@ -1266,26 +1290,26 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "saved-profile",
-                "Saved LibreSpot profile",
-                "Available",
+                L("HealthNameSavedProfile"),
+                L("HealthStatusAvailable"),
                 HealthSeverity.Ready,
                 null,
                 configPath,
                 GetLastChanged(configPath),
-                "config.json exists and can seed reapply, watcher, and custom install flows.");
+                L("HealthEvidenceSavedProfileAvailable"));
         }
 
         return Component(
             "saved-profile",
-            "Saved LibreSpot profile",
-            configFolderExists ? "Not saved" : "Profile folder missing",
+            L("HealthNameSavedProfile"),
+            configFolderExists ? L("HealthStatusNotSaved") : L("HealthStatusProfileFolderMissing"),
             HealthSeverity.Info,
             null,
             configPath,
             null,
             configFolderExists
-                ? "The LibreSpot profile folder exists, but config.json has not been saved yet."
-                : "The LibreSpot profile folder will be created on the first save.",
+                ? L("HealthEvidenceSavedProfileNotSaved")
+                : L("HealthEvidenceSavedProfileFolderMissing"),
             "Install");
     }
 
@@ -1296,19 +1320,19 @@ public sealed class EnvironmentSnapshotService
             .Where(changed => changed.HasValue)
             .OrderByDescending(changed => changed)
             .FirstOrDefault();
-        var summary = $"Cache entries: {report.EntryCount}; present: {report.PresentCount}; size: {FormatBytes(report.TotalBytes)}.";
+        var summary = F("HealthEvidenceCacheSummaryFormat", report.EntryCount, report.PresentCount, FormatBytes(report.TotalBytes));
 
         if (report.CorruptCount > 0)
         {
             return Component(
                 "asset-cache",
-                "Asset cache",
-                report.CorruptCount == 1 ? "1 corrupt entry" : $"{report.CorruptCount} corrupt entries",
+                L("HealthNameAssetCache"),
+                report.CorruptCount == 1 ? L("HealthStatusOneCorruptEntry") : F("HealthStatusCorruptEntriesFormat", report.CorruptCount),
                 HealthSeverity.Warning,
                 null,
                 report.CacheDirectory,
                 newest,
-                $"{summary} {report.CorruptCount} cached file(s) failed SHA256 verification and should be cleared before relying on offline installs.",
+                F("HealthEvidenceCacheCorruptFormat", summary, report.CorruptCount),
                 "ClearCache");
         }
 
@@ -1316,13 +1340,13 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "asset-cache",
-                "Asset cache",
-                report.StaleCount == 1 ? "1 stale entry" : $"{report.StaleCount} stale entries",
+                L("HealthNameAssetCache"),
+                report.StaleCount == 1 ? L("HealthStatusOneStaleEntry") : F("HealthStatusStaleEntriesFormat", report.StaleCount),
                 HealthSeverity.Info,
                 null,
                 report.CacheDirectory,
                 newest,
-                $"{summary} Stale means an index row points at a missing file or a legacy hash file has no source label yet.",
+                F("HealthEvidenceCacheStaleFormat", summary),
                 "ClearCache");
         }
 
@@ -1330,19 +1354,19 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "asset-cache",
-                "Asset cache",
-                "Empty",
+                L("HealthNameAssetCache"),
+                L("HealthStatusEmpty"),
                 HealthSeverity.Info,
                 null,
                 report.CacheDirectory,
                 null,
-                "No verified download cache entries were found yet.");
+                L("HealthEvidenceCacheEmpty"));
         }
 
         return Component(
             "asset-cache",
-            "Asset cache",
-            report.EntryCount == 1 ? "1 entry" : $"{report.EntryCount} entries",
+            L("HealthNameAssetCache"),
+            report.EntryCount == 1 ? L("HealthStatusOneEntry") : F("HealthStatusEntriesFormat", report.EntryCount),
             HealthSeverity.Ready,
             null,
             report.CacheDirectory,
@@ -1360,26 +1384,26 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "extension-integrity",
-                "Extension files",
-                "Not applicable",
+                L("HealthNameExtensionFiles"),
+                L("HealthStatusNotApplicable"),
                 HealthSeverity.Info,
                 null,
                 extensionsDir,
                 null,
-                "Extension file checks run after Spicetify is installed.");
+                L("HealthEvidenceExtensionsNotApplicable"));
         }
 
         if (!spicetifyConfig.TryGetValue("extensions", out var raw) || string.IsNullOrWhiteSpace(raw))
         {
             return Component(
                 "extension-integrity",
-                "Extension files",
-                "None registered",
+                L("HealthNameExtensionFiles"),
+                L("HealthStatusNoneRegistered"),
                 HealthSeverity.Ready,
                 null,
                 extensionsDir,
                 null,
-                "No Spicetify extensions are registered in config-xpui.ini.");
+                L("HealthEvidenceExtensionsNoneRegistered"));
         }
 
         var registered = raw
@@ -1389,13 +1413,13 @@ public sealed class EnvironmentSnapshotService
         {
             return Component(
                 "extension-integrity",
-                "Extension files",
-                "None registered",
+                L("HealthNameExtensionFiles"),
+                L("HealthStatusNoneRegistered"),
                 HealthSeverity.Ready,
                 null,
                 extensionsDir,
                 null,
-                "No Spicetify extensions are registered in config-xpui.ini.");
+                L("HealthEvidenceExtensionsNoneRegistered"));
         }
 
         var invalid = registered
@@ -1403,16 +1427,16 @@ public sealed class EnvironmentSnapshotService
             .ToArray();
         if (invalid.Length > 0)
         {
-            var label = invalid.Length == 1 ? "Invalid entry" : $"{invalid.Length} invalid entries";
+            var label = invalid.Length == 1 ? L("HealthStatusInvalidEntry") : F("HealthStatusInvalidEntriesFormat", invalid.Length);
             return Component(
                 "extension-integrity",
-                "Extension files",
+                L("HealthNameExtensionFiles"),
                 label,
                 HealthSeverity.Warning,
                 null,
                 extensionsDir,
                 null,
-                "Spicetify extension entries must be plain file names under the Extensions folder; path separators, rooted paths, and invalid file-name characters are ignored.",
+                L("HealthEvidenceExtensionsInvalid"),
                 "Reapply");
         }
 
@@ -1422,28 +1446,28 @@ public sealed class EnvironmentSnapshotService
 
         if (missing.Length > 0)
         {
-            var label = missing.Length == 1 ? $"'{missing[0]}' missing" : $"{missing.Length} files missing";
+            var label = missing.Length == 1 ? F("HealthStatusExtensionMissingFormat", missing[0]) : F("HealthStatusExtensionFilesMissingFormat", missing.Length);
             return Component(
                 "extension-integrity",
-                "Extension files",
+                L("HealthNameExtensionFiles"),
                 label,
                 HealthSeverity.Warning,
                 null,
                 extensionsDir,
                 null,
-                $"Registered extensions are missing from disk: {string.Join(", ", missing)}. A security product (such as Microsoft Defender) may have quarantined them. Check Windows Security > Virus & threat protection > Protection history.",
+                F("HealthEvidenceExtensionsMissingFormat", string.Join(", ", missing)),
                 "Reapply");
         }
 
         return Component(
             "extension-integrity",
-            "Extension files",
-            "All present",
+            L("HealthNameExtensionFiles"),
+            L("HealthStatusAllPresent"),
             HealthSeverity.Ready,
             null,
             extensionsDir,
             GetNewestFileChange(extensionsDir),
-            $"All {registered.Length} registered extension file(s) exist on disk.");
+            F("HealthEvidenceExtensionsAllPresentFormat", registered.Length));
     }
 
     private static bool IsSafeExtensionFileName(string value)
@@ -1552,6 +1576,49 @@ public sealed class EnvironmentSnapshotService
             lastChanged,
             evidence,
             Array.AsReadOnly(recommendedActionIds.Where(id => !string.IsNullOrWhiteSpace(id)).ToArray()));
+
+    private static string L(string key) =>
+        Strings.ResourceManager.GetString(key, Strings.Culture ?? CultureInfo.CurrentUICulture) ?? key;
+
+    private static string F(string key, params object?[] args) =>
+        string.Format(Strings.Culture ?? CultureInfo.CurrentCulture, L(key), args);
+
+    private static string LocalizeWatcherOutcome(string? outcome) => outcome switch
+    {
+        null or "" => L("HealthStatusActive"),
+        "Initialized" => L("HealthStatusWatcherInitialized"),
+        "UpToDate" => L("HealthStatusWatcherUpToDate"),
+        "DeferredSpotifyRunning" => L("HealthStatusWatcherDeferred"),
+        "NoConfig" => L("HealthStatusWatcherNoConfig"),
+        "PreferenceOff" => L("HealthStatusWatcherPreferenceOff"),
+        "Reapplied" => L("HealthStatusReapplied"),
+        _ => F("HealthStatusWatcherOutcomeFormat", outcome)
+    };
+
+    private static string FormatCacheAge(TimeSpan? age)
+    {
+        if (!age.HasValue)
+        {
+            return L("HealthValueNone");
+        }
+
+        if (age.Value.TotalMinutes < 1)
+        {
+            return F("HealthCacheAgeSecondsFormat", Math.Max(0, Math.Round(age.Value.TotalSeconds)));
+        }
+
+        if (age.Value.TotalHours < 1)
+        {
+            return F("HealthCacheAgeMinutesFormat", Math.Round(age.Value.TotalMinutes));
+        }
+
+        if (age.Value.TotalDays < 1)
+        {
+            return F("HealthCacheAgeHoursFormat", Math.Round(age.Value.TotalHours));
+        }
+
+        return F("HealthCacheAgeDaysFormat", Math.Round(age.Value.TotalDays));
+    }
 
     private static string? GetFileVersion(string path)
     {
@@ -1987,10 +2054,10 @@ public sealed class EnvironmentSnapshotService
         values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 
     private static string FormatMaybe(DateTime? value) =>
-        value?.ToString("yyyy-MM-dd HH:mm") ?? "unknown";
+        value?.ToString("yyyy-MM-dd HH:mm") ?? L("HealthValueUnknown");
 
     private static string FormatMaybe(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? "unknown" : value;
+        string.IsNullOrWhiteSpace(value) ? L("HealthValueUnknown") : value;
 
     private static string FormatBytes(long bytes)
     {

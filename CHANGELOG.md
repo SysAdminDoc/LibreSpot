@@ -12,6 +12,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Accessibility
 
+- Localized every stack-health component name, status, evidence template, fallback action label, and shared scrollbar automation name through the runtime culture resources; the first Spanish health and scrollbar translations now prove the end-to-end non-English path.
 - Made all 38 WPF storyboard animations respond to the live OS animation/high-contrast setting through freeze-safe motion-aware clocks; one-shot transitions snap to their final state and the repeating progress shimmer holds still when motion is suppressed.
 - The dependency-status rows now change glyph shape per severity (check / dash / exclamation / cross) instead of relying on ring colour alone, so warning and critical states stay distinguishable in high-contrast mode where both can map to the same system colour.
 - Raised the snackbar dismiss button to the app's 32px minimum touch-target size.
@@ -33,6 +34,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Tests
 
+- Expanded localization scanning from `MainWindow.xaml` to all production XAML and health-component construction, with Spanish snapshot and shared-control automation-name regression coverage.
 - Added direct Pester coverage for the lane-specific watcher launch, registration, first-run, preference, active-Spotify, failed-reapply, missing-config, and interrupted-state-write contracts.
 - Added `Build-Scripts.ps1 -WatcherIntegration`, which registers and exports a unique least-privilege task, runs seven isolated watcher process-boundary scenarios, captures Task Scheduler evidence on failure, and always removes the disposable task and temp root.
 
