@@ -22,13 +22,7 @@ $global:WATCHER_LOG_PATH = Join-Path $global:CONFIG_DIR 'watcher.log'
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText((Join-Path $Root "host-progress-$runId.txt"), 'loading-functions', $utf8NoBom)
 
-foreach ($path in @(
-    'src/powershell/lane-specific/Get-WatcherState.ps1',
-    'src/powershell/lane-specific/Set-WatcherState.ps1',
-    'src/powershell/lane-specific/Invoke-AutoReapplyWatcher.ps1'
-)) {
-    . (Join-Path $RepositoryRoot $path)
-}
+. (Join-Path $RepositoryRoot 'src/powershell/gui/lane-functions.ps1')
 [System.IO.File]::WriteAllText((Join-Path $Root "host-progress-$runId.txt"), 'functions-loaded', $utf8NoBom)
 
 function Write-WatcherLog {

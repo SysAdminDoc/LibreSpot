@@ -157,7 +157,7 @@ public sealed class PowerShellRegressionTests
 
     [Theory]
     [InlineData("LibreSpot.ps1")]
-    [InlineData("src/powershell/lane-specific/Set-WatcherState.ps1")]
+    [InlineData("src/powershell/gui/lane-functions.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
     public void SetWatcherState_MergesOverExistingState_SoOtherLaneFieldsSurvive(string relativePath)
     {

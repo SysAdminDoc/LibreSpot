@@ -1,19 +1,20 @@
 <#
 .SYNOPSIS
-    Validates that shared PowerShell functions between LibreSpot.ps1 and the
-    WPF backend script remain in sync. Future: generates both scripts from
-    shared source fragments.
+    Composes and validates the executable PowerShell hosts from canonical
+    shared, data-block, and lane-specific sources.
 
 .DESCRIPTION
-    Extracts function bodies from both scripts and compares the 86+ shared
-    functions for content drift. Any mismatch is reported as an error,
-    preventing silent one-lane-only changes that cause feature or security
-    regressions.
+    Uses src/powershell/composition.json to own shared functions, critical data
+    blocks, and the two lane wrapper sets. Generated hosts are byte-compared
+    with the checked-in scripts and import/parse-smoked on Windows PowerShell
+    5.1 and PowerShell 7.6 before validation or release-manifest generation.
 
     Run this as part of CI to catch shared-function drift before release.
 
 .EXAMPLE
     pwsh -File Build-Scripts.ps1 -Validate
+    pwsh -File Build-Scripts.ps1 -ComposeHosts
+    pwsh -File Build-Scripts.ps1 -CompositionSmoke
     pwsh -File Build-Scripts.ps1 -Inventory
     pwsh -File Build-Scripts.ps1 -Lint
 
@@ -26,6 +27,10 @@ param(
     [switch]$Validate,
     [switch]$Inventory,
     [switch]$Lint,
+    [switch]$ComposeHosts,
+    [switch]$CompositionSmoke,
+    [string]$CompositionContractPath,
+    [string]$CompositionOutputRoot,
     [switch]$SyncSharedToBackend,
     [switch]$SyncSharedToMain,
     [switch]$GenerateReleaseManifest,
@@ -48,6 +53,9 @@ $ErrorActionPreference = 'Stop'
 
 $mainScript = Join-Path $PSScriptRoot 'LibreSpot.ps1'
 $backendScript = Join-Path $PSScriptRoot 'src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1'
+if ([string]::IsNullOrWhiteSpace($CompositionContractPath)) {
+    $CompositionContractPath = Join-Path $PSScriptRoot 'src/powershell/composition.json'
+}
 $releaseContractPath = Join-Path $PSScriptRoot 'schemas/release-artifact-contract.json'
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 # The two runnable scripts MUST keep a UTF-8 BOM: Windows PowerShell 5.1 reads
@@ -77,13 +85,44 @@ if (-not (Test-Path -LiteralPath $backendScript)) {
     throw "Cannot find LibreSpot.Backend.ps1 at $backendScript"
 }
 
+function Get-ScriptFunctionDefinitions {
+    param([Parameter(Mandatory)][string]$ScriptContent)
+
+    $tokens = $null
+    $parseErrors = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseInput(
+        $ScriptContent,
+        [ref]$tokens,
+        [ref]$parseErrors)
+    if ($parseErrors.Count -gt 0) {
+        $details = @($parseErrors | ForEach-Object {
+            "line $($_.Extent.StartLineNumber): $($_.Message)"
+        }) -join '; '
+        throw "PowerShell parse failed: $details"
+    }
+
+    return @($ast.FindAll(
+        {
+            param($node)
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                $node.Extent.StartColumnNumber -eq 1
+        },
+        $true) | Sort-Object { $_.Extent.StartOffset } | ForEach-Object {
+        [pscustomobject]@{
+            Name        = $_.Name
+            Body        = $_.Extent.Text
+            StartOffset = $_.Extent.StartOffset
+            EndOffset   = $_.Extent.EndOffset
+        }
+    })
+}
+
 function Get-FunctionNames {
     param([string]$ScriptPath)
     $content = [System.IO.File]::ReadAllText($ScriptPath, [System.Text.Encoding]::UTF8)
-    $names = [regex]::Matches($content, '(?m)^\s*function\s+([A-Za-z0-9_-]+)') |
-        ForEach-Object { $_.Groups[1].Value } |
-        Sort-Object -Unique
-    return $names
+    return @(Get-ScriptFunctionDefinitions -ScriptContent $content |
+        ForEach-Object { $_.Name } |
+        Sort-Object -Unique)
 }
 
 function Get-FunctionBody {
@@ -91,15 +130,10 @@ function Get-FunctionBody {
         [string]$ScriptContent,
         [string]$FunctionName
     )
-    # Match a top-level function definition whose closing brace sits at column 0.
-    # Escape the function name so hyphens and other regex-significant characters
-    # are treated literally.
-    $escapedName = [regex]::Escape($FunctionName)
-    $pattern = "(?ms)^function\s+${escapedName}\s*\{.+?^\}"
-    $match = [regex]::Match($ScriptContent, $pattern)
-    if ($match.Success) {
-        return $match.Value
-    }
+    $definition = @(Get-ScriptFunctionDefinitions -ScriptContent $ScriptContent |
+        Where-Object { $_.Name -ceq $FunctionName })
+    if ($definition.Count -eq 1) { return $definition[0].Body }
+    if ($definition.Count -gt 1) { throw "Duplicate function export '$FunctionName'." }
     return $null
 }
 
@@ -114,6 +148,383 @@ function ConvertTo-NormalizedFunctionBody {
         ForEach-Object { $_.Trim() } |
         Where-Object { $_ -ne '' }
     return ($lines -join "`n")
+}
+
+function Resolve-LibreSpotCompositionPath {
+    param([Parameter(Mandatory)][string]$Path)
+
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return [System.IO.Path]::GetFullPath($Path)
+    }
+    return Join-Path $PSScriptRoot $Path
+}
+
+function Get-LibreSpotCompositionCatalog {
+    if (-not (Test-Path -LiteralPath $CompositionContractPath -PathType Leaf)) {
+        throw "PowerShell composition contract not found: $CompositionContractPath"
+    }
+
+    $contract = Get-Content -Raw -LiteralPath $CompositionContractPath | ConvertFrom-Json
+    if ([int]$contract.schemaVersion -ne 1) {
+        throw "Unsupported PowerShell composition schema version: $($contract.schemaVersion)"
+    }
+
+    $expectedComponentOrder = @('dataBlocks', 'sharedFunctions', 'laneFunctions')
+    $componentOrder = @($contract.componentOrder | ForEach-Object { [string]$_ })
+    if (($componentOrder -join '|') -cne ($expectedComponentOrder -join '|')) {
+        throw "Invalid composition order. Expected: $($expectedComponentOrder -join ', ')."
+    }
+
+    $sharedDirectory = Resolve-LibreSpotCompositionPath -Path ([string]$contract.sharedFunctions.directory)
+    $sharedFiles = @(Get-ChildItem -LiteralPath $sharedDirectory -Filter ([string]$contract.sharedFunctions.pattern) -File | Sort-Object Name)
+    if ($sharedFiles.Count -ne [int]$contract.sharedFunctions.expectedCount) {
+        throw "Composition expected $($contract.sharedFunctions.expectedCount) shared modules but found $($sharedFiles.Count). Update the contract with the source change."
+    }
+
+    $sharedDefinitions = @{}
+    foreach ($file in $sharedFiles) {
+        $source = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
+        $definitions = @(Get-ScriptFunctionDefinitions -ScriptContent $source)
+        if ($definitions.Count -ne 1 -or $definitions[0].Name -cne $file.BaseName) {
+            throw "Shared module $($file.FullName) must export exactly one top-level function named $($file.BaseName)."
+        }
+        if ($sharedDefinitions.ContainsKey($definitions[0].Name)) {
+            throw "Duplicate shared function export '$($definitions[0].Name)'."
+        }
+        $sharedDefinitions[$definitions[0].Name] = $definitions[0].Body
+    }
+
+    $laneFunctionNames = @($contract.laneFunctions | ForEach-Object { [string]$_ })
+    $laneDuplicates = @($laneFunctionNames | Group-Object | Where-Object { $_.Count -gt 1 })
+    if ($laneDuplicates.Count -gt 0) {
+        throw "Duplicate lane function export(s): $($laneDuplicates.Name -join ', ')"
+    }
+    foreach ($laneName in $laneFunctionNames) {
+        if ($sharedDefinitions.ContainsKey($laneName)) {
+            throw "Function '$laneName' is exported by both shared and lane sources."
+        }
+    }
+
+    $dataBlocks = @()
+    foreach ($block in @($contract.dataBlocks)) {
+        $sourcePath = Resolve-LibreSpotCompositionPath -Path ([string]$block.source)
+        if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
+            throw "Composition data source not found: $sourcePath"
+        }
+        $sourceContent = [System.IO.File]::ReadAllText($sourcePath, [System.Text.Encoding]::UTF8)
+        $matches = [regex]::Matches($sourceContent, [string]$block.pattern)
+        if ($matches.Count -ne 1 -or $sourceContent.Trim() -cne $matches[0].Value.Trim()) {
+            throw "Data source $sourcePath must contain only one $($block.name) block."
+        }
+        $dataBlocks += [pscustomobject]@{
+            Name          = [string]$block.name
+            Pattern       = [string]$block.pattern
+            SourcePath    = $sourcePath
+            SourceContent = $matches[0].Value
+        }
+    }
+
+    $hosts = @()
+    foreach ($hostContract in @($contract.hosts)) {
+        $targetPath = Resolve-LibreSpotCompositionPath -Path ([string]$hostContract.target)
+        $laneSourcePath = Resolve-LibreSpotCompositionPath -Path ([string]$hostContract.laneSource)
+        if (-not (Test-Path -LiteralPath $targetPath -PathType Leaf)) {
+            throw "Composition target not found: $targetPath"
+        }
+        if (-not (Test-Path -LiteralPath $laneSourcePath -PathType Leaf)) {
+            throw "Lane source not found: $laneSourcePath"
+        }
+
+        $laneSourceContent = [System.IO.File]::ReadAllText($laneSourcePath, [System.Text.Encoding]::UTF8)
+        $laneDefinitions = @(Get-ScriptFunctionDefinitions -ScriptContent $laneSourceContent)
+        $laneNames = @($laneDefinitions | ForEach-Object { $_.Name })
+        $missingLaneNames = @($laneFunctionNames | Where-Object { $_ -cnotin $laneNames })
+        $unexpectedLaneNames = @($laneNames | Where-Object { $_ -cnotin $laneFunctionNames })
+        $duplicateLaneNames = @($laneNames | Group-Object | Where-Object { $_.Count -gt 1 })
+        if ($missingLaneNames.Count -gt 0 -or $unexpectedLaneNames.Count -gt 0 -or $duplicateLaneNames.Count -gt 0) {
+            throw "Lane source $laneSourcePath has invalid exports. Missing: $($missingLaneNames -join ', '); unexpected: $($unexpectedLaneNames -join ', '); duplicates: $($duplicateLaneNames.Name -join ', ')."
+        }
+
+        $laneDefinitionMap = @{}
+        foreach ($definition in $laneDefinitions) {
+            $laneDefinitionMap[$definition.Name] = $definition.Body
+        }
+        $hosts += [pscustomobject]@{
+            Id                      = [string]$hostContract.id
+            TargetRelativePath      = [string]$hostContract.target
+            TargetPath              = $targetPath
+            LaneSourcePath          = $laneSourcePath
+            LaneSourceContent       = $laneSourceContent
+            LaneDefinitions         = $laneDefinitions
+            LaneDefinitionMap       = $laneDefinitionMap
+            ExcludedSharedFunctions = @($hostContract.excludedSharedFunctions | ForEach-Object { [string]$_ })
+        }
+    }
+
+    $hostIds = @($hosts | ForEach-Object { $_.Id })
+    if (((@($hostIds | Sort-Object)) -join '|') -cne 'backend|main' -or $hostIds.Count -ne 2) {
+        throw "Composition contract must declare exactly the main and backend hosts."
+    }
+
+    foreach ($hostContract in $hosts) {
+        foreach ($excluded in $hostContract.ExcludedSharedFunctions) {
+            if (-not $sharedDefinitions.ContainsKey($excluded)) {
+                throw "Host '$($hostContract.Id)' excludes unknown shared function '$excluded'."
+            }
+        }
+    }
+
+    # If a top-level function exists in both executable hosts it must be owned
+    # by either the shared source set or the explicit lane wrapper set.
+    $hostFunctionSets = @{}
+    foreach ($hostContract in $hosts) {
+        $content = [System.IO.File]::ReadAllText($hostContract.TargetPath, [System.Text.Encoding]::UTF8)
+        $definitions = @(Get-ScriptFunctionDefinitions -ScriptContent $content)
+        $duplicates = @($definitions | Group-Object Name | Where-Object { $_.Count -gt 1 })
+        if ($duplicates.Count -gt 0) {
+            throw "Host '$($hostContract.Id)' has duplicate top-level function(s): $($duplicates.Name -join ', ')."
+        }
+        $hostFunctionSets[$hostContract.Id] = @($definitions | ForEach-Object { $_.Name })
+    }
+    $unownedCommon = @($hostFunctionSets['main'] | Where-Object {
+        $_ -cin $hostFunctionSets['backend'] -and
+        -not $sharedDefinitions.ContainsKey($_) -and
+        $_ -cnotin $laneFunctionNames
+    })
+    if ($unownedCommon.Count -gt 0) {
+        throw "Functions shared by both hosts lack composition sources: $($unownedCommon -join ', ')."
+    }
+
+    return [pscustomobject]@{
+        Contract          = $contract
+        SharedFiles       = $sharedFiles
+        SharedDefinitions = $sharedDefinitions
+        LaneFunctionNames = $laneFunctionNames
+        DataBlocks        = $dataBlocks
+        Hosts             = $hosts
+    }
+}
+
+function ConvertTo-CompositionLineEndings {
+    param(
+        [Parameter(Mandatory)][string]$Source,
+        [Parameter(Mandatory)][string]$Existing
+    )
+
+    $newline = if ($Existing.Contains("`r`n")) { "`r`n" } else { "`n" }
+    return (($Source -replace "`r`n", "`n" -replace "`r", "`n") -split "`n" -join $newline).TrimEnd()
+}
+
+function Get-LibreSpotComposedHostContent {
+    param(
+        [Parameter(Mandatory)]$Catalog,
+        [Parameter(Mandatory)]$HostContract
+    )
+
+    $content = [System.IO.File]::ReadAllText($HostContract.TargetPath, [System.Text.Encoding]::UTF8)
+    $targetDefinitions = @(Get-ScriptFunctionDefinitions -ScriptContent $content)
+    $targetNames = @($targetDefinitions | ForEach-Object { $_.Name })
+    $targetDefinitionMap = @{}
+    foreach ($definition in $targetDefinitions) {
+        $targetDefinitionMap[$definition.Name] = $definition
+    }
+
+    foreach ($excluded in $HostContract.ExcludedSharedFunctions) {
+        if ($excluded -cin $targetNames) {
+            throw "Host '$($HostContract.Id)' excludes '$excluded' but still exports it."
+        }
+    }
+
+    $applicableShared = @($Catalog.SharedDefinitions.Keys |
+        Where-Object { $_ -cnotin $HostContract.ExcludedSharedFunctions } |
+        Sort-Object)
+    foreach ($functionName in $applicableShared) {
+        if ($functionName -cnotin $targetNames) {
+            throw "Host '$($HostContract.Id)' is missing shared function '$functionName'."
+        }
+    }
+
+    $targetLaneOrder = @($targetDefinitions |
+        Where-Object { $_.Name -cin $Catalog.LaneFunctionNames } |
+        ForEach-Object { $_.Name })
+    $sourceLaneOrder = @($HostContract.LaneDefinitions | ForEach-Object { $_.Name })
+    if (($targetLaneOrder -join '|') -cne ($sourceLaneOrder -join '|')) {
+        throw "Lane function order for '$($HostContract.Id)' differs from $($HostContract.LaneSourcePath)."
+    }
+
+    $replacements = @()
+    foreach ($block in $Catalog.DataBlocks) {
+        $matches = [regex]::Matches($content, $block.Pattern)
+        if ($matches.Count -ne 1) {
+            throw "Host '$($HostContract.Id)' must contain exactly one $($block.Name) block; found $($matches.Count)."
+        }
+        if ((ConvertTo-NormalizedFunctionBody -Body $matches[0].Value) -cne
+            (ConvertTo-NormalizedFunctionBody -Body $block.SourceContent)) {
+            $replacement = ConvertTo-CompositionLineEndings -Source $block.SourceContent -Existing $matches[0].Value
+            $replacements += [pscustomobject]@{
+                Start = $matches[0].Index
+                End   = $matches[0].Index + $matches[0].Length
+                Text  = $replacement
+            }
+        }
+    }
+
+    foreach ($functionName in $applicableShared) {
+        $existing = $targetDefinitionMap[$functionName]
+        $sourceBody = $Catalog.SharedDefinitions[$functionName]
+        if ((ConvertTo-NormalizedFunctionBody -Body $existing.Body) -cne
+            (ConvertTo-NormalizedFunctionBody -Body $sourceBody)) {
+            $replacements += [pscustomobject]@{
+                Start = $existing.StartOffset
+                End   = $existing.EndOffset
+                Text  = ConvertTo-CompositionLineEndings -Source $sourceBody -Existing $existing.Body
+            }
+        }
+    }
+    foreach ($functionName in $sourceLaneOrder) {
+        $existing = $targetDefinitionMap[$functionName]
+        $sourceBody = $HostContract.LaneDefinitionMap[$functionName]
+        if ((ConvertTo-NormalizedFunctionBody -Body $existing.Body) -cne
+            (ConvertTo-NormalizedFunctionBody -Body $sourceBody)) {
+            $replacements += [pscustomobject]@{
+                Start = $existing.StartOffset
+                End   = $existing.EndOffset
+                Text  = ConvertTo-CompositionLineEndings -Source $sourceBody -Existing $existing.Body
+            }
+        }
+    }
+
+    foreach ($replacement in @($replacements | Sort-Object Start -Descending)) {
+        $content = $content.Substring(0, $replacement.Start) +
+            $replacement.Text +
+            $content.Substring($replacement.End)
+    }
+
+    $null = Get-ScriptFunctionDefinitions -ScriptContent $content
+    return $content
+}
+
+function Test-LibreSpotHostComposition {
+    param([switch]$Smoke)
+
+    $catalog = Get-LibreSpotCompositionCatalog
+    $staleHosts = @()
+    foreach ($hostContract in $catalog.Hosts) {
+        $composed = Get-LibreSpotComposedHostContent -Catalog $catalog -HostContract $hostContract
+        $actualBytes = [System.IO.File]::ReadAllBytes($hostContract.TargetPath)
+        [byte[]]$expectedBytes = @($utf8Bom.GetPreamble()) + @($utf8Bom.GetBytes($composed))
+        if ([System.Convert]::ToBase64String($actualBytes) -cne
+            [System.Convert]::ToBase64String($expectedBytes)) {
+            $staleHosts += $hostContract.TargetRelativePath
+        }
+    }
+    if ($staleHosts.Count -gt 0) {
+        throw "Executable PowerShell host(s) are stale: $($staleHosts -join ', '). Run Build-Scripts.ps1 -ComposeHosts."
+    }
+
+    Write-Host "PowerShell composition byte-check passed for main and backend hosts." -ForegroundColor Green
+    if ($Smoke) {
+        Invoke-LibreSpotCompositionSmoke -Catalog $catalog
+    }
+    return $catalog
+}
+
+function Write-LibreSpotComposedHosts {
+    param([string]$OutputRoot)
+
+    $catalog = Get-LibreSpotCompositionCatalog
+    foreach ($hostContract in $catalog.Hosts) {
+        $composed = Get-LibreSpotComposedHostContent -Catalog $catalog -HostContract $hostContract
+        $destination = if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
+            $hostContract.TargetPath
+        } else {
+            Join-Path ([System.IO.Path]::GetFullPath($OutputRoot)) $hostContract.TargetRelativePath
+        }
+        $directory = Split-Path -Path $destination -Parent
+        if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
+            New-Item -Path $directory -ItemType Directory -Force | Out-Null
+        }
+        [System.IO.File]::WriteAllText($destination, $composed, $utf8Bom)
+        Write-Host "Composed $($hostContract.Id) host: $destination" -ForegroundColor Green
+    }
+}
+
+function Invoke-LibreSpotCompositionSmoke {
+    param([Parameter(Mandatory)]$Catalog)
+
+    $smokeRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("LibreSpot.Composition.{0}" -f [Guid]::NewGuid().ToString('N'))
+    New-Item -Path $smokeRoot -ItemType Directory -Force | Out-Null
+    try {
+        $driverPath = Join-Path $smokeRoot 'smoke.ps1'
+        $driver = @'
+param(
+    [Parameter(Mandatory)][string]$HostPath,
+    [Parameter(Mandatory)][string]$ModulePath,
+    [Parameter(Mandatory)][string]$ExpectedFunctionsPath,
+    [Parameter(Mandatory)][string]$MinimumVersion
+)
+$ErrorActionPreference = 'Stop'
+if ($PSVersionTable.PSVersion -lt [Version]$MinimumVersion) {
+    throw "PowerShell $MinimumVersion or newer is required; found $($PSVersionTable.PSVersion)."
+}
+$tokens = $null
+$errors = $null
+$null = [System.Management.Automation.Language.Parser]::ParseFile($HostPath, [ref]$tokens, [ref]$errors)
+if ($errors.Count -gt 0) {
+    throw "Host parse failed: $($errors.Message -join '; ')"
+}
+. $ModulePath
+$expected = @(Get-Content -LiteralPath $ExpectedFunctionsPath | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+$missing = @($expected | Where-Object { -not (Get-Command -Name $_ -CommandType Function -ErrorAction SilentlyContinue) })
+if ($missing.Count -gt 0) {
+    throw "Module import missed function(s): $($missing -join ', ')"
+}
+'ok'
+'@
+        [System.IO.File]::WriteAllText($driverPath, $driver, $utf8Bom)
+
+        foreach ($hostContract in $Catalog.Hosts) {
+            $hostPath = Join-Path $smokeRoot ($hostContract.Id + '.ps1')
+            [System.IO.File]::WriteAllText(
+                $hostPath,
+                (Get-LibreSpotComposedHostContent -Catalog $Catalog -HostContract $hostContract),
+                $utf8Bom)
+
+            $moduleParts = @($Catalog.DataBlocks | ForEach-Object { $_.SourceContent.TrimEnd() })
+            $moduleParts += @($Catalog.SharedFiles | ForEach-Object {
+                [System.IO.File]::ReadAllText($_.FullName, [System.Text.Encoding]::UTF8).TrimEnd()
+            })
+            $moduleParts += $hostContract.LaneSourceContent.TrimEnd()
+            $modulePath = Join-Path $smokeRoot ($hostContract.Id + '.module.ps1')
+            [System.IO.File]::WriteAllText($modulePath, (($moduleParts -join "`n`n") + "`n"), $utf8Bom)
+
+            $expectedPath = Join-Path $smokeRoot ($hostContract.Id + '.functions.txt')
+            $expectedFunctions = @($Catalog.SharedDefinitions.Keys | Sort-Object) +
+                @($Catalog.LaneFunctionNames | Sort-Object)
+            [System.IO.File]::WriteAllLines($expectedPath, $expectedFunctions, $utf8NoBom)
+
+            foreach ($engineContract in @($Catalog.Contract.smokeEngines)) {
+                $engine = Get-Command ([string]$engineContract.command) -ErrorAction SilentlyContinue | Select-Object -First 1
+                if (-not $engine) {
+                    throw "Required composition smoke engine is unavailable: $($engineContract.command)"
+                }
+                $output = & $engine.Source -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass `
+                    -File $driverPath `
+                    -HostPath $hostPath `
+                    -ModulePath $modulePath `
+                    -ExpectedFunctionsPath $expectedPath `
+                    -MinimumVersion ([string]$engineContract.minimumVersion) 2>&1
+                if ($LASTEXITCODE -ne 0 -or $output -notcontains 'ok') {
+                    throw "$($engineContract.command) composition smoke failed for $($hostContract.Id): $($output -join [Environment]::NewLine)"
+                }
+                Write-Host "  $($engineContract.command) import/parse smoke passed for $($hostContract.Id)." -ForegroundColor Green
+            }
+        }
+    } finally {
+        if (Test-Path -LiteralPath $smokeRoot) {
+            Remove-Item -LiteralPath $smokeRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 function Get-JsonFile {
@@ -1088,8 +1499,14 @@ function New-LibreSpotDependencyHealthReport {
 $mainContent = [System.IO.File]::ReadAllText($mainScript, [System.Text.Encoding]::UTF8)
 $backendContent = [System.IO.File]::ReadAllText($backendScript, [System.Text.Encoding]::UTF8)
 
-$mainFunctions = Get-FunctionNames -ScriptPath $mainScript
-$backendFunctions = Get-FunctionNames -ScriptPath $backendScript
+$mainDefinitions = @(Get-ScriptFunctionDefinitions -ScriptContent $mainContent)
+$backendDefinitions = @(Get-ScriptFunctionDefinitions -ScriptContent $backendContent)
+$mainFunctions = @($mainDefinitions | ForEach-Object { $_.Name } | Sort-Object -Unique)
+$backendFunctions = @($backendDefinitions | ForEach-Object { $_.Name } | Sort-Object -Unique)
+$mainFunctionBodyMap = @{}
+foreach ($definition in $mainDefinitions) { $mainFunctionBodyMap[$definition.Name] = $definition.Body }
+$backendFunctionBodyMap = @{}
+foreach ($definition in $backendDefinitions) { $backendFunctionBodyMap[$definition.Name] = $definition.Body }
 
 $sharedNames = $mainFunctions | Where-Object { $backendFunctions -contains $_ } | Sort-Object
 $mainOnly = $mainFunctions | Where-Object { $backendFunctions -notcontains $_ } | Sort-Object
@@ -1220,12 +1637,32 @@ if ($DependencyHealth) {
 }
 
 if ($GenerateReleaseManifest) {
+    $null = Test-LibreSpotHostComposition -Smoke
     New-LibreSpotReleaseManifest `
         -Root $ReleaseRoot `
         -ManifestPath $ReleaseManifestPath `
         -Version $ReleaseVersion `
         -Channel $ReleaseChannel
     exit 0
+}
+
+if ($CompositionSmoke) {
+    $null = Test-LibreSpotHostComposition -Smoke
+    exit 0
+}
+
+if ($ComposeHosts) {
+    Write-LibreSpotComposedHosts -OutputRoot $CompositionOutputRoot
+    if ([string]::IsNullOrWhiteSpace($CompositionOutputRoot)) {
+        $null = Test-LibreSpotHostComposition -Smoke
+    } else {
+        Invoke-LibreSpotCompositionSmoke -Catalog (Get-LibreSpotCompositionCatalog)
+    }
+    exit 0
+}
+
+if ($SyncSharedToBackend -or $SyncSharedToMain) {
+    throw "The separate sync commands are retired. Run Build-Scripts.ps1 -ComposeHosts so shared functions, data blocks, and both lane sources are updated atomically."
 }
 
 if ($Inventory) {
@@ -1250,6 +1687,8 @@ if ($Inventory) {
 }
 
 if ($Validate) {
+    $null = Test-LibreSpotHostComposition -Smoke
+    Write-Host ""
     Write-Host "Validating shared function sync between scripts..." -ForegroundColor Cyan
     Write-Host "  Main:    $mainScript ($($mainFunctions.Count) functions)"
     Write-Host "  Backend: $backendScript ($($backendFunctions.Count) functions)"
@@ -1262,8 +1701,8 @@ if ($Validate) {
     $validatedNames = $sharedNames | Where-Object { $laneSpecificFunctions -notcontains $_ }
 
     foreach ($fn in $validatedNames) {
-        $mainBody = Get-FunctionBody -ScriptContent $mainContent -FunctionName $fn
-        $backendBody = Get-FunctionBody -ScriptContent $backendContent -FunctionName $fn
+        $mainBody = $mainFunctionBodyMap[$fn]
+        $backendBody = $backendFunctionBodyMap[$fn]
 
         if (-not $mainBody) {
             $missing += "${fn}: could not extract from main script"
@@ -1317,7 +1756,7 @@ if ($Validate) {
             $sharedNorm = ConvertTo-NormalizedFunctionBody -Body $sharedBody
 
             foreach ($lane in @(@{ Name = 'main'; Content = $mainContent }, @{ Name = 'backend'; Content = $backendContent })) {
-                $laneBody = Get-FunctionBody -ScriptContent $lane.Content -FunctionName $fnName
+                $laneBody = if ($lane.Name -eq 'main') { $mainFunctionBodyMap[$fnName] } else { $backendFunctionBodyMap[$fnName] }
                 if (-not $laneBody) { continue }
                 $laneNorm = ConvertTo-NormalizedFunctionBody -Body $laneBody
                 if ($sharedNorm -ne $laneNorm) {
@@ -1330,7 +1769,7 @@ if ($Validate) {
             foreach ($d in $sharedDrift) { Write-Host "  $d" -ForegroundColor Red }
             Write-Host ""
             Write-Host "These functions in the scripts differ from src/powershell/shared/." -ForegroundColor Red
-            Write-Host "Run -SyncSharedToBackend and manually update LibreSpot.ps1, or edit the shared source." -ForegroundColor Red
+            Write-Host "Run -ComposeHosts after updating the canonical shared source." -ForegroundColor Red
             Write-Host ""
             exit 1
         }
@@ -1552,11 +1991,11 @@ if ($SyncSharedToMain) {
 
 # Default: show usage
 Write-Host "Usage:"
+Write-Host "  pwsh -File Build-Scripts.ps1 -ComposeHosts         # Deterministically assemble both executable hosts"
+Write-Host "  pwsh -File Build-Scripts.ps1 -CompositionSmoke     # Byte-check plus PS 5.1/7.6 parse/import smoke"
 Write-Host "  pwsh -File Build-Scripts.ps1 -Validate             # Check shared functions for drift"
 Write-Host "  pwsh -File Build-Scripts.ps1 -Inventory             # List all functions and their locations"
 Write-Host "  pwsh -File Build-Scripts.ps1 -Lint                   # Run PSScriptAnalyzer on both scripts"
-Write-Host "  pwsh -File Build-Scripts.ps1 -SyncSharedToBackend   # Copy shared function sources into backend"
-Write-Host "  pwsh -File Build-Scripts.ps1 -SyncSharedToMain      # Copy shared function sources into standalone script"
 Write-Host "  pwsh -File Build-Scripts.ps1 -DependencyHealth       # Emit dependency-health JSON and fail unapproved drift"
 Write-Host "  pwsh -File Build-Scripts.ps1 -SpotXSecurityPolicy    # Hash and inspect the pinned SpotX entrypoint for Defender mutations"
 Write-Host "  pwsh -File Build-Scripts.ps1 -CheckSpotifyVersionDrift # Compare pinned Spotify target vs SpotX-Bash buildVer (report-only)"

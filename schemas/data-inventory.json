@@ -626,7 +626,7 @@
       "redactionRules": ["Never export task XML or launch path", "Expose only registered/not-registered state"],
       "aclExpectation": "standard Task Scheduler ACLs",
       "writeSites": [
-        { "source": "src/powershell/lane-specific/Register-AutoReapplyTask.ps1", "marker": "\\LibreSpot\\ReapplyWatcher" }
+        { "source": "src/powershell/gui/lane-functions.ps1", "marker": "\\LibreSpot\\ReapplyWatcher" }
       ]
     }
   ],

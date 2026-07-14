@@ -25,6 +25,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- Replaced separate shared-function sync commands with one composition contract and `Build-Scripts.ps1 -ComposeHosts`; both executable PowerShell hosts now consume canonical shared modules, host-specific wrapper sets, and pinned-release data, and release-manifest generation refuses stale hosts.
 - Turned the local-data inventory into an enforceable 28-location contract covering user and machine configuration, profiles, activation recovery, journals/receipts, caches, evidence, logs, backups, runtime files, temporary workspaces, support archives, and the watcher task; RemoveSelfData now also clears machine-scope Fleet data.
 - Consolidated the WPF shell onto a ten-step product type scale and a shared 2px extra-small radius token, removing one-off 5px checkbox corners and 11.5/12.5/13.5/14.5/15/15.5/17/22/23/25/27px text sizes that caused subtle visual drift.
 - Updated Serilog to 4.4.0 and Microsoft.NET.Test.Sdk to 18.8.1, refreshing runtime/test transitive pins and clearing the live dependency-health drift gate with no known vulnerable NuGet packages.
@@ -48,6 +49,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Tests
 
+- Added deterministic byte-generation, stale-host, missing/duplicate export, invalid-order, and Windows PowerShell 5.1/PowerShell 7.6 import/parse composition coverage.
 - Added data-inventory write-site, deletion-root, retention-policy, support-export, and private-profile exclusion contracts plus an end-to-end machine-data removal fixture.
 - Added before/after SpotX fixtures plus live pinned-entrypoint hash/policy validation so Defender mutations, missing opt-outs, unsupported safe-pin arguments, and lane adapter drift fail the build.
 - Added fault injection at every profile-activation write boundary plus hidden-process WPF/PowerShell concurrency and cross-host recovery coverage.

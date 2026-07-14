@@ -1,0 +1,64 @@
+{
+  "$comment": "Deterministic composition contract for the two executable PowerShell hosts. Host-only UI/entrypoint code remains in the target template; every shared function, lane wrapper, and critical data block is replaced from the canonical sources below.",
+  "schemaVersion": 1,
+  "componentOrder": ["dataBlocks", "sharedFunctions", "laneFunctions"],
+  "sharedFunctions": {
+    "directory": "src/powershell/shared",
+    "pattern": "*.ps1",
+    "expectedCount": 104
+  },
+  "dataBlocks": [
+    {
+      "name": "PinnedReleases",
+      "source": "src/powershell/data/PinnedReleases.ps1",
+      "pattern": "(?ms)^\\$global:PinnedReleases\\s*=\\s*@\\{.+?^\\}"
+    }
+  ],
+  "laneFunctions": [
+    "Get-WatcherLaunchCommand",
+    "Get-WatcherState",
+    "Hide-SpotifyWindows",
+    "Invoke-AutoReapplyWatcher",
+    "Invoke-HeadlessReapply",
+    "Load-LibreSpotConfig",
+    "Module-ApplySpicetify",
+    "Module-NukeSpotify",
+    "Register-AutoReapplyTask",
+    "Save-LibreSpotConfig",
+    "Set-WatcherState",
+    "Update-SpicetifyCliProgress",
+    "Write-Log"
+  ],
+  "hosts": [
+    {
+      "id": "main",
+      "target": "LibreSpot.ps1",
+      "laneSource": "src/powershell/gui/lane-functions.ps1",
+      "excludedSharedFunctions": []
+    },
+    {
+      "id": "backend",
+      "target": "src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1",
+      "laneSource": "src/powershell/backend/lane-functions.ps1",
+      "excludedSharedFunctions": [
+        "Apply-LibreSpotProfile",
+        "Complete-LibreSpotProfileActivationTransaction",
+        "ConvertTo-LibreSpotProfileId",
+        "Copy-LibreSpotFileDurable",
+        "Enter-LibreSpotProfileActivationLock",
+        "Get-LibreSpotFileFingerprint",
+        "Install-LibreSpotStagedConfig",
+        "Read-LibreSpotProfilePointer",
+        "Resolve-LibreSpotProfileActivationTransaction",
+        "Test-LibreSpotProfileActivationTransaction",
+        "Write-LibreSpotFileDurable",
+        "Write-LibreSpotJsonAtomically",
+        "Write-LibreSpotProfilePointer"
+      ]
+    }
+  ],
+  "smokeEngines": [
+    { "command": "powershell", "minimumVersion": "5.1" },
+    { "command": "pwsh", "minimumVersion": "7.6" }
+  ]
+}
