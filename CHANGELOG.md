@@ -14,6 +14,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Accessibility
 
+- Added an AA-safe danger-text token (at least 5.17:1 across every dark raised surface), migrated destructive/error copy to it, and retained system attention colours in Windows high-contrast themes.
 - Localized every stack-health component name, status, evidence template, fallback action label, and shared scrollbar automation name through the runtime culture resources; the first Spanish health and scrollbar translations now prove the end-to-end non-English path.
 - Made all 38 WPF storyboard animations respond to the live OS animation/high-contrast setting through freeze-safe motion-aware clocks; one-shot transitions snap to their final state and the repeating progress shimmer holds still when motion is suppressed.
 - The dependency-status rows now change glyph shape per severity (check / dash / exclamation / cross) instead of relying on ring colour alone, so warning and critical states stay distinguishable in high-contrast mode where both can map to the same system colour.
@@ -28,6 +29,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Made activity-log severity colours follow live theme changes by replacing frozen converter brushes with dynamic semantic-resource triggers; already-realized rows now update immediately when high contrast is toggled.
 - Recovered malformed, unsupported, or dangling active-profile pointers without losing the current configuration: LibreSpot now preserves it as a uniquely named recovery profile, rewrites a valid pointer, and treats malformed previous-profile metadata as unavailable instead of crashing the gallery.
 - Made upstream and community drift caches tolerate null or duplicate records and replace cache JSON atomically, preserving the last valid health snapshot across concurrent writers, process interruption, or malformed local state.
 - Made watcher state replacement fail cleanly when another process interrupts the atomic update instead of leaking a non-terminating `Move-Item` error before recovery.

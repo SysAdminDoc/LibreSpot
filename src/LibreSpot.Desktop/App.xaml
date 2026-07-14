@@ -10,7 +10,6 @@
         <ResourceDictionary Source="Themes/Controls.xaml" />
       </ResourceDictionary.MergedDictionaries>
       <conv:PrettifyConverter x:Key="PrettifyConverter" />
-      <conv:LogLevelToBrushConverter x:Key="LogLevelToBrushConverter" />
     </ResourceDictionary>
   </Application.Resources>
 </Application>

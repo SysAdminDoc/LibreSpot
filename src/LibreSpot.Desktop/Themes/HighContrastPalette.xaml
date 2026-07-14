@@ -59,6 +59,7 @@
   <!-- Danger maps to the HC theme's attention color (HotTrack) so error and
        success states are distinguishable; success stays on WindowText. -->
   <Color x:Key="DangerColor">#00CCFF</Color>
+  <Color x:Key="DangerTextColor">#00CCFF</Color>
   <Color x:Key="DangerDeepColor">#00CCFF</Color>
   <Color x:Key="DangerSoftColor">#1A1A1A</Color>
   <!-- Fill + text-on-fill pairs: destructive/caution fills flatten to normal control
@@ -116,6 +117,7 @@
   <!-- Danger text/borders map to the HC attention color (HotTrack) so error states
        are distinguishable from success text, which stays on WindowText. -->
   <SolidColorBrush x:Key="DangerBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
+  <SolidColorBrush x:Key="DangerTextBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
   <SolidColorBrush x:Key="DangerDeepBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
   <SolidColorBrush x:Key="DangerSoftBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
   <SolidColorBrush x:Key="DangerFillBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />

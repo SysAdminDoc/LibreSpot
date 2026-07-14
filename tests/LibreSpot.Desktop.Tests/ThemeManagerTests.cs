@@ -123,6 +123,20 @@ public sealed class ThemeManagerTests
     }
 
     [Fact]
+    public void RunLogSeverity_UsesLiveSemanticResourcesInsteadOfFrozenConverterBrushes()
+    {
+        var appXaml = ReadFile("src", "LibreSpot.Desktop", "App.xaml");
+        var mainWindow = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+
+        Assert.DoesNotContain("LogLevelToBrushConverter", appXaml);
+        Assert.DoesNotContain("LogLevelToBrushConverter", mainWindow);
+        Assert.Contains("Value=\"{DynamicResource DangerTextBrush}\"", mainWindow);
+        Assert.Contains("Value=\"{DynamicResource WarningBrush}\"", mainWindow);
+        Assert.Contains("Value=\"{DynamicResource AccentBrush}\"", mainWindow);
+        Assert.Contains("Value=\"{DynamicResource SubtleTextBrush}\"", mainWindow);
+    }
+
+    [Fact]
     public void XamlCornerRadii_DoNotExceedDocumentedRadiusMaximum()
     {
         var files = new[]
@@ -183,7 +197,7 @@ public sealed class ThemeManagerTests
             PaletteColor(palette, "Surface3Color"),
             PaletteColor(palette, "SurfaceRaisedColor"),
         };
-        var textTiers = new[] { "TextColor", "TextMutedColor", "TextSubtleColor" };
+        var textTiers = new[] { "TextColor", "TextMutedColor", "TextSubtleColor", "DangerTextColor" };
 
         var offenders = new List<string>();
         foreach (var tier in textTiers)
