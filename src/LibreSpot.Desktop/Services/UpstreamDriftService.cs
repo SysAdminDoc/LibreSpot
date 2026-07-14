@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LibreSpot.Desktop.Models;
@@ -92,8 +93,11 @@ public sealed class UpstreamDriftService
     {
         var now = _clock();
         var cache = ReadCache();
-        var cacheById = cache?.Dependencies.ToDictionary(item => item.Id, StringComparer.OrdinalIgnoreCase)
-            ?? new Dictionary<string, UpstreamDependencyState>(StringComparer.OrdinalIgnoreCase);
+        var cacheById = (cache?.Dependencies ?? Array.Empty<UpstreamDependencyState>())
+            .OfType<UpstreamDependencyState>()
+            .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+            .GroupBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Last(), StringComparer.OrdinalIgnoreCase);
         var dependencies = new List<UpstreamDependencyState>(_pins.Count);
         var hasLiveResult = false;
 
@@ -270,7 +274,9 @@ public sealed class UpstreamDriftService
             }
 
             var cache = JsonSerializer.Deserialize<CacheDocument>(File.ReadAllText(_cachePath), CacheJsonOptions);
-            return cache?.SchemaVersion == CacheSchemaVersion ? cache : null;
+            return cache is { SchemaVersion: CacheSchemaVersion, Dependencies: not null }
+                ? cache
+                : null;
         }
         catch
         {
@@ -282,14 +288,10 @@ public sealed class UpstreamDriftService
     {
         try
         {
-            var directory = Path.GetDirectoryName(_cachePath);
-            if (!string.IsNullOrWhiteSpace(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-
             var cache = new CacheDocument(CacheSchemaVersion, report.GeneratedAtUtc, report.Dependencies.ToArray());
-            File.WriteAllText(_cachePath, JsonSerializer.Serialize(cache, CacheJsonOptions));
+            DriftCacheFile.WriteAllTextAtomically(
+                _cachePath,
+                JsonSerializer.Serialize(cache, CacheJsonOptions));
         }
         catch
         {
@@ -373,6 +375,55 @@ public sealed class UpstreamDriftService
         int SchemaVersion,
         DateTimeOffset GeneratedAtUtc,
         UpstreamDependencyState[] Dependencies);
+}
+
+internal static class DriftCacheFile
+{
+    public static void WriteAllTextAtomically(string path, string content)
+    {
+        var directory = Path.GetDirectoryName(path);
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            throw new InvalidOperationException("A drift-cache path must have a parent directory.");
+        }
+
+        Directory.CreateDirectory(directory);
+        var temporaryPath = Path.Combine(
+            directory,
+            $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+
+        try
+        {
+            using (var stream = new FileStream(
+                       temporaryPath,
+                       new FileStreamOptions
+                       {
+                           Mode = FileMode.CreateNew,
+                           Access = FileAccess.Write,
+                           Share = FileShare.None,
+                           Options = FileOptions.WriteThrough
+                       }))
+            using (var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)))
+            {
+                writer.Write(content);
+                writer.Flush();
+                stream.Flush(flushToDisk: true);
+            }
+
+            File.Move(temporaryPath, path, overwrite: true);
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(temporaryPath);
+            }
+            catch
+            {
+                // A failed health-cache update must not replace the prior valid cache.
+            }
+        }
+    }
 }
 
 public sealed class GitHubUpstreamMetadataClient : IUpstreamMetadataClient

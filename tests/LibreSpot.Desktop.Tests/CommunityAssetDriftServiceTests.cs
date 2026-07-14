@@ -1,5 +1,6 @@
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -83,6 +84,40 @@ public sealed class CommunityAssetDriftServiceTests
             Assert.True(asset.CacheAge >= TimeSpan.FromHours(3));
             Assert.Contains("Live community asset metadata is degraded", asset.Evidence);
             Assert.Contains("network unavailable", asset.Evidence);
+        }
+        finally
+        {
+            DeleteTempRoot(root);
+        }
+    }
+
+    [Fact]
+    public async Task GetReportAsync_IgnoresNullAndDuplicateCommunityCacheEntries()
+    {
+        var root = NewTempRoot();
+        var pins = new[] { Pin("extension:cached.js", "Cached Extension", CurrentCommit, "MIT", requiresTrustReview: false) };
+        try
+        {
+            var onlineClient = new FakeMetadataClient();
+            onlineClient.GitResults["extension:cached.js"] = UpstreamMetadataLookupResult.Found(CurrentCommit, "git ls-remote");
+            await CreateService(root, onlineClient, pins).GetReportAsync();
+
+            var cachePath = Path.Combine(root, "community-cache.json");
+            var cache = JsonNode.Parse(await File.ReadAllTextAsync(cachePath))!.AsObject();
+            var assets = cache["assets"]!.AsArray();
+            assets.Add(assets[0]!.DeepClone());
+            assets.Add(null);
+            var missingId = assets[0]!.DeepClone().AsObject();
+            missingId["id"] = null;
+            assets.Add(missingId);
+            await File.WriteAllTextAsync(cachePath, cache.ToJsonString());
+
+            var report = await CreateService(root, new FakeMetadataClient(), pins)
+                .GetReportAsync(allowNetwork: false);
+
+            var asset = Assert.Single(report.Assets);
+            Assert.Equal("cache", asset.MetadataSource);
+            Assert.Equal(CurrentCommit, asset.LatestCommit);
         }
         finally
         {

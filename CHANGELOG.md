@@ -27,6 +27,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Made upstream and community drift caches tolerate null or duplicate records and replace cache JSON atomically, preserving the last valid health snapshot across concurrent writers, process interruption, or malformed local state.
 - Made watcher state replacement fail cleanly when another process interrupts the atomic update instead of leaking a non-terminating `Move-Item` error before recovery.
 - Restored `.librespot` Explorer imports from arbitrary local folders: file-association activations now enter the validated preview/confirm flow directly instead of being converted into a store-confined protocol URI, while malformed, missing, oversized, and wrong-extension inputs fail without crashing startup.
 - Removed the WPF shell's obsolete whole-app UAC relaunch: Recommended, Custom, and maintenance actions now run in the current standard-user token, readiness no longer treats a standard session as blocked, and the elevation boundary tests require every desktop backend action to remain no-admin.

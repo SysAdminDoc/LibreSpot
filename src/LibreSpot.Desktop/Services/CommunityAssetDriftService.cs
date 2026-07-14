@@ -59,8 +59,11 @@ public sealed class CommunityAssetDriftService
     {
         var now = _clock();
         var cache = ReadCache();
-        var cacheById = cache?.Assets.ToDictionary(item => item.Id, StringComparer.OrdinalIgnoreCase)
-            ?? new Dictionary<string, CommunityAssetState>(StringComparer.OrdinalIgnoreCase);
+        var cacheById = (cache?.Assets ?? Array.Empty<CommunityAssetState>())
+            .OfType<CommunityAssetState>()
+            .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+            .GroupBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Last(), StringComparer.OrdinalIgnoreCase);
         var assets = new List<CommunityAssetState>(_pins.Count);
         var hasLiveResult = false;
 
@@ -304,7 +307,9 @@ public sealed class CommunityAssetDriftService
             }
 
             var cache = JsonSerializer.Deserialize<CacheDocument>(File.ReadAllText(_cachePath), CacheJsonOptions);
-            return cache?.SchemaVersion == CacheSchemaVersion ? cache : null;
+            return cache is { SchemaVersion: CacheSchemaVersion, Assets: not null }
+                ? cache
+                : null;
         }
         catch
         {
@@ -316,14 +321,10 @@ public sealed class CommunityAssetDriftService
     {
         try
         {
-            var directory = Path.GetDirectoryName(_cachePath);
-            if (!string.IsNullOrWhiteSpace(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-
             var cache = new CacheDocument(CacheSchemaVersion, report.GeneratedAtUtc, report.Assets.ToArray());
-            File.WriteAllText(_cachePath, JsonSerializer.Serialize(cache, CacheJsonOptions));
+            DriftCacheFile.WriteAllTextAtomically(
+                _cachePath,
+                JsonSerializer.Serialize(cache, CacheJsonOptions));
         }
         catch
         {

@@ -1,5 +1,7 @@
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -105,6 +107,69 @@ public sealed class UpstreamDriftServiceTests
             Assert.Contains("Live upstream metadata is degraded", dependency.Evidence);
             Assert.Contains("GitHub REST offline", dependency.Evidence);
             Assert.Contains("git ls-remote offline", dependency.Evidence);
+        }
+        finally
+        {
+            DeleteTempRoot(root);
+        }
+    }
+
+    [Fact]
+    public async Task GetReportAsync_IgnoresNullAndDuplicateCacheEntries()
+    {
+        var root = NewTempRoot();
+        try
+        {
+            var onlineClient = new FakeMetadataClient
+            {
+                RestResult = UpstreamMetadataLookupResult.Found("v1.0.9", "GitHub REST")
+            };
+            await CreateService(root, onlineClient).GetReportAsync();
+
+            var cachePath = CachePath(root);
+            var cache = JsonNode.Parse(await File.ReadAllTextAsync(cachePath))!.AsObject();
+            var dependencies = cache["dependencies"]!.AsArray();
+            dependencies.Add(dependencies[0]!.DeepClone());
+            dependencies.Add(null);
+            var missingId = dependencies[0]!.DeepClone().AsObject();
+            missingId["id"] = null;
+            dependencies.Add(missingId);
+            await File.WriteAllTextAsync(cachePath, cache.ToJsonString());
+
+            var report = await CreateService(root, new FakeMetadataClient())
+                .GetReportAsync(allowNetwork: false);
+
+            var dependency = Assert.Single(report.Dependencies);
+            Assert.Equal("cache", dependency.MetadataSource);
+            Assert.Equal("1.0.9", dependency.LatestValue);
+        }
+        finally
+        {
+            DeleteTempRoot(root);
+        }
+    }
+
+    [Fact]
+    public async Task GetReportAsync_ConcurrentWritersLeaveOneValidCache()
+    {
+        var root = NewTempRoot();
+        try
+        {
+            var writes = Enumerable.Range(0, 8).Select(_ =>
+            {
+                var client = new FakeMetadataClient
+                {
+                    RestResult = UpstreamMetadataLookupResult.Found("v1.0.9", "GitHub REST")
+                };
+                return CreateService(root, client).GetReportAsync();
+            });
+
+            await Task.WhenAll(writes);
+
+            using var cache = JsonDocument.Parse(await File.ReadAllTextAsync(CachePath(root)));
+            Assert.Equal(1, cache.RootElement.GetProperty("schemaVersion").GetInt32());
+            Assert.Single(cache.RootElement.GetProperty("dependencies").EnumerateArray());
+            Assert.Empty(Directory.EnumerateFiles(root, "*.tmp", SearchOption.AllDirectories));
         }
         finally
         {
