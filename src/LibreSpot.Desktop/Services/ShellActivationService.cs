@@ -10,8 +10,7 @@ public enum ShellActivationKind
     NavigateMaintenance,
     ImportProfile,
     OpenLibreSpotFolder,
-    ProfileShareUri,
-    ResumeInstallElevated
+    ProfileShareUri
 }
 
 public sealed record ShellActivationRequest(ShellActivationKind Kind, string? Value = null)
@@ -107,9 +106,6 @@ public static class ShellActivationService
             "maintenance" or "repair" => new ShellActivationRequest(ShellActivationKind.NavigateMaintenance),
             "import" or "import-profile" => new ShellActivationRequest(ShellActivationKind.ImportProfile),
             "folder" or "open-folder" or "logs" => new ShellActivationRequest(ShellActivationKind.OpenLibreSpotFolder),
-            // Passed by LibreSpot's own elevate-and-relaunch so the elevated
-            // instance resumes the setup the user already confirmed.
-            "resume-install" => new ShellActivationRequest(ShellActivationKind.ResumeInstallElevated),
             _ => ShellActivationRequest.None
         };
     }

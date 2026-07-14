@@ -1,11 +1,11 @@
 {
-  "$comment": "Elevation boundary matrix — classifies every user-facing action by admin requirement. Non-mutating workflows run without elevation; mutating workflows prompt on execution.",
+  "$comment": "Elevation boundary matrix — classifies every user-facing action by admin requirement. All WPF desktop actions operate on per-user state and run in the current standard-user session.",
   "schemaVersion": 1,
   "executionLevel": {
     "powershellScript": "requireAdministrator",
     "ps2exeCompiled": "requireAdministrator",
     "wpfDesktopShell": "asInvoker",
-    "notes": "The PowerShell script and PS2EXE exe self-elevate immediately. The WPF shell launches as invoker and prompts for elevation only when executing mutating actions."
+    "notes": "The legacy PowerShell script and PS2EXE exe self-elevate immediately. The WPF shell launches as invoker and runs every backend action in the current standard-user token without a UAC relaunch."
   },
   "actions": [
     {
@@ -15,20 +15,20 @@
       "destructive": false,
       "toastCompatible": true,
       "description": "Compares pinned dependency versions against upstream; reads only",
-      "notes": "Only backend action that skips the admin requirement check in MainViewModel"
+      "notes": "Runs in the same standard-user backend path as every other WPF action"
     },
     {
       "action": "Install",
-      "elevation": "prompts-for-admin",
+      "elevation": "no-admin",
       "mutating": true,
       "destructive": false,
       "toastCompatible": false,
       "description": "Downloads and applies SpotX + Spicetify customizations to Spotify",
-      "notes": "Primary install workflow. Requires admin to write to Spotify's AppData files"
+      "notes": "Primary install workflow. Spotify, Spicetify, and LibreSpot state used by the desktop workflow is per-user"
     },
     {
       "action": "Reapply",
-      "elevation": "prompts-for-admin",
+      "elevation": "no-admin",
       "mutating": true,
       "destructive": false,
       "toastCompatible": false,
@@ -37,7 +37,7 @@
     },
     {
       "action": "RepairMarketplace",
-      "elevation": "prompts-for-admin",
+      "elevation": "no-admin",
       "mutating": true,
       "destructive": false,
       "toastCompatible": false,
@@ -55,7 +55,7 @@
     },
     {
       "action": "SafeMode",
-      "elevation": "prompts-for-admin",
+      "elevation": "no-admin",
       "mutating": true,
       "destructive": false,
       "toastCompatible": false,
@@ -72,7 +72,7 @@
     },
     {
       "action": "RestoreBackup",
-      "elevation": "prompts-for-admin",
+      "elevation": "no-admin",
       "mutating": true,
       "destructive": false,
       "toastCompatible": false,
@@ -80,7 +80,7 @@
     },
     {
       "action": "RestoreVanilla",
-      "elevation": "prompts-for-admin",
+      "elevation": "no-admin",
       "mutating": true,
       "destructive": false,
       "toastCompatible": false,
@@ -89,16 +89,16 @@
     },
     {
       "action": "EnableAutoReapply",
-      "elevation": "prompts-for-admin",
+      "elevation": "no-admin",
       "mutating": true,
       "destructive": false,
       "toastCompatible": false,
       "description": "Registers the ReapplyWatcher scheduled task",
-      "notes": "Scheduled task registration requires admin"
+      "notes": "Registers a per-user task using InteractiveToken and LeastPrivilege"
     },
     {
       "action": "DisableAutoReapply",
-      "elevation": "prompts-for-admin",
+      "elevation": "no-admin",
       "mutating": true,
       "destructive": false,
       "toastCompatible": false,
@@ -107,16 +107,16 @@
     },
     {
       "action": "WatchAutoReapply",
-      "elevation": "scheduled-task",
+      "elevation": "no-admin",
       "mutating": true,
       "destructive": false,
       "toastCompatible": false,
       "description": "Headless watcher that reapplies patches after Spotify updates",
-      "notes": "Runs as a scheduled task at logon; elevation inherited from task registration"
+      "notes": "Runs as a per-user scheduled task at logon with LeastPrivilege"
     },
     {
       "action": "UninstallSpicetify",
-      "elevation": "admin-only",
+      "elevation": "no-admin",
       "mutating": true,
       "destructive": true,
       "toastCompatible": false,
@@ -125,7 +125,7 @@
     },
     {
       "action": "FullReset",
-      "elevation": "admin-only",
+      "elevation": "no-admin",
       "mutating": true,
       "destructive": true,
       "toastCompatible": false,
@@ -184,14 +184,14 @@
     {
       "workflow": "Protocol activation (librespot://)",
       "elevation": "no-admin",
-      "notes": "Future. URI activation should land in the non-elevated shell and prompt for elevation if the action requires it"
+      "notes": "URI activation lands in the standard-user WPF shell and does not request elevation"
     }
   ],
   "designPrinciples": [
-    "The WPF shell launches non-elevated (asInvoker) and prompts for admin only when executing mutating backend actions",
-    "Non-mutating workflows (config browse, update check, diagnostics, logs, notifications) never require elevation",
-    "Destructive actions (FullReset, UninstallSpicetify, RemoveSelfData) are gated behind both elevation and confirmation",
-    "Toast/notification support is only available in the non-elevated session — elevated processes cannot register for app notifications",
-    "The PowerShell script self-elevates immediately because its architecture does not separate read-only and mutating paths"
+    "The WPF shell launches non-elevated (asInvoker) and runs all backend actions in the current standard-user token",
+    "Per-user permission failures are reported by the backend; the desktop shell never relaunches through UAC",
+    "Destructive actions (FullReset, UninstallSpicetify, RemoveSelfData) remain gated behind explicit confirmation",
+    "Toast and notification support remains available because the WPF process is not elevated",
+    "The legacy PowerShell script self-elevates immediately because its architecture does not separate read-only and mutating paths"
   ]
 }

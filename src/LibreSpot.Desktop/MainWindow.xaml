@@ -1631,11 +1631,6 @@
                         <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
                         <Setter Property="Effect" Value="{x:Null}" />
                       </DataTrigger>
-                      <DataTrigger Binding="{Binding NeedsAdministratorRelaunch}" Value="True">
-                        <Setter Property="Fill" Value="{DynamicResource WarningSoftBrush}" />
-                        <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
-                        <Setter Property="Effect" Value="{x:Null}" />
-                      </DataTrigger>
                       <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
                         <Setter Property="Fill" Value="{DynamicResource DangerSoftBrush}" />
                         <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
@@ -1663,10 +1658,6 @@
                         <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
                       </DataTrigger>
                       <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
-                        <Setter Property="Data" Value="M 19 4 V 20 M 19 26 V 27" />
-                        <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
-                      </DataTrigger>
-                      <DataTrigger Binding="{Binding NeedsAdministratorRelaunch}" Value="True">
                         <Setter Property="Data" Value="M 19 4 V 20 M 19 26 V 27" />
                         <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
                       </DataTrigger>
@@ -3602,11 +3593,6 @@
                         <Setter Property="Opacity" Value="0.72" />
                       </DataTrigger>
                       <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
-                        <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
-                        <Setter Property="StrokeDashArray" Value="1,2.2" />
-                        <Setter Property="Opacity" Value="0.72" />
-                      </DataTrigger>
-                      <DataTrigger Binding="{Binding NeedsAdministratorRelaunch}" Value="True">
                         <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
                         <Setter Property="StrokeDashArray" Value="1,2.2" />
                         <Setter Property="Opacity" Value="0.72" />

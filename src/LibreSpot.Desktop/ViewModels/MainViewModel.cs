@@ -38,7 +38,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly SettingsSearchStateViewModel _settingsSearch = new();
     private readonly Dispatcher _dispatcher;
     private readonly bool _isAdministratorSession;
-    private bool _resumeInstallAfterElevation;
     private readonly InstallConfiguration _recommendedBaseline;
     private readonly MaintenanceActionsStateViewModel _maintenanceActions;
     private readonly Stopwatch _runStopwatch = new();
@@ -189,7 +188,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DisableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: false), () => !IsRunning && Snapshot.AutoReapplyTaskRegistered);
         ClearSettingsSearchCommand = new RelayCommand(() => SettingsSearchText = string.Empty, () => HasSettingsSearchText);
         ClearThemeSearchCommand = new RelayCommand(() => ThemeSearchText = string.Empty, () => HasThemeSearchText);
-        RelaunchAsAdministratorCommand = new RelayCommand(() => PresentAdministratorPrompt(), () => NeedsAdministratorRelaunch && !IsRunning);
         ConfirmPromptCommand = CreateAsyncCommand(ConfirmPromptAsync, () => IsPromptVisible);
         CancelPromptCommand = new RelayCommand(CancelPrompt, () => IsPromptVisible);
         EscapeCommand = new RelayCommand(HandleEscape);
@@ -274,7 +272,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand DisableAutoReapplyCommand { get; }
     public RelayCommand ClearSettingsSearchCommand { get; }
     public RelayCommand ClearThemeSearchCommand { get; }
-    public RelayCommand RelaunchAsAdministratorCommand { get; }
     public IAsyncRelayCommand ConfirmPromptCommand { get; }
     public RelayCommand CancelPromptCommand { get; }
     public RelayCommand EscapeCommand { get; }
@@ -303,7 +300,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     public bool IsAdministratorSession => _isAdministratorSession;
-    public bool NeedsAdministratorRelaunch => !_isAdministratorSession;
 
     public LocalProfileCardViewModel? SelectedLocalProfile
     {
@@ -402,14 +398,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ? L("Vm_ProfileEditorBuiltIn")
                 : L("Vm_ProfileEditorEditable");
 
-    public string SessionAccessTitle =>
-        IsAdministratorSession ? Strings.ReadyToRun : Strings.AdminStepNeeded;
-
-    public string SessionAccessDetail =>
-        IsAdministratorSession
-            ? Strings.ReadyToRunDescription
-            : Strings.AdminStepDescription;
-
     public string ShellReadinessTitle => L("Vm_ShellReadinessTitle");
 
     public string ShellReadinessValue =>
@@ -417,8 +405,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? L("Vm_ShellCheckingSystem")
             : HasSnapshotLoadError
                 ? L("Vm_ShellSnapshotUnavailable")
-                : NeedsAdministratorRelaunch
-            ? Strings.AdminStepNeeded
             : HasCriticalHealthIssues
                 ? Strings.RunNeedsAttention
                 : L("Vm_ShellReadyToPatch");
@@ -428,8 +414,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? L("Vm_ShellCheckingSystemDetail")
             : HasSnapshotLoadError
                 ? L("Vm_ShellSnapshotUnavailableDetail")
-                : NeedsAdministratorRelaunch
-            ? Strings.AdminStepDescription
             : HasCriticalHealthIssues
                 ? HealthIssueSummary
                 : L("Vm_ShellNoBlockingIssues");
@@ -454,7 +438,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? L("Vm_ShellCheckingShort")
             : HasSnapshotLoadError
                 ? L("Vm_ShellRetryShort")
-                : NeedsAdministratorRelaunch || HasCriticalHealthIssues
+                : HasCriticalHealthIssues
                     ? L("Vm_ShellNeedsReviewShort")
                     : Strings.SeverityReady;
 
@@ -502,7 +486,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
 
             var systemPassing = !HasCriticalHealthIssues;
-            var permissionsPassing = !NeedsAdministratorRelaunch;
             var dependencyRows = ShellDependencyRows.Take(3).ToArray();
             var dependenciesPassing = dependencyRows.All(row => row.Tone != HealthSeverity.Critical);
             var dependenciesInstalled = dependencyRows.All(row => row.Tone == HealthSeverity.Ready);
@@ -521,9 +504,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                     true),
                 new(
                     ShellWritePermissionsLabel,
-                    permissionsPassing ? ShellCheckOkLabel : L("Vm_ShellNeedsReviewShort"),
-                    permissionsPassing ? HealthSeverity.Ready : HealthSeverity.Warning,
-                    permissionsPassing),
+                    ShellCheckOkLabel,
+                    HealthSeverity.Ready,
+                    true),
                 new(
                     ShellDependenciesLabel,
                     dependenciesInstalled ? ShellCheckOkLabel : ShellReadyText,
@@ -670,7 +653,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         new(L("Vm_EnvUser"), Environment.UserName, HealthSeverity.Ready),
         new(L("Vm_EnvMachine"), Environment.MachineName, HealthSeverity.Ready),
         new(L("Vm_EnvWorkingDirectory"), Environment.CurrentDirectory, HealthSeverity.Ready),
-        new(L("Vm_EnvPermissions"), IsAdministratorSession ? L("Vm_EnvAdministrator") : L("Vm_EnvStandardUser"), IsAdministratorSession ? HealthSeverity.Ready : HealthSeverity.Warning)
+        new(L("Vm_EnvPermissions"), IsAdministratorSession ? L("Vm_EnvAdministrator") : L("Vm_EnvStandardUser"), HealthSeverity.Ready)
     ];
 
     public IReadOnlyList<ShellDependencyRowViewModel> ShellDependencyRows =>
@@ -695,7 +678,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string ShellReadinessTone =>
         IsSnapshotLoading
             ? HealthSeverity.Info
-            : HasSnapshotLoadError || NeedsAdministratorRelaunch
+            : HasSnapshotLoadError
                 ? HealthSeverity.Warning
                 : HasCriticalHealthIssues
                     ? HealthSeverity.Critical
@@ -909,10 +892,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string CustomAppsSectionDescription =>
         L("Vm_CustomAppsSectionDescription");
 
-    public string AccessPostureLabel =>
-        NeedsAdministratorRelaunch
-            ? L("Vm_AccessPostureElevatesFirst")
-            : L("Vm_AccessPostureCurrentSession");
+    public string AccessPostureLabel => L("Vm_AccessPostureCurrentSession");
 
     public bool HasSelectedExtensions => SelectedExtensionLabels.Count > 0;
 
@@ -1158,11 +1138,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         get
         {
-            if (NeedsAdministratorRelaunch)
-            {
-                return L("Vm_CustomReadinessAdminFirst");
-            }
-
             if (HasConfigurationRecoveryNotice)
             {
                 return L("Vm_CustomReadinessFreshProfile");
@@ -1191,11 +1166,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         get
         {
-            if (NeedsAdministratorRelaunch)
-            {
-                return L("Vm_CustomReadinessAdminDetail");
-            }
-
             if (HasConfigurationRecoveryNotice)
             {
                 return L("Vm_CustomReadinessRecoveryDetail");
@@ -1221,10 +1191,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     public string CustomApplyCaption =>
-        NeedsAdministratorRelaunch
-            ? L("Vm_CustomApplyAdmin")
-            : HasConfigurationRecoveryNotice
-                ? L("Vm_CustomApplyRecovery")
+        HasConfigurationRecoveryNotice
+            ? L("Vm_CustomApplyRecovery")
             : HasConflictingSidebarOptions()
                 ? L("Vm_CustomApplyConflict")
             : CustomPatchesEnabled && !_customPatchValidation.IsValid
@@ -1255,11 +1223,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ? L("Vm_ShellCheckingSystemDetail")
             : HasSnapshotLoadError
                 ? L("Vm_ShellSnapshotUnavailableDetail")
-                : NeedsAdministratorRelaunch
-                    ? Strings.AdminStepDescription
-                    : HasCriticalHealthIssues
-                        ? HealthIssueSummary
-                        : L("Vm_WorkspaceHeroRecommendedBody")
+                : HasCriticalHealthIssues
+                    ? HealthIssueSummary
+                    : L("Vm_WorkspaceHeroRecommendedBody")
     };
 
     public int SelectedWorkspaceIndex
@@ -1679,7 +1645,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ExportSupportBundleCommand.NotifyCanExecuteChanged();
         ExportFailureBundleCommand.NotifyCanExecuteChanged();
         ClearAssetCacheCommand.NotifyCanExecuteChanged();
-        RelaunchAsAdministratorCommand.NotifyCanExecuteChanged();
         ConfirmPromptCommand.NotifyCanExecuteChanged();
         CancelPromptCommand.NotifyCanExecuteChanged();
         ValidateCustomPatchesCommand.NotifyCanExecuteChanged();
@@ -2220,8 +2185,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void RaiseSnapshotInsightsChanged()
     {
         RefreshMaintenanceActionRelevance();
-        OnPropertyChanged(nameof(SessionAccessTitle));
-        OnPropertyChanged(nameof(SessionAccessDetail));
         RaiseShellChromeChanged();
         OnPropertyChanged(nameof(SpotifyStatusLine));
         OnPropertyChanged(nameof(CustomizationStatusLine));
@@ -3358,7 +3321,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ? $"{definition.Description}{Environment.NewLine}{Environment.NewLine}{L("Vm_MaintenanceDestructiveBodySuffix")}"
                 : $"{definition.Description}{Environment.NewLine}{Environment.NewLine}{L("Vm_MaintenanceStandardBodySuffix")}";
         var (summaryTitle, summaryBody) = BuildMaintenancePromptSummary(definition);
-        var requiresAdministrator = RequiresAdministrator(definition.Action);
 
         ShowPrompt(
             definition.Title,
@@ -3366,12 +3328,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             definition.ButtonText,
             definition.IsDestructive ? L("Vm_KeepCurrentSetup") : Strings.ButtonCancel,
             definition.IsDestructive,
-            () => StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2, requiresAdministrator),
+            () => StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2),
             summaryTitle,
             summaryBody);
     }
-
-    private static bool RequiresAdministrator(string action) => false;
 
     private void PresentAutoReapplyPrompt(bool enable)
     {
@@ -3396,7 +3356,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             enable ? Strings.ButtonEnableWatcher : Strings.ButtonDisableWatcher,
             Strings.ButtonCancel,
             false,
-            () => StartBackendRunAsync(action, null, title, status, 2, requiresAdministrator: false),
+            () => StartBackendRunAsync(action, null, title, status, 2),
             L("Vm_PromptWhatThisDoes"),
             summaryBody);
     }
@@ -3406,37 +3366,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         InstallConfiguration? configuration,
         string title,
         string status,
-        int targetWorkspaceIndex,
-        bool requiresAdministrator = true)
+        int targetWorkspaceIndex)
     {
         // Critical: flip IsRunning synchronously *before* any await so the
         // Apply button's CanExecute immediately returns false. Without this
         // a rapid double-click queues two concurrent backend runs.
         if (IsRunning)
         {
-            return;
-        }
-
-        if (requiresAdministrator && !IsAdministratorSession)
-        {
-            // Stage the confirmed setup so the elevated relaunch can resume it
-            // without a second click. The user already confirmed the plan prompt
-            // before reaching here, so persisting the config now is safe.
-            var canResume = false;
-            if (configuration is not null && string.Equals(action, "Install", StringComparison.Ordinal))
-            {
-                try
-                {
-                    await _configurationService.SaveAsync(configuration, CancellationToken.None);
-                    canResume = true;
-                }
-                catch (Exception ex)
-                {
-                    AppendLog(LF("Vm_LogConfigStageFailed", ex.Message), "WARN");
-                }
-            }
-
-            PresentAdministratorPrompt(resumeInstall: canResume);
             return;
         }
 
@@ -3856,132 +3792,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>
-    /// Startup hook for the <c>--shell-action=resume-install</c> relaunch: runs
-    /// the setup the standard-mode session staged, so an elevate-and-relaunch
-    /// finishes what the user already confirmed instead of dropping them back at
-    /// the normal setup entry point. Only proceeds when actually elevated and
-    /// the staged config was risk-acknowledged, so it never auto-runs a mutating
-    /// operation the user did not confirm.
-    /// </summary>
-    public async Task ResumeElevatedInstallAsync()
-    {
-        if (!IsAdministratorSession)
-        {
-            SelectedWorkspaceIndex = 0;
-            return;
-        }
-
-        InstallConfiguration configuration;
-        try
-        {
-            configuration = await _configurationService.LoadAsync(CancellationToken.None);
-        }
-        catch (Exception ex)
-        {
-            AppendLog(LF("Vm_LogElevatedResumeFailed", ex.Message), "WARN");
-            SelectedWorkspaceIndex = 0;
-            return;
-        }
-
-        if (!configuration.RiskAcknowledged)
-        {
-            // No confirmed setup to resume — fall back to the normal landing view.
-            SelectedWorkspaceIndex = 0;
-            return;
-        }
-
-        AppendLog(L("Vm_LogResumingElevatedSetup"), "INFO");
-        await StartBackendRunAsync(
-            "Install",
-            configuration,
-            L("Vm_ElevatedResumeActivityTitle"),
-            L("Vm_ElevatedResumeActivityStatus"),
-            configuration.Mode == "Custom" ? 1 : 0);
-    }
-
-    private void PresentAdministratorPrompt(bool resumeInstall = false)
-    {
-        _resumeInstallAfterElevation = resumeInstall;
-        ShowPrompt(
-            L("Vm_AdminPromptTitle"),
-            LF("Vm_AdminPromptBodyFormat", Environment.NewLine + Environment.NewLine),
-            L("Ui_RelaunchAsAdministrator"),
-            L("Vm_AdminPromptKeepReviewing"),
-            false,
-            () =>
-            {
-                RelaunchAsAdministrator();
-                return Task.CompletedTask;
-            },
-            L("Vm_AdminPromptSummaryTitle"),
-            L("Vm_AdminPromptSummaryBody"));
-    }
-
-    private void RelaunchAsAdministrator()
-    {
-        try
-        {
-            var executablePath = Environment.ProcessPath;
-            if (string.IsNullOrWhiteSpace(executablePath) || !File.Exists(executablePath))
-            {
-                ShowNotice(L("Vm_RelaunchUnableTitle"), L("Vm_RelaunchMissingPathStatus"), L("Vm_RelaunchStayStandard"));
-                return;
-            }
-
-            // When running via `dotnet run`, ProcessPath points at dotnet.exe. Relaunching
-            // that as admin would not start LibreSpot â€” warn instead of confusing the user.
-            var exeName = Path.GetFileName(executablePath);
-            if (string.Equals(exeName, "dotnet.exe", StringComparison.OrdinalIgnoreCase))
-            {
-                ShowNotice(
-                    L("Vm_RelaunchDeveloperTitle"),
-                    L("Vm_RelaunchDeveloperStatus"),
-                    L("Vm_RelaunchDeveloperStep"));
-                return;
-            }
-
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = executablePath,
-                WorkingDirectory = AppContext.BaseDirectory,
-                UseShellExecute = true,
-                Verb = "runas"
-            };
-            if (_resumeInstallAfterElevation)
-            {
-                // Tell the elevated instance to resume the staged setup on
-                // startup, removing the second "Run setup" click.
-                startInfo.ArgumentList.Add("--shell-action=resume-install");
-            }
-
-            var process = Process.Start(startInfo);
-            if (process is null)
-            {
-                ShowNotice(L("Vm_RelaunchFailedTitle"), L("Vm_RelaunchFailedStatus"), L("Vm_RelaunchStayStandard"));
-                return;
-            }
-            process.Dispose();
-            Application.Current.Shutdown();
-        }
-        catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
-        {
-            // 1223 = ERROR_CANCELLED. User clicked "No" on the UAC prompt â€” not an error.
-            ShowNotice(
-                L("Vm_RelaunchCanceledTitle"),
-                L("Vm_RelaunchCanceledStatus"),
-                L("Vm_RelaunchWaitingStep"));
-        }
-        catch (Exception ex)
-        {
-            AppendLog(ex.Message, "WARN");
-            ShowNotice(
-                L("Vm_RelaunchUnableTitle"),
-                L("Vm_RelaunchExceptionStatus"),
-                L("Vm_RelaunchElevationFailedStep"));
-        }
-    }
-
     private void ShowPrompt(
         string title,
         string body,
@@ -4250,7 +4060,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ? LF("Vm_ShellLogUsingProfileFormat", profileName)
                 : L("Vm_ShellLogUsingDefaultProfile"),
             "INFO");
-        AppendLog(ShellReadinessDetail, NeedsAdministratorRelaunch ? "WARN" : "INFO");
+        AppendLog(ShellReadinessDetail, "INFO");
     }
 
     private static bool IsAdministrator()

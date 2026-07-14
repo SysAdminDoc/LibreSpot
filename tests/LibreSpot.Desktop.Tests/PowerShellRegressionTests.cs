@@ -1361,13 +1361,15 @@ public sealed class PowerShellRegressionTests
     }
 
     [Fact]
-    public void NoBackendActionRequiresAdminElevation()
+    public void DesktopBackendHasNoAdminGateOrUacRelaunch()
     {
         var backend = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
         var viewModel = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
 
-        Assert.DoesNotContain("Ensure-Admin", backend.Split("function Ensure-Admin")[0]);
-        Assert.Contains("RequiresAdministrator(string action) => false", viewModel);
+        Assert.DoesNotContain("function Ensure-Admin", backend);
+        Assert.DoesNotContain("requiresAdministrator", viewModel, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Verb = \"runas\"", viewModel);
+        Assert.DoesNotContain("resume-install", viewModel);
     }
 
     // ---------------------------------------------------------------------

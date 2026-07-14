@@ -17,6 +17,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Removed the WPF shell's obsolete whole-app UAC relaunch: Recommended, Custom, and maintenance actions now run in the current standard-user token, readiness no longer treats a standard session as blocked, and the elevation boundary tests require every desktop backend action to remain no-admin.
 - Fixed `Unlock-SpotifyUpdateFolder` throwing "collection modified" and unlocking nothing when the Update folder carried more than one Deny ACE — the exact multi-ACE case it exists to clear; Deny rules are now snapshotted before removal.
 - Fixed the in-app "what's new" preview going blank whenever the changelog's leading `[Unreleased]` section was empty (the normal state right after a release); the preview now falls through to the newest section that actually has content.
 - Stopped run-receipt undo entries from mislabelling the operation token kind as the operation "phase" in the undo history; receipt entries have no phase, so the field now reads as unknown instead of showing the token kind.

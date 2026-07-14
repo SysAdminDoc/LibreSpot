@@ -832,19 +832,6 @@ function Load-LibreSpotConfig {
     }
 }
 
-function Ensure-Admin {
-    if ($script:BackendTestRoot) {
-        return
-    }
-
-    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
-        [Security.Principal.WindowsBuiltInRole]::Administrator
-    )
-    if (-not $isAdmin) {
-        throw 'LibreSpot needs administrator permission to modify Spotify. Launch the desktop app as administrator and try again.'
-    }
-}
-
 function Write-WatcherLog {
     param([string]$Message, [string]$Level = 'INFO')
     try {

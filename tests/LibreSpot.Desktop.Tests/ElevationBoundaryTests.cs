@@ -79,6 +79,20 @@ public sealed class ElevationBoundaryTests
     }
 
     [Fact]
+    public void Boundary_AllDesktopActionsAreNoAdmin()
+    {
+        var elevatedActions = Boundary.RootElement
+            .GetProperty("actions").EnumerateArray()
+            .Where(action => action.GetProperty("elevation").GetString() != "no-admin")
+            .Select(action => action.GetProperty("action").GetString())
+            .ToList();
+
+        Assert.True(
+            elevatedActions.Count == 0,
+            $"WPF backend actions must run as the current user: {string.Join(", ", elevatedActions)}");
+    }
+
+    [Fact]
     public void Boundary_AllActionsHaveRequiredFields()
     {
         var required = new[] { "action", "elevation", "mutating", "destructive" };

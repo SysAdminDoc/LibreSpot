@@ -428,8 +428,7 @@ public sealed class MainViewModelMaintenanceTests
                 configuration,
                 "Install",
                 "Installing",
-                0,
-                false);
+                0);
 
             Assert.Equal(1, spotifyProcessService.RestartCalls);
             Assert.Equal(TimeSpan.FromSeconds(3), spotifyProcessService.LastReopenDelay);
@@ -456,8 +455,7 @@ public sealed class MainViewModelMaintenanceTests
                 configuration,
                 "Install",
                 "Installing",
-                0,
-                false);
+                0);
 
             Assert.Equal(0, spotifyProcessService.RestartCalls);
         });
