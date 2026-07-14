@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using LibreSpot.Desktop.Models;
 
@@ -72,6 +73,7 @@ public sealed class SupportBundleService
     private readonly string _rollingLogDirectory;
     private readonly string _crashDirectory;
     private readonly SupportBundleRedactor _redactor;
+    private readonly JsonSerializerOptions _redactedJsonOptions;
 
     public SupportBundleService(
         string configDirectory,
@@ -86,6 +88,8 @@ public sealed class SupportBundleService
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibreSpot", "crashes")
             : Path.GetFullPath(crashDirectory);
         _redactor = new SupportBundleRedactor(_configDirectory);
+        _redactedJsonOptions = new JsonSerializerOptions(JsonOptions);
+        _redactedJsonOptions.Converters.Add(new RedactingStringJsonConverter(_redactor));
     }
 
     public IReadOnlyList<string> RedactionRules => SupportBundleRedactor.RuleDescriptions;
@@ -661,8 +665,14 @@ public sealed class SupportBundleService
         }
     }
 
-    private void AddJsonEntry(ZipArchive archive, string entryName, object payload) =>
-        AddTextEntry(archive, entryName, JsonSerializer.Serialize(payload, JsonOptions));
+    private void AddJsonEntry(ZipArchive archive, string entryName, object payload)
+    {
+        // Redact every string value at the serialization boundary, not only the
+        // fields currently known to contain paths or process output. Doing this
+        // before JSON escaping also keeps replacement text structurally valid.
+        var json = JsonSerializer.Serialize(payload, _redactedJsonOptions);
+        AddTextEntry(archive, entryName, json);
+    }
 
     private static void AddTextEntry(ZipArchive archive, string entryName, string content)
     {
@@ -735,6 +745,19 @@ public sealed class SupportBundleService
     }
 
     private sealed record SupportBundleFile(string Path, string Label);
+
+    private sealed class RedactingStringJsonConverter(SupportBundleRedactor redactor) : JsonConverter<string>
+    {
+        public override string? Read(
+            ref Utf8JsonReader reader,
+            Type typeToConvert,
+            JsonSerializerOptions options) => reader.GetString();
+
+        public override void Write(
+            Utf8JsonWriter writer,
+            string value,
+            JsonSerializerOptions options) => writer.WriteStringValue(redactor.Redact(value));
+    }
 
     private sealed class SupportBundleRedactor
     {

@@ -299,12 +299,15 @@ public sealed class SupportBundleServiceTests
         Assert.Contains("\"applySucceeded\": true", health);
         Assert.Contains("\"openUriSucceeded\": true", health);
         Assert.DoesNotContain(fixture.Root, health, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("marketplace-secret", health, StringComparison.OrdinalIgnoreCase);
         using var healthDocument = JsonDocument.Parse(health);
-        var marketplacePath = healthDocument.RootElement
-            .GetProperty("marketplaceVisibility")
+        var marketplaceEvidence = healthDocument.RootElement.GetProperty("marketplaceVisibility");
+        var marketplacePath = marketplaceEvidence
             .GetProperty("marketplacePath")
             .GetString();
+        var applyMessage = marketplaceEvidence.GetProperty("applyMessage").GetString();
         Assert.Contains("<LIBRESPOT_CONFIG>", marketplacePath);
+        Assert.Contains("--token <redacted>", applyMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -473,7 +476,7 @@ public sealed class SupportBundleServiceTests
                         manifestVersion = "1.0.9",
                         applyStage = "backup apply",
                         applySucceeded = true,
-                        applyMessage = "Spicetify backup apply succeeded.",
+                        applyMessage = $"Spicetify backup apply succeeded beside {Root}\\private.ini --token marketplace-secret",
                         applyCompletedAtUtc = DateTimeOffset.Parse("2026-06-30T12:01:00Z"),
                         openUriSucceeded = true,
                         openUriMessage = "spotify:app:marketplace was handed to Windows.",
