@@ -1,8 +1,11 @@
 extern alias Cli;
 
 using System.IO.Compression;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Win32;
 using Xunit;
 using CliApp = Cli::LibreSpot.Cli.CliApplication;
 using CliAssetCacheEntryState = Cli::LibreSpot.Desktop.Models.AssetCacheEntryState;
@@ -584,6 +587,60 @@ public sealed class CliApplicationTests
         Assert.Equal(string.Empty, result.Stdout);
     }
 
+    [Fact]
+    public void Undo_RequiresExplicitConfirmationAfterMachineReadablePreview()
+    {
+        using var fixture = new CliUndoFixture();
+
+        var preview = Run(
+            "undo", "--operation-id", fixture.OperationId, "--token-kind", "pathEntryAdd",
+            "--dry-run", "--json", "--config-path", fixture.ConfigPath);
+
+        Assert.Equal(0, preview.ExitCode);
+        Assert.Equal(string.Empty, preview.Stderr);
+        using (var document = JsonDocument.Parse(preview.Stdout))
+        {
+            Assert.True(document.RootElement.GetProperty("allowed").GetBoolean());
+            Assert.True(document.RootElement.GetProperty("alreadyUndone").GetBoolean());
+            Assert.Equal("ready", document.RootElement.GetProperty("status").GetString());
+        }
+
+        var unconfirmed = Run(
+            "undo", "--operation-id", fixture.OperationId, "--token-kind", "pathEntryAdd",
+            "--config-path", fixture.ConfigPath);
+
+        Assert.Equal(2, unconfirmed.ExitCode);
+        Assert.Contains("requires --yes", unconfirmed.Stderr);
+        Assert.Equal(string.Empty, unconfirmed.Stdout);
+    }
+
+    [Fact]
+    public void Undo_AlreadyRestoredPathIsIdempotentAcrossSeparateCliRuns()
+    {
+        using var fixture = new CliUndoFixture();
+        var before = CliUndoFixture.ReadUserPath();
+
+        var first = Run(
+            "undo", "--operation-id", fixture.OperationId, "--token-kind", "pathEntryAdd",
+            "--yes", "--json", "--config-path", fixture.ConfigPath);
+        var second = Run(
+            "undo", "--operation-id", fixture.OperationId, "--token-kind", "pathEntryAdd",
+            "--yes", "--json", "--config-path", fixture.ConfigPath);
+
+        Assert.Equal(0, first.ExitCode);
+        Assert.Equal(0, second.ExitCode);
+        Assert.Equal(string.Empty, first.Stderr);
+        Assert.Equal(string.Empty, second.Stderr);
+        using var firstDocument = JsonDocument.Parse(first.Stdout);
+        using var secondDocument = JsonDocument.Parse(second.Stdout);
+        Assert.Equal("alreadyUndone", firstDocument.RootElement.GetProperty("status").GetString());
+        Assert.Equal("alreadyUndone", secondDocument.RootElement.GetProperty("status").GetString());
+        Assert.NotEqual(
+            firstDocument.RootElement.GetProperty("undoOperationId").GetString(),
+            secondDocument.RootElement.GetProperty("undoOperationId").GetString());
+        Assert.Equal(before, CliUndoFixture.ReadUserPath());
+    }
+
     [Theory]
     [InlineData("install", "EnableAutoReapply", "Auto-reapply watcher installed.")]
     [InlineData("remove", "DisableAutoReapply", "Auto-reapply watcher removed.")]
@@ -1139,6 +1196,10 @@ public sealed class CliApplicationTests
                 {
                     File.Delete(cleanupPath);
                 }
+                else if (!string.IsNullOrWhiteSpace(cleanupPath) && Directory.Exists(cleanupPath))
+                {
+                    Directory.Delete(cleanupPath, recursive: true);
+                }
             }
         }
     }
@@ -1250,10 +1311,23 @@ public sealed class CliApplicationTests
             "uninstall" => (new[] { "uninstall", "--dry-run", "--ndjson" }, null),
             "repair" => (new[] { "repair", "--repair-id", "RepairMarketplace", "--dry-run", "--ndjson" }, null),
             "export-support" => (new[] { "export-support", "--output", supportBundlePath }, supportBundlePath),
+            "undo" => UndoSmokeArgs(),
             "watcher install" => (new[] { "watcher", "install", "--silent" }, null),
             "watcher remove" => (new[] { "watcher", "remove", "--silent" }, null),
             _ => throw new InvalidOperationException($"No parser smoke args are defined for implemented verb '{verb}'.")
         };
+    }
+
+    private static (string[] Args, string? CleanupPath) UndoSmokeArgs()
+    {
+        var fixture = new CliUndoFixture();
+        return (
+            new[]
+            {
+                "undo", "--operation-id", fixture.OperationId, "--token-kind", "pathEntryAdd",
+                "--dry-run", "--json", "--config-path", fixture.ConfigPath
+            },
+            fixture.Root);
     }
 
     private static void AssertNdjsonRequiredFields(JsonElement line)
@@ -1323,6 +1397,96 @@ public sealed class CliApplicationTests
         bool spicetifyInstalled,
         params CliStackHealthComponent[] components) =>
         SnapshotWithUpstream(spotifyInstalled, spicetifyInstalled, CliUpstreamDriftReport.Empty, components);
+
+    private sealed class CliUndoFixture : IDisposable
+    {
+        private readonly string _root;
+
+        public CliUndoFixture()
+        {
+            _root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
+            var stateRoot = Path.Combine(_root, "undo-states");
+            Directory.CreateDirectory(stateRoot);
+            ConfigPath = Path.Combine(_root, "config.json");
+            OperationId = Guid.NewGuid().ToString();
+            var current = ReadUserPath();
+            Assert.True(current.Kind is RegistryValueKind.String or RegistryValueKind.ExpandString);
+            var hash = Hash(current.Value);
+            var statePath = Path.Combine(stateRoot, $"{OperationId}-path-entry-add.json");
+            File.WriteAllText(
+                statePath,
+                JsonSerializer.Serialize(new
+                {
+                    schemaVersion = 2,
+                    operationId = OperationId,
+                    tokenKind = "pathEntryAdd",
+                    scope = "User",
+                    target = "User PATH",
+                    entry = "C:\\LibreSpot\\bin",
+                    previousValueExists = current.Exists,
+                    previousValue = current.Value,
+                    previousValueKind = current.Kind.ToString(),
+                    expectedValueExists = true,
+                    expectedValue = current.Value,
+                    expectedValueKind = RegistryValueKind.ExpandString.ToString(),
+                    previousSha256 = hash,
+                    expectedSha256 = hash,
+                    createdAtUtc = DateTimeOffset.UtcNow
+                }));
+            File.WriteAllText(
+                Path.Combine(_root, "run-receipt.latest.json"),
+                JsonSerializer.Serialize(new
+                {
+                    schemaVersion = 1,
+                    receiptId = Guid.NewGuid(),
+                    runId = Guid.Parse(OperationId),
+                    operationId = Guid.Parse(OperationId),
+                    startedAt = DateTimeOffset.UtcNow,
+                    completedAt = DateTimeOffset.UtcNow,
+                    action = "Install",
+                    status = "success",
+                    undoAvailable = true,
+                    operations = new[]
+                    {
+                        new
+                        {
+                            tokenKind = "pathEntryAdd",
+                            target = "User PATH",
+                            previousStateRef = statePath,
+                            newState = $"sha256:{hash}",
+                            result = "applied",
+                            reversible = true,
+                            undoAction = "Restore the exact previous user PATH snapshot.",
+                            risk = "low"
+                        }
+                    }
+                }));
+        }
+
+        public string ConfigPath { get; }
+        public string OperationId { get; }
+        public string Root => _root;
+
+        public static (bool Exists, string Value, RegistryValueKind Kind) ReadUserPath()
+        {
+            using var key = Registry.CurrentUser.OpenSubKey("Environment", writable: false);
+            var exists = key?.GetValueNames().Any(name => string.Equals(name, "Path", StringComparison.OrdinalIgnoreCase)) == true;
+            return !exists || key is null
+                ? (false, string.Empty, RegistryValueKind.String)
+                : (true, key.GetValue("Path", string.Empty, RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? string.Empty, key.GetValueKind("Path"));
+        }
+
+        private static string Hash(string value) =>
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
+
+        public void Dispose()
+        {
+            if (Directory.Exists(_root))
+            {
+                Directory.Delete(_root, recursive: true);
+            }
+        }
+    }
 
     private static CliEnvironmentSnapshot SnapshotWithUpstream(
         bool spotifyInstalled,

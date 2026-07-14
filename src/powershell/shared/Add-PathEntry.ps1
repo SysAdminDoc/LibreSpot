@@ -12,6 +12,6 @@ function Add-PathEntry {
             return $false
         }
     }
-    Set-PathEntries -Scope $Scope -Entries (@($entries) + @($Entry))
+    Set-PathEntries -Scope $Scope -Entries (@($entries) + @($Entry)) -TokenKind 'pathEntryAdd' -ChangedEntry $Entry
     return $true
 }

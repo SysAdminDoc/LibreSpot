@@ -2516,4 +2516,24 @@
   <data name="HealthStatusOwnershipLibreSpot" xml:space="preserve"><value>由 LibreSpot 管理</value></data>
   <data name="HealthStatusOwnershipNone" xml:space="preserve"><value>未发现补丁工具状态</value></data>
   <data name="HealthEvidencePatcherOwnershipFormat" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="Vm_UndoPreviewButton" xml:space="preserve"><value>预览所选项</value></data>
+  <data name="Vm_UndoPreviewHelp" xml:space="preserve"><value>验证当前状态，并准确显示所选撤销项将恢复的内容。</value></data>
+  <data name="Vm_UndoExecuteButton" xml:space="preserve"><value>撤销所选项</value></data>
+  <data name="Vm_UndoExecuteHelp" xml:space="preserve"><value>确认并仅执行策略批准的低风险所选撤销项。</value></data>
+  <data name="Vm_UndoPreviewTitle" xml:space="preserve"><value>撤销预览</value></data>
+  <data name="Vm_UndoNoneSelected" xml:space="preserve"><value>未选择可执行的撤销项。</value></data>
+  <data name="Vm_UndoSelectLowRisk" xml:space="preserve"><value>选择一个已启用的低风险项，然后再次预览。</value></data>
+  <data name="Vm_UndoPreviewSummaryFormat" xml:space="preserve"><value>所选撤销项中有 {0}/{1} 个通过当前状态验证。</value></data>
+  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>当前状态已更改；撤销已被拒绝。</value></data>
+  <data name="Vm_UndoConfirmTitle" xml:space="preserve"><value>撤销所选更改？</value></data>
+  <data name="Vm_UndoConfirmBodyFormat" xml:space="preserve"><value>LibreSpot 将在重新验证当前状态后，按相反顺序执行 {0} 个所选低风险撤销项。</value></data>
+  <data name="Vm_UndoConfirmButton" xml:space="preserve"><value>撤销所选项</value></data>
+  <data name="Vm_UndoActivityTitle" xml:space="preserve"><value>正在撤销所选更改</value></data>
+  <data name="Vm_UndoActivityStatus" xml:space="preserve"><value>正在验证捕获的状态</value></data>
+  <data name="Vm_UndoActivityStepFormat" xml:space="preserve"><value>正在准备 {0} 个所选项</value></data>
+  <data name="Vm_UndoSucceededFormat" xml:space="preserve"><value>撤销 {0}：{1}</value></data>
+  <data name="Vm_UndoFailedFormat" xml:space="preserve"><value>撤销 {0} 失败：{1}</value></data>
+  <data name="Vm_UndoComplete" xml:space="preserve"><value>所选更改已撤销</value></data>
+  <data name="Vm_UndoNeedsReview" xml:space="preserve"><value>部分所选更改需要检查</value></data>
+  <data name="Vm_UndoResultFormat" xml:space="preserve"><value>成功 {0} 个；失败 {1} 个。操作 ID 位于活动日志中。</value></data>
 </root>

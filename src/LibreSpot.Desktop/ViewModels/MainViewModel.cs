@@ -150,6 +150,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DismissActivityCommand = new RelayCommand(DismissActivity, () => IsActivityVisible && !IsRunning);
         CopyLogCommand = new RelayCommand(CopyLog, () => LogEntries.Count > 0);
         ClearLogCommand = new RelayCommand(ClearLog, () => LogEntries.Count > 0);
+        PreviewSelectedUndoCommand = new RelayCommand(PreviewSelectedUndo, () => !IsRunning && HasExecutableUndoActionItems);
+        ExecuteSelectedUndoCommand = new RelayCommand(PresentSelectedUndoConfirmation, () => !IsRunning && HasExecutableUndoActionItems);
         CycleShellLogFilterCommand = new RelayCommand(CycleShellLogFilter);
         OpenLibreSpotFolderCommand = new RelayCommand(OpenLibreSpotFolder);
         RefreshSnapshotCommand = CreateAsyncCommand(RefreshSnapshotAsync);
@@ -240,6 +242,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand DismissActivityCommand { get; }
     public RelayCommand CopyLogCommand { get; }
     public RelayCommand ClearLogCommand { get; }
+    public RelayCommand PreviewSelectedUndoCommand { get; }
+    public RelayCommand ExecuteSelectedUndoCommand { get; }
     public RelayCommand CycleShellLogFilterCommand { get; }
     public RelayCommand OpenLibreSpotFolderCommand { get; }
     public IAsyncRelayCommand RefreshSnapshotCommand { get; }
@@ -719,6 +723,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool HasAnyHealthIssues => HealthReport.HasIssues;
     public string HealthIssueSummary => HealthReport.IssueSummary;
     public bool HasUndoActionItems => _activityState.HasUndoActionItems;
+    public bool HasExecutableUndoActionItems => _activityState.HasExecutableUndoActionItems;
 
     public IReadOnlyList<StatusDashboardItemViewModel> StatusDashboardItems =>
     [
@@ -1635,6 +1640,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             case nameof(ActivityRunStateViewModel.HasUndoActionItems):
                 OnPropertyChanged(nameof(HasUndoActionItems));
                 break;
+            case nameof(ActivityRunStateViewModel.HasExecutableUndoActionItems):
+                OnPropertyChanged(nameof(HasExecutableUndoActionItems));
+                PreviewSelectedUndoCommand.NotifyCanExecuteChanged();
+                ExecuteSelectedUndoCommand.NotifyCanExecuteChanged();
+                break;
         }
     }
 
@@ -1655,6 +1665,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         FormatCustomPatchesCommand.NotifyCanExecuteChanged();
         ClearCustomPatchesCommand.NotifyCanExecuteChanged();
         ImportCustomPatchesFromUrlCommand.NotifyCanExecuteChanged();
+        PreviewSelectedUndoCommand.NotifyCanExecuteChanged();
+        ExecuteSelectedUndoCommand.NotifyCanExecuteChanged();
         RaiseLocalProfileCommandStateChanged();
         OnPropertyChanged(nameof(ProfileSelectionHint));
         RaiseMaintenanceActionCanExecuteChanged();
@@ -3751,6 +3763,92 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             Serilog.Log.Warning(ex, "Operation journal undo pane refresh failed");
+        }
+    }
+
+    private IReadOnlyList<UndoActionItemViewModel> SelectedExecutableUndoItems() =>
+        UndoActionItems.Where(item => item.IsExecutable && item.IsSelected).ToArray();
+
+    private void PreviewSelectedUndo()
+    {
+        var selected = SelectedExecutableUndoItems();
+        if (selected.Count == 0)
+        {
+            ShowNotice(L("Vm_UndoPreviewTitle"), L("Vm_UndoNoneSelected"), L("Vm_UndoSelectLowRisk"));
+            return;
+        }
+
+        var previews = selected
+            .Select(item => _operationJournalUndoService.PreviewUndoItem(item.Item, _configurationService.ConfigDirectory))
+            .ToArray();
+        var accepted = previews.Count(preview => preview.CanExecute);
+        ShowNotice(
+            L("Vm_UndoPreviewTitle"),
+            LF("Vm_UndoPreviewSummaryFormat", accepted, previews.Length),
+            string.Join(Environment.NewLine, previews.Select(preview => $"• {preview.Item.TokenKind}: {preview.Reason}")));
+    }
+
+    private void PresentSelectedUndoConfirmation()
+    {
+        var selected = SelectedExecutableUndoItems();
+        if (selected.Count == 0)
+        {
+            ShowNotice(L("Vm_UndoPreviewTitle"), L("Vm_UndoNoneSelected"), L("Vm_UndoSelectLowRisk"));
+            return;
+        }
+
+        var previews = selected
+            .Select(item => _operationJournalUndoService.PreviewUndoItem(item.Item, _configurationService.ConfigDirectory))
+            .ToArray();
+        if (previews.Any(preview => !preview.CanExecute))
+        {
+            ShowNotice(
+                L("Vm_UndoPreviewTitle"),
+                L("Vm_UndoStateChanged"),
+                string.Join(Environment.NewLine, previews.Where(preview => !preview.CanExecute).Select(preview => preview.Reason)));
+            return;
+        }
+
+        ShowPrompt(
+            L("Vm_UndoConfirmTitle"),
+            LF("Vm_UndoConfirmBodyFormat", selected.Count),
+            L("Vm_UndoConfirmButton"),
+            Strings.ButtonCancel,
+            false,
+            () => ExecuteSelectedUndoConfirmedAsync(selected),
+            L("Vm_PromptWhatThisWillDo"),
+            string.Join(Environment.NewLine, previews.Select(preview => preview.Reason)));
+    }
+
+    private async Task ExecuteSelectedUndoConfirmedAsync(IReadOnlyList<UndoActionItemViewModel> selected)
+    {
+        _activityOutcome = ActivityOutcome.None;
+        _activityState.Begin(L("Vm_UndoActivityTitle"), L("Vm_UndoActivityStatus"), LF("Vm_UndoActivityStepFormat", selected.Count));
+        var succeeded = 0;
+        var failed = 0;
+        try
+        {
+            foreach (var item in selected.Reverse())
+            {
+                var result = await _operationJournalUndoService.ExecuteUndoAsync(item.Item, _configurationService.ConfigDirectory);
+                AppendLog(
+                    result.Success
+                        ? LF("Vm_UndoSucceededFormat", result.OperationId, result.Message)
+                        : LF("Vm_UndoFailedFormat", result.OperationId, result.Message),
+                    result.Success ? "SUCCESS" : "ERROR");
+                if (result.Success) { succeeded++; } else { failed++; }
+            }
+
+            _activityOutcome = failed == 0 ? ActivityOutcome.Success : ActivityOutcome.Error;
+            ActivityStatus = failed == 0 ? L("Vm_UndoComplete") : L("Vm_UndoNeedsReview");
+            ActivityStep = LF("Vm_UndoResultFormat", succeeded, failed);
+            ProgressValue = 100;
+        }
+        finally
+        {
+            IsRunning = false;
+            RefreshUndoActionItems();
+            await RefreshSnapshotAsync();
         }
     }
 

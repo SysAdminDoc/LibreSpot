@@ -2516,4 +2516,24 @@
   <data name="HealthStatusOwnershipLibreSpot" xml:space="preserve"><value>LibreSpot-owned</value></data>
   <data name="HealthStatusOwnershipNone" xml:space="preserve"><value>No patcher state</value></data>
   <data name="HealthEvidencePatcherOwnershipFormat" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="Vm_UndoPreviewButton" xml:space="preserve"><value>Preview selected</value></data>
+  <data name="Vm_UndoPreviewHelp" xml:space="preserve"><value>Validate current state and show exactly what selected undo items would restore.</value></data>
+  <data name="Vm_UndoExecuteButton" xml:space="preserve"><value>Undo selected</value></data>
+  <data name="Vm_UndoExecuteHelp" xml:space="preserve"><value>Confirm and execute only selected policy-approved low-risk undo items.</value></data>
+  <data name="Vm_UndoPreviewTitle" xml:space="preserve"><value>Undo preview</value></data>
+  <data name="Vm_UndoNoneSelected" xml:space="preserve"><value>No executable undo item is selected.</value></data>
+  <data name="Vm_UndoSelectLowRisk" xml:space="preserve"><value>Select an enabled low-risk item, then preview it again.</value></data>
+  <data name="Vm_UndoPreviewSummaryFormat" xml:space="preserve"><value>{0} of {1} selected undo items pass current-state validation.</value></data>
+  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>Current state changed; undo was refused.</value></data>
+  <data name="Vm_UndoConfirmTitle" xml:space="preserve"><value>Undo selected changes?</value></data>
+  <data name="Vm_UndoConfirmBodyFormat" xml:space="preserve"><value>LibreSpot will execute {0} selected low-risk undo item(s) in reverse order after revalidating current state.</value></data>
+  <data name="Vm_UndoConfirmButton" xml:space="preserve"><value>Undo selected</value></data>
+  <data name="Vm_UndoActivityTitle" xml:space="preserve"><value>Undoing selected changes</value></data>
+  <data name="Vm_UndoActivityStatus" xml:space="preserve"><value>Validating captured state</value></data>
+  <data name="Vm_UndoActivityStepFormat" xml:space="preserve"><value>Preparing {0} selected item(s)</value></data>
+  <data name="Vm_UndoSucceededFormat" xml:space="preserve"><value>Undo {0}: {1}</value></data>
+  <data name="Vm_UndoFailedFormat" xml:space="preserve"><value>Undo {0} failed: {1}</value></data>
+  <data name="Vm_UndoComplete" xml:space="preserve"><value>Selected changes were undone</value></data>
+  <data name="Vm_UndoNeedsReview" xml:space="preserve"><value>Some selected changes need review</value></data>
+  <data name="Vm_UndoResultFormat" xml:space="preserve"><value>{0} succeeded; {1} failed. Operation IDs are in the activity log.</value></data>
 </root>

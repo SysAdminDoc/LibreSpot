@@ -2516,4 +2516,24 @@
   <data name="HealthStatusOwnershipLibreSpot" xml:space="preserve"><value>Gerenciado pelo LibreSpot</value></data>
   <data name="HealthStatusOwnershipNone" xml:space="preserve"><value>Nenhum estado de patcher</value></data>
   <data name="HealthEvidencePatcherOwnershipFormat" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="Vm_UndoPreviewButton" xml:space="preserve"><value>Visualizar selecionados</value></data>
+  <data name="Vm_UndoPreviewHelp" xml:space="preserve"><value>Valida o estado atual e mostra exatamente o que os itens selecionados restaurariam.</value></data>
+  <data name="Vm_UndoExecuteButton" xml:space="preserve"><value>Desfazer selecionados</value></data>
+  <data name="Vm_UndoExecuteHelp" xml:space="preserve"><value>Confirma e executa somente os itens selecionados de baixo risco aprovados pela política.</value></data>
+  <data name="Vm_UndoPreviewTitle" xml:space="preserve"><value>Visualização da ação de desfazer</value></data>
+  <data name="Vm_UndoNoneSelected" xml:space="preserve"><value>Nenhum item de desfazer executável está selecionado.</value></data>
+  <data name="Vm_UndoSelectLowRisk" xml:space="preserve"><value>Selecione um item habilitado de baixo risco e visualize-o novamente.</value></data>
+  <data name="Vm_UndoPreviewSummaryFormat" xml:space="preserve"><value>{0} de {1} itens selecionados passaram na validação do estado atual.</value></data>
+  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>O estado atual mudou; a ação de desfazer foi recusada.</value></data>
+  <data name="Vm_UndoConfirmTitle" xml:space="preserve"><value>Desfazer as alterações selecionadas?</value></data>
+  <data name="Vm_UndoConfirmBodyFormat" xml:space="preserve"><value>LibreSpot executará {0} item(ns) selecionado(s) de baixo risco na ordem inversa depois de revalidar o estado atual.</value></data>
+  <data name="Vm_UndoConfirmButton" xml:space="preserve"><value>Desfazer selecionados</value></data>
+  <data name="Vm_UndoActivityTitle" xml:space="preserve"><value>Desfazendo alterações selecionadas</value></data>
+  <data name="Vm_UndoActivityStatus" xml:space="preserve"><value>Validando o estado capturado</value></data>
+  <data name="Vm_UndoActivityStepFormat" xml:space="preserve"><value>Preparando {0} item(ns) selecionado(s)</value></data>
+  <data name="Vm_UndoSucceededFormat" xml:space="preserve"><value>Desfazer {0}: {1}</value></data>
+  <data name="Vm_UndoFailedFormat" xml:space="preserve"><value>Falha ao desfazer {0}: {1}</value></data>
+  <data name="Vm_UndoComplete" xml:space="preserve"><value>As alterações selecionadas foram desfeitas</value></data>
+  <data name="Vm_UndoNeedsReview" xml:space="preserve"><value>Algumas alterações selecionadas precisam de revisão</value></data>
+  <data name="Vm_UndoResultFormat" xml:space="preserve"><value>{0} concluído(s); {1} com falha. Os IDs das operações estão no log de atividades.</value></data>
 </root>

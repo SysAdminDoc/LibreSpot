@@ -97,6 +97,29 @@
       "notes": "Emits a structured health report. Designed for dashboards, monitoring, and pre-install triage. Does not mutate any state."
     },
     {
+      "verb": "undo",
+      "description": "Preview or execute one explicitly selected, policy-allowlisted low-risk undo token from the latest receipt.",
+      "requiresAdmin": false,
+      "mutates": true,
+      "implementationStatus": "implemented",
+      "supportsDryRun": true,
+      "supportsJson": true,
+      "supportsNdjson": false,
+      "defaultExitCodes": [0, 1, 2],
+      "flags": [
+        "--operation-id",
+        "--token-kind",
+        "--config-path",
+        "--dry-run",
+        "--yes",
+        "--json",
+        "--correlation-id",
+        "--log-dir",
+        "--scope"
+      ],
+      "notes": "Selection is explicit and execution requires --yes after a --dry-run preview. The executor never elevates and currently permits only exact-state user PATH restoration tokens."
+    },
+    {
       "verb": "validate",
       "description": "Validate an answer file against the JSON schema and emit diagnostics.",
       "requiresAdmin": false,
@@ -424,6 +447,24 @@
       "conflictsWith": [],
       "applicableVerbs": ["export-support"],
       "notes": "Defaults to .\\LibreSpot-support-<timestamp>.zip in the current directory."
+    },
+    {
+      "flag": "--operation-id",
+      "aliases": [],
+      "description": "Source receipt operation identifier for an explicit undo selection.",
+      "type": "string",
+      "conflictsWith": [],
+      "applicableVerbs": ["undo"],
+      "notes": "Must match the latest receipt or its retained undo-source provenance; LibreSpot never infers an older operation."
+    },
+    {
+      "flag": "--token-kind",
+      "aliases": [],
+      "description": "Operation-token kind to preview or undo.",
+      "type": "string",
+      "conflictsWith": [],
+      "applicableVerbs": ["undo"],
+      "notes": "Must match the selected source operation and the executable allowlist in operation-token-types.json."
     }
   ],
   "parserBehavior": {
@@ -436,11 +477,11 @@
   },
   "designPrinciples": [
     "Non-mutating verbs (detect, status, validate, plan, version) never require admin elevation.",
-    "Mutating verbs fail with exit code 50 if admin elevation is missing, before any changes are made.",
+    "Mutating verbs that declare requiresAdmin=true fail with exit code 50 if elevation is missing, before any changes are made; undo never elevates.",
     "Every verb produces deterministic exit codes documented in fleet-exit-codes.json.",
     "--dry-run on mutating verbs produces the same output structure as a real run but skips all filesystem/registry writes.",
     "NDJSON is the streaming format for long-running mutating operations; JSON is the snapshot format for read-only queries.",
     "Flag conflicts (e.g., --json + --ndjson) are caught at parse time and exit with code 2.",
-    "The CLI shares backend code with the WPF desktop shell — verbs map 1:1 to backend actions in elevation-boundary.json."
+    "Backend workflow verbs share code with the WPF desktop shell and map to elevation-boundary.json; local undo uses the shared policy-backed receipt executor."
   ]
 }

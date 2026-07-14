@@ -20,7 +20,9 @@
       "undoAction": "Remove the added PATH entry and restore previous PATH value.",
       "requiresAdmin": false,
       "risk": "low",
-      "expiresAfterHours": null
+      "executableUndo": true,
+      "validationPolicy": "exact-user-path-snapshot",
+      "expiresAfterHours": 720
     },
     {
       "kind": "pathEntryRemove",

@@ -1741,6 +1741,13 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("Registry]::CurrentUser.OpenSubKey('Environment'", getter.Groups["body"].Value);
         Assert.Contains("DoNotExpandEnvironmentNames", getter.Groups["body"].Value);
         Assert.Contains("RegistryValueKind]::ExpandString", setter.Groups["body"].Value);
+        Assert.Contains("DoNotExpandEnvironmentNames", setter.Groups["body"].Value);
+        Assert.Contains("previousValueExists", setter.Groups["body"].Value);
+        Assert.Contains("previousValueKind", setter.Groups["body"].Value);
+        Assert.Contains("expectedValueKind = 'ExpandString'", setter.Groups["body"].Value);
+        Assert.Contains("undo-states", setter.Groups["body"].Value);
+        Assert.Contains("previousSha256", setter.Groups["body"].Value);
+        Assert.Contains("expectedSha256", setter.Groups["body"].Value);
         Assert.Contains("SendMessageTimeout", setter.Groups["body"].Value);
         Assert.Contains("'Environment'", setter.Groups["body"].Value);
         Assert.DoesNotContain("SetEnvironmentVariable('PATH'", setter.Groups["body"].Value);

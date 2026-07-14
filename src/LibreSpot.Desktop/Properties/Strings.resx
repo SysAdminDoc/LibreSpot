@@ -1266,4 +1266,24 @@
   <data name="HealthStatusOwnershipLibreSpot" xml:space="preserve"><value>LibreSpot-owned</value><comment>Health status when customization state has LibreSpot operation evidence.</comment></data>
   <data name="HealthStatusOwnershipNone" xml:space="preserve"><value>No patcher state</value><comment>Health status when no patcher footprint is detected.</comment></data>
   <data name="HealthEvidencePatcherOwnershipFormat" xml:space="preserve"><value>{0} {1}</value><comment>Health evidence combining {0}=ownership summary and {1}=migration recommendation.</comment></data>
+  <data name="Vm_UndoPreviewButton" xml:space="preserve"><value>Preview selected</value><comment>Button that validates selected low-risk undo items without changing state.</comment></data>
+  <data name="Vm_UndoPreviewHelp" xml:space="preserve"><value>Validate current state and show exactly what selected undo items would restore.</value><comment>Accessible help for the undo preview button.</comment></data>
+  <data name="Vm_UndoExecuteButton" xml:space="preserve"><value>Undo selected</value><comment>Button that opens confirmation for selected executable undo items.</comment></data>
+  <data name="Vm_UndoExecuteHelp" xml:space="preserve"><value>Confirm and execute only selected policy-approved low-risk undo items.</value><comment>Accessible help for the undo execution button.</comment></data>
+  <data name="Vm_UndoPreviewTitle" xml:space="preserve"><value>Undo preview</value><comment>Activity title for undo validation.</comment></data>
+  <data name="Vm_UndoNoneSelected" xml:space="preserve"><value>No executable undo item is selected.</value><comment>Undo validation status when no allowed item is selected.</comment></data>
+  <data name="Vm_UndoSelectLowRisk" xml:space="preserve"><value>Select an enabled low-risk item, then preview it again.</value><comment>Undo selection guidance.</comment></data>
+  <data name="Vm_UndoPreviewSummaryFormat" xml:space="preserve"><value>{0} of {1} selected undo items pass current-state validation.</value><comment>Undo preview count; {0}=accepted and {1}=selected.</comment></data>
+  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>Current state changed; undo was refused.</value><comment>Status when an undo snapshot is stale.</comment></data>
+  <data name="Vm_UndoConfirmTitle" xml:space="preserve"><value>Undo selected changes?</value><comment>Confirmation title before executing selected undo items.</comment></data>
+  <data name="Vm_UndoConfirmBodyFormat" xml:space="preserve"><value>LibreSpot will execute {0} selected low-risk undo item(s) in reverse order after revalidating current state.</value><comment>Undo confirmation body; {0}=selected count.</comment></data>
+  <data name="Vm_UndoConfirmButton" xml:space="preserve"><value>Undo selected</value><comment>Confirmation button for undo execution.</comment></data>
+  <data name="Vm_UndoActivityTitle" xml:space="preserve"><value>Undoing selected changes</value><comment>Activity title while undo runs.</comment></data>
+  <data name="Vm_UndoActivityStatus" xml:space="preserve"><value>Validating captured state</value><comment>Activity status at undo start.</comment></data>
+  <data name="Vm_UndoActivityStepFormat" xml:space="preserve"><value>Preparing {0} selected item(s)</value><comment>Undo activity step; {0}=selected count.</comment></data>
+  <data name="Vm_UndoSucceededFormat" xml:space="preserve"><value>Undo {0}: {1}</value><comment>Successful undo log line; {0}=operation ID and {1}=result.</comment></data>
+  <data name="Vm_UndoFailedFormat" xml:space="preserve"><value>Undo {0} failed: {1}</value><comment>Failed undo log line; {0}=operation ID and {1}=reason.</comment></data>
+  <data name="Vm_UndoComplete" xml:space="preserve"><value>Selected changes were undone</value><comment>Undo completion status.</comment></data>
+  <data name="Vm_UndoNeedsReview" xml:space="preserve"><value>Some selected changes need review</value><comment>Undo partial-failure status.</comment></data>
+  <data name="Vm_UndoResultFormat" xml:space="preserve"><value>{0} succeeded; {1} failed. Operation IDs are in the activity log.</value><comment>Undo result summary; {0}=success count and {1}=failure count.</comment></data>
 </root>

@@ -28,6 +28,7 @@ public sealed class DataInventoryContractTests
         "stable-upstream-freshness-cache",
         "support-archives",
         "temporary-workspaces",
+        "undo-state-snapshots",
         "user-config",
         "watcher-log",
         "watcher-state",
@@ -58,6 +59,7 @@ public sealed class DataInventoryContractTests
         "spicetify-preservation-evidence",
         "stable-upstream-freshness-cache",
         "support-archives",
+        "undo-state-snapshots",
         "user-config",
         "watcher-log",
         "watcher-state",
@@ -189,6 +191,7 @@ public sealed class DataInventoryContractTests
                      "previous-profile-pointer",
                      "profile-activation-transaction",
                      "run-receipt",
+                     "undo-state-snapshots",
                      "spicetify-backups",
                      "temporary-workspaces"
                  })

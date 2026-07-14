@@ -49,6 +49,7 @@ public sealed partial class ActivityRunStateViewModel : ObservableObject
     public bool IsLogEmpty => LogEntries.Count == 0;
 
     public bool HasUndoActionItems => UndoActionItems.Count > 0;
+    public bool HasExecutableUndoActionItems => UndoActionItems.Any(item => item.IsExecutable);
 
     public void Begin(string title, string status, string step)
     {
@@ -106,6 +107,7 @@ public sealed partial class ActivityRunStateViewModel : ObservableObject
 
         UndoActionItems.Clear();
         OnPropertyChanged(nameof(HasUndoActionItems));
+        OnPropertyChanged(nameof(HasExecutableUndoActionItems));
     }
 
     public void ReplaceUndoActionItems(IEnumerable<OperationJournalUndoItem> items)
@@ -117,6 +119,7 @@ public sealed partial class ActivityRunStateViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(HasUndoActionItems));
+        OnPropertyChanged(nameof(HasExecutableUndoActionItems));
     }
 
     public void RefreshLocalizedText()

@@ -155,12 +155,37 @@ public sealed class ViewModelStateDomainTests
         state.ReplaceUndoActionItems(new[] { item });
 
         Assert.True(state.HasUndoActionItems);
+        Assert.False(state.HasExecutableUndoActionItems);
         Assert.Single(state.UndoActionItems);
 
         state.ClearUndoActionItems();
 
         Assert.False(state.HasUndoActionItems);
+        Assert.False(state.HasExecutableUndoActionItems);
         Assert.Empty(state.UndoActionItems);
+    }
+
+    [Fact]
+    public void ActivityRunState_ExposesOnlyPolicyExecutableUndoItemsForSelection()
+    {
+        var state = new ActivityRunStateViewModel();
+        var item = new OperationJournalUndoItem(
+            "operation",
+            "Install",
+            "path",
+            "User PATH",
+            "Updated",
+            "Restore PATH.",
+            TokenKind: "pathEntryAdd",
+            Risk: "low",
+            PolicyExecutable: true);
+
+        state.ReplaceUndoActionItems(new[] { item });
+
+        var viewModel = Assert.Single(state.UndoActionItems);
+        Assert.True(state.HasExecutableUndoActionItems);
+        Assert.True(viewModel.IsExecutable);
+        Assert.False(viewModel.IsSelected);
     }
 
     [Fact]

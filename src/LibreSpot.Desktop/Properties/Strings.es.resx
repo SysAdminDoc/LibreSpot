@@ -2516,4 +2516,24 @@
   <data name="HealthStatusOwnershipLibreSpot" xml:space="preserve"><value>Administrado por LibreSpot</value></data>
   <data name="HealthStatusOwnershipNone" xml:space="preserve"><value>Sin estado de parcheador</value></data>
   <data name="HealthEvidencePatcherOwnershipFormat" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="Vm_UndoPreviewButton" xml:space="preserve"><value>Previsualizar seleccionados</value></data>
+  <data name="Vm_UndoPreviewHelp" xml:space="preserve"><value>Valida el estado actual y muestra exactamente qué restaurarían los elementos seleccionados.</value></data>
+  <data name="Vm_UndoExecuteButton" xml:space="preserve"><value>Deshacer seleccionados</value></data>
+  <data name="Vm_UndoExecuteHelp" xml:space="preserve"><value>Confirma y ejecuta solo los elementos seleccionados de bajo riesgo aprobados por la política.</value></data>
+  <data name="Vm_UndoPreviewTitle" xml:space="preserve"><value>Vista previa de deshacer</value></data>
+  <data name="Vm_UndoNoneSelected" xml:space="preserve"><value>No hay ningún elemento de deshacer ejecutable seleccionado.</value></data>
+  <data name="Vm_UndoSelectLowRisk" xml:space="preserve"><value>Selecciona un elemento habilitado de bajo riesgo y vuelve a previsualizarlo.</value></data>
+  <data name="Vm_UndoPreviewSummaryFormat" xml:space="preserve"><value>{0} de {1} elementos seleccionados superan la validación del estado actual.</value></data>
+  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>El estado actual cambió; se rechazó la operación de deshacer.</value></data>
+  <data name="Vm_UndoConfirmTitle" xml:space="preserve"><value>¿Deshacer los cambios seleccionados?</value></data>
+  <data name="Vm_UndoConfirmBodyFormat" xml:space="preserve"><value>LibreSpot ejecutará {0} elemento(s) seleccionados de bajo riesgo en orden inverso tras volver a validar el estado actual.</value></data>
+  <data name="Vm_UndoConfirmButton" xml:space="preserve"><value>Deshacer seleccionados</value></data>
+  <data name="Vm_UndoActivityTitle" xml:space="preserve"><value>Deshaciendo los cambios seleccionados</value></data>
+  <data name="Vm_UndoActivityStatus" xml:space="preserve"><value>Validando el estado capturado</value></data>
+  <data name="Vm_UndoActivityStepFormat" xml:space="preserve"><value>Preparando {0} elemento(s) seleccionados</value></data>
+  <data name="Vm_UndoSucceededFormat" xml:space="preserve"><value>Operación de deshacer {0}: {1}</value></data>
+  <data name="Vm_UndoFailedFormat" xml:space="preserve"><value>Error en la operación de deshacer {0}: {1}</value></data>
+  <data name="Vm_UndoComplete" xml:space="preserve"><value>Se deshicieron los cambios seleccionados</value></data>
+  <data name="Vm_UndoNeedsReview" xml:space="preserve"><value>Algunos cambios seleccionados requieren revisión</value></data>
+  <data name="Vm_UndoResultFormat" xml:space="preserve"><value>{0} correctos; {1} fallidos. Los identificadores de operación están en el registro de actividad.</value></data>
 </root>

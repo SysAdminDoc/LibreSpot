@@ -17,7 +17,7 @@ function Remove-PathEntry {
         $remaining += $existing
     }
     if ($removed) {
-        Set-PathEntries -Scope $Scope -Entries $remaining
+        Set-PathEntries -Scope $Scope -Entries $remaining -TokenKind 'pathEntryRemove' -ChangedEntry $Entry
     }
     return $removed
 }

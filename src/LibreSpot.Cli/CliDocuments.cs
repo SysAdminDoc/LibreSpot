@@ -297,6 +297,19 @@ public sealed record ValidationDocument(
 
 public sealed record ValidationErrorDocument(string Path, string Message);
 
+public sealed record UndoDocument(
+    int SchemaVersion,
+    DateTimeOffset GeneratedAtUtc,
+    string SourceOperationId,
+    string TokenKind,
+    bool DryRun,
+    bool Allowed,
+    bool AlreadyUndone,
+    bool Changed,
+    string Status,
+    string Reason,
+    string? UndoOperationId);
+
 public sealed record PlanDocument(
     int SchemaVersion,
     string ProductVersion,

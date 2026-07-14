@@ -562,6 +562,29 @@
       ]
     },
     {
+      "id": "undo-state-snapshots",
+      "path": "%APPDATA%\\LibreSpot\\undo-states\\*.json",
+      "owner": "current-user",
+      "codeOwner": "Set-PathEntries; OperationJournalUndoService",
+      "schemaVersion": 2,
+      "description": "Exact before/after user-PATH snapshots used only by the policy-backed low-risk undo executor.",
+      "sensitivity": "high",
+      "sensitivityNote": "Contains the user's complete unexpanded PATH before and after one LibreSpot entry was added.",
+      "retention": "30 days",
+      "retentionNote": "Expired snapshots are removed when the next executable PATH undo state is captured; Remove LibreSpot Data removes the entire root.",
+      "retentionEnforcement": "writer-age-sweep-and-user-deletion",
+      "userDeletePath": "Maintenance > Remove LibreSpot Data, or delete %APPDATA%\\LibreSpot\\undo-states",
+      "deleteBehavior": "remove-self-data",
+      "includedInSupportBundle": false,
+      "supportExportBehavior": "excluded",
+      "redactionRules": ["Never export raw undo state", "Operation-journal and receipt exports omit previousStateRef values"],
+      "aclExpectation": "current-user inherited ACL from %APPDATA%",
+      "writeSites": [
+        { "source": "src/powershell/shared/Set-PathEntries.ps1", "marker": "undo-states" },
+        { "source": "src/LibreSpot.Desktop/Services/OperationJournalUndoService.cs", "marker": "undo-states" }
+      ]
+    },
+    {
       "id": "temporary-workspaces",
       "path": "%TEMP%\\LibreSpot*",
       "owner": "current-user",
@@ -632,7 +655,7 @@
   ],
   "invariants": [
     "No owned location stores Spotify account credentials, OAuth tokens, session cookies, proxy credentials, or authentication secrets by design",
-    "Raw local profiles, profile activation stages, run receipts, backup contents, and temporary workspaces are never included in support bundles",
+    "Raw local profiles, profile activation stages, undo-state snapshots, run receipts, backup contents, and temporary workspaces are never included in support bundles",
     "Operation-journal previous-state fields are omitted before support export even when their values do not match another redaction rule",
     "Support bundle export requires user intent, writes locally, and never uploads automatically",
     "User-selected profile exports, imported answer files, and CLI support-bundle destinations outside LibreSpot roots remain user-owned files and are outside RemoveSelfData scope",

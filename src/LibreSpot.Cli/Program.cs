@@ -85,9 +85,11 @@ public static class CliApplication
         "--correlation-id",
         "--log-dir",
         "--output",
+        "--operation-id",
         "--profile",
         "--repair-id",
-        "--scope"
+        "--scope",
+        "--token-kind"
     };
 
     private static readonly IReadOnlyList<string> KnownRepairActions =
@@ -153,6 +155,7 @@ public static class CliApplication
                 "reapply" => RunPlannedOperation("reapply", options, stdout, stderr, backendRunner),
                 "uninstall" => RunPlannedOperation("uninstall", options, stdout, stderr, backendRunner),
                 "repair" => RunPlannedOperation("repair", options, stdout, stderr, backendRunner),
+                "undo" => RunUndo(options, stdout, stderr),
                 "plan" => RunPlannedOperation("install", options, stdout, stderr, planVerb: true),
                 "export-support" => RunExportSupport(options, stdout, stderr, snapshotFactory),
                 "watcher install" => RunWatcher("install", options, stdout, stderr, backendRunner),
@@ -314,6 +317,102 @@ public static class CliApplication
         }
 
         return result.Valid ? Success : ValidationError;
+    }
+
+    private static int RunUndo(CliOptions options, TextWriter stdout, TextWriter stderr)
+    {
+        if (!options.OnlyContains("--operation-id", "--token-kind", "--dry-run", "--yes", "--json", "--config-path", "--correlation-id", "--log-dir", "--scope"))
+        {
+            stderr.WriteLine("undo received an unsupported flag.");
+            return ValidationError;
+        }
+
+        if (!TryResolveConfigPath(options, out var configPath, out var configPathError))
+        {
+            stderr.WriteLine(configPathError);
+            return ValidationError;
+        }
+
+        var sourceOperationId = options.GetValue("--operation-id")?.Trim();
+        var tokenKind = options.GetValue("--token-kind")?.Trim();
+        if (string.IsNullOrWhiteSpace(sourceOperationId) || string.IsNullOrWhiteSpace(tokenKind))
+        {
+            stderr.WriteLine("undo requires --operation-id <id> and --token-kind <kind> so the selected receipt entry is explicit.");
+            return ValidationError;
+        }
+
+        var configDirectory = Path.GetDirectoryName(Path.GetFullPath(configPath)) ?? Environment.CurrentDirectory;
+        var service = new OperationJournalUndoService();
+        var item = service.ReadLatestUndoItems(configDirectory).FirstOrDefault(candidate =>
+            candidate.OperationId.Equals(sourceOperationId, StringComparison.OrdinalIgnoreCase) &&
+            candidate.TokenKind.Equals(tokenKind, StringComparison.Ordinal));
+        if (item is null)
+        {
+            var reason = $"No matching reversible token '{tokenKind}' from operation '{sourceOperationId}' is available in the latest successful receipt. Unknown, destructive, and superseded tokens are never inferred.";
+            WriteUndoOutput(
+                options,
+                stdout,
+                new UndoDocument(1, DateTimeOffset.UtcNow, sourceOperationId, tokenKind, options.HasFlag("--dry-run"), false, false, false, "refused", reason, null));
+            return ValidationError;
+        }
+
+        var preview = service.PreviewUndoItem(item, configDirectory);
+        if (options.HasFlag("--dry-run"))
+        {
+            WriteUndoOutput(
+                options,
+                stdout,
+                new UndoDocument(1, DateTimeOffset.UtcNow, sourceOperationId, tokenKind, true, preview.CanExecute, preview.IsAlreadyUndone, false, preview.CanExecute ? "ready" : "refused", preview.Reason, null));
+            return preview.CanExecute ? Success : ValidationError;
+        }
+
+        if (!options.HasFlag("--yes"))
+        {
+            stderr.WriteLine("undo requires --yes after reviewing an undo --dry-run preview.");
+            return ValidationError;
+        }
+
+        if (!preview.CanExecute)
+        {
+            WriteUndoOutput(
+                options,
+                stdout,
+                new UndoDocument(1, DateTimeOffset.UtcNow, sourceOperationId, tokenKind, false, false, false, false, "refused", preview.Reason, null));
+            return ValidationError;
+        }
+
+        var result = service.ExecuteUndoAsync(item, configDirectory).GetAwaiter().GetResult();
+        WriteUndoOutput(
+            options,
+            stdout,
+            new UndoDocument(
+                1,
+                DateTimeOffset.UtcNow,
+                sourceOperationId,
+                tokenKind,
+                false,
+                true,
+                result.Status == "alreadyUndone",
+                result.Changed,
+                result.Status,
+                result.Message,
+                result.OperationId));
+        return result.Success ? Success : result.Refused ? ValidationError : UnhandledFailure;
+    }
+
+    private static void WriteUndoOutput(CliOptions options, TextWriter stdout, UndoDocument document)
+    {
+        if (options.HasFlag("--json"))
+        {
+            WriteJson(stdout, document);
+            return;
+        }
+
+        stdout.WriteLine($"{document.Status}: {document.Reason}");
+        if (!string.IsNullOrWhiteSpace(document.UndoOperationId))
+        {
+            stdout.WriteLine($"Undo operation ID: {document.UndoOperationId}");
+        }
     }
 
     private static int RunExportSupport(
@@ -1877,6 +1976,8 @@ public static class CliApplication
         writer.WriteLine("  LibreSpot.Cli reapply [--dry-run] --answer-file <path> [--ndjson]");
         writer.WriteLine("  LibreSpot.Cli uninstall [--dry-run] [--keep-spotify] [--ndjson]");
         writer.WriteLine("  LibreSpot.Cli repair --repair-id <id> [--dry-run] [--ndjson]");
+        writer.WriteLine("  LibreSpot.Cli undo --operation-id <id> --token-kind <kind> --dry-run [--json]");
+        writer.WriteLine("  LibreSpot.Cli undo --operation-id <id> --token-kind <kind> --yes [--json]");
         writer.WriteLine("  LibreSpot.Cli plan --answer-file <path> [--json]");
         writer.WriteLine("  LibreSpot.Cli export-support [--output <path>]");
         writer.WriteLine("  LibreSpot.Cli watcher install [--silent]");

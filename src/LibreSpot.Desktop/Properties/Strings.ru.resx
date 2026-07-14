@@ -2516,4 +2516,24 @@
   <data name="HealthStatusOwnershipLibreSpot" xml:space="preserve"><value>Управляется LibreSpot</value></data>
   <data name="HealthStatusOwnershipNone" xml:space="preserve"><value>Следы патчеров не найдены</value></data>
   <data name="HealthEvidencePatcherOwnershipFormat" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="Vm_UndoPreviewButton" xml:space="preserve"><value>Предпросмотр выбранного</value></data>
+  <data name="Vm_UndoPreviewHelp" xml:space="preserve"><value>Проверить текущее состояние и точно показать, что восстановят выбранные операции отмены.</value></data>
+  <data name="Vm_UndoExecuteButton" xml:space="preserve"><value>Отменить выбранное</value></data>
+  <data name="Vm_UndoExecuteHelp" xml:space="preserve"><value>Подтвердить и выполнить только выбранные операции отмены с низким риском, разрешённые политикой.</value></data>
+  <data name="Vm_UndoPreviewTitle" xml:space="preserve"><value>Предпросмотр отмены</value></data>
+  <data name="Vm_UndoNoneSelected" xml:space="preserve"><value>Не выбрана ни одна доступная операция отмены.</value></data>
+  <data name="Vm_UndoSelectLowRisk" xml:space="preserve"><value>Выберите доступный элемент с низким риском и снова выполните предпросмотр.</value></data>
+  <data name="Vm_UndoPreviewSummaryFormat" xml:space="preserve"><value>Проверку текущего состояния прошли {0} из {1} выбранных операций отмены.</value></data>
+  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>Текущее состояние изменилось; отмена отклонена.</value></data>
+  <data name="Vm_UndoConfirmTitle" xml:space="preserve"><value>Отменить выбранные изменения?</value></data>
+  <data name="Vm_UndoConfirmBodyFormat" xml:space="preserve"><value>LibreSpot выполнит {0} выбранных операций отмены с низким риском в обратном порядке после повторной проверки текущего состояния.</value></data>
+  <data name="Vm_UndoConfirmButton" xml:space="preserve"><value>Отменить выбранное</value></data>
+  <data name="Vm_UndoActivityTitle" xml:space="preserve"><value>Отмена выбранных изменений</value></data>
+  <data name="Vm_UndoActivityStatus" xml:space="preserve"><value>Проверка сохранённого состояния</value></data>
+  <data name="Vm_UndoActivityStepFormat" xml:space="preserve"><value>Подготовка выбранных элементов: {0}</value></data>
+  <data name="Vm_UndoSucceededFormat" xml:space="preserve"><value>Отмена {0}: {1}</value></data>
+  <data name="Vm_UndoFailedFormat" xml:space="preserve"><value>Не удалось выполнить отмену {0}: {1}</value></data>
+  <data name="Vm_UndoComplete" xml:space="preserve"><value>Выбранные изменения отменены</value></data>
+  <data name="Vm_UndoNeedsReview" xml:space="preserve"><value>Некоторые выбранные изменения требуют проверки</value></data>
+  <data name="Vm_UndoResultFormat" xml:space="preserve"><value>Успешно: {0}; с ошибкой: {1}. Идентификаторы операций указаны в журнале действий.</value></data>
 </root>
