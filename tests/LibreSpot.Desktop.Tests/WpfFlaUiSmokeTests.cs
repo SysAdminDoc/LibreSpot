@@ -359,11 +359,18 @@ public sealed class WpfFlaUiSmokeTests
 
     private static void InvokeOrClick(AutomationElement element)
     {
-        if (element.Patterns.ScrollItem.IsSupported)
+        // ScrollItem.ScrollIntoView invalidates the presentation source for
+        // virtualized controls. Invoking the same element in that dispatcher
+        // turn can be silently dropped by WPF, which made offscreen
+        // maintenance actions look clickable without ever running their
+        // command. Only scroll when needed and allow layout/UIA to settle.
+        if (element.Patterns.ScrollItem.IsSupported && element.IsOffscreen)
         {
             element.Patterns.ScrollItem.Pattern.ScrollIntoView();
+            WaitUntil(() => !element.IsOffscreen, $"'{element.AutomationId}' to scroll into view");
         }
 
+        Assert.True(element.IsEnabled, $"Element '{element.AutomationId}' must be enabled before invocation.");
         if (element.Patterns.Invoke.IsSupported)
         {
             element.Patterns.Invoke.Pattern.Invoke();

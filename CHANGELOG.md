@@ -36,6 +36,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Tests
 
+- Stabilized FlaUI interaction checks for virtualized maintenance controls by scrolling only offscreen elements, waiting for the UIA layout update, and rejecting disabled targets before invocation instead of silently dropping clicks.
 - Added a single non-activating rendered-WPF QA command covering 13 shell/overlay states plus the nested crash dialog across dark/high-contrast and English/Spanish; every capture verifies localized primary bounds, accessible action names, focus-ring rendering, metadata, dimensions, and render-dropout retries.
 - Expanded localization scanning from `MainWindow.xaml` to all production XAML and health-component construction, with Spanish snapshot and shared-control automation-name regression coverage.
 - Added direct Pester coverage for the lane-specific watcher launch, registration, first-run, preference, active-Spotify, failed-reapply, missing-config, and interrupted-state-write contracts.
