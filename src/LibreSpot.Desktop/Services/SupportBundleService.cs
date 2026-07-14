@@ -552,6 +552,7 @@ public sealed class SupportBundleService
         yield return new SupportBundleFile(Path.Combine(_configDirectory, "install.log"), "Backend install log tail");
         yield return new SupportBundleFile(Path.Combine(_configDirectory, "watcher.log"), "Auto-reapply watcher log tail");
         yield return new SupportBundleFile(Path.Combine(_configDirectory, "watcher-state.json"), "Auto-reapply watcher state");
+        yield return new SupportBundleFile(Path.Combine(_configDirectory, "spicetify-preservation-latest.json"), "Spicetify preservation evidence");
     }
 
     private IEnumerable<SupportBundleFile> LogFiles()

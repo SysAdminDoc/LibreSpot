@@ -1078,6 +1078,21 @@ public sealed class PowerShellRegressionTests
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void MarketplaceRepairAndReapply_PreserveSpicetifyState(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("function New-SpicetifyStatePreservationSnapshot", script);
+        Assert.Contains("function Restore-SpicetifyStatePreservationSnapshot", script);
+        Assert.Contains("function Invoke-WithSpicetifyStatePreservation", script);
+        Assert.Contains("Invoke-WithSpicetifyStatePreservation -Action 'RepairMarketplace'", script);
+        Assert.Contains("Invoke-WithSpicetifyStatePreservation -Action 'Reapply'", script);
+        Assert.Contains("spicetify-preservation-latest.json", script);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
     public void SpicetifyCliRunner_StreamsNativeOutputAndTimesOut(string relativePath)
     {
         var script = ReadFile(relativePath.Split('/'));

@@ -4,9 +4,11 @@ function Reapply-SavedSpicetifySetup { param($Config)
         Module-InstallSpicetifyCLI
     }
 
-    Module-InstallThemes -Config $Config
-    Module-InstallExtensions -Config $Config
-    Module-InstallMarketplace -Config $Config
-    Module-InstallCustomApps -Config $Config
-    Module-ApplySpicetify -Config $Config -EvidenceSource 'Reapply' | Out-Null
+    Invoke-WithSpicetifyStatePreservation -Action 'Reapply' -Operation {
+        Module-InstallThemes -Config $Config
+        Module-InstallExtensions -Config $Config
+        Module-InstallMarketplace -Config $Config
+        Module-InstallCustomApps -Config $Config
+        Module-ApplySpicetify -Config $Config -EvidenceSource 'Reapply' | Out-Null
+    } | Out-Null
 }

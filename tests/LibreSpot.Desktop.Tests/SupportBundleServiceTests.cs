@@ -273,6 +273,26 @@ public sealed class SupportBundleServiceTests
     }
 
     [Fact]
+    public async Task ExportAsync_IncludesSpicetifyPreservationEvidence()
+    {
+        using var fixture = new SupportBundleFixture();
+        fixture.WriteStackReadyState();
+        fixture.WriteSpicetifyPreservationEvidence();
+
+        var result = await fixture.ExportAsync(new SupportBundleOptions(
+            IncludeOperationJournal: true,
+            IncludeLogs: false,
+            IncludeCrashReports: false));
+        var entries = ReadZipText(result.Path);
+        var operation = entries["operation/latest-journal.txt"];
+
+        Assert.Contains("Spicetify preservation evidence", operation);
+        Assert.Contains("PreservedAfterSuccess", operation);
+        Assert.Contains("custom-app.txt", operation);
+        Assert.DoesNotContain(fixture.Root, operation, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task ExportAsync_IncludesAssetCacheInventory()
     {
         using var fixture = new SupportBundleFixture();
@@ -420,6 +440,21 @@ public sealed class SupportBundleServiceTests
                         spotifyRunningAfterOpen = true,
                         lastObservedSpotifySession = "spotify-process-running",
                         lastObservedAtUtc = DateTimeOffset.Parse("2026-06-30T12:03:00Z")
+                    }));
+
+        public void WriteSpicetifyPreservationEvidence() =>
+            WriteFile(
+                Path.Combine(ConfigDirectory, "spicetify-preservation-latest.json"),
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        schemaVersion = 1,
+                        operationId = "op-preserve",
+                        action = "RepairMarketplace",
+                        status = "PreservedAfterSuccess",
+                        snapshotPath = Path.Combine(Root, "LibreSpot_Backups", "SpicetifyState", "op-preserve"),
+                        restoredFiles = new[] { "CustomApps\\foreign-app\\custom-app.txt" },
+                        skippedExistingFiles = new[] { "CustomApps\\marketplace\\extension.js" }
                     }));
 
         public string WriteAssetCacheEntry(string label, string sourceUrl, byte[] content)

@@ -56,6 +56,11 @@ BeforeAll {
         'Normalize-LibreSpotConfig'
         'Compare-LibreSpotVersions'
         'Get-SpotXChildFailureClassification'
+        'Copy-DirectorySnapshotSafely'
+        'Merge-DirectorySnapshotMissingFiles'
+        'New-SpicetifyStatePreservationSnapshot'
+        'Restore-SpicetifyStatePreservationSnapshot'
+        'Invoke-WithSpicetifyStatePreservation'
     )
     $blocks = foreach ($fn in $functionsToLoad) {
         $block = Extract-FunctionBlock $scriptContent $fn
@@ -1051,5 +1056,97 @@ Describe 'Get-SpotXDownloadRetryPlan' {
     It 'Returns null for an unknown or non-download category' {
         Get-SpotXDownloadRetryPlan -Category 'SomethingElse' -MirrorAlreadyUsed $false | Should -BeNullOrEmpty
         Get-SpotXDownloadRetryPlan -Category '' -MirrorAlreadyUsed $false | Should -BeNullOrEmpty
+    }
+}
+
+# =============================================================================
+# Spicetify state preservation
+# =============================================================================
+Describe 'Spicetify state preservation' {
+    BeforeEach {
+        $script:preservationRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("LibreSpot.Preservation.Tests\" + [Guid]::NewGuid().ToString('N'))
+        $global:BACKUP_ROOT = Join-Path $script:preservationRoot 'backups'
+        $global:CONFIG_DIR = Join-Path $script:preservationRoot 'librespot'
+        $global:CURRENT_OPERATION_ID = '11111111222233334444555555555555'
+        $script:spicetifyConfigDirectory = Join-Path $script:preservationRoot 'spicetify'
+        $script:spicetifyConfigPath = Join-Path $script:spicetifyConfigDirectory 'config-xpui.ini'
+        $script:customAppsDirectory = Join-Path $script:spicetifyConfigDirectory 'CustomApps'
+        $script:journalEntries = @()
+
+        function Get-SpicetifyIntegrationContext {
+            return [pscustomobject]@{
+                ConfigPath = $script:spicetifyConfigPath
+                CustomAppsDirectory = $script:customAppsDirectory
+            }
+        }
+        function Get-SpicetifyConfigListValue { return @('marketplace', 'foreign-app') }
+        function Get-MarketplaceHealth {
+            return [pscustomobject]@{ Status = 'Ready'; IsReady = $true }
+        }
+        function Write-OperationJournalEntry {
+            param($Phase, $Target, $SafetyDecision, $Result, $WouldChange, $Reversible, $RollbackHint, $Data)
+            $script:journalEntries += [pscustomobject]@{ Phase = $Phase; Target = $Target; Result = $Result; Data = $Data }
+        }
+        function Write-Log { param($Message, $Level) }
+        function Remove-PathSafely {
+            param($Path, $Label)
+            if (Test-Path -LiteralPath $Path) { Remove-Item -LiteralPath $Path -Recurse -Force }
+            return $true
+        }
+
+        New-Item -Path (Join-Path $script:customAppsDirectory 'marketplace') -ItemType Directory -Force | Out-Null
+        New-Item -Path (Join-Path $script:customAppsDirectory 'foreign-app') -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath $script:spicetifyConfigPath -Value 'custom_apps = marketplace|foreign-app' -Encoding UTF8
+        Set-Content -LiteralPath (Join-Path $script:customAppsDirectory 'marketplace\extension.js') -Value 'old-runtime' -Encoding UTF8
+        Set-Content -LiteralPath (Join-Path $script:customAppsDirectory 'marketplace\user-state.json') -Value '{"kept":true}' -Encoding UTF8
+        Set-Content -LiteralPath (Join-Path $script:customAppsDirectory 'foreign-app\settings.json') -Value '{"foreign":true}' -Encoding UTF8
+    }
+
+    AfterEach {
+        Remove-Item -LiteralPath $script:preservationRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'Keeps refreshed package files and restores only missing state' {
+        $snapshot = New-SpicetifyStatePreservationSnapshot -Action 'RepairMarketplace'
+
+        Test-Path -LiteralPath (Join-Path $snapshot.snapshotPath 'config-xpui.ini') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $snapshot.snapshotPath 'CustomApps\marketplace\user-state.json') | Should -BeTrue
+        $snapshot.enabledCustomApps | Should -Contain 'foreign-app'
+
+        Set-Content -LiteralPath (Join-Path $script:customAppsDirectory 'marketplace\extension.js') -Value 'fresh-runtime' -Encoding UTF8
+        Remove-Item -LiteralPath (Join-Path $script:customAppsDirectory 'marketplace\user-state.json') -Force
+        Remove-Item -LiteralPath (Join-Path $script:customAppsDirectory 'foreign-app') -Recurse -Force
+
+        $recovery = Restore-SpicetifyStatePreservationSnapshot -Snapshot $snapshot -OperationSucceeded $true
+
+        $recovery.Succeeded | Should -BeTrue
+        (Get-Content -LiteralPath (Join-Path $script:customAppsDirectory 'marketplace\extension.js') -Raw).Trim() | Should -Be 'fresh-runtime'
+        Test-Path -LiteralPath (Join-Path $script:customAppsDirectory 'marketplace\user-state.json') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:customAppsDirectory 'foreign-app\settings.json') | Should -BeTrue
+        $evidence = Get-Content -LiteralPath (Join-Path $global:CONFIG_DIR 'spicetify-preservation-latest.json') -Raw | ConvertFrom-Json
+        $evidence.status | Should -Be 'PreservedAfterSuccess'
+        $script:journalEntries.Result | Should -Contain 'Preserved'
+        $script:journalEntries.Result | Should -Contain 'PreservedAfterSuccess'
+    }
+
+    It 'Recovers missing state when the wrapped operation fails' {
+        {
+            Invoke-WithSpicetifyStatePreservation -Action 'Reapply' -Operation {
+                Remove-Item -LiteralPath (Join-Path $script:customAppsDirectory 'marketplace\user-state.json') -Force
+                throw 'simulated reapply failure'
+            }
+        } | Should -Throw '*simulated reapply failure*'
+
+        Test-Path -LiteralPath (Join-Path $script:customAppsDirectory 'marketplace\user-state.json') | Should -BeTrue
+        $evidence = Get-Content -LiteralPath (Join-Path $global:CONFIG_DIR 'spicetify-preservation-latest.json') -Raw | ConvertFrom-Json
+        $evidence.status | Should -Be 'RecoveredAfterFailure'
+        $evidence.operationSucceeded | Should -BeFalse
+    }
+
+    It 'Blocks oversized snapshots before a caller can mutate state' {
+        $destination = Join-Path $script:preservationRoot 'too-small'
+        {
+            Copy-DirectorySnapshotSafely -SourcePath $script:customAppsDirectory -DestinationPath $destination -MaxBytes 4
+        } | Should -Throw '*preservation limit*'
     }
 }

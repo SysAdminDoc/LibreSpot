@@ -18,6 +18,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- Marketplace repair and profile reapply now make a bounded, reparse-safe snapshot of `config-xpui.ini` and `CustomApps`, restore only files that the refreshed packages leave missing, retain the recovery snapshot, expose success/failure evidence in support bundles, and warn that Marketplace browser storage is outside the recoverable boundary.
 - Release guidance now distinguishes the current v3.7.4 script source from GitHub's public latest stable v3.7.2 and validates preview parity locally plus stable tag/assets against the live GitHub latest-release channel.
 
 ### Fixed

@@ -4219,6 +4219,280 @@ function Get-MarketplaceHealth {
     }
 }
 
+function Copy-DirectorySnapshotSafely {
+    param(
+        [Parameter(Mandatory)][string]$SourcePath,
+        [Parameter(Mandatory)][string]$DestinationPath,
+        [long]$MaxBytes = 268435456,
+        [hashtable]$State
+    )
+
+    if (-not $State) {
+        $State = @{ FileCount = 0; Bytes = [long]0; SkippedReparsePoints = 0 }
+    }
+    if (-not (Test-Path -LiteralPath $SourcePath -PathType Container)) {
+        return [pscustomobject]$State
+    }
+
+    $source = Get-Item -LiteralPath $SourcePath -Force -ErrorAction Stop
+    if (($source.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Refusing to snapshot reparse-point root: $SourcePath"
+    }
+
+    New-Item -Path $DestinationPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    foreach ($item in @(Get-ChildItem -LiteralPath $SourcePath -Force -ErrorAction Stop)) {
+        if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            $State.SkippedReparsePoints = [int]$State.SkippedReparsePoints + 1
+            continue
+        }
+
+        $destination = Join-Path $DestinationPath $item.Name
+        if ($item.PSIsContainer) {
+            $null = Copy-DirectorySnapshotSafely -SourcePath $item.FullName -DestinationPath $destination -MaxBytes $MaxBytes -State $State
+            continue
+        }
+
+        $nextBytes = [long]$State.Bytes + [long]$item.Length
+        if ($nextBytes -gt $MaxBytes) {
+            throw "Spicetify state exceeds the $MaxBytes-byte preservation limit. No repair changes were made."
+        }
+        Copy-Item -LiteralPath $item.FullName -Destination $destination -Force -ErrorAction Stop
+        $State.FileCount = [int]$State.FileCount + 1
+        $State.Bytes = $nextBytes
+    }
+
+    return [pscustomobject]$State
+}
+
+function Merge-DirectorySnapshotMissingFiles {
+    param(
+        [Parameter(Mandatory)][string]$SourcePath,
+        [Parameter(Mandatory)][string]$DestinationPath,
+        [hashtable]$State
+    )
+
+    if (-not $State) {
+        $State = @{ RestoredFileCount = 0; SkippedExistingFiles = 0; SkippedReparsePoints = 0 }
+    }
+    if (-not (Test-Path -LiteralPath $SourcePath -PathType Container)) {
+        return [pscustomobject]$State
+    }
+
+    $source = Get-Item -LiteralPath $SourcePath -Force -ErrorAction Stop
+    if (($source.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Refusing to restore from reparse-point root: $SourcePath"
+    }
+
+    if (Test-Path -LiteralPath $DestinationPath) {
+        $destinationRoot = Get-Item -LiteralPath $DestinationPath -Force -ErrorAction Stop
+        if (($destinationRoot.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            $State.SkippedReparsePoints = [int]$State.SkippedReparsePoints + 1
+            return [pscustomobject]$State
+        }
+    } else {
+        New-Item -Path $DestinationPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+
+    foreach ($item in @(Get-ChildItem -LiteralPath $SourcePath -Force -ErrorAction Stop)) {
+        if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            $State.SkippedReparsePoints = [int]$State.SkippedReparsePoints + 1
+            continue
+        }
+
+        $destination = Join-Path $DestinationPath $item.Name
+        if ($item.PSIsContainer) {
+            $null = Merge-DirectorySnapshotMissingFiles -SourcePath $item.FullName -DestinationPath $destination -State $State
+            continue
+        }
+
+        if (Test-Path -LiteralPath $destination) {
+            $State.SkippedExistingFiles = [int]$State.SkippedExistingFiles + 1
+            continue
+        }
+        Copy-Item -LiteralPath $item.FullName -Destination $destination -ErrorAction Stop
+        $State.RestoredFileCount = [int]$State.RestoredFileCount + 1
+    }
+
+    return [pscustomobject]$State
+}
+
+function New-SpicetifyStatePreservationSnapshot {
+    param([Parameter(Mandatory)][string]$Action)
+
+    $integration = Get-SpicetifyIntegrationContext
+    $operationId = if ($global:CURRENT_OPERATION_ID) { [string]$global:CURRENT_OPERATION_ID } else { [Guid]::NewGuid().ToString('N') }
+    $safeAction = ($Action -replace '[^A-Za-z0-9_-]', '_')
+    $stamp = (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmssfff')
+    $snapshotRoot = Join-Path $global:BACKUP_ROOT 'SpicetifyState'
+    $snapshotPath = Join-Path $snapshotRoot ("$stamp-$safeAction-" + $operationId.Substring(0, [Math]::Min(8, $operationId.Length)))
+    $configBackupPath = Join-Path $snapshotPath 'config-xpui.ini'
+    $customAppsBackupPath = Join-Path $snapshotPath 'CustomApps'
+    $manifestPath = Join-Path $snapshotPath 'preservation-manifest.json'
+    $evidencePath = Join-Path $global:CONFIG_DIR 'spicetify-preservation-latest.json'
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
+
+    try {
+        New-Item -Path $snapshotPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+        $configBackedUp = $false
+        if (Test-Path -LiteralPath $integration.ConfigPath -PathType Leaf) {
+            Copy-Item -LiteralPath $integration.ConfigPath -Destination $configBackupPath -Force -ErrorAction Stop
+            $configBackedUp = $true
+        }
+
+        $copyResult = Copy-DirectorySnapshotSafely -SourcePath $integration.CustomAppsDirectory -DestinationPath $customAppsBackupPath
+        $health = Get-MarketplaceHealth
+        $document = [ordered]@{
+            schemaVersion        = 1
+            action               = $Action
+            operationId          = $operationId
+            createdAtUtc         = (Get-Date).ToUniversalTime().ToString('o')
+            status               = 'SnapshotCreated'
+            snapshotPath         = $snapshotPath
+            configPath           = $integration.ConfigPath
+            customAppsPath       = $integration.CustomAppsDirectory
+            configBackedUp       = $configBackedUp
+            fileCount            = [int]$copyResult.FileCount
+            bytes                = [long]$copyResult.Bytes
+            skippedReparsePoints = [int]$copyResult.SkippedReparsePoints
+            enabledCustomApps    = @(Get-SpicetifyConfigListValue -Key 'custom_apps')
+            marketplaceStatus    = [string]$health.Status
+            marketplaceReady     = [bool]$health.IsReady
+        }
+        $json = $document | ConvertTo-Json -Depth 6
+        [System.IO.File]::WriteAllText($manifestPath, $json, $utf8)
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR)) {
+            New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
+        }
+        [System.IO.File]::WriteAllText($evidencePath, $json, $utf8)
+
+        Write-OperationJournalEntry -Phase 'preservation' -Target $snapshotPath -SafetyDecision 'Allowed' -Result 'Preserved' -WouldChange $true -Reversible $true -RollbackHint 'Restore the retained Spicetify state snapshot manually if refreshed package files must be rolled back.' -Data @{
+            action = $Action
+            fileCount = [int]$copyResult.FileCount
+            bytes = [long]$copyResult.Bytes
+            skippedReparsePoints = [int]$copyResult.SkippedReparsePoints
+            configBackedUp = $configBackedUp
+        }
+        Write-Log "Preserved Spicetify config and CustomApps state at $snapshotPath" -Level 'STEP'
+
+        foreach ($oldSnapshot in @(Get-ChildItem -LiteralPath $snapshotRoot -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -Skip 5)) {
+            $null = Remove-PathSafely -Path $oldSnapshot.FullName -Label 'expired Spicetify state snapshot'
+        }
+        return [pscustomobject]$document
+    } catch {
+        $message = $_.Exception.Message
+        try {
+            Write-OperationJournalEntry -Phase 'preservation' -Target $snapshotPath -SafetyDecision 'BlockedBeforeMutation' -Result 'Failed' -WouldChange $false -Reversible $false -RollbackHint 'Free space or remove unsafe reparse points, then retry before changing Marketplace or custom apps.' -Data @{ action = $Action; error = $message }
+        } catch {}
+        try { $null = Remove-PathSafely -Path $snapshotPath -Label 'incomplete Spicetify state snapshot' } catch {}
+        throw "LibreSpot could not preserve Spicetify state before $Action. No repair changes were made. $message"
+    }
+}
+
+function Restore-SpicetifyStatePreservationSnapshot {
+    param(
+        [Parameter(Mandatory)]$Snapshot,
+        [bool]$OperationSucceeded
+    )
+
+    $integration = Get-SpicetifyIntegrationContext
+    $snapshotPath = [string]$Snapshot.snapshotPath
+    $configBackupPath = Join-Path $snapshotPath 'config-xpui.ini'
+    $customAppsBackupPath = Join-Path $snapshotPath 'CustomApps'
+    $manifestPath = Join-Path $snapshotPath 'preservation-manifest.json'
+    $evidencePath = Join-Path $global:CONFIG_DIR 'spicetify-preservation-latest.json'
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
+
+    try {
+        $configRestored = $false
+        if ((Test-Path -LiteralPath $configBackupPath -PathType Leaf) -and -not (Test-Path -LiteralPath $integration.ConfigPath -PathType Leaf)) {
+            $configDirectory = Split-Path -Path $integration.ConfigPath -Parent
+            New-Item -Path $configDirectory -ItemType Directory -Force -ErrorAction Stop | Out-Null
+            Copy-Item -LiteralPath $configBackupPath -Destination $integration.ConfigPath -ErrorAction Stop
+            $configRestored = $true
+        }
+
+        $mergeResult = Merge-DirectorySnapshotMissingFiles -SourcePath $customAppsBackupPath -DestinationPath $integration.CustomAppsDirectory
+        $status = if ($OperationSucceeded) { 'PreservedAfterSuccess' } else { 'RecoveredAfterFailure' }
+        $document = [ordered]@{
+            schemaVersion         = 1
+            action                = [string]$Snapshot.action
+            operationId           = [string]$Snapshot.operationId
+            createdAtUtc          = [string]$Snapshot.createdAtUtc
+            completedAtUtc        = (Get-Date).ToUniversalTime().ToString('o')
+            status                = $status
+            operationSucceeded    = $OperationSucceeded
+            recoverySucceeded     = $true
+            snapshotPath          = $snapshotPath
+            backupRetained        = $true
+            configRestored        = $configRestored
+            restoredFileCount     = [int]$mergeResult.RestoredFileCount
+            skippedExistingFiles  = [int]$mergeResult.SkippedExistingFiles
+            skippedReparsePoints  = [int]$mergeResult.SkippedReparsePoints
+            preservationFileCount = [int]$Snapshot.fileCount
+            preservationBytes     = [long]$Snapshot.bytes
+        }
+        $json = $document | ConvertTo-Json -Depth 6
+        [System.IO.File]::WriteAllText($manifestPath, $json, $utf8)
+        [System.IO.File]::WriteAllText($evidencePath, $json, $utf8)
+        Write-OperationJournalEntry -Phase 'preservation' -Target $snapshotPath -SafetyDecision 'Allowed' -Result $status -WouldChange ($configRestored -or $mergeResult.RestoredFileCount -gt 0) -Reversible $true -RollbackHint 'The retained snapshot can be used for manual rollback; refreshed package files were not overwritten.' -Data @{
+            action = [string]$Snapshot.action
+            operationSucceeded = $OperationSucceeded
+            configRestored = $configRestored
+            restoredFileCount = [int]$mergeResult.RestoredFileCount
+            skippedExistingFiles = [int]$mergeResult.SkippedExistingFiles
+            skippedReparsePoints = [int]$mergeResult.SkippedReparsePoints
+        }
+        Write-Log "Spicetify preservation completed; backup retained at $snapshotPath" -Level 'SUCCESS'
+        return [pscustomobject]@{ Succeeded = $true; Message = ''; Evidence = [pscustomobject]$document }
+    } catch {
+        $message = $_.Exception.Message
+        try {
+            $failure = [ordered]@{
+                schemaVersion = 1
+                action = [string]$Snapshot.action
+                operationId = [string]$Snapshot.operationId
+                completedAtUtc = (Get-Date).ToUniversalTime().ToString('o')
+                status = 'RecoveryFailed'
+                operationSucceeded = $OperationSucceeded
+                recoverySucceeded = $false
+                snapshotPath = $snapshotPath
+                backupRetained = $true
+                error = $message
+            }
+            [System.IO.File]::WriteAllText($evidencePath, ($failure | ConvertTo-Json -Depth 5), $utf8)
+            Write-OperationJournalEntry -Phase 'preservation' -Target $snapshotPath -SafetyDecision 'NeedsReview' -Result 'RecoveryFailed' -WouldChange $false -Reversible $true -RollbackHint 'The snapshot is retained; restore it manually before retrying.' -Data @{ action = [string]$Snapshot.action; error = $message }
+        } catch {}
+        return [pscustomobject]@{ Succeeded = $false; Message = $message; Evidence = $null }
+    }
+}
+
+function Invoke-WithSpicetifyStatePreservation {
+    param(
+        [Parameter(Mandatory)][string]$Action,
+        [Parameter(Mandatory)][scriptblock]$Operation
+    )
+
+    $snapshot = New-SpicetifyStatePreservationSnapshot -Action $Action
+    $operationError = $null
+    $result = $null
+    try {
+        $result = & $Operation
+    } catch {
+        $operationError = $_
+    }
+
+    $recovery = Restore-SpicetifyStatePreservationSnapshot -Snapshot $snapshot -OperationSucceeded ($null -eq $operationError)
+    if (-not $recovery.Succeeded) {
+        $operationMessage = if ($operationError) { "$($operationError.Exception.Message) " } else { '' }
+        throw "${operationMessage}Spicetify state recovery failed, but the backup remains at $($snapshot.snapshotPath). $($recovery.Message)"
+    }
+    if ($operationError) {
+        throw $operationError
+    }
+
+    return $result
+}
+
 function ConvertTo-NativeArgumentString {
     param([string[]]$Arguments)
 
@@ -8115,19 +8389,21 @@ function Repair-Marketplace {
     }
     $Config.Spicetify_Marketplace = $true
 
-    Write-Log 'Repairing Marketplace files and custom_apps registration...' -Level 'STEP'
-    Module-InstallMarketplace -Config $Config
-    Write-Log 'Applying Spicetify so Marketplace is discoverable in Spotify...' -Level 'STEP'
-    $applyResult = Module-ApplySpicetify -Config $Config -EvidenceSource 'RepairMarketplace'
+    Invoke-WithSpicetifyStatePreservation -Action 'RepairMarketplace' -Operation {
+        Write-Log 'Repairing Marketplace files and custom_apps registration...' -Level 'STEP'
+        Module-InstallMarketplace -Config $Config
+        Write-Log 'Applying Spicetify so Marketplace is discoverable in Spotify...' -Level 'STEP'
+        $applyResult = Module-ApplySpicetify -Config $Config -EvidenceSource 'RepairMarketplace'
 
-    $health = Get-MarketplaceHealth
-    if ($health.IsReady) {
-        Write-Log "Marketplace repair verified at $($health.Path)." -Level 'SUCCESS'
-    } else {
-        Write-Log "Marketplace repair finished, but status is '$($health.Status)'. Open spotify:app:marketplace directly if the sidebar icon remains hidden." -Level 'WARN'
-    }
-    $openResult = Open-SpicetifyMarketplace
-    Write-MarketplaceVisibilityEvidence -Source 'RepairMarketplace' -ApplyStage $applyResult.Stage -ApplySucceeded $applyResult.Succeeded -ApplyMessage $applyResult.Message -OpenUriSucceeded $openResult.Succeeded -OpenUriMessage $openResult.Message -OpenUriRequestedAtUtc $openResult.RequestedAtUtc -SpotifyRunningAfterOpen $openResult.SpotifyRunningAfterOpen | Out-Null
+        $health = Get-MarketplaceHealth
+        if ($health.IsReady) {
+            Write-Log "Marketplace repair verified at $($health.Path)." -Level 'SUCCESS'
+        } else {
+            Write-Log "Marketplace repair finished, but status is '$($health.Status)'. Open spotify:app:marketplace directly if the sidebar icon remains hidden." -Level 'WARN'
+        }
+        $openResult = Open-SpicetifyMarketplace
+        Write-MarketplaceVisibilityEvidence -Source 'RepairMarketplace' -ApplyStage $applyResult.Stage -ApplySucceeded $applyResult.Succeeded -ApplyMessage $applyResult.Message -OpenUriSucceeded $openResult.Succeeded -OpenUriMessage $openResult.Message -OpenUriRequestedAtUtc $openResult.RequestedAtUtc -SpotifyRunningAfterOpen $openResult.SpotifyRunningAfterOpen | Out-Null
+    } | Out-Null
 }
 
 function Get-SpicetifyDiagnosticSnapshot {
@@ -8212,11 +8488,13 @@ function Reapply-SavedSpicetifySetup { param($Config)
         Module-InstallSpicetifyCLI
     }
 
-    Module-InstallThemes -Config $Config
-    Module-InstallExtensions -Config $Config
-    Module-InstallMarketplace -Config $Config
-    Module-InstallCustomApps -Config $Config
-    Module-ApplySpicetify -Config $Config -EvidenceSource 'Reapply' | Out-Null
+    Invoke-WithSpicetifyStatePreservation -Action 'Reapply' -Operation {
+        Module-InstallThemes -Config $Config
+        Module-InstallExtensions -Config $Config
+        Module-InstallMarketplace -Config $Config
+        Module-InstallCustomApps -Config $Config
+        Module-ApplySpicetify -Config $Config -EvidenceSource 'Reapply' | Out-Null
+    } | Out-Null
 }
 
 # =============================================================================
