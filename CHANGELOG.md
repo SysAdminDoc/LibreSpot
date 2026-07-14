@@ -19,6 +19,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- Added pinned-asset provenance to the WPF readiness inspector, Fleet CLI `status --json` schema v2, and redacted support bundles: each core/community asset now carries its version or commit, source URL, last-verification date, changelog/release link, and current/stale/indeterminate freshness state.
 - Marketplace repair and profile reapply now make a bounded, reparse-safe snapshot of `config-xpui.ini` and `CustomApps`, restore only files that the refreshed packages leave missing, retain the recovery snapshot, expose success/failure evidence in support bundles, and warn that Marketplace browser storage is outside the recoverable boundary.
 - Release guidance now distinguishes the current v3.7.4 script source from GitHub's public latest stable v3.7.2 and validates preview parity locally plus stable tag/assets against the live GitHub latest-release channel.
 

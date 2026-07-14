@@ -933,6 +933,79 @@
       </Grid>
     </DataTemplate>
 
+    <DataTemplate DataType="{x:Type viewModels:ProvenanceItemViewModel}" x:Key="ProvenanceItemTemplate">
+      <Border Style="{StaticResource SubtleCardStyle}"
+              Padding="10"
+              Margin="0,0,0,8"
+              AutomationProperties.Name="{Binding Name}">
+        <StackPanel>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding Name}"
+                       Foreground="{DynamicResource TextBrush}"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap" />
+            <TextBlock Grid.Column="1"
+                       Text="{Binding FreshnessText}"
+                       FontSize="11.5"
+                       FontWeight="SemiBold"
+                       Margin="10,0,0,0">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                  <Setter Property="Foreground" Value="{DynamicResource InfoBrush}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Ready}">
+                      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Warning}">
+                      <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Critical}">
+                      <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+          </Grid>
+          <TextBlock Text="{Binding PinnedDetail}"
+                     Style="{StaticResource CaptionTextStyle}"
+                     Margin="0,3,0,0"
+                     TextWrapping="Wrap" />
+          <TextBlock Text="{Binding VerifiedDetail}"
+                     Style="{StaticResource CaptionTextStyle}"
+                     Margin="0,2,0,0"
+                     TextWrapping="Wrap" />
+          <TextBlock Text="{Binding SourceUrl}"
+                     Foreground="{DynamicResource MutedTextBrush}"
+                     FontSize="11.5"
+                     Margin="0,4,0,0"
+                     TextWrapping="Wrap"
+                     ToolTip="{Binding SourceUrl}" />
+          <WrapPanel Margin="0,8,0,0">
+            <Button Content="{Binding OpenSourceText}"
+                    Command="{Binding OpenSourceCommand}"
+                    Height="30"
+                    Padding="10,0"
+                    Margin="0,0,6,4"
+                    Style="{StaticResource GhostButtonStyle}"
+                    AutomationProperties.Name="{Binding OpenSourceText}" />
+            <Button Content="{Binding OpenReleaseNotesText}"
+                    Command="{Binding OpenReleaseNotesCommand}"
+                    Height="30"
+                    Padding="10,0"
+                    Margin="0,0,0,4"
+                    Style="{StaticResource GhostButtonStyle}"
+                    Visibility="{Binding HasReleaseNotes, Converter={StaticResource BoolToVisibilityConverter}}"
+                    AutomationProperties.Name="{Binding OpenReleaseNotesText}" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
     <DataTemplate DataType="{x:Type viewModels:LogEntryViewModel}" x:Key="ShellLogRowTemplate">
       <Grid MinHeight="32"
             Margin="0">
@@ -3563,9 +3636,13 @@
         </Grid>
       </Border>
 
-      <StackPanel x:Name="InspectorPanel"
-                  Grid.Column="4"
-                  Margin="0,64,16,220">
+      <ScrollViewer x:Name="InspectorPanel"
+                    Grid.Column="4"
+                    Margin="0,64,16,220"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled"
+                    Focusable="False">
+        <StackPanel Margin="0,0,8,0">
         <Border Style="{StaticResource SurfaceCardStyle}"
                 Background="{DynamicResource SurfaceCardBrush}"
                 Padding="20"
@@ -3765,7 +3842,27 @@
             </Button>
           </StackPanel>
         </Border>
-      </StackPanel>
+
+        <Border Style="{StaticResource SurfaceCardStyle}"
+                Background="{DynamicResource SurfaceCardBrush}"
+                Padding="20"
+                Margin="0,18,0,0">
+          <StackPanel>
+            <TextBlock Text="{Binding ShellProvenanceTitle}"
+                       Style="{StaticResource SectionTitleTextStyle}"
+                       FontSize="18"
+                       Margin="0,0,0,4" />
+            <TextBlock Text="{Binding ShellProvenanceDetail}"
+                       Style="{StaticResource CaptionTextStyle}"
+                       Margin="0,0,0,12"
+                       TextWrapping="Wrap" />
+            <ItemsControl x:Name="ShellProvenanceItemsControl"
+                          ItemsSource="{Binding ShellProvenanceItems}"
+                          ItemTemplate="{StaticResource ProvenanceItemTemplate}" />
+          </StackPanel>
+        </Border>
+        </StackPanel>
+      </ScrollViewer>
 
       <Border Grid.Column="4"
               Visibility="Collapsed"

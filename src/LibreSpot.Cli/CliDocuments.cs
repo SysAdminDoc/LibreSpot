@@ -134,6 +134,8 @@ public sealed record CommunityAssetDocument(
     string Kind,
     string Name,
     string SourceUrl,
+    string? ReleaseNotesUrl,
+    DateTimeOffset? LastVerifiedAtUtc,
     string GitRepository,
     string GitReference,
     string PinnedCommit,
@@ -144,6 +146,7 @@ public sealed record CommunityAssetDocument(
     DateTimeOffset CheckedAtUtc,
     double? CacheAgeSeconds,
     bool IsDegraded,
+    string FreshnessStatus,
     string License,
     string SupportState,
     string FallbackBehavior,
@@ -158,6 +161,8 @@ public sealed record CommunityAssetDocument(
             asset.Kind,
             asset.Name,
             asset.SourceUrl,
+            asset.ReleaseNotesUrl,
+            asset.LastVerifiedAtUtc,
             asset.GitRepository,
             asset.GitReference,
             asset.PinnedCommit,
@@ -168,6 +173,7 @@ public sealed record CommunityAssetDocument(
             asset.CheckedAtUtc,
             asset.CacheAge?.TotalSeconds,
             asset.IsDegraded,
+            asset.FreshnessStatus,
             asset.License,
             asset.SupportState,
             asset.FallbackBehavior,
@@ -180,6 +186,9 @@ public sealed record CommunityAssetDocument(
 public sealed record UpstreamDependencyDocument(
     string Id,
     string Name,
+    string SourceUrl,
+    string? ReleaseNotesUrl,
+    DateTimeOffset? LastVerifiedAtUtc,
     string PinnedValue,
     string CurrentValue,
     string? LatestValue,
@@ -188,12 +197,16 @@ public sealed record UpstreamDependencyDocument(
     DateTimeOffset CheckedAtUtc,
     double? CacheAgeSeconds,
     bool IsDegraded,
+    string FreshnessStatus,
     string Evidence)
 {
     public static UpstreamDependencyDocument From(UpstreamDependencyState dependency) =>
         new(
             dependency.Id,
             dependency.Name,
+            dependency.SourceUrl,
+            dependency.ReleaseNotesUrl,
+            dependency.LastVerifiedAtUtc,
             dependency.PinnedValue,
             dependency.CurrentValue,
             dependency.LatestValue,
@@ -202,6 +215,7 @@ public sealed record UpstreamDependencyDocument(
             dependency.CheckedAtUtc,
             dependency.CacheAge?.TotalSeconds,
             dependency.IsDegraded,
+            dependency.FreshnessStatus,
             dependency.Evidence);
 }
 

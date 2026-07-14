@@ -1061,7 +1061,7 @@ public static class CliApplication
 
     private static StatusDocument BuildStatusDocument(EnvironmentSnapshot snapshot, string configPath) =>
         new(
-            1,
+            2,
             ProductVersion,
             DateTimeOffset.UtcNow,
             configPath,

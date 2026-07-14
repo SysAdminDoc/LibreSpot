@@ -90,6 +90,29 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task TrustPanel_ShowsEveryPinnedSourceWithVerificationAndChangeLinks() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            Assert.Equal(AppCatalog.UpstreamDependencyPins.Count, viewModel.ShellProvenanceItems.Count);
+            var spotX = Assert.Single(viewModel.ShellProvenanceItems, item => item.Name == "SpotX");
+            Assert.Contains(AppCatalog.PinnedSpotXCommit, spotX.PinnedDetail);
+            Assert.Equal("https://github.com/SpotX-Official/SpotX", spotX.SourceUrl);
+            Assert.Contains("2026-07-08", spotX.VerifiedDetail);
+            Assert.Equal("Freshness unknown", spotX.FreshnessText);
+            Assert.True(spotX.OpenSourceCommand.CanExecute(null));
+            Assert.True(spotX.OpenReleaseNotesCommand.CanExecute(null));
+            Assert.All(viewModel.ShellProvenanceItems, item =>
+            {
+                Assert.False(string.IsNullOrWhiteSpace(item.SourceUrl));
+                Assert.False(string.IsNullOrWhiteSpace(item.ReleaseNotesUrl));
+                Assert.DoesNotContain("unknown", item.VerifiedDetail, StringComparison.OrdinalIgnoreCase);
+            });
+        });
+
+    [Fact]
     public Task MaintenanceActions_ShowRepairMarketplaceWhenFilesAreMissing() =>
         RunStaAsync(async () =>
         {
@@ -592,7 +615,9 @@ public sealed class MainViewModelMaintenanceTests
                     rollingLogDirectory: RollingLogDirectory,
                     crashDirectory: CrashDirectory,
                     spotifyVersionProbe: () => spotifyVersion,
-                    spicetifyVersionProbe: () => spicetifyVersion),
+                    spicetifyVersionProbe: () => spicetifyVersion,
+                    upstreamDriftProbe: () => UpstreamDriftReport.Empty,
+                    communityAssetDriftProbe: () => CommunityAssetDriftReport.Empty),
                 new SupportBundleService(ConfigDirectory, RollingLogDirectory, CrashDirectory),
                 spotifyProcessService: spotifyProcessService);
 

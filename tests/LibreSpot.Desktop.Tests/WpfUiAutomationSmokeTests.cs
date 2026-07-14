@@ -46,6 +46,7 @@ public sealed class WpfUiAutomationSmokeTests
     [InlineData("recommended", "Recommended setup")]
     [InlineData("custom", "Custom settings")]
     [InlineData("maintenance", "Maintenance")]
+    [InlineData("provenance", "Open source")]
     [InlineData("prompt", "Decision prompt")]
     [InlineData("activity", "Run activity dialog")]
     [InlineData("activity-error", "Run activity dialog")]

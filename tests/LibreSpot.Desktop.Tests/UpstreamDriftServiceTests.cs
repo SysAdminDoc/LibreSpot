@@ -28,6 +28,10 @@ public sealed class UpstreamDriftServiceTests
             Assert.Equal("behind", dependency.DriftState);
             Assert.Equal("GitHub REST", dependency.MetadataSource);
             Assert.False(dependency.IsDegraded);
+            Assert.Equal(ProvenanceFreshness.Stale, dependency.FreshnessStatus);
+            Assert.Equal(MarketplacePin.SourceUrl, dependency.SourceUrl);
+            Assert.Equal(MarketplacePin.ReleaseNotesUrl, dependency.ReleaseNotesUrl);
+            Assert.Equal(MarketplacePin.LastVerifiedAtUtc, dependency.LastVerifiedAtUtc);
             Assert.Equal(1, client.RestCalls);
             Assert.Equal(0, client.GitCalls);
             Assert.True(File.Exists(CachePath(root)));
@@ -96,6 +100,7 @@ public sealed class UpstreamDriftServiceTests
             Assert.Equal("1.0.9", dependency.LatestValue);
             Assert.Equal("current", dependency.DriftState);
             Assert.True(dependency.IsDegraded);
+            Assert.Equal(ProvenanceFreshness.Indeterminate, dependency.FreshnessStatus);
             Assert.True(dependency.CacheAge >= TimeSpan.FromHours(2));
             Assert.Contains("Live upstream metadata is degraded", dependency.Evidence);
             Assert.Contains("GitHub REST offline", dependency.Evidence);
@@ -143,7 +148,12 @@ public sealed class UpstreamDriftServiceTests
         "https://github.com/spicetify/marketplace.git",
         "refs/tags/v*",
         "https://api.github.com/repos/spicetify/marketplace/releases/latest",
-        "v");
+        "v")
+    {
+        SourceUrl = "https://github.com/spicetify/marketplace",
+        ReleaseNotesUrl = "https://github.com/spicetify/marketplace/releases/tag/v1.0.9",
+        LastVerifiedAtUtc = DateTimeOffset.Parse("2026-06-29T00:00:00Z")
+    };
 
     private sealed class FakeMetadataClient : IUpstreamMetadataClient
     {

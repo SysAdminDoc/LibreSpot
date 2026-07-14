@@ -99,8 +99,8 @@ public sealed class SupportBundleService
             new SupportBundlePreviewEntry(
                 "health",
                 "Health report",
-                "Required redacted snapshot, app/runtime versions, and catalog pins.",
-                3,
+                "Required redacted snapshot, provenance, app/runtime versions, and catalog pins.",
+                4,
                 EstimateHealthBytes(snapshot),
                 true,
                 true),
@@ -167,6 +167,8 @@ public sealed class SupportBundleService
                 AddJsonEntry(archive, "manifest.json", BuildManifest(preview, options, snapshot));
                 entryCount++;
                 AddJsonEntry(archive, "health/health-report.json", BuildHealthReport(snapshot));
+                entryCount++;
+                AddJsonEntry(archive, "health/provenance.json", BuildProvenanceReport(snapshot));
                 entryCount++;
                 AddJsonEntry(archive, "health/runtime.json", BuildRuntimeReport(snapshot));
                 entryCount++;
@@ -299,6 +301,7 @@ public sealed class SupportBundleService
             customPatchImport = BuildCustomPatchImportReport(),
             marketplaceVisibility = BuildMarketplaceVisibilityReport(snapshot.MarketplaceVisibilityEvidence),
             assetCache = BuildAssetCacheReport(snapshot.AssetCacheInventory),
+            provenance = BuildProvenanceReport(snapshot),
             communityAssets = snapshot.CommunityAssetDriftReport.Assets.Select(asset => new
             {
                 asset.Id,
@@ -315,6 +318,9 @@ public sealed class SupportBundleService
                 asset.CheckedAtUtc,
                 cacheAgeSeconds = asset.CacheAge?.TotalSeconds,
                 asset.IsDegraded,
+                asset.FreshnessStatus,
+                asset.ReleaseNotesUrl,
+                asset.LastVerifiedAtUtc,
                 asset.License,
                 asset.SupportState,
                 asset.FallbackBehavior,
@@ -336,6 +342,53 @@ public sealed class SupportBundleService
                 recommendedActionIds = component.RecommendedActionIds
             })
             };
+
+    private object BuildProvenanceReport(EnvironmentSnapshot snapshot) =>
+        new
+        {
+            schemaVersion = 1,
+            generatedAtUtc = DateTimeOffset.UtcNow,
+            upstreamDependencies = snapshot.UpstreamDriftReport.Dependencies.Select(dependency => new
+            {
+                dependency.Id,
+                dependency.Name,
+                sourceUrl = RedactNullable(dependency.SourceUrl),
+                releaseNotesUrl = RedactNullable(dependency.ReleaseNotesUrl),
+                dependency.LastVerifiedAtUtc,
+                dependency.PinnedValue,
+                dependency.CurrentValue,
+                dependency.LatestValue,
+                dependency.FreshnessStatus,
+                dependency.DriftState,
+                dependency.MetadataSource,
+                dependency.CheckedAtUtc,
+                cacheAgeSeconds = dependency.CacheAge?.TotalSeconds,
+                dependency.IsDegraded
+            }),
+            communityAssets = snapshot.CommunityAssetDriftReport.Assets.Select(asset => new
+            {
+                asset.Id,
+                asset.Kind,
+                asset.Name,
+                sourceUrl = RedactNullable(asset.SourceUrl),
+                releaseNotesUrl = RedactNullable(asset.ReleaseNotesUrl),
+                asset.LastVerifiedAtUtc,
+                asset.PinnedCommit,
+                asset.PinnedHash,
+                asset.LatestCommit,
+                asset.FreshnessStatus,
+                asset.DriftState,
+                asset.MetadataSource,
+                asset.CheckedAtUtc,
+                cacheAgeSeconds = asset.CacheAge?.TotalSeconds,
+                asset.IsDegraded,
+                asset.License,
+                asset.SupportState,
+                asset.FallbackBehavior,
+                asset.NetworkBehavior,
+                asset.RequiresTrustReview
+            })
+        };
 
     private object BuildAssetCacheReport(AssetCacheInventoryReport report) =>
         new

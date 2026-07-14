@@ -192,7 +192,12 @@ public sealed class UpstreamDriftService
             checkedAtUtc,
             cacheAge,
             isDegraded,
-            evidence);
+            evidence)
+        {
+            SourceUrl = pin.SourceUrl,
+            ReleaseNotesUrl = pin.ReleaseNotesUrl,
+            LastVerifiedAtUtc = pin.LastVerifiedAtUtc
+        };
     }
 
     private static string BuildEvidence(

@@ -30,6 +30,9 @@ public sealed class CommunityAssetDriftServiceTests
             Assert.Equal("current", current.DriftState);
             Assert.Equal(HealthSeverity.Ready, SeverityForTest(current));
             Assert.False(current.RequiresTrustReview);
+            Assert.Equal(ProvenanceFreshness.Current, current.FreshnessStatus);
+            Assert.Equal(pins[0].ReleaseNotesUrl, current.ReleaseNotesUrl);
+            Assert.Equal(pins[0].LastVerifiedAtUtc, current.LastVerifiedAtUtc);
             Assert.Contains(CurrentCommit, current.Evidence);
             Assert.Contains("network local-only", current.Evidence);
 
@@ -37,11 +40,13 @@ public sealed class CommunityAssetDriftServiceTests
             Assert.Equal("behind", behind.DriftState);
             Assert.Equal(NewCommit, behind.LatestCommit);
             Assert.True(behind.RequiresTrustReview);
+            Assert.Equal(ProvenanceFreshness.Stale, behind.FreshnessStatus);
             Assert.Contains("license AGPL-3.0-only", behind.Evidence);
 
             var missing = Assert.Single(report.Assets, asset => asset.Id == "custom-app:missing");
             Assert.Equal("missing", missing.DriftState);
             Assert.True(missing.IsDegraded);
+            Assert.Equal(ProvenanceFreshness.Missing, missing.FreshnessStatus);
             Assert.Null(missing.LatestCommit);
             Assert.Contains("No matching ref", missing.Evidence);
         }
@@ -74,6 +79,7 @@ public sealed class CommunityAssetDriftServiceTests
             Assert.Equal("cache", asset.MetadataSource);
             Assert.Equal("current", asset.DriftState);
             Assert.True(asset.IsDegraded);
+            Assert.Equal(ProvenanceFreshness.Indeterminate, asset.FreshnessStatus);
             Assert.True(asset.CacheAge >= TimeSpan.FromHours(3));
             Assert.Contains("Live community asset metadata is degraded", asset.Evidence);
             Assert.Contains("network unavailable", asset.Evidence);
@@ -100,6 +106,8 @@ public sealed class CommunityAssetDriftServiceTests
             Assert.False(string.IsNullOrWhiteSpace(pin.Branch));
             Assert.False(string.IsNullOrWhiteSpace(pin.FallbackBehavior));
             Assert.False(string.IsNullOrWhiteSpace(pin.NetworkBehavior));
+            Assert.StartsWith("https://github.com/", pin.ReleaseNotesUrl);
+            Assert.True(pin.LastVerifiedAtUtc.HasValue);
         });
     }
 
@@ -135,7 +143,11 @@ public sealed class CommunityAssetDriftServiceTests
             "skip-with-warning",
             "local-only",
             null,
-            requiresTrustReview);
+            requiresTrustReview)
+        {
+            ReleaseNotesUrl = $"https://github.com/owner/repo/compare/{commit}...main",
+            LastVerifiedAtUtc = DateTimeOffset.Parse("2026-06-29T00:00:00Z")
+        };
 
     private static string NewTempRoot()
     {

@@ -65,6 +65,11 @@ public sealed class CliApplicationTests
                     TimeSpan.FromHours(2),
                     false,
                     "Pinned/current 550bc72c; latest 9fbbf88e; drift behind; source git ls-remote; cache age 2 hours.")
+                {
+                    SourceUrl = "https://github.com/SpotX-Official/SpotX",
+                    ReleaseNotesUrl = "https://github.com/SpotX-Official/SpotX/compare/550bc72cd15f6e2a172a6ecc0873d0991eb1c83c...main",
+                    LastVerifiedAtUtc = DateTimeOffset.Parse("2026-07-08T00:00:00Z")
+                }
             },
             DateTimeOffset.Parse("2026-06-27T12:30:00Z"));
         var communityReport = new CliCommunityAssetDriftReport(
@@ -92,6 +97,10 @@ public sealed class CliApplicationTests
                     "Fetches lyrics from a third-party lyrics backend.",
                     true,
                     "Pinned/current community metadata; network third-party-service; trust review required.")
+                {
+                    ReleaseNotesUrl = "https://github.com/surfbryce/beautiful-lyrics/compare/61ac582da092311e893423269ca7f09003108705...main",
+                    LastVerifiedAtUtc = DateTimeOffset.Parse("2026-06-15T00:00:00Z")
+                }
             },
             DateTimeOffset.Parse("2026-06-27T12:31:00Z"));
         var assetCacheReport = new CliAssetCacheInventoryReport(
@@ -152,7 +161,7 @@ public sealed class CliApplicationTests
 
         Assert.Equal(0, result.ExitCode);
         using var doc = JsonDocument.Parse(result.Stdout);
-        Assert.Equal(1, doc.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(2, doc.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("Stack ready", doc.RootElement.GetProperty("statusTitle").GetString());
         Assert.Equal("C:\\LibreSpot\\config.json", doc.RootElement.GetProperty("configPath").GetString());
         Assert.Equal(2, doc.RootElement.GetProperty("backupCount").GetInt32());
@@ -172,11 +181,18 @@ public sealed class CliApplicationTests
         Assert.Equal("behind", upstreamDependency.GetProperty("driftState").GetString());
         Assert.Equal("git ls-remote", upstreamDependency.GetProperty("metadataSource").GetString());
         Assert.Equal(7200, upstreamDependency.GetProperty("cacheAgeSeconds").GetDouble());
+        Assert.Equal("https://github.com/SpotX-Official/SpotX", upstreamDependency.GetProperty("sourceUrl").GetString());
+        Assert.Contains("/compare/", upstreamDependency.GetProperty("releaseNotesUrl").GetString());
+        Assert.Equal("2026-07-08T00:00:00+00:00", upstreamDependency.GetProperty("lastVerifiedAtUtc").GetString());
+        Assert.Equal("stale", upstreamDependency.GetProperty("freshnessStatus").GetString());
         var communityAsset = doc.RootElement.GetProperty("communityAssets")[0];
         Assert.Equal("extension:beautiful-lyrics.mjs", communityAsset.GetProperty("id").GetString());
         Assert.Equal("NOASSERTION", communityAsset.GetProperty("license").GetString());
         Assert.Equal("third-party-service", communityAsset.GetProperty("networkBehavior").GetString());
         Assert.True(communityAsset.GetProperty("requiresTrustReview").GetBoolean());
+        Assert.Contains("/compare/", communityAsset.GetProperty("releaseNotesUrl").GetString());
+        Assert.Equal("2026-06-15T00:00:00+00:00", communityAsset.GetProperty("lastVerifiedAtUtc").GetString());
+        Assert.Equal("current", communityAsset.GetProperty("freshnessStatus").GetString());
         Assert.True(doc.RootElement.GetProperty("marketplaceLikelyVisible").GetBoolean());
         var marketplaceVisibility = doc.RootElement.GetProperty("marketplaceVisibility");
         Assert.Equal("RepairMarketplace", marketplaceVisibility.GetProperty("source").GetString());

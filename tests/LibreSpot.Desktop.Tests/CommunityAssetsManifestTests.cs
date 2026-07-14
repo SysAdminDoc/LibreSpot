@@ -137,7 +137,7 @@ public sealed class CommunityAssetsManifestTests
         foreach (var ext in Manifest.RootElement.GetProperty("extensions").EnumerateArray())
         {
             var filename = ext.GetProperty("filename").GetString()!;
-            var required = new[] { "filename", "displayName", "owner", "repo", "branch", "commitSha", "sourceUrl", "sha256", "spdxLicense", "supportState", "fallbackBehavior", "networkBehavior" };
+            var required = new[] { "filename", "displayName", "owner", "repo", "branch", "commitSha", "sourceUrl", "sha256", "spdxLicense", "supportState", "lastVerifiedDate", "releaseNotesUrl", "fallbackBehavior", "networkBehavior" };
             foreach (var field in required)
             {
                 Assert.True(
@@ -153,7 +153,7 @@ public sealed class CommunityAssetsManifestTests
         foreach (var theme in Manifest.RootElement.GetProperty("themes").EnumerateArray())
         {
             var themeId = theme.GetProperty("themeId").GetString()!;
-            var required = new[] { "themeId", "displayName", "owner", "repo", "branch", "commitSha", "archiveSha256", "spdxLicense", "supportState", "fallbackBehavior", "schemes", "requiresJsInjection", "networkBehavior" };
+            var required = new[] { "themeId", "displayName", "owner", "repo", "branch", "commitSha", "archiveSha256", "spdxLicense", "supportState", "lastVerifiedDate", "releaseNotesUrl", "fallbackBehavior", "schemes", "requiresJsInjection", "networkBehavior" };
             foreach (var field in required)
             {
                 Assert.True(
@@ -237,7 +237,7 @@ public sealed class CommunityAssetsManifestTests
         foreach (var app in customApps.EnumerateArray())
         {
             var appId = app.GetProperty("appId").GetString()!;
-            var required = new[] { "appId", "displayName", "description", "owner", "repo", "branch", "commitSha", "assetPath", "sha256", "spdxLicense", "supportState", "fallbackBehavior", "networkBehavior", "easyModeDefault" };
+            var required = new[] { "appId", "displayName", "description", "owner", "repo", "branch", "commitSha", "assetPath", "sha256", "spdxLicense", "supportState", "lastVerifiedDate", "releaseNotesUrl", "fallbackBehavior", "networkBehavior", "easyModeDefault" };
             foreach (var field in required)
             {
                 Assert.True(

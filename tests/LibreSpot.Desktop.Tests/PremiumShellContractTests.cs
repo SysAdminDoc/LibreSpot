@@ -104,6 +104,23 @@ public sealed class PremiumShellContractTests
     }
 
     [Fact]
+    public void TrustPanel_ExposesPinnedProvenanceAndFreshnessActions()
+    {
+        var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        var viewModel = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
+
+        Assert.Contains("ProvenanceItemTemplate", xaml);
+        Assert.Contains("ItemsSource=\"{Binding ShellProvenanceItems}\"", xaml);
+        Assert.Contains("Text=\"{Binding SourceUrl}\"", xaml);
+        Assert.Contains("Text=\"{Binding VerifiedDetail}\"", xaml);
+        Assert.Contains("Command=\"{Binding OpenReleaseNotesCommand}\"", xaml);
+        Assert.Contains("x:Name=\"InspectorPanel\"", xaml);
+        Assert.Contains("x:Name=\"ShellProvenanceItemsControl\"", xaml);
+        Assert.Contains("AppCatalog.UpstreamDependencyPins.Select(BuildProvenanceItem)", viewModel);
+        Assert.Contains("ProvenanceFreshness.Indeterminate", viewModel);
+    }
+
+    [Fact]
     public void SuccessfulRuns_RemainReviewableUntilDismissed()
     {
         var codeBehind = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");

@@ -130,7 +130,12 @@ public sealed record UpstreamDependencyPin(
     string GitRepository,
     string GitReferencePattern,
     string? RestLatestReleaseApi,
-    string? ValuePrefixToStrip);
+    string? ValuePrefixToStrip)
+{
+    public string SourceUrl { get; init; } = string.Empty;
+    public string? ReleaseNotesUrl { get; init; }
+    public DateTimeOffset? LastVerifiedAtUtc { get; init; }
+}
 
 public sealed class UpstreamDriftReport
 {
@@ -158,7 +163,13 @@ public sealed record UpstreamDependencyState(
     DateTimeOffset CheckedAtUtc,
     TimeSpan? CacheAge,
     bool IsDegraded,
-    string Evidence);
+    string Evidence)
+{
+    public string SourceUrl { get; init; } = string.Empty;
+    public string? ReleaseNotesUrl { get; init; }
+    public DateTimeOffset? LastVerifiedAtUtc { get; init; }
+    public string FreshnessStatus => ProvenanceFreshness.Classify(DriftState, IsDegraded);
+}
 
 public sealed record CommunityAssetPin(
     string Id,
@@ -175,7 +186,11 @@ public sealed record CommunityAssetPin(
     string FallbackBehavior,
     string NetworkBehavior,
     string? NetworkDetail,
-    bool RequiresTrustReview);
+    bool RequiresTrustReview)
+{
+    public string? ReleaseNotesUrl { get; init; }
+    public DateTimeOffset? LastVerifiedAtUtc { get; init; }
+}
 
 public sealed class CommunityAssetDriftReport
 {
@@ -215,7 +230,46 @@ public sealed record CommunityAssetState(
     string NetworkBehavior,
     string? NetworkDetail,
     bool RequiresTrustReview,
-    string Evidence);
+    string Evidence)
+{
+    public string? ReleaseNotesUrl { get; init; }
+    public DateTimeOffset? LastVerifiedAtUtc { get; init; }
+    public string FreshnessStatus => ProvenanceFreshness.Classify(DriftState, IsDegraded);
+}
+
+public static class ProvenanceFreshness
+{
+    public const string Current = "current";
+    public const string Stale = "stale";
+    public const string Indeterminate = "indeterminate";
+    public const string Missing = "missing";
+    public const string Ahead = "ahead";
+
+    public static string Classify(string? driftState, bool isDegraded)
+    {
+        if (string.Equals(driftState, "missing", StringComparison.OrdinalIgnoreCase))
+        {
+            return Missing;
+        }
+
+        if (string.Equals(driftState, "behind", StringComparison.OrdinalIgnoreCase))
+        {
+            return Stale;
+        }
+
+        if (string.Equals(driftState, "ahead", StringComparison.OrdinalIgnoreCase))
+        {
+            return Ahead;
+        }
+
+        if (isDegraded || !string.Equals(driftState, "current", StringComparison.OrdinalIgnoreCase))
+        {
+            return Indeterminate;
+        }
+
+        return Current;
+    }
+}
 
 public sealed class AssetCacheInventoryReport
 {
@@ -542,6 +596,8 @@ public static class AppCatalog
     public const string PinnedThemesCommit = "df033493a7dae30ca6e371de9cec1897871dbb0c";
     public const string PinnedStatsCustomAppVersion = "1.1.3";
     public const string PinnedStatsCustomAppReleaseTag = "stats-v1.1.3";
+    public static DateTimeOffset UpstreamPinsLastVerifiedAtUtc { get; } =
+        new(2026, 7, 8, 0, 0, 0, TimeSpan.Zero);
 
     public static IReadOnlyList<UpstreamDependencyPin> UpstreamDependencyPins { get; } =
         new ReadOnlyCollection<UpstreamDependencyPin>(new[]
@@ -554,7 +610,12 @@ public static class AppCatalog
                 "https://github.com/SpotX-Official/SpotX.git",
                 "refs/heads/main",
                 null,
-                null),
+                null)
+            {
+                SourceUrl = "https://github.com/SpotX-Official/SpotX",
+                ReleaseNotesUrl = $"https://github.com/SpotX-Official/SpotX/compare/{PinnedSpotXCommit}...main",
+                LastVerifiedAtUtc = UpstreamPinsLastVerifiedAtUtc
+            },
             new UpstreamDependencyPin(
                 "spicetify-cli",
                 "Spicetify CLI",
@@ -563,7 +624,12 @@ public static class AppCatalog
                 "https://github.com/spicetify/cli.git",
                 "refs/tags/v*",
                 "https://api.github.com/repos/spicetify/cli/releases/latest",
-                "v"),
+                "v")
+            {
+                SourceUrl = "https://github.com/spicetify/cli",
+                ReleaseNotesUrl = $"https://github.com/spicetify/cli/releases/tag/v{PinnedSpicetifyCliVersion}",
+                LastVerifiedAtUtc = UpstreamPinsLastVerifiedAtUtc
+            },
             new UpstreamDependencyPin(
                 "marketplace",
                 "Marketplace",
@@ -572,7 +638,12 @@ public static class AppCatalog
                 "https://github.com/spicetify/marketplace.git",
                 "refs/tags/v*",
                 "https://api.github.com/repos/spicetify/marketplace/releases/latest",
-                "v"),
+                "v")
+            {
+                SourceUrl = "https://github.com/spicetify/marketplace",
+                ReleaseNotesUrl = $"https://github.com/spicetify/marketplace/releases/tag/v{PinnedMarketplaceVersion}",
+                LastVerifiedAtUtc = UpstreamPinsLastVerifiedAtUtc
+            },
             new UpstreamDependencyPin(
                 "themes",
                 "Spicetify themes",
@@ -581,7 +652,12 @@ public static class AppCatalog
                 "https://github.com/spicetify/spicetify-themes.git",
                 "refs/heads/master",
                 null,
-                null),
+                null)
+            {
+                SourceUrl = "https://github.com/spicetify/spicetify-themes",
+                ReleaseNotesUrl = $"https://github.com/spicetify/spicetify-themes/compare/{PinnedThemesCommit}...master",
+                LastVerifiedAtUtc = UpstreamPinsLastVerifiedAtUtc
+            },
             new UpstreamDependencyPin(
                 "stats",
                 "Stats custom app",
@@ -591,6 +667,11 @@ public static class AppCatalog
                 "refs/tags/stats-v*",
                 null,
                 "stats-v")
+            {
+                SourceUrl = "https://github.com/harbassan/spicetify-apps",
+                ReleaseNotesUrl = $"https://github.com/harbassan/spicetify-apps/releases/tag/{PinnedStatsCustomAppReleaseTag}",
+                LastVerifiedAtUtc = UpstreamPinsLastVerifiedAtUtc
+            }
         });
 
     public static IReadOnlyList<string> SupportedUiCultures { get; } =

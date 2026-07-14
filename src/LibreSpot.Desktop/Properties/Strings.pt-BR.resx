@@ -2498,4 +2498,16 @@
   <data name="HealthCacheAgeMinutesFormat" xml:space="preserve"><value>{0} minutes</value><comment>Age of cached health metadata in minutes.</comment></data>
   <data name="HealthCacheAgeHoursFormat" xml:space="preserve"><value>{0} hours</value><comment>Age of cached health metadata in hours.</comment></data>
   <data name="HealthCacheAgeDaysFormat" xml:space="preserve"><value>{0} days</value><comment>Age of cached health metadata in days.</comment></data>
+  <data name="Vm_ShellProvenanceTitle" xml:space="preserve"><value>Pinned asset provenance</value><comment>Heading above the upstream source and version provenance list.</comment></data>
+  <data name="Vm_ShellProvenanceDetail" xml:space="preserve"><value>Each core asset is pinned to a reviewed source. Freshness reflects the latest available upstream metadata.</value><comment>Explanation above the upstream provenance list.</comment></data>
+  <data name="Vm_ShellProvenancePinnedFormat" xml:space="preserve"><value>Pinned: {0}</value><comment>Pinned upstream version or commit.</comment></data>
+  <data name="Vm_ShellProvenanceVerifiedFormat" xml:space="preserve"><value>Last verified: {0}</value><comment>Last curated verification date for an upstream pin.</comment></data>
+  <data name="Vm_ShellProvenanceVerifiedUnknown" xml:space="preserve"><value>Last verified: unknown</value><comment>Fallback when an upstream pin has no verification date.</comment></data>
+  <data name="Vm_ShellProvenanceCurrent" xml:space="preserve"><value>Current</value><comment>Upstream provenance freshness status.</comment></data>
+  <data name="Vm_ShellProvenanceStale" xml:space="preserve"><value>Update available</value><comment>Upstream provenance freshness status when the pin is behind.</comment></data>
+  <data name="Vm_ShellProvenanceIndeterminate" xml:space="preserve"><value>Freshness unknown</value><comment>Upstream provenance freshness status when metadata is unavailable.</comment></data>
+  <data name="Vm_ShellProvenanceMissing" xml:space="preserve"><value>Source missing</value><comment>Upstream provenance freshness status when a source no longer exists.</comment></data>
+  <data name="Vm_ShellProvenanceAhead" xml:space="preserve"><value>Pin ahead</value><comment>Upstream provenance freshness status when the pin is newer than latest metadata.</comment></data>
+  <data name="Vm_ShellProvenanceOpenSource" xml:space="preserve"><value>Open source</value><comment>Button that opens the upstream source repository.</comment></data>
+  <data name="Vm_ShellProvenanceOpenReleaseNotes" xml:space="preserve"><value>View changes</value><comment>Button that opens the upstream release notes or compare view.</comment></data>
 </root>

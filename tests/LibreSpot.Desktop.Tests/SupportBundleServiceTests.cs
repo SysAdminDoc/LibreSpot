@@ -71,6 +71,7 @@ public sealed class SupportBundleServiceTests
 
         Assert.Contains("manifest.json", entries.Keys);
         Assert.Contains("health/health-report.json", entries.Keys);
+        Assert.Contains("health/provenance.json", entries.Keys);
         Assert.Contains("health/runtime.json", entries.Keys);
         Assert.Contains("operation/latest-journal.txt", entries.Keys);
         Assert.Contains("Operation journal JSONL", entries["operation/latest-journal.txt"]);
@@ -232,18 +233,52 @@ public sealed class SupportBundleServiceTests
                     "Fetches lyrics from a third-party lyrics backend.",
                     true,
                     "Pinned/current community metadata; network third-party-service; trust review required.")
+                {
+                    ReleaseNotesUrl = "https://github.com/surfbryce/beautiful-lyrics/compare/61ac582da092311e893423269ca7f09003108705...main",
+                    LastVerifiedAtUtc = DateTimeOffset.Parse("2026-06-15T00:00:00Z")
+                }
+            },
+            checkedAt);
+        var upstreamReport = new UpstreamDriftReport(
+            new[]
+            {
+                new UpstreamDependencyState(
+                    "spotx",
+                    "SpotX",
+                    AppCatalog.PinnedSpotXCommit,
+                    AppCatalog.PinnedSpotXCommit,
+                    AppCatalog.PinnedSpotXCommit,
+                    "current",
+                    "git ls-remote",
+                    checkedAt,
+                    null,
+                    false,
+                    "Pinned SpotX metadata is current.")
+                {
+                    SourceUrl = "https://github.com/SpotX-Official/SpotX",
+                    ReleaseNotesUrl = $"https://github.com/SpotX-Official/SpotX/compare/{AppCatalog.PinnedSpotXCommit}...main",
+                    LastVerifiedAtUtc = DateTimeOffset.Parse("2026-07-08T00:00:00Z")
+                }
             },
             checkedAt);
 
-        var result = await fixture.ExportAsync(new SupportBundleOptions(), communityReport);
+        var result = await fixture.ExportAsync(
+            new SupportBundleOptions(),
+            communityReport,
+            upstreamReport);
         var entries = ReadZipText(result.Path);
         var health = entries["health/health-report.json"];
+        var provenance = entries["health/provenance.json"];
 
         Assert.Contains("\"communityAssets\"", health);
         Assert.Contains("\"id\": \"extension:beautiful-lyrics.mjs\"", health);
         Assert.Contains("\"license\": \"NOASSERTION\"", health);
         Assert.Contains("\"networkBehavior\": \"third-party-service\"", health);
         Assert.Contains("\"requiresTrustReview\": true", health);
+        Assert.Contains("\"upstreamDependencies\"", provenance);
+        Assert.Contains("\"freshnessStatus\": \"current\"", provenance);
+        Assert.Contains("\"lastVerifiedAtUtc\": \"2026-07-08T00:00:00+00:00\"", provenance);
+        Assert.Contains("\"releaseNotesUrl\": \"https://github.com/SpotX-Official/SpotX/compare/", provenance);
     }
 
     [Fact]
@@ -382,10 +417,16 @@ public sealed class SupportBundleServiceTests
 
         public Task<SupportBundleResult> ExportAsync(
             SupportBundleOptions options,
-            CommunityAssetDriftReport? communityAssetDriftReport = null) =>
-            Service.ExportAsync(Path.Combine(Root, "support.zip"), GetSnapshot(communityAssetDriftReport), options);
+            CommunityAssetDriftReport? communityAssetDriftReport = null,
+            UpstreamDriftReport? upstreamDriftReport = null) =>
+            Service.ExportAsync(
+                Path.Combine(Root, "support.zip"),
+                GetSnapshot(communityAssetDriftReport, upstreamDriftReport),
+                options);
 
-        public EnvironmentSnapshot GetSnapshot(CommunityAssetDriftReport? communityAssetDriftReport = null)
+        public EnvironmentSnapshot GetSnapshot(
+            CommunityAssetDriftReport? communityAssetDriftReport = null,
+            UpstreamDriftReport? upstreamDriftReport = null)
         {
             var service = new EnvironmentSnapshotService(
                 autoReapplyTaskProbe: () => true,
@@ -395,7 +436,7 @@ public sealed class SupportBundleServiceTests
                 backupDirectory: BackupDirectory,
                 rollingLogDirectory: RollingLogDirectory,
                 crashDirectory: CrashDirectory,
-                upstreamDriftProbe: () => UpstreamDriftReport.Empty,
+                upstreamDriftProbe: () => upstreamDriftReport ?? UpstreamDriftReport.Empty,
                 communityAssetDriftProbe: () => communityAssetDriftReport ?? CommunityAssetDriftReport.Empty);
 
             return service.GetSnapshot(ConfigPath);

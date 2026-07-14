@@ -241,7 +241,11 @@ public sealed class CommunityAssetDriftService
             pin.NetworkBehavior,
             pin.NetworkDetail,
             pin.RequiresTrustReview,
-            evidence);
+            evidence)
+        {
+            ReleaseNotesUrl = pin.ReleaseNotesUrl,
+            LastVerifiedAtUtc = pin.LastVerifiedAtUtc
+        };
     }
 
     private static string BuildEvidence(
@@ -372,7 +376,11 @@ public sealed class CommunityAssetDriftService
             RequiredString(asset, "fallbackBehavior"),
             RequiredString(asset, "networkBehavior"),
             OptionalString(asset, "networkDetail"),
-            requiresTrustReview);
+            requiresTrustReview)
+        {
+            ReleaseNotesUrl = RequiredString(asset, "releaseNotesUrl"),
+            LastVerifiedAtUtc = RequiredDate(asset, "lastVerifiedDate")
+        };
     }
 
     private static Stream? OpenManifestStream()
@@ -440,6 +448,23 @@ public sealed class CommunityAssetDriftService
         return value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : value.ToString();
+    }
+
+    private static DateTimeOffset RequiredDate(JsonElement element, string propertyName)
+    {
+        var value = RequiredString(element, propertyName);
+        if (!DateTimeOffset.TryParseExact(
+                value,
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out var parsed))
+        {
+            throw new InvalidDataException(
+                $"Community asset manifest entry has invalid '{propertyName}' value '{value}'; expected YYYY-MM-DD.");
+        }
+
+        return parsed;
     }
 
     private static string? NormalizeCommit(string? value)

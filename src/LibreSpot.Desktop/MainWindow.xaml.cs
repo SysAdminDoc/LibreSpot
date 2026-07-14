@@ -189,6 +189,18 @@ public partial class MainWindow : Window
             if (hasUiAutomationSmokeState)
             {
                 _viewModel.ApplyUiAutomationSmokeState(uiAutomationSmokeState!);
+                if (string.Equals(uiAutomationSmokeState, "provenance", StringComparison.OrdinalIgnoreCase))
+                {
+                    await Dispatcher.InvokeAsync(ApplyResponsiveShellLayout, DispatcherPriority.Loaded);
+                    await Task.Delay(250);
+                    await Dispatcher.InvokeAsync(
+                        () =>
+                        {
+                            ApplyResponsiveShellLayout();
+                            ScrollProvenanceIntoView();
+                        },
+                        DispatcherPriority.Render);
+                }
                 if (!string.IsNullOrWhiteSpace(_uiAutomationCapturePath))
                 {
                     // Selection/card animations run for up to 220 ms and a dense
@@ -239,10 +251,25 @@ public partial class MainWindow : Window
     private void PrepareUiAutomationCapture()
     {
         ApplyResponsiveShellLayout();
+        if (string.Equals(_uiAutomationSmokeState, "provenance", StringComparison.OrdinalIgnoreCase))
+        {
+            ScrollProvenanceIntoView();
+        }
         InvalidateMeasure();
         InvalidateArrange();
         InvalidateVisual();
         UpdateLayout();
+    }
+
+    private void ScrollProvenanceIntoView()
+    {
+        ShellProvenanceItemsControl.UpdateLayout();
+        if (ShellProvenanceItemsControl.ItemContainerGenerator.ContainerFromIndex(0) is FrameworkElement firstItem)
+        {
+            firstItem.BringIntoView();
+        }
+
+        InspectorPanel.UpdateLayout();
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)

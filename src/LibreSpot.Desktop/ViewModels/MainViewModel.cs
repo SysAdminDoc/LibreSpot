@@ -524,6 +524,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string ShellTrustRiskTitle => L("Vm_ShellTrustRiskTitle");
     public string ShellTrustedSourcesTitle => L("Vm_ShellTrustedSourcesTitle");
     public string ShellTrustedSourcesDetail => L("Vm_ShellTrustedSourcesDetail");
+    public string ShellProvenanceTitle => L("Vm_ShellProvenanceTitle");
+    public string ShellProvenanceDetail => L("Vm_ShellProvenanceDetail");
+    public IReadOnlyList<ProvenanceItemViewModel> ShellProvenanceItems =>
+        AppCatalog.UpstreamDependencyPins.Select(BuildProvenanceItem).ToArray();
     public string ShellSpotifyModificationTitle => L("Vm_ShellSpotifyModificationTitle");
     public string ShellSpotifyModificationDetail => L("Vm_ShellSpotifyModificationDetail");
     public string ShellBackupCreatedTitle => L("Vm_ShellBackupCreatedTitle");
@@ -1915,6 +1919,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShellTrustRiskTitle));
         OnPropertyChanged(nameof(ShellTrustedSourcesTitle));
         OnPropertyChanged(nameof(ShellTrustedSourcesDetail));
+        OnPropertyChanged(nameof(ShellProvenanceTitle));
+        OnPropertyChanged(nameof(ShellProvenanceDetail));
+        OnPropertyChanged(nameof(ShellProvenanceItems));
         OnPropertyChanged(nameof(ShellSpotifyModificationTitle));
         OnPropertyChanged(nameof(ShellSpotifyModificationDetail));
         OnPropertyChanged(nameof(ShellBackupCreatedTitle));
@@ -2217,6 +2224,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(MaintenanceMarketplaceDetail));
         OnPropertyChanged(nameof(MaintenanceThemeValue));
         OnPropertyChanged(nameof(MaintenanceThemeDetail));
+        OnPropertyChanged(nameof(ShellProvenanceItems));
         RaiseSupportBundlePreviewChanged();
         OnPropertyChanged(nameof(HasConfigurationRecoveryNotice));
         OnPropertyChanged(nameof(ConfigurationRecoveryTitle));
@@ -2851,6 +2859,49 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             recommended,
             component.Severity);
     }
+
+    private ProvenanceItemViewModel BuildProvenanceItem(UpstreamDependencyPin pin)
+    {
+        var state = Snapshot.UpstreamDriftReport.Dependencies.FirstOrDefault(dependency =>
+            string.Equals(dependency.Id, pin.Id, StringComparison.OrdinalIgnoreCase));
+        var freshness = state?.FreshnessStatus ?? ProvenanceFreshness.Indeterminate;
+        var sourceUrl = FirstNonEmpty(state?.SourceUrl, pin.SourceUrl);
+        var releaseNotesUrl = FirstNonEmpty(state?.ReleaseNotesUrl, pin.ReleaseNotesUrl);
+        var verifiedAt = state?.LastVerifiedAtUtc ?? pin.LastVerifiedAtUtc;
+        var verifiedDetail = verifiedAt.HasValue
+            ? LF(
+                "Vm_ShellProvenanceVerifiedFormat",
+                verifiedAt.Value.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))
+            : L("Vm_ShellProvenanceVerifiedUnknown");
+
+        return new ProvenanceItemViewModel(
+            pin.Name,
+            LF("Vm_ShellProvenancePinnedFormat", state?.PinnedValue ?? pin.PinnedValue),
+            sourceUrl,
+            releaseNotesUrl,
+            verifiedDetail,
+            LocalizeProvenanceFreshness(freshness),
+            ProvenanceTone(freshness),
+            L("Vm_ShellProvenanceOpenSource"),
+            L("Vm_ShellProvenanceOpenReleaseNotes"),
+            OpenExternalUri);
+    }
+
+    private string LocalizeProvenanceFreshness(string freshness) => freshness switch
+    {
+        ProvenanceFreshness.Current => L("Vm_ShellProvenanceCurrent"),
+        ProvenanceFreshness.Stale => L("Vm_ShellProvenanceStale"),
+        ProvenanceFreshness.Missing => L("Vm_ShellProvenanceMissing"),
+        ProvenanceFreshness.Ahead => L("Vm_ShellProvenanceAhead"),
+        _ => L("Vm_ShellProvenanceIndeterminate")
+    };
+
+    private static string ProvenanceTone(string freshness) => freshness switch
+    {
+        ProvenanceFreshness.Current => HealthSeverity.Ready,
+        ProvenanceFreshness.Stale or ProvenanceFreshness.Missing or ProvenanceFreshness.Ahead => HealthSeverity.Warning,
+        _ => HealthSeverity.Info
+    };
 
     private StatusDashboardItemViewModel BuildLastPatchDashboardItem()
     {
@@ -3968,7 +4019,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public void ApplyUiAutomationSmokeState(string state)
     {
         var normalizedState = state.Trim().ToLowerInvariant();
-        if (normalizedState is "recommended" or "custom" or "maintenance")
+        if (normalizedState is "recommended" or "custom" or "maintenance" or "provenance")
         {
             SeedUiAutomationActivityLog();
         }
