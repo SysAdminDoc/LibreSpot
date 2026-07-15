@@ -18,6 +18,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Accessibility
 
+- Completed the advertised Spanish, Brazilian Portuguese, Russian, and Simplified Chinese WPF resource sets; each locale now has reviewed user-facing translations, preserves product/file/format tokens, and participates in hidden long-text prompt rendering.
 - Added a visible, keyboard-accessible LibreSpot-wide search (`Ctrl+K`) with localized category, count, empty-state, action, and shortcut text across all six resource sets.
 - Added an AA-safe danger-text token (at least 5.17:1 across every dark raised surface), migrated destructive/error copy to it, and retained system attention colours in Windows high-contrast themes.
 - Localized every stack-health component name, status, evidence template, fallback action label, and shared scrollbar automation name through the runtime culture resources; the first Spanish health and scrollbar translations now prove the end-to-end non-English path.
@@ -56,6 +57,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Tests
 
+- Made localization validation fail on unreviewed English carry-over, stale allowlist entries, placeholder/access-key drift, protected product or file-token changes, translation truncation, and known terminology regressions; per-locale translated/reviewed counts are printed on every validation run.
 - Added search-domain, navigation, empty-state, shortcut-focus, multi-token matching, localized-resource, UI Automation, and hidden rendered-WPF coverage for the global search surface.
 - Added correlation regression coverage for caller-supplied PowerShell IDs, legacy/new backend protocols, mismatch refusal, WPF activity and bundle evidence, CLI plans, and local EventSource start/message/completion events.
 - Added policy-refusal, stale-state, missing-value, registry-type, idempotent CLI retry, partial-failure recovery, receipt-provenance, WPF selection, Fleet-contract, and PowerShell composition coverage for executable undo.

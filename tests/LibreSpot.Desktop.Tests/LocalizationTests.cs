@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using LibreSpot.Desktop.Services;
@@ -112,6 +113,81 @@ public sealed class LocalizationTests
                     $"{Path.GetFileName(path)} key '{name}' has an empty value.");
             }
         }
+    }
+
+    [Fact]
+    public void SatelliteResources_SourceIdenticalValuesHaveReviewedAllowlistEntries()
+    {
+        var sourceValues = LoadResx().Root!.Elements("data").ToDictionary(
+            element => element.Attribute("name")!.Value,
+            element => element.Element("value")!.Value,
+            StringComparer.Ordinal);
+        var allowlistPath = Path.Combine(RepoRoot, "schemas", "localization-identical-allowlist.json");
+        using var allowlist = JsonDocument.Parse(File.ReadAllText(allowlistPath));
+        Assert.Equal(1, allowlist.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.True(
+            DateOnly.TryParseExact(
+                allowlist.RootElement.GetProperty("reviewedOn").GetString(),
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out _));
+
+        var entries = allowlist.RootElement.GetProperty("entries").EnumerateArray().ToArray();
+        var protectedTerms = allowlist.RootElement.GetProperty("protectedTerms")
+            .EnumerateArray()
+            .Select(term => term.GetString()!)
+            .ToArray();
+        Assert.NotEmpty(protectedTerms);
+        Assert.Equal(protectedTerms.Length, protectedTerms.Distinct(StringComparer.Ordinal).Count());
+        Assert.DoesNotContain(protectedTerms, string.IsNullOrWhiteSpace);
+        var allowedKeys = entries
+            .Select(entry => entry.GetProperty("key").GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.Equal(entries.Length, allowedKeys.Count);
+        Assert.All(entries, entry =>
+        {
+            var key = entry.GetProperty("key").GetString();
+            var reason = entry.GetProperty("reason").GetString();
+            Assert.Contains(key!, sourceValues.Keys);
+            Assert.False(string.IsNullOrWhiteSpace(reason));
+        });
+        var observedAllowedKeys = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var culture in SupportedCultures.Where(culture => culture != "en"))
+        {
+            var path = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Properties", $"Strings.{culture}.resx");
+            var targetValues = XDocument.Load(path).Root!.Elements("data").ToDictionary(
+                element => element.Attribute("name")!.Value,
+                element => element.Element("value")!.Value,
+                StringComparer.Ordinal);
+            var unreviewed = sourceValues
+                .Where(pair => targetValues[pair.Key] == pair.Value && !allowedKeys.Contains(pair.Key))
+                .Select(pair => pair.Key)
+                .Order(StringComparer.Ordinal)
+                .ToArray();
+            foreach (var key in sourceValues.Keys.Where(key =>
+                         targetValues[key] == sourceValues[key] && allowedKeys.Contains(key)))
+            {
+                observedAllowedKeys.Add(key);
+            }
+
+            Assert.True(
+                unreviewed.Length == 0,
+                $"Strings.{culture}.resx has source-identical values without review: {string.Join(", ", unreviewed.Take(20))}");
+
+            var changedProtectedTerms = sourceValues
+                .SelectMany(pair => protectedTerms
+                    .Where(term => pair.Value.Contains(term, StringComparison.Ordinal))
+                    .Where(term => !targetValues[pair.Key].Contains(term, StringComparison.Ordinal))
+                    .Select(term => $"{pair.Key}: {term}"))
+                .ToArray();
+            Assert.True(
+                changedProtectedTerms.Length == 0,
+                $"Strings.{culture}.resx changed protected product/token values: {string.Join(", ", changedProtectedTerms.Take(20))}");
+        }
+
+        Assert.Empty(allowedKeys.Except(observedAllowedKeys));
     }
 
     [Fact]

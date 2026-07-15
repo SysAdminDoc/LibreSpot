@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "reviewedOn": "2026-07-14",
+  "protectedTerms": [
+    "LibreSpot",
+    "Spotify",
+    "Spicetify",
+    "SpotX",
+    "PowerShell",
+    "Windows",
+    "Marketplace",
+    "WebNowPlaying",
+    ".librespot",
+    "config.json",
+    "install.log",
+    "patches.json",
+    "spicetify.exe",
+    "config-xpui.ini",
+    "watcher-state.json",
+    "SHA256",
+    "JSON",
+    "HTTPS",
+    "URI",
+    "CLI",
+    "ZIP",
+    "WPF"
+  ],
+  "entries": [
+    {
+      "key": "AppTitle",
+      "reason": "LibreSpot is the product name."
+    },
+    {
+      "key": "ThemeGalleryRequiresJsBadge",
+      "reason": "theme.js is a literal Spicetify file name."
+    },
+    {
+      "key": "CacheLimitUnit",
+      "reason": "MB is the locale-independent binary-size unit used by the control."
+    },
+    {
+      "key": "SizeNone",
+      "reason": "0 B is a locale-independent byte count."
+    },
+    {
+      "key": "Extension_webnowplaying_Title",
+      "reason": "WebNowPlaying is the upstream extension name."
+    },
+    {
+      "key": "Vm_EnvPowerShell",
+      "reason": "PowerShell is the Microsoft product name."
+    },
+    {
+      "key": "Vm_EnvWindows",
+      "reason": "Windows is the Microsoft product name."
+    },
+    {
+      "key": "Vm_ShellSpotifyTargetLabel",
+      "reason": "Spotify is the product name."
+    },
+    {
+      "key": "Vm_ShellCheckOkLabel",
+      "reason": "OK is the compact cross-locale status token used in the readiness rail."
+    },
+    {
+      "key": "Vm_ShellSummaryOs",
+      "reason": "OS is the compact platform acronym used in the summary card."
+    },
+    {
+      "key": "HealthNameSpotify",
+      "reason": "Spotify is the product name."
+    },
+    {
+      "key": "HealthEvidenceSpicetifyConfigAppsFormat",
+      "reason": "custom_apps={0}. is literal Spicetify configuration syntax."
+    },
+    {
+      "key": "Vm_GlobalSearchShortcutText",
+      "reason": "Ctrl+K is the literal keyboard chord rendered by WPF."
+    },
+    {
+      "key": "Vm_EnvDotNetDesktopRuntime",
+      "reason": ".NET Desktop Runtime is the official Microsoft component name."
+    },
+    {
+      "key": "HealthNameMarketplace",
+      "reason": "Marketplace is the Spicetify product surface name."
+    },
+    {
+      "key": "MarketplaceLabel",
+      "reason": "Marketplace is the Spicetify product surface name."
+    },
+    {
+      "key": "HealthNameSpicetifyCli",
+      "reason": "Spicetify CLI is the upstream command-line product name."
+    },
+    {
+      "key": "HealthEvidenceApplyResultFormat",
+      "reason": "The value contains only two format placeholders and punctuation."
+    },
+    {
+      "key": "HealthEvidencePatcherOwnershipFormat",
+      "reason": "The value contains only two format placeholders and spacing."
+    },
+    {
+      "key": "Vm_ShellWindows10",
+      "reason": "Windows 10 is the official Microsoft product name."
+    },
+    {
+      "key": "Vm_ShellWindows11",
+      "reason": "Windows 11 is the official Microsoft product name."
+    },
+    {
+      "key": "Vm_ThemeSummaryFormat",
+      "reason": "The value contains only two format placeholders separated by a slash."
+    }
+  ]
+}

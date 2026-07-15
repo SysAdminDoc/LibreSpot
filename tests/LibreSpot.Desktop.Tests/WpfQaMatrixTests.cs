@@ -71,6 +71,11 @@ public sealed class WpfQaMatrixTests
             data.Add("recommended", themes[1], cultures[1], "ButtonRunRecommendedSetup", "RunRecommendedSetupButton");
         }
 
+        foreach (var culture in new[] { "es", "pt-BR", "ru", "zh-Hans" })
+        {
+            data.Add("prompt", "dark", culture, "Maintenance_CheckUpdates_Description", "PromptConfirmButton");
+        }
+
         return data;
     }
 

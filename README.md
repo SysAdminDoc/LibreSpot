@@ -275,7 +275,7 @@ LibreSpot.ps1 -RemoveSelfData      # unregister the watcher and delete all Libre
 - **Windows shell integration** — WPF builds register `librespot://` sharing and `.librespot` Explorer handlers, route double-clicked profile files through the validated preview/confirm flow, expose jump-list/taskbar actions, and minimize to a tray icon with clickable completion notices
 - **Least-privilege desktop workflow** — WPF setup and maintenance run in the current standard-user session without relaunching the whole app through UAC; the legacy PowerShell and PS2EXE entry points retain their existing self-elevation behavior
 - **Profile sharing cards** — WPF Custom mode renders an inert local share URI, QR card, selected-profile comparison, embedded changelog preview, and community links without requiring a hosted sharing service
-- **Runtime localization** — WPF builds include a persisted language selector with EN, RU, ZH-Hans, PT-BR, and ES resources plus local validation for raw UI strings
+- **Runtime localization** — WPF builds include a persisted language selector with reviewed EN, RU, ZH-Hans, PT-BR, and ES resources; validation rejects missing/raw UI strings, broken placeholders, translated product/file tokens, and unreviewed English carry-over
 - **Window management** — Spotify and installer windows are automatically hidden during installation; LibreSpot stays on top until finished
 - **Settings persistence** — your Custom Install configuration is saved to `%APPDATA%\LibreSpot\config.json` and restored next launch
 - **Community asset verification** — opt-in community extensions, themes, and custom apps are pinned in `schemas/community-assets.json` with provenance, SHA256, license, branch, support, fallback, and network-behavior metadata; the WPF readiness inspector links to reviewed sources and changelogs, while Maintenance health, `status --json`, and redacted support bundles report last-verification dates plus current/behind/missing/degraded/indeterminate state without failing offline
@@ -417,14 +417,15 @@ Run the rendered WPF state matrix without activating foreground windows:
 .\tools\Invoke-WpfQaMatrix.ps1
 ```
 
-The command captures and verifies Recommended, Custom, Maintenance, undo,
-support-bundle, profile, prompt, empty, loading, error, success, and nested
-crash-dialog surfaces across the supported dark/high-contrast palettes and
-English/Spanish locales. It rejects unnamed actions, clipped primary text,
-missing focus rings, incomplete renders, and mismatched capture metadata.
-Captures use a temporary directory and are removed after a passing run; pass
-`-OutputPath <directory>` to retain them for review or `-Quick` for the
-English dark-state sweep plus one Spanish high-contrast proof.
+The command captures and verifies Recommended, Custom, Maintenance, search,
+undo, support-bundle, profile, prompt, empty, loading, error, success, and
+nested crash-dialog surfaces across the supported dark/high-contrast palettes
+and English/Spanish locales, plus a long-text prompt in every advertised
+non-English locale. It rejects unnamed actions, clipped primary text, missing
+focus rings, incomplete renders, and mismatched capture metadata. Captures use
+a temporary directory and are removed after a passing run; pass `-OutputPath
+<directory>` to retain them for review or `-Quick` for the English dark-state
+sweep, one Spanish high-contrast proof, and the four long-text locale proofs.
 
 ## Project planning
 

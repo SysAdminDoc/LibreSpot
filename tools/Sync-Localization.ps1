@@ -10,6 +10,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $sourcePath = Join-Path $repoRoot 'src/LibreSpot.Desktop/Properties/Strings.resx'
 $propertiesDir = Split-Path -Parent $sourcePath
+$identicalAllowlistPath = Join-Path $repoRoot 'schemas/localization-identical-allowlist.json'
 $cultures = @('en', 'ru', 'zh-Hans', 'pt-BR', 'es')
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
@@ -140,6 +141,42 @@ foreach ($key in $sourceEntries.Keys) {
 }
 
 $failures = New-Object System.Collections.Generic.List[string]
+$identicalAllowlist = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+$observedReviewedIdentical = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+$protectedTerms = @()
+
+if (-not (Test-Path -LiteralPath $identicalAllowlistPath -PathType Leaf)) {
+    $failures.Add("Missing reviewed identical-value allowlist: $identicalAllowlistPath")
+} else {
+    $allowlistDocument = Get-Content -Raw -LiteralPath $identicalAllowlistPath | ConvertFrom-Json
+    if ([int]$allowlistDocument.schemaVersion -ne 1) {
+        $failures.Add("Unsupported localization identical-value allowlist schema version '$($allowlistDocument.schemaVersion)'")
+    }
+    if ([string]$allowlistDocument.reviewedOn -notmatch '^\d{4}-\d{2}-\d{2}$') {
+        $failures.Add('Localization identical-value allowlist reviewedOn must use YYYY-MM-DD.')
+    }
+    $protectedTerms = @($allowlistDocument.protectedTerms | ForEach-Object { [string]$_ })
+    if ($protectedTerms.Count -eq 0 -or @($protectedTerms | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
+        $failures.Add('Localization identical-value allowlist must declare non-empty protectedTerms.')
+    }
+    if (@($protectedTerms | Select-Object -Unique).Count -ne $protectedTerms.Count) {
+        $failures.Add('Localization protectedTerms must not contain duplicates.')
+    }
+
+    foreach ($entry in @($allowlistDocument.entries)) {
+        $key = [string]$entry.key
+        if ([string]::IsNullOrWhiteSpace($key) -or [string]::IsNullOrWhiteSpace([string]$entry.reason)) {
+            $failures.Add('Every localization identical-value allowlist entry needs a key and review reason.')
+            continue
+        }
+        if (-not $sourceKeys.Contains($key)) {
+            $failures.Add("Localization identical-value allowlist has unknown key '$key'")
+        }
+        if (-not $identicalAllowlist.Add($key)) {
+            $failures.Add("Localization identical-value allowlist repeats key '$key'")
+        }
+    }
+}
 
 foreach ($culture in $cultures) {
     $targetPath = Join-Path $propertiesDir "Strings.$culture.resx"
@@ -204,12 +241,62 @@ foreach ($culture in $cultures) {
             if ($extraIndices.Count -gt 0) { $detail += "extra {$($extraIndices -join '}, {')}" }
             $failures.Add("Strings.$culture.resx key '$key' has a format-placeholder mismatch ($($detail -join '; ')) - this would crash string.Format at runtime")
         }
+
+        foreach ($term in $protectedTerms) {
+            if ($sourceValue.IndexOf($term, [System.StringComparison]::Ordinal) -ge 0 -and
+                $targetValue.IndexOf($term, [System.StringComparison]::Ordinal) -lt 0) {
+                $failures.Add("Strings.$culture.resx key '$key' changed protected product/token '$term'")
+            }
+        }
+
+        if ($sourceEntries[$key].Comment -match '(?i)accelerator|access key') {
+            $sourceAccelerators = [regex]::Matches($sourceValue, '(?<!_)_(?!_)').Count
+            $targetAccelerators = [regex]::Matches($targetValue, '(?<!_)_(?!_)').Count
+            if ($targetAccelerators -ne $sourceAccelerators) {
+                $failures.Add("Strings.$culture.resx key '$key' changed a declared access-key marker")
+            }
+        }
     }
 
     foreach ($key in $targetKeys) {
         if (-not $sourceKeys.Contains($key)) {
             $failures.Add("Strings.$culture.resx has stale key '$key'")
         }
+    }
+
+    if ($culture -eq 'en') {
+        $englishDrift = @($sourceKeys | Where-Object {
+            $targetEntries.Contains($_) -and
+            $targetEntries[$_].Value -cne $sourceEntries[$_].Value
+        })
+        foreach ($key in $englishDrift) {
+            $failures.Add("Strings.en.resx key '$key' must match the source English value")
+        }
+        Write-Host "Localization en: source-matched=$($sourceKeys.Count); total=$($sourceKeys.Count)."
+        continue
+    }
+
+    $identicalKeys = @($sourceKeys | Where-Object {
+        $targetEntries.Contains($_) -and
+        $targetEntries[$_].Value -ceq $sourceEntries[$_].Value
+    })
+    $reviewedIdentical = @($identicalKeys | Where-Object { $identicalAllowlist.Contains($_) })
+    foreach ($key in $reviewedIdentical) {
+        $null = $observedReviewedIdentical.Add($key)
+    }
+    $unreviewedIdentical = @($identicalKeys | Where-Object { -not $identicalAllowlist.Contains($_) } | Sort-Object)
+    $translatedCount = $sourceKeys.Count - $identicalKeys.Count
+    Write-Host "Localization ${culture}: translated=$translatedCount; reviewed-identical=$($reviewedIdentical.Count); unreviewed-identical=$($unreviewedIdentical.Count); total=$($sourceKeys.Count)."
+    if ($unreviewedIdentical.Count -gt 0) {
+        $sample = ($unreviewedIdentical | Select-Object -First 20) -join ', '
+        $suffix = if ($unreviewedIdentical.Count -gt 20) { ', ...' } else { '' }
+        $failures.Add("Strings.$culture.resx has $($unreviewedIdentical.Count) source-identical value(s) without review: $sample$suffix")
+    }
+}
+
+foreach ($key in $identicalAllowlist) {
+    if (-not $observedReviewedIdentical.Contains($key)) {
+        $failures.Add("Localization identical-value allowlist key '$key' is stale because no non-English locale uses the source value")
     }
 }
 
@@ -226,7 +313,7 @@ if ($Validate -or $ScanRawStrings) {
         exit 1
     }
 
-    Write-Host "Localization resources are complete for $($cultures -join ', ')." -ForegroundColor Green
+    Write-Host "Localization resources are complete and translation-reviewed for $($cultures -join ', ')." -ForegroundColor Green
     if ($ScanRawStrings) {
         Write-Host "No raw user-facing XAML strings found." -ForegroundColor Green
     }
