@@ -20,37 +20,37 @@
   <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
 
   <!-- ═══ Surfaces (darkest → lightest) ═══ -->
-  <Color x:Key="CanvasColor">#050A0F</Color>
-  <Color x:Key="CanvasShadeColor">#071018</Color>
-  <Color x:Key="Surface1Color">#0A151E</Color>
-  <Color x:Key="Surface2Color">#0D1B25</Color>
-  <Color x:Key="Surface3Color">#122632</Color>
-  <Color x:Key="SurfaceRaisedColor">#193443</Color>
-  <Color x:Key="RailColor">#07111A</Color>
-  <Color x:Key="HeroStartColor">#102938</Color>
-  <Color x:Key="HeroEndColor">#08131C</Color>
+  <Color x:Key="CanvasColor">#070C12</Color>
+  <Color x:Key="CanvasShadeColor">#081119</Color>
+  <Color x:Key="Surface1Color">#0B151D</Color>
+  <Color x:Key="Surface2Color">#0D1922</Color>
+  <Color x:Key="Surface3Color">#11232E</Color>
+  <Color x:Key="SurfaceRaisedColor">#172D39</Color>
+  <Color x:Key="RailColor">#071018</Color>
+  <Color x:Key="HeroStartColor">#10242F</Color>
+  <Color x:Key="HeroEndColor">#0A151D</Color>
 
   <!-- ═══ Strokes ═══ -->
-  <Color x:Key="StrokeColor">#294351</Color>
-  <Color x:Key="StrokeSoftColor">#19303D</Color>
-  <Color x:Key="StrokeStrongColor">#456576</Color>
+  <Color x:Key="StrokeColor">#1E3542</Color>
+  <Color x:Key="StrokeSoftColor">#162B36</Color>
+  <Color x:Key="StrokeStrongColor">#385766</Color>
 
   <!-- ═══ Text ═══ -->
-  <Color x:Key="TextColor">#F3F7F6</Color>
-  <Color x:Key="TextMutedColor">#B9C4C7</Color>
+  <Color x:Key="TextColor">#EDF4F6</Color>
+  <Color x:Key="TextMutedColor">#AEBEC5</Color>
   <!-- Subtle tier: dimmest readable text. Calibrated to clear WCAG AA (≥4.5:1)
        on every surface tier up to SurfaceRaised, while staying a full step
        below MutedText so the caption hierarchy reads clearly. -->
-  <Color x:Key="TextSubtleColor">#8D9AA0</Color>
+  <Color x:Key="TextSubtleColor">#8DA0AA</Color>
   <Color x:Key="TextOnAccentColor">#06120B</Color>
 
   <!-- ═══ Brand / accent — Spotify-green, calibrated for dark canvas ═══ -->
-  <Color x:Key="AccentColor">#50C878</Color>
-  <Color x:Key="AccentHoverColor">#6DE391</Color>
-  <Color x:Key="AccentDeepColor">#2B9E55</Color>
-  <Color x:Key="AccentSoftColor">#122B1C</Color>
-  <Color x:Key="AccentMistColor">#3650C878</Color>
-  <Color x:Key="AccentRingColor">#B850C878</Color>
+  <Color x:Key="AccentColor">#55D98A</Color>
+  <Color x:Key="AccentHoverColor">#70E7A0</Color>
+  <Color x:Key="AccentDeepColor">#35B96B</Color>
+  <Color x:Key="AccentSoftColor">#112D20</Color>
+  <Color x:Key="AccentMistColor">#3655D98A</Color>
+  <Color x:Key="AccentRingColor">#B855D98A</Color>
 
   <!-- ═══ Semantic intent ═══ -->
   <Color x:Key="DangerColor">#E5484D</Color>
@@ -71,7 +71,7 @@
   <Color x:Key="WarningRingColor">#66F5A524</Color>
   <Color x:Key="SuccessColor">#1DB954</Color>
   <Color x:Key="SuccessSoftColor">#132419</Color>
-  <Color x:Key="InfoColor">#4DB8FF</Color>
+  <Color x:Key="InfoColor">#4AB7FF</Color>
 
   <!-- ═══ Overlays / scrim ═══ -->
   <Color x:Key="OverlayColor">#C2060A08</Color>
@@ -102,9 +102,9 @@
                        Center="0.12,0.02"
                        RadiusX="1.08"
                        RadiusY="0.92">
-    <GradientStop Color="#1E24506A" Offset="0" />
-    <GradientStop Color="{DynamicResource CanvasShadeColor}" Offset="0.36" />
-    <GradientStop Color="{DynamicResource CanvasColor}" Offset="0.78" />
+    <GradientStop Color="#1F1D5268" Offset="0" />
+    <GradientStop Color="{DynamicResource CanvasShadeColor}" Offset="0.34" />
+    <GradientStop Color="{DynamicResource CanvasColor}" Offset="0.76" />
   </RadialGradientBrush>
 
   <LinearGradientBrush x:Key="RailPanelBrush" StartPoint="0,0" EndPoint="1,1">
@@ -222,30 +222,30 @@
 
   <!-- ═══ Elevation ═══ -->
   <DropShadowEffect x:Key="CardShadow"
-                    BlurRadius="42"
+                    BlurRadius="28"
                     ShadowDepth="0"
                     Direction="270"
-                    Opacity="0.48"
+                    Opacity="0.34"
                     Color="#05070A" />
 
   <DropShadowEffect x:Key="OverlayShadow"
-                    BlurRadius="72"
+                    BlurRadius="48"
                     ShadowDepth="0"
                     Direction="270"
-                    Opacity="0.75"
+                    Opacity="0.62"
                     Color="#02030A" />
 
   <DropShadowEffect x:Key="AccentGlow"
                     BlurRadius="22"
                     ShadowDepth="0"
                     Opacity="0.45"
-                    Color="#1DB954" />
+                    Color="#55D98A" />
 
   <DropShadowEffect x:Key="TabSelectedGlow"
                     BlurRadius="18"
                     ShadowDepth="0"
                     Opacity="0.35"
-                    Color="#1DB954" />
+                    Color="#55D98A" />
 
   <!-- ═══ Motion tokens ═══ -->
   <Duration x:Key="MotionFastDuration">0:0:0.090</Duration>

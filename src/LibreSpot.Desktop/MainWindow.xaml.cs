@@ -155,6 +155,14 @@ public partial class MainWindow : Window
     private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e) =>
         ApplyResponsiveShellLayout();
 
+    private void ActivityDockToggle_OnToggled(object sender, RoutedEventArgs e)
+    {
+        if (IsLoaded)
+        {
+            ApplyResponsiveShellLayout();
+        }
+    }
+
     private void ApplyResponsiveShellLayout()
     {
         var shellWidth = ActualWidth > 0 ? ActualWidth : Width;
@@ -169,10 +177,11 @@ public partial class MainWindow : Window
         ShellInspectorColumn.Width = new GridLength(isNarrow ? 0 : isCompact ? 296 : 320);
         InspectorPanel.Visibility = isNarrow ? Visibility.Collapsed : Visibility.Visible;
 
-        var activityHeight = isShort ? 92 : shellHeight < 900 ? 132 : 184;
-        var activityBottom = isShort ? 20 : 38;
+        var expandedActivityHeight = isShort ? 88 : shellHeight < 900 ? 116 : 132;
+        var activityHeight = ActivityDockToggle.IsChecked == false ? 40 : expandedActivityHeight;
+        var activityBottom = isShort ? 12 : 16;
         var activityOffset = activityHeight + activityBottom - 2;
-        var workspaceTop = isShort ? 52 : 64;
+        var workspaceTop = isShort ? 56 : 68;
         ActivityDock.Height = activityHeight;
         ActivityDock.Margin = new Thickness(0, 0, 16, activityBottom);
         WorkspaceSurface.Margin = new Thickness(0, workspaceTop, 0, activityOffset);
@@ -200,6 +209,11 @@ public partial class MainWindow : Window
             if (hasUiAutomationSmokeState)
             {
                 _viewModel.ApplyUiAutomationSmokeState(uiAutomationSmokeState!);
+                if (string.Equals(uiAutomationSmokeState, "activity-collapsed", StringComparison.OrdinalIgnoreCase))
+                {
+                    ActivityDockToggle.IsChecked = false;
+                    ApplyResponsiveShellLayout();
+                }
                 if (string.Equals(uiAutomationSmokeState, "provenance", StringComparison.OrdinalIgnoreCase))
                 {
                     await Dispatcher.InvokeAsync(ApplyResponsiveShellLayout, DispatcherPriority.Loaded);

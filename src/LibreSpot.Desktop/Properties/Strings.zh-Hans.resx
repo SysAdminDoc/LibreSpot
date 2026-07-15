@@ -1983,7 +1983,7 @@
   <data name="Vm_ShellProfileNameFormat" xml:space="preserve"><value>配置文件：{0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellProfileWillSave" xml:space="preserve"><value>将在应用时保存</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellQuickActionsTitle" xml:space="preserve"><value>快速操作</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellReadinessTitle" xml:space="preserve"><value>准备情况</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellReadinessTitle" xml:space="preserve"><value>系统状态</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellReadyToPatch" xml:space="preserve"><value>准备修补</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellRepairDetail" xml:space="preserve"><value>修复检测到的问题</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellRepairTitle" xml:space="preserve"><value>修复</value><comment>MainViewModel localized runtime text.</comment></data>

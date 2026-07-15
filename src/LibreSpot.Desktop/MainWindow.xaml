@@ -75,6 +75,50 @@
       <Setter Property="VerticalAlignment" Value="Top" />
     </Style>
 
+    <Style x:Key="ActivityDockToggleStyle" TargetType="ToggleButton">
+      <Setter Property="Width" Value="36" />
+      <Setter Property="Height" Value="36" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <Grid>
+              <Border x:Name="Root"
+                      Background="{TemplateBinding Background}"
+                      BorderBrush="{TemplateBinding BorderBrush}"
+                      BorderThickness="1"
+                      CornerRadius="{StaticResource RadiusSm}" />
+              <ContentPresenter HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+              <Border x:Name="FocusRing"
+                      Margin="2"
+                      BorderBrush="{DynamicResource AccentRingBrush}"
+                      BorderThickness="2"
+                      CornerRadius="{StaticResource RadiusSm}"
+                      Opacity="0" />
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45" />
+                <Setter Property="Cursor" Value="Arrow" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <Style x:Key="MinimalSectionStyle" TargetType="Border">
       <Setter Property="Background" Value="{DynamicResource Surface1Brush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
@@ -754,69 +798,78 @@
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type viewModels:ShellSummaryItemViewModel}" x:Key="ShellSummaryItemTemplate">
-      <Border Padding="18,14"
+      <Border Padding="16,14"
               Margin="0,0,10,0"
               Background="{DynamicResource SurfaceCardBrush}"
-              BorderBrush="{DynamicResource StrokeBrush}"
+              BorderBrush="{DynamicResource StrokeSoftBrush}"
               BorderThickness="1"
               CornerRadius="{StaticResource RadiusLg}"
               AutomationProperties.Name="{Binding Label}"
               AutomationProperties.HelpText="{Binding Detail}">
         <Grid>
           <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="42" />
+            <ColumnDefinition Width="40" />
             <ColumnDefinition Width="*" />
           </Grid.ColumnDefinitions>
-          <Path Width="28"
-                Height="28"
-                Stretch="Uniform"
-                StrokeThickness="2"
-                StrokeStartLineCap="Round"
-                StrokeEndLineCap="Round"
-                StrokeLineJoin="Round"
-                VerticalAlignment="Top"
-                Margin="0,3,14,0">
-            <Path.Style>
-              <Style TargetType="Path">
-                <Setter Property="Data" Value="M 12 2 L 21 6 V 12 C 21 17 17.5 20 12 22 C 6.5 20 3 17 3 12 V 6 Z M 8 12 L 11 15 L 16 9" />
-                <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
-                <Style.Triggers>
-                  <DataTrigger Binding="{Binding IconKey}" Value="spotify">
-                    <Setter Property="Data" Value="M 4 5 H 20 V 15 H 4 Z M 12 15 V 20 M 8 20 H 16" />
-                  </DataTrigger>
-                  <DataTrigger Binding="{Binding IconKey}" Value="os">
-                    <Setter Property="Data" Value="M 3 5 L 11 4 V 12 H 3 Z M 13 4 L 21 3 V 12 H 13 Z M 3 14 H 11 V 22 L 3 21 Z M 13 14 H 21 V 23 L 13 22 Z" />
-                    <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
-                  </DataTrigger>
-                  <DataTrigger Binding="{Binding IconKey}" Value="clock">
-                    <Setter Property="Data" Value="M 12 3 A 9 9 0 1 0 12 21 A 9 9 0 1 0 12 3 M 12 7 V 12 L 16 15" />
-                    <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
-                  </DataTrigger>
-                  <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Warning}">
-                    <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
-                  </DataTrigger>
-                  <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Critical}">
-                    <Setter Property="Data" Value="M 3 3 L 21 21 M 21 3 L 3 21" />
-                    <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
-                  </DataTrigger>
-                </Style.Triggers>
-              </Style>
-            </Path.Style>
-          </Path>
-          <StackPanel Grid.Column="1">
+          <Border Width="34"
+                  Height="34"
+                  CornerRadius="{StaticResource RadiusLg}"
+                  Background="{DynamicResource Surface3Brush}"
+                  BorderBrush="{DynamicResource StrokeSoftBrush}"
+                  BorderThickness="1"
+                  VerticalAlignment="Top">
+            <Path Width="20"
+                  Height="20"
+                  Stretch="Uniform"
+                  StrokeThickness="1.8"
+                  StrokeStartLineCap="Round"
+                  StrokeEndLineCap="Round"
+                  StrokeLineJoin="Round">
+              <Path.Style>
+                <Style TargetType="Path">
+                  <Setter Property="Data" Value="M 12 2 L 21 6 V 12 C 21 17 17.5 20 12 22 C 6.5 20 3 17 3 12 V 6 Z M 8 12 L 11 15 L 16 9" />
+                  <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IconKey}" Value="spotify">
+                      <Setter Property="Data" Value="M 4 5 H 20 V 15 H 4 Z M 12 15 V 20 M 8 20 H 16" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IconKey}" Value="spicetify">
+                      <Setter Property="Data" Value="M 12 2 L 19 6 V 14 L 12 18 L 5 14 V 6 Z M 8 10 H 16 M 10 7 H 14 M 10 13 H 14" />
+                      <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IconKey}" Value="marketplace">
+                      <Setter Property="Data" Value="M 4 8 H 20 L 18 21 H 6 Z M 8 8 V 6 A 4 4 0 0 1 16 6 V 8 M 9 12 V 13 M 15 12 V 13" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Warning}">
+                      <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Critical}">
+                      <Setter Property="Data" Value="M 3 3 L 21 21 M 21 3 L 3 21" />
+                      <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Path.Style>
+            </Path>
+          </Border>
+          <StackPanel Grid.Column="1" Margin="2,0,0,0">
             <TextBlock Text="{Binding Label}"
-                       Foreground="{DynamicResource TextBrush}"
+                       Foreground="{DynamicResource MutedTextBrush}"
                        FontWeight="SemiBold"
-                       FontSize="13" />
+                       FontSize="12" />
             <TextBlock Text="{Binding Value}"
                        FontSize="14"
-                       Foreground="{DynamicResource MutedTextBrush}"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextBrush}"
                        Margin="0,4,0,0"
-                       TextWrapping="Wrap" />
+                       TextWrapping="NoWrap"
+                       TextTrimming="CharacterEllipsis" />
             <TextBlock Text="{Binding Detail}"
                        Style="{StaticResource CaptionTextStyle}"
-                       Margin="0,3,0,0"
-                       TextWrapping="Wrap" />
+                       Margin="0,2,0,0"
+                       MaxHeight="18"
+                       TextWrapping="NoWrap"
+                       TextTrimming="CharacterEllipsis" />
           </StackPanel>
         </Grid>
       </Border>
@@ -1008,27 +1061,27 @@
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type viewModels:LogEntryViewModel}" x:Key="ShellLogRowTemplate">
-      <Grid MinHeight="32"
+      <Grid MinHeight="38"
             Margin="0">
         <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="36" />
-          <ColumnDefinition Width="132" />
-          <ColumnDefinition Width="82" />
+          <ColumnDefinition Width="32" />
+          <ColumnDefinition Width="104" />
+          <ColumnDefinition Width="76" />
           <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Border Grid.ColumnSpan="4"
                 BorderBrush="{DynamicResource StrokeSoftBrush}"
                 BorderThickness="0,0,0,1" />
-        <Path Width="15"
-              Height="15"
-              Stretch="Uniform"
-              Data="M 9 2 A 7 7 0 1 0 9 16 A 7 7 0 1 0 9 2 M 9 6 V 9 M 9 12 V 12.5"
-              Stroke="{DynamicResource MutedTextBrush}"
-              StrokeThickness="1.7"
-              StrokeStartLineCap="Round"
-              StrokeEndLineCap="Round"
-              VerticalAlignment="Center"
-              HorizontalAlignment="Center" />
+        <Border Width="1"
+                Background="{DynamicResource StrokeSoftBrush}"
+                HorizontalAlignment="Center" />
+        <Ellipse Width="9"
+                 Height="9"
+                 Fill="{DynamicResource CanvasBrush}"
+                 Stroke="{DynamicResource InfoBrush}"
+                 StrokeThickness="2"
+                 VerticalAlignment="Center"
+                 HorizontalAlignment="Center" />
         <TextBlock Grid.Column="1"
                    Text="{Binding TimestampDisplay}"
                    Foreground="{DynamicResource MutedTextBrush}"
@@ -1170,7 +1223,7 @@
               BorderBrush="{DynamicResource StrokeSoftBrush}"
               BorderThickness="0,0,1,0"
               CornerRadius="0"
-              Padding="18,44,18,18">
+              Padding="18,62,18,18">
         <ScrollViewer VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       Focusable="False">
@@ -1655,7 +1708,7 @@
       <Border x:Name="WorkspaceSurface"
               Grid.Column="2"
               Style="{StaticResource SurfaceCardStyle}"
-              Margin="0,64,0,220"
+              Margin="0,68,0,146"
               Padding="18">
         <Grid>
           <Grid.RowDefinitions>
@@ -1665,30 +1718,33 @@
             <RowDefinition Height="*" />
           </Grid.RowDefinitions>
 
-          <Grid Grid.Row="0" Margin="0,0,0,16" MinHeight="124">
-            <Grid.RowDefinitions>
-              <RowDefinition Height="Auto" />
-              <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+          <Grid Grid.Row="0" Margin="0,0,0,14" MinHeight="92">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" />
               <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.RowSpan="2"
-                    Grid.ColumnSpan="2"
+            <Border Grid.ColumnSpan="2"
                     Background="{DynamicResource HeroPanelBrush}"
-                    BorderBrush="{DynamicResource StrokeBrush}"
+                    BorderBrush="{DynamicResource StrokeSoftBrush}"
                     BorderThickness="1"
-                    CornerRadius="10"
-                    Effect="{DynamicResource CardShadow}" />
+                    CornerRadius="{StaticResource RadiusLg}" />
+
+            <Border Grid.ColumnSpan="2"
+                    Width="4"
+                    Height="60"
+                    Margin="0,16,0,16"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Stretch"
+                    Background="{DynamicResource AccentBrush}"
+                    CornerRadius="{StaticResource RadiusXs}" />
 
             <Grid Grid.Column="0"
-                  Width="78"
-                  Height="78"
-                  Margin="22,22,0,22"
+                  Width="56"
+                  Height="56"
+                  Margin="20,18,0,18"
                   VerticalAlignment="Center">
-              <Ellipse StrokeThickness="2.4">
+              <Ellipse StrokeThickness="2">
                 <Ellipse.Style>
                   <Style TargetType="Ellipse">
                     <Setter Property="Fill" Value="{DynamicResource AccentSoftBrush}" />
@@ -1714,10 +1770,10 @@
                   </Style>
                 </Ellipse.Style>
               </Ellipse>
-              <Path Width="38"
-                    Height="30"
+              <Path Width="28"
+                    Height="23"
                     Stretch="Uniform"
-                    StrokeThickness="4"
+                    StrokeThickness="3"
                     StrokeStartLineCap="Round"
                     StrokeEndLineCap="Round"
                     HorizontalAlignment="Center"
@@ -1745,68 +1801,22 @@
               </Path>
             </Grid>
 
-            <StackPanel Grid.Column="1" Margin="22,22,26,20" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Margin="18,16,24,16" VerticalAlignment="Center">
               <TextBlock Text="{Binding WorkspaceHeroEyebrow}"
                          Style="{StaticResource SectionEyebrowTextStyle}"
                          Foreground="{DynamicResource AccentBrush}"
                          Visibility="Collapsed" />
               <TextBlock Text="{Binding WorkspaceHeroTitle}"
                          Style="{StaticResource HeadlineTextStyle}"
-                         FontSize="24"
-                         LineHeight="34" />
+                         FontSize="20"
+                         LineHeight="30" />
               <TextBlock Text="{Binding WorkspaceHeroBody}"
                          Style="{StaticResource CaptionTextStyle}"
-                         Margin="0,8,0,0"
+                         Foreground="{DynamicResource MutedTextBrush}"
+                         Margin="0,4,0,0"
                          MaxWidth="760"
                          TextWrapping="Wrap" />
-              <TextBlock Text="{services:Loc Vm_GlobalSearchLabel}"
-                         Style="{StaticResource LabelTextStyle}"
-                         Margin="0,12,0,0" />
-              <Grid Margin="0,6,0,0"
-                    MaxWidth="720"
-                    HorizontalAlignment="Left">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="*" />
-                  <ColumnDefinition Width="Auto" />
-                  <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBox x:Name="GlobalSearchBox"
-                         Text="{Binding GlobalSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         Style="{StaticResource TextBoxStylePremium}"
-                         Height="42"
-                         MinWidth="360"
-                         ToolTip="{services:Loc Vm_GlobalSearchHelp}"
-                         AutomationProperties.AutomationId="GlobalSearchBox"
-                         AutomationProperties.Name="{services:Loc Vm_GlobalSearchLabel}"
-                         AutomationProperties.HelpText="{services:Loc Vm_GlobalSearchHelp}" />
-                <Button Grid.Column="1"
-                        Content="{services:Loc Vm_GlobalSearchClear}"
-                        Command="{Binding ClearGlobalSearchCommand}"
-                        Height="42"
-                        MinWidth="72"
-                        Margin="8,0,0,0"
-                        Padding="14,0"
-                        Style="{StaticResource SecondaryButtonStyle}"
-                        Visibility="{Binding HasGlobalSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
-                        AutomationProperties.AutomationId="GlobalSearchClearButton"
-                        AutomationProperties.Name="{services:Loc Vm_GlobalSearchClear}" />
-                <Border Grid.Column="2"
-                        Style="{StaticResource MicroBadgeStyle}"
-                        Margin="8,5,0,5"
-                        VerticalAlignment="Center">
-                  <TextBlock Text="{services:Loc Vm_GlobalSearchShortcutText}"
-                             Style="{StaticResource MicroBadgeTextStyle}"
-                             AutomationProperties.Name="{services:Loc Vm_GlobalSearchShortcutHelp}" />
-                </Border>
-              </Grid>
             </StackPanel>
-
-            <Border Grid.Row="1"
-                    Grid.ColumnSpan="2"
-                    Height="1"
-                    Background="{DynamicResource StrokeSoftBrush}"
-                    Margin="0,18,0,0"
-                    Visibility="Collapsed" />
           </Grid>
 
           <Border Grid.Row="0"
@@ -1816,7 +1826,7 @@
                   MaxHeight="470"
                   HorizontalAlignment="Right"
                   VerticalAlignment="Top"
-                  Margin="0,198,0,0"
+                  Margin="0"
                   Padding="18"
                   Style="{StaticResource SurfaceCardStyle}"
                   Background="{DynamicResource SurfaceCardBrush}"
@@ -1917,14 +1927,14 @@
                   Background="{DynamicResource Surface2Brush}"
                   BorderBrush="{DynamicResource StrokeSoftBrush}"
                   BorderThickness="1"
-                  CornerRadius="10"
+                  CornerRadius="{StaticResource RadiusLg}"
                   Margin="0,0,0,10"
-                  MinHeight="112"
-                  Padding="20"
+                  MinHeight="92"
+                  Padding="16"
                   Visibility="{Binding ShowRecommendedRunBand, Converter={StaticResource BoolToVisibilityConverter}}">
             <StackPanel HorizontalAlignment="Center"
                         VerticalAlignment="Center">
-              <Button Height="58"
+              <Button Height="48"
                       MinWidth="320"
                       Padding="20,0"
                       FontSize="16"
@@ -1951,7 +1961,7 @@
                          Foreground="{DynamicResource MutedTextBrush}"
                          HorizontalAlignment="Center"
                          TextAlignment="Center"
-                         Margin="0,12,0,0" />
+                         Margin="0,8,0,0" />
             </StackPanel>
           </Border>
 
@@ -3773,27 +3783,27 @@
 
       <ScrollViewer x:Name="InspectorPanel"
                     Grid.Column="4"
-                    Margin="0,64,16,220"
+                    Margin="0,68,16,146"
                     VerticalScrollBarVisibility="Auto"
                     HorizontalScrollBarVisibility="Disabled"
                     Focusable="False">
         <StackPanel Margin="0,0,8,0">
         <Border Style="{StaticResource SurfaceCardStyle}"
                 Background="{DynamicResource SurfaceCardBrush}"
-                Padding="20"
-                Margin="0,0,0,18">
+                Padding="18"
+                Margin="0,0,0,14">
           <StackPanel>
-            <TextBlock Text="{Binding ShellReadinessValue}"
+            <TextBlock Text="{Binding ShellReadinessTitle}"
                        Style="{StaticResource SectionTitleTextStyle}"
                        FontSize="18" />
-            <Grid Width="144"
-                  Height="144"
+            <Grid Width="112"
+                  Height="112"
                   HorizontalAlignment="Center"
-                  Margin="0,22,0,20">
+                  Margin="0,16,0,16">
               <Ellipse Stroke="{DynamicResource StrokeStrongBrush}"
-                       StrokeThickness="14"
+                       StrokeThickness="10"
                        Fill="{DynamicResource Surface1Brush}" />
-              <Ellipse StrokeThickness="14"
+              <Ellipse StrokeThickness="10"
                        Margin="1">
                 <Ellipse.Style>
                   <Style TargetType="Ellipse">
@@ -3822,7 +3832,7 @@
                           VerticalAlignment="Center">
                 <TextBlock Text="{Binding ShellReadinessPercent}"
                            Foreground="{DynamicResource TextBrush}"
-                           FontSize="24"
+                           FontSize="20"
                            FontWeight="SemiBold"
                            HorizontalAlignment="Center" />
                 <TextBlock Text="{Binding ShellReadinessShortLabel}"
@@ -4273,17 +4283,17 @@
       <Border x:Name="ActivityDock"
               Grid.Column="2"
               Grid.ColumnSpan="3"
-              Height="184"
+              Height="132"
               VerticalAlignment="Bottom"
               Background="{DynamicResource SurfaceCardBrush}"
               BorderBrush="{DynamicResource StrokeBrush}"
               BorderThickness="1"
               CornerRadius="10"
-              Margin="0,0,16,38"
+              Margin="0,0,16,16"
               ClipToBounds="True">
         <Grid>
           <Grid.RowDefinitions>
-            <RowDefinition Height="38" />
+            <RowDefinition Height="40" />
             <RowDefinition Height="*" />
           </Grid.RowDefinitions>
           <Border Background="{DynamicResource CanvasBrush}"
@@ -4302,6 +4312,35 @@
               <StackPanel Grid.Column="1"
                           Orientation="Horizontal"
                           VerticalAlignment="Center">
+                <ToggleButton x:Name="ActivityDockToggle"
+                              IsChecked="True"
+                              Margin="0,0,8,0"
+                              Style="{StaticResource ActivityDockToggleStyle}"
+                              Checked="ActivityDockToggle_OnToggled"
+                              Unchecked="ActivityDockToggle_OnToggled"
+                              AutomationProperties.AutomationId="ActivityDockToggle"
+                              AutomationProperties.Name="{Binding ShellActivityTitle}"
+                              AutomationProperties.HelpText="{Binding ShellActivityEmptyDetail}"
+                              ToolTip="{Binding ShellActivityTitle}">
+                  <Path Width="12"
+                        Height="7"
+                        Stretch="Uniform"
+                        StrokeThickness="1.8"
+                        StrokeStartLineCap="Round"
+                        StrokeEndLineCap="Round">
+                    <Path.Style>
+                      <Style TargetType="Path">
+                        <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
+                        <Setter Property="Data" Value="M 1 1 L 6 6 L 11 1" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsChecked, ElementName=ActivityDockToggle}" Value="False">
+                            <Setter Property="Data" Value="M 1 1 L 6 6 L 1 11" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Path.Style>
+                  </Path>
+                </ToggleButton>
                 <Button Content="{Binding ShellLogLevelLabel}"
                         Height="28"
                         MinWidth="116"
@@ -4324,7 +4363,9 @@
               </StackPanel>
             </Grid>
           </Border>
-          <ScrollViewer Grid.Row="1"
+          <Grid Grid.Row="1"
+                Visibility="{Binding IsChecked, ElementName=ActivityDockToggle, Converter={StaticResource BoolToVisibilityConverter}}">
+          <ScrollViewer
                         VerticalScrollBarVisibility="Auto"
                         HorizontalScrollBarVisibility="Disabled"
                         Visibility="{Binding HasShellActivityLogItems, Converter={StaticResource BoolToVisibilityConverter}}"
@@ -4333,7 +4374,7 @@
                           ItemTemplate="{StaticResource ShellLogRowTemplate}" />
           </ScrollViewer>
 
-          <Border Grid.Row="1"
+          <Border
                   Background="{DynamicResource CanvasShadeBrush}"
                   Visibility="{Binding ShowShellActivityEmptyState, Converter={StaticResource BoolToVisibilityConverter}}"
                   AutomationProperties.Name="{Binding ShellActivityEmptyTitle}"
@@ -4362,7 +4403,7 @@
             </StackPanel>
           </Border>
 
-          <Border Grid.Row="1"
+          <Border
                   Width="680"
                   Height="56"
                   HorizontalAlignment="Right"
@@ -4428,12 +4469,13 @@
                       Command="{Binding CancelRunCommand}" />
             </Grid>
           </Border>
+          </Grid>
         </Grid>
       </Border>
     </Grid>
 
-    <!-- ═══ Activity overlay ═══ -->
-    <Border Height="38"
+    <!-- ═══ Window command bar ═══ -->
+    <Border Height="52"
             VerticalAlignment="Top"
             Background="{DynamicResource CanvasBrush}"
             BorderBrush="{DynamicResource StrokeSoftBrush}"
@@ -4460,6 +4502,79 @@
                      Margin="8,0,0,0"
                      VerticalAlignment="Center" />
         </StackPanel>
+        <Grid Width="480"
+              Height="40"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              shell:WindowChrome.IsHitTestVisibleInChrome="True">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <Grid>
+            <TextBox x:Name="GlobalSearchBox"
+                     Text="{Binding GlobalSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource TextBoxStylePremium}"
+                     Height="40"
+                     MinWidth="280"
+                     Padding="40,0,14,0"
+                     VerticalContentAlignment="Center"
+                     Foreground="{DynamicResource TextBrush}"
+                     ToolTip="{services:Loc Vm_GlobalSearchHelp}"
+                     AutomationProperties.AutomationId="GlobalSearchBox"
+                     AutomationProperties.Name="{services:Loc Vm_GlobalSearchLabel}"
+                     AutomationProperties.HelpText="{services:Loc Vm_GlobalSearchHelp}" />
+            <Path Width="15"
+                  Height="15"
+                  Margin="14,0,0,0"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Center"
+                  Stretch="Uniform"
+                  Data="M 7 1 A 6 6 0 1 0 7 13 A 6 6 0 1 0 7 1 M 11.5 11.5 L 15 15"
+                  Stroke="{DynamicResource SubtleTextBrush}"
+                  StrokeThickness="1.6"
+                  StrokeStartLineCap="Round"
+                  StrokeEndLineCap="Round"
+                  IsHitTestVisible="False" />
+            <TextBlock Text="{services:Loc Vm_GlobalSearchLabel}"
+                       Margin="40,0,14,0"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource SubtleTextBrush}"
+                       FontSize="13"
+                       IsHitTestVisible="False">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                  <Setter Property="Visibility" Value="Visible" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding HasGlobalSearchText}" Value="True">
+                      <Setter Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+          </Grid>
+          <Button Grid.Column="1"
+                  Content="{services:Loc Vm_GlobalSearchClear}"
+                  Command="{Binding ClearGlobalSearchCommand}"
+                  Height="40"
+                  MinWidth="68"
+                  Margin="8,0,0,0"
+                  Padding="10,0"
+                  Style="{StaticResource GhostButtonStyle}"
+                  Visibility="{Binding HasGlobalSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.AutomationId="GlobalSearchClearButton"
+                  AutomationProperties.Name="{services:Loc Vm_GlobalSearchClear}" />
+          <Border Grid.Column="2"
+                  Style="{StaticResource MicroBadgeStyle}"
+                  Margin="8,5,0,5"
+                  VerticalAlignment="Center">
+            <TextBlock Text="{services:Loc Vm_GlobalSearchShortcutText}"
+                       Style="{StaticResource MicroBadgeTextStyle}"
+                       AutomationProperties.Name="{services:Loc Vm_GlobalSearchShortcutHelp}" />
+          </Border>
+        </Grid>
         <StackPanel HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Orientation="Horizontal"

@@ -28,6 +28,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- Re-imagined the WPF shell from a new implementation mockup: global search now lives in the top command bar, the Recommended hero is compact and task-led, status cards track Spotify/Spicetify/Marketplace instead of generic host trivia, the readiness panel reads as system health, and the activity timeline can collapse to return working space.
+- Refined the graphite/emerald design tokens with calmer tonal elevation, quieter borders and shadows, stronger editorial spacing, compact action and readiness surfaces, and a timeline treatment that remains coherent in dark, high-contrast, full-width, and inspector-free compact layouts.
 - Added one categorized search surface for setup modes, SpotX settings, themes and extensions, local profiles, maintenance actions, support evidence, and health/provenance issues; opening a result navigates to the existing detailed surface without bypassing its safety controls.
 - Refreshed GitHub issue and pull-request intake around Recommended/Custom/Maintenance/Fleet surfaces, current versions, operation IDs, reviewed support bundles, and the repository's actual local validation commands.
 - Added a stable per-run operation GUID across WPF activity, PowerShell backend events and journals, CLI JSON/plain output, rolling logs, crash evidence, and support-bundle manifests, plus an opt-in local `LibreSpot-Operations` EventSource for ETW/EventPipe collection without uploads.
@@ -57,6 +59,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Tests
 
+- Added a hidden `activity-collapsed` WPF state and shell contracts for command-bar search placement, product-specific status cards, responsive activity reclamation, and the real populated-query rendering path; verified the redesigned shell at 1600x1000 and the inspector-free 1280x760 breakpoint without activating a window.
 - Made localization validation fail on unreviewed English carry-over, stale allowlist entries, placeholder/access-key drift, protected product or file-token changes, translation truncation, and known terminology regressions; per-locale translated/reviewed counts are printed on every validation run.
 - Added search-domain, navigation, empty-state, shortcut-focus, multi-token matching, localized-resource, UI Automation, and hidden rendered-WPF coverage for the global search surface.
 - Added correlation regression coverage for caller-supplied PowerShell IDs, legacy/new backend protocols, mismatch refusal, WPF activity and bundle evidence, CLI plans, and local EventSource start/message/completion events.

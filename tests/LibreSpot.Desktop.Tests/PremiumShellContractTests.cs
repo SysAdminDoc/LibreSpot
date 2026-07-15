@@ -88,6 +88,27 @@ public sealed class PremiumShellContractTests
     }
 
     [Fact]
+    public void Shell_UsesCommandBarSearchProductStatusCardsAndCollapsibleTimeline()
+    {
+        var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        var codeBehind = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
+        var viewModel = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
+
+        Assert.True(
+            xaml.IndexOf("x:Name=\"GlobalSearchBox\"", StringComparison.Ordinal) >
+            xaml.IndexOf("x:Name=\"ActivityDock\"", StringComparison.Ordinal),
+            "Global search should live in the top command bar, after the workspace shell in the overlay tree.");
+        Assert.Contains("Text=\"{services:Loc Vm_GlobalSearchLabel}\"", xaml);
+        Assert.Contains("x:Name=\"ActivityDockToggle\"", xaml);
+        Assert.Contains("ActivityDockToggle_OnToggled", codeBehind);
+        Assert.Contains("ActivityDockToggle.IsChecked == false ? 40", codeBehind);
+        Assert.Contains("\"spicetify\"", viewModel);
+        Assert.Contains("\"marketplace\"", viewModel);
+        Assert.DoesNotContain("L(\"Vm_ShellSummaryOs\")", viewModel);
+        Assert.DoesNotContain("L(\"Vm_ShellSummaryLastRun\")", viewModel);
+    }
+
+    [Fact]
     public void Shell_SeparatesPrimaryNavigationFromQuickLinksAndUsesActionChevrons()
     {
         var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");

@@ -41,6 +41,7 @@ public sealed class WpfQaMatrixTests
             ("profile", "Ui_SetSelectedProfileActive", "ProfileSetActiveButton"),
             ("prompt", "ButtonContinue", "PromptConfirmButton"),
             ("activity-empty", "Vm_ShellNoActiveTasks", "WorkspaceNavRecommended"),
+            ("activity-collapsed", "Vm_ShellActivityTitle", "ActivityDockToggle"),
             ("custom-no-results", "SearchNoResults", "SettingsSearchClearButton"),
             ("global-search", "Vm_GlobalSearchResultsLabel", "GlobalSearchBox"),
             ("snapshot-loading", "Vm_ShellCheckingSystem", "WorkspaceNavRecommended"),

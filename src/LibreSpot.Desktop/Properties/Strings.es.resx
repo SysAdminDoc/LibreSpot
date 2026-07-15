@@ -1983,7 +1983,7 @@
   <data name="Vm_ShellProfileNameFormat" xml:space="preserve"><value>Perfil: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellProfileWillSave" xml:space="preserve"><value>Se guardará al aplicar</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellQuickActionsTitle" xml:space="preserve"><value>Acciones rápidas</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellReadinessTitle" xml:space="preserve"><value>Preparación</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellReadinessTitle" xml:space="preserve"><value>Estado del sistema</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellReadyToPatch" xml:space="preserve"><value>Listo para parchar</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellRepairDetail" xml:space="preserve"><value>Reparar problemas detectados</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellRepairTitle" xml:space="preserve"><value>Reparar</value><comment>MainViewModel localized runtime text.</comment></data>

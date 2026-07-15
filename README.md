@@ -70,7 +70,7 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 ## What's New in v4.0.0-preview.17
 
-**Premium desktop command center.** The image-led redesign now carries a stronger primary-navigation hierarchy, quieter utility links, wider dense workspaces, individual readiness checks, and a shared recovery-dialog visual system. The graphite shell, restrained cyan/emerald hierarchy, scannable status cards, controls, focus rings, hover treatments, and motion read as one deliberate product across Recommended, Custom, Maintenance, activity, prompt, failure, and crash states.
+**Premium desktop command center.** The image-led redesign now uses a compact top command bar with global search, a task-led Recommended hero, product-specific Spotify/Spicetify/Marketplace status cards, a clearer system-health inspector, and a collapsible activity timeline that gives space back to the current workflow. The calmer graphite shell, restrained cyan/emerald hierarchy, quieter surfaces, controls, focus rings, hover treatments, and motion read as one deliberate product across Recommended, Custom, Maintenance, activity, prompt, failure, and crash states.
 
 **Truthful, resilient UX.** Readiness starts in a checking state, reports system, Spotify, permission, and dependency results independently, and replaces success artwork with actionable loading or failure guidance when appropriate. Snapshot failures expose Refresh environment recovery; activity updates announce changing content; translated prompts wrap and scroll safely; compact layouts preserve editor space; and high-contrast, reduced-motion, modal, and crash-recovery variants share the same interaction contract.
 

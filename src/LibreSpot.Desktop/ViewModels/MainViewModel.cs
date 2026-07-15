@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text.Json;
 using System.Windows;
@@ -617,54 +616,33 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private string ShellOperatingSystemName
-    {
-        get
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                var version = Environment.OSVersion.Version;
-                if (version.Major >= 10 && version.Build >= 22000)
-                {
-                    return L("Vm_ShellWindows11");
-                }
-
-                if (version.Major >= 10)
-                {
-                    return L("Vm_ShellWindows10");
-                }
-            }
-
-            return RuntimeInformation.OSDescription;
-        }
-    }
-
-    private string ShellOperatingSystemDetail =>
-        OperatingSystem.IsWindows()
-            ? LF("Vm_ShellOsBuildFormat", Environment.OSVersion.Version.Build)
-            : RuntimeInformation.OSArchitecture.ToString();
-
     public IReadOnlyList<ShellSummaryItemViewModel> ShellSummaryItems =>
     [
         new(L("Vm_ShellSummaryStatus"), ShellReadinessValue, ShellReadinessDetail, "status", ShellReadinessTone),
         new(
             L("Vm_ShellSpotifyTargetLabel"),
-            Snapshot.SpotifyInstalled ? L("Vm_ShellSpotifyInstalled") : L("Vm_ShellSpotifyNotDetected"),
-            FirstNonEmpty(HealthComponent("spotify")?.DetectedVersion, ShellSpotifyTargetDetail),
+            Snapshot.SpotifyInstalled
+                ? FirstNonEmpty(HealthComponent("spotify")?.DetectedVersion, ShellSpotifyTargetDetail)
+                : L("Vm_ShellSpotifyNotDetected"),
+            SpotifyStatusLine,
             "spotify",
             Snapshot.SpotifyInstalled ? HealthSeverity.Ready : HealthSeverity.Info),
         new(
-            L("Vm_ShellSummaryOs"),
-            ShellOperatingSystemName,
-            ShellOperatingSystemDetail,
-            "os",
-            HealthSeverity.Ready),
+            Strings.DashboardSpicetifyVersionLabel,
+            Snapshot.SpicetifyInstalled
+                ? FirstNonEmpty(HealthComponent("spicetify-cli")?.DetectedVersion, AppCatalog.PinnedSpicetifyCliVersion)
+                : L("Vm_SpicetifyNotInstalled"),
+            CustomizationStatusLine,
+            "spicetify",
+            HealthComponent("spicetify-cli")?.Severity
+                ?? (Snapshot.SpicetifyInstalled ? HealthSeverity.Ready : HealthSeverity.Info)),
         new(
-            L("Vm_ShellSummaryLastRun"),
-            LogEntries.LastOrDefault()?.TimestampDisplay ?? L("Vm_ShellNotRunYet"),
-            SelectedLocalProfile?.Name is { Length: > 0 } profileName ? LF("Vm_ShellProfileNameFormat", profileName) : L("Vm_ShellNoSetupRunYet"),
-            "clock",
-            HealthSeverity.Info)
+            Strings.MarketplaceLabel,
+            Snapshot.MarketplaceReady ? AppCatalog.PinnedMarketplaceVersion : MarketplaceStatusLine,
+            MarketplaceStatusLine,
+            "marketplace",
+            HealthComponent("marketplace")?.Severity
+                ?? (Snapshot.MarketplaceReady ? HealthSeverity.Ready : HealthSeverity.Info))
     ];
 
     public IReadOnlyList<ShellEnvironmentRowViewModel> ShellEnvironmentRows =>
@@ -4366,7 +4344,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public void ApplyUiAutomationSmokeState(string state)
     {
         var normalizedState = state.Trim().ToLowerInvariant();
-        if (normalizedState is "recommended" or "custom" or "maintenance" or "provenance" or "profile" or "support-bundle")
+        if (normalizedState is "recommended" or "custom" or "maintenance" or "provenance" or "profile" or "support-bundle" or "activity-collapsed")
         {
             SeedUiAutomationActivityLog();
         }
@@ -4388,6 +4366,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             case "activity-empty":
                 SelectedWorkspaceIndex = 0;
                 ClearLog();
+                break;
+            case "activity-collapsed":
+                SelectedWorkspaceIndex = 0;
                 break;
             case "snapshot-loading":
                 SelectedWorkspaceIndex = 0;
