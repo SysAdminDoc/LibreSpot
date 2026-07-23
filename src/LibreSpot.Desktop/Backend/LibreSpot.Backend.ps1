@@ -4974,6 +4974,12 @@ function Invoke-LibreSpotInstall {
     if ($config.LaunchAfter -and (Test-Path -LiteralPath $global:SPOTIFY_EXE_PATH)) {
         Write-Log 'Launching Spotify...'
         Update-BackendState -Progress 98 -Status 'Launching Spotify' -Step 'Checking patched session stability'
+        # Spotify is single-instance: if any Spotify (or helper) process is still
+        # alive, this launch just focuses the existing un-patched window instead of
+        # starting the freshly patched session, so Marketplace/extensions stay
+        # hidden until a manual restart. Force a clean slate first so the patched
+        # result is visible from the get-go.
+        Stop-SpotifyProcesses -MaxAttempts 5
         # Launch via explorer.exe so Spotify starts in the desktop user context instead of
         # inheriting our elevated token. A directly-started Spotify would run as Administrator,
         # which Spotify explicitly warns against and which breaks drag-and-drop from Explorer

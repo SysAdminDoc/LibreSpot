@@ -9246,6 +9246,12 @@ $installBlock = { param($sh,$cfg)
             # the 20-second stability window (and with AllowSpotify it would
             # hide the window instead). All install steps are done here.
             $sh.IsRunning = $false
+            # Spotify is single-instance: a stale/respawned process would make this
+            # launch focus the old un-patched window instead of the freshly patched
+            # session, hiding Marketplace/extensions until a manual restart. Force a
+            # clean slate (watcher is already stopped above) so the patched result
+            # shows from the get-go.
+            Stop-SpotifyProcesses -MaxAttempts 5
             Write-Log "Launching Spotify..." -Level 'SUCCESS'
             Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
             $finalStep = 'Spotify is opening'

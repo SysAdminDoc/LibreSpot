@@ -1275,6 +1275,24 @@ public sealed class PowerShellRegressionTests
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void LaunchAfter_ForceStopsSpotifyBeforeFinalLaunchSoPatchedSessionShows(string relativePath)
+    {
+        // Spotify is single-instance: launching while a stale/respawned process is
+        // alive focuses the old un-patched window, hiding Marketplace/extensions
+        // until a manual restart. The final launch must force-kill Spotify first.
+        var script = ReadFile(relativePath.Split('/'));
+        var stabilityIndex = script.IndexOf("Test-SpotifySessionStability -WaitSeconds 20", StringComparison.Ordinal);
+        Assert.True(stabilityIndex >= 0, $"Final launch stability check not found in {relativePath}.");
+        var launchIndex = script.LastIndexOf("Start-Process -FilePath 'explorer.exe'", stabilityIndex, StringComparison.Ordinal);
+        Assert.True(launchIndex >= 0, $"Final Spotify launch not found before the stability check in {relativePath}.");
+        var killIndex = script.LastIndexOf("Stop-SpotifyProcesses", launchIndex, StringComparison.Ordinal);
+        Assert.True(killIndex >= 0, $"Final launch must be preceded by Stop-SpotifyProcesses in {relativePath}.");
+        Assert.True(launchIndex - killIndex < 600, $"Stop-SpotifyProcesses is not adjacent to the final launch in {relativePath}.");
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
     public void ConfigQuarantine_UsesCollisionResistantNames(string relativePath)
     {
         var script = ReadFile(relativePath.Split('/'));

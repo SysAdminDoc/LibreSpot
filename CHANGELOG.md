@@ -49,6 +49,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Guaranteed the post-install Spotify launch starts a fresh, patched session so Marketplace, extensions, and themes appear immediately without a manual restart. Because Spotify is single-instance, a stale or respawned Spotify process previously caused the final launch to focus the old un-patched window; both hosts now force-stop all Spotify processes right before the final launch.
 - Made profile activation crash-consistent across the WPF and stable PowerShell hosts: both now share a cross-process lock and durable old/new fingerprint marker, recover interrupted commits to one complete state, and preserve the previous-profile rollback pointer.
 - Made activity-log severity colours follow live theme changes by replacing frozen converter brushes with dynamic semantic-resource triggers; already-realized rows now update immediately when high contrast is toggled.
 - Recovered malformed, unsupported, or dangling active-profile pointers without losing the current configuration: LibreSpot now preserves it as a uniquely named recovery profile, rewrites a valid pointer, and treats malformed previous-profile metadata as unavailable instead of crashing the gallery.
