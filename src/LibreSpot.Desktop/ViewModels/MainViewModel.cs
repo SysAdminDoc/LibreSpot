@@ -554,7 +554,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string ShellServiceStatusText => Snapshot.SpotifyInstalled || Snapshot.SpicetifyInstalled
         ? L("Vm_ShellServiceDetected")
         : L("Vm_ShellServiceStandby");
-    public string ShellDisplayVersion => "v4.0.0-preview.17";
+    public string ShellDisplayVersion => "v4.0.0-preview.18";
     public string ShellUpdateStatusTitle => Snapshot.SpicetifyInstalled || Snapshot.SpotifyInstalled
         ? L("Vm_ShellUpdateReady")
         : L("Vm_ShellUpdateCurrent");

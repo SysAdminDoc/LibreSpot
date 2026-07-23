@@ -4,6 +4,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0-preview.18] - 2026-07-23
+
 ### Security
 
 - Guarded every patch-detection surface against a future Spicetify v3 (spicetify/cli#3038), whose symlink + hooks + modules on-disk contract LibreSpot's 2.x detection does not understand. When the installed Spicetify CLI reports a major newer than 2, the WPF/CLI stack-health Spicetify component now shows a localized "Unsupported version" warning (all six locales), and the shared PowerShell diagnostic snapshot reports `spicetify_cli_supported=false`, instead of misreporting a healthy Spotify as broken/unpatched. Unknown or unparseable versions are treated as supported so a missing probe never raises a false warning.

@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.17-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.18-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
@@ -68,7 +68,9 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 ---
 
-## What's New in v4.0.0-preview.17
+## What's New in v4.0.0-preview.18
+
+**Marketplace that actually works.** The default Marketplace-only setup now follows the official Spicetify Marketplace install contract: LibreSpot creates and activates the placeholder theme and keeps CSS injection on, so store themes and snippets render instead of silently doing nothing, and a managed fallback restores a visible **Marketplace** button in Spotify's top bar when a Spotify redesign breaks Spicetify's own nav link. Marketplace health now warns when the theme contract is inactive and points you to Repair Marketplace, and the post-install launch guarantees a fresh, patched Spotify session.
 
 **Premium desktop command center.** The image-led redesign now uses a compact top command bar with global search, a task-led Recommended hero, product-specific Spotify/Spicetify/Marketplace status cards, a clearer system-health inspector, and a collapsible activity timeline that gives space back to the current workflow. The calmer graphite shell, restrained cyan/emerald hierarchy, quieter surfaces, controls, focus rings, hover treatments, and motion read as one deliberate product across Recommended, Custom, Maintenance, activity, prompt, failure, and crash states.
 
