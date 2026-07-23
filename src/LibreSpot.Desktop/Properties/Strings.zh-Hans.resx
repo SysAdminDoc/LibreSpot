@@ -2435,6 +2435,8 @@
   <data name="HealthEvidenceSpicetifyUnsupportedVersionFormat" xml:space="preserve"><value>尚不支持 Spicetify {0}。LibreSpot 面向 Spicetify {1}.x — 请重新安装已固定的 Spicetify 版本以继续。</value><comment>Health evidence. {0} is the detected version, {1} is the supported major version.</comment></data>
   <data name="HealthStatusMarketplaceThemeInactive" xml:space="preserve"><value>主题支持未激活</value><comment>Health status when Marketplace is installed but no Spicetify theme is active and CSS injection is off.</comment></data>
   <data name="HealthEvidenceMarketplaceThemeInactive" xml:space="preserve"><value>Marketplace 已安装，但没有激活的主题且 CSS 注入已关闭，因此商店中的主题和代码片段无法呈现。请运行“修复 Marketplace”以激活占位主题。</value><comment>Health evidence for the Marketplace theme-contract warning.</comment></data>
+  <data name="HealthStatusMarketplaceRouteNotWired" xml:space="preserve"><value>商店页面未接入</value><comment>Health status when the live Spotify bundle never loads the Marketplace store route (SpotX/Spicetify layout mismatch).</comment></data>
+  <data name="HealthEvidenceMarketplaceRouteNotWired" xml:space="preserve"><value>Spotify 加载的包从未引用 Marketplace 商店路由，因此商店页面打开后是空白的。请运行“修复 Marketplace”，将路由接入当前使用的包。</value><comment>Health evidence for the Marketplace route-wiring warning.</comment></data>
   <data name="HealthEvidenceSpicetifyConfigUnavailable" xml:space="preserve"><value>Spicetify 配置是在安装 CLI 后创建的。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyConfigMissing" xml:space="preserve"><value>config-xpui.ini 丢失，因此无法检查保存的主题和扩展状态。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyConfigNoTheme" xml:space="preserve"><value>config-xpui.ini 存在； current_theme 未设置。</value><comment>Health evidence.</comment></data>

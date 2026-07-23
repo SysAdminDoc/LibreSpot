@@ -88,6 +88,10 @@ function Module-InstallMarketplace { param($Config)
         if ($health.IsReady) {
             Write-Log "Marketplace enabled. The store appears as a Marketplace item in Spotify; if it is hidden, open spotify:app:marketplace directly."
             Write-Log "If the store page loads empty, GitHub may be rate-limiting the catalog fetch - wait about a minute and reopen Marketplace."
+        } elseif ($health.Status -eq 'RouteNotWired') {
+            # Expected before Module-ApplySpicetify runs: the store route is
+            # wired into the live Spotify bundle during the Apply step.
+            Write-Log "Marketplace files are staged; the store route gets wired into Spotify during the Apply step."
         } else {
             Write-Log "Marketplace files were installed but status is '$($health.Status)'. Use Maintenance > Repair Marketplace, then fully restart Spotify if the Marketplace button is missing." -Level 'WARN'
         }

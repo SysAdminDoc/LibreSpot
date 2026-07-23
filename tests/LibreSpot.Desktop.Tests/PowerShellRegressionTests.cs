@@ -1293,6 +1293,14 @@ public sealed class PowerShellRegressionTests
             @"(?ms)^function\s+Module-ApplySpicetify\s*\{(?<body>.+?)^\}");
         Assert.True(applyBody.Success, $"Module-ApplySpicetify not found in {relativePath}.");
         Assert.DoesNotContain("'inject_css', '0'", applyBody.Groups["body"].Value);
+
+        // SpotX serves the combined /xpui.js bundle while the Spicetify CLI only
+        // wires custom-app routes into xpui-modules.js/xpui-snapshot.js. Every
+        // successful apply must re-wire the store route into the live bundle,
+        // or /marketplace renders a permanently blank page.
+        Assert.Contains("function Test-SpicetifyCustomAppRouteWiring", script);
+        Assert.Contains("function Repair-SpicetifyCustomAppWiring", script);
+        Assert.Contains("Repair-SpicetifyCustomAppWiring", applyBody.Groups["body"].Value);
     }
 
     [Theory]

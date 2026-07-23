@@ -196,6 +196,7 @@ foreach ($name in @(
     'Module-InstallThemes',
     'Install-MarketplacePlaceholderTheme',
     'Install-MarketplaceNavFallbackExtension',
+    'Test-SpicetifyCustomAppRouteWiring',
     'Module-InstallMarketplace',
     'Module-InstallCustomApps'
 )) {

@@ -180,7 +180,7 @@ public sealed class EnvironmentSnapshotService
             BuildSpotXComponent(spotifyInstalled),
             BuildSpicetifyCliComponent(spicetifyInstalled),
             BuildSpicetifyConfigComponent(spicetifyInstalled, spicetifyConfigPath, spicetifyConfig),
-            BuildMarketplaceComponent(spicetifyInstalled, marketplaceDirectory, marketplaceFilesPresent, marketplaceRegistered, marketplaceEvidence, spicetifyConfig),
+            BuildMarketplaceComponent(spicetifyInstalled, marketplaceDirectory, marketplaceFilesPresent, marketplaceRegistered, marketplaceEvidence, spicetifyConfig, ProbeMarketplaceRouteWiring()),
             BuildThemeComponent(spicetifyInstalled, spicetifyConfigPath, spicetifyConfig),
             BuildBackupComponent(spicetifyInstalled),
             BuildWatcherComponent(watcherStatePath, watcherState, autoReapplyTaskRegistered),
@@ -896,13 +896,52 @@ public sealed class EnvironmentSnapshotService
             evidence);
     }
 
+    // SpotX serves the combined /xpui.js bundle while the Spicetify CLI wires
+    // custom-app routes only into xpui-modules.js/xpui-snapshot.js. When the
+    // live bundle never references the store chunk, /marketplace renders a
+    // permanently blank page even though files and config look healthy.
+    // Returns null when the state cannot be determined (no extracted bundle,
+    // or the CLI-supported snapshot layout is live).
+    private bool? ProbeMarketplaceRouteWiring()
+    {
+        try
+        {
+            var spotifyDirectory = Path.GetDirectoryName(_spotifyPath) ?? string.Empty;
+            var xpuiDirectory = Path.Combine(spotifyDirectory, "Apps", "xpui");
+            var indexPath = Path.Combine(xpuiDirectory, "index.html");
+            if (!File.Exists(indexPath))
+            {
+                return null;
+            }
+
+            var indexHtml = File.ReadAllText(indexPath);
+            if (indexHtml.Contains("src=\"/xpui-snapshot.js\"", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var bundlePath = Path.Combine(xpuiDirectory, "xpui.js");
+            if (!indexHtml.Contains("src=\"/xpui.js\"", StringComparison.Ordinal) || !File.Exists(bundlePath))
+            {
+                return null;
+            }
+
+            return File.ReadAllText(bundlePath).Contains("spicetify-routes-marketplace", StringComparison.Ordinal);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            return null;
+        }
+    }
+
     private static StackHealthComponent BuildMarketplaceComponent(
         bool spicetifyInstalled,
         string marketplaceDirectory,
         bool filesPresent,
         bool registered,
         MarketplaceVisibilityEvidence? visibilityEvidence,
-        IReadOnlyDictionary<string, string> spicetifyConfig)
+        IReadOnlyDictionary<string, string> spicetifyConfig,
+        bool? marketplaceRouteWired)
     {
         if (!spicetifyInstalled)
         {
@@ -933,6 +972,25 @@ public sealed class EnvironmentSnapshotService
                     GetNewestFileChange(marketplaceDirectory),
                     evidence,
                     "Reapply",
+                    "RepairMarketplace",
+                    "OpenLogs");
+            }
+
+            // A live bundle that never loads the store route means /marketplace
+            // renders blank no matter what else is healthy. A failed apply
+            // outranks it above because that is the more severe root cause;
+            // Repair Marketplace re-applies and re-wires the route.
+            if (marketplaceRouteWired == false)
+            {
+                return Component(
+                    "marketplace",
+                    L("HealthNameMarketplace"),
+                    L("HealthStatusMarketplaceRouteNotWired"),
+                    HealthSeverity.Warning,
+                    visibilityEvidence?.ManifestVersion,
+                    marketplaceDirectory,
+                    GetNewestFileChange(marketplaceDirectory),
+                    L("HealthEvidenceMarketplaceRouteNotWired"),
                     "RepairMarketplace",
                     "OpenLogs");
             }

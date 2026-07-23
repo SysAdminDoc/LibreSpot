@@ -593,6 +593,56 @@ public sealed class EnvironmentSnapshotServiceTests
     }
 
     [Fact]
+    public void GetSnapshot_HealthReport_FlagsMarketplaceRouteNotWired()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = marketplace\r\ninject_css = 1");
+        fixture.WriteMarketplaceFiles(manifestVersion: "1.0.9");
+        fixture.WriteMarketplaceEvidence(likelyVisible: true, openUriSucceeded: true, spotifyRunningAfterOpen: true);
+        // SpotX layout: index.html serves the combined xpui.js, which never
+        // references the store chunk, so /marketplace renders blank.
+        fixture.WriteExtractedXpuiBundle(routeWired: false);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var marketplace = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "marketplace");
+        Assert.Equal("Store page not wired", marketplace.Status);
+        Assert.Contains("RepairMarketplace", marketplace.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_HealthReport_MarketplaceRouteWiredStaysHealthy()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = marketplace\r\ninject_css = 1");
+        fixture.WriteMarketplaceFiles(manifestVersion: "1.0.9");
+        fixture.WriteMarketplaceEvidence(likelyVisible: true, openUriSucceeded: true, spotifyRunningAfterOpen: true);
+        fixture.WriteExtractedXpuiBundle(routeWired: true);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.DoesNotContain(snapshot.HealthReport.WarningIssues, component => component.Id == "marketplace");
+    }
+
+    [Fact]
+    public void GetSnapshot_HealthReport_MarketplaceSnapshotLayoutSkipsWiringProbe()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = marketplace\r\ninject_css = 1");
+        fixture.WriteMarketplaceFiles(manifestVersion: "1.0.9");
+        fixture.WriteMarketplaceEvidence(likelyVisible: true, openUriSucceeded: true, spotifyRunningAfterOpen: true);
+        // The CLI-supported xpui-snapshot layout is patched by Spicetify itself.
+        fixture.WriteExtractedXpuiBundle(routeWired: false, snapshotLayout: true);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        Assert.DoesNotContain(snapshot.HealthReport.WarningIssues, component => component.Id == "marketplace");
+    }
+
+    [Fact]
     public void GetSnapshot_HealthReport_MarketplaceApplyFailureOutranksThemeContract()
     {
         using var fixture = new SnapshotFixture();
@@ -1208,6 +1258,23 @@ public sealed class EnvironmentSnapshotServiceTests
             var marketplaceDirectory = Path.Combine(SpicetifyConfigDirectory, "CustomApps", "marketplace");
             WriteFile(Path.Combine(marketplaceDirectory, "extension.js"), string.Empty);
             WriteFile(Path.Combine(marketplaceDirectory, "manifest.json"), JsonSerializer.Serialize(new { version = manifestVersion }));
+        }
+
+        public void WriteExtractedXpuiBundle(bool routeWired, bool snapshotLayout = false)
+        {
+            var xpuiDirectory = Path.Combine(Path.GetDirectoryName(SpotifyPath)!, "Apps", "xpui");
+            if (snapshotLayout)
+            {
+                WriteFile(
+                    Path.Combine(xpuiDirectory, "index.html"),
+                    "<script defer=\"defer\" src=\"/xpui-modules.js\"></script><script defer=\"defer\" src=\"/xpui-snapshot.js\"></script>");
+                return;
+            }
+
+            WriteFile(Path.Combine(xpuiDirectory, "index.html"), "<script defer=\"defer\" src=\"/xpui.js\"></script>");
+            WriteFile(
+                Path.Combine(xpuiDirectory, "xpui.js"),
+                routeWired ? "var route=i.e(\"spicetify-routes-marketplace\");" : "var route=1;");
         }
 
         public void WriteMarketplaceEvidence(

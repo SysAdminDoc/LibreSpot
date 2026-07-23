@@ -22,7 +22,7 @@ public sealed class PowerShellCompositionTests
         var sharedDirectory = Path.Combine(RepoRoot, shared.GetProperty("directory").GetString()!.Replace('/', Path.DirectorySeparatorChar));
         var sharedFiles = Directory.GetFiles(sharedDirectory, shared.GetProperty("pattern").GetString()!);
         Assert.Equal(shared.GetProperty("expectedCount").GetInt32(), sharedFiles.Length);
-        Assert.Equal(110, sharedFiles.Length);
+        Assert.Equal(112, sharedFiles.Length);
 
         var expectedLaneNames = root.GetProperty("laneFunctions")
             .EnumerateArray()

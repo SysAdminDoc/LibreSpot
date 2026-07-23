@@ -681,6 +681,20 @@ function Module-ApplySpicetify {
     try {
         Invoke-SpicetifyCli -Arguments @('backup', 'apply', '--bypass-admin') -FailureMessage 'Could not apply the selected Spicetify setup.'
         Write-Log "Spicetify applied successfully."
+        # SpotX serves the combined /xpui.js bundle, but the Spicetify CLI only
+        # wires custom-app routes into xpui-modules.js/xpui-snapshot.js. Port
+        # the injection to the live bundle or the store page renders blank.
+        if ($Config -and $Config.Spicetify_Marketplace) {
+            try {
+                $wiring = Repair-SpicetifyCustomAppWiring
+                Write-Log "Marketplace route wiring: $($wiring.Status). $($wiring.Detail)"
+                if ($wiring.Status -eq 'AnchorsMissing') {
+                    Write-Log 'Spotify changed its bundle shape; the store page may stay blank until Spicetify supports this Spotify build.' -Level 'WARN'
+                }
+            } catch {
+                Write-Log "Marketplace route wiring failed: $($_.Exception.Message)" -Level 'WARN'
+            }
+        }
         $message = 'Spicetify backup apply succeeded.'
         Write-MarketplaceVisibilityEvidence -Source $EvidenceSource -ApplyStage $applyStage -ApplySucceeded $true -ApplyMessage $message | Out-Null
         return [pscustomobject]@{

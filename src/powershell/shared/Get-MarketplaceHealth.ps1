@@ -19,7 +19,16 @@ function Get-MarketplaceHealth {
     $injectCss = [string]$configEntries['inject_css']
     $themeContractReady = (-not [string]::IsNullOrWhiteSpace($currentTheme)) -and ($injectCss -eq '1')
 
-    $status = if ($hasConfigDir -and $hasFiles -and $isEnabled -and -not $themeContractReady) {
+    # SpotX serves the combined /xpui.js bundle while Spicetify v2.44.0 patches
+    # custom-app routes into xpui-modules.js/xpui-snapshot.js only. When the
+    # live bundle never references the store chunk, /marketplace renders a
+    # permanently blank page even though every file and config entry looks fine.
+    $routeWiring = Test-SpicetifyCustomAppRouteWiring
+    $routeWired = ($routeWiring.State -ne 'NotWired')
+
+    $status = if ($hasConfigDir -and $hasFiles -and $isEnabled -and -not $routeWired) {
+        'RouteNotWired'
+    } elseif ($hasConfigDir -and $hasFiles -and $isEnabled -and -not $themeContractReady) {
         'ThemeInactive'
     } elseif ($hasConfigDir -and $hasFiles -and $isEnabled) {
         'Ready'
@@ -42,7 +51,8 @@ function Get-MarketplaceHealth {
         IsEnabled          = $isEnabled
         CurrentTheme       = $currentTheme
         ThemeContractReady = $themeContractReady
+        RouteWired         = $routeWired
         IsReady            = ($status -eq 'Ready')
-        NeedsRepair        = ($status -in @('ThemeInactive','Hidden','FilesMissing','LegacyPath','Missing'))
+        NeedsRepair        = ($status -in @('RouteNotWired','ThemeInactive','Hidden','FilesMissing','LegacyPath','Missing'))
     }
 }

@@ -1434,6 +1434,8 @@ Describe 'Marketplace theme contract' {
         . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-MarketplaceHealth.ps1')
         . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Install-MarketplacePlaceholderTheme.ps1')
         . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Install-MarketplaceNavFallbackExtension.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Test-SpicetifyCustomAppRouteWiring.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Repair-SpicetifyCustomAppWiring.ps1')
         if (-not (Get-Command Write-Log -ErrorAction SilentlyContinue)) {
             function global:Write-Log { param([string]$Message, [string]$Level = 'INFO') }
         }
@@ -1443,6 +1445,8 @@ Describe 'Marketplace theme contract' {
         $script:testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-mp-" + [Guid]::NewGuid().ToString('N'))
         $global:SPICETIFY_DIR = Join-Path $script:testRoot 'cli'
         $global:SPICETIFY_CONFIG_DIR = Join-Path $script:testRoot 'config'
+        # Keep the route-wiring probe hermetic (never touch a real Spotify install).
+        $global:SPOTIFY_EXE_PATH = $null
         New-Item -Path $global:SPICETIFY_CONFIG_DIR -ItemType Directory -Force | Out-Null
     }
 
@@ -1506,5 +1510,100 @@ Describe 'Marketplace theme contract' {
         $health.CurrentTheme | Should -Be 'marketplace'
         $health.IsReady | Should -BeTrue
         $health.NeedsRepair | Should -BeFalse
+    }
+}
+
+Describe 'Marketplace route wiring (SpotX xpui.js layout)' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Test-SpicetifyCustomAppRouteWiring.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Repair-SpicetifyCustomAppWiring.ps1')
+        if (-not (Get-Command Write-Log -ErrorAction SilentlyContinue)) {
+            function global:Write-Log { param([string]$Message, [string]$Level = 'INFO') }
+        }
+
+        function script:New-WiringFixture {
+            param(
+                [string]$IndexHtml,
+                [string]$BundleJs,
+                [switch]$SkipRouteBundle
+            )
+            $root = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-wiring-" + [Guid]::NewGuid().ToString('N'))
+            $xpui = Join-Path $root 'xpui'
+            New-Item -Path $xpui -ItemType Directory -Force | Out-Null
+            [System.IO.File]::WriteAllText((Join-Path $xpui 'index.html'), $IndexHtml)
+            if ($null -ne $BundleJs) {
+                [System.IO.File]::WriteAllText((Join-Path $xpui 'xpui.js'), $BundleJs)
+            }
+            if (-not $SkipRouteBundle) {
+                [System.IO.File]::WriteAllText((Join-Path $xpui 'spicetify-routes-marketplace.js'), '/* chunk */')
+            }
+            return $root
+        }
+
+        # Minimal synthetic bundle carrying every anchor the shim ports from
+        # the Spicetify CLI (react lazy, settings route, chunk-name maps, css gate).
+        $script:AnchoredBundle = 'var rK=b.lazy((()=>i.e(4961).then(i.bind(i,10418))));var Z=[(0,m.jsx)(eg.qh,{path:"/settings",element:(0,m.jsx)(f7,{})})];l.u=e=>""+(({123:"xpui-routes-a"})[e]||e)+".js",l.miniCssF=e=>""+(({123:"xpui-routes-a"})[e]||e)+".css";l.f.miniCss=function(e,t){if(h[e])t.push(h[e]);else 0!==h[e]&&({123:1,456:1})[e]&&t.push(h[e]=x(e))};'
+        $script:LiveIndexHtml = '<html><body><script defer="defer" src="/xpui.js"></script></body></html>'
+    }
+
+    AfterEach {
+        if ($script:fixtureRoot) {
+            Remove-Item -LiteralPath $script:fixtureRoot -Recurse -Force -ErrorAction SilentlyContinue
+            $script:fixtureRoot = $null
+        }
+    }
+
+    It 'detects NotWired when the live xpui.js never references the store chunk' {
+        $script:fixtureRoot = New-WiringFixture -IndexHtml $script:LiveIndexHtml -BundleJs $script:AnchoredBundle
+        $state = Test-SpicetifyCustomAppRouteWiring -AppsDirectory $script:fixtureRoot
+        $state.State | Should -Be 'NotWired'
+        $state.RouteBundlePresent | Should -BeTrue
+    }
+
+    It 'reports NotApplicable for the CLI-supported xpui-snapshot layout' {
+        $snapshotIndex = '<html><body><script defer="defer" src="/xpui-modules.js"></script><script defer="defer" src="/xpui-snapshot.js"></script></body></html>'
+        $script:fixtureRoot = New-WiringFixture -IndexHtml $snapshotIndex -BundleJs $script:AnchoredBundle
+        (Test-SpicetifyCustomAppRouteWiring -AppsDirectory $script:fixtureRoot).State | Should -Be 'NotApplicable'
+        (Repair-SpicetifyCustomAppWiring -AppsDirectory $script:fixtureRoot).Status | Should -Be 'NotApplicable'
+    }
+
+    It 'patches the live bundle with the route, lazy loader, and chunk maps' {
+        $script:fixtureRoot = New-WiringFixture -IndexHtml $script:LiveIndexHtml -BundleJs $script:AnchoredBundle
+        $result = Repair-SpicetifyCustomAppWiring -AppsDirectory $script:fixtureRoot
+        $result.Status | Should -Be 'Patched'
+
+        $patched = [System.IO.File]::ReadAllText((Join-Path $script:fixtureRoot 'xpui\xpui.js'))
+        # Lazy component appended after the anchor expression with the same symbols.
+        $patched | Should -Match ([regex]::Escape(',spicetifyApp0=b.lazy((()=>i.e("spicetify-routes-marketplace").then(i.bind(i,"spicetify-routes-marketplace"))))'))
+        # Route mounted before the settings route with wildcard paths.
+        $patched | Should -Match ([regex]::Escape('(0,m.jsx)(eg.qh,{path:"/marketplace/*",pathV6:"/marketplace/*",element:(0,m.jsx)(spicetifyApp0,{})}),'))
+        # Chunk-name maps and the css gate learned the new chunk.
+        $patched | Should -Match ([regex]::Escape('l.u=e=>""+(({"spicetify-routes-marketplace":"spicetify-routes-marketplace",123:"xpui-routes-a"})'))
+        $patched | Should -Match ([regex]::Escape('l.miniCssF=e=>""+(({"spicetify-routes-marketplace":"spicetify-routes-marketplace",123:"xpui-routes-a"})'))
+        $patched | Should -Match ([regex]::Escape('({123:1,456:1,"spicetify-routes-marketplace":1})[e]'))
+        # Pre-patch backup kept alongside.
+        Test-Path (Join-Path $script:fixtureRoot 'xpui\xpui.js.librespot.bak') | Should -BeTrue
+    }
+
+    It 'is idempotent: a second repair reports Wired without rewriting' {
+        $script:fixtureRoot = New-WiringFixture -IndexHtml $script:LiveIndexHtml -BundleJs $script:AnchoredBundle
+        (Repair-SpicetifyCustomAppWiring -AppsDirectory $script:fixtureRoot).Status | Should -Be 'Patched'
+        $bundlePath = Join-Path $script:fixtureRoot 'xpui\xpui.js'
+        $firstWrite = (Get-Item $bundlePath).LastWriteTimeUtc
+        Start-Sleep -Milliseconds 50
+        (Repair-SpicetifyCustomAppWiring -AppsDirectory $script:fixtureRoot).Status | Should -Be 'Wired'
+        (Get-Item $bundlePath).LastWriteTimeUtc | Should -Be $firstWrite
+    }
+
+    It 'leaves the bundle untouched when the injection anchors are missing' {
+        $script:fixtureRoot = New-WiringFixture -IndexHtml $script:LiveIndexHtml -BundleJs 'var noAnchorsHere=1;'
+        $result = Repair-SpicetifyCustomAppWiring -AppsDirectory $script:fixtureRoot
+        $result.Status | Should -Be 'AnchorsMissing'
+        [System.IO.File]::ReadAllText((Join-Path $script:fixtureRoot 'xpui\xpui.js')) | Should -Be 'var noAnchorsHere=1;'
+    }
+
+    It 'requires the route chunk file before patching' {
+        $script:fixtureRoot = New-WiringFixture -IndexHtml $script:LiveIndexHtml -BundleJs $script:AnchoredBundle -SkipRouteBundle
+        (Repair-SpicetifyCustomAppWiring -AppsDirectory $script:fixtureRoot).Status | Should -Be 'RouteBundleMissing'
     }
 }
