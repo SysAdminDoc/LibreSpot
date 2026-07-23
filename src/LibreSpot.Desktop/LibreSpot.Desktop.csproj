@@ -6,6 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <!-- Self-contained publish embeds the runtime, so it only receives .NET
+         servicing CVE fixes when rebuilt against the newest patch level the
+         build SDK ships. See RD-32 / schemas/dependency-health-allowlist.json
+         dotnetRuntimeFloor. -->
+    <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
     <AssemblyName>LibreSpot</AssemblyName>
     <ApplicationIcon>..\..\icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>

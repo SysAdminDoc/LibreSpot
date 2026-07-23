@@ -5,6 +5,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <!-- Self-contained publish embeds the runtime; rebuild against the newest
+         patch level so servicing CVE fixes reach shipped artifacts. See RD-32 /
+         schemas/dependency-health-allowlist.json dotnetRuntimeFloor. -->
+    <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
     <AssemblyName>LibreSpot.Cli</AssemblyName>
     <Version>4.0.0-preview.17</Version>
     <AssemblyVersion>4.0.0.17</AssemblyVersion>

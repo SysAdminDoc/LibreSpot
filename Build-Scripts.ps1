@@ -1394,6 +1394,68 @@ function Test-TransitiveLagAllowed {
     return $false
 }
 
+function Get-LibreSpotDotnetRuntimeStatus {
+    <#
+        Self-contained artifacts embed the .NET runtime, so shipped CVE fixes
+        depend on the build host resolving a patched runtime pack. This reports
+        the highest installed 10.x Microsoft.NETCore.App / WindowsDesktop.App
+        packs and compares them to the documented CVE-patched floor (RD-32).
+    #>
+    param([Parameter(Mandatory)][string]$AllowlistPath)
+
+    $doc = Get-JsonFile -Path $AllowlistPath
+    $floorNode = $doc.PSObject.Properties['dotnetRuntimeFloor']
+    if (-not $floorNode -or [string]::IsNullOrWhiteSpace([string]$doc.dotnetRuntimeFloor.version)) {
+        throw "Dependency health allowlist is missing dotnetRuntimeFloor.version."
+    }
+    $floor = [version]([string]$doc.dotnetRuntimeFloor.version)
+
+    $listed = & dotnet --list-runtimes 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet --list-runtimes failed: $($listed -join [Environment]::NewLine)"
+    }
+
+    $highest = @{}
+    foreach ($line in @($listed)) {
+        $match = [regex]::Match([string]$line, '^(?<name>\S+)\s+(?<ver>\d+\.\d+\.\d+)\s')
+        if (-not $match.Success) { continue }
+        $name = $match.Groups['name'].Value
+        if ($name -ne 'Microsoft.NETCore.App' -and $name -ne 'Microsoft.WindowsDesktop.App') { continue }
+        $ver = [version]$match.Groups['ver'].Value
+        if ($ver.Major -ne $floor.Major) { continue }
+        if (-not $highest.ContainsKey($name) -or $ver -gt $highest[$name]) {
+            $highest[$name] = $ver
+        }
+    }
+
+    $packs = @()
+    $failures = @()
+    foreach ($name in @('Microsoft.NETCore.App', 'Microsoft.WindowsDesktop.App')) {
+        $resolved = if ($highest.ContainsKey($name)) { $highest[$name].ToString() } else { $null }
+        $belowFloor = $true
+        if ($resolved) { $belowFloor = ($highest[$name] -lt $floor) }
+        $packs += [pscustomobject][ordered]@{
+            pack           = $name
+            resolved       = $resolved
+            belowFloor     = $belowFloor
+        }
+        if (-not $resolved) {
+            $failures += "No installed $name $($floor.Major).x runtime pack; self-contained publish cannot embed the CVE-patched floor $floor."
+        } elseif ($belowFloor) {
+            $failures += "$name $resolved is below the CVE-patched .NET runtime floor $floor; rebuild on a patched SDK/runtime."
+        }
+    }
+
+    return [pscustomobject][ordered]@{
+        floorVersion = $floor.ToString()
+        floorReason  = [string]$doc.dotnetRuntimeFloor.reason
+        recheckDate  = [string]$doc.dotnetRuntimeFloor.recheckDate
+        sdkVersion   = (& dotnet --version 2>$null | Select-Object -First 1)
+        packs        = $packs
+        failures     = $failures
+    }
+}
+
 function New-LibreSpotDependencyHealthReport {
     param(
         [Parameter(Mandatory)][string]$ReportPath,
@@ -1402,6 +1464,7 @@ function New-LibreSpotDependencyHealthReport {
     )
 
     $allowlist = Get-DependencyHealthAllowlist -Path $AllowlistPath
+    $dotnetRuntime = Get-LibreSpotDotnetRuntimeStatus -AllowlistPath $AllowlistPath
     $spotXSecurityPolicy = Get-PinnedSpotXSecurityPolicy -ScriptPath $SpotXScriptPath
     $projects = Get-LibreSpotDotNetProjects
     $outdatedPackages = @()
@@ -1457,6 +1520,9 @@ function New-LibreSpotDependencyHealthReport {
     foreach ($failure in $auditFailures) {
         $failures += "AuditPipeline vulnerability: $($failure.packageId) $($failure.severity) $($failure.advisoryUrl)."
     }
+    foreach ($runtimeFailure in @($dotnetRuntime.failures)) {
+        $failures += $runtimeFailure
+    }
 
     $report = [ordered]@{
         schemaVersion                = 1
@@ -1476,6 +1542,7 @@ function New-LibreSpotDependencyHealthReport {
         outdatedDirectPackages       = $outdatedDirect
         outdatedTransitivePackages   = $outdatedTransitive
         acceptedTransitiveLag        = $allowedTransitive
+        dotnetRuntime                = $dotnetRuntime
         spotXSecurityPolicy           = $spotXSecurityPolicy
         failures                     = $failures
     }

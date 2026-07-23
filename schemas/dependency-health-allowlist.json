@@ -154,5 +154,10 @@
       "reason": "Analyzer transitive lag in the test project only; not shipped in release artifacts.",
       "recheckDate": "2026-09-01"
     }
-  ]
+  ],
+  "dotnetRuntimeFloor": {
+    "version": "10.0.10",
+    "reason": "CVE-patched .NET 10 servicing floor (CVE-2026-32175 crafted-file arbitrary write, CVE-2026-26127 Base64Url OOB read, CVE-2026-45490, CVE-2026-50526). Self-contained artifacts embed the runtime, so the build host must resolve this Microsoft.NETCore.App / Microsoft.WindowsDesktop.App patch level or newer.",
+    "recheckDate": "2026-10-01"
+  }
 }

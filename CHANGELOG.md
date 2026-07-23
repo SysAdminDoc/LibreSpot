@@ -6,6 +6,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Security
 
+- Set `TargetLatestRuntimePatch` on the self-contained .NET 10 desktop and CLI projects and added a `dotnetRuntimeFloor` gate to `Build-Scripts.ps1 -DependencyHealth`, so release preflight records the resolved `Microsoft.NETCore.App` / `Microsoft.WindowsDesktop.App` patch level and fails when the build host is below the documented CVE-patched floor (CVE-2026-32175/26127/45490/50526). Self-contained artifacts embed the runtime, so this ensures shipped builds carry current .NET servicing fixes.
+
 - Added a fail-closed executable-undo policy: only explicitly selected, low-risk user-PATH additions with an exact protected before/after snapshot can run; stale, unknown, elevated, destructive, reparse-point, missing-state, and non-allowlisted tokens are refused without mutation.
 - Omitted previous-state references and nested previous/old-value payloads from operation-journal support exports, while retaining independently useful redacted evidence.
 - Added a fail-closed external-script gate for Microsoft Defender preference/exclusion mutations: the current safe SpotX pin remains argument-compatible, while any future mutating pin must declare and receive the exact upstream opt-out across interactive, backend, watcher, repair, and cached execution lanes.

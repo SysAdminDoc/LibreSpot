@@ -65,6 +65,36 @@ public sealed class DependencyAutomationTests
         Assert.Contains("ExclusionPath", script);
         Assert.Contains("ExclusionProcess", script);
         Assert.Contains("spotXSecurityPolicy", script);
+        Assert.Contains("Get-LibreSpotDotnetRuntimeStatus", script);
+        Assert.Contains("dotnetRuntime", script);
+        Assert.Contains("CVE-patched .NET runtime floor", script);
+    }
+
+    [Fact]
+    public void SelfContainedProjects_PinLatestRuntimePatchForServicingCves()
+    {
+        foreach (var project in new[]
+                 {
+                     Path.Combine("src", "LibreSpot.Desktop", "LibreSpot.Desktop.csproj"),
+                     Path.Combine("src", "LibreSpot.Cli", "LibreSpot.Cli.csproj")
+                 })
+        {
+            var csproj = ReadRepoFile(project.Split(Path.DirectorySeparatorChar));
+            Assert.Contains("<TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>", csproj);
+        }
+    }
+
+    [Fact]
+    public void DependencyHealthAllowlist_DeclaresCvePatchedDotnetRuntimeFloor()
+    {
+        using var doc = JsonDocument.Parse(ReadRepoFile("schemas", "dependency-health-allowlist.json"));
+        var floor = doc.RootElement.GetProperty("dotnetRuntimeFloor");
+
+        var version = floor.GetProperty("version").GetString();
+        Assert.True(Version.TryParse(version, out var parsed) && parsed.Major == 10,
+            $"dotnetRuntimeFloor.version must be a .NET 10 version; was '{version}'.");
+        Assert.False(string.IsNullOrWhiteSpace(floor.GetProperty("reason").GetString()));
+        Assert.True(DateTime.TryParse(floor.GetProperty("recheckDate").GetString(), out _));
     }
 
     [Fact]
