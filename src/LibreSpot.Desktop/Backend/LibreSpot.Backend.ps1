@@ -3025,7 +3025,18 @@ function Get-MarketplaceHealth {
     $isEnabled = @(Get-SpicetifyConfigListValue -Key 'custom_apps') -contains 'marketplace'
     $hasFiles = $hasExtension -and $hasManifest
 
-    $status = if ($hasConfigDir -and $hasFiles -and $isEnabled) {
+    # Marketplace can only install themes/snippets into an ACTIVE theme with CSS
+    # injection on (the official installer activates a placeholder theme). With
+    # an empty current_theme the CLI forces all injection off, so the store
+    # loads but every theme/snippet install is a silent no-op.
+    $configEntries = Get-SpicetifyConfigEntries
+    $currentTheme = [string]$configEntries['current_theme']
+    $injectCss = [string]$configEntries['inject_css']
+    $themeContractReady = (-not [string]::IsNullOrWhiteSpace($currentTheme)) -and ($injectCss -eq '1')
+
+    $status = if ($hasConfigDir -and $hasFiles -and $isEnabled -and -not $themeContractReady) {
+        'ThemeInactive'
+    } elseif ($hasConfigDir -and $hasFiles -and $isEnabled) {
         'Ready'
     } elseif ($hasConfigDir -and $hasFiles -and -not $isEnabled) {
         'Hidden'
@@ -3038,14 +3049,16 @@ function Get-MarketplaceHealth {
     }
 
     return [pscustomobject]@{
-        Status       = $status
-        Path         = $activeDir
-        HasConfigDir = $hasConfigDir
-        HasLegacyDir = $hasLegacyDir
-        HasFiles     = $hasFiles
-        IsEnabled    = $isEnabled
-        IsReady      = ($status -eq 'Ready')
-        NeedsRepair  = ($status -in @('Hidden','FilesMissing','LegacyPath','Missing'))
+        Status             = $status
+        Path               = $activeDir
+        HasConfigDir       = $hasConfigDir
+        HasLegacyDir       = $hasLegacyDir
+        HasFiles           = $hasFiles
+        IsEnabled          = $isEnabled
+        CurrentTheme       = $currentTheme
+        ThemeContractReady = $themeContractReady
+        IsReady            = ($status -eq 'Ready')
+        NeedsRepair        = ($status -in @('ThemeInactive','Hidden','FilesMissing','LegacyPath','Missing'))
     }
 }
 
@@ -4336,19 +4349,139 @@ function Module-InstallExtensions { param($Config)
     Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems $exts -ManagedItems $allManaged
 }
 
+function Install-MarketplacePlaceholderTheme {
+    # The official Marketplace installer creates a placeholder theme at
+    # Themes\marketplace\color.ini and points current_theme at it so the store
+    # can write theme colors and CSS snippets into an active theme. Without an
+    # active theme, spicetify leaves inject_css/replace_colors off and every
+    # Marketplace theme or snippet install silently does nothing. Content is the
+    # upstream placeholder verbatim (a single [Marketplace] section header).
+    # Idempotent; returns the placeholder theme directory path.
+    $integration = Get-SpicetifyIntegrationContext
+    $themeDirectory = Join-Path $integration.ThemesDirectory 'marketplace'
+    $colorIniPath = Join-Path $themeDirectory 'color.ini'
+    $expectedContent = "[Marketplace]`n"
+
+    New-Item -Path $themeDirectory -ItemType Directory -Force | Out-Null
+    $needsWrite = $true
+    if (Test-Path -LiteralPath $colorIniPath -PathType Leaf) {
+        try {
+            $existing = [System.IO.File]::ReadAllText($colorIniPath)
+            if ($existing.Trim() -eq $expectedContent.Trim()) { $needsWrite = $false }
+        } catch {}
+    }
+    if ($needsWrite) {
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($colorIniPath, $expectedContent, $utf8NoBom)
+        Write-Log "Created Marketplace placeholder theme at $themeDirectory"
+    }
+    return $themeDirectory
+}
+
+function Install-MarketplaceNavFallbackExtension {
+    # Spotify's global-nav redesigns periodically break the Spicetify CLI's
+    # injected Marketplace nav link SILENTLY (regex mismatch in insertNavLink,
+    # or the patched component variant never mounts - spicetify/marketplace
+    # #1133/#1185/#1194). The store route still works, but users have no button.
+    # This LibreSpot-managed extension waits for the app to settle and registers
+    # a Spicetify.Topbar button ONLY when no Marketplace entry rendered, so the
+    # store always stays reachable from the UI. Local-only; no network calls.
+    # Idempotent; returns the extension file name.
+    $integration = Get-SpicetifyIntegrationContext
+    $extensionsDirectory = $integration.ExtensionsDirectory
+    $fileName = 'librespot-marketplace-button.js'
+    $filePath = Join-Path $extensionsDirectory $fileName
+
+    $lines = @(
+        '// LibreSpot Marketplace access button (fallback).',
+        '// Registers a Topbar button only when the Spicetify-injected Marketplace',
+        '// nav link failed to render (a recurring silent break across Spotify',
+        '// global-nav redesigns). Managed by LibreSpot; removed when Marketplace',
+        '// is disabled.',
+        '(function libreSpotMarketplaceButton() {',
+        '    if (window.__libreSpotMarketplaceButton) { return; }',
+        '    window.__libreSpotMarketplaceButton = true;',
+        '    var ICON = ''<svg role="img" height="16" width="16" viewBox="0 0 76.465 68.262" fill="currentColor"><path d="M151.909 72.923v6.5h10.097l8.663 44.567h48.968v-6.5h-43.61l-1.2-6.172h42.974l10.35-33.91h-59.915l-.872-4.485H151.91zm17.59 10.984h49.867l-6.393 20.91h-39.409l-4.064-20.91zm5.626 44.11a6.5 6.5 0 0 0-6.5 6.5 6.5 6.5 0 0 0 6.5 6.501 6.5 6.5 0 0 0 6.5-6.5 6.5 6.5 0 0 0-6.5-6.5zm38.274 0a6.5 6.5 0 0 0-6.5 6.5 6.5 6.5 0 0 0 6.5 6.501 6.5 6.5 0 0 0 6.5-6.5 6.5 6.5 0 0 0-6.5-6.5z" transform="translate(-151.909 -72.923)"/></svg>'';',
+        '    function apiReady() {',
+        '        return !!(window.Spicetify && Spicetify.Platform && Spicetify.Platform.History &&',
+        '            Spicetify.Topbar && Spicetify.Topbar.Button);',
+        '    }',
+        '    function navEntryPresent() {',
+        '        // The wrapper-rendered nav link, a sidebar item, or an earlier instance',
+        '        // of this button. Covers the localized names Marketplace ships.',
+        '        return !!document.querySelector(',
+        '            ''a[href="/marketplace"], [aria-label="Marketplace"], [title="Marketplace"],'' +',
+        '            '' [aria-label="Маркетплейс"], [title="Маркетплейс"]'');',
+        '    }',
+        '    function registerFallback() {',
+        '        if (navEntryPresent()) { return; }',
+        '        try {',
+        '            new Spicetify.Topbar.Button("Marketplace", ICON, function () {',
+        '                Spicetify.Platform.History.push("/marketplace");',
+        '            });',
+        '        } catch (error) {',
+        '            // Topbar API drift: leave the UI untouched rather than break startup.',
+        '        }',
+        '    }',
+        '    (function waitForApi(attempts) {',
+        '        if (apiReady()) {',
+        '            // Grace period so the native nav link (when it works) wins.',
+        '            setTimeout(registerFallback, 4000);',
+        '            return;',
+        '        }',
+        '        if (attempts > 0) { setTimeout(function () { waitForApi(attempts - 1); }, 300); }',
+        '    })(200);',
+        '})();'
+    )
+    $content = ($lines -join "`n") + "`n"
+
+    New-Item -Path $extensionsDirectory -ItemType Directory -Force | Out-Null
+    $needsWrite = $true
+    if (Test-Path -LiteralPath $filePath -PathType Leaf) {
+        try {
+            if ([System.IO.File]::ReadAllText($filePath) -eq $content) { $needsWrite = $false }
+        } catch {}
+    }
+    if ($needsWrite) {
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($filePath, $content, $utf8NoBom)
+        Write-Log "Installed the Marketplace access-button fallback extension at $filePath"
+    }
+    return $fileName
+}
+
 function Module-InstallMarketplace { param($Config)
     $integration = Get-SpicetifyIntegrationContext
-    $managedApps = @('marketplace')
+    # 'spicetify-marketplace' is the pre-1.0 app name; the official installer
+    # removes it, so keep it managed here to clean up legacy installs.
+    $managedApps = @('marketplace', 'spicetify-marketplace')
+    $managedExtensions = @('librespot-marketplace-button.js')
     $marketplaceDirs = @(
         $integration.MarketplaceDirectory,
         $integration.LegacyMarketplaceDirectory
     )
     if (-not $Config.Spicetify_Marketplace) {
         Write-Log "Marketplace: disabled. Removing LibreSpot-managed Marketplace state if present..." -Level 'STEP'
+        # Clear the placeholder-theme reference BEFORE deleting its directory so
+        # an interrupted removal never leaves current_theme pointing at a theme
+        # that no longer exists (which would fail every later spicetify apply).
+        $configuredTheme = [string](Get-SpicetifyConfigEntries)['current_theme']
+        if ($configuredTheme -eq 'marketplace') {
+            Invoke-SpicetifyCli -Arguments @('config', 'current_theme', '', 'inject_css', '0', 'replace_colors', '0', '--bypass-admin') -FailureMessage 'Could not clear the Marketplace placeholder theme.'
+            Write-Log 'Cleared the Marketplace placeholder theme from Spicetify config.'
+        }
         foreach ($dir in $marketplaceDirs) {
             $null = Remove-PathSafely -Path $dir -Label 'Marketplace app'
         }
+        $placeholderDir = Join-Path $integration.ThemesDirectory 'marketplace'
+        $null = Remove-PathSafely -Path $placeholderDir -Label 'Marketplace placeholder theme'
         Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @() -ManagedItems $managedApps
+        Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems @() -ManagedItems $managedExtensions
+        $fallbackPath = Join-Path $integration.ExtensionsDirectory 'librespot-marketplace-button.js'
+        if (Test-Path -LiteralPath $fallbackPath -PathType Leaf) {
+            Remove-Item -LiteralPath $fallbackPath -Force -ErrorAction SilentlyContinue
+            Write-Log 'Removed the Marketplace access-button fallback extension.'
+        }
         return
     }
 
@@ -4383,9 +4516,30 @@ function Module-InstallMarketplace { param($Config)
             throw 'Marketplace archive did not produce expected Spicetify custom app files.'
         }
         Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @('marketplace') -ManagedItems $managedApps
+        # Official Marketplace install contract: the store can only install
+        # themes and CSS snippets into an ACTIVE theme with CSS injection on.
+        # Themes install before Marketplace, so an empty current_theme here
+        # means no (or a failed) theme selection - point Spicetify at the
+        # upstream placeholder theme, created before the config references it.
+        $configuredTheme = [string](Get-SpicetifyConfigEntries)['current_theme']
+        if ([string]::IsNullOrWhiteSpace($configuredTheme)) {
+            $null = Install-MarketplacePlaceholderTheme
+            Invoke-SpicetifyCli -Arguments @('config', 'current_theme', 'marketplace', '--bypass-admin') -FailureMessage 'Could not activate the Marketplace placeholder theme.'
+            Write-Log 'Activated the Marketplace placeholder theme so store themes and snippets can render.'
+        } elseif ($configuredTheme -eq 'marketplace') {
+            # Re-assert the placeholder files in case a previous run was interrupted.
+            $null = Install-MarketplacePlaceholderTheme
+        }
+        Invoke-SpicetifyCli -Arguments @('config', 'inject_css', '1', 'replace_colors', '1', '--bypass-admin') -FailureMessage 'Could not enable CSS injection for Marketplace.'
+        # Spotify's global-nav changes can silently break the injected nav link
+        # (spicetify/marketplace#1133/#1185); this managed extension adds a
+        # Topbar access button only when no Marketplace entry rendered.
+        $fallbackName = Install-MarketplaceNavFallbackExtension
+        Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems @($fallbackName) -ManagedItems $managedExtensions
         $health = Get-MarketplaceHealth
         if ($health.IsReady) {
-            Write-Log "Marketplace enabled. If Spotify hides the sidebar icon, open spotify:app:marketplace directly."
+            Write-Log "Marketplace enabled. The store appears as a Marketplace item in Spotify; if it is hidden, open spotify:app:marketplace directly."
+            Write-Log "If the store page loads empty, GitHub may be rate-limiting the catalog fetch - wait about a minute and reopen Marketplace."
         } else {
             Write-Log "Marketplace files were installed but status is '$($health.Status)'. Use Maintenance > Repair and open Marketplace if the sidebar icon is hidden." -Level 'WARN'
         }
@@ -4701,15 +4855,13 @@ function Module-ApplySpicetify {
     )
     Write-Log 'Applying Spicetify changes...' -Level 'STEP'
 
-    # Marketplace-only mode: disable theme injection before apply so the apply step
-    # does not try to inject any theme CSS/JS.
-    if ($Config.Spicetify_Theme -eq '(None - Marketplace Only)') {
-        try {
-            Invoke-SpicetifyCli -Arguments @('config', 'inject_css', '0', 'replace_colors', '0', 'overwrite_assets', '0', 'inject_theme_js', '0', '--bypass-admin') -FailureMessage 'Could not disable theme injection.'
-        } catch {
-            Write-Log "Pre-apply config tweak failed: $($_.Exception.Message)" -Level 'WARN'
-        }
-    }
+    # Marketplace-only mode intentionally does NOT disable theme injection here.
+    # The official Marketplace contract needs inject_css/replace_colors on with
+    # the placeholder theme active (Module-InstallMarketplace asserts this), or
+    # every store theme/snippet install is a silent no-op. When no theme at all
+    # is configured, the Spicetify CLI already forces injection off on its own
+    # (InitSetting in src/cmd/cmd.go), so zeroing the ini here was redundant for
+    # safety and actively broke the Marketplace theme contract.
 
     # Diagnostic snapshot. When apply fails silently (known SpotX+Spicetify
     # interop edge case) this is the only way to tell whether spotify_path is

@@ -657,13 +657,13 @@ function Module-ApplySpicetify {
         [string]$EvidenceSource = 'Module-ApplySpicetify'
     )
     Write-Log "Applying Spicetify changes..." -Level 'STEP'
-    if ($Config.Spicetify_Theme -eq '(None - Marketplace Only)') {
-        try {
-            Invoke-SpicetifyCli -Arguments @('config', 'inject_css', '0', 'replace_colors', '0', 'overwrite_assets', '0', 'inject_theme_js', '0', '--bypass-admin') -FailureMessage 'Could not disable theme asset injection for the Marketplace-only setup.'
-        } catch {
-            Write-Log "Pre-apply config tweak failed: $($_.Exception.Message)" -Level 'WARN'
-        }
-    }
+    # Marketplace-only mode intentionally does NOT disable theme injection here.
+    # The official Marketplace contract needs inject_css/replace_colors on with
+    # the placeholder theme active (Module-InstallMarketplace asserts this), or
+    # every store theme/snippet install is a silent no-op. When no theme at all
+    # is configured, the Spicetify CLI already forces injection off on its own
+    # (InitSetting in src/cmd/cmd.go), so zeroing the ini here was redundant for
+    # safety and actively broke the Marketplace theme contract.
 
     $diag = Get-SpicetifyDiagnosticSnapshot
     foreach ($key in $diag.Keys) {

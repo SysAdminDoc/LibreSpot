@@ -543,7 +543,7 @@ public sealed class EnvironmentSnapshotServiceTests
     {
         using var fixture = new SnapshotFixture();
         fixture.WriteSpotify(withSpotXMarkers: true);
-        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault\r\ninject_css = 1");
         fixture.WriteMarketplaceFiles(manifestVersion: "1.0.8");
         fixture.WriteMarketplaceEvidence(openUriSucceeded: false, openUriMessage: "URI handler failed.");
 
@@ -560,7 +560,7 @@ public sealed class EnvironmentSnapshotServiceTests
     {
         using var fixture = new SnapshotFixture();
         fixture.WriteSpotify(withSpotXMarkers: true);
-        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault\r\ninject_css = 1");
         fixture.WriteMarketplaceFiles(manifestVersion: "1.0.8");
         fixture.WriteMarketplaceEvidence(likelyVisible: true, openUriSucceeded: true, spotifyRunningAfterOpen: true);
 
@@ -571,6 +571,40 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.Equal(HealthSeverity.Ready, marketplace.Severity);
         Assert.True(snapshot.MarketplaceLikelyVisible);
         Assert.Contains("Spotify process observed", marketplace.Evidence);
+    }
+
+    [Fact]
+    public void GetSnapshot_HealthReport_FlagsMarketplaceThemeContractInactive()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        // Marketplace installed and registered, but no active theme and CSS
+        // injection off - the store loads while theme/snippet installs no-op.
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme =\r\ninject_css = 0");
+        fixture.WriteMarketplaceFiles(manifestVersion: "1.0.9");
+        fixture.WriteMarketplaceEvidence(likelyVisible: true, openUriSucceeded: true, spotifyRunningAfterOpen: true);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var marketplace = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "marketplace");
+        Assert.Equal("Theme support inactive", marketplace.Status);
+        Assert.Contains("RepairMarketplace", marketplace.RecommendedActionIds);
+        Assert.Contains("placeholder theme", marketplace.Evidence);
+    }
+
+    [Fact]
+    public void GetSnapshot_HealthReport_MarketplaceApplyFailureOutranksThemeContract()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme =\r\ninject_css = 0");
+        fixture.WriteMarketplaceFiles(manifestVersion: "1.0.9");
+        fixture.WriteMarketplaceEvidence(applySucceeded: false, applyMessage: "Spicetify apply failed.", manifestVersion: "1.0.9");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var marketplace = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "marketplace");
+        Assert.Equal("Apply failed", marketplace.Status);
     }
 
     [Fact]

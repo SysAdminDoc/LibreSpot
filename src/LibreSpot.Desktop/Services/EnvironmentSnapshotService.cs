@@ -180,7 +180,7 @@ public sealed class EnvironmentSnapshotService
             BuildSpotXComponent(spotifyInstalled),
             BuildSpicetifyCliComponent(spicetifyInstalled),
             BuildSpicetifyConfigComponent(spicetifyInstalled, spicetifyConfigPath, spicetifyConfig),
-            BuildMarketplaceComponent(spicetifyInstalled, marketplaceDirectory, marketplaceFilesPresent, marketplaceRegistered, marketplaceEvidence),
+            BuildMarketplaceComponent(spicetifyInstalled, marketplaceDirectory, marketplaceFilesPresent, marketplaceRegistered, marketplaceEvidence, spicetifyConfig),
             BuildThemeComponent(spicetifyInstalled, spicetifyConfigPath, spicetifyConfig),
             BuildBackupComponent(spicetifyInstalled),
             BuildWatcherComponent(watcherStatePath, watcherState, autoReapplyTaskRegistered),
@@ -901,7 +901,8 @@ public sealed class EnvironmentSnapshotService
         string marketplaceDirectory,
         bool filesPresent,
         bool registered,
-        MarketplaceVisibilityEvidence? visibilityEvidence)
+        MarketplaceVisibilityEvidence? visibilityEvidence,
+        IReadOnlyDictionary<string, string> spicetifyConfig)
     {
         if (!spicetifyInstalled)
         {
@@ -934,6 +935,32 @@ public sealed class EnvironmentSnapshotService
                     "Reapply",
                     "RepairMarketplace",
                     "OpenLogs");
+            }
+
+            // Marketplace can only install themes/snippets into an active theme
+            // with CSS injection on (the official installer activates a
+            // placeholder theme). With an empty current_theme the Spicetify CLI
+            // forces injection off, so the store loads but every theme/snippet
+            // install silently does nothing. A failed apply outranks this state
+            // above because it is the more severe root cause.
+            spicetifyConfig.TryGetValue("current_theme", out var currentTheme);
+            spicetifyConfig.TryGetValue("inject_css", out var injectCss);
+            var themeContractReady =
+                !string.IsNullOrWhiteSpace(currentTheme) &&
+                string.Equals(injectCss?.Trim(), "1", StringComparison.Ordinal);
+            if (!themeContractReady)
+            {
+                return Component(
+                    "marketplace",
+                    L("HealthNameMarketplace"),
+                    L("HealthStatusMarketplaceThemeInactive"),
+                    HealthSeverity.Warning,
+                    visibilityEvidence?.ManifestVersion,
+                    marketplaceDirectory,
+                    GetNewestFileChange(marketplaceDirectory),
+                    L("HealthEvidenceMarketplaceThemeInactive"),
+                    "RepairMarketplace",
+                    "OpenMarketplace");
             }
 
             if (visibilityEvidence?.OpenUriSucceeded == false)

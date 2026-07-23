@@ -1275,6 +1275,29 @@ public sealed class PowerShellRegressionTests
     [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void Marketplace_FollowsOfficialThemeContractAndNeverZeroesInjectionPreApply(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        // Official Marketplace contract: placeholder theme + CSS injection on.
+        Assert.Contains("function Install-MarketplacePlaceholderTheme", script);
+        Assert.Contains("function Install-MarketplaceNavFallbackExtension", script);
+        Assert.Contains("librespot-marketplace-button.js", script);
+        Assert.Contains("'config', 'current_theme', 'marketplace'", script);
+        Assert.Contains("'config', 'inject_css', '1', 'replace_colors', '1'", script);
+
+        // The pre-apply block that zeroed injection in Marketplace-only mode
+        // nullified the contract; it must never come back inside apply.
+        var applyBody = Regex.Match(
+            script,
+            @"(?ms)^function\s+Module-ApplySpicetify\s*\{(?<body>.+?)^\}");
+        Assert.True(applyBody.Success, $"Module-ApplySpicetify not found in {relativePath}.");
+        Assert.DoesNotContain("'inject_css', '0'", applyBody.Groups["body"].Value);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
     public void LaunchAfter_ForceStopsSpotifyBeforeFinalLaunchSoPatchedSessionShows(string relativePath)
     {
         // Spotify is single-instance: launching while a stale/respawned process is

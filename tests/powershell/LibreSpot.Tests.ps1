@@ -1425,3 +1425,86 @@ Describe 'Test-SpicetifyCliVersionSupported' {
         Test-SpicetifyCliVersionSupported -Version 'Dev' | Should -BeTrue
     }
 }
+
+Describe 'Marketplace theme contract' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyIntegrationContext.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyConfigEntries.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyConfigListValue.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-MarketplaceHealth.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Install-MarketplacePlaceholderTheme.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Install-MarketplaceNavFallbackExtension.ps1')
+        if (-not (Get-Command Write-Log -ErrorAction SilentlyContinue)) {
+            function global:Write-Log { param([string]$Message, [string]$Level = 'INFO') }
+        }
+    }
+
+    BeforeEach {
+        $script:testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-mp-" + [Guid]::NewGuid().ToString('N'))
+        $global:SPICETIFY_DIR = Join-Path $script:testRoot 'cli'
+        $global:SPICETIFY_CONFIG_DIR = Join-Path $script:testRoot 'config'
+        New-Item -Path $global:SPICETIFY_CONFIG_DIR -ItemType Directory -Force | Out-Null
+    }
+
+    AfterEach {
+        Remove-Item -LiteralPath $script:testRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'Install-MarketplacePlaceholderTheme writes the upstream placeholder color.ini' {
+        $themeDir = Install-MarketplacePlaceholderTheme
+        $colorIni = Join-Path $themeDir 'color.ini'
+        Test-Path $colorIni | Should -BeTrue
+        ([System.IO.File]::ReadAllText($colorIni)).Trim() | Should -Be '[Marketplace]'
+    }
+
+    It 'Install-MarketplacePlaceholderTheme is idempotent' {
+        $themeDir = Install-MarketplacePlaceholderTheme
+        $colorIni = Join-Path $themeDir 'color.ini'
+        $firstWrite = (Get-Item $colorIni).LastWriteTimeUtc
+        Start-Sleep -Milliseconds 50
+        Install-MarketplacePlaceholderTheme | Out-Null
+        (Get-Item $colorIni).LastWriteTimeUtc | Should -Be $firstWrite
+    }
+
+    It 'Install-MarketplaceNavFallbackExtension writes a guarded Topbar fallback' {
+        $name = Install-MarketplaceNavFallbackExtension
+        $name | Should -Be 'librespot-marketplace-button.js'
+        $path = Join-Path (Get-SpicetifyIntegrationContext).ExtensionsDirectory $name
+        Test-Path $path | Should -BeTrue
+        $js = [System.IO.File]::ReadAllText($path)
+        $js | Should -Match 'Spicetify\.Topbar\.Button'
+        $js | Should -Match 'History\.push\("/marketplace"\)'
+        $js | Should -Match 'navEntryPresent'
+        # Never registers when a native entry already rendered.
+        $js | Should -Match 'if \(navEntryPresent\(\)\) \{ return; \}'
+    }
+
+    It 'Get-MarketplaceHealth reports ThemeInactive when marketplace is on but no theme is active' {
+        $marketplaceDir = Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps\marketplace'
+        New-Item -Path $marketplaceDir -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $marketplaceDir 'extension.js') -Value 'x'
+        Set-Content -LiteralPath (Join-Path $marketplaceDir 'manifest.json') -Value '{}'
+        Set-Content -LiteralPath (Join-Path $global:SPICETIFY_CONFIG_DIR 'config-xpui.ini') -Value "custom_apps = marketplace`ncurrent_theme = `ninject_css = 0"
+
+        $health = Get-MarketplaceHealth
+        $health.Status | Should -Be 'ThemeInactive'
+        $health.ThemeContractReady | Should -BeFalse
+        $health.IsReady | Should -BeFalse
+        $health.NeedsRepair | Should -BeTrue
+    }
+
+    It 'Get-MarketplaceHealth reports Ready when the placeholder theme contract is satisfied' {
+        $marketplaceDir = Join-Path $global:SPICETIFY_CONFIG_DIR 'CustomApps\marketplace'
+        New-Item -Path $marketplaceDir -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $marketplaceDir 'extension.js') -Value 'x'
+        Set-Content -LiteralPath (Join-Path $marketplaceDir 'manifest.json') -Value '{}'
+        Set-Content -LiteralPath (Join-Path $global:SPICETIFY_CONFIG_DIR 'config-xpui.ini') -Value "custom_apps = marketplace`ncurrent_theme = marketplace`ninject_css = 1"
+
+        $health = Get-MarketplaceHealth
+        $health.Status | Should -Be 'Ready'
+        $health.ThemeContractReady | Should -BeTrue
+        $health.CurrentTheme | Should -Be 'marketplace'
+        $health.IsReady | Should -BeTrue
+        $health.NeedsRepair | Should -BeFalse
+    }
+}
