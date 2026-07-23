@@ -6,6 +6,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [v4.0.0-preview.19] - 2026-07-23
 
+### Changed
+
+- The end-of-install launch now burns a hidden ~15-second warm-up session before the visible Spotify launch. The first patched session performs heavy one-time initialization (fresh xpui extraction, CEF/GPU caches, Spicetify wrapper warmup) and could sit frozen for about ten seconds right as users signed in, until a manual restart cleared it. LibreSpot now performs that close-and-reopen automatically - the warm-up window stays hidden (WPF window watcher / monolith Hide-SpotifyWindows loop), so the session users actually see and sign in to starts responsive.
+
 ### Fixed
 
 - Fixed the blank Marketplace store page. Root cause: SpotX serves the combined `Apps/xpui/xpui.js` bundle (its patches only take effect when `index.html` loads it), while Spicetify v2.44.0 wires custom-app routes into `xpui-modules.js` and the chunk map into `xpui-snapshot.js` - files the page never loads in that layout. The `/marketplace` route therefore mounted a `React.lazy` chunk the live webpack runtime could not start, suspending forever behind a `fallback:null` Suspense with zero console errors. New `Repair-SpicetifyCustomAppWiring` ports the Spicetify CLI's own injection (route element, lazy chunk loader, chunk-name maps, and the miniCss gate from `src/apply/apply.go`) onto the bundle `index.html` actually references, with a pre-patch backup, strict anchor matching (no write unless every required anchor matched), and idempotent re-runs. Every successful `spicetify backup apply` in both hosts now re-wires the route automatically when Marketplace is enabled; verified live on Spotify 1.2.93.667 - the store page now renders the full catalog.

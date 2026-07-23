@@ -5333,6 +5333,22 @@ function Invoke-LibreSpotInstall {
         # hidden until a manual restart. Force a clean slate first so the patched
         # result is visible from the get-go.
         Stop-SpotifyProcesses -MaxAttempts 5
+        # The first patched session performs heavy one-time initialization (fresh
+        # xpui extraction, CEF/GPU caches, Spicetify wrapper warmup) and can sit
+        # frozen for ~10 seconds right when users sign in; a restart clears it.
+        # Burn that first session in the background with the window hidden, then
+        # hand users a warmed, responsive second session.
+        Write-Log 'Warming up the patched Spotify session in the background (the first launch initializes caches)...'
+        Update-BackendState -Progress 97 -Status 'Warming up Spotify' -Step 'First patched session initializes caches in the background'
+        $warmupWatcher = Start-SpotifyWindowWatcher
+        try {
+            Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
+            $null = Test-SpotifySessionStability -WaitSeconds 15
+        } finally {
+            Stop-SpotifyWindowWatcher -Watcher $warmupWatcher
+        }
+        Write-Log 'Restarting Spotify so the session you see starts clean...'
+        Stop-SpotifyProcesses -MaxAttempts 3
         # Launch via explorer.exe so Spotify starts in the desktop user context instead of
         # inheriting our elevated token. A directly-started Spotify would run as Administrator,
         # which Spotify explicitly warns against and which breaks drag-and-drop from Explorer

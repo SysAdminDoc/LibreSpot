@@ -1319,6 +1319,18 @@ public sealed class PowerShellRegressionTests
         var killIndex = script.LastIndexOf("Stop-SpotifyProcesses", launchIndex, StringComparison.Ordinal);
         Assert.True(killIndex >= 0, $"Final launch must be preceded by Stop-SpotifyProcesses in {relativePath}.");
         Assert.True(launchIndex - killIndex < 600, $"Stop-SpotifyProcesses is not adjacent to the final launch in {relativePath}.");
+
+        // A brand-new patched session performs heavy one-time initialization and
+        // can freeze ~10 seconds right at sign-in; users had to restart Spotify
+        // manually to clear it. The install must burn one hidden warm-up session
+        // and restart before the visible launch so the session users keep is warm.
+        var warmupIndex = script.IndexOf("Warming up the patched Spotify session", StringComparison.Ordinal);
+        Assert.True(warmupIndex >= 0, $"Warm-up session not found in {relativePath}.");
+        Assert.True(warmupIndex < killIndex, $"Warm-up must run before the final restart in {relativePath}.");
+        var warmupLaunchIndex = script.IndexOf("Start-Process -FilePath 'explorer.exe'", warmupIndex, StringComparison.Ordinal);
+        Assert.True(
+            warmupLaunchIndex >= 0 && warmupLaunchIndex < killIndex,
+            $"Warm-up launch not found between the warm-up marker and the final restart in {relativePath}.");
     }
 
     [Theory]

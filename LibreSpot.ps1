@@ -9607,6 +9607,21 @@ $installBlock = { param($sh,$cfg)
             # clean slate (watcher is already stopped above) so the patched result
             # shows from the get-go.
             Stop-SpotifyProcesses -MaxAttempts 5
+            # The first patched session performs heavy one-time initialization
+            # (fresh xpui extraction, CEF/GPU caches, Spicetify wrapper warmup)
+            # and can sit frozen for ~10 seconds right when users sign in; a
+            # restart clears it. Burn that first session hidden, then hand users
+            # a warmed, responsive second session.
+            Write-Log "Warming up the patched Spotify session in the background (the first launch initializes caches)..."
+            $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Warming up Spotify in the background" })
+            Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
+            $warmupDeadline = (Get-Date).AddSeconds(15)
+            while ((Get-Date) -lt $warmupDeadline) {
+                Hide-SpotifyWindows
+                Start-Sleep -Milliseconds 250
+            }
+            Write-Log "Restarting Spotify so the session you see starts clean..."
+            Stop-SpotifyProcesses -MaxAttempts 3
             Write-Log "Launching Spotify..." -Level 'SUCCESS'
             Start-Process -FilePath 'explorer.exe' -ArgumentList "`"$global:SPOTIFY_EXE_PATH`""
             $finalStep = 'Spotify is opening'
