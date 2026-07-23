@@ -522,3 +522,68 @@ Items surfaced by the July 9, 2026 deep audit pass but not fixed in-session.
 ### P1
 
 ### P2
+
+## Research-Driven Additions (2026-07-22)
+
+Items from the 2026-07-22 exhaustive research pass. Full evidence in
+`RESEARCH.md`. IDs continue the `RD-` scheme (highest prior: RD-31). Not
+duplicated: Intune/PDQ/WinRM deployment samples (done — `samples/deployment/`),
+Defender `-defender_exclusions_off` gate (done), foreign-patcher detection
+(done), package-manager manifests (blocked on package identity —
+`Roadmap_Blocked.md`), native PS2EXE launcher (blocked), Stryker.NET (blocked,
+now unblockable by RD-35).
+
+### P1
+
+- [ ] P1 — RD-32: Ship self-contained builds on the latest patched .NET 10 runtime
+  Why: Both projects publish self-contained `win-x64`, so 2026 bundled-runtime CVEs (CVE-2026-32175 crafted-file arbitrary write, CVE-2026-26127 Base64Url OOB read, CVE-2026-45490, CVE-2026-50526) are only fixed by rebuilding against a patched runtime, not by the host's servicing.
+  Evidence: `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:8` and `src/LibreSpot.Cli/LibreSpot.Cli.csproj:7` (`<RuntimeIdentifiers>win-x64`, no `<TargetLatestRuntimePatch>`); dotnet/announcements #396/#403/#415, dotnet/runtime#125393.
+  Touches: both `.csproj` (add `<TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>`), `Build-Scripts.ps1` dependency-health/preflight, README verification note.
+  Acceptance: self-contained artifacts embed the newest .NET 10 servicing runtime the build SDK ships; a build/preflight check fails when the resolved runtime pack predates the documented CVE-patched floor; dependency-health output records the embedded runtime version. (Needs live validation: confirm the release publish path is self-contained; if it moves to framework-dependent this reduces to a documented minimum-host-runtime note.)
+  Complexity: S
+
+### P2
+
+- [ ] P2 — RD-33: Guard against Spicetify v3's changed on-disk contract
+  Why: Spicetify v3 (spicetify/cli #3038, unreleased as of 2026-07-22) replaces xpui injection with a symlink xpui→config + patched `index.html` "hooks" + generalized "modules" model, which would simultaneously break the three 2.x-filename patch-detection sites and make a healthy Spotify report as broken/unpatched.
+  Evidence: github.com/spicetify/cli/issues/3038; `src/LibreSpot.Desktop/Services/EnvironmentSnapshotService.cs` (BuildSpotXComponent), `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1` (`Get-SpotXPatchVerification`), `LibreSpot.ps1` detection sites; `CLAUDE.md` three-site detection contract.
+  Touches: `EnvironmentSnapshotService.cs`, `Backend/LibreSpot.Backend.ps1`, `LibreSpot.ps1`, `Properties/Strings*.resx`, xUnit + Pester detection tests.
+  Acceptance: when the installed Spicetify CLI reports major version ≥ 3, all detection sites surface a localized "Spicetify 3.x is not yet supported — LibreSpot targets 2.x" state instead of a false broken/unpatched verdict; synthetic v3 version-string fixtures cover WPF, backend, and PS-GUI.
+  Complexity: M
+
+- [ ] P2 — RD-34: Re-verify upstream pins and record the deliberate pre-Defender SpotX hold
+  Why: As of 2026-07-22 SpotX `main` targets Spotify 1.2.94 and, since commit `afb4c3f` (2026-07-11), adds Microsoft Defender exclusions by default (opt-out `-defender_exclusions_off`); Spicetify CLI 2.44.0 still caps at 1.2.93. The pinned SpotX `550bc72c`/1.2.93 predates `afb4c3f` and matches Spicetify's ceiling, so holding is the safest choice — but neither the verified date (2026-07-08) nor the compatibility copy records this reasoning or the advance trigger.
+  Evidence: github.com/SpotX-Official/SpotX/commit/afb4c3f + /commits/main; github.com/spicetify/cli/releases/tag/v2.44.0; `src/LibreSpot.Desktop/Models/AppCatalog.cs:621-629`, `schemas/community-assets.json`. Answers the "is the April 2026 SpotX/Spicetify pin guidance still current?" Research Backlog question.
+  Touches: `AppCatalog.cs` (`UpstreamPinsLastVerifiedAtUtc` + a hold-rationale note/const), `schemas/community-assets.json` verified date, README compatibility-matrix section.
+  Acceptance: pins re-verified date updated to 2026-07-22; a documented note states LibreSpot deliberately holds at the pre-Defender SpotX commit and will advance the SpotX pin + Spotify target only once Spicetify declares 1.2.94+ support (at which point the refreshed adapter sets `defenderMutations=true` and passes `-defender_exclusions_off`); drift check and release-truth gate stay green.
+  Complexity: S
+
+### P3
+
+- [ ] P3 — RD-35: Extract non-UI logic into a `LibreSpot.Core` class library
+  Why: `MainViewModel.cs` is 4,871 lines with pure logic entangled in WPF types, bloating the god-ViewModel and blocking the filed Stryker.NET item (Stryker cannot analyze a `net10.0-windows`/`UseWPF` target). A WPF-free `net10.0` library both shrinks the ViewModel and unblocks mutation testing.
+  Evidence: `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`; `Roadmap_Blocked.md` "Add Stryker.NET mutation testing" (blocked on this extraction).
+  Touches: new `src/LibreSpot.Core/` (`net10.0`, no `-windows`/WPF), `MainViewModel.cs`, `Services/*`, tests project reference.
+  Acceptance: pure logic (snapshot derivation, plan building, undo-policy evaluation, drift comparison) moves to `LibreSpot.Core` with direct unit tests; the library builds without WPF; the WPF ViewModel consumes it; the existing xUnit + FlaUI suites stay green; the Stryker blocked item can now target `LibreSpot.Core`.
+  Complexity: L
+
+- [ ] P3 — RD-36: Decompose `MainWindow.xaml` into per-screen UserControls
+  Why: `MainWindow.xaml` is 5,509 lines holding all six nav screens (Home/Setup/Unblock/Tools/Settings/About) + the inspector in one file, slowing edits and raising merge/regression risk on the shipping shell.
+  Evidence: `src/LibreSpot.Desktop/MainWindow.xaml`.
+  Touches: `MainWindow.xaml`, new `Views/*.xaml` UserControls, `Themes/Controls.xaml`, FlaUI smoke + rendered-QA tests (AutomationIds/x:Names must be preserved).
+  Acceptance: each nav screen becomes a UserControl under `Views/`; `MainWindow` composes them; every `AutomationId`/`x:Name` referenced by tests is preserved byte-for-byte; the rendered-WPF QA capture and FlaUI suite pass unchanged across dark/high-contrast and English/Spanish.
+  Complexity: L
+
+- [ ] P3 — RD-37: Add German and French WPF locales
+  Why: the localization framework, runtime language selector, and strict validation gate (`tools/Sync-Localization.ps1`) already support five locales (en/es/pt-BR/ru/zh-Hans); de/fr are large Spotify-modding audiences and low-risk given the gate.
+  Evidence: `src/LibreSpot.Desktop/Properties/Strings.*.resx` (five locales, no de/fr); `tools/Sync-Localization.ps1`.
+  Touches: new `Strings.de.resx` / `Strings.fr.resx`, language-selector list, localization validation allowlist, health-component/scrollbar automation-name coverage.
+  Acceptance: de and fr resource sets pass `Sync-Localization` (placeholder parity, no English carry-over, protected product/file tokens, no truncation); the language selector lists both; hidden long-text prompt rendering covers them.
+  Complexity: L
+
+- [ ] P3 — RD-38: Verify Spicetify CLI build attestations, not just SHA256
+  Why: Spicetify publishes GitHub build-provenance attestations on its releases; LibreSpot pins only the SHA256, so the download's provenance (who/how built) is unverified — checking the attestation is a leapfrog trust signal over every competitor and hardens against an upstream build-pipeline compromise that keeps the same tag.
+  Evidence: github.com/spicetify/cli/releases/tag/v2.44.0 (attestations); `src/LibreSpot.Desktop/Services/UpstreamDriftService.cs`, `schemas/community-assets.json` provenance model.
+  Touches: the Spicetify CLI download/verify path, `schemas/community-assets.json` (attestation reference), dependency-health output, xUnit tests.
+  Acceptance: the pinned Spicetify CLI download optionally verifies its GitHub attestation bundle (offline, against a cached signer identity) in addition to SHA256; a mismatch surfaces as a trust warning; when the attestation tooling/cert is unavailable it degrades to SHA256-only rather than failing closed.
+  Complexity: M
