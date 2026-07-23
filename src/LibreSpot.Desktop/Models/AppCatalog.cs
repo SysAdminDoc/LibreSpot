@@ -632,7 +632,27 @@ public static class AppCatalog
     public const string PinnedStatsCustomAppVersion = "1.1.3";
     public const string PinnedStatsCustomAppReleaseTag = "stats-v1.1.3";
     public static DateTimeOffset UpstreamPinsLastVerifiedAtUtc { get; } =
-        new(2026, 7, 8, 0, 0, 0, TimeSpan.Zero);
+        new(2026, 7, 22, 0, 0, 0, TimeSpan.Zero);
+
+    /// <summary>
+    /// Records why LibreSpot deliberately holds the SpotX pin instead of tracking
+    /// SpotX <c>main</c>. As of the last verification, SpotX <c>main</c> targets
+    /// Spotify 1.2.94 and — since commit afb4c3f (2026-07-11) — adds Microsoft
+    /// Defender exclusions by default (opt-out <c>-defender_exclusions_off</c>),
+    /// while Spicetify CLI 2.44.0 still tops out at 1.2.93
+    /// (<see cref="SpicetifyWindowsMaxTestedSpotify"/>). The pinned SpotX commit
+    /// predates afb4c3f and matches Spicetify's ceiling, so holding avoids both
+    /// the unverified 1.2.94 pairing and the Defender-exclusion behavior. Advance
+    /// the SpotX pin + Spotify target together only once Spicetify declares
+    /// 1.2.94+ support; the refreshed adapter must then set
+    /// <see cref="PinnedSpotXContainsDefenderMutations"/> and pass
+    /// <c>-defender_exclusions_off</c>.
+    /// </summary>
+    public const string PinnedSpotXHoldRationale =
+        "Holding pre-Defender SpotX commit (predates afb4c3f 2026-07-11) at Spotify " +
+        "1.2.93 to match Spicetify CLI 2.44.0's tested ceiling; advance only when " +
+        "Spicetify declares 1.2.94+ support, then set DefenderMutations and pass " +
+        "-defender_exclusions_off.";
 
     public static IReadOnlyList<UpstreamDependencyPin> UpstreamDependencyPins { get; } =
         new ReadOnlyCollection<UpstreamDependencyPin>(new[]

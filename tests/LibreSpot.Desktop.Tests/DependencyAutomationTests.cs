@@ -98,6 +98,23 @@ public sealed class DependencyAutomationTests
     }
 
     [Fact]
+    public void SpotXPinHold_IsDocumentedAndRecentlyVerified()
+    {
+        Assert.True(
+            AppCatalog.UpstreamPinsLastVerifiedAtUtc >= new DateTimeOffset(2026, 7, 22, 0, 0, 0, TimeSpan.Zero),
+            "Upstream pins must record a re-verification on or after 2026-07-22.");
+
+        var rationale = AppCatalog.PinnedSpotXHoldRationale;
+        Assert.False(string.IsNullOrWhiteSpace(rationale));
+        Assert.Contains("-defender_exclusions_off", rationale, StringComparison.Ordinal);
+        Assert.Contains("1.2.94", rationale, StringComparison.Ordinal);
+
+        // The hold is only coherent while the pin still predates the Defender
+        // commit; the current pin declares no Defender mutations.
+        Assert.False(AppCatalog.PinnedSpotXContainsDefenderMutations);
+    }
+
+    [Fact]
     public void SpotXDefenderPolicy_CurrentPinStaysArgumentCompatibleAndMetadataMatchesDesktop()
     {
         var script = ReadRepoFile("LibreSpot.ps1");

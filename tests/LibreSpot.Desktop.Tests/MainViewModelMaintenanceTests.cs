@@ -100,7 +100,7 @@ public sealed class MainViewModelMaintenanceTests
             var spotX = Assert.Single(viewModel.ShellProvenanceItems, item => item.Name == "SpotX");
             Assert.Contains(AppCatalog.PinnedSpotXCommit, spotX.PinnedDetail);
             Assert.Equal("https://github.com/SpotX-Official/SpotX", spotX.SourceUrl);
-            Assert.Contains("2026-07-08", spotX.VerifiedDetail);
+            Assert.Contains("2026-07-22", spotX.VerifiedDetail);
             Assert.Equal("Freshness unknown", spotX.FreshnessText);
             Assert.True(spotX.OpenSourceCommand.CanExecute(null));
             Assert.True(spotX.OpenReleaseNotesCommand.CanExecute(null));

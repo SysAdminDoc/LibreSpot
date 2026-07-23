@@ -110,6 +110,8 @@ Current source script version: **v3.7.4**. Public latest stable release: **v3.7.
 
 **Compatibility matrix:** Maintenance > Check matrix reports SpotX, Spicetify CLI, Marketplace, and theme archive status separately. The current SpotX target is Spotify `1.2.93`, and Spicetify CLI v2.44.0 declares Windows/Microsoft Store compatibility through Spotify `1.2.93`, so LibreSpot can show a clean aligned baseline instead of the older CSS-map coverage gap warning.
 
+**Why the SpotX pin holds (verified 2026-07-22):** SpotX `main` now targets Spotify 1.2.94 and, since commit `afb4c3f` (2026-07-11), adds Microsoft Defender exclusions by default (opt-out `-defender_exclusions_off`). Spicetify CLI 2.44.0 still tops out at Spotify 1.2.93. LibreSpot deliberately holds the pre-Defender SpotX commit `550bc72c` at Spotify 1.2.93 to match Spicetify's tested ceiling and avoid weakening Defender. The SpotX pin and Spotify target advance together only once Spicetify declares 1.2.94+ support, at which point the refreshed adapter must declare Defender mutations and pass `-defender_exclusions_off` (enforced by `Build-Scripts.ps1` and the backend Defender gate).
+
 ---
 
 ## Features

@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Security
 
+- Re-verified upstream pins (2026-07-22) and recorded the deliberate hold at the pre-Defender SpotX commit `550bc72c`/Spotify 1.2.93: SpotX `main` now targets 1.2.94 and adds Microsoft Defender exclusions by default (commit `afb4c3f`), while Spicetify CLI 2.44.0 still caps at 1.2.93. `AppCatalog.PinnedSpotXHoldRationale` and the README compatibility matrix document the advance trigger (Spicetify 1.2.94+ support) and the required `-defender_exclusions_off` opt-out.
 - Set `TargetLatestRuntimePatch` on the self-contained .NET 10 desktop and CLI projects and added a `dotnetRuntimeFloor` gate to `Build-Scripts.ps1 -DependencyHealth`, so release preflight records the resolved `Microsoft.NETCore.App` / `Microsoft.WindowsDesktop.App` patch level and fails when the build host is below the documented CVE-patched floor (CVE-2026-32175/26127/45490/50526). Self-contained artifacts embed the runtime, so this ensures shipped builds carry current .NET servicing fixes.
 
 - Added a fail-closed executable-undo policy: only explicitly selected, low-risk user-PATH additions with an exact protected before/after snapshot can run; stale, unknown, elevated, destructive, reparse-point, missing-state, and non-allowlisted tokens are refused without mutation.
