@@ -194,6 +194,8 @@ foreach ($name in @(
     'Module-InstallSpotX',
     'Module-InstallSpicetifyCLI',
     'Module-InstallThemes',
+    'Install-MarketplacePlaceholderTheme',
+    'Install-MarketplaceNavFallbackExtension',
     'Module-InstallMarketplace',
     'Module-InstallCustomApps'
 )) {
@@ -275,6 +277,7 @@ function Expand-ArchiveSafely {
 }
 
 function Get-SpicetifyIntegrationContext { return $script:Integration }
+function Get-SpicetifyConfigEntries { return $script:SpicetifyConfig }
 function Invoke-SpicetifyCli { param([string[]]$Arguments, [string]$FailureMessage) $script:SpicetifyCliCalls += ($Arguments -join ' ') }
 function Add-PathEntry { param([string]$Entry, [string]$Scope) return $true }
 function Clear-DirectoryContentsSafely { param([string]$Path, [string]$Label) return $true }
@@ -348,8 +351,11 @@ function Reset-Scenario {
         CustomAppsDirectory = Join-Path $script:ScenarioRoot 'AppData\Roaming\spicetify\CustomApps'
         MarketplaceDirectory = Join-Path $script:ScenarioRoot 'AppData\Roaming\spicetify\CustomApps\marketplace'
         LegacyMarketplaceDirectory = Join-Path $script:ScenarioRoot 'AppData\Roaming\spicetify\Apps\marketplace'
+        ExtensionsDirectory = Join-Path $script:ScenarioRoot 'AppData\Roaming\spicetify\Extensions'
         ConfigDirectory = Join-Path $script:ScenarioRoot 'AppData\Roaming\spicetify'
     }
+    # Empty config so Module-InstallMarketplace takes the placeholder-theme path.
+    $script:SpicetifyConfig = @{}
 
     foreach ($path in @($global:CONFIG_DIR, $global:CACHE_DIR, $global:TEMP_DIR, $spotifyDirectory, $script:Integration.ConfigDirectory)) {
         New-Item -Path $path -ItemType Directory -Force | Out-Null

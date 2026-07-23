@@ -89,7 +89,7 @@ function Module-InstallMarketplace { param($Config)
             Write-Log "Marketplace enabled. The store appears as a Marketplace item in Spotify; if it is hidden, open spotify:app:marketplace directly."
             Write-Log "If the store page loads empty, GitHub may be rate-limiting the catalog fetch - wait about a minute and reopen Marketplace."
         } else {
-            Write-Log "Marketplace files were installed but status is '$($health.Status)'. Use Maintenance > Repair and open Marketplace if the sidebar icon is hidden." -Level 'WARN'
+            Write-Log "Marketplace files were installed but status is '$($health.Status)'. Use Maintenance > Repair Marketplace, then fully restart Spotify if the Marketplace button is missing." -Level 'WARN'
         }
     } finally {
         Remove-Item -LiteralPath $mz -Force -ErrorAction SilentlyContinue

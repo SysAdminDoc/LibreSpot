@@ -52,7 +52,7 @@ public sealed class MainViewModelMaintenanceTests
         {
             using var fixture = new SnapshotFixture();
             fixture.WriteSpotify(withSpotXMarkers: true);
-            fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault");
+            fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = SpicetifyDefault\r\ninject_css = 1");
             fixture.WriteMarketplaceFiles();
             fixture.WriteBackup();
 

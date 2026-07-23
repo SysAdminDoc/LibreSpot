@@ -18,7 +18,7 @@ function Repair-Marketplace {
         if ($health.IsReady) {
             Write-Log "Marketplace repair verified at $($health.Path)." -Level 'SUCCESS'
         } else {
-            Write-Log "Marketplace repair finished, but status is '$($health.Status)'. Open spotify:app:marketplace directly if the sidebar icon remains hidden." -Level 'WARN'
+            Write-Log "Marketplace repair finished, but status is '$($health.Status)'. Fully restart Spotify; if the Marketplace button is still missing, open spotify:app:marketplace directly." -Level 'WARN'
         }
         $openResult = Open-SpicetifyMarketplace
         Write-MarketplaceVisibilityEvidence -Source 'RepairMarketplace' -ApplyStage $applyResult.Stage -ApplySucceeded $applyResult.Succeeded -ApplyMessage $applyResult.Message -OpenUriSucceeded $openResult.Succeeded -OpenUriMessage $openResult.Message -OpenUriRequestedAtUtc $openResult.RequestedAtUtc -SpotifyRunningAfterOpen $openResult.SpotifyRunningAfterOpen | Out-Null

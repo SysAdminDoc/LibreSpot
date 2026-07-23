@@ -4407,11 +4407,11 @@ function Install-MarketplaceNavFallbackExtension {
         '            Spicetify.Topbar && Spicetify.Topbar.Button);',
         '    }',
         '    function navEntryPresent() {',
-        '        // The wrapper-rendered nav link, a sidebar item, or an earlier instance',
-        '        // of this button. Covers the localized names Marketplace ships.',
+        '        // The wrapper-rendered nav link (href is locale-independent), a',
+        '        // sidebar item, or an earlier instance of this button. The href',
+        '        // match covers every localized display name Marketplace ships.',
         '        return !!document.querySelector(',
-        '            ''a[href="/marketplace"], [aria-label="Marketplace"], [title="Marketplace"],'' +',
-        '            '' [aria-label="Маркетплейс"], [title="Маркетплейс"]'');',
+        '            ''a[href="/marketplace"], [aria-label="Marketplace"], [title="Marketplace"]'');',
         '    }',
         '    function registerFallback() {',
         '        if (navEntryPresent()) { return; }',
@@ -4541,7 +4541,7 @@ function Module-InstallMarketplace { param($Config)
             Write-Log "Marketplace enabled. The store appears as a Marketplace item in Spotify; if it is hidden, open spotify:app:marketplace directly."
             Write-Log "If the store page loads empty, GitHub may be rate-limiting the catalog fetch - wait about a minute and reopen Marketplace."
         } else {
-            Write-Log "Marketplace files were installed but status is '$($health.Status)'. Use Maintenance > Repair and open Marketplace if the sidebar icon is hidden." -Level 'WARN'
+            Write-Log "Marketplace files were installed but status is '$($health.Status)'. Use Maintenance > Repair Marketplace, then fully restart Spotify if the Marketplace button is missing." -Level 'WARN'
         }
     } finally {
         Remove-Item -LiteralPath $mz -Force -ErrorAction SilentlyContinue
@@ -4775,7 +4775,7 @@ function Repair-Marketplace {
         if ($health.IsReady) {
             Write-Log "Marketplace repair verified at $($health.Path)." -Level 'SUCCESS'
         } else {
-            Write-Log "Marketplace repair finished, but status is '$($health.Status)'. Open spotify:app:marketplace directly if the sidebar icon remains hidden." -Level 'WARN'
+            Write-Log "Marketplace repair finished, but status is '$($health.Status)'. Fully restart Spotify; if the Marketplace button is still missing, open spotify:app:marketplace directly." -Level 'WARN'
         }
         $openResult = Open-SpicetifyMarketplace
         Write-MarketplaceVisibilityEvidence -Source 'RepairMarketplace' -ApplyStage $applyResult.Stage -ApplySucceeded $applyResult.Succeeded -ApplyMessage $applyResult.Message -OpenUriSucceeded $openResult.Succeeded -OpenUriMessage $openResult.Message -OpenUriRequestedAtUtc $openResult.RequestedAtUtc -SpotifyRunningAfterOpen $openResult.SpotifyRunningAfterOpen | Out-Null
