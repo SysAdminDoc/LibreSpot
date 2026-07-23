@@ -30,8 +30,9 @@ build machine should:
 
 ## Current State
 
-- Stable script release: v3.7.4.
-- Native WPF shell line: v4.0.0-preview.12.
+- Public latest stable release: v3.7.2 (verified 2026-07-14).
+- Current script source line: v3.7.4 (not yet the public stable release).
+- Native WPF shell line: v4.0.0-preview.17.
 - Release pipeline now builds PS2EXE and WPF artifacts with checksums, SBOMs, and
   build provenance attestations.
 - Auto-reapply watcher, self-update checks, pre-patched Spotify detection,
@@ -434,65 +435,6 @@ items below were deferred because they need runtime verification the audit
 could not do headlessly, carry regression risk, or are systemic changes
 larger than a single fix.
 
-- [ ] P1 — Reduced-motion and high-contrast do not gate storyboard animations
-  Why: All 38 storyboard `Duration` references use `{StaticResource Motion*Duration}`
-  / `IndeterminateSweepDuration`, which resolve once at parse time. `ThemeManager.ApplyReducedMotion`
-  overwrites `app.Resources["Motion*Duration"]` and the high-contrast palette redefines
-  the durations near-zero, but neither reaches the already-baked StaticResource refs — so
-  hover/press/checkbox/chevron/shimmer/overlay animations keep running at full duration under
-  both the OS "reduce animations" setting and high-contrast, contradicting the code comments.
-  Fix likely needs the duration refs switched to `DynamicResource` (verify WPF does not reject
-  DynamicResource on frozen-Storyboard `Duration`) or a whole-dictionary swap; must be verified
-  by launching the WPF shell, so it was not attempted headlessly.
-  Where: src/LibreSpot.Desktop/Services/ThemeManager.cs:63-89,
-  src/LibreSpot.Desktop/Themes/Controls.xaml (30 refs),
-  src/LibreSpot.Desktop/MainWindow.xaml (8 refs),
-  src/LibreSpot.Desktop/Themes/Palette.xaml:246-249
-
-- [ ] P2 — User PATH edits flatten `%VAR%` tokens and downgrade REG_EXPAND_SZ to REG_SZ
-  Why: `Get-PathEntries -Scope User` reads the expanded PATH via
-  `[Environment]::GetEnvironmentVariable('PATH','User')` and `Set-PathEntries` writes it back
-  with `SetEnvironmentVariable(...,'User')`, which always writes REG_SZ. Every Spicetify
-  install/uninstall (Add/Remove-PathEntry) therefore rewrites any `%USERPROFILE%`/`%JAVA_HOME%`
-  user-PATH entry as a literal expanded path and changes the registry value type. A safe fix
-  must read the raw unexpanded value from `HKCU:\Environment` (`DoNotExpandEnvironmentNames`)
-  AND write REG_EXPAND_SZ with a `WM_SETTINGCHANGE` broadcast — a half-fix breaks `%VAR%`
-  resolution. Deferred: registry PATH mutation cannot be verified safely on the build machine.
-  Where: src/powershell/shared/Get-PathEntries.ps1, src/powershell/shared/Set-PathEntries.ps1
-  (mirrored in LibreSpot.ps1 and LibreSpot.Backend.ps1)
-
-- [ ] P2 — `Remove-PathSafely` unlinks only the top-level reparse point, not nested junctions
-  Why: The function deletes a top-level junction/symlink as a link, but for a normal directory
-  it runs `icacls /reset /T` and `Remove-Item -Recurse`, both of which follow a junction planted
-  one level down inside the tree (PS 5.1 semantics). In the elevated FullReset/Nuke flows this is
-  an ACL-reset / delete-anything vector against the link target. Fix needs a depth-first unlink of
-  all nested reparse points before the recursive ops; systemic change to the shared deletion engine
-  used by elevated paths, so deferred for careful dedicated testing.
-  Where: src/powershell/shared/Remove-PathSafely.ps1 (mirrored in LibreSpot.ps1:~7290,
-  LibreSpot.Backend.ps1)
-
-- [ ] P2 — DangerBrush as body text fails WCAG AA on raised surfaces
-  Why: `DangerColor #E5484D` measures 3.33-4.47:1 against Surface2/Surface3/SurfaceRaised — below
-  the 4.5:1 AA threshold for normal text. No live failure today (current usages sit on Canvas/Surface1
-  or are large text), but it is a latent palette trap for any future danger body/caption text on a
-  raised surface. Consider a distinct brighter danger *text* token separate from the danger fill.
-  Where: src/LibreSpot.Desktop/Themes/Palette.xaml:56
-
-- [ ] P3 — Log-row severity brushes go stale on a high-contrast toggle
-  Why: `LogLevelToBrushConverter` resolves a concrete frozen `Brush` at bind time; WPF does not
-  re-run the converter when merged dictionaries swap, so log rows realized before an HC on/off
-  toggle keep the previous-theme brush until recycled (virtualization masks most cases). Fix by
-  binding `Foreground` to a `DynamicResource` via a key-returning converter + style DataTriggers.
-  Where: src/LibreSpot.Desktop/Converters/LogLevelToBrushConverter.cs,
-  src/LibreSpot.Desktop/MainWindow.xaml:~4809
-
-- [ ] P3 — Off-ladder corner radii (2, 5) and a loose 20-value type scale
-  Why: `CornerRadius="2"` (many sites) and `CornerRadius="5"` (checkbox box) fall outside the
-  documented 0/4/6/8/10/12 radius ladder; font sizes span 20 distinct values with one-offs
-  (14.5, 15.5, 23, 25, 27) that bypass shared type styles. Cosmetic consistency debt — introduce a
-  `RadiusXs` token and consolidate the type ramp.
-  Where: src/LibreSpot.Desktop/Themes/Controls.xaml, src/LibreSpot.Desktop/MainWindow.xaml
-
 ## Research-Driven Additions
 
 Items below were added by the June 9, 2026 research pass. They cover
@@ -563,69 +505,20 @@ in `Roadmap_Blocked.md`; the rows below are implementer-actionable.
 
 ### P1
 
-- [ ] P1 — RD-14: Sync release truth across docs and validation
-  Why: README and roadmap still name the WPF preview as `4.0.0-preview.12` while Desktop/CLI csproj files and CHANGELOG declare `4.0.0-preview.13`, weakening trust in release guidance.
-  Evidence: `README.md:11`, `ROADMAP.md:34`, `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj`, `src/LibreSpot.Cli/LibreSpot.Cli.csproj`, `CHANGELOG.md:5`, `RESEARCH.md`.
-  Touches: `README.md`, `ROADMAP.md`, `Build-Scripts.ps1`, `tests/LibreSpot.Desktop.Tests/ReadmeScreenshotTests.cs` or equivalent validation coverage.
-  Acceptance: README badge/current release copy, roadmap current-state text, csproj versions, and top changelog entry agree on stable `3.7.4` plus preview `4.0.0-preview.13`; local validation fails on future README/csproj preview drift.
-  Complexity: S
-
-- [ ] P1 — RD-15: Expand rendered WPF QA into a full state, theme, locale, and focus matrix
-  Why: LibreSpot has many polished WPF surfaces, but premium quality depends on proving every modified surface across dark/light/high-contrast, localized text, focus visibility, empty/error/loading/success states, and nested dialogs.
-  Evidence: `src/LibreSpot.Desktop/MainWindow.xaml`, `src/LibreSpot.Desktop/Properties/Strings.*.resx`, `assets/screenshots/*.png`, WPF-UI 4.3.0 release notes, WCAG 2.2 focus guidance, UI Automation accessibility guidance, `RESEARCH.md`.
-  Touches: `tests/LibreSpot.Desktop.Tests/*Smoke*`, `tests/LibreSpot.Desktop.Tests/*Screenshot*`, `Build-Scripts.ps1`, `assets/screenshots/*`, `src/LibreSpot.Desktop/Themes/*`.
-  Acceptance: one local smoke/validation command captures or verifies recommended, custom, maintenance, activity/undo, support-bundle, profile, prompt, empty, error, and success surfaces in every supported theme and at least one non-English locale; assertions cover visible focus, accessible names, and no clipped primary text.
-  Complexity: L
-
-- [ ] P1 — RD-16: Preserve Marketplace and custom-app state before repair or reapply
-  Why: Spicetify Marketplace and custom-app users report disappearing extensions, broken Marketplace installs, and localStorage reset recovery steps; LibreSpot repair should preview what will be preserved or lost before touching that state.
-  Evidence: Spicetify Marketplace docs, `spicetify/marketplace` issues, `harbassan/spicetify-apps` issues, `LibreSpot.ps1` Marketplace evidence functions, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `RESEARCH.md`.
-  Touches: `LibreSpot.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`, `src/LibreSpot.Desktop/Services/EnvironmentSnapshotService.cs`, `tests/LibreSpot.Desktop.Tests/*Marketplace*`, `tests/powershell/LibreSpot.Tests.ps1`.
-  Acceptance: before Marketplace repair/reset/reapply, LibreSpot records existing Marketplace/custom-app/config evidence, shows a clear preservation/loss preview, restores recoverable local state after the operation, and writes operation-journal/support-bundle evidence for both success and failure.
-  Complexity: M
-
-- [ ] P1 — RD-17: Surface upstream asset provenance and changelog context in WPF and CLI
-  Why: Competitors and adjacent patch managers expose patch/source versions, changelogs, and source freshness; LibreSpot already pins assets but users need visible provenance before trusting a patch run.
-  Evidence: Universal ReVanced Manager, ReVanced Patch Bundles, SpotX, Spicetify CLI, `schemas/community-assets.json`, `src/LibreSpot.Desktop/Services/CommunityAssetDriftService.cs`, `Build-Scripts.ps1 -DependencyHealth`, `RESEARCH.md`.
-  Touches: `schemas/community-assets.json`, `src/LibreSpot.Desktop/Services/CommunityAssetDriftService.cs`, `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`, `src/LibreSpot.Cli/CliDocuments.cs`, `src/LibreSpot.Cli/Program.cs`, `tests/LibreSpot.Desktop.Tests/*Asset*`, `tests/LibreSpot.Desktop.Tests/*Cli*`.
-  Acceptance: WPF trust/readiness and CLI JSON show each pinned upstream component with version/commit, source URL, last verified timestamp, available changelog or release link, and stale/indeterminate status; support bundles include the same redacted provenance snapshot.
-  Complexity: M
-
 ### P2
-
-- [ ] P2 — RD-18: Extend in-app search across setup actions, settings, profiles, and assets
-  Why: ReVanced Manager and Vencord make broad settings/plugin discovery table-stakes; LibreSpot already has searchable pieces, but users should be able to find actions and configuration by intent rather than remembering tab names.
-  Evidence: Universal ReVanced Manager settings search, Vencord settings/plugin model, `src/LibreSpot.Desktop/ViewModels/SettingsSearchStateViewModel.cs`, `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`, `RESEARCH.md`.
-  Touches: `src/LibreSpot.Desktop/ViewModels/SettingsSearchStateViewModel.cs`, `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`, `src/LibreSpot.Desktop/MainWindow.xaml`, `src/LibreSpot.Desktop/Properties/Strings.*.resx`, `tests/LibreSpot.Desktop.Tests/*Search*`.
-  Acceptance: one search surface returns categorized results for setup modes, SpotX options, themes, extensions, profiles, maintenance actions, support-bundle actions, and trust/health issues; empty and no-result states are localized and keyboard accessible.
-  Complexity: M
-
-- [ ] P2 — RD-19: Detect third-party patcher footprints and offer a migration-safe plan
-  Why: Archived or separate patchers such as BlockTheSpot, raw SpotX, and standalone Spicetify can leave backups/configs that change repair behavior; LibreSpot should identify those states before modifying Spotify.
-  Evidence: BlockTheSpot archived status, SpotX backup/update behavior, Spicetify `backup apply`/`restore backup apply` docs, `src/LibreSpot.Desktop/Services/EnvironmentSnapshotService.cs`, `LibreSpot.ps1`, `RESEARCH.md`.
-  Touches: `src/LibreSpot.Desktop/Services/EnvironmentSnapshotService.cs`, `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`, `LibreSpot.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `tests/LibreSpot.Desktop.Tests/*Environment*`, `tests/powershell/LibreSpot.Tests.ps1`.
-  Acceptance: environment snapshot distinguishes LibreSpot-owned state from raw SpotX, standalone Spicetify, and likely BlockTheSpot footprints; WPF/CLI show a safe migration/repair recommendation without deleting foreign data silently; support bundles include the detection result.
-  Complexity: M
-
-- [ ] P2 — RD-20: Correlate GUI, backend, CLI, and support-bundle diagnostics with stable operation IDs
-  Why: Operation journals already record IDs, but support handoffs are stronger when a visible run ID links WPF activity, backend events, CLI JSON, logs, crash windows, and exported support bundles.
-  Evidence: `LibreSpot.ps1` operation journal functions, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `src/LibreSpot.Cli/CliDocuments.cs`, Serilog trace/span support, .NET EventSource diagnostics, PowerToys diagnostics pattern, `RESEARCH.md`.
-  Touches: `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `src/LibreSpot.Desktop/Services/SupportBundleService.cs`, `src/LibreSpot.Cli/CliDocuments.cs`, `src/LibreSpot.Cli/Program.cs`, `LibreSpot.ps1`, `tests/LibreSpot.Desktop.Tests/*SupportBundle*`, `tests/LibreSpot.Desktop.Tests/*OperationJournal*`.
-  Acceptance: each run exposes a copyable operation ID in WPF, includes the same ID in backend events/log lines/CLI JSON/support-bundle manifests, and optionally emits an EventSource provider for local ETW/EventPipe collection without uploading data.
-  Complexity: M
 
 ## Audit Backlog (July 9, 2026)
 
 Items surfaced by the July 9, 2026 deep audit pass but not fixed in-session.
 
-- [ ] P2 — Pester coverage for lane-specific watcher functions
-  Why: `Get-WatcherLaunchCommand`, `Invoke-AutoReapplyWatcher`, `Invoke-HeadlessReapply`, and `Register-AutoReapplyTask` have zero Pester unit test coverage. The watcher is a silently running scheduled task — regressions in its config-gate or version-comparison logic could skip reapplies or reapply when disabled.
-  Where: `src/powershell/lane-specific/Get-WatcherLaunchCommand.ps1`, `src/powershell/lane-specific/Invoke-AutoReapplyWatcher.ps1`, `src/powershell/lane-specific/Invoke-HeadlessReapply.ps1`, `src/powershell/lane-specific/Register-AutoReapplyTask.ps1`, `tests/powershell/LibreSpot.Tests.ps1`
+## Research-Driven Additions
 
-- [ ] P3 — Recapture WPF screenshots for preview.15 shell version
-  Why: The version bump to preview.15 causes `ReadmeScreenshotTests.ReadmeWpfScreenshotsCarryCurrentShellVersionMetadata` to fail because PNG metadata still carries the preview.14 shell version. Requires running the WPF shell in `--uia-smoke` mode and recapturing screenshots.
-  Where: `assets/screenshots/wpf-*.png`
+### P1
 
-- [ ] P3 — CrashReporter dialog buttons use hardcoded English strings
-  Why: `CrashReporter.cs` line 400 uses `"Continue"` / `"Close LibreSpot"` raw strings instead of localized resources. The crash dialog renders standalone XAML without the main resource dictionary, so localizing these requires either embedding the resource lookup or passing translated strings from the caller.
-  Where: `src/LibreSpot.Desktop/Services/CrashReporter.cs`
+### P2
+
+## Research-Driven Additions
+
+### P1
+
+### P2

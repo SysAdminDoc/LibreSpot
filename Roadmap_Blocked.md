@@ -720,3 +720,177 @@ analysis failures.
 Acceptance: Stryker runs against the extracted non-UI library, produces a
 mutation score report locally, and documents a ratchet threshold that catches
 untested behavioral branches without requiring WPF mutation.
+
+## P2 - Decide backend status localization contract before translating activity events
+
+| Field | Value |
+|---|---|
+| Source | Audit-Driven Additions (July 7, 2026) |
+| Blocker | Product/protocol decision - operator must choose localized protocol keys vs English backend events |
+
+Why: `Update-BackendState` status and step strings are English-only by design
+but render inside a fully localized WPF shell. Translating them requires a
+stable decision about whether the backend event protocol carries localization
+keys, localized strings, or English diagnostic messages only.
+
+Touches: `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`,
+`schemas/backend-event-protocol.json`,
+`src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`,
+`src/LibreSpot.Desktop/Properties/Strings*.resx`.
+
+Acceptance: operator records one protocol rule for backend activity text; the
+implementation either maps stable backend event keys through WPF resources or
+documents backend output as English diagnostic text outside localization scope.
+
+## P3 - Publish the v3.7.4 / v4.0.0-preview.9 GitHub release with the full artifact contract
+
+| Field | Value |
+|---|---|
+| Source | Audit-Driven Additions (July 7, 2026) |
+| Blocker | Operator release publication pass required |
+
+Why: version strings, changelog, and local artifacts are bumped; release upload
+requires the operator's publishing pass for PS2EXE, desktop, CLI, SBOM,
+manifest, and checksums per `schemas/release-artifact-contract.json`.
+
+Touches: `Build-Scripts.ps1`, `schemas/release-artifact-contract.json`,
+GitHub Releases.
+
+Acceptance: GitHub release page for the version contains the full artifact
+contract and downloadable checksums/SBOM/manifest assets.
+
+## P3 - Verify HotTrack-based Warning/Info/Danger contrast in HC #1 and HC #2 themes on-device
+
+| Field | Value |
+|---|---|
+| Source | Audit-Driven Additions (July 7, 2026) |
+| Blocker | On-device high-contrast visual validation required |
+
+Why: the high-contrast palette maps attention colors to
+`SystemColors.HotTrackColorKey`; contrast against Window/Control is not
+guaranteed by every Windows high-contrast scheme and cannot be proven from
+static resource inspection alone.
+
+Touches: `src/LibreSpot.Desktop/Themes/HighContrastPalette.xaml`.
+
+Acceptance: HC #1 and HC #2 are manually/device verified or a deterministic
+capture harness records contrast-safe Warning/Info/Danger rendering in both.
+
+## P3 - Decide Mica backdrop: make it visible or remove the machinery
+
+| Field | Value |
+|---|---|
+| Source | Audit-Driven Additions (July 7, 2026) |
+| Blocker | Design/operator decision |
+
+Why: the DWM backdrop is set but the opaque root Grid covers the entire client
+area, so Mica cannot render. The project needs a design decision to expose Mica
+or remove the unused machinery.
+
+Touches: `src/LibreSpot.Desktop/Services/Win11ShellIntegration.cs`,
+`src/LibreSpot.Desktop/MainWindow.xaml`,
+`src/LibreSpot.Desktop/Themes/Palette.xaml`.
+
+Acceptance: operator chooses visible Mica or removal; implementation follows
+that decision without leaving dead backdrop plumbing.
+
+## P3 - Reword the "Premium Spotify toolkit" subtitle
+
+| Field | Value |
+|---|---|
+| Source | Audit-Driven Additions (July 7, 2026) |
+| Blocker | Branding/legal copy decision |
+
+Why: for an ad-removal tool, "Premium" in always-visible branding can read as
+"makes Spotify Premium." Suggested replacement direction is "Spotify setup &
+recovery toolkit," but operator approval is needed for branding/legal wording.
+
+Touches: `LibreSpot.ps1`, `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`.
+
+Acceptance: operator approves the replacement subtitle and related preset copy;
+the implementation updates both shells consistently.
+
+## P3 - Native .NET launcher to replace the PS2EXE artifact
+
+| Field | Value |
+|---|---|
+| Source | Research-Driven Additions (2026-07-08) |
+| Blocker | Entangled with blocked SignPath signing + operator release pass; deliverable is a decision record + AV-flag comparison, not autonomous code |
+
+Why: PS2EXE output (`LibreSpot.exe`, the packed standalone script) inherits the
+packer's chronic HackTool/loader AV reputation. A native .NET launcher hosting
+the script would shed that, but the acceptance is a decision record plus a
+prototype with a before/after AV-flag comparison — which requires building and
+antivirus-scanning signed release artifacts. That depends on the blocked
+SignPath enrollment and the operator release/publishing pass, and the "decision
+record" is a research deliverable rather than an implementable code change.
+
+Evidence: Win-PS2EXE #4, Malwarebytes PS2EXE false-positive thread; RESEARCH.md
+architecture note. The fleet CLI (`LibreSpot.Cli.exe`) is already a native .NET
+executable; this concerns the PS2EXE-packed `LibreSpot.exe` GUI artifact.
+
+Touches: `.github/workflows/release.yml` (release packaging), a possible native
+launcher project, `SIGNPATH.md`.
+
+Acceptance: once signing is unblocked, ship the standalone entrypoint as a
+native signed exe instead of PS2EXE output, with a documented AV-flag comparison.
+
+## P2 - One-click "restore stock Spotify client" escape hatch
+
+| Field | Value |
+|---|---|
+| Source | Research-Driven Additions (2026-07-08) |
+| Blocker | Destructive binary restore that needs live validation against a real SpotX-patched Spotify to implement safely |
+
+Why: `RestoreVanilla` only runs `spicetify restore`, leaving SpotX's native
+binary patches in place, so it does not return a stock client. The only
+un-patch mechanism is restoring SpotX's own durable backups
+(`Spotify.bak` -> `Spotify.exe`, `chrome_elf.dll.bak` -> `chrome_elf.dll`,
+`Apps\xpui.bak` -> `Apps\xpui.spa`). That is a destructive overwrite of the
+Spotify install, is SpotX-version-fragile (packed-vs-extracted bundle states,
+backup-name drift), and LibreSpot keeps no structured pre-patch snapshot of its
+own (`CreateBackup`/`RestoreBackup` are Spicetify-only). The acceptance requires
+"verifies the result," which for a binary restore can only be trusted after
+exercising it against a real patched Spotify and confirming the restored client
+launches as stock — a live validation this environment cannot provide, and
+shipping it unverified risks bricking a user's Spotify.
+
+Evidence: `Get-SpotXPatchVerification` backup scheme (`LibreSpot.Backend.ps1`
+~3347-3369); RESEARCH.md "Enforcement trajectory" + its Open Question on scope
+(restore-from-backup vs re-download the official installer).
+
+Touches: a new restore module + backend action, `Module-NukeSpotify` neighbours,
+WPF maintenance catalog, CLI `repair`.
+
+Acceptance (once a test rig with a real SpotX-patched Spotify is available):
+a single action strips Spicetify, restores the SpotX binary backups, and
+verifies via `Get-SpotXPatchVerification` that no patch markers remain; when
+backups are absent it reports that a clean reinstall is required rather than
+overwriting anything.
+
+## P1 - RD-23: Exercise auto-reapply through Task Scheduler and process boundaries
+
+| Field | Value |
+|---|---|
+| Source | Research-Driven Additions (2026-07-14) |
+| Blocker | Local Task Scheduler starts but indefinitely suspends every disposable action process |
+
+Why: the repeatable `Build-Scripts.ps1 -WatcherIntegration` harness now
+registers and exports a unique least-privilege task, isolates watcher state,
+defines seven boundary scenarios, captures Scheduler evidence on failure, and
+always removes its task/temp data. On 2026-07-14 this machine registered the
+task successfully, but the Scheduler service left both the watcher host and an
+independent minimal `cmd.exe /c echo` probe running indefinitely before either
+process executed its first instruction. The Operational event log also
+returned no matching events. Function-level coverage passes, so only live
+Scheduler execution remains blocked by the host environment.
+
+Touches: `Build-Scripts.ps1`,
+`tests/powershell/Invoke-WatcherIntegration.ps1`,
+`tests/powershell/WatcherIntegrationHost.ps1`, Windows Task Scheduler.
+
+Acceptance (on a machine where an on-demand limited task can execute): run
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\Build-Scripts.ps1
+-WatcherIntegration`; all success, disabled/corrupt config, unavailable
+network, active Spotify, cancellation, and interrupted state-write assertions
+pass, and no `LibreSpot-WatcherIntegration-*` task or temp directory remains.

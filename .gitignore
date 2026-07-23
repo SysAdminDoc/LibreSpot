@@ -43,3 +43,5 @@ AGENTS.md
 PROJECT_CONTEXT.md
 CONTINUATION_PROMPT.md
 test-results.xml
+testResults.xml
+TestResults/
