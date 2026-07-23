@@ -4,6 +4,13 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0-preview.19] - 2026-07-23
+
+### Fixed
+
+- Fixed the blank Marketplace store page. Root cause: SpotX serves the combined `Apps/xpui/xpui.js` bundle (its patches only take effect when `index.html` loads it), while Spicetify v2.44.0 wires custom-app routes into `xpui-modules.js` and the chunk map into `xpui-snapshot.js` - files the page never loads in that layout. The `/marketplace` route therefore mounted a `React.lazy` chunk the live webpack runtime could not start, suspending forever behind a `fallback:null` Suspense with zero console errors. New `Repair-SpicetifyCustomAppWiring` ports the Spicetify CLI's own injection (route element, lazy chunk loader, chunk-name maps, and the miniCss gate from `src/apply/apply.go`) onto the bundle `index.html` actually references, with a pre-patch backup, strict anchor matching (no write unless every required anchor matched), and idempotent re-runs. Every successful `spicetify backup apply` in both hosts now re-wires the route automatically when Marketplace is enabled; verified live on Spotify 1.2.93.667 - the store page now renders the full catalog.
+- Added a `RouteNotWired` Marketplace health state across the shared PowerShell health model and the WPF stack-health snapshot (all six locales): when the live Spotify bundle never references the store chunk, health now says the store page is not wired and points at Repair Marketplace instead of reporting a healthy install with a blank store.
+
 ## [v4.0.0-preview.18] - 2026-07-23
 
 ### Security

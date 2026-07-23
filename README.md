@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.18-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.19-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
@@ -68,7 +68,9 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 ---
 
-## What's New in v4.0.0-preview.18
+## What's New in v4.0.0-preview.19
+
+**The store page actually opens now.** SpotX serves Spotify's combined `xpui.js` bundle, but the Spicetify CLI wires the Marketplace route into sibling files that layout never loads - so the store opened to a permanently blank page with no errors anywhere. LibreSpot now re-wires the store route into the bundle Spotify actually runs after every apply, verified end to end on a live install. Stack health gains a "Store page not wired" state (all six languages) that detects the broken layout and points straight at Repair Marketplace.
 
 **Marketplace that actually works.** The default Marketplace-only setup now follows the official Spicetify Marketplace install contract: LibreSpot creates and activates the placeholder theme and keeps CSS injection on, so store themes and snippets render instead of silently doing nothing, and a managed fallback restores a visible **Marketplace** button in Spotify's top bar when a Spotify redesign breaks Spicetify's own nav link. Marketplace health now warns when the theme contract is inactive and points you to Repair Marketplace, and the post-install launch guarantees a fresh, patched Spotify session.
 

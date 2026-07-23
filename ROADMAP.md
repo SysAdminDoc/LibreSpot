@@ -569,12 +569,8 @@ Surfaced by the 2026-07-23 Marketplace deep-dive. The theme contract, missing
 store button, and health reporting were fixed in-session (see CHANGELOG); the
 items below need runtime state this environment cannot fully produce.
 
-- [ ] P1 — RD-39: Marketplace app renders a blank page on Spotify 1.2.93.667
-  Why: With the store reachable and the theme contract satisfied, opening Marketplace still renders an empty `<main>` (0 children). All injection is correct (route in `xpui-modules.js`, `spicetify-routes-marketplace.js` 430 KB app bundle, `_renderNavLinks`, extension.js), Spicetify.React is healthy (18.3.1), and the GitHub catalog fetch returns 200 — so this is the upstream Marketplace 1.0.9 prebuilt bundle not rendering on Spotify 1.2.93.667 (rspack), matching spicetify/marketplace #1185 (same version combo; maintainer resolution was a clean Spotify + fresh Spicetify backup) and #1194 for 1.2.94.
-  Where: pinned Marketplace 1.0.9 vs Spotify 1.2.93.667; `src/powershell/shared/Module-ApplySpicetify` (backup/apply); `schemas` pin data.
-  Acceptance: pick and implement one — (a) pin/verify the highest Spotify version where Marketplace 1.0.9 renders and detect/refuse auto-updates past it; (b) adopt a newer Marketplace release once upstream ships a 1.2.93-rspack fix; or (c) prove/deny that a clean stock-Spotify Spicetify backup (vs LibreSpot's current SpotX-first layering) renders the store, and if so add a "clean backup" repair path.
-  Complexity: L
-
+- [x] P1 — RD-39: Marketplace app renders a blank page on Spotify 1.2.93.667 — RESOLVED in v4.0.0-preview.19
+  Root cause found via CDP forensics + spicetify/cli source: NOT the upstream bundle. SpotX serves the combined `/xpui.js` (its patches only take effect from that file), while Spicetify v2.44.0 injects custom-app routes into `xpui-modules.js` and the chunk map into `xpui-snapshot.js` — files index.html never loads in the SpotX layout. `/marketplace` mounted a React.lazy chunk the live webpack runtime could not start (Suspense fallback:null = silent blank). Fixed by `Repair-SpicetifyCustomAppWiring` (ports the CLI's own apply.go injection onto the live bundle after every apply) + `RouteNotWired` health state. Verified live: store renders the full catalog on 1.2.93.667.
 - [ ] P2 — RD-40: Verify Spicetify applies over a stock (non-SpotX) backup
   Why: LibreSpot runs SpotX first, then `spicetify backup apply`, so Spicetify's backup is of a SpotX-modified xpui rather than stock. Upstream guidance (#1185) is to back up a clean client before apply; the SpotX-first layering is the most likely LibreSpot-influenceable cause of subtle Marketplace/theme render failures that still exit apply 0.
   Where: `src/powershell/shared/Module-InstallSpotX.ps1`, `Module-ApplySpicetify`, ordering in `Invoke-LibreSpotInstall`.
