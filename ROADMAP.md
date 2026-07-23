@@ -533,31 +533,6 @@ Defender `-defender_exclusions_off` gate (done), foreign-patcher detection
 `Roadmap_Blocked.md`), native PS2EXE launcher (blocked), Stryker.NET (blocked,
 now unblockable by RD-35).
 
-### P1
-
-- [ ] P1 — RD-32: Ship self-contained builds on the latest patched .NET 10 runtime
-  Why: Both projects publish self-contained `win-x64`, so 2026 bundled-runtime CVEs (CVE-2026-32175 crafted-file arbitrary write, CVE-2026-26127 Base64Url OOB read, CVE-2026-45490, CVE-2026-50526) are only fixed by rebuilding against a patched runtime, not by the host's servicing.
-  Evidence: `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:8` and `src/LibreSpot.Cli/LibreSpot.Cli.csproj:7` (`<RuntimeIdentifiers>win-x64`, no `<TargetLatestRuntimePatch>`); dotnet/announcements #396/#403/#415, dotnet/runtime#125393.
-  Touches: both `.csproj` (add `<TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>`), `Build-Scripts.ps1` dependency-health/preflight, README verification note.
-  Acceptance: self-contained artifacts embed the newest .NET 10 servicing runtime the build SDK ships; a build/preflight check fails when the resolved runtime pack predates the documented CVE-patched floor; dependency-health output records the embedded runtime version. (Needs live validation: confirm the release publish path is self-contained; if it moves to framework-dependent this reduces to a documented minimum-host-runtime note.)
-  Complexity: S
-
-### P2
-
-- [ ] P2 — RD-33: Guard against Spicetify v3's changed on-disk contract
-  Why: Spicetify v3 (spicetify/cli #3038, unreleased as of 2026-07-22) replaces xpui injection with a symlink xpui→config + patched `index.html` "hooks" + generalized "modules" model, which would simultaneously break the three 2.x-filename patch-detection sites and make a healthy Spotify report as broken/unpatched.
-  Evidence: github.com/spicetify/cli/issues/3038; `src/LibreSpot.Desktop/Services/EnvironmentSnapshotService.cs` (BuildSpotXComponent), `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1` (`Get-SpotXPatchVerification`), `LibreSpot.ps1` detection sites; `CLAUDE.md` three-site detection contract.
-  Touches: `EnvironmentSnapshotService.cs`, `Backend/LibreSpot.Backend.ps1`, `LibreSpot.ps1`, `Properties/Strings*.resx`, xUnit + Pester detection tests.
-  Acceptance: when the installed Spicetify CLI reports major version ≥ 3, all detection sites surface a localized "Spicetify 3.x is not yet supported — LibreSpot targets 2.x" state instead of a false broken/unpatched verdict; synthetic v3 version-string fixtures cover WPF, backend, and PS-GUI.
-  Complexity: M
-
-- [ ] P2 — RD-34: Re-verify upstream pins and record the deliberate pre-Defender SpotX hold
-  Why: As of 2026-07-22 SpotX `main` targets Spotify 1.2.94 and, since commit `afb4c3f` (2026-07-11), adds Microsoft Defender exclusions by default (opt-out `-defender_exclusions_off`); Spicetify CLI 2.44.0 still caps at 1.2.93. The pinned SpotX `550bc72c`/1.2.93 predates `afb4c3f` and matches Spicetify's ceiling, so holding is the safest choice — but neither the verified date (2026-07-08) nor the compatibility copy records this reasoning or the advance trigger.
-  Evidence: github.com/SpotX-Official/SpotX/commit/afb4c3f + /commits/main; github.com/spicetify/cli/releases/tag/v2.44.0; `src/LibreSpot.Desktop/Models/AppCatalog.cs:621-629`, `schemas/community-assets.json`. Answers the "is the April 2026 SpotX/Spicetify pin guidance still current?" Research Backlog question.
-  Touches: `AppCatalog.cs` (`UpstreamPinsLastVerifiedAtUtc` + a hold-rationale note/const), `schemas/community-assets.json` verified date, README compatibility-matrix section.
-  Acceptance: pins re-verified date updated to 2026-07-22; a documented note states LibreSpot deliberately holds at the pre-Defender SpotX commit and will advance the SpotX pin + Spotify target only once Spicetify declares 1.2.94+ support (at which point the refreshed adapter sets `defenderMutations=true` and passes `-defender_exclusions_off`); drift check and release-truth gate stay green.
-  Complexity: S
-
 ### P3
 
 - [ ] P3 — RD-35: Extract non-UI logic into a `LibreSpot.Core` class library
