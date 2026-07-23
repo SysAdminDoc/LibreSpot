@@ -1379,3 +1379,49 @@ Describe 'Lane-specific auto-reapply watcher' {
         @(Get-ChildItem -LiteralPath $global:CONFIG_DIR -Force | Where-Object Name -Match '^watcher-state\..+\.(tmp|bak|rescue)$').Count | Should -Be 0
     }
 }
+
+Describe 'Get-SpicetifyCliMajorVersion' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyCliMajorVersion.ps1')
+    }
+
+    It 'Parses the leading major from a 2.x version' {
+        Get-SpicetifyCliMajorVersion -Version '2.44.0' | Should -Be 2
+    }
+
+    It 'Parses a v-prefixed and pre-release v3 version' {
+        Get-SpicetifyCliMajorVersion -Version 'v3.1.2-dev' | Should -Be 3
+    }
+
+    It 'Returns $null for empty input' {
+        Get-SpicetifyCliMajorVersion -Version '' | Should -Be $null
+    }
+
+    It 'Returns $null for non-numeric input' {
+        Get-SpicetifyCliMajorVersion -Version 'Dev' | Should -Be $null
+    }
+}
+
+Describe 'Test-SpicetifyCliVersionSupported' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyCliMajorVersion.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Test-SpicetifyCliVersionSupported.ps1')
+    }
+
+    It 'Supports the pinned 2.x line' {
+        Test-SpicetifyCliVersionSupported -Version '2.44.0' | Should -BeTrue
+    }
+
+    It 'Rejects a future v3 major' {
+        Test-SpicetifyCliVersionSupported -Version '3.0.0' | Should -BeFalse
+    }
+
+    It 'Rejects any newer major' {
+        Test-SpicetifyCliVersionSupported -Version '4.1.0' | Should -BeFalse
+    }
+
+    It 'Treats an unknown version as supported (never a false warning)' {
+        Test-SpicetifyCliVersionSupported -Version $null | Should -BeTrue
+        Test-SpicetifyCliVersionSupported -Version 'Dev' | Should -BeTrue
+    }
+}

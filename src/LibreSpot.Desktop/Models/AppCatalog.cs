@@ -356,6 +356,45 @@ public static class HealthSeverity
     public const string Critical = "critical";
 }
 
+/// <summary>
+/// Guards LibreSpot's Spicetify integration against a future Spicetify v3, whose
+/// tracking issue (spicetify/cli#3038) replaces xpui injection with symlink +
+/// hooks + "modules" — an on-disk contract LibreSpot's 2.x patch-detection does
+/// not understand. Detection sites use this to surface an explicit "unsupported
+/// version" state instead of a false broken/unpatched verdict.
+/// </summary>
+public static class SpicetifyVersionSupport
+{
+    /// <summary>The highest Spicetify CLI major version LibreSpot supports.</summary>
+    public const int SupportedMajor = 2;
+
+    /// <summary>
+    /// Parses the leading major version from a Spicetify version string such as
+    /// "2.44.0", "v3.0.0", or "3.1.2-dev". Returns false for null/empty or
+    /// non-numeric input (e.g. "Dev"), where the version is treated as unknown.
+    /// </summary>
+    public static bool TryGetMajor(string? version, out int major)
+    {
+        major = 0;
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            return false;
+        }
+
+        var trimmed = version.Trim().TrimStart('v', 'V');
+        var digits = new string(trimmed.TakeWhile(char.IsDigit).ToArray());
+        return int.TryParse(digits, out major);
+    }
+
+    /// <summary>
+    /// True only when the version parses to a major strictly greater than
+    /// <see cref="SupportedMajor"/>. Unknown/unparseable versions are NOT treated
+    /// as unsupported, so a missing probe never triggers a false warning.
+    /// </summary>
+    public static bool IsUnsupportedMajor(string? version) =>
+        TryGetMajor(version, out var major) && major > SupportedMajor;
+}
+
 public sealed class StackHealthReport
 {
     public static StackHealthReport Empty { get; } = new(Array.Empty<StackHealthComponent>());

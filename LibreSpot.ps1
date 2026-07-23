@@ -9021,6 +9021,50 @@ function Repair-Marketplace {
     } | Out-Null
 }
 
+function Get-SpicetifyCliMajorVersion {
+    # Pure: parse the leading integer major from a Spicetify version string such
+    # as '2.44.0', 'v3.0.0', or '3.1.2-dev'. Returns $null for empty or
+    # non-numeric input (e.g. 'Dev'), where the version is treated as unknown.
+    param([string]$Version)
+    if ([string]::IsNullOrWhiteSpace($Version)) { return $null }
+    $trimmed = $Version.Trim().TrimStart('v', 'V')
+    $match = [regex]::Match($trimmed, '^\d+')
+    if (-not $match.Success) { return $null }
+    return [int]$match.Value
+}
+
+function Test-SpicetifyCliVersionSupported {
+    # LibreSpot targets Spicetify 2.x. A future Spicetify v3 (spicetify/cli#3038)
+    # changes the on-disk contract (symlink + hooks + modules) that LibreSpot's
+    # patch detection does not understand. Unknown/unparseable versions are
+    # treated as supported so a missing probe never raises a false warning; only
+    # a parsed major greater than 2 is unsupported.
+    param([string]$Version)
+    $major = Get-SpicetifyCliMajorVersion -Version $Version
+    if ($null -eq $major) { return $true }
+    return ($major -le 2)
+}
+
+function Get-InstalledSpicetifyCliVersion {
+    # Best-effort read of the installed Spicetify CLI version via `spicetify -v`.
+    # Returns $null when the CLI is absent or the probe fails for any reason;
+    # callers must treat $null as 'unknown', never as an error. Never throws.
+    try {
+        $cliPath = (Get-SpicetifyIntegrationContext).CliPath
+    } catch {
+        return $null
+    }
+    if (-not (Test-Path -LiteralPath $cliPath)) { return $null }
+    try {
+        $output = & $cliPath '-v' 2>$null
+        foreach ($line in @($output)) {
+            $match = [regex]::Match([string]$line, '\d+(?:\.\d+)+')
+            if ($match.Success) { return $match.Value }
+        }
+    } catch {}
+    return $null
+}
+
 function Get-SpicetifyDiagnosticSnapshot {
     $snapshot = [ordered]@{}
     $configPath = (Get-SpicetifyIntegrationContext).ConfigPath
@@ -9035,6 +9079,11 @@ function Get-SpicetifyDiagnosticSnapshot {
     }
     $snapshot['xpui_spa_exists'] = Test-Path -LiteralPath (Join-Path (Split-Path $global:SPOTIFY_EXE_PATH -Parent) 'Apps\xpui.spa')
     $snapshot['spotify_exe_exists'] = Test-Path -LiteralPath $global:SPOTIFY_EXE_PATH
+    # A future Spicetify v3 changes the on-disk contract (spicetify/cli#3038); flag
+    # an unsupported CLI major so diagnostics do not read as a broken 2.x patch.
+    $cliVersion = Get-InstalledSpicetifyCliVersion
+    $snapshot['spicetify_cli_version'] = $cliVersion
+    $snapshot['spicetify_cli_supported'] = Test-SpicetifyCliVersionSupported -Version $cliVersion
     return $snapshot
 }
 

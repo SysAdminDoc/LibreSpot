@@ -2431,6 +2431,8 @@
   <data name="HealthEvidenceSpotXBundleMissing" xml:space="preserve"><value>Apps\xpui.spa 丢失，因此补丁状态不能被视为可靠。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyCliMissing" xml:space="preserve"><value>在预期的每用户位置中未找到 spicetify.exe。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyCliDetected" xml:space="preserve"><value>spicetify.exe 存在，维护操作可以调用它。</value><comment>Health evidence.</comment></data>
+  <data name="HealthStatusSpicetifyUnsupportedVersion" xml:space="preserve"><value>不支持的版本</value><comment>Health status shown when the installed Spicetify CLI is a newer major than LibreSpot supports.</comment></data>
+  <data name="HealthEvidenceSpicetifyUnsupportedVersionFormat" xml:space="preserve"><value>尚不支持 Spicetify {0}。LibreSpot 面向 Spicetify {1}.x — 请重新安装已固定的 Spicetify 版本以继续。</value><comment>Health evidence. {0} is the detected version, {1} is the supported major version.</comment></data>
   <data name="HealthEvidenceSpicetifyConfigUnavailable" xml:space="preserve"><value>Spicetify 配置是在安装 CLI 后创建的。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyConfigMissing" xml:space="preserve"><value>config-xpui.ini 丢失，因此无法检查保存的主题和扩展状态。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyConfigNoTheme" xml:space="preserve"><value>config-xpui.ini 存在； current_theme 未设置。</value><comment>Health evidence.</comment></data>

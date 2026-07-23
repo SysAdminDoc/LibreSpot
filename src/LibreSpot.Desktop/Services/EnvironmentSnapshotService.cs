@@ -812,12 +812,31 @@ public sealed class EnvironmentSnapshotService
                 "Install");
         }
 
+        var version = _spicetifyVersionProbe();
+        if (SpicetifyVersionSupport.IsUnsupportedMajor(version))
+        {
+            // A newer-major Spicetify uses an on-disk contract LibreSpot's 2.x
+            // detection does not understand (spicetify/cli#3038). Surface it as
+            // an explicit unsupported-version warning rather than letting the
+            // downstream patch checks report a false "broken/unpatched" state.
+            return Component(
+                "spicetify-cli",
+                L("HealthNameSpicetifyCli"),
+                L("HealthStatusSpicetifyUnsupportedVersion"),
+                HealthSeverity.Warning,
+                version,
+                _spicetifyPath,
+                GetLastChanged(_spicetifyPath),
+                F("HealthEvidenceSpicetifyUnsupportedVersionFormat", version, SpicetifyVersionSupport.SupportedMajor),
+                "OpenLogs");
+        }
+
         return Component(
             "spicetify-cli",
             L("HealthNameSpicetifyCli"),
             L("HealthStatusDetected"),
             HealthSeverity.Ready,
-            _spicetifyVersionProbe(),
+            version,
             _spicetifyPath,
             GetLastChanged(_spicetifyPath),
             L("HealthEvidenceSpicetifyCliDetected"));

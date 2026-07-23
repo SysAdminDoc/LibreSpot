@@ -1066,6 +1066,33 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.DoesNotContain(snapshot.HealthReport.Components, c => c.Id == "store-spotify");
     }
 
+    [Fact]
+    public void SpicetifyCliComponent_FlagsUnsupportedMajorVersionAsWarning()
+    {
+        using var fixture = new SnapshotFixture { SpicetifyVersion = "3.0.0" };
+        fixture.WriteSpicetifyConfig("[Setting]\n");
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var component = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "spicetify-cli");
+        Assert.Equal(HealthSeverity.Warning, component.Severity);
+        Assert.Equal("Unsupported version", component.Status);
+        Assert.Equal("3.0.0", component.DetectedVersion);
+        Assert.Contains("3.0.0", component.Evidence);
+        Assert.Contains(snapshot.HealthReport.WarningIssues, c => c.Id == "spicetify-cli");
+    }
+
+    [Fact]
+    public void SpicetifyCliComponent_KeepsSupportedVersionReady()
+    {
+        using var fixture = new SnapshotFixture { SpicetifyVersion = "2.44.0" };
+        fixture.WriteSpicetifyConfig("[Setting]\n");
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var component = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "spicetify-cli");
+        Assert.Equal(HealthSeverity.Ready, component.Severity);
+        Assert.Equal("Detected", component.Status);
+    }
+
     private sealed class SnapshotFixture : IDisposable
     {
         public SnapshotFixture()

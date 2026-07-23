@@ -2431,6 +2431,8 @@
   <data name="HealthEvidenceSpotXBundleMissing" xml:space="preserve"><value>Apps\xpui.spa is missing, so patch state cannot be considered reliable.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyCliMissing" xml:space="preserve"><value>spicetify.exe was not found in the expected per-user location.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyCliDetected" xml:space="preserve"><value>spicetify.exe exists and maintenance actions can call it.</value><comment>Health evidence.</comment></data>
+  <data name="HealthStatusSpicetifyUnsupportedVersion" xml:space="preserve"><value>Unsupported version</value><comment>Health status shown when the installed Spicetify CLI is a newer major than LibreSpot supports.</comment></data>
+  <data name="HealthEvidenceSpicetifyUnsupportedVersionFormat" xml:space="preserve"><value>Spicetify {0} is not yet supported. LibreSpot targets Spicetify {1}.x - reinstall the pinned Spicetify version to continue.</value><comment>Health evidence. {0} is the detected version, {1} is the supported major version.</comment></data>
   <data name="HealthEvidenceSpicetifyConfigUnavailable" xml:space="preserve"><value>Spicetify config is created after the CLI is installed.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyConfigMissing" xml:space="preserve"><value>config-xpui.ini is missing, so saved theme and extension state cannot be inspected.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyConfigNoTheme" xml:space="preserve"><value>config-xpui.ini exists; current_theme is not set.</value><comment>Health evidence.</comment></data>
