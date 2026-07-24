@@ -188,6 +188,8 @@ foreach ($name in @(
     'Update-AssetCacheIndexEntry',
     'Get-FromAssetCache',
     'Save-ToAssetCache',
+    'Get-SpicetifyAttestationVerdict',
+    'Test-SpicetifyCliAttestation',
     'Get-LibreSpotTempRoot',
     'New-LibreSpotTempFile',
     'New-LibreSpotTempDirectory',

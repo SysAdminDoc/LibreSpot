@@ -17,6 +17,12 @@ function Module-InstallSpicetifyCLI {
                 } else { throw }
             }
             Confirm-FileHash -Path $zp -ExpectedHash $expectedHash -Label "Spicetify CLI ($arch)"
+            $attestation = Test-SpicetifyCliAttestation -Path $zp -Attestation $global:PinnedReleases.SpicetifyCLI.Attestation
+            switch ($attestation) {
+                'Verified' { Write-Log "Spicetify CLI build provenance verified via GitHub attestation." }
+                'Mismatch' { Write-Log "Spicetify CLI GitHub attestation did not verify against the pinned signer identity ($($global:PinnedReleases.SpicetifyCLI.Attestation.Repo)). The SHA256 hash matched the pin, so the install proceeds on the verified hash, but provenance could not be confirmed - re-verify the pin if this persists." -Level 'WARN' }
+                default    { } # Unavailable: gh/network absent. SHA256 remains the gate; stay quiet.
+            }
             Save-ToAssetCache -SourcePath $zp -SHA256Hash $expectedHash -Label "Spicetify CLI ($arch)" -SourceUrl $zip
         }
         if (Test-Path -LiteralPath $integration.InstallDirectory) {

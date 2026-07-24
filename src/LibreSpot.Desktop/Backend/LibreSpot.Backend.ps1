@@ -90,6 +90,17 @@ $global:PinnedReleases = @{
             x64   = '215435095420e3804001a650c072f51befde897b414b0dac054edc2ea258ebea'
             arm64 = 'a6f827ae6387203bb87ff4af1f5ab21e4671a542ce1a0e3cb82ddc77d2ac7444'
         }
+        # Cached signer identity for the optional GitHub build-provenance check
+        # (Test-SpicetifyCliAttestation). Spicetify publishes SLSA attestations on
+        # its releases; when the `gh` CLI is present the download is verified
+        # against this identity in addition to SHA256, degrading to SHA256-only
+        # otherwise. Never fails the install closed.
+        Attestation = @{
+            Repo              = 'spicetify/cli'
+            CertIdentityRegex = '^https://github\.com/spicetify/cli/'
+            OidcIssuer        = 'https://token.actions.githubusercontent.com'
+            PredicateType     = 'https://slsa.dev/provenance/v1'
+        }
     }
     Marketplace = @{
         Version = '1.0.9'
@@ -4154,6 +4165,12 @@ function Module-InstallSpicetifyCLI {
                 } else { throw }
             }
             Confirm-FileHash -Path $zp -ExpectedHash $expectedHash -Label "Spicetify CLI ($arch)"
+            $attestation = Test-SpicetifyCliAttestation -Path $zp -Attestation $global:PinnedReleases.SpicetifyCLI.Attestation
+            switch ($attestation) {
+                'Verified' { Write-Log "Spicetify CLI build provenance verified via GitHub attestation." }
+                'Mismatch' { Write-Log "Spicetify CLI GitHub attestation did not verify against the pinned signer identity ($($global:PinnedReleases.SpicetifyCLI.Attestation.Repo)). The SHA256 hash matched the pin, so the install proceeds on the verified hash, but provenance could not be confirmed - re-verify the pin if this persists." -Level 'WARN' }
+                default    { } # Unavailable: gh/network absent. SHA256 remains the gate; stay quiet.
+            }
             Save-ToAssetCache -SourcePath $zp -SHA256Hash $expectedHash -Label "Spicetify CLI ($arch)" -SourceUrl $zip
         }
         if (Test-Path -LiteralPath $integration.InstallDirectory) {
@@ -4979,6 +4996,65 @@ function Get-SpicetifyCliMajorVersion {
     $match = [regex]::Match($trimmed, '^\d+')
     if (-not $match.Success) { return $null }
     return [int]$match.Value
+}
+
+function Get-SpicetifyAttestationVerdict {
+    # Pure: turn a `gh attestation verify` exit code + combined output into a
+    # trust verdict, layered on top of the mandatory SHA256 gate. Never throws.
+    #   'Verified'    - gh confirmed provenance against the pinned signer identity.
+    #   'Mismatch'    - gh ran and provenance verification FAILED (trust warning).
+    #   'Unavailable' - tooling/network/auth problem; fall back to SHA256-only.
+    # Only a clear verification-failure signal in the output maps to 'Mismatch';
+    # every other non-zero result (network, auth, rate-limit, missing tooling) is
+    # 'Unavailable' so a best-effort provenance check never fails the install closed.
+    param(
+        [int]$ExitCode,
+        [string]$Output
+    )
+    if ($ExitCode -eq 0) { return 'Verified' }
+    $text = [string]$Output
+    if ($text -match '(?i)(verification failed|failed to verify|no attestations (were )?found|does not match|no matching attestations|failed to verify signature)') {
+        return 'Mismatch'
+    }
+    return 'Unavailable'
+}
+
+function Test-SpicetifyCliAttestation {
+    # Best-effort GitHub build-provenance check for the pinned Spicetify CLI
+    # download, layered on top of the mandatory SHA256 gate (Confirm-FileHash).
+    # Delegates the cryptography to `gh attestation verify` when the GitHub CLI is
+    # present, checking the artifact against the cached signer identity in
+    # $global:PinnedReleases.SpicetifyCLI.Attestation (repo + cert-identity regex +
+    # OIDC issuer). Never throws and never fails the install closed: returns
+    # 'Verified', 'Mismatch' (a real provenance failure worth warning about), or
+    # 'Unavailable' (no gh / no network / no attestation tooling -> SHA256-only).
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        $Attestation
+    )
+    if (-not $Attestation) { return 'Unavailable' }
+    $repo = [string]$Attestation.Repo
+    if ([string]::IsNullOrWhiteSpace($repo)) { return 'Unavailable' }
+    if (-not (Test-Path -LiteralPath $Path)) { return 'Unavailable' }
+
+    $gh = Get-Command -Name 'gh' -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $gh) { return 'Unavailable' }
+
+    $ghArgs = @('attestation', 'verify', $Path, '--repo', $repo)
+    if (-not [string]::IsNullOrWhiteSpace([string]$Attestation.CertIdentityRegex)) {
+        $ghArgs += @('--cert-identity-regex', [string]$Attestation.CertIdentityRegex)
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$Attestation.OidcIssuer)) {
+        $ghArgs += @('--cert-oidc-issuer', [string]$Attestation.OidcIssuer)
+    }
+
+    try {
+        $output = & $gh.Source @ghArgs 2>&1
+        $code = $LASTEXITCODE
+    } catch {
+        return 'Unavailable'
+    }
+    return Get-SpicetifyAttestationVerdict -ExitCode $code -Output ($output | Out-String)
 }
 
 function Test-SpicetifyCliVersionSupported {

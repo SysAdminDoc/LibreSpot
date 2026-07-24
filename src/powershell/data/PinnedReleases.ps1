@@ -16,6 +16,17 @@ $global:PinnedReleases = @{
             x64   = '215435095420e3804001a650c072f51befde897b414b0dac054edc2ea258ebea'
             arm64 = 'a6f827ae6387203bb87ff4af1f5ab21e4671a542ce1a0e3cb82ddc77d2ac7444'
         }
+        # Cached signer identity for the optional GitHub build-provenance check
+        # (Test-SpicetifyCliAttestation). Spicetify publishes SLSA attestations on
+        # its releases; when the `gh` CLI is present the download is verified
+        # against this identity in addition to SHA256, degrading to SHA256-only
+        # otherwise. Never fails the install closed.
+        Attestation = @{
+            Repo              = 'spicetify/cli'
+            CertIdentityRegex = '^https://github\.com/spicetify/cli/'
+            OidcIssuer        = 'https://token.actions.githubusercontent.com'
+            PredicateType     = 'https://slsa.dev/provenance/v1'
+        }
     }
     Marketplace = @{
         Version = '1.0.9'

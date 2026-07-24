@@ -556,12 +556,6 @@ now unblockable by RD-35).
   Acceptance: de and fr resource sets pass `Sync-Localization` (placeholder parity, no English carry-over, protected product/file tokens, no truncation); the language selector lists both; hidden long-text prompt rendering covers them.
   Complexity: L
 
-- [ ] P3 — RD-38: Verify Spicetify CLI build attestations, not just SHA256
-  Why: Spicetify publishes GitHub build-provenance attestations on its releases; LibreSpot pins only the SHA256, so the download's provenance (who/how built) is unverified — checking the attestation is a leapfrog trust signal over every competitor and hardens against an upstream build-pipeline compromise that keeps the same tag.
-  Evidence: github.com/spicetify/cli/releases/tag/v2.44.0 (attestations); `src/LibreSpot.Desktop/Services/UpstreamDriftService.cs`, `schemas/community-assets.json` provenance model.
-  Touches: the Spicetify CLI download/verify path, `schemas/community-assets.json` (attestation reference), dependency-health output, xUnit tests.
-  Acceptance: the pinned Spicetify CLI download optionally verifies its GitHub attestation bundle (offline, against a cached signer identity) in addition to SHA256; a mismatch surfaces as a trust warning; when the attestation tooling/cert is unavailable it degrades to SHA256-only rather than failing closed.
-  Complexity: M
 
 ## Audit-Driven Additions (2026-07-23)
 

@@ -1607,3 +1607,55 @@ Describe 'Marketplace route wiring (SpotX xpui.js layout)' {
         (Repair-SpicetifyCustomAppWiring -AppsDirectory $script:fixtureRoot).Status | Should -Be 'RouteBundleMissing'
     }
 }
+
+Describe 'Get-SpicetifyAttestationVerdict' {
+BeforeAll {
+    . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyAttestationVerdict.ps1')
+}
+
+    It 'treats a zero exit code as Verified regardless of output' {
+        Get-SpicetifyAttestationVerdict -ExitCode 0 -Output '' | Should -Be 'Verified'
+        Get-SpicetifyAttestationVerdict -ExitCode 0 -Output 'anything at all' | Should -Be 'Verified'
+    }
+
+    It 'maps clear verification-failure output to Mismatch' {
+        Get-SpicetifyAttestationVerdict -ExitCode 1 -Output 'X verification failed' | Should -Be 'Mismatch'
+        Get-SpicetifyAttestationVerdict -ExitCode 1 -Output 'failed to verify signature' | Should -Be 'Mismatch'
+        Get-SpicetifyAttestationVerdict -ExitCode 1 -Output 'no attestations found for subject' | Should -Be 'Mismatch'
+        Get-SpicetifyAttestationVerdict -ExitCode 1 -Output 'no matching attestations' | Should -Be 'Mismatch'
+        Get-SpicetifyAttestationVerdict -ExitCode 1 -Output 'the digest does not match' | Should -Be 'Mismatch'
+    }
+
+    It 'treats tooling, network and auth failures as Unavailable (never fails closed)' {
+        Get-SpicetifyAttestationVerdict -ExitCode 1 -Output 'could not connect to api.github.com' | Should -Be 'Unavailable'
+        Get-SpicetifyAttestationVerdict -ExitCode 4 -Output 'gh auth login required' | Should -Be 'Unavailable'
+        Get-SpicetifyAttestationVerdict -ExitCode 1 -Output 'API rate limit exceeded' | Should -Be 'Unavailable'
+        Get-SpicetifyAttestationVerdict -ExitCode 1 -Output '' | Should -Be 'Unavailable'
+    }
+}
+
+Describe 'Test-SpicetifyCliAttestation' {
+BeforeAll {
+    . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyAttestationVerdict.ps1')
+    . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Test-SpicetifyCliAttestation.ps1')
+    $script:realFile = Join-Path ([System.IO.Path]::GetTempPath()) ("ls-attn-{0}.zip" -f ([guid]::NewGuid().ToString('N')))
+    Set-Content -LiteralPath $script:realFile -Value 'payload' -Encoding ascii
+    $script:goodAttestation = @{ Repo = 'spicetify/cli'; CertIdentityRegex = '^https://github\.com/spicetify/cli/'; OidcIssuer = 'https://token.actions.githubusercontent.com' }
+}
+AfterAll {
+    Remove-Item -LiteralPath $script:realFile -Force -ErrorAction SilentlyContinue
+}
+
+    It 'degrades to Unavailable when no attestation metadata is supplied' {
+        Test-SpicetifyCliAttestation -Path $script:realFile -Attestation $null | Should -Be 'Unavailable'
+    }
+
+    It 'degrades to Unavailable when the repo is missing from the metadata' {
+        Test-SpicetifyCliAttestation -Path $script:realFile -Attestation @{ Repo = '' } | Should -Be 'Unavailable'
+    }
+
+    It 'degrades to Unavailable when the artifact file does not exist' {
+        $missing = Join-Path ([System.IO.Path]::GetTempPath()) ("ls-missing-{0}.zip" -f ([guid]::NewGuid().ToString('N')))
+        Test-SpicetifyCliAttestation -Path $missing -Attestation $script:goodAttestation | Should -Be 'Unavailable'
+    }
+}
