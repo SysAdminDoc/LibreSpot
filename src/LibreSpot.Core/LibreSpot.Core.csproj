@@ -12,8 +12,8 @@
     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
     <AssemblyName>LibreSpot.Core</AssemblyName>
     <RootNamespace>LibreSpot.Desktop</RootNamespace>
-    <Version>4.0.0-preview.23</Version>
-    <InformationalVersion>4.0.0-preview.23</InformationalVersion>
+    <Version>4.0.0-preview.24</Version>
+    <InformationalVersion>4.0.0-preview.24</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
   </PropertyGroup>

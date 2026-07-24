@@ -4,6 +4,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0-preview.24] - 2026-07-24
+
 ### Changed
 
 - Completed the `LibreSpot.Core` extraction (RD-35): all non-UI logic shared by the desktop shell and the fleet CLI — the environment-snapshot derivation, upstream/community drift comparison, undo-policy evaluation, backend orchestration, support-bundle projection, the app catalog/models, and the `Strings` localization resources (with their culture satellites) — now lives once in the WPF-free `LibreSpot.Core` library instead of being compiled into both assemblies. The CLI carries zero source-file links and consumes everything through a project reference, and the test project's per-assembly type aliasing is gone. Because Core builds `net10.0-windows` with no `UseWPF`, it is a valid Stryker.NET mutation-testing target (the desktop project is not), which unblocks the filed Stryker item. Verified with the full xUnit suite, the offscreen UI-automation shell smoke suite (real rendered shell resolving Core-owned localized resources across cultures), a CLI smoke run, and the localization/release gates.
