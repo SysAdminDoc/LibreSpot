@@ -584,15 +584,6 @@ duplicated: v3 detection guard (done, preview.18), `TargetLatestRuntimePatch` +
 re-wiring (done, preview.19), package-manager manifests / native launcher /
 Stryker.NET (blocked — `Roadmap_Blocked.md`).
 
-### P2
-
-- [ ] P2 — RD-43: Align the code-signing docs with the unsigned-by-design posture
-  Why: README (`README.md:337`, `README.md:374`) and `SIGNPATH.md` still state SignPath Authenticode signing is "pending" and that the "Unknown publisher" SmartScreen warning will disappear "once the cert arrives." The project ships unsigned by design (no-signing policy), so this copy strands users waiting for a cert that will not come and misframes SHA256 checksum verification as a temporary stopgap instead of the permanent trust path. It also contradicts the observed reality that Microsoft removed EV's default-trust in 2024, so signing no longer buys instant SmartScreen reputation.
-  Evidence: `README.md:337`, `README.md:374`, `SIGNPATH.md`; learn.microsoft.com SmartScreen reputation docs; RESEARCH.md "Security, Privacy, and Reliability".
-  Touches: `README.md` (SmartScreen + signing FAQ answers), `SECURITY.md`, `SIGNPATH.md`, any release-truth/doc test that asserts on signing language.
-  Acceptance: the signing FAQ answers describe unsigned-by-design distribution, point at `checksums.txt` SHA256 verification as the permanent verification path, and drop "pending"/"once the cert arrives" promises; `SIGNPATH.md` is either removed or reframed as historical; no user-facing doc implies a future signed build. Version strings and doc-sync gates stay green.
-  Complexity: S
-
 ### P3
 
 - [ ] P3 — RD-44: Surface Spicetify's new `doctor` diagnostic in the health model
@@ -602,9 +593,3 @@ Stryker.NET (blocked — `Roadmap_Blocked.md`).
   Acceptance: when the installed Spicetify CLI exposes `doctor` (feature-detected, not version-assumed), LibreSpot runs it non-interactively, parses its result into the diagnostic snapshot, and surfaces failures as a health signal; when `doctor` is absent (v2.44.0 and earlier) the path is skipped with no warning.
   Complexity: M
 
-- [ ] P3 — RD-45: Proactive AV false-positive hardening for releases
-  Why: community evidence ranks Defender/AV flagging of the PowerShell installer among the top install-blocking pains (SpotX #875/#865/#134), and `LibreSpot.ps1` (610 KB) is LibreSpot's worst AV-FP surface (Powdow-class heuristics) versus the compiled WPF/CLI EXEs. Two low-cost mitigations: document submitting each release artifact SHA256 to the Microsoft Defender FP portal as a release step, and give LibreSpot its own VirusTotal permalink in the AV FAQ (today it only links SpotX's scan).
-  Evidence: github.com/SpotX-Official/SpotX/issues/875; learn.microsoft.com Defender FP/negatives docs (aka.ms/wdsi); `README.md:333-337`; RESEARCH.md "Security, Privacy, and Reliability".
-  Touches: `README.md` (AV FAQ — add a LibreSpot-own VirusTotal link + "prefer the EXE over the raw PS1" note), release procedure docs / `SECURITY.md` (add the FP-submission step).
-  Acceptance: the AV FAQ links a VirusTotal scan of LibreSpot's own primary artifact and recommends the compiled EXE for users hitting PS-heuristic flags; the documented release procedure includes submitting each shipped artifact hash to the Microsoft Defender FP portal. No signing implied.
-  Complexity: S

@@ -71,6 +71,8 @@ If you discover a vulnerability in SpotX, Spicetify CLI, or a community extensio
 
 LibreSpot does not currently track build, release, or Scorecard GitHub Actions workflows. Release trust evidence comes from the local release build and post-upload audit: SHA256 entries in `checksums.txt`, the machine-readable `librespot-release-manifest.json`, CycloneDX SBOM output, pinned upstream download hashes, and local test/build logs.
 
+Because the artifacts ship unsigned, each release restarts Microsoft SmartScreen/Defender reputation from zero. As part of the post-upload audit, submit every shipped artifact hash to the [Microsoft Defender false-positive/false-negative portal](https://aka.ms/wdsi) so heuristic detections of the PowerShell installer clear faster; users can independently confirm any asset by matching its `checksums.txt` SHA256 on VirusTotal.
+
 OpenSSF Scorecard findings are still treated as work, not noise. The accepted-risk baseline in [schemas/scorecard-baseline.json](schemas/scorecard-baseline.json) records the project's single-maintainer limits and local gate expectations; if a manual Scorecard run finds a new low score, it should become a `ROADMAP.md` item with a remediation plan rather than a silently ignored warning.
 
 **Accepted single-maintainer limits:** the following Scorecard checks score zero or low and are documented as expected for a single-maintainer project — they are not silently ignored:
@@ -82,7 +84,7 @@ OpenSSF Scorecard findings are still treated as work, not noise. The accepted-ri
 | Contributors | 0 | Single-maintainer project by design. |
 | CII-Best-Practices | 0 | Enrollment deferred until v4.0 stable ships and community adoption grows. |
 | Fuzzing | 0 | Property-based testing (FsCheck) is planned; OSS-Fuzz enrollment is deferred. |
-| Signed-Releases | — | SignPath Foundation enrollment is pending. Local releases ship with checksums, a release manifest, and SBOM output but are not yet Authenticode-signed and do not include GitHub provenance attestations. |
+| Signed-Releases | — | Unsigned by design. SignPath Foundation OSS signing was evaluated and set aside, so there is no pending certificate. Local releases ship with checksums, a release manifest, and SBOM output; they are not Authenticode-signed and do not include GitHub provenance attestations. Integrity is verified via the published SHA256 checksums. |
 
 These limits are revisited when their documented trigger conditions are met (e.g., a second maintainer joins, signing completes). The full accepted-risk registry is in [schemas/scorecard-baseline.json](schemas/scorecard-baseline.json).
 

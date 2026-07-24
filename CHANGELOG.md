@@ -4,6 +4,11 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Documentation
+
+- Aligned the code-signing docs with the unsigned-by-design posture. The README SmartScreen/signing FAQ, the "Signing & verification" section, `SECURITY.md`, and `SIGNPATH.md` no longer tell users a signed build is "pending" or coming "once the cert arrives" — SignPath Foundation OSS signing was evaluated and set aside, so releases ship unsigned and the SHA256 `checksums.txt` is the permanent verification path. `SIGNPATH.md` is reframed as a historical evaluation record rather than an active enrollment plan.
+- Hardened the antivirus false-positive guidance: the README AV FAQ now recommends the compiled `LibreSpot-Desktop.exe` over the raw `LibreSpot.ps1` (the Powdow-class heuristic surface) and shows how to confirm any asset by matching its `checksums.txt` SHA256 on VirusTotal; `SECURITY.md` documents submitting each shipped artifact hash to the Microsoft Defender false-positive portal as a post-upload release step.
+
 ### Changed
 
 - The SpotX pin-advance guardrail now accounts for Spicetify's hard-fail-on-unsupported-version gate. `spicetify/cli` `main` merged a change after 2.44.0 (PRs #3894/#3895/#3896) that makes `backup apply` refuse — rather than best-effort patch — any Spotify version above the CLI's declared ceiling, which is exactly what today lets LibreSpot's post-apply route re-wiring work on Spotify 1.2.94. `AppCatalog.PinnedSpotXHoldRationale`, the README compatibility note, and the compatibility-matrix warning now require a pin advance to confirm the newer Spicetify build still applies (does not hard-refuse) on the new Spotify target, not just re-validate CSS class maps. The pinned 2.44.0 predates the gate, so current behavior is unchanged.
