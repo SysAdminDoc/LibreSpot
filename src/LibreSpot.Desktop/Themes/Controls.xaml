@@ -3,7 +3,7 @@
                     xmlns:controls="clr-namespace:LibreSpot.Desktop.Controls"
                     xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
                     xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
-                    xmlns:props="clr-namespace:LibreSpot.Desktop.Properties">
+                    xmlns:props="clr-namespace:LibreSpot.Desktop.Properties;assembly=LibreSpot.Core">
   <!--
     LibreSpot Desktop control styles.
     Conventions:

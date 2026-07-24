@@ -417,10 +417,17 @@ public sealed class LocalizationTests
     [Fact]
     public void Csproj_ConfiguresResxCodeGeneration()
     {
-        var csproj = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "LibreSpot.Desktop.csproj"));
+        // Localization ownership moved to LibreSpot.Core (RD-35): Core compiles the
+        // Strings.Designer.cs and embeds the resx/satellites while the physical resx
+        // files stay in the desktop Properties folder for the localization tooling.
+        var csproj = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Core", "LibreSpot.Core.csproj"));
         Assert.Contains("Strings.resx", csproj);
         Assert.Contains("PublicResXFileCodeGenerator", csproj);
         Assert.Contains("Strings.Designer.cs", csproj);
+
+        // The desktop project must NOT also own Strings (would create a duplicate type).
+        var desktop = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "LibreSpot.Desktop.csproj"));
+        Assert.Contains("<Compile Remove=\"Properties\\Strings.Designer.cs\" />", desktop);
     }
 
     private static XDocument LoadResx()

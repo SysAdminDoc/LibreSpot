@@ -29,4 +29,27 @@
     <EmbeddedResource Include="..\..\schemas\operation-token-types.json" LogicalName="LibreSpot.Desktop.Schemas.operation-token-types.json" />
     <EmbeddedResource Include="..\..\schemas\run-receipt-format.json" LogicalName="LibreSpot.Desktop.Schemas.run-receipt-format.json" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Localization ownership (RD-35). The resx/Designer physical files remain in
+         the desktop Properties folder (so the Sync-Localization tool and the
+         localization gate keep their paths) but are compiled/embedded HERE. Core's
+         RootNamespace is LibreSpot.Desktop, so linking as Properties\Strings.resx
+         reproduces the exact LibreSpot.Desktop.Properties.Strings manifest name and
+         culture satellites the ResourceManager expects. -->
+    <Compile Include="..\LibreSpot.Desktop\Properties\Strings.Designer.cs" Link="Properties\Strings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Strings.resx</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="..\LibreSpot.Desktop\Properties\Strings.resx" Link="Properties\Strings.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Strings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\LibreSpot.Desktop\Properties\Strings.en.resx" Link="Properties\Strings.en.resx" />
+    <EmbeddedResource Include="..\LibreSpot.Desktop\Properties\Strings.es.resx" Link="Properties\Strings.es.resx" />
+    <EmbeddedResource Include="..\LibreSpot.Desktop\Properties\Strings.pt-BR.resx" Link="Properties\Strings.pt-BR.resx" />
+    <EmbeddedResource Include="..\LibreSpot.Desktop\Properties\Strings.ru.resx" Link="Properties\Strings.ru.resx" />
+    <EmbeddedResource Include="..\LibreSpot.Desktop\Properties\Strings.zh-Hans.resx" Link="Properties\Strings.zh-Hans.resx" />
+  </ItemGroup>
 </Project>

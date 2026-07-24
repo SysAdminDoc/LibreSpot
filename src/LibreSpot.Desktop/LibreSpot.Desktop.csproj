@@ -30,15 +30,13 @@
     <EmbeddedResource Include="..\..\schemas\community-assets.json" LogicalName="LibreSpot.Desktop.Schemas.community-assets.json" />
     <EmbeddedResource Include="..\..\schemas\operation-token-types.json" LogicalName="LibreSpot.Desktop.Schemas.operation-token-types.json" />
     <EmbeddedResource Include="..\..\schemas\run-receipt-format.json" LogicalName="LibreSpot.Desktop.Schemas.run-receipt-format.json" />
-    <EmbeddedResource Update="Properties\Strings.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Strings.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <Compile Update="Properties\Strings.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Strings.resx</DependentUpon>
-    </Compile>
+    <!-- Localization resources are OWNED by LibreSpot.Core (RD-35): Core embeds
+         Strings.resx + the locale satellites and compiles Strings.Designer.cs, so
+         the resx/Designer physical files stay here but are excluded from this
+         project's default globbing to avoid a duplicate Strings type. -->
+    <EmbeddedResource Remove="Properties\Strings.resx" />
+    <EmbeddedResource Remove="Properties\Strings.*.resx" />
+    <Compile Remove="Properties\Strings.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>
