@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.21-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.22-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
@@ -68,7 +68,9 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 ---
 
-## What's New in v4.0.0-preview.21
+## What's New in v4.0.0-preview.22
+
+**Provenance-checked Spicetify downloads.** On top of the mandatory SHA256 hash, the pinned Spicetify CLI download now optionally verifies GitHub build-provenance attestations: when the GitHub CLI is present, LibreSpot confirms the artifact was built by Spicetify's own release pipeline against a cached signer identity. A genuine provenance failure raises a trust warning; if the tooling, network, or sign-in is unavailable it quietly falls back to SHA256-only and never blocks the install.
 
 **Sharper upstream guardrails and honest trust docs.** The SpotX pin-advance guardrail now accounts for Spicetify's hard-fail-on-unsupported-version gate (merged upstream after 2.44.0): advancing the pin must confirm the newer Spicetify still applies rather than hard-refusing, not just re-check CSS maps. The signing docs stop promising a "pending" signed build - LibreSpot ships unsigned by design and SHA256 `checksums.txt` is the permanent verification path - and the antivirus FAQ now steers users to the compiled desktop executable over the raw script and shows VirusTotal-by-hash verification. The `.NET 10.0.10` CVE-floor rationale now enumerates the 2026-07-14 servicing batch it clears.
 

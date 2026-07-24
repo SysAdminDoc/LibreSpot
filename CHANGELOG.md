@@ -4,6 +4,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0-preview.22] - 2026-07-24
+
 ### Security
 
 - The pinned Spicetify CLI download now optionally verifies GitHub build-provenance attestations in addition to the mandatory SHA256 hash. After the hash check, when the GitHub CLI is present LibreSpot runs `gh attestation verify` against a cached signer identity (`spicetify/cli`, the workflow cert-identity regex, and the GitHub Actions OIDC issuer, pinned in `PinnedReleases`). A genuine provenance failure surfaces as a trust warning; when the tooling, network, or authentication is unavailable the check degrades silently to SHA256-only and never fails the install closed. New shared modules `Test-SpicetifyCliAttestation` (orchestrator) and `Get-SpicetifyAttestationVerdict` (pure exit-code/output classifier) with Pester coverage.
