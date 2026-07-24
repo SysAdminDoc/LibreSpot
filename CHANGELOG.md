@@ -4,6 +4,16 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0-preview.20] - 2026-07-24
+
+### Fixed
+
+- The Microsoft Store Spotify presence probe and the Windows Defender exclusion-status probe (`EnvironmentSnapshotService`) could block with no time bound. Both started an async `ReadToEnd` on the child process's stdout, then read `Task.Result` unconditionally after a 500 ms `Task.WaitAll` cap - so if a grandchild process inherited the stdout handle and kept it open, the read never completed and the illusory cap was bypassed, hanging the environment snapshot. Both probes now only read the drained output when the tasks actually completed and treat a timed-out drain as the safe default (not present / unavailable).
+
+### Accessibility
+
+- Added a WCAG AA contrast regression gate for the text-on-fill token pairs (`TextOnAccent`/`AccentColor`, `TextOnDanger`/`DangerFillColor`, `TextOnWarning`/`WarningFillColor`). The palette documented these primary-CTA, destructive, and caution button contrasts as clearing 4.5:1, but only text-over-surface tiers were tested; a future edit to a fill or its on-fill text could have silently dropped a button below the accessibility floor. The pairing is now verified in `ThemeManagerTests`.
+
 ## [v4.0.0-preview.19] - 2026-07-23
 
 ### Changed
