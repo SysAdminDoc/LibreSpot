@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:controls="clr-namespace:LibreSpot.Desktop.Controls"
         xmlns:avalon="clr-namespace:ICSharpCode.AvalonEdit;assembly=ICSharpCode.AvalonEdit"
-        xmlns:models="clr-namespace:LibreSpot.Desktop.Models"
+        xmlns:models="clr-namespace:LibreSpot.Desktop.Models;assembly=LibreSpot.Core"
         xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
         xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"

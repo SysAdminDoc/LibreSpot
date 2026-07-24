@@ -230,8 +230,7 @@ public sealed class LocalizationTests
         var source = File.ReadAllText(Path.Combine(
             RepoRoot,
             "src",
-            "LibreSpot.Desktop",
-            "Services",
+            "LibreSpot.Core",
             "EnvironmentSnapshotService.cs"));
         var violations = Regex.Matches(source, @"(?ms)(?:Component|new StackHealthComponent)\(.+?\);")
             .Cast<Match>()

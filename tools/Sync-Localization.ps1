@@ -115,7 +115,7 @@ function Test-RawXamlStrings {
             ForEach-Object { "$($xamlPath.FullName): $($_.Value)" }
     }
 
-    $healthPath = Join-Path $desktopRoot 'Services/EnvironmentSnapshotService.cs'
+    $healthPath = Join-Path $repoRoot 'src/LibreSpot.Core/EnvironmentSnapshotService.cs'
     $healthContent = [System.IO.File]::ReadAllText($healthPath, [System.Text.Encoding]::UTF8)
     foreach ($block in [regex]::Matches($healthContent, '(?ms)(?:Component|new StackHealthComponent)\(.+?\);')) {
         foreach ($literal in [regex]::Matches($block.Value, '(?<![A-Za-z])"(?<value>[^"\r\n]*[^\S\r\n]+[^"\r\n]*)"')) {

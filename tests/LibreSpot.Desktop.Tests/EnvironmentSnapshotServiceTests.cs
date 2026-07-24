@@ -103,7 +103,7 @@ public sealed class EnvironmentSnapshotServiceTests
         // Lock in the structural guarantee: the async wrapper must use Task.Run so
         // the 1500ms schtasks probe never executes on the caller's (UI) thread.
         var source = File.ReadAllText(Path.Combine(
-            ResolveRepoRoot(), "src", "LibreSpot.Desktop", "Services", "EnvironmentSnapshotService.cs"));
+            ResolveRepoRoot(), "src", "LibreSpot.Core", "EnvironmentSnapshotService.cs"));
         Assert.Matches(@"GetSnapshotAsync\([^)]*\)\s*=>\s*\r?\n?\s*Task\.Run", source);
     }
 
@@ -111,7 +111,7 @@ public sealed class EnvironmentSnapshotServiceTests
     public void AutoReapplyTaskProbe_DrainsRedirectedPipesBeforeWaitForExit()
     {
         var source = File.ReadAllText(Path.Combine(
-            ResolveRepoRoot(), "src", "LibreSpot.Desktop", "Services", "EnvironmentSnapshotService.cs"));
+            ResolveRepoRoot(), "src", "LibreSpot.Core", "EnvironmentSnapshotService.cs"));
 
         var stdoutIndex = source.IndexOf("StandardOutput.ReadToEndAsync", StringComparison.Ordinal);
         var stderrIndex = source.IndexOf("StandardError.ReadToEndAsync", StringComparison.Ordinal);

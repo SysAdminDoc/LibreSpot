@@ -8,19 +8,21 @@ using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using Xunit;
 using CliApp = Cli::LibreSpot.Cli.CliApplication;
-using CliAssetCacheEntryState = Cli::LibreSpot.Desktop.Models.AssetCacheEntryState;
-using CliAssetCacheInventoryReport = Cli::LibreSpot.Desktop.Models.AssetCacheInventoryReport;
-using CliBackendMessage = Cli::LibreSpot.Desktop.Services.BackendMessage;
-using CliBackendRunResult = Cli::LibreSpot.Desktop.Services.BackendRunResult;
-using CliCommunityAssetDriftReport = Cli::LibreSpot.Desktop.Models.CommunityAssetDriftReport;
-using CliCommunityAssetState = Cli::LibreSpot.Desktop.Models.CommunityAssetState;
-using CliEnvironmentSnapshot = Cli::LibreSpot.Desktop.Models.EnvironmentSnapshot;
-using CliHealthSeverity = Cli::LibreSpot.Desktop.Models.HealthSeverity;
-using CliMarketplaceVisibilityEvidence = Cli::LibreSpot.Desktop.Models.MarketplaceVisibilityEvidence;
-using CliStackHealthComponent = Cli::LibreSpot.Desktop.Models.StackHealthComponent;
-using CliStackHealthReport = Cli::LibreSpot.Desktop.Models.StackHealthReport;
-using CliUpstreamDependencyState = Cli::LibreSpot.Desktop.Models.UpstreamDependencyState;
-using CliUpstreamDriftReport = Cli::LibreSpot.Desktop.Models.UpstreamDriftReport;
+// The shared models/services now live once in LibreSpot.Core (RD-35), so these are
+// no longer duplicated per-assembly and are referenced without the Cli:: alias.
+using CliAssetCacheEntryState = LibreSpot.Desktop.Models.AssetCacheEntryState;
+using CliAssetCacheInventoryReport = LibreSpot.Desktop.Models.AssetCacheInventoryReport;
+using CliBackendMessage = LibreSpot.Desktop.Services.BackendMessage;
+using CliBackendRunResult = LibreSpot.Desktop.Services.BackendRunResult;
+using CliCommunityAssetDriftReport = LibreSpot.Desktop.Models.CommunityAssetDriftReport;
+using CliCommunityAssetState = LibreSpot.Desktop.Models.CommunityAssetState;
+using CliEnvironmentSnapshot = LibreSpot.Desktop.Models.EnvironmentSnapshot;
+using CliHealthSeverity = LibreSpot.Desktop.Models.HealthSeverity;
+using CliMarketplaceVisibilityEvidence = LibreSpot.Desktop.Models.MarketplaceVisibilityEvidence;
+using CliStackHealthComponent = LibreSpot.Desktop.Models.StackHealthComponent;
+using CliStackHealthReport = LibreSpot.Desktop.Models.StackHealthReport;
+using CliUpstreamDependencyState = LibreSpot.Desktop.Models.UpstreamDependencyState;
+using CliUpstreamDriftReport = LibreSpot.Desktop.Models.UpstreamDriftReport;
 
 namespace LibreSpot.Desktop.Tests;
 

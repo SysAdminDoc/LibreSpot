@@ -19,19 +19,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\LibreSpot.Desktop\Models\AppCatalog.cs" Link="Shared\AppCatalog.cs" />
-    <Compile Include="..\LibreSpot.Desktop\Services\BackendScriptService.cs" Link="Shared\BackendScriptService.cs" />
-    <Compile Include="..\LibreSpot.Desktop\Services\EnvironmentSnapshotService.cs" Link="Shared\EnvironmentSnapshotService.cs" />
-    <Compile Include="..\LibreSpot.Desktop\Services\UpstreamDriftService.cs" Link="Shared\UpstreamDriftService.cs" />
-    <Compile Include="..\LibreSpot.Desktop\Services\CommunityAssetDriftService.cs" Link="Shared\CommunityAssetDriftService.cs" />
-    <Compile Include="..\LibreSpot.Desktop\Services\SupportBundleService.cs" Link="Shared\SupportBundleService.cs" />
-    <EmbeddedResource Include="..\LibreSpot.Desktop\Backend\LibreSpot.Backend.ps1" LogicalName="LibreSpot.Desktop.Backend.LibreSpot.Backend.ps1" />
-    <EmbeddedResource Include="..\..\schemas\community-assets.json" LogicalName="LibreSpot.Desktop.Schemas.community-assets.json" />
-    <EmbeddedResource Include="..\..\schemas\operation-token-types.json" LogicalName="LibreSpot.Desktop.Schemas.operation-token-types.json" />
-    <EmbeddedResource Include="..\..\schemas\run-receipt-format.json" LogicalName="LibreSpot.Desktop.Schemas.run-receipt-format.json" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\LibreSpot.Core\LibreSpot.Core.csproj" />
   </ItemGroup>
 </Project>

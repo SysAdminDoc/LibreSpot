@@ -380,8 +380,8 @@
       "redactionRules": ["Archive contents are locally redacted before write", "Never recursively include existing support archives"],
       "aclExpectation": "current-user inherited ACL from the destination",
       "writeSites": [
-        { "source": "src/LibreSpot.Desktop/Services/SupportBundleService.cs", "marker": "LibreSpot-support-" },
-        { "source": "src/LibreSpot.Desktop/Services/SupportBundleService.cs", "marker": "LibreSpot-failure-" }
+        { "source": "src/LibreSpot.Core/SupportBundleService.cs", "marker": "LibreSpot-support-" },
+        { "source": "src/LibreSpot.Core/SupportBundleService.cs", "marker": "LibreSpot-failure-" }
       ]
     },
     {
@@ -425,7 +425,7 @@
       "redactionRules": ["Never export the raw cache", "Export only normalized dependency status and public URLs"],
       "aclExpectation": "current-user inherited ACL from %LOCALAPPDATA%",
       "writeSites": [
-        { "source": "src/LibreSpot.Desktop/Services/UpstreamDriftService.cs", "marker": "upstream-drift-cache.json" }
+        { "source": "src/LibreSpot.Core/UpstreamDriftService.cs", "marker": "upstream-drift-cache.json" }
       ]
     },
     {
@@ -447,7 +447,7 @@
       "redactionRules": ["Never export the raw cache", "Export only normalized asset status and public URLs"],
       "aclExpectation": "current-user inherited ACL from %LOCALAPPDATA%",
       "writeSites": [
-        { "source": "src/LibreSpot.Desktop/Services/CommunityAssetDriftService.cs", "marker": "community-asset-drift-cache.json" }
+        { "source": "src/LibreSpot.Core/CommunityAssetDriftService.cs", "marker": "community-asset-drift-cache.json" }
       ]
     },
     {
@@ -513,7 +513,7 @@
       "redactionRules": [],
       "aclExpectation": "current user and Administrators only; inheritance disabled",
       "writeSites": [
-        { "source": "src/LibreSpot.Desktop/Services/BackendScriptService.cs", "marker": "LibreSpot.Backend.ps1.sha256" }
+        { "source": "src/LibreSpot.Core/BackendScriptService.cs", "marker": "LibreSpot.Backend.ps1.sha256" }
       ]
     },
     {

@@ -169,7 +169,7 @@ public sealed class DataInventoryContractTests
         var locations = document.RootElement.GetProperty("dataLocations").EnumerateArray().ToDictionary(
             location => location.GetProperty("id").GetString()!,
             StringComparer.Ordinal);
-        var service = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Services", "SupportBundleService.cs"));
+        var service = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Core", "SupportBundleService.cs"));
 
         foreach (var pair in new[]
                  {

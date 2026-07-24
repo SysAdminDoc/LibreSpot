@@ -28,6 +28,8 @@
          names so the moved code resolves them unchanged. -->
     <EmbeddedResource Include="..\..\schemas\operation-token-types.json" LogicalName="LibreSpot.Desktop.Schemas.operation-token-types.json" />
     <EmbeddedResource Include="..\..\schemas\run-receipt-format.json" LogicalName="LibreSpot.Desktop.Schemas.run-receipt-format.json" />
+    <EmbeddedResource Include="..\..\schemas\community-assets.json" LogicalName="LibreSpot.Desktop.Schemas.community-assets.json" />
+    <EmbeddedResource Include="..\LibreSpot.Desktop\Backend\LibreSpot.Backend.ps1" LogicalName="LibreSpot.Desktop.Backend.LibreSpot.Backend.ps1" />
   </ItemGroup>
 
   <ItemGroup>

@@ -11,7 +11,7 @@ public sealed class BackendScriptServiceTests
     [Fact]
     public void RunAsync_HoldsExecutionCopyWithReadOnlySharing()
     {
-        var source = ReadRepoFile("src", "LibreSpot.Desktop", "Services", "BackendScriptService.cs");
+        var source = ReadRepoFile("src", "LibreSpot.Core", "BackendScriptService.cs");
 
         Assert.Contains("executionCopyGuard", source);
         Assert.Contains("FileMode.CreateNew", source);
