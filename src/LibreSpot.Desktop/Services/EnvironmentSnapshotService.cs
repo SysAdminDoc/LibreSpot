@@ -502,10 +502,19 @@ public sealed class EnvironmentSnapshotService
                 return false;
             }
 
-            try { Task.WaitAll(new Task[] { stdoutDrain, stderrDrain }, 500); } catch { }
+            var drained = false;
+            try { drained = Task.WaitAll(new Task[] { stdoutDrain, stderrDrain }, 500); } catch { }
 
-            return process.ExitCode == 0 &&
-                stdoutDrain.Result.Contains("present", StringComparison.OrdinalIgnoreCase);
+            // Only read the drained output once the tasks have actually completed.
+            // If a grandchild inherited the stdout handle the read never finishes,
+            // and touching .Result here would block with no bound despite the 500 ms
+            // cap above. A timed-out drain is treated as "not present" (safe default).
+            if (!drained || process.ExitCode != 0)
+            {
+                return false;
+            }
+
+            return stdoutDrain.Result.Contains("present", StringComparison.OrdinalIgnoreCase);
         }
         catch
         {
@@ -2418,9 +2427,12 @@ public sealed class EnvironmentSnapshotService
                 return AntivirusExclusionStatus.Unavailable;
             }
 
-            try { Task.WaitAll(new Task[] { stdoutDrain, stderrDrain }, 500); } catch { }
+            var drained = false;
+            try { drained = Task.WaitAll(new Task[] { stdoutDrain, stderrDrain }, 500); } catch { }
 
-            if (process.ExitCode != 0)
+            // Guard .Result the same way as QueryStoreSpotifyPresent: never block on
+            // an un-drained pipe (grandchild holding the handle) after the timed cap.
+            if (!drained || process.ExitCode != 0)
             {
                 return AntivirusExclusionStatus.Unavailable;
             }
