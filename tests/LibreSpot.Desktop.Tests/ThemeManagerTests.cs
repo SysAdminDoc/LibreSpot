@@ -264,6 +264,36 @@ public sealed class ThemeManagerTests
         Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
     }
 
+    [Fact]
+    public void TextOnFillPairs_ClearWcagAaContrast()
+    {
+        // The primary CTA, destructive, and caution surfaces paint dark "text-on-fill"
+        // tokens over saturated accent/danger/warning fills. The palette comments claim
+        // these pairs clear WCAG AA (>= 4.5:1) and warn that TextBrush on a Danger fill
+        // is only 3.43:1 — but only text-over-surface tiers were gated, so a future tweak
+        // to a fill or its on-fill text could silently drop the button/snackbar contrast
+        // below the floor. Lock every documented on-fill pairing here.
+        var palette = ReadFile("src", "LibreSpot.Desktop", "Themes", "Palette.xaml");
+        var pairs = new (string Text, string Fill)[]
+        {
+            ("TextOnAccentColor", "AccentColor"),
+            ("TextOnDangerColor", "DangerFillColor"),
+            ("TextOnWarningColor", "WarningFillColor"),
+        };
+
+        var offenders = new List<string>();
+        foreach (var (textKey, fillKey) in pairs)
+        {
+            var ratio = ContrastRatio(PaletteColor(palette, textKey), PaletteColor(palette, fillKey));
+            if (ratio < 4.5)
+            {
+                offenders.Add($"{textKey} on {fillKey}: {ratio:F2}:1 (< 4.5:1)");
+            }
+        }
+
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
     private static (double R, double G, double B) PaletteColor(string palette, string key)
     {
         var match = Regex.Match(palette, $@"x:Key=""{Regex.Escape(key)}"">#(?<hex>[0-9A-Fa-f]{{6}})<");
