@@ -4,6 +4,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0-preview.21] - 2026-07-24
+
 ### Documentation
 
 - Aligned the code-signing docs with the unsigned-by-design posture. The README SmartScreen/signing FAQ, the "Signing & verification" section, `SECURITY.md`, and `SIGNPATH.md` no longer tell users a signed build is "pending" or coming "once the cert arrives" — SignPath Foundation OSS signing was evaluated and set aside, so releases ship unsigned and the SHA256 `checksums.txt` is the permanent verification path. `SIGNPATH.md` is reframed as a historical evaluation record rather than an active enrollment plan.

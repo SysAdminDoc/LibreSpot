@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.20-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.21-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
@@ -68,9 +68,11 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 ---
 
-## What's New in v4.0.0-preview.20
+## What's New in v4.0.0-preview.21
 
-**Quieter, safer internals.** This release is an engineering-quality pass: the Microsoft Store Spotify and Windows Defender exclusion probes no longer risk an unbounded wait when a child process leaves an output pipe open, and the accessibility palette gained a regression gate that verifies the primary, destructive, and caution buttons keep their WCAG AA text contrast on every future theme change - not just the body-text tiers that were already covered.
+**Sharper upstream guardrails and honest trust docs.** The SpotX pin-advance guardrail now accounts for Spicetify's hard-fail-on-unsupported-version gate (merged upstream after 2.44.0): advancing the pin must confirm the newer Spicetify still applies rather than hard-refusing, not just re-check CSS maps. The signing docs stop promising a "pending" signed build - LibreSpot ships unsigned by design and SHA256 `checksums.txt` is the permanent verification path - and the antivirus FAQ now steers users to the compiled desktop executable over the raw script and shows VirusTotal-by-hash verification. The `.NET 10.0.10` CVE-floor rationale now enumerates the 2026-07-14 servicing batch it clears.
+
+**Quieter, safer internals.** The Microsoft Store Spotify and Windows Defender exclusion probes no longer risk an unbounded wait when a child process leaves an output pipe open, and the accessibility palette gained a regression gate that verifies the primary, destructive, and caution buttons keep their WCAG AA text contrast on every future theme change - not just the body-text tiers that were already covered.
 
 **The store page actually opens now.** SpotX serves Spotify's combined `xpui.js` bundle, but the Spicetify CLI wires the Marketplace route into sibling files that layout never loads - so the store opened to a permanently blank page with no errors anywhere. LibreSpot now re-wires the store route into the bundle Spotify actually runs after every apply, verified end to end on a live install. Stack health gains a "Store page not wired" state (all six languages) that detects the broken layout and points straight at Repair Marketplace. The end-of-install launch also warms up the first patched session hidden and restarts Spotify automatically, so the window you sign in to is responsive instead of frozen for its first ten seconds.
 
