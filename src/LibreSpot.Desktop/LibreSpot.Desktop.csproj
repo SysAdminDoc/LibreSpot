@@ -16,10 +16,10 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <UseWindowsForms>true</UseWindowsForms>
-    <Version>4.0.0-preview.22</Version>
+    <Version>4.0.0-preview.23</Version>
     <AssemblyVersion>4.0.0.19</AssemblyVersion>
     <FileVersion>4.0.0.19</FileVersion>
-    <InformationalVersion>4.0.0-preview.22</InformationalVersion>
+    <InformationalVersion>4.0.0-preview.23</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 

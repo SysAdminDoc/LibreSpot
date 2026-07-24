@@ -4,6 +4,12 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0-preview.23] - 2026-07-24
+
+### Changed
+
+- Began extracting non-UI logic into a new WPF-free `LibreSpot.Core` class library (net10.0-windows, no `UseWPF`) shared by the desktop shell and the fleet CLI via project reference. `OperationCorrelation` (ETW/EventSource operation-id correlation) and `OperationJournalUndoService` (undo-policy evaluation, with its `operation-token-types.json` / `run-receipt-format.json` schemas) now live in Core; namespaces are preserved so all call sites and the xUnit suite are unchanged. Because Core sets no `UseWPF`, it is a valid Stryker.NET mutation-testing target, which the `UseWPF` desktop project is not — the prerequisite the filed Stryker item was blocked on. Remaining service migrations (drift comparison, snapshot derivation) depend on relocating the shared `Strings` localization ownership and stay tracked in ROADMAP.
+
 ## [v4.0.0-preview.22] - 2026-07-24
 
 ### Security

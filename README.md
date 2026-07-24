@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.22-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.23-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
@@ -68,7 +68,9 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 ---
 
-## What's New in v4.0.0-preview.22
+## What's New in v4.0.0-preview.23
+
+**Leaner, more testable internals.** Non-UI logic is moving out of the desktop shell into a new WPF-free `LibreSpot.Core` library shared by the shell and the fleet CLI. The operation-correlation and undo-policy engines have moved so far, with no behavior change; the payoff is a mutation-testing-capable core that the WPF project could never be. More extraction is tracked for future releases.
 
 **Provenance-checked Spicetify downloads.** On top of the mandatory SHA256 hash, the pinned Spicetify CLI download now optionally verifies GitHub build-provenance attestations: when the GitHub CLI is present, LibreSpot confirms the artifact was built by Spicetify's own release pipeline against a cached signer identity. A genuine provenance failure raises a trust warning; if the tooling, network, or sign-in is unavailable it quietly falls back to SHA256-only and never blocks the install.
 
