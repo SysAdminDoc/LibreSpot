@@ -21,4 +21,12 @@
   <ItemGroup>
     <InternalsVisibleTo Include="LibreSpot.Desktop.Tests" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Schemas loaded by Core services via Assembly.GetExecutingAssembly();
+         LogicalNames preserve the original LibreSpot.Desktop.Schemas.* manifest
+         names so the moved code resolves them unchanged. -->
+    <EmbeddedResource Include="..\..\schemas\operation-token-types.json" LogicalName="LibreSpot.Desktop.Schemas.operation-token-types.json" />
+    <EmbeddedResource Include="..\..\schemas\run-receipt-format.json" LogicalName="LibreSpot.Desktop.Schemas.run-receipt-format.json" />
+  </ItemGroup>
 </Project>

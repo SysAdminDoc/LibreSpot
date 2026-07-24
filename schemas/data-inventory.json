@@ -226,7 +226,7 @@
       "aclExpectation": "current-user inherited ACL from %APPDATA%",
       "writeSites": [
         { "source": "src/powershell/shared/Complete-OperationJournalRun.ps1", "marker": "$global:RUN_RECEIPT_PATH" },
-        { "source": "src/LibreSpot.Desktop/Services/OperationJournalUndoService.cs", "marker": "run-receipt.latest.json" }
+        { "source": "src/LibreSpot.Core/OperationJournalUndoService.cs", "marker": "run-receipt.latest.json" }
       ]
     },
     {
@@ -581,7 +581,7 @@
       "aclExpectation": "current-user inherited ACL from %APPDATA%",
       "writeSites": [
         { "source": "src/powershell/shared/Set-PathEntries.ps1", "marker": "undo-states" },
-        { "source": "src/LibreSpot.Desktop/Services/OperationJournalUndoService.cs", "marker": "undo-states" }
+        { "source": "src/LibreSpot.Core/OperationJournalUndoService.cs", "marker": "undo-states" }
       ]
     },
     {
