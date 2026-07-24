@@ -685,13 +685,21 @@ public static class AppCatalog
     /// the SpotX pin + Spotify target together only once Spicetify declares
     /// 1.2.94+ support; the refreshed adapter must then set
     /// <see cref="PinnedSpotXContainsDefenderMutations"/> and pass
-    /// <c>-defender_exclusions_off</c>.
+    /// <c>-defender_exclusions_off</c>. A pin advance must also confirm the new
+    /// Spicetify build still applies over the new Spotify target: spicetify/cli
+    /// <c>main</c> merged a hard-fail-on-unsupported-version gate (PRs #3894/#3895/
+    /// #3896, 2026-07-20/21) after 2.44.0 that makes <c>backup apply</c> refuse —
+    /// rather than best-effort patch — any Spotify version above the CLI's declared
+    /// ceiling. The 2.44.0 pin predates that gate and still best-effort applies,
+    /// which is what lets LibreSpot's post-apply route re-wiring work on 1.2.94.
     /// </summary>
     public const string PinnedSpotXHoldRationale =
         "Holding pre-Defender SpotX commit (predates afb4c3f 2026-07-11) at Spotify " +
         "1.2.93 to match Spicetify CLI 2.44.0's tested ceiling; advance only when " +
         "Spicetify declares 1.2.94+ support, then set DefenderMutations and pass " +
-        "-defender_exclusions_off.";
+        "-defender_exclusions_off. The advance must also verify the newer Spicetify " +
+        "build does not hard-refuse backup apply (spicetify/cli main gate merged after " +
+        "2.44.0) on the new Spotify target, not just re-check CSS class maps.";
 
     public static IReadOnlyList<UpstreamDependencyPin> UpstreamDependencyPins { get; } =
         new ReadOnlyCollection<UpstreamDependencyPin>(new[]

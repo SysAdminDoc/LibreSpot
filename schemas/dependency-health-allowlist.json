@@ -157,7 +157,7 @@
   ],
   "dotnetRuntimeFloor": {
     "version": "10.0.10",
-    "reason": "CVE-patched .NET 10 servicing floor (CVE-2026-32175 crafted-file arbitrary write, CVE-2026-26127 Base64Url OOB read, CVE-2026-45490, CVE-2026-50526). Self-contained artifacts embed the runtime, so the build host must resolve this Microsoft.NETCore.App / Microsoft.WindowsDesktop.App patch level or newer.",
-    "recheckDate": "2026-10-01"
+    "reason": "CVE-patched .NET 10 servicing floor. 10.0.10 (2026-07-14 servicing) closes a 17-CVE batch, notably RCE CVE-2026-50646 and CVE-2026-50649, signature-bypass CVE-2026-47304, elevation-of-privilege CVE-2026-50650, and CVE-2026-50526; it also carries the earlier CVE-2026-32175 (crafted-file arbitrary write), CVE-2026-26127 (Base64Url OOB read), and CVE-2026-45490 fixes. Self-contained artifacts embed the runtime, so the build host must resolve this Microsoft.NETCore.App / Microsoft.WindowsDesktop.App patch level or newer.",
+    "recheckDate": "2026-11-01"
   }
 }

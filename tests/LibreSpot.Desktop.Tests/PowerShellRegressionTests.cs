@@ -955,7 +955,8 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("Write-LibreSpotCompatibilityMatrix", script);
         Assert.Contains("SpotX target Spotify", script);
         Assert.Contains("max-tested Windows/Microsoft Store Spotify", script);
-        Assert.Contains("Spicetify CSS maps may need validation after patching", script);
+        Assert.Contains("validate Spicetify CSS maps after patching", script);
+        Assert.Contains("does not hard-refuse 'backup apply'", script);
         Assert.Contains("Marketplace:", script);
         Assert.Contains("Themes:", script);
     }

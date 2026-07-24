@@ -894,3 +894,35 @@ Acceptance (on a machine where an on-demand limited task can execute): run
 -WatcherIntegration`; all success, disabled/corrupt config, unavailable
 network, active Spotify, cancellation, and interrupted state-write assertions
 pass, and no `LibreSpot-WatcherIntegration-*` task or temp directory remains.
+
+---
+
+## P2 - Runtime detection of Spicetify's hard-refuse gate (RD-41 residual)
+
+| Field | Value |
+|---|---|
+| Source | Research-Driven Additions (2026-07-24), RD-41 |
+
+Why: the actionable half of RD-41 shipped — the pin-advance guardrail
+(`AppCatalog.PinnedSpotXHoldRationale`, README compatibility note, and the
+compatibility-matrix warning) now requires confirming a newer Spicetify build
+does not hard-refuse `backup apply` before advancing the pin. The remaining
+half — detecting at runtime that an installed Spicetify build *carries* the
+hard-fail gate and would refuse on the resolved Spotify target, and surfacing a
+distinct localized WPF stack-health state for it — needs the released gated
+Spicetify build to know the gate's exact runtime signature (declared-ceiling
+query / exit code / message). LibreSpot also always installs and uses its own
+pinned 2.44.0 (clearing any existing install), so the detection only matters
+for a future pin advance, not for a user-installed newer CLI. Speculating the
+signature now risks false hard-blocks, which the item explicitly forbids.
+
+Touches: `Get-LibreSpotCompatibilityWarnings.ps1`,
+`Test-SpicetifyCliVersionSupported.ps1`, `Get-SpicetifyDiagnosticSnapshot.ps1`,
+WPF stack-health Spicetify component (all six locales), xUnit + Pester tests.
+
+Acceptance (once a gated Spicetify release exists): LibreSpot feature-detects
+the gate from the installed CLI, and when the resolved Spotify target exceeds
+that build's declared ceiling it surfaces a distinct localized "Spicetify will
+refuse to apply on this Spotify version" health state pointing at holding the
+tested build; unknown/unparseable ceilings degrade to the existing soft
+warning, never a false hard block.
