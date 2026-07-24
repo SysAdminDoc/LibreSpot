@@ -569,10 +569,56 @@ Surfaced by the 2026-07-23 Marketplace deep-dive. The theme contract, missing
 store button, and health reporting were fixed in-session (see CHANGELOG); the
 items below need runtime state this environment cannot fully produce.
 
-- [x] P1 — RD-39: Marketplace app renders a blank page on Spotify 1.2.93.667 — RESOLVED in v4.0.0-preview.19
-  Root cause found via CDP forensics + spicetify/cli source: NOT the upstream bundle. SpotX serves the combined `/xpui.js` (its patches only take effect from that file), while Spicetify v2.44.0 injects custom-app routes into `xpui-modules.js` and the chunk map into `xpui-snapshot.js` — files index.html never loads in the SpotX layout. `/marketplace` mounted a React.lazy chunk the live webpack runtime could not start (Suspense fallback:null = silent blank). Fixed by `Repair-SpicetifyCustomAppWiring` (ports the CLI's own apply.go injection onto the live bundle after every apply) + `RouteNotWired` health state. Verified live: store renders the full catalog on 1.2.93.667.
 - [ ] P2 — RD-40: Verify Spicetify applies over a stock (non-SpotX) backup
   Why: LibreSpot runs SpotX first, then `spicetify backup apply`, so Spicetify's backup is of a SpotX-modified xpui rather than stock. Upstream guidance (#1185) is to back up a clean client before apply; the SpotX-first layering is the most likely LibreSpot-influenceable cause of subtle Marketplace/theme render failures that still exit apply 0.
   Where: `src/powershell/shared/Module-InstallSpotX.ps1`, `Module-ApplySpicetify`, ordering in `Invoke-LibreSpotInstall`.
   Acceptance: determine whether re-backing-up after SpotX (or backing up before SpotX) changes Marketplace render outcome on 1.2.93; document the ordering decision and add a post-apply `_renderNavLinks`/app-mount gate that flags a silent render failure.
   Complexity: M
+
+## Research-Driven Additions (2026-07-24)
+
+Items from the 2026-07-24 exhaustive research pass. Full evidence in
+`RESEARCH.md`. IDs continue the `RD-` scheme (highest prior: RD-40). Not
+duplicated: v3 detection guard (done, preview.18), `TargetLatestRuntimePatch` +
+`dotnetRuntimeFloor` gate at 10.0.10 (done, preview.18), Marketplace route
+re-wiring (done, preview.19), package-manager manifests / native launcher /
+Stryker.NET (blocked — `Roadmap_Blocked.md`).
+
+### P2
+
+- [ ] P2 — RD-41: Guard against Spicetify's imminent hard-fail-on-unsupported-version release
+  Why: Spicetify's `main` merged hard-fail-on-unsupported-Spotify-version work (PRs #3894/#3895/#3896, 2026-07-20/21) that is NOT yet in the v2.44.0 release. Today Spicetify best-effort patches above its 1.2.93 ceiling — the exact behavior that lets LibreSpot's post-apply route re-wiring work on the current Spotify stable (1.2.94.583). The next Spicetify release will likely refuse `backup apply` above its declared ceiling. This is distinct from the shipped v3 guard (major > 2): it is a v2.4x-line behavior change. The pin (2.44.0) insulates today, but a user-installed newer Spicetify — or advancing the pin to gain 1.2.94 support, which may ship *with* the hard-fail gate — would break apply outright.
+  Evidence: github.com/spicetify/cli/pull/3894, /3895, /3896; `src/powershell/shared/Get-LibreSpotCompatibilityWarnings.ps1` (only emits a soft CSS-drift warning, no hard-refuse detection); `src/powershell/data/PinnedReleases.ps1` (`WindowsMaxTestedSpotify`); RESEARCH.md "Upstream State".
+  Touches: `Get-LibreSpotCompatibilityWarnings.ps1`, `Test-SpicetifyCliVersionSupported.ps1`, `Get-SpicetifyDiagnosticSnapshot.ps1`, stack-health Spicetify component (WPF + shared PS, all six locales), the pin-advance-trigger note in `AppCatalog.PinnedSpotXHoldRationale`/README compatibility matrix, xUnit + Pester tests.
+  Acceptance: LibreSpot detects when an installed Spicetify CLI would hard-refuse `backup apply` on the resolved Spotify target (installed Spotify version > Spicetify's declared ceiling AND the CLI build carries the version gate), surfaces a distinct localized "Spicetify will refuse to apply on this Spotify version" health/compatibility warning with a concrete next step (hold the pinned build / wait for ceiling), and the pin-advance trigger explicitly accounts for the gate rather than only CSS drift. Unknown/unparseable ceilings degrade to the current soft warning, never a false hard block.
+  Complexity: M
+
+- [ ] P2 — RD-43: Align the code-signing docs with the unsigned-by-design posture
+  Why: README (`README.md:337`, `README.md:374`) and `SIGNPATH.md` still state SignPath Authenticode signing is "pending" and that the "Unknown publisher" SmartScreen warning will disappear "once the cert arrives." The project ships unsigned by design (no-signing policy), so this copy strands users waiting for a cert that will not come and misframes SHA256 checksum verification as a temporary stopgap instead of the permanent trust path. It also contradicts the observed reality that Microsoft removed EV's default-trust in 2024, so signing no longer buys instant SmartScreen reputation.
+  Evidence: `README.md:337`, `README.md:374`, `SIGNPATH.md`; learn.microsoft.com SmartScreen reputation docs; RESEARCH.md "Security, Privacy, and Reliability".
+  Touches: `README.md` (SmartScreen + signing FAQ answers), `SECURITY.md`, `SIGNPATH.md`, any release-truth/doc test that asserts on signing language.
+  Acceptance: the signing FAQ answers describe unsigned-by-design distribution, point at `checksums.txt` SHA256 verification as the permanent verification path, and drop "pending"/"once the cert arrives" promises; `SIGNPATH.md` is either removed or reframed as historical; no user-facing doc implies a future signed build. Version strings and doc-sync gates stay green.
+  Complexity: S
+
+### P3
+
+- [ ] P3 — RD-42: Refresh the `dotnetRuntimeFloor` CVE rationale for the 2026-07-14 servicing batch
+  Why: the floor is already 10.0.10 (`schemas/dependency-health-allowlist.json:159`), so shipped self-contained artifacts carry the fixes — but the gate's `reason` string enumerates only 4 CVEs (CVE-2026-32175/26127/45490/50526) and omits the 2026-07-14 batch of 17 (notably RCE CVE-2026-50646/-50649 and signature-bypass CVE-2026-47304). The enumeration is the auditable justification for the floor; it should list what 10.0.10 actually fixes.
+  Evidence: `schemas/dependency-health-allowlist.json:158-160`; devblogs.microsoft.com July 2026 .NET servicing update; support.microsoft.com net-10 update July 14 2026; RESEARCH.md "Upstream State".
+  Touches: `schemas/dependency-health-allowlist.json` (`dotnetRuntimeFloor.reason` + `recheckDate`), any test asserting on the reason text.
+  Acceptance: the floor rationale references the 10.0.10 (2026-07-14) servicing batch and its highest-severity CVEs; `recheckDate` advances; `Build-Scripts.ps1 -DependencyHealth` still passes on a 10.0.10+ build host.
+  Complexity: S
+
+- [ ] P3 — RD-44: Surface Spicetify's new `doctor` diagnostic in the health model
+  Why: Spicetify merged a `doctor` diagnostic command (PR #3884, 2026-07-05) that reports environment/patch health from the CLI's own perspective. Once released, running it and folding its output into LibreSpot's stack-health snapshot adds an upstream-authoritative second opinion alongside LibreSpot's own probes, catching Spicetify-side breakage LibreSpot's filename heuristics miss.
+  Evidence: github.com/spicetify/cli/pull/3884; `src/powershell/shared/Get-SpicetifyDiagnosticSnapshot.ps1`; RESEARCH.md "Upstream State".
+  Touches: `Get-SpicetifyDiagnosticSnapshot.ps1`, stack-health Spicetify component, dependency-health output, xUnit tests.
+  Acceptance: when the installed Spicetify CLI exposes `doctor` (feature-detected, not version-assumed), LibreSpot runs it non-interactively, parses its result into the diagnostic snapshot, and surfaces failures as a health signal; when `doctor` is absent (v2.44.0 and earlier) the path is skipped with no warning.
+  Complexity: M
+
+- [ ] P3 — RD-45: Proactive AV false-positive hardening for releases
+  Why: community evidence ranks Defender/AV flagging of the PowerShell installer among the top install-blocking pains (SpotX #875/#865/#134), and `LibreSpot.ps1` (610 KB) is LibreSpot's worst AV-FP surface (Powdow-class heuristics) versus the compiled WPF/CLI EXEs. Two low-cost mitigations: document submitting each release artifact SHA256 to the Microsoft Defender FP portal as a release step, and give LibreSpot its own VirusTotal permalink in the AV FAQ (today it only links SpotX's scan).
+  Evidence: github.com/SpotX-Official/SpotX/issues/875; learn.microsoft.com Defender FP/negatives docs (aka.ms/wdsi); `README.md:333-337`; RESEARCH.md "Security, Privacy, and Reliability".
+  Touches: `README.md` (AV FAQ — add a LibreSpot-own VirusTotal link + "prefer the EXE over the raw PS1" note), release procedure docs / `SECURITY.md` (add the FP-submission step).
+  Acceptance: the AV FAQ links a VirusTotal scan of LibreSpot's own primary artifact and recommends the compiled EXE for users hitting PS-heuristic flags; the documented release procedure includes submitting each shipped artifact hash to the Microsoft Defender FP portal. No signing implied.
+  Complexity: S
