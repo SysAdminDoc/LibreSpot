@@ -535,12 +535,12 @@ now unblockable by RD-35).
 
 ### P3
 
-- [ ] P3 — RD-35: Extract non-UI logic into a `LibreSpot.Core` class library
-  Why: `MainViewModel.cs` is 4,871 lines with pure logic entangled in WPF types, bloating the god-ViewModel and blocking the filed Stryker.NET item (Stryker cannot analyze a `net10.0-windows`/`UseWPF` target). A WPF-free `net10.0` library both shrinks the ViewModel and unblocks mutation testing.
-  Evidence: `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`; `Roadmap_Blocked.md` "Add Stryker.NET mutation testing" (blocked on this extraction).
-  Touches: new `src/LibreSpot.Core/` (`net10.0`, no `-windows`/WPF), `MainViewModel.cs`, `Services/*`, tests project reference.
-  Acceptance: pure logic (snapshot derivation, plan building, undo-policy evaluation, drift comparison) moves to `LibreSpot.Core` with direct unit tests; the library builds without WPF; the WPF ViewModel consumes it; the existing xUnit + FlaUI suites stay green; the Stryker blocked item can now target `LibreSpot.Core`.
-  Complexity: L
+- [ ] P3 — Add Stryker.NET mutation testing against `LibreSpot.Core`
+  Why: many C# tests validate JSON schema structure rather than runtime behavior; Stryker.NET surfaces code paths where tests pass even when logic is mutated. The prerequisite (a WPF-free library target) is now satisfied — `LibreSpot.Core` builds `net10.0-windows` with no `UseWPF`, which Stryker can analyze where the `UseWPF` desktop project cannot.
+  Evidence: `src/LibreSpot.Core/` (WPF-free, holds snapshot/undo/drift logic + direct unit tests); unblocked by the completed RD-35 extraction.
+  Touches: a Stryker config targeting `src/LibreSpot.Core`, the test project, CHANGELOG.
+  Acceptance: `dotnet stryker` runs against `LibreSpot.Core`, produces a mutation-score report locally, and a ratchet threshold is documented that catches untested behavioral branches without requiring WPF mutation.
+  Complexity: M
 
 - [ ] P3 — RD-36: Decompose `MainWindow.xaml` into per-screen UserControls
   Why: `MainWindow.xaml` is 5,509 lines holding all six nav screens (Home/Setup/Unblock/Tools/Settings/About) + the inspector in one file, slowing edits and raising merge/regression risk on the shipping shell.
