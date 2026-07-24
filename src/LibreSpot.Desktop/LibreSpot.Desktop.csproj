@@ -51,4 +51,8 @@
          Do not switch to the older similarly named Wpf.Ui package ID. -->
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LibreSpot.Core\LibreSpot.Core.csproj" />
+  </ItemGroup>
 </Project>

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- WPF-free class library holding non-UI logic shared by the WPF desktop and
+         the fleet CLI. Targets net10.0-windows (Win32/registry/WMI APIs) but does
+         NOT set UseWPF, so it is a valid Stryker.NET mutation-testing target where
+         the UseWPF desktop project is not. See ROADMAP RD-35 / Roadmap_Blocked
+         "Add Stryker.NET mutation testing". -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+    <AssemblyName>LibreSpot.Core</AssemblyName>
+    <RootNamespace>LibreSpot.Desktop</RootNamespace>
+    <Version>4.0.0-preview.22</Version>
+    <InformationalVersion>4.0.0-preview.22</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="LibreSpot.Desktop.Tests" />
+  </ItemGroup>
+</Project>
