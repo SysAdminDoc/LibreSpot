@@ -926,3 +926,54 @@ that build's declared ceiling it surfaces a distinct localized "Spicetify will
 refuse to apply on this Spotify version" health state pointing at holding the
 tested build; unknown/unparseable ceilings degrade to the existing soft
 warning, never a false hard block.
+
+---
+
+## P2 - Verify Spicetify applies over a stock (non-SpotX) backup (RD-40)
+
+| Field | Value |
+|---|---|
+| Source | Audit-Driven Additions (2026-07-23), RD-40 |
+
+Why: the detection half of RD-40 shipped in v4.0.0-preview.19 — the
+`RouteNotWired` stack-health state plus `Repair-SpicetifyCustomAppWiring`
+already flag and repair the silent post-apply render failure (store chunk not
+referenced by the live bundle). The residual — empirically determining whether
+re-backing-up after SpotX (or backing up a clean client before SpotX) changes
+the Marketplace/theme render outcome on Spotify 1.2.93 — requires a live
+SpotX-patched Spotify install to observe render results, which this build
+environment cannot produce (same live-rig blocker as "restore stock Spotify
+binary"). Reordering the SpotX/Spicetify backup steps without a live render
+signal would be an unverifiable guess.
+
+Touches: `src/powershell/shared/Module-InstallSpotX.ps1`, `Module-ApplySpicetify`,
+`Invoke-LibreSpotInstall` ordering.
+
+Acceptance (on a machine with a live patchable Spotify 1.2.93): determine
+whether the SpotX-first backup ordering affects Marketplace render; document the
+ordering decision; confirm the shipped `RouteNotWired` gate catches any silent
+render failure it introduces.
+
+---
+
+## P3 - Surface Spicetify's `doctor` diagnostic in the health model (RD-44)
+
+| Field | Value |
+|---|---|
+| Source | Research-Driven Additions (2026-07-24), RD-44 |
+
+Why: the `doctor` command was merged to `spicetify/cli` `main` (PR #3884) but is
+NOT in the released v2.44.0 that LibreSpot pins and installs (the installer
+clears any existing CLI and lays down 2.44.0). A "run doctor if present" path
+would therefore be permanently dead code against LibreSpot's own managed CLI,
+and its output contract cannot be parsed or tested without a released `doctor`
+build. Implementing it now would be speculative against an unreleased,
+unspecified output format.
+
+Touches: `Get-SpicetifyDiagnosticSnapshot.ps1`, stack-health Spicetify component,
+dependency-health output, xUnit tests.
+
+Acceptance (once a Spicetify release ships `doctor`): feature-detect `doctor`
+from the installed CLI, run it non-interactively, fold its result into the
+diagnostic snapshot, and surface failures as a health signal; skip silently when
+absent.

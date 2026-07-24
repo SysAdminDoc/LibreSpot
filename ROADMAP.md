@@ -569,11 +569,6 @@ Surfaced by the 2026-07-23 Marketplace deep-dive. The theme contract, missing
 store button, and health reporting were fixed in-session (see CHANGELOG); the
 items below need runtime state this environment cannot fully produce.
 
-- [ ] P2 — RD-40: Verify Spicetify applies over a stock (non-SpotX) backup
-  Why: LibreSpot runs SpotX first, then `spicetify backup apply`, so Spicetify's backup is of a SpotX-modified xpui rather than stock. Upstream guidance (#1185) is to back up a clean client before apply; the SpotX-first layering is the most likely LibreSpot-influenceable cause of subtle Marketplace/theme render failures that still exit apply 0.
-  Where: `src/powershell/shared/Module-InstallSpotX.ps1`, `Module-ApplySpicetify`, ordering in `Invoke-LibreSpotInstall`.
-  Acceptance: determine whether re-backing-up after SpotX (or backing up before SpotX) changes Marketplace render outcome on 1.2.93; document the ordering decision and add a post-apply `_renderNavLinks`/app-mount gate that flags a silent render failure.
-  Complexity: M
 
 ## Research-Driven Additions (2026-07-24)
 
@@ -584,12 +579,4 @@ duplicated: v3 detection guard (done, preview.18), `TargetLatestRuntimePatch` +
 re-wiring (done, preview.19), package-manager manifests / native launcher /
 Stryker.NET (blocked — `Roadmap_Blocked.md`).
 
-### P3
-
-- [ ] P3 — RD-44: Surface Spicetify's new `doctor` diagnostic in the health model
-  Why: Spicetify merged a `doctor` diagnostic command (PR #3884, 2026-07-05) that reports environment/patch health from the CLI's own perspective. Once released, running it and folding its output into LibreSpot's stack-health snapshot adds an upstream-authoritative second opinion alongside LibreSpot's own probes, catching Spicetify-side breakage LibreSpot's filename heuristics miss.
-  Evidence: github.com/spicetify/cli/pull/3884; `src/powershell/shared/Get-SpicetifyDiagnosticSnapshot.ps1`; RESEARCH.md "Upstream State".
-  Touches: `Get-SpicetifyDiagnosticSnapshot.ps1`, stack-health Spicetify component, dependency-health output, xUnit tests.
-  Acceptance: when the installed Spicetify CLI exposes `doctor` (feature-detected, not version-assumed), LibreSpot runs it non-interactively, parses its result into the diagnostic snapshot, and surfaces failures as a health signal; when `doctor` is absent (v2.44.0 and earlier) the path is skipped with no warning.
-  Complexity: M
 
