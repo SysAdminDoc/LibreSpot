@@ -957,3 +957,50 @@ Acceptance (once a Spicetify release ships `doctor`): feature-detect `doctor`
 from the installed CLI, run it non-interactively, fold its result into the
 diagnostic snapshot, and surface failures as a health signal; skip silently when
 absent.
+
+---
+
+## P3 - Add Stryker.NET mutation testing against LibreSpot.Core
+
+| Field | Value |
+|---|---|
+| Source | Research-Driven Additions; unblocked (for the library-target prerequisite) by the RD-35 Core extraction |
+| Blocker | External tooling: Stryker.NET 4.16.0 cannot measure mutations against the project's xunit.v3 (Microsoft.Testing.Platform) test stack |
+
+Why: many C# tests validate JSON schema structure; mutation testing surfaces
+logic branches where tests pass even when the code is mutated. The RD-35
+extraction satisfied the library-target prerequisite (`LibreSpot.Core` builds
+`net10.0-windows` with no `UseWPF`, which Stryker can analyze where the desktop
+`UseWPF` project cannot).
+
+Blocked: verified in-session that Stryker.NET 4.16.0's VSTest-based coverage and
+kill-detection do not interoperate with this repo's **xunit.v3** suite (xunit.v3
+runs on Microsoft.Testing.Platform, not VSTest). Every run reports
+`test coverage capture failed` and then **0 mutants killed / all survived**
+(final score ~0.17%) even against genuinely behavioral tests that assert on real
+service output — i.e. Stryker never receives pass/fail results back from the
+xunit.v3 tests, so no mutation is ever detected as caught. This reproduced both
+against the shared test project and against a dedicated Core-only test project.
+The only local "fix" would be downgrading the entire 883-test suite off
+xunit.v3, which is not acceptable. Resolution needs external input: a
+Stryker.NET release that supports Microsoft.Testing.Platform / xunit.v3 result
+collection (track stryker-mutator/stryker-net).
+
+Staged recipe for the next attempt (once tooling supports xunit.v3), verified to
+get Stryker as far as actually mutating Core:
+1. Pin the tool: `dotnet new tool-manifest` + `dotnet tool install dotnet-stryker`
+   (`.config/dotnet-tools.json`).
+2. Stryker only inspects **direct** project references and fails to analyze the
+   WPF desktop project, so its target test project must reference **only**
+   `LibreSpot.Core`. Create `tests/LibreSpot.Core.Tests` referencing only Core and
+   linking the behavioral Core tests (`OperationCorrelationTests`,
+   `UpstreamDriftServiceTests`, `CommunityAssetDriftServiceTests`, …); grant
+   `InternalsVisibleTo("LibreSpot.Core.Tests")` in Core. This makes Stryker log
+   "Found project LibreSpot.Core.csproj to mutate."
+3. `src/LibreSpot.Core/stryker-config.json`: `project` = `LibreSpot.Core.csproj`,
+   `test-projects` = the Core-only test project, `mutate` scoped to the
+   behavioral-tested files, `coverage-analysis: perTest`.
+
+Acceptance: `dotnet stryker` runs against `LibreSpot.Core`, produces a non-zero,
+meaningful mutation-score report locally (mutants actually killed), and a ratchet
+`break` threshold is set from that baseline.
