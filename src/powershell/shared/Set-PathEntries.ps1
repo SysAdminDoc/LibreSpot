@@ -4,8 +4,16 @@ function Set-PathEntries {
         [ValidateSet('User','Process')] [string]$Scope = 'User',
         [string[]]$Entries,
         [ValidateSet('pathEntryAdd','pathEntryRemove')] [string]$TokenKind = 'pathEntryAdd',
-        [string]$ChangedEntry = ''
+        [string]$ChangedEntry = '',
+        [string]$EnvironmentKeyPath = 'Environment',
+        [switch]$SkipEnvironmentBroadcast
     )
+    if ([string]::IsNullOrWhiteSpace($EnvironmentKeyPath) -or
+        $EnvironmentKeyPath.StartsWith('\') -or
+        $EnvironmentKeyPath.Contains('/') -or
+        $EnvironmentKeyPath -match '(^|\\)\.{1,2}($|\\)') {
+        throw 'EnvironmentKeyPath must be a non-rooted relative registry subkey path.'
+    }
     $orderedEntries = [System.Collections.Generic.List[string]]::new()
     $seen = @{}
     foreach ($entry in @($Entries)) {
@@ -26,7 +34,7 @@ function Set-PathEntries {
         $tempStatePath = ''
         if ($Scope -eq 'User' -and $TokenKind -eq 'pathEntryAdd' -and -not [string]::IsNullOrWhiteSpace($ChangedEntry)) {
             try {
-                $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $false)
+                $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($EnvironmentKeyPath, $false)
                 try {
                     $previousPathExists = $null -ne $environmentKey -and @($environmentKey.GetValueNames()) -contains 'Path'
                     $previousPath = if (-not $previousPathExists) { '' } else {
@@ -99,7 +107,7 @@ function Set-PathEntries {
             # SetEnvironmentVariable writes a REG_SZ value and therefore
             # destroys expandable PATH tokens. Keep the user PATH explicitly
             # typed as REG_EXPAND_SZ, then notify already-running shells.
-            $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
+            $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($EnvironmentKeyPath)
             try {
                 if ($null -eq $environmentKey) { throw 'Unable to open the current user environment registry key.' }
                 $environmentKey.SetValue('Path', $pathValue, [Microsoft.Win32.RegistryValueKind]::ExpandString)
@@ -107,7 +115,7 @@ function Set-PathEntries {
                 if ($null -ne $environmentKey) { $environmentKey.Dispose() }
             }
 
-            if (-not ('LibreSpot.EnvironmentChangeNativeMethods' -as [type])) {
+            if (-not $SkipEnvironmentBroadcast -and -not ('LibreSpot.EnvironmentChangeNativeMethods' -as [type])) {
                 Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
@@ -130,15 +138,17 @@ namespace LibreSpot
 '@
             }
 
-            $broadcastResult = [UIntPtr]::Zero
-            $null = [LibreSpot.EnvironmentChangeNativeMethods]::SendMessageTimeout(
-                [IntPtr]0xffff,
-                0x001A,
-                [UIntPtr]::Zero,
-                'Environment',
-                0x0002,
-                5000,
-                [ref]$broadcastResult)
+            if (-not $SkipEnvironmentBroadcast) {
+                $broadcastResult = [UIntPtr]::Zero
+                $null = [LibreSpot.EnvironmentChangeNativeMethods]::SendMessageTimeout(
+                    [IntPtr]0xffff,
+                    0x001A,
+                    [UIntPtr]::Zero,
+                    'Environment',
+                    0x0002,
+                    5000,
+                    [ref]$broadcastResult)
+            }
         }
         Write-OperationJournalEntry -OperationId $operationId -Phase 'path' -Target "$Scope PATH" -SafetyDecision 'Allowed' -Result 'Updated' -WouldChange $true -Reversible $undoReady -RollbackHint 'Restore the exact previous PATH value after validating its fingerprint.' -TokenKind $TokenKind -PreviousStateRef $previousStateRef -NewState $newState -UndoAction 'Restore the exact previous user PATH snapshot.' -Risk $(if ($TokenKind -eq 'pathEntryAdd') { 'low' } else { 'medium' })
     }

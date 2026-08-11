@@ -2757,14 +2757,23 @@ function Get-NormalizedPathString {
 }
 
 function Get-PathEntries {
-    param([ValidateSet('User','Process')] [string]$Scope = 'User')
+    param(
+        [ValidateSet('User','Process')] [string]$Scope = 'User',
+        [string]$EnvironmentKeyPath = 'Environment'
+    )
+    if ([string]::IsNullOrWhiteSpace($EnvironmentKeyPath) -or
+        $EnvironmentKeyPath.StartsWith('\') -or
+        $EnvironmentKeyPath.Contains('/') -or
+        $EnvironmentKeyPath -match '(^|\\)\.{1,2}($|\\)') {
+        throw 'EnvironmentKeyPath must be a non-rooted relative registry subkey path.'
+    }
     if ($Scope -eq 'Process') {
         $rawPath = $env:PATH
     } else {
         # Environment.GetEnvironmentVariable expands REG_EXPAND_SZ values.
         # Read the registry value directly so a PATH edit preserves tokens
         # such as %USERPROFILE% and %JAVA_HOME% byte-for-byte.
-        $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $false)
+        $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($EnvironmentKeyPath, $false)
         try {
             $rawPath = if ($null -eq $environmentKey) {
                 $null
@@ -2788,8 +2797,16 @@ function Set-PathEntries {
         [ValidateSet('User','Process')] [string]$Scope = 'User',
         [string[]]$Entries,
         [ValidateSet('pathEntryAdd','pathEntryRemove')] [string]$TokenKind = 'pathEntryAdd',
-        [string]$ChangedEntry = ''
+        [string]$ChangedEntry = '',
+        [string]$EnvironmentKeyPath = 'Environment',
+        [switch]$SkipEnvironmentBroadcast
     )
+    if ([string]::IsNullOrWhiteSpace($EnvironmentKeyPath) -or
+        $EnvironmentKeyPath.StartsWith('\') -or
+        $EnvironmentKeyPath.Contains('/') -or
+        $EnvironmentKeyPath -match '(^|\\)\.{1,2}($|\\)') {
+        throw 'EnvironmentKeyPath must be a non-rooted relative registry subkey path.'
+    }
     $orderedEntries = [System.Collections.Generic.List[string]]::new()
     $seen = @{}
     foreach ($entry in @($Entries)) {
@@ -2810,7 +2827,7 @@ function Set-PathEntries {
         $tempStatePath = ''
         if ($Scope -eq 'User' -and $TokenKind -eq 'pathEntryAdd' -and -not [string]::IsNullOrWhiteSpace($ChangedEntry)) {
             try {
-                $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $false)
+                $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($EnvironmentKeyPath, $false)
                 try {
                     $previousPathExists = $null -ne $environmentKey -and @($environmentKey.GetValueNames()) -contains 'Path'
                     $previousPath = if (-not $previousPathExists) { '' } else {
@@ -2883,7 +2900,7 @@ function Set-PathEntries {
             # SetEnvironmentVariable writes a REG_SZ value and therefore
             # destroys expandable PATH tokens. Keep the user PATH explicitly
             # typed as REG_EXPAND_SZ, then notify already-running shells.
-            $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
+            $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($EnvironmentKeyPath)
             try {
                 if ($null -eq $environmentKey) { throw 'Unable to open the current user environment registry key.' }
                 $environmentKey.SetValue('Path', $pathValue, [Microsoft.Win32.RegistryValueKind]::ExpandString)
@@ -2891,7 +2908,7 @@ function Set-PathEntries {
                 if ($null -ne $environmentKey) { $environmentKey.Dispose() }
             }
 
-            if (-not ('LibreSpot.EnvironmentChangeNativeMethods' -as [type])) {
+            if (-not $SkipEnvironmentBroadcast -and -not ('LibreSpot.EnvironmentChangeNativeMethods' -as [type])) {
                 Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
@@ -2914,15 +2931,17 @@ namespace LibreSpot
 '@
             }
 
-            $broadcastResult = [UIntPtr]::Zero
-            $null = [LibreSpot.EnvironmentChangeNativeMethods]::SendMessageTimeout(
-                [IntPtr]0xffff,
-                0x001A,
-                [UIntPtr]::Zero,
-                'Environment',
-                0x0002,
-                5000,
-                [ref]$broadcastResult)
+            if (-not $SkipEnvironmentBroadcast) {
+                $broadcastResult = [UIntPtr]::Zero
+                $null = [LibreSpot.EnvironmentChangeNativeMethods]::SendMessageTimeout(
+                    [IntPtr]0xffff,
+                    0x001A,
+                    [UIntPtr]::Zero,
+                    'Environment',
+                    0x0002,
+                    5000,
+                    [ref]$broadcastResult)
+            }
         }
         Write-OperationJournalEntry -OperationId $operationId -Phase 'path' -Target "$Scope PATH" -SafetyDecision 'Allowed' -Result 'Updated' -WouldChange $true -Reversible $undoReady -RollbackHint 'Restore the exact previous PATH value after validating its fingerprint.' -TokenKind $TokenKind -PreviousStateRef $previousStateRef -NewState $newState -UndoAction 'Restore the exact previous user PATH snapshot.' -Risk $(if ($TokenKind -eq 'pathEntryAdd') { 'low' } else { 'medium' })
     }
@@ -2931,29 +2950,33 @@ namespace LibreSpot
 function Add-PathEntry {
     param(
         [string]$Entry,
-        [ValidateSet('User','Process')] [string]$Scope = 'User'
+        [ValidateSet('User','Process')] [string]$Scope = 'User',
+        [string]$EnvironmentKeyPath = 'Environment',
+        [switch]$SkipEnvironmentBroadcast
     )
     $normalized = Get-NormalizedPathString -Path $Entry
     if ([string]::IsNullOrWhiteSpace($normalized)) { return $false }
-    $entries = @(Get-PathEntries -Scope $Scope)
+    $entries = @(Get-PathEntries -Scope $Scope -EnvironmentKeyPath $EnvironmentKeyPath)
     foreach ($existing in $entries) {
         $existingNormalized = Get-NormalizedPathString -Path $existing
         if ($existingNormalized -and $existingNormalized.ToLowerInvariant() -eq $normalized.ToLowerInvariant()) {
             return $false
         }
     }
-    Set-PathEntries -Scope $Scope -Entries (@($entries) + @($Entry)) -TokenKind 'pathEntryAdd' -ChangedEntry $Entry
+    Set-PathEntries -Scope $Scope -Entries (@($entries) + @($Entry)) -TokenKind 'pathEntryAdd' -ChangedEntry $Entry -EnvironmentKeyPath $EnvironmentKeyPath -SkipEnvironmentBroadcast:$SkipEnvironmentBroadcast
     return $true
 }
 
 function Remove-PathEntry {
     param(
         [string]$Entry,
-        [ValidateSet('User','Process')] [string]$Scope = 'User'
+        [ValidateSet('User','Process')] [string]$Scope = 'User',
+        [string]$EnvironmentKeyPath = 'Environment',
+        [switch]$SkipEnvironmentBroadcast
     )
     $normalized = Get-NormalizedPathString -Path $Entry
     if ([string]::IsNullOrWhiteSpace($normalized)) { return $false }
-    $entries = @(Get-PathEntries -Scope $Scope)
+    $entries = @(Get-PathEntries -Scope $Scope -EnvironmentKeyPath $EnvironmentKeyPath)
     $remaining = @()
     $removed = $false
     foreach ($existing in $entries) {
@@ -2965,7 +2988,7 @@ function Remove-PathEntry {
         $remaining += $existing
     }
     if ($removed) {
-        Set-PathEntries -Scope $Scope -Entries $remaining -TokenKind 'pathEntryRemove' -ChangedEntry $Entry
+        Set-PathEntries -Scope $Scope -Entries $remaining -TokenKind 'pathEntryRemove' -ChangedEntry $Entry -EnvironmentKeyPath $EnvironmentKeyPath -SkipEnvironmentBroadcast:$SkipEnvironmentBroadcast
     }
     return $removed
 }

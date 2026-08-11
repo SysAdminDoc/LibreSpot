@@ -1,17 +1,19 @@
 function Add-PathEntry {
     param(
         [string]$Entry,
-        [ValidateSet('User','Process')] [string]$Scope = 'User'
+        [ValidateSet('User','Process')] [string]$Scope = 'User',
+        [string]$EnvironmentKeyPath = 'Environment',
+        [switch]$SkipEnvironmentBroadcast
     )
     $normalized = Get-NormalizedPathString -Path $Entry
     if ([string]::IsNullOrWhiteSpace($normalized)) { return $false }
-    $entries = @(Get-PathEntries -Scope $Scope)
+    $entries = @(Get-PathEntries -Scope $Scope -EnvironmentKeyPath $EnvironmentKeyPath)
     foreach ($existing in $entries) {
         $existingNormalized = Get-NormalizedPathString -Path $existing
         if ($existingNormalized -and $existingNormalized.ToLowerInvariant() -eq $normalized.ToLowerInvariant()) {
             return $false
         }
     }
-    Set-PathEntries -Scope $Scope -Entries (@($entries) + @($Entry)) -TokenKind 'pathEntryAdd' -ChangedEntry $Entry
+    Set-PathEntries -Scope $Scope -Entries (@($entries) + @($Entry)) -TokenKind 'pathEntryAdd' -ChangedEntry $Entry -EnvironmentKeyPath $EnvironmentKeyPath -SkipEnvironmentBroadcast:$SkipEnvironmentBroadcast
     return $true
 }

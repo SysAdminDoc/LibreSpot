@@ -49,6 +49,10 @@ BeforeAll {
     # literals so the extracted functions work correctly when invoked.
     $functionsToLoad = @(
         'Get-NormalizedPathString'
+        'Get-PathEntries'
+        'Set-PathEntries'
+        'Add-PathEntry'
+        'Remove-PathEntry'
         'ConvertTo-ConfigBoolean'
         'ConvertTo-ConfigInt'
         'Get-LibreSpotConfigSchemaVersion'
@@ -81,6 +85,29 @@ BeforeAll {
     }
     $combined = $blocks -join "`n`n"
     Invoke-Expression $combined
+
+    function Write-Log {
+        param([string]$Message, [string]$Level = 'INFO')
+    }
+
+    function Write-OperationJournalEntry {
+        param(
+            [string]$OperationId,
+            [string]$Phase,
+            [string]$Target,
+            [string]$SafetyDecision,
+            [string]$Result,
+            [bool]$WouldChange,
+            [bool]$Reversible,
+            [string]$RollbackHint,
+            [string]$TokenKind,
+            [string]$PreviousStateRef,
+            [string]$NewState,
+            [string]$UndoAction,
+            [string]$Risk,
+            [hashtable]$Data
+        )
+    }
 
     # ---- set up the minimal global state that Normalize-LibreSpotConfig needs ----
     $global:EasyDefaults = @{
@@ -145,6 +172,81 @@ BeforeAll {
         @{ Id='1.2.92'; Label='1.2.92'; Version='1.2.92'; Notes='Previous fallback.' }
     )
     $global:SpotifyVersionIds = @($global:SpotifyVersionManifest | ForEach-Object { $_.Id })
+}
+
+Describe 'Per-user PATH registry isolation' {
+    BeforeEach {
+        $script:pathRegistryRoot = "Software\LibreSpot\Tests\PathIsolation\$([Guid]::NewGuid().ToString('N'))"
+        $script:userAPathKey = "$script:pathRegistryRoot\UserA"
+        $script:userBPathKey = "$script:pathRegistryRoot\UserB"
+        $script:pathFixtureRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("LibreSpot-PathIsolation-" + [Guid]::NewGuid().ToString('N'))
+        $script:userAConfigRoot = Join-Path $script:pathFixtureRoot 'UserA\LibreSpot'
+        $script:userBConfigRoot = Join-Path $script:pathFixtureRoot 'UserB\LibreSpot'
+
+        $keyA = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($script:userAPathKey)
+        $keyB = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($script:userBPathKey)
+        try {
+            $keyA.SetValue('Path', '%USERPROFILE%\UserA\Bin;C:\Shared\Tools', [Microsoft.Win32.RegistryValueKind]::ExpandString)
+            $keyB.SetValue('Path', '%USERPROFILE%\UserB\Bin;C:\Shared\Tools', [Microsoft.Win32.RegistryValueKind]::ExpandString)
+        } finally {
+            $keyA.Dispose()
+            $keyB.Dispose()
+        }
+        New-Item -Path $script:userAConfigRoot, $script:userBConfigRoot -ItemType Directory -Force | Out-Null
+    }
+
+    AfterEach {
+        try { [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($script:pathRegistryRoot) } catch {}
+        Remove-Item -LiteralPath $script:pathFixtureRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'keeps two user PATH values, expandable tokens, and undo state independent' {
+        $aBefore = @(Get-PathEntries -Scope User -EnvironmentKeyPath $script:userAPathKey)
+        $bBefore = @(Get-PathEntries -Scope User -EnvironmentKeyPath $script:userBPathKey)
+        $aBefore | Should -Contain '%USERPROFILE%\UserA\Bin'
+        $bBefore | Should -Contain '%USERPROFILE%\UserB\Bin'
+        $aBefore | Should -Not -Contain '%USERPROFILE%\UserB\Bin'
+        $bBefore | Should -Not -Contain '%USERPROFILE%\UserA\Bin'
+
+        $global:CONFIG_DIR = $script:userAConfigRoot
+        $global:CURRENT_OPERATION_ID = 'path-isolation-user-a'
+        Set-PathEntries -Scope User -EnvironmentKeyPath $script:userAPathKey -Entries @(
+            '%USERPROFILE%\UserA\Bin'
+            'C:\Shared\Tools'
+            'C:\Users\LibreSpot\UserA'
+        ) -TokenKind 'pathEntryAdd' -ChangedEntry 'C:\Users\LibreSpot\UserA' -SkipEnvironmentBroadcast
+
+        $global:CONFIG_DIR = $script:userBConfigRoot
+        $global:CURRENT_OPERATION_ID = 'path-isolation-user-b'
+        Set-PathEntries -Scope User -EnvironmentKeyPath $script:userBPathKey -Entries @(
+            '%USERPROFILE%\UserB\Bin'
+            'C:\Shared\Tools'
+            'C:\Users\LibreSpot\UserB'
+        ) -TokenKind 'pathEntryAdd' -ChangedEntry 'C:\Users\LibreSpot\UserB' -SkipEnvironmentBroadcast
+
+        $aAfter = @(Get-PathEntries -Scope User -EnvironmentKeyPath $script:userAPathKey)
+        $bAfter = @(Get-PathEntries -Scope User -EnvironmentKeyPath $script:userBPathKey)
+        $aAfter | Should -Contain '%USERPROFILE%\UserA\Bin'
+        $aAfter | Should -Contain 'C:\Users\LibreSpot\UserA'
+        $aAfter | Should -Not -Contain 'C:\Users\LibreSpot\UserB'
+        $bAfter | Should -Contain '%USERPROFILE%\UserB\Bin'
+        $bAfter | Should -Contain 'C:\Users\LibreSpot\UserB'
+        $bAfter | Should -Not -Contain 'C:\Users\LibreSpot\UserA'
+
+        $keyA = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:userAPathKey, $false)
+        $keyB = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:userBPathKey, $false)
+        try {
+            $keyA.GetValueKind('Path') | Should -Be ([Microsoft.Win32.RegistryValueKind]::ExpandString)
+            $keyB.GetValueKind('Path') | Should -Be ([Microsoft.Win32.RegistryValueKind]::ExpandString)
+        } finally {
+            $keyA.Dispose()
+            $keyB.Dispose()
+        }
+
+        (Get-ChildItem -LiteralPath (Join-Path $script:userAConfigRoot 'undo-states') -Filter '*.json' -File).Count | Should -Be 1
+        (Get-ChildItem -LiteralPath (Join-Path $script:userBConfigRoot 'undo-states') -Filter '*.json' -File).Count | Should -Be 1
+        { Get-PathEntries -Scope User -EnvironmentKeyPath '..\Environment' } | Should -Throw
+    }
 }
 
 Describe 'Get-ThirdPartyPatcherReport' {

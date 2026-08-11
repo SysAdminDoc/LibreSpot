@@ -1,12 +1,21 @@
 function Get-PathEntries {
-    param([ValidateSet('User','Process')] [string]$Scope = 'User')
+    param(
+        [ValidateSet('User','Process')] [string]$Scope = 'User',
+        [string]$EnvironmentKeyPath = 'Environment'
+    )
+    if ([string]::IsNullOrWhiteSpace($EnvironmentKeyPath) -or
+        $EnvironmentKeyPath.StartsWith('\') -or
+        $EnvironmentKeyPath.Contains('/') -or
+        $EnvironmentKeyPath -match '(^|\\)\.{1,2}($|\\)') {
+        throw 'EnvironmentKeyPath must be a non-rooted relative registry subkey path.'
+    }
     if ($Scope -eq 'Process') {
         $rawPath = $env:PATH
     } else {
         # Environment.GetEnvironmentVariable expands REG_EXPAND_SZ values.
         # Read the registry value directly so a PATH edit preserves tokens
         # such as %USERPROFILE% and %JAVA_HOME% byte-for-byte.
-        $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $false)
+        $environmentKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($EnvironmentKeyPath, $false)
         try {
             $rawPath = if ($null -eq $environmentKey) {
                 $null

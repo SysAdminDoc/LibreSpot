@@ -1,11 +1,13 @@
 function Remove-PathEntry {
     param(
         [string]$Entry,
-        [ValidateSet('User','Process')] [string]$Scope = 'User'
+        [ValidateSet('User','Process')] [string]$Scope = 'User',
+        [string]$EnvironmentKeyPath = 'Environment',
+        [switch]$SkipEnvironmentBroadcast
     )
     $normalized = Get-NormalizedPathString -Path $Entry
     if ([string]::IsNullOrWhiteSpace($normalized)) { return $false }
-    $entries = @(Get-PathEntries -Scope $Scope)
+    $entries = @(Get-PathEntries -Scope $Scope -EnvironmentKeyPath $EnvironmentKeyPath)
     $remaining = @()
     $removed = $false
     foreach ($existing in $entries) {
@@ -17,7 +19,7 @@ function Remove-PathEntry {
         $remaining += $existing
     }
     if ($removed) {
-        Set-PathEntries -Scope $Scope -Entries $remaining -TokenKind 'pathEntryRemove' -ChangedEntry $Entry
+        Set-PathEntries -Scope $Scope -Entries $remaining -TokenKind 'pathEntryRemove' -ChangedEntry $Entry -EnvironmentKeyPath $EnvironmentKeyPath -SkipEnvironmentBroadcast:$SkipEnvironmentBroadcast
     }
     return $removed
 }

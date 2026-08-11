@@ -1817,7 +1817,8 @@ public sealed class PowerShellRegressionTests
         Assert.True(getter.Success, $"Get-PathEntries function block not found in {getterPath}.");
         Assert.True(setter.Success, $"Set-PathEntries function block not found in {setterPath}.");
 
-        Assert.Contains("Registry]::CurrentUser.OpenSubKey('Environment'", getter.Groups["body"].Value);
+        Assert.Contains("Registry]::CurrentUser.OpenSubKey($EnvironmentKeyPath", getter.Groups["body"].Value);
+        Assert.Contains("EnvironmentKeyPath = 'Environment'", getter.Groups["body"].Value);
         Assert.Contains("DoNotExpandEnvironmentNames", getter.Groups["body"].Value);
         Assert.Contains("RegistryValueKind]::ExpandString", setter.Groups["body"].Value);
         Assert.Contains("DoNotExpandEnvironmentNames", setter.Groups["body"].Value);
