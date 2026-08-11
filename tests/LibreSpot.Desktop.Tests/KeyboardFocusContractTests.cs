@@ -182,7 +182,15 @@ public sealed class KeyboardFocusContractTests
     }
 
     private static string ReadXaml() =>
-        ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        string.Join(
+            Environment.NewLine,
+            new[]
+            {
+                ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "recommended-workspace-view.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "custom-workspace-view.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "maintenance-workspace-view.xaml")
+            });
 
     private static string ExtractSection(string text, string markerName, int charWindow)
     {

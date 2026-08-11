@@ -5,7 +5,6 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -15,6 +14,7 @@ using System.Windows.Threading;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
 using LibreSpot.Desktop.ViewModels;
+using LibreSpot.Desktop.Views;
 using Wpf.Ui.Controls;
 using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
@@ -31,7 +31,6 @@ public partial class MainWindow : Window
     private const string UiAutomationFocusArgumentPrefix = "--uia-focus=";
     private const string UiAutomationBackgroundArgument = "--uia-background";
     private const string UiAutomationCaptureKeepOpenArgument = "--uia-capture-keep-open";
-    private static readonly Regex NumericInput = new("^[0-9]+$", RegexOptions.Compiled);
     private readonly MainViewModel _viewModel;
     private readonly string? _uiAutomationSmokeState;
     private readonly string _uiAutomationSmokeCulture;
@@ -45,7 +44,6 @@ public partial class MainWindow : Window
     private IInputElement? _focusBeforeActivity;
     private IInputElement? _focusBeforePrompt;
     private bool _wasRunning;
-    private bool _syncingCustomPatchEditor;
     private bool _isLogScrollPending;
     private Forms.NotifyIcon? _trayIcon;
     private bool _hasShownTrayMinimizeNotice;
@@ -285,11 +283,11 @@ public partial class MainWindow : Window
         }
         else if (string.Equals(_uiAutomationSmokeState, "support-bundle", StringComparison.OrdinalIgnoreCase))
         {
-            SupportBundleQaSurface.BringIntoView();
+            MaintenanceWorkspaceView.SupportBundleSurface.BringIntoView();
         }
         else if (string.Equals(_uiAutomationSmokeState, "profile", StringComparison.OrdinalIgnoreCase))
         {
-            ProfileQaSurface.BringIntoView();
+            CustomWorkspaceView.ProfileSurface.BringIntoView();
         }
         InvalidateMeasure();
         InvalidateArrange();
@@ -418,7 +416,7 @@ public partial class MainWindow : Window
     {
         if (e.PropertyName == nameof(MainViewModel.CustomPatchesJson))
         {
-            Dispatcher.BeginInvoke(SyncCustomPatchesEditorText, DispatcherPriority.Background);
+            Dispatcher.BeginInvoke(() => CustomWorkspaceView.SyncCustomPatchesEditorText(_viewModel), DispatcherPriority.Background);
         }
 
         if (e.PropertyName is nameof(MainViewModel.IsPromptVisible) or nameof(MainViewModel.IsPromptDestructive))
@@ -441,91 +439,6 @@ public partial class MainWindow : Window
 
             Dispatcher.BeginInvoke(UpdateActivityFocus, DispatcherPriority.Input);
         }
-    }
-
-    private void CustomPatchesTextEditor_OnTextChanged(object? sender, EventArgs e)
-    {
-        if (_syncingCustomPatchEditor)
-        {
-            return;
-        }
-
-        _viewModel.CustomPatchesJson = CustomPatchesTextEditor.Text ?? string.Empty;
-    }
-
-    private void SyncCustomPatchesEditorText()
-    {
-        if (!IsLoaded)
-        {
-            return;
-        }
-
-        var next = _viewModel.CustomPatchesJson ?? string.Empty;
-        if (string.Equals(CustomPatchesTextEditor.Text, next, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        _syncingCustomPatchEditor = true;
-        try
-        {
-            CustomPatchesTextEditor.Text = next;
-        }
-        finally
-        {
-            _syncingCustomPatchEditor = false;
-        }
-    }
-
-    private void NestedScrollRegion_OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
-    {
-        if (e.Delta == 0 || sender is not DependencyObject source)
-        {
-            return;
-        }
-
-        var scrollViewer = FindDescendantScrollViewer(source);
-        if (scrollViewer is not null && CanScrollVertically(scrollViewer, e.Delta))
-        {
-            return;
-        }
-
-        if (VisualTreeHelper.GetParent(source) is not UIElement parent)
-        {
-            return;
-        }
-
-        e.Handled = true;
-        parent.RaiseEvent(new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
-        {
-            RoutedEvent = UIElement.MouseWheelEvent,
-            Source = sender
-        });
-    }
-
-    private static bool CanScrollVertically(System.Windows.Controls.ScrollViewer scrollViewer, int delta) =>
-        delta < 0
-            ? scrollViewer.VerticalOffset < scrollViewer.ScrollableHeight
-            : scrollViewer.VerticalOffset > 0;
-
-    private static System.Windows.Controls.ScrollViewer? FindDescendantScrollViewer(DependencyObject root)
-    {
-        if (root is System.Windows.Controls.ScrollViewer scrollViewer)
-        {
-            return scrollViewer;
-        }
-
-        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
-        {
-            var child = VisualTreeHelper.GetChild(root, index);
-            var descendant = FindDescendantScrollViewer(child);
-            if (descendant is not null)
-            {
-                return descendant;
-            }
-        }
-
-        return null;
     }
 
     private void ShowCompletionSnackbar()
@@ -753,28 +666,6 @@ public partial class MainWindow : Window
                 _isLogScrollPending = false;
             }
         }), DispatcherPriority.Background);
-    }
-
-    private void CacheLimitTextBox_OnPreviewTextInput(object sender, TextCompositionEventArgs e)
-    {
-        e.Handled = !NumericInput.IsMatch(e.Text);
-    }
-
-    private void CacheLimitTextBox_OnPasting(object sender, DataObjectPastingEventArgs e)
-    {
-        // PreviewTextInput does not fire for clipboard paste. Without this handler
-        // a user could paste non-numeric text into the cache-limit field.
-        if (!e.DataObject.GetDataPresent(typeof(string)))
-        {
-            e.CancelCommand();
-            return;
-        }
-
-        var pasted = e.DataObject.GetData(typeof(string)) as string ?? string.Empty;
-        if (!NumericInput.IsMatch(pasted))
-        {
-            e.CancelCommand();
-        }
     }
 
     private void UpdatePromptFocus()

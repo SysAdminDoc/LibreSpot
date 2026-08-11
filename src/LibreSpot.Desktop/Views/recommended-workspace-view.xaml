@@ -1,0 +1,65 @@
+<UserControl x:Class="LibreSpot.Desktop.Views.RecommendedWorkspaceView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:LibreSpot.Desktop.Controls"
+        xmlns:avalon="clr-namespace:ICSharpCode.AvalonEdit;assembly=ICSharpCode.AvalonEdit"
+        xmlns:models="clr-namespace:LibreSpot.Desktop.Models;assembly=LibreSpot.Core"
+        xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
+        xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
+        mc:Ignorable="d"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+              <ScrollViewer VerticalScrollBarVisibility="Auto"
+                            HorizontalScrollBarVisibility="Disabled">
+                <ContentControl Focusable="True"
+                                AutomationProperties.AutomationId="RecommendedWorkspace"
+                                AutomationProperties.Name="{services:Loc Ui_RecommendedWorkspace}">
+                <Border Style="{StaticResource SubtleCardStyle}"
+                        Background="{DynamicResource Surface2Brush}"
+                        Padding="18"
+                        Margin="0">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="0.9*" />
+                      <ColumnDefinition Width="1" />
+                      <ColumnDefinition Width="1.1*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Margin="0,0,18,0">
+                      <TextBlock Text="{Binding ShellLocalEnvironmentTitle}"
+                                 Style="{StaticResource SectionTitleTextStyle}"
+                                 FontSize="16" />
+                      <Border Height="1"
+                              Background="{DynamicResource StrokeSoftBrush}"
+                              Margin="0,10,0,14" />
+                      <ItemsControl ItemsSource="{Binding ShellEnvironmentRows}"
+                                    ItemTemplate="{StaticResource ShellEnvironmentRowTemplate}" />
+                    </StackPanel>
+
+                    <Border Grid.Column="1"
+                            Background="{DynamicResource StrokeSoftBrush}"
+                            Margin="0,0,18,0" />
+
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Text="{Binding ShellDependenciesTitle}"
+                                 Style="{StaticResource SectionTitleTextStyle}"
+                                 FontSize="16" />
+                      <Border Height="1"
+                              Background="{DynamicResource StrokeSoftBrush}"
+                              Margin="0,10,0,14" />
+                      <ItemsControl ItemsSource="{Binding ShellDependencyRows}"
+                                    ItemTemplate="{StaticResource ShellDependencyRowTemplate}" />
+                      <TextBlock Text="{Binding ShellDependenciesSummaryText}"
+                                 Style="{StaticResource CaptionTextStyle}"
+                                 Foreground="{DynamicResource AccentBrush}"
+                                 Margin="0,8,0,0" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+                </ContentControl>
+              </ScrollViewer>
+</UserControl>

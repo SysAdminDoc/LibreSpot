@@ -32,9 +32,15 @@ public sealed class AutomationNameContractTests
     [Fact]
     public void EveryInteractiveControl_ExposesAnAutomationName()
     {
-        var xaml = XDocument.Load(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml"));
-
-        var unnamed = xaml.Descendants()
+        var xamlFiles = new[]
+        {
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "recommended-workspace-view.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "custom-workspace-view.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "maintenance-workspace-view.xaml")
+        };
+        var unnamed = xamlFiles
+            .SelectMany(path => XDocument.Load(path).Descendants())
             .Where(element => InteractiveControls.Contains(element.Name.LocalName))
             .Where(element => !HasNameSource(element))
             .Select(DescribeElement)
