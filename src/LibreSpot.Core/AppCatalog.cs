@@ -190,6 +190,176 @@ public sealed record CommunityAssetPin(
 {
     public string? ReleaseNotesUrl { get; init; }
     public DateTimeOffset? LastVerifiedAtUtc { get; init; }
+    public bool EasyModeDefault { get; init; }
+    public CommunityAssetCatalogReview CatalogReview { get; init; } = CommunityAssetCatalogReview.Invalid;
+}
+
+public sealed record CommunityAssetCatalogReview(
+    string Decision,
+    string Reason,
+    DateTimeOffset EvaluatedAtUtc,
+    DateTimeOffset? LastPushAtUtc,
+    DateTimeOffset? LastVerifiedAtUtc,
+    bool Archived,
+    IReadOnlyList<string> EvidenceUrls,
+    bool IsEasyModeDefault,
+    bool IsEasyModeEligible,
+    IReadOnlyList<string> EligibilityIssues)
+{
+    public static CommunityAssetCatalogReview Invalid { get; } = new(
+        "reject",
+        "Catalog review metadata is unavailable.",
+        DateTimeOffset.MinValue,
+        null,
+        null,
+        true,
+        Array.Empty<string>(),
+        false,
+        false,
+        new[] { "catalog review metadata is unavailable" });
+}
+
+public static class CommunityAssetCatalogPolicy
+{
+    public const int MaintenanceWindowDays = 365;
+
+    private static readonly IReadOnlySet<string> KnownDecisions =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "accept",
+            "reject",
+            "defer",
+            "marketplace-only"
+        };
+
+    private static readonly IReadOnlySet<string> KnownNetworkBehaviors =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "local-only",
+            "third-party-service"
+        };
+
+    public static CommunityAssetCatalogReview Evaluate(
+        string decision,
+        string reason,
+        DateTimeOffset evaluatedAtUtc,
+        DateTimeOffset? lastPushAtUtc,
+        DateTimeOffset? lastVerifiedAtUtc,
+        bool archived,
+        IReadOnlyList<string>? evidenceUrls,
+        string supportState,
+        string networkBehavior,
+        string? networkDetail,
+        bool easyModeDefault,
+        DateTimeOffset asOfUtc)
+    {
+        var issues = new List<string>();
+        var normalizedDecision = (decision ?? string.Empty).Trim().ToLowerInvariant();
+        var normalizedReason = (reason ?? string.Empty).Trim();
+        var evidence = new ReadOnlyCollection<string>(
+            (evidenceUrls ?? Array.Empty<string>())
+                .Where(url => !string.IsNullOrWhiteSpace(url))
+                .Select(url => url.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray());
+
+        if (!KnownDecisions.Contains(normalizedDecision))
+        {
+            issues.Add($"catalog decision '{normalizedDecision}' is not recognized");
+        }
+        else if (!string.Equals(normalizedDecision, "accept", StringComparison.OrdinalIgnoreCase))
+        {
+            issues.Add($"catalog decision is {normalizedDecision}");
+        }
+
+        if (string.IsNullOrWhiteSpace(normalizedReason))
+        {
+            issues.Add("catalog review reason is missing");
+        }
+
+        if (evaluatedAtUtc > asOfUtc.AddDays(1))
+        {
+            issues.Add("catalog review date is in the future");
+        }
+        else if (asOfUtc - evaluatedAtUtc > TimeSpan.FromDays(MaintenanceWindowDays))
+        {
+            issues.Add($"catalog review is older than {MaintenanceWindowDays} days");
+        }
+
+        if (!lastPushAtUtc.HasValue)
+        {
+            issues.Add("last push evidence is missing");
+        }
+        else if (lastPushAtUtc.Value > asOfUtc.AddDays(1))
+        {
+            issues.Add("last push evidence is in the future");
+        }
+        else if (asOfUtc - lastPushAtUtc.Value > TimeSpan.FromDays(MaintenanceWindowDays))
+        {
+            issues.Add($"last push is older than {MaintenanceWindowDays} days");
+        }
+
+        if (!lastVerifiedAtUtc.HasValue)
+        {
+            issues.Add("last verification evidence is missing");
+        }
+        else if (asOfUtc - lastVerifiedAtUtc.Value > TimeSpan.FromDays(MaintenanceWindowDays))
+        {
+            issues.Add($"last verification is older than {MaintenanceWindowDays} days");
+        }
+
+        if (archived)
+        {
+            issues.Add("source repository is archived");
+        }
+
+        if (!string.Equals(supportState, "active", StringComparison.OrdinalIgnoreCase))
+        {
+            issues.Add($"support state is {supportState}");
+        }
+
+        if (evidence.Count == 0)
+        {
+            issues.Add("catalog evidence URLs are missing");
+        }
+        else if (evidence.Any(url => !Uri.TryCreate(url, UriKind.Absolute, out var parsed) ||
+                                     !string.Equals(parsed.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+        {
+            issues.Add("catalog evidence URLs must be HTTPS");
+        }
+
+        if (!KnownNetworkBehaviors.Contains(networkBehavior ?? string.Empty))
+        {
+            issues.Add($"network behavior '{networkBehavior}' is not recognized");
+        }
+        else if (string.Equals(networkBehavior, "third-party-service", StringComparison.OrdinalIgnoreCase) &&
+                 string.IsNullOrWhiteSpace(networkDetail))
+        {
+            issues.Add("third-party network behavior is not disclosed");
+        }
+
+        var readOnlyIssues = new ReadOnlyCollection<string>(issues);
+        var eligible = easyModeDefault && readOnlyIssues.Count == 0;
+        var outputReason = normalizedReason;
+        if (readOnlyIssues.Count > 0)
+        {
+            outputReason = string.IsNullOrWhiteSpace(outputReason)
+                ? $"Eligibility issues: {string.Join("; ", readOnlyIssues)}."
+                : $"{outputReason} Eligibility issues: {string.Join("; ", readOnlyIssues)}.";
+        }
+
+        return new CommunityAssetCatalogReview(
+            normalizedDecision,
+            outputReason,
+            evaluatedAtUtc,
+            lastPushAtUtc,
+            lastVerifiedAtUtc,
+            archived,
+            evidence,
+            easyModeDefault,
+            eligible,
+            readOnlyIssues);
+    }
 }
 
 public sealed class CommunityAssetDriftReport
@@ -207,6 +377,7 @@ public sealed class CommunityAssetDriftReport
     public bool IsDegraded => Assets.Any(asset => asset.IsDegraded);
     public bool HasMissingAssets => Assets.Any(asset => string.Equals(asset.DriftState, "missing", StringComparison.OrdinalIgnoreCase));
     public bool HasReviewRequiredAssets => Assets.Any(asset => asset.RequiresTrustReview);
+    public bool HasCatalogReviewIssues => Assets.Any(asset => asset.CatalogEligibilityIssues.Count > 0);
 }
 
 public sealed record CommunityAssetState(
@@ -234,6 +405,15 @@ public sealed record CommunityAssetState(
 {
     public string? ReleaseNotesUrl { get; init; }
     public DateTimeOffset? LastVerifiedAtUtc { get; init; }
+    public string CatalogDecision { get; init; } = "reject";
+    public string CatalogReviewReason { get; init; } = "Catalog review metadata is unavailable.";
+    public DateTimeOffset? CatalogEvaluatedAtUtc { get; init; }
+    public DateTimeOffset? CatalogLastPushAtUtc { get; init; }
+    public bool CatalogSourceArchived { get; init; } = true;
+    public IReadOnlyList<string> CatalogEvidenceUrls { get; init; } = Array.Empty<string>();
+    public bool EasyModeDefault { get; init; }
+    public bool EasyModeEligible { get; init; }
+    public IReadOnlyList<string> CatalogEligibilityIssues { get; init; } = Array.Empty<string>();
     public string FreshnessStatus => ProvenanceFreshness.Classify(DriftState, IsDegraded);
 }
 

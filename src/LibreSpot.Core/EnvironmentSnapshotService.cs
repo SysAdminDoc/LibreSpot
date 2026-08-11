@@ -582,7 +582,18 @@ public sealed class EnvironmentSnapshotService
                         pin.NetworkBehavior,
                         pin.NetworkDetail,
                         pin.RequiresTrustReview,
-                        F("HealthEvidenceCommunityUnavailableFormat", pin.PinnedCommit, ex.Message))),
+                        F("HealthEvidenceCommunityUnavailableFormat", pin.PinnedCommit, ex.Message))
+                    {
+                        CatalogDecision = pin.CatalogReview.Decision,
+                        CatalogReviewReason = pin.CatalogReview.Reason,
+                        CatalogEvaluatedAtUtc = pin.CatalogReview.EvaluatedAtUtc,
+                        CatalogLastPushAtUtc = pin.CatalogReview.LastPushAtUtc,
+                        CatalogSourceArchived = pin.CatalogReview.Archived,
+                        CatalogEvidenceUrls = pin.CatalogReview.EvidenceUrls,
+                        EasyModeDefault = pin.CatalogReview.IsEasyModeDefault,
+                        EasyModeEligible = pin.CatalogReview.IsEasyModeEligible,
+                        CatalogEligibilityIssues = pin.CatalogReview.EligibilityIssues
+                    }),
                 DateTimeOffset.UtcNow);
         }
     }
@@ -630,9 +641,23 @@ public sealed class EnvironmentSnapshotService
         {
             var status = CommunityAssetStatus(asset);
             var severity = CommunityAssetSeverity(asset);
-            var actions = severity == HealthSeverity.Warning || string.Equals(asset.DriftState, "behind", StringComparison.OrdinalIgnoreCase)
+            var actions = severity == HealthSeverity.Warning ||
+                          string.Equals(asset.DriftState, "behind", StringComparison.OrdinalIgnoreCase) ||
+                          asset.CatalogEligibilityIssues.Count > 0
                 ? new[] { "ReviewCommunityAsset" }
                 : Array.Empty<string>();
+            var evidence = F(
+                "HealthEvidenceCommunityAssetFormat",
+                asset.PinnedCommit,
+                asset.LatestCommit ?? L("HealthValueUnknown"),
+                asset.DriftState,
+                asset.MetadataSource,
+                asset.License,
+                asset.NetworkBehavior);
+            if (asset.CatalogEligibilityIssues.Count > 0)
+            {
+                evidence += $" {asset.CatalogReviewReason}";
+            }
 
             yield return Component(
                 CommunityAssetComponentId(asset),
@@ -642,14 +667,7 @@ public sealed class EnvironmentSnapshotService
                 asset.LatestCommit,
                 asset.SourceUrl,
                 asset.CheckedAtUtc.LocalDateTime,
-                F(
-                    "HealthEvidenceCommunityAssetFormat",
-                    asset.PinnedCommit,
-                    asset.LatestCommit ?? L("HealthValueUnknown"),
-                    asset.DriftState,
-                    asset.MetadataSource,
-                    asset.License,
-                    asset.NetworkBehavior),
+                evidence,
                 actions);
         }
     }
@@ -676,6 +694,11 @@ public sealed class EnvironmentSnapshotService
             return L("HealthStatusReviewRequired");
         }
 
+        if (asset.CatalogEligibilityIssues.Count > 0)
+        {
+            return L("HealthStatusReviewRequired");
+        }
+
         return L("HealthStatusCurrent");
     }
 
@@ -688,7 +711,8 @@ public sealed class EnvironmentSnapshotService
 
         if (asset.IsDegraded ||
             string.Equals(asset.DriftState, "behind", StringComparison.OrdinalIgnoreCase) ||
-            asset.RequiresTrustReview)
+            asset.RequiresTrustReview ||
+            asset.CatalogEligibilityIssues.Count > 0)
         {
             return HealthSeverity.Info;
         }

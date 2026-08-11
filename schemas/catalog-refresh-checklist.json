@@ -1,5 +1,5 @@
 {
-  "$comment": "Catalog refresh checklist for evaluating candidate Spicetify themes, extensions, and custom apps before inclusion in LibreSpot's curated catalog.",
+  "$comment": "Catalog refresh checklist for evaluating candidate Spicetify themes, extensions, and custom apps before inclusion in LibreSpot's curated catalog. Accepted manifest entries copy the decision evidence into catalogReview.",
   "schemaVersion": 1,
   "description": "A measured process for adding or removing community assets. Each candidate is scored against popularity, maintenance, license, install method, Spotify-version compatibility, and Marketplace availability. The checklist produces an accept/reject/defer decision with evidence links.",
   "evaluationCriteria": [
@@ -66,7 +66,8 @@
     "networkBehavior": "local-only | third-party-service",
     "decision": "accept | reject | defer | marketplace-only",
     "reason": "One-line rationale",
-    "evidenceUrls": "Array of GitHub/issue/discussion links"
+    "evidenceUrls": "Array of HTTPS GitHub/issue/discussion/API links",
+    "archived": "boolean — repository archive flag at evaluation time"
   },
   "evaluatedCandidates": [
     {

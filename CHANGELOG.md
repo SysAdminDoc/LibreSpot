@@ -13,6 +13,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 - Added a Windows GitHub Actions quality gate for PowerShell lint/validation, Pester regressions, the desktop build, and non-WPF .NET tests; release and UI automation workflows remain separate concerns.
 - Added Marketplace state export/recovery actions: Reapply and Repair Marketplace create a retained, validated local archive before mutation, while the CLI can restore missing Marketplace files from the newest archive. Embedded Marketplace browser storage is explicitly marked non-portable and is never claimed to be restored.
+- Added catalog-review enforcement for community assets: manifest entries now carry dated last-push/archive/evidence decisions, stale or invalid easy-mode entries are rejected by deterministic Core policy, deferred assets remain opt-in, and drift/health output includes the review reason.
 
 ## [v4.0.0-preview.24] - 2026-07-24
 

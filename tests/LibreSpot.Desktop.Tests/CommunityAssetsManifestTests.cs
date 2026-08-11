@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using LibreSpot.Desktop.Models;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -460,6 +461,104 @@ public sealed class CommunityAssetsManifestTests
     }
 
     [Fact]
+    public void Manifest_AllAssetsHaveCatalogReviewEvidenceAndEasyDefaultsAreEligible()
+    {
+        var asOfUtc = new DateTimeOffset(2026, 8, 11, 0, 0, 0, TimeSpan.Zero);
+
+        foreach (var asset in AllAssets())
+        {
+            var id = AssetId(asset);
+            Assert.True(
+                asset.TryGetProperty("catalogReview", out var review) &&
+                review.ValueKind == JsonValueKind.Object,
+                $"Asset '{id}' is missing catalogReview metadata.");
+
+            foreach (var field in new[] { "evaluatedDate", "lastPush", "decision", "reason", "evidenceUrls" })
+            {
+                Assert.True(
+                    review.TryGetProperty(field, out var value) &&
+                    value.ValueKind != JsonValueKind.Undefined,
+                    $"Asset '{id}' catalogReview is missing '{field}'.");
+            }
+
+            Assert.Matches(@"^\d{4}-\d{2}-\d{2}$", review.GetProperty("evaluatedDate").GetString()!);
+            Assert.Matches(@"^\d{4}-\d{2}-\d{2}$", review.GetProperty("lastPush").GetString()!);
+            Assert.Contains(
+                review.GetProperty("decision").GetString()!,
+                new[] { "accept", "reject", "defer", "marketplace-only" });
+            Assert.False(string.IsNullOrWhiteSpace(review.GetProperty("reason").GetString()));
+
+            var evidence = review.GetProperty("evidenceUrls").EnumerateArray()
+                .Select(item => item.GetString()!)
+                .ToArray();
+            Assert.NotEmpty(evidence);
+            Assert.All(evidence, url =>
+            {
+                Assert.True(Uri.TryCreate(url, UriKind.Absolute, out var parsed) &&
+                            parsed.Scheme == Uri.UriSchemeHttps,
+                    $"Asset '{id}' has a non-HTTPS catalog evidence URL: {url}");
+            });
+
+            var easyModeDefault = asset.TryGetProperty("easyModeDefault", out var easy) &&
+                                  easy.ValueKind == JsonValueKind.True;
+            var policy = CommunityAssetCatalogPolicy.Evaluate(
+                review.GetProperty("decision").GetString()!,
+                review.GetProperty("reason").GetString()!,
+                DateTimeOffset.Parse(review.GetProperty("evaluatedDate").GetString()!),
+                DateTimeOffset.Parse(review.GetProperty("lastPush").GetString()!),
+                DateTimeOffset.Parse(asset.GetProperty("lastVerifiedDate").GetString()!),
+                review.GetProperty("archived").GetBoolean(),
+                evidence,
+                asset.GetProperty("supportState").GetString()!,
+                asset.GetProperty("networkBehavior").GetString()!,
+                asset.TryGetProperty("networkDetail", out var detail) ? detail.GetString() : null,
+                easyModeDefault,
+                asOfUtc);
+
+            if (easyModeDefault)
+            {
+                Assert.True(
+                    policy.IsEasyModeEligible,
+                    $"Easy-mode asset '{id}' is not eligible: {policy.Reason}");
+            }
+        }
+    }
+
+    [Fact]
+    public void CatalogPolicy_BlocksStaleArchivedMissingEvidenceAndUnknownNetworkFixtures()
+    {
+        var asOfUtc = new DateTimeOffset(2026, 8, 11, 0, 0, 0, TimeSpan.Zero);
+        var currentPush = new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero);
+        var currentReview = new DateTimeOffset(2026, 8, 11, 0, 0, 0, TimeSpan.Zero);
+        var evidence = new[] { "https://github.com/example/project" };
+
+        CommunityAssetCatalogReview EvaluateFixture(
+            DateTimeOffset? lastPush = null,
+            bool archived = false,
+            IReadOnlyList<string>? evidenceUrls = null,
+            string networkBehavior = "local-only") =>
+            CommunityAssetCatalogPolicy.Evaluate(
+                "accept",
+                "fixture review",
+                currentReview,
+                lastPush ?? currentPush,
+                currentReview,
+                archived,
+                evidenceUrls ?? evidence,
+                "active",
+                networkBehavior,
+                null,
+                easyModeDefault: true,
+                asOfUtc);
+
+        Assert.True(EvaluateFixture().IsEasyModeEligible);
+        Assert.False(EvaluateFixture(lastPush: new DateTimeOffset(2025, 8, 10, 0, 0, 0, TimeSpan.Zero)).IsEasyModeEligible);
+        Assert.False(EvaluateFixture(archived: true).IsEasyModeEligible);
+        Assert.False(EvaluateFixture(evidenceUrls: Array.Empty<string>()).IsEasyModeEligible);
+        Assert.False(EvaluateFixture(networkBehavior: "unknown").IsEasyModeEligible);
+    }
+
+    [Fact]
     public void Manifest_OfficialThemesArchiveMatchesScript()
     {
         var script = ReadFile("LibreSpot.ps1");
@@ -627,6 +726,18 @@ public sealed class CommunityAssetsManifestTests
 
     private static string ReadFile(params string[] relativeParts) =>
         File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(relativeParts).ToArray()));
+
+    private static IEnumerable<JsonElement> AllAssets() =>
+        Manifest.RootElement.GetProperty("extensions").EnumerateArray()
+            .Concat(Manifest.RootElement.GetProperty("themes").EnumerateArray())
+            .Concat(Manifest.RootElement.GetProperty("customApps").EnumerateArray());
+
+    private static string AssetId(JsonElement asset) =>
+        asset.TryGetProperty("filename", out var filename)
+            ? filename.GetString()!
+            : asset.TryGetProperty("themeId", out var themeId)
+                ? themeId.GetString()!
+                : asset.GetProperty("appId").GetString()!;
 
     private static string ResolveRepoRoot()
     {

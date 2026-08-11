@@ -133,6 +133,8 @@ public sealed class CommunityAssetDriftServiceTests
         Assert.Contains(pins, pin => pin.Id == "extension:beautiful-lyrics.mjs" && pin.Branch == "main" && pin.RequiresTrustReview);
         Assert.Contains(pins, pin => pin.Id == "extension:volumePercentage.js" && pin.Branch == "master");
         Assert.Contains(pins, pin => pin.Id == "theme:Hazy" && pin.RequiresTrustReview);
+        Assert.Contains(pins, pin => pin.Id == "theme:Bloom" && pin.CatalogReview.Decision == "defer" && !pin.CatalogReview.IsEasyModeEligible);
+        Assert.Contains(pins, pin => pin.Id == "extension:hidePodcasts.js" && pin.CatalogReview.IsEasyModeEligible);
         Assert.Contains(pins, pin => pin.Id == "custom-app:stats" && pin.NetworkBehavior == "third-party-service");
         Assert.All(pins, pin =>
         {
@@ -143,6 +145,7 @@ public sealed class CommunityAssetDriftServiceTests
             Assert.False(string.IsNullOrWhiteSpace(pin.NetworkBehavior));
             Assert.StartsWith("https://github.com/", pin.ReleaseNotesUrl);
             Assert.True(pin.LastVerifiedAtUtc.HasValue);
+            Assert.NotEmpty(pin.CatalogReview.EvidenceUrls);
         });
     }
 
@@ -181,7 +184,20 @@ public sealed class CommunityAssetDriftServiceTests
             requiresTrustReview)
         {
             ReleaseNotesUrl = $"https://github.com/owner/repo/compare/{commit}...main",
-            LastVerifiedAtUtc = DateTimeOffset.Parse("2026-06-29T00:00:00Z")
+            LastVerifiedAtUtc = DateTimeOffset.Parse("2026-06-29T00:00:00Z"),
+            CatalogReview = CommunityAssetCatalogPolicy.Evaluate(
+                "accept",
+                "test fixture",
+                DateTimeOffset.Parse("2026-06-29T00:00:00Z"),
+                DateTimeOffset.Parse("2026-06-28T00:00:00Z"),
+                DateTimeOffset.Parse("2026-06-29T00:00:00Z"),
+                archived: false,
+                new[] { "https://github.com/owner/repo" },
+                "active",
+                "local-only",
+                null,
+                easyModeDefault: false,
+                DateTimeOffset.Parse("2026-06-30T12:00:00Z"))
         };
 
     private static string NewTempRoot()

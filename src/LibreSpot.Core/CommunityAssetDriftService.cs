@@ -89,7 +89,10 @@ public sealed class CommunityAssetDriftService
         return report;
     }
 
-    public static IReadOnlyList<CommunityAssetPin> LoadPinsFromManifest()
+    public static IReadOnlyList<CommunityAssetPin> LoadPinsFromManifest() =>
+        LoadPinsFromManifest(DateTimeOffset.UtcNow);
+
+    internal static IReadOnlyList<CommunityAssetPin> LoadPinsFromManifest(DateTimeOffset asOfUtc)
     {
         try
         {
@@ -112,7 +115,8 @@ public sealed class CommunityAssetDriftService
                     kind: "extension",
                     hashPropertyName: "sha256",
                     sourceUrl: RequiredString(extension, "sourceUrl"),
-                    reviewRequiredLicenses));
+                    reviewRequiredLicenses,
+                    asOfUtc));
             }
 
             foreach (var theme in root.GetProperty("themes").EnumerateArray())
@@ -131,7 +135,8 @@ public sealed class CommunityAssetDriftService
                     kind: "theme",
                     hashPropertyName: "archiveSha256",
                     sourceUrl,
-                    reviewRequiredLicenses));
+                    reviewRequiredLicenses,
+                    asOfUtc));
             }
 
             foreach (var app in root.GetProperty("customApps").EnumerateArray())
@@ -142,7 +147,8 @@ public sealed class CommunityAssetDriftService
                     kind: "custom-app",
                     hashPropertyName: "sha256",
                     sourceUrl: RequiredString(app, "sourceUrl"),
-                    reviewRequiredLicenses));
+                    reviewRequiredLicenses,
+                    asOfUtc));
             }
 
             return pins;
@@ -247,7 +253,16 @@ public sealed class CommunityAssetDriftService
             evidence)
         {
             ReleaseNotesUrl = pin.ReleaseNotesUrl,
-            LastVerifiedAtUtc = pin.LastVerifiedAtUtc
+            LastVerifiedAtUtc = pin.LastVerifiedAtUtc,
+            CatalogDecision = pin.CatalogReview.Decision,
+            CatalogReviewReason = pin.CatalogReview.Reason,
+            CatalogEvaluatedAtUtc = pin.CatalogReview.EvaluatedAtUtc,
+            CatalogLastPushAtUtc = pin.CatalogReview.LastPushAtUtc,
+            CatalogSourceArchived = pin.CatalogReview.Archived,
+            CatalogEvidenceUrls = pin.CatalogReview.EvidenceUrls,
+            EasyModeDefault = pin.CatalogReview.IsEasyModeDefault,
+            EasyModeEligible = pin.CatalogReview.IsEasyModeEligible,
+            CatalogEligibilityIssues = pin.CatalogReview.EligibilityIssues
         };
     }
 
@@ -264,8 +279,14 @@ public sealed class CommunityAssetDriftService
         var latestDisplay = string.IsNullOrWhiteSpace(latest) ? "unknown" : latest;
         var cacheDisplay = cacheAge.HasValue ? FormatAge(cacheAge.Value) : "none";
         var review = pin.RequiresTrustReview ? "review required" : "review not required";
+        var catalog = pin.CatalogReview;
         var evidence =
-            $"Pinned commit {pin.PinnedCommit}; latest {latestDisplay}; drift {driftState}; hash {hash}; license {pin.License}; support {pin.SupportState}; fallback {pin.FallbackBehavior}; network {pin.NetworkBehavior}; trust {review}; source {metadataSource}; cache age {cacheDisplay}.";
+            $"Pinned commit {pin.PinnedCommit}; latest {latestDisplay}; drift {driftState}; hash {hash}; license {pin.License}; support {pin.SupportState}; fallback {pin.FallbackBehavior}; network {pin.NetworkBehavior}; trust {review}; catalog {catalog.Decision}; easy-mode {(catalog.IsEasyModeEligible ? "eligible" : "opt-in")}; source {metadataSource}; cache age {cacheDisplay}.";
+
+        if (catalog.EligibilityIssues.Count > 0)
+        {
+            evidence += $" Catalog review: {catalog.Reason}";
+        }
 
         if (!string.IsNullOrWhiteSpace(pin.NetworkDetail))
         {
@@ -355,12 +376,18 @@ public sealed class CommunityAssetDriftService
         string kind,
         string hashPropertyName,
         string sourceUrl,
-        IReadOnlySet<string> reviewRequiredLicenses)
+        IReadOnlySet<string> reviewRequiredLicenses,
+        DateTimeOffset asOfUtc)
     {
         var license = RequiredString(asset, "spdxLicense");
         var requiresTrustReview =
             string.Equals(license, "NOASSERTION", StringComparison.OrdinalIgnoreCase) ||
             reviewRequiredLicenses.Contains(license);
+        var supportState = RequiredString(asset, "supportState");
+        var networkBehavior = RequiredString(asset, "networkBehavior");
+        var networkDetail = OptionalString(asset, "networkDetail");
+        var lastVerifiedAtUtc = RequiredDate(asset, "lastVerifiedDate");
+        var easyModeDefault = OptionalBoolean(asset, "easyModeDefault");
 
         return new CommunityAssetPin(
             id,
@@ -373,15 +400,62 @@ public sealed class CommunityAssetDriftService
             OptionalString(asset, hashPropertyName),
             sourceUrl,
             license,
-            RequiredString(asset, "supportState"),
+            supportState,
             RequiredString(asset, "fallbackBehavior"),
-            RequiredString(asset, "networkBehavior"),
-            OptionalString(asset, "networkDetail"),
+            networkBehavior,
+            networkDetail,
             requiresTrustReview)
         {
             ReleaseNotesUrl = RequiredString(asset, "releaseNotesUrl"),
-            LastVerifiedAtUtc = RequiredDate(asset, "lastVerifiedDate")
+            LastVerifiedAtUtc = lastVerifiedAtUtc,
+            EasyModeDefault = easyModeDefault,
+            CatalogReview = BuildCatalogReview(
+                asset,
+                lastVerifiedAtUtc,
+                supportState,
+                networkBehavior,
+                networkDetail,
+                easyModeDefault,
+                asOfUtc)
         };
+    }
+
+    private static CommunityAssetCatalogReview BuildCatalogReview(
+        JsonElement asset,
+        DateTimeOffset lastVerifiedAtUtc,
+        string supportState,
+        string networkBehavior,
+        string? networkDetail,
+        bool easyModeDefault,
+        DateTimeOffset asOfUtc)
+    {
+        if (!asset.TryGetProperty("catalogReview", out var review) || review.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidDataException("Community asset manifest entry is missing 'catalogReview'.");
+        }
+
+        var evidenceUrls = review.TryGetProperty("evidenceUrls", out var evidence) && evidence.ValueKind == JsonValueKind.Array
+            ? evidence.EnumerateArray()
+                .Where(item => item.ValueKind == JsonValueKind.String)
+                .Select(item => item.GetString() ?? string.Empty)
+                .ToArray()
+            : Array.Empty<string>();
+        var archived = review.TryGetProperty("archived", out var archivedValue) &&
+                       archivedValue.ValueKind == JsonValueKind.True;
+
+        return CommunityAssetCatalogPolicy.Evaluate(
+            RequiredString(review, "decision"),
+            RequiredString(review, "reason"),
+            RequiredDate(review, "evaluatedDate"),
+            RequiredDate(review, "lastPush"),
+            lastVerifiedAtUtc,
+            archived,
+            evidenceUrls,
+            supportState,
+            networkBehavior,
+            networkDetail,
+            easyModeDefault,
+            asOfUtc);
     }
 
     private static Stream? OpenManifestStream()
@@ -450,6 +524,10 @@ public sealed class CommunityAssetDriftService
             ? value.GetString()
             : value.ToString();
     }
+
+    private static bool OptionalBoolean(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var value) &&
+        value.ValueKind == JsonValueKind.True;
 
     private static DateTimeOffset RequiredDate(JsonElement element, string propertyName)
     {
