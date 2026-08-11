@@ -4,6 +4,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0-preview.25] - 2026-08-11
+
 ### Fixed
 
 - Restored the direct LibreSpot.Core project reference in the desktop test project so the shared models, services, and localization resources compile after the Core extraction.
@@ -15,6 +17,8 @@ All notable changes to LibreSpot will be documented in this file.
 - Added Marketplace state export/recovery actions: Reapply and Repair Marketplace create a retained, validated local archive before mutation, while the CLI can restore missing Marketplace files from the newest archive. Embedded Marketplace browser storage is explicitly marked non-portable and is never claimed to be restored.
 - Added catalog-review enforcement for community assets: manifest entries now carry dated last-push/archive/evidence decisions, stale or invalid easy-mode entries are rejected by deterministic Core policy, deferred assets remain opt-in, and drift/health output includes the review reason.
 - Added a fixture-backed compatibility baseline for the pinned SpotX/Spotify, Spicetify CLI, Marketplace, and theme tuple; `Build-Scripts.ps1 -Validate` now rejects drift between the PowerShell pins, Core catalog constants, and the supported Spotify range.
+- Extracted the three actual WPF workspace tabs into dedicated UserControls while preserving automation IDs, keyboard-focus contracts, localized resources, and navigation behavior.
+- Added multi-user isolation regression coverage for per-user registry state, configuration, profiles, backups, logs, crash reports, elevation boundaries, and executable paths.
 
 ## [v4.0.0-preview.24] - 2026-07-24
 

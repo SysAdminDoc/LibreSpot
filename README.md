@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.24-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.25-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
@@ -68,7 +68,11 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 ---
 
-## What's New in v4.0.0-preview.24
+## What's New in v4.0.0-preview.25
+
+**A smaller shipping shell.** The three actual workspace tabs now live in dedicated UserControls while preserving the existing automation names, keyboard-focus contracts, localized resources, and navigation behavior. Per-user registry, configuration, profile, backup, log, crash, and executable-path isolation is covered by multi-user regression tests.
+
+**Pinned compatibility is executable.** The supported SpotX/Spotify, Spicetify CLI, Marketplace, and theme tuple now has one fixture-backed release contract checked by Windows PowerShell preflight and Core tests.
 
 **The shared core is fully extracted.** All non-UI logic shared by the desktop shell and the fleet CLI — environment snapshotting, upstream/community drift comparison, undo-policy evaluation, backend orchestration, support bundles, the app catalog, and the localized `Strings` resources with their language satellites — now lives once in the WPF-free `LibreSpot.Core` library instead of being compiled into both apps. Behavior is unchanged, but the code is smaller, de-duplicated, and — unlike the WPF shell — able to be mutation-tested. Verified with the full test suite plus an offscreen render of the real shell resolving localized text across languages.
 
