@@ -620,6 +620,98 @@ function Get-LibreSpotShellDisplayVersion {
     return [string]$match.Groups['version'].Value
 }
 
+function Test-PinnedCompatibilityBaseline {
+    $baselinePath = Join-Path $PSScriptRoot 'schemas/compatibility-baseline.json'
+    $pinnedReleasesPath = Join-Path $PSScriptRoot 'src/powershell/data/PinnedReleases.ps1'
+    $catalogPath = Join-Path $PSScriptRoot 'src/LibreSpot.Core/AppCatalog.cs'
+
+    foreach ($path in @($baselinePath, $pinnedReleasesPath, $catalogPath)) {
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Pinned compatibility baseline input is missing: $path"
+        }
+    }
+
+    try {
+        $baseline = Get-Content -Raw -LiteralPath $baselinePath | ConvertFrom-Json
+    } catch {
+        throw "Pinned compatibility baseline is not valid JSON: $($_.Exception.Message)"
+    }
+
+    $failures = @()
+    if ([int]$baseline.schemaVersion -ne 1) {
+        $failures += "Unsupported compatibility baseline schema version '$($baseline.schemaVersion)'."
+    }
+
+    try {
+        $verifiedAt = [DateTimeOffset]::Parse([string]$baseline.lastVerifiedAtUtc)
+        if ($verifiedAt -gt [DateTimeOffset]::UtcNow) {
+            $failures += "Compatibility baseline verification date '$($baseline.lastVerifiedAtUtc)' is in the future."
+        }
+    } catch {
+        $failures += "Compatibility baseline lastVerifiedAtUtc is not an ISO-8601 timestamp."
+    }
+
+    $pinnedSource = [System.IO.File]::ReadAllText($pinnedReleasesPath, [System.Text.Encoding]::UTF8)
+    $catalogSource = [System.IO.File]::ReadAllText($catalogPath, [System.Text.Encoding]::UTF8)
+    $sourceChecks = @(
+        @{ Label = 'SpotX version'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*Version\s*=\s*''([^'']+)'; Expected = [string]$baseline.spotx.version },
+        @{ Label = 'SpotX commit'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*Commit\s*=\s*''([^'']+)'; Expected = [string]$baseline.spotx.commit },
+        @{ Label = 'SpotX SHA256'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*SHA256\s*=\s*''([^'']+)'; Expected = [string]$baseline.spotx.sha256 },
+        @{ Label = 'SpotX Defender mutation policy'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*DefenderMutations\s*=\s*\$(true|false)'; Expected = ([bool]$baseline.spotx.defenderMutations).ToString().ToLowerInvariant() },
+        @{ Label = 'SpotX Defender opt-out'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*DefenderOptOut\s*=\s*''([^'']*)'; Expected = [string]$baseline.spotx.defenderOptOut },
+        @{ Label = 'Spicetify CLI version'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?^\s*Version\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.version },
+        @{ Label = 'Spicetify Windows minimum'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?^\s*WindowsMinSpotify\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.windowsMinSpotify },
+        @{ Label = 'Spicetify Windows maximum'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?^\s*WindowsMaxTestedSpotify\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.windowsMaxTestedSpotify },
+        @{ Label = 'Spicetify x64 SHA256'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?x64\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.sha256.x64 },
+        @{ Label = 'Spicetify arm64 SHA256'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?arm64\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.sha256.arm64 },
+        @{ Label = 'Marketplace version'; Source = $pinnedSource; Pattern = '(?ms)Marketplace\s*=\s*@\{.*?^\s*Version\s*=\s*''([^'']+)'; Expected = [string]$baseline.marketplace.version },
+        @{ Label = 'Marketplace SHA256'; Source = $pinnedSource; Pattern = '(?ms)Marketplace\s*=\s*@\{.*?^\s*SHA256\s*=\s*''([^'']+)'; Expected = [string]$baseline.marketplace.sha256 },
+        @{ Label = 'Themes commit'; Source = $pinnedSource; Pattern = '(?ms)Themes\s*=\s*@\{.*?^\s*Commit\s*=\s*''([^'']+)'; Expected = [string]$baseline.themes.commit },
+        @{ Label = 'Themes SHA256'; Source = $pinnedSource; Pattern = '(?ms)Themes\s*=\s*@\{.*?^\s*SHA256\s*=\s*''([^'']+)'; Expected = [string]$baseline.themes.sha256 },
+        @{ Label = 'AppCatalog SpotX version'; Source = $catalogSource; Pattern = 'public const string PinnedSpotXVersion\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spotx.version },
+        @{ Label = 'AppCatalog SpotX commit'; Source = $catalogSource; Pattern = 'public const string PinnedSpotXCommit\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spotx.commit },
+        @{ Label = 'AppCatalog Spotify target ID'; Source = $catalogSource; Pattern = 'public const string PinnedSpotXSpotifyVersionId\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spotify.version },
+        @{ Label = 'AppCatalog Spotify target'; Source = $catalogSource; Pattern = 'public const string PinnedSpotXSpotifyVersion\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spotify.version },
+        @{ Label = 'AppCatalog Spicetify CLI version'; Source = $catalogSource; Pattern = 'public const string PinnedSpicetifyCliVersion\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spicetifyCli.version },
+        @{ Label = 'AppCatalog Spicetify Windows minimum'; Source = $catalogSource; Pattern = 'public const string SpicetifyWindowsMinTestedSpotify\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spicetifyCli.windowsMinSpotify },
+        @{ Label = 'AppCatalog Spicetify Windows maximum'; Source = $catalogSource; Pattern = 'public const string SpicetifyWindowsMaxTestedSpotify\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spicetifyCli.windowsMaxTestedSpotify },
+        @{ Label = 'AppCatalog Marketplace version'; Source = $catalogSource; Pattern = 'public const string PinnedMarketplaceVersion\s*=\s*"([^"]+)"'; Expected = [string]$baseline.marketplace.version },
+        @{ Label = 'AppCatalog Themes commit'; Source = $catalogSource; Pattern = 'public const string PinnedThemesCommit\s*=\s*"([^"]+)"'; Expected = [string]$baseline.themes.commit }
+    )
+
+    foreach ($check in $sourceChecks) {
+        $match = [regex]::Match($check.Source, $check.Pattern)
+        if (-not $match.Success) {
+            $failures += "$($check.Label) is missing from its source."
+            continue
+        }
+
+        $actual = $match.Groups[1].Value
+        if ($actual -ne [string]$check.Expected) {
+            $failures += "$($check.Label) '$actual' does not match baseline '$($check.Expected)'."
+        }
+    }
+
+    try {
+        $spotifyVersion = [Version]::Parse([string]$baseline.spotify.version)
+        $minimumVersion = [Version]::Parse([string]$baseline.spicetifyCli.windowsMinSpotify)
+        $maximumVersion = [Version]::Parse([string]$baseline.spicetifyCli.windowsMaxTestedSpotify)
+        if ($spotifyVersion -lt $minimumVersion -or $spotifyVersion -gt $maximumVersion) {
+            $failures += "Pinned Spotify '$spotifyVersion' is outside the Spicetify Windows range '$minimumVersion'-'$maximumVersion'."
+        }
+    } catch {
+        $failures += 'Compatibility baseline contains an invalid Spotify or Spicetify version range.'
+    }
+
+    if ($failures.Count -gt 0) {
+        Write-Host '=== PINNED COMPATIBILITY BASELINE DRIFT ===' -ForegroundColor Red
+        foreach ($failure in $failures) { Write-Host "  $failure" -ForegroundColor Red }
+        throw 'Pinned SpotX, Spotify, Spicetify, Marketplace, and theme metadata must match schemas/compatibility-baseline.json.'
+    }
+
+    Write-Host "Pinned compatibility baseline matches the fixture verified $($baseline.lastVerifiedAtUtc)." -ForegroundColor Green
+}
+
 function Test-LocalReleaseTruth {
     $readmePath = Join-Path $PSScriptRoot 'README.md'
     if (-not (Test-Path -LiteralPath $readmePath -PathType Leaf)) {
@@ -1879,6 +1971,7 @@ if ($Validate) {
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'tools/Sync-Localization.ps1') -Validate -ScanRawStrings
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Test-ReadmeWpfScreenshotMetadata
+    Test-PinnedCompatibilityBaseline
     Test-LocalReleaseTruth
     exit 0
 }
