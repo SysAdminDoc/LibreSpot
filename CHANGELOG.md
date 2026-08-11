@@ -47,7 +47,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
-- The SpotX pin-advance guardrail now accounts for Spicetify's hard-fail-on-unsupported-version gate. `spicetify/cli` `main` merged a change after 2.44.0 (PRs #3894/#3895/#3896) that makes `backup apply` refuse — rather than best-effort patch — any Spotify version above the CLI's declared ceiling, which is exactly what today lets LibreSpot's post-apply route re-wiring work on Spotify 1.2.94. `AppCatalog.PinnedSpotXHoldRationale`, the README compatibility note, and the compatibility-matrix warning now require a pin advance to confirm the newer Spicetify build still applies (does not hard-refuse) on the new Spotify target, not just re-validate CSS class maps. The pinned 2.44.0 predates the gate, so current behavior is unchanged.
+- The SpotX pin-advance guardrail now accounts for Spicetify's hard-fail-on-unsupported-version gate. `spicetify/cli` `main` merged a change after 2.44.0 (PRs #3894/#3895/#3896) that makes `backup apply` refuse — rather than best-effort patch — any Spotify version above the CLI's declared ceiling, which permits LibreSpot's post-apply route re-wiring to work on Spotify 1.2.94. `AppCatalog.PinnedSpotXHoldRationale`, the README compatibility note, and the compatibility-matrix warning now require a pin advance to confirm the newer Spicetify build still applies (does not hard-refuse) on the new Spotify target, not just re-validate CSS class maps. The pinned 2.44.0 predates the gate, so current behavior is unchanged.
 - Refreshed the `dotnetRuntimeFloor` rationale in `schemas/dependency-health-allowlist.json` to enumerate the 2026-07-14 .NET 10.0.10 servicing batch it actually clears (RCE CVE-2026-50646/-50649, signature-bypass CVE-2026-47304, EoP CVE-2026-50650, and CVE-2026-50526, alongside the earlier CVE-2026-32175/-26127/-45490 fixes). The floor version is unchanged at 10.0.10.
 
 ## [v4.0.0-preview.20] - 2026-07-24
@@ -1228,7 +1228,7 @@ Six new SpotX flags surfaced end-to-end (Custom Install UI + config persistence 
 
 ### Verified
 - All 22 existing `Build-SpotXParams` flag emissions cross-checked against SpotX `run.ps1` param block on 2026-04-17 — spellings correct.
-- Six truly-missing flags above identified as the only net-new additions worth shipping today; `-version`, `-CustomPatchesPath`, `-language`, `-urlform_goofy`, `-idbox_goofy`, `-err_ru` intentionally deferred (they feed into future roadmap tracks or are niche).
+- Six truly-missing flags above identified as the only net-new additions worth shipping in that release; `-version`, `-CustomPatchesPath`, `-language`, `-urlform_goofy`, `-idbox_goofy`, `-err_ru` intentionally deferred (they feed into future roadmap tracks or are niche).
 
 ## [v3.3.1] - 2026-04-17
 
