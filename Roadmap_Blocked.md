@@ -4,7 +4,7 @@ Items moved here from `ROADMAP.md` because they require operator decisions,
 credentials, or policy calls that an implementer cannot resolve autonomously.
 Return items to `ROADMAP.md` once the blocking decision is made.
 
-Last updated: 2026-06-29.
+Last updated: 2026-08-11.
 
 ---
 
@@ -195,7 +195,7 @@ release checklist requires one manual smoke test on each supported host OS.
 Why: Spotube, Psst, and Ncspot are not interchangeable alternatives to the
 patched Windows Spotify flow. Live GitHub checks on 2026-06-04 showed
 Spotube as active with v5.1.1 published 2026-02-24 and 46k+ stars; Psst as
-recently pushed but still describing itself as early and requiring Premium;
+having 2026 commit activity while still describing itself as early and requiring Premium;
 Ncspot as active with v1.3.4 published 2026-05-22 and Premium-only terminal
 UX. Spotify's February 2026 developer-platform update added Premium and
 user-count limits for Development Mode, and the Developer Policy restricts
@@ -636,6 +636,53 @@ Blocked on: product strategy decision (covered by Cycle 1 macOS/Linux item above
 ### DMCA/availability contingency if SpotX distribution changes
 Blocked on: legal/policy decision. Operator must define the contingency plan.
 
+## P2 - Spotify Connect regression test harness
+
+| Field | Value |
+|---|---|
+| Source | Research-Driven Additions (2026-08-11) |
+| Blocker | Live Spotify account, reachable Spotify Connect device, and a disposable playback test environment |
+
+Why: the repository documents Spotify Connect as a capability to compare in the
+alternative-client matrix, but LibreSpot has no Connect client, device fixture,
+or protocol mock. A trustworthy regression harness needs a real authenticated
+Spotify session and a reachable device to prove discovery, transfer, pause,
+resume, and recovery behavior; none is available in this development
+environment and fabricating the protocol would not validate Spotify behavior.
+
+Evidence: `Roadmap_Blocked.md` alternative-client matrix,
+`src/LibreSpot.Core/AppCatalog.cs`,
+https://developer.spotify.com/documentation/web-api/concepts/spotify-connect
+
+Acceptance (once the rig exists): add a deterministic mocked contract suite for
+timeouts, device disappearance, transfer failure, and recovery, plus a gated
+live smoke test that uses a disposable account/device, never stores credentials,
+and proves the product remains non-mutating when Connect is unavailable.
+
+## P3 - Add German and French WPF locales
+
+| Field | Value |
+|---|---|
+| Source | Research-Driven Additions (2026-08-11) |
+| Blocker | Native-language review required for user-facing translations |
+
+Why: the code can add resource files mechanically, but the requested
+acceptance explicitly requires no English carry-over, protected product/file
+tokens, and no truncation across 1,230 strings and long prompt states. The
+repository has no approved German/French translation source or reviewer, so an
+autonomous implementation cannot establish linguistic correctness from code or
+public technical documentation alone.
+
+Evidence: `src/LibreSpot.Desktop/Properties/Strings.resx`,
+`tools/Sync-Localization.ps1`,
+`tests/LibreSpot.Desktop.Tests/LocalizationTests.cs`,
+`ROADMAP.md` RD-37 acceptance criteria.
+
+Acceptance (once review is available): add `Strings.de.resx` and
+`Strings.fr.resx`, register both cultures in the language selector and
+validation allowlist, and pass placeholder/protected-token/English-carry-over
+checks plus hidden long-text rendering review for both locales.
+
 ## P2 - Evaluate PowerShell Gallery (Install-Script) as a distribution channel
 
 | Field | Value |
@@ -877,13 +924,14 @@ pass, and no `LibreSpot-WatcherIntegration-*` task or temp directory remains.
 
 ---
 
-## P2 - Runtime detection of Spicetify's hard-refuse gate (RD-41 residual)
+## P2 - Runtime detection of Spicetify's hard-refuse gate (RD-41 residual; covers v3 readiness)
 
 | Field | Value |
 |---|---|
 | Source | Research-Driven Additions (2026-07-24), RD-41 |
 
-Why: the actionable half of RD-41 shipped — the pin-advance guardrail
+Why: this is the blocked runtime portion of the active Spicetify v3 readiness
+and migration item. The actionable half of RD-41 shipped — the pin-advance guardrail
 (`AppCatalog.PinnedSpotXHoldRationale`, README compatibility note, and the
 compatibility-matrix warning) now requires confirming a newer Spicetify build
 does not hard-refuse `backup apply` before advancing the pin. The remaining
