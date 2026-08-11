@@ -1274,7 +1274,7 @@ Describe 'Spicetify state preservation' {
             $manifest.format | Should -Be 'LibreSpot.MarketplaceState'
             $manifest.browserStorage.exported | Should -BeFalse
             $manifest.restoration.behavior | Should -Be 'missing-files-only'
-            $zip.GetEntry('CustomApps/marketplace/user-state.json') | Should -Not -BeNullOrEmpty
+            ($zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/') }) | Should -Contain 'CustomApps/marketplace/user-state.json'
         } finally {
             $zip.Dispose()
         }
