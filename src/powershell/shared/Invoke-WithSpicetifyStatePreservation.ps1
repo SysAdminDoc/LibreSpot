@@ -4,7 +4,15 @@ function Invoke-WithSpicetifyStatePreservation {
         [Parameter(Mandatory)][scriptblock]$Operation
     )
 
+    $marketplaceExport = $null
+    if ($Action -in @('Reapply', 'RepairMarketplace')) {
+        $marketplaceExport = Export-MarketplaceState
+    }
+
     $snapshot = New-SpicetifyStatePreservationSnapshot -Action $Action
+    if ($marketplaceExport) {
+        Add-Member -InputObject $snapshot -MemberType NoteProperty -Name marketplaceExportPath -Value ([string]$marketplaceExport.Path) -Force
+    }
     $operationError = $null
     $result = $null
     try {

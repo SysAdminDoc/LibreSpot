@@ -59,6 +59,10 @@ BeforeAll {
         'Get-ThirdPartyPatcherReport'
         'Copy-DirectorySnapshotSafely'
         'Merge-DirectorySnapshotMissingFiles'
+        'Get-LibreSpotTempRoot'
+        'Expand-ArchiveSafely'
+        'Export-MarketplaceState'
+        'Restore-MarketplaceState'
         'New-SpicetifyStatePreservationSnapshot'
         'Restore-SpicetifyStatePreservationSnapshot'
         'Invoke-WithSpicetifyStatePreservation'
@@ -1184,6 +1188,7 @@ Describe 'Spicetify state preservation' {
         $script:preservationRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("LibreSpot.Preservation.Tests\" + [Guid]::NewGuid().ToString('N'))
         $global:BACKUP_ROOT = Join-Path $script:preservationRoot 'backups'
         $global:CONFIG_DIR = Join-Path $script:preservationRoot 'librespot'
+        $global:TEMP_DIR = Join-Path $script:preservationRoot 'temp'
         $global:CURRENT_OPERATION_ID = '11111111222233334444555555555555'
         $script:spicetifyConfigDirectory = Join-Path $script:preservationRoot 'spicetify'
         $script:spicetifyConfigPath = Join-Path $script:spicetifyConfigDirectory 'config-xpui.ini'
@@ -1194,11 +1199,17 @@ Describe 'Spicetify state preservation' {
             return [pscustomobject]@{
                 ConfigPath = $script:spicetifyConfigPath
                 CustomAppsDirectory = $script:customAppsDirectory
+                MarketplaceDirectory = Join-Path $script:customAppsDirectory 'marketplace'
+                LegacyMarketplaceDirectory = Join-Path $script:preservationRoot 'legacy-marketplace'
             }
         }
         function Get-SpicetifyConfigListValue { return @('marketplace', 'foreign-app') }
         function Get-MarketplaceHealth {
-            return [pscustomobject]@{ Status = 'Ready'; IsReady = $true }
+            return [pscustomobject]@{
+                Status = 'Ready'
+                IsReady = $true
+                Path = Join-Path $script:customAppsDirectory 'marketplace'
+            }
         }
         function Write-OperationJournalEntry {
             param($Phase, $Target, $SafetyDecision, $Result, $WouldChange, $Reversible, $RollbackHint, $Data)
@@ -1244,6 +1255,47 @@ Describe 'Spicetify state preservation' {
         $evidence.status | Should -Be 'PreservedAfterSuccess'
         $script:journalEntries.Result | Should -Contain 'Preserved'
         $script:journalEntries.Result | Should -Contain 'PreservedAfterSuccess'
+    }
+
+    It 'Exports a validated file manifest without claiming browser storage portability' {
+        $export = Export-MarketplaceState
+
+        $export.Succeeded | Should -BeTrue
+        Test-Path -LiteralPath $export.Path -PathType Leaf | Should -BeTrue
+        $export.BrowserStorageExported | Should -BeFalse
+        $export.BrowserStorageStatus | Should -Be 'not-portable'
+
+        Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($export.Path)
+        try {
+            $manifestEntry = $zip.GetEntry('marketplace-state-manifest.json')
+            $manifestEntry | Should -Not -BeNullOrEmpty
+            $manifest = [System.IO.StreamReader]::new($manifestEntry.Open()).ReadToEnd() | ConvertFrom-Json
+            $manifest.format | Should -Be 'LibreSpot.MarketplaceState'
+            $manifest.browserStorage.exported | Should -BeFalse
+            $manifest.restoration.behavior | Should -Be 'missing-files-only'
+            $zip.GetEntry('CustomApps/marketplace/user-state.json') | Should -Not -BeNullOrEmpty
+        } finally {
+            $zip.Dispose()
+        }
+    }
+
+    It 'Restores missing Marketplace files from the latest archive without overwriting refreshed files' {
+        $export = Export-MarketplaceState
+        Set-Content -LiteralPath (Join-Path $script:customAppsDirectory 'marketplace\extension.js') -Value 'fresh-runtime' -Encoding UTF8
+        Remove-Item -LiteralPath (Join-Path $script:customAppsDirectory 'marketplace\user-state.json') -Force
+
+        $restore = Restore-MarketplaceState
+
+        $restore.Succeeded | Should -BeTrue
+        $restore.BrowserStorageRestored | Should -BeFalse
+        $restore.RestoredFileCount | Should -BeGreaterThan 0
+        (Get-Content -LiteralPath (Join-Path $script:customAppsDirectory 'marketplace\extension.js') -Raw).Trim() | Should -Be 'fresh-runtime'
+        Test-Path -LiteralPath (Join-Path $script:customAppsDirectory 'marketplace\user-state.json') | Should -BeTrue
+        $evidence = Get-Content -LiteralPath (Join-Path $global:CONFIG_DIR 'marketplace-state-recovery-latest.json') -Raw | ConvertFrom-Json
+        $evidence.status | Should -Be 'RestoredMissingFiles'
+        $evidence.browserStorage.restored | Should -BeFalse
+        $export.Path | Should -Be $restore.Path
     }
 
     It 'Recovers missing state when the wrapped operation fails' {

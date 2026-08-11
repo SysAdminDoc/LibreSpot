@@ -54,6 +54,24 @@
       "notes": "Open-only action; repair remains the mutating path"
     },
     {
+      "action": "ExportMarketplaceState",
+      "elevation": "no-admin",
+      "mutating": true,
+      "destructive": false,
+      "toastCompatible": true,
+      "description": "Writes a validated local Marketplace file archive and manifest",
+      "notes": "Per-user archive only; embedded Marketplace browser storage is explicitly not exported"
+    },
+    {
+      "action": "RestoreMarketplaceState",
+      "elevation": "no-admin",
+      "mutating": true,
+      "destructive": false,
+      "toastCompatible": false,
+      "description": "Restores missing Marketplace files from the latest validated archive",
+      "notes": "Does not overwrite existing files or restore embedded Marketplace browser storage"
+    },
+    {
       "action": "SafeMode",
       "elevation": "no-admin",
       "mutating": true,

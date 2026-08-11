@@ -1,5 +1,5 @@
 ﻿param(
-    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'OpenMarketplace', 'SafeMode', 'CreateBackup', 'RestoreBackup', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'RemoveSelfData', 'ClearCache', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply', 'Plan')]
+    [ValidateSet('Install', 'CheckUpdates', 'Reapply', 'RepairMarketplace', 'OpenMarketplace', 'ExportMarketplaceState', 'RestoreMarketplaceState', 'SafeMode', 'CreateBackup', 'RestoreBackup', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset', 'RemoveSelfData', 'ClearCache', 'EnableAutoReapply', 'DisableAutoReapply', 'WatchAutoReapply', 'Plan')]
     [string]$Action = 'Install',
     [string]$ConfigPath = "$env:APPDATA\LibreSpot\config.json",
     [string]$OperationId = ''
@@ -3180,6 +3180,288 @@ function Merge-DirectorySnapshotMissingFiles {
     return [pscustomobject]$State
 }
 
+function Export-MarketplaceState {
+    [CmdletBinding()]
+    param([string]$OutputPath)
+
+    $integration = Get-SpicetifyIntegrationContext
+    $health = Get-MarketplaceHealth
+    $operationId = if ($global:CURRENT_OPERATION_ID) { [string]$global:CURRENT_OPERATION_ID } else { [Guid]::NewGuid().ToString('N') }
+    $stamp = (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmssfff')
+    $exportRoot = Join-Path $global:BACKUP_ROOT 'MarketplaceState'
+    $createdOutput = $false
+    $stagePath = $null
+
+    if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+        $OutputPath = Join-Path $exportRoot ("marketplace-state-$stamp-" + $operationId.Substring(0, [Math]::Min(8, $operationId.Length)) + '.zip')
+    } else {
+        $OutputPath = [System.IO.Path]::GetFullPath($OutputPath)
+    }
+
+    try {
+        if (Test-Path -LiteralPath $OutputPath) {
+            throw "Marketplace state export already exists at $OutputPath. Choose a new destination instead of overwriting an archive."
+        }
+
+        $outputDirectory = Split-Path -Path $OutputPath -Parent
+        if ([string]::IsNullOrWhiteSpace($outputDirectory)) {
+            throw 'Marketplace state export destination must include a directory.'
+        }
+        New-Item -Path $outputDirectory -ItemType Directory -Force -ErrorAction Stop | Out-Null
+
+        $stagePath = Join-Path (Get-LibreSpotTempRoot) ('marketplace-state-export-' + [Guid]::NewGuid().ToString('N'))
+        New-Item -Path $stagePath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+        $marketplaceStagePath = Join-Path $stagePath 'CustomApps\marketplace'
+        $configStagePath = Join-Path $stagePath 'config-xpui.ini'
+        $manifestPath = Join-Path $stagePath 'marketplace-state-manifest.json'
+
+        $marketplaceSource = [string]$health.Path
+        if ([string]::IsNullOrWhiteSpace($marketplaceSource)) {
+            $marketplaceSource = [string]$integration.MarketplaceDirectory
+            if (-not (Test-Path -LiteralPath $marketplaceSource -PathType Container)) {
+                $marketplaceSource = [string]$integration.LegacyMarketplaceDirectory
+            }
+        }
+
+        $configIncluded = $false
+        $configBytes = [long]0
+        if (Test-Path -LiteralPath $integration.ConfigPath -PathType Leaf) {
+            Copy-Item -LiteralPath $integration.ConfigPath -Destination $configStagePath -Force -ErrorAction Stop
+            $configIncluded = $true
+            $configBytes = [long](Get-Item -LiteralPath $configStagePath -Force -ErrorAction Stop).Length
+        }
+
+        $copyResult = Copy-DirectorySnapshotSafely -SourcePath $marketplaceSource -DestinationPath $marketplaceStagePath
+        $manifest = [ordered]@{
+            schemaVersion = 1
+            format = 'LibreSpot.MarketplaceState'
+            createdAtUtc = (Get-Date).ToUniversalTime().ToString('o')
+            operationId = $operationId
+            source = [ordered]@{
+                configPath = [string]$integration.ConfigPath
+                marketplacePath = $marketplaceSource
+                marketplaceStatus = [string]$health.Status
+                enabledCustomApps = @(Get-SpicetifyConfigListValue -Key 'custom_apps')
+            }
+            files = [ordered]@{
+                configXpuiIni = $configIncluded
+                configXpuiIniBytes = $configBytes
+                marketplaceFileCount = [int]$copyResult.FileCount
+                marketplaceBytes = [long]$copyResult.Bytes
+                skippedReparsePoints = [int]$copyResult.SkippedReparsePoints
+            }
+            archiveEntries = @(
+                'marketplace-state-manifest.json',
+                $(if ($configIncluded) { 'config-xpui.ini' }),
+                $(if ([int]$copyResult.FileCount -gt 0) { 'CustomApps/marketplace/**' })
+            ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
+            browserStorage = [ordered]@{
+                exported = $false
+                status = 'not-portable'
+                reason = 'Marketplace browser storage belongs to Spotify embedded browser state and is not included in this file archive.'
+                recovery = 'Use Marketplace built-in export/import when available; LibreSpot never claims this archive restores browser storage.'
+            }
+            restoration = [ordered]@{
+                mode = 'validated-file-manifest'
+                behavior = 'missing-files-only'
+                requiresReapply = $true
+                overwritesExistingMarketplaceFiles = $false
+                browserStorageRestored = $false
+            }
+        }
+        $json = $manifest | ConvertTo-Json -Depth 8
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($manifestPath, $json, $utf8)
+
+        Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+        [System.IO.Compression.ZipFile]::CreateFromDirectory(
+            $stagePath,
+            $OutputPath,
+            [System.IO.Compression.CompressionLevel]::Optimal,
+            $false)
+        $createdOutput = $true
+
+        $zip = $null
+        try {
+            $zip = [System.IO.Compression.ZipFile]::OpenRead($OutputPath)
+            if ($null -eq $zip.GetEntry('marketplace-state-manifest.json')) {
+                throw 'The generated Marketplace state archive did not contain its manifest.'
+            }
+        } finally {
+            if ($zip) { $zip.Dispose() }
+        }
+
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR -PathType Container)) {
+            New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
+        }
+        [System.IO.File]::WriteAllText((Join-Path $global:CONFIG_DIR 'marketplace-state-export-latest.json'), $json, $utf8)
+        $archiveBytes = [long](Get-Item -LiteralPath $OutputPath -Force -ErrorAction Stop).Length
+        Write-OperationJournalEntry -Phase 'marketplace-state' -Target $OutputPath -SafetyDecision 'Allowed' -Result 'Exported' -WouldChange $true -Reversible $true -RollbackHint 'Use RestoreMarketplaceState or the retained archive to restore missing Marketplace files. Browser storage is not included.' -Data @{
+            archivePath = $OutputPath
+            configIncluded = $configIncluded
+            marketplaceFileCount = [int]$copyResult.FileCount
+            marketplaceBytes = [long]$copyResult.Bytes
+            browserStorageExported = $false
+        }
+        Write-Log "Marketplace state export created at $OutputPath. Browser storage was not exported and may reset." -Level 'WARN'
+
+        foreach ($oldExport in @(Get-ChildItem -LiteralPath $exportRoot -Filter 'marketplace-state-*.zip' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTimeUtc -Descending | Select-Object -Skip 5)) {
+            $null = Remove-PathSafely -Path $oldExport.FullName -Label 'expired Marketplace state export'
+        }
+
+        return [pscustomobject]@{
+            Succeeded = $true
+            Path = $OutputPath
+            ArchiveBytes = $archiveBytes
+            ConfigIncluded = $configIncluded
+            MarketplaceFileCount = [int]$copyResult.FileCount
+            MarketplaceBytes = [long]$copyResult.Bytes
+            BrowserStorageExported = $false
+            BrowserStorageStatus = 'not-portable'
+            Manifest = [pscustomobject]$manifest
+        }
+    } catch {
+        $message = [string]$_.Exception.Message
+        if ($createdOutput -and (Test-Path -LiteralPath $OutputPath -PathType Leaf)) {
+            Remove-Item -LiteralPath $OutputPath -Force -ErrorAction SilentlyContinue
+        }
+        try {
+            Write-OperationJournalEntry -Phase 'marketplace-state' -Target $OutputPath -SafetyDecision 'BlockedBeforeMutation' -Result 'ExportFailed' -WouldChange $false -Reversible $false -RollbackHint 'No Marketplace repair changes were made; fix the export destination or storage issue and retry.' -Data @{ error = $message }
+        } catch {}
+        throw "LibreSpot could not export Marketplace state. No Marketplace repair changes were made. $message"
+    } finally {
+        if ($stagePath -and (Test-Path -LiteralPath $stagePath)) {
+            try { $null = Remove-PathSafely -Path $stagePath -Label 'temporary Marketplace state export' } catch {}
+        }
+    }
+}
+function Restore-MarketplaceState {
+    [CmdletBinding()]
+    param([string]$InputPath)
+
+    $integration = Get-SpicetifyIntegrationContext
+    $exportRoot = Join-Path $global:BACKUP_ROOT 'MarketplaceState'
+    $operationId = if ($global:CURRENT_OPERATION_ID) { [string]$global:CURRENT_OPERATION_ID } else { [Guid]::NewGuid().ToString('N') }
+    $stagePath = Join-Path (Get-LibreSpotTempRoot) ('marketplace-state-restore-' + [Guid]::NewGuid().ToString('N'))
+
+    if ([string]::IsNullOrWhiteSpace($InputPath)) {
+        $latest = Get-ChildItem -LiteralPath $exportRoot -Filter 'marketplace-state-*.zip' -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTimeUtc -Descending |
+            Select-Object -First 1
+        if (-not $latest) {
+            throw "No Marketplace state export was found under $exportRoot. Run ExportMarketplaceState first."
+        }
+        $InputPath = $latest.FullName
+    } else {
+        $InputPath = [System.IO.Path]::GetFullPath($InputPath)
+    }
+
+    if (-not (Test-Path -LiteralPath $InputPath -PathType Leaf)) {
+        throw "Marketplace state export was not found at $InputPath."
+    }
+
+    try {
+        New-Item -Path $stagePath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+        Expand-ArchiveSafely -ZipPath $InputPath -DestinationPath $stagePath -Label 'Marketplace state export' -MaxEntries 10000 -MaxExpandedBytes 256MB
+
+        $manifestPath = Join-Path $stagePath 'marketplace-state-manifest.json'
+        if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+            throw 'The Marketplace state archive has no manifest and cannot be restored.'
+        }
+        $manifest = Get-Content -LiteralPath $manifestPath -Raw -ErrorAction Stop | ConvertFrom-Json
+        if ([int]$manifest.schemaVersion -ne 1 -or [string]$manifest.format -ne 'LibreSpot.MarketplaceState') {
+            throw 'The Marketplace state archive uses an unsupported manifest format.'
+        }
+        if ($manifest.browserStorage.exported -eq $true) {
+            throw 'The Marketplace state archive claims to contain browser storage, which LibreSpot cannot validate or restore safely.'
+        }
+
+        $sourceConfigPath = Join-Path $stagePath 'config-xpui.ini'
+        $sourceMarketplacePath = Join-Path $stagePath 'CustomApps\marketplace'
+        $actualMarketplaceFiles = @()
+        if (Test-Path -LiteralPath $sourceMarketplacePath -PathType Container) {
+            $actualMarketplaceFiles = @(Get-ChildItem -LiteralPath $sourceMarketplacePath -File -Recurse -Force -ErrorAction Stop)
+        }
+        $actualMarketplaceBytes = [long]($actualMarketplaceFiles | Measure-Object -Property Length -Sum).Sum
+        if ([int]$manifest.files.marketplaceFileCount -ne $actualMarketplaceFiles.Count -or
+            [long]$manifest.files.marketplaceBytes -ne $actualMarketplaceBytes) {
+            throw 'The Marketplace state archive manifest does not match its extracted Marketplace files.'
+        }
+        if ([bool]$manifest.files.configXpuiIni -and -not (Test-Path -LiteralPath $sourceConfigPath -PathType Leaf)) {
+            throw 'The Marketplace state archive manifest requires config-xpui.ini, but the file is missing.'
+        }
+        if (-not [bool]$manifest.files.configXpuiIni -and (Test-Path -LiteralPath $sourceConfigPath -PathType Leaf)) {
+            throw 'The Marketplace state archive contains config-xpui.ini but its manifest does not declare it.'
+        }
+        $configRestored = $false
+        if ((Test-Path -LiteralPath $sourceConfigPath -PathType Leaf) -and -not (Test-Path -LiteralPath $integration.ConfigPath -PathType Leaf)) {
+            $configDirectory = Split-Path -Path $integration.ConfigPath -Parent
+            New-Item -Path $configDirectory -ItemType Directory -Force -ErrorAction Stop | Out-Null
+            Copy-Item -LiteralPath $sourceConfigPath -Destination $integration.ConfigPath -Force -ErrorAction Stop
+            $configRestored = $true
+        }
+
+        $mergeResult = Merge-DirectorySnapshotMissingFiles -SourcePath $sourceMarketplacePath -DestinationPath (Join-Path $integration.CustomAppsDirectory 'marketplace')
+        $health = Get-MarketplaceHealth
+        $document = [ordered]@{
+            schemaVersion = 1
+            format = 'LibreSpot.MarketplaceStateRecovery'
+            operationId = $operationId
+            completedAtUtc = (Get-Date).ToUniversalTime().ToString('o')
+            status = 'RestoredMissingFiles'
+            sourceArchive = $InputPath
+            configRestored = $configRestored
+            restoredFileCount = [int]$mergeResult.RestoredFileCount
+            skippedExistingFiles = [int]$mergeResult.SkippedExistingFiles
+            skippedReparsePoints = [int]$mergeResult.SkippedReparsePoints
+            marketplaceStatus = [string]$health.Status
+            browserStorage = [ordered]@{
+                restored = $false
+                status = 'not-portable'
+                message = 'Marketplace browser storage was not present in the archive and was not restored.'
+            }
+            restoration = [ordered]@{
+                mode = 'validated-file-manifest'
+                behavior = 'missing-files-only'
+                overwroteExistingMarketplaceFiles = $false
+            }
+        }
+        $json = $document | ConvertTo-Json -Depth 8
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR -PathType Container)) {
+            New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
+        }
+        [System.IO.File]::WriteAllText((Join-Path $global:CONFIG_DIR 'marketplace-state-recovery-latest.json'), $json, $utf8)
+        Write-OperationJournalEntry -Phase 'marketplace-state' -Target $InputPath -SafetyDecision 'Allowed' -Result 'RestoredMissingFiles' -WouldChange ($configRestored -or $mergeResult.RestoredFileCount -gt 0) -Reversible $true -RollbackHint 'The preceding preservation snapshot remains available; browser storage was not restored.' -Data @{
+            sourceArchive = $InputPath
+            configRestored = $configRestored
+            restoredFileCount = [int]$mergeResult.RestoredFileCount
+            skippedExistingFiles = [int]$mergeResult.SkippedExistingFiles
+            browserStorageRestored = $false
+        }
+        Write-Log "Restored missing Marketplace files from $InputPath. Browser storage was not restored and may reset." -Level 'WARN'
+        return [pscustomobject]@{
+            Succeeded = $true
+            Path = $InputPath
+            ConfigRestored = $configRestored
+            RestoredFileCount = [int]$mergeResult.RestoredFileCount
+            SkippedExistingFiles = [int]$mergeResult.SkippedExistingFiles
+            BrowserStorageRestored = $false
+            BrowserStorageStatus = 'not-portable'
+            Evidence = [pscustomobject]$document
+        }
+    } catch {
+        $message = [string]$_.Exception.Message
+        try {
+            Write-OperationJournalEntry -Phase 'marketplace-state' -Target $InputPath -SafetyDecision 'NeedsReview' -Result 'RestoreFailed' -WouldChange $false -Reversible $true -RollbackHint 'The surrounding preservation snapshot is retained; review it before retrying.' -Data @{ sourceArchive = $InputPath; error = $message; browserStorageRestored = $false }
+        } catch {}
+        throw "LibreSpot could not restore Marketplace state from $InputPath. Existing files were not overwritten by the manifest restore. $message"
+    } finally {
+        if (Test-Path -LiteralPath $stagePath) {
+            try { $null = Remove-PathSafely -Path $stagePath -Label 'temporary Marketplace state restore' } catch {}
+        }
+    }
+}
 function New-SpicetifyStatePreservationSnapshot {
     param([Parameter(Mandatory)][string]$Action)
 
@@ -3221,6 +3503,12 @@ function New-SpicetifyStatePreservationSnapshot {
             enabledCustomApps    = @(Get-SpicetifyConfigListValue -Key 'custom_apps')
             marketplaceStatus    = [string]$health.Status
             marketplaceReady     = [bool]$health.IsReady
+            browserStorage       = [ordered]@{
+                exported = $false
+                status = 'not-portable'
+                message = 'Marketplace browser storage is outside this filesystem snapshot and may reset.'
+            }
+            marketplaceExportPath = ''
         }
         $json = $document | ConvertTo-Json -Depth 6
         [System.IO.File]::WriteAllText($manifestPath, $json, $utf8)
@@ -3294,6 +3582,8 @@ function Restore-SpicetifyStatePreservationSnapshot {
             skippedReparsePoints  = [int]$mergeResult.SkippedReparsePoints
             preservationFileCount = [int]$Snapshot.fileCount
             preservationBytes     = [long]$Snapshot.bytes
+            marketplaceExportPath = [string]$Snapshot.marketplaceExportPath
+            browserStorageRestored = $false
         }
         $json = $document | ConvertTo-Json -Depth 6
         [System.IO.File]::WriteAllText($manifestPath, $json, $utf8)
@@ -3336,7 +3626,15 @@ function Invoke-WithSpicetifyStatePreservation {
         [Parameter(Mandatory)][scriptblock]$Operation
     )
 
+    $marketplaceExport = $null
+    if ($Action -in @('Reapply', 'RepairMarketplace')) {
+        $marketplaceExport = Export-MarketplaceState
+    }
+
     $snapshot = New-SpicetifyStatePreservationSnapshot -Action $Action
+    if ($marketplaceExport) {
+        Add-Member -InputObject $snapshot -MemberType NoteProperty -Name marketplaceExportPath -Value ([string]$marketplaceExport.Path) -Force
+    }
     $operationError = $null
     $result = $null
     try {
@@ -5464,7 +5762,7 @@ function Invoke-LibreSpotInstall {
 
 function Invoke-LibreSpotMaintenance {
     $patcherReport = Get-ThirdPartyPatcherReport
-    if ($patcherReport.HasForeignState -and $Action -in @('Reapply', 'RepairMarketplace', 'SafeMode', 'CreateBackup', 'RestoreBackup', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset')) {
+    if ($patcherReport.HasForeignState -and $Action -in @('Reapply', 'RepairMarketplace', 'RestoreMarketplaceState', 'SafeMode', 'CreateBackup', 'RestoreBackup', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset')) {
         Write-Log "$($patcherReport.Summary) Requested action: $Action. $($patcherReport.Recommendation)" -Level 'WARN'
         Write-OperationJournalEntry -Phase 'foreign-patcher-detection' -Target 'Spotify and Spicetify state' -SafetyDecision 'NeedsReview' -Result 'Detected' -WouldChange $false -Reversible $true -RollbackHint $patcherReport.Recommendation -Data @{
             action = $Action
@@ -5510,6 +5808,25 @@ function Invoke-LibreSpotMaintenance {
             Update-BackendState -Progress 20 -Status 'Repairing Marketplace' -Step 'Reinstalling the custom app'
             $savedConfig = Load-LibreSpotConfig
             Repair-Marketplace -Config $savedConfig
+        }
+        'ExportMarketplaceState' {
+            Update-BackendState -Progress 25 -Status 'Exporting Marketplace state' -Step 'Writing a validated local archive'
+            $export = Export-MarketplaceState
+            Write-Log "Marketplace state archive ready at $($export.Path). Browser storage is outside the portable archive." -Level 'WARN'
+        }
+        'RestoreMarketplaceState' {
+            Update-BackendState -Progress 20 -Status 'Restoring Marketplace state' -Step 'Restoring missing files from the latest archive'
+            Invoke-WithSpicetifyStatePreservation -Action 'RestoreMarketplaceState' -Operation {
+                $restore = Restore-MarketplaceState
+                if (Test-SpicetifyCliInstalled) {
+                    Update-BackendState -Progress 70 -Status 'Reapplying Marketplace state' -Step 'Applying restored Spicetify configuration'
+                    $savedConfig = Load-LibreSpotConfig
+                    Module-ApplySpicetify -Config $savedConfig -EvidenceSource 'RestoreMarketplaceState' | Out-Null
+                } else {
+                    Write-Log 'Spicetify CLI is not installed; restored Marketplace files remain staged until Reapply or Repair Marketplace.' -Level 'WARN'
+                }
+                Write-Log "Marketplace state recovery restored $($restore.RestoredFileCount) missing file(s). Browser storage was not restored." -Level 'WARN'
+            } | Out-Null
         }
         'OpenMarketplace' {
             Update-BackendState -Progress 35 -Status 'Opening Marketplace' -Step 'Launching spotify:app:marketplace'

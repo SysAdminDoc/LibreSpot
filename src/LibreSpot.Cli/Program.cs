@@ -98,6 +98,8 @@ public static class CliApplication
         "Reapply",
         "RepairMarketplace",
         "OpenMarketplace",
+        "ExportMarketplaceState",
+        "RestoreMarketplaceState",
         "SafeMode",
         "CreateBackup",
         "RestoreBackup",
@@ -1462,7 +1464,7 @@ public static class CliApplication
     }
 
     private static bool RepairRequiresAdmin(string? repairAction) =>
-        repairAction is "Install" or "Reapply" or "RepairMarketplace" or "SafeMode" or "RestoreBackup" or "RestoreVanilla" or "UninstallSpicetify" or "FullReset";
+        repairAction is "Install" or "Reapply" or "RepairMarketplace" or "RestoreMarketplaceState" or "SafeMode" or "RestoreBackup" or "RestoreVanilla" or "UninstallSpicetify" or "FullReset";
 
     private static void RequireSchemaVersion(JsonElement root, ICollection<ValidationErrorDocument> errors)
     {
@@ -1996,6 +1998,7 @@ public static class CliApplication
         writer.WriteLine("  LibreSpot.Cli reapply [--dry-run] --answer-file <path> [--ndjson]");
         writer.WriteLine("  LibreSpot.Cli uninstall [--dry-run] [--keep-spotify] [--ndjson]");
         writer.WriteLine("  LibreSpot.Cli repair --repair-id <id> [--dry-run] [--ndjson]");
+        writer.WriteLine("    Marketplace IDs: ExportMarketplaceState, RestoreMarketplaceState");
         writer.WriteLine("  LibreSpot.Cli undo --operation-id <id> --token-kind <kind> --dry-run [--json]");
         writer.WriteLine("  LibreSpot.Cli undo --operation-id <id> --token-kind <kind> --yes [--json]");
         writer.WriteLine("  LibreSpot.Cli plan --answer-file <path> [--json]");

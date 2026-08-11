@@ -40,6 +40,8 @@ function Restore-SpicetifyStatePreservationSnapshot {
             skippedReparsePoints  = [int]$mergeResult.SkippedReparsePoints
             preservationFileCount = [int]$Snapshot.fileCount
             preservationBytes     = [long]$Snapshot.bytes
+            marketplaceExportPath = [string]$Snapshot.marketplaceExportPath
+            browserStorageRestored = $false
         }
         $json = $document | ConvertTo-Json -Depth 6
         [System.IO.File]::WriteAllText($manifestPath, $json, $utf8)

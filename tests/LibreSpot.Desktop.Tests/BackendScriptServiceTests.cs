@@ -58,6 +58,8 @@ public sealed class BackendScriptServiceTests
     [Theory]
     [InlineData("RepairMarketplace")]
     [InlineData("OpenMarketplace")]
+    [InlineData("ExportMarketplaceState")]
+    [InlineData("RestoreMarketplaceState")]
     [InlineData("ClearCache")]
     [InlineData("EnableAutoReapply")]
     [InlineData("DisableAutoReapply")]

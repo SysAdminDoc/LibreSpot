@@ -362,6 +362,72 @@
       ]
     },
     {
+      "id": "marketplace-state-exports",
+      "path": "%USERPROFILE%\\LibreSpot_Backups\\MarketplaceState\\marketplace-state-*.zip",
+      "owner": "current-user",
+      "codeOwner": "Export-MarketplaceState",
+      "schemaVersion": 1,
+      "description": "Retained Marketplace config/custom-app file archives used for missing-file recovery.",
+      "sensitivity": "high",
+      "sensitivityNote": "Contains raw Spicetify configuration and Marketplace files; embedded browser storage and credentials are never intentionally included.",
+      "retention": "five newest exports",
+      "retentionNote": "Export-MarketplaceState removes older archives after a successful export; RemoveSelfData removes the backup root.",
+      "retentionEnforcement": "bounded-five-archives",
+      "userDeletePath": "Maintenance > Remove LibreSpot Data, or delete %USERPROFILE%\\LibreSpot_Backups\\MarketplaceState",
+      "deleteBehavior": "remove-self-data",
+      "includedInSupportBundle": false,
+      "supportExportBehavior": "excluded",
+      "redactionRules": ["Never export the raw archive in a support bundle", "Use the manifest evidence instead"],
+      "aclExpectation": "current-user inherited ACL from %USERPROFILE%",
+      "writeSites": [
+        { "source": "src/powershell/shared/Export-MarketplaceState.ps1", "marker": "$exportRoot = Join-Path $global:BACKUP_ROOT 'MarketplaceState'" }
+      ]
+    },
+    {
+      "id": "marketplace-state-export-evidence",
+      "path": "%APPDATA%\\LibreSpot\\marketplace-state-export-latest.json",
+      "owner": "current-user",
+      "codeOwner": "Export-MarketplaceState",
+      "schemaVersion": 1,
+      "description": "Latest Marketplace export manifest projection used by diagnostics.",
+      "sensitivity": "medium",
+      "sensitivityNote": "Contains source paths and file counts; support bundles redact local paths before export.",
+      "retention": "one latest manifest",
+      "retentionNote": "Replaced by the next successful export.",
+      "retentionEnforcement": "per-operation-overwrite",
+      "userDeletePath": "Maintenance > Remove LibreSpot Data, or delete the file",
+      "deleteBehavior": "remove-self-data",
+      "includedInSupportBundle": true,
+      "supportExportBehavior": "redacted-bounded-tail",
+      "redactionRules": ["Replace local paths and secrets", "Never export the raw Marketplace archive"],
+      "aclExpectation": "current-user inherited ACL from %APPDATA%",
+      "writeSites": [
+        { "source": "src/powershell/shared/Export-MarketplaceState.ps1", "marker": "marketplace-state-export-latest.json" }
+      ]
+    },
+    {
+      "id": "marketplace-state-recovery-evidence",
+      "path": "%APPDATA%\\LibreSpot\\marketplace-state-recovery-latest.json",
+      "owner": "current-user",
+      "codeOwner": "Restore-MarketplaceState",
+      "schemaVersion": 1,
+      "description": "Latest Marketplace missing-file recovery result and explicit browser-storage limitation.",
+      "sensitivity": "medium",
+      "sensitivityNote": "Contains source archive path, counts, and recovery result; support bundles redact local paths before export.",
+      "retention": "one latest result",
+      "retentionNote": "Replaced by the next restore attempt that reaches evidence writing.",
+      "retentionEnforcement": "per-operation-overwrite",
+      "userDeletePath": "Maintenance > Remove LibreSpot Data, or delete the file",
+      "deleteBehavior": "remove-self-data",
+      "includedInSupportBundle": true,
+      "supportExportBehavior": "redacted-bounded-tail",
+      "redactionRules": ["Replace local paths and secrets", "Keep browser-storage non-portability result"],
+      "aclExpectation": "current-user inherited ACL from %APPDATA%",
+      "writeSites": [
+        { "source": "src/powershell/shared/Restore-MarketplaceState.ps1", "marker": "marketplace-state-recovery-latest.json" }
+      ]
+    },
+    {
       "id": "support-archives",
       "path": "%APPDATA%\\LibreSpot\\LibreSpot-(support|failure)-*.zip",
       "owner": "current-user",

@@ -16,6 +16,9 @@ public sealed class DataInventoryContractTests
         "local-profiles",
         "machine-config",
         "marketplace-evidence",
+        "marketplace-state-export-evidence",
+        "marketplace-state-exports",
+        "marketplace-state-recovery-evidence",
         "operation-journal",
         "previous-profile-pointer",
         "profile-activation-transaction",
@@ -49,6 +52,9 @@ public sealed class DataInventoryContractTests
         "local-profiles",
         "machine-config",
         "marketplace-evidence",
+        "marketplace-state-export-evidence",
+        "marketplace-state-exports",
+        "marketplace-state-recovery-evidence",
         "operation-journal",
         "previous-profile-pointer",
         "profile-activation-transaction",
@@ -177,7 +183,9 @@ public sealed class DataInventoryContractTests
                      ("operation-journal", "operation-journal.jsonl"),
                      ("watcher-log", "watcher.log"),
                      ("watcher-state", "watcher-state.json"),
-                     ("spicetify-preservation-evidence", "spicetify-preservation-latest.json")
+                     ("spicetify-preservation-evidence", "spicetify-preservation-latest.json"),
+                     ("marketplace-state-export-evidence", "marketplace-state-export-latest.json"),
+                     ("marketplace-state-recovery-evidence", "marketplace-state-recovery-latest.json")
                  })
         {
             Assert.True(locations[pair.Item1].GetProperty("includedInSupportBundle").GetBoolean());

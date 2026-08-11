@@ -706,6 +706,8 @@ public sealed class SupportBundleService
         yield return new SupportBundleFile(Path.Combine(_configDirectory, "watcher.log"), "Auto-reapply watcher log tail");
         yield return new SupportBundleFile(Path.Combine(_configDirectory, "watcher-state.json"), "Auto-reapply watcher state");
         yield return new SupportBundleFile(Path.Combine(_configDirectory, "spicetify-preservation-latest.json"), "Spicetify preservation evidence");
+        yield return new SupportBundleFile(Path.Combine(_configDirectory, "marketplace-state-export-latest.json"), "Marketplace state export evidence");
+        yield return new SupportBundleFile(Path.Combine(_configDirectory, "marketplace-state-recovery-latest.json"), "Marketplace state recovery evidence");
     }
 
     private IEnumerable<SupportBundleFile> LogFiles()

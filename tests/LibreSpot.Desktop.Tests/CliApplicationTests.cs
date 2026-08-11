@@ -1093,6 +1093,25 @@ public sealed class CliApplicationTests
         Assert.Equal(new[] { "EnableAutoReapply" }, actions);
     }
 
+    [Theory]
+    [InlineData("ExportMarketplaceState")]
+    [InlineData("RestoreMarketplaceState")]
+    public void MarketplaceStateRepairIds_MapToExplicitBackendActions(string repairId)
+    {
+        var actions = new List<string>();
+        var result = Run(
+            new[] { "repair", "--repair-id", repairId, "--silent", "--yes" },
+            _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+            (action, _, _, _) =>
+            {
+                actions.Add(action);
+                return Task.FromResult(new CliBackendRunResult(true));
+            });
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(new[] { repairId }, actions);
+    }
+
     [Fact]
     public void RepairOpenLogs_IsRejectedBeforeBackendRuns()
     {
