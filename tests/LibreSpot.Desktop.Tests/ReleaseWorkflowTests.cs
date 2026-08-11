@@ -10,12 +10,6 @@ public sealed class ReleaseWorkflowTests
     private const string ReleaseTagPattern = @"^v\d+\.\d+\.\d+(-(preview|rc)\.\d+)?$";
 
     [Fact]
-    public void GitHubActionsWorkflows_AreNotTrackedForBuildsOrReleases()
-    {
-        Assert.Empty(EnumerateWorkflowFiles());
-    }
-
-    [Fact]
     public void ReleaseNotesConfig_IsRepositoryMetadataOnly()
     {
         var releaseNotesConfig = Path.Combine(RepoRoot, ".github", "release.yml");
@@ -50,19 +44,6 @@ public sealed class ReleaseWorkflowTests
     public void ReleaseTagPattern_RejectsMalformedTags(string tag)
     {
         Assert.DoesNotMatch(ReleaseTagPattern, tag);
-    }
-
-    private static IEnumerable<string> EnumerateWorkflowFiles()
-    {
-        var workflowDirectory = Path.Combine(RepoRoot, ".github", "workflows");
-        if (!Directory.Exists(workflowDirectory))
-        {
-            return Array.Empty<string>();
-        }
-
-        return Directory.EnumerateFiles(workflowDirectory, "*.yml", SearchOption.AllDirectories)
-            .Concat(Directory.EnumerateFiles(workflowDirectory, "*.yaml", SearchOption.AllDirectories))
-            .ToArray();
     }
 
     private static string ResolveRepoRoot()

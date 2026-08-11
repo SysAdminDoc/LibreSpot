@@ -9,6 +9,10 @@ All notable changes to LibreSpot will be documented in this file.
 - Restored the direct LibreSpot.Core project reference in the desktop test project so the shared models, services, and localization resources compile after the Core extraction.
 - Aligned the release-artifact, distribution-matrix, and Scorecard metadata with the unsigned-by-design policy: release trust is represented by SHA256 checksums, the release manifest, and the SBOM rather than a pending Authenticode enrollment.
 
+### Changed
+
+- Added a Windows GitHub Actions quality gate for PowerShell lint/validation, Pester regressions, the desktop build, and non-WPF .NET tests; release and UI automation workflows remain separate concerns.
+
 ## [v4.0.0-preview.24] - 2026-07-24
 
 ### Changed

@@ -19,9 +19,22 @@ public sealed class DependencyAutomationTests
     }
 
     [Fact]
-    public void GitHubActionsWorkflows_AreNotConfigured()
+    public void GitHubActionsWorkflow_ContainsRequiredHeadlessQualityGates()
     {
-        Assert.Empty(EnumerateWorkflowFiles());
+        var workflowPath = Path.Combine(RepoRoot, ".github", "workflows", "ci.yml");
+        Assert.True(File.Exists(workflowPath), "The required Windows CI workflow is missing.");
+
+        var workflow = File.ReadAllText(workflowPath).Replace("\r\n", "\n", StringComparison.Ordinal);
+
+        Assert.Contains("permissions:\n  contents: read", workflow, StringComparison.Ordinal);
+        Assert.Contains("runs-on: windows-latest", workflow, StringComparison.Ordinal);
+        Assert.Contains("Build-Scripts.ps1 -Lint", workflow, StringComparison.Ordinal);
+        Assert.Contains("Build-Scripts.ps1 -Validate", workflow, StringComparison.Ordinal);
+        Assert.Contains("Invoke-Pester -Path .\\tests\\powershell\\LibreSpot.Tests.ps1 -CI", workflow, StringComparison.Ordinal);
+        Assert.Contains("dotnet test .\\tests\\LibreSpot.Desktop.Tests\\LibreSpot.Desktop.Tests.csproj --no-restore --filter", workflow, StringComparison.Ordinal);
+        Assert.Contains("FullyQualifiedName!~Wpf", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("WpfFlaUiSmokeTests", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("WpfUiAutomationSmokeTests", workflow, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -238,19 +251,6 @@ public sealed class DependencyAutomationTests
 
     private static string ReadRepoFile(params string[] relativeParts) =>
         File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(relativeParts).ToArray()));
-
-    private static IEnumerable<string> EnumerateWorkflowFiles()
-    {
-        var workflowDirectory = Path.Combine(RepoRoot, ".github", "workflows");
-        if (!Directory.Exists(workflowDirectory))
-        {
-            return Array.Empty<string>();
-        }
-
-        return Directory.EnumerateFiles(workflowDirectory, "*.yml", SearchOption.AllDirectories)
-            .Concat(Directory.EnumerateFiles(workflowDirectory, "*.yaml", SearchOption.AllDirectories))
-            .ToArray();
-    }
 
     private static string ResolveRepoRoot()
     {
