@@ -30,7 +30,7 @@
       "channels": ["stable", "preview", "rc"],
       "required": true,
       "checksumEntry": true,
-      "signingRequirement": "authenticode-when-available",
+      "signingRequirement": "none",
       "attestation": "none",
       "distributionChannels": ["github-releases", "powershell-oneliner"]
     },
@@ -56,7 +56,7 @@
       "channels": ["stable", "preview", "rc"],
       "required": true,
       "checksumEntry": true,
-      "signingRequirement": "authenticode-when-available",
+      "signingRequirement": "none",
       "attestation": "none",
       "distributionChannels": ["github-releases-wpf", "velopack"]
     },
@@ -69,7 +69,7 @@
       "channels": ["stable", "preview", "rc"],
       "required": true,
       "checksumEntry": true,
-      "signingRequirement": "authenticode-when-available",
+      "signingRequirement": "none",
       "attestation": "none",
       "distributionChannels": ["github-releases", "fleet-tools"]
     },
@@ -137,12 +137,13 @@
     "verificationCommand": null
   },
   "signingContract": {
-    "provider": "signpath-foundation",
-    "type": "authenticode",
-    "status": "pending-enrollment",
-    "conditionalOn": ["SIGNPATH_API_TOKEN", "SIGNPATH_ORGANIZATION_ID"],
-    "signedAssets": ["LibreSpot.exe", "LibreSpot-Desktop.exe", "LibreSpot.Cli.exe"],
-    "verificationCommand": "Get-AuthenticodeSignature .\\<asset>"
+    "provider": "none",
+    "type": "unsigned",
+    "status": "unsigned-by-design",
+    "conditionalOn": [],
+    "signedAssets": [],
+    "verificationCommand": null,
+    "verificationEvidence": ["checksums.txt", "librespot-release-manifest.json", "LibreSpot.sbom.cdx.json"]
   },
   "postUploadAudit": {
     "description": "After gh release upload, the local release audit should verify the published release matches this contract.",

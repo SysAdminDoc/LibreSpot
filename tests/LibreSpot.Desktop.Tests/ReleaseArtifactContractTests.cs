@@ -161,6 +161,54 @@ public sealed class ReleaseArtifactContractTests
     }
 
     [Fact]
+    public void Contract_UsesUnsignedByDesignChecksumPolicy()
+    {
+        var signing = Contract.RootElement.GetProperty("signingContract");
+
+        Assert.Equal("none", signing.GetProperty("provider").GetString());
+        Assert.Equal("unsigned", signing.GetProperty("type").GetString());
+        Assert.Equal("unsigned-by-design", signing.GetProperty("status").GetString());
+        Assert.Empty(signing.GetProperty("conditionalOn").EnumerateArray());
+        Assert.Empty(signing.GetProperty("signedAssets").EnumerateArray());
+        Assert.Equal(JsonValueKind.Null, signing.GetProperty("verificationCommand").ValueKind);
+        Assert.Contains(
+            "checksums.txt",
+            signing.GetProperty("verificationEvidence").EnumerateArray().Select(value => value.GetString()));
+
+        foreach (var artifact in Contract.RootElement.GetProperty("artifacts").EnumerateArray())
+        {
+            Assert.Equal("none", artifact.GetProperty("signingRequirement").GetString());
+        }
+
+        using var matrix = JsonDocument.Parse(ReadFile("schemas", "distribution-matrix.json"));
+        foreach (var channel in matrix.RootElement.GetProperty("channels").EnumerateArray())
+        {
+            var channelName = channel.GetProperty("channel").GetString();
+            var requirement = channel.GetProperty("signingRequirement").GetString()!;
+            Assert.True(
+                requirement.StartsWith("none", StringComparison.OrdinalIgnoreCase),
+                $"Distribution channel '{channelName}' must use the checksum-first unsigned policy.");
+
+            foreach (var decision in channel.GetProperty("blockingDecisions").EnumerateArray())
+            {
+                Assert.DoesNotContain("code signing", decision.GetString()!, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("Authenticode", decision.GetString()!, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        using var scorecard = JsonDocument.Parse(ReadFile("schemas", "scorecard-baseline.json"));
+        var signedReleaseRisk = scorecard.RootElement
+            .GetProperty("acceptedRisks")
+            .EnumerateArray()
+            .Single(risk => risk.GetProperty("check").GetString() == "Signed-Releases");
+
+        Assert.Equal(-1, scorecard.RootElement.GetProperty("checkFloors").GetProperty("Signed-Releases").GetInt32());
+        Assert.Contains("unsigned by design", signedReleaseRisk.GetProperty("reason").GetString()!, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("pending", signedReleaseRisk.GetProperty("reason").GetString()!, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("SignPath enrollment", signedReleaseRisk.GetProperty("revisitWhen").GetString()!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Contract_ReleaseManifestArtifactIsSelfReferentialMetadata()
     {
         var manifestArtifact = Contract.RootElement

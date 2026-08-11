@@ -1,7 +1,7 @@
 {
   "$comment": "OpenSSF Scorecard accepted baseline. Checks below their accepted floor should fail the local release gate unless they are listed in acceptedRisks. Accepted risks are documented as expected for a single-maintainer project.",
   "schemaVersion": 1,
-  "lastUpdated": "2026-06-15",
+  "lastUpdated": "2026-08-11",
   "checkFloors": {
     "Binary-Artifacts": 10,
     "Branch-Protection": 0,
@@ -56,14 +56,14 @@
     {
       "check": "Signed-Releases",
       "score": -1,
-      "reason": "SignPath Foundation enrollment is pending. Local releases ship with SHA256 checksums and CycloneDX SBOM output but are not yet Authenticode-signed or covered by GitHub provenance attestations.",
-      "revisitWhen": "SignPath enrollment completes."
+      "reason": "Unsigned by design. Local releases ship with SHA256 checksums, a release manifest, and CycloneDX SBOM output; Authenticode signing and GitHub provenance attestations are not part of the current release policy.",
+      "revisitWhen": "A deliberate product-policy change or a package channel requiring signed artifacts is approved."
     },
     {
       "check": "Packaging",
       "score": -1,
-      "reason": "Package-manager distribution (winget, Scoop, Chocolatey, Velopack) is blocked on the rebrand decision and signing.",
-      "revisitWhen": "Package identity is finalized and signing is complete."
+      "reason": "Package-manager distribution (winget, Scoop, Chocolatey, Velopack) is blocked on package identity, artifact/channel choices, and channel-specific publication decisions; releases remain unsigned by design.",
+      "revisitWhen": "Package identity and a supported distribution channel are finalized."
     }
   ]
 }

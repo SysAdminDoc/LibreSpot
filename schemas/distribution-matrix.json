@@ -12,10 +12,10 @@
       "artifact": "LibreSpot.exe (PS2EXE single-file)",
       "installScope": "user",
       "updateOwner": "manual (download new release)",
-      "signingRequirement": "pending — Authenticode via SignPath or self-signed",
+      "signingRequirement": "none (unsigned by design; verify checksums.txt)",
       "checksumSource": "checksums.txt and librespot-release-manifest.json from the GitHub release",
       "requiredCliSwitches": null,
-      "validationCommand": "Get-AuthenticodeSignature .\\LibreSpot.exe",
+      "validationCommand": "Compare Get-FileHash .\\LibreSpot.exe -Algorithm SHA256 with checksums.txt",
       "supportStatus": "active",
       "blockingDecisions": []
     },
@@ -29,14 +29,14 @@
       "artifact": "LibreSpot-Desktop.exe (.NET 10 self-contained single-file)",
       "installScope": "user",
       "updateOwner": "manual (download new release)",
-      "signingRequirement": "pending — Authenticode via SignPath or self-signed",
+      "signingRequirement": "none (unsigned by design; verify checksums.txt)",
       "checksumSource": "checksums.txt and librespot-release-manifest.json from the GitHub release",
       "requiredCliSwitches": null,
-      "validationCommand": "Get-AuthenticodeSignature .\\LibreSpot-Desktop.exe",
+      "validationCommand": "Compare Get-FileHash .\\LibreSpot-Desktop.exe -Algorithm SHA256 with checksums.txt",
       "supportStatus": "preview",
       "blockingDecisions": [
         "Finalize executable name (LibreSpot.exe vs LibreSpot-Desktop.exe) — depends on rebrand decision",
-        "Code signing certificate — operator action required"
+        "Document checksum-first SmartScreen guidance for the preview artifact"
       ]
     },
     {
@@ -49,13 +49,12 @@
       "artifact": "LibreSpot.Cli.exe (.NET 10 console single-file)",
       "installScope": "user",
       "updateOwner": "manual (download new release)",
-      "signingRequirement": "pending - Authenticode via SignPath or self-signed",
+      "signingRequirement": "none (unsigned by design; verify checksums.txt)",
       "checksumSource": "checksums.txt and librespot-release-manifest.json from the GitHub release",
       "requiredCliSwitches": "--version; status --json; detect --json; detect --intune; validate --answer-file",
       "validationCommand": ".\\LibreSpot.Cli.exe --version",
       "supportStatus": "preview",
       "blockingDecisions": [
-        "Code signing certificate - operator action required",
         "Mutating install/reapply/uninstall CLI verbs still need backend wiring"
       ]
     },
@@ -69,7 +68,7 @@
       "artifact": "LibreSpot.ps1 (downloaded and executed inline)",
       "installScope": "user",
       "updateOwner": "always fetches latest from GitHub",
-      "signingRequirement": "none (script runs in-memory from trusted source)",
+      "signingRequirement": "none (unsigned by design; checksum bootstrap is the verified path)",
       "checksumSource": "HTTPS transport only",
       "requiredCliSwitches": null,
       "validationCommand": null,
@@ -86,14 +85,13 @@
       "artifact": "pending — PS2EXE .exe or .NET self-contained or zip",
       "installScope": "user",
       "updateOwner": "winget upgrade",
-      "signingRequirement": "Authenticode required for winget submission",
+      "signingRequirement": "none (unsigned by design; winget InstallerSha256 remains required)",
       "checksumSource": "winget manifest InstallerSha256",
       "requiredCliSwitches": null,
       "validationCommand": "winget list --id SysAdminDoc.LibreSpot",
       "supportStatus": "draft",
       "blockingDecisions": [
         "Finalize package identity (publisher name, package ID)",
-        "Code signing certificate — winget requires Authenticode",
         "Choose artifact: PS2EXE exe vs .NET exe vs installer"
       ]
     },
@@ -107,7 +105,7 @@
       "artifact": "pending — portable zip or single exe",
       "installScope": "user",
       "updateOwner": "scoop update",
-      "signingRequirement": "optional (Scoop uses SHA256 verification)",
+      "signingRequirement": "none (unsigned by design; Scoop SHA256 verification remains required)",
       "checksumSource": "Scoop manifest hash field from GitHub release asset",
       "requiredCliSwitches": null,
       "validationCommand": "scoop info librespot",
@@ -127,13 +125,12 @@
       "artifact": "pending — nupkg wrapping GitHub release asset",
       "installScope": "machine (Chocolatey default)",
       "updateOwner": "choco upgrade",
-      "signingRequirement": "Authenticode recommended for moderation approval",
+      "signingRequirement": "none (unsigned by design; upstream SHA256 and package verification remain required)",
       "checksumSource": "Chocolatey verification file + upstream SHA256",
       "requiredCliSwitches": null,
       "validationCommand": "choco info librespot",
       "supportStatus": "draft",
       "blockingDecisions": [
-        "Code signing certificate",
         "Chocolatey moderation review timeline",
         "Finalize artifact and install script"
       ]
@@ -148,13 +145,12 @@
       "artifact": "Velopack Setup.exe + nupkg delta updates",
       "installScope": "user",
       "updateOwner": "Velopack auto-update (in-app)",
-      "signingRequirement": "Authenticode required for Setup.exe",
+      "signingRequirement": "none (unsigned by design; release hashes and updater verification remain required)",
       "checksumSource": "Velopack built-in SHA256 verification",
       "requiredCliSwitches": null,
       "validationCommand": null,
       "supportStatus": "draft",
       "blockingDecisions": [
-        "Code signing certificate",
         "Velopack integration in WPF shell",
         "Update server hosting decision (GitHub Releases vs S3/R2)"
       ]
@@ -169,7 +165,7 @@
       "artifact": "LibreSpot.ps1 (published as a script, not module)",
       "installScope": "user (CurrentUser scope)",
       "updateOwner": "Update-Script LibreSpot",
-      "signingRequirement": "PSGallery account + NuGet API key",
+      "signingRequirement": "none (unsigned by design; PSGallery account + NuGet API key required for publication)",
       "checksumSource": "PSGallery built-in hash",
       "requiredCliSwitches": null,
       "validationCommand": "Get-InstalledScript LibreSpot",
