@@ -21,13 +21,6 @@ Existing items RD-51–RD-62 below are the same work items as the prior pass, wi
 
 ### P1
 
-- [ ] P1 — RD-53: Remove Dependabot residue
-  Why: Stale `dependabot/*` branches sit on origin with no open PRs and no `.github/dependabot.yml`; operator policy is no Dependabot, alerts disabled.
-  Evidence: `git ls-remote` 2026-08-20 — 8 live heads (`attest-sbom-4.1.0`, `checkout-6.0.3`, `download-artifact-8.0.1`, `Serilog.Sinks.File-7.0.0`, `Test.Sdk-18.6.0`, `coverlet.collector-10.0.1`, `test-dependencies-a8b09c1528`, `xunit.runner.visualstudio-3.1.5`).
-  Touches: origin branches (delete), repo settings via `gh api repos/SysAdminDoc/LibreSpot/vulnerability-alerts -X DELETE`, `.github/release.yml` dependabot exclusion line (optional cleanup)
-  Acceptance: Zero dependabot branches on origin; vulnerability alerts/security updates disabled; no dependabot config anywhere.
-  Complexity: S
-
 - [ ] P1 — RD-58: Surface a user-facing compatibility verdict matrix
   Why: The #1 ecosystem failure mode is version drift (Spotify 1.2.96.518 / SpotX HEAD 1.2.97 vs pinned Spicetify 1.2.93 vs v3-beta allowlist 1.2.70–1.2.94); LibreSpot has the data but no single UI surface rendering supported/degraded/unsupported with next-step guidance.
   Evidence: SpotX-Bash banner pattern; ReVanced Manager patch-compatibility UX; `schemas/compatibility-baseline.json`; `Build-Scripts.ps1 -CheckSpotifyVersionDrift`; Wikipedia template 2026-08-13; SpotX commit `f4cf592` 2026-08-16.

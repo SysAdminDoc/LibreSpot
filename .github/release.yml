@@ -2,8 +2,6 @@ changelog:
   exclude:
     labels:
       - skip-changelog
-    authors:
-      - dependabot[bot]
 
   categories:
     - title: Breaking Changes
@@ -35,7 +33,6 @@ changelog:
     - title: Dependencies
       labels:
         - dependencies
-        - dependabot
 
     - title: Documentation
       labels:

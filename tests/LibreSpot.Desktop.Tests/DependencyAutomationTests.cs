@@ -16,6 +16,9 @@ public sealed class DependencyAutomationTests
         Assert.False(File.Exists(Path.Combine(RepoRoot, ".github", "dependabot.yaml")));
         Assert.False(File.Exists(Path.Combine(RepoRoot, "renovate.json")));
         Assert.False(File.Exists(Path.Combine(RepoRoot, ".github", "renovate.json")));
+
+        var releaseNotesConfig = ReadRepoFile(".github", "release.yml");
+        Assert.DoesNotContain("dependabot", releaseNotesConfig, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
