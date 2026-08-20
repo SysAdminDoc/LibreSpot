@@ -410,13 +410,20 @@ GitHub Actions build-provenance attestations are not produced by the local relea
 ## Local release procedure
 
 Releases are built and uploaded from the maintainer machine. GitHub Actions do
-not build, test, or publish release assets. Run the local gates first:
+not build, test, or publish release assets. Run the local gates first.
+
+The xUnit 4 projects are Microsoft Testing Platform applications. Build them,
+then invoke their generated DLLs directly on .NET 10 so the MTP filters and
+reporting options are passed to the test runner itself:
 
 ```powershell
 .\Build-Scripts.ps1 -Validate
 .\Build-Scripts.ps1 -Lint
 .\Build-Scripts.ps1 -DependencyHealth
-dotnet test .\tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj --no-restore --filter "FullyQualifiedName!~Wpf"
+dotnet build .\tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj --no-restore
+dotnet .\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Desktop.Tests.dll --filter-not-class "*Wpf*" --filter-not-method "*Wpf*" --minimum-expected-tests 1 --progress off
+dotnet build .\tests\LibreSpot.Core.Tests\LibreSpot.Core.Tests.csproj --no-restore
+dotnet .\tests\LibreSpot.Core.Tests\bin\Debug\net10.0-windows\LibreSpot.Core.Tests.dll --minimum-expected-tests 1 --progress off
 Invoke-Pester .\tests\powershell\LibreSpot.Tests.ps1
 ```
 

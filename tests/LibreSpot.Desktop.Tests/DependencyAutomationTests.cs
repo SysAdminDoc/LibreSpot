@@ -29,7 +29,8 @@ public sealed class DependencyAutomationTests
         Assert.Contains("Build-Scripts.ps1 -Validate", readme, StringComparison.Ordinal);
         Assert.Contains("Build-Scripts.ps1 -Lint", readme, StringComparison.Ordinal);
         Assert.Contains("Build-Scripts.ps1 -DependencyHealth", readme, StringComparison.Ordinal);
-        Assert.Contains("FullyQualifiedName!~Wpf", readme, StringComparison.Ordinal);
+        Assert.Contains("--filter-not-class \"*Wpf*\"", readme, StringComparison.Ordinal);
+        Assert.Contains("--filter-not-method \"*Wpf*\"", readme, StringComparison.Ordinal);
         Assert.Contains("Invoke-Pester", readme, StringComparison.Ordinal);
         Assert.Contains("gh release verify-asset", readme, StringComparison.Ordinal);
 
@@ -41,25 +42,34 @@ public sealed class DependencyAutomationTests
     }
 
     [Fact]
-    public void TestToolVersions_AreRecordedAndXunitFourIsParked()
+    public void TestToolVersions_AreRecordedAndXunitFourIsUsed()
     {
         var project = ReadRepoFile("tests", "LibreSpot.Desktop.Tests", "LibreSpot.Desktop.Tests.csproj");
-        Assert.Contains("FsCheck.Xunit.v3\" Version=\"3.3.4", project, StringComparison.Ordinal);
+        Assert.Contains("FsCheck.Xunit.v3\" Version=\"3.4.0", project, StringComparison.Ordinal);
         Assert.Contains("Microsoft.NET.Test.Sdk\" Version=\"18.9.0", project, StringComparison.Ordinal);
-        Assert.Contains("xunit.v3\" Version=\"3.2.2", project, StringComparison.Ordinal);
-        Assert.Contains("until FsCheck.Xunit.v3 publishes an adapter for xUnit 4", project, StringComparison.Ordinal);
+        Assert.Contains("xunit.v3\" Version=\"4.0.0", project, StringComparison.Ordinal);
+        Assert.Contains("xunit.runner.visualstudio\" Version=\"4.0.0", project, StringComparison.Ordinal);
+        Assert.Contains("FsCheck.Xunit.v3 3.4.0 supports the xUnit v4 adapter path", project, StringComparison.Ordinal);
+        Assert.Contains("\"runner\": \"Microsoft.Testing.Platform\"", ReadRepoFile("global.json"), StringComparison.Ordinal);
+
+        var coreProject = ReadRepoFile("tests", "LibreSpot.Core.Tests", "LibreSpot.Core.Tests.csproj");
+        Assert.Contains("xunit.v3\" Version=\"4.0.0", coreProject, StringComparison.Ordinal);
+        Assert.Contains("xunit.runner.visualstudio\" Version=\"4.0.0", coreProject, StringComparison.Ordinal);
+        Assert.Contains("UseMicrosoftTestingPlatformRunner>true", coreProject, StringComparison.Ordinal);
 
         using var notices = JsonDocument.Parse(ReadRepoFile("schemas", "third-party-notices.json"));
         var dependencies = notices.RootElement.GetProperty("dependencies").EnumerateArray();
         var versions = dependencies
-            .Where(dependency => dependency.GetProperty("name").GetString() is "FsCheck.Xunit.v3" or "Microsoft.NET.Test.Sdk")
+            .Where(dependency => dependency.GetProperty("name").GetString() is "FsCheck.Xunit.v3" or "Microsoft.NET.Test.Sdk" or "xunit.v3" or "xunit.runner.visualstudio")
             .ToDictionary(
                 dependency => dependency.GetProperty("name").GetString()!,
                 dependency => dependency.GetProperty("version").GetString()!,
                 StringComparer.Ordinal);
 
-        Assert.Equal("3.3.4", versions["FsCheck.Xunit.v3"]);
+        Assert.Equal("3.4.0", versions["FsCheck.Xunit.v3"]);
         Assert.Equal("18.9.0", versions["Microsoft.NET.Test.Sdk"]);
+        Assert.Equal("4.0.0", versions["xunit.v3"]);
+        Assert.Equal("4.0.0", versions["xunit.runner.visualstudio"]);
     }
 
     [Fact]

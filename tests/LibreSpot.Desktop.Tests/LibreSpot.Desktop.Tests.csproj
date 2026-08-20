@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
     <NoWarn>$(NoWarn);xUnit1051</NoWarn>
   </PropertyGroup>
@@ -12,11 +13,11 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="FlaUI.UIA3.Signed" Version="5.0.0" />
-    <PackageReference Include="FsCheck.Xunit.v3" Version="3.3.4" />
+    <PackageReference Include="FsCheck.Xunit.v3" Version="3.4.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
-    <!-- Keep xunit.v3 3.x until FsCheck.Xunit.v3 publishes an adapter for xUnit 4. -->
-    <PackageReference Include="xunit.v3" Version="3.2.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+    <!-- FsCheck.Xunit.v3 3.4.0 supports the xUnit v4 adapter path. -->
+    <PackageReference Include="xunit.v3" Version="4.0.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

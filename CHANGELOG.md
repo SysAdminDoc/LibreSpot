@@ -11,7 +11,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Added an explicit SpotX post-Defender pin policy at upstream commit `afb4c3fc`. Candidate review now requires the declared and passed `-defender_exclusions_off` switch before a changed pin can be accepted.
 - Added a schema-v2 Spicetify v3 support contract fixture. Detected v3 CLIs now classify allowlisted, degraded, refused, and fail-open states while the pinned v2.44.0 path remains unchanged.
 - Removed the remaining Dependabot branches and release-note exclusions. Repository vulnerability alerts remain disabled by policy.
-- Updated the test stack to Microsoft.NET.Test.Sdk 18.9.0 and FsCheck.Xunit.v3 3.3.4. xUnit v3 remains on 3.2.2 until the 4.x adapter path is compatible.
+- Updated both .NET test projects to Microsoft.NET.Test.Sdk 18.9.0, xUnit.v3 4.0.0, and the xUnit Visual Studio runner 4.0.0. The desktop project also uses FsCheck.Xunit.v3 3.4.0. Both projects now opt into the Microsoft Testing Platform v2 runner through the repository's global SDK configuration.
 - Pinned the local PSScriptAnalyzer lint gate to 1.25.0 and recorded the explicit decision to keep `PSUseConstrainedLanguageMode` disabled after a zero-diagnostic triage run against both hosts.
 
 ### Fixed
