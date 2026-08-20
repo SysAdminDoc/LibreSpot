@@ -59,6 +59,10 @@ The current SpotX pin is commit `550bc72c`, which predates the upstream Defender
 
 Every changed SpotX candidate must be reviewed with `Build-Scripts.ps1 -SpotXSecurityPolicy` in candidate mode. The check requires a post-boundary policy declaration, the exact `-defender_exclusions_off` switch in the candidate source and adapter metadata, and the same switch in the invocation arguments. A candidate that contains Defender preference or exclusion commands without that passed switch is rejected before execution. The runtime gate applies the same rule to interactive, backend, watcher, repair, and cached execution paths.
 
+### Spicetify v3 support contract
+
+LibreSpot's pinned Spicetify v2.44.0 flow does not read the v3 support document. When a newer CLI major is detected, the feature-detected contract recognizes the upstream schema-v2 allowlist. An allowlisted Spotify version is accepted, a version with a same-minor lower modular classmap is degraded, and a version with no fallback is refused. Missing or malformed support data stays fail-open so an absent package-manager file does not block the legacy path. The local fixture is [`schemas/spicetify-supported-versions-v2.json`](schemas/spicetify-supported-versions-v2.json), sourced from the [upstream schema](https://raw.githubusercontent.com/spicetify/cli/v3-beta/docs/supported-versions.md).
+
 ## Host platform advisories
 
 ### CVE-2025-54100 — Windows PowerShell 5.1 web-content RCE

@@ -38,6 +38,13 @@ public sealed class CompatibilityBaselineTests
         Assert.Equal(AppCatalog.SpicetifyWindowsMinTestedSpotify, spicetify.GetProperty("windowsMinSpotify").GetString());
         Assert.Equal(AppCatalog.SpicetifyWindowsMaxTestedSpotify, spicetify.GetProperty("windowsMaxTestedSpotify").GetString());
 
+        var v3Support = root.GetProperty("spicetifyV3Support");
+        Assert.Equal(2, v3Support.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal("allowlist", v3Support.GetProperty("policy").GetString());
+        Assert.Equal("classic", v3Support.GetProperty("defaultMapStatus").GetString());
+        Assert.Equal(3, v3Support.GetProperty("featureDetectionMajor").GetInt32());
+        Assert.Equal("schemas/spicetify-supported-versions-v2.json", v3Support.GetProperty("fixture").GetString());
+
         Assert.Equal(AppCatalog.PinnedMarketplaceVersion, root.GetProperty("marketplace").GetProperty("version").GetString());
         Assert.Equal(AppCatalog.PinnedThemesCommit, root.GetProperty("themes").GetProperty("commit").GetString());
     }

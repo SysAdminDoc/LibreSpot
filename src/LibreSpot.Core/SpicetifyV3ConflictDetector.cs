@@ -17,6 +17,28 @@ public sealed record SpicetifyV3ConflictReport(IReadOnlyList<string> Markers)
 /// </summary>
 public static class SpicetifyV3ConflictDetector
 {
+    public static SpicetifyV3SupportContractReport EvaluateSupportContract(
+        string? cliVersion,
+        string? spotifyVersion,
+        string? supportContractJson)
+    {
+        if (!SpicetifyVersionSupport.TryGetMajor(cliVersion, out var major) || major <= SpicetifyVersionSupport.SupportedMajor)
+        {
+            return new SpicetifyV3SupportContractReport(false, SpicetifySupportResult.NotApplicable());
+        }
+
+        if (!SpicetifySupportContract.TryParse(supportContractJson, out var contract, out var error) || contract is null)
+        {
+            return new SpicetifyV3SupportContractReport(
+                true,
+                SpicetifySupportResult.Unavailable(
+                    spotifyVersion,
+                    $"The v3 support contract is unavailable or invalid, so the check remains fail-open. {error}"));
+        }
+
+        return new SpicetifyV3SupportContractReport(true, contract.Evaluate(spotifyVersion));
+    }
+
     public static SpicetifyV3ConflictReport Detect(
         string? spotifyPath,
         string? spicetifyInstallDirectory,

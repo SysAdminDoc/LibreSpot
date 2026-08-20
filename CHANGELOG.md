@@ -9,6 +9,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Added a non-blocking PowerShell 7 security-floor preflight. PowerShell 7.6.0 through 7.6.4 now warn with CVE-2026-50523 and the fixed 7.6.5 version, while 7.6.5 and later remain silent.
 - Raised the self-contained .NET runtime floor to 10.0.11 and refreshed the dependency-health rationale with the August 11, 2026 ten-CVE servicing batch, including two remote-code-execution fixes.
 - Added an explicit SpotX post-Defender pin policy at upstream commit `afb4c3fc`. Candidate review now requires the declared and passed `-defender_exclusions_off` switch before a changed pin can be accepted.
+- Added a schema-v2 Spicetify v3 support contract fixture. Detected v3 CLIs now classify allowlisted, degraded, refused, and fail-open states while the pinned v2.44.0 path remains unchanged.
 
 ### Fixed
 

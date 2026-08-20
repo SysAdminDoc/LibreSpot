@@ -21,5 +21,23 @@ function Get-SpicetifyDiagnosticSnapshot {
     $snapshot['spicetify_v3_conflict'] = [bool]$v3Conflict.IsConflict
     $snapshot['spicetify_v3_markers'] = @($v3Conflict.Markers)
     $snapshot['spicetify_v3_safe_action'] = $v3Conflict.SafeAction
+    $integration = Get-SpicetifyIntegrationContext
+    $supportPaths = @(
+        (Join-Path (Split-Path -Parent $integration.CliPath) 'supported-versions.json'),
+        (Join-Path $integration.ConfigDirectory 'supported-versions.json'))
+    $support = Get-SpicetifyV3SupportContract `
+        -CliVersion $cliVersion `
+        -SpotifyVersion (Get-InstalledSpotifyVersion) `
+        -SupportListPath $supportPaths
+    if ($support.FeatureActive) {
+        $snapshot['spicetify_v3_support_verdict'] = $support.Verdict
+        $snapshot['spicetify_v3_support_can_apply'] = [bool]$support.CanApply
+        $snapshot['spicetify_v3_support_can_auto_apply'] = [bool]$support.CanAutoApply
+        $snapshot['spicetify_v3_support_list_available'] = [bool]$support.ListAvailable
+        $snapshot['spicetify_v3_support_version'] = $support.NormalizedVersion
+        $snapshot['spicetify_v3_support_fallback'] = $support.FallbackVersion
+        $snapshot['spicetify_v3_support_path'] = $support.SupportListPath
+        $snapshot['spicetify_v3_support_reason'] = $support.Reason
+    }
     return $snapshot
 }

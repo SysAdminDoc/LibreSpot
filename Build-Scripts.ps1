@@ -663,6 +663,26 @@ function Test-PinnedCompatibilityBaseline {
 
     $pinnedSource = [System.IO.File]::ReadAllText($pinnedReleasesPath, [System.Text.Encoding]::UTF8)
     $catalogSource = [System.IO.File]::ReadAllText($catalogPath, [System.Text.Encoding]::UTF8)
+    $v3Baseline = $baseline.spicetifyV3Support
+    if ([int]$v3Baseline.schemaVersion -ne 2 -or
+        [string]$v3Baseline.policy -cne 'allowlist' -or
+        [string]$v3Baseline.defaultMapStatus -cne 'classic' -or
+        [int]$v3Baseline.featureDetectionMajor -ne 3) {
+        $failures += 'Spicetify v3 compatibility baseline must declare schema 2, allowlist policy, classic default maps, and major 3 feature detection.'
+    }
+    $v3FixturePath = Join-Path $PSScriptRoot ([string]$v3Baseline.fixture)
+    if (-not (Test-Path -LiteralPath $v3FixturePath -PathType Leaf)) {
+        $failures += "Spicetify v3 support fixture is missing: $v3FixturePath"
+    } else {
+        try {
+            $v3Fixture = Get-Content -Raw -LiteralPath $v3FixturePath | ConvertFrom-Json
+            if ([int]$v3Fixture.schema_version -ne 2 -or [string]$v3Fixture.policy -cne 'allowlist') {
+                $failures += 'Spicetify v3 support fixture must use schema_version 2 and allowlist policy.'
+            }
+        } catch {
+            $failures += "Spicetify v3 support fixture is not valid JSON: $($_.Exception.Message)"
+        }
+    }
     $sourceChecks = @(
         @{ Label = 'SpotX version'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*Version\s*=\s*''([^'']+)'; Expected = [string]$baseline.spotx.version },
         @{ Label = 'SpotX commit'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*Commit\s*=\s*''([^'']+)'; Expected = [string]$baseline.spotx.commit },
@@ -719,7 +739,7 @@ function Test-PinnedCompatibilityBaseline {
     if ($failures.Count -gt 0) {
         Write-Host '=== PINNED COMPATIBILITY BASELINE DRIFT ===' -ForegroundColor Red
         foreach ($failure in $failures) { Write-Host "  $failure" -ForegroundColor Red }
-        throw 'Pinned SpotX, Spotify, Spicetify, Marketplace, and theme metadata must match schemas/compatibility-baseline.json.'
+        throw 'Pinned SpotX, Spotify, Spicetify, v3 support, Marketplace, and theme metadata must match schemas/compatibility-baseline.json.'
     }
 
     Write-Host "Pinned compatibility baseline matches the fixture verified $($baseline.lastVerifiedAtUtc)." -ForegroundColor Green

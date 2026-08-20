@@ -1646,6 +1646,62 @@ Describe 'Get-SpicetifyV3Conflict' {
     }
 }
 
+Describe 'Get-SpicetifyV3SupportContract' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyCliMajorVersion.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyV3SupportContract.ps1')
+        $script:v3SupportFixture = Join-Path $PSScriptRoot '..\..\schemas\spicetify-supported-versions-v2.json'
+    }
+
+    It 'does not activate the v3 contract for the pinned v2 CLI' {
+        $report = Get-SpicetifyV3SupportContract `
+            -CliVersion '2.44.0' `
+            -SpotifyVersion '1.2.95' `
+            -SupportListPath (Join-Path $TestDrive 'missing.json')
+
+        $report.FeatureActive | Should -BeFalse
+        $report.Verdict | Should -Be 'not-applicable'
+        $report.CanApply | Should -BeTrue
+    }
+
+    It 'classifies a v3 candidate with a lower modular fallback as degraded' {
+        $report = Get-SpicetifyV3SupportContract `
+            -CliVersion '3.0.0-beta.1' `
+            -SpotifyVersion '1.2.95' `
+            -SupportListPath $script:v3SupportFixture
+
+        $report.FeatureActive | Should -BeTrue
+        $report.Verdict | Should -Be 'degraded'
+        $report.FallbackVersion | Should -Be '1.2.94'
+        $report.CanApply | Should -BeTrue
+        $report.CanAutoApply | Should -BeTrue
+    }
+
+    It 'refuses an unsupported v3 version without a same-minor fallback' {
+        $report = Get-SpicetifyV3SupportContract `
+            -CliVersion '3.0.0-beta.1' `
+            -SpotifyVersion '1.2.69' `
+            -SupportListPath $script:v3SupportFixture
+
+        $report.Verdict | Should -Be 'refused'
+        $report.CanApply | Should -BeFalse
+        $report.CanAutoApply | Should -BeFalse
+    }
+
+    It 'fails open when a detected v3 CLI has no support document' {
+        $report = Get-SpicetifyV3SupportContract `
+            -CliVersion '3.0.0-beta.1' `
+            -SpotifyVersion '1.2.95' `
+            -SupportListPath (Join-Path $TestDrive 'missing.json')
+
+        $report.FeatureActive | Should -BeTrue
+        $report.ListAvailable | Should -BeFalse
+        $report.Verdict | Should -Be 'unknown'
+        $report.CanApply | Should -BeTrue
+        $report.CanAutoApply | Should -BeTrue
+    }
+}
+
 Describe 'Marketplace theme contract' {
     BeforeAll {
         . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyIntegrationContext.ps1')

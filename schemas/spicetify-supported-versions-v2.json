@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "updated": "2026-07-21",
+  "policy": "allowlist",
+  "default_map_status": "classic",
+  "versions": [],
+  "ranges": [
+    {
+      "min": "1.2.70",
+      "max": "1.2.94",
+      "note": "Classic css-map pipeline; window drawn from recent CLI support commits (1.2.70 through 1.2.94)"
+    }
+  ],
+  "notes": {
+    "1.2.92": "Verified classmap available under classmaps/1020092 (31/36 leaves)",
+    "1.2.93": "Explicitly targeted in cli main",
+    "1.2.94": "Captured on release day via the classmap pipeline (1020092 -> 1020094 chain, 30/36 leaves verified)"
+  },
+  "maps": {
+    "1.2.92": {
+      "classmap_key": "1020092",
+      "status": "modular",
+      "note": "Verified classmap (spicetify/classmaps 1020092): 31/36 leaves verified incl. all required paths; 5 stale. See META.json for per-leaf status"
+    },
+    "1.2.93": {
+      "classmap_key": "1020093",
+      "status": "classic",
+      "note": "Classic pipeline only; modular classmap not published yet"
+    },
+    "1.2.94": {
+      "classmap_key": "1020094",
+      "status": "modular",
+      "note": "Verified classmap captured on release day (spicetify/classmaps 1020094): 30/36 leaves verified; settings.button.wrapper unverified; 5 stale. See META.json for per-leaf status"
+    }
+  }
+}
