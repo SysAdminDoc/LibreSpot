@@ -51,20 +51,6 @@ Existing items RD-51–RD-62 below are the same work items as the prior pass, wi
 
 ### P2
 
-- [ ] P2 — RD-54: Bump Microsoft.NET.Test.Sdk to 18.9.0; park xunit.v3 4.0.0 until FsCheck ships a 4.x adapter
-  Why: Test.Sdk 18.9.0 (2026-08-14) is a coherent, non-breaking bump. xunit.v3 4.0.0 is a breaking MTP-v2 jump and FsCheck.Xunit.v3 latest is 3.3.4 (2026-07-25) targeting extensibility.core ≥ 3.0.1, not 4.x.
-  Evidence: xunit.net/releases/v3/4.0.0; nuget.org/packages/FsCheck.Xunit.v3 (no 3.4.0); `tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj` currently xunit.v3 3.2.2 / FsCheck 3.3.3 / Test.Sdk 18.8.1.
-  Touches: test csproj, `packages.lock.json` if regenerated, property-test discovery
-  Acceptance: Non-WPF suite green on Test.Sdk 18.9.0 and FsCheck.Xunit.v3 3.3.4; a comment or allowlist note records why xunit 4.0.0 is parked; CI gate green.
-  Complexity: S
-
-- [ ] P2 — RD-55: Stryker.NET pilot with the preview MTP runner (un-parks blocked mutation-testing item)
-  Why: Stryker 4.13+ ships `--test-runner mtp` for xunit.v3 — the exact blocker recorded in Roadmap_Blocked; a bounded Core-only pilot answers whether the item can leave the blocked list. coverlet.collector 10.0.1 cannot provide MTP coverage.
-  Evidence: stryker-mutator.io MTP runner announcement (2026-03-13); coverlet v10.0.1 notes; Roadmap_Blocked Stryker entry.
-  Touches: Stryker config, possibly a Core-only test target per the blocked-item recipe; run on current xunit.v3 3.2.2 (not 4.0.0)
-  Acceptance: A documented pilot run against LibreSpot.Core reporting a real mutation score (not the 0-killed failure mode); result recorded and the Roadmap_Blocked entry updated to reflect the new tooling state.
-  Complexity: M
-
 - [ ] P2 — RD-56: PSScriptAnalyzer 1.25.0 upgrade and new-rule triage
   Why: First PSSA release in a year (2026-03-20) adds four relevant rules plus `PSUseConstrainedLanguageMode`; the lint gate should run current rules.
   Evidence: PSScriptAnalyzer 1.25.0 release notes; `.psscriptanalyzerrc.psd1`; `-Lint` currently installs PSSA unpinned.

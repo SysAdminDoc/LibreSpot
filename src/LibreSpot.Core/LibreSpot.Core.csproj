@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="LibreSpot.Desktop.Tests" />
+    <InternalsVisibleTo Include="LibreSpot.Core.Tests" />
   </ItemGroup>
 
   <ItemGroup>

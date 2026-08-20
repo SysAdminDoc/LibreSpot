@@ -41,6 +41,28 @@ public sealed class DependencyAutomationTests
     }
 
     [Fact]
+    public void TestToolVersions_AreRecordedAndXunitFourIsParked()
+    {
+        var project = ReadRepoFile("tests", "LibreSpot.Desktop.Tests", "LibreSpot.Desktop.Tests.csproj");
+        Assert.Contains("FsCheck.Xunit.v3\" Version=\"3.3.4", project, StringComparison.Ordinal);
+        Assert.Contains("Microsoft.NET.Test.Sdk\" Version=\"18.9.0", project, StringComparison.Ordinal);
+        Assert.Contains("xunit.v3\" Version=\"3.2.2", project, StringComparison.Ordinal);
+        Assert.Contains("until FsCheck.Xunit.v3 publishes an adapter for xUnit 4", project, StringComparison.Ordinal);
+
+        using var notices = JsonDocument.Parse(ReadRepoFile("schemas", "third-party-notices.json"));
+        var dependencies = notices.RootElement.GetProperty("dependencies").EnumerateArray();
+        var versions = dependencies
+            .Where(dependency => dependency.GetProperty("name").GetString() is "FsCheck.Xunit.v3" or "Microsoft.NET.Test.Sdk")
+            .ToDictionary(
+                dependency => dependency.GetProperty("name").GetString()!,
+                dependency => dependency.GetProperty("version").GetString()!,
+                StringComparer.Ordinal);
+
+        Assert.Equal("3.3.4", versions["FsCheck.Xunit.v3"]);
+        Assert.Equal("18.9.0", versions["Microsoft.NET.Test.Sdk"]);
+    }
+
+    [Fact]
     public void DirectoryBuildProps_EnablesLockedNuGetAuditPolicy()
     {
         var props = ReadRepoFile("Directory.Build.props");

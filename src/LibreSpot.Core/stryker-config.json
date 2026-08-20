@@ -1,0 +1,28 @@
+{
+  "$comment": "Bounded Core-only mutation pilot. MTP is preview, so keep concurrency at one and inspect each baseline before raising this threshold.",
+  "stryker-config": {
+    "project": "LibreSpot.Core.csproj",
+    "test-projects": [
+      "../../tests/LibreSpot.Core.Tests/LibreSpot.Core.Tests.csproj"
+    ],
+    "test-runner": "mtp",
+    "coverage-analysis": "off",
+    "concurrency": 1,
+    "mutation-level": "Standard",
+    "mutate": [
+      "**/AppCatalog.cs",
+      "**/CommunityAssetDriftService.cs",
+      "**/OperationCorrelation.cs",
+      "**/UpstreamDriftService.cs"
+    ],
+    "reporters": [
+      "cleartext",
+      "json"
+    ],
+    "thresholds": {
+      "high": 80,
+      "low": 24,
+      "break": 24
+    }
+  }
+}

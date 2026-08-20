@@ -11,10 +11,12 @@ All notable changes to LibreSpot will be documented in this file.
 - Added an explicit SpotX post-Defender pin policy at upstream commit `afb4c3fc`. Candidate review now requires the declared and passed `-defender_exclusions_off` switch before a changed pin can be accepted.
 - Added a schema-v2 Spicetify v3 support contract fixture. Detected v3 CLIs now classify allowlisted, degraded, refused, and fail-open states while the pinned v2.44.0 path remains unchanged.
 - Removed the remaining Dependabot branches and release-note exclusions. Repository vulnerability alerts remain disabled by policy.
+- Updated the test stack to Microsoft.NET.Test.Sdk 18.9.0 and FsCheck.Xunit.v3 3.3.4. xUnit v3 remains on 3.2.2 until the 4.x adapter path is compatible.
 
 ### Fixed
 
 - Added a Spicetify v3 coexistence guard. LibreSpot now detects the v3 backup artifact, module and hook directories, and newer CLI majors before install, apply, repair, or reapply operations. The WPF health report records the conflict and points to `spicetify restore`; the recovery command remains available.
+- Added a pinned Core-only Stryker.NET 4.16.0 mutation pilot using the preview MTP runner with xUnit v3. The reproducible baseline is 24.32% across 1,476 tested mutants, with a 24% break threshold; the report records 355 killed mutants and the run command is documented in the repository.
 
 ## [v4.0.0-preview.25] - 2026-08-11
 

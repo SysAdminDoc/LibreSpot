@@ -1007,12 +1007,12 @@ absent.
 
 ---
 
-## P3 - Add Stryker.NET mutation testing against LibreSpot.Core
+## P3 - Extend the bounded Stryker.NET pilot beyond the Core baseline
 
 | Field | Value |
 |---|---|
-| Source | Research-Driven Additions; unblocked (for the library-target prerequisite) by the RD-35 Core extraction |
-| Blocker | External tooling: Stryker.NET 4.16.0 cannot measure mutations against the project's xunit.v3 (Microsoft.Testing.Platform) test stack |
+| Source | Research-Driven Additions; bounded pilot completed by RD-55 |
+| Blocker | MTP runner is still preview and the current 24.32% baseline covers only selected Core files |
 
 Why: many C# tests validate JSON schema structure; mutation testing surfaces
 logic branches where tests pass even when the code is mutated. The RD-35
@@ -1020,34 +1020,24 @@ extraction satisfied the library-target prerequisite (`LibreSpot.Core` builds
 `net10.0-windows` with no `UseWPF`, which Stryker can analyze where the desktop
 `UseWPF` project cannot).
 
-Blocked: verified in-session that Stryker.NET 4.16.0's VSTest-based coverage and
-kill-detection do not interoperate with this repo's **xunit.v3** suite (xunit.v3
-runs on Microsoft.Testing.Platform, not VSTest). Every run reports
-`test coverage capture failed` and then **0 mutants killed / all survived**
-(final score ~0.17%) even against genuinely behavioral tests that assert on real
-service output — i.e. Stryker never receives pass/fail results back from the
-xunit.v3 tests, so no mutation is ever detected as caught. This reproduced both
-against the shared test project and against a dedicated Core-only test project.
-The only local "fix" would be downgrading the entire 883-test suite off
-xunit.v3, which is not acceptable. Resolution needs external input: a
-Stryker.NET release that supports Microsoft.Testing.Platform / xunit.v3 result
-collection (track stryker-mutator/stryker-net).
+Resolved for a bounded pilot on 2026-08-20: Stryker.NET 4.16.0's preview MTP
+runner collected xUnit v3 results from the dedicated Core-only test project.
+The run tested 1,476 mutants and produced a 24.32% score with 355 killed,
+4 timed out, 4,804 survived, and 329 compile-error mutants. The checked-in
+configuration uses a 24% break threshold and restricts mutation scoring to
+AppCatalog, CommunityAssetDriftService, OperationCorrelation, and
+UpstreamDriftService. The MTP runner does not yet provide the final per-test
+coverage behavior, so the baseline is a ratchet and not a release gate.
 
-Staged recipe for the next attempt (once tooling supports xunit.v3), verified to
-get Stryker as far as actually mutating Core:
-1. Pin the tool: `dotnet new tool-manifest` + `dotnet tool install dotnet-stryker`
-   (`.config/dotnet-tools.json`).
-2. Stryker only inspects **direct** project references and fails to analyze the
-   WPF desktop project, so its target test project must reference **only**
-   `LibreSpot.Core`. Create `tests/LibreSpot.Core.Tests` referencing only Core and
-   linking the behavioral Core tests (`OperationCorrelationTests`,
-   `UpstreamDriftServiceTests`, `CommunityAssetDriftServiceTests`, …); grant
-   `InternalsVisibleTo("LibreSpot.Core.Tests")` in Core. This makes Stryker log
-   "Found project LibreSpot.Core.csproj to mutate."
-3. `src/LibreSpot.Core/stryker-config.json`: `project` = `LibreSpot.Core.csproj`,
-   `test-projects` = the Core-only test project, `mutate` scoped to the
-   behavioral-tested files, `coverage-analysis: perTest`.
+Reproducible pilot recipe:
+1. Restore the pinned local tool from `.config/dotnet-tools.json` with
+   `dotnet tool restore`.
+2. Run from `src/LibreSpot.Core` with `dotnet stryker --test-runner mtp
+   --concurrency 1`. The dedicated `tests/LibreSpot.Core.Tests` project
+   references only Core and links the selected behavioral tests.
+3. Keep `coverage-analysis` set to `off` until the MTP runner supports the
+   per-test coverage behavior needed for a stronger score.
 
-Acceptance: `dotnet stryker` runs against `LibreSpot.Core`, produces a non-zero,
-meaningful mutation-score report locally (mutants actually killed), and a ratchet
-`break` threshold is set from that baseline.
+Next acceptance: expand the selected Core files only after a later MTP release
+improves coverage reporting, then raise the break threshold from the measured
+baseline instead of treating the current pilot as a whole-repository score.

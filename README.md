@@ -455,6 +455,21 @@ This writes `publish\dependency-health.json`, fails on outdated direct NuGet
 packages, records vulnerable package metadata, and allows only documented
 test-only transitive lag from `schemas\dependency-health-allowlist.json`.
 
+The repository also carries a bounded Core mutation pilot. Restore the local
+tool and run it from `src\LibreSpot.Core` when changing Core logic:
+
+```powershell
+dotnet tool restore
+Push-Location .\src\LibreSpot.Core
+dotnet stryker --test-runner mtp --concurrency 1
+Pop-Location
+```
+
+The MTP runner is still preview software. The current baseline is 24.32% over
+1,476 tested mutants, with a 24% break threshold in
+`src\LibreSpot.Core\stryker-config.json`. Treat the report as a regression
+ratchet, not as a release gate for the WPF shell.
+
 Exercise the auto-reapply watcher through a uniquely named, standard-user,
 disposable Task Scheduler task:
 
