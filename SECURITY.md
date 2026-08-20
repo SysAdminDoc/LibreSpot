@@ -67,6 +67,12 @@ If you discover a vulnerability in SpotX, Spicetify CLI, or a community extensio
 
 **Required action for users:** keep Windows fully updated. Hosts on the December 2025 cumulative update or later have the fix; older hosts should install pending updates before running LibreSpot's `irm … | iex` quickstart.
 
+### PowerShell 7.6.0 through 7.6.4 security floor
+
+LibreSpot also checks the PowerShell 7 host before a download or external script launch. Versions 7.6.0 through 7.6.4 receive a non-blocking warning that names [CVE-2026-50523](https://nvd.nist.gov/vuln/detail/CVE-2026-50523) and related August 2026 servicing fixes, then points to PowerShell 7.6.5. PowerShell 7.6.5 and later are silent. The check does not change execution policy or install PowerShell.
+
+Users should update from the [PowerShell 7.6.5 release](https://github.com/PowerShell/PowerShell/releases/tag/v7.6.5) before running LibreSpot. The warning is advisory because LibreSpot cannot safely replace a user's PowerShell installation.
+
 ## Supply-chain hygiene
 
 LibreSpot does not currently track build, release, or Scorecard GitHub Actions workflows. Release trust evidence comes from the local release build and post-upload audit: SHA256 entries in `checksums.txt`, the machine-readable `librespot-release-manifest.json`, CycloneDX SBOM output, pinned upstream download hashes, and local test/build logs.

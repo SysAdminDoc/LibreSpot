@@ -364,6 +364,8 @@ Windows 11 with Smart App Control (SAC) enabled enforces Constrained Language Mo
 
 **Downloader hardening (CVE-2025-54100):** LibreSpot fetches with PowerShell's `Invoke-WebRequest`. [CVE-2025-54100](https://nvd.nist.gov/vuln/detail/CVE-2025-54100) is a Windows PowerShell 5.1 web-content RCE fixed in the December 2025 Windows cumulative updates. The two mitigations are **SHA256 pinning** (guarantees payload integrity) and **patch level** (keeping Windows updated closes the parse-time vector); SHA256 alone does not remove the vector on an unpatched host. LibreSpot adds a non-blocking preflight that warns when the host predates the December 2025 patch wave. See [SECURITY.md](SECURITY.md#cve-2025-54100--windows-powershell-51-web-content-rce) for details.
 
+PowerShell 7.6.0 through 7.6.4 also receive a non-blocking security-floor warning for CVE-2026-50523 and related August 2026 fixes. Update to PowerShell 7.6.5 or later before continuing. See [SECURITY.md](SECURITY.md#powershell-760-through-764-security-floor) for details.
+
 **What LibreSpot does NOT do:**
 - Collect, transmit, or store any credentials, tokens, or account data
 - Bundle, host, or redistribute Spotify binaries or any upstream project code

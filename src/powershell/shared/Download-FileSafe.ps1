@@ -1,4 +1,5 @@
 function Download-FileSafe { param([string]$Uri,[string]$OutFile)
+    Write-PowerShell7SecurityFloorWarningIfNeeded
     Write-DownloaderCveWarningIfNeeded
     Write-Log "Downloading: $Uri"
     $headers = @{'User-Agent'="LibreSpot/$global:VERSION"}

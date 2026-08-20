@@ -76,6 +76,8 @@ BeforeAll {
         'Invoke-AutoReapplyWatcher'
         'Invoke-HeadlessReapply'
         'Register-AutoReapplyTask'
+        'Get-PowerShell7SecurityFloorStatus'
+        'Write-PowerShell7SecurityFloorWarningIfNeeded'
     )
     $blocks = foreach ($fn in $functionsToLoad) {
         $block = Extract-FunctionBlock $scriptContent $fn
@@ -1859,6 +1861,31 @@ BeforeAll {
     $script:realFile = Join-Path ([System.IO.Path]::GetTempPath()) ("ls-attn-{0}.zip" -f ([guid]::NewGuid().ToString('N')))
     Set-Content -LiteralPath $script:realFile -Value 'payload' -Encoding ascii
     $script:goodAttestation = @{ Repo = 'spicetify/cli'; CertIdentityRegex = '^https://github\.com/spicetify/cli/'; OidcIssuer = 'https://token.actions.githubusercontent.com' }
+}
+
+Describe 'PowerShell 7 security floor' {
+    It 'warns for PowerShell 7.6.0 through 7.6.4 and names the fixed version' {
+        $status = Get-PowerShell7SecurityFloorStatus -VersionString '7.6.4' -Edition 'Core'
+        $status.NeedsUpdate | Should -BeTrue
+        $status.Status | Should -Be 'UpdateRecommended'
+        $status.MinimumVersion | Should -Be '7.6.5'
+        $status.Reason | Should -Match 'CVE-2026-50523'
+        $status.Reason | Should -Match '7\.6\.5'
+    }
+
+    It 'stays silent at the fixed PowerShell 7 floor' {
+        foreach ($version in @('7.6.5', '7.6.6')) {
+            $status = Get-PowerShell7SecurityFloorStatus -VersionString $version -Edition 'Core'
+            $status.NeedsUpdate | Should -BeFalse
+            $status.Status | Should -Be 'Supported'
+        }
+    }
+
+    It 'does not apply the PowerShell 7 floor to Windows PowerShell 5.1' {
+        $status = Get-PowerShell7SecurityFloorStatus -VersionString '5.1.26100.1' -Edition 'Desktop'
+        $status.NeedsUpdate | Should -BeFalse
+        $status.Status | Should -Be 'NotApplicable'
+    }
 }
 AfterAll {
     Remove-Item -LiteralPath $script:realFile -Force -ErrorAction SilentlyContinue

@@ -2115,6 +2115,25 @@ public sealed class PowerShellRegressionTests
         Assert.True(fnBody.Success, $"Download-FileSafe function block not found in {relativePath}.");
         // Every download path must emit the patch-level heads-up.
         Assert.Contains("Write-DownloaderCveWarningIfNeeded", fnBody.Groups["body"].Value);
+        Assert.Contains("Write-PowerShell7SecurityFloorWarningIfNeeded", fnBody.Groups["body"].Value);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void PowerShell7SecurityFloor_NamesCveAndFixedVersion(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fn = Regex.Match(
+            script,
+            @"function\s+Get-PowerShell7SecurityFloorStatus\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+        Assert.True(fn.Success, $"PowerShell 7 security floor function not found in {relativePath}.");
+        var body = fn.Groups["body"].Value;
+        Assert.Contains("CVE-2026-50523", body);
+        Assert.Contains("7.6.5", body);
+        Assert.Contains("UpdateRecommended", body);
+        Assert.Contains("Supported", body);
     }
 
     [Fact]
@@ -2280,6 +2299,8 @@ public sealed class PowerShellRegressionTests
         Assert.True(exportBlock.Success, "Worker function export list not found.");
         Assert.Contains("'Get-PowerShellSecurityContext'", exportBlock.Groups["list"].Value);
         Assert.Contains("'Write-PowerShellSecurityContext'", exportBlock.Groups["list"].Value);
+        Assert.Contains("'Get-PowerShell7SecurityFloorStatus'", exportBlock.Groups["list"].Value);
+        Assert.Contains("'Write-PowerShell7SecurityFloorWarningIfNeeded'", exportBlock.Groups["list"].Value);
         Assert.Contains("'Test-IsLanguageModeOrAppControlError'", exportBlock.Groups["list"].Value);
         Assert.Contains("'Open-VerifiedScriptForExecution'", exportBlock.Groups["list"].Value);
     }

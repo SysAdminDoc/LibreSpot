@@ -7662,6 +7662,60 @@ function Write-DownloaderCveWarningIfNeeded {
     } catch {}
 }
 
+function Get-PowerShell7SecurityFloorStatus {
+    [CmdletBinding()]
+    param(
+        [string]$VersionString = [string]$PSVersionTable.PSVersion,
+        [string]$Edition = [string]$PSVersionTable.PSEdition
+    )
+
+    $minimumVersion = [Version]'7.6.5'
+    $version = $null
+    try { $version = [Version]::Parse($VersionString) } catch {}
+
+    $result = [ordered]@{
+        NeedsUpdate   = $false
+        Status        = 'NotApplicable'
+        Edition       = $Edition
+        Version       = $VersionString
+        MinimumVersion = $minimumVersion.ToString()
+        Cve           = 'CVE-2026-50523'
+        Reason        = ''
+    }
+
+    if (-not [string]::Equals($Edition, 'Core', [StringComparison]::OrdinalIgnoreCase)) {
+        $result.Reason = 'PowerShell 7 security floor does not apply to Windows PowerShell 5.1.'
+        return [pscustomobject]$result
+    }
+
+    if ($null -eq $version) {
+        $result.Status = 'Unknown'
+        $result.Reason = "Could not parse the PowerShell 7 version '$VersionString'. Keep PowerShell updated to 7.6.5 or newer."
+        return [pscustomobject]$result
+    }
+
+    if ($version -lt $minimumVersion) {
+        $result.NeedsUpdate = $true
+        $result.Status = 'UpdateRecommended'
+        $result.Reason = "PowerShell 7 $VersionString is below the LibreSpot security floor of 7.6.5. Update PowerShell before continuing. This floor covers $($result.Cve) and related August 2026 servicing fixes."
+    } else {
+        $result.Status = 'Supported'
+        $result.Reason = "PowerShell 7 $VersionString meets the LibreSpot security floor of 7.6.5."
+    }
+
+    return [pscustomobject]$result
+}
+function Write-PowerShell7SecurityFloorWarningIfNeeded {
+    if ($global:PowerShell7SecurityFloorWarned) { return }
+    $global:PowerShell7SecurityFloorWarned = $true
+    try {
+        $floor = Get-PowerShell7SecurityFloorStatus
+        if ($floor.NeedsUpdate) {
+            Write-Log "Security: $($floor.Reason)" -Level 'WARN'
+        }
+    } catch {}
+}
+
 # Records the PowerShell security context for support diagnostics. Execution
 # policy is a SAFETY feature, not a security boundary (Microsoft docs): running
 # with -ExecutionPolicy Bypass does NOT defeat AppLocker or Windows Defender
@@ -7699,6 +7753,7 @@ function Write-PowerShellSecurityContext {
     try {
         $ctx = Get-PowerShellSecurityContext
         Write-Log "PowerShell context: $($ctx.Edition) $($ctx.Version); language mode $($ctx.LanguageMode); execution policy [$($ctx.ExecutionPolicies)]."
+        Write-PowerShell7SecurityFloorWarningIfNeeded
         if ($ctx.AppControlEnforced) {
             Write-Log "This host enforces ConstrainedLanguage mode (AppLocker, Windows Defender Application Control, or Smart App Control). LibreSpot's scripts may be blocked. This is a platform-level control, not a LibreSpot error, and -ExecutionPolicy Bypass does not bypass it. On managed devices, ask your administrator to allow LibreSpot/SpotX. On personal devices with Smart App Control (Windows 11), open Settings > Privacy & security > Windows Security > App & browser control > Smart App Control settings to adjust. Alternatively, use the pre-compiled LibreSpot.exe from the Releases page." -Level 'WARN'
         }
@@ -7767,6 +7822,7 @@ function Get-DownloadFailureHint {
 }
 
 function Download-FileSafe { param([string]$Uri,[string]$OutFile)
+    Write-PowerShell7SecurityFloorWarningIfNeeded
     Write-DownloaderCveWarningIfNeeded
     Write-Log "Downloading: $Uri"
     $headers = @{'User-Agent'="LibreSpot/$global:VERSION"}
@@ -10316,7 +10372,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-SpotXCustomPatchesFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Assert-LibreSpotExternalScriptDefenderPolicy','Open-VerifiedScriptForExecution','Get-FileSha256Lower','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShell7SecurityFloorStatus','Write-PowerShell7SecurityFloorWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Assert-LibreSpotExternalScriptDefenderPolicy','Open-VerifiedScriptForExecution','Get-FileSha256Lower','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Get-SpotXChildFailureClassification','Get-SpotXDownloadRetryPlan','Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
     'Get-SpicetifyIntegrationContext','Get-SpicetifyV3Conflict','Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',

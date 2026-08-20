@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+
+- Added a non-blocking PowerShell 7 security-floor preflight. PowerShell 7.6.0 through 7.6.4 now warn with CVE-2026-50523 and the fixed 7.6.5 version, while 7.6.5 and later remain silent.
+
 ### Fixed
 
 - Added a Spicetify v3 coexistence guard. LibreSpot now detects the v3 backup artifact, module and hook directories, and newer CLI majors before install, apply, repair, or reapply operations. The WPF health report records the conflict and points to `spicetify restore`; the recovery command remains available.
