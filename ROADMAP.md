@@ -10,13 +10,6 @@ Added by the 2026-08-20 research pass (RESEARCH.md). IDs continue the RD-nn sche
 
 ### P0
 
-- [ ] P0 — RD-45: Publish v4.0.0-preview.25 (tag, local artifact build, GitHub release)
-  Why: Six release versions (preview.20–.25) are committed but untagged; the public "Latest" is v3.7.2 from 2026-04-29, hiding four weeks of shipped work.
-  Evidence: `git ls-remote --tags origin` newest is v4.0.0-preview.19; csproj/CHANGELOG/README at preview.25; operator's standing release policy. Supersedes the Roadmap_Blocked P3 "publish release" entry per that policy.
-  Touches: git tags, local `dotnet publish` for Desktop/CLI, PS2EXE lane, Build-Scripts.ps1 `-GenerateReleaseManifest`/`-ReleaseTruth`, checksums.txt, SBOM, `gh release create`
-  Acceptance: GitHub shows a v4.0.0-preview.25 release with the full artifact contract (Desktop exe, CLI exe, LibreSpot.ps1, checksums, SBOM, release manifest) and ReleaseTruth passes against it.
-  Complexity: M
-
 - [ ] P0 — RD-46: Spicetify v3 coexistence guard (detect and refuse before damage)
   Why: Spicetify v3 beta renames `xpui.spa` → `xpui.spa.backup` in place and by upstream's own notice bricks a v2-patched client; users self-installing the beta over a LibreSpot-managed install hit undefined behavior.
   Evidence: spicetify/cli `src/cmd/v3notice.go`, v3-beta releases 2026-08-10..19; existing generic v3 guard (2026-07) predates the beta's concrete artifacts.
