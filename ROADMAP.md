@@ -21,13 +21,6 @@ Existing items RD-51–RD-57 and RD-59–RD-62 below are the same work items as 
 
 ### P1
 
-- [ ] P1 — RD-64: Unify workspace taxonomy and localize Jump List / protocol strings
-  Why: Visible nav is Home/Setup/Unblock while heroes, tabs, and Jump List say Recommended/Custom/Maintenance; Jump List and `librespot://` registry copy are hardcoded English, so a localized UI plus an English taskbar is a trust/a11y defect.
-  Evidence: `MainWindow.xaml` nav bindings; `Strings.resx` `NavHome`/`NavSetup`/`NavUnblock`; `ShellIntegrationService.cs` `BuildJumpTaskDefinitions` / `BuildProtocolRegistryValues`; WPF QA unnamed-control gate does not cover Jump List.
-  Touches: `Strings*.resx`, `MainWindow.xaml`, `ShellIntegrationService.cs`, Jump List registration tests, `Invoke-WpfQaMatrix.ps1` if new AutomationIds
-  Acceptance: One vocabulary (Recommended / Custom / Maintenance) across rail, heroes, Jump List, and protocol; Jump List/protocol strings come from `Strings` for the persisted UI culture; satellites pass `-Validate`; no leftover Home/Setup/Unblock user-facing labels.
-  Complexity: M
-
 - [ ] P1 — RD-65: Make `LibreSpot.Cli --help` match `fleet-cli-contract.json`
   Why: Fleet operators copy `--help`; it currently omits flags the parser already accepts (`--profile`, `--scope`, `--purge`, `--quiet`, `--correlation-id`, `--no-restart`), so answer-file installs fail for reasons the usage text cannot explain.
   Evidence: `src/LibreSpot.Cli/Program.cs` `WriteUsage` vs `ValueFlags` and `schemas/fleet-cli-contract.json` verb flag lists; README fleet examples already document several omitted flags.

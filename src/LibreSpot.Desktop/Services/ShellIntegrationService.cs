@@ -1,7 +1,9 @@
 using System.IO;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Shell;
 using Microsoft.Win32;
+using LibreSpot.Desktop.Properties;
 using Application = System.Windows.Application;
 
 namespace LibreSpot.Desktop.Services;
@@ -35,7 +37,9 @@ public static class ShellIntegrationService
             : executablePath;
     }
 
-    public static IReadOnlyList<ShellRegistryValue> BuildRegistrationPlan(string executablePath)
+    public static IReadOnlyList<ShellRegistryValue> BuildRegistrationPlan(
+        string executablePath,
+        CultureInfo? culture = null)
     {
         if (string.IsNullOrWhiteSpace(executablePath))
         {
@@ -46,7 +50,10 @@ public static class ShellIntegrationService
         var iconPath = $"{fullPath},0";
         return
         [
-            new ShellRegistryValue($@"Software\Classes\{ProtocolScheme}", string.Empty, "URL:LibreSpot profile link"),
+            new ShellRegistryValue(
+                $@"Software\Classes\{ProtocolScheme}",
+                string.Empty,
+                Localize("ShellProtocolUrlDescription", culture)),
             new ShellRegistryValue($@"Software\Classes\{ProtocolScheme}", "URL Protocol", string.Empty),
             new ShellRegistryValue($@"Software\Classes\{ProtocolScheme}\DefaultIcon", string.Empty, iconPath),
             new ShellRegistryValue($@"Software\Classes\{ProtocolScheme}\shell\open\command", string.Empty, $"{Quote(fullPath)} \"%1\""),
@@ -56,19 +63,37 @@ public static class ShellIntegrationService
             new ShellRegistryValue($@"Software\Classes\{ShellActivationService.ProfileExtension}", "PerceivedType", "document"),
             new ShellRegistryValue($@"Software\Classes\{ShellActivationService.ProfileExtension}\OpenWithProgids", ProfileProgId, string.Empty),
 
-            new ShellRegistryValue($@"Software\Classes\{ProfileProgId}", string.Empty, "LibreSpot profile"),
+            new ShellRegistryValue(
+                $@"Software\Classes\{ProfileProgId}",
+                string.Empty,
+                Localize("ShellProfileFileDescription", culture)),
             new ShellRegistryValue($@"Software\Classes\{ProfileProgId}\DefaultIcon", string.Empty, iconPath),
             new ShellRegistryValue($@"Software\Classes\{ProfileProgId}\shell\open\command", string.Empty, $"{Quote(fullPath)} {ShellActivationService.ProfileFileArgument} \"%1\"")
         ];
     }
 
-    public static IReadOnlyList<ShellJumpTaskDefinition> BuildJumpTaskDefinitions() =>
+    public static IReadOnlyList<ShellJumpTaskDefinition> BuildJumpTaskDefinitions(CultureInfo? culture = null) =>
     [
-        new ShellJumpTaskDefinition("Recommended setup", "Open LibreSpot on the guided Recommended setup page.", "--shell-action=recommended"),
-        new ShellJumpTaskDefinition("Custom settings", "Open LibreSpot on the Custom profile editor.", "--shell-action=custom"),
-        new ShellJumpTaskDefinition("Maintenance", "Open LibreSpot on the repair and rollback tools.", "--shell-action=maintenance"),
-        new ShellJumpTaskDefinition("Import profile", "Open a .librespot profile import dialog.", "--shell-action=import-profile"),
-        new ShellJumpTaskDefinition("Open LibreSpot folder", "Open the local LibreSpot config, log, and profile folder.", "--shell-action=open-folder")
+        new ShellJumpTaskDefinition(
+            Localize("ModeRecommendedTitle", culture),
+            Localize("ModeRecommendedDescription", culture),
+            "--shell-action=recommended"),
+        new ShellJumpTaskDefinition(
+            Localize("ModeCustomTitle", culture),
+            Localize("ModeCustomDescription", culture),
+            "--shell-action=custom"),
+        new ShellJumpTaskDefinition(
+            Localize("ModeMaintenanceTitle", culture),
+            Localize("ModeMaintenanceDescription", culture),
+            "--shell-action=maintenance"),
+        new ShellJumpTaskDefinition(
+            Localize("Ui_ImportProfile", culture),
+            Localize("Ui_OpensALibrespotProfileAsAnInertPreview", culture),
+            "--shell-action=import-profile"),
+        new ShellJumpTaskDefinition(
+            Localize("ButtonOpenLibreSpotFolder", culture),
+            Localize("ButtonOpenLibreSpotFolderActivityHint", culture),
+            "--shell-action=open-folder")
     ];
 
     public static void RegisterCurrentUserShellHooksIfPossible()
@@ -117,7 +142,7 @@ public static class ShellIntegrationService
                     Description = task.Description,
                     ApplicationPath = executablePath,
                     Arguments = task.Arguments,
-                    CustomCategory = "LibreSpot",
+                    CustomCategory = Localize("AppTitle", null),
                     IconResourcePath = executablePath,
                     IconResourceIndex = 0
                 });
@@ -133,4 +158,7 @@ public static class ShellIntegrationService
     }
 
     private static string Quote(string value) => $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
+
+    private static string Localize(string key, CultureInfo? culture) =>
+        Strings.ResourceManager.GetString(key, culture ?? LocalizationService.Current.Culture) ?? key;
 }

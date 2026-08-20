@@ -2045,9 +2045,6 @@
   <data name="Vm_ThemeGalleryMarketplaceHelp" xml:space="preserve"><value>使用 Spicetify Marketplace 而不安装捆绑的主题。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeGalleryRequiresJsHelpFormat" xml:space="preserve"><value>{0} 包括 theme.js 步骤和{1}。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeGalleryNoJsHelpFormat" xml:space="preserve"><value>{0} 无需 theme.js 步骤即可安装，并具有 {1}。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="NavHome" xml:space="preserve"><value>主页</value><comment>User-facing WPF text</comment></data>
-  <data name="NavSetup" xml:space="preserve"><value>设置</value><comment>User-facing WPF text</comment></data>
-  <data name="NavUnblock" xml:space="preserve"><value>解锁</value><comment>User-facing WPF text</comment></data>
   <data name="NavTools" xml:space="preserve"><value>工具</value><comment>User-facing WPF text</comment></data>
   <data name="NavSettings" xml:space="preserve"><value>设置</value><comment>User-facing WPF text</comment></data>
   <data name="NavAbout" xml:space="preserve"><value>关于</value><comment>User-facing WPF text</comment></data>
@@ -2057,12 +2054,12 @@
   <data name="Vm_EnvStandardUser" xml:space="preserve"><value>标准用户</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvUser" xml:space="preserve"><value>用户</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvWorkingDirectory" xml:space="preserve"><value>工作中目录</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellActionRunSetupDetail" xml:space="preserve"><value>应用所有推荐的补丁和配置。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellActionRunSetupTitle" xml:space="preserve"><value>运行安装程序</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellActionToolsDetail" xml:space="preserve"><value>查看日志、备份文件和高级实用程序。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellActionToolsTitle" xml:space="preserve"><value>工具</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellActionUnblockDetail" xml:space="preserve"><value>删除限制并启用更新。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellActionUnblockTitle" xml:space="preserve"><value>取消阻止 Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionRunSetupDetail" xml:space="preserve"><value>应用推荐配置文件。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionRunSetupTitle" xml:space="preserve"><value>推荐</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionToolsDetail" xml:space="preserve"><value>打开日志、备份和高级维护工具。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionToolsTitle" xml:space="preserve"><value>维护工具</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionUnblockDetail" xml:space="preserve"><value>打开修复、备份和恢复工具。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionUnblockTitle" xml:space="preserve"><value>维护</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellActiveRunTitle" xml:space="preserve"><value>活动运行</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellCheckOkLabel" xml:space="preserve"><value>OK</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesLabel" xml:space="preserve"><value>依赖项</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2591,4 +2588,6 @@
   <data name="CompatibilityDetectedFiles" xml:space="preserve"><value>检测到文件，版本未知</value></data>
   <data name="CompatibilityDetectedUnavailable" xml:space="preserve"><value>不可用</value></data>
   <data name="CompatibilityDetectedUnknown" xml:space="preserve"><value>版本未知</value></data>
+  <data name="ShellProtocolUrlDescription" xml:space="preserve"><value>URL：LibreSpot 配置文件链接</value></data>
+  <data name="ShellProfileFileDescription" xml:space="preserve"><value>LibreSpot 配置文件</value></data>
 </root>

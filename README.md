@@ -98,6 +98,8 @@ The v4 desktop preview continues that polish with a sharper 6-12 px radius syste
 
 It also registers Windows shell affordances from the running desktop executable: per-user `librespot://` profile links, `.librespot` file imports, jump-list shortcuts, taskbar thumbnail actions, tray minimize/restore, and tray completion notifications that reopen LibreSpot when clicked. Registration is per-user and points at the current executable path, so portable and installed builds both repair stale associations on launch.
 
+The current desktop shell uses the same Recommended, Custom, and Maintenance vocabulary in its rail, workspace heroes, taskbar actions, and Jump List. Windows protocol and profile-association descriptions follow the saved interface language.
+
 ---
 
 ## What It Does

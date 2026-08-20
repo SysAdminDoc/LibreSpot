@@ -37,6 +37,19 @@ public sealed class WorkspaceViewCompositionTests
         Assert.Contains("x:Name=\"SupportBundleQaSurface\"", maintenance);
     }
 
+    [Fact]
+    public void MainWindow_UsesOneWorkspaceVocabularyForNavigation()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml"));
+
+        Assert.Contains("services:Loc ModeRecommendedTitle", xaml);
+        Assert.Contains("services:Loc ModeCustomTitle", xaml);
+        Assert.Contains("services:Loc ModeMaintenanceTitle", xaml);
+        Assert.DoesNotContain("services:Loc NavHome", xaml);
+        Assert.DoesNotContain("services:Loc NavSetup", xaml);
+        Assert.DoesNotContain("services:Loc NavUnblock", xaml);
+    }
+
     private static string ReadView(string fileName) =>
         File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", fileName));
 

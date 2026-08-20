@@ -22,11 +22,14 @@ public sealed class BackendScriptServiceTests
     [Fact]
     public void AppStartup_CleansStaleExecutionCopies()
     {
-        var source = ReadRepoFile("src", "LibreSpot.Desktop", "App.xaml.cs");
+        var appSource = ReadRepoFile("src", "LibreSpot.Desktop", "App.xaml.cs");
+        var mainWindowSource = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
 
-        Assert.Contains("BackendScriptService.CleanStaleExecutionCopies()", source);
-        Assert.Contains("ShellIntegrationService.RegisterCurrentUserShellHooksIfPossible()", source);
-        Assert.Contains("ShellIntegrationService.ConfigureJumpListIfPossible()", source);
+        Assert.Contains("BackendScriptService.CleanStaleExecutionCopies()", appSource);
+        Assert.DoesNotContain("ShellIntegrationService.RegisterCurrentUserShellHooksIfPossible()", appSource);
+        Assert.Contains("await _viewModel.InitializeAsync();", mainWindowSource);
+        Assert.Contains("ShellIntegrationService.RegisterCurrentUserShellHooksIfPossible()", mainWindowSource);
+        Assert.Contains("ShellIntegrationService.ConfigureJumpListIfPossible()", mainWindowSource);
     }
 
     [Fact]

@@ -16,8 +16,6 @@ public partial class App : Application
         LocalizationService.Current.ApplyCulture(GetStartupCulture(e.Args));
         ThemeManager.Initialize(this, forceHighContrast: e.Args.Any(IsUiAutomationHighContrastArgument));
         base.OnStartup(e);
-        ShellIntegrationService.RegisterCurrentUserShellHooksIfPossible();
-        ShellIntegrationService.ConfigureJumpListIfPossible();
     }
 
     private static string GetStartupCulture(IEnumerable<string> args)

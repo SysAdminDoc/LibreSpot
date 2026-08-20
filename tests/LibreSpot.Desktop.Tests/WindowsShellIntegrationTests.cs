@@ -1,3 +1,4 @@
+using System.Globalization;
 using LibreSpot.Desktop.Services;
 using Xunit;
 
@@ -91,10 +92,26 @@ public sealed class WindowsShellIntegrationTests
     {
         var tasks = ShellIntegrationService.BuildJumpTaskDefinitions();
 
-        Assert.Contains(tasks, task => task.Title == "Recommended setup" && task.Arguments == "--shell-action=recommended");
-        Assert.Contains(tasks, task => task.Title == "Custom settings" && task.Arguments == "--shell-action=custom");
+        Assert.Contains(tasks, task => task.Title == "Recommended" && task.Arguments == "--shell-action=recommended");
+        Assert.Contains(tasks, task => task.Title == "Custom" && task.Arguments == "--shell-action=custom");
         Assert.Contains(tasks, task => task.Title == "Maintenance" && task.Arguments == "--shell-action=maintenance");
         Assert.Contains(tasks, task => task.Title == "Import profile" && task.Arguments == "--shell-action=import-profile");
         Assert.Contains(tasks, task => task.Title == "Open LibreSpot folder" && task.Arguments == "--shell-action=open-folder");
+    }
+
+    [Fact]
+    public void ShellLabels_UseRequestedCultureForPersistedShellCopy()
+    {
+        var culture = CultureInfo.GetCultureInfo("es");
+        var registration = ShellIntegrationService.BuildRegistrationPlan(
+            @"C:\Tools\LibreSpot\LibreSpot.exe",
+            culture);
+        var tasks = ShellIntegrationService.BuildJumpTaskDefinitions(culture);
+
+        Assert.Contains(registration, entry => entry.Value == "URL:enlace de perfil de LibreSpot");
+        Assert.Contains(registration, entry => entry.Value == "Perfil de LibreSpot");
+        Assert.Contains(tasks, task => task.Title == "Recomendado" && task.Arguments == "--shell-action=recommended");
+        Assert.Contains(tasks, task => task.Title == "Personalizado" && task.Arguments == "--shell-action=custom");
+        Assert.Contains(tasks, task => task.Title == "Mantenimiento" && task.Arguments == "--shell-action=maintenance");
     }
 }

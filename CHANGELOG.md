@@ -15,6 +15,10 @@ All notable changes to LibreSpot will be documented in this file.
 - Pinned the local PSScriptAnalyzer lint gate to 1.25.0 and recorded the explicit decision to keep `PSUseConstrainedLanguageMode` disabled after a zero-diagnostic triage run against both hosts.
 - Added a localized Maintenance compatibility verdict matrix. It compares detected Spotify, SpotX, Spicetify CLI, and Marketplace state with the pinned tuple, labels supported/degraded/unsupported/unknown conditions, and gives a next step for each state. The Core report, view-model projection, and WPF screenshot matrix are covered by regression tests.
 
+### Changed
+
+- Unified the desktop workspace vocabulary around Recommended, Custom, and Maintenance. Jump List entries and per-user `librespot://` and `.librespot` registration descriptions now use localized resources after the saved interface culture is loaded.
+
 ### Fixed
 
 - Added a Spicetify v3 coexistence guard. LibreSpot now detects the v3 backup artifact, module and hook directories, and newer CLI majors before install, apply, repair, or reapply operations. The WPF health report records the conflict and points to `spicetify restore`; the recovery command remains available.

@@ -114,9 +114,12 @@ public sealed class PremiumShellContractTests
         var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
         var controls = ReadFile("src", "LibreSpot.Desktop", "Themes", "Controls.xaml");
 
-        Assert.Contains("AutomationProperties.Name=\"{services:Loc NavHome}\"", xaml);
-        Assert.Contains("AutomationProperties.Name=\"{services:Loc NavSetup}\"", xaml);
-        Assert.Contains("AutomationProperties.Name=\"{services:Loc NavUnblock}\"", xaml);
+        Assert.Contains("AutomationProperties.Name=\"{services:Loc ModeRecommendedTitle}\"", xaml);
+        Assert.Contains("AutomationProperties.Name=\"{services:Loc ModeCustomTitle}\"", xaml);
+        Assert.Contains("AutomationProperties.Name=\"{services:Loc ModeMaintenanceTitle}\"", xaml);
+        Assert.DoesNotContain("services:Loc NavHome", xaml);
+        Assert.DoesNotContain("services:Loc NavSetup", xaml);
+        Assert.DoesNotContain("services:Loc NavUnblock", xaml);
         Assert.Contains("ShellQuickLinkButtonStyle", xaml);
         Assert.Contains("InspectorActionButtonStyle", xaml);
         Assert.Contains("x:Key=\"ShellQuickLinkButtonStyle\"", controls);

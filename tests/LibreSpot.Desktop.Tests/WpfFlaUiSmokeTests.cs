@@ -444,9 +444,9 @@ public sealed class WpfFlaUiSmokeTests
         {
             var info = CultureInfo.GetCultureInfo(culture);
             return new LocalizedSmokeText(
-                Get("NavHome", info),
-                Get("NavSetup", info),
-                Get("NavUnblock", info),
+                Get("ModeRecommendedTitle", info),
+                Get("ModeCustomTitle", info),
+                Get("ModeMaintenanceTitle", info),
                 Get("Ui_RecommendedWorkspace", info),
                 Get("ButtonRunRecommendedSetup", info),
                 Get("Ui_CustomWorkspace", info),

@@ -1269,7 +1269,7 @@
             <StackPanel Margin="0,0,0,0">
               <Button Command="{Binding ShowRecommendedWorkspaceCommand}"
                       AutomationProperties.AutomationId="WorkspaceNavRecommended"
-                      AutomationProperties.Name="{services:Loc NavHome}"
+                      AutomationProperties.Name="{services:Loc ModeRecommendedTitle}"
                       AutomationProperties.HelpText="{services:Loc ModeRecommendedDescription}">
                 <Button.Style>
                   <Style TargetType="Button" BasedOn="{StaticResource ShellNavButtonStyle}">
@@ -1296,7 +1296,7 @@
                         StrokeLineJoin="Round"
                         Data="M 2 9 L 9 3 L 16 9 M 4 8 V 16 H 14 V 8" />
                   <TextBlock Grid.Column="1"
-                             Text="{services:Loc NavHome}"
+                             Text="{services:Loc ModeRecommendedTitle}"
                              Margin="12,0,0,0"
                              VerticalAlignment="Center"
                              TextWrapping="Wrap" />
@@ -1306,7 +1306,7 @@
               <Button Command="{Binding ShowCustomWorkspaceCommand}"
                       Margin="0,8,0,0"
                       AutomationProperties.AutomationId="WorkspaceNavCustom"
-                      AutomationProperties.Name="{services:Loc NavSetup}"
+                      AutomationProperties.Name="{services:Loc ModeCustomTitle}"
                       AutomationProperties.HelpText="{services:Loc Vm_WorkspaceHeroCustomBody}">
                 <Button.Style>
                   <Style TargetType="Button" BasedOn="{StaticResource ShellNavButtonStyle}">
@@ -1332,7 +1332,7 @@
                         StrokeEndLineCap="Round"
                         Data="M 3 5 H 15 M 6 3 V 7 M 3 11 H 15 M 12 9 V 13 M 3 17 H 15 M 8 15 V 19" />
                   <TextBlock Grid.Column="1"
-                             Text="{services:Loc NavSetup}"
+                             Text="{services:Loc ModeCustomTitle}"
                              Margin="12,0,0,0"
                              VerticalAlignment="Center"
                              TextWrapping="Wrap" />
@@ -1342,7 +1342,7 @@
               <Button Command="{Binding ShowMaintenanceWorkspaceCommand}"
                       Margin="0,8,0,0"
                       AutomationProperties.AutomationId="WorkspaceNavMaintenance"
-                      AutomationProperties.Name="{services:Loc NavUnblock}"
+                      AutomationProperties.Name="{services:Loc ModeMaintenanceTitle}"
                       AutomationProperties.HelpText="{services:Loc Vm_WorkspaceHeroMaintenanceBody}">
                 <Button.Style>
                   <Style TargetType="Button" BasedOn="{StaticResource ShellNavButtonStyle}">
@@ -1369,7 +1369,7 @@
                         StrokeLineJoin="Round"
                         Data="M 13 2 L 16 5 L 11 10 L 8 7 Z M 10 9 L 4 15 A 2 2 0 0 0 7 18 L 13 12" />
                   <TextBlock Grid.Column="1"
-                             Text="{services:Loc NavUnblock}"
+                             Text="{services:Loc ModeMaintenanceTitle}"
                              Margin="12,0,0,0"
                              VerticalAlignment="Center"
                              TextWrapping="Wrap" />

@@ -204,6 +204,8 @@ public partial class MainWindow : Window
             var hasUiAutomationSmokeState = !string.IsNullOrWhiteSpace(uiAutomationSmokeState);
 
             await _viewModel.InitializeAsync();
+            ShellIntegrationService.RegisterCurrentUserShellHooksIfPossible();
+            ShellIntegrationService.ConfigureJumpListIfPossible();
             if (hasUiAutomationSmokeState)
             {
                 _viewModel.ApplyUiAutomationSmokeState(uiAutomationSmokeState!);

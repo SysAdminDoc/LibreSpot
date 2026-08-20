@@ -43,8 +43,8 @@ public sealed class WpfUiAutomationSmokeTests
     }
 
     [Theory]
-    [InlineData("recommended", "Recommended setup")]
-    [InlineData("custom", "Custom settings")]
+    [InlineData("recommended", "Recommended")]
+    [InlineData("custom", "Custom")]
     [InlineData("maintenance", "Maintenance")]
     [InlineData("provenance", "Open source")]
     [InlineData("prompt", "Decision prompt")]

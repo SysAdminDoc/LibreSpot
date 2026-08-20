@@ -2045,9 +2045,6 @@
   <data name="Vm_ThemeGalleryMarketplaceHelp" xml:space="preserve"><value>Usa o Spicetify Marketplace sem instalar um tema incluído.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeGalleryRequiresJsHelpFormat" xml:space="preserve"><value>{0} inclui uma etapa theme.js e {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeGalleryNoJsHelpFormat" xml:space="preserve"><value>{0} é instalado sem uma etapa theme.js e tem {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="NavHome" xml:space="preserve"><value>Página inicial</value><comment>User-facing WPF text</comment></data>
-  <data name="NavSetup" xml:space="preserve"><value>Configuração</value><comment>User-facing WPF text</comment></data>
-  <data name="NavUnblock" xml:space="preserve"><value>Desbloquear</value><comment>User-facing WPF text</comment></data>
   <data name="NavTools" xml:space="preserve"><value>Ferramentas</value><comment>User-facing WPF text</comment></data>
   <data name="NavSettings" xml:space="preserve"><value>Configurações</value><comment>User-facing WPF text</comment></data>
   <data name="NavAbout" xml:space="preserve"><value>Sobre</value><comment>User-facing WPF text</comment></data>
@@ -2057,12 +2054,12 @@
   <data name="Vm_EnvStandardUser" xml:space="preserve"><value>Usuário padrão</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvUser" xml:space="preserve"><value>Usuário</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvWorkingDirectory" xml:space="preserve"><value>Diretório de trabalho</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellActionRunSetupDetail" xml:space="preserve"><value>Aplicar todos os patches e configurações recomendados.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellActionRunSetupTitle" xml:space="preserve"><value>Executar configuração</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellActionToolsDetail" xml:space="preserve"><value>Ver registros, arquivos de backup e utilitários avançados.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellActionToolsTitle" xml:space="preserve"><value>Ferramentas</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellActionUnblockDetail" xml:space="preserve"><value>Remover restrições e ativar atualizações.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellActionUnblockTitle" xml:space="preserve"><value>Desbloquear Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionRunSetupDetail" xml:space="preserve"><value>Aplicar o perfil recomendado.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionRunSetupTitle" xml:space="preserve"><value>Recomendado</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionToolsDetail" xml:space="preserve"><value>Abrir registros, backups e utilitários avançados de manutenção.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionToolsTitle" xml:space="preserve"><value>Ferramentas de manutenção</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionUnblockDetail" xml:space="preserve"><value>Abrir ferramentas de reparo, backup e recuperação.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellActionUnblockTitle" xml:space="preserve"><value>Manutenção</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellActiveRunTitle" xml:space="preserve"><value>Execução ativa</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellCheckOkLabel" xml:space="preserve"><value>OK</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesLabel" xml:space="preserve"><value>Dependências</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2591,4 +2588,6 @@
   <data name="CompatibilityDetectedFiles" xml:space="preserve"><value>Arquivos detectados, versão desconhecida</value></data>
   <data name="CompatibilityDetectedUnavailable" xml:space="preserve"><value>Indisponível</value></data>
   <data name="CompatibilityDetectedUnknown" xml:space="preserve"><value>Versão desconhecida</value></data>
+  <data name="ShellProtocolUrlDescription" xml:space="preserve"><value>URL:link de perfil do LibreSpot</value></data>
+  <data name="ShellProfileFileDescription" xml:space="preserve"><value>Perfil do LibreSpot</value></data>
 </root>
