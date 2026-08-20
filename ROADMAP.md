@@ -51,13 +51,6 @@ Existing items RD-51–RD-62 below are the same work items as the prior pass, wi
 
 ### P2
 
-- [ ] P2 — RD-56: PSScriptAnalyzer 1.25.0 upgrade and new-rule triage
-  Why: First PSSA release in a year (2026-03-20) adds four relevant rules plus `PSUseConstrainedLanguageMode`; the lint gate should run current rules.
-  Evidence: PSScriptAnalyzer 1.25.0 release notes; `.psscriptanalyzerrc.psd1`; `-Lint` currently installs PSSA unpinned.
-  Touches: lint config, both PS hosts and shared functions for any new findings, `Build-Scripts.ps1 -Lint`
-  Acceptance: `-Lint` pins or records 1.25.0 and runs clean with any suppressions justified in the config, including an explicit decision on `PSUseConstrainedLanguageMode`.
-  Complexity: M
-
 - [ ] P2 — RD-57: Marketplace IndexedDB persistence-model refresh (docs, health, data inventory)
   Why: Marketplace v1.0.9 moved state localStorage → IndexedDB (PR #1181) and closed #1201; recovery docs still describe the localStorage-era non-portable boundary and miss Marketplace’s own export/import. PR #1212 (persist-before-reload race) is still open, so file-level backup stays out of scope.
   Evidence: spicetify/marketplace PR #1181; issue #1201 closed 2026-08-03; PR #1212 open 2026-08-12; `schemas/data-inventory.json` Marketplace entries.

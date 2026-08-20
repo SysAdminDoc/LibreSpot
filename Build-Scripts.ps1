@@ -2068,11 +2068,17 @@ if ($Validate) {
 
 if ($Lint) {
     $moduleName = 'PSScriptAnalyzer'
-    if (-not (Get-Module -ListAvailable -Name $moduleName)) {
-        Write-Host "Installing PSScriptAnalyzer..." -ForegroundColor Cyan
-        Install-Module -Name $moduleName -Force -Scope CurrentUser -SkipPublisherCheck
+    $requiredPssaVersion = [Version]'1.25.0'
+    $availablePssa = @(Get-Module -ListAvailable -Name $moduleName | Where-Object { $_.Version -eq $requiredPssaVersion })
+    if ($availablePssa.Count -eq 0) {
+        Write-Host "Installing PSScriptAnalyzer $requiredPssaVersion..." -ForegroundColor Cyan
+        Install-Module -Name $moduleName -RequiredVersion $requiredPssaVersion -Force -Scope CurrentUser -SkipPublisherCheck
     }
-    Import-Module $moduleName -ErrorAction Stop
+    Import-Module $moduleName -RequiredVersion $requiredPssaVersion -Force -ErrorAction Stop
+    $loadedPssaVersion = (Get-Module -Name $moduleName).Version
+    if ($loadedPssaVersion -ne $requiredPssaVersion) {
+        throw "PSScriptAnalyzer $requiredPssaVersion is required for the lint contract; loaded $loadedPssaVersion."
+    }
 
     $settingsPath = Join-Path $PSScriptRoot '.psscriptanalyzerrc.psd1'
     if (-not (Test-Path -LiteralPath $settingsPath)) {

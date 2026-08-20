@@ -63,6 +63,19 @@ public sealed class DependencyAutomationTests
     }
 
     [Fact]
+    public void PowerShellLint_PinsPssaAndRecordsConstrainedLanguageDecision()
+    {
+        var buildScripts = ReadRepoFile("Build-Scripts.ps1");
+        var settings = ReadRepoFile(".psscriptanalyzerrc.psd1");
+
+        Assert.Contains("$requiredPssaVersion = [Version]'1.25.0'", buildScripts, StringComparison.Ordinal);
+        Assert.Contains("-RequiredVersion $requiredPssaVersion", buildScripts, StringComparison.Ordinal);
+        Assert.Contains("PSUseConstrainedLanguageMode", settings, StringComparison.Ordinal);
+        Assert.Contains("Enable = $false", settings, StringComparison.Ordinal);
+        Assert.Contains("zero diagnostics", settings, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void DirectoryBuildProps_EnablesLockedNuGetAuditPolicy()
     {
         var props = ReadRepoFile("Directory.Build.props");

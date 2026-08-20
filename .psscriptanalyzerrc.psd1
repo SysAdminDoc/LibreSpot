@@ -66,6 +66,14 @@
             Enable         = $true
             TargetVersions = @('5.1', '7.6')
         }
+        # PSScriptAnalyzer 1.25.0 triage: the rule is intentionally disabled.
+        # LibreSpot detects ConstrainedLanguageMode and reports the policy
+        # boundary, but the installer intentionally uses registry, process,
+        # WPF, and .NET APIs that CLM restricts. A direct 1.25.0 run against
+        # both hosts produced zero diagnostics on 2026-08-20.
+        PSUseConstrainedLanguageMode = @{
+            Enable = $false
+        }
         # PSUseCompatibleCommands is intentionally omitted: the monolith defines
         # 162 project functions (Write-Log, Module-*, etc.) and the rule flags
         # every call as "not available by default" with no project-function
