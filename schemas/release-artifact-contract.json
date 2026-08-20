@@ -122,19 +122,29 @@
     "verificationCommand": "sha256sum --check checksums.txt"
   },
   "attestationContract": {
-    "provider": "none",
-    "status": "not-produced-by-local-builds",
-    "reason": "The repository intentionally does not track GitHub Actions build workflows. Local release builds publish checksums and SBOM files, but they do not currently produce GitHub provenance attestations.",
+    "provider": "github-immutable-release",
+    "status": "release-attestation-generated-on-publication",
+    "reason": "GitHub generates a Sigstore-verifiable release attestation when an immutable release is published. It binds the release tag, commit SHA, and uploaded release assets. This is release integrity evidence, not a GitHub Actions build-provenance attestation.",
     "buildProvenance": {
       "subjects": [],
-      "action": null
+      "action": null,
+      "status": "not-produced-by-local-builds"
+    },
+    "releaseAttestation": {
+      "provider": "github",
+      "status": "generated-on-immutable-publication",
+      "coveredAssets": "all-uploaded-release-assets",
+      "sourceArchives": "not-covered",
+      "verificationCommand": "gh release verify <tag>",
+      "assetVerificationCommand": "gh release verify-asset <tag> <local-asset-path>"
     },
     "sbom": {
       "subject": "LibreSpot-Desktop.exe",
       "sbomFile": "LibreSpot.sbom.cdx.json",
       "action": null
     },
-    "verificationCommand": null
+    "verificationCommand": "gh release verify <tag>",
+    "assetVerificationCommand": "gh release verify-asset <tag> <local-asset-path>"
   },
   "signingContract": {
     "provider": "none",
@@ -156,7 +166,7 @@
       "librespot-release-manifest.json records each artifact role, size, SHA256, RID, and build mode"
     ],
     "implementationStatus": "manual-local",
-    "notes": "The post-upload step runs from the maintainer machine with gh release view --json after assets are uploaded. The repository intentionally does not track GitHub Actions build workflows, so provenance attestations are not part of the current local release contract."
+    "notes": "The post-upload step runs from the maintainer machine with gh release view --json after assets are uploaded. The release must be published as immutable so GitHub generates its release attestation. Verify the release with gh release verify and a downloaded asset with gh release verify-asset, then compare checksums.txt as the independent file-hash check."
   },
   "historicalReleases": {
     "description": "Releases before this contract was introduced do not conform to it.",

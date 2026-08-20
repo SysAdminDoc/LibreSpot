@@ -412,7 +412,7 @@ Get-Sha256 .\LibreSpot.ps1
 Get-Content  .\checksums.txt
 ```
 
-GitHub provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows, and releases are unsigned by design. `checksums.txt`, the release manifest, and the SBOM are the verification evidence for every release — match the SHA256 in `checksums.txt` to confirm a download is authentic.
+GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.0.0-preview.25` to verify the release tag and commit, then run `gh release verify-asset v4.0.0-preview.25 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
 
 ## Local validation
 

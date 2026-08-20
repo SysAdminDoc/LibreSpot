@@ -76,6 +76,30 @@ public sealed class ReleaseArtifactContractTests
     }
 
     [Fact]
+    public void Contract_ReleaseAttestationRecordsSigstoreVerificationCommands()
+    {
+        var attestation = Contract.RootElement.GetProperty("attestationContract");
+        var releaseAttestation = attestation.GetProperty("releaseAttestation");
+
+        Assert.Equal("github-immutable-release", attestation.GetProperty("provider").GetString());
+        Assert.Equal("release-attestation-generated-on-publication", attestation.GetProperty("status").GetString());
+        Assert.Equal("github", releaseAttestation.GetProperty("provider").GetString());
+        Assert.Equal("generated-on-immutable-publication", releaseAttestation.GetProperty("status").GetString());
+        Assert.Equal("all-uploaded-release-assets", releaseAttestation.GetProperty("coveredAssets").GetString());
+        Assert.Equal("not-covered", releaseAttestation.GetProperty("sourceArchives").GetString());
+        Assert.Equal("gh release verify <tag>", releaseAttestation.GetProperty("verificationCommand").GetString());
+        Assert.Equal(
+            "gh release verify-asset <tag> <local-asset-path>",
+            releaseAttestation.GetProperty("assetVerificationCommand").GetString());
+        Assert.Equal(
+            releaseAttestation.GetProperty("verificationCommand").GetString(),
+            attestation.GetProperty("verificationCommand").GetString());
+        Assert.Equal(
+            releaseAttestation.GetProperty("assetVerificationCommand").GetString(),
+            attestation.GetProperty("assetVerificationCommand").GetString());
+    }
+
+    [Fact]
     public void Contract_AttestationSubjectsMatchArtifactAttestationFields()
     {
         var buildProvenanceSubjects = Contract.RootElement
@@ -393,15 +417,17 @@ public sealed class ReleaseArtifactContractTests
             Assert.DoesNotContain("GitHub-hosted runners", content, StringComparison.OrdinalIgnoreCase);
 
             Assert.Contains("checksums", content, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("gh release verify", content, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("gh release verify-asset", content, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(
                 "SignPath",
                 content,
                 StringComparison.OrdinalIgnoreCase);
         }
 
-        Assert.Contains("GitHub provenance attestations are not produced", docs["README.md"], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("GitHub Actions build-provenance attestations are not produced", docs["README.md"], StringComparison.OrdinalIgnoreCase);
         Assert.Contains("does not currently track build, release, or Scorecard GitHub Actions workflows", docs["SECURITY.md"], StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("GitHub provenance attestations are not produced", docs["SIGNPATH.md"], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("GitHub Actions build-provenance attestations are not produced", docs["SIGNPATH.md"], StringComparison.OrdinalIgnoreCase);
         Assert.Contains("LibreSpot.Cli.exe", docs["SIGNPATH.md"], StringComparison.Ordinal);
         Assert.Contains(".NET 10", docs["SIGNPATH.md"], StringComparison.OrdinalIgnoreCase);
     }

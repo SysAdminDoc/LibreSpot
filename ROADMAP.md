@@ -6,22 +6,9 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-IDs continue the RD-nn scheme. RD-47 through RD-50 shipped on `main` after tag `v4.0.0-preview.25` (see CHANGELOG `[Unreleased]`) and were removed from this file on 2026-08-20. Highest remaining prior ID before this pass: RD-62. New items start at RD-63.
+IDs continue the RD-nn scheme. Highest ID in this file: RD-72. RD-47–RD-50 are absent because they already landed on `main` (CHANGELOG `[Unreleased]`); do not re-file them.
 
-Notes on surviving 2026-08-20 morning items (do not duplicate):
-
-- RD-51 — still valid. Immutable Releases remain the unsigned-by-design strengthening path.
-- RD-52 — still valid. `packaging/` is still absent; `.gitignore` still cites `release.yml`.
-- RD-53 — still valid. 8 `dependabot/*` heads remain on origin (was 13 in the morning pass).
-- RD-54 — **modified:** FsCheck.Xunit.v3 3.4.0 does not exist (NuGet latest 3.3.4, 2026-07-25). Do not upgrade xunit.v3 4.0.0 as a unit with a nonexistent FsCheck adapter. Test.Sdk 18.9.0 is a safe solo bump.
-- RD-55 — still valid. Addendum: coverlet.collector 10.0.1 is incompatible with MTP; a Core-only Stryker pilot must not assume coverage.
-- RD-56 — still valid. Addendum: triage new `PSUseConstrainedLanguageMode` (off by default in 1.25.0).
-- RD-57 — still valid. Addendum: Marketplace PR #1212 (persist-before-reload race) is still open as of 2026-08-12.
-- RD-58 — still valid. Stronger evidence: SpotX-Bash prints supported version in the banner; ReVanced computes compatibility from selected patches; Wikipedia/SpotX Windows is 1.2.96.518 / SpotX HEAD 1.2.97 vs pin 1.2.93.
-- RD-59 — still valid. Line counts unchanged (MainViewModel 4,871; custom-workspace-view ~87 KB).
-- RD-60 — **modified evidence:** use the Jun 2026 ClickFix/Vidar “free Premium” PowerShell campaign, not unverified named GitHub stubs. Do not name-and-shame specific repos.
-- RD-61 — still valid. Addendum: CLAUDE.md Current State now also falsely attributes Unreleased floors/guards to preview.25 (pairs with RD-63).
-- RD-62 — still valid.
+Existing items RD-51–RD-62 below are the same work items as the prior pass, with evidence corrections in-place (especially RD-54 / RD-60). New items start at RD-63.
 
 ### P0
 
@@ -33,13 +20,6 @@ Notes on surviving 2026-08-20 morning items (do not duplicate):
   Complexity: M
 
 ### P1
-
-- [ ] P1 — RD-51: Enable GitHub Immutable Releases and document Sigstore verification
-  Why: GA since 2025-10-28, it locks release assets/tags and attaches Sigstore attestations to locally built, manually uploaded binaries — no GitHub Actions — materially strengthening unsigned-by-design.
-  Evidence: GitHub changelog 2025-10-28; docs on `gh release verify-asset`; `schemas/release-artifact-contract.json` verification states.
-  Touches: repo settings (immutable releases), README verification section, SECURITY.md, `schemas/release-artifact-contract.json`, `ReleaseTruthTests.cs`
-  Acceptance: Repo has immutable releases enabled; README/SECURITY document `gh release verify-asset` alongside SHA256; the release contract records the attestation verification state; first release published under it (pairs with RD-63).
-  Complexity: S
 
 - [ ] P1 — RD-52: Purge dead release-infrastructure references and document the local release procedure
   Why: README, `.gitignore`, CHANGELOG, and Roadmap_Blocked.md cite `.github/workflows/release.yml`, `scorecard.yml`, and a `packaging/` directory — none exist — so the actual (local) release procedure is undocumented and the docs lie about provenance.
