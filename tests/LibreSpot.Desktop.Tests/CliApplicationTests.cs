@@ -53,6 +53,35 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public void Help_ListsEveryFleetContractFlagForEachVerb()
+    {
+        var result = Run("--help");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(string.Empty, result.Stdout);
+
+        using var contract = JsonDocument.Parse(File.ReadAllText(Path.Combine(ResolveRepoRoot(), "schemas", "fleet-cli-contract.json")));
+        var lines = result.Stderr.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var verb in contract.RootElement.GetProperty("verbs").EnumerateArray())
+        {
+            var verbName = verb.GetProperty("verb").GetString()!;
+            var usageLine = lines.SingleOrDefault(line =>
+                line.StartsWith($"  LibreSpot.Cli {verbName} ", StringComparison.Ordinal));
+
+            Assert.False(usageLine is null, $"Help is missing a usage line for '{verbName}'.");
+            foreach (var flag in verb.GetProperty("flags").EnumerateArray())
+            {
+                var flagName = flag.GetString()!;
+                Assert.Contains(flagName, usageLine!, StringComparison.Ordinal);
+            }
+        }
+
+        var uninstall = lines.Single(line => line.StartsWith("  LibreSpot.Cli uninstall ", StringComparison.Ordinal));
+        Assert.Contains("--purge", uninstall, StringComparison.Ordinal);
+        Assert.Contains("--yes", uninstall, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void StatusJson_UsesHealthReportComponents()
     {
         var upstreamReport = new CliUpstreamDriftReport(

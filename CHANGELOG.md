@@ -18,6 +18,7 @@ All notable changes to LibreSpot will be documented in this file.
 ### Changed
 
 - Unified the desktop workspace vocabulary around Recommended, Custom, and Maintenance. Jump List entries and per-user `librespot://` and `.librespot` registration descriptions now use localized resources after the saved interface culture is loaded.
+- Updated `LibreSpot.Cli --help` to list every flag in `schemas/fleet-cli-contract.json` per verb, with the `--purge` and `--yes` uninstall requirements stated explicitly.
 
 ### Fixed
 

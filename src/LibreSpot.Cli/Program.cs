@@ -1990,22 +1990,22 @@ public static class CliApplication
     private static void WriteUsage(TextWriter writer)
     {
         writer.WriteLine("Usage:");
-        writer.WriteLine("  LibreSpot.Cli --version");
-        writer.WriteLine("  LibreSpot.Cli status [--json] [--config-path <path>]");
-        writer.WriteLine("  LibreSpot.Cli detect [--json|--intune] [--config-path <path>]");
-        writer.WriteLine("  LibreSpot.Cli validate --answer-file <path> [--json]");
-        writer.WriteLine("  LibreSpot.Cli install [--dry-run] --answer-file <path> [--ndjson]");
-        writer.WriteLine("  LibreSpot.Cli reapply [--dry-run] --answer-file <path> [--ndjson]");
-        writer.WriteLine("  LibreSpot.Cli uninstall [--dry-run] [--keep-spotify] [--ndjson]");
-        writer.WriteLine("  LibreSpot.Cli repair --repair-id <id> [--dry-run] [--ndjson]");
+        writer.WriteLine("  LibreSpot.Cli --version [--json]");
+        writer.WriteLine("  LibreSpot.Cli version [--json]");
+        writer.WriteLine("  LibreSpot.Cli install --answer-file <path> [--profile <name>] [--config-path <path>] [--silent] [--quiet] [--accept-eula] [--no-restart] [--dry-run] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--ndjson] [--scope <user|machine>]");
+        writer.WriteLine("  LibreSpot.Cli reapply --answer-file <path> [--profile <name>] [--config-path <path>] [--silent] [--quiet] [--no-restart] [--dry-run] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--ndjson] [--scope <user|machine>]");
+        writer.WriteLine("  LibreSpot.Cli detect [--json] [--config-path <path>] [--answer-file <path>] [--profile <name>] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>] [--intune]");
+        writer.WriteLine("  LibreSpot.Cli status [--json] [--config-path <path>] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
+        writer.WriteLine("  LibreSpot.Cli undo --operation-id <id> --token-kind <kind> [--config-path <path>] [--dry-run] [--yes] [--json] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
+        writer.WriteLine("  LibreSpot.Cli validate [--json] --answer-file <path> [--config-path <path>] [--correlation-id <guid>] [--log-dir <path>]");
+        writer.WriteLine("  LibreSpot.Cli plan [--json] --answer-file <path> [--profile <name>] [--config-path <path>] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
+        writer.WriteLine("  LibreSpot.Cli repair --repair-id <id> [--answer-file <path>] [--profile <name>] [--config-path <path>] [--silent] [--quiet] [--dry-run] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--ndjson] [--scope <user|machine>]");
         writer.WriteLine("    Marketplace IDs: ExportMarketplaceState, RestoreMarketplaceState");
-        writer.WriteLine("  LibreSpot.Cli undo --operation-id <id> --token-kind <kind> --dry-run [--json]");
-        writer.WriteLine("  LibreSpot.Cli undo --operation-id <id> --token-kind <kind> --yes [--json]");
-        writer.WriteLine("  LibreSpot.Cli plan --answer-file <path> [--json]");
-        writer.WriteLine("  LibreSpot.Cli export-support [--output <path>]");
-        writer.WriteLine("  LibreSpot.Cli watcher install [--silent]");
-        writer.WriteLine("  LibreSpot.Cli watcher remove [--silent]");
-        writer.WriteLine("Common flags: --silent --yes --keep-spotify --log-dir <path>");
+        writer.WriteLine("  LibreSpot.Cli watcher install [--silent] [--quiet] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
+        writer.WriteLine("  LibreSpot.Cli watcher remove [--silent] [--quiet] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
+        writer.WriteLine("  LibreSpot.Cli uninstall [--purge] [--keep-spotify] [--answer-file <path>] [--profile <name>] [--config-path <path>] [--silent] [--quiet] [--accept-eula] [--no-restart] [--dry-run] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--ndjson] [--scope <user|machine>]");
+        writer.WriteLine("  LibreSpot.Cli export-support [--output <path>] [--correlation-id <guid>] [--log-dir <path>]");
+        writer.WriteLine("  --purge and --yes are required together for destructive uninstall.");
     }
 
     private static bool IsHelp(string arg) =>

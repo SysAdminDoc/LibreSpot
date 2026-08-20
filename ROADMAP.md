@@ -21,13 +21,6 @@ Existing items RD-51–RD-57 and RD-59–RD-62 below are the same work items as 
 
 ### P1
 
-- [ ] P1 — RD-65: Make `LibreSpot.Cli --help` match `fleet-cli-contract.json`
-  Why: Fleet operators copy `--help`; it currently omits flags the parser already accepts (`--profile`, `--scope`, `--purge`, `--quiet`, `--correlation-id`, `--no-restart`), so answer-file installs fail for reasons the usage text cannot explain.
-  Evidence: `src/LibreSpot.Cli/Program.cs` `WriteUsage` vs `ValueFlags` and `schemas/fleet-cli-contract.json` verb flag lists; README fleet examples already document several omitted flags.
-  Touches: `Program.cs` `WriteUsage`, `CliApplicationTests`, `FleetSchemaTests`, README if usage snippets are generated
-  Acceptance: `--help` lists every contract flag per verb; a test fails if `WriteUsage` drifts from `fleet-cli-contract.json`; `--purge`/`--yes` uninstall requirements are explicit.
-  Complexity: S
-
 - [ ] P1 — RD-66: Fail closed when a v3 CLI is detected but `supported-versions.json` is missing
   Why: Current contract copies upstream fail-open so a package-manager v3 without the file still patches; LibreSpot already pins hashes and otherwise refuses unknown Spotify — fail-open is the remaining way a v3 CLI can mutate an unsupported client. This contradicts pin-and-refuse philosophy (flagged in RESEARCH.md).
   Evidence: `SpicetifySupportContract.cs` fail-open messages; `Get-SpicetifyV3SupportContract.ps1`; SECURITY.md “missing list fails open”; upstream `supported-versions.md`; ReVanced fail-closed-unless-forced pattern.
