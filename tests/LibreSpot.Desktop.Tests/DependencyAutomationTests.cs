@@ -104,9 +104,12 @@ public sealed class DependencyAutomationTests
         var floor = doc.RootElement.GetProperty("dotnetRuntimeFloor");
 
         var version = floor.GetProperty("version").GetString();
-        Assert.True(Version.TryParse(version, out var parsed) && parsed.Major == 10,
-            $"dotnetRuntimeFloor.version must be a .NET 10 version; was '{version}'.");
-        Assert.False(string.IsNullOrWhiteSpace(floor.GetProperty("reason").GetString()));
+        Assert.True(Version.TryParse(version, out var parsed) && parsed == new Version(10, 0, 11),
+            $"dotnetRuntimeFloor.version must be .NET 10.0.11; was '{version}'.");
+        var reason = floor.GetProperty("reason").GetString();
+        Assert.Contains("2026-08-11", reason, StringComparison.Ordinal);
+        Assert.Contains("CVE-2026-70354", reason, StringComparison.Ordinal);
+        Assert.Contains("CVE-2026-62897", reason, StringComparison.Ordinal);
         Assert.True(DateTime.TryParse(floor.GetProperty("recheckDate").GetString(), out _));
     }
 

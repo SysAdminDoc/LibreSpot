@@ -73,6 +73,10 @@ LibreSpot also checks the PowerShell 7 host before a download or external script
 
 Users should update from the [PowerShell 7.6.5 release](https://github.com/PowerShell/PowerShell/releases/tag/v7.6.5) before running LibreSpot. The warning is advisory because LibreSpot cannot safely replace a user's PowerShell installation.
 
+### .NET 10.0.11 runtime floor
+
+The Desktop and CLI releases are self-contained, so each binary carries the .NET runtime resolved during its build. `Build-Scripts.ps1 -DependencyHealth` therefore requires .NET 10.0.11 or newer for both `Microsoft.NETCore.App` and `Microsoft.WindowsDesktop.App`. The August 11, 2026 servicing release fixes ten CVEs, including two remote-code-execution issues. Rebuild release assets on a host with the patched runtime rather than relying on a later machine update.
+
 ## Supply-chain hygiene
 
 LibreSpot does not currently track build, release, or Scorecard GitHub Actions workflows. Release trust evidence comes from the local release build and post-upload audit: SHA256 entries in `checksums.txt`, the machine-readable `librespot-release-manifest.json`, CycloneDX SBOM output, pinned upstream download hashes, and local test/build logs.
