@@ -1,4 +1,8 @@
 function Module-InstallSpicetifyCLI {
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
     $integration = Get-SpicetifyIntegrationContext
     $ver = $global:PinnedReleases.SpicetifyCLI.Version
     Write-Log "Installing Spicetify CLI v$ver..." -Level 'STEP'

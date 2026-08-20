@@ -831,6 +831,26 @@ public sealed class EnvironmentSnapshotService
 
     private StackHealthComponent BuildSpicetifyCliComponent(bool installed)
     {
+        var version = installed ? _spicetifyVersionProbe() : null;
+        var conflict = SpicetifyV3ConflictDetector.Detect(
+            _spotifyPath,
+            Path.GetDirectoryName(_spicetifyPath),
+            _spicetifyConfigDirectory,
+            version);
+        if (conflict.IsConflict)
+        {
+            return Component(
+                "spicetify-cli",
+                L("HealthNameSpicetifyCli"),
+                L("HealthStatusSpicetifyV3Conflict"),
+                HealthSeverity.Critical,
+                version,
+                _spicetifyPath,
+                GetLastChanged(_spicetifyPath),
+                F("HealthEvidenceSpicetifyV3ConflictFormat", string.Join(", ", conflict.Markers), SpicetifyV3ConflictReport.SafeAction),
+                "RestoreVanilla");
+        }
+
         if (!installed)
         {
             return Component(
@@ -845,7 +865,6 @@ public sealed class EnvironmentSnapshotService
                 "Install");
         }
 
-        var version = _spicetifyVersionProbe();
         if (SpicetifyVersionSupport.IsUnsupportedMajor(version))
         {
             // A newer-major Spicetify uses an on-disk contract LibreSpot's 2.x

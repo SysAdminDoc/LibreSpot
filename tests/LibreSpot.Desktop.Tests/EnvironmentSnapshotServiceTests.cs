@@ -1151,18 +1151,39 @@ public sealed class EnvironmentSnapshotServiceTests
     }
 
     [Fact]
-    public void SpicetifyCliComponent_FlagsUnsupportedMajorVersionAsWarning()
+    public void SpicetifyCliComponent_FlagsUnsupportedMajorVersionAsConflict()
     {
         using var fixture = new SnapshotFixture { SpicetifyVersion = "3.0.0" };
         fixture.WriteSpicetifyConfig("[Setting]\n");
         var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
 
         var component = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "spicetify-cli");
-        Assert.Equal(HealthSeverity.Warning, component.Severity);
-        Assert.Equal("Unsupported version", component.Status);
+        Assert.Equal(HealthSeverity.Critical, component.Severity);
+        Assert.Equal("Spicetify v3 conflict", component.Status);
         Assert.Equal("3.0.0", component.DetectedVersion);
-        Assert.Contains("3.0.0", component.Evidence);
-        Assert.Contains(snapshot.HealthReport.WarningIssues, c => c.Id == "spicetify-cli");
+        Assert.Contains("Spicetify CLI major 3", component.Evidence);
+        Assert.Contains("spicetify restore", component.Evidence);
+        Assert.Contains(snapshot.HealthReport.CriticalIssues, c => c.Id == "spicetify-cli");
+    }
+
+    [Fact]
+    public void SpicetifyCliComponent_FlagsV3BackupArtifactAsCritical()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: false);
+        var appsDirectory = Path.Combine(Path.GetDirectoryName(fixture.SpotifyPath)!, "Apps");
+        Directory.CreateDirectory(appsDirectory);
+        File.WriteAllText(Path.Combine(appsDirectory, "xpui.spa.backup"), "v3 marker");
+        fixture.WriteSpicetifyConfig("[Setting]\n");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var component = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "spicetify-cli");
+        Assert.Equal(HealthSeverity.Critical, component.Severity);
+        Assert.Equal("Spicetify v3 conflict", component.Status);
+        Assert.Contains("Apps\\xpui.spa.backup", component.Evidence);
+        Assert.Contains("spicetify restore", component.Evidence);
+        Assert.Contains("RestoreVanilla", component.RecommendedActionIds);
     }
 
     [Fact]

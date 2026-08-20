@@ -1272,6 +1272,10 @@ function Set-AutoReapplyConfigPreference {
 function Invoke-HeadlessReapply {
     param([hashtable]$Config)
     if (-not $Config) { throw 'Invoke-HeadlessReapply: missing config.' }
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
 
     $destination = New-LibreSpotTempFile -Name 'spotx_watcher.ps1'
     $customPatchesPath = ''
@@ -3015,6 +3019,83 @@ function Get-SpicetifyIntegrationContext {
     }
 }
 
+function Get-SpicetifyV3Conflict {
+    [CmdletBinding()]
+    param(
+        [string]$SpotifyPath,
+        [string]$SpicetifyInstallDirectory,
+        [string]$SpicetifyConfigDirectory,
+        [string]$CliVersion
+    )
+
+    if ([string]::IsNullOrWhiteSpace($SpotifyPath)) {
+        $SpotifyPath = [string]$global:SPOTIFY_EXE_PATH
+    }
+    if ([string]::IsNullOrWhiteSpace($SpicetifyInstallDirectory)) {
+        $SpicetifyInstallDirectory = [string]$global:SPICETIFY_DIR
+    }
+    if ([string]::IsNullOrWhiteSpace($SpicetifyConfigDirectory)) {
+        $SpicetifyConfigDirectory = [string]$global:SPICETIFY_CONFIG_DIR
+    }
+
+    if ([string]::IsNullOrWhiteSpace($CliVersion) -and
+        (Get-Command Get-InstalledSpicetifyCliVersion -CommandType Function -ErrorAction SilentlyContinue)) {
+        try { $CliVersion = [string](Get-InstalledSpicetifyCliVersion) } catch {}
+    }
+
+    $markers = [System.Collections.Generic.List[string]]::new()
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $addMarker = {
+        param([string]$Marker)
+        if (-not [string]::IsNullOrWhiteSpace($Marker) -and $seen.Add($Marker)) {
+            $markers.Add($Marker) | Out-Null
+        }
+    }
+
+    $spotifyDirectory = $null
+    if (-not [string]::IsNullOrWhiteSpace($SpotifyPath)) {
+        try { $spotifyDirectory = Split-Path -Path $SpotifyPath -Parent } catch {}
+    }
+    if (-not [string]::IsNullOrWhiteSpace($spotifyDirectory) -and
+        (Test-Path -LiteralPath (Join-Path $spotifyDirectory 'Apps\xpui.spa.backup') -PathType Leaf)) {
+        & $addMarker 'Apps\xpui.spa.backup'
+    }
+
+    foreach ($layout in @(
+        [pscustomobject]@{ Path = $SpicetifyInstallDirectory; Label = 'spicetify install' }
+        [pscustomobject]@{ Path = $SpicetifyConfigDirectory; Label = 'spicetify config' }
+    )) {
+        if ([string]::IsNullOrWhiteSpace([string]$layout.Path)) { continue }
+        foreach ($directoryName in @('modules', 'hooks')) {
+            $candidate = Join-Path ([string]$layout.Path) $directoryName
+            if (Test-Path -LiteralPath $candidate -PathType Container) {
+                & $addMarker ("{0}\{1}" -f $layout.Label, $directoryName)
+            }
+        }
+    }
+
+    if (Get-Command Get-SpicetifyCliMajorVersion -CommandType Function -ErrorAction SilentlyContinue) {
+        $major = Get-SpicetifyCliMajorVersion -Version $CliVersion
+        if ($null -ne $major -and $major -gt 2) {
+            & $addMarker ("Spicetify CLI major {0}" -f $major)
+        }
+    }
+
+    $isConflict = $markers.Count -gt 0
+    $message = if ($isConflict) {
+        "Spicetify v3 or newer artifacts were detected ($($markers -join ', ')). LibreSpot stopped before changing Spotify. Run 'spicetify restore' first, then reinstall the pinned Spicetify 2.x CLI."
+    } else {
+        $null
+    }
+
+    return [pscustomobject][ordered]@{
+        IsConflict = $isConflict
+        Markers = $markers.ToArray()
+        SafeAction = 'spicetify restore'
+        Message = $message
+    }
+}
+
 function Get-SpicetifyConfigEntries {
     $configPath = (Get-SpicetifyIntegrationContext).ConfigPath
     $entries = @{}
@@ -3801,6 +3882,12 @@ function Invoke-SpicetifyCli {
     )
     $integration = Get-SpicetifyIntegrationContext
     $spicetifyExe = $integration.CliPath
+    $v3Conflict = Get-SpicetifyV3Conflict
+    $command = if (@($Arguments).Count -gt 0) { [string]@($Arguments)[0] } else { '' }
+    if ($v3Conflict.IsConflict -and
+        -not [string]::Equals($command, 'restore', [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw $v3Conflict.Message
+    }
     if (-not (Test-Path -LiteralPath $spicetifyExe)) {
         throw 'Spicetify CLI is not installed.'
     }
@@ -4357,6 +4444,10 @@ function Get-ThirdPartyPatcherReport {
 }
 
 function Module-InstallSpotX { param($Config,$SyncHash)
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
     Write-Log "Installing SpotX v$($global:PinnedReleases.SpotX.Version)..." -Level 'STEP'
     $dest = New-LibreSpotTempFile -Name 'spotx_run.ps1'
     $customPatchesPath = ''
@@ -4468,6 +4559,10 @@ function Module-InstallSpotX { param($Config,$SyncHash)
 }
 
 function Module-InstallSpicetifyCLI {
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
     $integration = Get-SpicetifyIntegrationContext
     $ver = $global:PinnedReleases.SpicetifyCLI.Version
     Write-Log "Installing Spicetify CLI v$ver..." -Level 'STEP'
@@ -5282,6 +5377,10 @@ function Write-MarketplaceVisibilityEvidence {
 
 function Repair-Marketplace {
     param($Config)
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
     if (-not (Test-SpicetifyCliInstalled)) {
         throw 'Spicetify CLI is not installed, so LibreSpot cannot repair Marketplace yet. Run Recommended setup or Reapply first.'
     }
@@ -5429,6 +5528,10 @@ function Get-SpicetifyDiagnosticSnapshot {
     $cliVersion = Get-InstalledSpicetifyCliVersion
     $snapshot['spicetify_cli_version'] = $cliVersion
     $snapshot['spicetify_cli_supported'] = Test-SpicetifyCliVersionSupported -Version $cliVersion
+    $v3Conflict = Get-SpicetifyV3Conflict -CliVersion $cliVersion
+    $snapshot['spicetify_v3_conflict'] = [bool]$v3Conflict.IsConflict
+    $snapshot['spicetify_v3_markers'] = @($v3Conflict.Markers)
+    $snapshot['spicetify_v3_safe_action'] = $v3Conflict.SafeAction
     return $snapshot
 }
 
@@ -5437,6 +5540,10 @@ function Module-ApplySpicetify {
         $Config,
         [string]$EvidenceSource = 'Module-ApplySpicetify'
     )
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
     Write-Log 'Applying Spicetify changes...' -Level 'STEP'
 
     # Marketplace-only mode intentionally does NOT disable theme injection here.
@@ -5523,6 +5630,10 @@ function Module-ApplySpicetify {
 }
 
 function Reapply-SavedSpicetifySetup { param($Config)
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
     if (-not (Test-SpicetifyCliInstalled)) {
         Write-Log "Spicetify CLI is missing, so LibreSpot will reinstall it before restoring your saved setup." -Level 'WARN'
         Module-InstallSpicetifyCLI
@@ -5665,6 +5776,10 @@ function Invoke-LibreSpotPlan {
 }
 
 function Invoke-LibreSpotInstall {
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
     $config = Load-LibreSpotConfig
     Write-Log "--- LibreSpot installation started ($($config.Mode)) ---" -Level 'HEADER'
     $patcherReport = Get-ThirdPartyPatcherReport
@@ -5784,6 +5899,12 @@ function Invoke-LibreSpotInstall {
 }
 
 function Invoke-LibreSpotMaintenance {
+    if ($Action -in @('Reapply', 'RepairMarketplace', 'RestoreMarketplaceState', 'RestoreBackup', 'CreateBackup')) {
+        $v3Conflict = Get-SpicetifyV3Conflict
+        if ($v3Conflict.IsConflict) {
+            throw $v3Conflict.Message
+        }
+    }
     $patcherReport = Get-ThirdPartyPatcherReport
     if ($patcherReport.HasForeignState -and $Action -in @('Reapply', 'RepairMarketplace', 'RestoreMarketplaceState', 'SafeMode', 'CreateBackup', 'RestoreBackup', 'RestoreVanilla', 'UninstallSpicetify', 'FullReset')) {
         Write-Log "$($patcherReport.Summary) Requested action: $Action. $($patcherReport.Recommendation)" -Level 'WARN'

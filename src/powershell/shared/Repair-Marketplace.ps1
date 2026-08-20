@@ -1,5 +1,9 @@
 function Repair-Marketplace {
     param($Config)
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
     if (-not (Test-SpicetifyCliInstalled)) {
         throw 'Spicetify CLI is not installed, so LibreSpot cannot repair Marketplace yet. Run Recommended setup or Reapply first.'
     }

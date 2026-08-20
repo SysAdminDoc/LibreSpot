@@ -1,4 +1,8 @@
 function Module-InstallSpotX { param($Config,$SyncHash)
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
     Write-Log "Installing SpotX v$($global:PinnedReleases.SpotX.Version)..." -Level 'STEP'
     $dest = New-LibreSpotTempFile -Name 'spotx_run.ps1'
     $customPatchesPath = ''

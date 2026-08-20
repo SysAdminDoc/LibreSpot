@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Added a Spicetify v3 coexistence guard. LibreSpot now detects the v3 backup artifact, module and hook directories, and newer CLI majors before install, apply, repair, or reapply operations. The WPF health report records the conflict and points to `spicetify restore`; the recovery command remains available.
+
 ## [v4.0.0-preview.25] - 2026-08-11
 
 ### Fixed

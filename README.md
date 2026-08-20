@@ -70,6 +70,8 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 ## What's New in v4.0.0-preview.25
 
+LibreSpot refuses to install or reapply over Spicetify v3 artifacts. If the health report shows a Spicetify v3 conflict, run `spicetify restore` first, then reinstall the pinned Spicetify 2.x integration.
+
 **A smaller shipping shell.** The three actual workspace tabs now live in dedicated UserControls while preserving the existing automation names, keyboard-focus contracts, localized resources, and navigation behavior. Per-user registry, configuration, profile, backup, log, crash, and executable-path isolation is covered by multi-user regression tests.
 
 **Pinned compatibility is executable.** The supported SpotX/Spotify, Spicetify CLI, Marketplace, and theme tuple now has one fixture-backed release contract checked by Windows PowerShell preflight and Core tests.

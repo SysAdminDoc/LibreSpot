@@ -295,6 +295,10 @@ function Save-LibreSpotConfig {
 function Invoke-HeadlessReapply {
     param([hashtable]$Config)
     if (-not $Config) { throw 'Invoke-HeadlessReapply: missing config.' }
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
 
     $destination = New-LibreSpotTempFile -Name 'spotx_watcher.ps1'
     $customPatchesPath = ''
@@ -582,6 +586,10 @@ function Module-ApplySpicetify {
         $Config,
         [string]$EvidenceSource = 'Module-ApplySpicetify'
     )
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
     Write-Log 'Applying Spicetify changes...' -Level 'STEP'
 
     # Marketplace-only mode intentionally does NOT disable theme injection here.

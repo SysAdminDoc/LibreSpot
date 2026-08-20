@@ -190,6 +190,7 @@ foreach ($name in @(
     'Save-ToAssetCache',
     'Get-SpicetifyAttestationVerdict',
     'Test-SpicetifyCliAttestation',
+    'Get-SpicetifyV3Conflict',
     'Get-LibreSpotTempRoot',
     'New-LibreSpotTempFile',
     'New-LibreSpotTempDirectory',

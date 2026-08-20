@@ -10,12 +10,6 @@ Added by the 2026-08-20 research pass (RESEARCH.md). IDs continue the RD-nn sche
 
 ### P0
 
-- [ ] P0 — RD-46: Spicetify v3 coexistence guard (detect and refuse before damage)
-  Why: Spicetify v3 beta renames `xpui.spa` → `xpui.spa.backup` in place and by upstream's own notice bricks a v2-patched client; users self-installing the beta over a LibreSpot-managed install hit undefined behavior.
-  Evidence: spicetify/cli `src/cmd/v3notice.go`, v3-beta releases 2026-08-10..19; existing generic v3 guard (2026-07) predates the beta's concrete artifacts.
-  Touches: `src/powershell/shared/` detection functions, `LibreSpot.ps1`, `Backend/LibreSpot.Backend.ps1`, `src/LibreSpot.Core/EnvironmentSnapshotService.cs`, fixtures in tests
-  Acceptance: With a fixture layout containing `xpui.spa.backup` or a v3 binary/module directory, install/apply/repair refuse with a specific localized message naming the v3 conflict and the safe path (spicetify restore); health model reports the state; all three detection sites agree.
-  Complexity: M
 
 ### P1
 

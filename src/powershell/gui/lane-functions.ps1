@@ -211,6 +211,10 @@ function Invoke-HeadlessReapply {
     # any UI / runspace plumbing. Caller runs on the main thread from -Watch.
     param([hashtable]$Config)
     if (-not $Config) { throw 'Invoke-HeadlessReapply: missing config' }
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
 
     $tempDir = Join-Path $global:TEMP_DIR ("LibreSpot_Watcher_" + [guid]::NewGuid().ToString('N').Substring(0,8))
     $customPatchesPath = ''
@@ -656,6 +660,10 @@ function Module-ApplySpicetify {
         $Config,
         [string]$EvidenceSource = 'Module-ApplySpicetify'
     )
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
     Write-Log "Applying Spicetify changes..." -Level 'STEP'
     # Marketplace-only mode intentionally does NOT disable theme injection here.
     # The official Marketplace contract needs inject_css/replace_colors on with

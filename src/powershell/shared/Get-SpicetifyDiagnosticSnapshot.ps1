@@ -17,5 +17,9 @@ function Get-SpicetifyDiagnosticSnapshot {
     $cliVersion = Get-InstalledSpicetifyCliVersion
     $snapshot['spicetify_cli_version'] = $cliVersion
     $snapshot['spicetify_cli_supported'] = Test-SpicetifyCliVersionSupported -Version $cliVersion
+    $v3Conflict = Get-SpicetifyV3Conflict -CliVersion $cliVersion
+    $snapshot['spicetify_v3_conflict'] = [bool]$v3Conflict.IsConflict
+    $snapshot['spicetify_v3_markers'] = @($v3Conflict.Markers)
+    $snapshot['spicetify_v3_safe_action'] = $v3Conflict.SafeAction
     return $snapshot
 }

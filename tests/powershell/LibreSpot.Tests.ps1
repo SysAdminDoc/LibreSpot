@@ -1580,6 +1580,70 @@ Describe 'Test-SpicetifyCliVersionSupported' {
     }
 }
 
+Describe 'Get-SpicetifyV3Conflict' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyIntegrationContext.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyCliMajorVersion.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyV3Conflict.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Invoke-SpicetifyCli.ps1')
+    }
+
+    BeforeEach {
+        $script:v3ConflictRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-v3-" + [Guid]::NewGuid().ToString('N'))
+        $global:SPOTIFY_EXE_PATH = Join-Path $script:v3ConflictRoot 'Spotify\Spotify.exe'
+        $global:SPICETIFY_DIR = Join-Path $script:v3ConflictRoot 'spicetify'
+        $global:SPICETIFY_CONFIG_DIR = Join-Path $script:v3ConflictRoot 'spicetify-config'
+        New-Item -Path (Join-Path $script:v3ConflictRoot 'Spotify\Apps') -ItemType Directory -Force | Out-Null
+        New-Item -Path $global:SPICETIFY_DIR -ItemType Directory -Force | Out-Null
+        New-Item -Path $global:SPICETIFY_CONFIG_DIR -ItemType Directory -Force | Out-Null
+    }
+
+    AfterEach {
+        Remove-Item -LiteralPath $script:v3ConflictRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'detects the v3 xpui backup marker and gives the safe restore command' {
+        New-Item -Path (Join-Path $script:v3ConflictRoot 'Spotify\Apps\xpui.spa.backup') -ItemType File -Force | Out-Null
+
+        $report = Get-SpicetifyV3Conflict -CliVersion '2.44.0'
+
+        $report.IsConflict | Should -BeTrue
+        $report.Markers | Should -Contain 'Apps\xpui.spa.backup'
+        $report.Message | Should -Match "spicetify restore"
+    }
+
+    It 'detects v3 layout directories and a newer CLI major' {
+        New-Item -Path (Join-Path $global:SPICETIFY_DIR 'modules') -ItemType Directory -Force | Out-Null
+        New-Item -Path (Join-Path $global:SPICETIFY_CONFIG_DIR 'hooks') -ItemType Directory -Force | Out-Null
+
+        $report = Get-SpicetifyV3Conflict -CliVersion '3.0.0-beta.1'
+
+        $report.IsConflict | Should -BeTrue
+        $report.Markers | Should -Contain 'spicetify install\modules'
+        $report.Markers | Should -Contain 'spicetify config\hooks'
+        $report.Markers | Should -Contain 'Spicetify CLI major 3'
+    }
+
+    It 'leaves the pinned v2 layout ready' {
+        $report = Get-SpicetifyV3Conflict -CliVersion '2.44.0'
+
+        $report.IsConflict | Should -BeFalse
+        @($report.Markers).Count | Should -Be 0
+    }
+
+    It 'refuses a mutating CLI command before a native process starts' {
+        New-Item -Path (Join-Path $script:v3ConflictRoot 'Spotify\Apps\xpui.spa.backup') -ItemType File -Force | Out-Null
+
+        { Invoke-SpicetifyCli -Arguments @('backup', 'apply') } | Should -Throw '*spicetify restore*'
+    }
+
+    It 'allows the recovery command through the conflict gate' {
+        New-Item -Path (Join-Path $script:v3ConflictRoot 'Spotify\Apps\xpui.spa.backup') -ItemType File -Force | Out-Null
+
+        { Invoke-SpicetifyCli -Arguments @('restore') } | Should -Throw '*Spicetify CLI is not installed*'
+    }
+}
+
 Describe 'Marketplace theme contract' {
     BeforeAll {
         . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Get-SpicetifyIntegrationContext.ps1')

@@ -7,6 +7,12 @@ function Invoke-SpicetifyCli {
     )
     $integration = Get-SpicetifyIntegrationContext
     $spicetifyExe = $integration.CliPath
+    $v3Conflict = Get-SpicetifyV3Conflict
+    $command = if (@($Arguments).Count -gt 0) { [string]@($Arguments)[0] } else { '' }
+    if ($v3Conflict.IsConflict -and
+        -not [string]::Equals($command, 'restore', [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw $v3Conflict.Message
+    }
     if (-not (Test-Path -LiteralPath $spicetifyExe)) {
         throw 'Spicetify CLI is not installed.'
     }

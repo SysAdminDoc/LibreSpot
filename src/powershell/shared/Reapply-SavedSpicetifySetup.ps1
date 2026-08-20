@@ -1,4 +1,8 @@
 function Reapply-SavedSpicetifySetup { param($Config)
+    $v3Conflict = Get-SpicetifyV3Conflict
+    if ($v3Conflict.IsConflict) {
+        throw $v3Conflict.Message
+    }
     if (-not (Test-SpicetifyCliInstalled)) {
         Write-Log "Spicetify CLI is missing, so LibreSpot will reinstall it before restoring your saved setup." -Level 'WARN'
         Module-InstallSpicetifyCLI
