@@ -22,6 +22,33 @@ public sealed class ReleaseWorkflowTests
         Assert.DoesNotContain("actions/checkout", config, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void ReleaseDocs_DescribeLocalProcedureAndNotRetiredAutomation()
+    {
+        var docs = new[]
+        {
+            Path.Combine(RepoRoot, "README.md"),
+            Path.Combine(RepoRoot, "SECURITY.md"),
+            Path.Combine(RepoRoot, "CHANGELOG.md"),
+            Path.Combine(RepoRoot, "Roadmap_Blocked.md"),
+            Path.Combine(RepoRoot, ".gitignore")
+        };
+
+        foreach (var path in docs)
+        {
+            var content = File.ReadAllText(path);
+            Assert.DoesNotContain(".github/workflows/release.yml", content, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(".github/workflows/scorecard.yml", content, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("under `packaging/`", content, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(".\\packaging\\", content, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var readme = File.ReadAllText(Path.Combine(RepoRoot, "README.md"));
+        Assert.Contains("Local release procedure", readme, StringComparison.Ordinal);
+        Assert.Contains("-GenerateReleaseManifest", readme, StringComparison.Ordinal);
+        Assert.Contains("gh release verify-asset", readme, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("v3.7.2", false)]
     [InlineData("v4.0.0-preview.6", true)]

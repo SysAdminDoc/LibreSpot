@@ -21,13 +21,6 @@ Existing items RD-51–RD-62 below are the same work items as the prior pass, wi
 
 ### P1
 
-- [ ] P1 — RD-52: Purge dead release-infrastructure references and document the local release procedure
-  Why: README, `.gitignore`, CHANGELOG, and Roadmap_Blocked.md cite `.github/workflows/release.yml`, `scorecard.yml`, and a `packaging/` directory — none exist — so the actual (local) release procedure is undocumented and the docs lie about provenance.
-  Evidence: repo scan 2026-08-20 (only workflow is `ci.yml`); README `packaging\Invoke-ValidationSamples.ps1` reference; `.gitignore` `release.yml` comment.
-  Touches: README.md, .gitignore comments, SECURITY.md if it echoes the claim, a documented step list for the local release pass (`Build-Scripts.ps1` switches)
-  Acceptance: No tracked file references release.yml/scorecard.yml/packaging/; README describes the real local build+release procedure; `ReleaseWorkflowTests`/`ReleaseTruthTests` pass against the corrected story.
-  Complexity: M
-
 - [ ] P1 — RD-53: Remove Dependabot residue
   Why: Stale `dependabot/*` branches sit on origin with no open PRs and no `.github/dependabot.yml`; operator policy is no Dependabot, alerts disabled.
   Evidence: `git ls-remote` 2026-08-20 — 8 live heads (`attest-sbom-4.1.0`, `checkout-6.0.3`, `download-artifact-8.0.1`, `Serilog.Sinks.File-7.0.0`, `Test.Sdk-18.6.0`, `coverlet.collector-10.0.1`, `test-dependencies-a8b09c1528`, `xunit.runner.visualstudio-3.1.5`).

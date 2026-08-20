@@ -77,7 +77,7 @@ Velopack package, app ID, update channel, or `RELEASES` feed. Velopack
 for updates; identity and install location decisions must be settled before
 the WPF shell moves from portable release asset to installed app.
 
-Evidence: `ROADMAP.md:89`, `.github/workflows/release.yml:242`,
+Evidence: `ROADMAP.md:89`, the retired release automation,
 `src/LibreSpot.Desktop/app.manifest:3`,
 https://docs.velopack.io/distributing/overview,
 https://github.com/velopack/velopack/releases/tag/1.2.0,
@@ -278,7 +278,7 @@ package-manager distribution repeats a broader claim than the release
 artifacts prove.
 
 Evidence: `README.md:154`,
-`.github/workflows/release.yml:247`,
+the retired release automation,
 `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:3`,
 `LibreSpot.ps1:5151`,
 `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1855`,
@@ -318,7 +318,7 @@ boundary should be explicit before Authenticode signing becomes the normal
 release path. GitHub environments can hold environment-scoped secrets and
 add required reviewers or wait timers before jobs access those secrets.
 
-Evidence: `.github/workflows/release.yml:19`,
+Evidence: the retired release automation,
 live `gh api repos/SysAdminDoc/LibreSpot/environments` on 2026-06-04
 returned `total_count: 0`,
 https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments
@@ -355,7 +355,7 @@ should be backed by repository rules that protect `main`, release tags, and
 high-risk files such as the release workflow, signing docs, backend script,
 and package manifests.
 
-Evidence: `.github/workflows/release.yml:10`,
+Evidence: the retired release automation,
 live `gh api repos/SysAdminDoc/LibreSpot/branches/main` on 2026-06-04
 reported `protected: true` with required status check enforcement `off`,
 live `gh api repos/SysAdminDoc/LibreSpot/rulesets` on 2026-06-04 returned
@@ -431,8 +431,7 @@ unsigned fallback, SmartScreen false positive, SignPath failure, or release
 that must be marked unsafe after publication.
 
 Evidence: `SIGNPATH.md:76`, `SIGNPATH.md:106`,
-`.github/workflows/release.yml:181`,
-`.github/workflows/release.yml:286`
+the retired release automation,
 
 Touches: release docs, `SECURITY.md`, SignPath docs, release workflow
 policy comments, support templates.
@@ -692,7 +691,7 @@ checks plus hidden long-text rendering review for both locales.
 
 The distribution matrix (`schemas/distribution-matrix.json`) already has a
 PSGallery row with draft status. Remaining work is account creation, script
-metadata headers, CI publish step in release.yml, and a go/no-go decision.
+metadata headers, the former publish step, and a go/no-go decision.
 The row is ready — operator needs to create the account and decide.
 
 ## P1 - Split package-manager targets by artifact role
@@ -856,7 +855,7 @@ Evidence: Win-PS2EXE #4, Malwarebytes PS2EXE false-positive thread; RESEARCH.md
 architecture note. The fleet CLI (`LibreSpot.Cli.exe`) is already a native .NET
 executable; this concerns the PS2EXE-packed `LibreSpot.exe` GUI artifact.
 
-Touches: `.github/workflows/release.yml` (release packaging), a possible native
+Touches: the retired release automation, a possible native
 launcher project, `SIGNPATH.md`.
 
 Acceptance: once signing is unblocked, ship the standalone entrypoint as a

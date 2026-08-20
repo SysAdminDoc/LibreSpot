@@ -930,7 +930,7 @@ and the fleet CLI.
 - WPF Maintenance now reuses the typed health report for stable backup, Marketplace, active-theme, and five-component readiness diagnostics. Maintenance actions are hidden unless the current health state makes them relevant, and Marketplace can be opened directly as a no-admin read-only action when its files and `custom_apps` registration are ready.
 - WPF stack health report for the v4 dashboard. `EnvironmentSnapshotService` now emits typed component records for Spotify, SpotX patch markers, Spicetify CLI/config, Marketplace, active theme, backups, auto-reapply watcher state, logs, crash reports, and the saved LibreSpot profile, with severity groups and recommended repair IDs rendered in the sidebar. Fixture tests cover ready, clean-slate, partial install, Marketplace missing, theme injection mismatch, missing backup, stale watcher, and recent crash states.
 - WPF-UI 4.3.0 runtime package selected as the v4 shell control library, with `WPF-UI` explicitly documented as the correct NuGet ID and a WPF smoke test proving `TitleBar`, `InfoBar`, `NumberBox`, `SplitButton`, and `Snackbar` load under LibreSpot's existing theme resources. Third-party notices now include WPF-UI and its abstractions package.
-- OpenSSF Scorecard workflow (`.github/workflows/scorecard.yml`): a weekly + push-to-`main` supply-chain hygiene scan that publishes to the public Scorecard API (new README badge) and uploads SARIF/JSON/triage artifacts. Actions are full-SHA pinned; `schemas/scorecard-baseline.json` records accepted single-maintainer risks, the workflow fails on unaccepted score regressions, and `SECURITY.md` documents the policy that low scores become roadmap items rather than silent warnings. Regression tests lock the workflow's triggers, publish configuration, triage gate, and baseline shape.
+- Former OpenSSF Scorecard automation: a weekly and push-to-`main` supply-chain hygiene scan that published to the public Scorecard API and uploaded SARIF, JSON, and triage artifacts. `schemas/scorecard-baseline.json` records accepted single-maintainer risks, and `SECURITY.md` documents the policy that low scores become roadmap items rather than silent warnings.
 - Network-behavior disclosure for every community asset. `schemas/community-assets.json` now carries a `networkBehavior` (`local-only` / `third-party-service`) plus a `networkDetail` field on each extension and theme, a CI test enforces it (third-party assets must explain what they contact), the Custom Install catalog flags networked extensions, and the README trust claim is scoped to LibreSpot itself with an explicit note that opt-in extensions like Beautiful Lyrics contact their own services. Closes the gap where the "only GitHub and Spotify" claim was falsifiable by enabling a bundled extension.
 - Opt-in Spicetify-layer ad-block fallback (`adblock.js`, rxri/spicetify-extensions, MIT) selectable in Custom Install. When SpotX patching breaks on a newer Spotify build (SpotX issue #760), ad-blocking can keep working at the Spicetify layer through the existing commit-pinned + SHA256-verified community-extension pipeline. It is documented as a fallback (not a SpotX replacement), is not an Easy-mode default, and the post-install SpotX verification check now suggests enabling it when patching cannot be confirmed. Wired through both backends, the WPF catalog, the config schema, and the community-asset supply manifest.
 - SpotX post-patch effectiveness verification (`Get-SpotXPatchVerification`) in both the script and WPF backend: a clean SpotX exit code no longer counts as proof the patch landed. The installer now asserts the on-disk markers SpotX leaves (`Apps\xpui.spa` plus the pre-patch `Apps\xpui.spa.bak` backup) and surfaces "patched and verified" vs "ran but unverified" with a recovery hint referencing SpotX signature-protection issue #760, instead of always logging success.
@@ -942,8 +942,8 @@ and the fleet CLI.
 - Release artifact contract (`schemas/release-artifact-contract.json`) defining expected assets, checksums, signing state, and attestation requirements per release channel with tag-pattern validation and historical release exemptions; CI tests verify the contract matches the actual workflow.
 - Security policy (`SECURITY.md`) with supported versions, private vulnerability reporting, scope definitions, and upstream dependency guidance.
 - GitHub issue templates for bug reports, compatibility breakage, and feature requests with structured fields for OS, Spotify version, LibreSpot variant, and sanitized diagnostics; blank issues disabled in favor of forms.
-- Structured release notes configuration (`.github/release.yml`) categorizing PRs into breaking changes, security, features, bug fixes, compatibility, performance, dependencies, and docs; Dependabot PRs excluded from the main changelog.
-- Draft package manifests for winget (3-file YAML), Scoop (JSON with `checkver`/`autoupdate`), and Chocolatey (nuspec + install script) under `packaging/`; all gated behind signing readiness with placeholder hashes.
+- Structured release-note categories covering breaking changes, security, features, bug fixes, compatibility, performance, dependencies, and docs; Dependabot PRs excluded from the main changelog.
+- Draft package-manager manifests for winget, Scoop, and Chocolatey were removed before publication; distribution remains gated on signing and identity decisions.
 - Trust and risk disclosure section in README covering what LibreSpot does/does not do, account risk context with ToS reference, and recovery instructions.
 - Elevation boundary matrix (`schemas/elevation-boundary.json`) classifying every action as no-admin, prompts-for-admin, admin-only, or scheduled-task with mutating/destructive/toast-compatible flags; CI tests validate against live backend AllowedActions and AppCatalog.
 
@@ -1152,7 +1152,7 @@ None of the other Spicetify/SpotX installers ship this — BlockTheSpot-Installe
 
 Hardening + release-pipeline pass. Fixes bugs introduced in v3.5.0, tightens the release workflow, and adds regression guards so the issues we just fixed can't silently creep back.
 
-### Release pipeline (.github/workflows/release.yml)
+### Historical release automation
 - **Preflight job** runs before build. Resolves the tag, asserts `LibreSpot.ps1:$global:VERSION == Backend.ps1:$global:VERSION` (the exact invariant v3.5.1 breaks), asserts the right version file matches the tag (`PS1` for stable tags, `csproj` for `-preview.N` tags), parses both PowerShell files with `[Parser]::ParseFile` so a syntax error fails the tag before PS2EXE runs, and enforces a regression guard that forbids `chrome_elf.dll` / `xpui.spa.bak` from re-entering `Get-ExistingSpotifyPatchSignature`.
 - **PS2EXE pinned** to `1.0.15` so a breaking upstream release can't corrupt a tagged build.
 - **Unit tests run before WPF publish**. A red AppCatalog/Configuration/PowerShellRegression test fails the tag.
@@ -1212,7 +1212,7 @@ Competitor-parity release. Four items from the ROADMAP Track 4 shipped end-to-en
 - **TaskbarItemInfo progress mirroring** — the Windows taskbar icon now tracks the run state (`None`/`Indeterminate`/`Normal`/`Paused`/`Error`) so users see progress even when LibreSpot is minimized. `ProgressValue` is kept in sync with the in-app 0–100 scale.
 - **Serilog crash reporter** ([Services/CrashReporter.cs](src/LibreSpot.Desktop/Services/CrashReporter.cs)) — structured daily rolling log under `%LOCALAPPDATA%\LibreSpot\logs\` (14-day retention), full crash dumps under `%LOCALAPPDATA%\LibreSpot\crashes\`, and a crash dialog that offers "copy path + open folder" so users can file issues without the app needing to phone home. Hooks `AppDomain.UnhandledException`, `TaskScheduler.UnobservedTaskException`, `Dispatcher.UnhandledException`.
 - **Accessibility pass** — `AutomationProperties.Name` + `HelpText` on previously unlabeled icon buttons (Refresh status, Copy log header variant), `AutomationProperties.LiveSetting="Polite"` on the activity badge so screen readers announce state transitions.
-- **GitHub Actions release workflow** ([.github/workflows/release.yml](.github/workflows/release.yml)) — triggered on `v*` tags. Builds PS2EXE + .NET 8 self-contained WPF EXE, emits SHA256 `checksums.txt` + CycloneDX SBOM, attests build provenance + SBOM via `actions/attest-build-provenance@v2` and `actions/attest-sbom@v2` (SLSA L3). Consumers verify with `gh attestation verify`.
+- A former GitHub Actions release workflow was triggered on `v*` tags. It built a PS2EXE and .NET 8 WPF asset, emitted checksums and an SBOM, and attempted build-provenance attestations. It was retired in favor of the documented local release procedure and GitHub immutable-release attestations.
 
 ### Changed
 - WPF desktop shell: v4.0.0-preview.3 → **v4.0.0-preview.4**.
@@ -1644,8 +1644,7 @@ bolt `--silent` onto the current WPF button actions.
   -RequireAdmin` and publishes `LibreSpot-Desktop.exe` as a self-contained WPF
   executable. Those are appropriate GUI artifacts, but they are poor primary
   fleet CLIs because console output and headless exit-code behavior are not the
-  first-class artifact contract (`.github/workflows/release.yml:165`,
-  `.github/workflows/release.yml:249`, `.github/workflows/release.yml:341`).
+  first-class artifact contract in the retired release automation.
 - Microsoft Intune Win32 app docs make return codes and detection rules first
   class: admins configure success/failure/retry/soft-reboot/hard-reboot return
   codes, and detection rules determine whether an app is present. Intune
@@ -1703,7 +1702,7 @@ roots, mismatched package IDs, and stale checksums.
   `ROADMAP.md:1448`).
 - The repo does not currently contain package-manager manifests, a `docs/deployment`
   directory, a Velopack config, or a package bucket. The only local distribution
-  files found by targeted scan are `SIGNPATH.md`, `.github/workflows/release.yml`,
+  files found by targeted scan are `SIGNPATH.md` and the retired release automation,
   and `src/LibreSpot.Desktop/app.manifest`.
 - `SIGNPATH.md` still describes two signed PE artifacts, `LibreSpot.exe` and
   `LibreSpot-Desktop.exe`. Cycle 21 adds a required future
@@ -1715,9 +1714,7 @@ roots, mismatched package IDs, and stale checksums.
 - The release workflow currently builds PS2EXE, WPF, checksums, SBOM, and
   attestations for `LibreSpot.exe`, `LibreSpot.ps1`, `LibreSpot-Desktop.exe`,
   and `LibreSpot.sbom.cdx.json`; it has no generated release manifest JSON that
-  downstream package templates can consume (`.github/workflows/release.yml:165`,
-  `.github/workflows/release.yml:249`, `.github/workflows/release.yml:341`,
-  `.github/workflows/release.yml:362`, `.github/workflows/release.yml:380`).
+  downstream package templates can consume.
 - README still leads with the `irm ... LibreSpot.ps1 | iex` one-liner and says
   signing is pending for two artifacts. Broader package-manager distribution
   should not make that one-liner the only documented path once signed GUI,

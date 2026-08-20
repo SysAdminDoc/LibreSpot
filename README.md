@@ -208,16 +208,9 @@ endpoint-tool collection folder. Use `samples/deployment/librespot-answer.json`
 as a starting answer file and keep `riskAcknowledged` explicit in any production
 copy.
 
-Package-manager manifests under `packaging/` are draft validation templates,
-not public install channels. After a local release build generates
-`librespot-release-manifest.json`, run parser-safe validation samples with:
-
-```powershell
-.\packaging\Invoke-ValidationSamples.ps1 -Tool all
-```
-
-Install-level Scoop and Chocolatey checks are intentionally manual-only; run
-them only in a disposable VM with `-RunInstallChecks`.
+Package-manager distribution remains disabled. The local release manifest is
+the source of truth for the seven published assets, and there are no checked-in
+package templates or install-level package checks.
 
 ### Comprehensive Uninstaller
 
@@ -413,6 +406,42 @@ Get-Content  .\checksums.txt
 ```
 
 GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.0.0-preview.25` to verify the release tag and commit, then run `gh release verify-asset v4.0.0-preview.25 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
+
+## Local release procedure
+
+Releases are built and uploaded from the maintainer machine. GitHub Actions do
+not build, test, or publish release assets. Run the local gates first:
+
+```powershell
+.\Build-Scripts.ps1 -Validate
+.\Build-Scripts.ps1 -Lint
+.\Build-Scripts.ps1 -DependencyHealth
+dotnet test .\tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj --no-restore --filter "FullyQualifiedName!~Wpf"
+Invoke-Pester .\tests\powershell\LibreSpot.Tests.ps1
+```
+
+Clean `publish`, publish the Desktop and CLI projects self-contained for
+`win-x64`, compile `LibreSpot.ps1` with PS2EXE, and copy the five
+checksum-covered assets into the release root. Generate the CycloneDX SBOM, write SHA256
+`checksums.txt`, and create the release manifest:
+
+```powershell
+.\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.0.0-preview.N -ReleaseChannel preview
+```
+
+Create and push the version tag, create a draft GitHub release, upload every
+file in `publish`, and publish the draft only after the asset list is complete.
+Immutable release protection applies when the draft is published. Finish with
+the release truth check and the GitHub attestation checks:
+
+```powershell
+.\Build-Scripts.ps1 -ReleaseTruth
+gh release verify vX.Y.Z
+gh release verify-asset vX.Y.Z .\publish\LibreSpot-Desktop.exe
+```
+
+Compare every downloaded file with `checksums.txt`. `gh release verify-asset`
+does not cover GitHub source archives.
 
 ## Local validation
 

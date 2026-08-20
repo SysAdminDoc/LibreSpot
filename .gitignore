@@ -15,9 +15,8 @@ publish-new/
 tmp/
 *.user
 
-# Build artifacts — never tracked. Integrity comes from CI-attested release
-# assets (release.yml generates fresh checksums + SBOM + provenance per tag),
-# not from stale copies committed to the repo.
+# Build artifacts are never tracked. Integrity comes from immutable GitHub
+# release assets, fresh checksums, the release manifest, and the SBOM.
 LibreSpot.exe
 checksums.txt
 

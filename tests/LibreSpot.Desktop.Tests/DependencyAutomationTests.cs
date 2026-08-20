@@ -19,22 +19,22 @@ public sealed class DependencyAutomationTests
     }
 
     [Fact]
-    public void GitHubActionsWorkflow_ContainsRequiredHeadlessQualityGates()
+    public void LocalQualityGates_AreDocumentedAndNoWorkflowsAreTracked()
     {
-        var workflowPath = Path.Combine(RepoRoot, ".github", "workflows", "ci.yml");
-        Assert.True(File.Exists(workflowPath), "The required Windows CI workflow is missing.");
+        var readme = ReadRepoFile("README.md");
+        Assert.Contains("Local release procedure", readme, StringComparison.Ordinal);
+        Assert.Contains("Build-Scripts.ps1 -Validate", readme, StringComparison.Ordinal);
+        Assert.Contains("Build-Scripts.ps1 -Lint", readme, StringComparison.Ordinal);
+        Assert.Contains("Build-Scripts.ps1 -DependencyHealth", readme, StringComparison.Ordinal);
+        Assert.Contains("FullyQualifiedName!~Wpf", readme, StringComparison.Ordinal);
+        Assert.Contains("Invoke-Pester", readme, StringComparison.Ordinal);
+        Assert.Contains("gh release verify-asset", readme, StringComparison.Ordinal);
 
-        var workflow = File.ReadAllText(workflowPath).Replace("\r\n", "\n", StringComparison.Ordinal);
-
-        Assert.Contains("permissions:\n  contents: read", workflow, StringComparison.Ordinal);
-        Assert.Contains("runs-on: windows-latest", workflow, StringComparison.Ordinal);
-        Assert.Contains("Build-Scripts.ps1 -Lint", workflow, StringComparison.Ordinal);
-        Assert.Contains("Build-Scripts.ps1 -Validate", workflow, StringComparison.Ordinal);
-        Assert.Contains("Invoke-Pester -Path .\\tests\\powershell\\LibreSpot.Tests.ps1 -CI", workflow, StringComparison.Ordinal);
-        Assert.Contains("dotnet test .\\tests\\LibreSpot.Desktop.Tests\\LibreSpot.Desktop.Tests.csproj --no-restore --filter", workflow, StringComparison.Ordinal);
-        Assert.Contains("FullyQualifiedName!~Wpf", workflow, StringComparison.Ordinal);
-        Assert.DoesNotContain("WpfFlaUiSmokeTests", workflow, StringComparison.Ordinal);
-        Assert.DoesNotContain("WpfUiAutomationSmokeTests", workflow, StringComparison.Ordinal);
+        var workflowDirectory = Path.Combine(RepoRoot, ".github", "workflows");
+        if (Directory.Exists(workflowDirectory))
+        {
+            Assert.Empty(Directory.EnumerateFiles(workflowDirectory, "*", SearchOption.AllDirectories));
+        }
     }
 
     [Fact]
