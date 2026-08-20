@@ -53,6 +53,11 @@ public sealed class SpotXDefenderPolicyRegressionTests
             Assert.False(rootElement.GetProperty("nonSpotXMutationAllowed").GetBoolean());
             Assert.DoesNotContain("-defender_exclusions_off", rootElement.GetProperty("currentPinArguments").GetString());
             Assert.Contains("-defender_exclusions_off", rootElement.GetProperty("futurePinArguments").GetString());
+            Assert.Contains("-defender_exclusions_off", rootElement.GetProperty("postPolicyArguments").GetString());
+            Assert.True(rootElement.GetProperty("postPolicyCandidateAllowed").GetBoolean());
+            Assert.False(rootElement.GetProperty("postPolicyWithoutFlagAllowed").GetBoolean());
+            Assert.Contains("requires the declared and passed", rootElement.GetProperty("postPolicyWithoutFlagMessage").GetString());
+            Assert.False(rootElement.GetProperty("postPolicyUndeclaredAllowed").GetBoolean());
             Assert.False(rootElement.GetProperty("invalidAdapterAllowed").GetBoolean());
         }
         finally
@@ -87,6 +92,7 @@ $sharedRoot = Join-Path $RepoRoot 'src\powershell\shared'
 . (Join-Path $sharedRoot 'Assert-LibreSpotExternalScriptDefenderPolicy.ps1')
 . (Join-Path $sharedRoot 'Open-VerifiedScriptForExecution.ps1')
 . (Join-Path $sharedRoot 'Build-SpotXParams.ps1')
+. (Join-Path $sharedRoot 'Test-SpotXPinAdvanceSecurityPolicy.ps1')
 
 function Set-TestScript {
     param([string]$Name, [string]$Content)
@@ -129,12 +135,48 @@ $config = [pscustomobject]@{
     SpotX_LyricsTheme = 'spotify'
 }
 $global:SpotifyVersionManifest = @()
-$global:PinnedReleases = @{ SpotX = @{ DefenderMutations = $false; DefenderOptOut = '' } }
+$global:PinnedReleases = @{ SpotX = @{
+    DefenderMutations = $false
+    DefenderOptOut = ''
+    DefenderPolicyCommit = 'afb4c3fc'
+    DefenderPolicyOptOut = '-defender_exclusions_off'
+    DefenderPolicyActive = $false
+} }
 $currentPinArguments = Build-SpotXParams -Config $config
 $global:PinnedReleases.SpotX.DefenderMutations = $true
 $global:PinnedReleases.SpotX.DefenderOptOut = '-defender_exclusions_off'
 $futurePinArguments = Build-SpotXParams -Config $config
+$global:PinnedReleases.SpotX.DefenderMutations = $false
 $global:PinnedReleases.SpotX.DefenderOptOut = ''
+$global:PinnedReleases.SpotX.DefenderPolicyActive = $true
+$postPolicyArguments = Build-SpotXParams -Config $config
+
+function Test-PinAdvance {
+    param([string]$Path, [string]$Arguments, [bool]$Mutations, [string]$OptOut)
+    try {
+        $result = Test-SpotXPinAdvanceSecurityPolicy `
+            -ScriptPath $Path `
+            -CurrentCommit 'fedcba9876543210fedcba9876543210fedcba98' `
+            -CandidateCommit '0123456789abcdef0123456789abcdef01234567' `
+            -PolicyCommit 'afb4c3fc' `
+            -RequiredOptOut '-defender_exclusions_off' `
+            -DeclaredDefenderMutations $Mutations `
+            -DeclaredDefenderOptOut $OptOut `
+            -InvocationArguments $Arguments `
+            -PostDefenderPolicy
+        return [pscustomobject]@{ allowed = $true; message = ''; result = $result }
+    } catch {
+        return [pscustomobject]@{ allowed = $false; message = $_.Exception.Message; result = $null }
+    }
+}
+
+$postPolicyCandidate = Test-PinAdvance -Path $unsafe -Arguments $postPolicyArguments -Mutations $true -OptOut '-defender_exclusions_off'
+$postPolicyWithoutFlag = Test-PinAdvance -Path $unsafe -Arguments '' -Mutations $true -OptOut '-defender_exclusions_off'
+$postPolicyUndeclared = Test-PinAdvance -Path $undeclared -Arguments $postPolicyArguments -Mutations $true -OptOut '-defender_exclusions_off'
+
+$global:PinnedReleases.SpotX.DefenderOptOut = ''
+$global:PinnedReleases.SpotX.DefenderPolicyActive = $true
+$global:PinnedReleases.SpotX.DefenderPolicyOptOut = ''
 try {
     $null = Build-SpotXParams -Config $config
     $invalidAdapterAllowed = $true
@@ -151,6 +193,11 @@ try {
     nonSpotXMutationAllowed = $nonSpotXResult.allowed
     currentPinArguments = $currentPinArguments
     futurePinArguments = $futurePinArguments
+    postPolicyArguments = $postPolicyArguments
+    postPolicyCandidateAllowed = $postPolicyCandidate.allowed
+    postPolicyWithoutFlagAllowed = $postPolicyWithoutFlag.allowed
+    postPolicyWithoutFlagMessage = $postPolicyWithoutFlag.message
+    postPolicyUndeclaredAllowed = $postPolicyUndeclared.allowed
     invalidAdapterAllowed = $invalidAdapterAllowed
 } | ConvertTo-Json -Depth 4
 """;

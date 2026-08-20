@@ -843,6 +843,9 @@ public static class AppCatalog
     public const string PinnedSpotXSpotifyVersion = "1.2.93";
     public const bool PinnedSpotXContainsDefenderMutations = false;
     public const string PinnedSpotXDefenderOptOutArgument = "";
+    public const string PinnedSpotXDefenderPolicyCommit = "afb4c3fc";
+    public const string PinnedSpotXDefenderPolicyOptOutArgument = "-defender_exclusions_off";
+    public const bool PinnedSpotXDefenderPolicyActive = false;
     public const string PinnedSpicetifyCliVersion = "2.44.0";
     public const string SpicetifyWindowsMinTestedSpotify = "1.2.14";
     public const string SpicetifyWindowsMaxTestedSpotify = "1.2.93";
@@ -851,7 +854,7 @@ public static class AppCatalog
     public const string PinnedStatsCustomAppVersion = "1.1.3";
     public const string PinnedStatsCustomAppReleaseTag = "stats-v1.1.3";
     public static DateTimeOffset UpstreamPinsLastVerifiedAtUtc { get; } =
-        new(2026, 7, 22, 0, 0, 0, TimeSpan.Zero);
+        new(2026, 8, 20, 0, 0, 0, TimeSpan.Zero);
 
     /// <summary>
     /// Records why LibreSpot deliberately holds the SpotX pin instead of tracking
@@ -876,10 +879,11 @@ public static class AppCatalog
     public const string PinnedSpotXHoldRationale =
         "Holding pre-Defender SpotX commit (predates afb4c3f 2026-07-11) at Spotify " +
         "1.2.93 to match Spicetify CLI 2.44.0's tested ceiling; advance only when " +
-        "Spicetify declares 1.2.94+ support, then set DefenderMutations and pass " +
-        "-defender_exclusions_off. The advance must also verify the newer Spicetify " +
-        "build does not hard-refuse backup apply (spicetify/cli main gate merged after " +
-        "2.44.0) on the new Spotify target, not just re-check CSS class maps.";
+        "Spicetify declares 1.2.94+ support, then mark the post-afb4c3fc policy active, " +
+        "set DefenderMutations, and pass -defender_exclusions_off. The advance must " +
+        "also verify the newer Spicetify build does not hard-refuse backup apply " +
+        "(spicetify/cli main gate merged after 2.44.0) on the new Spotify target, " +
+        "not just re-check CSS class maps.";
 
     public static IReadOnlyList<UpstreamDependencyPin> UpstreamDependencyPins { get; } =
         new ReadOnlyCollection<UpstreamDependencyPin>(new[]

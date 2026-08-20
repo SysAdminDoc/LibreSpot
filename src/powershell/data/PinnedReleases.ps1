@@ -6,6 +6,9 @@ $global:PinnedReleases = @{
         SHA256  = '863cd19429160c911ce7439426d9e2127064028ccabbaf3007b233a393607606'
         DefenderMutations = $false
         DefenderOptOut = ''
+        DefenderPolicyCommit = 'afb4c3fc'
+        DefenderPolicyOptOut = '-defender_exclusions_off'
+        DefenderPolicyActive = $false
     }
     SpicetifyCLI = @{
         Version = '2.44.0'

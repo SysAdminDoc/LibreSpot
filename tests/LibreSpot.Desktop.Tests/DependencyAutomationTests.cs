@@ -72,6 +72,9 @@ public sealed class DependencyAutomationTests
         Assert.Contains("AuditPipeline vulnerability", script);
         Assert.Contains("acceptedTransitiveLag", script);
         Assert.Contains("[switch]$SpotXSecurityPolicy", script);
+        Assert.Contains("[string]$SpotXCandidateCommit", script);
+        Assert.Contains("[switch]$SpotXCandidatePostDefenderPolicy", script);
+        Assert.Contains("Test-SpotXPinAdvanceSecurityPolicy", script);
         Assert.Contains("Get-PinnedSpotXSecurityPolicy", script);
         Assert.Contains("Add-MpPreference", script);
         Assert.Contains("Set-MpPreference", script);
@@ -123,6 +126,7 @@ public sealed class DependencyAutomationTests
         var rationale = AppCatalog.PinnedSpotXHoldRationale;
         Assert.False(string.IsNullOrWhiteSpace(rationale));
         Assert.Contains("-defender_exclusions_off", rationale, StringComparison.Ordinal);
+        Assert.Contains("afb4c3fc", rationale, StringComparison.Ordinal);
         Assert.Contains("1.2.94", rationale, StringComparison.Ordinal);
 
         // The hold is only coherent while the pin still predates the Defender
@@ -142,8 +146,14 @@ public sealed class DependencyAutomationTests
 
         Assert.Matches(@"(?mi)^\s*DefenderMutations\s*=\s*\$false\s*$", body);
         Assert.Matches(@"(?mi)^\s*DefenderOptOut\s*=\s*''\s*$", body);
+        Assert.Matches(@"(?mi)^\s*DefenderPolicyCommit\s*=\s*'afb4c3fc'\s*$", body);
+        Assert.Matches(@"(?mi)^\s*DefenderPolicyOptOut\s*=\s*'-defender_exclusions_off'\s*$", body);
+        Assert.Matches(@"(?mi)^\s*DefenderPolicyActive\s*=\s*\$false\s*$", body);
         Assert.False(AppCatalog.PinnedSpotXContainsDefenderMutations);
         Assert.Empty(AppCatalog.PinnedSpotXDefenderOptOutArgument);
+        Assert.Equal("afb4c3fc", AppCatalog.PinnedSpotXDefenderPolicyCommit);
+        Assert.Equal("-defender_exclusions_off", AppCatalog.PinnedSpotXDefenderPolicyOptOutArgument);
+        Assert.False(AppCatalog.PinnedSpotXDefenderPolicyActive);
 
         var buildParams = Regex.Match(
             script,
@@ -151,6 +161,8 @@ public sealed class DependencyAutomationTests
         Assert.True(buildParams.Success);
         Assert.Contains("PinnedReleases.SpotX.DefenderMutations", buildParams.Groups["body"].Value);
         Assert.Contains("PinnedReleases.SpotX.DefenderOptOut", buildParams.Groups["body"].Value);
+        Assert.Contains("PinnedReleases.SpotX.DefenderPolicyActive", buildParams.Groups["body"].Value);
+        Assert.Contains("PinnedReleases.SpotX.DefenderPolicyOptOut", buildParams.Groups["body"].Value);
     }
 
     [Fact]

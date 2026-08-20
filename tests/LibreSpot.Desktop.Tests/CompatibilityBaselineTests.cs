@@ -25,6 +25,9 @@ public sealed class CompatibilityBaselineTests
         Assert.Equal(AppCatalog.PinnedSpotXCommit, spotX.GetProperty("commit").GetString());
         Assert.Equal(AppCatalog.PinnedSpotXContainsDefenderMutations, spotX.GetProperty("defenderMutations").GetBoolean());
         Assert.Equal(AppCatalog.PinnedSpotXDefenderOptOutArgument, spotX.GetProperty("defenderOptOut").GetString());
+        Assert.Equal(AppCatalog.PinnedSpotXDefenderPolicyCommit, spotX.GetProperty("defenderPolicyCommit").GetString());
+        Assert.Equal(AppCatalog.PinnedSpotXDefenderPolicyOptOutArgument, spotX.GetProperty("defenderPolicyOptOut").GetString());
+        Assert.Equal(AppCatalog.PinnedSpotXDefenderPolicyActive, spotX.GetProperty("defenderPolicyActive").GetBoolean());
 
         var spotify = root.GetProperty("spotify").GetProperty("version").GetString();
         Assert.Equal(AppCatalog.PinnedSpotXSpotifyVersionId, spotify);

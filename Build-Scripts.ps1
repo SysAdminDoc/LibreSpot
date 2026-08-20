@@ -44,6 +44,11 @@ param(
     [string]$DependencyHealthAllowlistPath,
     [switch]$SpotXSecurityPolicy,
     [string]$SpotXScriptPath,
+    [string]$SpotXCandidateCommit,
+    [switch]$SpotXCandidatePostDefenderPolicy,
+    [switch]$SpotXCandidateDefenderMutations,
+    [AllowEmptyString()][string]$SpotXCandidateDefenderOptOut = '',
+    [AllowEmptyString()][string]$SpotXCandidateArguments = '',
     [switch]$CheckSpotifyVersionDrift,
     [switch]$ReleaseTruth,
     [switch]$WatcherIntegration
@@ -57,6 +62,7 @@ if ([string]::IsNullOrWhiteSpace($CompositionContractPath)) {
     $CompositionContractPath = Join-Path $PSScriptRoot 'src/powershell/composition.json'
 }
 $releaseContractPath = Join-Path $PSScriptRoot 'schemas/release-artifact-contract.json'
+$pinAdvancePolicyPath = Join-Path $PSScriptRoot 'src/powershell/shared/Test-SpotXPinAdvanceSecurityPolicy.ps1'
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 # The two runnable scripts MUST keep a UTF-8 BOM: Windows PowerShell 5.1 reads
 # BOM-less files in the ANSI codepage, and non-ASCII characters (em-dashes,
@@ -84,6 +90,10 @@ if (-not (Test-Path -LiteralPath $mainScript)) {
 if (-not (Test-Path -LiteralPath $backendScript)) {
     throw "Cannot find LibreSpot.Backend.ps1 at $backendScript"
 }
+if (-not (Test-Path -LiteralPath $pinAdvancePolicyPath -PathType Leaf)) {
+    throw "Cannot find SpotX pin-advance policy at $pinAdvancePolicyPath"
+}
+. $pinAdvancePolicyPath
 
 function Get-ScriptFunctionDefinitions {
     param([Parameter(Mandatory)][string]$ScriptContent)
@@ -659,6 +669,9 @@ function Test-PinnedCompatibilityBaseline {
         @{ Label = 'SpotX SHA256'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*SHA256\s*=\s*''([^'']+)'; Expected = [string]$baseline.spotx.sha256 },
         @{ Label = 'SpotX Defender mutation policy'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*DefenderMutations\s*=\s*\$(true|false)'; Expected = ([bool]$baseline.spotx.defenderMutations).ToString().ToLowerInvariant() },
         @{ Label = 'SpotX Defender opt-out'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*DefenderOptOut\s*=\s*''([^'']*)'; Expected = [string]$baseline.spotx.defenderOptOut },
+        @{ Label = 'SpotX Defender policy commit'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*DefenderPolicyCommit\s*=\s*''([^'']+)'; Expected = [string]$baseline.spotx.defenderPolicyCommit },
+        @{ Label = 'SpotX Defender policy opt-out'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*DefenderPolicyOptOut\s*=\s*''([^'']*)'; Expected = [string]$baseline.spotx.defenderPolicyOptOut },
+        @{ Label = 'SpotX Defender policy active'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*DefenderPolicyActive\s*=\s*\$(true|false)'; Expected = ([bool]$baseline.spotx.defenderPolicyActive).ToString().ToLowerInvariant() },
         @{ Label = 'Spicetify CLI version'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?^\s*Version\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.version },
         @{ Label = 'Spicetify Windows minimum'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?^\s*WindowsMinSpotify\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.windowsMinSpotify },
         @{ Label = 'Spicetify Windows maximum'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?^\s*WindowsMaxTestedSpotify\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.windowsMaxTestedSpotify },
@@ -985,13 +998,15 @@ function Get-PinnedSpotXSecurityMetadata {
 
     $body = $match.Groups['body'].Value
     $fields = @{}
-    foreach ($name in @('Commit', 'Url', 'SHA256', 'DefenderOptOut')) {
+    foreach ($name in @('Commit', 'Url', 'SHA256', 'DefenderOptOut', 'DefenderPolicyCommit', 'DefenderPolicyOptOut')) {
         $field = [regex]::Match($body, "(?m)^\s*$name\s*=\s*'(?<value>[^']*)'\s*$")
         if (-not $field.Success) { throw "PinnedReleases.SpotX.$name is missing." }
         $fields[$name] = [string]$field.Groups['value'].Value
     }
     $mutationField = [regex]::Match($body, '(?mi)^\s*DefenderMutations\s*=\s*\$(?<value>true|false)\s*$')
     if (-not $mutationField.Success) { throw 'PinnedReleases.SpotX.DefenderMutations is missing.' }
+    $policyActiveField = [regex]::Match($body, '(?mi)^\s*DefenderPolicyActive\s*=\s*\$(?<value>true|false)\s*$')
+    if (-not $policyActiveField.Success) { throw 'PinnedReleases.SpotX.DefenderPolicyActive is missing.' }
 
     return [pscustomobject][ordered]@{
         commit            = $fields.Commit
@@ -999,6 +1014,9 @@ function Get-PinnedSpotXSecurityMetadata {
         sha256            = $fields.SHA256.ToLowerInvariant()
         defenderMutations = [string]$mutationField.Groups['value'].Value -eq 'true'
         defenderOptOut    = $fields.DefenderOptOut
+        defenderPolicyCommit = $fields.DefenderPolicyCommit
+        defenderPolicyOptOut = $fields.DefenderPolicyOptOut
+        defenderPolicyActive = [string]$policyActiveField.Groups['value'].Value -eq 'true'
     }
 }
 
@@ -1057,9 +1075,40 @@ function Test-SpotXInstallerSecurityPolicy {
 }
 
 function Get-PinnedSpotXSecurityPolicy {
-    param([string]$ScriptPath)
+    param(
+        [string]$ScriptPath,
+        [string]$CandidateCommit,
+        [switch]$CandidatePostDefenderPolicy,
+        [bool]$CandidateDefenderMutations = $false,
+        [AllowEmptyString()][string]$CandidateDefenderOptOut = '',
+        [AllowEmptyString()][string]$CandidateArguments = ''
+    )
 
     $metadata = Get-PinnedSpotXSecurityMetadata
+    if (-not [string]::IsNullOrWhiteSpace($CandidateCommit)) {
+        if ([string]::IsNullOrWhiteSpace($ScriptPath)) {
+            throw 'A local SpotX candidate script is required for pin-advance policy review.'
+        }
+        $policy = Test-SpotXPinAdvanceSecurityPolicy `
+            -ScriptPath $ScriptPath `
+            -CurrentCommit $metadata.commit `
+            -CandidateCommit $CandidateCommit `
+            -PolicyCommit $metadata.defenderPolicyCommit `
+            -RequiredOptOut $metadata.defenderPolicyOptOut `
+            -DeclaredDefenderMutations $CandidateDefenderMutations `
+            -DeclaredDefenderOptOut $CandidateDefenderOptOut `
+            -InvocationArguments $CandidateArguments `
+            -PostDefenderPolicy:$CandidatePostDefenderPolicy
+        return [pscustomobject][ordered]@{
+            mode = 'candidate'
+            commit = $CandidateCommit
+            currentCommit = $metadata.commit
+            policyBoundaryCommit = $metadata.defenderPolicyCommit
+            policyRequiredOptOut = $metadata.defenderPolicyOptOut
+            policy = $policy
+        }
+    }
+
     $downloadedPath = $null
     try {
         if ([string]::IsNullOrWhiteSpace($ScriptPath)) {
@@ -1074,8 +1123,12 @@ function Get-PinnedSpotXSecurityPolicy {
             -DeclaredDefenderMutations $metadata.defenderMutations `
             -DeclaredDefenderOptOut $metadata.defenderOptOut
         return [pscustomobject][ordered]@{
+            mode = 'pinned'
             commit = $metadata.commit
             url = $metadata.url
+            policyBoundaryCommit = $metadata.defenderPolicyCommit
+            policyRequiredOptOut = $metadata.defenderPolicyOptOut
+            policyActive = $metadata.defenderPolicyActive
             policy = $policy
         }
     } finally {
@@ -1098,7 +1151,9 @@ function Test-PinnedSpotXSecurityAdapter {
             throw "The $($lane.Name) external-script adapter does not pass arguments into the Defender policy."
         }
         if (-not $lane.Content.Contains('$global:PinnedReleases.SpotX.DefenderMutations') -or
-            -not $lane.Content.Contains('$global:PinnedReleases.SpotX.DefenderOptOut')) {
+            -not $lane.Content.Contains('$global:PinnedReleases.SpotX.DefenderOptOut') -or
+            -not $lane.Content.Contains('$global:PinnedReleases.SpotX.DefenderPolicyActive') -or
+            -not $lane.Content.Contains('$global:PinnedReleases.SpotX.DefenderPolicyOptOut')) {
             throw "The $($lane.Name) SpotX adapter does not consume Defender policy metadata."
         }
     }
@@ -1110,6 +1165,15 @@ function Test-PinnedSpotXSecurityAdapter {
     }
     if ($metadata.defenderMutations -and $metadata.defenderOptOut -cne '-defender_exclusions_off') {
         throw 'A Defender-mutating SpotX pin must declare the exact upstream opt-out.'
+    }
+    if ($metadata.defenderPolicyCommit -notmatch '^[0-9a-f]{8,40}$') {
+        throw 'The SpotX Defender policy boundary must be a hexadecimal commit identifier.'
+    }
+    if ($metadata.defenderPolicyOptOut -cne '-defender_exclusions_off') {
+        throw 'The SpotX Defender policy must require the exact upstream opt-out.'
+    }
+    if ($metadata.defenderPolicyActive) {
+        throw 'The current pinned SpotX commit cannot activate the post-Defender policy.'
     }
 }
 
@@ -1783,7 +1847,13 @@ if ($CheckSpotifyVersionDrift) {
 }
 
 if ($SpotXSecurityPolicy) {
-    Get-PinnedSpotXSecurityPolicy -ScriptPath $SpotXScriptPath | ConvertTo-Json -Depth 8
+    Get-PinnedSpotXSecurityPolicy `
+        -ScriptPath $SpotXScriptPath `
+        -CandidateCommit $SpotXCandidateCommit `
+        -CandidatePostDefenderPolicy:$SpotXCandidatePostDefenderPolicy `
+        -CandidateDefenderMutations:$SpotXCandidateDefenderMutations `
+        -CandidateDefenderOptOut $SpotXCandidateDefenderOptOut `
+        -CandidateArguments $SpotXCandidateArguments | ConvertTo-Json -Depth 8
     exit 0
 }
 

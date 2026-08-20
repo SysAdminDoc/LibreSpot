@@ -53,6 +53,12 @@ Report these issues to the upstream owner instead:
 
 If you discover a vulnerability in SpotX, Spicetify CLI, or a community extension/theme that LibreSpot retrieves, please report it to the upstream project first. If the upstream is unresponsive after 14 days, you may report it here and we will disable or pin around the affected component.
 
+### SpotX Defender exclusion pin policy
+
+The current SpotX pin is commit `550bc72c`, which predates the upstream Defender change at [`afb4c3fc`](https://github.com/SpotX-Official/SpotX/commit/afb4c3fc). The current metadata therefore records no Defender mutations and passes no opt-out flag. The policy boundary and required opt-out are stored beside the pin in `PinnedReleases.ps1` and `schemas/compatibility-baseline.json`.
+
+Every changed SpotX candidate must be reviewed with `Build-Scripts.ps1 -SpotXSecurityPolicy` in candidate mode. The check requires a post-boundary policy declaration, the exact `-defender_exclusions_off` switch in the candidate source and adapter metadata, and the same switch in the invocation arguments. A candidate that contains Defender preference or exclusion commands without that passed switch is rejected before execution. The runtime gate applies the same rule to interactive, backend, watcher, repair, and cached execution paths.
+
 ## Host platform advisories
 
 ### CVE-2025-54100 — Windows PowerShell 5.1 web-content RCE

@@ -80,6 +80,9 @@ $global:PinnedReleases = @{
         SHA256  = '863cd19429160c911ce7439426d9e2127064028ccabbaf3007b233a393607606'
         DefenderMutations = $false
         DefenderOptOut = ''
+        DefenderPolicyCommit = 'afb4c3fc'
+        DefenderPolicyOptOut = '-defender_exclusions_off'
+        DefenderPolicyActive = $false
     }
     SpicetifyCLI = @{
         Version = '2.44.0'
@@ -297,6 +300,85 @@ $global:SpotifyVersionManifest = @(
     @{ Id = '1.2.5.1006.win7'; Version = '1.2.5.1006.g22820f93' }
 )
 $global:SpotifyVersionIds = @($global:SpotifyVersionManifest | ForEach-Object { $_.Id })
+
+function Test-SpotXPinAdvanceSecurityPolicy {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$ScriptPath,
+        [Parameter(Mandatory)][string]$CurrentCommit,
+        [Parameter(Mandatory)][string]$CandidateCommit,
+        [Parameter(Mandatory)][string]$PolicyCommit,
+        [Parameter(Mandatory)][string]$RequiredOptOut,
+        [Parameter(Mandatory)][bool]$DeclaredDefenderMutations,
+        [AllowEmptyString()][string]$DeclaredDefenderOptOut = '',
+        [AllowEmptyString()][string]$InvocationArguments = '',
+        [switch]$PostDefenderPolicy
+    )
+
+    if (-not (Test-Path -LiteralPath $ScriptPath -PathType Leaf)) {
+        throw "SpotX candidate entrypoint not found: $ScriptPath"
+    }
+    if ($CurrentCommit -notmatch '^[0-9a-f]{8,40}$' -or $CandidateCommit -notmatch '^[0-9a-f]{8,40}$') {
+        throw 'SpotX pin-advance policy requires hexadecimal commit identifiers.'
+    }
+    if ($PolicyCommit -cne 'afb4c3fc') {
+        throw 'SpotX Defender policy boundary must be upstream commit afb4c3fc.'
+    }
+    if ($RequiredOptOut -cne '-defender_exclusions_off') {
+        throw 'SpotX Defender policy must require the exact upstream -defender_exclusions_off switch.'
+    }
+
+    $info = Get-Item -LiteralPath $ScriptPath
+    if ($info.Length -le 0 -or $info.Length -gt 1048576) {
+        throw "SpotX candidate entrypoint has an invalid size: $($info.Length) bytes."
+    }
+
+    $content = [System.IO.File]::ReadAllText($ScriptPath, [System.Text.Encoding]::UTF8)
+    $indicators = @()
+    foreach ($indicator in @(
+        @{ Name = 'Add-MpPreference'; Pattern = '(?i)\bAdd-MpPreference\b' },
+        @{ Name = 'Set-MpPreference'; Pattern = '(?i)\bSet-MpPreference\b' },
+        @{ Name = 'ExclusionPath'; Pattern = '(?i)-ExclusionPath\b' },
+        @{ Name = 'ExclusionProcess'; Pattern = '(?i)-ExclusionProcess\b' }
+    )) {
+        if ([regex]::IsMatch($content, [string]$indicator.Pattern)) { $indicators += [string]$indicator.Name }
+    }
+
+    $containsMutations = $indicators.Count -gt 0
+    $declaresUpstreamOptOut = [regex]::IsMatch($content, '(?i)\bdefender_exclusions_off\b')
+    $passesOptOut = [regex]::IsMatch($InvocationArguments, '(?i)(?:^|\s)-defender_exclusions_off(?:\s|$)')
+
+    if ($CandidateCommit -ne $CurrentCommit -and -not $PostDefenderPolicy) {
+        throw "SpotX pin advance $CandidateCommit must explicitly declare the post-$PolicyCommit Defender policy."
+    }
+    if ($containsMutations -ne $DeclaredDefenderMutations) {
+        throw "SpotX Defender-mutation metadata does not match the candidate entrypoint (detected: $containsMutations; declared: $DeclaredDefenderMutations)."
+    }
+
+    $requiresOptOut = $PostDefenderPolicy -or $containsMutations
+    if ($requiresOptOut) {
+        if (-not $declaresUpstreamOptOut -or $DeclaredDefenderOptOut -cne $RequiredOptOut -or -not $passesOptOut) {
+            throw 'SpotX pin advance requires the declared and passed -defender_exclusions_off switch before Defender exclusions can run.'
+        }
+    } elseif (-not [string]::IsNullOrWhiteSpace($DeclaredDefenderOptOut)) {
+        throw 'A safe pre-Defender SpotX candidate must not receive a Defender opt-out argument.'
+    }
+
+    return [pscustomobject][ordered]@{
+        status                     = 'ok'
+        currentCommit              = $CurrentCommit
+        candidateCommit            = $CandidateCommit
+        policyCommit               = $PolicyCommit
+        postDefenderPolicy         = [bool]$PostDefenderPolicy
+        requiredOptOut             = $RequiredOptOut
+        invocationArguments        = $InvocationArguments
+        invocationPassesOptOut     = $passesOptOut
+        containsDefenderMutations  = $containsMutations
+        defenderMutationIndicators = @($indicators)
+        declaresUpstreamOptOut     = $declaresUpstreamOptOut
+        adapterOptOut              = $DeclaredDefenderOptOut
+    }
+}
 
 function Write-EventLine {
     param(
@@ -4285,12 +4367,20 @@ function Build-SpotXParams { param($Config)
     $p += "-confirm_uninstall_ms_spoti"
     # Let SpotX manage Spotify version compatibility (auto-overwrite unsupported versions)
     $p += "-confirm_spoti_recomended_over"
-    if ([bool]$global:PinnedReleases.SpotX.DefenderMutations) {
-        $defenderOptOut = [string]$global:PinnedReleases.SpotX.DefenderOptOut
+    $defenderPolicyActive = [bool]$global:PinnedReleases.SpotX.DefenderPolicyActive
+    $defenderMutations = [bool]$global:PinnedReleases.SpotX.DefenderMutations
+    if ($defenderPolicyActive -or $defenderMutations) {
+        $defenderOptOut = if ($defenderPolicyActive) {
+            [string]$global:PinnedReleases.SpotX.DefenderPolicyOptOut
+        } else {
+            [string]$global:PinnedReleases.SpotX.DefenderOptOut
+        }
         if ($defenderOptOut -cne '-defender_exclusions_off') {
             throw 'The pinned SpotX adapter does not declare the required Microsoft Defender opt-out.'
         }
         $p += $defenderOptOut
+    } elseif (-not [string]::IsNullOrWhiteSpace([string]$global:PinnedReleases.SpotX.DefenderOptOut)) {
+        throw 'The safe pinned SpotX adapter must not declare a Defender opt-out.'
     }
     if ($Config.SpotX_NewTheme)        { $p += "-new_theme" }
     if ($Config.SpotX_PodcastsOff)     { $p += "-podcasts_off" } else { $p += "-podcasts_on" }
