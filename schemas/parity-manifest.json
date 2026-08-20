@@ -59,7 +59,7 @@
     { "action": "Reapply",             "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Re-run SpotX + Spicetify with current config" },
     { "action": "RepairMarketplace",   "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Fix missing or broken Marketplace custom app" },
     { "action": "OpenMarketplace",     "script": false, "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Open Marketplace without reinstalling or applying Spicetify" },
-    { "action": "ExportMarketplaceState", "script": false, "wpfBackend": true, "wpfAllowed": true, "maintenanceUI": false, "notes": "Write a validated local Marketplace file archive; browser storage is not portable" },
+    { "action": "ExportMarketplaceState", "script": false, "wpfBackend": true, "wpfAllowed": true, "maintenanceUI": false, "notes": "Write a validated local Marketplace file archive; IndexedDB state is detected but not backed up" },
     { "action": "RestoreMarketplaceState", "script": false, "wpfBackend": true, "wpfAllowed": true, "maintenanceUI": false, "notes": "Restore missing Marketplace files from the latest archive without overwriting existing files" },
     { "action": "SafeMode",             "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Disable all themes/extensions without uninstalling — reversible via Reapply" },
     { "action": "CreateBackup",        "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Create a Spicetify configuration backup" },

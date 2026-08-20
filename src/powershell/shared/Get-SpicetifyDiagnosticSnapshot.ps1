@@ -21,6 +21,13 @@ function Get-SpicetifyDiagnosticSnapshot {
     $snapshot['spicetify_v3_conflict'] = [bool]$v3Conflict.IsConflict
     $snapshot['spicetify_v3_markers'] = @($v3Conflict.Markers)
     $snapshot['spicetify_v3_safe_action'] = $v3Conflict.SafeAction
+    $marketplaceHealth = Get-MarketplaceHealth
+    $snapshot['marketplace_storage_model'] = [string]$marketplaceHealth.BrowserStorage.storageModel
+    $snapshot['marketplace_storage_database'] = [string]$marketplaceHealth.BrowserStorage.databaseName
+    $snapshot['marketplace_storage_object_store'] = [string]$marketplaceHealth.BrowserStorage.objectStore
+    $snapshot['marketplace_storage_status'] = [string]$marketplaceHealth.BrowserStorage.status
+    $snapshot['marketplace_storage_detection_only'] = [bool]$marketplaceHealth.BrowserStorage.detectionOnly
+    $snapshot['marketplace_storage_recovery'] = [string]$marketplaceHealth.BrowserStorage.recovery
     $integration = Get-SpicetifyIntegrationContext
     $supportPaths = @(
         (Join-Path (Split-Path -Parent $integration.CliPath) 'supported-versions.json'),

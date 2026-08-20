@@ -3486,6 +3486,23 @@ function Get-MarketplaceHealth {
     $routeWiring = Test-SpicetifyCustomAppRouteWiring
     $routeWired = ($routeWiring.State -ne 'NotWired')
 
+    # Marketplace 1.0.9 persists saved themes, snippets, extensions, and
+    # settings in the embedded browser's IndexedDB database. LibreSpot can
+    # detect and describe that boundary, but file-level backup has not been
+    # validated. Marketplace's own export/import flow is the recovery path.
+    $browserStorage = [ordered]@{
+        storageModel = 'indexeddb'
+        databaseName = 'spicetify-marketplace'
+        objectStore = 'settings'
+        status = 'detected-not-backed-up'
+        detectionOnly = $true
+        fileLevelBackup = 'not-validated'
+        exported = $false
+        restored = $false
+        message = 'Marketplace 1.0.9 stores saved state in the embedded browser IndexedDB database. LibreSpot detects this boundary but does not back it up.'
+        recovery = "Use Marketplace's own export/import controls before a repair or reset."
+    }
+
     $status = if ($hasConfigDir -and $hasFiles -and $isEnabled -and -not $routeWired) {
         'RouteNotWired'
     } elseif ($hasConfigDir -and $hasFiles -and $isEnabled -and -not $themeContractReady) {
@@ -3512,6 +3529,7 @@ function Get-MarketplaceHealth {
         CurrentTheme       = $currentTheme
         ThemeContractReady = $themeContractReady
         RouteWired         = $routeWired
+        BrowserStorage     = [pscustomobject]$browserStorage
         IsReady            = ($status -eq 'Ready')
         NeedsRepair        = ($status -in @('RouteNotWired','ThemeInactive','Hidden','FilesMissing','LegacyPath','Missing'))
     }
@@ -3689,12 +3707,7 @@ function Export-MarketplaceState {
                 $(if ($configIncluded) { 'config-xpui.ini' }),
                 $(if ([int]$copyResult.FileCount -gt 0) { 'CustomApps/marketplace/**' })
             ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
-            browserStorage = [ordered]@{
-                exported = $false
-                status = 'not-portable'
-                reason = 'Marketplace browser storage belongs to Spotify embedded browser state and is not included in this file archive.'
-                recovery = 'Use Marketplace built-in export/import when available; LibreSpot never claims this archive restores browser storage.'
-            }
+            browserStorage = $health.BrowserStorage
             restoration = [ordered]@{
                 mode = 'validated-file-manifest'
                 behavior = 'missing-files-only'
@@ -3730,14 +3743,14 @@ function Export-MarketplaceState {
         }
         [System.IO.File]::WriteAllText((Join-Path $global:CONFIG_DIR 'marketplace-state-export-latest.json'), $json, $utf8)
         $archiveBytes = [long](Get-Item -LiteralPath $OutputPath -Force -ErrorAction Stop).Length
-        Write-OperationJournalEntry -Phase 'marketplace-state' -Target $OutputPath -SafetyDecision 'Allowed' -Result 'Exported' -WouldChange $true -Reversible $true -RollbackHint 'Use RestoreMarketplaceState or the retained archive to restore missing Marketplace files. Browser storage is not included.' -Data @{
+        Write-OperationJournalEntry -Phase 'marketplace-state' -Target $OutputPath -SafetyDecision 'Allowed' -Result 'Exported' -WouldChange $true -Reversible $true -RollbackHint "Use RestoreMarketplaceState or the retained archive to restore missing Marketplace files. IndexedDB state was not included. $($health.BrowserStorage.recovery)" -Data @{
             archivePath = $OutputPath
             configIncluded = $configIncluded
             marketplaceFileCount = [int]$copyResult.FileCount
             marketplaceBytes = [long]$copyResult.Bytes
             browserStorageExported = $false
         }
-        Write-Log "Marketplace state export created at $OutputPath. Browser storage was not exported and may reset." -Level 'WARN'
+        Write-Log "Marketplace state export created at $OutputPath. IndexedDB state was not exported and may reset. $($health.BrowserStorage.recovery)" -Level 'WARN'
 
         foreach ($oldExport in @(Get-ChildItem -LiteralPath $exportRoot -Filter 'marketplace-state-*.zip' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTimeUtc -Descending | Select-Object -Skip 5)) {
             $null = Remove-PathSafely -Path $oldExport.FullName -Label 'expired Marketplace state export'
@@ -3751,7 +3764,7 @@ function Export-MarketplaceState {
             MarketplaceFileCount = [int]$copyResult.FileCount
             MarketplaceBytes = [long]$copyResult.Bytes
             BrowserStorageExported = $false
-            BrowserStorageStatus = 'not-portable'
+            BrowserStorageStatus = [string]$health.BrowserStorage.status
             Manifest = [pscustomobject]$manifest
         }
     } catch {
@@ -3807,7 +3820,7 @@ function Restore-MarketplaceState {
             throw 'The Marketplace state archive uses an unsupported manifest format.'
         }
         if ($manifest.browserStorage.exported -eq $true) {
-            throw 'The Marketplace state archive claims to contain browser storage, which LibreSpot cannot validate or restore safely.'
+            throw 'The Marketplace state archive claims to contain IndexedDB storage, which LibreSpot cannot validate or restore safely.'
         }
 
         $sourceConfigPath = Join-Path $stagePath 'config-xpui.ini'
@@ -3850,9 +3863,16 @@ function Restore-MarketplaceState {
             skippedReparsePoints = [int]$mergeResult.SkippedReparsePoints
             marketplaceStatus = [string]$health.Status
             browserStorage = [ordered]@{
+                storageModel = [string]$health.BrowserStorage.storageModel
+                databaseName = [string]$health.BrowserStorage.databaseName
+                objectStore = [string]$health.BrowserStorage.objectStore
+                status = [string]$health.BrowserStorage.status
+                detectionOnly = [bool]$health.BrowserStorage.detectionOnly
+                fileLevelBackup = [string]$health.BrowserStorage.fileLevelBackup
+                exported = $false
                 restored = $false
-                status = 'not-portable'
-                message = 'Marketplace browser storage was not present in the archive and was not restored.'
+                message = 'Marketplace IndexedDB state was not present in the archive and was not restored.'
+                recovery = [string]$health.BrowserStorage.recovery
             }
             restoration = [ordered]@{
                 mode = 'validated-file-manifest'
@@ -3866,14 +3886,14 @@ function Restore-MarketplaceState {
             New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
         }
         [System.IO.File]::WriteAllText((Join-Path $global:CONFIG_DIR 'marketplace-state-recovery-latest.json'), $json, $utf8)
-        Write-OperationJournalEntry -Phase 'marketplace-state' -Target $InputPath -SafetyDecision 'Allowed' -Result 'RestoredMissingFiles' -WouldChange ($configRestored -or $mergeResult.RestoredFileCount -gt 0) -Reversible $true -RollbackHint 'The preceding preservation snapshot remains available; browser storage was not restored.' -Data @{
+        Write-OperationJournalEntry -Phase 'marketplace-state' -Target $InputPath -SafetyDecision 'Allowed' -Result 'RestoredMissingFiles' -WouldChange ($configRestored -or $mergeResult.RestoredFileCount -gt 0) -Reversible $true -RollbackHint "The preceding preservation snapshot remains available; IndexedDB state was not restored. $($health.BrowserStorage.recovery)" -Data @{
             sourceArchive = $InputPath
             configRestored = $configRestored
             restoredFileCount = [int]$mergeResult.RestoredFileCount
             skippedExistingFiles = [int]$mergeResult.SkippedExistingFiles
             browserStorageRestored = $false
         }
-        Write-Log "Restored missing Marketplace files from $InputPath. Browser storage was not restored and may reset." -Level 'WARN'
+        Write-Log "Restored missing Marketplace files from $InputPath. IndexedDB state was not restored and may reset. $($health.BrowserStorage.recovery)" -Level 'WARN'
         return [pscustomobject]@{
             Succeeded = $true
             Path = $InputPath
@@ -3881,7 +3901,7 @@ function Restore-MarketplaceState {
             RestoredFileCount = [int]$mergeResult.RestoredFileCount
             SkippedExistingFiles = [int]$mergeResult.SkippedExistingFiles
             BrowserStorageRestored = $false
-            BrowserStorageStatus = 'not-portable'
+            BrowserStorageStatus = [string]$health.BrowserStorage.status
             Evidence = [pscustomobject]$document
         }
     } catch {
@@ -3937,11 +3957,7 @@ function New-SpicetifyStatePreservationSnapshot {
             enabledCustomApps    = @(Get-SpicetifyConfigListValue -Key 'custom_apps')
             marketplaceStatus    = [string]$health.Status
             marketplaceReady     = [bool]$health.IsReady
-            browserStorage       = [ordered]@{
-                exported = $false
-                status = 'not-portable'
-                message = 'Marketplace browser storage is outside this filesystem snapshot and may reset.'
-            }
+            browserStorage       = $health.BrowserStorage
             marketplaceExportPath = ''
         }
         $json = $document | ConvertTo-Json -Depth 6
@@ -5870,6 +5886,13 @@ function Get-SpicetifyDiagnosticSnapshot {
     $snapshot['spicetify_v3_conflict'] = [bool]$v3Conflict.IsConflict
     $snapshot['spicetify_v3_markers'] = @($v3Conflict.Markers)
     $snapshot['spicetify_v3_safe_action'] = $v3Conflict.SafeAction
+    $marketplaceHealth = Get-MarketplaceHealth
+    $snapshot['marketplace_storage_model'] = [string]$marketplaceHealth.BrowserStorage.storageModel
+    $snapshot['marketplace_storage_database'] = [string]$marketplaceHealth.BrowserStorage.databaseName
+    $snapshot['marketplace_storage_object_store'] = [string]$marketplaceHealth.BrowserStorage.objectStore
+    $snapshot['marketplace_storage_status'] = [string]$marketplaceHealth.BrowserStorage.status
+    $snapshot['marketplace_storage_detection_only'] = [bool]$marketplaceHealth.BrowserStorage.detectionOnly
+    $snapshot['marketplace_storage_recovery'] = [string]$marketplaceHealth.BrowserStorage.recovery
     $integration = Get-SpicetifyIntegrationContext
     $supportPaths = @(
         (Join-Path (Split-Path -Parent $integration.CliPath) 'supported-versions.json'),
@@ -6312,7 +6335,8 @@ function Invoke-LibreSpotMaintenance {
         'ExportMarketplaceState' {
             Update-BackendState -Progress 25 -Status 'Exporting Marketplace state' -Step 'Writing a validated local archive'
             $export = Export-MarketplaceState
-            Write-Log "Marketplace state archive ready at $($export.Path). Browser storage is outside the portable archive." -Level 'WARN'
+            $health = Get-MarketplaceHealth
+            Write-Log "Marketplace state archive ready at $($export.Path). IndexedDB state is detected but not backed up. $($health.BrowserStorage.recovery)" -Level 'WARN'
         }
         'RestoreMarketplaceState' {
             Update-BackendState -Progress 20 -Status 'Restoring Marketplace state' -Step 'Restoring missing files from the latest archive'
@@ -6325,7 +6349,7 @@ function Invoke-LibreSpotMaintenance {
                 } else {
                     Write-Log 'Spicetify CLI is not installed; restored Marketplace files remain staged until Reapply or Repair Marketplace.' -Level 'WARN'
                 }
-                Write-Log "Marketplace state recovery restored $($restore.RestoredFileCount) missing file(s). Browser storage was not restored." -Level 'WARN'
+                Write-Log "Marketplace state recovery restored $($restore.RestoredFileCount) missing file(s). IndexedDB state was not restored. $($restore.Evidence.browserStorage.recovery)" -Level 'WARN'
             } | Out-Null
         }
         'OpenMarketplace' {

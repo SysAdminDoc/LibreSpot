@@ -340,6 +340,31 @@
       ]
     },
     {
+      "id": "marketplace-browser-storage",
+      "path": "Spotify embedded browser IndexedDB: spicetify-marketplace/settings",
+      "owner": "spicetify-marketplace",
+      "codeOwner": "Get-MarketplaceHealth",
+      "schemaVersion": 1,
+      "description": "Marketplace 1.0.9 saved themes, snippets, extensions, and settings in the embedded browser IndexedDB store.",
+      "sensitivity": "high",
+      "sensitivityNote": "May contain user-selected Marketplace state and extension settings; LibreSpot never reads or exports the database contents.",
+      "storageModel": "indexeddb",
+      "backupStatus": "detected-not-backed-up",
+      "detectionOnly": true,
+      "retention": "controlled by the Spotify embedded browser",
+      "retentionNote": "The database may survive Spotify profile resets, but persistence and file placement require live validation.",
+      "retentionEnforcement": "external-runtime",
+      "userDeletePath": "Use Marketplace's own reset/export/import controls or Spotify profile controls",
+      "deleteBehavior": "external-owner",
+      "includedInSupportBundle": false,
+      "supportExportBehavior": "excluded",
+      "redactionRules": ["Never read or copy IndexedDB contents", "Report only the logical database and object-store names"],
+      "aclExpectation": "Spotify embedded browser profile ACL",
+      "writeSites": [
+        { "source": "src/powershell/shared/Get-MarketplaceHealth.ps1", "marker": "databaseName = 'spicetify-marketplace'" }
+      ]
+    },
+    {
       "id": "spicetify-preservation-evidence",
       "path": "%APPDATA%\\LibreSpot\\spicetify-preservation-latest.json",
       "owner": "current-user",

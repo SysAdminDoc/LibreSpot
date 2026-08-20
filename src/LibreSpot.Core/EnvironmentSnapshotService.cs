@@ -1005,7 +1005,7 @@ public sealed class EnvironmentSnapshotService
                 null,
                 marketplaceDirectory,
                 null,
-                L("HealthEvidenceMarketplaceUnavailable"),
+                MarketplaceStorageGuidance(L("HealthEvidenceMarketplaceUnavailable")),
                 "Install");
         }
 
@@ -1042,7 +1042,7 @@ public sealed class EnvironmentSnapshotService
                     visibilityEvidence?.ManifestVersion,
                     marketplaceDirectory,
                     GetNewestFileChange(marketplaceDirectory),
-                    L("HealthEvidenceMarketplaceRouteNotWired"),
+                    MarketplaceStorageGuidance(L("HealthEvidenceMarketplaceRouteNotWired")),
                     "RepairMarketplace",
                     "OpenLogs");
             }
@@ -1068,7 +1068,7 @@ public sealed class EnvironmentSnapshotService
                     visibilityEvidence?.ManifestVersion,
                     marketplaceDirectory,
                     GetNewestFileChange(marketplaceDirectory),
-                    L("HealthEvidenceMarketplaceThemeInactive"),
+                    MarketplaceStorageGuidance(L("HealthEvidenceMarketplaceThemeInactive")),
                     "RepairMarketplace",
                     "OpenMarketplace");
             }
@@ -1125,7 +1125,7 @@ public sealed class EnvironmentSnapshotService
                 null,
                 marketplaceDirectory,
                 GetNewestFileChange(marketplaceDirectory),
-                L("HealthEvidenceMarketplaceHidden"),
+                 MarketplaceStorageGuidance(L("HealthEvidenceMarketplaceHidden")),
                 "RepairMarketplace");
         }
 
@@ -1139,7 +1139,7 @@ public sealed class EnvironmentSnapshotService
                 null,
                 marketplaceDirectory,
                 null,
-                L("HealthEvidenceMarketplaceFilesMissing"),
+                 MarketplaceStorageGuidance(L("HealthEvidenceMarketplaceFilesMissing")),
                 "RepairMarketplace");
         }
 
@@ -1151,15 +1151,16 @@ public sealed class EnvironmentSnapshotService
             null,
             marketplaceDirectory,
             null,
-            L("HealthEvidenceMarketplaceNotEnabled"),
+             MarketplaceStorageGuidance(L("HealthEvidenceMarketplaceNotEnabled")),
             "RepairMarketplace");
     }
 
     private static string BuildMarketplaceEvidenceText(MarketplaceVisibilityEvidence? visibilityEvidence, string fallback)
     {
+        var fallbackWithStorage = MarketplaceStorageGuidance(fallback);
         if (visibilityEvidence is null)
         {
-            return fallback + " " + L("HealthEvidenceMarketplaceNoVisibility");
+            return fallbackWithStorage + " " + L("HealthEvidenceMarketplaceNoVisibility");
         }
 
         var manifest = string.IsNullOrWhiteSpace(visibilityEvidence.ManifestVersion)
@@ -1180,7 +1181,7 @@ public sealed class EnvironmentSnapshotService
 
         var text = F(
             "HealthEvidenceMarketplaceVisibilityFormat",
-            fallback,
+             fallbackWithStorage,
             visibilityEvidence.Source,
             manifest,
             apply,
@@ -1200,6 +1201,9 @@ public sealed class EnvironmentSnapshotService
 
         return text;
     }
+
+    private static string MarketplaceStorageGuidance(string evidence) =>
+        evidence + " " + L("HealthEvidenceMarketplaceStorage");
 
     private static StackHealthComponent BuildThemeComponent(
         bool spicetifyInstalled,

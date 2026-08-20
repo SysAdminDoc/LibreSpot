@@ -1313,6 +1313,17 @@ Describe 'Spicetify state preservation' {
                 Status = 'Ready'
                 IsReady = $true
                 Path = Join-Path $script:customAppsDirectory 'marketplace'
+                BrowserStorage = [pscustomobject]@{
+                    storageModel = 'indexeddb'
+                    databaseName = 'spicetify-marketplace'
+                    objectStore = 'settings'
+                    status = 'detected-not-backed-up'
+                    detectionOnly = $true
+                    fileLevelBackup = 'not-validated'
+                    exported = $false
+                    restored = $false
+                    recovery = "Use Marketplace's own export/import controls before a repair or reset."
+                }
             }
         }
         function Write-OperationJournalEntry {
@@ -1361,13 +1372,13 @@ Describe 'Spicetify state preservation' {
         $script:journalEntries.Result | Should -Contain 'PreservedAfterSuccess'
     }
 
-    It 'Exports a validated file manifest without claiming browser storage portability' {
+    It 'Exports a validated file manifest without claiming IndexedDB portability' {
         $export = Export-MarketplaceState
 
         $export.Succeeded | Should -BeTrue
         Test-Path -LiteralPath $export.Path -PathType Leaf | Should -BeTrue
         $export.BrowserStorageExported | Should -BeFalse
-        $export.BrowserStorageStatus | Should -Be 'not-portable'
+        $export.BrowserStorageStatus | Should -Be 'detected-not-backed-up'
 
         Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
         $zip = [System.IO.Compression.ZipFile]::OpenRead($export.Path)
@@ -1377,6 +1388,10 @@ Describe 'Spicetify state preservation' {
             $manifest = [System.IO.StreamReader]::new($manifestEntry.Open()).ReadToEnd() | ConvertFrom-Json
             $manifest.format | Should -Be 'LibreSpot.MarketplaceState'
             $manifest.browserStorage.exported | Should -BeFalse
+            $manifest.browserStorage.storageModel | Should -Be 'indexeddb'
+            $manifest.browserStorage.databaseName | Should -Be 'spicetify-marketplace'
+            $manifest.browserStorage.status | Should -Be 'detected-not-backed-up'
+            $manifest.browserStorage.detectionOnly | Should -BeTrue
             $manifest.restoration.behavior | Should -Be 'missing-files-only'
             ($zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/') }) | Should -Contain 'CustomApps/marketplace/user-state.json'
         } finally {
@@ -1399,6 +1414,8 @@ Describe 'Spicetify state preservation' {
         $evidence = Get-Content -LiteralPath (Join-Path $global:CONFIG_DIR 'marketplace-state-recovery-latest.json') -Raw | ConvertFrom-Json
         $evidence.status | Should -Be 'RestoredMissingFiles'
         $evidence.browserStorage.restored | Should -BeFalse
+        $evidence.browserStorage.status | Should -Be 'detected-not-backed-up'
+        $evidence.browserStorage.recovery | Should -Match 'export/import'
         $export.Path | Should -Be $restore.Path
     }
 
@@ -1786,6 +1803,18 @@ Describe 'Marketplace theme contract' {
         $health.CurrentTheme | Should -Be 'marketplace'
         $health.IsReady | Should -BeTrue
         $health.NeedsRepair | Should -BeFalse
+    }
+
+    It 'Get-MarketplaceHealth reports the IndexedDB boundary as detected only' {
+        $health = Get-MarketplaceHealth
+
+        $health.BrowserStorage.storageModel | Should -Be 'indexeddb'
+        $health.BrowserStorage.databaseName | Should -Be 'spicetify-marketplace'
+        $health.BrowserStorage.objectStore | Should -Be 'settings'
+        $health.BrowserStorage.status | Should -Be 'detected-not-backed-up'
+        $health.BrowserStorage.detectionOnly | Should -BeTrue
+        $health.BrowserStorage.exported | Should -BeFalse
+        $health.BrowserStorage.recovery | Should -Match 'export/import'
     }
 }
 

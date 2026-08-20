@@ -36,7 +36,7 @@ function Restore-MarketplaceState {
             throw 'The Marketplace state archive uses an unsupported manifest format.'
         }
         if ($manifest.browserStorage.exported -eq $true) {
-            throw 'The Marketplace state archive claims to contain browser storage, which LibreSpot cannot validate or restore safely.'
+            throw 'The Marketplace state archive claims to contain IndexedDB storage, which LibreSpot cannot validate or restore safely.'
         }
 
         $sourceConfigPath = Join-Path $stagePath 'config-xpui.ini'
@@ -79,9 +79,16 @@ function Restore-MarketplaceState {
             skippedReparsePoints = [int]$mergeResult.SkippedReparsePoints
             marketplaceStatus = [string]$health.Status
             browserStorage = [ordered]@{
+                storageModel = [string]$health.BrowserStorage.storageModel
+                databaseName = [string]$health.BrowserStorage.databaseName
+                objectStore = [string]$health.BrowserStorage.objectStore
+                status = [string]$health.BrowserStorage.status
+                detectionOnly = [bool]$health.BrowserStorage.detectionOnly
+                fileLevelBackup = [string]$health.BrowserStorage.fileLevelBackup
+                exported = $false
                 restored = $false
-                status = 'not-portable'
-                message = 'Marketplace browser storage was not present in the archive and was not restored.'
+                message = 'Marketplace IndexedDB state was not present in the archive and was not restored.'
+                recovery = [string]$health.BrowserStorage.recovery
             }
             restoration = [ordered]@{
                 mode = 'validated-file-manifest'
@@ -95,14 +102,14 @@ function Restore-MarketplaceState {
             New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
         }
         [System.IO.File]::WriteAllText((Join-Path $global:CONFIG_DIR 'marketplace-state-recovery-latest.json'), $json, $utf8)
-        Write-OperationJournalEntry -Phase 'marketplace-state' -Target $InputPath -SafetyDecision 'Allowed' -Result 'RestoredMissingFiles' -WouldChange ($configRestored -or $mergeResult.RestoredFileCount -gt 0) -Reversible $true -RollbackHint 'The preceding preservation snapshot remains available; browser storage was not restored.' -Data @{
+        Write-OperationJournalEntry -Phase 'marketplace-state' -Target $InputPath -SafetyDecision 'Allowed' -Result 'RestoredMissingFiles' -WouldChange ($configRestored -or $mergeResult.RestoredFileCount -gt 0) -Reversible $true -RollbackHint "The preceding preservation snapshot remains available; IndexedDB state was not restored. $($health.BrowserStorage.recovery)" -Data @{
             sourceArchive = $InputPath
             configRestored = $configRestored
             restoredFileCount = [int]$mergeResult.RestoredFileCount
             skippedExistingFiles = [int]$mergeResult.SkippedExistingFiles
             browserStorageRestored = $false
         }
-        Write-Log "Restored missing Marketplace files from $InputPath. Browser storage was not restored and may reset." -Level 'WARN'
+        Write-Log "Restored missing Marketplace files from $InputPath. IndexedDB state was not restored and may reset. $($health.BrowserStorage.recovery)" -Level 'WARN'
         return [pscustomobject]@{
             Succeeded = $true
             Path = $InputPath
@@ -110,7 +117,7 @@ function Restore-MarketplaceState {
             RestoredFileCount = [int]$mergeResult.RestoredFileCount
             SkippedExistingFiles = [int]$mergeResult.SkippedExistingFiles
             BrowserStorageRestored = $false
-            BrowserStorageStatus = 'not-portable'
+            BrowserStorageStatus = [string]$health.BrowserStorage.status
             Evidence = [pscustomobject]$document
         }
     } catch {

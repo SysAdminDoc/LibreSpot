@@ -51,13 +51,6 @@ Existing items RD-51–RD-62 below are the same work items as the prior pass, wi
 
 ### P2
 
-- [ ] P2 — RD-57: Marketplace IndexedDB persistence-model refresh (docs, health, data inventory)
-  Why: Marketplace v1.0.9 moved state localStorage → IndexedDB (PR #1181) and closed #1201; recovery docs still describe the localStorage-era non-portable boundary and miss Marketplace’s own export/import. PR #1212 (persist-before-reload race) is still open, so file-level backup stays out of scope.
-  Evidence: spicetify/marketplace PR #1181; issue #1201 closed 2026-08-03; PR #1212 open 2026-08-12; `schemas/data-inventory.json` Marketplace entries.
-  Touches: README recovery boundary text, `schemas/data-inventory.json` (IndexedDB location, detection-only), Marketplace health/guidance strings, backend recovery messaging
-  Acceptance: Docs and health output describe IndexedDB persistence and point users to Marketplace’s own export/import; data inventory lists the storage location as detected-not-backed-up; file-level backup remains explicitly out pending live validation and #1212.
-  Complexity: M
-
 - [ ] P2 — RD-59: Structural debt round 2 — MainViewModel and custom workspace view
   Why: `MainViewModel.cs` regrew to 4,871 lines (larger than before the 2026-07-08 extraction); `Views/custom-workspace-view.xaml` is ~87 KB — bigger than the remaining MainWindow — and all three view files use kebab-case names against PascalCase codebehind.
   Evidence: line counts 2026-08-20; `src/LibreSpot.Desktop/Views/` listing.

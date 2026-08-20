@@ -535,6 +535,8 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.Equal("Apply failed", marketplace.Status);
         Assert.Equal("1.0.8", marketplace.DetectedVersion);
         Assert.Contains("Spicetify apply failed", marketplace.Evidence);
+        Assert.Contains("IndexedDB", marketplace.Evidence);
+        Assert.Contains("export/import", marketplace.Evidence, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("RepairMarketplace", marketplace.RecommendedActionIds);
     }
 

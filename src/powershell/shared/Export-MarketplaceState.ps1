@@ -73,12 +73,7 @@ function Export-MarketplaceState {
                 $(if ($configIncluded) { 'config-xpui.ini' }),
                 $(if ([int]$copyResult.FileCount -gt 0) { 'CustomApps/marketplace/**' })
             ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
-            browserStorage = [ordered]@{
-                exported = $false
-                status = 'not-portable'
-                reason = 'Marketplace browser storage belongs to Spotify embedded browser state and is not included in this file archive.'
-                recovery = 'Use Marketplace built-in export/import when available; LibreSpot never claims this archive restores browser storage.'
-            }
+            browserStorage = $health.BrowserStorage
             restoration = [ordered]@{
                 mode = 'validated-file-manifest'
                 behavior = 'missing-files-only'
@@ -114,14 +109,14 @@ function Export-MarketplaceState {
         }
         [System.IO.File]::WriteAllText((Join-Path $global:CONFIG_DIR 'marketplace-state-export-latest.json'), $json, $utf8)
         $archiveBytes = [long](Get-Item -LiteralPath $OutputPath -Force -ErrorAction Stop).Length
-        Write-OperationJournalEntry -Phase 'marketplace-state' -Target $OutputPath -SafetyDecision 'Allowed' -Result 'Exported' -WouldChange $true -Reversible $true -RollbackHint 'Use RestoreMarketplaceState or the retained archive to restore missing Marketplace files. Browser storage is not included.' -Data @{
+        Write-OperationJournalEntry -Phase 'marketplace-state' -Target $OutputPath -SafetyDecision 'Allowed' -Result 'Exported' -WouldChange $true -Reversible $true -RollbackHint "Use RestoreMarketplaceState or the retained archive to restore missing Marketplace files. IndexedDB state was not included. $($health.BrowserStorage.recovery)" -Data @{
             archivePath = $OutputPath
             configIncluded = $configIncluded
             marketplaceFileCount = [int]$copyResult.FileCount
             marketplaceBytes = [long]$copyResult.Bytes
             browserStorageExported = $false
         }
-        Write-Log "Marketplace state export created at $OutputPath. Browser storage was not exported and may reset." -Level 'WARN'
+        Write-Log "Marketplace state export created at $OutputPath. IndexedDB state was not exported and may reset. $($health.BrowserStorage.recovery)" -Level 'WARN'
 
         foreach ($oldExport in @(Get-ChildItem -LiteralPath $exportRoot -Filter 'marketplace-state-*.zip' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTimeUtc -Descending | Select-Object -Skip 5)) {
             $null = Remove-PathSafely -Path $oldExport.FullName -Label 'expired Marketplace state export'
@@ -135,7 +130,7 @@ function Export-MarketplaceState {
             MarketplaceFileCount = [int]$copyResult.FileCount
             MarketplaceBytes = [long]$copyResult.Bytes
             BrowserStorageExported = $false
-            BrowserStorageStatus = 'not-portable'
+            BrowserStorageStatus = [string]$health.BrowserStorage.status
             Manifest = [pscustomobject]$manifest
         }
     } catch {

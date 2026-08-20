@@ -15,6 +15,7 @@ public sealed class DataInventoryContractTests
         "install-log",
         "local-profiles",
         "machine-config",
+        "marketplace-browser-storage",
         "marketplace-evidence",
         "marketplace-state-export-evidence",
         "marketplace-state-exports",
@@ -129,6 +130,22 @@ public sealed class DataInventoryContractTests
                 Assert.Contains(marker, File.ReadAllText(fullPath), StringComparison.Ordinal);
             }
         }
+    }
+
+    [Fact]
+    public void Inventory_MarketplaceBrowserStorageIsDetectedOnlyAndNotBackedUp()
+    {
+        using var document = LoadInventory();
+        var location = document.RootElement.GetProperty("dataLocations")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("id").GetString() == "marketplace-browser-storage");
+
+        Assert.Equal("Spotify embedded browser IndexedDB: spicetify-marketplace/settings", location.GetProperty("path").GetString());
+        Assert.Equal("indexeddb", location.GetProperty("storageModel").GetString());
+        Assert.Equal("detected-not-backed-up", location.GetProperty("backupStatus").GetString());
+        Assert.True(location.GetProperty("detectionOnly").GetBoolean());
+        Assert.False(location.GetProperty("includedInSupportBundle").GetBoolean());
+        Assert.Equal("excluded", location.GetProperty("supportExportBehavior").GetString());
     }
 
     [Fact]

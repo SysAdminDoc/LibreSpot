@@ -1106,7 +1106,8 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("function Invoke-WithSpicetifyStatePreservation", script);
         Assert.Contains("function Export-MarketplaceState", script);
         Assert.Contains("function Restore-MarketplaceState", script);
-        Assert.Contains("browser storage", script, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("IndexedDB", script, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("export/import", script, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Invoke-WithSpicetifyStatePreservation -Action 'RepairMarketplace'", script);
         Assert.Contains("Invoke-WithSpicetifyStatePreservation -Action 'Reapply'", script);
         Assert.Contains("spicetify-preservation-latest.json", script);

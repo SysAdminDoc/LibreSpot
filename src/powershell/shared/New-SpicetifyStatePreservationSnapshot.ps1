@@ -39,11 +39,7 @@ function New-SpicetifyStatePreservationSnapshot {
             enabledCustomApps    = @(Get-SpicetifyConfigListValue -Key 'custom_apps')
             marketplaceStatus    = [string]$health.Status
             marketplaceReady     = [bool]$health.IsReady
-            browserStorage       = [ordered]@{
-                exported = $false
-                status = 'not-portable'
-                message = 'Marketplace browser storage is outside this filesystem snapshot and may reset.'
-            }
+            browserStorage       = $health.BrowserStorage
             marketplaceExportPath = ''
         }
         $json = $document | ConvertTo-Json -Depth 6

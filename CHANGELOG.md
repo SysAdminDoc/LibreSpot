@@ -29,7 +29,7 @@ All notable changes to LibreSpot will be documented in this file.
 ### Changed
 
 - Added a Windows GitHub Actions quality gate for PowerShell lint/validation, Pester regressions, the desktop build, and non-WPF .NET tests; release and UI automation workflows remain separate concerns.
-- Added Marketplace state export/recovery actions: Reapply and Repair Marketplace create a retained, validated local archive before mutation, while the CLI can restore missing Marketplace files from the newest archive. Embedded Marketplace browser storage is explicitly marked non-portable and is never claimed to be restored.
+- Added Marketplace state export/recovery actions: Reapply and Repair Marketplace create a retained, validated local archive before mutation, while the CLI can restore missing Marketplace files from the newest archive. Marketplace 1.0.9 IndexedDB state is now reported as detected but not backed up, with Marketplace's own export/import controls named as the recovery path.
 - Added catalog-review enforcement for community assets: manifest entries now carry dated last-push/archive/evidence decisions, stale or invalid easy-mode entries are rejected by deterministic Core policy, deferred assets remain opt-in, and drift/health output includes the review reason.
 - Added a fixture-backed compatibility baseline for the pinned SpotX/Spotify, Spicetify CLI, Marketplace, and theme tuple; `Build-Scripts.ps1 -Validate` now rejects drift between the PowerShell pins, Core catalog constants, and the supported Spotify range.
 - Extracted the three actual WPF workspace tabs into dedicated UserControls while preserving automation IDs, keyboard-focus contracts, localized resources, and navigation behavior.
@@ -129,7 +129,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Consolidated the WPF shell onto a ten-step product type scale and a shared 2px extra-small radius token, removing one-off 5px checkbox corners and 11.5/12.5/13.5/14.5/15/15.5/17/22/23/25/27px text sizes that caused subtle visual drift.
 - Updated Serilog to 4.4.0 and Microsoft.NET.Test.Sdk to 18.8.1, refreshing runtime/test transitive pins and clearing the live dependency-health drift gate with no known vulnerable NuGet packages.
 - Added pinned-asset provenance to the WPF readiness inspector, Fleet CLI `status --json` schema v2, and redacted support bundles: each core/community asset now carries its version or commit, source URL, last-verification date, changelog/release link, and current/stale/indeterminate freshness state.
-- Marketplace repair and profile reapply now make a bounded, reparse-safe snapshot of `config-xpui.ini` and `CustomApps`, restore only files that the refreshed packages leave missing, retain the recovery snapshot, expose success/failure evidence in support bundles, and warn that Marketplace browser storage is outside the recoverable boundary.
+- Marketplace repair and profile reapply now make a bounded, reparse-safe snapshot of `config-xpui.ini` and `CustomApps`, restore only files that the refreshed packages leave missing, retain the recovery snapshot, expose success/failure evidence in support bundles, and warn that Marketplace's IndexedDB state is outside the recoverable boundary.
 - Release guidance now distinguishes the current v3.7.4 script source from GitHub's public latest stable v3.7.2 and validates preview parity locally plus stable tag/assets against the live GitHub latest-release channel.
 
 ### Fixed

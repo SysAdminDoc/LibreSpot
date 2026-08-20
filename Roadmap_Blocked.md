@@ -387,7 +387,7 @@ move, or delete a `v*.*.*` tag.
 
 Why: LibreSpot can share the settings it owns: SpotX flags, selected
 Spotify target, selected Spicetify theme/scheme, curated extensions, and
-Marketplace install preference. It does not currently model arbitrary
+Marketplace install preference. It does not currently back up arbitrary
 Marketplace-installed themes, snippets, IndexedDB state, or cloud sync.
 Recent Spicetify community threads report themes/extensions disappearing
 and users wanting a backup/restore path for Marketplace installs. LibreSpot
