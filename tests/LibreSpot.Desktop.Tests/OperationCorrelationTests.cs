@@ -10,7 +10,7 @@ public sealed class OperationCorrelationTests
     [Fact]
     public void BeginAndComplete_PublishLocalEventSourceWithStableId()
     {
-        var operationId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var operationId = Guid.NewGuid();
         using var listener = new CollectingEventListener();
         listener.EnableEvents(LibreSpotOperationEventSource.Log, EventLevel.Verbose);
 
