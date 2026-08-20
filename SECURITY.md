@@ -61,7 +61,7 @@ Every changed SpotX candidate must be reviewed with `Build-Scripts.ps1 -SpotXSec
 
 ### Spicetify v3 support contract
 
-LibreSpot's pinned Spicetify v2.44.0 flow does not read the v3 support document. When a newer CLI major is detected, the feature-detected contract recognizes the upstream schema-v2 allowlist. An allowlisted Spotify version is accepted, a version with a same-minor lower modular classmap is degraded, and a version with no fallback is refused. Missing or malformed support data stays fail-open so an absent package-manager file does not block the legacy path. The local fixture is [`schemas/spicetify-supported-versions-v2.json`](schemas/spicetify-supported-versions-v2.json), sourced from the [upstream schema](https://raw.githubusercontent.com/spicetify/cli/v3-beta/docs/supported-versions.md).
+LibreSpot's pinned Spicetify v2.44.0 flow does not read the v3 support document. When a newer CLI major is detected, the feature-detected contract recognizes the upstream schema-v2 allowlist. An allowlisted Spotify version is accepted, a version with a same-minor lower modular classmap is degraded, and a version with no fallback is refused. Missing or malformed support data fails closed, so mutating paths stop and point to `spicetify restore` before the pinned 2.x CLI is reinstalled. The local fixture is [`schemas/spicetify-supported-versions-v2.json`](schemas/spicetify-supported-versions-v2.json), sourced from the [upstream schema](https://raw.githubusercontent.com/spicetify/cli/v3-beta/docs/supported-versions.md).
 
 ## Host platform advisories
 

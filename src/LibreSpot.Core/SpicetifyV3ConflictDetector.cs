@@ -33,7 +33,7 @@ public static class SpicetifyV3ConflictDetector
                 true,
                 SpicetifySupportResult.Unavailable(
                     spotifyVersion,
-                    $"The v3 support contract is unavailable or invalid, so the check remains fail-open. {error}"));
+                    $"The v3 support contract is unavailable or invalid, so LibreSpot refuses to mutate Spotify. Run 'spicetify restore' first, then reinstall the pinned Spicetify 2.x CLI. {error}"));
         }
 
         return new SpicetifyV3SupportContractReport(true, contract.Evaluate(spotifyVersion));

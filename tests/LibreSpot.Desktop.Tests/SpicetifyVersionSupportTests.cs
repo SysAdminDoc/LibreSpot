@@ -92,13 +92,14 @@ public sealed class SpicetifyVersionSupportTests
     }
 
     [Fact]
-    public void MissingOrMalformedContractFailsOpen()
+    public void MissingOrMalformedContractFailsClosed()
     {
         var missing = SpicetifySupportResult.Unavailable("1.2.95", "missing");
         Assert.False(missing.ListAvailable);
-        Assert.True(missing.CanApply);
-        Assert.True(missing.CanAutoApply);
-        Assert.Equal(0, missing.SupportCommandExitCode);
+        Assert.True(missing.ContractUnavailable);
+        Assert.False(missing.CanApply);
+        Assert.False(missing.CanAutoApply);
+        Assert.Equal(1, missing.SupportCommandExitCode);
 
         Assert.False(
             SpicetifySupportContract.TryParse("{\"schema_version\":99}", out _, out var error));
@@ -122,7 +123,10 @@ public sealed class SpicetifyVersionSupportTests
         var malformedV3 = SpicetifyV3ConflictDetector.EvaluateSupportContract("3.0.0-beta.1", "1.2.95", "not-json");
         Assert.True(malformedV3.IsFeatureActive);
         Assert.False(malformedV3.Result.ListAvailable);
-        Assert.True(malformedV3.Result.CanApply);
+        Assert.True(malformedV3.Result.ContractUnavailable);
+        Assert.False(malformedV3.Result.CanApply);
+        Assert.False(malformedV3.Result.CanAutoApply);
+        Assert.Equal(1, malformedV3.Result.SupportCommandExitCode);
     }
 
     private static SpicetifySupportContract LoadFixture()

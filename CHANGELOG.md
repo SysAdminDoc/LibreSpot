@@ -9,7 +9,8 @@ All notable changes to LibreSpot will be documented in this file.
 - Added a non-blocking PowerShell 7 security-floor preflight. PowerShell 7.6.0 through 7.6.4 now warn with CVE-2026-50523 and the fixed 7.6.5 version, while 7.6.5 and later remain silent.
 - Raised the self-contained .NET runtime floor to 10.0.11 and refreshed the dependency-health rationale with the August 11, 2026 ten-CVE servicing batch, including two remote-code-execution fixes.
 - Added an explicit SpotX post-Defender pin policy at upstream commit `afb4c3fc`. Candidate review now requires the declared and passed `-defender_exclusions_off` switch before a changed pin can be accepted.
-- Added a schema-v2 Spicetify v3 support contract fixture. Detected v3 CLIs now classify allowlisted, degraded, refused, and fail-open states while the pinned v2.44.0 path remains unchanged.
+- Added a schema-v2 Spicetify v3 support contract fixture. Detected v3 CLIs now classify allowlisted, degraded, refused, and unavailable states while the pinned v2.44.0 path remains unchanged.
+- Changed missing or malformed v3 support data to fail closed. Install, reapply, repair, and direct Spicetify mutation paths now stop with the `spicetify restore` recovery path until a valid allowlist is available.
 - Removed the remaining Dependabot branches and release-note exclusions. Repository vulnerability alerts remain disabled by policy.
 - Updated both .NET test projects to Microsoft.NET.Test.Sdk 18.9.0, xUnit.v3 4.0.0, and the xUnit Visual Studio runner 4.0.0. The desktop project also uses FsCheck.Xunit.v3 3.4.0. Both projects now opt into the Microsoft Testing Platform v2 runner through the repository's global SDK configuration.
 - Pinned the local PSScriptAnalyzer lint gate to 1.25.0 and recorded the explicit decision to keep `PSUseConstrainedLanguageMode` disabled after a zero-diagnostic triage run against both hosts.

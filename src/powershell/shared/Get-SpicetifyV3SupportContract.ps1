@@ -36,15 +36,15 @@ function Get-SpicetifyV3SupportContract {
             CliMajor = $major
             ListAvailable = $false
             Verdict = 'unknown'
-            CanApply = $true
-            CanAutoApply = -not [string]::IsNullOrWhiteSpace($SpotifyVersion)
+            CanApply = $false
+            CanAutoApply = $false
             NormalizedVersion = $null
             MapStatus = $null
             ClassmapKey = $null
             FallbackVersion = $null
             FallbackClassmapKey = $null
             SupportListPath = $null
-            Reason = 'The v3 supported-versions document is unavailable, so the check remains fail-open.'
+            Reason = "The v3 supported-versions document is unavailable, so LibreSpot refuses to mutate Spotify. Run 'spicetify restore' first, then reinstall the pinned Spicetify 2.x CLI."
         }
     }
 
@@ -63,15 +63,15 @@ function Get-SpicetifyV3SupportContract {
             CliMajor = $major
             ListAvailable = $false
             Verdict = 'unknown'
-            CanApply = $true
-            CanAutoApply = -not [string]::IsNullOrWhiteSpace($SpotifyVersion)
+            CanApply = $false
+            CanAutoApply = $false
             NormalizedVersion = $null
             MapStatus = $null
             ClassmapKey = $null
             FallbackVersion = $null
             FallbackClassmapKey = $null
             SupportListPath = $resolvedPath
-            Reason = "The v3 supported-versions document is malformed, so the check remains fail-open. $($_.Exception.Message)"
+            Reason = "The v3 supported-versions document is malformed, so LibreSpot refuses to mutate Spotify. Run 'spicetify restore' first, then reinstall the pinned Spicetify 2.x CLI. $($_.Exception.Message)"
         }
     }
 

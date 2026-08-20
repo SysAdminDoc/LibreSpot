@@ -1705,7 +1705,7 @@ Describe 'Get-SpicetifyV3SupportContract' {
         $report.CanAutoApply | Should -BeFalse
     }
 
-    It 'fails open when a detected v3 CLI has no support document' {
+    It 'fails closed when a detected v3 CLI has no support document' {
         $report = Get-SpicetifyV3SupportContract `
             -CliVersion '3.0.0-beta.1' `
             -SpotifyVersion '1.2.95' `
@@ -1714,6 +1714,37 @@ Describe 'Get-SpicetifyV3SupportContract' {
         $report.FeatureActive | Should -BeTrue
         $report.ListAvailable | Should -BeFalse
         $report.Verdict | Should -Be 'unknown'
+        $report.CanApply | Should -BeFalse
+        $report.CanAutoApply | Should -BeFalse
+        $report.Reason | Should -Match 'spicetify restore'
+    }
+
+    It 'fails closed when a detected v3 CLI has malformed support data' {
+        $malformedPath = Join-Path $TestDrive 'malformed-supported-versions.json'
+        Set-Content -LiteralPath $malformedPath -Value '{"schema_version":2' -NoNewline
+
+        $report = Get-SpicetifyV3SupportContract `
+            -CliVersion '3.0.0-beta.1' `
+            -SpotifyVersion '1.2.95' `
+            -SupportListPath $malformedPath
+
+        $report.FeatureActive | Should -BeTrue
+        $report.ListAvailable | Should -BeFalse
+        $report.Verdict | Should -Be 'unknown'
+        $report.CanApply | Should -BeFalse
+        $report.CanAutoApply | Should -BeFalse
+        $report.Reason | Should -Match 'spicetify restore'
+    }
+
+    It 'allows an allowlisted Spotify version from the support document' {
+        $report = Get-SpicetifyV3SupportContract `
+            -CliVersion '3.0.0-beta.1' `
+            -SpotifyVersion '1.2.94' `
+            -SupportListPath $script:v3SupportFixture
+
+        $report.FeatureActive | Should -BeTrue
+        $report.ListAvailable | Should -BeTrue
+        $report.Verdict | Should -Be 'allowlisted'
         $report.CanApply | Should -BeTrue
         $report.CanAutoApply | Should -BeTrue
     }

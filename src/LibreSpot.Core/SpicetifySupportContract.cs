@@ -31,11 +31,13 @@ public sealed record SpicetifySupportResult(
     string? FallbackClassmapKey,
     string Reason)
 {
-    public bool CanApply => !ListAvailable || Verdict != SpicetifySupportVerdict.Refused;
+    public bool ContractUnavailable { get; init; }
 
-    public bool CanAutoApply => VersionDetected && (!ListAvailable || Verdict != SpicetifySupportVerdict.Refused);
+    public bool CanApply => !ContractUnavailable && (!ListAvailable || Verdict != SpicetifySupportVerdict.Refused);
 
-    public int SupportCommandExitCode => ListAvailable && Verdict == SpicetifySupportVerdict.Refused ? 1 : 0;
+    public bool CanAutoApply => !ContractUnavailable && VersionDetected && (!ListAvailable || Verdict != SpicetifySupportVerdict.Refused);
+
+    public int SupportCommandExitCode => ContractUnavailable || (ListAvailable && Verdict == SpicetifySupportVerdict.Refused) ? 1 : 0;
 
     public static SpicetifySupportResult NotApplicable() => new(
         null,
@@ -59,7 +61,10 @@ public sealed record SpicetifySupportResult(
         null,
         null,
         null,
-        reason);
+        reason)
+    {
+        ContractUnavailable = true
+    };
 
     private static bool TryNormalizeVersion(string? rawVersion, out Version version) =>
         SpicetifySupportContract.TryNormalizeVersion(rawVersion, out version);

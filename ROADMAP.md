@@ -21,13 +21,6 @@ Existing items RD-51–RD-57 and RD-59–RD-62 below are the same work items as 
 
 ### P1
 
-- [ ] P1 — RD-66: Fail closed when a v3 CLI is detected but `supported-versions.json` is missing
-  Why: Current contract copies upstream fail-open so a package-manager v3 without the file still patches; LibreSpot already pins hashes and otherwise refuses unknown Spotify — fail-open is the remaining way a v3 CLI can mutate an unsupported client. This contradicts pin-and-refuse philosophy (flagged in RESEARCH.md).
-  Evidence: `SpicetifySupportContract.cs` fail-open messages; `Get-SpicetifyV3SupportContract.ps1`; SECURITY.md “missing list fails open”; upstream `supported-versions.md`; ReVanced fail-closed-unless-forced pattern.
-  Touches: `SpicetifySupportContract.cs`, `Get-SpicetifyV3SupportContract.ps1`, both PS hosts via `-ComposeHosts`, Pester + `SpicetifyV3ConflictDetectorTests` / support-contract tests, SECURITY.md, README v3 paragraph
-  Acceptance: With a v3 CLI present and no/malformed allowlist, install/reapply/repair refuse with a restore path; v2.44.0 path unchanged; `--force`/documented override remains explicit if one exists; tests cover missing, malformed, and allowlisted documents.
-  Complexity: M
-
 ### P2
 
 - [ ] P2 — RD-59: Structural debt round 2 — MainViewModel and custom workspace view

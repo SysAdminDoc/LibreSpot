@@ -72,7 +72,7 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 LibreSpot refuses to install or reapply over Spicetify v3 artifacts. If the health report shows a Spicetify v3 conflict, run `spicetify restore` first, then reinstall the pinned Spicetify 2.x integration.
 
-**The v3 compatibility contract is fixture-backed.** When a v3 CLI is detected, LibreSpot can read the upstream [`supported-versions.json`](https://raw.githubusercontent.com/spicetify/cli/v3-beta/supported-versions.json) schema-v2 allowlist. Allowlisted versions proceed, versions with a same-minor lower modular map are marked degraded, and versions without a usable fallback are refused. A missing or malformed document stays fail-open, matching upstream behavior. The pinned Spicetify v2.44.0 path does not activate this contract.
+**The v3 compatibility contract is fixture-backed.** When a v3 CLI is detected, LibreSpot can read the upstream [`supported-versions.json`](https://raw.githubusercontent.com/spicetify/cli/v3-beta/supported-versions.json) schema-v2 allowlist. Allowlisted versions proceed, versions with a same-minor lower modular map are marked degraded, and versions without a usable fallback are refused. A missing or malformed document now fails closed and points to `spicetify restore` before the pinned 2.x CLI is reinstalled. The pinned Spicetify v2.44.0 path does not activate this contract.
 
 **A smaller shipping shell.** The three actual workspace tabs now live in dedicated UserControls while preserving the existing automation names, keyboard-focus contracts, localized resources, and navigation behavior. Per-user registry, configuration, profile, backup, log, crash, and executable-path isolation is covered by multi-user regression tests.
 

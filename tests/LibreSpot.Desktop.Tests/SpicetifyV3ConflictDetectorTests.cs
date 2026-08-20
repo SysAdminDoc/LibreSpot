@@ -60,6 +60,23 @@ public sealed class SpicetifyV3ConflictDetectorTests
         Assert.Empty(report.Markers);
     }
 
+    [Fact]
+    public void MissingV3SupportContractRefusesMutationWithRestorePath()
+    {
+        var report = SpicetifyV3ConflictDetector.EvaluateSupportContract(
+            "3.0.0-beta.1",
+            "1.2.95",
+            null);
+
+        Assert.True(report.IsFeatureActive);
+        Assert.False(report.Result.ListAvailable);
+        Assert.True(report.Result.ContractUnavailable);
+        Assert.False(report.Result.CanApply);
+        Assert.False(report.Result.CanAutoApply);
+        Assert.Equal(1, report.Result.SupportCommandExitCode);
+        Assert.Contains("spicetify restore", report.Result.Reason, StringComparison.OrdinalIgnoreCase);
+    }
+
     private sealed class TemporaryDirectory : IDisposable
     {
         public TemporaryDirectory()
