@@ -40,6 +40,51 @@ public sealed class EnvironmentSnapshotServiceTests
     }
 
     [Fact]
+    public void GetSnapshot_PopulatesCompatibilityVerdictReport()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
+        var spotifyPath = Path.Combine(root, "Spotify", "Spotify.exe");
+        var spicetifyPath = Path.Combine(root, "Spicetify", "spicetify.exe");
+        var configPath = Path.Combine(root, "Profile", "config.json");
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(spotifyPath)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(spicetifyPath)!);
+            File.WriteAllText(spotifyPath, string.Empty);
+            File.WriteAllText(spicetifyPath, string.Empty);
+
+            var snapshot = new EnvironmentSnapshotService(
+                autoReapplyTaskProbe: () => false,
+                spotifyPath: spotifyPath,
+                spicetifyPath: spicetifyPath,
+                spotifyVersionProbe: () => "1.2.93.647",
+                spicetifyVersionProbe: () => "2.44.0",
+                upstreamDriftProbe: () => UpstreamDriftReport.Empty,
+                communityAssetDriftProbe: () => CommunityAssetDriftReport.Empty)
+                .GetSnapshot(configPath);
+
+            Assert.Equal(4, snapshot.CompatibilityVerdicts.Items.Count);
+            Assert.Equal(
+                CompatibilityVerdictState.Supported,
+                snapshot.CompatibilityVerdicts.Items.Single(item => item.Id == "spotify").Verdict);
+            Assert.Equal(
+                "1.2.93.647",
+                snapshot.CompatibilityVerdicts.Items.Single(item => item.Id == "spotify").DetectedValue);
+            Assert.Equal(
+                CompatibilityVerdictState.Supported,
+                snapshot.CompatibilityVerdicts.Items.Single(item => item.Id == "spicetify-cli").Verdict);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void GetSnapshot_ReportsAutoReapplyTaskProbeState()
     {
         var configDirectory = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));

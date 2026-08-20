@@ -130,6 +130,12 @@ public sealed class EnvironmentSnapshotService
             antivirusStatus,
             storeSpotifyPresent,
             patcherOwnershipReport);
+        var compatibilityVerdicts = CompatibilityVerdictReport.Create(
+            healthReport,
+            spotifyInstalled,
+            spicetifyInstalled,
+            marketplaceFilesPresent,
+            marketplaceRegistered);
 
         return new EnvironmentSnapshot
         {
@@ -141,6 +147,7 @@ public sealed class EnvironmentSnapshotService
             ConfigFolderExists = configFolderExists,
             AutoReapplyTaskRegistered = autoReapplyTaskRegistered,
             HealthReport = healthReport,
+            CompatibilityVerdicts = compatibilityVerdicts,
             UpstreamDriftReport = upstreamDriftReport,
             CommunityAssetDriftReport = communityAssetDriftReport,
             AssetCacheInventory = assetCacheInventory,

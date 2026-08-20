@@ -13,6 +13,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Removed the remaining Dependabot branches and release-note exclusions. Repository vulnerability alerts remain disabled by policy.
 - Updated both .NET test projects to Microsoft.NET.Test.Sdk 18.9.0, xUnit.v3 4.0.0, and the xUnit Visual Studio runner 4.0.0. The desktop project also uses FsCheck.Xunit.v3 3.4.0. Both projects now opt into the Microsoft Testing Platform v2 runner through the repository's global SDK configuration.
 - Pinned the local PSScriptAnalyzer lint gate to 1.25.0 and recorded the explicit decision to keep `PSUseConstrainedLanguageMode` disabled after a zero-diagnostic triage run against both hosts.
+- Added a localized Maintenance compatibility verdict matrix. It compares detected Spotify, SpotX, Spicetify CLI, and Marketplace state with the pinned tuple, labels supported/degraded/unsupported/unknown conditions, and gives a next step for each state. The Core report, view-model projection, and WPF screenshot matrix are covered by regression tests.
 
 ### Fixed
 

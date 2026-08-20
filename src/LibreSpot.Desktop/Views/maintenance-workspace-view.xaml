@@ -48,6 +48,126 @@
                     </ItemsControl.ItemsPanel>
                   </ItemsControl>
 
+                  <Border x:Name="CompatibilityVerdictQaSurface"
+                          Style="{StaticResource SubtleCardStyle}"
+                          Margin="0,4,0,14"
+                          AutomationProperties.AutomationId="CompatibilityVerdictMatrix"
+                          AutomationProperties.Name="{services:Loc CompatibilityVerdictTitle}">
+                    <StackPanel>
+                      <TextBlock Text="{services:Loc CompatibilityVerdictTitle}"
+                                 Style="{StaticResource SectionTitleTextStyle}"
+                                 FontSize="18" />
+                      <TextBlock Text="{services:Loc CompatibilityVerdictDescription}"
+                                 Style="{StaticResource CaptionTextStyle}"
+                                 Margin="0,6,0,0"
+                                 TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding CompatibilityVerdictSummary}"
+                                 Foreground="{DynamicResource TextBrush}"
+                                 FontWeight="SemiBold"
+                                 Margin="0,8,0,0" />
+
+                      <ItemsControl ItemsSource="{Binding CompatibilityVerdictItems}"
+                                    Margin="0,14,0,0"
+                                    AutomationProperties.Name="{services:Loc CompatibilityVerdictTitle}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <UniformGrid Columns="2" />
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Border Style="{StaticResource SubtleCardStyle}"
+                                    Margin="0,0,10,10"
+                                    AutomationProperties.AutomationId="{Binding AutomationId}"
+                                    AutomationProperties.Name="{Binding Label}"
+                                    AutomationProperties.HelpText="{Binding NextStep}">
+                              <Grid>
+                                <Grid.RowDefinitions>
+                                  <RowDefinition Height="Auto" />
+                                  <RowDefinition Height="Auto" />
+                                  <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                  <ColumnDefinition Width="*" />
+                                  <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Label}"
+                                           Style="{StaticResource LabelTextStyle}" />
+                                <Border Grid.Column="1"
+                                        Padding="8,3"
+                                        CornerRadius="{StaticResource RadiusXs}">
+                                  <Border.Style>
+                                    <Style TargetType="Border">
+                                      <Setter Property="Background" Value="{DynamicResource StrokeSoftBrush}" />
+                                      <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Ready}">
+                                          <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Warning}">
+                                          <Setter Property="Background" Value="{DynamicResource WarningBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Critical}">
+                                          <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
+                                        </DataTrigger>
+                                      </Style.Triggers>
+                                    </Style>
+                                  </Border.Style>
+                                  <TextBlock Text="{Binding Verdict}"
+                                             Style="{StaticResource MicroBadgeTextStyle}"
+                                             Foreground="{DynamicResource TextBrush}" />
+                                </Border>
+
+                                <Grid Grid.Row="1"
+                                      Grid.ColumnSpan="2"
+                                      Margin="0,12,0,0">
+                                  <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                  </Grid.RowDefinitions>
+                                  <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                  </Grid.ColumnDefinitions>
+                                  <TextBlock Text="{services:Loc CompatibilityDetectedLabel}"
+                                             Style="{StaticResource CaptionTextStyle}" />
+                                  <TextBlock Grid.Column="1"
+                                             Text="{Binding DetectedValue}"
+                                             Foreground="{DynamicResource TextBrush}"
+                                             TextAlignment="Right"
+                                             TextWrapping="Wrap"
+                                             Margin="12,0,0,0" />
+                                  <TextBlock Grid.Row="1"
+                                             Text="{services:Loc CompatibilityPinnedLabel}"
+                                             Style="{StaticResource CaptionTextStyle}"
+                                             Margin="0,4,0,0" />
+                                  <TextBlock Grid.Row="1"
+                                             Grid.Column="1"
+                                             Text="{Binding PinnedValue}"
+                                             Foreground="{DynamicResource TextBrush}"
+                                             TextAlignment="Right"
+                                             TextWrapping="Wrap"
+                                             Margin="12,4,0,0" />
+                                </Grid>
+
+                                <StackPanel Grid.Row="2"
+                                            Grid.ColumnSpan="2"
+                                            Margin="0,12,0,0">
+                                  <TextBlock Text="{services:Loc CompatibilityNextStepLabel}"
+                                             Style="{StaticResource CaptionTextStyle}" />
+                                  <TextBlock Text="{Binding NextStep}"
+                                             Style="{StaticResource CaptionTextStyle}"
+                                             Foreground="{DynamicResource TextBrush}"
+                                             TextWrapping="Wrap"
+                                             Margin="0,3,0,0" />
+                                </StackPanel>
+                              </Grid>
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </Border>
+
                   <UniformGrid Columns="4"
                                Margin="0,0,0,14">
                     <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">

@@ -1320,4 +1320,25 @@
   <data name="Vm_GlobalSearchCategoryMaintenance" xml:space="preserve"><value>Maintenance</value><comment>Global search category for repair and maintenance actions.</comment></data>
   <data name="Vm_GlobalSearchCategorySupport" xml:space="preserve"><value>Support</value><comment>Global search category for diagnostics and support bundles.</comment></data>
   <data name="Vm_GlobalSearchCategoryHealthTrust" xml:space="preserve"><value>Health &amp; trust</value><comment>Global search category for detected health and provenance issues.</comment></data>
+  <data name="CompatibilityVerdictTitle" xml:space="preserve"><value>Compatibility verdict</value><comment>Maintenance matrix title comparing detected versions with the pinned compatibility tuple.</comment></data>
+  <data name="CompatibilityVerdictDescription" xml:space="preserve"><value>Detected component versions are compared with the pinned Spotify, SpotX, Spicetify, and Marketplace tuple.</value><comment>Maintenance matrix explanation for the detected versus pinned compatibility view.</comment></data>
+  <data name="CompatibilityVerdictSummaryFormat" xml:space="preserve"><value>Overall: {0}</value><comment>Maintenance matrix overall verdict summary.</comment></data>
+  <data name="CompatibilityDetectedLabel" xml:space="preserve"><value>Detected</value><comment>Compatibility matrix field label for the locally detected value.</comment></data>
+  <data name="CompatibilityPinnedLabel" xml:space="preserve"><value>Pinned</value><comment>Compatibility matrix field label for the LibreSpot pinned value.</comment></data>
+  <data name="CompatibilityNextStepLabel" xml:space="preserve"><value>Next step</value><comment>Compatibility matrix field label for recommended follow-up.</comment></data>
+  <data name="CompatibilityVerdictSupported" xml:space="preserve"><value>Supported</value><comment>Compatibility matrix verdict for an exact supported pairing.</comment></data>
+  <data name="CompatibilityVerdictDegraded" xml:space="preserve"><value>Degraded</value><comment>Compatibility matrix verdict for a detected but non-pinned or warning state.</comment></data>
+  <data name="CompatibilityVerdictUnsupported" xml:space="preserve"><value>Unsupported</value><comment>Compatibility matrix verdict for a pairing LibreSpot should not apply.</comment></data>
+  <data name="CompatibilityVerdictUnknown" xml:space="preserve"><value>Unknown</value><comment>Compatibility matrix verdict when detection is incomplete.</comment></data>
+  <data name="CompatibilityNextStepSupported" xml:space="preserve"><value>Keep this pinned pairing. No action is needed.</value><comment>Follow-up guidance for a supported compatibility item.</comment></data>
+  <data name="CompatibilityNextStepDegraded" xml:space="preserve"><value>Review the detected value before reapplying the stack.</value><comment>Follow-up guidance for a degraded compatibility item.</comment></data>
+  <data name="CompatibilityNextStepUnsupported" xml:space="preserve"><value>Repair or reinstall the component before applying changes.</value><comment>Follow-up guidance for an unsupported compatibility item.</comment></data>
+  <data name="CompatibilityNextStepUnknown" xml:space="preserve"><value>Refresh the snapshot or install the missing component to verify it.</value><comment>Follow-up guidance for an unknown compatibility item.</comment></data>
+  <data name="CompatibilityDetectedMissing" xml:space="preserve"><value>Not detected</value><comment>Compatibility matrix detected value when a component is missing.</comment></data>
+  <data name="CompatibilityDetectedNotChecked" xml:space="preserve"><value>Not checked</value><comment>Compatibility matrix detected value when a dependent component is not installed.</comment></data>
+  <data name="CompatibilityDetectedVerified" xml:space="preserve"><value>Verified</value><comment>Compatibility matrix detected value for verified SpotX markers.</comment></data>
+  <data name="CompatibilityDetectedUnverified" xml:space="preserve"><value>Detected, unverified</value><comment>Compatibility matrix detected value for incomplete SpotX markers.</comment></data>
+  <data name="CompatibilityDetectedFiles" xml:space="preserve"><value>Files detected, version unknown</value><comment>Compatibility matrix detected value when Marketplace files have no readable version.</comment></data>
+  <data name="CompatibilityDetectedUnavailable" xml:space="preserve"><value>Unavailable</value><comment>Compatibility matrix detected value when the parent component is unavailable.</comment></data>
+  <data name="CompatibilityDetectedUnknown" xml:space="preserve"><value>Version unknown</value><comment>Compatibility matrix fallback for an unreadable version.</comment></data>
 </root>

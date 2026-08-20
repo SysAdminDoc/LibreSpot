@@ -8,7 +8,7 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 IDs continue the RD-nn scheme. Highest ID in this file: RD-72. RD-47–RD-50 are absent because they already landed on `main` (CHANGELOG `[Unreleased]`); do not re-file them.
 
-Existing items RD-51–RD-62 below are the same work items as the prior pass, with evidence corrections in-place (especially RD-54 / RD-60). New items start at RD-63.
+Existing items RD-51–RD-57 and RD-59–RD-62 below are the same work items as the prior pass, with evidence corrections in-place (especially RD-54 / RD-60). New items start at RD-63.
 
 ### P0
 
@@ -20,13 +20,6 @@ Existing items RD-51–RD-62 below are the same work items as the prior pass, wi
   Complexity: M
 
 ### P1
-
-- [ ] P1 — RD-58: Surface a user-facing compatibility verdict matrix
-  Why: The #1 ecosystem failure mode is version drift (Spotify 1.2.96.518 / SpotX HEAD 1.2.97 vs pinned Spicetify 1.2.93 vs v3-beta allowlist 1.2.70–1.2.94); LibreSpot has the data but no single UI surface rendering supported/degraded/unsupported with next-step guidance.
-  Evidence: SpotX-Bash banner pattern; ReVanced Manager patch-compatibility UX; `schemas/compatibility-baseline.json`; `Build-Scripts.ps1 -CheckSpotifyVersionDrift`; Wikipedia template 2026-08-13; SpotX commit `f4cf592` 2026-08-16.
-  Touches: `MainViewModel`/maintenance workspace, `EnvironmentSnapshotService`, localization resources, WPF QA matrix captures
-  Acceptance: Maintenance surface shows detected Spotify/SpotX/Spicetify/Marketplace versions against the pinned tuple with an explicit verdict and next-step guidance per state; localized; screenshot gate updated.
-  Complexity: M
 
 - [ ] P1 — RD-64: Unify workspace taxonomy and localize Jump List / protocol strings
   Why: Visible nav is Home/Setup/Unblock while heroes, tabs, and Jump List say Recommended/Custom/Maintenance; Jump List and `librespot://` registry copy are hardcoded English, so a localized UI plus an English taskbar is a trust/a11y defect.

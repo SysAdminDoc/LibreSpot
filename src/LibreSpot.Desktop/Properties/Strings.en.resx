@@ -2570,4 +2570,25 @@
   <data name="Vm_GlobalSearchCategoryMaintenance" xml:space="preserve"><value>Maintenance</value></data>
   <data name="Vm_GlobalSearchCategorySupport" xml:space="preserve"><value>Support</value></data>
   <data name="Vm_GlobalSearchCategoryHealthTrust" xml:space="preserve"><value>Health &amp; trust</value></data>
+  <data name="CompatibilityVerdictTitle" xml:space="preserve"><value>Compatibility verdict</value></data>
+  <data name="CompatibilityVerdictDescription" xml:space="preserve"><value>Detected component versions are compared with the pinned Spotify, SpotX, Spicetify, and Marketplace tuple.</value></data>
+  <data name="CompatibilityVerdictSummaryFormat" xml:space="preserve"><value>Overall: {0}</value></data>
+  <data name="CompatibilityDetectedLabel" xml:space="preserve"><value>Detected</value></data>
+  <data name="CompatibilityPinnedLabel" xml:space="preserve"><value>Pinned</value></data>
+  <data name="CompatibilityNextStepLabel" xml:space="preserve"><value>Next step</value></data>
+  <data name="CompatibilityVerdictSupported" xml:space="preserve"><value>Supported</value></data>
+  <data name="CompatibilityVerdictDegraded" xml:space="preserve"><value>Degraded</value></data>
+  <data name="CompatibilityVerdictUnsupported" xml:space="preserve"><value>Unsupported</value></data>
+  <data name="CompatibilityVerdictUnknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="CompatibilityNextStepSupported" xml:space="preserve"><value>Keep this pinned pairing. No action is needed.</value></data>
+  <data name="CompatibilityNextStepDegraded" xml:space="preserve"><value>Review the detected value before reapplying the stack.</value></data>
+  <data name="CompatibilityNextStepUnsupported" xml:space="preserve"><value>Repair or reinstall the component before applying changes.</value></data>
+  <data name="CompatibilityNextStepUnknown" xml:space="preserve"><value>Refresh the snapshot or install the missing component to verify it.</value></data>
+  <data name="CompatibilityDetectedMissing" xml:space="preserve"><value>Not detected</value></data>
+  <data name="CompatibilityDetectedNotChecked" xml:space="preserve"><value>Not checked</value></data>
+  <data name="CompatibilityDetectedVerified" xml:space="preserve"><value>Verified</value></data>
+  <data name="CompatibilityDetectedUnverified" xml:space="preserve"><value>Detected, unverified</value></data>
+  <data name="CompatibilityDetectedFiles" xml:space="preserve"><value>Files detected, version unknown</value></data>
+  <data name="CompatibilityDetectedUnavailable" xml:space="preserve"><value>Unavailable</value></data>
+  <data name="CompatibilityDetectedUnknown" xml:space="preserve"><value>Version unknown</value></data>
 </root>

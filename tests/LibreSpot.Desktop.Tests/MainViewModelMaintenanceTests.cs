@@ -87,6 +87,19 @@ public sealed class MainViewModelMaintenanceTests
             Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Last patch" && item.Value != "No patch record");
             Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Watcher" && item.Value == "Disabled");
             Assert.Contains(viewModel.StatusDashboardItems, item => item.Label == "Backups" && item.Value == "1 backup");
+            Assert.Equal(4, viewModel.CompatibilityVerdictItems.Count);
+            Assert.Contains(
+                viewModel.CompatibilityVerdictItems,
+                item => item.Label == "Spotify version" &&
+                        item.DetectedValue == "1.2.93.647" &&
+                        item.PinnedValue == "1.2.93" &&
+                        item.Verdict == "Supported");
+            Assert.Contains(
+                viewModel.CompatibilityVerdictItems,
+                item => item.Label == "Spicetify version" &&
+                        item.DetectedValue == "2.44.0" &&
+                        item.PinnedValue == "2.44.0" &&
+                        item.Verdict == "Supported");
         });
 
     [Fact]

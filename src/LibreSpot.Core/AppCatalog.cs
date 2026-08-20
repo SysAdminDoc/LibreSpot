@@ -818,6 +818,7 @@ public sealed class EnvironmentSnapshot
     public bool ConfigFolderExists { get; init; }
     public bool AutoReapplyTaskRegistered { get; init; }
     public StackHealthReport HealthReport { get; init; } = StackHealthReport.Empty;
+    public CompatibilityVerdictReport CompatibilityVerdicts { get; init; } = CompatibilityVerdictReport.Empty;
     public UpstreamDriftReport UpstreamDriftReport { get; init; } = UpstreamDriftReport.Empty;
     public CommunityAssetDriftReport CommunityAssetDriftReport { get; init; } = CommunityAssetDriftReport.Empty;
     public AssetCacheInventoryReport AssetCacheInventory { get; init; } = AssetCacheInventoryReport.Empty;

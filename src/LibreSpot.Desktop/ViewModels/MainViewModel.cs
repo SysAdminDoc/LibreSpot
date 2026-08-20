@@ -742,6 +742,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public IReadOnlyList<StatusDashboardItemViewModel> ShellPrimaryStatusItems =>
         StatusDashboardItems.Take(3).ToArray();
 
+    public IReadOnlyList<CompatibilityVerdictItemViewModel> CompatibilityVerdictItems =>
+        Snapshot.CompatibilityVerdicts.Items
+            .Select(BuildCompatibilityVerdictItem)
+            .ToArray();
+
+    public string CompatibilityVerdictSummary =>
+        LF(
+            "CompatibilityVerdictSummaryFormat",
+            LocalizeCompatibilityVerdict(Snapshot.CompatibilityVerdicts.OverallVerdict));
+
     public bool HasConfigurationRecoveryNotice =>
         _configurationLoadState == ConfigurationLoadState.RecoveredFromCorrupt;
 
@@ -2418,6 +2428,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HealthIssueSummary));
         OnPropertyChanged(nameof(StatusDashboardItems));
         OnPropertyChanged(nameof(ShellPrimaryStatusItems));
+        OnPropertyChanged(nameof(CompatibilityVerdictItems));
+        OnPropertyChanged(nameof(CompatibilityVerdictSummary));
         OnPropertyChanged(nameof(MaintenanceReadinessValue));
         OnPropertyChanged(nameof(MaintenanceReadinessDetail));
         OnPropertyChanged(nameof(MaintenanceBackupValue));
@@ -3042,6 +3054,69 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             detail,
             component.Severity);
     }
+
+    private CompatibilityVerdictItemViewModel BuildCompatibilityVerdictItem(
+        CompatibilityVerdictItem item)
+    {
+        var label = item.Id switch
+        {
+            "spotify" => Strings.DashboardSpotifyVersionLabel,
+            "spotx" => Strings.DashboardSpotXStateLabel,
+            "spicetify-cli" => Strings.DashboardSpicetifyVersionLabel,
+            "marketplace" => Strings.MarketplaceLabel,
+            _ => L("CompatibilityDetectedUnknown")
+        };
+        var verdict = LocalizeCompatibilityVerdict(item.Verdict);
+        return new CompatibilityVerdictItemViewModel(
+            $"CompatibilityVerdict_{item.Id}",
+            label,
+            LocalizeCompatibilityDetection(item),
+            item.PinnedValue,
+            verdict,
+            LocalizeCompatibilityNextStep(item.Verdict),
+            CompatibilityTone(item.Verdict));
+    }
+
+    private string LocalizeCompatibilityDetection(CompatibilityVerdictItem item) =>
+        item.DetectionCode switch
+        {
+            CompatibilityDetectionCode.Version when !string.IsNullOrWhiteSpace(item.DetectedValue) =>
+                item.DetectedValue!,
+            CompatibilityDetectionCode.Missing => L("CompatibilityDetectedMissing"),
+            CompatibilityDetectionCode.NotChecked => L("CompatibilityDetectedNotChecked"),
+            CompatibilityDetectionCode.Verified => L("CompatibilityDetectedVerified"),
+            CompatibilityDetectionCode.Unverified => L("CompatibilityDetectedUnverified"),
+            CompatibilityDetectionCode.Files => L("CompatibilityDetectedFiles"),
+            CompatibilityDetectionCode.Unavailable => L("CompatibilityDetectedUnavailable"),
+            _ => L("CompatibilityDetectedUnknown")
+        };
+
+    private string LocalizeCompatibilityVerdict(string verdict) =>
+        verdict switch
+        {
+            CompatibilityVerdictState.Supported => L("CompatibilityVerdictSupported"),
+            CompatibilityVerdictState.Degraded => L("CompatibilityVerdictDegraded"),
+            CompatibilityVerdictState.Unsupported => L("CompatibilityVerdictUnsupported"),
+            _ => L("CompatibilityVerdictUnknown")
+        };
+
+    private string LocalizeCompatibilityNextStep(string verdict) =>
+        verdict switch
+        {
+            CompatibilityVerdictState.Supported => L("CompatibilityNextStepSupported"),
+            CompatibilityVerdictState.Degraded => L("CompatibilityNextStepDegraded"),
+            CompatibilityVerdictState.Unsupported => L("CompatibilityNextStepUnsupported"),
+            _ => L("CompatibilityNextStepUnknown")
+        };
+
+    private static string CompatibilityTone(string verdict) =>
+        verdict switch
+        {
+            CompatibilityVerdictState.Supported => HealthSeverity.Ready,
+            CompatibilityVerdictState.Degraded => HealthSeverity.Warning,
+            CompatibilityVerdictState.Unsupported => HealthSeverity.Critical,
+            _ => HealthSeverity.Info
+        };
 
     private static ShellDependencyRowViewModel BuildDependencyRow(
         string label,
@@ -4344,7 +4419,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public void ApplyUiAutomationSmokeState(string state)
     {
         var normalizedState = state.Trim().ToLowerInvariant();
-        if (normalizedState is "recommended" or "custom" or "maintenance" or "provenance" or "profile" or "support-bundle" or "activity-collapsed")
+        if (normalizedState is "recommended" or "custom" or "maintenance" or "maintenance-compatibility" or "provenance" or "profile" or "support-bundle" or "activity-collapsed")
         {
             SeedUiAutomationActivityLog();
         }
@@ -4355,6 +4430,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 SelectedWorkspaceIndex = 1;
                 break;
             case "maintenance":
+            case "maintenance-compatibility":
                 SelectedWorkspaceIndex = 2;
                 break;
             case "profile":

@@ -36,6 +36,7 @@ public sealed class WpfQaMatrixTests
             ("recommended", "ButtonRunRecommendedSetup", "RunRecommendedSetupButton"),
             ("custom", "ButtonApplyCustomProfile", "ApplyCustomProfileButton"),
             ("maintenance", "Maintenance_CheckUpdates_ButtonText", "MaintenanceAction_CheckUpdates"),
+            ("maintenance-compatibility", "CompatibilityVerdictTitle", "MaintenanceAction_CheckUpdates"),
             ("activity-undo", "UndoPaneTitle", "ActivityCloseButton"),
             ("support-bundle", "SupportBundleTitle", "SupportBundleExportButton"),
             ("profile", "Ui_SetSelectedProfileActive", "ProfileSetActiveButton"),

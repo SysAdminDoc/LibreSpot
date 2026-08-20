@@ -2570,4 +2570,25 @@
   <data name="Vm_GlobalSearchCategoryMaintenance" xml:space="preserve"><value>Manutenção</value></data>
   <data name="Vm_GlobalSearchCategorySupport" xml:space="preserve"><value>Suporte</value></data>
   <data name="Vm_GlobalSearchCategoryHealthTrust" xml:space="preserve"><value>Integridade e confiança</value></data>
+  <data name="CompatibilityVerdictTitle" xml:space="preserve"><value>Veredito de compatibilidade</value></data>
+  <data name="CompatibilityVerdictDescription" xml:space="preserve"><value>As versões detectadas dos componentes são comparadas com a combinação fixada do Spotify, SpotX, Spicetify e Marketplace.</value></data>
+  <data name="CompatibilityVerdictSummaryFormat" xml:space="preserve"><value>Resultado geral: {0}</value></data>
+  <data name="CompatibilityDetectedLabel" xml:space="preserve"><value>Detectado</value></data>
+  <data name="CompatibilityPinnedLabel" xml:space="preserve"><value>Fixado</value></data>
+  <data name="CompatibilityNextStepLabel" xml:space="preserve"><value>Próximo passo</value></data>
+  <data name="CompatibilityVerdictSupported" xml:space="preserve"><value>Compatível</value></data>
+  <data name="CompatibilityVerdictDegraded" xml:space="preserve"><value>Limitado</value></data>
+  <data name="CompatibilityVerdictUnsupported" xml:space="preserve"><value>Não compatível</value></data>
+  <data name="CompatibilityVerdictUnknown" xml:space="preserve"><value>Desconhecido</value></data>
+  <data name="CompatibilityNextStepSupported" xml:space="preserve"><value>Mantenha esta combinação fixada. Nenhuma ação é necessária.</value></data>
+  <data name="CompatibilityNextStepDegraded" xml:space="preserve"><value>Revise o valor detectado antes de reaplicar a pilha.</value></data>
+  <data name="CompatibilityNextStepUnsupported" xml:space="preserve"><value>Repare ou reinstale o componente antes de aplicar alterações.</value></data>
+  <data name="CompatibilityNextStepUnknown" xml:space="preserve"><value>Atualize o instantâneo ou instale o componente ausente para verificá-lo.</value></data>
+  <data name="CompatibilityDetectedMissing" xml:space="preserve"><value>Não detectado</value></data>
+  <data name="CompatibilityDetectedNotChecked" xml:space="preserve"><value>Não verificado</value></data>
+  <data name="CompatibilityDetectedVerified" xml:space="preserve"><value>Verificado</value></data>
+  <data name="CompatibilityDetectedUnverified" xml:space="preserve"><value>Detectado, não verificado</value></data>
+  <data name="CompatibilityDetectedFiles" xml:space="preserve"><value>Arquivos detectados, versão desconhecida</value></data>
+  <data name="CompatibilityDetectedUnavailable" xml:space="preserve"><value>Indisponível</value></data>
+  <data name="CompatibilityDetectedUnknown" xml:space="preserve"><value>Versão desconhecida</value></data>
 </root>

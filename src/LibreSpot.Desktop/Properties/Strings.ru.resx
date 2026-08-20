@@ -2570,4 +2570,25 @@
   <data name="Vm_GlobalSearchCategoryMaintenance" xml:space="preserve"><value>Обслуживание</value></data>
   <data name="Vm_GlobalSearchCategorySupport" xml:space="preserve"><value>Поддержка</value></data>
   <data name="Vm_GlobalSearchCategoryHealthTrust" xml:space="preserve"><value>Состояние и доверие</value></data>
+  <data name="CompatibilityVerdictTitle" xml:space="preserve"><value>Вердикт совместимости</value></data>
+  <data name="CompatibilityVerdictDescription" xml:space="preserve"><value>Обнаруженные версии компонентов сравниваются с закреплённой связкой Spotify, SpotX, Spicetify и Marketplace.</value></data>
+  <data name="CompatibilityVerdictSummaryFormat" xml:space="preserve"><value>Итог: {0}</value></data>
+  <data name="CompatibilityDetectedLabel" xml:space="preserve"><value>Обнаружено</value></data>
+  <data name="CompatibilityPinnedLabel" xml:space="preserve"><value>Закреплено</value></data>
+  <data name="CompatibilityNextStepLabel" xml:space="preserve"><value>Следующий шаг</value></data>
+  <data name="CompatibilityVerdictSupported" xml:space="preserve"><value>Совместимо</value></data>
+  <data name="CompatibilityVerdictDegraded" xml:space="preserve"><value>С ограничениями</value></data>
+  <data name="CompatibilityVerdictUnsupported" xml:space="preserve"><value>Не поддерживается</value></data>
+  <data name="CompatibilityVerdictUnknown" xml:space="preserve"><value>Неизвестно</value></data>
+  <data name="CompatibilityNextStepSupported" xml:space="preserve"><value>Оставьте эту закреплённую связку. Действия не требуются.</value></data>
+  <data name="CompatibilityNextStepDegraded" xml:space="preserve"><value>Проверьте обнаруженное значение перед повторным применением стека.</value></data>
+  <data name="CompatibilityNextStepUnsupported" xml:space="preserve"><value>Исправьте или переустановите компонент перед применением изменений.</value></data>
+  <data name="CompatibilityNextStepUnknown" xml:space="preserve"><value>Обновите снимок или установите отсутствующий компонент, чтобы проверить его.</value></data>
+  <data name="CompatibilityDetectedMissing" xml:space="preserve"><value>Не обнаружено</value></data>
+  <data name="CompatibilityDetectedNotChecked" xml:space="preserve"><value>Не проверено</value></data>
+  <data name="CompatibilityDetectedVerified" xml:space="preserve"><value>Обнаружено и подтверждено</value></data>
+  <data name="CompatibilityDetectedUnverified" xml:space="preserve"><value>Обнаружено, не подтверждено</value></data>
+  <data name="CompatibilityDetectedFiles" xml:space="preserve"><value>Файлы обнаружены, версия неизвестна</value></data>
+  <data name="CompatibilityDetectedUnavailable" xml:space="preserve"><value>Недоступно</value></data>
+  <data name="CompatibilityDetectedUnknown" xml:space="preserve"><value>Версия неизвестна</value></data>
 </root>

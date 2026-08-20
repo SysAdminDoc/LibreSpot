@@ -32,6 +32,8 @@ public sealed class WorkspaceViewCompositionTests
         Assert.Contains("AutomationProperties.AutomationId=\"MaintenanceWorkspace\"", maintenance);
         Assert.Contains("x:Name=\"CustomPatchesTextEditor\"", custom);
         Assert.Contains("x:Name=\"ProfileQaSurface\"", custom);
+        Assert.Contains("x:Name=\"CompatibilityVerdictQaSurface\"", maintenance);
+        Assert.Contains("AutomationProperties.AutomationId=\"CompatibilityVerdictMatrix\"", maintenance);
         Assert.Contains("x:Name=\"SupportBundleQaSurface\"", maintenance);
     }
 
