@@ -53,6 +53,23 @@ public sealed class WorkspaceViewCompositionTests
     }
 
     [Fact]
+    public void RecommendedWorkspace_ExplainsFirstRunWithoutReplacingEnvironmentStates()
+    {
+        var recommended = ReadView("RecommendedWorkspaceView.xaml");
+
+        Assert.Contains("AutomationProperties.AutomationId=\"RecommendedFirstRunNarrative\"", recommended);
+        Assert.Contains("AutomationProperties.Name=\"{services:Loc Ui_RecommendedFirstRunChecklist}\"", recommended);
+        Assert.Contains("{services:Loc Vm_RecommendedFirstRunInstall}", recommended);
+        Assert.Contains("{services:Loc Vm_RecommendedFirstRunUpdates}", recommended);
+        Assert.Contains("{services:Loc Vm_RecommendedFirstRunReversible}", recommended);
+        Assert.Contains("{services:Loc Vm_RecommendedFirstRunRisk}", recommended);
+        Assert.Contains("{Binding RecommendedRunDuration}", recommended);
+        Assert.Contains("{Binding RecommendedFollowUpText}", recommended);
+        Assert.Contains("ItemsSource=\"{Binding ShellEnvironmentRows}\"", recommended);
+        Assert.Contains("ItemsSource=\"{Binding ShellDependencyRows}\"", recommended);
+    }
+
+    [Fact]
     public void CustomWorkspace_UsesNamedSectionControlsAndKeepsTheViewModelSatelliteSmall()
     {
         var custom = ReadView("CustomWorkspaceView.xaml");

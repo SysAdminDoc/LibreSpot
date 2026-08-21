@@ -23,13 +23,6 @@ Existing items RD-51–RD-57 and RD-62 below are the same work items as the prio
 
 ### P2
 
-- [ ] P2 — RD-71: Give Recommended workspace a first-run narrative
-  Why: Recommended is only an environment/dependency table; the CTA lives in the shell run band, so first-run has no duration, risk, or checklist copy in the page the user is looking at.
-  Evidence: `Views/recommended-workspace-view.xaml`; BetterDiscord/Vencord installer wizards; WPF QA `recommended` surface.
-  Touches: `recommended-workspace-view.xaml`, `Strings*.resx`, maybe a small VM projection, WPF QA
-  Acceptance: Recommended shows a short localized checklist (what will be installed, that updates will be blocked, that the action is reversible via Full Reset) plus the existing env rows; empty/loading still covered; UIA names present.
-  Complexity: M
-
 - [ ] P2 — RD-72: Publish an honest capability matrix (what LibreSpot does not unlock)
   Why: adblockify documents that it will not unlock lyrics, downloads, Very High, or Jams; LibreSpot users (and fake-installer victims) need the same boundary next to Premium-account skip-ads.
   Evidence: rxri/spicetify-extensions adblock README; Spotify Premium paywall (offline, lossless, unlimited skips on mobile); README “Premium account (skip ad-blocking)” FAQ.

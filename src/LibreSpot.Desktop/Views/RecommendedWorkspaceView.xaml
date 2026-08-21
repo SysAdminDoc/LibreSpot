@@ -18,6 +18,114 @@
                 <ContentControl Focusable="True"
                                 AutomationProperties.AutomationId="RecommendedWorkspace"
                                 AutomationProperties.Name="{services:Loc Ui_RecommendedWorkspace}">
+                <StackPanel>
+                <Border Style="{StaticResource SubtleCardStyle}"
+                        Background="{DynamicResource Surface1Brush}"
+                        Padding="18"
+                        Margin="0,0,0,12"
+                        AutomationProperties.AutomationId="RecommendedFirstRunNarrative"
+                        AutomationProperties.Name="{services:Loc Ui_RecommendedFirstRunChecklist}">
+                  <Grid>
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="{services:Loc Vm_RecommendedFirstRunTitle}"
+                               Style="{StaticResource SectionTitleTextStyle}"
+                               FontSize="16" />
+                    <TextBlock Grid.Row="1"
+                               Text="{services:Loc Vm_RecommendedFirstRunIntro}"
+                               Style="{StaticResource CaptionTextStyle}"
+                               Foreground="{DynamicResource MutedTextBrush}"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap" />
+
+                    <StackPanel Grid.Row="2"
+                                Margin="0,14,0,0">
+                      <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="12" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Ellipse Width="6"
+                                 Height="6"
+                                 Fill="{DynamicResource AccentBrush}"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Top"
+                                 Margin="0,7,0,0" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{services:Loc Vm_RecommendedFirstRunInstall}"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   TextWrapping="Wrap" />
+                      </Grid>
+                      <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="12" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Ellipse Width="6"
+                                 Height="6"
+                                 Fill="{DynamicResource AccentBrush}"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Top"
+                                 Margin="0,7,0,0" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{services:Loc Vm_RecommendedFirstRunUpdates}"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   TextWrapping="Wrap" />
+                      </Grid>
+                      <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="12" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Ellipse Width="6"
+                                 Height="6"
+                                 Fill="{DynamicResource AccentBrush}"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Top"
+                                 Margin="0,7,0,0" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{services:Loc Vm_RecommendedFirstRunReversible}"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   TextWrapping="Wrap" />
+                      </Grid>
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="12" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Ellipse Width="6"
+                                 Height="6"
+                                 Fill="{DynamicResource AccentBrush}"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Top"
+                                 Margin="0,7,0,0" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{services:Loc Vm_RecommendedFirstRunRisk}"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   TextWrapping="Wrap" />
+                      </Grid>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="3"
+                                Margin="0,14,0,0">
+                      <TextBlock Text="{Binding RecommendedRunDuration}"
+                                 Style="{StaticResource CaptionTextStyle}"
+                                 Foreground="{DynamicResource AccentBrush}"
+                                 TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding RecommendedFollowUpText}"
+                                 Style="{StaticResource CaptionTextStyle}"
+                                 Foreground="{DynamicResource MutedTextBrush}"
+                                 Margin="0,4,0,0"
+                                 TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+
                 <Border Style="{StaticResource SubtleCardStyle}"
                         Background="{DynamicResource Surface2Brush}"
                         Padding="18"
@@ -60,6 +168,7 @@
                     </StackPanel>
                   </Grid>
                 </Border>
+                </StackPanel>
                 </ContentControl>
               </ScrollViewer>
 </UserControl>

@@ -166,6 +166,12 @@
   <data name="WhatIncludesLabel" xml:space="preserve"><value>What it includes</value><comment>Recommended mode inclusion list heading</comment></data>
   <data name="RecommendedModeHint" xml:space="preserve"><value>Use Recommended for first installs, repairs after a Spotify update, or any time you want the fastest path back to a known-good setup.</value><comment>Recommended mode usage hint</comment></data>
 
+  <data name="Vm_RecommendedFirstRunTitle" xml:space="preserve"><value>Before you start</value><comment>Recommended first-run narrative</comment></data>
+  <data name="Vm_RecommendedFirstRunIntro" xml:space="preserve"><value>Recommended uses known-good defaults and checks your environment before making changes.</value><comment>Recommended first-run narrative</comment></data>
+  <data name="Vm_RecommendedFirstRunInstall" xml:space="preserve"><value>Installs Spotify and applies the recommended SpotX, Spicetify, Marketplace, and extension settings.</value><comment>Recommended first-run checklist</comment></data>
+  <data name="Vm_RecommendedFirstRunUpdates" xml:space="preserve"><value>Blocks automatic Spotify updates so the patched version stays in place.</value><comment>Recommended first-run checklist</comment></data>
+  <data name="Vm_RecommendedFirstRunReversible" xml:space="preserve"><value>You can return Spotify to its stock state later with Maintenance &gt; Full Reset.</value><comment>Recommended first-run checklist</comment></data>
+  <data name="Vm_RecommendedFirstRunRisk" xml:space="preserve"><value>A risk notice appears first, and LibreSpot asks you to confirm before making changes.</value><comment>Recommended first-run checklist</comment></data>
   <!-- Custom mode sections -->
   <data name="InstallPostureSection" xml:space="preserve"><value>Install posture</value><comment>Custom mode section heading</comment></data>
   <data name="InstallPostureDescription" xml:space="preserve"><value>Choose whether LibreSpot rebuilds first and whether Spotify reopens when the run finishes.</value><comment>Custom mode section description</comment></data>
@@ -407,6 +413,7 @@
   <data name="Ui_RelaunchLibreSpotAsAdministrator" xml:space="preserve"><value>Relaunch LibreSpot as administrator</value><comment>User-facing WPF text</comment></data>
   <data name="Ui_RestartsLibreSpotWithAdministratorAccessBeforeApplyingChanges" xml:space="preserve"><value>Restarts LibreSpot with administrator access before applying changes.</value><comment>User-facing WPF text</comment></data>
   <data name="Ui_RecommendedWorkspace" xml:space="preserve"><value>Recommended workspace</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_RecommendedFirstRunChecklist" xml:space="preserve"><value>Recommended setup checklist</value><comment>Accessibility name for the first-run narrative</comment></data>
   <data name="Ui_RunsLibreSpotSMostReliableInstallPathWith" xml:space="preserve"><value>Runs LibreSpot&apos;s most reliable install path with the saved default profile.</value><comment>User-facing WPF text</comment></data>
   <data name="Ui_CustomWorkspace" xml:space="preserve"><value>Custom workspace</value><comment>User-facing WPF text</comment></data>
   <data name="Ui_CustomSettingsEditor" xml:space="preserve"><value>Custom settings editor</value><comment>User-facing WPF text</comment></data>

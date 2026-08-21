@@ -463,6 +463,12 @@
     <value>Используйте «Рекомендовано» для первой установки, ремонта после обновления Spotify или в любое время, когда вам нужен самый быстрый путь к заведомо исправной настройке.</value>
     <comment>Recommended mode usage hint</comment>
   </data>
+  <data name="Vm_RecommendedFirstRunTitle" xml:space="preserve"><value>Перед началом</value><comment>Recommended first-run narrative</comment></data>
+  <data name="Vm_RecommendedFirstRunIntro" xml:space="preserve"><value>Рекомендуемый режим использует проверенные параметры и проверяет окружение перед изменениями Spotify.</value><comment>Recommended first-run narrative</comment></data>
+  <data name="Vm_RecommendedFirstRunInstall" xml:space="preserve"><value>Устанавливает Spotify и применяет рекомендуемые настройки SpotX, Spicetify, Marketplace и расширений.</value><comment>Recommended first-run checklist</comment></data>
+  <data name="Vm_RecommendedFirstRunUpdates" xml:space="preserve"><value>Блокирует автоматические обновления Spotify, чтобы сохранить изменённую версию.</value><comment>Recommended first-run checklist</comment></data>
+  <data name="Vm_RecommendedFirstRunReversible" xml:space="preserve"><value>Позже можно вернуть Spotify в исходное состояние через Обслуживание &gt; Полный сброс.</value><comment>Recommended first-run checklist</comment></data>
+  <data name="Vm_RecommendedFirstRunRisk" xml:space="preserve"><value>Сначала показывается предупреждение о риске, а LibreSpot запрашивает подтверждение перед изменениями.</value><comment>Recommended first-run checklist</comment></data>
   <!-- Custom mode sections -->
   <data name="InstallPostureSection" xml:space="preserve">
     <value>Установить осанку</value>
@@ -1353,6 +1359,10 @@
   <data name="Ui_RecommendedWorkspace" xml:space="preserve">
     <value>Рекомендуемое рабочее пространство</value>
     <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RecommendedFirstRunChecklist" xml:space="preserve">
+    <value>Контрольный список рекомендуемой настройки</value>
+    <comment>Accessibility name for the first-run narrative</comment>
   </data>
   <data name="Ui_RunsLibreSpotSMostReliableInstallPathWith" xml:space="preserve">
     <value>Запускает наиболее надежный путь установки LibreSpot с сохраненным профилем по умолчанию.</value>

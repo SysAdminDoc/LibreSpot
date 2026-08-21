@@ -463,6 +463,12 @@
     <value>在首次安装、Spotify 更新后修复或任何您想要以最快的路径恢复到已知良好设置的情况下，请使用“推荐”。</value>
     <comment>Recommended mode usage hint</comment>
   </data>
+  <data name="Vm_RecommendedFirstRunTitle" xml:space="preserve"><value>开始之前</value><comment>Recommended first-run narrative</comment></data>
+  <data name="Vm_RecommendedFirstRunIntro" xml:space="preserve"><value>“推荐”使用已知可靠的默认设置，并在更改 Spotify 前检查环境。</value><comment>Recommended first-run narrative</comment></data>
+  <data name="Vm_RecommendedFirstRunInstall" xml:space="preserve"><value>安装 Spotify，并应用推荐的 SpotX、Spicetify、Marketplace 和扩展设置。</value><comment>Recommended first-run checklist</comment></data>
+  <data name="Vm_RecommendedFirstRunUpdates" xml:space="preserve"><value>阻止 Spotify 自动更新，以保持修补后的版本。</value><comment>Recommended first-run checklist</comment></data>
+  <data name="Vm_RecommendedFirstRunReversible" xml:space="preserve"><value>之后可以在“维护” &gt; “完全重置”中将 Spotify 恢复为原始状态。</value><comment>Recommended first-run checklist</comment></data>
+  <data name="Vm_RecommendedFirstRunRisk" xml:space="preserve"><value>风险提示会先显示，LibreSpot 会在更改前要求你确认。</value><comment>Recommended first-run checklist</comment></data>
   <!-- Custom mode sections -->
   <data name="InstallPostureSection" xml:space="preserve">
     <value>安装姿势</value>
@@ -1353,6 +1359,10 @@
   <data name="Ui_RecommendedWorkspace" xml:space="preserve">
     <value>推荐工作空间</value>
     <comment>User-facing WPF text</comment>
+  </data>
+  <data name="Ui_RecommendedFirstRunChecklist" xml:space="preserve">
+    <value>推荐设置检查清单</value>
+    <comment>Accessibility name for the first-run narrative</comment>
   </data>
   <data name="Ui_RunsLibreSpotSMostReliableInstallPathWith" xml:space="preserve">
     <value>使用保存的默认配置文件运行 LibreSpot 最可靠的安装路径。</value>
