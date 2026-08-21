@@ -30,6 +30,19 @@
                              TextAlignment="Left"
                              TextWrapping="Wrap" />
 
+                  <Button MinWidth="220"
+                          Height="46"
+                          Margin="0,18,0,0"
+                          Padding="22,0"
+                          HorizontalAlignment="Left"
+                          Visibility="{Binding HasSnapshotLoadError, Converter={StaticResource BoolToVisibilityConverter}}"
+                          Style="{StaticResource SecondaryButtonStyle}"
+                          Command="{Binding RefreshSnapshotCommand}"
+                          Content="{services:Loc Vm_ShellRetryShort}"
+                          AutomationProperties.AutomationId="MaintenanceRetrySystemCheckButton"
+                          AutomationProperties.Name="{services:Loc Vm_ShellRetryShort}"
+                          AutomationProperties.HelpText="{services:Loc ButtonRefreshEnvironmentHint}" />
+
                   <Border Height="1"
                           Background="{DynamicResource StrokeSoftBrush}"
                           Margin="0,18,0,18" />

@@ -444,6 +444,39 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task SharedProfileUriPreview_MalformedUriDoesNotFailTheSnapshot() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            Assert.False(viewModel.HasSnapshotLoadError);
+            Assert.True(viewModel.IsEnvironmentReadyForActions);
+
+            await viewModel.PreviewSharedProfileUriAsync("librespot://profile?data=not-valid!*");
+
+            Assert.False(viewModel.HasSnapshotLoadError);
+            Assert.True(viewModel.IsEnvironmentReadyForActions);
+            Assert.False(viewModel.IsPromptVisible);
+            Assert.Contains("base64url", viewModel.ProfileOperationStatus, StringComparison.OrdinalIgnoreCase);
+        });
+
+    [Fact]
+    public Task SnapshotLoadFailure_UsesUnavailableCopyOnMaintenance() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            viewModel.ApplyInitializationFailure();
+
+            Assert.True(viewModel.HasSnapshotLoadError);
+            Assert.Equal("LibreSpot couldn't verify this PC", viewModel.MaintenanceGuidanceTitle);
+            Assert.Contains("Retry", viewModel.MaintenanceGuidanceDetail, StringComparison.Ordinal);
+            Assert.DoesNotContain("Maintenance", viewModel.MaintenanceGuidanceDetail, StringComparison.Ordinal);
+        });
+
+    [Fact]
     public Task ExplorerProfileActivation_PreviewsExternalFileAndFailsSafely() =>
         RunStaAsync(async () =>
         {

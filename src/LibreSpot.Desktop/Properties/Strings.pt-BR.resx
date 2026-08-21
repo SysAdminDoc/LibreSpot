@@ -2058,6 +2058,8 @@
   <data name="NavTools" xml:space="preserve"><value>Ferramentas</value><comment>User-facing WPF text</comment></data>
   <data name="NavSettings" xml:space="preserve"><value>Configurações</value><comment>User-facing WPF text</comment></data>
   <data name="NavHome" xml:space="preserve"><value>Início</value><comment>User-facing WPF text</comment></data>
+  <data name="ShellJumpHomeDescription" xml:space="preserve"><value>Verifique este computador e aplique a configuração compatível.</value><comment>Jump List tooltip for the Home task</comment></data>
+  <data name="ShellJumpSettingsDescription" xml:space="preserve"><value>Escolha temas, extensões e opções de instalação.</value><comment>Jump List tooltip for the Settings task</comment></data>
   <data name="ButtonStartRecommendedSetup" xml:space="preserve"><value>Iniciar configuração recomendada</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_SimpleHomeReadyTitle" xml:space="preserve"><value>Tudo pronto para começar</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeReadyBody" xml:space="preserve"><value>O Spotify está instalado e a configuração recomendada está disponível.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2068,6 +2070,7 @@
   <data name="Vm_SimpleHomeAttentionBody" xml:space="preserve"><value>Revise os itens abaixo antes de iniciar a configuração recomendada.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeUnavailableTitle" xml:space="preserve"><value>O LibreSpot não conseguiu verificar este computador</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeUnavailableBody" xml:space="preserve"><value>Selecione Tentar novamente ou abra Manutenção para obter ajuda.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceUnavailableBody" xml:space="preserve"><value>Selecione Tentar novamente para verificar este computador de novo.</value><comment>Maintenance copy when the environment snapshot failed to load</comment></data>
   <data name="Vm_SimpleHomeDuration" xml:space="preserve"><value>Geralmente leva de 2 a 4 minutos</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_SimpleHomeDetails" xml:space="preserve"><value>Detalhes</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_SimpleHomeSystem" xml:space="preserve"><value>Sistema</value><comment>MainViewModel localized runtime text.</comment></data>

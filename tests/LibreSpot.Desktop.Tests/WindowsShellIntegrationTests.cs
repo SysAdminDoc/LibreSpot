@@ -92,9 +92,11 @@ public sealed class WindowsShellIntegrationTests
     {
         var tasks = ShellIntegrationService.BuildJumpTaskDefinitions();
 
-        Assert.Contains(tasks, task => task.Title == "Recommended" && task.Arguments == "--shell-action=recommended");
-        Assert.Contains(tasks, task => task.Title == "Custom" && task.Arguments == "--shell-action=custom");
+        Assert.Contains(tasks, task => task.Title == "Home" && task.Arguments == "--shell-action=recommended");
+        Assert.Contains(tasks, task => task.Title == "Settings" && task.Arguments == "--shell-action=custom");
         Assert.Contains(tasks, task => task.Title == "Maintenance" && task.Arguments == "--shell-action=maintenance");
+        Assert.Contains(tasks, task => task.Title == "Home" && task.Description == "Check this PC and apply the supported setup.");
+        Assert.Contains(tasks, task => task.Title == "Settings" && task.Description == "Choose themes, extensions, and install options.");
         Assert.Contains(tasks, task => task.Title == "Import profile" && task.Arguments == "--shell-action=import-profile");
         Assert.Contains(tasks, task => task.Title == "Open LibreSpot folder" && task.Arguments == "--shell-action=open-folder");
     }
@@ -110,8 +112,10 @@ public sealed class WindowsShellIntegrationTests
 
         Assert.Contains(registration, entry => entry.Value == "URL:enlace de perfil de LibreSpot");
         Assert.Contains(registration, entry => entry.Value == "Perfil de LibreSpot");
-        Assert.Contains(tasks, task => task.Title == "Recomendado" && task.Arguments == "--shell-action=recommended");
-        Assert.Contains(tasks, task => task.Title == "Personalizado" && task.Arguments == "--shell-action=custom");
+        Assert.Contains(tasks, task => task.Title == "Inicio" && task.Arguments == "--shell-action=recommended");
+        Assert.Contains(tasks, task => task.Title == "Configuración" && task.Arguments == "--shell-action=custom");
         Assert.Contains(tasks, task => task.Title == "Mantenimiento" && task.Arguments == "--shell-action=maintenance");
+        Assert.Contains(tasks, task => task.Title == "Inicio" && task.Description == "Comprueba este equipo y aplica la configuración compatible.");
+        Assert.Contains(tasks, task => task.Title == "Configuración" && task.Description == "Elige temas, extensiones y opciones de instalación.");
     }
 }

@@ -75,12 +75,12 @@ public static class ShellIntegrationService
     public static IReadOnlyList<ShellJumpTaskDefinition> BuildJumpTaskDefinitions(CultureInfo? culture = null) =>
     [
         new ShellJumpTaskDefinition(
-            Localize("ModeRecommendedTitle", culture),
-            Localize("ModeRecommendedDescription", culture),
+            Localize("NavHome", culture),
+            Localize("ShellJumpHomeDescription", culture),
             "--shell-action=recommended"),
         new ShellJumpTaskDefinition(
-            Localize("ModeCustomTitle", culture),
-            Localize("ModeCustomDescription", culture),
+            Localize("NavSettings", culture),
+            Localize("ShellJumpSettingsDescription", culture),
             "--shell-action=custom"),
         new ShellJumpTaskDefinition(
             Localize("ModeMaintenanceTitle", culture),

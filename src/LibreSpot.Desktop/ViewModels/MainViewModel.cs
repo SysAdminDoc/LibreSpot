@@ -658,9 +658,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public IReadOnlyList<HealthIssueViewModel> WarningHealthIssues => BuildHealthIssues(HealthReport.WarningIssues);
     public IReadOnlyList<HealthIssueViewModel> InfoHealthIssues => BuildHealthIssues(HealthReport.InfoIssues);
     public bool HasCriticalHealthIssues => HealthReport.HasCriticalIssues;
-    public bool HasWarningHealthIssues => HealthReport.HasWarningIssues;
-    public bool HasInfoHealthIssues => HealthReport.HasInfoIssues;
-    public bool HasAnyHealthIssues => HealthReport.HasIssues;
     public string HealthIssueSummary => HealthReport.IssueSummary;
     public bool HasUndoActionItems => _activityState.HasUndoActionItems;
     public bool HasExecutableUndoActionItems => _activityState.HasExecutableUndoActionItems;
@@ -764,15 +761,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 ? L("Vm_WorkspaceRecommendationFinishTitle")
                 : L("Vm_WorkspaceRecommendationStartTitle");
 
-    public string WorkspaceRecommendationDetail =>
-        HasConfigurationRecoveryNotice
-            ? L("Vm_WorkspaceRecommendationRecoverDetail")
-            : Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-            ? L("Vm_WorkspaceRecommendationMaintainDetail")
-            : Snapshot.SpotifyInstalled
-                ? L("Vm_WorkspaceRecommendationFinishDetail")
-                : L("Vm_WorkspaceRecommendationStartDetail");
-
     public string WorkspaceRecommendationBrief =>
         HasConfigurationRecoveryNotice
             ? L("Vm_WorkspaceRecommendationRecoverBrief")
@@ -801,9 +789,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             ? L("Vm_InstallPostureClean")
             : L("Vm_InstallPostureOverlay");
 
-    public string EnabledToggleCountLabel =>
-        LF("Vm_EnabledToggleCountFormat", EnumerateAllOptions().Count(option => option.IsSelected));
-
     public string CustomChangeCountLabel
     {
         get
@@ -823,20 +808,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         get
         {
             var selectedCount = Extensions.Count(item => item.IsSelected);
-            return selectedCount switch
-            {
-                0 => L("Vm_CountNone"),
-                1 => L("Vm_CountOneSelected"),
-                _ => LF("Vm_CountSelectedFormat", selectedCount)
-            };
-        }
-    }
-
-    public string SelectedCustomAppCountLabel
-    {
-        get
-        {
-            var selectedCount = CustomApps.Count(item => item.IsSelected);
             return selectedCount switch
             {
                 0 => L("Vm_CountNone"),
@@ -992,18 +963,26 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     public string MaintenanceGuidanceTitle =>
-        Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-            ? L("Vm_MaintenanceReadyTitle")
-            : Snapshot.SpotifyInstalled
-                ? L("Vm_MaintenanceIncompleteTitle")
-                : L("Vm_MaintenanceReadyWhenNeededTitle");
+        IsSnapshotLoading
+            ? L("Vm_SimpleHomeCheckingTitle")
+            : HasSnapshotLoadError
+                ? L("Vm_SimpleHomeUnavailableTitle")
+                : Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
+                    ? L("Vm_MaintenanceReadyTitle")
+                    : Snapshot.SpotifyInstalled
+                        ? L("Vm_MaintenanceIncompleteTitle")
+                        : L("Vm_MaintenanceReadyWhenNeededTitle");
 
     public string MaintenanceGuidanceDetail =>
-        Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-            ? L("Vm_MaintenanceReadyDetail")
-            : Snapshot.SpotifyInstalled
-                ? L("Vm_MaintenanceIncompleteDetail")
-                : L("Vm_MaintenanceReadyWhenNeededDetail");
+        IsSnapshotLoading
+            ? L("Vm_SimpleHomeCheckingBody")
+            : HasSnapshotLoadError
+                ? L("Vm_MaintenanceUnavailableBody")
+                : Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
+                    ? L("Vm_MaintenanceReadyDetail")
+                    : Snapshot.SpotifyInstalled
+                        ? L("Vm_MaintenanceIncompleteDetail")
+                        : L("Vm_MaintenanceReadyWhenNeededDetail");
 
     private int MaintenanceReadyComponentCount =>
         new[] { "spotify", "spotx", "spicetify-cli", "marketplace", "active-theme" }
@@ -1180,8 +1159,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 ? L("Vm_CustomApplyPatchJson")
             : L("Vm_CustomApplyReady");
 
-    public bool IsOverviewWorkspaceSelected => SelectedWorkspaceIndex == 0;
-
     public string WorkspaceHeroEyebrow => SelectedWorkspaceIndex switch
     {
         1 => L("Vm_WorkspaceHeroCustomEyebrow"),
@@ -1216,8 +1193,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             if (SetProperty(ref _selectedWorkspaceIndex, value))
             {
-                OnPropertyChanged(nameof(IsOverviewWorkspaceSelected));
-                OnPropertyChanged(nameof(ShowRailRunDuration));
                 OnPropertyChanged(nameof(WorkspaceHeroEyebrow));
                 OnPropertyChanged(nameof(WorkspaceHeroTitle));
                 OnPropertyChanged(nameof(WorkspaceHeroBody));
@@ -1225,13 +1200,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             }
         }
     }
-
-    // The Recommended hero already shows RecommendedRunDuration in the main
-    // pane, so repeating it in the always-visible rail on that workspace is a
-    // verbatim on-screen duplicate. Keep the rail hint on Custom/Maintenance,
-    // where the rail is the only place the timing is surfaced.
-    public bool ShowRailRunDuration => !IsOverviewWorkspaceSelected;
-
 
     public bool IsActivityVisible
     {
@@ -1860,9 +1828,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(WarningHealthIssues));
         OnPropertyChanged(nameof(InfoHealthIssues));
         OnPropertyChanged(nameof(HasCriticalHealthIssues));
-        OnPropertyChanged(nameof(HasWarningHealthIssues));
-        OnPropertyChanged(nameof(HasInfoHealthIssues));
-        OnPropertyChanged(nameof(HasAnyHealthIssues));
         OnPropertyChanged(nameof(HealthIssueSummary));
         OnPropertyChanged(nameof(StatusDashboardItems));
         OnPropertyChanged(nameof(ShellPrimaryStatusItems));
@@ -1883,7 +1848,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ConfigurationRecoveryDetail));
         OnPropertyChanged(nameof(ProfileStatusLine));
         OnPropertyChanged(nameof(WorkspaceRecommendationTitle));
-        OnPropertyChanged(nameof(WorkspaceRecommendationDetail));
         OnPropertyChanged(nameof(WorkspaceRecommendationBrief));
         OnPropertyChanged(nameof(MaintenanceGuidanceTitle));
         OnPropertyChanged(nameof(MaintenanceGuidanceDetail));
