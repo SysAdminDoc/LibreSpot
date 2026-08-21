@@ -36,7 +36,7 @@ try {
     }
 
     $captures = @(Get-ChildItem -LiteralPath $OutputPath -Filter '*.png' -File)
-    $minimumCount = if ($Quick) { 15 } else { 56 }
+    $minimumCount = if ($Quick) { 24 } else { 80 }
     if ($captures.Count -lt $minimumCount) {
         throw "WPF QA matrix produced $($captures.Count) captures; expected at least $minimumCount."
     }

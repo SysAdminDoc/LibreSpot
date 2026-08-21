@@ -43,6 +43,9 @@ public sealed class WpfQaMatrixTests
             ("prompt", "ButtonContinue", "PromptConfirmButton"),
             ("activity-empty", "Vm_ShellNoActiveTasks", "WorkspaceNavRecommended"),
             ("activity-collapsed", "Vm_ShellActivityTitle", "ActivityDockToggle"),
+            ("prompt-destructive", "PromptActionReset", "PromptCancelButton"),
+            ("activity-running", "StatusInProgress", "ActivityCancelRunButton"),
+            ("reduced-motion", "ButtonRunRecommendedSetup", "RunRecommendedSetupButton"),
             ("custom-no-results", "SearchNoResults", "SettingsSearchClearButton"),
             ("global-search", "Vm_GlobalSearchResultsLabel", "GlobalSearchBox"),
             ("snapshot-loading", "Vm_ShellCheckingSystem", "WorkspaceNavRecommended"),
@@ -182,6 +185,10 @@ public sealed class WpfQaMatrixTests
         startInfo.ArgumentList.Add("--uia-background");
         startInfo.ArgumentList.Add("--uia-size=1600x1000");
         startInfo.ArgumentList.Add($"--uia-capture={capture}");
+        if (string.Equals(state, "reduced-motion", StringComparison.OrdinalIgnoreCase))
+        {
+            startInfo.ArgumentList.Add("--uia-reduced-motion");
+        }
         if (!string.IsNullOrWhiteSpace(focusTarget))
         {
             startInfo.ArgumentList.Add($"--uia-focus={focusTarget}");
@@ -343,6 +350,11 @@ public sealed class WpfQaMatrixTests
 
         Assert.Equal(state, metadata["LibreSpotCaptureState"]);
         Assert.Equal(theme, metadata["LibreSpotCaptureTheme"]);
+        if (string.Equals(state, "reduced-motion", StringComparison.Ordinal))
+        {
+            Assert.Equal("dark", theme);
+            Assert.Equal("suppressed", metadata["LibreSpotCaptureMotion"]);
+        }
         Assert.Equal(culture, metadata["LibreSpotCaptureCulture"]);
         Assert.Equal(focusTarget, metadata["LibreSpotCaptureFocusTarget"]);
         Assert.Equal(expectedFocusVisual.ToString(CultureInfo.InvariantCulture), metadata["LibreSpotCaptureFocusVisualApplied"]);

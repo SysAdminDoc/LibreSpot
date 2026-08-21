@@ -54,6 +54,26 @@ public sealed class PremiumShellContractTests
     }
 
     [Fact]
+    public void WpfQaMatrixCoversPromptRunningAndReducedMotionStates()
+    {
+        var matrix = ReadFile("tests", "LibreSpot.Desktop.Tests", "WpfQaMatrixTests.cs");
+        var runner = ReadFile("tools", "Invoke-WpfQaMatrix.ps1");
+        var app = ReadFile("src", "LibreSpot.Desktop", "App.xaml.cs");
+        var themeManager = ReadFile("src", "LibreSpot.Desktop", "Services", "ThemeManager.cs");
+        var mainWindow = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
+
+        Assert.Contains("(\"prompt-destructive\", \"PromptActionReset\", \"PromptCancelButton\")", matrix);
+        Assert.Contains("(\"activity-running\", \"StatusInProgress\", \"ActivityCancelRunButton\")", matrix);
+        Assert.Contains("(\"reduced-motion\", \"ButtonRunRecommendedSetup\", \"RunRecommendedSetupButton\")", matrix);
+        Assert.Contains("--uia-reduced-motion", matrix);
+        Assert.Contains("AssertNoUnnamedActionableControls(snapshot)", matrix);
+        Assert.Contains("if ($Quick) { 24 } else { 80 }", runner);
+        Assert.Contains("forceReducedMotion", app);
+        Assert.Contains("_forceReducedMotion", themeManager);
+        Assert.Contains("ThemeManager.ShouldSuppressMotion", mainWindow);
+    }
+
+    [Fact]
     public void LiveRegionsExposeChangingContentAndPromptsConstrainLongCopy()
     {
         var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");

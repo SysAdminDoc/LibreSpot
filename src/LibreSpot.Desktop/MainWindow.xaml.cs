@@ -967,6 +967,7 @@ public partial class MainWindow : Window
             ["LibreSpotCaptureState"] = _uiAutomationSmokeState ?? "live",
             ["LibreSpotCaptureCulture"] = _uiAutomationSmokeCulture,
             ["LibreSpotCaptureTheme"] = _uiAutomationSmokeTheme,
+            ["LibreSpotCaptureMotion"] = ThemeManager.ShouldSuppressMotion ? "suppressed" : "animated",
             ["LibreSpotCaptureFocusTarget"] = _uiAutomationFocusTarget ?? string.Empty,
             ["LibreSpotCaptureFocusVisualApplied"] = _uiAutomationFocusVisualApplied.ToString(CultureInfo.InvariantCulture),
             ["LibreSpotCaptureUtc"] = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)

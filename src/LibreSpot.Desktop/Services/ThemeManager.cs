@@ -8,14 +8,16 @@ public static class ThemeManager
     private const string PaletteSource = "Themes/Palette.xaml";
     private const string HighContrastPaletteSource = "Themes/HighContrastPalette.xaml";
     private static bool _forceHighContrast;
+    private static bool _forceReducedMotion;
 
     public static bool IsHighContrast => SystemParameters.HighContrast;
     public static bool IsMotionReduced => !SystemParameters.ClientAreaAnimation;
-    internal static bool ShouldSuppressMotion => _forceHighContrast || IsHighContrast || IsMotionReduced;
+    internal static bool ShouldSuppressMotion => _forceHighContrast || _forceReducedMotion || IsHighContrast || IsMotionReduced;
 
-    public static void Initialize(Application app, bool forceHighContrast = false)
+    public static void Initialize(Application app, bool forceHighContrast = false, bool forceReducedMotion = false)
     {
         _forceHighContrast = forceHighContrast;
+        _forceReducedMotion = forceReducedMotion;
         ApplyTheme(app, forceHighContrast);
         SystemParameters.StaticPropertyChanged += (_, e) =>
         {

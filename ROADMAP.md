@@ -23,13 +23,6 @@ Existing items RD-51–RD-57 and RD-62 below are the same work items as the prio
 
 ### P2
 
-- [ ] P2 — RD-68: Gate remaining WPF smoke states in the QA matrix
-  Why: `prompt-destructive`, `activity-running`, and reduced-motion-only already have smoke seeds but are not in `WpfQaMatrixTests.SurfaceMatrix`, so those contracts can regress silently.
-  Evidence: `MainViewModel.cs` smoke seeds; `WpfQaMatrixTests.cs` surface list; `ThemeManager.ShouldSuppressMotion`.
-  Touches: `WpfQaMatrixTests.cs`, `tools/Invoke-WpfQaMatrix.ps1`, possibly `MainViewModel` smoke IDs
-  Acceptance: Full matrix run includes destructive prompt, running activity (cancel band), and a non-HC reduced-motion capture; unnamed-control and focus assertions apply.
-  Complexity: S
-
 - [ ] P2 — RD-69: Derive `ShellDisplayVersion` from the assembly, not a literal
   Why: `MainViewModel.ShellDisplayVersion => "v4.0.0-preview.25"` will drift on every bump (already wrong relative to untagged `main`).
   Evidence: `MainViewModel.cs`; csproj `Version` `4.0.0-preview.25`; `LibreSpot.Cli --version`.

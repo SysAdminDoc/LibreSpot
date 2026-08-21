@@ -8,13 +8,17 @@ public partial class App : Application
 {
     private const string UiAutomationCultureArgumentPrefix = "--uia-culture=";
     private const string UiAutomationHighContrastArgument = "--uia-theme=high-contrast";
+    private const string UiAutomationReducedMotionArgument = "--uia-reduced-motion";
 
     protected override void OnStartup(StartupEventArgs e)
     {
         CrashReporter.Initialize();
         BackendScriptService.CleanStaleExecutionCopies();
         LocalizationService.Current.ApplyCulture(GetStartupCulture(e.Args));
-        ThemeManager.Initialize(this, forceHighContrast: e.Args.Any(IsUiAutomationHighContrastArgument));
+        ThemeManager.Initialize(
+            this,
+            forceHighContrast: e.Args.Any(IsUiAutomationHighContrastArgument),
+            forceReducedMotion: e.Args.Any(IsUiAutomationReducedMotionArgument));
         base.OnStartup(e);
     }
 
@@ -36,4 +40,7 @@ public partial class App : Application
 
     private static bool IsUiAutomationHighContrastArgument(string arg) =>
         string.Equals(arg.Trim(), UiAutomationHighContrastArgument, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsUiAutomationReducedMotionArgument(string arg) =>
+        string.Equals(arg.Trim(), UiAutomationReducedMotionArgument, StringComparison.OrdinalIgnoreCase);
 }
