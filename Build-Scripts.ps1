@@ -50,6 +50,8 @@ param(
     [AllowEmptyString()][string]$SpotXCandidateDefenderOptOut = '',
     [AllowEmptyString()][string]$SpotXCandidateArguments = '',
     [switch]$CheckSpotifyVersionDrift,
+    [switch]$CompileStableExe,
+    [string]$StableExeOutputPath,
     [switch]$ReleaseTruth,
     [switch]$WatcherIntegration
 )
@@ -1403,6 +1405,84 @@ function Test-LibreSpotReleaseManifest {
     }
 }
 
+function Get-LibreSpotStableExeFileVersion {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($Path)
+    return [string]$info.FileVersion
+}
+
+function Test-LibreSpotStableExeIdentity {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $scriptVersion = Get-LibreSpotScriptVersion -Path $mainScript
+    $fileVersion = Get-LibreSpotStableExeFileVersion -Path $Path
+    if ([string]::IsNullOrWhiteSpace($fileVersion)) {
+        throw "LibreSpot.exe has no file version resource; rebuild it with Build-Scripts.ps1 -CompileStableExe."
+    }
+
+    # PS2EXE writes a four-part file version; the script declares three parts.
+    $expectedPrefix = "$scriptVersion."
+    if ($fileVersion -ne $scriptVersion -and -not $fileVersion.StartsWith($expectedPrefix, [System.StringComparison]::Ordinal)) {
+        throw "LibreSpot.exe reports file version '$fileVersion' but LibreSpot.ps1 is version '$scriptVersion'; rebuild it with Build-Scripts.ps1 -CompileStableExe."
+    }
+
+    Write-Host "  Stable script executable identity matches LibreSpot.ps1 v$scriptVersion (file version $fileVersion)." -ForegroundColor Green
+}
+
+function Invoke-LibreSpotStableExeCompile {
+    param([string]$OutputPath)
+
+    if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+        $OutputPath = Join-Path $PSScriptRoot 'publish/LibreSpot.exe'
+    }
+    $OutputPath = [System.IO.Path]::GetFullPath($OutputPath)
+
+    $iconPath = Join-Path $PSScriptRoot 'LibreSpot.ico'
+    if (-not (Test-Path -LiteralPath $iconPath -PathType Leaf)) {
+        throw "Cannot compile the stable executable; LibreSpot.ico not found."
+    }
+
+    $scriptVersion = Get-LibreSpotScriptVersion -Path $mainScript
+    $outputDirectory = Split-Path -Parent $OutputPath
+    if (-not [string]::IsNullOrWhiteSpace($outputDirectory)) {
+        New-Item -Path $outputDirectory -ItemType Directory -Force | Out-Null
+    }
+
+    # ps2exe targets PowerShell 7 on this toolchain, so the compile runs through
+    # pwsh even though the rest of Build-Scripts.ps1 runs under Windows PowerShell.
+    $pwsh = Get-Command pwsh -ErrorAction SilentlyContinue
+    if ($null -eq $pwsh) {
+        throw "Cannot compile the stable executable; pwsh was not found on PATH."
+    }
+
+    $command = @(
+        "Import-Module ps2exe -ErrorAction Stop;",
+        "Invoke-ps2exe",
+        "-inputFile '$mainScript'",
+        "-outputFile '$OutputPath'",
+        "-iconFile '$iconPath'",
+        "-title 'LibreSpot'",
+        "-product 'LibreSpot'",
+        "-version '$scriptVersion.0'",
+        "-requireAdmin",
+        "-noConsole"
+    ) -join ' '
+
+    Write-Host "Compiling LibreSpot.ps1 v$scriptVersion with PS2EXE..." -ForegroundColor Cyan
+    & $pwsh.Source -NoProfile -Command $command
+    if ($LASTEXITCODE -ne 0) {
+        throw "PS2EXE compilation failed with exit code $LASTEXITCODE."
+    }
+
+    if (-not (Test-Path -LiteralPath $OutputPath -PathType Leaf)) {
+        throw "PS2EXE reported success but produced no file at $OutputPath."
+    }
+
+    Test-LibreSpotStableExeIdentity -Path $OutputPath
+    Write-Host "Stable script executable written: $OutputPath" -ForegroundColor Green
+}
+
 function Test-LibreSpotPublishFootprint {
     param([Parameter(Mandatory)][string]$Root)
 
@@ -1457,6 +1537,7 @@ function New-LibreSpotReleaseManifest {
 
     $contract = Get-JsonFile -Path $releaseContractPath
     $footprint = Test-LibreSpotPublishFootprint -Root $Root
+    Test-LibreSpotStableExeIdentity -Path (Join-Path $Root 'LibreSpot.exe')
     if ([string]::IsNullOrWhiteSpace($Version)) {
         $Version = Get-LibreSpotProjectVersion
     }
@@ -1923,6 +2004,11 @@ function Test-SpotifyVersionDrift {
     Write-Host "LibreSpot.ps1 and LibreSpot.Backend.ps1) after confirming SpotX + Spicetify" -ForegroundColor Red
     Write-Host "support the new build. Report-only: no pin was changed." -ForegroundColor Red
     exit 1
+}
+
+if ($CompileStableExe) {
+    Invoke-LibreSpotStableExeCompile -OutputPath $StableExeOutputPath
+    exit 0
 }
 
 if ($ReleaseTruth) {

@@ -51,17 +51,6 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — RD-83: The PS2EXE release step is undocumented and nothing pins the compiled exe's identity
-  Category: reliability
-  Where: README.md:470-472 ("compile `LibreSpot.ps1` with PS2EXE" — no command); Build-Scripts.ps1 (no PS2EXE switch); schemas/release-artifact-contract.json (LibreSpot.exe buildMode "ps2exe", no flags/version requirements)
-  Problem: Every other artifact has an exact documented build path; LibreSpot.exe's flags (icon, -requireAdmin, -noConsole, title/product/version resource) are improvised per release. The preview.27 build set `-version 3.7.4.0` by hand; no gate compares the PE version resource against the script version, so a future release can ship LibreSpot.exe with a missing or wrong file version, no icon, or without the admin manifest — and the release manifest would still verify (it checks SHA256 of whatever was produced).
-  Evidence: Grep this session: "ps2exe" appears in README prose and SECURITY notes only; no tracked script invokes Invoke-ps2exe; release manifest generation (Build-Scripts.ps1 -GenerateReleaseManifest) verifies hashes and sizes only.
-  Fix: Add a `-CompileStableExe` switch to Build-Scripts.ps1 that runs Invoke-ps2exe with pinned flags (inputFile LibreSpot.ps1, outputFile publish\LibreSpot.exe, iconFile LibreSpot.ico, -requireAdmin -noConsole, title/product LibreSpot, version derived from Get-LibreSpotScriptVersion + ".0"), and extend the release-manifest generation to fail when LibreSpot.exe's FileVersionInfo does not match the script version. Replace the README prose with the one-line command.
-  Acceptance: `Build-Scripts.ps1 -CompileStableExe` reproduces the artifact; `-GenerateReleaseManifest` fails when publish\LibreSpot.exe's file version disagrees with LibreSpot.ps1's version; README documents the exact command.
-  Confidence: Verified
-  Effort: M
-  Note (2026-08-21 research): CycloneDX SBOM generation has the same gap — README says "Generate the CycloneDX SBOM" with no command, and the tool is not in `.config/dotnet-tools.json` even though preview.27's SBOM metadata names CycloneDX 6.2.0. Tracked as RD-102 rather than expanding this item.
-
 ### P3
 
 - [ ] P3 — RD-99: Home hero icon renders a stray "Z" glyph in the snapshot-error state
@@ -199,6 +188,13 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
 Evidence and rejected ideas live in `RESEARCH.md` (2026-08-21). Items already in this file or in `Roadmap_Blocked.md` are not duplicated. RD-76 (snapshot-error retry) landed on HEAD before this pass and was removed. Highest prior ID: RD-99.
 
 ### P2
+
+- [ ] P2 — RD-104: Relabel the Jump List to Home / Settings / Maintenance
+  Why: the taskbar Jump List is the one shell surface that still uses the pre-simplification Recommended / Custom names, so a user who never opens the window is taught a taxonomy the rail abandoned in preview.26.
+  Evidence: `ShellIntegrationService.BuildJumpTaskDefinitions` at `src/LibreSpot.Desktop/Services/ShellIntegrationService.cs:75-88` localizes `ModeRecommendedTitle` / `ModeCustomTitle` (`Strings.resx` values "Recommended" / "Custom"); the live rail uses `NavHome` / `NavSettings` ("Home" / "Settings"). `WindowsShellIntegrationTests.cs:95-96` pins the old English titles and `:113-114` pins the Spanish "Recomendado" / "Personalizado", so the mismatch is currently test-protected. `--shell-action=recommended|custom|maintenance` can stay; only the displayed titles (and matching descriptions) need to move.
+  Touches: `src/LibreSpot.Desktop/Services/ShellIntegrationService.cs`, `tests/LibreSpot.Desktop.Tests/WindowsShellIntegrationTests.cs`, possibly `ModeRecommendedDescription` / `ModeCustomDescription` if those strings still say "recommended setup" vs "Home"
+  Acceptance: Jump List titles match the rail labels in en and es; `WindowsShellIntegrationTests` asserts `NavHome` / `NavSettings` / `ModeMaintenanceTitle`; `--shell-action` argument strings are unchanged.
+  Complexity: S
 
 - [ ] P2 — RD-100: Make ReadmeScreenshotTests assert the same 1800×1280 / dark / en contract `-Validate` now enforces
   Why: the PowerShell screenshot gate and the xUnit test can disagree, so a wrong-size or wrong-theme PNG fails `-Validate` while `ReadmeScreenshotTests` stays green.

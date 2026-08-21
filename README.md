@@ -473,8 +473,16 @@ checksum-covered assets into the release root. Generate the CycloneDX SBOM, writ
 `checksums.txt`, and create the release manifest:
 
 ```powershell
+.\Build-Scripts.ps1 -CompileStableExe
 .\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.0.0-preview.N -ReleaseChannel preview
 ```
+
+`-CompileStableExe` writes `publish\LibreSpot.exe` with the pinned PS2EXE flags
+(icon, admin manifest, no console, and the file version taken from
+`LibreSpot.ps1`) and needs the `ps2exe` module available to `pwsh`. Manifest
+generation then re-checks that file version against the script and measures the
+desktop executable against the publish footprint budget, so a mismatched or
+oversized artifact fails before the release is uploaded.
 
 Create and push the version tag, create a draft GitHub release, upload every
 file in `publish`, and publish the draft only after the asset list is complete.
