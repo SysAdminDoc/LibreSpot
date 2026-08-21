@@ -18,23 +18,38 @@ public static class SpotifyVersion
     private const int MaximumComponents = 4;
 
     private static readonly char[] PrereleaseSeparators = ['-', '+'];
-    private static readonly char[] Whitespace = [' ', '\t', '\r', '\n', '\f', '\v'];
 
     /// <summary>
-    /// Parses a Spotify version. Accepts an optional <c>v</c> prefix, a
-    /// prerelease or build suffix, and a fourth component, and requires at
-    /// least three numeric components.
+    /// Parses a Spotify version. Accepts an optional <c>v</c> prefix and a
+    /// prerelease or build suffix, requires at least three numeric components,
+    /// and ignores everything after the third. Spotify's own file version runs
+    /// to five pieces with a git hash on the end (1.2.90.451.gb094aab0), so
+    /// trailing content must not invalidate the build.
     /// </summary>
     public static bool TryParse(string? value, out Version version) =>
-        TryParseComponents(value, prefixToStrip: null, minimumComponents: 3, maximumComponents: 3, out version);
+        TryParseComponents(
+            value,
+            prefixToStrip: null,
+            minimumComponents: 3,
+            keptComponents: 3,
+            requireEveryPieceNumeric: false,
+            out version);
 
     /// <summary>
     /// Parses an upstream release tag, first removing <paramref name="prefixToStrip"/>
     /// when the tag starts with it. Keeps up to four components and pads
-    /// shorter tags to three so they order correctly.
+    /// shorter tags to three so they order correctly. Unlike a Spotify build a
+    /// tag is compared against other tags, so every piece must be numeric and
+    /// a tag with trailing junk sorts last rather than being read loosely.
     /// </summary>
     public static bool TryParseReleaseTag(string? value, string? prefixToStrip, out Version version) =>
-        TryParseComponents(value, prefixToStrip, minimumComponents: 1, maximumComponents: MaximumComponents, out version);
+        TryParseComponents(
+            value,
+            prefixToStrip,
+            minimumComponents: 1,
+            keptComponents: MaximumComponents,
+            requireEveryPieceNumeric: true,
+            out version);
 
     /// <summary>
     /// Reads just the leading major from a version string. Deliberately looser
@@ -71,11 +86,16 @@ public static class SpotifyVersion
 
         // A prerelease or build suffix ends the version, and so does whitespace:
         // FileVersionInfo hands back free-form vendor text like "1.2.3 rc1".
+        // Match \s the way the regex this replaced did, so a non-breaking space
+        // terminates too.
         var separator = text.IndexOfAny(PrereleaseSeparators);
-        var space = text.IndexOfAny(Whitespace);
-        if (space >= 0 && (separator < 0 || space < separator))
+        for (var index = 0; index < text.Length && (separator < 0 || index < separator); index++)
         {
-            separator = space;
+            if (char.IsWhiteSpace(text[index]))
+            {
+                separator = index;
+                break;
+            }
         }
 
         return separator >= 0 ? text[..separator] : text;
@@ -85,7 +105,8 @@ public static class SpotifyVersion
         string? value,
         string? prefixToStrip,
         int minimumComponents,
-        int maximumComponents,
+        int keptComponents,
+        bool requireEveryPieceNumeric,
         out Version version)
     {
         version = new Version(0, 0, 0);
@@ -95,21 +116,20 @@ public static class SpotifyVersion
         }
 
         var pieces = Normalize(value, prefixToStrip).Split('.', StringSplitOptions.RemoveEmptyEntries);
-        // Validity is the same question for both entry points: at most four
-        // numeric components, which is all System.Version can hold. They differ
-        // only in how much of that they keep.
-        if (pieces.Length < minimumComponents || pieces.Length > MaximumComponents)
+        if (pieces.Length < minimumComponents)
         {
             return false;
         }
 
-        // Validate every piece before truncating. Checking only the first
-        // maximumComponents would accept trailing junk whenever it happened to
-        // land past the cap, so the two entry points would disagree about the
-        // same string.
-        var count = Math.Min(pieces.Length, maximumComponents);
+        if (requireEveryPieceNumeric && pieces.Length > MaximumComponents)
+        {
+            return false;
+        }
+
+        var count = Math.Min(pieces.Length, keptComponents);
+        var checkedPieces = requireEveryPieceNumeric ? pieces.Length : count;
         var numbers = new int[Math.Max(count, 3)];
-        for (var index = 0; index < pieces.Length; index++)
+        for (var index = 0; index < checkedPieces; index++)
         {
             if (!int.TryParse(pieces[index], NumberStyles.None, CultureInfo.InvariantCulture, out var component))
             {
