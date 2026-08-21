@@ -22,13 +22,9 @@ namespace LibreSpot.Desktop.Services;
 
 public static class CrashReporter
 {
-    private static readonly string LogRoot = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "LibreSpot", "logs");
+    private static readonly string LogRoot = LibreSpotPaths.LogsDirectory;
 
-    private static readonly string CrashRoot = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "LibreSpot", "crashes");
+    private static readonly string CrashRoot = LibreSpotPaths.CrashesDirectory;
 
     private static int _initialized;
     private static int _crashDialogOpen;
@@ -129,7 +125,8 @@ public static class CrashReporter
     {
         try
         {
-            var path = CreateCrashReportPath(source);
+            var crashRoot = ResolveWritableCrashRoot();
+            var path = CreateCrashReportPath(crashRoot, source);
             var operationId = OperationCorrelation.CurrentOrLastOperationId;
 
             var body = new StringBuilder();
@@ -158,7 +155,7 @@ public static class CrashReporter
         }
     }
 
-    private static string CreateCrashReportPath(string source)
+    private static string CreateCrashReportPath(string crashRoot, string source)
     {
         var safeSource = string.Join(
             "_",
@@ -174,14 +171,36 @@ public static class CrashReporter
         for (var attempt = 0; attempt < 10; attempt++)
         {
             var suffix = attempt == 0 ? string.Empty : $"-{attempt}";
-            var candidate = Path.Combine(CrashRoot, $"crash-{stamp}-{safeSource}{suffix}.log");
+            var candidate = Path.Combine(crashRoot, $"crash-{stamp}-{safeSource}{suffix}.log");
             if (!File.Exists(candidate))
             {
                 return candidate;
             }
         }
 
-        return Path.Combine(CrashRoot, $"crash-{Guid.NewGuid():N}-{safeSource}.log");
+        return Path.Combine(crashRoot, $"crash-{Guid.NewGuid():N}-{safeSource}.log");
+    }
+
+    private static string ResolveWritableCrashRoot()
+    {
+        foreach (var candidate in new[]
+                 {
+                     CrashRoot,
+                     Path.Combine(Path.GetTempPath(), "LibreSpot", "crashes")
+                 })
+        {
+            try
+            {
+                Directory.CreateDirectory(candidate);
+                return candidate;
+            }
+            catch
+            {
+                // Try the next location. The write itself still has an outer catch.
+            }
+        }
+
+        return CrashRoot;
     }
 
     private static void ShowCrashDialog(
@@ -424,7 +443,7 @@ public static class CrashReporter
         detailsStack.Children.Add(reportPathBox);
         detailsStack.Children.Add(new TextBlock
         {
-            Text = LF("CrashSourceFolderFormat", source, CrashRoot),
+            Text = LF("CrashSourceFolderFormat", source, Path.GetDirectoryName(crashPath) ?? CrashRoot),
             Margin = new Thickness(0, 10, 0, 0),
             TextWrapping = TextWrapping.Wrap,
             Foreground = subtleBrush,
@@ -453,7 +472,7 @@ public static class CrashReporter
         };
 
         var copyButton = CreateDialogButton(L("CrashCopyReportPath"), false, () => TryCopyTextToClipboard(crashPath));
-        var openButton = CreateDialogButton(L("CrashOpenFolder"), false, TryOpenCrashFolder);
+        var openButton = CreateDialogButton(L("CrashOpenFolder"), false, () => TryOpenCrashFolder(Path.GetDirectoryName(crashPath) ?? CrashRoot));
         var closeButton = CreateDialogButton(isRecoverable ? L("CrashContinue") : L("CrashClose"), true, () => dialog.Close());
 
         copyButton.Margin = new Thickness(0, 0, 10, 0);
@@ -536,14 +555,14 @@ public static class CrashReporter
         }
     }
 
-    private static void TryOpenCrashFolder()
+    private static void TryOpenCrashFolder(string folder)
     {
         try
         {
-            Directory.CreateDirectory(CrashRoot);
+            Directory.CreateDirectory(folder);
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
-                FileName = CrashRoot,
+                FileName = folder,
                 UseShellExecute = true
             })?.Dispose();
         }

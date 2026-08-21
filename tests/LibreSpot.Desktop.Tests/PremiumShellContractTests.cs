@@ -206,6 +206,8 @@ public sealed class PremiumShellContractTests
         Assert.Contains("AutomationProperties.SetName(button, text)", crashReporter);
         Assert.Contains("OperationCorrelation.CurrentOrLastOperationId", crashReporter);
         Assert.Contains("operation-id:", crashReporter);
+        Assert.Contains("ResolveWritableCrashRoot()", crashReporter);
+        Assert.Contains("Path.GetTempPath()", crashReporter);
         Assert.DoesNotContain("CreateBrush(", crashReporter);
         Assert.DoesNotContain("new BrushConverter", crashReporter);
     }
