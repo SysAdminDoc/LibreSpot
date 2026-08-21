@@ -4,4 +4,4 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Actionable Items
 
-No actionable items remain after v4.0.0-preview.26.
+No actionable items remain after v4.0.0-preview.27.
