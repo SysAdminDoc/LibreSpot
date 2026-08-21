@@ -89,23 +89,26 @@ public sealed class AtomicFileTests
     [Fact]
     public void CreateTempPath_ResolvesARelativeDestinationAgainstTheCurrentDirectory()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "LibreSpot.AtomicFile.Tests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        var previous = Environment.CurrentDirectory;
+        // Environment.CurrentDirectory is process-global, so this test reads it
+        // rather than setting it. Tests run in parallel and a swapped current
+        // directory corrupts whichever other test is resolving a path at the
+        // time.
+        var relativeName = $"librespot-atomicfile-{Guid.NewGuid():N}.json";
+        var expected = Path.GetFullPath(relativeName);
+        var directory = Path.GetDirectoryName(expected)!;
         try
         {
-            Environment.CurrentDirectory = directory;
-            var tempPath = AtomicFile.CreateTempPath("plan.json");
-
+            var tempPath = AtomicFile.CreateTempPath(relativeName);
             Assert.Equal(directory, Path.GetDirectoryName(tempPath), StringComparer.OrdinalIgnoreCase);
-            AtomicFile.WriteAllText("plan.json", "ok");
-            Assert.Equal("ok", File.ReadAllText(Path.Combine(directory, "plan.json")));
-            Assert.Empty(Directory.GetFiles(directory, "*.tmp"));
+
+            AtomicFile.WriteAllText(relativeName, "ok");
+
+            Assert.Equal("ok", File.ReadAllText(expected));
+            Assert.Empty(Directory.GetFiles(directory, $"{relativeName}.*.tmp"));
         }
         finally
         {
-            Environment.CurrentDirectory = previous;
-            Directory.Delete(directory, recursive: true);
+            File.Delete(expected);
         }
     }
 }

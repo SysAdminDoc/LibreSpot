@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -246,9 +245,9 @@ public sealed class UpstreamDriftService
                 : "behind";
         }
 
-        var currentVersion = TryParseVersion(current);
-        var latestVersion = TryParseVersion(latest);
-        if (currentVersion is not null && latestVersion is not null)
+        // NormalizeValue has already removed pin.ValuePrefixToStrip from both.
+        if (SpotifyVersion.TryParseReleaseTag(current, prefixToStrip: null, out var currentVersion) &&
+            SpotifyVersion.TryParseReleaseTag(latest, prefixToStrip: null, out var latestVersion))
         {
             var compare = latestVersion.CompareTo(currentVersion);
             return compare switch
@@ -316,29 +315,6 @@ public sealed class UpstreamDriftService
         return string.Equals(pin.ValueKind, "commit", StringComparison.OrdinalIgnoreCase)
             ? trimmed.ToLowerInvariant()
             : trimmed;
-    }
-
-    private static Version? TryParseVersion(string value)
-    {
-        var numeric = value.Trim();
-        var separator = numeric.IndexOfAny(new[] { '-', '+' });
-        if (separator > 0)
-        {
-            numeric = numeric[..separator];
-        }
-
-        var pieces = numeric.Split('.', StringSplitOptions.RemoveEmptyEntries);
-        if (pieces.Length == 0 || pieces.Any(piece => !int.TryParse(piece, NumberStyles.None, CultureInfo.InvariantCulture, out _)))
-        {
-            return null;
-        }
-
-        while (pieces.Length < 3)
-        {
-            pieces = pieces.Append("0").ToArray();
-        }
-
-        return Version.TryParse(string.Join('.', pieces), out var parsed) ? parsed : null;
     }
 
     private static string DescribeFailure(UpstreamMetadataLookupResult result)
@@ -577,35 +553,10 @@ public sealed class GitHubUpstreamMetadataClient : IUpstreamMetadataClient
             .FirstOrDefault();
     }
 
-    private static Version ParseSortableVersion(UpstreamDependencyPin pin, string tag)
-    {
-        var normalized = tag;
-        if (!string.IsNullOrWhiteSpace(pin.ValuePrefixToStrip) &&
-            normalized.StartsWith(pin.ValuePrefixToStrip, StringComparison.OrdinalIgnoreCase))
-        {
-            normalized = normalized[pin.ValuePrefixToStrip.Length..];
-        }
-
-        var separator = normalized.IndexOfAny(new[] { '-', '+' });
-        if (separator > 0)
-        {
-            normalized = normalized[..separator];
-        }
-
-        var pieces = normalized.Split('.', StringSplitOptions.RemoveEmptyEntries);
-        if (pieces.Length == 0 ||
-            pieces.Any(piece => !int.TryParse(piece, NumberStyles.None, CultureInfo.InvariantCulture, out _)))
-        {
-            return new Version(0, 0, 0);
-        }
-
-        while (pieces.Length < 3)
-        {
-            pieces = pieces.Append("0").ToArray();
-        }
-
-        return Version.TryParse(string.Join('.', pieces), out var parsed) ? parsed : new Version(0, 0, 0);
-    }
+    private static Version ParseSortableVersion(UpstreamDependencyPin pin, string tag) =>
+        SpotifyVersion.TryParseReleaseTag(tag, pin.ValuePrefixToStrip, out var parsed)
+            ? parsed
+            : new Version(0, 0, 0);
 
     private sealed record GitRef(string Sha, string RefName);
 }

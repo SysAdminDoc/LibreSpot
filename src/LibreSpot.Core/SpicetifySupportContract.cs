@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace LibreSpot.Desktop.Models;
 
@@ -72,10 +71,6 @@ public sealed record SpicetifySupportResult(
 
 public sealed class SpicetifySupportContract
 {
-    private static readonly Regex SpotifyVersionPattern = new(
-        @"^\s*[vV]?(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?:[.\-+]|\s|$)",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
     private static readonly HashSet<string> MapStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
         "classic",
@@ -358,21 +353,8 @@ public sealed class SpicetifySupportContract
             "The Spotify version is outside the allowlist and has no same-minor lower modular classmap fallback.");
     }
 
-    internal static bool TryNormalizeVersion(string? rawVersion, out Version version)
-    {
-        version = new Version(0, 0, 0);
-        var match = SpotifyVersionPattern.Match(rawVersion ?? string.Empty);
-        if (!match.Success ||
-            !int.TryParse(match.Groups["major"].Value, out var major) ||
-            !int.TryParse(match.Groups["minor"].Value, out var minor) ||
-            !int.TryParse(match.Groups["patch"].Value, out var patch))
-        {
-            return false;
-        }
-
-        version = new Version(major, minor, patch);
-        return true;
-    }
+    internal static bool TryNormalizeVersion(string? rawVersion, out Version version) =>
+        SpotifyVersion.TryParse(rawVersion, out version);
 
     private static bool TryGetVersionProperty(JsonElement element, string propertyName, out Version version)
     {

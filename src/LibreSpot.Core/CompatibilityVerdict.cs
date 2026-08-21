@@ -247,24 +247,6 @@ public sealed class CompatibilityVerdictReport
         report.Components.FirstOrDefault(component =>
             string.Equals(component.Id, id, StringComparison.OrdinalIgnoreCase));
 
-    private static bool TryParseVersion(string? value, out Version version)
-    {
-        version = new Version(0, 0, 0);
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
-        }
-
-        var parts = value.Trim().TrimStart('v', 'V').Split('.');
-        if (parts.Length < 3 ||
-            !int.TryParse(parts[0], out var major) ||
-            !int.TryParse(parts[1], out var minor) ||
-            !int.TryParse(parts[2], out var build))
-        {
-            return false;
-        }
-
-        version = new Version(major, minor, build);
-        return true;
-    }
+    private static bool TryParseVersion(string? value, out Version version) =>
+        SpotifyVersion.TryParse(value, out version);
 }

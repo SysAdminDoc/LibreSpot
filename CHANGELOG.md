@@ -32,6 +32,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Disabled primary, secondary, checkbox, and dropdown controls keep a readable label. They used to fade the whole control with opacity, which dropped filled-button text well below the 3:1 floor and dimmed GrayText again in high contrast.
 - Export and activation staging writes go through the same atomic helper as config and profile saves, so a crash mid-export cannot leave a truncated `plan.json`.
 - The community catalog generator decodes the asset schemas as UTF-8. Under Windows PowerShell 5.1 it read them in the ANSI codepage, so every em dash in a review note reached the published page as mojibake.
+- Spotify version strings are read the same way everywhere. Five parsers in Core disagreed about `v` prefixes, prerelease suffixes, and what to do with a fourth component, so the same detected build could be judged supported by one surface and out of range by another.
 
 ### Changed
 

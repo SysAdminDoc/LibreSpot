@@ -1196,17 +1196,8 @@ public static class AppCatalog
         return warnings;
     }
 
-    private static Version? NormalizeSpotifyVersion(string version)
-    {
-        var parts = version.Split('.');
-        if (parts.Length >= 3 && int.TryParse(parts[0], out var major) &&
-            int.TryParse(parts[1], out var minor) && int.TryParse(parts[2], out var build))
-        {
-            return new Version(major, minor, build);
-        }
-
-        return null;
-    }
+    private static Version? NormalizeSpotifyVersion(string version) =>
+        SpotifyVersion.TryParse(version, out var parsed) ? parsed : null;
 
     public static InstallConfiguration CreateRecommendedConfiguration() => new();
 

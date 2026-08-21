@@ -12,12 +12,6 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
 
 ### P3
 
-- [ ] P3 — RD-86: Five Spotify-version parsers in Core with divergent semantics
-  Why: AppCatalog, CompatibilityVerdict, SpicetifySupportContract, and two copies in UpstreamDriftService disagree on `v` prefixes and fallbacks.
-  Where: src/LibreSpot.Core/AppCatalog.cs, CompatibilityVerdict.cs, SpicetifySupportContract.cs, UpstreamDriftService.cs
-  Fix: One `SpotifyVersion.TryParse` and route all five sites through it; merge the UpstreamDriftService copies immediately if the full helper is too large.
-  Acceptance: One parser remains; a unit test covers `v1.2.94`, `1.2.96.518`, and suffixed inputs.
-
 - [ ] P3 — RD-90: Theme-dependent shadow/glow effects and one imperative brush lookup don't react to a runtime high-contrast toggle
   Why: ThemeManager swaps palettes, but StaticResource effects and FindResource-assigned brushes keep the dark-theme instances.
   Where: MainWindow.xaml ActivityCardStyle/PromptCardStyle; Views/RecommendedWorkspaceView.xaml AccentGlow; MainWindow.xaml.cs FindResource("AccentRingBrush")
