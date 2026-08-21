@@ -872,6 +872,7 @@
                     BorderThickness="2"
                     Opacity="0" />
             <ToggleButton Name="ToggleButton"
+                          Style="{x:Null}"
                           Focusable="False"
                           IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                           ClickMode="Press">

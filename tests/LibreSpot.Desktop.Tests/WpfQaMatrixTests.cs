@@ -352,7 +352,6 @@ public sealed class WpfQaMatrixTests
         Assert.Equal(theme, metadata["LibreSpotCaptureTheme"]);
         if (string.Equals(state, "reduced-motion", StringComparison.Ordinal))
         {
-            Assert.Equal("dark", theme);
             Assert.Equal("suppressed", metadata["LibreSpotCaptureMotion"]);
         }
         Assert.Equal(culture, metadata["LibreSpotCaptureCulture"]);

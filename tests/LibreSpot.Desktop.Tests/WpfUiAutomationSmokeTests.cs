@@ -43,15 +43,13 @@ public sealed class WpfUiAutomationSmokeTests
     }
 
     [Theory]
-    [InlineData("recommended", "Recommended")]
-    [InlineData("custom", "Custom")]
+    [InlineData("recommended", "Home")]
+    [InlineData("custom", "Settings")]
     [InlineData("maintenance", "Maintenance")]
-    [InlineData("provenance", "Open source")]
     [InlineData("prompt", "Decision prompt")]
     [InlineData("activity", "Run activity dialog")]
     [InlineData("activity-error", "Run activity dialog")]
     [InlineData("activity-undo", "Reversible changes")]
-    [InlineData("global-search", "Search results")]
     public void WpfShell_UiaSmokeStatesExposeNamedActionableControls(string state, string expectedName)
     {
         RunOnSta(() =>

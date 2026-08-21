@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.26-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.27-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
@@ -80,7 +80,11 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 
 ---
 
-## What's New in v4.0.0-preview.26
+## What's New in v4.0.0-preview.27
+
+**Dropdowns look right again.** Every themed dropdown in the shell had collapsed to a small pill with its text spilling out, including the Spotify build and download-path pickers. They render at full width with their chevrons again.
+
+**Language switching is back where you can reach it.** The simplified shell shipped in preview.26 without a language control anywhere on screen, which left the five translated interfaces stranded. The picker now sits at the bottom of the navigation rail, next to the reversible-changes note.
 
 **The desktop is much easier to read.** The everyday view now has three choices: Home, Maintenance, and Settings. Home gives you one readiness result, four checks, and one recommended action. First-run guidance and technical environment details stay behind the Details row until you need them.
 
@@ -441,7 +445,7 @@ Get-Sha256 .\LibreSpot.ps1
 Get-Content  .\checksums.txt
 ```
 
-GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.0.0-preview.26` to verify the release tag and commit, then run `gh release verify-asset v4.0.0-preview.26 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
+GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.0.0-preview.27` to verify the release tag and commit, then run `gh release verify-asset v4.0.0-preview.27 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
 
 ## Local release procedure
 

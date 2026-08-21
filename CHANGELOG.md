@@ -4,6 +4,19 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0-preview.27] (2026-08-21)
+
+### Fixed
+
+- Repaired every themed dropdown in the shell. Loading the Fluent controls dictionary at startup in preview.26 introduced an implicit toggle-button style that leaked into the custom combo-box template, so each dropdown collapsed to a content-sized pill with its text spilling past the edge. The template now blocks implicit styling, and the Spotify build, download path, theme, and language dropdowns render at full width with their chevrons again.
+- Restored the language picker to the desktop. The simplified shell introduced in preview.26 collapsed the only two language selectors, so none of the five translated interfaces could be selected from the running app. The picker now sits in the navigation rail above the reversible-changes note, and the unused collapsed selector in the window command bar was removed.
+
+### Changed
+
+- Corrected the UI automation smoke contract to the shipped navigation taxonomy. The `recommended` and `custom` states now expect Home and Settings, matching the rail labels and the FlaUI smoke tests that were already updated in preview.26. The `provenance` and `global-search` rows were removed because preview.26 collapsed both surfaces; the decision to port them into the simplified shell or delete them is recorded in the blocked roadmap.
+- Pointed the custom-patch-editor and nested-scroll UI tests at the extracted section views. Both still asserted against `MainWindow.xaml` after the structural split moved that markup into `Views/CustomPatchesSection.xaml`, `Views/CustomAppearanceSection.xaml`, `Views/CustomProfileSummarySection.xaml`, and `Views/WorkspaceViewInteraction.cs`.
+- Removed a QA-matrix assertion that required the reduced-motion state to run only in the dark theme. The same file generates reduced-motion captures for both themes, so the assertion contradicted its own matrix and failed every high-contrast row.
+
 ## [v4.0.0-preview.26] (2026-08-20)
 
 ### Security

@@ -70,16 +70,23 @@ public sealed class WpfUiIntegrationTests
     public void NestedScrollRegions_RerouteMouseWheelAtBoundaries()
     {
         var xaml = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
-        var codeBehind = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
+
+        var handlerCount = CountOccurrences(xaml, "PreviewMouseWheel=\"NestedScrollRegion_OnPreviewMouseWheel\"");
+        foreach (var view in Directory.GetFiles(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views"), "*.xaml"))
+        {
+            handlerCount += CountOccurrences(File.ReadAllText(view), "PreviewMouseWheel=\"NestedScrollRegion_OnPreviewMouseWheel\"");
+        }
 
         Assert.True(
-            CountOccurrences(xaml, "PreviewMouseWheel=\"NestedScrollRegion_OnPreviewMouseWheel\"") >= 4,
+            handlerCount >= 4,
             "Theme gallery, scheme chips, local profiles, and custom patches editor must let parent panes keep scrolling at boundaries.");
-        Assert.Contains("NestedScrollRegion_OnPreviewMouseWheel", codeBehind);
-        Assert.Contains("CanScrollVertically", codeBehind);
-        Assert.Contains("FindDescendantScrollViewer", codeBehind);
-        Assert.Contains("UIElement.MouseWheelEvent", codeBehind);
-        Assert.Contains("parent.RaiseEvent", codeBehind);
+
+        var interaction = ReadRepoFile("src", "LibreSpot.Desktop", "Views", "WorkspaceViewInteraction.cs");
+        Assert.Contains("NestedScrollRegion_OnPreviewMouseWheel", ReadRepoFile("src", "LibreSpot.Desktop", "Views", "CustomPatchesSection.xaml.cs"));
+        Assert.Contains("CanScrollVertically", interaction);
+        Assert.Contains("FindDescendantScrollViewer", interaction);
+        Assert.Contains("UIElement.MouseWheelEvent", interaction);
+        Assert.Contains("parent.RaiseEvent", interaction);
     }
 
     [Fact]
@@ -385,8 +392,8 @@ public sealed class WpfUiIntegrationTests
     [Fact]
     public void WpfShell_ExposesCustomPatchEditor()
     {
-        var xaml = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
-        var codeBehind = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
+        var xaml = ReadRepoFile("src", "LibreSpot.Desktop", "Views", "CustomPatchesSection.xaml");
+        var codeBehind = ReadRepoFile("src", "LibreSpot.Desktop", "Views", "CustomPatchesSection.xaml.cs");
 
         Assert.Contains("ICSharpCode.AvalonEdit", xaml);
         Assert.Contains("CustomPatchesTextEditor", xaml);
@@ -395,6 +402,7 @@ public sealed class WpfUiIntegrationTests
         Assert.Contains("ImportCustomPatchesFromUrlCommand", xaml);
         Assert.Contains("CustomPatchesTextEditor_OnTextChanged", codeBehind);
         Assert.Contains("SyncCustomPatchesEditorText", codeBehind);
+        Assert.Contains("CustomPatchesSection.SyncCustomPatchesEditorText", ReadRepoFile("src", "LibreSpot.Desktop", "Views", "CustomWorkspaceView.xaml.cs"));
     }
 
     [Fact]

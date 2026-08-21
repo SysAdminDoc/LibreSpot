@@ -4,9 +4,44 @@ Items moved here from `ROADMAP.md` because they require operator decisions,
 credentials, or policy calls that an implementer cannot resolve autonomously.
 Return items to `ROADMAP.md` once the blocking decision is made.
 
-Last updated: 2026-08-11.
+Last updated: 2026-08-21.
 
 ---
+
+## P0 - Decide the fate of the collapsed legacy shell surfaces
+
+| Field | Value |
+|---|---|
+| Source | preview.26 verification pass, 2026-08-21 |
+| Blocker | Product/design decision - operator only |
+
+`Simplify the desktop experience` (4dbded0) set `ShellWorkspaceHost` to
+`Visibility="Collapsed"` and collapsed the top-bar brand block and the global
+search box. The simplified Home, Maintenance, and Settings shell replaced them
+without carrying three surfaces across:
+
+- The pinned-asset provenance card (`ShellProvenanceItemsControl`, the
+  `Vm_ShellProvenanceOpenSource` action) is unreachable.
+- Global search is unreachable in both directions: the search box and the
+  `GlobalSearchResultsPanel` are both collapsed, while `GlobalSearchText`,
+  `GlobalSearchResults`, and their commands stay live in `MainViewModel`.
+- About 1,600 lines of legacy shell XAML still ship inside the released binary.
+
+The language selector was the fourth casualty and has already been restored to
+the simplified rail, because five reviewed locales are unusable without it.
+
+Decide one of two directions and record it here:
+
+1. Port the provenance card and global search into the simplified shell, then
+   delete the legacy host, or
+2. Delete the legacy host, the global-search view-model members, and the
+   `provenance` and `global-search` UI automation smoke states.
+
+Until then `--uia-smoke=provenance` and `--uia-smoke=global-search` still start
+the app and silently render Home, and `ScrollProvenanceIntoView` scrolls a
+control nobody can see. The two smoke rows that asserted those surfaces were
+removed from `WpfUiAutomationSmokeTests` in the same pass, so no test guards
+them today.
 
 ## P0 - Rebrand decision
 
