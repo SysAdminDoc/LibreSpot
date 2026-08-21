@@ -51,12 +51,25 @@
       "updateOwner": "manual (download new release)",
       "signingRequirement": "none (unsigned by design; verify checksums.txt)",
       "checksumSource": "checksums.txt and librespot-release-manifest.json from the GitHub release",
-      "requiredCliSwitches": "--version; status --json; detect --json; detect --intune; validate --answer-file",
+      "requiredCliSwitches": "--version; status --json; detect --json; detect --intune; validate --answer-file; plan --json; install/reapply/repair --answer-file --yes; undo --operation-id --yes; watcher install/remove --yes; uninstall --purge --yes; export-support --output",
+      "implementedCliVerbs": [
+        "install",
+        "reapply",
+        "detect",
+        "status",
+        "undo",
+        "validate",
+        "plan",
+        "repair",
+        "watcher install",
+        "watcher remove",
+        "uninstall",
+        "export-support",
+        "version"
+      ],
       "validationCommand": ".\\LibreSpot.Cli.exe --version",
       "supportStatus": "preview",
-      "blockingDecisions": [
-        "Mutating install/reapply/uninstall CLI verbs still need backend wiring"
-      ]
+      "blockingDecisions": []
     },
     {
       "channel": "powershell-oneliner",

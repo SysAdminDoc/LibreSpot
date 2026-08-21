@@ -24,6 +24,34 @@ public sealed class PackageManifestSafetyTests
     }
 
     [Fact]
+    public void FleetToolsDistributionMatchesImplementedCliContract()
+    {
+        using var matrix = JsonDocument.Parse(ReadFile("schemas/distribution-matrix.json"));
+        using var fleet = JsonDocument.Parse(ReadFile("schemas/fleet-cli-contract.json"));
+        var channel = matrix.RootElement.GetProperty("channels")
+            .EnumerateArray()
+            .Single(c => c.GetProperty("channel").GetString() == "fleet-tools");
+        var implemented = fleet.RootElement.GetProperty("verbs")
+            .EnumerateArray()
+            .Where(verb => verb.GetProperty("implementationStatus").GetString() == "implemented")
+            .Select(verb => verb.GetProperty("verb").GetString()!)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        var listed = channel.GetProperty("implementedCliVerbs")
+            .EnumerateArray()
+            .Select(verb => verb.GetString()!)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(implemented, listed);
+        Assert.Empty(channel.GetProperty("blockingDecisions").EnumerateArray());
+
+        var blocked = ReadFile("Roadmap_Blocked.md");
+        Assert.DoesNotContain("Write the shell-integration registration design", blocked, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("before implementing protocol", blocked, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void BlockedRoadmapRetainsPackageIdentityAndSigningDecisions()
     {
         var blocked = ReadFile("Roadmap_Blocked.md");

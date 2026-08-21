@@ -121,39 +121,6 @@ Verify: local Velopack install/update/uninstall dry runs preserve config,
 logs, watcher state, and backups; update checks against a local feed choose
 the correct stable or preview channel.
 
-## P2 - Write the shell-integration registration design before implementing protocol, toasts, jump lists, or file associations
-
-| Field | Value |
-|---|---|
-| Source | Cycle 4 |
-| Blocker | Package identity and shell ownership policy decisions |
-
-Why: the roadmap already calls for `librespot://`, `.librespot` import
-association, jump lists, taskbar thumbnail buttons, tray minimize, and
-persistent toasts. Current planning does not yet define AppUserModelID,
-Start Menu shortcut ownership, protocol registry keys, package vs portable
-behavior, toast activation arguments, or uninstall cleanup. Those decisions
-need to align with the package identity and elevation boundary.
-
-Evidence: `ROADMAP.md:58`, `ROADMAP.md:70`,
-https://learn.microsoft.com/en-us/windows/win32/shell/appids,
-https://learn.microsoft.com/en-us/windows/win32/shell/links,
-https://learn.microsoft.com/en-us/windows/win32/shell/fa-intro,
-https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/toast-desktop-apps
-
-Touches: design doc, installer/updater, uninstall cleanup, app activation,
-notification service, diagnostics.
-
-Acceptance: design specifies canonical AppUserModelID, shortcut path,
-protocol URI, `.librespot` ProgID, toast activation payloads, jump-list
-categories, portable-mode behavior, and uninstall rollback. It states
-which registrations are per-user vs machine-wide and how package-manager /
-Velopack installs differ from portable ZIP usage.
-
-Verify: implementation checklist has registry/shortcut before-and-after
-captures; uninstall removes only LibreSpot-owned registrations; portable
-mode does not write shell registrations unless the user opts in.
-
 ## P1 - Decide the Windows support lifecycle after Windows 10 Home/Pro end of support
 
 | Field | Value |

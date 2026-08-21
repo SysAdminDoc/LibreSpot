@@ -23,13 +23,6 @@ Existing items RD-51–RD-57 and RD-62 below are the same work items as the prio
 
 ### P2
 
-- [ ] P2 — RD-70: Repair stale distribution and blocked-list claims
-  Why: `distribution-matrix.json` still says mutating CLI verbs “need backend wiring” while the fleet contract marks them implemented; Roadmap_Blocked still has “write shell-integration design” after protocol/jump list/tray shipped.
-  Evidence: `schemas/distribution-matrix.json`; `schemas/fleet-cli-contract.json` `implementationStatus: implemented`; README Windows shell integration section; `Roadmap_Blocked.md` shell-integration item.
-  Touches: `distribution-matrix.json`, `Roadmap_Blocked.md` (move or rewrite the shell-integration row), any tests asserting matrix notes
-  Acceptance: Distribution matrix matches implemented fleet verbs; blocked list no longer asks for a design of features that already ship; tests/docs agree.
-  Complexity: S
-
 - [ ] P2 — RD-71: Give Recommended workspace a first-run narrative
   Why: Recommended is only an environment/dependency table; the CTA lives in the shell run band, so first-run has no duration, risk, or checklist copy in the page the user is looking at.
   Evidence: `Views/recommended-workspace-view.xaml`; BetterDiscord/Vencord installer wizards; WPF QA `recommended` surface.
