@@ -1,4 +1,5 @@
 using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Text;
 using System.Threading.Tasks;
@@ -31,6 +32,14 @@ public static class CrashReporter
 
     private static int _initialized;
     private static int _crashDialogOpen;
+
+    // The bug-report template asks for the preview-suffixed version (4.0.0-preview.NN).
+    // Assembly.GetName().Version only carries the numeric 4.0.0.NN, so read the
+    // informational version the csproj pins and fall back the same way MainViewModel does.
+    private static string ProductVersion =>
+        typeof(CrashReporter).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? typeof(CrashReporter).Assembly.GetName().Version?.ToString()
+        ?? "unknown";
 
     public static void Initialize()
     {
@@ -76,7 +85,7 @@ public static class CrashReporter
             .CreateLogger();
 
         Log.Information("LibreSpot desktop shell starting. Version {Version} on {OS}",
-            typeof(CrashReporter).Assembly.GetName().Version?.ToString() ?? "unknown",
+            ProductVersion,
             Environment.OSVersion.VersionString);
 
         AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandled;
@@ -129,7 +138,7 @@ public static class CrashReporter
             body.AppendLine($"  source:         {source}");
             body.AppendLine($"  operation-id:   {operationId ?? "none"}");
             body.AppendLine($"  terminating:    {isTerminating}");
-            body.AppendLine($"  version:        {typeof(CrashReporter).Assembly.GetName().Version}");
+            body.AppendLine($"  version:        {ProductVersion}");
             body.AppendLine($"  os:             {Environment.OSVersion.VersionString}");
             body.AppendLine($"  clr:            {Environment.Version}");
             body.AppendLine($"  working-set:    {Environment.WorkingSet / 1024 / 1024} MB");

@@ -29,7 +29,7 @@ body:
     id: librespot-version
     attributes:
       label: LibreSpot Version
-      description: "Found in the title bar, the script header, or `LibreSpot.Cli.exe version --json`"
+      description: "Shown under the LibreSpot name in the desktop navigation rail, in the script header, or from `LibreSpot.Cli.exe version --json`"
       placeholder: "e.g. v3.7.4 or v4.0.0-preview.17"
     validations:
       required: true

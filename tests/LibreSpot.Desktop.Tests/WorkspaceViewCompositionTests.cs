@@ -117,6 +117,22 @@ public sealed class WorkspaceViewCompositionTests
         Assert.DoesNotContain("services:Loc ModeCustomTitle", simpleShell);
     }
 
+    [Fact]
+    public void MainWindow_ShowsTheShellVersionInsideTheReachableShell()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml"));
+        var simpleShellStart = xaml.IndexOf("x:Name=\"SimpleShellHost\"", StringComparison.Ordinal);
+        var legacyShellStart = xaml.IndexOf("x:Name=\"ShellWorkspaceHost\"", StringComparison.Ordinal);
+        Assert.True(simpleShellStart >= 0 && legacyShellStart > simpleShellStart);
+        var simpleShell = xaml[simpleShellStart..legacyShellStart];
+
+        // The legacy shell is permanently collapsed, so a ShellDisplayVersion binding
+        // that only lives there leaves users with no way to read the version they are
+        // asked for in the bug-report template.
+        Assert.Contains("{Binding ShellDisplayVersion}", simpleShell);
+        Assert.Contains("SimpleShellVersionLabel", simpleShell);
+    }
+
     private static string ReadView(string fileName) =>
         File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", fileName));
 
