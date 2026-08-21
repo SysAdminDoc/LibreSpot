@@ -85,4 +85,27 @@ public sealed class AtomicFileTests
         Assert.DoesNotContain(Environment.ProcessId.ToString(), Path.GetFileName(first));
         Assert.StartsWith("desk.json.", Path.GetFileName(first), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void CreateTempPath_ResolvesARelativeDestinationAgainstTheCurrentDirectory()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "LibreSpot.AtomicFile.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var previous = Environment.CurrentDirectory;
+        try
+        {
+            Environment.CurrentDirectory = directory;
+            var tempPath = AtomicFile.CreateTempPath("plan.json");
+
+            Assert.Equal(directory, Path.GetDirectoryName(tempPath), StringComparer.OrdinalIgnoreCase);
+            AtomicFile.WriteAllText("plan.json", "ok");
+            Assert.Equal("ok", File.ReadAllText(Path.Combine(directory, "plan.json")));
+            Assert.Empty(Directory.GetFiles(directory, "*.tmp"));
+        }
+        finally
+        {
+            Environment.CurrentDirectory = previous;
+            Directory.Delete(directory, recursive: true);
+        }
+    }
 }

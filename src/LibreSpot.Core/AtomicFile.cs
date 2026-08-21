@@ -12,6 +12,7 @@ public static class AtomicFile
     public static string CreateTempPath(string destinationPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+        destinationPath = Path.GetFullPath(destinationPath);
         var directory = Path.GetDirectoryName(destinationPath)
             ?? throw new InvalidOperationException("A destination path must have a parent directory.");
         Directory.CreateDirectory(directory);

@@ -44,3 +44,6 @@ CONTINUATION_PROMPT.md
 test-results.xml
 testResults.xml
 TestResults/
+
+# Scratch workspace for agent runs and generated notes
+work/

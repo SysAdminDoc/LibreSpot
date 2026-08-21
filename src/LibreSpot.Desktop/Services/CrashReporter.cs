@@ -192,6 +192,15 @@ public static class CrashReporter
             try
             {
                 Directory.CreateDirectory(candidate);
+                var probe = Path.Combine(candidate, $".write-{Guid.NewGuid():N}.tmp");
+                try
+                {
+                    File.WriteAllText(probe, string.Empty);
+                }
+                finally
+                {
+                    try { File.Delete(probe); } catch { }
+                }
                 return candidate;
             }
             catch
