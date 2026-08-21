@@ -48,7 +48,12 @@
                                    Foreground="{DynamicResource TextBrush}"
                                    Margin="0,8,0,12" />
 
-                        <ListBox ItemsSource="{Binding LocalProfiles}"
+                        <!-- Cards vary in height, so the viewport cannot be sized to
+                             whole cards. A bottom fade makes a partial card read as
+                             scrollable instead of as a title cut in half. -->
+                        <Grid>
+                        <ListBox x:Name="LocalProfilesList"
+                                 ItemsSource="{Binding LocalProfiles}"
                                  SelectedItem="{Binding SelectedLocalProfile, Mode=TwoWay}"
                                  ItemTemplate="{StaticResource LocalProfileTemplate}"
                                  Background="Transparent"
@@ -90,6 +95,12 @@
                             </Style>
                           </ListBox.ItemContainerStyle>
                         </ListBox>
+                          <Border Height="28"
+                                  VerticalAlignment="Bottom"
+                                  Background="{DynamicResource ScrollFadeBrush}"
+                                  IsHitTestVisible="False"
+                                  Visibility="{Binding HasLocalProfiles, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        </Grid>
 
                         <Border Margin="0,0,0,12">
                           <Border.Style>

@@ -99,6 +99,31 @@ public sealed class ThemeManagerTests
     }
 
     [Fact]
+    public void ScrollingCardListsFadeTheirBottomEdgeExceptInHighContrast()
+    {
+        var view = ReadFile("src", "LibreSpot.Desktop", "Views", "CustomProfileSummarySection.xaml");
+        Assert.Contains("ScrollFadeBrush", view);
+        Assert.Contains("IsHitTestVisible=\"False\"", view);
+
+        RunSta(() =>
+        {
+            var host = new Border();
+            host.Resources.MergedDictionaries.Add(LoadPalette("Palette.xaml"));
+            var fade = new Border();
+            host.Child = fade;
+            fade.SetResourceReference(Border.BackgroundProperty, "ScrollFadeBrush");
+
+            var gradient = Assert.IsType<LinearGradientBrush>(fade.Background);
+            Assert.Equal(0, gradient.GradientStops[0].Color.A);
+            Assert.Equal(255, gradient.GradientStops[^1].Color.A);
+
+            // High contrast has no soft edges; the scrollbar is the affordance.
+            host.Resources.MergedDictionaries[0] = LoadPalette("HighContrastPalette.xaml");
+            Assert.Equal(0, Assert.IsType<SolidColorBrush>(fade.Background).Color.A);
+        });
+    }
+
+    [Fact]
     public void HighContrastPalette_SetsMotionDurationsToNearZero()
     {
         var content = ReadFile("src", "LibreSpot.Desktop", "Themes", "HighContrastPalette.xaml");

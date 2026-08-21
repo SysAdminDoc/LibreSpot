@@ -38,6 +38,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Turning Windows high contrast on while the app is running now flattens the card shadows and the readiness glow and recolors the focus ring. Those were resolved once at load, so they kept their dark-palette instances until the next restart.
 - The catalog generator carries a UTF-8 byte order mark, so the interpunct in the page footer publishes correctly from Windows PowerShell 5.1 instead of as mojibake. The two hosts now produce the same page.
 - Disabled card lists and the activity dock toggle mute their label instead of fading the whole control. The colour-scheme chips were the last surface still using a 0.45 opacity composite, which multiplied a caption that was already near the floor and dimmed GrayText a second time in high contrast.
+- The local profiles list fades at its bottom edge, so a card that runs past the viewport reads as scrollable rather than as a title cut in half. High contrast leaves the edge flat and relies on the scrollbar.
 - The documented local test command no longer skips its own lints. `--filter-not-method "*Wpf*"` was there to avoid the tests that launch the shell, but it matched on name, so twelve file-reading gates never ran, one of them red. Every shell-launching test already lives in a `Wpf*` class, so the class filter alone does the job and a new gate keeps it that way.
 - Two font sizes in the navigation rail were off the product type scale. The app title read 23 and the reversible-setup shield glyph 22; both are now 24.
 

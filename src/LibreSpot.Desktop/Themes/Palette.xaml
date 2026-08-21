@@ -192,6 +192,14 @@
     <GradientStop Color="#00FFFFFF" Offset="1" />
   </LinearGradientBrush>
 
+  <!-- Bottom edge of a scrolling card list. Surface1Color at zero alpha, so a
+       partial card reads as "there is more below" instead of as clipping. -->
+  <Color x:Key="ScrollFadeStartColor">#000B151D</Color>
+  <LinearGradientBrush x:Key="ScrollFadeBrush" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="{DynamicResource ScrollFadeStartColor}" Offset="0" />
+    <GradientStop Color="{DynamicResource Surface1Color}" Offset="1" />
+  </LinearGradientBrush>
+
   <LinearGradientBrush x:Key="AccentGradientBrush" StartPoint="0,0" EndPoint="1,1">
     <GradientStop Color="{DynamicResource AccentHoverColor}" Offset="0" />
     <GradientStop Color="{DynamicResource AccentDeepColor}" Offset="1" />

@@ -39,12 +39,6 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
   Fix: Backfill comments for `{n}` keys first, naming each placeholder.
   Acceptance: Every key whose value contains `{0}` has a comment naming the placeholder.
 
-- [ ] P3 — RD-95: Profiles list viewport bisects a card mid-title
-  Why: ListBox MaxHeight 260 over ~140px cards shows ~1.8 cards and cuts the next title, reading as an overlap.
-  Where: src/LibreSpot.Desktop/Views/CustomProfileSummarySection.xaml
-  Fix: Size the viewport to whole cards, or add a bottom fade so a partial card reads as scrollable.
-  Acceptance: Custom-state capture shows whole cards or a clear fade, not a bisected title.
-
 - [ ] P3 — RD-97: WpfQaMatrix capture wait can time out spuriously in full-suite runs
   Why: One home-navigation/dark/en row timed out in a full `*Wpf*` run, then passed in isolation. Do not raise the global timeout blindly.
   Where: tests/LibreSpot.Desktop.Tests/WpfQaMatrixTests.cs WaitForCapture
