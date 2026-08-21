@@ -8,7 +8,7 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 IDs continue the RD-nn scheme. Highest ID in this file: RD-72. RD-47–RD-50 are absent because they already landed on `main` (CHANGELOG `[Unreleased]`); do not re-file them.
 
-Existing items RD-51–RD-57 and RD-62 below are the same work items as the prior pass, with evidence corrections in-place (especially RD-54). New items start at RD-63.
+Existing items RD-51–RD-57 below are the same work items as the prior pass, with evidence corrections in-place (especially RD-54). New items start at RD-63.
 
 ### P0
 
@@ -25,9 +25,4 @@ Existing items RD-51–RD-57 and RD-62 below are the same work items as the prio
 
 ### P3
 
-- [ ] P3 — RD-62: Publish the curated community-asset catalog as a GitHub Pages site
-  Why: No canonical awesome-spicetify exists; LibreSpot's reviewed, hash-pinned catalog already fills that niche, and a browsable page with verified badges captures discovery traffic and counters fake-installer search.
-  Evidence: awesome-list survey 2026-08-20 (gap confirmed); `schemas/community-assets.json` + catalog-refresh-checklist review model; r2modman web-catalog pattern.
-  Touches: a static generator reading `schemas/community-assets.json` + `theme-preview-manifest.json`, `gh-pages` branch (branch-based Pages, built locally, no Actions), README link
-  Acceptance: A Pages site lists every catalog asset with provenance, license, verification badge, and review date, generated from the schemas so it cannot drift; deployed via gh-pages branch push.
   Complexity: L

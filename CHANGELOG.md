@@ -30,6 +30,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Added a localized Recommended first-run checklist with setup contents, update blocking, risk confirmation, duration, and Full Reset recovery guidance above the environment tables.
 - Added an explicit capability boundary to README and SECURITY. LibreSpot does not grant Premium or unlock Spotify's account-controlled catalog features; Premium users can still use the skip-ad-blocking path.
 - Added a locally generated community catalog site that lists every reviewed asset with provenance, license, SHA256 verification, review date, and evidence links.
+- Published the generated community catalog to [GitHub Pages](https://sysadmindoc.github.io/LibreSpot/) from the reviewed `gh-pages` branch.
 
 ### Fixed
 
