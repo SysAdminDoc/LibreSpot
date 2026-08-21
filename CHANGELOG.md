@@ -25,6 +25,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Aligned markdown tracking guidance with the files actually versioned in the repository, refreshed the parity manifest version to preview.25, and removed the duplicate ignored `Roadmap_Blocks.md` file in favor of `Roadmap_Blocked.md`.
 - Renamed the shell's stack-status bindings and replaced release-freshness copy with localized detected/not-detected maintenance guidance.
 - Expanded the WPF QA matrix with destructive-prompt, active-run cancellation, and dark-theme reduced-motion states, with capture metadata proving motion suppression.
+- Derived the shell display version from the desktop assembly informational version so project version bumps update the chrome automatically.
 
 ### Fixed
 

@@ -616,18 +616,12 @@ function Get-LibreSpotScriptVersion {
 }
 
 function Get-LibreSpotShellDisplayVersion {
-    $viewModelPath = Join-Path $PSScriptRoot 'src/LibreSpot.Desktop/ViewModels/MainViewModel.cs'
-    if (-not (Test-Path -LiteralPath $viewModelPath -PathType Leaf)) {
-        throw "Cannot infer shell display version; MainViewModel.cs not found at $viewModelPath"
+    $version = Get-LibreSpotProjectInformationalVersion
+    if ($version.StartsWith('v', [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $version
     }
 
-    $content = [System.IO.File]::ReadAllText($viewModelPath, [System.Text.Encoding]::UTF8)
-    $match = [regex]::Match($content, 'ShellDisplayVersion\s*=>\s*"(?<version>v[^"]+)"')
-    if (-not $match.Success) {
-        throw "Cannot infer shell display version; MainViewModel.ShellDisplayVersion must be a literal v-prefixed version."
-    }
-
-    return [string]$match.Groups['version'].Value
+    return "v$version"
 }
 
 function Test-PinnedCompatibilityBaseline {

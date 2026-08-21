@@ -157,9 +157,9 @@ public sealed class ReadmeScreenshotTests
     private static string GetShellDisplayVersion()
     {
         var source = ReadText("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
-        var match = Regex.Match(source, @"ShellDisplayVersion\s*=>\s*""(?<version>v[^""]+)""");
-        Assert.True(match.Success, "Could not find MainViewModel.ShellDisplayVersion.");
-        return match.Groups["version"].Value;
+        Assert.Contains("AssemblyInformationalVersionAttribute", source);
+        Assert.Contains("public string ShellDisplayVersion => $\"v{ProductVersion}\";", source);
+        return $"v{GetProjectInformationalVersion()}";
     }
 
     private static string GetProjectInformationalVersion()

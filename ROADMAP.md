@@ -23,13 +23,6 @@ Existing items RD-51–RD-57 and RD-62 below are the same work items as the prio
 
 ### P2
 
-- [ ] P2 — RD-69: Derive `ShellDisplayVersion` from the assembly, not a literal
-  Why: `MainViewModel.ShellDisplayVersion => "v4.0.0-preview.25"` will drift on every bump (already wrong relative to untagged `main`).
-  Evidence: `MainViewModel.cs`; csproj `Version` `4.0.0-preview.25`; `LibreSpot.Cli --version`.
-  Touches: `MainViewModel.cs`, any test asserting the chrome version, localization if the `v` prefix is a format string
-  Acceptance: Chrome version matches `AssemblyInformationalVersion` (or the same source CLI uses); bumping csproj Version updates the shell without a second edit; test locked to that.
-  Complexity: S
-
 - [ ] P2 — RD-70: Repair stale distribution and blocked-list claims
   Why: `distribution-matrix.json` still says mutating CLI verbs “need backend wiring” while the fleet contract marks them implemented; Roadmap_Blocked still has “write shell-integration design” after protocol/jump list/tray shipped.
   Evidence: `schemas/distribution-matrix.json`; `schemas/fleet-cli-contract.json` `implementationStatus: implemented`; README Windows shell integration section; `Roadmap_Blocked.md` shell-integration item.

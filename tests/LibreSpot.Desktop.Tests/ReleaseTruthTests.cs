@@ -16,11 +16,12 @@ public sealed class ReleaseTruthTests
         var cliVersion = ProjectValue("src/LibreSpot.Cli/LibreSpot.Cli.csproj", "Version");
         var viewModel = Read("src/LibreSpot.Desktop/ViewModels/MainViewModel.cs");
         var readme = Read("README.md");
-        var shellVersion = Match(viewModel, "ShellDisplayVersion\\s*=>\\s*\"(?<value>v[^\"]+)\"");
 
         Assert.Equal(desktopVersion, desktopInformationalVersion);
         Assert.Equal(desktopVersion, cliVersion);
-        Assert.Equal($"v{desktopVersion}", shellVersion);
+        Assert.Contains("AssemblyInformationalVersionAttribute", viewModel);
+        Assert.Contains("public string ShellDisplayVersion => $\"v{ProductVersion}\";", viewModel);
+        Assert.DoesNotContain("ShellDisplayVersion => \"v", viewModel);
         Assert.Contains($"Version-{desktopVersion.Replace("-", "--")}-brightgreen.svg", readme);
         Assert.Contains($"## What's New in v{desktopVersion}", readme);
     }
@@ -48,6 +49,8 @@ public sealed class ReleaseTruthTests
         Assert.Contains("'LibreSpot.ps1', 'LibreSpot.exe', 'checksums.txt'", buildScript);
         Assert.Contains("Test-PublicReleaseTruth", buildScript);
         Assert.Contains("Test-LocalReleaseTruth", buildScript);
+        Assert.Contains("Get-LibreSpotProjectInformationalVersion", buildScript);
+        Assert.DoesNotContain("must be a literal v-prefixed version", buildScript);
     }
 
     private static string ScriptVersion(string relativePath) =>
