@@ -1637,11 +1637,11 @@
                          VerticalAlignment="Top"
                          Margin="0,4,12,0" />
                 <StackPanel Grid.Column="1">
-                  <TextBlock Text="{Binding ShellUpdateStatusTitle}"
+                  <TextBlock Text="{Binding ShellStackStatusTitle}"
                              Foreground="{DynamicResource TextBrush}"
                              FontWeight="SemiBold"
                              TextWrapping="Wrap" />
-                  <TextBlock Text="{Binding ShellUpdateStatusDetail}"
+                  <TextBlock Text="{Binding ShellStackStatusDetail}"
                              Style="{StaticResource CaptionTextStyle}"
                              Margin="0,4,0,0" />
                 </StackPanel>

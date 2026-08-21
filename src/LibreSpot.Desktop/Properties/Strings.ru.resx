@@ -2002,10 +2002,10 @@
   <data name="Vm_ShellTrustedSourcesDetail" xml:space="preserve"><value>Закрепленные загрузки перед использованием проверяются хешем.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellTrustedSourcesTitle" xml:space="preserve"><value>Надежные источники</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellTrustRiskTitle" xml:space="preserve"><value>Доверие и риск</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellUpdateCurrent" xml:space="preserve"><value>LibreSpot обновлен</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellUpdateLatestPreview" xml:space="preserve"><value>У вас установлена последняя предварительная версия.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellUpdateMaintenanceAvailable" xml:space="preserve"><value>Доступно обслуживание стека.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellUpdateReady" xml:space="preserve"><value>LibreSpot готов</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellStackDetectedTitle" xml:space="preserve"><value>Обнаружен стек Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellStackDetectedDetail" xml:space="preserve"><value>Действия обслуживания доступны в рабочей области «Обслуживание».</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellStackNotDetectedTitle" xml:space="preserve"><value>Стек Spotify не обнаружен</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellStackNotDetectedDetail" xml:space="preserve"><value>Установите Spotify, чтобы сделать обслуживание стека доступным.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellVerifyEnvironmentDetail" xml:space="preserve"><value>Перепроверьте систему и зависимости</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellVerifyEnvironmentTitle" xml:space="preserve"><value>Проверьте среду</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SpicetifyDetected" xml:space="preserve"><value>Spicetify обнаружен</value><comment>MainViewModel localized runtime text.</comment></data>

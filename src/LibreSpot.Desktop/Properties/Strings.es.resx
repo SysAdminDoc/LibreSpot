@@ -2002,10 +2002,10 @@
   <data name="Vm_ShellTrustedSourcesDetail" xml:space="preserve"><value>Las descargas fijadas se verifican mediante hash antes de su uso.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellTrustedSourcesTitle" xml:space="preserve"><value>Fuentes confiables</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellTrustRiskTitle" xml:space="preserve"><value>Confianza y riesgo</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellUpdateCurrent" xml:space="preserve"><value>LibreSpot está actualizado</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellUpdateLatestPreview" xml:space="preserve"><value>Tienes la última vista previa.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellUpdateMaintenanceAvailable" xml:space="preserve"><value>El mantenimiento de la pila está disponible.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellUpdateReady" xml:space="preserve"><value>LibreSpot está listo</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellStackDetectedTitle" xml:space="preserve"><value>Se detectó la pila de Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellStackDetectedDetail" xml:space="preserve"><value>Las acciones de mantenimiento están disponibles en el espacio de trabajo Mantenimiento.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellStackNotDetectedTitle" xml:space="preserve"><value>No se detectó la pila de Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellStackNotDetectedDetail" xml:space="preserve"><value>Instala Spotify para habilitar el mantenimiento de la pila.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellVerifyEnvironmentDetail" xml:space="preserve"><value>Vuelva a verificar el sistema y las dependencias</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellVerifyEnvironmentTitle" xml:space="preserve"><value>Verifique el entorno</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SpicetifyDetected" xml:space="preserve"><value>Spicetify detectado</value><comment>MainViewModel localized runtime text.</comment></data>

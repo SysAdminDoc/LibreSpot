@@ -2002,10 +2002,10 @@
   <data name="Vm_ShellTrustedSourcesDetail" xml:space="preserve"><value>固定下载为使用前经过哈希验证。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellTrustedSourcesTitle" xml:space="preserve"><value>可信来源</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellTrustRiskTitle" xml:space="preserve"><value>信任和风险</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellUpdateCurrent" xml:space="preserve"><value>LibreSpot 是最新的</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellUpdateLatestPreview" xml:space="preserve"><value>您拥有最新的预览版。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellUpdateMaintenanceAvailable" xml:space="preserve"><value>可以进行堆栈维护。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellUpdateReady" xml:space="preserve"><value>LibreSpot 已准备就绪</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellStackDetectedTitle" xml:space="preserve"><value>检测到 Spotify 堆栈</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellStackDetectedDetail" xml:space="preserve"><value>维护操作可在“维护”工作区中使用。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellStackNotDetectedTitle" xml:space="preserve"><value>未检测到 Spotify 堆栈</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellStackNotDetectedDetail" xml:space="preserve"><value>安装 Spotify 后即可使用堆栈维护。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellVerifyEnvironmentDetail" xml:space="preserve"><value>重新检查系统和依赖项</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellVerifyEnvironmentTitle" xml:space="preserve"><value>验证环境</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SpicetifyDetected" xml:space="preserve"><value>检测到 Spicetify</value><comment>MainViewModel localized runtime text.</comment></data>

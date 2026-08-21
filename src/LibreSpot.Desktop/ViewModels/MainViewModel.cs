@@ -459,12 +459,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ? L("Vm_ShellServiceDetected")
         : L("Vm_ShellServiceStandby");
     public string ShellDisplayVersion => "v4.0.0-preview.25";
-    public string ShellUpdateStatusTitle => Snapshot.SpicetifyInstalled || Snapshot.SpotifyInstalled
-        ? L("Vm_ShellUpdateReady")
-        : L("Vm_ShellUpdateCurrent");
-    public string ShellUpdateStatusDetail => Snapshot.SpicetifyInstalled || Snapshot.SpotifyInstalled
-        ? L("Vm_ShellUpdateMaintenanceAvailable")
-        : L("Vm_ShellUpdateLatestPreview");
+    public string ShellStackStatusTitle => Snapshot.SpicetifyInstalled || Snapshot.SpotifyInstalled
+        ? L("Vm_ShellStackDetectedTitle")
+        : L("Vm_ShellStackNotDetectedTitle");
+    public string ShellStackStatusDetail => Snapshot.SpicetifyInstalled || Snapshot.SpotifyInstalled
+        ? L("Vm_ShellStackDetectedDetail")
+        : L("Vm_ShellStackNotDetectedDetail");
     public string ShellTopThemeLabel => L("Vm_ShellTopThemeLabel");
     public string ShellTopSettingsLabel => L("Vm_ShellTopSettingsLabel");
     public string ShellLearnMoreLabel => L("Vm_ShellLearnMoreLabel");
@@ -1502,8 +1502,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         OnPropertyChanged(nameof(ShellReadinessValue));
         OnPropertyChanged(nameof(ShellReadinessDetail));
-        OnPropertyChanged(nameof(ShellUpdateStatusTitle));
-        OnPropertyChanged(nameof(ShellUpdateStatusDetail));
+        OnPropertyChanged(nameof(ShellStackStatusTitle));
+        OnPropertyChanged(nameof(ShellStackStatusDetail));
         OnPropertyChanged(nameof(ShellSummaryItems));
         OnPropertyChanged(nameof(ShellEnvironmentRows));
         OnPropertyChanged(nameof(ShellDependencyRows));

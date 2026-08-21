@@ -23,13 +23,6 @@ Existing items RD-51–RD-57 and RD-62 below are the same work items as the prio
 
 ### P2
 
-- [ ] P2 — RD-67: Stop calling stack presence an “update status”
-  Why: `ShellUpdateStatusTitle`/`Detail` flip on “Spotify or Spicetify installed,” not on a LibreSpot release check, so the chrome overclaims (“LibreSpot is up to date”).
-  Evidence: `MainViewModel.cs` `ShellUpdateStatusTitle`/`ShellUpdateStatusDetail`; `Strings.resx` `Vm_ShellUpdate*`; Velopack/update channels remain operator-blocked.
-  Touches: `MainViewModel.cs`, `Strings*.resx`, `MainWindow.xaml` update card, WPF QA captures
-  Acceptance: Copy describes detected stack / maintenance availability, never LibreSpot release freshness, unless a real updater exists; localized; screenshot gate updated if the string is gated.
-  Complexity: S
-
 - [ ] P2 — RD-68: Gate remaining WPF smoke states in the QA matrix
   Why: `prompt-destructive`, `activity-running`, and reduced-motion-only already have smoke seeds but are not in `WpfQaMatrixTests.SurfaceMatrix`, so those contracts can regress silently.
   Evidence: `MainViewModel.cs` smoke seeds; `WpfQaMatrixTests.cs` surface list; `ThemeManager.ShouldSuppressMotion`.

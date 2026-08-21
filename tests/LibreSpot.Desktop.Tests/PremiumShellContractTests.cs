@@ -36,6 +36,24 @@ public sealed class PremiumShellContractTests
     }
 
     [Fact]
+    public void ShellStackCardDescribesMaintenanceInsteadOfReleaseFreshness()
+    {
+        var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        var viewModel = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
+        var resources = ReadFile("src", "LibreSpot.Desktop", "Properties", "Strings.resx");
+
+        Assert.Contains("ShellStackStatusTitle", xaml);
+        Assert.Contains("ShellStackStatusDetail", xaml);
+        Assert.Contains("Vm_ShellStackDetectedTitle", viewModel);
+        Assert.Contains("Vm_ShellStackNotDetectedTitle", viewModel);
+        Assert.Contains("Vm_ShellStackDetectedDetail", viewModel);
+        Assert.Contains("Vm_ShellStackNotDetectedDetail", viewModel);
+        Assert.DoesNotContain("ShellUpdateStatus", xaml);
+        Assert.DoesNotContain("ShellUpdateStatus", viewModel);
+        Assert.DoesNotContain("Vm_ShellUpdate", resources);
+    }
+
+    [Fact]
     public void LiveRegionsExposeChangingContentAndPromptsConstrainLongCopy()
     {
         var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");

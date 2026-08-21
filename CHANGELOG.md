@@ -23,6 +23,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Split the Custom workspace into PascalCase-paired per-section UserControls and moved maintenance, custom-install, and profile members into view-model partials. Existing UIA, localization, focus, and behavior contracts remain unchanged.
 - Added a short fake-installer warning and download-verification checklist to README and SECURITY. It points users to the official repository, same-release SHA256 checksums, and away from Telegram, rehosted files, Defender changes, and pasted commands.
 - Aligned markdown tracking guidance with the files actually versioned in the repository, refreshed the parity manifest version to preview.25, and removed the duplicate ignored `Roadmap_Blocks.md` file in favor of `Roadmap_Blocked.md`.
+- Renamed the shell's stack-status bindings and replaced release-freshness copy with localized detected/not-detected maintenance guidance.
 
 ### Fixed
 
