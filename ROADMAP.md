@@ -18,12 +18,6 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
   Fix: One term per concept; `...` to `…`; no spaced hyphens as dashes; imperative Option descriptions; mirror satellites.
   Acceptance: Localization gate passes; grep for sentence-position ` - ` and ASCII `...` in user-facing values is clean.
 
-- [ ] P3 — RD-92: Dead-end failure strings and crash-dialog jargon
-  Why: Several failure strings state a failure without a next step; the crash dialog leads with EXCEPTION SUMMARY.
-  Where: Vm_UndoStateChanged, Vm_UnknownBackendFailure, Vm_SupportBundleExportFailedFormat, Vm_ConfigSaveFailed, Vm_ProfileComparisonUnavailable, CrashExceptionSummaryLabel, CrashNoExceptionMessage
-  Fix: Name an action available on that surface; retitle the crash section in plain language.
-  Acceptance: Each listed key names a next step; all five locales.
-
 - [ ] P3 — RD-93: Half the resx carries boilerplate translator comments
   Why: 625 of 1,278 comments are "MainViewModel localized runtime text." or "User-facing WPF text"; placeholder keys are the ones a translator can break.
   Where: src/LibreSpot.Desktop/Properties/Strings.resx

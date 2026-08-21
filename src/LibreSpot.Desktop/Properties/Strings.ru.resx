@@ -1960,7 +1960,7 @@
   <data name="Vm_ShellClearLogLabel" xml:space="preserve"><value>Очистить представление активности</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellClearLogHint" xml:space="preserve"><value>Очищает показанные здесь строки активности. Файл install.log остается на диске.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellLogFilterHint" xml:space="preserve"><value>Циклически просматривает все уровни, предупреждения и ошибки, а также только ошибки.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_UnknownBackendFailure" xml:space="preserve"><value>LibreSpot сообщил о неизвестном сбое серверной части.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_UnknownBackendFailure" xml:space="preserve"><value>LibreSpot сообщил о неизвестном сбое серверной части. Экспортируйте пакет поддержки из раздела обслуживания, чтобы сохранить подробности.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesHealthy" xml:space="preserve"><value>Все зависимости работоспособны.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesTitle" xml:space="preserve"><value>Зависимости</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesWarning" xml:space="preserve"><value>Перед установкой исправлений просмотрите предупреждения о зависимостях.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2114,7 +2114,7 @@
   <data name="Vm_ClearAssetCacheTitle" xml:space="preserve"><value>Очистить кэш ресурсов</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ClosingLibreSpot" xml:space="preserve"><value>Закрытие LibreSpot</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ClosingSpotifyProcess" xml:space="preserve"><value>Закрытие Spotify.exe</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ConfigSaveFailed" xml:space="preserve"><value>Не удалось сохранить конфигурацию</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigSaveFailed" xml:space="preserve"><value>Не удалось сохранить конфигурацию. Убедитесь, что папка LibreSpot в AppData доступна для записи, и повторите попытку.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightArchitectureMismatchTitle" xml:space="preserve"><value>Несоответствие архитектуры</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightBalancedCustomizationDetail" xml:space="preserve"><value>Несколько расширенных настроек активны, но профиль по-прежнему воспринимается как преднамеренная ежедневная работа, а не как экспериментальный пакет.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightBalancedCustomizationTitle" xml:space="preserve"><value>Сбалансированная настройка</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2162,7 +2162,7 @@
   <data name="Vm_ProfileComparisonMatchesBaseline" xml:space="preserve"><value>соответствует рекомендуемому базовому уровню</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonPreparing" xml:space="preserve"><value>По сравнению с Рекомендуется...</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonSummaryFormat" xml:space="preserve"><value>{0} профиль {1}. Тема: {2}/{3}; слова: {4}; расширения: {5}; пользовательские приложения: {6}; пользовательские патчи: {7}.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonUnavailable" xml:space="preserve"><value>Сравнение недоступно, пока профиль не будет загружен.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonUnavailable" xml:space="preserve"><value>Сравнение недоступно, пока профиль не загрузится. Нажмите «Обновить» над списком профилей и выберите профиль снова.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteBody" xml:space="preserve"><value>LibreSpot удалит этот локальный файл профиля. Связанные шаблоны сохраняются, а при удалении активного профиля возвращается состояние «Рекомендовано».</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteCancel" xml:space="preserve"><value>Сохранить профиль</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteConfirm" xml:space="preserve"><value>Удалить профиль</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2228,7 +2228,7 @@
   <data name="Vm_ZipArchiveDialogFilter" xml:space="preserve"><value>Zip-архивы (*.zip)|*.zip</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleLastExportFormat" xml:space="preserve"><value>Последний экспорт: {0} (zip-записи {1}, {2}).</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleExportedLogFormat" xml:space="preserve"><value>Пакет поддержки, экспортированный локально: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SupportBundleExportFailedFormat" xml:space="preserve"><value>Ошибка экспорта: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SupportBundleExportFailedFormat" xml:space="preserve"><value>Не удалось выполнить экспорт: {0}. Выберите папку, доступную для записи, и повторите экспорт.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleExportFailedLogFormat" xml:space="preserve"><value>Ошибка экспорта пакета поддержки: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleLastFailureExportFormat" xml:space="preserve"><value>Последний ошибочный пакет: {0} ({1}, {2} zip-записи).</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_FailureBundleExportedLogFormat" xml:space="preserve"><value>Пакет ошибок экспортирован локально: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2322,7 +2322,7 @@
   <data name="CrashFatalSummaryTitle" xml:space="preserve"><value>Перед повторным открытием</value><comment>Fatal crash next-step heading.</comment></data>
   <data name="CrashRecoverableSummaryBody" xml:space="preserve"><value>Скопируйте путь к отчету или откройте папку сбоя сейчас. Если приложение по-прежнему ведет себя странно, перезапустите LibreSpot, прежде чем продолжить работу.</value><comment>Recoverable crash next-step detail.</comment></data>
   <data name="CrashFatalSummaryBody" xml:space="preserve"><value>Скопируйте путь к отчету или откройте папку сбоя сейчас. При повторном открытии LibreSpot сохраненный профиль и журналы по-прежнему будут доступны для устранения неполадок.</value><comment>Fatal crash next-step detail.</comment></data>
-  <data name="CrashExceptionSummaryLabel" xml:space="preserve"><value>СВОДКА ИСКЛЮЧЕНИЙ</value><comment>Crash exception card label.</comment></data>
+  <data name="CrashExceptionSummaryLabel" xml:space="preserve"><value>ЧТО ПРОИЗОШЛО</value><comment>Crash exception card label.</comment></data>
   <data name="CrashReportPathLabel" xml:space="preserve"><value>ПУТЬ ОТЧЕТА</value><comment>Crash report path label.</comment></data>
   <data name="CrashSourceFolderFormat" xml:space="preserve"><value>Источник: {0} — Папка сбоя: {1}</value><comment>Crash source and folder detail.</comment></data>
   <data name="CrashFooter" xml:space="preserve"><value>LibreSpot сохраняет сбой отчет и журналы сеансов на диске после закрытия этого диалогового окна.</value><comment>Crash report retention note.</comment></data>
@@ -2330,7 +2330,7 @@
   <data name="CrashOpenFolder" xml:space="preserve"><value>Открыть папку сбоя</value><comment>Crash dialog open-folder action.</comment></data>
   <data name="CrashContinue" xml:space="preserve"><value>Продолжить</value><comment>Recoverable crash dialog dismiss action.</comment></data>
   <data name="CrashClose" xml:space="preserve"><value>Закрыть LibreSpot</value><comment>Fatal crash dialog dismiss action.</comment></data>
-  <data name="CrashNoExceptionMessage" xml:space="preserve"><value>Сообщение об исключении не предоставлено.</value><comment>Fallback crash exception detail.</comment></data>
+  <data name="CrashNoExceptionMessage" xml:space="preserve"><value>Сообщение об ошибке не записано. Откройте указанную ниже папку со сбоями, чтобы просмотреть полный отчёт.</value><comment>Fallback crash exception detail.</comment></data>
   <data name="ScrollPageUpAutomation" xml:space="preserve"><value>Прокрутить страницу вверх</value><comment>Automation name for the vertical scrollbar page-up button.</comment></data>
   <data name="ScrollPageDownAutomation" xml:space="preserve"><value>Прокрутить страницу вниз</value><comment>Automation name for the vertical scrollbar page-down button.</comment></data>
   <data name="ScrollPageLeftAutomation" xml:space="preserve"><value>Прокрутить страницу влево</value><comment>Automation name for the horizontal scrollbar page-left button.</comment></data>
@@ -2548,7 +2548,7 @@
   <data name="Vm_UndoNoneSelected" xml:space="preserve"><value>Не выбрана ни одна доступная операция отмены.</value></data>
   <data name="Vm_UndoSelectLowRisk" xml:space="preserve"><value>Выберите доступный элемент с низким риском и снова выполните предпросмотр.</value></data>
   <data name="Vm_UndoPreviewSummaryFormat" xml:space="preserve"><value>Проверку текущего состояния прошли {0} из {1} выбранных операций отмены.</value></data>
-  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>Текущее состояние изменилось; отмена отклонена.</value></data>
+  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>Текущее состояние изменилось, поэтому отмена отклонена. Обновите раздел обслуживания, чтобы получить новое состояние, и повторите отмену.</value></data>
   <data name="Vm_UndoConfirmTitle" xml:space="preserve"><value>Отменить выбранные изменения?</value></data>
   <data name="Vm_UndoConfirmBodyFormat" xml:space="preserve"><value>LibreSpot выполнит {0} выбранных операций отмены с низким риском в обратном порядке после повторной проверки текущего состояния.</value></data>
   <data name="Vm_UndoConfirmButton" xml:space="preserve"><value>Отменить выбранное</value></data>

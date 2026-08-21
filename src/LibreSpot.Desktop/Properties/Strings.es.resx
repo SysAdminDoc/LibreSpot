@@ -1960,7 +1960,7 @@
   <data name="Vm_ShellClearLogLabel" xml:space="preserve"><value>Borrar vista de actividad</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellClearLogHint" xml:space="preserve"><value>Borra las filas de actividad que se muestran aquí. El archivo install.log permanece en el disco.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellLogFilterHint" xml:space="preserve"><value>Recorre la vista de actividad a través de todos los niveles, advertencias y errores, y solo errores.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_UnknownBackendFailure" xml:space="preserve"><value>LibreSpot informó una falla de backend desconocida.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_UnknownBackendFailure" xml:space="preserve"><value>LibreSpot informó de un fallo desconocido del backend. Exporta un paquete de soporte desde Mantenimiento para registrar lo ocurrido.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesHealthy" xml:space="preserve"><value>Todas las dependencias están en buen estado.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesTitle" xml:space="preserve"><value>Dependencias</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesWarning" xml:space="preserve"><value>Revise las advertencias de dependencia antes de aplicar el parche.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2114,7 +2114,7 @@
   <data name="Vm_ClearAssetCacheTitle" xml:space="preserve"><value>Borrar caché de recursos</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ClosingLibreSpot" xml:space="preserve"><value>Cerrando LibreSpot</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ClosingSpotifyProcess" xml:space="preserve"><value>Cerrando spotify.exe</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ConfigSaveFailed" xml:space="preserve"><value>Error al guardar la configuración</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigSaveFailed" xml:space="preserve"><value>Error al guardar la configuración. Comprueba que la carpeta LibreSpot en AppData permite escritura y vuelve a intentarlo.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightArchitectureMismatchTitle" xml:space="preserve"><value>No coincide la arquitectura</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightBalancedCustomizationDetail" xml:space="preserve"><value>Algunos ajustes avanzados están activos, pero el perfil aún se lee como un controlador diario deliberado en lugar de un paquete experimental.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightBalancedCustomizationTitle" xml:space="preserve"><value>Personalización equilibrada</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2162,7 +2162,7 @@
   <data name="Vm_ProfileComparisonMatchesBaseline" xml:space="preserve"><value>coincide con la línea base recomendada</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonPreparing" xml:space="preserve"><value>Comparando con Recomendado...</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonSummaryFormat" xml:space="preserve"><value>{0} perfil {1}. Tema: {2}/{3}; letra: {4}; extensiones: {5}; aplicaciones personalizadas: {6}; parches personalizados: {7}.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonUnavailable" xml:space="preserve"><value>La comparación no está disponible hasta que se pueda cargar el perfil.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonUnavailable" xml:space="preserve"><value>La comparación no está disponible hasta que se cargue el perfil. Usa Actualizar encima de la lista de perfiles y vuelve a seleccionarlo.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteBody" xml:space="preserve"><value>LibreSpot eliminará este archivo de perfil local. Las plantillas incluidas se conservan y la eliminación del perfil activo vuelve a ser Recomendado.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteCancel" xml:space="preserve"><value>Mantener perfil</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteConfirm" xml:space="preserve"><value>Eliminar perfil</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2228,7 +2228,7 @@
   <data name="Vm_ZipArchiveDialogFilter" xml:space="preserve"><value>Archivos zip (*.zip)|*.zip</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleLastExportFormat" xml:space="preserve"><value>Última exportación: {0} ({1}, {2} entradas zip).</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleExportedLogFormat" xml:space="preserve"><value>Paquete de soporte exportado localmente: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SupportBundleExportFailedFormat" xml:space="preserve"><value>Error en la exportación: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SupportBundleExportFailedFormat" xml:space="preserve"><value>Error al exportar: {0}. Elige una carpeta en la que puedas escribir y vuelve a exportar.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleExportFailedLogFormat" xml:space="preserve"><value>Error en la exportación del paquete de soporte: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleLastFailureExportFormat" xml:space="preserve"><value>Último paquete fallido: {0} (entradas zip {1}, {2}).</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_FailureBundleExportedLogFormat" xml:space="preserve"><value>Paquete de errores exportado localmente: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2322,7 +2322,7 @@
   <data name="CrashFatalSummaryTitle" xml:space="preserve"><value>Antes de volver a abrir</value><comment>Fatal crash next-step heading.</comment></data>
   <data name="CrashRecoverableSummaryBody" xml:space="preserve"><value>Copia la ruta del informe o abre la carpeta de fallos ahora. Si la aplicación aún se comporta de manera extraña, reinicie LibreSpot antes de continuar trabajando.</value><comment>Recoverable crash next-step detail.</comment></data>
   <data name="CrashFatalSummaryBody" xml:space="preserve"><value>Copia la ruta del informe o abre la carpeta de fallos ahora. Cuando vuelva a abrir LibreSpot, el perfil y los registros guardados seguirán estando disponibles para solucionar problemas.</value><comment>Fatal crash next-step detail.</comment></data>
-  <data name="CrashExceptionSummaryLabel" xml:space="preserve"><value>RESUMEN DE EXCEPCIONES</value><comment>Crash exception card label.</comment></data>
+  <data name="CrashExceptionSummaryLabel" xml:space="preserve"><value>QUÉ HA FALLADO</value><comment>Crash exception card label.</comment></data>
   <data name="CrashReportPathLabel" xml:space="preserve"><value>RUTA DEL INFORME</value><comment>Crash report path label.</comment></data>
   <data name="CrashSourceFolderFormat" xml:space="preserve"><value>Fuente: {0} - Carpeta de fallos: {1}</value><comment>Crash source and folder detail.</comment></data>
   <data name="CrashFooter" xml:space="preserve"><value>LibreSpot mantiene el informe de fallos y los registros continuos de las sesiones en el disco después de que se cierre este cuadro de diálogo.</value><comment>Crash report retention note.</comment></data>
@@ -2330,7 +2330,7 @@
   <data name="CrashOpenFolder" xml:space="preserve"><value>Abrir carpeta de fallos</value><comment>Crash dialog open-folder action.</comment></data>
   <data name="CrashContinue" xml:space="preserve"><value>Continuar</value><comment>Recoverable crash dialog dismiss action.</comment></data>
   <data name="CrashClose" xml:space="preserve"><value>Cerrar LibreSpot</value><comment>Fatal crash dialog dismiss action.</comment></data>
-  <data name="CrashNoExceptionMessage" xml:space="preserve"><value>No se proporcionó ningún mensaje de excepción.</value><comment>Fallback crash exception detail.</comment></data>
+  <data name="CrashNoExceptionMessage" xml:space="preserve"><value>No se registró ningún mensaje de error. Abre la carpeta de fallos que aparece abajo para ver el informe completo.</value><comment>Fallback crash exception detail.</comment></data>
   <data name="ScrollPageUpAutomation" xml:space="preserve"><value>Desplazar una página hacia arriba</value><comment>Automation name for the vertical scrollbar page-up button.</comment></data>
   <data name="ScrollPageDownAutomation" xml:space="preserve"><value>Desplazar una página hacia abajo</value><comment>Automation name for the vertical scrollbar page-down button.</comment></data>
   <data name="ScrollPageLeftAutomation" xml:space="preserve"><value>Desplazar una página hacia la izquierda</value><comment>Automation name for the horizontal scrollbar page-left button.</comment></data>
@@ -2548,7 +2548,7 @@
   <data name="Vm_UndoNoneSelected" xml:space="preserve"><value>No hay ningún elemento de deshacer ejecutable seleccionado.</value></data>
   <data name="Vm_UndoSelectLowRisk" xml:space="preserve"><value>Selecciona un elemento habilitado de bajo riesgo y vuelve a previsualizarlo.</value></data>
   <data name="Vm_UndoPreviewSummaryFormat" xml:space="preserve"><value>{0} de {1} elementos seleccionados superan la validación del estado actual.</value></data>
-  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>El estado actual cambió; se rechazó la operación de deshacer.</value></data>
+  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>El estado actual cambió, por lo que se rechazó deshacer. Actualiza Mantenimiento para recoger el nuevo estado y vuelve a intentarlo.</value></data>
   <data name="Vm_UndoConfirmTitle" xml:space="preserve"><value>¿Deshacer los cambios seleccionados?</value></data>
   <data name="Vm_UndoConfirmBodyFormat" xml:space="preserve"><value>LibreSpot ejecutará {0} elemento(s) seleccionados de bajo riesgo en orden inverso tras volver a validar el estado actual.</value></data>
   <data name="Vm_UndoConfirmButton" xml:space="preserve"><value>Deshacer seleccionados</value></data>

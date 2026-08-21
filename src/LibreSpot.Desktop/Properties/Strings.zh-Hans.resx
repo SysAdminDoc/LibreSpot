@@ -1960,7 +1960,7 @@
   <data name="Vm_ShellClearLogLabel" xml:space="preserve"><value>清除活动视图</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellClearLogHint" xml:space="preserve"><value>清除此处显示的活动行。 install.log 文件保留在磁盘上。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellLogFilterHint" xml:space="preserve"><value>在所有级别、警告和错误以及仅错误之间循环活动视图。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_UnknownBackendFailure" xml:space="preserve"><value>LibreSpot 报告未知的后端故障。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_UnknownBackendFailure" xml:space="preserve"><value>LibreSpot 报告了未知的后端故障。请从维护页面导出支持包以记录详细信息。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesHealthy" xml:space="preserve"><value>所有依赖项均正常。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesTitle" xml:space="preserve"><value>依赖项</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesWarning" xml:space="preserve"><value>在修补之前查看依赖项警告。</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2114,7 +2114,7 @@
   <data name="Vm_ClearAssetCacheTitle" xml:space="preserve"><value>清除资源缓存</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ClosingLibreSpot" xml:space="preserve"><value>关闭 LibreSpot</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ClosingSpotifyProcess" xml:space="preserve"><value>关闭spotify.exe</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ConfigSaveFailed" xml:space="preserve"><value>配置保存失败</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigSaveFailed" xml:space="preserve"><value>配置保存失败。请确认 AppData 中的 LibreSpot 文件夹可写入，然后重试。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightArchitectureMismatchTitle" xml:space="preserve"><value>架构不匹配</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightBalancedCustomizationDetail" xml:space="preserve"><value>一些高级调整处于活动状态，但配置文件读起来仍然像是经过深思熟虑的日常驱动程序，而不是实验包。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightBalancedCustomizationTitle" xml:space="preserve"><value>平衡的自定义</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2162,7 +2162,7 @@
   <data name="Vm_ProfileComparisonMatchesBaseline" xml:space="preserve"><value>符合推荐基准</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonPreparing" xml:space="preserve"><value>与推荐...</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonSummaryFormat" xml:space="preserve"><value>{0} 个人资料 {1}。主题：{2}/{3}；歌词：{4}；扩展名：{5}；自定义应用程序：{6}；自定义补丁：{7}。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonUnavailable" xml:space="preserve"><value>在加载配置文件之前无法进行比较。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonUnavailable" xml:space="preserve"><value>在配置文件加载完成之前无法比较。请使用配置文件列表上方的刷新按钮，然后重新选择该配置文件。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteBody" xml:space="preserve"><value>LibreSpot 将删除此本地配置文件。捆绑的模板将被保留，删除活动配置文件将返回到“推荐”。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteCancel" xml:space="preserve"><value>保留配置文件</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteConfirm" xml:space="preserve"><value>删除配置文件</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2228,7 +2228,7 @@
   <data name="Vm_ZipArchiveDialogFilter" xml:space="preserve"><value>Zip 存档 (*.zip)|*.zip</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleLastExportFormat" xml:space="preserve"><value>上次导出：{0}（{1}、{2} zip 条目）。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleExportedLogFormat" xml:space="preserve"><value>支持本地导出的包：{0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SupportBundleExportFailedFormat" xml:space="preserve"><value>导出失败： {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SupportBundleExportFailedFormat" xml:space="preserve"><value>导出失败：{0}。请选择一个可写入的文件夹，然后重新导出。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleExportFailedLogFormat" xml:space="preserve"><value>支持捆绑包导出失败：{0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleLastFailureExportFormat" xml:space="preserve"><value>上次失败捆绑包：{0}（{1}、{2} zip 条目）。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_FailureBundleExportedLogFormat" xml:space="preserve"><value>本地导出的失败捆绑包：{0}</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2322,7 +2322,7 @@
   <data name="CrashFatalSummaryTitle" xml:space="preserve"><value>重新打开之前</value><comment>Fatal crash next-step heading.</comment></data>
   <data name="CrashRecoverableSummaryBody" xml:space="preserve"><value>立即复制报告路径或打开崩溃文件夹。如果应用程序仍然表现异常，请在继续工作之前重新启动 LibreSpot。</value><comment>Recoverable crash next-step detail.</comment></data>
   <data name="CrashFatalSummaryBody" xml:space="preserve"><value>立即复制报告路径或打开崩溃文件夹。当您重新打开 LibreSpot 时，保存的配置文件和日志仍可用于故障排除。</value><comment>Fatal crash next-step detail.</comment></data>
-  <data name="CrashExceptionSummaryLabel" xml:space="preserve"><value>异常摘要</value><comment>Crash exception card label.</comment></data>
+  <data name="CrashExceptionSummaryLabel" xml:space="preserve"><value>出了什么问题</value><comment>Crash exception card label.</comment></data>
   <data name="CrashReportPathLabel" xml:space="preserve"><value>报告路径</value><comment>Crash report path label.</comment></data>
   <data name="CrashSourceFolderFormat" xml:space="preserve"><value>来源：{0} - 崩溃文件夹：{1}</value><comment>Crash source and folder detail.</comment></data>
   <data name="CrashFooter" xml:space="preserve"><value>在此对话框后，LibreSpot 会将崩溃报告和滚动会话日志保留在磁盘上关闭。</value><comment>Crash report retention note.</comment></data>
@@ -2330,7 +2330,7 @@
   <data name="CrashOpenFolder" xml:space="preserve"><value>打开崩溃文件夹</value><comment>Crash dialog open-folder action.</comment></data>
   <data name="CrashContinue" xml:space="preserve"><value>继续</value><comment>Recoverable crash dialog dismiss action.</comment></data>
   <data name="CrashClose" xml:space="preserve"><value>关闭 LibreSpot</value><comment>Fatal crash dialog dismiss action.</comment></data>
-  <data name="CrashNoExceptionMessage" xml:space="preserve"><value>未提供异常消息。</value><comment>Fallback crash exception detail.</comment></data>
+  <data name="CrashNoExceptionMessage" xml:space="preserve"><value>未记录错误消息。请打开下方的崩溃文件夹查看完整报告。</value><comment>Fallback crash exception detail.</comment></data>
   <data name="ScrollPageUpAutomation" xml:space="preserve"><value>向上滚动页面</value><comment>Automation name for the vertical scrollbar page-up button.</comment></data>
   <data name="ScrollPageDownAutomation" xml:space="preserve"><value>滚动页面向下</value><comment>Automation name for the vertical scrollbar page-down button.</comment></data>
   <data name="ScrollPageLeftAutomation" xml:space="preserve"><value>向左滚动页面</value><comment>Automation name for the horizontal scrollbar page-left button.</comment></data>
@@ -2548,7 +2548,7 @@
   <data name="Vm_UndoNoneSelected" xml:space="preserve"><value>未选择可执行的撤销项。</value></data>
   <data name="Vm_UndoSelectLowRisk" xml:space="preserve"><value>选择一个已启用的低风险项，然后再次预览。</value></data>
   <data name="Vm_UndoPreviewSummaryFormat" xml:space="preserve"><value>所选撤销项中有 {0}/{1} 个通过当前状态验证。</value></data>
-  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>当前状态已更改；撤销已被拒绝。</value></data>
+  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>当前状态已更改，撤销被拒绝。请刷新维护页面以获取新状态，然后重新尝试撤销。</value></data>
   <data name="Vm_UndoConfirmTitle" xml:space="preserve"><value>撤销所选更改？</value></data>
   <data name="Vm_UndoConfirmBodyFormat" xml:space="preserve"><value>LibreSpot 将在重新验证当前状态后，按相反顺序执行 {0} 个所选低风险撤销项。</value></data>
   <data name="Vm_UndoConfirmButton" xml:space="preserve"><value>撤销所选项</value></data>

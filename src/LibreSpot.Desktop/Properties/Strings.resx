@@ -707,7 +707,7 @@
   <data name="Vm_ShellClearLogLabel" xml:space="preserve"><value>Clear activity view</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellClearLogHint" xml:space="preserve"><value>Clears the activity rows shown here. The install.log file remains on disk.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellLogFilterHint" xml:space="preserve"><value>Cycles the activity view through all levels, warnings and errors, and errors only.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_UnknownBackendFailure" xml:space="preserve"><value>LibreSpot reported an unknown backend failure.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_UnknownBackendFailure" xml:space="preserve"><value>LibreSpot reported an unknown backend failure. Export a support bundle from Maintenance to capture what happened.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesHealthy" xml:space="preserve"><value>All dependencies are healthy.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesTitle" xml:space="preserve"><value>Dependencies</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellDependenciesWarning" xml:space="preserve"><value>Review dependency warnings before patching.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -861,7 +861,7 @@
   <data name="Vm_ClearAssetCacheTitle" xml:space="preserve"><value>Clear asset cache</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ClosingLibreSpot" xml:space="preserve"><value>Closing LibreSpot</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ClosingSpotifyProcess" xml:space="preserve"><value>Closing spotify.exe</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ConfigSaveFailed" xml:space="preserve"><value>Configuration save failed</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigSaveFailed" xml:space="preserve"><value>Configuration save failed. Check that the LibreSpot folder in AppData is writable, then try again.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightArchitectureMismatchTitle" xml:space="preserve"><value>Architecture mismatch</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightBalancedCustomizationDetail" xml:space="preserve"><value>A few advanced tweaks are active, but the profile still reads like a deliberate daily-driver rather than an experiment bundle.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightBalancedCustomizationTitle" xml:space="preserve"><value>Balanced customization</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -909,7 +909,7 @@
   <data name="Vm_ProfileComparisonMatchesBaseline" xml:space="preserve"><value>matches the Recommended baseline</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonPreparing" xml:space="preserve"><value>Comparing with Recommended...</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonSummaryFormat" xml:space="preserve"><value>{0} profile {1}. Theme: {2}/{3}; lyrics: {4}; extensions: {5}; custom apps: {6}; custom patches: {7}.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonUnavailable" xml:space="preserve"><value>Comparison is unavailable until the profile can be loaded.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonUnavailable" xml:space="preserve"><value>Comparison is unavailable until the profile loads. Use Refresh above the profiles list, then select it again.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteBody" xml:space="preserve"><value>LibreSpot will remove this local profile file. Bundled templates are kept, and deleting the active profile falls back to Recommended.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteCancel" xml:space="preserve"><value>Keep profile</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteConfirm" xml:space="preserve"><value>Delete profile</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -975,7 +975,7 @@
   <data name="Vm_ZipArchiveDialogFilter" xml:space="preserve"><value>Zip archives (*.zip)|*.zip</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleLastExportFormat" xml:space="preserve"><value>Last export: {0} ({1}, {2} zip entries).</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleExportedLogFormat" xml:space="preserve"><value>Support bundle exported locally: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SupportBundleExportFailedFormat" xml:space="preserve"><value>Export failed: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SupportBundleExportFailedFormat" xml:space="preserve"><value>Export failed: {0}. Choose a folder you can write to, then export again.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleExportFailedLogFormat" xml:space="preserve"><value>Support bundle export failed: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleLastFailureExportFormat" xml:space="preserve"><value>Last failure bundle: {0} ({1}, {2} zip entries).</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_FailureBundleExportedLogFormat" xml:space="preserve"><value>Failure bundle exported locally: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1069,7 +1069,7 @@
   <data name="CrashFatalSummaryTitle" xml:space="preserve"><value>Before you reopen</value><comment>Fatal crash next-step heading.</comment></data>
   <data name="CrashRecoverableSummaryBody" xml:space="preserve"><value>Copy the report path or open the crash folder now. If the app still behaves strangely, restart LibreSpot before you keep working.</value><comment>Recoverable crash next-step detail.</comment></data>
   <data name="CrashFatalSummaryBody" xml:space="preserve"><value>Copy the report path or open the crash folder now. When you reopen LibreSpot, the saved profile and logs will still be available for troubleshooting.</value><comment>Fatal crash next-step detail.</comment></data>
-  <data name="CrashExceptionSummaryLabel" xml:space="preserve"><value>EXCEPTION SUMMARY</value><comment>Crash exception card label.</comment></data>
+  <data name="CrashExceptionSummaryLabel" xml:space="preserve"><value>WHAT WENT WRONG</value><comment>Crash exception card label.</comment></data>
   <data name="CrashReportPathLabel" xml:space="preserve"><value>REPORT PATH</value><comment>Crash report path label.</comment></data>
   <data name="CrashSourceFolderFormat" xml:space="preserve"><value>Source: {0} - Crash folder: {1}</value><comment>Crash source and folder detail.</comment></data>
   <data name="CrashFooter" xml:space="preserve"><value>LibreSpot keeps the crash report and rolling session logs on disk after this dialog closes.</value><comment>Crash report retention note.</comment></data>
@@ -1077,7 +1077,7 @@
   <data name="CrashOpenFolder" xml:space="preserve"><value>Open crash folder</value><comment>Crash dialog open-folder action.</comment></data>
   <data name="CrashContinue" xml:space="preserve"><value>Continue</value><comment>Recoverable crash dialog dismiss action.</comment></data>
   <data name="CrashClose" xml:space="preserve"><value>Close LibreSpot</value><comment>Fatal crash dialog dismiss action.</comment></data>
-  <data name="CrashNoExceptionMessage" xml:space="preserve"><value>No exception message was provided.</value><comment>Fallback crash exception detail.</comment></data>
+  <data name="CrashNoExceptionMessage" xml:space="preserve"><value>No error message was recorded. Open the crash folder below for the full report.</value><comment>Fallback crash exception detail.</comment></data>
   <data name="ScrollPageUpAutomation" xml:space="preserve"><value>Scroll page up</value><comment>Automation name for the vertical scrollbar page-up button.</comment></data>
   <data name="ScrollPageDownAutomation" xml:space="preserve"><value>Scroll page down</value><comment>Automation name for the vertical scrollbar page-down button.</comment></data>
   <data name="ScrollPageLeftAutomation" xml:space="preserve"><value>Scroll page left</value><comment>Automation name for the horizontal scrollbar page-left button.</comment></data>
@@ -1295,7 +1295,7 @@
   <data name="Vm_UndoNoneSelected" xml:space="preserve"><value>No executable undo item is selected.</value><comment>Undo validation status when no allowed item is selected.</comment></data>
   <data name="Vm_UndoSelectLowRisk" xml:space="preserve"><value>Select an enabled low-risk item, then preview it again.</value><comment>Undo selection guidance.</comment></data>
   <data name="Vm_UndoPreviewSummaryFormat" xml:space="preserve"><value>{0} of {1} selected undo items pass current-state validation.</value><comment>Undo preview count; {0}=accepted and {1}=selected.</comment></data>
-  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>Current state changed; undo was refused.</value><comment>Status when an undo snapshot is stale.</comment></data>
+  <data name="Vm_UndoStateChanged" xml:space="preserve"><value>The current state changed, so undo was refused. Refresh Maintenance to pick up the new state, then try the undo again.</value><comment>Status when an undo snapshot is stale.</comment></data>
   <data name="Vm_UndoConfirmTitle" xml:space="preserve"><value>Undo selected changes?</value><comment>Confirmation title before executing selected undo items.</comment></data>
   <data name="Vm_UndoConfirmBodyFormat" xml:space="preserve"><value>LibreSpot will execute {0} selected low-risk undo item(s) in reverse order after revalidating current state.</value><comment>Undo confirmation body; {0}=selected count.</comment></data>
   <data name="Vm_UndoConfirmButton" xml:space="preserve"><value>Undo selected</value><comment>Confirmation button for undo execution.</comment></data>
