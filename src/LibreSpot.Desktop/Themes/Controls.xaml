@@ -611,6 +611,10 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="2" />
+    <!-- Explicit so card content can inherit it rather than picking up the
+         WPF-UI implicit ListBoxItem foreground, and so the disabled trigger has
+         something to swap. -->
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     <Setter Property="FocusVisualStyle" Value="{x:Null}" />
     <Setter Property="Template">
       <Setter.Value>
@@ -628,7 +632,10 @@
               <Setter Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-              <Setter Property="Opacity" Value="0.45" />
+              <!-- Mute the label, never the whole card: a root Opacity
+                   composites over captions that already sit near the contrast
+                   floor, and in high contrast it dims GrayText a second time. -->
+              <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>

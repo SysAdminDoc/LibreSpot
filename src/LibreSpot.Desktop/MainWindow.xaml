@@ -104,7 +104,10 @@
                 <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
               </Trigger>
               <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Opacity" Value="0.45" />
+                <!-- Mute the glyph, not the control: a root Opacity would fade
+                     an already-muted foreground below the 3:1 floor, and dim
+                     GrayText a second time in high contrast. -->
+                <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
                 <Setter Property="Cursor" Value="Arrow" />
               </Trigger>
             </ControlTemplate.Triggers>

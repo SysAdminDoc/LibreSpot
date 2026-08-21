@@ -214,10 +214,12 @@
                                       </Style.Triggers>
                                     </Style>
                                   </Border.Style>
+                                  <!-- Inherits the container foreground on purpose: this is
+                                       the one card list that gets disabled, and
+                                       CardListBoxItemStyle swaps it for DisabledTextBrush. -->
                                   <TextBlock Text="{Binding Converter={StaticResource PrettifyConverter}}"
                                              VerticalAlignment="Center"
                                              TextAlignment="Center"
-                                             Foreground="{DynamicResource TextBrush}"
                                              FontSize="12" />
                                 </Border>
                               </DataTemplate>

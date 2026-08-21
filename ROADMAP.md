@@ -62,8 +62,3 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
   Where: LibreSpot.ps1 WinForms/WPF-in-PS GUI event flow and Module-* orchestration bodies; OperationJournalUndoService undo token execution beyond the CLI guard; Marketplace export/restore archive internals; AvalonEdit custom-patch editor runtime; Crowdin round-trip
   Fix: Focused pass per area; PS GUI flow and the undo executor have the most user-facing risk.
 
-- [ ] P3 — RD-105: Disabled profile cards still dim with root opacity
-  Why: Primary, secondary, checkbox, and combo templates now use DisabledTextBrush. CardListBoxItemStyle still sets Opacity 0.45, which composites inner captions that already choose their own brushes.
-  Where: src/LibreSpot.Desktop/Themes/Controls.xaml CardListBoxItemStyle
-  Fix: Mute via DisabledTextBrush / a disabled card fill, or leave opacity only if a capture proves inner text still clears 3:1.
-  Acceptance: A disabled profile card in dark and high contrast keeps caption contrast ≥3:1 without a second GrayText dim.

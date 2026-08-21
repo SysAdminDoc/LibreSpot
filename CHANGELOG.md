@@ -34,6 +34,7 @@ All notable changes to LibreSpot will be documented in this file.
 - The community catalog generator decodes the asset schemas as UTF-8. Under Windows PowerShell 5.1 it read them in the ANSI codepage, so every em dash in a review note reached the published page as mojibake.
 - Spotify version strings are read the same way everywhere. Five parsers in Core disagreed about `v` prefixes, prerelease suffixes, and what to do with a fourth component, so the same detected build could be judged supported by one surface and out of range by another.
 - Turning Windows high contrast on while the app is running now flattens the card shadows and the readiness glow and recolors the focus ring. Those were resolved once at load, so they kept their dark-palette instances until the next restart.
+- Disabled card lists and the activity dock toggle mute their label instead of fading the whole control. The colour-scheme chips were the last surface still using a 0.45 opacity composite, which multiplied a caption that was already near the floor and dimmed GrayText a second time in high contrast.
 
 ### Changed
 
