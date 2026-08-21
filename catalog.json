@@ -1,11 +1,15 @@
 {
   "catalogVersion": 1,
-  "generatedDate": "2026-08-20",
+  "generatedDate": "2026-08-21",
   "generator": "tools/Build-CommunityCatalog.ps1",
   "sourceSchemas": [
     "schemas/community-assets.json",
     "schemas/theme-preview-manifest.json"
   ],
+  "sourceDigests": {
+    "schemas/community-assets.json": "40fb1b192f3094805ec8ad68c23f041500f9ec2bb3f9e5499b962d2ad4eb389c",
+    "schemas/theme-preview-manifest.json": "6508ac45ad37cc5fcf674cd1cda35667b87b49be669f0fd6e9f627fc6b067e4e"
+  },
   "counts": {
     "extensions": 5,
     "themes": 5,
