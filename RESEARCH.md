@@ -1,199 +1,195 @@
-# Research — LibreSpot
+# Research: LibreSpot
 
-Date: 2026-08-21 — replaces all prior research.
+Date: 2026-08-21. Replaces all prior research.
 
 ## Executive Summary
 
-LibreSpot is a Windows-only MIT orchestrator for pinned SpotX plus Spicetify. The public GitHub "Latest" release is still the v3.7.2 script; the development line on HEAD is **v4.0.0-preview.28** (unpublished). The last immutable GitHub prerelease is **v4.0.0-preview.27** (seven attested assets, published 2026-08-21). Preview.28 restores Jump List labels to Home/Settings, search watermarks, disabled-control contrast tokens, AtomicFile persistence, LibreSpotPaths, a System32 PowerShell host probe, DWM palette chrome, a WPF-UI template leak gate, and pinned CycloneDX 6.2.0 local SBOM generation. Do not advance the SpotX or Spicetify pins. The tracker is empty (0 open issues, discussions #20/#21), which is no data, not a clean bill of health.
+LibreSpot is a Windows desktop orchestrator for a pinned Spotify, SpotX, Spicetify, and Marketplace stack, with a WPF app for individuals and a separate CLI for managed deployment (`README.md`, `src/LibreSpot.Desktop`, `src/LibreSpot.Cli`). Its strongest current shape is the three-destination Home, Maintenance, and Settings shell shown in `assets/screenshots/wpf-recommended.png`, `assets/screenshots/wpf-maintenance.png`, and `assets/screenshots/wpf-custom.png`. Supply-chain checks, rollback records, health probes, localization, support bundles, and automated tests are already present across `src/LibreSpot.Core`, `src/powershell/shared`, `schemas`, and `tests`. The highest-value direction is therefore not another feature layer. It is making the simplified shell tell a common user the next safe action before exposing implementation detail.
 
-The 2026-08-20 claim that "what is left is not repo debt" is false. Remaining ROADMAP after the 2026-08-21 evening audit: RD-81 gh-pages catalog truth, RD-86 Spotify version parsers, RD-90 runtime high-contrast effect rebind, RD-91/92/93 copy, RD-95 profile viewport, RD-97 QA capture flake, RD-98 unaudited PS GUI / undo executor / Marketplace archives / AvalonEdit / Crowdin, RD-105 CardListBoxItem disabled opacity, RD-106 snapshot probe drain. Upstream still caps the product: Spicetify stable v2.44.0 tops out at Spotify 1.2.93 while Windows ships 1.2.96.518 and SpotX `main` is 1.2.97.
+Priority order:
 
-Highest-value direction, in order:
+1. **Now, P1, fit 5/5, impact 4/5, S:** correct recovery wording. The action called **Restore vanilla Spotify** only removes Spicetify customizations and leaves SpotX in place, while the rail claims **Everything is reversible** (`src/LibreSpot.Desktop/Properties/Strings.resx:388-390`, `:827`; `Roadmap_Blocked.md:866-876`). Risk is low, there is no prerequisite, and this closes a trust-parity gap.
+2. **Now, P1, fit 5/5, impact 5/5, M:** make Home select one safe action from current state. `SimpleHomeTitle` and `SimpleHomeBody` distinguish loading, load failure, critical health, and whether Spotify exists, but the primary button always runs `ApplyRecommendedCommand` (`src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:363-385`; `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml:364-387`). Risk is medium because stale state must never invoke the wrong command; it depends only on existing typed health actions and can move beyond competitors' static install and repair buttons.
+3. **Now, P1, fit 5/5, impact 5/5, L:** put Maintenance triage before diagnostics. The captured degraded state makes the user scroll through six environment cards and a compatibility matrix before any repair action (`assets/screenshots/wpf-maintenance.png`; `src/LibreSpot.Desktop/Views/MaintenanceWorkspaceView.xaml:50-180`, `:423-450`). Risk is medium because destructive actions must remain separated; existing typed issue actions remove the need for a new backend and bring LibreSpot to repair-first parity (`src/LibreSpot.Desktop/ViewModels/MainViewModel.Maintenance.cs:23-80`).
+4. **Next, P2, fit 4/5, impact 3/5, M:** request a normal Spotify close before using a bounded force-kill fallback. Both desktop and PowerShell paths currently terminate processes immediately (`src/LibreSpot.Desktop/Services/SpotifyProcessService.cs:44-56`; `src/powershell/shared/Stop-SpotifyProcesses.ps1:1-10`). Risk is medium because process races must stay bounded; an adapter plus current orchestration tests can contain it, and the result matches Windows servicing behavior ([Restart Manager](https://learn.microsoft.com/en-us/windows/win32/rstmgr/about-restart-manager)).
+5. **Next, P2, fit 5/5, impact 4/5, L:** reduce Settings to four common choices in one column, with the existing expert controls behind labeled expanders. The page currently renders seven sections beside a separately scrolling profile rail (`src/LibreSpot.Desktop/Views/CustomWorkspaceView.xaml:20-91`; `assets/screenshots/wpf-custom.png`). Risk is medium because search, profiles, focus, and localization must survive the reflow; the configuration model can remain unchanged. Microsoft recommends four or five common settings, a single column, and one-level disclosure for less-used options ([Windows app settings guidance, updated 2026-04-15](https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings)).
 
-1. RD-81: gate published `gh-pages` catalog.json against the reviewed manifest.
-2. RD-86: one Spotify version parser for the five Core sites that disagree on `v` prefixes.
-3. RD-90: rebind high-contrast effects and the focus ring when Windows HC toggles at runtime.
-4. RD-95 / RD-105: profile list viewport and disabled card opacity.
-5. RD-97: bounded retry for a single WPF QA capture timeout, without raising the global wait.
-6. Do not advance the SpotX or Spicetify pins. The ceiling is Spicetify's.
-7. Leave winget, Scoop, Velopack, ARM64 WPF, DE/FR, SignPath, and "publish the next tag" in `Roadmap_Blocked.md`.
-8. Treat ClickFix/Vidar "free Premium" PowerShell pastes as the live impersonation threat.
-
-Confidence: verified for repo state, tags, tracker, Retry button, Jump List, and upstream tags on 2026-08-21. Needs live validation for Marketplace IndexedDB backup and any SpotX pin advance.
+Confidence is **Verified** for repository state, visible UI, tracker state, upstream releases, and the five code gaps on 2026-08-21. Marketplace IndexedDB durability, Spicetify v3 adoption, and full stock restoration remain **Needs live validation** because public sources and the present test rig cannot prove those behaviors (`Roadmap_Blocked.md:866-876`, `:927-956`; [Marketplace PR #1212](https://github.com/spicetify/marketplace/pull/1212)).
 
 ## Product Map
 
-- **Core workflows:** Recommended setup (detect, install pinned SpotX and Spicetify, post-launch health); Custom Install (SpotX flags, themes, Marketplace, community catalog, profiles); Maintenance (drift, reapply, Marketplace file-archive repair, restore, cache, support bundle, PATH-token undo); Fleet CLI (JSON/NDJSON, answer files, dry-run, documented exit codes).
-- **Personas:** guided Windows Spotify user; power user who wants patches, themes, and profiles; fleet operator on Intune, PDQ, SCCM, or WinRM; the maintainer tracking upstream drift.
-- **Platforms and distribution:** Windows 10/11; PowerShell 5.1 or PowerShell 7.6 LTS; `net10.0-windows`, win-x64 WPF/CLI. GitHub Releases is the only channel. Winget, Scoop, and Chocolatey stay operator-blocked: the name collides with librespot-org/librespot and winget-pkgs still bans `.ps1` installers. README still claims ARM64 hash verification while no csproj carries a `win-arm64` RID (`README.md:341`).
-- **Integrations and data:** SHA256-pinned GitHub assets, cache and quarantine, extraction through .NET `ZipArchive` and `Expand-Archive` only. Local-only state is enumerated in `schemas/data-inventory.json`. Marketplace IndexedDB `spicetify-marketplace` / `settings` is detected-not-backed-up. Community catalog publishes from `gh-pages`.
+### Core workflows
+
+- **Recommended setup:** inspect the machine, present four readiness checks, install the validated stack, relaunch Spotify, and refresh health (`src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml`; `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`).
+- **Custom setup:** choose installation posture, appearance, SpotX behavior, Marketplace items, extensions, apps, and local profiles (`src/LibreSpot.Desktop/Views/CustomWorkspaceView.xaml`; `src/LibreSpot.Core/AppCatalog.cs:1023-1067`).
+- **Maintenance:** inspect environment and compatibility, reapply or repair components, restore backups, export support evidence, and reset when safer recovery fails (`src/LibreSpot.Desktop/Views/MaintenanceWorkspaceView.xaml`; `src/LibreSpot.Desktop/ViewModels/MainViewModel.Maintenance.cs`).
+- **Managed deployment:** provide versioned JSON and NDJSON contracts, answer files, dry runs, receipts, and stable exit behavior through a separate CLI (`src/LibreSpot.Cli`; `schemas/fleet-cli-contract.json`; `schemas/parity-manifest.json`).
+
+### Users
+
+- A common Windows user who wants one guided setup and clear repair guidance (`README.md`; `assets/screenshots/wpf-recommended.png`).
+- A customization user who manages themes, patches, Marketplace items, and reusable profiles (`src/LibreSpot.Desktop/Views/CustomAppearanceSection.xaml`; `src/LibreSpot.Desktop/Views/CustomProfileSummarySection.xaml`).
+- An operator who needs deterministic unattended runs, machine-readable evidence, and support bundles (`src/LibreSpot.Cli`; `src/LibreSpot.Core/SupportBundleService.cs`).
+- The maintainer who must validate a moving Spotify, SpotX, Spicetify, and Marketplace tuple (`src/LibreSpot.Core/CompatibilityVerdict.cs`; `src/LibreSpot.Core/UpstreamDriftService.cs`).
+
+### Platform and distribution
+
+- The desktop and CLI target `net10.0-windows`; the packaged WPF lane is x64 and the PowerShell lane supports Windows PowerShell 5.1 and PowerShell 7 (`src/LibreSpot.Desktop/LibreSpot.Desktop.csproj`; `src/LibreSpot.Cli/LibreSpot.Cli.csproj`; `README.md`).
+- GitHub Releases is the active distribution channel. Signing, additional package managers, ARM64 WPF, and the next public release remain explicit operator decisions in `Roadmap_Blocked.md`.
+- The validated tuple remains Spotify 1.2.93, SpotX 2.0, Spicetify 2.44.0, and Marketplace 1.0.9 (`src/LibreSpot.Core/AppCatalog.cs:827-842`). Spicetify 2.44.0's release page now lists Windows compatibility through 1.2.96, but that statement alone does not validate LibreSpot's SpotX pairing ([Spicetify v2.44.0](https://github.com/spicetify/cli/releases/tag/v2.44.0)).
+
+### Integrations and data
+
+- Downloads use pinned source metadata, SHA256 verification, cache quarantine, and a BITS fallback (`src/LibreSpot.Core/AppCatalog.cs`; `src/powershell/shared/Download-FileSafe.ps1:18-41`).
+- Archives pass entry-count, expanded-size, and path checks before extraction (`src/powershell/shared/Expand-ArchiveSafely.ps1`; [OWASP path traversal](https://owasp.org/www-community/attacks/Path_Traversal)).
+- State is local and inventoried; logs and support bundles are redacted before export (`schemas/data-inventory.json`; `src/LibreSpot.Core/SupportBundleService.cs`).
+- Marketplace persistence moved to IndexedDB in v1.0.9. LibreSpot records that storage boundary but does not claim a validated backup for it (`schemas/data-inventory.json:343-364`; `src/powershell/shared/Get-MarketplaceHealth.ps1:30-42`; [Marketplace v1.0.9](https://github.com/spicetify/marketplace/releases/tag/v1.0.9); [PR #1212](https://github.com/spicetify/marketplace/pull/1212)).
 
 ## Competitive Landscape
 
-- **spicetify-easyinstall (ohitstom, 154★, pushed 2026-08-20):** 4.0-beta (2026-07-08) added architecture-filtered Spotify version dropdowns and ARM64 museum endpoints. Learn: hide host versions the current architecture cannot install. Avoid: shipping a years-stale GitHub "latest" as the default target.
-- **SpicetifyManager (Israleche, 22★, last push 2026-07-11):** TUI, `-Silent`, Store-to-Desktop swap. Learn: Quick Repair and Full Restore as peer actions. Avoid: an always-latest unpinned CLI.
-- **BlockTheSpot-Installer (Nuzair46, 130★, last push 2026-05-03):** recommended-preselected version list. Learn: a dropdown of known-good hosts. Avoid: `chrome_elf.dll` injection, which clashes with SpotX backups. `mrpond/BlockTheSpot` is archived; SpotX is the live Windows patcher.
-- **BlockTheSpot-Resilient (thomas-quant, 11★, pushed 2026-08-13):** CI tags artifacts by Spotify version. Learn: name artifacts after the host app version.
-- **SpotX-Bash (5,925★, pushed 2026-08-12):** banner prints the latest supported Spotify build. Learn: state supported versus detected before mutating. Avoid: `curl | bash` as the documented default.
-- **rxri/spicetify-extensions adblockify (582★):** honest "won't unlock lyrics / downloads / Very High / Jams" matrix. The old `rxri/adblockify` repo 404s; the extension lives here. Learn: publish what a patch does not do. LibreSpot already documents Premium boundaries (`553b740`).
-- **ReVanced Manager (v2.6.0, 2026-04-26):** compatibility is a function of the selected patches. Learn: the intersection of SpotX, the Spicetify classmap, and Marketplace is the real ceiling. Avoid: a single "suggested" Spotify version that hides a still-valid 1.2.93.
-- **Vencord Installer (620★):** one binary, `checksums.sha256`. Learn: keep Desktop and CLI parity. Avoid: rewriting an old tag's assets.
-- **r2modmanPlus (v3.2.18, 2026-06-25):** profile-as-code. LibreSpot already has `.librespot` profiles and `librespot://`.
-- **BetterDiscord Installer (1,779★, pushed 2026-08-09):** small install / repair / uninstall wizard, signed. Learn: repair belongs on the front page.
-- **Spotube v5.1.2 (2026-06-05), ncspot v1.3.4 (2026-05-22), Psst rolling `2026.08.18`:** alternative clients, not drop-in replacements. Cards stay blocked on legal/support policy. Psst now requires a user Spotify Developer Client ID after the 2026-02-06 platform update.
-- **Spotify Premium (US $12.99 Individual, hike announced 2026-01-15, still cited 2026-05-21):** paywalls ads, skips, offline, lossless. LibreSpot must keep saying it does not unlock any of that.
-- **EZBlocker:** dormant since 2022; mute-on-ad is a different product. Rejected.
+- [Spicetify CLI](https://github.com/spicetify/cli) and [Marketplace](https://github.com/spicetify/marketplace) define the compatibility and persistence ceiling. LibreSpot should continue consuming their explicit support data and release evidence. It should avoid adopting v3 while the latest public build is still beta.9 from 2026-08-19 and the schema-v2 allowlist ends at Spotify 1.2.94 ([beta.9](https://github.com/spicetify/cli/releases/tag/v3.0.0-beta.9); [supported versions](https://raw.githubusercontent.com/spicetify/cli/v3-beta/supported-versions.json)).
+- [spicetify-easyinstall](https://github.com/ohitstom/spicetify-easyinstall) makes compatible Spotify selection visible and filters choices by architecture. LibreSpot should keep compatibility choices understandable, but avoid an always-latest installer path that bypasses its reviewed tuple.
+- [SpicetifyManager](https://github.com/Israleche/SpicetifyManager) treats quick repair and full restore as first-class actions. LibreSpot should copy that action hierarchy, but retain its stronger receipts, rollback gates, and pinned versions.
+- [BlockTheSpot Installer](https://github.com/Nuzair46/BlockTheSpot-Installer), [BlockTheSpot Resilient](https://github.com/thomas-quant/BlockTheSpot-Resilient), and [SpotX Bash](https://github.com/SpotX-Official/SpotX-Bash) put the target Spotify build beside the patch action. LibreSpot should keep detected, pinned, and supported versions visible in diagnostics, while Home should translate those details into one safe next step.
+- [BetterDiscord Installer](https://github.com/BetterDiscord/Installer) and [Vencord Installer](https://github.com/Vencord/Installer) lead with install, repair, and uninstall instead of a diagnostic inventory. LibreSpot should use the same front-loaded recovery hierarchy in Maintenance, but preserve its compatibility evidence under disclosure.
+- [ReVanced Manager](https://github.com/ReVanced/revanced-manager) centers the patch task, collapses secondary patch detail, and retains actionable error state. LibreSpot should adopt that progressive task reveal, while avoiding arbitrary patch combinations that its curated catalog cannot test.
+- [r2modmanPlus](https://github.com/ebkr/r2modmanPlus) proves the value of named profiles and importable configuration. LibreSpot already has `.librespot` profiles and share links, so another profile subsystem would duplicate shipped work (`src/LibreSpot.Desktop/ViewModels/MainViewModel.Profiles.cs`).
+- [UniGetUI](https://github.com/marticliment/UniGetUI) separates available work, installed state, and updates. LibreSpot should copy the state-to-action distinction on Home, but not add package-manager breadth that would weaken its Spotify-specific validation.
+- [Ninite](https://ninite.com/) and [Patch My PC Home Updater](https://patchmypc.com/home-updater) reduce maintenance to status plus a primary action. LibreSpot should match that clarity, but must not update Spotify or patch components independently of compatibility checks.
+- [Spotify Premium](https://www.spotify.com/us/premium/) is the supported path for Spotify's paid features. LibreSpot should preserve explicit capability boundaries and avoid copy that implies Premium parity because Spotify's [User Guidelines](https://www.spotify.com/us/legal/user-guidelines/) prohibit circumventing or blocking advertisements.
 
 ## Reported Issues
 
-Tracker enabled, discussions enabled. **Zero open issues, zero open PRs.**
+The LibreSpot tracker had **0 open issues and 0 open pull requests on 2026-08-21** ([issues](https://github.com/SysAdminDoc/LibreSpot/issues); [pull requests](https://github.com/SysAdminDoc/LibreSpot/pulls)). The five closed issues all predate the v4 WPF shell and map to implemented behavior, so none should be reopened as roadmap work:
 
-Closed issues #1–#5 all predate v4 (last close 2026-03-27) and are resolved. Closed PRs are Dependabot residue from before workflows were removed.
+- [#1](https://github.com/SysAdminDoc/LibreSpot/issues/1) requested choices before installation; Settings and profiles now provide them (`src/LibreSpot.Desktop/Views/CustomWorkspaceView.xaml`).
+- [#2](https://github.com/SysAdminDoc/LibreSpot/issues/2) reported a CSS header gap; current visual regression captures cover the rebuilt WPF shell (`tests/LibreSpot.Desktop.Tests/ReadmeScreenshotTests.cs`; `assets/screenshots`).
+- [#3](https://github.com/SysAdminDoc/LibreSpot/issues/3) reported a Spicetify download 403; the current downloader has pinned URLs, WebRequest diagnostics, and BITS fallback (`src/powershell/shared/Download-FileSafe.ps1`).
+- [#4](https://github.com/SysAdminDoc/LibreSpot/issues/4) reported `Expand-Archive` module failure; shared extraction and composition tests now exercise the active script lane (`src/powershell/shared/Expand-ArchiveSafely.ps1`; `tests/powershell`).
+- [#5](https://github.com/SysAdminDoc/LibreSpot/issues/5) reported a blank screen; snapshot failures now leave loading state and expose Retry (`src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:363-385`; `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml`).
 
-Discussions, both opened 2026-07-30, both at 0 comments:
+Discussions [#20](https://github.com/SysAdminDoc/LibreSpot/discussions/20) and [#21](https://github.com/SysAdminDoc/LibreSpot/discussions/21) had 0 comments on 2026-08-21. They are maintainer announcements, not user-demand evidence. Their compatibility-breakage premise supports repair-first Maintenance, but their old `preview.24` and PowerShell-GUI wording needs an operator edit on GitHub rather than a repository feature.
 
-- [#20 Where 4.0 is heading](https://github.com/SysAdminDoc/LibreSpot/discussions/20) — still the right announcement thread, but the body says "LibreSpot is a PowerShell GUI" and "currently at preview.24". Invalid against the preview.27 WPF Home / Maintenance / Settings rail. Updating it is an operator GitHub edit, not a repo patch.
-- [#21 Spotify updated and something broke](https://github.com/SysAdminDoc/LibreSpot/discussions/21) — correct intake shape. Needs a pin caveat (1.2.93 / Spicetify 2.44.0) and an IndexedDB note so "Marketplace missing" is not always treated as a Spotify bump.
-
-Public "Latest" (`gh release view` with no tag) is v3.7.2 (2026-04-29): `LibreSpot.ps1` 80 downloads, `LibreSpot.exe` 23, `checksums.txt` 17. Preview.27 exists but is not what `/releases/latest` serves. Workflows: only `pages-build-deployment`.
-
-Read this as *no data*, not *no problems*. Every item below is sourced from code, captures, or upstream — not from users.
+The strongest external report is Marketplace [#1201](https://github.com/spicetify/marketplace/issues/1201), where extensions disappeared after reboot. It closed on 2026-08-03, while the persistence-before-reload fix in [PR #1212](https://github.com/spicetify/marketplace/pull/1212) remained open on 2026-08-21. LibreSpot should keep this in live-validation status instead of promising IndexedDB backup or adding a speculative repair path.
 
 ## Security, Privacy, and Reliability
 
-- **Shipped in preview.26/.27:** PowerShell 7.6.5 floor (CVE-2026-50523 on 7.6.0–7.6.4), .NET 10.0.11 floor for the 2026-08-11 ten-CVE batch (including WPF RCE CVE-2026-62897 / CVE-2026-70354), SpotX pin-advance policy at `afb4c3fc`, schema-v2 v3 support contract, fail-closed on missing v3 data, immutable-release attestations. No .NET 10.0.12 as of 2026-08-21.
-- **HEAD vs published tag:** preview.27 binaries do not include the ten subsequent commits. That is a release-truth gap for the operator, not an implementable ROADMAP row (publication is already blocked).
-- **`--accept-eula`:** removed on HEAD. Consent is `eulaAccepted` + `riskAcknowledged` in the answer file. Scripts passing the flag get exit 2 (`CliApplicationTests`).
-- **Pins that still hold:** WPF-UI 4.3.0, CommunityToolkit.Mvvm 8.4.2, QRCoder 1.8.0, Serilog 4.4.0, Serilog.Sinks.File 7.0.0, AvalonEdit 6.3.1.120, FlaUI.UIA3.Signed 5.0.0, xunit.v3 4.0.0, Microsoft.NET.Test.Sdk 18.9.0, FsCheck.Xunit.v3 **3.4.0 (real; published 2026-08-20 for xunit.v3 4.x)**. The 2026-08-20 vault note that "there is no 3.4.0" is stale. Pester 5.9.1 is the 5.x maintenance line; Gallery latest is 6.1.0 (breaking `Should-*` rewrite) — stay. PSScriptAnalyzer 1.25.0 current. Stryker.NET 4.16.0 current. No GHSA on WPF-UI, QRCoder, AvalonEdit, or Serilog after 2026-08-11.
-- **Spicetify v3 coexistence** is the live user-facing hazard. Guard classifies `Apps\xpui.spa.backup`, `modules`, `hooks`, and a newer CLI major. v3.0.0-beta.9 (2026-08-19) is still the tip; allowlist 1.2.70–1.2.94; 1.2.96/1.2.97 are not listed. Nine betas in ten days, Rust rewrite, `xpui.spa` → `xpui.spa.backup` bricks v2 installs.
-- **SpotX HEAD `f4cf592b` (2026-08-16) is 1.2.97.** Defender exclusions default since `afb4c3fc`; opt-out `-defender_exclusions_off`. LibreSpot pin stays pre-boundary `550bc72c` / Spotify 1.2.93. Advancing SpotX alone does not raise the Spicetify ceiling. Wikipedia Windows client: 1.2.96.518 (2026-08-12).
-- **Marketplace v1.0.9** (2026-07-04). Issue #1212 (persist-before-reload) still open, last update 2026-08-12.
-- **7-Zip CVE-2026-58052** does not apply; extraction never leaves .NET / `Expand-Archive`.
-- **ClickFix / Vidar (June 2026, still current):** social "free Spotify Premium" PowerShell pastes that add Defender exclusions and drop an infostealer. Counter is the checksum-verified Quick Start.
-- **Release integrity:** immutable releases; `gh release verify` / `gh release verify-asset`; `checksums.txt` + manifest + SBOM. Preview.27 SBOM is CycloneDX 1.7 from tool 6.2.0, 8 components, hashes and licenses present, **no `signature`**. CISA 2026 minimum elements want a digital signature; that collides with unsigned-by-design and stays on SignPath. HEAD pins CycloneDX 6.2.0 in `.config/dotnet-tools.json` and `Build-Scripts.ps1 -GenerateSbom`.
-- **WPF-UI leak (shipped, then fixed):** `App.xaml` merges `<ui:ControlsDictionary />` first. preview.26 collapsed every premium ComboBox because the template-inner `ToggleButton` inherited WPF-UI sizing. Fix is `Style="{x:Null}"` on template-inner `ToggleButton` / `Button` / `RepeatButton` / `TextBox`. `WpfUiTemplateContractTests` fails a bare child.
-- **Guardrails to preserve:** SHA256 pins, archive limits, cache quarantine, SSRF / private-network guards, redacted support bundles, asInvoker WPF, `schemas/elevation-boundary.json`, receipt-backed undo. Snapshot probes resolve Windows PowerShell through `PowerShellHostPath` (System32). Persistence goes through `AtomicFile` + `LibreSpotPaths`.
+- **Misleading recovery scope, Verified:** `Maintenance_RestoreVanilla_Title` says stock Spotify, but its own description says SpotX remains; `Roadmap_Blocked.md:873-876` confirms the action only runs `spicetify restore` (`src/LibreSpot.Desktop/Properties/Strings.resx:388-390`). Rename the action and remove the unconditional reversible claim from every locale.
+- **Abrupt process termination, Verified:** the WPF service calls `Kill(entireProcessTree: true)` before any close request, and the shared PowerShell function always uses `Stop-Process -Force` (`src/LibreSpot.Desktop/Services/SpotifyProcessService.cs:44-56`; `src/powershell/shared/Stop-SpotifyProcesses.ps1:1-10`). Add normal close, bounded wait, logged fallback, and cancellation tests. Native Restart Manager interop is unnecessary for the first fix ([Restart Manager](https://learn.microsoft.com/en-us/windows/win32/rstmgr/about-restart-manager)).
+- **Supply-chain guardrails already present, Verified:** hashes, reviewed catalog metadata, private-network URL checks, bounded archive extraction, cache quarantine, SBOM generation, redacted support bundles, and receipt-backed undo are implemented (`src/LibreSpot.Core/AppCatalog.cs`; `src/LibreSpot.Core/CommunityAssetDriftService.cs`; `src/powershell/shared/Expand-ArchiveSafely.ps1`; `src/LibreSpot.Core/OperationJournalUndoService.cs`; `Build-Scripts.ps1`). Preserve them rather than adding another downloader or catalog.
+- **Privacy posture already present, Verified:** data stays local unless the user exports a support bundle; the inventory and redaction boundary are explicit (`schemas/data-inventory.json`; `src/LibreSpot.Core/SupportBundleService.cs`). Cloud sync and telemetry would conflict with that design.
+- **Recovery ladder:** Home should choose setup, safe repair, retry, or open Spotify from health state. Maintenance should show safe repair before Reset, matching Microsoft's Repair-before-Reset guidance ([Repair apps and programs in Windows](https://support.microsoft.com/en-US/Windows/Apps/repair-apps-and-programs-in-windows)). Full stock restore stays blocked until it can restore SpotX backups on a real patched client (`Roadmap_Blocked.md:866-876`).
+- **Policy boundary:** do not add ad-blocking claims, Premium entitlement claims, or external script paste flows. Spotify's policy and ClickFix campaigns make precise capability copy and checksum-verified downloads part of product safety ([Spotify User Guidelines](https://www.spotify.com/us/legal/user-guidelines/); [ClickFix threat analysis](https://rhisac.org/threat-intelligence/current-clickfix-threat-landscape-developments/)).
 
 ## Architecture Assessment
 
-- **Release truth:** last published tag `v4.0.0-preview.27` = `81c3c8c`. HEAD version strings are `4.0.0-preview.28` across three csproj files, README badge, `schemas/parity-manifest.json`, and CHANGELOG. Untracked `gf.json` / `gf2.json` / `gf3.json` / `gfrules.html` — do not commit.
-- **Screenshot gates agree.** `Build-Scripts.ps1` and `ReadmeScreenshotTests` both require 1800×1280, theme `dark`, culture `en`.
-- **Jump List taxonomy:** `ShellIntegrationService` localizes `NavHome` / `NavSettings`. `--shell-action=recommended|custom|maintenance` is unchanged.
-- **Catalog decision drift (RD-81 remainder):** Bloom checklist vs manifest is aligned (`defer` / lastPush 2025-05-20). The unpublished gh-pages `catalog.json` truth gate is still open.
-- **Shell:** Home / Maintenance / Settings rail (`NavHome` / `NavSettings`); language picker restored; `ShellWorkspaceHost` still `Visibility="Collapsed"` (~1,600 lines). Provenance card and global search remain operator-blocked. `ShellDisplayVersion` is bound in the rail.
-- **RD-76 is done:** `RetrySystemCheckButton` on Home, and Maintenance now shares the unavailable copy plus Retry. The snapshot-error hero uses `Info24` instead of the missing `Info48` glyph.
-- **PowerShell hosts:** `LibreSpot.ps1` ~10,850 lines, backend ~6,577, 121 shared functions, composition + parity gate. Zero TODO/FIXME/HACK/XXX in `src/` and `tests/`.
-- **Test stack:** xunit.v3 4.0.0 + MTP v2 via `global.json`; Core 81, Desktop non-WPF 1,035, WPF 84, Pester 213. Stryker.NET 4.16.0 MTP pilot 24.32% / 24% break. `coverlet.collector` 10.0.1 remains MTP-incompatible.
-- **i18n:** 1,268 keys × five reviewed satellites; DE/FR blocked. Fleet CLI stays English by contract.
-- **Observability:** local NDJSON + `LibreSpot-Operations` EventSource. No upload path.
-- **Mobile / macOS / Linux:** not part of this Windows-only product. SpotX-Bash covers Unix SpotX.
-
-## Consciously Excluded Categories
-
-- **Multi-user.** Per-user isolation is already tested. No multi-tenant surface.
-- **Plugin ecosystem.** Marketplace is the plugin surface; LibreSpot curates, it does not host one.
-- **Mobile.** Out of contract.
-- **Distribution beyond GitHub / signing / ARM64 WPF / DE+FR locales.** Blocked on operator decisions — not omitted.
-- **Publishing preview.28.** Code is on `main`; cutting the GitHub release is the blocked operator pass, not a coding-agent item.
-- **Upgrade / migration.** Config/answer-file schema exists; the live gap is Spicetify v2→v3 coexistence, already guarded.
+- **Create one state-derived Home action model.** Add a small view model or record with title, body, button text, automation text, command, severity, and enabled state. Build it from snapshot load state plus ordered non-destructive `HealthIssueActionViewModel` entries (`src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:363-385`; `src/LibreSpot.Desktop/ViewModels/MainViewModel.Maintenance.cs:23-80`). Keep destructive work in Maintenance.
+- **Reuse health issues in Maintenance.** `CriticalHealthIssues`, `WarningHealthIssues`, and `InfoHealthIssues` already exist, and `src/LibreSpot.Desktop/MainWindow.xaml:211-302` already defines issue templates. Move or extract those templates so `MaintenanceWorkspaceView.xaml` can render the highest-priority issue and its safe action before `StatusDashboardItems` and `CompatibilityVerdictItems`.
+- **Use disclosure only in the presentation layer.** Keep `InstallConfiguration`, `AppCatalog.OptionDefinitions`, search filtering, and profile serialization unchanged (`src/LibreSpot.Core/AppCatalog.cs:1023-1053`; `src/LibreSpot.Desktop/ViewModels/MainViewModel.CustomInstall.cs:149-199`). Recompose Settings into one column with four common choices: Spotify build on Auto, theme, Marketplace, and open Spotify when finished. Put every other existing control under one-level labeled expanders. A search match must expand and reveal its group. This follows [Windows settings guidance](https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings) and [progressive disclosure guidance](https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-progressive-disclosure-controls).
+- **Make process control testable.** Keep `ISpotifyProcessService`, but isolate process enumeration, close requests, waiting, and forced fallback behind an injectable adapter. Tests can then prove ordering and time bounds without killing a real application (`src/LibreSpot.Desktop/Services/SpotifyProcessService.cs`; `tests/LibreSpot.Desktop.Tests`).
+- **Tests and docs belong to each item.** Add state-matrix view-model tests, UI Automation names and focus checks, localization key-parity checks, screenshot assertions, and PowerShell parity tests with the feature that needs them (`tests/LibreSpot.Desktop.Tests`; `tests/LibreSpot.Core.Tests`; `tests/powershell`; `Build-Scripts.ps1`). Refresh all three README screenshots after UI work (`assets/screenshots`; `README.md`).
+- **Category review:** security and recovery are addressed by truthful copy and staged shutdown; accessibility is part of each UI acceptance and WCAG 2.2 target/focus review ([WCAG 2.2](https://www.w3.org/TR/WCAG22/)); i18n must preserve all current satellite resources; observability stays local with a logged force-kill fallback; tests and docs travel with each change. Distribution, signing, ARM64, and extra locales remain in `Roadmap_Blocked.md`. Marketplace remains the plugin surface. Mobile ports, cloud sync, cross-user state, and a second migration system would create parallel products or duplicate existing contracts. Offline download resilience already has cache plus BITS (`src/powershell/shared/Download-FileSafe.ps1`). Spicetify v3 migration remains guarded until its stable contract exists (`src/LibreSpot.Core/SpicetifyV3ConflictDetector.cs`; `Roadmap_Blocked.md:927-956`).
 
 ## Rejected Ideas
 
-- **Adopt Spicetify v3 as the pin now.** Nine betas in ten days, allowlist tops out at 1.2.94, coexistence bricks v2. Source: `spicetify/cli` releases + `supported-versions.json` @ `v3-beta`.
-- **Advance the SpotX pin on its own.** `-defender_exclusions_off` removes the Defender objection; Spicetify v2.44.0 still caps 1.2.93. Source: SpotX `f4cf592b`, Spicetify v2.44.0 notes.
-- **File "Retry copy without a button" as a defect.** Refuted on HEAD: `RetrySystemCheckButton` exists. RD-76 deleted because it landed.
-- **Migrate to Pester 6.1.0.** Breaking assertion rewrite; 5.9.1 is the supported 5.x line.
-- **Restore GitHub Actions / Dependabot.** Deliberate local-builds-only policy. Attestations already come from immutable releases at publish time.
-- **Sign the CycloneDX document to satisfy CISA 2026 without SignPath.** Conflicts with unsigned-by-design.
-- **An EZBlocker-style mute engine.** Different mechanism, dormant upstream.
-- **Unify the CLI into the WPF executable.** Breaks `schemas/fleet-cli-contract.json`.
-- **Mirror or rehost upstream assets.** Conflicts with no-redistribution posture.
-- **winget / Scoop / Chocolatey / unsigned Velopack now.** Identity + script ban + Defender-quarantine-on-swap.
-- **Name impersonator repositories.** Use the documented ClickFix/Vidar campaign.
-- **Localize the legacy `LibreSpot.ps1` GUI.** Duplicating 1,278 keys into a 10k-line script whose public release is still 3.7.2.
-- **Global hosts/DNS ad blocker, cloud profile sync, uncurated marketplace, macOS/Linux port.** Unchanged.
+- **Adopt Spicetify v3 now:** beta.9 was still a prerelease on 2026-08-21, and the published schema-v2 support data ends at Spotify 1.2.94 ([release](https://github.com/spicetify/cli/releases/tag/v3.0.0-beta.9); [support data](https://raw.githubusercontent.com/spicetify/cli/v3-beta/supported-versions.json)).
+- **Raise LibreSpot's tested ceiling to 1.2.96 from release notes alone:** Spicetify 2.44.0 lists that Windows range, but LibreSpot's tested SpotX pairing remains 1.2.93 and pin advancement already requires live evidence (`src/LibreSpot.Core/AppCatalog.cs:827-842`; `Roadmap_Blocked.md:927-956`).
+- **Back up Marketplace IndexedDB now:** issue #1201 is closed, PR #1212 is still open, and a copied Chromium LevelDB has not been restored successfully in the available rig ([issue](https://github.com/spicetify/marketplace/issues/1201); [pull request](https://github.com/spicetify/marketplace/pull/1212); `Roadmap_Blocked.md`).
+- **Implement full stock restore during this pass:** the action would overwrite patched binaries and needs a real SpotX installation to prove safe rollback (`Roadmap_Blocked.md:866-876`). Correct the label now; implement the binary restore only after that validation exists.
+- **Add package managers, signing, ARM64 WPF, or more locales:** each already has a named operator or hardware dependency in `Roadmap_Blocked.md`; duplicating it in the actionable queue would misstate readiness.
+- **Add another plugin framework:** Spicetify Marketplace, built-in extensions, custom apps, and community catalog already provide the extension surface (`src/LibreSpot.Core/AppCatalog.cs`; [Marketplace](https://github.com/spicetify/marketplace)).
+- **Add cloud profile sync, telemetry, or shared-machine state:** these conflict with the local-only inventory and per-user paths (`schemas/data-inventory.json`; `src/LibreSpot.Core/LibreSpotPaths.cs`). Exportable profiles already cover deliberate transfer.
+- **Port the shell to mobile, macOS, or Linux:** SpotX and the present process, registry, scheduled-task, and WPF integrations are Windows-specific (`src/LibreSpot.Core/LibreSpot.Core.csproj`; `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj`). A port would not reuse the main product boundary.
+- **Return to the dense command-center mockups:** the current Home is clearer than `assets/mockups/premium-command-center.png`, `premium-command-center-v2.png`, and `librespot-command-center-v5.png`. The remaining defects are state and hierarchy, not missing cards.
+- **Add a second download engine or broad dependency refresh:** BITS fallback and pinned dependencies already exist, and the reviewed dependency changelogs exposed no user-facing capability that outranks the five gaps (`src/powershell/shared/Download-FileSafe.ps1`; project files; dependency sources below).
+- **Promise ad-free Premium parity:** Spotify's official Premium page and User Guidelines make that claim inaccurate and policy-sensitive ([Premium](https://www.spotify.com/us/premium/); [User Guidelines](https://www.spotify.com/us/legal/user-guidelines/)).
 
 ## Sources
 
-### Upstream
-- https://github.com/spicetify/cli/releases
+### Repository and upstream
+
+- https://github.com/SysAdminDoc/LibreSpot
+- https://github.com/SysAdminDoc/LibreSpot/issues
+- https://github.com/SysAdminDoc/LibreSpot/pulls
+- https://github.com/SysAdminDoc/LibreSpot/discussions/20
+- https://github.com/SysAdminDoc/LibreSpot/discussions/21
+- https://github.com/spicetify/cli
+- https://spicetify.app/docs/getting-started/
+- https://spicetify.app/docs/advanced-usage/customizations/
 - https://github.com/spicetify/cli/releases/tag/v2.44.0
 - https://github.com/spicetify/cli/releases/tag/v3.0.0-beta.9
 - https://raw.githubusercontent.com/spicetify/cli/v3-beta/supported-versions.json
 - https://github.com/spicetify/cli/issues/3038
+- https://github.com/spicetify/marketplace
 - https://github.com/spicetify/marketplace/releases/tag/v1.0.9
-- https://github.com/spicetify/marketplace/issues/1212
-- https://github.com/SpotX-Official/SpotX/commits/main
+- https://github.com/spicetify/marketplace/issues/1201
+- https://github.com/spicetify/marketplace/pull/1212
+- https://github.com/SpotX-Official/SpotX
 - https://github.com/SpotX-Official/SpotX-Bash
-- https://en.wikipedia.org/wiki/Template:Latest_stable_software_release/Spotify
-- https://github.com/rxri/spicetify-extensions/tree/main/adblock
-- https://developer.spotify.com/blog/2026-02-06-update-on-developer-access-and-platform-security
+- https://github.com/spicetify/spicetify-themes
 
-### Competitors and adjacent
+### Competitors and adjacent products
+
 - https://github.com/ohitstom/spicetify-easyinstall
 - https://github.com/Israleche/SpicetifyManager
 - https://github.com/Nuzair46/BlockTheSpot-Installer
 - https://github.com/thomas-quant/BlockTheSpot-Resilient
-- https://github.com/mrpond/blockthespot
-- https://github.com/ReVanced/revanced-manager/releases/tag/v2.6.0
-- https://github.com/Vencord/Installer
 - https://github.com/BetterDiscord/Installer
-- https://github.com/ebkr/r2modmanPlus/releases/tag/v3.2.18
-- https://github.com/KRTirtho/spotube/releases/tag/v5.1.2
-- https://github.com/hrkfdn/ncspot/releases/tag/v1.3.4
-- https://github.com/jpochyla/psst
-- https://github.com/microsoft/winget-pkgs/blob/master/doc/Policies.md
-- https://newsroom.spotify.com/2026-01-15/premium-pricing-update/
-- https://newsroom.spotify.com/2026-05-21/alex-norstrom-gustav-soderstrom-co-ceos-investor-day-remarks/
+- https://github.com/Vencord/Installer
+- https://github.com/ReVanced/revanced-manager
+- https://github.com/ReVanced/revanced-manager/releases
+- https://github.com/ebkr/r2modmanPlus
+- https://github.com/marticliment/UniGetUI
+- https://ninite.com/
+- https://patchmypc.com/home-updater
+- https://www.spotify.com/us/premium/
+- https://www.spotify.com/us/legal/user-guidelines/
+- https://www.spotify.com/us/legal/end-user-agreement/
+- https://developer.spotify.com/blog/2026-02-06-update-on-developer-access-and-platform-security
 
-### Community and threat
-- https://www.helpnetsecurity.com/2026/06/11/vidar-infostealer-tiktok-instagram-reels-malware-campaigns/
-- https://rhisac.org/threat-intelligence/current-clickfix-threat-landscape-developments/
-- https://www.recordedfuture.com/research/clickfix-campaigns-targeting-windows-and-macos
-- https://github.com/SysAdminDoc/LibreSpot/discussions/20
-- https://github.com/SysAdminDoc/LibreSpot/discussions/21
+### UX, accessibility, and Windows platform
 
-### Security and platform
-- https://devblogs.microsoft.com/dotnet/dotnet-and-dotnet-framework-august-2026-servicing-updates/
-- https://github.com/dotnet/wpf/security/advisories/GHSA-gg8c-3338-xw2f
-- https://nvd.nist.gov/vuln/detail/CVE-2026-50523
-- https://learn.microsoft.com/en-us/powershell/scripting/install/powershell-support-lifecycle
-- https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro
+- https://learn.microsoft.com/en-us/windows/apps/design/app-settings/guidelines-for-app-settings
+- https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-progressive-disclosure-controls
+- https://learn.microsoft.com/en-us/windows/apps/design/design-principles
+- https://learn.microsoft.com/en-us/windows/win32/uxguide/vis-layout
+- https://support.microsoft.com/en-US/Windows/Apps/repair-apps-and-programs-in-windows
+- https://learn.microsoft.com/en-us/windows/win32/rstmgr/about-restart-manager
+- https://learn.microsoft.com/en-us/windows/win32/bits/background-intelligent-transfer-service-portal
+- https://learn.microsoft.com/en-us/windows/apps/design/accessibility/accessibility-overview
+- https://www.w3.org/TR/WCAG22/
+- https://www.nngroup.com/articles/progressive-disclosure/
+- https://www.nngroup.com/articles/ten-usability-heuristics/
+
+### Security, integrity, and standards
+
+- https://owasp.org/www-community/attacks/Path_Traversal
+- https://www.cisa.gov/resources-tools/resources/2026-minimum-elements-software-bill-of-materials-sbom
+- https://cyclonedx.org/specification/overview/
+- https://slsa.dev/spec/v1.2/
 - https://github.blog/changelog/2025-10-28-immutable-releases-are-now-generally-available/
 - https://cli.github.com/manual/gh_release_verify-asset
-- https://www.cisa.gov/resources-tools/resources/2026-minimum-elements-software-bill-of-materials-sbom
-- https://signpath.org/
-- https://docs.velopack.io/getting-started/csharp
+- https://devblogs.microsoft.com/dotnet/dotnet-and-dotnet-framework-august-2026-servicing-updates/
+- https://github.com/dotnet/wpf/security/advisories/GHSA-gg8c-3338-xw2f
+- https://rhisac.org/threat-intelligence/current-clickfix-threat-landscape-developments/
+- https://www.helpnetsecurity.com/2026/06/11/vidar-infostealer-tiktok-instagram-reels-malware-campaigns/
 
-### Dependencies and tooling
-- https://www.nuget.org/packages/FsCheck.Xunit.v3
-- https://github.com/fscheck/FsCheck/releases/tag/3.4.0
+### Dependencies, discovery, and community
+
 - https://www.nuget.org/packages/wpf-ui/
+- https://www.nuget.org/packages/CommunityToolkit.Mvvm/
+- https://github.com/codebude/QRCoder/releases
+- https://github.com/serilog/serilog/releases
+- https://github.com/icsharpcode/AvalonEdit/releases
 - https://xunit.net/releases/v3/4.0.0
-- https://www.nuget.org/packages/Microsoft.NET.Test.Sdk/
+- https://learn.microsoft.com/en-us/dotnet/core/testing/microsoft-testing-platform-intro
 - https://github.com/pester/Pester/releases/tag/5.9.1
-- https://github.com/pester/Pester/releases/tag/6.1.0
-- https://github.com/PowerShell/PSScriptAnalyzer/releases/tag/1.25.0
 - https://github.com/CycloneDX/cyclonedx-dotnet/releases/tag/v6.2.0
-- https://github.com/stryker-mutator/stryker-net/releases
-
-### In-repo evidence
-- `src/LibreSpot.Desktop/App.xaml:10`
-- `src/LibreSpot.Desktop/Themes/Controls.xaml:875` and `:1296`
-- `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml:414-426`
-- `src/LibreSpot.Desktop/MainWindow.xaml:18`, `:1248-1251`, `:1405-1406`
-- `src/LibreSpot.Desktop/Services/ShellIntegrationService.cs:75-97`
-- `tests/LibreSpot.Desktop.Tests/WindowsShellIntegrationTests.cs:95-96`
-- `tests/LibreSpot.Desktop.Tests/ReadmeScreenshotTests.cs:83-85`
-- `Build-Scripts.ps1:908-945`
-- `schemas/community-assets.json` Bloom `catalogReview.decision`
-- `schemas/catalog-refresh-checklist.json` Bloom `decision`
-- `schemas/compatibility-baseline.json`
-- `.config/dotnet-tools.json`
+- https://github.com/topics/spicetify
+- https://www.libhunt.com/topic/spicetify
+- https://www.reddit.com/r/spicetify/
 
 ## Open Questions
 
-- **When Spicetify v3 stable ships, and whether schema v2 / `spicetify support` exit codes freeze.** Fixtures already negotiate schema version; only upstream can answer.
-- **Whether the Chromium LevelDB under the Spotify profile is a faithful Marketplace backup** once #1212 lands. Needs a live patched client.
-- **Which lane `/releases/latest` should represent** after v4 stable. Positioning, not code.
-- **Whether the pinned tuple should ever split** so SpotX can follow 1.2.97 while Spicetify stays on 1.2.93. That needs a per-component compatibility story the UI does not tell today.
+- **When will Spicetify v3 publish a stable support and coexistence contract?** Until a stable release freezes the schema, exit behavior, and migration path, LibreSpot cannot safely replace its v2 pin ([v3 beta releases](https://github.com/spicetify/cli/releases); `Roadmap_Blocked.md:927-956`).
+- **Can Marketplace IndexedDB be copied and restored while Spotify is closed without corrupting or losing installed-item state?** The open persistence PR does not answer backup semantics, so this needs a live patched-client test ([PR #1212](https://github.com/spicetify/marketplace/pull/1212)).
