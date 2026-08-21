@@ -892,17 +892,23 @@ function ConvertTo-CatalogComparable {
     )
 
     $catalog = $Json | ConvertFrom-Json
-    # generatedDate is a build stamp, not reviewed trust data. Everything else
-    # in catalog.json is derived from the two schemas and must match.
-    if ($catalog.PSObject.Properties['generatedDate']) {
-        $catalog.PSObject.Properties.Remove('generatedDate')
-    }
-
     if ($Pretty) {
         return ($catalog | ConvertTo-Json -Depth 16)
     }
 
     return ($catalog | ConvertTo-Json -Depth 16 -Compress)
+}
+
+function ConvertTo-ComparableText {
+    param([AllowNull()][string]$Text)
+
+    if ($null -eq $Text) {
+        return ''
+    }
+
+    # Line endings and a trailing newline are not trust drift; everything else
+    # in a generated file is compared verbatim.
+    return ($Text -replace "`r`n", "`n").TrimEnd("`n")
 }
 
 function Test-CommunityCatalogTruth {
@@ -942,39 +948,100 @@ function Test-CommunityCatalogTruth {
         return
     }
 
-    $stagingRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('librespot-catalog-truth-' + [Guid]::NewGuid().ToString('N'))
+    # Regenerate with the published build stamp so every generated file - the
+    # HTML pages too, not just catalog.json - can be compared verbatim. Without
+    # this, a change to the page generator leaves catalog.json byte-identical
+    # and the live page goes stale unnoticed.
+    $generatedDate = $null
     try {
-        & $catalogTool -OutputDirectory $stagingRoot -RepoRoot $PSScriptRoot | Out-Null
-        $localCatalogPath = Join-Path $stagingRoot 'catalog.json'
-        if (-not (Test-Path -LiteralPath $localCatalogPath -PathType Leaf)) {
-            throw 'The community catalog generator did not write catalog.json.'
+        $generatedDate = ($published.StandardOutput | ConvertFrom-Json).generatedDate
+    } catch {
+        $generatedDate = $null
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$generatedDate)) {
+        $generatedDate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
+    }
+
+    $stagingRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('librespot-catalog-truth-' + [Guid]::NewGuid().ToString('N'))
+    $localFiles = [ordered]@{}
+    try {
+        & $catalogTool -OutputDirectory $stagingRoot -RepoRoot $PSScriptRoot -GeneratedDate $generatedDate | Out-Null
+        foreach ($file in @(Get-ChildItem -LiteralPath $stagingRoot -File | Sort-Object Name)) {
+            $localFiles[$file.Name] = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
         }
-        $localJson = [System.IO.File]::ReadAllText($localCatalogPath, [System.Text.Encoding]::UTF8)
     } finally {
         if (Test-Path -LiteralPath $stagingRoot) {
             Remove-Item -LiteralPath $stagingRoot -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 
-    if ((ConvertTo-CatalogComparable -Json $localJson) -eq (ConvertTo-CatalogComparable -Json $published.StandardOutput)) {
-        Write-Host 'Published community catalog matches the reviewed asset manifest.' -ForegroundColor Green
+    if (-not $localFiles.Contains('catalog.json')) {
+        throw 'The community catalog generator did not write catalog.json.'
+    }
+
+    $driftReport = New-Object System.Collections.Generic.List[string]
+    foreach ($name in @($localFiles.Keys)) {
+        $publishedFile = if ($name -eq 'catalog.json') {
+            $published
+        } else {
+            Invoke-GitCommand -Arguments "show ${publishedRef}:$name"
+        }
+
+        if ($publishedFile.ExitCode -ne 0) {
+            $driftReport.Add("  [$name] generated locally but not published")
+            continue
+        }
+
+        # catalog.json is compared as data: ConvertTo-Json indents differently
+        # on Windows PowerShell 5.1 and PowerShell 7, so the bytes are
+        # host-dependent even when the content is identical. Everything else is
+        # compared verbatim.
+        if ($name -eq 'catalog.json') {
+            $localText = ConvertTo-CatalogComparable -Json $localFiles[$name]
+            $publishedText = ConvertTo-CatalogComparable -Json $publishedFile.StandardOutput
+            if ($localText -eq $publishedText) {
+                continue
+            }
+
+            $localText = ConvertTo-CatalogComparable -Json $localFiles[$name] -Pretty
+            $publishedText = ConvertTo-CatalogComparable -Json $publishedFile.StandardOutput -Pretty
+        } else {
+            $localText = ConvertTo-ComparableText -Text $localFiles[$name]
+            $publishedText = ConvertTo-ComparableText -Text $publishedFile.StandardOutput
+            if ($localText -eq $publishedText) {
+                continue
+            }
+        }
+
+        $differences = @(Compare-Object `
+                -ReferenceObject ($publishedText -split "`n") `
+                -DifferenceObject ($localText -split "`n") `
+                -SyncWindow 50)
+        foreach ($difference in ($differences | Select-Object -First 8)) {
+            $lane = if ($difference.SideIndicator -eq '=>') { 'reviewed' } else { 'published' }
+            $driftReport.Add("  [$name] [$lane] $($difference.InputObject.Trim())")
+        }
+        if ($differences.Count -gt 8) {
+            $driftReport.Add("  [$name] ... $($differences.Count - 8) further differing lines")
+        }
+    }
+
+    if ($driftReport.Count -eq 0) {
+        Write-Host "Published community catalog matches the reviewed asset manifest ($($localFiles.Count) files)." -ForegroundColor Green
         return
     }
 
-    $localLines = (ConvertTo-CatalogComparable -Json $localJson -Pretty) -split "`r?`n"
-    $publishedLines = (ConvertTo-CatalogComparable -Json $published.StandardOutput -Pretty) -split "`r?`n"
-    $differences = @(Compare-Object -ReferenceObject $publishedLines -DifferenceObject $localLines -SyncWindow 50)
-
     Write-Host '=== PUBLISHED COMMUNITY CATALOG DRIFT ===' -ForegroundColor Red
-    foreach ($difference in ($differences | Select-Object -First 12)) {
-        $lane = if ($difference.SideIndicator -eq '=>') { 'reviewed' } else { 'published' }
-        Write-Host "  [$lane] $($difference.InputObject.Trim())" -ForegroundColor Red
-    }
-    if ($differences.Count -gt 12) {
-        Write-Host "  ... $($differences.Count - 12) further differing lines" -ForegroundColor Red
+    foreach ($line in $driftReport) {
+        Write-Host $line -ForegroundColor Red
     }
     Write-Host ''
     Write-Host 'The catalog page at https://sysadmindoc.github.io/LibreSpot/ is advertising trust evidence that no longer matches schemas/community-assets.json.' -ForegroundColor Red
+    if (-not $FetchRemote) {
+        # This mode compares against whatever origin/gh-pages the clone holds,
+        # which is stale if the catalog was published from another machine.
+        Write-Host 'This run did not fetch. If the catalog was published elsewhere, run "Build-Scripts.ps1 -CatalogTruth" first and re-check before regenerating.' -ForegroundColor Red
+    }
     Write-Host 'Regenerate and republish:' -ForegroundColor Red
     Write-Host '  .\tools\Build-CommunityCatalog.ps1 -OutputDirectory <staging>' -ForegroundColor Red
     Write-Host '  git worktree add <worktree> gh-pages; copy the staging output over it; commit and push gh-pages' -ForegroundColor Red

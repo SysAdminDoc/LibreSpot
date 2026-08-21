@@ -28,11 +28,19 @@ public sealed class ColorLintTests
         RegexOptions.Compiled);
 
     // ThemeManager swaps the merged palette dictionary at runtime, so anything
-    // that names a palette brush or effect through StaticResource keeps the
-    // palette it was built with when Windows high contrast is toggled.
-    private static readonly Regex StaticPaletteReferencePattern = new(
-        @"\{StaticResource\s+[A-Za-z0-9_.]*(?:Brush|Shadow|Glow)\s*\}",
-        RegexOptions.Compiled);
+    // that names a palette brush, colour, or effect through StaticResource
+    // keeps the palette it was built with when Windows high contrast is
+    // toggled. Both markup-extension spellings and the element form count.
+    // Radii and durations are deliberately out: a Storyboard Freezable cannot
+    // take a DynamicResource, and they are tracked separately.
+    private const string PaletteKeySuffixes = "(?:Brush|Color|Shadow|Glow)";
+
+    private static readonly Regex[] StaticPaletteReferencePatterns =
+    [
+        new($@"\{{StaticResource\s+[A-Za-z0-9_.]*{PaletteKeySuffixes}\s*\}}", RegexOptions.Compiled),
+        new($@"\{{StaticResource\s+ResourceKey\s*=\s*[A-Za-z0-9_.]*{PaletteKeySuffixes}\s*\}}", RegexOptions.Compiled),
+        new($@"<StaticResource\b[^>]*ResourceKey\s*=\s*""[A-Za-z0-9_.]*{PaletteKeySuffixes}""", RegexOptions.Compiled),
+    ];
 
     private static readonly CSharpColorPattern[] CSharpColorPatterns =
     {
@@ -102,15 +110,27 @@ public sealed class ColorLintTests
         Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
     }
 
+    [Theory]
+    [InlineData(@"<Border Effect=""{StaticResource OverlayShadow}"" />", "OverlayShadow")]
+    [InlineData(@"<GradientStop Color=""{StaticResource AccentColor}"" />", "AccentColor")]
+    [InlineData(@"<Border Effect=""{StaticResource ResourceKey=AccentGlow}"" />", "AccentGlow")]
+    [InlineData("<Setter.Value><StaticResource ResourceKey=\"CanvasBrush\"/></Setter.Value>", "CanvasBrush")]
+    public void PaletteResourceLint_DetectsEveryStaticSpelling(string xaml, string expected)
+    {
+        var offenders = FindStaticPaletteReferences("src/LibreSpot.Desktop/Fake.xaml", xaml).ToList();
+
+        Assert.Contains(offenders, offender => offender.Contains(expected, StringComparison.Ordinal));
+    }
+
     [Fact]
-    public void PaletteResourceLint_DetectsAStaticEffectReference()
+    public void PaletteResourceLint_LeavesDynamicReferencesAlone()
     {
         var offenders = FindStaticPaletteReferences(
                 "src/LibreSpot.Desktop/Fake.xaml",
-                @"<Border Effect=""{StaticResource OverlayShadow}"" Background=""{DynamicResource CanvasBrush}"" />")
+                @"<Border Background=""{DynamicResource CanvasBrush}"" CornerRadius=""{StaticResource RadiusLg}"" />")
             .ToList();
 
-        Assert.Contains(offenders, offender => offender.Contains("OverlayShadow", StringComparison.Ordinal));
+        Assert.Empty(offenders);
     }
 
     [Theory]
@@ -169,9 +189,12 @@ public sealed class ColorLintTests
 
     private static IEnumerable<string> FindStaticPaletteReferences(string relativePath, string content)
     {
-        foreach (Match match in StaticPaletteReferencePattern.Matches(content))
+        foreach (var pattern in StaticPaletteReferencePatterns)
         {
-            yield return $"{relativePath}: {match.Value} resolves once at load, so a runtime theme swap leaves the old palette in place. Use DynamicResource.";
+            foreach (Match match in pattern.Matches(content))
+            {
+                yield return $"{relativePath}: {match.Value} resolves once at load, so a runtime theme swap leaves the old palette in place. Use DynamicResource.";
+            }
         }
     }
 

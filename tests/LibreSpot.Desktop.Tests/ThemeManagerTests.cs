@@ -69,6 +69,36 @@ public sealed class ThemeManagerTests
     }
 
     [Fact]
+    public void WindowChromeReappliesOnAHighContrastToggle()
+    {
+        // MainWindow drops its SourceInitialized handler after the first call,
+        // which reads like the chrome is applied once. It is not: the
+        // integration installs its own lasting subscription and clears the
+        // custom caption, border, and backdrop when high contrast comes on.
+        var source = ReadFile("src", "LibreSpot.Desktop", "Services", "Win11ShellIntegration.cs");
+
+        Assert.Contains("SystemParameters.StaticPropertyChanged +=", source);
+        Assert.Contains("SystemParameters.StaticPropertyChanged -=", source);
+        Assert.Contains($"e.PropertyName == nameof(SystemParameters.HighContrast)", source);
+
+        var subscribe = source.IndexOf("SystemParameters.StaticPropertyChanged +=", StringComparison.Ordinal);
+        var clearDefinition = source.IndexOf("private static void ClearCustomChrome", StringComparison.Ordinal);
+        var clearCall = source.IndexOf("ClearCustomChrome(window, hwnd);", StringComparison.Ordinal);
+        Assert.True(subscribe > 0 && clearDefinition > 0 && clearCall > 0);
+        Assert.True(clearCall < clearDefinition, "ClearCustomChrome must be reachable from ApplyChrome, not just defined.");
+
+        // ThemeManager must have swapped the palette before the chrome handler
+        // reads CanvasColor / TextColor / StrokeColor, which holds because
+        // App.OnStartup subscribes it before the window HWND exists.
+        var app = ReadFile("src", "LibreSpot.Desktop", "App.xaml.cs");
+        Assert.Contains("ThemeManager.Initialize(", app);
+        Assert.True(
+            app.IndexOf("ThemeManager.Initialize(", StringComparison.Ordinal) <
+            app.IndexOf("base.OnStartup(e);", StringComparison.Ordinal),
+            "ThemeManager must subscribe before the shell starts, so the palette is swapped first.");
+    }
+
+    [Fact]
     public void HighContrastPalette_SetsMotionDurationsToNearZero()
     {
         var content = ReadFile("src", "LibreSpot.Desktop", "Themes", "HighContrastPalette.xaml");

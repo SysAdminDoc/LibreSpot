@@ -12,33 +12,14 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
 
 ### P2
 
-- [ ] P2 — RD-113: Window chrome and background still need a restart on a high-contrast toggle
-  Why: RD-90 fixed the resource-bound surfaces. `Win11ShellIntegration.ApplyMicaAndDarkChrome` runs once from `SourceInitialized` and unsubscribes, and `ThemeManager.ApplyTheme` never re-invokes it, so the DWM caption/text/border colors, the Mica backdrop, and the hard `window.Background = micaBrush` assignment all keep the dark palette.
-  Where: src/LibreSpot.Desktop/Services/Win11ShellIntegration.cs; Services/ThemeManager.cs; MainWindow.xaml.cs SourceInitialized
-  Fix: Re-run the chrome application (or `ClearCustomChrome`, which exists for this case and never fires) from the ThemeManager change notification, and set the window background by resource reference.
-  Acceptance: Toggling high contrast at runtime repaints the caption and window background without a restart.
-
-- [ ] P2 — RD-114: The static-palette lint misses colors, the ResourceKey spelling, and imperative lookups
-  Why: The RD-90 lint only matches `{StaticResource *Brush|Shadow|Glow}`.
-  Where: tests/LibreSpot.Desktop.Tests/ColorLintTests.cs StaticPaletteReferencePattern
-  Problem: `Color="{StaticResource AccentColor}"` on a GradientStop or ColorAnimation passes, as do `{StaticResource ResourceKey=OverlayShadow}` and `<StaticResource ResourceKey="OverlayShadow"/>`. The C# side never looks at `FindResource`/`TryFindResource`, which is why RD-113 is invisible to it. None of these forms exists in the tree today, so the lint is incomplete rather than wrong.
-  Fix: Match every key defined in Palette.xaml rather than a name suffix, cover both `StaticResource` spellings, and lint imperative resource lookups that assign a theme brush.
-  Acceptance: Each listed form is rejected by a positive control test.
-
-- [ ] P2 — RD-115: `-CatalogTruth` does not compare the published HTML
-  Why: Only catalog.json is diffed, but gh-pages also serves index.html, 404.html, and README.md from the same generator.
-  Where: Build-Scripts.ps1 Test-CommunityCatalogTruth
-  Problem: A change to `New-CatalogHtml` leaves catalog.json byte-identical and passes while the live page is stale. In sync today, so latent.
-  Fix: Compare every generated file, not just catalog.json.
-  Acceptance: Editing the HTML generator without republishing fails the gate.
+- [ ] P2 — RD-119: Forced high contrast for QA captures gets dark-mode chrome
+  Why: `--uia-theme=high-contrast` makes ThemeManager load the high-contrast palette while `SystemParameters.HighContrast` stays false, so `Win11ShellIntegration.ApplyChrome` takes the non-high-contrast branch: it sets the immersive dark-mode hint, requests the Mica backdrop, and assigns the transparent `MicaCanvasBrush` as the window background. The caption colors happen to come out right because they are read from the swapped palette, but the backdrop and background do not.
+  Where: src/LibreSpot.Desktop/Services/Win11ShellIntegration.cs; Services/ThemeManager.cs `_forceHighContrast`; App.xaml.cs
+  Problem: every forced-high-contrast QA capture shows a window a real high-contrast user never sees, so the captures cannot be trusted for that state.
+  Fix: Have the chrome ask ThemeManager whether high contrast is in effect (forced or real) rather than reading `SystemParameters.HighContrast` directly.
+  Acceptance: A `--uia-theme=high-contrast` capture has an opaque window background and no Mica backdrop.
 
 ### P3
-
-- [ ] P3 — RD-118: `-Validate` fails hard on a stale gh-pages tracking ref
-  Why: It deliberately does not fetch, so a clone whose `origin/gh-pages` predates a publish from another machine reports drift that is not real.
-  Where: Build-Scripts.ps1 Test-CommunityCatalogTruth
-  Fix: Name `git fetch origin gh-pages` in the failure text as the first thing to try, or compare the ref's age and downgrade to a warning when it is older than the working tree's last catalog change.
-  Acceptance: A stale-ref run says so instead of reporting a drift the maintainer cannot reproduce.
 
 - [ ] P3 — RD-91: Terminology and punctuation drift across live UI strings
   Why: "Spotify build" vs "Spotify version", "Premium account mode" vs "patch posture", mixed ellipsis and hyphen-as-dash, mixed quote styles.
