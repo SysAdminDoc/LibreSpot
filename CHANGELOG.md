@@ -28,6 +28,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Derived the shell display version from the desktop assembly informational version so project version bumps update the chrome automatically.
 - Aligned the fleet distribution matrix with the implemented CLI contract and removed the obsolete blocked shell-integration design item.
 - Added a localized Recommended first-run checklist with setup contents, update blocking, risk confirmation, duration, and Full Reset recovery guidance above the environment tables.
+- Added an explicit capability boundary to README and SECURITY. LibreSpot does not grant Premium or unlock Spotify's account-controlled catalog features; Premium users can still use the skip-ad-blocking path.
 
 ### Fixed
 

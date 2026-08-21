@@ -23,13 +23,6 @@ Existing items RD-51–RD-57 and RD-62 below are the same work items as the prio
 
 ### P2
 
-- [ ] P2 — RD-72: Publish an honest capability matrix (what LibreSpot does not unlock)
-  Why: adblockify documents that it will not unlock lyrics, downloads, Very High, or Jams; LibreSpot users (and fake-installer victims) need the same boundary next to Premium-account skip-ads.
-  Evidence: rxri/spicetify-extensions adblock README; Spotify Premium paywall (offline, lossless, unlimited skips on mobile); README “Premium account (skip ad-blocking)” FAQ.
-  Touches: README Features or Trust section, SECURITY.md, optionally a Custom-mode disclaimer string
-  Acceptance: Docs state explicitly that LibreSpot does not unlock Premium-only catalog features (downloads, lossless, mobile on-demand); Premium skip-ads remains the supported path; no new product surface that implies otherwise.
-  Complexity: S
-
 ### P3
 
 - [ ] P3 — RD-62: Publish the curated community-asset catalog as a GitHub Pages site

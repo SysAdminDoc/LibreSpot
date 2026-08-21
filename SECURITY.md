@@ -8,6 +8,15 @@
 | v4.0.x-preview (WPF desktop shell) | Best-effort |
 | < v3.7.0 | No |
 
+## Capability boundary
+
+LibreSpot changes the local Windows desktop client. It does not grant Spotify Premium, change account entitlements, or unlock service-side catalog features.
+
+- Offline downloads, lossless audio, Very High quality, mobile on-demand playback, and Jams remain Spotify account or service capabilities.
+- Lyrics availability remains controlled by Spotify, your account, and your region. LibreSpot does not unlock unavailable lyrics.
+- Existing Premium users can select Custom Install's **Premium account (skip ad-blocking)** option. That leaves ad-related patches off and does not alter the subscription.
+- Maintenance > Full Reset restores the local Spotify installation to stock state. It does not change a Spotify account or subscription.
+
 ## Reporting a Vulnerability
 
 **Do not open a public issue for security vulnerabilities.**

@@ -79,6 +79,23 @@ public sealed class PackageManifestSafetyTests
     }
 
     [Fact]
+    public void CapabilityBoundaryDocsKeepPremiumEntitlementsExplicit()
+    {
+        var readme = ReadFile("README.md");
+        var security = ReadFile("SECURITY.md");
+        foreach (var document in new[] { readme, security })
+        {
+            Assert.Contains("does not grant Spotify Premium", document, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("offline downloads", document, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("lossless", document, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("mobile on-demand", document, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Jams", document, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Premium account (skip ad-blocking)", document, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Full Reset", document, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
     public void PackagingDirectoryDoesNotExist()
     {
         Assert.False(

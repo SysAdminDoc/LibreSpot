@@ -160,6 +160,21 @@ Current source script version: **v3.7.4**. Public latest stable release: **v3.7.
 
 **Maintenance** — manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, inspect and clear verified download-cache health, preview and explicitly undo eligible low-risk PATH changes from the latest operation receipt, export a validated Marketplace state archive for missing-file recovery, export a redacted local support bundle, restore vanilla Spotify, uninstall Spicetify, check for dependency updates, or perform a full system reset. Marketplace 1.0.9 stores saved state in the embedded browser's IndexedDB database. LibreSpot detects that boundary but does not back it up. Use Marketplace's own export/import controls before a repair or reset.
 
+### Capability boundary
+
+LibreSpot changes the local desktop client. It does not grant Spotify Premium or change account entitlements.
+
+| Capability | LibreSpot's boundary |
+|---|---|
+| Desktop ad patching | Supported as documented, with the account risk described below. |
+| Spotify Premium access | Not granted. LibreSpot cannot turn a free account into Premium. |
+| Offline downloads, lossless audio, and Very High quality | Not unlocked. These remain Spotify account or service capabilities. |
+| Mobile on-demand playback and Jams | Not unlocked. LibreSpot is a Windows desktop tool. |
+| Lyrics availability | Not unlocked. Availability remains controlled by Spotify, your account, and your region. |
+| Existing Premium account | Use Custom Install's **Premium account (skip ad-blocking)** option to leave ad-related patches off. |
+
+Maintenance > Full Reset can return the local Spotify installation to its stock state. It does not change your Spotify subscription or account entitlements.
+
 ### Fleet CLI Preview
 
 `LibreSpot.Cli.exe` is the console-capable fleet artifact for endpoint tools. The implemented verbs are `--version`, `--version --json`, `version --json`, `status --json`, `detect --json`, `detect --intune`, `validate --answer-file <path> --json`, `install --answer-file <path> --profile <name> --ndjson`, `reapply --answer-file <path> --profile <name> --ndjson`, `repair --repair-id <id> --silent --yes --ndjson`, `uninstall --silent --yes --keep-spotify --ndjson`, `install|reapply --dry-run --answer-file <path> --ndjson`, `repair|uninstall --dry-run --ndjson`, `plan --answer-file <path> --json`, `undo --operation-id <id> --token-kind <kind> --dry-run --json`, `undo --operation-id <id> --token-kind <kind> --yes --json`, `export-support --output <path>`, `watcher install --silent`, and `watcher remove --silent`. `repair --repair-id ExportMarketplaceState` writes a timestamped archive under `%USERPROFILE%\LibreSpot_Backups\MarketplaceState`; `RestoreMarketplaceState` restores only missing files from the newest validated archive and then reapplies when Spicetify is available. Neither operation exports or claims to restore the embedded Marketplace IndexedDB database. Use Marketplace's own export/import controls for that state. `status --json` schema v3 includes structured patcher ownership plus asset-cache inventory counts, byte totals, stale/corrupt state, and per-entry labels when available, and each pinned upstream/community asset's source URL, version or commit, last-verification timestamp, changelog/release link, and freshness state. `detect --intune` exits `0` only when the existing health report maps to a compliant state; clean slate, drift, blocked, and repair states return documented nonzero fleet exit codes without mutating the machine. Mutating backend verbs stream stable `LS` NDJSON events from the fleet schema contract, write rotating `.ndjson` logs to `%ProgramData%\LibreSpot\logs` by default, and install/reapply write validated answer-file settings or named answer-file profiles to `config.json` before invoking the shared backend. One operation GUID now follows the command into the PowerShell journal and appears in CLI JSON/plain output, desktop activity, rolling logs, crash reports, and support-bundle manifests. Local EventPipe/ETW collectors can also subscribe to the `LibreSpot-Operations` EventSource; LibreSpot does not upload this telemetry.
