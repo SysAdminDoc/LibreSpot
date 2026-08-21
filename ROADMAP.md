@@ -8,7 +8,7 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 IDs continue the RD-nn scheme. Highest ID in this file: RD-72. RD-47–RD-50 are absent because they already landed on `main` (CHANGELOG `[Unreleased]`); do not re-file them.
 
-Existing items RD-51–RD-57 and RD-60–RD-62 below are the same work items as the prior pass, with evidence corrections in-place (especially RD-54 / RD-60). New items start at RD-63.
+Existing items RD-51–RD-57 and RD-61–RD-62 below are the same work items as the prior pass, with evidence corrections in-place (especially RD-54). New items start at RD-63.
 
 ### P0
 
@@ -22,13 +22,6 @@ Existing items RD-51–RD-57 and RD-60–RD-62 below are the same work items as 
 ### P1
 
 ### P2
-
-- [ ] P2 — RD-60: "How to verify LibreSpot" / fake-installer section in README and SECURITY
-  Why: Jun 2026 ClickFix/Vidar campaigns instruct victims to paste PowerShell for “free Spotify Premium” and add Defender exclusions; LibreSpot’s checksum-verified Quick Start is the counter and will rank for the queries victims make.
-  Evidence: Malwarebytes 2026-06; HelpNetSecurity Vidar/Reels writeup; README Quick Start vs `irm | iex` advanced path.
-  Touches: README.md trust section, SECURITY.md
-  Acceptance: A short section lists authenticity checks (official repo path, SHA256 `checksums.txt`, no Telegram/rehosted builds, never paste commands from videos) without naming-and-shaming specific GitHub stubs; human-voice rules applied.
-  Complexity: S
 
 - [ ] P2 — RD-61: Doc-truth alignment for tracked markdown and stale metadata
   Why: `.gitignore` “Markdown local-only” and AGENTS.md “README is the ONLY tracked .md” contradict tracked RESEARCH.md/ROADMAP.md/Roadmap_Blocked.md; `parity-manifest.json` generatorVersion is 16 previews stale; CLAUDE.md Current State attributes Unreleased work to preview.25; stray `Roadmap_Blocks.md` shadows `Roadmap_Blocked.md`.

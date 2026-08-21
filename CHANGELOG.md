@@ -21,6 +21,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Unified the desktop workspace vocabulary around Recommended, Custom, and Maintenance. Jump List entries and per-user `librespot://` and `.librespot` registration descriptions now use localized resources after the saved interface culture is loaded.
 - Updated `LibreSpot.Cli --help` to list every flag in `schemas/fleet-cli-contract.json` per verb, with the `--purge` and `--yes` uninstall requirements stated explicitly.
 - Split the Custom workspace into PascalCase-paired per-section UserControls and moved maintenance, custom-install, and profile members into view-model partials. Existing UIA, localization, focus, and behavior contracts remain unchanged.
+- Added a short fake-installer warning and download-verification checklist to README and SECURITY. It points users to the official repository, same-release SHA256 checksums, and away from Telegram, rehosted files, Defender changes, and pasted commands.
 
 ### Fixed
 

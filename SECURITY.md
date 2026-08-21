@@ -87,6 +87,22 @@ Users should update from the [PowerShell 7.6.5 release](https://github.com/Power
 
 The Desktop and CLI releases are self-contained, so each binary carries the .NET runtime resolved during its build. `Build-Scripts.ps1 -DependencyHealth` therefore requires .NET 10.0.11 or newer for both `Microsoft.NETCore.App` and `Microsoft.WindowsDesktop.App`. The August 11, 2026 servicing release fixes ten CVEs, including two remote-code-execution issues. Rebuild release assets on a host with the patched runtime rather than relying on a later machine update.
 
+## How to verify a download
+
+The common fake-installer path starts with a video, social post, or chat message that asks you to paste PowerShell for “free Spotify Premium.” That command can run arbitrary code before LibreSpot is involved.
+
+Use only release assets linked from the [official LibreSpot repository](https://github.com/SysAdminDoc/LibreSpot). Do not trust Telegram links, rehosted files, or builds copied to another site. Download `checksums.txt` from the same release page and compare the asset before running it:
+
+```powershell
+$actual = (Get-FileHash .\LibreSpot.ps1 -Algorithm SHA256).Hash.ToLowerInvariant()
+$expected = (Get-Content .\checksums.txt |
+  Where-Object { $_ -match '\sLibreSpot\.ps1$' } |
+  ForEach-Object { ($_ -split '\s+')[0] }).ToLowerInvariant()
+$actual -eq $expected
+```
+
+The result must be `True`. Delete the asset if it does not match. Never run a pasted command that asks you to disable Defender, add a Defender exclusion, or fetch LibreSpot from another host.
+
 ## Supply-chain hygiene
 
 LibreSpot does not currently track build, release, or Scorecard GitHub Actions workflows. Release trust evidence comes from the local release build and post-upload audit: SHA256 entries in `checksums.txt`, the machine-readable `librespot-release-manifest.json`, CycloneDX SBOM output, pinned upstream download hashes, and local test/build logs. Each new release is published with GitHub release immutability enabled, which generates a Sigstore-verifiable release attestation. Verify it with `gh release verify <tag>` and verify a downloaded asset with `gh release verify-asset <tag> <local-asset-path>`. Source archives are not covered by the asset command.

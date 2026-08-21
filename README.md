@@ -54,6 +54,18 @@ This path does not verify the release checksum before execution, cannot self-ele
 
 > **Requirements:** Windows 10/11, PowerShell 5.1+ (built-in), internet connection. Tested on Windows PowerShell 5.1 and PowerShell 7.6 LTS.
 
+## How to verify a LibreSpot download
+
+Fake “free Spotify Premium” installers often begin with a video or message that tells you to paste PowerShell. Use the [official LibreSpot repository](https://github.com/SysAdminDoc/LibreSpot) and its linked release page instead.
+
+For a release asset, download `checksums.txt` from that same release page and compare the asset with the matching SHA256 entry:
+
+```powershell
+(Get-FileHash .\LibreSpot.ps1 -Algorithm SHA256).Hash
+```
+
+Do not use Telegram links, rehosted files, or builds copied to another site. Never paste commands from videos, social posts, or chat messages. If a command asks you to disable Defender or add an exclusion, close it. A hash mismatch means the file must be deleted and not run.
+
 <div align="center">
 
 <img width="1150" alt="LibreSpot Recommended setup WPF shell" src="assets/screenshots/wpf-recommended.png" />
