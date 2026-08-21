@@ -10,22 +10,6 @@ Highest ID: RD-106. Issue tracker: zero open issues/PRs; closed #1-#5 predate v4
 
 Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disabled rail contrast, RD-82 AtomicFile, RD-85 dead members, RD-87 LibreSpotPaths, RD-88 PowerShell host path, RD-89 DWM palette colors, RD-99 snapshot-error glyph, RD-100 screenshot contract, RD-101 WPF-UI template leak gate, RD-102 CycloneDX local tool, RD-103 changelog HEAD-only bullets, RD-104 Jump List labels. Filled/secondary/checkbox/combo disabled states now use DisabledTextBrush; CardListBoxItemStyle remains under RD-105. Bloom checklist/manifest decision drift (the RD-81 note) is aligned; the gh-pages gate below remains.
 
-### P1
-
-- [ ] P1 — RD-109: `-CatalogTruth` passes silently on a shallow or single-branch clone
-  Why: `git fetch origin gh-pages` exits 0 on a `--depth 1` clone but writes only `FETCH_HEAD`; `refs/remotes/origin/gh-pages` is never created, so the gate takes the warn-and-return path and exits 0.
-  Where: Build-Scripts.ps1 Test-CommunityCatalogTruth
-  Repro: `git clone --depth 1 file:///C:/repos/LibreSpot t`, tamper `extensions[0].sha256`, run `-CatalogTruth`. Reports "unverified", exits 0, and tells the user to run the command that just ran.
-  Fix: In `-CatalogTruth` (the fetching mode), fetch into an explicit local ref (`git fetch origin gh-pages:refs/librespot/gh-pages-truth`) and read that, and fail rather than warn when the fetch itself succeeded. Warn-only stays correct for `-Validate` and for an unreachable remote.
-  Acceptance: The gate fails on a tampered manifest in a `--depth 1` clone; a genuinely offline run still warns and passes.
-
-- [ ] P1 — RD-110: `-CatalogTruth` only compares fields that reach catalog.json
-  Why: The gate regenerates catalog.json and diffs it, so manifest fields the generator does not emit are invisible.
-  Where: Build-Scripts.ps1 Test-CommunityCatalogTruth; tools/Build-CommunityCatalog.ps1
-  Repro: change `extensions[0].assetPath` to `TAMPERED-hidePodcasts.js` and the gate passes. Same blind spot for `legacyAliases`, `easyModeDefault`, `policyOverride`, `releaseTag`, `requiresJsInjection`, and the top-level `deprecatedExtensions`, `officialThemesArchive`, `policy`, `manifestVersion`. `assetPath` is the file actually fetched, so it is trust-relevant.
-  Fix: Publish a manifest digest alongside catalog.json and compare that, or emit the omitted trust fields into the catalog.
-  Acceptance: Editing any trust-relevant manifest field without republishing fails the gate.
-
 ### P2
 
 - [ ] P2 — RD-111: `SpotifyVersion` accepts trailing garbage past the component cap
@@ -69,12 +53,6 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
   Acceptance: One reading of a given version string drives both the verdict and the unsupported-major check.
 
 ### P3
-
-- [ ] P3 — RD-117: `Invoke-GitCommand` drains sequentially and can block on a credential prompt
-  Why: It reads stdout to the end, then stderr, then waits, which deadlocks if the child fills the stderr pipe. Stdin is not redirected and `GIT_TERMINAL_PROMPT=0` is not set, so a credential-less remote can prompt instead of failing.
-  Where: Build-Scripts.ps1 Invoke-GitCommand
-  Fix: Drain both pipes concurrently, redirect stdin, and set `GIT_TERMINAL_PROMPT=0`. Not reproduced; the output volumes involved are small.
-  Acceptance: A git call that writes heavily to stderr still returns, and a prompting remote fails instead of hanging.
 
 - [ ] P3 — RD-118: `-Validate` fails hard on a stale gh-pages tracking ref
   Why: It deliberately does not fetch, so a clone whose `origin/gh-pages` predates a publish from another machine reports drift that is not real.

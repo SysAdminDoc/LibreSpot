@@ -529,11 +529,18 @@ longer stands behind.
 .\Build-Scripts.ps1 -CatalogTruth
 ```
 
-That fetches `gh-pages`, regenerates the catalog into a temporary directory, and
-compares it with the published `catalog.json`. A mismatch fails and names the
-regenerate step. When the `origin/gh-pages` ref cannot be reached the check
-warns and passes, so an offline machine is not blocked. `-Validate` runs the
-same comparison without fetching.
+That fetches `gh-pages` into a ref it owns, regenerates the catalog into a
+temporary directory, and compares it with the published `catalog.json`. A
+mismatch fails and names the regenerate step. `catalog.json` carries a SHA256
+of each source schema, so a change to a manifest field the page does not render
+(an `assetPath`, an `easyModeDefault`) is caught too, not just the fields that
+show on a card.
+
+When the remote cannot be reached the check warns and passes, so an offline
+machine is not blocked. It only warns for a genuinely unreachable remote: if
+the fetch succeeds and the catalog still cannot be read, that is a failure.
+`-Validate` runs the same comparison against whatever `origin/gh-pages` the
+clone already has, without fetching.
 
 When it reports drift, regenerate and push:
 

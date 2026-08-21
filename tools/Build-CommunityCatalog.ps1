@@ -69,6 +69,22 @@ function Read-JsonFile {
     return $raw | ConvertFrom-Json
 }
 
+function Get-FileSha256 {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    # Hash the raw bytes, not the parsed object: the catalog only carries the
+    # manifest fields the page renders, so without this a change to a field
+    # like assetPath would never reach catalog.json and the published-catalog
+    # gate would pass on a manifest it has never seen.
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.IO.File]::ReadAllBytes($Path)
+        return ([System.BitConverter]::ToString($sha256.ComputeHash($bytes)) -replace '-', '').ToLowerInvariant()
+    } finally {
+        $sha256.Dispose()
+    }
+}
+
 function Write-Utf8File {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
@@ -432,6 +448,10 @@ $catalog = [ordered]@{
         'schemas/community-assets.json'
         'schemas/theme-preview-manifest.json'
     )
+    sourceDigests = [ordered]@{
+        'schemas/community-assets.json' = Get-FileSha256 -Path $communityPath
+        'schemas/theme-preview-manifest.json' = Get-FileSha256 -Path $previewPath
+    }
     counts = $counts
     items = $items
 }

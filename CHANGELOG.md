@@ -8,7 +8,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Added
 
-- `Build-Scripts.ps1 -CatalogTruth` regenerates the community catalog and compares it with `catalog.json` on the published `gh-pages` branch, so a revoked review or a changed pin cannot keep advertising stale trust evidence on the public page. `-Validate` runs the same check against whatever `origin/gh-pages` the clone already has and warns rather than failing when that ref is missing, so offline runs still pass.
+- `Build-Scripts.ps1 -CatalogTruth` regenerates the community catalog and compares it with `catalog.json` on the published `gh-pages` branch, so a revoked review or a changed pin cannot keep advertising stale trust evidence on the public page. The published catalog now carries a SHA256 of each source schema, so an edit to a manifest field the page does not render is caught as well. `-Validate` runs the same check against whatever `origin/gh-pages` the clone already has and warns rather than failing when that ref is missing, so offline runs still pass.
 
 ### Fixed
 

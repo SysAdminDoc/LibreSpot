@@ -828,7 +828,10 @@ function Test-PublicReleaseTruth {
 }
 
 function Invoke-GitCommand {
-    param([Parameter(Mandatory)][string]$Arguments)
+    param(
+        [Parameter(Mandatory)][string]$Arguments,
+        [int]$TimeoutSeconds = 120
+    )
 
     # git writes UTF-8 regardless of the console codepage, so redirect through
     # ProcessStartInfo with an explicit decoder instead of the pipeline.
@@ -840,8 +843,13 @@ function Invoke-GitCommand {
     $startInfo.CreateNoWindow = $true
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
+    # Redirect stdin and disable the terminal prompt so a credential-less remote
+    # fails instead of blocking this script on an invisible prompt.
+    $startInfo.RedirectStandardInput = $true
     $startInfo.StandardOutputEncoding = [System.Text.Encoding]::UTF8
     $startInfo.StandardErrorEncoding = [System.Text.Encoding]::UTF8
+    $startInfo.EnvironmentVariables['GIT_TERMINAL_PROMPT'] = '0'
+    $startInfo.EnvironmentVariables['GCM_INTERACTIVE'] = 'never'
 
     try {
         $process = [System.Diagnostics.Process]::Start($startInfo)
@@ -853,14 +861,27 @@ function Invoke-GitCommand {
         }
     }
 
-    $standardOutput = $process.StandardOutput.ReadToEnd()
-    $standardError = $process.StandardError.ReadToEnd()
-    $process.WaitForExit()
+    $process.StandardInput.Close()
+
+    # Start both reads before waiting: draining one pipe to the end first
+    # deadlocks as soon as the other fills.
+    $stdoutRead = $process.StandardOutput.ReadToEndAsync()
+    $stderrRead = $process.StandardError.ReadToEndAsync()
+
+    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+        try { $process.Kill() } catch { }
+        try { $process.WaitForExit(2000) } catch { }
+        return [pscustomobject]@{
+            ExitCode = -1
+            StandardOutput = ''
+            StandardError = "git did not finish within $TimeoutSeconds seconds: git $Arguments"
+        }
+    }
 
     return [pscustomobject]@{
         ExitCode = $process.ExitCode
-        StandardOutput = $standardOutput
-        StandardError = $standardError
+        StandardOutput = $stdoutRead.GetAwaiter().GetResult()
+        StandardError = $stderrRead.GetAwaiter().GetResult()
     }
 }
 
@@ -892,18 +913,32 @@ function Test-CommunityCatalogTruth {
         throw "Cannot find the community catalog generator at $catalogTool"
     }
 
+    $publishedRef = 'origin/gh-pages'
     if ($FetchRemote) {
-        $fetch = Invoke-GitCommand -Arguments 'fetch --quiet origin gh-pages'
+        # A shallow or single-branch clone has no origin/gh-pages in its fetch
+        # refspec, so a plain "git fetch origin gh-pages" exits 0 and writes
+        # nothing but FETCH_HEAD. Fetch into a ref this script owns so a
+        # successful fetch always produces something to read.
+        $publishedRef = 'refs/librespot/catalog-truth'
+        $fetch = Invoke-GitCommand -Arguments "fetch --quiet --force origin refs/heads/gh-pages:$publishedRef"
         if ($fetch.ExitCode -ne 0) {
             Write-Host "Community catalog truth is unverified: could not reach origin/gh-pages. $($fetch.StandardError.Trim())" -ForegroundColor Yellow
             return
         }
     }
 
-    $published = Invoke-GitCommand -Arguments 'show origin/gh-pages:catalog.json'
+    $published = Invoke-GitCommand -Arguments "show ${publishedRef}:catalog.json"
     if ($published.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($published.StandardOutput)) {
+        if ($FetchRemote) {
+            # The fetch worked, so the remote is reachable. Not being able to
+            # read the catalog now is a real failure, not an offline machine.
+            Write-Host "Fetched origin/gh-pages but could not read ${publishedRef}:catalog.json." -ForegroundColor Red
+            Write-Host "  $($published.StandardError.Trim())" -ForegroundColor Red
+            throw 'The published community catalog could not be read, so catalog truth is unverified.'
+        }
+
         Write-Host 'Community catalog truth is unverified: origin/gh-pages:catalog.json is not available locally.' -ForegroundColor Yellow
-        Write-Host '  Run "Build-Scripts.ps1 -CatalogTruth" (or "git fetch origin gh-pages") while online to compare against the published page.' -ForegroundColor Yellow
+        Write-Host '  Run "Build-Scripts.ps1 -CatalogTruth" while online to fetch the published page and compare against it.' -ForegroundColor Yellow
         return
     }
 
