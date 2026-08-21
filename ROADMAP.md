@@ -12,8 +12,10 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
 
 ### P3
 
-- [ ] P3 — RD-98: Areas this audit did not reach
-  Why: Honest coverage so the next pass does not assume these were cleared.
-  Where: LibreSpot.ps1 WinForms/WPF-in-PS GUI event flow and Module-* orchestration bodies; OperationJournalUndoService undo token execution beyond the CLI guard; Marketplace export/restore archive internals; AvalonEdit custom-patch editor runtime; Crowdin round-trip
-  Fix: Focused pass per area; PS GUI flow and the undo executor have the most user-facing risk.
+- [ ] P3 — RD-125: The eight `Module-*` orchestration bodies and the script GUI event flow have no direct tests
+  Why: RD-98 listed five unaudited areas. Four were checked and are covered: the undo executor has four `ExecuteUndoAsync` tests spanning policy refusal, idempotency, injected partial failure, and restoring a missing value, and PATH is its only token kind; Marketplace and the custom-patch service are exercised across hundreds of assertions; the Crowdin config has a mapping test. This one is real.
+  Where: LibreSpot.ps1 (8 `Module-*` functions, 61 `Add_*` event handlers); tests/powershell/LibreSpot.Tests.ps1 (27 Describe blocks, zero references to any `Module-*` function)
+  Problem: the orchestration bodies that actually install, reapply, and reset are only reached through the composition and parity gates, which compare text rather than behaviour. A logic change inside one of them breaks nothing that runs locally.
+  Fix: Pester coverage per `Module-*` function against a temp Spotify tree with the download and elevation boundaries stubbed, starting with the reapply and reset paths. Then the GUI handlers, which mostly marshal to those functions.
+  Acceptance: Each `Module-*` function has at least one Pester test that exercises its body against a fake install root; the suite still runs without touching a real Spotify installation.
 
