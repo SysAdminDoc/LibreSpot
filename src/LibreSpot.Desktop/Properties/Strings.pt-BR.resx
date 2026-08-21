@@ -2066,8 +2066,8 @@
   <data name="Vm_SimpleHomeCheckingBody" xml:space="preserve"><value>O LibreSpot está verificando o Spotify, as permissões e as dependências.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeAttentionTitle" xml:space="preserve"><value>Algo precisa de atenção</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeAttentionBody" xml:space="preserve"><value>Revise os itens abaixo antes de iniciar a configuração recomendada.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SimpleHomeUnavailableTitle" xml:space="preserve"><value>Não foi possível verificar este computador</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SimpleHomeUnavailableBody" xml:space="preserve"><value>Atualize a verificação do sistema ou abra Manutenção para obter ajuda.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeUnavailableTitle" xml:space="preserve"><value>O LibreSpot não conseguiu verificar este computador</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeUnavailableBody" xml:space="preserve"><value>Selecione Tentar novamente ou abra Manutenção para obter ajuda.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeDuration" xml:space="preserve"><value>Geralmente leva de 2 a 4 minutos</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_SimpleHomeDetails" xml:space="preserve"><value>Detalhes</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_SimpleHomeSystem" xml:space="preserve"><value>Sistema</value><comment>MainViewModel localized runtime text.</comment></data>

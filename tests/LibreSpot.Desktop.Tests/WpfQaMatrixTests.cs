@@ -49,7 +49,7 @@ public sealed class WpfQaMatrixTests
             ("custom-no-results", "SearchNoResults", "SettingsSearchClearButton"),
             ("home-readiness", "Vm_SimpleHomeReadyTitle", "RunRecommendedSetupButton"),
             ("snapshot-loading", "Vm_SimpleHomeCheckingTitle", "WorkspaceNavRecommended"),
-            ("snapshot-error", "Vm_SimpleHomeUnavailableTitle", "WorkspaceNavRecommended"),
+            ("snapshot-error", "Vm_SimpleHomeUnavailableTitle", "RetrySystemCheckButton"),
             ("activity-error", "RunNeedsAttention", "ActivityExportFailureBundleButton"),
             ("activity", "Ui_CloseActivityPanel", "ActivityCloseButton")
         };

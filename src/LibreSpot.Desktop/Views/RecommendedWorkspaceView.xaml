@@ -389,6 +389,15 @@
                   Orientation="Horizontal"
                   HorizontalAlignment="Center"
                   Margin="0,24,0,0">
+        <StackPanel.Style>
+          <Style TargetType="StackPanel">
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
+                <Setter Property="Visibility" Value="Collapsed" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </StackPanel.Style>
         <ui:SymbolIcon Symbol="Clock20"
                        FontSize="20"
                        Foreground="{DynamicResource MutedTextBrush}" />
@@ -398,6 +407,23 @@
                    Margin="8,0,0,0"
                    VerticalAlignment="Center" />
       </StackPanel>
+
+      <!-- Recovery for the snapshot-error state. RefreshSnapshotCommand was
+           otherwise reachable only through the F5 accelerator, leaving a restart
+           as the only discoverable way out of a failed environment check. -->
+      <Button Grid.Row="5"
+              MinWidth="220"
+              Height="46"
+              Margin="0,24,0,0"
+              Padding="22,0"
+              HorizontalAlignment="Center"
+              Visibility="{Binding HasSnapshotLoadError, Converter={StaticResource BoolToVisibilityConverter}}"
+              Style="{StaticResource SecondaryButtonStyle}"
+              Command="{Binding RefreshSnapshotCommand}"
+              Content="{services:Loc Vm_ShellRetryShort}"
+              AutomationProperties.AutomationId="RetrySystemCheckButton"
+              AutomationProperties.Name="{services:Loc Vm_ShellRetryShort}"
+              AutomationProperties.HelpText="{services:Loc ButtonRefreshEnvironmentHint}" />
 
       <Expander Grid.Row="6"
                 Header="{services:Loc Vm_SimpleHomeDetails}"

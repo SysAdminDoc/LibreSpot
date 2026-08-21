@@ -2066,8 +2066,8 @@
   <data name="Vm_SimpleHomeCheckingBody" xml:space="preserve"><value>LibreSpot 正在检查 Spotify、权限和依赖项。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeAttentionTitle" xml:space="preserve"><value>有项目需要处理</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeAttentionBody" xml:space="preserve"><value>请先查看下方项目，再开始推荐设置。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SimpleHomeUnavailableTitle" xml:space="preserve"><value>无法检查此电脑</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SimpleHomeUnavailableBody" xml:space="preserve"><value>请刷新系统检查，或打开“维护”获取帮助。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeUnavailableTitle" xml:space="preserve"><value>LibreSpot 无法验证此电脑</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeUnavailableBody" xml:space="preserve"><value>请选择“重试”，或打开“维护”获取帮助。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeDuration" xml:space="preserve"><value>通常需要 2 到 4 分钟</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_SimpleHomeDetails" xml:space="preserve"><value>详细信息</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_SimpleHomeSystem" xml:space="preserve"><value>系统</value><comment>MainViewModel localized runtime text.</comment></data>
