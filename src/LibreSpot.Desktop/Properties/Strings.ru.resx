@@ -2064,8 +2064,8 @@
   <data name="Vm_SimpleHomeInstallBody" xml:space="preserve"><value>LibreSpot готов установить поддерживаемую конфигурацию Spotify.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeCheckingTitle" xml:space="preserve"><value>Проверяем систему</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeCheckingBody" xml:space="preserve"><value>LibreSpot проверяет Spotify, разрешения и зависимости.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SimpleHomeAttentionTitle" xml:space="preserve"><value>Один пункт требует внимания</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SimpleHomeAttentionBody" xml:space="preserve"><value>Проверьте пункт ниже перед запуском рекомендуемой настройки.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeAttentionTitle" xml:space="preserve"><value>Требуется внимание</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeAttentionBody" xml:space="preserve"><value>Проверьте пункты ниже перед запуском рекомендуемой настройки.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeUnavailableTitle" xml:space="preserve"><value>Не удалось проверить этот компьютер</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeUnavailableBody" xml:space="preserve"><value>Обновите проверку системы или откройте раздел «Обслуживание».</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeDuration" xml:space="preserve"><value>Обычно от 2 до 4 минут</value><comment>User-facing WPF text</comment></data>

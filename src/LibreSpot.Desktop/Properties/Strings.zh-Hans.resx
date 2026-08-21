@@ -2064,7 +2064,7 @@
   <data name="Vm_SimpleHomeInstallBody" xml:space="preserve"><value>LibreSpot 已准备好安装受支持的 Spotify 配置。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeCheckingTitle" xml:space="preserve"><value>正在检查系统</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeCheckingBody" xml:space="preserve"><value>LibreSpot 正在检查 Spotify、权限和依赖项。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SimpleHomeAttentionTitle" xml:space="preserve"><value>有一项需要处理</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeAttentionTitle" xml:space="preserve"><value>有项目需要处理</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeAttentionBody" xml:space="preserve"><value>请先查看下方项目，再开始推荐设置。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeUnavailableTitle" xml:space="preserve"><value>无法检查此电脑</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeUnavailableBody" xml:space="preserve"><value>请刷新系统检查，或打开“维护”获取帮助。</value><comment>MainViewModel localized runtime text.</comment></data>

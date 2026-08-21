@@ -20,16 +20,6 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — RD-77: Highest-visibility copy defects: wrong action names, hardcoded singular, and a possessive typo
-  Category: ux
-  Where: src/LibreSpot.Desktop/Properties/Strings.resx keys `Vm_RiskPromptBodyFormat`, `Vm_RecommendedFirstRunReversible`, `Vm_SimpleHomeAttentionTitle`, `Vm_SimpleHomeAttentionBody`, `Vm_MaintenanceRemoveSelfDataBodySuffix` (plus the four satellite locales)
-  Problem: (1) The risk-acknowledgment prompt (shown before every install; MainViewModel.cs:2538) and the first-run narrative both direct users to "Maintenance > Full Reset" — but the action is titled "Full reset" and its button reads "Reset everything" (`Maintenance_FullReset_Title` / `_ButtonText`), so the instruction names a control that doesn't exist. (2) Home's attention state hardcodes the singular: "One item needs attention" is selected by the boolean `HasCriticalHealthIssues` (MainViewModel.cs:373,382), which is just as true for three critical issues. (3) "Only LibreSpot own data is removed" (`Vm_MaintenanceRemoveSelfDataBodySuffix`, live in the RemoveSelfData prompt via MainViewModel.Maintenance.cs:522) is missing the possessive.
-  Evidence: All values and call sites read directly this session; grep confirmed each key is live in a reachable flow.
-  Fix: (1) Reference the real labels: "using Maintenance > Full reset (the Reset everything button)" — or better, align the button text with the title first and then reference one name. (2) Neutralize the count: "Something needs attention" / "Review the checks below before starting the recommended setup", or derive singular/plural from `CriticalHealthIssues.Count`. (3) "Only LibreSpot's own data is removed." Update en plus all four satellites; run `Build-Scripts.ps1 -Validate` for the localization gate.
-  Acceptance: The risk prompt names an action label that exists verbatim in Maintenance; the attention headline reads correctly with 2+ critical issues (unit test on SimpleHomeTitle with a multi-issue snapshot); the typo is gone in all five locales.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — RD-78: Theme search box is labeled "Theme pack" and both search fields look like empty broken controls
   Category: ux
   Where: src/LibreSpot.Desktop/Views/CustomAppearanceSection.xaml:24-34 (label `ThemePackLabel` directly above a TextBox whose real purpose — gallery search — exists only in AutomationProperties); src/LibreSpot.Desktop/Views/CustomWorkspaceView.xaml:25-37 ("Find a setting" as a label above an empty TextBox); Themes/Controls.xaml `TextBoxStylePremium`

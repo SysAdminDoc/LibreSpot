@@ -467,7 +467,7 @@
   <data name="Vm_RecommendedFirstRunIntro" xml:space="preserve"><value>Recommended uses known-good defaults and checks your environment before making changes.</value><comment>Recommended first-run narrative</comment></data>
   <data name="Vm_RecommendedFirstRunInstall" xml:space="preserve"><value>Installs Spotify and applies the recommended SpotX, Spicetify, Marketplace, and extension settings.</value><comment>Recommended first-run checklist</comment></data>
   <data name="Vm_RecommendedFirstRunUpdates" xml:space="preserve"><value>Blocks automatic Spotify updates so the patched version stays in place.</value><comment>Recommended first-run checklist</comment></data>
-  <data name="Vm_RecommendedFirstRunReversible" xml:space="preserve"><value>You can return Spotify to its stock state later with Maintenance &gt; Full Reset.</value><comment>Recommended first-run checklist</comment></data>
+  <data name="Vm_RecommendedFirstRunReversible" xml:space="preserve"><value>You can return Spotify to its stock state later with Maintenance &gt; Full reset.</value><comment>Recommended first-run checklist</comment></data>
   <data name="Vm_RecommendedFirstRunRisk" xml:space="preserve"><value>A risk notice appears first, and LibreSpot asks you to confirm before making changes.</value><comment>Recommended first-run checklist</comment></data>
   <!-- Custom mode sections -->
   <data name="InstallPostureSection" xml:space="preserve">
@@ -2064,8 +2064,8 @@
   <data name="Vm_SimpleHomeInstallBody" xml:space="preserve"><value>LibreSpot is ready to install the supported Spotify setup.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeCheckingTitle" xml:space="preserve"><value>Checking your system</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeCheckingBody" xml:space="preserve"><value>LibreSpot is checking Spotify, permissions, and dependencies.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SimpleHomeAttentionTitle" xml:space="preserve"><value>One item needs attention</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SimpleHomeAttentionBody" xml:space="preserve"><value>Review the item below before starting the recommended setup.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeAttentionTitle" xml:space="preserve"><value>Something needs attention</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeAttentionBody" xml:space="preserve"><value>Review the checks below before starting the recommended setup.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeUnavailableTitle" xml:space="preserve"><value>We couldn't check this PC</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeUnavailableBody" xml:space="preserve"><value>Refresh the system check or open Maintenance for help.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeDuration" xml:space="preserve"><value>Usually 2 to 4 minutes</value><comment>User-facing WPF text</comment></data>
@@ -2253,7 +2253,7 @@
   <data name="Vm_PlanSummaryDefault" xml:space="preserve"><value>LibreSpot will download, verify, and apply the selected setup.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_PlanSummaryCompatibilityWarning" xml:space="preserve"><value>Version compatibility warning:</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_PlanSummaryStepsTitle" xml:space="preserve"><value>LibreSpot will perform these steps:</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceRemoveSelfDataBodySuffix" xml:space="preserve"><value>Only LibreSpot own data is removed. Spotify, SpotX patches, and Spicetify are not touched.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceRemoveSelfDataBodySuffix" xml:space="preserve"><value>Only LibreSpot's own data is removed. Spotify, SpotX patches, and Spicetify are not touched.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceDestructiveBodySuffix" xml:space="preserve"><value>This is a deeper reset path and may remove the current customization state. Continue only when you are ready to rebuild.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceStandardBodySuffix" xml:space="preserve"><value>LibreSpot will keep this window open and stream backend progress while the action runs.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_KeepCurrentSetup" xml:space="preserve"><value>Keep current setup</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2286,7 +2286,7 @@
   <data name="Vm_AdminPromptSummaryTitle" xml:space="preserve"><value>Before you continue</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_AdminPromptSummaryBody" xml:space="preserve"><value>Nothing changes until Windows approves the relaunch. You can stay here and keep reviewing settings if you are not ready.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptTitle" xml:space="preserve"><value>Risk acknowledgment</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RiskPromptBodyFormat" xml:space="preserve"><value>LibreSpot modifies your Spotify installation to remove ads and apply themes. This violates Spotify Terms of Service and User Guidelines (https://spotify.com/legal/user-guidelines/). While enforcement against individual users has not been publicly documented, your account could be affected.{0}By continuing, you acknowledge this risk and agree to proceed at your own discretion.{0}You can restore stock Spotify at any time using Maintenance &gt; Full Reset.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_RiskPromptBodyFormat" xml:space="preserve"><value>LibreSpot modifies your Spotify installation to remove ads and apply themes. This violates Spotify Terms of Service and User Guidelines (https://spotify.com/legal/user-guidelines/). While enforcement against individual users has not been publicly documented, your account could be affected.{0}By continuing, you acknowledge this risk and agree to proceed at your own discretion.{0}You can restore stock Spotify at any time using Maintenance &gt; Full reset.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptConfirm" xml:space="preserve"><value>I understand, continue</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptSummaryTitle" xml:space="preserve"><value>What this means</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptSummaryBody" xml:space="preserve"><value>LibreSpot will record your acknowledgment so this dialog does not appear again. No data leaves your machine.</value><comment>MainViewModel localized runtime text.</comment></data>
