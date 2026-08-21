@@ -10,6 +10,22 @@ public sealed class DependencyAutomationTests
 {
     private static readonly string RepoRoot = ResolveRepoRoot();
 
+    // How a test actually starts the shell: the published executable next to
+    // the test binaries, handed to Process.Start or a FlaUI Application.Launch.
+    private static readonly Regex ShellLaunchPattern = new(
+        @"AppContext\.BaseDirectory\s*,\s*""LibreSpot\.exe""|Process\.Start\s*\(\s*[^)]*LibreSpot\.exe|Application\.Launch",
+        RegexOptions.Compiled);
+
+    // Only public classes: xunit does not discover private nested helpers such
+    // as the SmokeApp process wrappers, so the class filter never sees them.
+    private static readonly Regex ClassDeclarationPattern = new(
+        @"\bpublic\s+(?:sealed\s+|abstract\s+|static\s+|partial\s+)*class\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)",
+        RegexOptions.Compiled);
+
+    private static bool IsBuildOutput(string path) =>
+        path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
+        path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase);
+
     [Fact]
     public void DependencyUpdateBots_AreNotConfigured()
     {
@@ -53,26 +69,36 @@ public sealed class DependencyAutomationTests
         var offenders = new List<string>();
         var launchers = 0;
 
-        foreach (var file in Directory.EnumerateFiles(testRoot, "*.cs", SearchOption.TopDirectoryOnly))
+        foreach (var file in Directory.EnumerateFiles(testRoot, "*.cs", SearchOption.AllDirectories))
         {
-            var name = Path.GetFileNameWithoutExtension(file);
-            if (name == nameof(DependencyAutomationTests))
+            if (IsBuildOutput(file) ||
+                Path.GetFileNameWithoutExtension(file) == nameof(DependencyAutomationTests))
             {
-                // This file spells the markers out, so it matches itself.
+                // This file spells the marker out, so it would match itself.
                 continue;
             }
 
             var content = File.ReadAllText(file);
-            if (!content.Contains("--uia-smoke", StringComparison.Ordinal) &&
-                !content.Contains("new MainWindow", StringComparison.Ordinal))
+            // The launch primitive, not the flag: --uia-smoke only tells an
+            // already-started shell to behave, so keying on it would miss a
+            // test that opens the production shell instead.
+            if (!ShellLaunchPattern.IsMatch(content))
             {
                 continue;
             }
 
             launchers++;
-            if (!name.Contains("Wpf", StringComparison.Ordinal))
+            // --filter-not-class matches the declared type name, not the file
+            // name, so read the type names out of the file.
+            foreach (Match declaration in ClassDeclarationPattern.Matches(content))
             {
-                offenders.Add($"{name} starts the WPF shell but its class name does not contain 'Wpf', so --filter-not-class does not exclude it.");
+                var typeName = declaration.Groups["name"].Value;
+                if (!typeName.Contains("Wpf", StringComparison.Ordinal))
+                {
+                    offenders.Add(
+                        $"{typeName} (in {Path.GetFileName(file)}) can start LibreSpot.exe, but 'Wpf' is not in its type name, " +
+                        "so --filter-not-class does not exclude it from the documented local run.");
+                }
             }
         }
 

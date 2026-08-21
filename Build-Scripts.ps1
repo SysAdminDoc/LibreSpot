@@ -919,13 +919,14 @@ function Test-CommunityCatalogTruth {
         throw "Cannot find the community catalog generator at $catalogTool"
     }
 
+    $localTruthRef = 'refs/librespot/catalog-truth'
     $publishedRef = 'origin/gh-pages'
     if ($FetchRemote) {
         # A shallow or single-branch clone has no origin/gh-pages in its fetch
         # refspec, so a plain "git fetch origin gh-pages" exits 0 and writes
         # nothing but FETCH_HEAD. Fetch into a ref this script owns so a
         # successful fetch always produces something to read.
-        $publishedRef = 'refs/librespot/catalog-truth'
+        $publishedRef = $localTruthRef
         $fetch = Invoke-GitCommand -Arguments "fetch --quiet --force origin refs/heads/gh-pages:$publishedRef"
         if ($fetch.ExitCode -ne 0) {
             Write-Host "Community catalog truth is unverified: could not reach origin/gh-pages. $($fetch.StandardError.Trim())" -ForegroundColor Yellow
@@ -934,6 +935,17 @@ function Test-CommunityCatalogTruth {
     }
 
     $published = Invoke-GitCommand -Arguments "show ${publishedRef}:catalog.json"
+    if (-not $FetchRemote -and ($published.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($published.StandardOutput))) {
+        # A --single-branch clone never creates origin/gh-pages, so fall back to
+        # whatever the last -CatalogTruth fetched. Otherwise this check would
+        # warn and pass on that clone shape no matter what the manifest says.
+        $fallback = Invoke-GitCommand -Arguments "show ${localTruthRef}:catalog.json"
+        if ($fallback.ExitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($fallback.StandardOutput)) {
+            $publishedRef = $localTruthRef
+            $published = $fallback
+        }
+    }
+
     if ($published.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($published.StandardOutput)) {
         if ($FetchRemote) {
             # The fetch worked, so the remote is reachable. Not being able to
@@ -1023,6 +1035,20 @@ function Test-CommunityCatalogTruth {
         }
         if ($differences.Count -gt 8) {
             $driftReport.Add("  [$name] ... $($differences.Count - 8) further differing lines")
+        }
+    }
+
+    # Walk the published side too. Comparing only what the generator emits means
+    # dropping an emission, or committing an extra page to gh-pages by hand,
+    # leaves a file served from the site that nothing here has ever checked.
+    $publishedListing = Invoke-GitCommand -Arguments "ls-tree --name-only -r $publishedRef"
+    if ($publishedListing.ExitCode -ne 0) {
+        $driftReport.Add("  [$publishedRef] could not be listed: $($publishedListing.StandardError.Trim())")
+    } else {
+        foreach ($name in @($publishedListing.StandardOutput -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })) {
+            if (-not $localFiles.Contains($name.Trim())) {
+                $driftReport.Add("  [$($name.Trim())] served from gh-pages but the generator does not produce it")
+            }
         }
     }
 
