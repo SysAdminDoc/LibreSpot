@@ -13,6 +13,11 @@ public sealed class WorkspaceViewCompositionTests
         var document = XDocument.Load(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml"));
         var tabs = document.Descendants()
             .Where(element => element.Name.LocalName == "TabItem")
+            .Where(element =>
+            {
+                var viewName = element.Elements().Single().Attributes().FirstOrDefault(attribute => attribute.Name.LocalName == "Name")?.Value;
+                return viewName is "RecommendedWorkspaceView" or "CustomWorkspaceView" or "MaintenanceWorkspaceView";
+            })
             .ToArray();
 
         Assert.Equal(
@@ -63,7 +68,11 @@ public sealed class WorkspaceViewCompositionTests
         Assert.Contains("{services:Loc Vm_RecommendedFirstRunUpdates}", recommended);
         Assert.Contains("{services:Loc Vm_RecommendedFirstRunReversible}", recommended);
         Assert.Contains("{services:Loc Vm_RecommendedFirstRunRisk}", recommended);
-        Assert.Contains("{Binding RecommendedRunDuration}", recommended);
+        Assert.Contains("{services:Loc Vm_SimpleHomeDuration}", recommended);
+        Assert.Contains("{Binding SimpleHomeTitle}", recommended);
+        Assert.Contains("{Binding SimpleHomeBody}", recommended);
+        Assert.Contains("{services:Loc ButtonStartRecommendedSetup}", recommended);
+        Assert.Contains("AutomationProperties.AutomationId=\"RecommendedDetailsExpander\"", recommended);
         Assert.Contains("{Binding RecommendedFollowUpText}", recommended);
         Assert.Contains("ItemsSource=\"{Binding ShellEnvironmentRows}\"", recommended);
         Assert.Contains("ItemsSource=\"{Binding ShellDependencyRows}\"", recommended);
@@ -96,13 +105,16 @@ public sealed class WorkspaceViewCompositionTests
     public void MainWindow_UsesOneWorkspaceVocabularyForNavigation()
     {
         var xaml = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml"));
+        var simpleShellStart = xaml.IndexOf("x:Name=\"SimpleShellHost\"", StringComparison.Ordinal);
+        var legacyShellStart = xaml.IndexOf("x:Name=\"ShellWorkspaceHost\"", StringComparison.Ordinal);
+        Assert.True(simpleShellStart >= 0 && legacyShellStart > simpleShellStart);
+        var simpleShell = xaml[simpleShellStart..legacyShellStart];
 
-        Assert.Contains("services:Loc ModeRecommendedTitle", xaml);
-        Assert.Contains("services:Loc ModeCustomTitle", xaml);
-        Assert.Contains("services:Loc ModeMaintenanceTitle", xaml);
-        Assert.DoesNotContain("services:Loc NavHome", xaml);
-        Assert.DoesNotContain("services:Loc NavSetup", xaml);
-        Assert.DoesNotContain("services:Loc NavUnblock", xaml);
+        Assert.Contains("services:Loc NavHome", simpleShell);
+        Assert.Contains("services:Loc NavSettings", simpleShell);
+        Assert.Contains("services:Loc ModeMaintenanceTitle", simpleShell);
+        Assert.DoesNotContain("services:Loc ModeRecommendedTitle", simpleShell);
+        Assert.DoesNotContain("services:Loc ModeCustomTitle", simpleShell);
     }
 
     private static string ReadView(string fileName) =>

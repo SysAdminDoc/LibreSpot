@@ -16,15 +16,16 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <UseWindowsForms>true</UseWindowsForms>
-    <Version>4.0.0-preview.25</Version>
-    <AssemblyVersion>4.0.0.20</AssemblyVersion>
-    <FileVersion>4.0.0.20</FileVersion>
-    <InformationalVersion>4.0.0-preview.25</InformationalVersion>
+    <Version>4.0.0-preview.26</Version>
+    <AssemblyVersion>4.0.0.21</AssemblyVersion>
+    <FileVersion>4.0.0.21</FileVersion>
+    <InformationalVersion>4.0.0-preview.26</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <Resource Include="..\..\icon.ico" Link="Assets\LibreSpot.ico" />
+    <Resource Include="Assets\LibreSpot-256.png" />
     <EmbeddedResource Include="Backend\LibreSpot.Backend.ps1" LogicalName="LibreSpot.Desktop.Backend.LibreSpot.Backend.ps1" />
     <EmbeddedResource Include="..\..\CHANGELOG.md" LogicalName="LibreSpot.Desktop.Docs.CHANGELOG.md" />
     <EmbeddedResource Include="..\..\schemas\community-assets.json" LogicalName="LibreSpot.Desktop.Schemas.community-assets.json" />

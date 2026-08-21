@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "reviewedOn": "2026-07-14",
+  "reviewedOn": "2026-08-20",
   "protectedTerms": [
     "LibreSpot",
     "Spotify",
@@ -56,6 +56,10 @@
     },
     {
       "key": "Vm_ShellSpotifyTargetLabel",
+      "reason": "Spotify is the product name."
+    },
+    {
+      "key": "Vm_SimpleHomeSpotify",
       "reason": "Spotify is the product name."
     },
     {

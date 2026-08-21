@@ -11,6 +11,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $testProject = Join-Path $repoRoot 'tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj'
+$testAssembly = Join-Path $repoRoot "tests\LibreSpot.Desktop.Tests\bin\$Configuration\net10.0-windows\LibreSpot.Desktop.Tests.dll"
 $temporaryOutput = [string]::IsNullOrWhiteSpace($OutputPath)
 if ($temporaryOutput) {
     $OutputPath = Join-Path ([System.IO.Path]::GetTempPath()) ('LibreSpot.WpfQa.' + [guid]::NewGuid().ToString('N'))
@@ -27,10 +28,15 @@ try {
     $env:LIBRESPOT_QA_CAPTURE_ROOT = $OutputPath
     $env:LIBRESPOT_QA_QUICK = if ($Quick) { '1' } else { '0' }
 
-    & dotnet test $testProject `
-        --configuration $Configuration `
-        --filter 'FullyQualifiedName~WpfQaMatrixTests' `
-        --logger 'console;verbosity=minimal'
+    & dotnet build $testProject --configuration $Configuration --no-restore
+    if ($LASTEXITCODE -ne 0) {
+        throw "WPF QA matrix build failed with exit code $LASTEXITCODE."
+    }
+
+    & dotnet $testAssembly `
+        --filter-class '*WpfQaMatrixTests' `
+        --minimum-expected-tests 1 `
+        --progress off
     if ($LASTEXITCODE -ne 0) {
         throw "WPF QA matrix failed with exit code $LASTEXITCODE. Captures remain at $OutputPath."
     }

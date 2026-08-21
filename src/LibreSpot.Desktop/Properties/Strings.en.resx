@@ -2057,6 +2057,24 @@
   <data name="Vm_ThemeGalleryNoJsHelpFormat" xml:space="preserve"><value>{0} installs without a theme.js step and has {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="NavTools" xml:space="preserve"><value>Tools</value><comment>User-facing WPF text</comment></data>
   <data name="NavSettings" xml:space="preserve"><value>Settings</value><comment>User-facing WPF text</comment></data>
+  <data name="NavHome" xml:space="preserve"><value>Home</value><comment>User-facing WPF text</comment></data>
+  <data name="ButtonStartRecommendedSetup" xml:space="preserve"><value>Start recommended setup</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_SimpleHomeReadyTitle" xml:space="preserve"><value>You're ready to start</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeReadyBody" xml:space="preserve"><value>Spotify is installed and the recommended setup is available.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeInstallBody" xml:space="preserve"><value>LibreSpot is ready to install the supported Spotify setup.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeCheckingTitle" xml:space="preserve"><value>Checking your system</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeCheckingBody" xml:space="preserve"><value>LibreSpot is checking Spotify, permissions, and dependencies.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeAttentionTitle" xml:space="preserve"><value>One item needs attention</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeAttentionBody" xml:space="preserve"><value>Review the item below before starting the recommended setup.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeUnavailableTitle" xml:space="preserve"><value>We couldn't check this PC</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeUnavailableBody" xml:space="preserve"><value>Refresh the system check or open Maintenance for help.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeDuration" xml:space="preserve"><value>Usually 2 to 4 minutes</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_SimpleHomeDetails" xml:space="preserve"><value>Details</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_SimpleHomeSystem" xml:space="preserve"><value>System</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeSpotify" xml:space="preserve"><value>Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomePermissions" xml:space="preserve"><value>Permissions</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeDependencies" xml:space="preserve"><value>Dependencies</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeReversible" xml:space="preserve"><value>Everything is reversible</value><comment>User-facing WPF text</comment></data>
   <data name="NavAbout" xml:space="preserve"><value>About</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_EnvAdministrator" xml:space="preserve"><value>Administrator</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvMachine" xml:space="preserve"><value>Machine</value><comment>MainViewModel localized runtime text.</comment></data>

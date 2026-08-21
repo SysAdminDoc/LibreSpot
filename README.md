@@ -4,18 +4,18 @@
 
 **SpotX + Spicetify Unified Installer**
 
-A single-script PowerShell GUI that installs, configures, and maintains ad-free Spotify with themes, extensions, custom apps, and the Spicetify Marketplace — no command-line knowledge required.
+A single-script PowerShell GUI that installs, configures, and maintains ad-free Spotify with themes, extensions, custom apps, and the Spicetify Marketplace, no command-line knowledge required.
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.25-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.26-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
 
 ## Quick Start
 
-**Verified install** — paste into PowerShell and hit Enter. This downloads `LibreSpot.ps1` and `checksums.txt` from the latest release, validates SHA256 before execution, and saves the script to a reusable local path:
+**Verified install**, paste into PowerShell and hit Enter. This downloads `LibreSpot.ps1` and `checksums.txt` from the latest release, validates SHA256 before execution, and saves the script to a reusable local path:
 
 ```powershell
 $d = "$env:LOCALAPPDATA\LibreSpot\bootstrap"; New-Item -ItemType Directory -Path $d -Force | Out-Null
@@ -32,7 +32,7 @@ function Get-LibreSpotBootstrapSha256 {
 }
 $expected = (((Get-Content "$d\checksums.txt" | Where-Object { $_ -match 'LibreSpot\.ps1$' }) -split '\s+')[0]).ToUpperInvariant()
 $actual = Get-LibreSpotBootstrapSha256 "$d\LibreSpot.ps1"
-if ($actual -ne $expected) { Remove-Item "$d\LibreSpot.ps1" -Force; throw "SHA256 mismatch — expected $expected, got $actual. The download may be corrupted or tampered with." }
+if ($actual -ne $expected) { Remove-Item "$d\LibreSpot.ps1" -Force; throw "SHA256 mismatch, expected $expected, got $actual. The download may be corrupted or tampered with." }
 Write-Host "SHA256 verified: $actual" -ForegroundColor Green
 & "$d\LibreSpot.ps1"
 ```
@@ -68,9 +68,9 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 
 <div align="center">
 
-<img width="1150" alt="LibreSpot Recommended setup WPF shell" src="assets/screenshots/wpf-recommended.png" />
+<img width="1150" alt="LibreSpot Home screen" src="assets/screenshots/wpf-recommended.png" />
 
-<img width="1150" alt="LibreSpot Custom settings WPF shell" src="assets/screenshots/wpf-custom.png" />
+<img width="1150" alt="LibreSpot Settings screen" src="assets/screenshots/wpf-custom.png" />
 
 <img width="1150" alt="LibreSpot Maintenance WPF shell" src="assets/screenshots/wpf-maintenance.png" />
 
@@ -80,37 +80,39 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 
 ---
 
-## What's New in v4.0.0-preview.25
+## What's New in v4.0.0-preview.26
+
+**The desktop is much easier to read.** The everyday view now has three choices: Home, Maintenance, and Settings. Home gives you one readiness result, four checks, and one recommended action. First-run guidance and technical environment details stay behind the Details row until you need them.
 
 LibreSpot refuses to install or reapply over Spicetify v3 artifacts. If the health report shows a Spicetify v3 conflict, run `spicetify restore` first, then reinstall the pinned Spicetify 2.x integration.
 
 **The v3 compatibility contract is fixture-backed.** When a v3 CLI is detected, LibreSpot can read the upstream [`supported-versions.json`](https://raw.githubusercontent.com/spicetify/cli/v3-beta/supported-versions.json) schema-v2 allowlist. Allowlisted versions proceed, versions with a same-minor lower modular map are marked degraded, and versions without a usable fallback are refused. A missing or malformed document now fails closed and points to `spicetify restore` before the pinned 2.x CLI is reinstalled. The pinned Spicetify v2.44.0 path does not activate this contract.
 
-**A smaller shipping shell.** The three actual workspace tabs now live in dedicated UserControls while preserving the existing automation names, keyboard-focus contracts, localized resources, and navigation behavior. Per-user registry, configuration, profile, backup, log, crash, and executable-path isolation is covered by multi-user regression tests.
+**A smaller shipping shell.** The three workspaces live in dedicated UserControls while preserving localized text, focus behavior, and automation names. Per-user registry, configuration, profile, backup, log, crash, and executable-path isolation is covered by multi-user regression tests.
 
 **Pinned compatibility is executable.** The supported SpotX/Spotify, Spicetify CLI, Marketplace, and theme tuple now has one fixture-backed release contract checked by Windows PowerShell preflight and Core tests.
 
-**The shared core is fully extracted.** All non-UI logic shared by the desktop shell and the fleet CLI — environment snapshotting, upstream/community drift comparison, undo-policy evaluation, backend orchestration, support bundles, the app catalog, and the localized `Strings` resources with their language satellites — now lives once in the WPF-free `LibreSpot.Core` library instead of being compiled into both apps. Behavior is unchanged, but the code is smaller, de-duplicated, and — unlike the WPF shell — able to be mutation-tested. Verified with the full test suite plus an offscreen render of the real shell resolving localized text across languages.
+**The shared core is fully extracted.** All non-UI logic shared by the desktop shell and the fleet CLI, environment snapshotting, upstream/community drift comparison, undo-policy evaluation, backend orchestration, support bundles, the app catalog, and the localized `Strings` resources with their language satellites, now lives once in the WPF-free `LibreSpot.Core` library instead of being compiled into both apps. Behavior is unchanged, but the code is smaller, de-duplicated, and, unlike the WPF shell, able to be mutation-tested. Verified with the full test suite plus an offscreen render of the real shell resolving localized text across languages.
 
 **Provenance-checked Spicetify downloads.** On top of the mandatory SHA256 hash, the pinned Spicetify CLI download now optionally verifies GitHub build-provenance attestations: when the GitHub CLI is present, LibreSpot confirms the artifact was built by Spicetify's own release pipeline against a cached signer identity. A genuine provenance failure raises a trust warning; if the tooling, network, or sign-in is unavailable it quietly falls back to SHA256-only and never blocks the install.
 
-**Sharper upstream guardrails and honest trust docs.** The SpotX pin-advance guardrail now accounts for Spicetify's hard-fail-on-unsupported-version gate (merged upstream after 2.44.0): advancing the pin must confirm the newer Spicetify still applies rather than hard-refusing, not just re-check CSS maps. The signing docs stop promising a "pending" signed build - LibreSpot ships unsigned by design and SHA256 `checksums.txt` is the permanent verification path - and the antivirus FAQ now steers users to the compiled desktop executable over the raw script and shows VirusTotal-by-hash verification. The `.NET 10.0.11` CVE-floor rationale now records the 2026-08-11 servicing batch it clears.
+**Sharper upstream guardrails and honest trust docs.** The SpotX pin-advance guardrail now accounts for Spicetify's hard-fail-on-unsupported-version gate (merged upstream after 2.44.0): advancing the pin must confirm the newer Spicetify still applies rather than hard-refusing, not just re-check CSS maps. The signing docs now say LibreSpot ships unsigned by design and SHA256 `checksums.txt` is the permanent verification path. The antivirus FAQ steers users to the compiled desktop executable over the raw script and shows VirusTotal-by-hash verification. The `.NET 10.0.11` CVE-floor rationale records the 2026-08-11 servicing batch it clears.
 
-**Quieter, safer internals.** The Microsoft Store Spotify and Windows Defender exclusion probes no longer risk an unbounded wait when a child process leaves an output pipe open, and the accessibility palette gained a regression gate that verifies the primary, destructive, and caution buttons keep their WCAG AA text contrast on every future theme change - not just the body-text tiers that were already covered.
+**Quieter, safer internals.** The Microsoft Store Spotify and Windows Defender exclusion probes no longer risk an unbounded wait when a child process leaves an output pipe open. The accessibility palette gained a regression gate that verifies the primary, destructive, and caution buttons keep their WCAG AA text contrast on every future theme change, not only the body-text tiers that were already covered.
 
-**The store page actually opens now.** SpotX serves Spotify's combined `xpui.js` bundle, but the Spicetify CLI wires the Marketplace route into sibling files that layout never loads - so the store opened to a permanently blank page with no errors anywhere. LibreSpot now re-wires the store route into the bundle Spotify actually runs after every apply, verified end to end on a live install. Stack health gains a "Store page not wired" state (all six languages) that detects the broken layout and points straight at Repair Marketplace. The end-of-install launch also warms up the first patched session hidden and restarts Spotify automatically, so the window you sign in to is responsive instead of frozen for its first ten seconds.
+**The store page actually opens now.** SpotX serves Spotify's combined `xpui.js` bundle, but the Spicetify CLI wires the Marketplace route into sibling files that layout never loads. The store opened to a permanently blank page with no errors anywhere. LibreSpot now re-wires the store route into the bundle Spotify actually runs after every apply, verified end to end on a live install. Stack health gains a "Store page not wired" state (all six languages) that detects the broken layout and points straight at Repair Marketplace. The end-of-install launch also warms up the first patched session hidden and restarts Spotify automatically, so the window you sign in to is responsive instead of frozen for its first ten seconds.
 
 **Marketplace that actually works.** The default Marketplace-only setup now follows the official Spicetify Marketplace install contract: LibreSpot creates and activates the placeholder theme and keeps CSS injection on, so store themes and snippets render instead of silently doing nothing, and a managed fallback restores a visible **Marketplace** button in Spotify's top bar when a Spotify redesign breaks Spicetify's own nav link. Marketplace health now warns when the theme contract is inactive and points you to Repair Marketplace, and the post-install launch guarantees a fresh, patched Spotify session.
 
-**Premium desktop command center.** The image-led redesign now uses a compact top command bar with global search, a task-led Recommended hero, product-specific Spotify/Spicetify/Marketplace status cards, a clearer system-health inspector, and a collapsible activity timeline that gives space back to the current workflow. The calmer graphite shell, restrained cyan/emerald hierarchy, quieter surfaces, controls, focus rings, hover treatments, and motion read as one deliberate product across Recommended, Custom, Maintenance, activity, prompt, failure, and crash states.
+**A focused Home screen.** The redesign removes the top command bar, side inspector, dashboard cards, and activity dock from the everyday surface. The graphite shell keeps one green primary action, clear status colors, and generous spacing across Home, Settings, Maintenance, prompts, failures, and crash recovery.
 
-**Truthful, resilient UX.** Readiness starts in a checking state, reports system, Spotify, permission, and dependency results independently, and replaces success artwork with actionable loading or failure guidance when appropriate. Snapshot failures expose Refresh environment recovery; activity updates announce changing content; translated prompts wrap and scroll safely; compact layouts preserve editor space; and high-contrast, reduced-motion, modal, and crash-recovery variants share the same interaction contract.
+**Truthful, resilient UX.** Readiness starts in a checking state, reports system, Spotify, permission, and dependency results independently, and replaces success artwork with loading or failure guidance when needed. Maintenance holds the recovery tools. Activity updates announce changing content, translated prompts wrap and scroll safely, and high-contrast and reduced-motion variants share the same interaction contract.
 
-The v4 desktop preview continues that polish with a sharper 6-12 px radius system, quieter scrollbars, cleaner first-run guidance, a `Ctrl+K` search across setup, settings, assets, profiles, maintenance, support, and health, readable Custom setting cards, a searchable theme gallery, a local profile manager with safe `.librespot` import/export, profile share QR cards, in-app profile comparison text, forced dark native window chrome, completion notifications, a compact status dashboard, issue-level repair buttons, a post-run reversible-changes pane, and calmer activity/support-bundle feedback for assistive technology.
+The v4 desktop preview keeps readable Settings cards, a searchable theme gallery, safe `.librespot` profile import and export, local profile sharing cards, dark native window chrome, completion notifications, issue-level repair buttons, a reversible-changes pane, and assistive-technology feedback. Common users no longer need to see those tools before starting the recommended setup.
 
 It also registers Windows shell affordances from the running desktop executable: per-user `librespot://` profile links, `.librespot` file imports, jump-list shortcuts, taskbar thumbnail actions, tray minimize/restore, and tray completion notifications that reopen LibreSpot when clicked. Registration is per-user and points at the current executable path, so portable and installed builds both repair stale associations on launch.
 
-The current desktop shell uses the same Recommended, Custom, and Maintenance vocabulary in its rail, workspace heroes, taskbar actions, and Jump List. Windows protocol and profile-association descriptions follow the saved interface language.
+The desktop rail uses Home, Maintenance, and Settings. Windows protocol and profile-association descriptions follow the saved interface language.
 
 ---
 
@@ -118,10 +120,10 @@ The current desktop shell uses the same Recommended, Custom, and Maintenance voc
 
 LibreSpot wraps two powerful open-source projects into one polished interface:
 
-- **[SpotX](https://github.com/SpotX-Official/SpotX)** — patches Spotify to remove ads, block telemetry, and enable experimental UI features
-- **[Spicetify](https://github.com/spicetify)** — injects custom themes, extensions, custom apps, and the in-app Marketplace into Spotify
+- **[SpotX](https://github.com/SpotX-Official/SpotX)**, patches Spotify to remove ads, block telemetry, and enable experimental UI features
+- **[Spicetify](https://github.com/spicetify)**, injects custom themes, extensions, custom apps, and the in-app Marketplace into Spotify
 
-Instead of running multiple scripts, editing config files, and hoping the versions are compatible, LibreSpot handles the entire workflow: clean uninstall, fresh Spotify install, SpotX patching, Spicetify CLI setup, theme installation, extension configuration, verified custom-app installation, and Marketplace deployment — all in the correct order, with full error handling.
+Instead of running multiple scripts, editing config files, and hoping the versions are compatible, LibreSpot handles the entire workflow: clean uninstall, fresh Spotify install, SpotX patching, Spicetify CLI setup, theme installation, extension configuration, verified custom-app installation, and Marketplace deployment, all in the correct order, with full error handling.
 
 The desktop shell keeps each workspace in a named UserControl. The Custom workspace is further divided into install, appearance, behavior, advanced, patch, extension, app, and profile sections, so the UI and its code-behind stay easy to trace without changing the user-facing workflow.
 
@@ -154,11 +156,11 @@ Current source script version: **v3.7.4**. Public latest stable release: **v3.7.
 
 ### Three Modes
 
-**Recommended setup** — one click, sensible defaults. Removes any existing installation, applies SpotX ad-blocking with the new UI theme, installs Spicetify CLI with Marketplace, and enables Full App Display, True Shuffle, and Trash Bin extensions.
+**Recommended setup**, one click, sensible defaults. Removes any existing installation, applies SpotX ad-blocking with the new UI theme, installs Spicetify CLI with Marketplace, and enables Full App Display, True Shuffle, and Trash Bin extensions.
 
-**Custom Install** — full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), author reviewed SpotX `patches.json` custom patches with JSON formatting, regex safety checks, dry-run feedback, and HTTPS import, browse 21 themes (16 official + 5 community) through a searchable gallery with per-theme color schemes, select from 15 extensions (10 built-in + 5 community) plus the verified Stats custom app, save and preview named local profiles, and choose between clean or overlay install.
+**Custom Install**, full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), author reviewed SpotX `patches.json` custom patches with JSON formatting, regex safety checks, dry-run feedback, and HTTPS import, browse 21 themes (16 official + 5 community) through a searchable gallery with per-theme color schemes, select from 15 extensions (10 built-in + 5 community) plus the verified Stats custom app, save and preview named local profiles, and choose between clean or overlay install.
 
-**Maintenance** — manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, inspect and clear verified download-cache health, preview and explicitly undo eligible low-risk PATH changes from the latest operation receipt, export a validated Marketplace state archive for missing-file recovery, export a redacted local support bundle, restore vanilla Spotify, uninstall Spicetify, check for dependency updates, or perform a full system reset. Marketplace 1.0.9 stores saved state in the embedded browser's IndexedDB database. LibreSpot detects that boundary but does not back it up. Use Marketplace's own export/import controls before a repair or reset.
+**Maintenance**, manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, inspect and clear verified download-cache health, preview and explicitly undo eligible low-risk PATH changes from the latest operation receipt, export a validated Marketplace state archive for missing-file recovery, export a redacted local support bundle, restore vanilla Spotify, uninstall Spicetify, check for dependency updates, or perform a full system reset. Marketplace 1.0.9 stores saved state in the embedded browser's IndexedDB database. LibreSpot detects that boundary but does not back it up. Use Marketplace's own export/import controls before a repair or reset.
 
 ### Capability boundary
 
@@ -295,7 +297,7 @@ Each theme ships with its full set of color schemes. **Live theme previews** loa
 | [Beautiful Lyrics](https://github.com/surfbryce/beautiful-lyrics) | Immersive synced lyrics with dynamic backgrounds and blur |
 | [Playlist Icons](https://github.com/jeroentvb/spicetify-playlist-icons) | Custom icons and folder images for playlists |
 | [Volume Percentage](https://github.com/daksh2k/spicetify-stuff) | Exact volume percentage next to the slider |
-| [Ad-block (Spicetify fallback)](https://github.com/rxri/spicetify-extensions) | Spicetify-layer ad blocking for when SpotX patching fails on a newer Spotify build — **a fallback, not a SpotX replacement** |
+| [Ad-block (Spicetify fallback)](https://github.com/rxri/spicetify-extensions) | Spicetify-layer ad blocking for when SpotX patching fails on a newer Spotify build, **a fallback, not a SpotX replacement** |
 
 ### Optional Custom Apps
 
@@ -305,7 +307,7 @@ Custom Install also exposes **Stats** from [harbassan/spicetify-apps](https://gi
 
 Spotify auto-updates roughly every 1-2 weeks and overwrites the SpotX patches every time. Manually reapplying after every update gets old fast.
 
-**Maintenance > Protect and repair > "Auto-reapply when Spotify updates itself"** registers a per-user scheduled task that fires at logon and every 30 minutes. It silently does nothing unless Spotify's version actually changed; when it changes, it hash-verifies the pinned SpotX script and reruns your saved config — but only when Spotify is closed, so it never interrupts playback. Every action gets logged to `%APPDATA%\LibreSpot\watcher.log` for audit.
+**Maintenance > Protect and repair > "Auto-reapply when Spotify updates itself"** registers a per-user scheduled task that fires at logon and every 30 minutes. It silently does nothing unless Spotify's version actually changed; when it changes, it hash-verifies the pinned SpotX script and reruns your saved config, but only when Spotify is closed, so it never interrupts playback. Every action gets logged to `%APPDATA%\LibreSpot\watcher.log` for audit.
 
 You can also manage the task from the command line if you prefer:
 
@@ -319,22 +321,22 @@ LibreSpot.ps1 -RemoveSelfData      # unregister the watcher and delete all Libre
 
 ### Other Details
 
-- **Threaded UI** — installation runs in background runspaces; the GUI stays responsive with a live log, elapsed timer, and progress bar
-- **Windows shell integration** — WPF builds register `librespot://` sharing and `.librespot` Explorer handlers, route double-clicked profile files through the validated preview/confirm flow, expose jump-list/taskbar actions, and minimize to a tray icon with clickable completion notices
-- **Least-privilege desktop workflow** — WPF setup and maintenance run in the current standard-user session without relaunching the whole app through UAC; the legacy PowerShell and PS2EXE entry points retain their existing self-elevation behavior
-- **Profile sharing cards** — WPF Custom mode renders an inert local share URI, QR card, selected-profile comparison, embedded changelog preview, and community links without requiring a hosted sharing service
-- **Runtime localization** — WPF builds include a persisted language selector with reviewed EN, RU, ZH-Hans, PT-BR, and ES resources; validation rejects missing/raw UI strings, broken placeholders, translated product/file tokens, and unreviewed English carry-over
-- **Window management** — Spotify and installer windows are automatically hidden during installation; LibreSpot stays on top until finished
-- **Settings persistence** — your Custom Install configuration is saved to `%APPDATA%\LibreSpot\config.json` and restored next launch
-- **Community asset verification** — opt-in community extensions, themes, and custom apps are pinned in `schemas/community-assets.json` with provenance, SHA256, license, branch, support, fallback, network-behavior, and catalog-review metadata; the review gate rejects archived, stale, undocumented, or unknown-network entries from easy-mode defaults while retaining deferred entries as opt-in, and Maintenance health, `status --json`, and redacted support bundles report the decision and reason without failing offline
+- **Threaded UI**, installation runs in background runspaces; the GUI stays responsive with a live log, elapsed timer, and progress bar
+- **Windows shell integration**, WPF builds register `librespot://` sharing and `.librespot` Explorer handlers, route double-clicked profile files through the validated preview/confirm flow, expose jump-list/taskbar actions, and minimize to a tray icon with clickable completion notices
+- **Least-privilege desktop workflow**, WPF setup and maintenance run in the current standard-user session without relaunching the whole app through UAC; the legacy PowerShell and PS2EXE entry points retain their existing self-elevation behavior
+- **Profile sharing cards**, WPF Custom mode renders an inert local share URI, QR card, selected-profile comparison, embedded changelog preview, and community links without requiring a hosted sharing service
+- **Runtime localization**, WPF builds include a persisted language selector with reviewed EN, RU, ZH-Hans, PT-BR, and ES resources; validation rejects missing/raw UI strings, broken placeholders, translated product/file tokens, and unreviewed English carry-over
+- **Window management**, Spotify and installer windows are automatically hidden during installation; LibreSpot stays on top until finished
+- **Settings persistence**, your Custom Install configuration is saved to `%APPDATA%\LibreSpot\config.json` and restored next launch
+- **Community asset verification**, opt-in community extensions, themes, and custom apps are pinned in `schemas/community-assets.json` with provenance, SHA256, license, branch, support, fallback, network-behavior, and catalog-review metadata; the review gate rejects archived, stale, undocumented, or unknown-network entries from easy-mode defaults while retaining deferred entries as opt-in, and Maintenance health, `status --json`, and redacted support bundles report the decision and reason without failing offline
 - **Community catalog:** browse the reviewed asset list and its trust evidence on the [LibreSpot community catalog](https://sysadmindoc.github.io/LibreSpot/), generated from the same schemas used by the local review gate
-- **Marketplace visibility evidence** — Reapply and Repair Marketplace record the installed files, manifest version, `custom_apps` registration, Spicetify apply stage, direct `spotify:app:marketplace` open attempt, and last observed Spotify process so Maintenance and `status --json` can distinguish files installed from likely visible
-- **Repair preservation** — before Reapply or Repair Marketplace replaces managed Spicetify files, LibreSpot snapshots `config-xpui.ini` and `CustomApps` under `%USERPROFILE%\LibreSpot_Backups`, restores only missing files, and retains support-bundle evidence. The Marketplace IndexedDB database is detected but not backed up, so use Marketplace's own export/import controls before repair and expect that state may reset
-- **Asset-cache inventory** — verified download-cache entries keep source labels, source URLs, byte size, first-seen, last-used, and last-verified metadata; corrupt files are quarantined with journal receipts, and Maintenance, `status --json`, and support bundles show cache count, size, stale, corrupt, and clear-cache state
-- **Config backup** — up to 5 rotating Spicetify config backups stored in `%USERPROFILE%\LibreSpot_Backups`
-- **Architecture support** — x64 and ARM64 with per-architecture hash verification
-- **Dual download methods** — falls back to BITS transfer if `Invoke-WebRequest` fails
-- **Self-elevating** — auto-requests admin privileges when needed
+- **Marketplace visibility evidence**, Reapply and Repair Marketplace record the installed files, manifest version, `custom_apps` registration, Spicetify apply stage, direct `spotify:app:marketplace` open attempt, and last observed Spotify process so Maintenance and `status --json` can distinguish files installed from likely visible
+- **Repair preservation**, before Reapply or Repair Marketplace replaces managed Spicetify files, LibreSpot snapshots `config-xpui.ini` and `CustomApps` under `%USERPROFILE%\LibreSpot_Backups`, restores only missing files, and retains support-bundle evidence. The Marketplace IndexedDB database is detected but not backed up, so use Marketplace's own export/import controls before repair and expect that state may reset
+- **Asset-cache inventory**, verified download-cache entries keep source labels, source URLs, byte size, first-seen, last-used, and last-verified metadata; corrupt files are quarantined with journal receipts, and Maintenance, `status --json`, and support bundles show cache count, size, stale, corrupt, and clear-cache state
+- **Config backup**, up to 5 rotating Spicetify config backups stored in `%USERPROFILE%\LibreSpot_Backups`
+- **Architecture support**, x64 and ARM64 with per-architecture hash verification
+- **Dual download methods**, falls back to BITS transfer if `Invoke-WebRequest` fails
+- **Self-elevating**, auto-requests admin privileges when needed
 
 ---
 
@@ -350,7 +352,7 @@ Open Maintenance and check the After Spotify update note. LibreSpot compares the
 Yes. Enable "Premium account (skip ad-blocking)" in Custom Install to skip ad-related patches while keeping all other modifications.
 
 **How do I change my theme later?**
-Re-run LibreSpot in Custom mode to pick a different theme, or use the optional Spicetify Marketplace to browse and apply themes from within Spotify. LibreSpot installs your selected themes, extensions, and custom apps directly — Marketplace is an add-on for discovering more, not required.
+Re-run LibreSpot in Custom mode to pick a different theme, or use the optional Spicetify Marketplace to browse and apply themes from within Spotify. LibreSpot installs your selected themes, extensions, and custom apps directly, Marketplace is an add-on for discovering more, not required.
 
 **Marketplace is installed but I do not see it.**
 Use Maintenance > Repair and open Marketplace. LibreSpot reinstalls the custom app, re-enables `custom_apps`, reapplies Spicetify, and opens `spotify:app:marketplace` directly.
@@ -371,16 +373,16 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 BlockTheSpot archived its repository in February 2026. LibreSpot's environment health report distinguishes likely BlockTheSpot-family DLL/config artifacts, raw SpotX backups, standalone Spicetify, and LibreSpot-owned state before setup. Review the migration recommendation first: standalone Spicetify config and CustomApps are preserved before setup, while Full Reset removes foreign Spotify state only after its destructive confirmation. The same ownership result is available through CLI status JSON and local support bundles.
 
 **Is this safe?**
-Every download is verified against pinned SHA256 hashes. LibreSpot doesn't host or redistribute any code — it downloads directly from the official SpotX and Spicetify GitHub repositories. See [Trust & risk disclosure](#trust--risk-disclosure) below for enforcement context and account risk details.
+Every download is verified against pinned SHA256 hashes. LibreSpot doesn't host or redistribute any code, it downloads directly from the official SpotX and Spicetify GitHub repositories. See [Trust & risk disclosure](#trust--risk-disclosure) below for enforcement context and account risk details.
 
-**My antivirus flagged LibreSpot / SpotX — is it a virus?**
-No. PowerShell scripts that use `Invoke-WebRequest` to download files and modify application directories trigger heuristic alerts from many antivirus engines. SpotX itself is flagged by [16 of 62 VirusTotal vendors](https://github.com/SpotX-Official/SpotX/issues/826) — including Kaspersky, Bitdefender, and others — as a generic "trojan" or "potentially unwanted program." These are pattern-match false positives, not detections of actual malware. LibreSpot's scripts are open source (you can read every line), all downloads are SHA256-verified against pinned hashes, and no compiled code runs that you can't inspect. The raw `LibreSpot.ps1` is the surface most likely to trip PowerShell heuristics (Powdow-class detections); if a scanner flags it, prefer the compiled `LibreSpot-Desktop.exe`, which draws far fewer false positives. You can confirm any downloaded asset yourself: paste its SHA256 (from `checksums.txt`) into [VirusTotal search](https://www.virustotal.com/gui/search) to see the community scan for that exact file. If your AV quarantines `LibreSpot.ps1` or `SpotX run.ps1`, add an exclusion for the `%APPDATA%\LibreSpot` directory or submit a false-positive report to your vendor.
+**My antivirus flagged LibreSpot / SpotX, is it a virus?**
+No. PowerShell scripts that use `Invoke-WebRequest` to download files and modify application directories trigger heuristic alerts from many antivirus engines. SpotX itself is flagged by [16 of 62 VirusTotal vendors](https://github.com/SpotX-Official/SpotX/issues/826), including Kaspersky, Bitdefender, and others, as a generic "trojan" or "potentially unwanted program." These are pattern-match false positives, not detections of actual malware. LibreSpot's scripts are open source (you can read every line), all downloads are SHA256-verified against pinned hashes, and no compiled code runs that you can't inspect. The raw `LibreSpot.ps1` is the surface most likely to trip PowerShell heuristics (Powdow-class detections); if a scanner flags it, prefer the compiled `LibreSpot-Desktop.exe`, which draws far fewer false positives. You can confirm any downloaded asset yourself: paste its SHA256 (from `checksums.txt`) into [VirusTotal search](https://www.virustotal.com/gui/search) to see the community scan for that exact file. If your AV quarantines `LibreSpot.ps1` or `SpotX run.ps1`, add an exclusion for the `%APPDATA%\LibreSpot` directory or submit a false-positive report to your vendor.
 
-**Windows SmartScreen says "Unknown publisher" — what do I do?**
-LibreSpot ships unsigned by design and is not code-signed — [SignPath Foundation](https://signpath.org/) OSS signing was evaluated and set aside, so there is no pending certificate to wait for. Windows SmartScreen shows an "Unknown publisher" prompt for unsigned apps: click **More info** → **Run anyway**. Authenticity is verified instead by the SHA256 checksums in `checksums.txt` on the [Releases page](https://github.com/SysAdminDoc/LibreSpot/releases) — matching that hash proves the file is exactly what the build produced, and that is the permanent verification path.
+**Windows SmartScreen says "Unknown publisher", what do I do?**
+LibreSpot ships unsigned by design and is not code-signed, [SignPath Foundation](https://signpath.org/) OSS signing was evaluated and set aside, so there is no pending certificate to wait for. Windows SmartScreen shows an "Unknown publisher" prompt for unsigned apps: click **More info** → **Run anyway**. Authenticity is verified instead by the SHA256 checksums in `checksums.txt` on the [Releases page](https://github.com/SysAdminDoc/LibreSpot/releases), matching that hash proves the file is exactly what the build produced, and that is the permanent verification path.
 
 **Smart App Control blocks the script from running.**
-Windows 11 with Smart App Control (SAC) enabled enforces Constrained Language Mode on unsigned PowerShell scripts, which prevents LibreSpot from running. LibreSpot detects this at startup and shows a warning. To use LibreSpot on a SAC-enabled machine: open **Settings → Privacy & security → Windows Security → App & browser control → Smart App Control settings** and switch SAC to **Off**. Alternatively, use the pre-compiled `LibreSpot.exe` from the Releases page — PS2EXE-compiled executables are not blocked by SAC's PowerShell policy. Note: once SAC is turned off, it cannot be re-enabled without reinstalling Windows (on builds before 24H2 KB5083769) or toggling it back in Settings (on 24H2+).
+Windows 11 with Smart App Control (SAC) enabled enforces Constrained Language Mode on unsigned PowerShell scripts, which prevents LibreSpot from running. LibreSpot detects this at startup and shows a warning. To use LibreSpot on a SAC-enabled machine: open **Settings → Privacy & security → Windows Security → App & browser control → Smart App Control settings** and switch SAC to **Off**. Alternatively, use the pre-compiled `LibreSpot.exe` from the Releases page, PS2EXE-compiled executables are not blocked by SAC's PowerShell policy. Note: once SAC is turned off, it cannot be re-enabled without reinstalling Windows (on builds before 24H2 KB5083769) or toggling it back in Settings (on 24H2+).
 
 ---
 
@@ -401,13 +403,13 @@ PowerShell 7.6.0 through 7.6.4 also receive a non-blocking security-floor warnin
 - Communicate, *as LibreSpot itself*, with any server other than GitHub (for downloads) and Spotify (normal app traffic)
 - Modify Spotify's authentication, payment, or account systems
 
-> **Note on community extensions and custom apps:** the bullet above covers LibreSpot itself. Some *opt-in* community entries you can enable in Custom Install do contact their own services — for example, [Beautiful Lyrics](https://github.com/surfbryce/beautiful-lyrics) fetches lyrics from a third-party backend and uses an external API for optional Discord features, while Stats can contact Last.fm-backed views. Entries that talk to a third-party service are flagged in the Custom Install catalog and recorded in [`schemas/community-assets.json`](schemas/community-assets.json) under `networkBehavior`. They are off by default.
+> **Note on community extensions and custom apps:** the bullet above covers LibreSpot itself. Some *opt-in* community entries you can enable in Custom Install do contact their own services, for example, [Beautiful Lyrics](https://github.com/surfbryce/beautiful-lyrics) fetches lyrics from a third-party backend and uses an external API for optional Discord features, while Stats can contact Last.fm-backed views. Entries that talk to a third-party service are flagged in the Custom Install catalog and recorded in [`schemas/community-assets.json`](schemas/community-assets.json) under `networkBehavior`. They are off by default.
 
 **Account risk:**
 Spotify's [Terms of Service](https://www.spotify.com/legal/end-user-agreement/) and [User Guidelines](https://www.spotify.com/legal/user-guidelines/) prohibit circumventing ads and modifying the client. While enforcement against individual users of tools like SpotX has not been publicly documented, using LibreSpot is at your own risk. LibreSpot provides a "Full Reset" option in Maintenance mode to return Spotify to its unmodified state at any time.
 
 **Enforcement landscape:**
-Spotify has increased enforcement against client modification tools. In September 2025, Spotify DMCA'd ReVanced (which redistributed patched Spotify APKs). In January 2026, Spotify added server-side dual-sync verification that terminated modified mobile app sessions (causing xManager and ReVancedXposed to archive). In February 2026, Spotify tightened Developer Platform access (Premium required for Dev Mode, 1 Client ID per developer, 5 authorized users). BlockTheSpot, which injected DLLs into the Spotify process, archived its repository in February 2026. Desktop patching (SpotX's approach, which LibreSpot wraps) operates at the network/rendering layer and has not been affected by the mobile enforcement wave. LibreSpot does not redistribute patched binaries, does not inject DLLs, does not use Spotify API Client IDs, and downloads only from official upstream GitHub repositories with hash verification. LibreSpot monitors Spotify's first launch after patching for session stability — if Spotify exits unexpectedly within 20 seconds, LibreSpot warns in the install log so you can investigate before assuming the setup is complete. Users should review [Spotify's User Guidelines](https://www.spotify.com/legal/user-guidelines/) and make their own informed decisions.
+Spotify has increased enforcement against client modification tools. In September 2025, Spotify DMCA'd ReVanced (which redistributed patched Spotify APKs). In January 2026, Spotify added server-side dual-sync verification that terminated modified mobile app sessions (causing xManager and ReVancedXposed to archive). In February 2026, Spotify tightened Developer Platform access (Premium required for Dev Mode, 1 Client ID per developer, 5 authorized users). BlockTheSpot, which injected DLLs into the Spotify process, archived its repository in February 2026. Desktop patching (SpotX's approach, which LibreSpot wraps) operates at the network/rendering layer and has not been affected by the mobile enforcement wave. LibreSpot does not redistribute patched binaries, does not inject DLLs, does not use Spotify API Client IDs, and downloads only from official upstream GitHub repositories with hash verification. LibreSpot monitors Spotify's first launch after patching for session stability, if Spotify exits unexpectedly within 20 seconds, LibreSpot warns in the install log so you can investigate before assuming the setup is complete. Users should review [Spotify's User Guidelines](https://www.spotify.com/legal/user-guidelines/) and make their own informed decisions.
 
 **Returning to stock Spotify:**
 Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify, and cleans up every trace. You can also manually run `spicetify restore` followed by a clean Spotify reinstall. See [SECURITY.md](SECURITY.md#legal-contingency) for what happens if SpotX or Spicetify are taken down, and how to restore stock Spotify without LibreSpot.
@@ -416,11 +418,11 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 
 ## Signing & verification
 
-Releases ship unsigned by design. LibreSpot is not code-signed and is not waiting on a certificate: [SignPath Foundation](https://signpath.org/) OSS signing was evaluated and set aside, so there is no "once the cert arrives" milestone. `LibreSpot.exe`, `LibreSpot-Desktop.exe`, and `LibreSpot.Cli.exe` are published as unsigned artifacts, and Windows SmartScreen will show an "Unknown publisher" prompt for them. Verify integrity with the SHA256 `checksums.txt` published alongside each release (see below) — that is the permanent, sufficient verification path.
+Releases ship unsigned by design. LibreSpot is not code-signed and is not waiting on a certificate: [SignPath Foundation](https://signpath.org/) OSS signing was evaluated and set aside, so there is no "once the cert arrives" milestone. `LibreSpot.exe`, `LibreSpot-Desktop.exe`, and `LibreSpot.Cli.exe` are published as unsigned artifacts, and Windows SmartScreen will show an "Unknown publisher" prompt for them. Verify integrity with the SHA256 `checksums.txt` published alongside each release (see below), that is the permanent, sufficient verification path.
 
-The public latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt` **as GitHub release assets**. The repository itself does not track build artifacts — `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. The current source script is v3.7.4 but has not been published as the stable GitHub release. Preview release builds also add the .NET 10 `LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, CycloneDX SBOM output, and `librespot-release-manifest.json`.
+The public latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt` **as GitHub release assets**. The repository itself does not track build artifacts, `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. The current source script is v3.7.4 but has not been published as the stable GitHub release. Preview release builds also add the .NET 10 `LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, CycloneDX SBOM output, and `librespot-release-manifest.json`.
 
-The .NET 10 desktop and CLI artifacts publish self-contained, which embeds the runtime — so they only receive .NET servicing security fixes when rebuilt against a patched runtime. Both projects set `TargetLatestRuntimePatch`, and `Build-Scripts.ps1 -DependencyHealth` records the resolved `Microsoft.NETCore.App` / `Microsoft.WindowsDesktop.App` patch level and fails the release preflight when the build host is below the documented 10.0.11 floor (`schemas/dependency-health-allowlist.json` → `dotnetRuntimeFloor`). Build release artifacts on an up-to-date .NET 10 SDK.
+The .NET 10 desktop and CLI artifacts publish self-contained, which embeds the runtime, so they only receive .NET servicing security fixes when rebuilt against a patched runtime. Both projects set `TargetLatestRuntimePatch`, and `Build-Scripts.ps1 -DependencyHealth` records the resolved `Microsoft.NETCore.App` / `Microsoft.WindowsDesktop.App` patch level and fails the release preflight when the build host is below the documented 10.0.11 floor (`schemas/dependency-health-allowlist.json` → `dotnetRuntimeFloor`). Build release artifacts on an up-to-date .NET 10 SDK.
 
 The recommended Quick Start snippet above verifies `LibreSpot.ps1` automatically. For manual verification of any downloaded release asset:
 
@@ -439,7 +441,7 @@ Get-Sha256 .\LibreSpot.ps1
 Get-Content  .\checksums.txt
 ```
 
-GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.0.0-preview.25` to verify the release tag and commit, then run `gh release verify-asset v4.0.0-preview.25 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
+GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.0.0-preview.26` to verify the release tag and commit, then run `gh release verify-asset v4.0.0-preview.26 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
 
 ## Local release procedure
 
@@ -528,9 +530,9 @@ Run the rendered WPF state matrix without activating foreground windows:
 .\tools\Invoke-WpfQaMatrix.ps1
 ```
 
-The command captures and verifies Recommended, Custom, Maintenance, search,
-undo, support-bundle, profile, prompt, empty, loading, error, success, and
-nested crash-dialog surfaces across the supported dark/high-contrast palettes
+The command captures and verifies Home, Settings, Maintenance, navigation,
+readiness, Details, undo, support-bundle, profile, prompt, loading, error,
+success, and nested crash-dialog surfaces across the supported dark/high-contrast palettes
 and English/Spanish locales, plus a long-text prompt in every advertised
 non-English locale. It rejects unnamed actions, clipped primary text, missing
 focus rings, incomplete renders, and mismatched capture metadata. Captures use
@@ -544,12 +546,12 @@ Development planning is maintained in local working-tree docs. `ROADMAP.md` is t
 
 ## Credits
 
-LibreSpot is a wrapper and installer — the real work is done by these projects:
+LibreSpot is a wrapper and installer, the real work is done by these projects:
 
-- **[SpotX](https://github.com/SpotX-Official/SpotX)** — Spotify ad-blocking and patching
-- **[Spicetify CLI](https://github.com/spicetify/cli)** — Spotify theming and extension framework
-- **[Spicetify Marketplace](https://github.com/spicetify/marketplace)** — In-app store for themes and extensions
-- **[Spicetify Themes](https://github.com/spicetify/spicetify-themes)** — Official community theme collection
+- **[SpotX](https://github.com/SpotX-Official/SpotX)**, Spotify ad-blocking and patching
+- **[Spicetify CLI](https://github.com/spicetify/cli)**, Spotify theming and extension framework
+- **[Spicetify Marketplace](https://github.com/spicetify/marketplace)**, In-app store for themes and extensions
+- **[Spicetify Themes](https://github.com/spicetify/spicetify-themes)**, Official community theme collection
 
 ---
 

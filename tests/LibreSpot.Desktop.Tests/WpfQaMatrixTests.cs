@@ -33,23 +33,23 @@ public sealed class WpfQaMatrixTests
     {
         var surfaces = new (string State, string ExpectedResource, string FocusTarget)[]
         {
-            ("recommended", "ButtonRunRecommendedSetup", "RunRecommendedSetupButton"),
+            ("recommended", "ButtonStartRecommendedSetup", "RunRecommendedSetupButton"),
             ("custom", "ButtonApplyCustomProfile", "ApplyCustomProfileButton"),
             ("maintenance", "Maintenance_CheckUpdates_ButtonText", "MaintenanceAction_CheckUpdates"),
-            ("maintenance-compatibility", "CompatibilityVerdictTitle", "MaintenanceAction_CheckUpdates"),
+            ("maintenance-compatibility", "CompatibilityVerdictTitle", "WorkspaceNavMaintenance"),
             ("activity-undo", "UndoPaneTitle", "ActivityCloseButton"),
             ("support-bundle", "SupportBundleTitle", "SupportBundleExportButton"),
             ("profile", "Ui_SetSelectedProfileActive", "ProfileSetActiveButton"),
             ("prompt", "ButtonContinue", "PromptConfirmButton"),
-            ("activity-empty", "Vm_ShellNoActiveTasks", "WorkspaceNavRecommended"),
-            ("activity-collapsed", "Vm_ShellActivityTitle", "ActivityDockToggle"),
+            ("home-navigation", "NavHome", "WorkspaceNavRecommended"),
+            ("home-details", "Vm_SimpleHomeDetails", "RecommendedDetailsExpander"),
             ("prompt-destructive", "PromptActionReset", "PromptCancelButton"),
-            ("activity-running", "StatusInProgress", "ActivityCancelRunButton"),
-            ("reduced-motion", "ButtonRunRecommendedSetup", "RunRecommendedSetupButton"),
+            ("activity-running", "Ui_RunState", "ActivityCancelRunButton"),
+            ("reduced-motion", "ButtonStartRecommendedSetup", "RunRecommendedSetupButton"),
             ("custom-no-results", "SearchNoResults", "SettingsSearchClearButton"),
-            ("global-search", "Vm_GlobalSearchResultsLabel", "GlobalSearchBox"),
-            ("snapshot-loading", "Vm_ShellCheckingSystem", "WorkspaceNavRecommended"),
-            ("snapshot-error", "Vm_ShellSnapshotUnavailable", "InspectorRetryEnvironmentButton"),
+            ("home-readiness", "Vm_SimpleHomeReadyTitle", "RunRecommendedSetupButton"),
+            ("snapshot-loading", "Vm_SimpleHomeCheckingTitle", "WorkspaceNavRecommended"),
+            ("snapshot-error", "Vm_SimpleHomeUnavailableTitle", "WorkspaceNavRecommended"),
             ("activity-error", "RunNeedsAttention", "ActivityExportFailureBundleButton"),
             ("activity", "Ui_CloseActivityPanel", "ActivityCloseButton")
         };
@@ -73,7 +73,7 @@ public sealed class WpfQaMatrixTests
 
         if (quick)
         {
-            data.Add("recommended", themes[1], cultures[1], "ButtonRunRecommendedSetup", "RunRecommendedSetupButton");
+            data.Add("recommended", themes[1], cultures[1], "ButtonStartRecommendedSetup", "RunRecommendedSetupButton");
         }
 
         foreach (var culture in new[] { "es", "pt-BR", "ru", "zh-Hans" })

@@ -10,10 +10,10 @@
          schemas/dependency-health-allowlist.json dotnetRuntimeFloor. -->
     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
     <AssemblyName>LibreSpot.Cli</AssemblyName>
-    <Version>4.0.0-preview.25</Version>
-    <AssemblyVersion>4.0.0.20</AssemblyVersion>
-    <FileVersion>4.0.0.20</FileVersion>
-    <InformationalVersion>4.0.0-preview.25</InformationalVersion>
+    <Version>4.0.0-preview.26</Version>
+    <AssemblyVersion>4.0.0.21</AssemblyVersion>
+    <FileVersion>4.0.0.21</FileVersion>
+    <InformationalVersion>4.0.0-preview.26</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
   </PropertyGroup>

@@ -295,6 +295,22 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task SimpleHomeCopy_TracksLoadingAndUnavailableStates() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            viewModel.ApplyUiAutomationSmokeState("snapshot-loading");
+            Assert.Equal(Strings.ResourceManager.GetString("Vm_SimpleHomeCheckingTitle"), viewModel.SimpleHomeTitle);
+            Assert.Equal(Strings.ResourceManager.GetString("Vm_SimpleHomeCheckingBody"), viewModel.SimpleHomeBody);
+
+            viewModel.ApplyUiAutomationSmokeState("snapshot-error");
+            Assert.Equal(Strings.ResourceManager.GetString("Vm_SimpleHomeUnavailableTitle"), viewModel.SimpleHomeTitle);
+            Assert.Equal(Strings.ResourceManager.GetString("Vm_SimpleHomeUnavailableBody"), viewModel.SimpleHomeBody);
+        });
+
+    [Fact]
     public Task ThemeGallery_SearchAndSelectionUpdateThemeConfigurationFields() =>
         RunStaAsync(async () =>
         {

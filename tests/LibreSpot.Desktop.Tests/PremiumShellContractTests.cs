@@ -63,8 +63,8 @@ public sealed class PremiumShellContractTests
         var mainWindow = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
 
         Assert.Contains("(\"prompt-destructive\", \"PromptActionReset\", \"PromptCancelButton\")", matrix);
-        Assert.Contains("(\"activity-running\", \"StatusInProgress\", \"ActivityCancelRunButton\")", matrix);
-        Assert.Contains("(\"reduced-motion\", \"ButtonRunRecommendedSetup\", \"RunRecommendedSetupButton\")", matrix);
+        Assert.Contains("(\"activity-running\", \"Ui_RunState\", \"ActivityCancelRunButton\")", matrix);
+        Assert.Contains("(\"reduced-motion\", \"ButtonStartRecommendedSetup\", \"RunRecommendedSetupButton\")", matrix);
         Assert.Contains("--uia-reduced-motion", matrix);
         Assert.Contains("AssertNoUnnamedActionableControls(snapshot)", matrix);
         Assert.Contains("if ($Quick) { 24 } else { 80 }", runner);
@@ -121,48 +121,43 @@ public sealed class PremiumShellContractTests
         Assert.Contains("--uia-size=", codeBehind);
         Assert.Contains("GetUiAutomationCaptureSize", codeBehind);
         Assert.Contains("if (!_uiAutomationBackgroundMode)", codeBehind);
-        Assert.Contains("x:Name=\"ActivityDock\"", xaml);
-        Assert.Contains("x:Name=\"ShellInspectorColumn\"", xaml);
+        Assert.Contains("x:Name=\"SimpleShellRailColumn\"", xaml);
+        Assert.Contains("x:Name=\"SimpleWorkspaceSurface\"", xaml);
+        Assert.Contains("shellWidth < 1280", codeBehind);
     }
 
     [Fact]
-    public void Shell_UsesCommandBarSearchProductStatusCardsAndCollapsibleTimeline()
+    public void Shell_UsesAFocusedHomeSurfaceAndKeepsAdvancedChromeHidden()
     {
         var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
-        var codeBehind = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
+        var recommended = ReadFile("src", "LibreSpot.Desktop", "Views", "RecommendedWorkspaceView.xaml");
         var viewModel = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
+        var simpleShell = ExtractSimpleShell(xaml);
 
-        Assert.True(
-            xaml.IndexOf("x:Name=\"GlobalSearchBox\"", StringComparison.Ordinal) >
-            xaml.IndexOf("x:Name=\"ActivityDock\"", StringComparison.Ordinal),
-            "Global search should live in the top command bar, after the workspace shell in the overlay tree.");
-        Assert.Contains("Text=\"{services:Loc Vm_GlobalSearchLabel}\"", xaml);
-        Assert.Contains("x:Name=\"ActivityDockToggle\"", xaml);
-        Assert.Contains("ActivityDockToggle_OnToggled", codeBehind);
-        Assert.Contains("ActivityDockToggle.IsChecked == false ? 40", codeBehind);
-        Assert.Contains("\"spicetify\"", viewModel);
-        Assert.Contains("\"marketplace\"", viewModel);
-        Assert.DoesNotContain("L(\"Vm_ShellSummaryOs\")", viewModel);
-        Assert.DoesNotContain("L(\"Vm_ShellSummaryLastRun\")", viewModel);
+        Assert.Contains("x:Name=\"SimpleShellHost\"", xaml);
+        Assert.Contains("Visibility=\"Collapsed\"", xaml[xaml.IndexOf("x:Name=\"ShellWorkspaceHost\"", StringComparison.Ordinal)..]);
+        Assert.DoesNotContain("GlobalSearchBox", simpleShell);
+        Assert.DoesNotContain("ActivityDock", simpleShell);
+        Assert.DoesNotContain("InspectorPanel", simpleShell);
+        Assert.Contains("{Binding SimpleHomeTitle}", recommended);
+        Assert.Contains("{Binding SimpleHomeReadinessChecks}", recommended);
+        Assert.Contains("AutomationProperties.AutomationId=\"RunRecommendedSetupButton\"", recommended);
+        Assert.Contains("AutomationProperties.AutomationId=\"RecommendedDetailsExpander\"", recommended);
+        Assert.Contains("Vm_SimpleHomeReadyTitle", viewModel);
     }
 
     [Fact]
-    public void Shell_SeparatesPrimaryNavigationFromQuickLinksAndUsesActionChevrons()
+    public void Shell_UsesThreePlainLanguageNavigationChoices()
     {
         var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
-        var controls = ReadFile("src", "LibreSpot.Desktop", "Themes", "Controls.xaml");
+        var simpleShell = ExtractSimpleShell(xaml);
 
-        Assert.Contains("AutomationProperties.Name=\"{services:Loc ModeRecommendedTitle}\"", xaml);
-        Assert.Contains("AutomationProperties.Name=\"{services:Loc ModeCustomTitle}\"", xaml);
-        Assert.Contains("AutomationProperties.Name=\"{services:Loc ModeMaintenanceTitle}\"", xaml);
-        Assert.DoesNotContain("services:Loc NavHome", xaml);
-        Assert.DoesNotContain("services:Loc NavSetup", xaml);
-        Assert.DoesNotContain("services:Loc NavUnblock", xaml);
-        Assert.Contains("ShellQuickLinkButtonStyle", xaml);
-        Assert.Contains("InspectorActionButtonStyle", xaml);
-        Assert.Contains("x:Key=\"ShellQuickLinkButtonStyle\"", controls);
-        Assert.Contains("x:Key=\"InspectorActionButtonStyle\"", controls);
-        Assert.True(xaml.Split(["Data=\"M 1 1 L 6 6 L 1 11\""], StringSplitOptions.None).Length >= 4);
+        Assert.Equal(3, simpleShell.Split("AutomationProperties.AutomationId=\"WorkspaceNav", StringSplitOptions.None).Length - 1);
+        Assert.Contains("AutomationProperties.Name=\"{services:Loc NavHome}\"", simpleShell);
+        Assert.Contains("AutomationProperties.Name=\"{services:Loc NavSettings}\"", simpleShell);
+        Assert.Contains("AutomationProperties.Name=\"{services:Loc ModeMaintenanceTitle}\"", simpleShell);
+        Assert.DoesNotContain("ShellQuickLinkButtonStyle", simpleShell);
+        Assert.DoesNotContain("InspectorActionButtonStyle", simpleShell);
     }
 
     [Fact]
@@ -251,6 +246,14 @@ public sealed class PremiumShellContractTests
 
     private static string ReadFile(params string[] parts) =>
         File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(parts).ToArray()));
+
+    private static string ExtractSimpleShell(string xaml)
+    {
+        var start = xaml.IndexOf("x:Name=\"SimpleShellHost\"", StringComparison.Ordinal);
+        var end = xaml.IndexOf("x:Name=\"ShellWorkspaceHost\"", StringComparison.Ordinal);
+        Assert.True(start >= 0 && end > start);
+        return xaml[start..end];
+    }
 
     private static string ResolveRepoRoot()
     {

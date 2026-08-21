@@ -4,6 +4,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0-preview.26] (2026-08-20)
+
 ### Security
 
 - Added a non-blocking PowerShell 7 security-floor preflight. PowerShell 7.6.0 through 7.6.4 now warn with CVE-2026-50523 and the fixed 7.6.5 version, while 7.6.5 and later remain silent.
@@ -18,11 +20,13 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- Rebuilt the desktop around a three-item Home, Maintenance, and Settings rail. Home now shows one readiness summary, four plain-language checks, one recommended action, and optional Details instead of the command bar, inspector, dashboard cards, and activity dock.
+- Removed global keyboard shortcuts from the desktop shell. Every common action remains available through a named on-screen control.
 - Unified the desktop workspace vocabulary around Recommended, Custom, and Maintenance. Jump List entries and per-user `librespot://` and `.librespot` registration descriptions now use localized resources after the saved interface culture is loaded.
 - Updated `LibreSpot.Cli --help` to list every flag in `schemas/fleet-cli-contract.json` per verb, with the `--purge` and `--yes` uninstall requirements stated explicitly.
 - Split the Custom workspace into PascalCase-paired per-section UserControls and moved maintenance, custom-install, and profile members into view-model partials. Existing UIA, localization, focus, and behavior contracts remain unchanged.
 - Added a short fake-installer warning and download-verification checklist to README and SECURITY. It points users to the official repository, same-release SHA256 checksums, and away from Telegram, rehosted files, Defender changes, and pasted commands.
-- Aligned markdown tracking guidance with the files actually versioned in the repository, refreshed the parity manifest version to preview.25, and removed the duplicate ignored `Roadmap_Blocks.md` file in favor of `Roadmap_Blocked.md`.
+- Aligned markdown tracking guidance with the files actually versioned in the repository, refreshed the parity manifest version to preview.26, and removed the duplicate ignored `Roadmap_Blocks.md` file in favor of `Roadmap_Blocked.md`.
 - Renamed the shell's stack-status bindings and replaced release-freshness copy with localized detected/not-detected maintenance guidance.
 - Expanded the WPF QA matrix with destructive-prompt, active-run cancellation, and dark-theme reduced-motion states, with capture metadata proving motion suppression.
 - Derived the shell display version from the desktop assembly informational version so project version bumps update the chrome automatically.
@@ -34,10 +38,12 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Loaded the Fluent control resources and shared workspace templates at application startup so icons, Custom settings, and Maintenance cards render reliably when the workspaces are hosted as separate controls.
+- Updated the WPF QA launcher for the Microsoft Testing Platform v2 runner so its state filter executes the matrix instead of returning a zero-test result.
 - Added a Spicetify v3 coexistence guard. LibreSpot now detects the v3 backup artifact, module and hook directories, and newer CLI majors before install, apply, repair, or reapply operations. The WPF health report records the conflict and points to `spicetify restore`; the recovery command remains available.
 - Added a pinned Core-only Stryker.NET 4.16.0 mutation pilot using the preview MTP runner with xUnit v3. The reproducible baseline is 24.32% across 1,476 tested mutants, with a 24% break threshold; the report records 355 killed mutants and the run command is documented in the repository.
 
-## [v4.0.0-preview.25] - 2026-08-11
+## [v4.0.0-preview.25] (2026-08-11)
 
 ### Fixed
 
@@ -53,59 +59,59 @@ All notable changes to LibreSpot will be documented in this file.
 - Extracted the three actual WPF workspace tabs into dedicated UserControls while preserving automation IDs, keyboard-focus contracts, localized resources, and navigation behavior.
 - Added multi-user isolation regression coverage for per-user registry state, configuration, profiles, backups, logs, crash reports, elevation boundaries, and executable paths.
 
-## [v4.0.0-preview.24] - 2026-07-24
+## [v4.0.0-preview.24] (2026-07-24)
 
 ### Changed
 
-- Completed the `LibreSpot.Core` extraction (RD-35): all non-UI logic shared by the desktop shell and the fleet CLI — the environment-snapshot derivation, upstream/community drift comparison, undo-policy evaluation, backend orchestration, support-bundle projection, the app catalog/models, and the `Strings` localization resources (with their culture satellites) — now lives once in the WPF-free `LibreSpot.Core` library instead of being compiled into both assemblies. The CLI carries zero source-file links and consumes everything through a project reference, and the test project's per-assembly type aliasing is gone. Because Core builds `net10.0-windows` with no `UseWPF`, it is a valid Stryker.NET mutation-testing target (the desktop project is not), which unblocks the filed Stryker item. Verified with the full xUnit suite, the offscreen UI-automation shell smoke suite (real rendered shell resolving Core-owned localized resources across cultures), a CLI smoke run, and the localization/release gates.
+- Completed the `LibreSpot.Core` extraction (RD-35): all non-UI logic shared by the desktop shell and the fleet CLI, the environment-snapshot derivation, upstream/community drift comparison, undo-policy evaluation, backend orchestration, support-bundle projection, the app catalog/models, and the `Strings` localization resources (with their culture satellites), now lives once in the WPF-free `LibreSpot.Core` library instead of being compiled into both assemblies. The CLI carries zero source-file links and consumes everything through a project reference, and the test project's per-assembly type aliasing is gone. Because Core builds `net10.0-windows` with no `UseWPF`, it is a valid Stryker.NET mutation-testing target (the desktop project is not), which unblocks the filed Stryker item. Verified with the full xUnit suite, the offscreen UI-automation shell smoke suite (real rendered shell resolving Core-owned localized resources across cultures), a CLI smoke run, and the localization/release gates.
 
-## [v4.0.0-preview.23] - 2026-07-24
+## [v4.0.0-preview.23] (2026-07-24)
 
 ### Changed
 
-- Began extracting non-UI logic into a new WPF-free `LibreSpot.Core` class library (net10.0-windows, no `UseWPF`) shared by the desktop shell and the fleet CLI via project reference. `OperationCorrelation` (ETW/EventSource operation-id correlation) and `OperationJournalUndoService` (undo-policy evaluation, with its `operation-token-types.json` / `run-receipt-format.json` schemas) now live in Core; namespaces are preserved so all call sites and the xUnit suite are unchanged. Because Core sets no `UseWPF`, it is a valid Stryker.NET mutation-testing target, which the `UseWPF` desktop project is not — the prerequisite the filed Stryker item was blocked on. Remaining service migrations (drift comparison, snapshot derivation) depend on relocating the shared `Strings` localization ownership and stay tracked in ROADMAP.
+- Began extracting non-UI logic into a new WPF-free `LibreSpot.Core` class library (net10.0-windows, no `UseWPF`) shared by the desktop shell and the fleet CLI via project reference. `OperationCorrelation` (ETW/EventSource operation-id correlation) and `OperationJournalUndoService` (undo-policy evaluation, with its `operation-token-types.json` / `run-receipt-format.json` schemas) now live in Core; namespaces are preserved so all call sites and the xUnit suite are unchanged. Because Core sets no `UseWPF`, it is a valid Stryker.NET mutation-testing target, which the `UseWPF` desktop project is not, the prerequisite the filed Stryker item was blocked on. Remaining service migrations (drift comparison, snapshot derivation) depend on relocating the shared `Strings` localization ownership and stay tracked in ROADMAP.
 
-## [v4.0.0-preview.22] - 2026-07-24
+## [v4.0.0-preview.22] (2026-07-24)
 
 ### Security
 
 - Documented GitHub immutable-release verification alongside SHA256 checksums. New releases record the GitHub release attestation contract and can be checked with `gh release verify` plus `gh release verify-asset`.
 - The pinned Spicetify CLI download now optionally verifies GitHub build-provenance attestations in addition to the mandatory SHA256 hash. After the hash check, when the GitHub CLI is present LibreSpot runs `gh attestation verify` against a cached signer identity (`spicetify/cli`, the workflow cert-identity regex, and the GitHub Actions OIDC issuer, pinned in `PinnedReleases`). A genuine provenance failure surfaces as a trust warning; when the tooling, network, or authentication is unavailable the check degrades silently to SHA256-only and never fails the install closed. New shared modules `Test-SpicetifyCliAttestation` (orchestrator) and `Get-SpicetifyAttestationVerdict` (pure exit-code/output classifier) with Pester coverage.
 
-## [v4.0.0-preview.21] - 2026-07-24
+## [v4.0.0-preview.21] (2026-07-24)
 
 ### Documentation
 
-- Aligned the code-signing docs with the unsigned-by-design posture. The README SmartScreen/signing FAQ, the "Signing & verification" section, `SECURITY.md`, and `SIGNPATH.md` no longer tell users a signed build is "pending" or coming "once the cert arrives" — SignPath Foundation OSS signing was evaluated and set aside, so releases ship unsigned and the SHA256 `checksums.txt` is the permanent verification path. `SIGNPATH.md` is reframed as a historical evaluation record rather than an active enrollment plan.
+- Aligned the code-signing docs with the unsigned-by-design posture. The README SmartScreen/signing FAQ, the "Signing & verification" section, `SECURITY.md`, and `SIGNPATH.md` no longer tell users a signed build is "pending" or coming "once the cert arrives", SignPath Foundation OSS signing was evaluated and set aside, so releases ship unsigned and the SHA256 `checksums.txt` is the permanent verification path. `SIGNPATH.md` is reframed as a historical evaluation record rather than an active enrollment plan.
 - Hardened the antivirus false-positive guidance: the README AV FAQ now recommends the compiled `LibreSpot-Desktop.exe` over the raw `LibreSpot.ps1` (the Powdow-class heuristic surface) and shows how to confirm any asset by matching its `checksums.txt` SHA256 on VirusTotal; `SECURITY.md` documents submitting each shipped artifact hash to the Microsoft Defender false-positive portal as a post-upload release step.
 
 ### Changed
 
-- The SpotX pin-advance guardrail now accounts for Spicetify's hard-fail-on-unsupported-version gate. `spicetify/cli` `main` merged a change after 2.44.0 (PRs #3894/#3895/#3896) that makes `backup apply` refuse — rather than best-effort patch — any Spotify version above the CLI's declared ceiling, which permits LibreSpot's post-apply route re-wiring to work on Spotify 1.2.94. `AppCatalog.PinnedSpotXHoldRationale`, the README compatibility note, and the compatibility-matrix warning now require a pin advance to confirm the newer Spicetify build still applies (does not hard-refuse) on the new Spotify target, not just re-validate CSS class maps. The pinned 2.44.0 predates the gate, so current behavior is unchanged.
+- The SpotX pin-advance guardrail now accounts for Spicetify's hard-fail-on-unsupported-version gate. `spicetify/cli` `main` merged a change after 2.44.0 (PRs #3894/#3895/#3896) that makes `backup apply` refuse, rather than best-effort patch, any Spotify version above the CLI's declared ceiling, which permits LibreSpot's post-apply route re-wiring to work on Spotify 1.2.94. `AppCatalog.PinnedSpotXHoldRationale`, the README compatibility note, and the compatibility-matrix warning now require a pin advance to confirm the newer Spicetify build still applies (does not hard-refuse) on the new Spotify target, not just re-validate CSS class maps. The pinned 2.44.0 predates the gate, so current behavior is unchanged.
 - Refreshed the `dotnetRuntimeFloor` rationale in `schemas/dependency-health-allowlist.json` to enumerate the 2026-07-14 .NET 10.0.10 servicing batch it actually clears (RCE CVE-2026-50646/-50649, signature-bypass CVE-2026-47304, EoP CVE-2026-50650, and CVE-2026-50526, alongside the earlier CVE-2026-32175/-26127/-45490 fixes). The floor version is unchanged at 10.0.10.
 
-## [v4.0.0-preview.20] - 2026-07-24
+## [v4.0.0-preview.20] (2026-07-24)
 
 ### Fixed
 
-- The Microsoft Store Spotify presence probe and the Windows Defender exclusion-status probe (`EnvironmentSnapshotService`) could block with no time bound. Both started an async `ReadToEnd` on the child process's stdout, then read `Task.Result` unconditionally after a 500 ms `Task.WaitAll` cap - so if a grandchild process inherited the stdout handle and kept it open, the read never completed and the illusory cap was bypassed, hanging the environment snapshot. Both probes now only read the drained output when the tasks actually completed and treat a timed-out drain as the safe default (not present / unavailable).
+- The Microsoft Store Spotify presence probe and the Windows Defender exclusion-status probe (`EnvironmentSnapshotService`) could block with no time bound. Both started an async `ReadToEnd` on the child process's stdout, then read `Task.Result` unconditionally after a 500 ms `Task.WaitAll` cap. If a grandchild process inherited the stdout handle and kept it open, the read never completed and the illusory cap was bypassed, hanging the environment snapshot. Both probes now only read the drained output when the tasks actually completed and treat a timed-out drain as the safe default (not present / unavailable).
 
 ### Accessibility
 
 - Added a WCAG AA contrast regression gate for the text-on-fill token pairs (`TextOnAccent`/`AccentColor`, `TextOnDanger`/`DangerFillColor`, `TextOnWarning`/`WarningFillColor`). The palette documented these primary-CTA, destructive, and caution button contrasts as clearing 4.5:1, but only text-over-surface tiers were tested; a future edit to a fill or its on-fill text could have silently dropped a button below the accessibility floor. The pairing is now verified in `ThemeManagerTests`.
 
-## [v4.0.0-preview.19] - 2026-07-23
+## [v4.0.0-preview.19] (2026-07-23)
 
 ### Changed
 
-- The end-of-install launch now burns a hidden ~15-second warm-up session before the visible Spotify launch. The first patched session performs heavy one-time initialization (fresh xpui extraction, CEF/GPU caches, Spicetify wrapper warmup) and could sit frozen for about ten seconds right as users signed in, until a manual restart cleared it. LibreSpot now performs that close-and-reopen automatically - the warm-up window stays hidden (WPF window watcher / monolith Hide-SpotifyWindows loop), so the session users actually see and sign in to starts responsive.
+- The end-of-install launch now burns a hidden ~15-second warm-up session before the visible Spotify launch. The first patched session performs heavy one-time initialization (fresh xpui extraction, CEF/GPU caches, Spicetify wrapper warmup) and could sit frozen for about ten seconds right as users signed in, until a manual restart cleared it. LibreSpot now performs that close-and-reopen automatically. The warm-up window stays hidden (WPF window watcher / monolith Hide-SpotifyWindows loop), so the session users actually see and sign in to starts responsive.
 
 ### Fixed
 
-- Fixed the blank Marketplace store page. Root cause: SpotX serves the combined `Apps/xpui/xpui.js` bundle (its patches only take effect when `index.html` loads it), while Spicetify v2.44.0 wires custom-app routes into `xpui-modules.js` and the chunk map into `xpui-snapshot.js` - files the page never loads in that layout. The `/marketplace` route therefore mounted a `React.lazy` chunk the live webpack runtime could not start, suspending forever behind a `fallback:null` Suspense with zero console errors. New `Repair-SpicetifyCustomAppWiring` ports the Spicetify CLI's own injection (route element, lazy chunk loader, chunk-name maps, and the miniCss gate from `src/apply/apply.go`) onto the bundle `index.html` actually references, with a pre-patch backup, strict anchor matching (no write unless every required anchor matched), and idempotent re-runs. Every successful `spicetify backup apply` in both hosts now re-wires the route automatically when Marketplace is enabled; verified live on Spotify 1.2.93.667 - the store page now renders the full catalog.
+- Fixed the blank Marketplace store page. Root cause: SpotX serves the combined `Apps/xpui/xpui.js` bundle (its patches only take effect when `index.html` loads it), while Spicetify v2.44.0 wires custom-app routes into `xpui-modules.js` and the chunk map into `xpui-snapshot.js`. The page never loads those files in that layout. The `/marketplace` route therefore mounted a `React.lazy` chunk the live webpack runtime could not start, suspending forever behind a `fallback:null` Suspense with zero console errors. New `Repair-SpicetifyCustomAppWiring` ports the Spicetify CLI's own injection (route element, lazy chunk loader, chunk-name maps, and the miniCss gate from `src/apply/apply.go`) onto the bundle `index.html` actually references, with a pre-patch backup, strict anchor matching (no write unless every required anchor matched), and idempotent re-runs. Every successful `spicetify backup apply` in both hosts now re-wires the route automatically when Marketplace is enabled. Verified live on Spotify 1.2.93.667, the store page now renders the full catalog.
 - Added a `RouteNotWired` Marketplace health state across the shared PowerShell health model and the WPF stack-health snapshot (all six locales): when the live Spotify bundle never references the store chunk, health now says the store page is not wired and points at Repair Marketplace instead of reporting a healthy install with a blank store.
 
-## [v4.0.0-preview.18] - 2026-07-23
+## [v4.0.0-preview.18] (2026-07-23)
 
 ### Security
 
@@ -152,7 +158,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
-- Fixed Marketplace theme and snippet installs silently doing nothing in the default "(None - Marketplace Only)" setup. LibreSpot now follows the official Marketplace install contract: it creates the upstream placeholder theme (`Themes\marketplace\color.ini`), activates it when no theme is selected, and keeps `inject_css`/`replace_colors` on - and it removed a pre-apply step that actively zeroed those settings in Marketplace-only mode (with an empty theme the Spicetify CLI already disables injection on its own, so the zeroing only broke the store contract). Disabling Marketplace cleanly restores the previous state, clearing the config reference before deleting the placeholder so an interrupted removal can never break later applies.
+- Fixed Marketplace theme and snippet installs silently doing nothing in the default "(None - Marketplace Only)" setup. LibreSpot now follows the official Marketplace install contract: it creates the upstream placeholder theme (`Themes\marketplace\color.ini`), activates it when no theme is selected, and keeps `inject_css`/`replace_colors` on. It also removed a pre-apply step that actively zeroed those settings in Marketplace-only mode (with an empty theme the Spicetify CLI already disables injection on its own, so the zeroing only broke the store contract). Disabling Marketplace cleanly restores the previous state, clearing the config reference before deleting the placeholder so an interrupted removal can never break later applies.
 - Restored a visible way to open the Marketplace when Spotify's global-nav redesigns silently break Spicetify's injected nav link (upstream spicetify/marketplace #1133/#1185/#1194: the /marketplace route works but no button renders). LibreSpot now ships a small managed extension that waits for the app to settle and registers a Topbar "Marketplace" button only when no native Marketplace entry rendered; it is local-only and is removed when Marketplace is disabled.
 - Marketplace health now verifies the theme contract on every surface: the PowerShell health model reports a `ThemeInactive` repairable state, and the WPF/CLI stack-health Marketplace component shows a localized "Theme support inactive" warning (all six locales) with Repair Marketplace as the recommended action, instead of reporting Ready while store installs no-op. A failed Spicetify apply still outranks the theme-contract warning.
 - Marketplace install now also removes the pre-1.0 `spicetify-marketplace` custom-app registration, matching the official installer's legacy cleanup, and the post-install log explains that an empty store page usually means GitHub is rate-limiting the catalog fetch and recovers on its own within about a minute.
@@ -164,7 +170,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Made watcher state replacement fail cleanly when another process interrupts the atomic update instead of leaking a non-terminating `Move-Item` error before recovery.
 - Restored `.librespot` Explorer imports from arbitrary local folders: file-association activations now enter the validated preview/confirm flow directly instead of being converted into a store-confined protocol URI, while malformed, missing, oversized, and wrong-extension inputs fail without crashing startup.
 - Removed the WPF shell's obsolete whole-app UAC relaunch: Recommended, Custom, and maintenance actions now run in the current standard-user token, readiness no longer treats a standard session as blocked, and the elevation boundary tests require every desktop backend action to remain no-admin.
-- Fixed `Unlock-SpotifyUpdateFolder` throwing "collection modified" and unlocking nothing when the Update folder carried more than one Deny ACE — the exact multi-ACE case it exists to clear; Deny rules are now snapshotted before removal.
+- Fixed `Unlock-SpotifyUpdateFolder` throwing "collection modified" and unlocking nothing when the Update folder carried more than one Deny ACE, the exact multi-ACE case it exists to clear; Deny rules are now snapshotted before removal.
 - Fixed the in-app "what's new" preview going blank whenever the changelog's leading `[Unreleased]` section was empty (the normal state right after a release); the preview now falls through to the newest section that actually has content.
 - Stopped run-receipt undo entries from mislabelling the operation token kind as the operation "phase" in the undo history; receipt entries have no phase, so the field now reads as unknown instead of showing the token kind.
 - Relaxed the archive-extraction traversal guard so legitimate entry names that merely begin or end with two dots (e.g. `..gitkeep`) are no longer rejected, while the authoritative resolved-destination prefix check still blocks real path traversal.
@@ -187,7 +193,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Added direct Pester coverage for the lane-specific watcher launch, registration, first-run, preference, active-Spotify, failed-reapply, missing-config, and interrupted-state-write contracts.
 - Added `Build-Scripts.ps1 -WatcherIntegration`, which registers and exports a unique least-privilege task, runs seven isolated watcher process-boundary scenarios, captures Task Scheduler evidence on failure, and always removes the disposable task and temp root.
 
-## [v4.0.0-preview.17] - 2026-07-09
+## [v4.0.0-preview.17] (2026-07-09)
 
 Premium command-center parity and resilience release.
 
@@ -213,7 +219,7 @@ Premium command-center parity and resilience release.
 - Removed the crash reporter from the C# hardcoded-color allowlist and added a non-activating crash-preview capture path plus contracts for shared theming, localization, scrolling, dark chrome, and action semantics.
 - Added deterministic compact-window and real high-contrast capture switches so the responsive and system-palette variants can be rendered and reviewed without activating the app on the desktop.
 
-## [v4.0.0-preview.16] - 2026-07-09
+## [v4.0.0-preview.16] (2026-07-09)
 
 Premium desktop command-center release.
 
@@ -236,7 +242,7 @@ Premium desktop command-center release.
 - Added premium-shell source contracts covering live localization, modal isolation, readiness/activity states, compact work-area behavior, result retention, and visual-system tokens.
 - Recaptured the four README WPF screenshots from deterministic background smoke states.
 
-## [v4.0.0-preview.15] - 2026-07-09
+## [v4.0.0-preview.15] (2026-07-09)
 
 Deep audit release.
 
@@ -250,7 +256,7 @@ Deep audit release.
 
 - Expanded the localization regression guard to cover `PromptStateViewModel.cs` in the `ViewModels_RuntimeLocalizationKeysExist` check and added 14 removed English phrases to the `ViewModels_UserFacingComputedTextUsesResources` regression list.
 
-## [v4.0.0-preview.14] - 2026-07-09
+## [v4.0.0-preview.14] (2026-07-09)
 
 ### Changed
 
@@ -262,23 +268,23 @@ Deep audit release.
 
 - Recaptured WPF smoke screenshots for the preview.14 desktop shell and added a failed-run progress-label regression.
 
-## [v4.0.0-preview.13] - 2026-07-09
+## [v4.0.0-preview.13] (2026-07-09)
 
 Deep audit release after the v4.0.0-preview.12 tag.
 
 ### Added
 
 - Automatic single retry through the SpotX mirror when SpotX's own downloader hits a classified outage (connection timeout / curl exit 28, or a Cloudflare-worker endpoint failure); a mirror flagged upstream as phishing instead retries once without the mirror. Timeouts and worker failures are the dominant recoverable SpotX install failure, and previously surfaced as a hard error even though a mirror retry usually succeeds.
-- Antivirus exclusion health signal: when Windows Defender real-time protection is on and the Spotify install folder is not excluded, the readiness inspector and CLI `detect`/`status` now surface a warning with a copy-paste `Add-MpPreference -ExclusionPath` command, because SpotX-patched files are commonly quarantined as a HackTool false positive (which code-signing cannot clear). LibreSpot only reports and suggests — it never changes antivirus settings. Third-party AV, disabled protection, an already-excluded folder, or an uninspectable Defender all stay silent.
-- Maintainer drift check `Build-Scripts.ps1 -CheckSpotifyVersionDrift`: compares the pinned Spotify target (the "current pinned" entry in `$global:SpotifyVersionManifest`) against the community-canonical SpotX-Bash `spotx.sh` `buildVer` and flags staleness. Report-only — it never auto-bumps the pin; network/parse failures are treated as indeterminate so the check is not flaky.
+- Antivirus exclusion health signal: when Windows Defender real-time protection is on and the Spotify install folder is not excluded, the readiness inspector and CLI `detect`/`status` now surface a warning with a copy-paste `Add-MpPreference -ExclusionPath` command, because SpotX-patched files are commonly quarantined as a HackTool false positive (which code-signing cannot clear). LibreSpot only reports and suggests, it never changes antivirus settings. Third-party AV, disabled protection, an already-excluded folder, or an uninspectable Defender all stay silent.
+- Maintainer drift check `Build-Scripts.ps1 -CheckSpotifyVersionDrift`: compares the pinned Spotify target (the "current pinned" entry in `$global:SpotifyVersionManifest`) against the community-canonical SpotX-Bash `spotx.sh` `buildVer` and flags staleness. Report-only, it never auto-bumps the pin; network/parse failures are treated as indeterminate so the check is not flaky.
 
-- Microsoft Store Spotify heads-up: when the Store version of Spotify is installed, the readiness inspector and CLI `detect`/`status` now show a one-line informational note explaining that SpotX will replace it with the standard desktop build during setup (it was already auto-removed, but silently, which read as "where did my Spotify go"). Read-only detection — LibreSpot does not remove the package itself.
+- Microsoft Store Spotify heads-up: when the Store version of Spotify is installed, the readiness inspector and CLI `detect`/`status` now show a one-line informational note explaining that SpotX will replace it with the standard desktop build during setup (it was already auto-removed, but silently, which read as "where did my Spotify go"). Read-only detection, LibreSpot does not remove the package itself.
 
 ### Changed
 
 - Reworked the WPF home shell to match the premium mockup: compact left navigation, readiness hero, summary tiles, centered setup action, split environment/dependency panel, right-side readiness/next-action cards, and the docked activity table with an always-visible cancel affordance during active runs.
 
-- Relaunching as administrator from a confirmed setup now resumes that setup automatically in the elevated window instead of dropping the user back at "Run recommended setup." The standard-mode session stages the confirmed configuration, passes `--shell-action=resume-install` to the elevated relaunch, and the elevated instance runs it directly — removing the second click. It only auto-runs a setup that was already risk-acknowledged, and only when actually elevated.
+- Relaunching as administrator from a confirmed setup now resumes that setup automatically in the elevated window instead of dropping the user back at "Run recommended setup." The standard-mode session stages the confirmed configuration, passes `--shell-action=resume-install` to the elevated relaunch, and the elevated instance runs it directly, removing the second click. It only auto-runs a setup that was already risk-acknowledged, and only when actually elevated.
 - During install, the first (config-generation) Spotify launch now force-closes any Spotify the user or SpotX left running before reopening it, so config is generated by a clean, freshly patched process. Applies to all three lanes.
 - The WPF shell now closes itself automatically after a completed setup/change run (the same operations that restart Spotify: Install, Reapply, Repair Marketplace, Safe Mode, Restore Backup, Restore Vanilla). Read-only actions like Check Updates and continue-working toggles keep the window open. The UI-automation screenshot mode never auto-closes.
 
@@ -313,7 +319,7 @@ Deep audit release after the v4.0.0-preview.12 tag.
 - Added an accessibility guard (`AutomationNameContractTests`) that fails the build if any interactive control in `MainWindow.xaml` loses its UIA-discoverable name (`AutomationProperties.Name`/`Content`/`Header`/`LabeledBy`), and that pins the `LiveRegionContentControl` polite live-region peer. All 77 interactive controls currently comply; the test locks that in against regression (WCAG 2.2 4.1.2).
 - Added focus-visibility guards to `KeyboardFocusContractTests`: broadened the custom-focus-ring theory to TextBox/TabItem/ComboBoxItem, a targeted check that the read-only log textbox keeps a focus ring, and an invariant that the number of keyboard-focus triggers is at least the number of templates that null the default focus visual (so no restyled control can silently drop its focus ring).
 
-## [v4.0.0-preview.12] - 2026-07-08
+## [v4.0.0-preview.12] (2026-07-08)
 
 ### Fixed
 
@@ -322,7 +328,7 @@ Deep audit release after the v4.0.0-preview.12 tag.
 - Removed main-page warning and repair-note blocks from the WPF readiness sidebar while keeping detailed diagnostics in Maintenance and support bundles.
 - Refined the WPF shell with a premium command-center hero, larger readiness meter, stronger status hierarchy, and an active-run Cancel affordance that remains visible while work is running.
 
-## [v3.7.4] / [v4.0.0-preview.11] - 2026-07-08
+## [v3.7.4] / [v4.0.0-preview.11] (2026-07-08)
 
 ### Fixed
 
@@ -357,7 +363,7 @@ Deep audit release after the v4.0.0-preview.12 tag.
 - Closed WPF color-lint blind spots so short XAML hex colors, named XAML colors, and unallowlisted C# color construction fail local tests instead of bypassing palette review.
 - Regenerated README WPF screenshots from the preview.9 shell and added PNG metadata validation so stale screenshots fail local release validation.
 
-## [v4.0.0-preview.8] - 2026-07-07
+## [v4.0.0-preview.8] (2026-07-07)
 
 ### Changed
 
@@ -366,18 +372,18 @@ Deep audit release after the v4.0.0-preview.12 tag.
 - Replaced visible workspace tabs with rail navigation while keeping keyboard/UIA workspace switching covered by smoke tests.
 - Recaptured all README WPF screenshots from deterministic smoke states.
 
-## [v3.7.3] / [v4.0.0-preview.7] - 2026-07-07
+## [v3.7.3] / [v4.0.0-preview.7] (2026-07-07)
 
 Deep end-to-end audit pass: correctness, security, accessibility, theming,
 localization, and release hardening across the stable script, the WPF shell,
 and the fleet CLI.
 
-### Fixed — critical
+### Fixed: critical
 
 - **The standalone script did not parse at all under Windows PowerShell 5.1.**
   `LibreSpot.ps1` was BOM-less UTF-8; PS 5.1 reads such files in the ANSI
   codepage, and a `U+2139` glyph in the update banner corrupted the token
-  stream into 14 cascading parse errors — every `Run with PowerShell` /
+  stream into 14 cascading parse errors, every `Run with PowerShell` /
   `powershell -File` launch failed outright. Both runnable scripts now carry
   a UTF-8 BOM, `-Lint` gates on BOM presence plus a clean `ParseFile`, and
   the shared-function sync writes the backend with a BOM.
@@ -413,14 +419,14 @@ and the fleet CLI.
   Success/Caution/Danger completion feedback in both palettes, with
   offscreen render coverage.
 
-### Fixed — data safety
+### Fixed: data safety
 
 - Watcher-state saves from the standalone script destroyed the WPF lane's
   extended fields (`LastAppliedSpotifyVersion`, `LastSuccessfulApplyAt`, …);
   every lane now merges over the existing `watcher-state.json`.
 - Full Reset left the auto-reapply scheduled task registered forever on a
   machine with no Spotify; both lanes now unregister it.
-- Plan summaries ran against `config.json` before the user confirmed Apply —
+- Plan summaries ran against `config.json` before the user confirmed Apply,
   cancelling the prompt left the unconfirmed profile (with
   `RiskAcknowledged=true`) live for the watcher. Plans now use a temp config;
   the real save happens only on confirmation.
@@ -431,14 +437,14 @@ and the fleet CLI.
   defined, leaving the corrupt file in place and repeating the settings-reset
   dialog every launch.
 - `Remove-PathSafely` deletes reparse points as links instead of recursing
-  into them — PS 5.1 `Remove-Item -Recurse` follows directory junctions and
+  into them, PS 5.1 `Remove-Item -Recurse` follows directory junctions and
   `icacls /T` reset ACLs on the target tree, an elevated delete-anything
   primitive for anyone able to plant a link in a removal root.
 - The stale shared sources for `Set-WatcherState`/`Save-LibreSpotConfig`
   still carried the delete-then-move data-loss window; refreshed to the
   crash-safe rescue-move fallback.
 
-### Fixed — security
+### Fixed: security
 
 - `librespot://profile?file=` (launchable by any web page) accepted arbitrary
   local paths; it now only reads from the LibreSpot profiles folder.
@@ -451,7 +457,7 @@ and the fleet CLI.
   "needs administrator" error in non-elevated sessions; read-only `Plan` is
   exempt from the risk-acknowledgment gate.
 
-### Fixed — UX, accessibility, and theming
+### Fixed: UX, accessibility, and theming
 
 - Maintenance Safe Mode was dead code twice over (a guard on a variable from
   another function's scope, and no worker branch); it now actually disables
@@ -478,7 +484,7 @@ and the fleet CLI.
 - Sidebar profile status marker no longer shows green while the status line
   reports recovered defaults.
 
-### Fixed — localization
+### Fixed: localization
 
 - Nine translated strings in all four locales had lost every sentence after
   the first (including the beautiful-lyrics third-party privacy disclosure
@@ -509,7 +515,9 @@ and the fleet CLI.
 - Drift services share one `HttpClient`; built-in profile ID checks are
   cached; the Spicetify version probe uses a randomized temp file.
 
-### Also in this release — accumulated since v3.7.2 / v4.0.0-preview.6
+### Also in this release
+
+Accumulated since v3.7.2 / v4.0.0-preview.6.
 
 ### Added
 - Added offscreen high-contrast WPF rendering smoke coverage for representative
@@ -672,7 +680,7 @@ and the fleet CLI.
   causing terminating errors under `$ErrorActionPreference = 'Stop'` during
   the SpotX post-patch launch and Spicetify CLI installation steps.
 - Fixed monolith and shared watcher ignoring the `AutoReapply_Enabled`
-  preference — the scheduled task always reapplied regardless of the user's
+  preference, the scheduled task always reapplied regardless of the user's
   setting. Now gates on the preference before invoking headless reapply,
   matching the backend version.
 - Fixed `Compare-LibreSpotVersions` misordering multi-digit pre-release
@@ -683,7 +691,7 @@ and the fleet CLI.
   `ExtractToDirectory`. Now validates and extracts within a single open
   handle using per-entry `ExtractToFile`.
 - Fixed `PrimaryButtonStyle` and `SecondaryButtonStyle` ContentPresenter
-  not consuming the `Padding` property — padding values set on buttons
+  not consuming the `Padding` property, padding values set on buttons
   using these styles were silently ignored.
 - Fixed Spotify playback failure after install: the backend script's
   `Normalize-LibreSpotConfig` referenced undefined `$global:ThemeData` and
@@ -780,7 +788,7 @@ and the fleet CLI.
   unhandled actions, preventing silently-successful no-ops if a new action
   is added to `ValidateSet` but not to the dispatch switch.
 - `Plan` action correctly excluded from operation journal `WouldChange`
-  tracking — a dry-run plan no longer logs that mutations occurred.
+  tracking, a dry-run plan no longer logs that mutations occurred.
 - `Build-Scripts.ps1` function body extraction now uses `[regex]::Escape()`
   on function names so hyphens are treated as literal characters rather than
   regex metacharacters.
@@ -840,9 +848,9 @@ and the fleet CLI.
   key uniqueness, non-empty values, translator comments, and core key presence.
   This is the first step toward satellite assembly localization.
 - Preflight plan action (`Plan`) in the WPF backend that emits structured
-  JSON plan entries for every operation an install would perform — downloads,
+  JSON plan entries for every operation an install would perform, downloads,
   SpotX patching, Spicetify CLI, themes, extensions, Marketplace, config saves,
-  and watcher tasks — without mutating disk, PATH, or scheduled tasks. Each
+  and watcher tasks, without mutating disk, PATH, or scheduled tasks. Each
   entry carries category, target, wouldChange, safetyDecision, reversible,
   requiresElevation, and source fields. This is the foundation for `--dry-run`
   in the fleet CLI and the WPF confirmation summary.
@@ -980,8 +988,8 @@ and the fleet CLI.
 - Community theme downloads are now commit-pinned and SHA256-verified, matching the existing integrity model for community extensions and the official themes archive. All five community themes (Catppuccin, Comfy, Bloom, Lucid, Hazy) use immutable commit-SHA archive URLs with `Confirm-FileHash` verification instead of mutable branch-based downloads. CI tests enforce that no branch-pinned archive URLs remain and that commit SHAs and hashes stay consistent across the script, WPF backend, and community-assets manifest.
 - Dependency update checks (`Check-ForUpdates`) now use `Invoke-GitHubApiSafe` which reads `x-ratelimit-remaining` and `x-ratelimit-reset` headers, warns when rate limits are nearly exhausted, and provides actionable error messages with reset times for HTTP 403/429 responses instead of generic failure messages.
 
-- ConfigurationService: handle `FileNotFoundException` separately from corrupt-config in `LoadResultAsync` — a config file deleted between the existence check and the open now correctly returns `Missing` instead of quarantining a non-existent file as corrupt.
-- ThemeManager: fixed palette dictionary search using fragile `Contains("Palette.xaml")` that matched both palette filenames — now uses explicit `EndsWith` checks for each known palette.
+- ConfigurationService: handle `FileNotFoundException` separately from corrupt-config in `LoadResultAsync`, a config file deleted between the existence check and the open now correctly returns `Missing` instead of quarantining a non-existent file as corrupt.
+- ThemeManager: fixed palette dictionary search using fragile `Contains("Palette.xaml")` that matched both palette filenames, now uses explicit `EndsWith` checks for each known palette.
 - ThemeManager: reduced-motion `MotionFast/Med/Slow` double overrides are now cleared when the user re-enables animations, preventing permanently zeroed motion values for the session.
 - Extracted hardcoded terminal colors (`#080B0A` background, `#D6E4DB` foreground) from MainWindow.xaml and Controls.xaml into `TerminalBgBrush`/`TerminalFgBrush` palette tokens with proper SystemColors mapping in high-contrast mode.
 - Added `AutomationProperties.Name` to the settings search clear button and installation progress bar.
@@ -1027,25 +1035,25 @@ and the fleet CLI.
 - PrettifyConverter: `ConvertBack` now throws `NotSupportedException` instead of returning the input, preventing silent data corruption if the converter is accidentally used on a two-way binding.
 - SupportBundleService: `ExportAsync` now writes to a temporary `.tmp` file and moves to the final path only after the ZIP is complete, preventing orphaned partial/corrupt ZIP files on cancellation or error.
 - ConfigurationService: `QuarantineCorruptConfig` fallback path now uses `overwrite: true` for consistency with the primary quarantine path.
-- LibreSpot.ps1: `Test-SafeRemovalTarget` blocklist expanded from 7 to 17 entries to match the backend — adds ProgramData, ALLUSERSPROFILES, PUBLIC, OneDrive paths, Desktop, Documents, CommonDesktopDirectory, and CommonStartMenu.
+- LibreSpot.ps1: `Test-SafeRemovalTarget` blocklist expanded from 7 to 17 entries to match the backend, adds ProgramData, ALLUSERSPROFILES, PUBLIC, OneDrive paths, Desktop, Documents, CommonDesktopDirectory, and CommonStartMenu.
 - LibreSpot.ps1: community theme install now uses explicit `-LiteralPath` in 4 path operations to prevent wildcard glob expansion on paths with bracket/wildcard characters.
-- BackendScriptService: fixed temp `.run.ps1` file leak when `process.Start()` throws — execution copy is now cleaned up on launch failure.
+- BackendScriptService: fixed temp `.run.ps1` file leak when `process.Start()` throws, execution copy is now cleaned up on launch failure.
 - BackendScriptService: moved cancellation token registration before `process.Start()` so cancellation works even if the process hangs during startup.
 - BackendScriptService: drain async output pumps on the cancellation path to prevent stale callbacks after `RunAsync` returns.
-- CrashReporter: wrapped `Directory.CreateDirectory` for log/crash directories in try/catch — previously an unhandled exception here silently disabled all crash handling for the entire session.
+- CrashReporter: wrapped `Directory.CreateDirectory` for log/crash directories in try/catch, previously an unhandled exception here silently disabled all crash handling for the entire session.
 - CrashReporter: disposed `Process` handle returned by `Process.Start` when opening the crash folder.
 - EnvironmentSnapshotService: guarded null/blank `configPath` in `GetSnapshot` to prevent `ArgumentNullException` on `File.Exists`.
 - EnvironmentSnapshotService: added `GetSnapshotAsync` and made the view-model refresh await it, so the `schtasks.exe` auto-reapply probe (up to 1500ms) runs on the thread pool instead of blocking the UI dispatcher. Snapshot refreshes from the dashboard button, startup, and post-run no longer cause a visible hang.
-- `Remove-PathSafely`: quoted the `$Path` argument passed to `icacls.exe` in both scripts — previously broke silently on paths containing spaces.
+- `Remove-PathSafely`: quoted the `$Path` argument passed to `icacls.exe` in both scripts, previously broke silently on paths containing spaces.
 - `Expand-ArchiveSafely`: appended trailing separator to the destination path before `StartsWith` comparison to prevent a prefix-collision bypass (e.g., destination `C:\foo` incorrectly allowing extraction to `C:\foobar`).
 
 ### Security
 - Added safe archive extraction helper (`Expand-ArchiveSafely`) that validates all ZIP entries for path traversal, absolute paths, destination escapes, entry count limits, and expanded size limits before extracting. All 8 extraction sites in both the stable script and WPF backend now use this helper instead of raw `ExtractToDirectory`.
 - Hardened backend runtime directory with explicit ACLs (current user + Administrators only, inheritance disabled), per-process immutable execution copies to eliminate TOCTOU race between hash validation and process start, and SHA256 sidecar verification for the watcher scheduled task entry point.
-- Stopped tracking build artifacts (`LibreSpot.exe`, `checksums.txt`) in git. The committed `checksums.txt` had drifted out of sync with `LibreSpot.ps1` — exactly the mismatch the README tells users to treat as tampering — and the committed `.exe` predated current source. Integrity now comes solely from CI-attested release assets (fresh SHA256 checksums + SBOM + provenance generated per tag), and the README verification steps point at release-downloaded copies rather than anything in a source checkout.
-- Added PowerShell execution-policy / language-mode / application-control diagnostics. At run start LibreSpot now logs its PowerShell edition, version, language mode, and execution-policy scopes (`Get-PowerShellSecurityContext`), warns when the host already enforces ConstrainedLanguage, and classifies AppLocker/WDAC blocks in spawned-process output separately from ordinary errors (`Test-IsLanguageModeOrAppControlError`) — in both the script and WPF backend. `SECURITY.md` documents that execution policy is a safety feature, not a security boundary, and that `-ExecutionPolicy Bypass` does not defeat application control; the guidance is always to ask an administrator, never to weaken enterprise controls. Locked by regression tests on both paths.
-- Documented and locked the SpotX external-process execution contract. `SECURITY.md` now spells out, per executable, the allowed argument sources, quoting/execution strategy, timeout, output capture, and exit handling. Regression tests (both PowerShell paths) prove `Normalize-LibreSpotConfig` constrains every interpolated SpotX field to an allowlist or integer and that `Build-SpotXParams` interpolates nothing outside the known-safe set — so a crafted `config.json` cannot inject an extra command, and a future free-form argument fails CI until it is normalized. Verified against 16 injection payloads (quotes, semicolons, pipes, ampersands, newlines): zero leaks.
-- Documented and preflight-gated CVE-2025-54100 (Windows PowerShell 5.1 web-content RCE, CVSS 7.8, fixed in the December 2025 Windows cumulative updates). `SECURITY.md` and the README trust section now name the two mitigations — SHA256 pinning (payload integrity) and Windows patch level (closing the parse-time vector) — and clarify that hash pinning alone does not remove the vector. A non-blocking downloader preflight (`Get-DownloaderCveExposure`) in both the script and WPF backend logs a `WARN` once per run when a Windows PowerShell 5.1 host predates the December 2025 patch wave; PowerShell 7+ is unaffected and skipped.
+- Stopped tracking build artifacts (`LibreSpot.exe`, `checksums.txt`) in git. The committed `checksums.txt` had drifted out of sync with `LibreSpot.ps1`, exactly the mismatch the README tells users to treat as tampering, and the committed `.exe` predated current source. Integrity now comes solely from CI-attested release assets (fresh SHA256 checksums + SBOM + provenance generated per tag), and the README verification steps point at release-downloaded copies rather than anything in a source checkout.
+- Added PowerShell execution-policy / language-mode / application-control diagnostics. At run start LibreSpot now logs its PowerShell edition, version, language mode, and execution-policy scopes (`Get-PowerShellSecurityContext`), warns when the host already enforces ConstrainedLanguage, and classifies AppLocker/WDAC blocks in spawned-process output separately from ordinary errors (`Test-IsLanguageModeOrAppControlError`), in both the script and WPF backend. `SECURITY.md` documents that execution policy is a safety feature, not a security boundary, and that `-ExecutionPolicy Bypass` does not defeat application control; the guidance is always to ask an administrator, never to weaken enterprise controls. Locked by regression tests on both paths.
+- Documented and locked the SpotX external-process execution contract. `SECURITY.md` now spells out, per executable, the allowed argument sources, quoting/execution strategy, timeout, output capture, and exit handling. Regression tests (both PowerShell paths) prove `Normalize-LibreSpotConfig` constrains every interpolated SpotX field to an allowlist or integer and that `Build-SpotXParams` interpolates nothing outside the known-safe set, so a crafted `config.json` cannot inject an extra command, and a future free-form argument fails CI until it is normalized. Verified against 16 injection payloads (quotes, semicolons, pipes, ampersands, newlines): zero leaks.
+- Documented and preflight-gated CVE-2025-54100 (Windows PowerShell 5.1 web-content RCE, CVSS 7.8, fixed in the December 2025 Windows cumulative updates). `SECURITY.md` and the README trust section now name the two mitigations, SHA256 pinning (payload integrity) and Windows patch level (closing the parse-time vector), and clarify that hash pinning alone does not remove the vector. A non-blocking downloader preflight (`Get-DownloaderCveExposure`) in both the script and WPF backend logs a `WARN` once per run when a Windows PowerShell 5.1 host predates the December 2025 patch wave; PowerShell 7+ is unaffected and skipped.
 
 ### Fixed
 - Repaired community extension downloads by replacing dead branch/path URLs with commit-pinned, SHA256-verified assets, switching Beautiful Lyrics to its `.mjs` build, and removing the deleted Song Stats catalog entry.
@@ -1070,20 +1078,20 @@ and the fleet CLI.
 - Hardened release-channel creation so stable, preview, and RC tags are validated, missing tags are rejected, preview/RC releases are not marked latest, and duplicate/empty releases are guarded.
 - Pinned GitHub Actions workflow dependencies to full commit SHAs with version comments, added Dependabot batching for workflow actions, and added a regression guard against mutable `uses:` refs.
 
-## [v3.7.2] - 2026-04-28
+## [v3.7.2] (2026-04-28)
 
 **Hotfix.** The Easy-mode confirmation dialog was crashing the script the moment users clicked **Install recommended setup**.
 
 ### Fixed
-- `Show-ThemedDialog` runs as a separate `Window` with its own here-string XAML, so it does NOT inherit the main window's resource dictionary. v3.7.0's blanket `Foreground="#FFE7EDF3"` → `Foreground="{StaticResource FgPrimaryBrush}"` sweep caught three references inside that dialog markup. When the install button fired the "Start Recommended Setup" confirmation, `XamlReader::Load` threw `Cannot find resource named 'FgPrimaryBrush'`, which propagated out of `Show-ThemedDialog` and tore down the install flow before any work started. Reverted those three to inline hex (`#FFE7EDF3`) — the dialog renders as before and Easy/Custom installs proceed.
+- `Show-ThemedDialog` runs as a separate `Window` with its own here-string XAML, so it does NOT inherit the main window's resource dictionary. v3.7.0's blanket `Foreground="#FFE7EDF3"` → `Foreground="{StaticResource FgPrimaryBrush}"` sweep caught three references inside that dialog markup. When the install button fired the "Start Recommended Setup" confirmation, `XamlReader::Load` threw `Cannot find resource named 'FgPrimaryBrush'`, which propagated out of `Show-ThemedDialog` and tore down the install flow before any work started. Reverted those three to inline hex (`#FFE7EDF3`), the dialog renders as before and Easy/Custom installs proceed.
 - Gotcha: every standalone XAML here-string (`$dlgXaml`, scheduled-task templates, future popouts) defines its own resource scope. Resource-token sweeps must explicitly skip them.
 
 ### Why this slipped past v3.7.0/v3.7.1 validation
-`XamlReader::Load` ran clean on the main `$xaml` because the main window declares those brushes inline. The dialog only loads at click time — never exercised by my static checks. Lesson: when the script holds multiple XAML strings, each one needs its own `[XamlReader]::Load` round-trip in pre-flight validation.
+`XamlReader::Load` ran clean on the main `$xaml` because the main window declares those brushes inline. The dialog only loads at click time, never exercised by my static checks. Lesson: when the script holds multiple XAML strings, each one needs its own `[XamlReader]::Load` round-trip in pre-flight validation.
 
 ---
 
-## [v3.7.1] - 2026-04-28
+## [v3.7.1] (2026-04-28)
 
 **Density pass + logo.png brand source.** Cuts the vertical footprint of every panel so the configuration options fit without scrolling on a 1080-tall window. Brand image now sources `logo.png` for crisper rendering at the sidebar's 44-px tile and dialog headers.
 
@@ -1106,7 +1114,7 @@ v3.7.0 nailed the chrome but the original v3.6.0 paddings carried over into the 
 
 ---
 
-## [v3.7.0] - 2026-04-28
+## [v3.7.0] (2026-04-28)
 
 **Premium UI overhaul.** The setup script keeps every behavior from v3.6.0 but now reads as polished product instead of dev tool. Sidebar navigation, Win11 Mica backdrop, semantic design tokens, hover-lift micro-interactions, and a shimmering install progress bar.
 
@@ -1114,11 +1122,11 @@ v3.7.0 nailed the chrome but the original v3.6.0 paddings carried over into the 
 - **Win11 Mica backdrop** via `DwmSetWindowAttribute` P/Invoke (`DWMWA_SYSTEMBACKDROP_TYPE` = 38, `DWMSBT_MAINWINDOW` = 2). Combined with `DWMWA_USE_IMMERSIVE_DARK_MODE` and `DWMWA_WINDOW_CORNER_PREFERENCE` (rounded). Applied at `SourceInitialized`. Quietly degrades to the solid `SurfaceBase` (`#FF0B0E14`) baked into `Window.Background` on Windows 10 / pre-22H2.
 - **Sidebar navigation** replacing the three-radio top tab bar. 252-px rail with brand block, Lucide icon nav items (Sparkles / Sliders / Wrench), update banner slot, and footer link tray (GitHub icon + SpotX/Spicetify hyperlinks).
 - **Compact title bar** in the main column carries the mode headline + summary alongside minimize/close. The drag handle stays scoped to the title bar so ScrollViewer interactions in Custom/Maintenance keep working.
-- **Design token resource dictionary** — `SurfaceBase/Elevated/Elevated2/Overlay/Sidebar`, `Border Subtle/Strong/Hover`, `Accent / AccentHover / AccentPressed / AccentSoft / AccentMuted`, `Info / Warning / Danger` (each with soft bg/border pair), `FgPrimary / FgSecondary / FgMuted / FgInverse`, plus a `ShimmerOverlayBrush`. Inline hex codes for foreground primary/secondary/muted swept to `{StaticResource}` references throughout the panels.
+- **Design token resource dictionary**, `SurfaceBase/Elevated/Elevated2/Overlay/Sidebar`, `Border Subtle/Strong/Hover`, `Accent / AccentHover / AccentPressed / AccentSoft / AccentMuted`, `Info / Warning / Danger` (each with soft bg/border pair), `FgPrimary / FgSecondary / FgMuted / FgInverse`, plus a `ShimmerOverlayBrush`. Inline hex codes for foreground primary/secondary/muted swept to `{StaticResource}` references throughout the panels.
 - **Type tokens**: `TypeHeroH1` (32px), `TypeH1` (22px), `TypeH2` (15.5px), `TypeBody` (13px), `TypeCaption` (11.5px). Default font upgraded to `Segoe UI Variable Display` with Segoe UI Variable / Segoe UI fallbacks. ClearType rendering forced.
-- **Lucide icon set** as XAML `Geometry` resources — Home, Sliders, Wrench, Shield, Sparkle, Check, Download, Clock, External, Dot, Refresh — usable from any `Path`.
+- **Lucide icon set** as XAML `Geometry` resources, Home, Sliders, Wrench, Shield, Sparkle, Check, Download, Clock, External, Dot, Refresh, usable from any `Path`.
 - **Hover-lift micro-interactions** on `ActionButton`: `TranslateTransform.Y` animates to `-1.5` over 120ms on hover, plus accent-colored `DropShadowEffect` glow on focus and hover. Pressed state dims to 0.84 opacity.
-- **Shimmering install progress bar** — `RoundProgress` template now layers an animated `LinearGradientBrush` over the indicator using a forever-repeating `DoubleAnimation` translating from `-140` to `900` X over 1.6s. Indicator itself gets an accent-colored DropShadow for depth.
+- **Shimmering install progress bar**, `RoundProgress` template now layers an animated `LinearGradientBrush` over the indicator using a forever-repeating `DoubleAnimation` translating from `-140` to `900` X over 1.6s. Indicator itself gets an accent-colored DropShadow for depth.
 
 ### Changed
 - PowerShell script: v3.6.0 → **v3.7.0**.
@@ -1131,16 +1139,16 @@ v3.7.0 nailed the chrome but the original v3.6.0 paddings carried over into the 
 ### Removed
 - Outer 14-px margin Grid + faux drop-shadow rounded Border. Mica + DWM rounded corners replace both.
 - Top mode tab bar (now sidebar nav).
-- The "TitleSubtext" tagline at the top — moved into the sidebar brand block as "Premium Spotify toolkit".
+- The "TitleSubtext" tagline at the top, moved into the sidebar brand block as "Premium Spotify toolkit".
 
 ### Why
 v3.6.0's UI was already dark, card-based, and accent-tinted, but read as "developer tool" because of flat 1px borders, scattered hex codes, text-bullet lists, and a top tab bar that felt like a form control. Premium installers (Linear, Vercel, 1Password) lean on Mica/Acrylic backdrops, sidebar nav, semantic color tokens, and motion. v3.7.0 picks up all four without changing a single install behavior or breaking any existing PowerShell-side `$ui[name]` reference.
 
 ---
 
-## [v3.6.0] / [v4.0.0-preview.6] - 2026-04-17
+## [v3.6.0] / [v4.0.0-preview.6] (2026-04-17)
 
-**Track 4.2 — auto-reapply watcher.** LibreSpot now notices when Spotify auto-updates itself and silently re-runs the saved SpotX patch so you don't come back to ads. Off by default — enable it from Maintenance > Protect and repair.
+**Track 4.2, auto-reapply watcher.** LibreSpot now notices when Spotify auto-updates itself and silently re-runs the saved SpotX patch so you don't come back to ads. Off by default, enable it from Maintenance > Protect and repair.
 
 ### Added
 - **"Auto-reapply when Spotify updates itself"** toggle in Maintenance. Checking it registers a per-user scheduled task (`\LibreSpot\ReapplyWatcher`) that fires at logon, then every 30 minutes. Unchecking it removes the task. Status label underneath reflects the actual task state from `schtasks.exe /Query`, so the UI stays honest even if the task was deleted out-of-band.
@@ -1168,9 +1176,9 @@ v3.6.0's UI was already dark, card-based, and accent-tinted, but read as "develo
 - WPF desktop shell: v4.0.0-preview.5 → **v4.0.0-preview.6**.
 
 ### Differentiator
-None of the other Spicetify/SpotX installers ship this — BlockTheSpot-Installer, SpotX-Spicetify-Universal-Installer, and Spicetify Manager all require the user to manually click "Reapply After Update" after every Spotify auto-update. This closes that loop.
+None of the other Spicetify/SpotX installers ship this, BlockTheSpot-Installer, SpotX-Spicetify-Universal-Installer, and Spicetify Manager all require the user to manually click "Reapply After Update" after every Spotify auto-update. This closes that loop.
 
-## [v3.5.1] - 2026-04-17
+## [v3.5.1] (2026-04-17)
 
 Hardening + release-pipeline pass. Fixes bugs introduced in v3.5.0, tightens the release workflow, and adds regression guards so the issues we just fixed can't silently creep back.
 
@@ -1178,8 +1186,8 @@ Hardening + release-pipeline pass. Fixes bugs introduced in v3.5.0, tightens the
 - **Preflight job** runs before build. Resolves the tag, asserts `LibreSpot.ps1:$global:VERSION == Backend.ps1:$global:VERSION` (the exact invariant v3.5.1 breaks), asserts the right version file matches the tag (`PS1` for stable tags, `csproj` for `-preview.N` tags), parses both PowerShell files with `[Parser]::ParseFile` so a syntax error fails the tag before PS2EXE runs, and enforces a regression guard that forbids `chrome_elf.dll` / `xpui.spa.bak` from re-entering `Get-ExistingSpotifyPatchSignature`.
 - **PS2EXE pinned** to `1.0.15` so a breaking upstream release can't corrupt a tagged build.
 - **Unit tests run before WPF publish**. A red AppCatalog/Configuration/PowerShellRegression test fails the tag.
-- **Release assets now include raw `LibreSpot.ps1`** — the README's `irm .../releases/latest/download/LibreSpot.ps1 | iex` one-liner was 404'ing because only the `.exe` was ever uploaded. Also attested for provenance.
-- **`gh release create` fallback** — if the release doesn't exist yet for the tag, one is auto-created with generated notes before assets upload.
+- **Release assets now include raw `LibreSpot.ps1`**, the README's `irm .../releases/latest/download/LibreSpot.ps1 | iex` one-liner was 404'ing because only the `.exe` was ever uploaded. Also attested for provenance.
+- **`gh release create` fallback**, if the release doesn't exist yet for the tag, one is auto-created with generated notes before assets upload.
 - **Explicit checksum list** replaces the previous `sha256sum *.exe *.json` glob that would silently skip a missing asset.
 
 ### Regression tests (tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs)
@@ -1187,15 +1195,15 @@ Hardening + release-pipeline pass. Fixes bugs introduced in v3.5.0, tightens the
 - Asserts `LibreSpot.ps1:$global:VERSION` and `Backend.ps1:$global:VERSION` stay in sync.
 - Asserts `Compare-LibreSpotVersions` still uses `[Version]` parsing and strips `-preview.*` / `-rc.*` suffixes.
 - Asserts `Compare-LibreSpotVersions` remains on the worker-runspace export list (or `Check-ForUpdates` hits a "command not found" at runtime).
-- Asserts `Start-SelfUpdateBannerRefresh` uses `ThreadPool.QueueUserWorkItem` — catches any revert that would reintroduce the 5-second UI freeze on launch.
+- Asserts `Start-SelfUpdateBannerRefresh` uses `ThreadPool.QueueUserWorkItem`, catches any revert that would reintroduce the 5-second UI freeze on launch.
 
 ### Defensive fixes (src/LibreSpot.Desktop/ViewModels/MainViewModel.cs)
-- `CancelRunningBackend()` and the cancel-prompt confirm handler now swallow `ObjectDisposedException` explicitly. Other exceptions still propagate — they'd indicate a real programming bug. `Dispose()` stays idempotent.
+- `CancelRunningBackend()` and the cancel-prompt confirm handler now swallow `ObjectDisposedException` explicitly. Other exceptions still propagate, they'd indicate a real programming bug. `Dispose()` stays idempotent.
 
 ### Fixes carried over from the earlier v3.5.1 commit
 
 ### Fixed
-- **Foreign-patch detection fired on every launch** (introduced in v3.5.0). The previous signature list checked for `chrome_elf.dll` (part of every Spotify install — LibreSpot itself throws if it is *missing*) and `xpui.spa.bak` (created by SpotX's own backup step on every successful run). Revised to only match files BlockTheSpot-style injectors drop: `dpapi.dll`, `config.ini`, `version.dll`, `winmm.dll` next to `Spotify.exe`.
+- **Foreign-patch detection fired on every launch** (introduced in v3.5.0). The previous signature list checked for `chrome_elf.dll` (part of every Spotify install, LibreSpot itself throws if it is *missing*) and `xpui.spa.bak` (created by SpotX's own backup step on every successful run). Revised to only match files BlockTheSpot-style injectors drop: `dpapi.dll`, `config.ini`, `version.dll`, `winmm.dll` next to `Spotify.exe`.
 - **Backend.ps1 stamped the wrong version** in its HTTP User-Agent and internal log lines (`LibreSpot/3.3.0` instead of the real shell version). Synced to `3.5.0` with a comment noting the release workflow should fail a build when these drift.
 - **Self-update check blocked the UI thread for up to 5 seconds on launch** when GitHub was slow. Refactored to a pure-.NET `HttpWebRequest` running on a ThreadPool thread, with cache write + UI update marshaled back through `Dispatcher.BeginInvoke` at idle priority. The cache read path is still synchronous (filesystem-only) and returns instantly on a warm cache.
 - **`Check-ForUpdates` used lexical string comparison** for Spicetify CLI, Marketplace, and LibreSpot versions. That would have reported `v2.43.10` as *older* than `v2.43.9`. Replaced with a new `Compare-LibreSpotVersions` helper that parses the numeric prefix via `[Version]`, strips `-preview.*`/`-rc.*`, and treats stable as newer than a pre-release with the same prefix.
@@ -1206,20 +1214,20 @@ Hardening + release-pipeline pass. Fixes bugs introduced in v3.5.0, tightens the
 - `Save-SelfUpdateCache` is invoked only from the dispatcher thread so `ConvertTo-Json` / `Set-Content` never run concurrently with the main runspace from a ThreadPool thread.
 - `Invoke-SelfUpdateHttp` parses the GitHub response with pure regex (no `ConvertFrom-Json`) and inlines the version compare, so the ThreadPool path never re-enters the main runspace.
 
-### Out of scope for this pass (tracked for later)
+### Deferred from this pass (tracked for later)
 - ~35 PSScriptAnalyzer `PSUseApprovedVerbs` warnings on private helpers (`Normalize-`, `Module-*`, `Load-`, `Apply-`, `Capture-`, `Build-`, `Download-`, `Check-`, `Reapply-`). Renaming cascades across the worker-runspace function-export list.
 - Monolith → module extraction for the ~400 lines of config logic duplicated between `LibreSpot.ps1` and `Backend.ps1`.
 - Maintenance action dispatch table (currently a ~300-line `if/elseif` chain in the worker block).
 
-## [v3.5.0] / [v4.0.0-preview.5] - 2026-04-17
+## [v3.5.0] / [v4.0.0-preview.5] (2026-04-17)
 
 Competitor-parity release. Four items from the ROADMAP Track 4 shipped end-to-end (PowerShell monolith + WPF backend + C# model).
 
 ### Added
-- **Self-update check** — on launch, async-queries `api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest`, shows a subtle green "Update available →" hyperlink in the title bar when a newer release exists. Result cached 24h in `%APPDATA%\LibreSpot\update-check.json` to stay under the 60 req/hr anonymous API limit. Zero telemetry — single GET, nothing else sent.
-- **Pre-patched Spotify detection** — scans Spotify's install directory for BlockTheSpot-style injectors (`dpapi.dll`, `config.ini`, `version.dll`, `winmm.dll` next to `Spotify.exe`) and shows a themed warning dialog once per session before the user starts patching. Tells them to run **Maintenance > Full Reset** first if they want a clean slate.
-- **Spotify version dropdown** in Custom Install > Advanced — inline manifest of 5 known-good Spotify builds (`auto`, `1.2.86.502`, `1.2.85.519`, `1.2.53.440.x86`, `1.2.5.1006.win7`) with per-entry hint text. Emits SpotX's `-version <string>` when non-default. Config key: `SpotX_SpotifyVersionId`.
-- **`-Clean` CLI flag** — `irm URL | iex -clean` (or `powershell.exe -File LibreSpot.ps1 -clean`) pre-ticks Easy mode + CleanInstall for a one-shot nuke-and-rebuild flow.
+- **Self-update check**, on launch, async-queries `api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest`, shows a subtle green "Update available →" hyperlink in the title bar when a newer release exists. Result cached 24h in `%APPDATA%\LibreSpot\update-check.json` to stay under the 60 req/hr anonymous API limit. Zero telemetry, single GET, nothing else sent.
+- **Pre-patched Spotify detection**, scans Spotify's install directory for BlockTheSpot-style injectors (`dpapi.dll`, `config.ini`, `version.dll`, `winmm.dll` next to `Spotify.exe`) and shows a themed warning dialog once per session before the user starts patching. Tells them to run **Maintenance > Full Reset** first if they want a clean slate.
+- **Spotify version dropdown** in Custom Install > Advanced, inline manifest of 5 known-good Spotify builds (`auto`, `1.2.86.502`, `1.2.85.519`, `1.2.53.440.x86`, `1.2.5.1006.win7`) with per-entry hint text. Emits SpotX's `-version <string>` when non-default. Config key: `SpotX_SpotifyVersionId`.
+- **`-Clean` CLI flag**, `irm URL | iex -clean` (or `powershell.exe -File LibreSpot.ps1 -clean`) pre-ticks Easy mode + CleanInstall for a one-shot nuke-and-rebuild flow.
 
 ### Changed
 - PowerShell script: v3.4.0 → **v3.5.0**.
@@ -1227,30 +1235,30 @@ Competitor-parity release. Four items from the ROADMAP Track 4 shipped end-to-en
 - `InstallConfiguration` C# model gains `SpotX_SpotifyVersionId` property with Clone + Normalize support.
 - `AppCatalog.SpotifyVersionManifest` exposes the version list to the WPF shell (record type `SpotifyVersionEntry`).
 
-## [v4.0.0-preview.4] - 2026-04-17 (pre-release)
+## [v4.0.0-preview.4] (2026-04-17, pre-release)
 
 ### Added
 - **Mica backdrop** on Windows 11 build 22621+ via `DwmSetWindowAttribute(DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_MAINWINDOW)`, paired with `DWMWA_USE_IMMERSIVE_DARK_MODE` so the title bar matches the dark shell ([Services/Win11ShellIntegration.cs](src/LibreSpot.Desktop/Services/Win11ShellIntegration.cs)). Older Windows falls back silently to the flat canvas brush.
-- **TaskbarItemInfo progress mirroring** — the Windows taskbar icon now tracks the run state (`None`/`Indeterminate`/`Normal`/`Paused`/`Error`) so users see progress even when LibreSpot is minimized. `ProgressValue` is kept in sync with the in-app 0–100 scale.
-- **Serilog crash reporter** ([Services/CrashReporter.cs](src/LibreSpot.Desktop/Services/CrashReporter.cs)) — structured daily rolling log under `%LOCALAPPDATA%\LibreSpot\logs\` (14-day retention), full crash dumps under `%LOCALAPPDATA%\LibreSpot\crashes\`, and a crash dialog that offers "copy path + open folder" so users can file issues without the app needing to phone home. Hooks `AppDomain.UnhandledException`, `TaskScheduler.UnobservedTaskException`, `Dispatcher.UnhandledException`.
-- **Accessibility pass** — `AutomationProperties.Name` + `HelpText` on previously unlabeled icon buttons (Refresh status, Copy log header variant), `AutomationProperties.LiveSetting="Polite"` on the activity badge so screen readers announce state transitions.
+- **TaskbarItemInfo progress mirroring**, the Windows taskbar icon now tracks the run state (`None`/`Indeterminate`/`Normal`/`Paused`/`Error`) so users see progress even when LibreSpot is minimized. `ProgressValue` is kept in sync with the in-app 0-100 scale.
+- **Serilog crash reporter** ([Services/CrashReporter.cs](src/LibreSpot.Desktop/Services/CrashReporter.cs)), structured daily rolling log under `%LOCALAPPDATA%\LibreSpot\logs\` (14-day retention), full crash dumps under `%LOCALAPPDATA%\LibreSpot\crashes\`, and a crash dialog that offers "copy path + open folder" so users can file issues without the app needing to phone home. Hooks `AppDomain.UnhandledException`, `TaskScheduler.UnobservedTaskException`, `Dispatcher.UnhandledException`.
+- **Accessibility pass**, `AutomationProperties.Name` + `HelpText` on previously unlabeled icon buttons (Refresh status, Copy log header variant), `AutomationProperties.LiveSetting="Polite"` on the activity badge so screen readers announce state transitions.
 - A former GitHub Actions release workflow was triggered on `v*` tags. It built a PS2EXE and .NET 8 WPF asset, emitted checksums and an SBOM, and attempted build-provenance attestations. It was retired in favor of the documented local release procedure and GitHub immutable-release attestations.
 
 ### Changed
 - WPF desktop shell: v4.0.0-preview.3 → **v4.0.0-preview.4**.
 - New NuGet dependencies: `Serilog 4.2.0`, `Serilog.Sinks.File 6.0.0`.
 
-## [v3.4.0] - 2026-04-17
+## [v3.4.0] (2026-04-17)
 
 ### Added
 Six new SpotX flags surfaced end-to-end (Custom Install UI + config persistence + fingerprint + `Build-SpotXParams`):
-- **Privacy**: `-sendversion_off` (default **on** — blocks SpotX's outbound version notification introduced in the April 2026 SpotX update).
+- **Privacy**: `-sendversion_off` (default **on**, blocks SpotX's outbound version notification introduced in the April 2026 SpotX update).
 - **Core behavior**: `-start_spoti` (auto-launch Spotify after install).
 - **Advanced**:
-  - `-devtools` — enable Spotify Chromium Developer Tools (Spicetify extension authors).
-  - `-mirror` — use GitHub.io mirror for SpotX assets when `raw.githubusercontent.com` is blocked.
-  - `-confirm_spoti_recomended_uninstall` — force SpotX's uninstall-then-reinstall flow.
-  - `-download_method {curl|webclient}` — force SpotX's downloader choice (ComboBox in PowerShell GUI; WPF shell defers custom XAML binding to a later preview).
+  - `-devtools`, enable Spotify Chromium Developer Tools (Spicetify extension authors).
+  - `-mirror`, use GitHub.io mirror for SpotX assets when `raw.githubusercontent.com` is blocked.
+  - `-confirm_spoti_recomended_uninstall`, force SpotX's uninstall-then-reinstall flow.
+  - `-download_method {curl|webclient}`, force SpotX's downloader choice (ComboBox in PowerShell GUI; WPF shell defers custom XAML binding to a later preview).
 - New **Privacy** and **Advanced** inset panels in the PowerShell Custom Install view.
 - Matching `OptionDefinition` entries in the WPF shell (`Core`/`Advanced` sections) auto-render via the shared `OptionTemplate`.
 
@@ -1261,20 +1269,20 @@ Six new SpotX flags surfaced end-to-end (Custom Install UI + config persistence 
 - `Build-SpotXParams` (both PowerShell monolith and WPF Backend) extended to emit the new flags.
 
 ### Verified
-- All 22 existing `Build-SpotXParams` flag emissions cross-checked against SpotX `run.ps1` param block on 2026-04-17 — spellings correct.
+- All 22 existing `Build-SpotXParams` flag emissions cross-checked against SpotX `run.ps1` param block on 2026-04-17, spellings correct.
 - Six truly-missing flags above identified as the only net-new additions worth shipping in that release; `-version`, `-CustomPatchesPath`, `-language`, `-urlform_goofy`, `-idbox_goofy`, `-err_ru` intentionally deferred (they feed into future roadmap tracks or are niche).
 
-## [v3.3.1] - 2026-04-17
+## [v3.3.1] (2026-04-17)
 
 ### Fixed
 - **Silent no-op**: `-new_fullscreen_mode` corrected to `-newFullscreenMode` (real SpotX flag is camelCase). The "Experimental fullscreen mode" GUI toggle never actually passed through to SpotX on v3.3.0. Fixed in both `LibreSpot.ps1:Build-SpotXParams` and `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`.
-- Re-verified every flag in `Build-SpotXParams` against SpotX `run.ps1` param block (2026-04-17) — all other flags correct.
+- Re-verified every flag in `Build-SpotXParams` against SpotX `run.ps1` param block (2026-04-17), all other flags correct.
 
 ### Changed
 - `-SpotifyPath` gotcha softened to a historical note; SpotX `run.ps1` accepts it as a supported parameter.
 - WPF desktop shell bumped to v4.0.0-preview.2 (csproj now declares `<Version>`/`<AssemblyVersion>`/`<FileVersion>`).
 
-## [v4.0.0-preview.1] - 2026-04-16 (pre-release)
+## [v4.0.0-preview.1] (2026-04-16, pre-release)
 
 ### Added
 - Native WPF desktop shell (.NET 8, MVVM) replacing the PS2EXE GUI wrapper
@@ -1283,7 +1291,7 @@ Six new SpotX flags surfaced end-to-end (Custom Install UI + config persistence 
 - Button hover-tint via Opacity animation + tactile 0.985× press-scale
 - Indeterminate progress shimmer, rotating ComboBox chevron, fade-in checkbox checkmarks
 - Overlay cards (activity + prompt) fade + scale-in on every show via DataTrigger EnterActions
-- State-aware activity badge — accent pulse while running, Danger + "Needs attention" on failure, "Run complete" on success, "Working…" during indeterminate runs
+- State-aware activity badge, accent pulse while running, Danger + "Needs attention" on failure, "Run complete" on success, "Working…" during indeterminate runs
 - Staggered accent-dot empty state for the log panel
 - Structured stdout protocol between WPF shell and embedded PowerShell backend
 - Embedded backend script extracted to LocalAppData and SHA-verified before each run
@@ -1295,7 +1303,7 @@ Six new SpotX flags surfaced end-to-end (Custom Install UI + config persistence 
 - Desktop UX polish across controls, states, and transitions
 - Single-file self-contained .NET 8 executable (no runtime dependency)
 
-## [v3.3.0] - 2026-04-05
+## [v3.3.0] (2026-04-05)
 
 ### Added
 - Five new SpotX GUI options: Plus features (`-plus`), experimental fullscreen (`-newFullscreenMode`), humorous progress bar (`-funnyprogressBar`), experimental Spotify features (`-exp_spotify`), lyrics block (`-lyrics_block`)
@@ -1306,7 +1314,7 @@ Six new SpotX flags surfaced end-to-end (Custom Install UI + config persistence 
 - SpotX pinned to `0abf98a3` (targets Spotify 1.2.86.502)
 - Spicetify CLI bumped to v2.43.1
 
-## [v3.2.0] - 2026-04-15
+## [v3.2.0] (2026-04-15)
 
 ### Added
 - Robust self-elevation that handles .ps1, .exe, and inline scriptblock launch contexts
@@ -1335,25 +1343,25 @@ Six new SpotX flags surfaced end-to-end (Custom Install UI + config persistence 
 - Config save uses atomic write-then-replace to prevent corruption on crash
 - Close-window handler warns about in-progress setup or unsaved custom changes
 
-## [v3.1.1] - 2026-03-27
+## [v3.1.1] (2026-03-27)
 
 - Fixed theme preview crash: use synchronous download
 - Fixed theme preview: TLS 1.2 + ThreadPool instead of WebClient async
 - Reverted custom apps/packs, kept theme preview
 - Removed Statistics and Lyrics Plus custom apps (broken)
 
-## [v3.1.0] - 2026-03-27
+## [v3.1.0] (2026-03-27)
 
 - Audit fixes: anti-hang, apply recovery, new options
 - Fixed blank screen: let SpotX manage Spotify version compatibility
 - Added live theme preview with async image loading
 
-## [v3.0.6] - 2026-03-27
+## [v3.0.6] (2026-03-27)
 
 - Updated SpotX to 6070bbcf to fix blank screen on Spotify 1.2.85.519
 - Compiled v3.0.6 executable
 
-## Roadmap archive — 2026-08-10 — ROADMAP.md
+## Roadmap archive, 2026-08-10, ROADMAP.md
 
 <details>
 <summary>Original roadmap snapshot</summary>
@@ -1435,7 +1443,7 @@ These require fresh research before implementation:
 - Spotify Connect regression test harness.
 - Spicetify v3 readiness and migration risk.
 
-## 🔬 Researcher Queue (Cycle 11 - 2026-06-04)
+## 🔬 Researcher Queue (Cycle 11, 2026-06-04)
 
 Cycle 11 inspects maintainability risks in the PowerShell and WPF code shape.
 It does not implement refactors; it turns measured duplication and file size
@@ -1443,7 +1451,7 @@ into implementation-ready extraction and quality-gate work. Tags: 🔬 =
 researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
 operator-needed where release sequencing decisions are required.
 
-## 🔬 Researcher Queue (Cycle 17 - 2026-06-06)
+## 🔬 Researcher Queue (Cycle 17, 2026-06-06)
 
 Cycle 17 inspects theme selection and preview reliability across the stable
 PowerShell GUI and native WPF shell. Cycle 4 already covers community asset
@@ -1454,7 +1462,7 @@ implementer-actionable now; 🔧 = operator-needed where catalog policy decision
 are required.
 
 
-## 🔬 Researcher Queue (Cycle 18 - 2026-06-06)
+## 🔬 Researcher Queue (Cycle 18, 2026-06-06)
 
 Cycle 18 narrows the broad Community Sharing release-queue row into profile
 export/import, local preset management, and Marketplace-state boundaries. Cycle
@@ -1464,7 +1472,7 @@ required before imported settings can mutate Spotify or Spicetify. Tags: 🔬 =
 researcher-added this cycle; 🤖 = implementer-actionable now; 🔧 =
 operator-needed where hosted sharing or cloud policy decisions are required.
 
-## 🔬 Researcher Queue (Cycle 19 - 2026-06-06)
+## 🔬 Researcher Queue (Cycle 19, 2026-06-06)
 
 Cycle 19 turns the earlier operation-journal backlog item into the concrete
 undo/dry-run product contract needed for v4 stable and fleet deployment. The
@@ -1538,7 +1546,7 @@ implying that every cleanup path can be rolled back.
   https://learn.microsoft.com/en-us/windows/win32/msi/rollback-installation,
   https://learn.microsoft.com/en-us/windows/win32/msi/rollback-custom-actions.
 
-## 🔬 Researcher Queue (Cycle 20 - 2026-06-06)
+## 🔬 Researcher Queue (Cycle 20, 2026-06-06)
 
 Cycle 20 narrows the broad diagnostics/repair queue into a native-WPF health
 model. The key gap is not that LibreSpot lacks status text: both shells already
@@ -1618,7 +1626,7 @@ diagnose automatically.
   https://learn.microsoft.com/en-us/dotnet/core/diagnostics/eventsource-instrumentation,
   https://support.microsoft.com/en-us/windows/diagnostics-feedback-and-privacy-in-windows-28808a2b-a31b-dd73-dcd3-4559a5199319.
 
-## 🔬 Researcher Queue (Cycle 21 - 2026-06-06)
+## 🔬 Researcher Queue (Cycle 21, 2026-06-06)
 
 Cycle 21 turns the Fleet Deployment row into a command and artifact contract.
 The main finding is that LibreSpot already has useful headless building blocks,
@@ -1700,7 +1708,7 @@ bolt `--silent` onto the current WPF button actions.
 ### New / Refined Backlog Items
 
 
-## 🔬 Researcher Queue (Cycle 22 - 2026-06-06)
+## 🔬 Researcher Queue (Cycle 22, 2026-06-06)
 
 Cycle 22 inspects package-manager distribution and update channels after the
 Cycle 21 Fleet CLI contract. The key conclusion is that LibreSpot needs a
@@ -1777,7 +1785,7 @@ roots, mismatched package IDs, and stale checksums.
 ### New / Refined Backlog Items
 
 (Moved to `Roadmap_Blocked.md`: Split package-manager targets by artifact role;
-Add package-channel validation to release preflight — both blocked on package
+Add package-channel validation to release preflight, both blocked on package
 identity and signing decisions.)
 
 ## Audit-Driven Additions (June 30, 2026)
@@ -1800,7 +1808,7 @@ ecosystem changes, legal landscape shifts, and catalog freshness gaps
 not addressed by earlier cycles.
 
 (Moved to `Roadmap_Blocked.md`: Decide the v4 theming base before the
-.NET 10 migration — blocked on operator architecture/design decision.)
+.NET 10 migration, blocked on operator architecture/design decision.)
 
 ## Research-Driven Additions (June 19, 2026)
 
@@ -1831,7 +1839,7 @@ reinforced by community evidence that SpotX+Spicetify ordering fragility
 (SpotX Discussion #402) and Spotify 1.2.86 CSS breakage (Spicetify
 X/Twitter Mar 2026) both amplify the cost of drifted functions. The
 Cycle 20 diagnostics item is reinforced by user reports of "SpotX
-stopped working" (issue #849) as the #1 complaint — the WPF dashboard
+stopped working" (issue #849) as the #1 complaint, the WPF dashboard
 needs to detect and surface this state, not just show booleans.
 
 ## Research-Driven Additions
@@ -1848,7 +1856,7 @@ pass.
 Items from the 2026-07-08 exhaustive research pass. Full evidence in
 `RESEARCH.md`. IDs use the RD- scheme (no prior active scheme in this file).
 Not duplicated: supply-chain payload pinning (done), MS Store removal (done),
-signing/Velopack/winget (blocked — see `Roadmap_Blocked.md`).
+signing/Velopack/winget (blocked, see `Roadmap_Blocked.md`).
 
 ### P1
 
@@ -1885,22 +1893,22 @@ Items surfaced by the July 9, 2026 deep audit pass but not fixed in-session.
 
 Items from the 2026-07-22 exhaustive research pass. Full evidence in
 `RESEARCH.md`. IDs continue the `RD-` scheme (highest prior: RD-31). Not
-duplicated: Intune/PDQ/WinRM deployment samples (done — `samples/deployment/`),
+duplicated: Intune/PDQ/WinRM deployment samples (done, `samples/deployment/`),
 Defender `-defender_exclusions_off` gate (done), foreign-patcher detection
-(done), package-manager manifests (blocked on package identity —
+(done), package-manager manifests (blocked on package identity,
 `Roadmap_Blocked.md`), native PS2EXE launcher (blocked), Stryker.NET (blocked,
 now unblockable by RD-35).
 
 ### P3
 
-- [ ] P3 — RD-36: Decompose `MainWindow.xaml` into per-screen UserControls
+- [ ] P3, RD-36: Decompose `MainWindow.xaml` into per-screen UserControls
   Why: `MainWindow.xaml` is 5,509 lines holding all six nav screens (Home/Setup/Unblock/Tools/Settings/About) + the inspector in one file, slowing edits and raising merge/regression risk on the shipping shell.
   Evidence: `src/LibreSpot.Desktop/MainWindow.xaml`.
   Touches: `MainWindow.xaml`, new `Views/*.xaml` UserControls, `Themes/Controls.xaml`, FlaUI smoke + rendered-QA tests (AutomationIds/x:Names must be preserved).
   Acceptance: each nav screen becomes a UserControl under `Views/`; `MainWindow` composes them; every `AutomationId`/`x:Name` referenced by tests is preserved byte-for-byte; the rendered-WPF QA capture and FlaUI suite pass unchanged across dark/high-contrast and English/Spanish.
   Complexity: L
 
-- [ ] P3 — RD-37: Add German and French WPF locales
+- [ ] P3, RD-37: Add German and French WPF locales
   Why: the localization framework, runtime language selector, and strict validation gate (`tools/Sync-Localization.ps1`) already support five locales (en/es/pt-BR/ru/zh-Hans); de/fr are large Spotify-modding audiences and low-risk given the gate.
   Evidence: `src/LibreSpot.Desktop/Properties/Strings.*.resx` (five locales, no de/fr); `tools/Sync-Localization.ps1`.
   Touches: new `Strings.de.resx` / `Strings.fr.resx`, language-selector list, localization validation allowlist, health-component/scrollbar automation-name coverage.
@@ -1922,7 +1930,7 @@ Items from the 2026-07-24 exhaustive research pass. Full evidence in
 duplicated: v3 detection guard (done, preview.18), `TargetLatestRuntimePatch` +
 `dotnetRuntimeFloor` gate at 10.0.10 (done, preview.18), Marketplace route
 re-wiring (done, preview.19), package-manager manifests / native launcher /
-Stryker.NET (blocked — `Roadmap_Blocked.md`).
+Stryker.NET (blocked, `Roadmap_Blocked.md`).
 ```
 
 </details>

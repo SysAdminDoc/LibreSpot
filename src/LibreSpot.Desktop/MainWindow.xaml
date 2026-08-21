@@ -13,9 +13,9 @@
         xmlns:views="clr-namespace:LibreSpot.Desktop.Views"
         mc:Ignorable="d"
         Title="{services:Loc AppTitle}"
-        Width="1584"
-        Height="990"
-        MinWidth="1180"
+        Width="1440"
+        Height="1024"
+        MinWidth="1080"
         MinHeight="720"
         Icon="pack://application:,,,/Assets/LibreSpot.ico"
         WindowStartupLocation="CenterScreen"
@@ -32,12 +32,6 @@
                         GlassFrameThickness="0"
                         UseAeroCaptionButtons="False" />
   </shell:WindowChrome.WindowChrome>
-
-  <Window.InputBindings>
-    <KeyBinding Key="Escape" Command="{Binding EscapeCommand}" />
-    <KeyBinding Key="F5" Command="{Binding RefreshSnapshotCommand}" />
-    <KeyBinding Key="K" Modifiers="Control" Command="{Binding FocusGlobalSearchCommand}" />
-  </Window.InputBindings>
 
   <Window.TaskbarItemInfo>
     <!-- Mirror run state onto the taskbar icon so users see progress at a glance
@@ -65,7 +59,6 @@
   </Window.TaskbarItemInfo>
 
   <Window.Resources>
-    <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
 
     <Style x:Key="StatusMarkerStyle" TargetType="Border">
       <Setter Property="Width" Value="4" />
@@ -1205,10 +1198,184 @@
         </DataTrigger>
       </Style.Triggers>
     </Style>
+
+    <Style x:Key="SimpleShellNavButtonStyle"
+           TargetType="Button"
+           BasedOn="{StaticResource ShellNavButtonStyle}">
+      <Setter Property="MinHeight" Value="72" />
+      <Setter Property="Padding" Value="20,14" />
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
   </Window.Resources>
 
   <Grid Background="{DynamicResource WorkspaceBackdropBrush}">
+    <Grid x:Name="SimpleShellHost"
+          IsEnabled="{Binding IsShellInteractionEnabled}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition x:Name="SimpleShellRailColumn" Width="272" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <Border Grid.Column="0"
+              Background="{DynamicResource RailPanelBrush}"
+              BorderBrush="{DynamicResource StrokeSoftBrush}"
+              BorderThickness="0,0,1,0">
+        <Grid Margin="18,22,18,24">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <Grid Margin="4,0,0,22">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="42" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Image Width="36"
+                   Height="36"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Center"
+                   RenderOptions.BitmapScalingMode="HighQuality"
+                   Source="pack://application:,,,/Assets/LibreSpot-256.png" />
+            <TextBlock Grid.Column="1"
+                       Text="{services:Loc AppTitle}"
+                       Style="{StaticResource RailTitleTextStyle}"
+                       FontSize="23"
+                       Margin="8,0,0,0"
+                       VerticalAlignment="Center" />
+          </Grid>
+
+          <StackPanel Grid.Row="1" Margin="0,10,0,0">
+            <Button Command="{Binding ShowRecommendedWorkspaceCommand}"
+                    AutomationProperties.AutomationId="WorkspaceNavRecommended"
+                    AutomationProperties.Name="{services:Loc NavHome}">
+              <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource SimpleShellNavButtonStyle}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding SelectedWorkspaceIndex}" Value="0">
+                      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Button.Style>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="28" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <ui:SymbolIcon Symbol="Home24"
+                               FontSize="24"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                <TextBlock Grid.Column="1"
+                           Text="{services:Loc NavHome}"
+                           Margin="14,0,0,0"
+                           VerticalAlignment="Center" />
+              </Grid>
+            </Button>
+
+            <Button Command="{Binding ShowMaintenanceWorkspaceCommand}"
+                    AutomationProperties.AutomationId="WorkspaceNavMaintenance"
+                    AutomationProperties.Name="{services:Loc ModeMaintenanceTitle}">
+              <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource SimpleShellNavButtonStyle}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding SelectedWorkspaceIndex}" Value="2">
+                      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Button.Style>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="28" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <ui:SymbolIcon Symbol="ArrowSync24"
+                               FontSize="24"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                <TextBlock Grid.Column="1"
+                           Text="{services:Loc ModeMaintenanceTitle}"
+                           Margin="14,0,0,0"
+                           VerticalAlignment="Center" />
+              </Grid>
+            </Button>
+
+            <Button Command="{Binding ShowCustomWorkspaceCommand}"
+                    AutomationProperties.AutomationId="WorkspaceNavCustom"
+                    AutomationProperties.Name="{services:Loc NavSettings}">
+              <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource SimpleShellNavButtonStyle}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding SelectedWorkspaceIndex}" Value="1">
+                      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Button.Style>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="28" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <ui:SymbolIcon Symbol="Settings24"
+                               FontSize="24"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                <TextBlock Grid.Column="1"
+                           Text="{services:Loc NavSettings}"
+                           Margin="14,0,0,0"
+                           VerticalAlignment="Center" />
+              </Grid>
+            </Button>
+          </StackPanel>
+
+          <Grid Grid.Row="2" Margin="12,0,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="26" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ui:SymbolIcon Symbol="ShieldCheckmark24"
+                           FontSize="22"
+                           Foreground="{DynamicResource AccentBrush}" />
+            <TextBlock Grid.Column="1"
+                       Text="{services:Loc Vm_SimpleHomeReversible}"
+                       Style="{StaticResource CaptionTextStyle}"
+                       Foreground="{DynamicResource MutedTextBrush}"
+                       Margin="8,0,0,0"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap" />
+          </Grid>
+        </Grid>
+      </Border>
+
+      <Border x:Name="SimpleWorkspaceSurface"
+              Grid.Column="1"
+              Padding="64,148,64,40"
+              Background="Transparent">
+        <TabControl Style="{StaticResource WorkspaceTabControlStyle}"
+                    SelectedIndex="{Binding SelectedWorkspaceIndex}">
+          <TabItem Header="{services:Loc NavHome}"
+                   AutomationProperties.AutomationId="WorkspaceTabRecommended">
+            <views:RecommendedWorkspaceView x:Name="RecommendedWorkspaceView" />
+          </TabItem>
+          <TabItem Header="{services:Loc NavSettings}"
+                   AutomationProperties.AutomationId="WorkspaceTabCustom">
+            <views:CustomWorkspaceView x:Name="CustomWorkspaceView" />
+          </TabItem>
+          <TabItem Header="{services:Loc ModeMaintenanceTitle}"
+                   AutomationProperties.AutomationId="WorkspaceTabMaintenance">
+            <views:MaintenanceWorkspaceView x:Name="MaintenanceWorkspaceView" />
+          </TabItem>
+        </TabControl>
+      </Border>
+    </Grid>
+
     <Grid x:Name="ShellWorkspaceHost"
+          Visibility="Collapsed"
           IsEnabled="{Binding IsShellInteractionEnabled}">
       <Grid.ColumnDefinitions>
         <ColumnDefinition x:Name="ShellRailColumn" Width="248" />
@@ -1977,19 +2144,19 @@
             <!-- ═══ Recommended (condensed: big apply button first, everything else below) ═══ -->
             <TabItem Header="{services:Loc ModeRecommendedTitle}"
                      AutomationProperties.AutomationId="WorkspaceTabRecommended">
-              <views:RecommendedWorkspaceView x:Name="RecommendedWorkspaceView" />
+              <views:RecommendedWorkspaceView x:Name="LegacyRecommendedWorkspaceView" />
             </TabItem>
 
             <!-- ═══ Custom ═══ -->
             <TabItem Header="{services:Loc ModeCustomTitle}"
                      AutomationProperties.AutomationId="WorkspaceTabCustom">
-              <views:CustomWorkspaceView x:Name="CustomWorkspaceView" />
+              <views:CustomWorkspaceView x:Name="LegacyCustomWorkspaceView" />
             </TabItem>
 
             <!-- ═══ Maintenance ═══ -->
             <TabItem Header="{services:Loc ModeMaintenanceTitle}"
                      AutomationProperties.AutomationId="WorkspaceTabMaintenance">
-              <views:MaintenanceWorkspaceView x:Name="MaintenanceWorkspaceView" />
+              <views:MaintenanceWorkspaceView x:Name="LegacyMaintenanceWorkspaceView" />
             </TabItem>
           </TabControl>
 
@@ -2807,12 +2974,13 @@
     <!-- ═══ Window command bar ═══ -->
     <Border Height="52"
             VerticalAlignment="Top"
-            Background="{DynamicResource CanvasBrush}"
+            Background="Transparent"
             BorderBrush="{DynamicResource StrokeSoftBrush}"
-            BorderThickness="0,0,0,1"
+            BorderThickness="0"
             MouseLeftButtonDown="TitleBar_OnMouseLeftButtonDown">
       <Grid>
         <StackPanel Orientation="Horizontal"
+                    Visibility="Collapsed"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Left"
                     Margin="18,0,0,0">
@@ -2833,6 +3001,7 @@
                      VerticalAlignment="Center" />
         </StackPanel>
         <Grid Width="480"
+              Visibility="Collapsed"
               Height="40"
               HorizontalAlignment="Center"
               VerticalAlignment="Center"
@@ -2935,6 +3104,7 @@
           </Button>
 
           <ComboBox ItemsSource="{Binding LocalizationOptions}"
+                    Visibility="Collapsed"
                     SelectedItem="{Binding SelectedLocalizationOption, Mode=TwoWay}"
                     IsEnabled="{Binding IsShellInteractionEnabled}"
                     Width="128"

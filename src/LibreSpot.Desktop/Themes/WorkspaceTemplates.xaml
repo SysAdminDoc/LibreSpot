@@ -1,0 +1,227 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
+                    xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
+                    xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui">
+
+  <Style x:Key="MinimalSectionStyle" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource Surface1Brush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}" />
+    <Setter Property="Padding" Value="18" />
+    <Setter Property="Margin" Value="0,0,0,14" />
+  </Style>
+
+  <DataTemplate x:Key="OptionTemplate"
+                DataType="{x:Type viewModels:OptionToggleViewModel}">
+    <CheckBox Style="{StaticResource SettingCheckBoxStyle}"
+              IsChecked="{Binding IsSelected, Mode=TwoWay}"
+              AutomationProperties.Name="{Binding Title}"
+              AutomationProperties.HelpText="{Binding Description}"
+              ToolTip="{Binding Description}"
+              Margin="0,0,10,10">
+      <StackPanel>
+        <TextBlock Text="{Binding Title}"
+                   Foreground="{DynamicResource TextBrush}"
+                   FontWeight="SemiBold"
+                   FontSize="14"
+                   TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Description}"
+                   Style="{StaticResource CaptionTextStyle}"
+                   Margin="0,6,0,0" />
+      </StackPanel>
+    </CheckBox>
+  </DataTemplate>
+
+  <DataTemplate x:Key="ExtensionTemplate"
+                DataType="{x:Type viewModels:ExtensionToggleViewModel}">
+    <CheckBox Style="{StaticResource SettingCheckBoxStyle}"
+              IsChecked="{Binding IsSelected, Mode=TwoWay}"
+              AutomationProperties.Name="{Binding Title}"
+              AutomationProperties.HelpText="{Binding Description}"
+              ToolTip="{Binding Description}"
+              Margin="0,0,10,10">
+      <StackPanel>
+        <TextBlock Text="{Binding Title}"
+                   Foreground="{DynamicResource TextBrush}"
+                   FontWeight="SemiBold"
+                   FontSize="14"
+                   TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Description}"
+                   Style="{StaticResource CaptionTextStyle}"
+                   Margin="0,6,0,0" />
+      </StackPanel>
+    </CheckBox>
+  </DataTemplate>
+
+  <DataTemplate x:Key="LocalProfileTemplate"
+                DataType="{x:Type viewModels:LocalProfileCardViewModel}">
+    <Border Style="{StaticResource SubtleCardStyle}"
+            Margin="0,0,0,8"
+            Padding="14"
+            AutomationProperties.Name="{Binding Name}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="5" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Border Background="{DynamicResource AccentBrush}"
+                CornerRadius="{StaticResource RadiusXs}"
+                Margin="0,2,12,2" />
+        <StackPanel Grid.Column="1" Margin="12,0,0,0">
+          <TextBlock Text="{Binding Name}"
+                     Foreground="{DynamicResource TextBrush}"
+                     FontWeight="SemiBold"
+                     FontSize="14"
+                     TextWrapping="Wrap" />
+          <WrapPanel Margin="0,7,0,0">
+            <Border Style="{StaticResource MicroBadgeStyle}" Margin="0,0,6,6">
+              <TextBlock Text="{Binding StateBadge}" Style="{StaticResource MicroBadgeTextStyle}" />
+            </Border>
+            <Border Style="{StaticResource MicroBadgeStyle}" Margin="0,0,6,6">
+              <TextBlock Text="{Binding KindBadge}" Style="{StaticResource MicroBadgeTextStyle}" />
+            </Border>
+          </WrapPanel>
+          <TextBlock Text="{Binding Description}"
+                     Style="{StaticResource CaptionTextStyle}"
+                     Margin="0,2,0,0"
+                     TextWrapping="Wrap"
+                     Visibility="{Binding HasDescription, Converter={StaticResource BoolToVisibilityConverter}}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+  </DataTemplate>
+
+  <DataTemplate x:Key="MaintenanceTemplate"
+                DataType="{x:Type viewModels:MaintenanceActionCardViewModel}">
+    <Border Margin="0,0,0,12"
+            Visibility="{Binding IsRelevant, Converter={StaticResource BoolToVisibilityConverter}}">
+      <Border.Style>
+        <Style TargetType="Border" BasedOn="{StaticResource SubtleCardStyle}">
+          <Setter Property="Padding" Value="16" />
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding IsDestructive}" Value="True">
+              <Setter Property="Background" Value="{DynamicResource DangerSoftBrush}" />
+              <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </Border.Style>
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Margin="0,0,18,0">
+          <TextBlock Text="{Binding Title}"
+                     Foreground="{DynamicResource TextBrush}"
+                     FontWeight="SemiBold"
+                     FontSize="14"
+                     TextWrapping="Wrap" />
+          <TextBlock Text="{Binding Description}"
+                     Style="{StaticResource BodyTextStyle}"
+                     Margin="0,6,0,0" />
+        </StackPanel>
+        <Button Grid.Column="1"
+                MinWidth="150"
+                Height="42"
+                Padding="16,0"
+                Content="{Binding ButtonText}"
+                AutomationProperties.AutomationId="{Binding AutomationId}"
+                AutomationProperties.Name="{Binding ButtonText}"
+                AutomationProperties.HelpText="{Binding Description}"
+                Command="{Binding Command}">
+          <Button.Style>
+            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding IsDestructive}" Value="True">
+                  <Setter Property="Background" Value="{DynamicResource DangerSoftBrush}" />
+                  <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+                  <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Button.Style>
+        </Button>
+      </Grid>
+    </Border>
+  </DataTemplate>
+
+  <DataTemplate x:Key="SupportBundleCategoryTemplate"
+                DataType="{x:Type viewModels:SupportBundleCategoryViewModel}">
+    <CheckBox Style="{StaticResource SettingCheckBoxStyle}"
+              IsChecked="{Binding IsSelected, Mode=TwoWay}"
+              AutomationProperties.Name="{Binding Title}"
+              AutomationProperties.HelpText="{Binding Detail}"
+              ToolTip="{Binding Detail}"
+              Margin="0,0,10,10">
+      <StackPanel>
+        <TextBlock Text="{Binding Title}"
+                   Foreground="{DynamicResource TextBrush}"
+                   FontWeight="SemiBold"
+                   FontSize="13"
+                   TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Detail}"
+                   Style="{StaticResource CaptionTextStyle}"
+                   Margin="0,5,0,0" />
+      </StackPanel>
+    </CheckBox>
+  </DataTemplate>
+
+  <DataTemplate x:Key="SelectionInsightTemplate"
+                DataType="{x:Type viewModels:SelectionInsightViewModel}">
+    <Grid Margin="0,0,0,12">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="24" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <ui:SymbolIcon Symbol="Info20"
+                     FontSize="18"
+                     Foreground="{DynamicResource InfoBrush}"
+                     VerticalAlignment="Top" />
+      <StackPanel Grid.Column="1">
+        <TextBlock Text="{Binding Title}"
+                   Foreground="{DynamicResource TextBrush}"
+                   FontWeight="SemiBold"
+                   FontSize="13" />
+        <TextBlock Text="{Binding Detail}"
+                   Style="{StaticResource CaptionTextStyle}"
+                   Margin="0,4,0,0" />
+      </StackPanel>
+    </Grid>
+  </DataTemplate>
+
+  <DataTemplate x:Key="SelectionBadgeTemplate">
+    <Border Style="{StaticResource MicroBadgeStyle}"
+            Background="{DynamicResource Surface3Brush}"
+            BorderBrush="{DynamicResource StrokeBrush}"
+            Margin="0,0,8,8">
+      <TextBlock Text="{Binding}"
+                 Style="{StaticResource MicroBadgeTextStyle}"
+                 Foreground="{DynamicResource TextBrush}" />
+    </Border>
+  </DataTemplate>
+
+  <DataTemplate x:Key="StatusDashboardItemTemplate"
+                DataType="{x:Type viewModels:StatusDashboardItemViewModel}">
+    <Border Style="{StaticResource SubtleCardStyle}"
+            Margin="0,0,10,10"
+            AutomationProperties.Name="{Binding Label}"
+            AutomationProperties.HelpText="{Binding Detail}">
+      <StackPanel>
+        <TextBlock Text="{Binding Label}" Style="{StaticResource LabelTextStyle}" />
+        <TextBlock Text="{Binding Value}"
+                   Foreground="{DynamicResource TextBrush}"
+                   FontWeight="SemiBold"
+                   FontSize="16"
+                   Margin="0,6,0,0"
+                   TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="{Binding Detail}"
+                   Style="{StaticResource CaptionTextStyle}"
+                   Margin="0,6,0,0"
+                   TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+  </DataTemplate>
+</ResourceDictionary>

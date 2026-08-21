@@ -2057,6 +2057,24 @@
   <data name="Vm_ThemeGalleryNoJsHelpFormat" xml:space="preserve"><value>{0} 无需 theme.js 步骤即可安装，并具有 {1}。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="NavTools" xml:space="preserve"><value>工具</value><comment>User-facing WPF text</comment></data>
   <data name="NavSettings" xml:space="preserve"><value>设置</value><comment>User-facing WPF text</comment></data>
+  <data name="NavHome" xml:space="preserve"><value>主页</value><comment>User-facing WPF text</comment></data>
+  <data name="ButtonStartRecommendedSetup" xml:space="preserve"><value>开始推荐设置</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_SimpleHomeReadyTitle" xml:space="preserve"><value>可以开始了</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeReadyBody" xml:space="preserve"><value>Spotify 已安装，可使用推荐设置。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeInstallBody" xml:space="preserve"><value>LibreSpot 已准备好安装受支持的 Spotify 配置。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeCheckingTitle" xml:space="preserve"><value>正在检查系统</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeCheckingBody" xml:space="preserve"><value>LibreSpot 正在检查 Spotify、权限和依赖项。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeAttentionTitle" xml:space="preserve"><value>有一项需要处理</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeAttentionBody" xml:space="preserve"><value>请先查看下方项目，再开始推荐设置。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeUnavailableTitle" xml:space="preserve"><value>无法检查此电脑</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeUnavailableBody" xml:space="preserve"><value>请刷新系统检查，或打开“维护”获取帮助。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeDuration" xml:space="preserve"><value>通常需要 2 到 4 分钟</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_SimpleHomeDetails" xml:space="preserve"><value>详细信息</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_SimpleHomeSystem" xml:space="preserve"><value>系统</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeSpotify" xml:space="preserve"><value>Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomePermissions" xml:space="preserve"><value>权限</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeDependencies" xml:space="preserve"><value>依赖项</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeReversible" xml:space="preserve"><value>所有更改都可以撤销</value><comment>User-facing WPF text</comment></data>
   <data name="NavAbout" xml:space="preserve"><value>关于</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_EnvAdministrator" xml:space="preserve"><value>管理员</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvMachine" xml:space="preserve"><value>机器</value><comment>MainViewModel localized runtime text.</comment></data>

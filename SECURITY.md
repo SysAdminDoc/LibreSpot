@@ -74,15 +74,15 @@ LibreSpot's pinned Spicetify v2.44.0 flow does not read the v3 support document.
 
 ## Host platform advisories
 
-### CVE-2025-54100 — Windows PowerShell 5.1 web-content RCE
+### CVE-2025-54100: Windows PowerShell 5.1 web-content RCE
 
-[CVE-2025-54100](https://nvd.nist.gov/vuln/detail/CVE-2025-54100) is a remote-code-execution flaw (CVSS 7.8) in Windows PowerShell 5.1's handling of web content, fixed in the **December 2025 Windows cumulative updates**. Content fetched by `Invoke-WebRequest` can execute at parse time on an unpatched host — the same download primitive LibreSpot uses to retrieve SpotX, Spicetify CLI, extensions, and themes.
+[CVE-2025-54100](https://nvd.nist.gov/vuln/detail/CVE-2025-54100) is a remote-code-execution flaw (CVSS 7.8) in Windows PowerShell 5.1's handling of web content, fixed in the **December 2025 Windows cumulative updates**. Content fetched by `Invoke-WebRequest` can execute at parse time on an unpatched host, the same download primitive LibreSpot uses to retrieve SpotX, Spicetify CLI, extensions, and themes.
 
 **Mitigations in LibreSpot:**
 
-- **SHA256 pinning** — every download is verified against a pinned hash before use. This guarantees the *integrity* of the payload (a tampered or substituted file is rejected) but does **not** by itself remove the parse-time execution vector on an unpatched PowerShell 5.1 host.
-- **Patch-level preflight** — the downloader runs a non-blocking check (`Get-DownloaderCveExposure`) the first time it fetches anything. On Windows PowerShell 5.1 (Desktop edition) it inspects the host's most recent Windows update and logs a `WARN` when the host predates the December 2025 patch wave. It never blocks the install — it tells you to update Windows.
-- **PowerShell 7+ is unaffected** — PowerShell 7 (Core) is a separate product and is out of scope for this CVE; the preflight skips it.
+- **SHA256 pinning**, every download is verified against a pinned hash before use. This guarantees the *integrity* of the payload (a tampered or substituted file is rejected) but does **not** by itself remove the parse-time execution vector on an unpatched PowerShell 5.1 host.
+- **Patch-level preflight**, the downloader runs a non-blocking check (`Get-DownloaderCveExposure`) the first time it fetches anything. On Windows PowerShell 5.1 (Desktop edition) it inspects the host's most recent Windows update and logs a `WARN` when the host predates the December 2025 patch wave. It never blocks the install, it tells you to update Windows.
+- **PowerShell 7+ is unaffected**, PowerShell 7 (Core) is a separate product and isn't affected by this CVE, so the preflight skips it.
 
 **Required action for users:** keep Windows fully updated. Hosts on the December 2025 cumulative update or later have the fix; older hosts should install pending updates before running LibreSpot's `irm … | iex` quickstart.
 
@@ -120,7 +120,7 @@ Because the artifacts ship unsigned, each release restarts Microsoft SmartScreen
 
 OpenSSF Scorecard findings are still treated as work, not noise. The accepted-risk baseline in [schemas/scorecard-baseline.json](schemas/scorecard-baseline.json) records the project's single-maintainer limits and local gate expectations; if a manual Scorecard run finds a new low score, it should become a `ROADMAP.md` item with a remediation plan rather than a silently ignored warning.
 
-**Accepted single-maintainer limits:** the following Scorecard checks score zero or low and are documented as expected for a single-maintainer project — they are not silently ignored:
+**Accepted single-maintainer limits:** the following Scorecard checks score zero or low and are documented as expected for a single-maintainer project, they are not silently ignored:
 
 | Check | Score | Reason |
 |-------|-------|--------|
@@ -129,13 +129,13 @@ OpenSSF Scorecard findings are still treated as work, not noise. The accepted-ri
 | Contributors | 0 | Single-maintainer project by design. |
 | CII-Best-Practices | 0 | Enrollment deferred until v4.0 stable ships and community adoption grows. |
 | Fuzzing | 0 | Property-based testing (FsCheck) is planned; OSS-Fuzz enrollment is deferred. |
-| Signed-Releases | — | Unsigned by design. SignPath Foundation OSS signing was evaluated and set aside, so there is no pending certificate. Local releases ship with checksums, a release manifest, and SBOM output. They are not Authenticode-signed and do not include GitHub Actions build-provenance attestations. Immutable GitHub releases do include a release attestation. Integrity is verified with that attestation and the published SHA256 checksums. |
+| Signed-Releases | N/A | Unsigned by design. SignPath Foundation OSS signing was evaluated and set aside, so there is no pending certificate. Local releases ship with checksums, a release manifest, and SBOM output. They are not Authenticode-signed and do not include GitHub Actions build-provenance attestations. Immutable GitHub releases do include a release attestation. Integrity is verified with that attestation and the published SHA256 checksums. |
 
 These limits are revisited when their documented trigger conditions are met (e.g., a second maintainer joins, signing completes). The full accepted-risk registry is in [schemas/scorecard-baseline.json](schemas/scorecard-baseline.json).
 
 ## Legal contingency
 
-LibreSpot is a wrapper and orchestrator — it does not host, redistribute, or modify the code of SpotX, Spicetify CLI, or Spotify itself. All upstream code is downloaded directly from its official GitHub repository using commit-pinned URLs with SHA256 verification. LibreSpot is MIT-licensed, uses no Spotify API Client IDs, and makes no network requests except to GitHub (for downloads) and Spotify (normal app traffic through the unmodified Spotify client).
+LibreSpot is a wrapper and orchestrator, it does not host, redistribute, or modify the code of SpotX, Spicetify CLI, or Spotify itself. All upstream code is downloaded directly from its official GitHub repository using commit-pinned URLs with SHA256 verification. LibreSpot is MIT-licensed, uses no Spotify API Client IDs, and makes no network requests except to GitHub (for downloads) and Spotify (normal app traffic through the unmodified Spotify client).
 
 ### If SpotX is taken down
 
@@ -152,7 +152,7 @@ If the Spicetify CLI repository (`spicetify/cli`) is removed:
 - LibreSpot's Spicetify CLI download will fail. The installer will skip Spicetify setup and report the failure clearly.
 - SpotX ad-blocking will continue to work independently of Spicetify.
 - Users with existing Spicetify installations can run `spicetify restore` to remove theming, or use **Maintenance > Restore vanilla Spotify** in LibreSpot.
-- The Spicetify Marketplace, themes archive, and community extensions are hosted in separate repositories — a Spicetify CLI takedown would not necessarily affect those, but LibreSpot would not be able to apply them without the CLI.
+- The Spicetify Marketplace, themes archive, and community extensions are hosted in separate repositories, a Spicetify CLI takedown would not necessarily affect those, but LibreSpot would not be able to apply them without the CLI.
 
 ### Restoring stock Spotify without LibreSpot
 
@@ -173,14 +173,14 @@ LibreSpot shells out to a few external programs. The boundary that keeps this sa
 
 | Executable / script | Argument source | Quoting / execution | Timeout | Output | Exit handling |
 |---|---|---|---|---|---|
-| SpotX `run.ps1` | `Build-SpotXParams` — fixed flags plus four normalized fields (`SpotX_LyricsTheme` → 27-value allowlist, `SpotX_DownloadMethod` → `{curl,webclient}`, `SpotX_SpotifyVersionId` → manifest-id allowlist that selects a manifest-supplied version, `SpotX_CacheLimit` → integer 0–50000) | WPF backend uses `ProcessStartInfo.ArgumentList`; the PowerShell backend uses a single-string `Start-Process -ArgumentList` (a Windows PowerShell 5.1 redirected-output quirk) over the generated path | `Invoke-ExternalScriptIsolated` (600s default, killed on overrun) | Streamed via `Read-ProcessOutputDelta` | Exit code checked, then post-patch markers verified (`Get-SpotXPatchVerification`) |
-| Spicetify CLI | `Invoke-SpicetifyCli` — fixed verbs/flags; list values are allowlisted extension/theme names | `Start-Process -ArgumentList` over the resolved `spicetify.exe` | bounded waits | captured | exit code checked, auto-restore on apply failure |
+| SpotX `run.ps1` | `Build-SpotXParams`, fixed flags plus four normalized fields (`SpotX_LyricsTheme` → 27-value allowlist, `SpotX_DownloadMethod` → `{curl,webclient}`, `SpotX_SpotifyVersionId` → manifest-id allowlist that selects a manifest-supplied version, `SpotX_CacheLimit` → integer 0-50000) | WPF backend uses `ProcessStartInfo.ArgumentList`; the PowerShell backend uses a single-string `Start-Process -ArgumentList` (a Windows PowerShell 5.1 redirected-output quirk) over the generated path | `Invoke-ExternalScriptIsolated` (600s default, killed on overrun) | Streamed via `Read-ProcessOutputDelta` | Exit code checked, then post-patch markers verified (`Get-SpotXPatchVerification`) |
+| Spicetify CLI | `Invoke-SpicetifyCli`, fixed verbs/flags; list values are allowlisted extension/theme names | `Start-Process -ArgumentList` over the resolved `spicetify.exe` | bounded waits | captured | exit code checked, auto-restore on apply failure |
 | `schtasks.exe` | Fixed task name `LibreSpot\ReapplyWatcher` | `ProcessStartInfo.ArgumentList` | 1500ms (off the UI thread) | captured | exit code → registered/not |
 
 **Rule for new arguments:** any new SpotX/Spicetify argument that carries a user-controlled value must be normalized to an allowlist or integer in `Normalize-LibreSpotConfig` **before** it reaches the parameter builder, or it must use tokenized execution (`ArgumentList`) with explicit escaping. The regression tests `Normalize_ConstrainsSpotXInterpolatedFieldsToAllowlistsOrIntegers` and `BuildSpotXParams_OnlyInterpolatesKnownSafeNormalizedFields` (both PowerShell paths) fail if a new free-form interpolation is added without updating this contract.
 
 ### Execution policy and application control
 
-LibreSpot runs its own generated scripts, SpotX, and the watcher task with `-ExecutionPolicy Bypass`. PowerShell execution policy is a **safety feature, not a security boundary** ([Microsoft docs](https://learn.microsoft.com/powershell/module/microsoft.powershell.core/about/about_execution_policies)) — it stops accidental script execution, it does **not** stop a determined user, and bypassing it does **not** weaken any enterprise control. In particular, `-ExecutionPolicy Bypass` does **not** defeat AppLocker or Windows Defender Application Control (WDAC), which enforce PowerShell [ConstrainedLanguage mode](https://learn.microsoft.com/powershell/module/microsoft.powershell.core/about/about_language_modes) regardless of execution policy.
+LibreSpot runs its own generated scripts, SpotX, and the watcher task with `-ExecutionPolicy Bypass`. PowerShell execution policy is a **safety feature, not a security boundary** ([Microsoft docs](https://learn.microsoft.com/powershell/module/microsoft.powershell.core/about/about_execution_policies)), it stops accidental script execution, it does **not** stop a determined user, and bypassing it does **not** weaken any enterprise control. In particular, `-ExecutionPolicy Bypass` does **not** defeat AppLocker or Windows Defender Application Control (WDAC), which enforce PowerShell [ConstrainedLanguage mode](https://learn.microsoft.com/powershell/module/microsoft.powershell.core/about/about_language_modes) regardless of execution policy.
 
-On a host where application control is enforced, LibreSpot's scripts (or the SpotX child process) may be blocked. LibreSpot diagnoses this rather than presenting it as a generic failure: at run start it logs the PowerShell edition, version, language mode, and execution-policy scopes (`Get-PowerShellSecurityContext`), warns when the host is already in ConstrainedLanguage, and classifies app-control errors in spawned-process output (`Test-IsLanguageModeOrAppControlError`). The guidance is always to ask an administrator to allow LibreSpot/SpotX — never to weaken application control.
+On a host where application control is enforced, LibreSpot's scripts (or the SpotX child process) may be blocked. LibreSpot diagnoses this rather than presenting it as a generic failure: at run start it logs the PowerShell edition, version, language mode, and execution-policy scopes (`Get-PowerShellSecurityContext`), warns when the host is already in ConstrainedLanguage, and classifies app-control errors in spawned-process output (`Test-IsLanguageModeOrAppControlError`). The guidance is always to ask an administrator to allow LibreSpot/SpotX, never to weaken application control.

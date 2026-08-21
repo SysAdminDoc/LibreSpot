@@ -364,6 +364,49 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public bool HasSnapshotLoadError => _snapshotLoadFailed;
     public bool IsEnvironmentReadyForActions => !IsSnapshotLoading && !HasSnapshotLoadError;
 
+    public string SimpleHomeTitle =>
+        IsSnapshotLoading
+            ? L("Vm_SimpleHomeCheckingTitle")
+            : HasSnapshotLoadError
+                ? L("Vm_SimpleHomeUnavailableTitle")
+                : HasCriticalHealthIssues
+                    ? L("Vm_SimpleHomeAttentionTitle")
+                    : L("Vm_SimpleHomeReadyTitle");
+
+    public string SimpleHomeBody =>
+        IsSnapshotLoading
+            ? L("Vm_SimpleHomeCheckingBody")
+            : HasSnapshotLoadError
+                ? L("Vm_SimpleHomeUnavailableBody")
+                : HasCriticalHealthIssues
+                    ? L("Vm_SimpleHomeAttentionBody")
+                    : Snapshot.SpotifyInstalled
+                        ? L("Vm_SimpleHomeReadyBody")
+                        : L("Vm_SimpleHomeInstallBody");
+
+    public IReadOnlyList<ShellReadinessCheckItemViewModel> SimpleHomeReadinessChecks
+    {
+        get
+        {
+            var checks = ShellReadinessChecks;
+            var labels = new[]
+            {
+                L("Vm_SimpleHomeSystem"),
+                L("Vm_SimpleHomeSpotify"),
+                L("Vm_SimpleHomePermissions"),
+                L("Vm_SimpleHomeDependencies")
+            };
+
+            return checks
+                .Select((check, index) => new ShellReadinessCheckItemViewModel(
+                    labels[index],
+                    check.Status,
+                    check.Tone,
+                    check.IsPassing))
+                .ToArray();
+        }
+    }
+
     public string ShellQuickActionsTitle => L("Vm_ShellQuickActionsTitle");
     public string ShellNextActionsTitle => L("Vm_ShellNextActionsTitle");
     public string ShellActionRunSetupTitle => L("Vm_ShellActionRunSetupTitle");
@@ -1519,7 +1562,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShellNoActiveTasksText));
         OnPropertyChanged(nameof(ShellServiceStatusText));
         OnPropertyChanged(nameof(ShellReadinessChecks));
+        OnPropertyChanged(nameof(SimpleHomeReadinessChecks));
         OnPropertyChanged(nameof(ShellReadinessPercent));
+        OnPropertyChanged(nameof(SimpleHomeTitle));
+        OnPropertyChanged(nameof(SimpleHomeBody));
         OnPropertyChanged(nameof(WorkspaceHeroBody));
     }
 
@@ -1734,6 +1780,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShellDependenciesLabel));
         OnPropertyChanged(nameof(ShellCheckOkLabel));
         OnPropertyChanged(nameof(ShellReadinessChecks));
+        OnPropertyChanged(nameof(SimpleHomeReadinessChecks));
         OnPropertyChanged(nameof(ShellVerifyEnvironmentTitle));
         OnPropertyChanged(nameof(ShellVerifyEnvironmentDetail));
         OnPropertyChanged(nameof(ShellRepairTitle));

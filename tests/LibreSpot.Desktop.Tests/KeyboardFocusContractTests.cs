@@ -40,19 +40,11 @@ public sealed class KeyboardFocusContractTests
     }
 
     [Fact]
-    public void Window_HasEscapeKeyBinding()
+    public void Window_DoesNotDefineGlobalKeyboardShortcuts()
     {
         var xaml = ReadXaml();
-        Assert.Contains("Key=\"Escape\"", xaml);
-        Assert.Contains("EscapeCommand", xaml);
-    }
-
-    [Fact]
-    public void Window_HasRefreshKeyBinding()
-    {
-        var xaml = ReadXaml();
-        Assert.Contains("Key=\"F5\"", xaml);
-        Assert.Contains("RefreshSnapshotCommand", xaml);
+        Assert.DoesNotContain("<Window.InputBindings>", xaml);
+        Assert.DoesNotContain("<KeyBinding", xaml);
     }
 
     [Fact]

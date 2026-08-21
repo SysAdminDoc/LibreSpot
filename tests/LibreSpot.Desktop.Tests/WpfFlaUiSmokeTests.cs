@@ -44,6 +44,20 @@ public sealed class WpfFlaUiSmokeTests
     }
 
     [Fact]
+    public void FlaUiRecommendedDetails_ExpandsTheFirstRunExplanation()
+    {
+        var text = LocalizedSmokeText.For("en");
+        WithSmokeWindow("recommended", window =>
+        {
+            var details = WaitForElementByAutomationId(window, "RecommendedDetailsExpander");
+            AssertNamedVisible(window, details, text.Details);
+            InvokeOrClick(WaitForControlByAutomationId(window, "HeaderButton", ControlType.Button));
+
+            AssertControlByName(window, ControlType.Text, text.FirstRunTitle);
+        });
+    }
+
+    [Fact]
     public void FlaUiCustomSearch_AcceptsInputAndClearButtonResetsIt()
     {
         var text = LocalizedSmokeText.For("en");
@@ -383,6 +397,12 @@ public sealed class WpfFlaUiSmokeTests
             return;
         }
 
+        if (element.Patterns.Toggle.IsSupported)
+        {
+            element.Patterns.Toggle.Pattern.Toggle();
+            return;
+        }
+
         element.Click();
     }
 
@@ -427,6 +447,8 @@ public sealed class WpfFlaUiSmokeTests
         string MaintenanceNav,
         string RecommendedWorkspace,
         string RunRecommendedSetup,
+        string Details,
+        string FirstRunTitle,
         string CustomWorkspace,
         string CustomSettingsEditor,
         string SearchPlaceholder,
@@ -444,11 +466,13 @@ public sealed class WpfFlaUiSmokeTests
         {
             var info = CultureInfo.GetCultureInfo(culture);
             return new LocalizedSmokeText(
-                Get("ModeRecommendedTitle", info),
-                Get("ModeCustomTitle", info),
+                Get("NavHome", info),
+                Get("NavSettings", info),
                 Get("ModeMaintenanceTitle", info),
                 Get("Ui_RecommendedWorkspace", info),
-                Get("ButtonRunRecommendedSetup", info),
+                Get("ButtonStartRecommendedSetup", info),
+                Get("Vm_SimpleHomeDetails", info),
+                Get("Vm_RecommendedFirstRunTitle", info),
                 Get("Ui_CustomWorkspace", info),
                 Get("Ui_CustomSettingsEditor", info),
                 Get("SearchPlaceholder", info),

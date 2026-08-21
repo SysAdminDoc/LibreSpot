@@ -169,6 +169,12 @@ public partial class MainWindow : Window
         var isCompact = shellWidth < 1580;
         var isShort = shellHeight < 800;
 
+        var isSimpleShellCompact = shellWidth < 1280;
+        SimpleShellRailColumn.Width = new GridLength(isSimpleShellCompact ? 224 : 272);
+        SimpleWorkspaceSurface.Padding = isSimpleShellCompact
+            ? new Thickness(32, isShort ? 54 : 112, 32, 28)
+            : new Thickness(64, isShort ? 54 : 148, 64, 40);
+
         ShellRailColumn.Width = new GridLength(isCompact ? 220 : 248);
         ShellRailGutterColumn.Width = new GridLength(isCompact ? 20 : 28);
         ShellInspectorGutterColumn.Width = new GridLength(isNarrow ? 0 : isCompact ? 14 : 18);

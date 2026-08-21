@@ -2057,6 +2057,24 @@
   <data name="Vm_ThemeGalleryNoJsHelpFormat" xml:space="preserve"><value>{0} é instalado sem uma etapa theme.js e tem {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="NavTools" xml:space="preserve"><value>Ferramentas</value><comment>User-facing WPF text</comment></data>
   <data name="NavSettings" xml:space="preserve"><value>Configurações</value><comment>User-facing WPF text</comment></data>
+  <data name="NavHome" xml:space="preserve"><value>Início</value><comment>User-facing WPF text</comment></data>
+  <data name="ButtonStartRecommendedSetup" xml:space="preserve"><value>Iniciar configuração recomendada</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_SimpleHomeReadyTitle" xml:space="preserve"><value>Tudo pronto para começar</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeReadyBody" xml:space="preserve"><value>O Spotify está instalado e a configuração recomendada está disponível.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeInstallBody" xml:space="preserve"><value>O LibreSpot está pronto para instalar a configuração compatível do Spotify.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeCheckingTitle" xml:space="preserve"><value>Verificando o sistema</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeCheckingBody" xml:space="preserve"><value>O LibreSpot está verificando o Spotify, as permissões e as dependências.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeAttentionTitle" xml:space="preserve"><value>Um item precisa de atenção</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeAttentionBody" xml:space="preserve"><value>Revise o item abaixo antes de iniciar a configuração recomendada.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeUnavailableTitle" xml:space="preserve"><value>Não foi possível verificar este computador</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeUnavailableBody" xml:space="preserve"><value>Atualize a verificação do sistema ou abra Manutenção para obter ajuda.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeDuration" xml:space="preserve"><value>Geralmente leva de 2 a 4 minutos</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_SimpleHomeDetails" xml:space="preserve"><value>Detalhes</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_SimpleHomeSystem" xml:space="preserve"><value>Sistema</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeSpotify" xml:space="preserve"><value>Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomePermissions" xml:space="preserve"><value>Permissões</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeDependencies" xml:space="preserve"><value>Dependências</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SimpleHomeReversible" xml:space="preserve"><value>Tudo pode ser desfeito</value><comment>User-facing WPF text</comment></data>
   <data name="NavAbout" xml:space="preserve"><value>Sobre</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_EnvAdministrator" xml:space="preserve"><value>Administrador</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvMachine" xml:space="preserve"><value>Máquina</value><comment>MainViewModel localized runtime text.</comment></data>
