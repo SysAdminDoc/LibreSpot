@@ -127,6 +127,18 @@ public sealed class ParityManifestTests
         }
     }
 
+    [Fact]
+    public void Manifest_GeneratorVersionMatchesDesktopProjectVersion()
+    {
+        var project = ReadFile("src", "LibreSpot.Desktop", "LibreSpot.Desktop.csproj");
+        var version = Regex.Match(project, @"<Version>(?<version>[^<]+)</Version>");
+
+        Assert.True(version.Success, "Desktop project version is missing.");
+        Assert.Equal(
+            version.Groups["version"].Value,
+            Manifest.RootElement.GetProperty("generatorVersion").GetString());
+    }
+
     private static HashSet<string> GetManifestConfigKeys(bool scriptOnly = false)
     {
         var keys = new HashSet<string>(StringComparer.Ordinal);

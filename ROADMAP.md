@@ -8,7 +8,7 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 IDs continue the RD-nn scheme. Highest ID in this file: RD-72. RD-47–RD-50 are absent because they already landed on `main` (CHANGELOG `[Unreleased]`); do not re-file them.
 
-Existing items RD-51–RD-57 and RD-61–RD-62 below are the same work items as the prior pass, with evidence corrections in-place (especially RD-54). New items start at RD-63.
+Existing items RD-51–RD-57 and RD-62 below are the same work items as the prior pass, with evidence corrections in-place (especially RD-54). New items start at RD-63.
 
 ### P0
 
@@ -22,13 +22,6 @@ Existing items RD-51–RD-57 and RD-61–RD-62 below are the same work items as 
 ### P1
 
 ### P2
-
-- [ ] P2 — RD-61: Doc-truth alignment for tracked markdown and stale metadata
-  Why: `.gitignore` “Markdown local-only” and AGENTS.md “README is the ONLY tracked .md” contradict tracked RESEARCH.md/ROADMAP.md/Roadmap_Blocked.md; `parity-manifest.json` generatorVersion is 16 previews stale; CLAUDE.md Current State attributes Unreleased work to preview.25; stray `Roadmap_Blocks.md` shadows `Roadmap_Blocked.md`.
-  Evidence: `git ls-files` vs `.gitignore` 2026-08-20; `schemas/parity-manifest.json:4`; CLAUDE.md Current State; untracked `Roadmap_Blocks.md`.
-  Touches: .gitignore comment, AGENTS.md, CLAUDE.md current-state line, parity manifest regeneration via `ParityManifestTests`, delete/merge `Roadmap_Blocks.md`
-  Acceptance: Stated tracking policy matches `git ls-files` reality; parity manifest regenerated at the current version; one blocked-roadmap file remains; CLAUDE.md current-state matches the latest tagged release (not untagged `main`).
-  Complexity: S
 
 - [ ] P2 — RD-67: Stop calling stack presence an “update status”
   Why: `ShellUpdateStatusTitle`/`Detail` flip on “Spotify or Spicetify installed,” not on a LibreSpot release check, so the chrome overclaims (“LibreSpot is up to date”).

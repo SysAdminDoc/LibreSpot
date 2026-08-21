@@ -23,13 +23,12 @@ checksums.txt
 # Runtime caches written to %APPDATA% in production; belt-and-braces here
 update-check.json
 
-# Markdown files local-only (except README, CHANGELOG, SECURITY, and GitHub community health)
-*.md
-!README.md
-!CHANGELOG.md
-!SECURITY.md
-!.github/*.md
-!.github/**/*.md
+# Project documentation is tracked. Keep scratch files under work/ and use
+# that folder's own ignore rules for generated notes and release checksums.
+SIGNPATH.md
+LOGO_PROMPTS.md
+Roadmap_Blocks.md
+docs/archive/research/*.md
 
 # AI config
 CODEX_CHANGELOG.md

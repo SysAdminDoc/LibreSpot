@@ -22,6 +22,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Updated `LibreSpot.Cli --help` to list every flag in `schemas/fleet-cli-contract.json` per verb, with the `--purge` and `--yes` uninstall requirements stated explicitly.
 - Split the Custom workspace into PascalCase-paired per-section UserControls and moved maintenance, custom-install, and profile members into view-model partials. Existing UIA, localization, focus, and behavior contracts remain unchanged.
 - Added a short fake-installer warning and download-verification checklist to README and SECURITY. It points users to the official repository, same-release SHA256 checksums, and away from Telegram, rehosted files, Defender changes, and pasted commands.
+- Aligned markdown tracking guidance with the files actually versioned in the repository, refreshed the parity manifest version to preview.25, and removed the duplicate ignored `Roadmap_Blocks.md` file in favor of `Roadmap_Blocked.md`.
 
 ### Fixed
 
