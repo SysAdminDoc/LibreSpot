@@ -172,8 +172,6 @@ public sealed class ColorLintTests
         {
             "src/LibreSpot.Desktop/ViewModels/ThemeGalleryItemViewModel.cs" =>
                 occurrence.Kind == "interpolated swatch",
-            "src/LibreSpot.Desktop/Services/Win11ShellIntegration.cs" =>
-                occurrence.Kind == "colorref bytes",
             _ => false
         };
     }

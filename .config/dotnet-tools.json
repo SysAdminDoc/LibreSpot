@@ -8,6 +8,13 @@
         "dotnet-stryker"
       ],
       "rollForward": false
+    },
+    "CycloneDX": {
+      "version": "6.2.0",
+      "commands": [
+        "dotnet-CycloneDX"
+      ],
+      "rollForward": false
     }
   }
 }

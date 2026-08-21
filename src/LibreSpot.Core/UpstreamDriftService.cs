@@ -379,51 +379,8 @@ public sealed class UpstreamDriftService
 
 internal static class DriftCacheFile
 {
-    public static void WriteAllTextAtomically(string path, string content)
-    {
-        var directory = Path.GetDirectoryName(path);
-        if (string.IsNullOrWhiteSpace(directory))
-        {
-            throw new InvalidOperationException("A drift-cache path must have a parent directory.");
-        }
-
-        Directory.CreateDirectory(directory);
-        var temporaryPath = Path.Combine(
-            directory,
-            $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
-
-        try
-        {
-            using (var stream = new FileStream(
-                       temporaryPath,
-                       new FileStreamOptions
-                       {
-                           Mode = FileMode.CreateNew,
-                           Access = FileAccess.Write,
-                           Share = FileShare.None,
-                           Options = FileOptions.WriteThrough
-                       }))
-            using (var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)))
-            {
-                writer.Write(content);
-                writer.Flush();
-                stream.Flush(flushToDisk: true);
-            }
-
-            File.Move(temporaryPath, path, overwrite: true);
-        }
-        finally
-        {
-            try
-            {
-                File.Delete(temporaryPath);
-            }
-            catch
-            {
-                // A failed health-cache update must not replace the prior valid cache.
-            }
-        }
-    }
+    public static void WriteAllTextAtomically(string path, string content) =>
+        AtomicFile.WriteAllText(path, content);
 }
 
 public sealed class GitHubUpstreamMetadataClient : IUpstreamMetadataClient

@@ -36,7 +36,7 @@ public sealed class ConfigurationService
     public ConfigurationService(string? configDirectory = null)
     {
         _configDirectory = string.IsNullOrWhiteSpace(configDirectory)
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LibreSpot")
+            ? LibreSpotPaths.ConfigDirectory
             : Path.GetFullPath(configDirectory);
     }
 
@@ -116,47 +116,23 @@ public sealed class ConfigurationService
         }
 
         var normalizedConfiguration = AppCatalog.NormalizeConfiguration(configuration);
-        await using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-        await JsonSerializer.SerializeAsync(stream, normalizedConfiguration, SerializerOptions, cancellationToken);
-        await stream.FlushAsync(cancellationToken);
-        stream.Flush(flushToDisk: true);
+        await AtomicFile.WriteAsync(path, async (stream, ct) =>
+        {
+            await JsonSerializer.SerializeAsync(stream, normalizedConfiguration, SerializerOptions, ct);
+        }, cancellationToken);
     }
 
     public async Task SaveAsync(InstallConfiguration configuration, CancellationToken cancellationToken = default)
     {
         Directory.CreateDirectory(ConfigDirectory);
         await _saveLock.WaitAsync(cancellationToken);
-        string? tempPath = null;
         try
         {
             var normalizedConfiguration = AppCatalog.NormalizeConfiguration(configuration);
-            tempPath = Path.Combine(ConfigDirectory, $"config.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp");
-            await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            await AtomicFile.WriteAsync(ConfigPath, async (stream, ct) =>
             {
-                await JsonSerializer.SerializeAsync(stream, normalizedConfiguration, SerializerOptions, cancellationToken);
-                // Ensure contents hit disk before we swap over the real file.
-                await stream.FlushAsync(cancellationToken);
-                stream.Flush(flushToDisk: true);
-            }
-
-            // Atomic replace. File.Move(source, dest, overwrite) is atomic on the same
-            // volume, which APPDATA always is. This prevents torn writes if the process
-            // is killed mid-save — either the old config or the new one remains intact.
-            File.Move(tempPath, ConfigPath, overwrite: true);
-            tempPath = null;
-        }
-        catch
-        {
-            // Best-effort cleanup of the temp file; if the move already consumed it this is a no-op.
-            try
-            {
-                if (!string.IsNullOrEmpty(tempPath))
-                {
-                    File.Delete(tempPath);
-                }
-            }
-            catch { }
-            throw;
+                await JsonSerializer.SerializeAsync(stream, normalizedConfiguration, SerializerOptions, ct);
+            }, cancellationToken);
         }
         finally
         {

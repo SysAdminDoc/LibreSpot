@@ -45,6 +45,7 @@
   <Color x:Key="TextColor">#FFFFFF</Color>
   <Color x:Key="TextMutedColor">#AAAAAA</Color>
   <Color x:Key="TextSubtleColor">#AAAAAA</Color>
+  <Color x:Key="DisabledTextColor">#AAAAAA</Color>
   <Color x:Key="TextOnAccentColor">#FFFFFF</Color>
 
   <!-- ═══ Brand / accent ═══ -->
@@ -105,6 +106,7 @@
   <SolidColorBrush x:Key="TextBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
   <SolidColorBrush x:Key="MutedTextBrush" Color="{DynamicResource {x:Static SystemColors.GrayTextColorKey}}" />
   <SolidColorBrush x:Key="SubtleTextBrush" Color="{DynamicResource {x:Static SystemColors.GrayTextColorKey}}" />
+  <SolidColorBrush x:Key="DisabledTextBrush" Color="{DynamicResource {x:Static SystemColors.GrayTextColorKey}}" />
   <SolidColorBrush x:Key="TextOnAccentBrush" Color="{DynamicResource {x:Static SystemColors.HighlightTextColorKey}}" />
 
   <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />

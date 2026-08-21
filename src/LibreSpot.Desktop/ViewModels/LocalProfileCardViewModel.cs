@@ -35,9 +35,6 @@ public sealed class LocalProfileCardViewModel : ObservableObject
             : IsActive
                 ? ViewModelText.Get("Vm_ProfileCapabilityEditableActive")
                 : ViewModelText.Get("Vm_ProfileCapabilityEditable");
-    public string UpdatedText => IsBuiltIn
-        ? ViewModelText.Get("Vm_ProfileUpdatedBundledTemplate")
-        : ViewModelText.Format("Vm_ProfileUpdatedFormat", UpdatedAt.LocalDateTime);
     public string AutomationName => ViewModelText.Format(
         "Vm_ProfileAutomationNameFormat",
         Name,
@@ -54,7 +51,6 @@ public sealed class LocalProfileCardViewModel : ObservableObject
         OnPropertyChanged(nameof(KindBadge));
         OnPropertyChanged(nameof(StateBadge));
         OnPropertyChanged(nameof(CapabilityText));
-        OnPropertyChanged(nameof(UpdatedText));
         OnPropertyChanged(nameof(AutomationName));
         OnPropertyChanged(nameof(AutomationHelpText));
     }

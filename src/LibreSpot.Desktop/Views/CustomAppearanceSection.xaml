@@ -21,14 +21,14 @@
                                      Style="{StaticResource BodyTextStyle}"
                                      Margin="0,6,0,16" />
 
-                          <TextBlock Text="{services:Loc ThemePackLabel}" Style="{StaticResource LabelTextStyle}" />
-                          <Grid Margin="0,6,0,10">
+                          <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
                               <ColumnDefinition Width="*" />
                               <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBox Text="{Binding ThemeSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource TextBoxStylePremium}"
+                                     Tag="{services:Loc ThemeGallerySearchName}"
                                      Height="42"
                                      AutomationProperties.Name="{services:Loc ThemeGallerySearchName}"
                                      AutomationProperties.HelpText="{services:Loc ThemeGallerySearchHint}" />
@@ -44,6 +44,9 @@
                                     AutomationProperties.Name="{services:Loc ButtonClearSearchName}" />
                           </Grid>
 
+                          <TextBlock Text="{services:Loc ThemePackLabel}"
+                                     Style="{StaticResource LabelTextStyle}"
+                                     Margin="0,0,0,8" />
                           <ListBox ItemsSource="{Binding FilteredThemeGalleryItems}"
                                    SelectedItem="{Binding SelectedThemeGalleryItem, Mode=TwoWay}"
                                    Background="Transparent"

@@ -52,6 +52,9 @@ param(
     [switch]$CheckSpotifyVersionDrift,
     [switch]$CompileStableExe,
     [string]$StableExeOutputPath,
+    [switch]$GenerateSbom,
+    [string]$SbomOutputPath,
+    [switch]$SkipStableExeIdentity,
     [switch]$ReleaseTruth,
     [switch]$WatcherIntegration
 )
@@ -1483,6 +1486,113 @@ function Invoke-LibreSpotStableExeCompile {
     Write-Host "Stable script executable written: $OutputPath" -ForegroundColor Green
 }
 
+function Get-LibreSpotCycloneDxToolVersion {
+    $manifestPath = Join-Path $PSScriptRoot '.config/dotnet-tools.json'
+    $manifest = Get-JsonFile -Path $manifestPath
+    $tool = $manifest.tools.CycloneDX
+    if ($null -eq $tool) {
+        throw "CycloneDX is not pinned in .config/dotnet-tools.json."
+    }
+    return [string]$tool.version
+}
+
+function Test-LibreSpotSbom {
+    param([Parameter(Mandatory)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "CycloneDX SBOM not found at $Path. Run Build-Scripts.ps1 -GenerateSbom."
+    }
+
+    $document = Get-JsonFile -Path $Path
+    if ([string]$document.bomFormat -ne 'CycloneDX') {
+        throw "SBOM bomFormat is '$($document.bomFormat)'; expected CycloneDX."
+    }
+    if ([string]$document.specVersion -ne '1.7') {
+        throw "SBOM specVersion is '$($document.specVersion)'; expected 1.7."
+    }
+
+    $pinnedVersion = Get-LibreSpotCycloneDxToolVersion
+    $toolVersions = @()
+    if ($document.metadata.tools.components) {
+        foreach ($tool in @($document.metadata.tools.components)) {
+            $toolVersions += [string]$tool.version
+        }
+    }
+    if ($document.metadata.tools) {
+        foreach ($tool in @($document.metadata.tools)) {
+            if ($tool.PSObject.Properties['version']) {
+                $toolVersions += [string]$tool.version
+            }
+        }
+    }
+
+    $matchesPin = $false
+    foreach ($version in $toolVersions) {
+        if ($version -eq $pinnedVersion -or $version.StartsWith("$pinnedVersion.", [System.StringComparison]::Ordinal)) {
+            $matchesPin = $true
+            break
+        }
+    }
+    if (-not $matchesPin) {
+        throw "SBOM tool version is '$(($toolVersions | Where-Object { $_ }) -join ', ')'; expected CycloneDX $pinnedVersion."
+    }
+
+    $components = @($document.components)
+    if ($components.Count -lt 1) {
+        throw "SBOM has no components."
+    }
+
+    foreach ($component in $components) {
+        $name = [string]$component.name
+        $hashes = @($component.hashes)
+        $licenses = @($component.licenses)
+        if ($hashes.Count -lt 1) {
+            throw "SBOM component '$name' is missing hashes."
+        }
+        if ($licenses.Count -lt 1) {
+            throw "SBOM component '$name' is missing licenses."
+        }
+    }
+}
+
+function Invoke-LibreSpotSbomGenerate {
+    param([string]$OutputPath)
+
+    if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+        $OutputPath = Join-Path $PSScriptRoot 'publish/LibreSpot.sbom.cdx.json'
+    }
+    $OutputPath = [System.IO.Path]::GetFullPath($OutputPath)
+    $outputDirectory = Split-Path -Parent $OutputPath
+    if (-not [string]::IsNullOrWhiteSpace($outputDirectory)) {
+        New-Item -Path $outputDirectory -ItemType Directory -Force | Out-Null
+    }
+
+    Push-Location $PSScriptRoot
+    try {
+        & dotnet tool restore
+        if ($LASTEXITCODE -ne 0) {
+            throw "dotnet tool restore failed with exit code $LASTEXITCODE."
+        }
+
+        $fileName = Split-Path -Leaf $OutputPath
+        & dotnet tool run dotnet-CycloneDX -- `
+            (Join-Path $PSScriptRoot 'src/LibreSpot.Desktop/LibreSpot.Desktop.csproj') `
+            --json `
+            --exclude-dev `
+            -o $outputDirectory `
+            -fn $fileName
+        if ($LASTEXITCODE -ne 0) {
+            throw "CycloneDX generation failed with exit code $LASTEXITCODE."
+        }
+    }
+    finally {
+        Pop-Location
+    }
+
+    Test-LibreSpotSbom -Path $OutputPath
+    Write-Host "CycloneDX SBOM written: $OutputPath" -ForegroundColor Green
+}
+
 function Test-LibreSpotPublishFootprint {
     param([Parameter(Mandatory)][string]$Root)
 
@@ -1537,7 +1647,10 @@ function New-LibreSpotReleaseManifest {
 
     $contract = Get-JsonFile -Path $releaseContractPath
     $footprint = Test-LibreSpotPublishFootprint -Root $Root
-    Test-LibreSpotStableExeIdentity -Path (Join-Path $Root 'LibreSpot.exe')
+    if (-not $SkipStableExeIdentity) {
+        Test-LibreSpotStableExeIdentity -Path (Join-Path $Root 'LibreSpot.exe')
+    }
+    Test-LibreSpotSbom -Path (Join-Path $Root 'LibreSpot.sbom.cdx.json')
     if ([string]::IsNullOrWhiteSpace($Version)) {
         $Version = Get-LibreSpotProjectVersion
     }
@@ -2008,6 +2121,11 @@ function Test-SpotifyVersionDrift {
 
 if ($CompileStableExe) {
     Invoke-LibreSpotStableExeCompile -OutputPath $StableExeOutputPath
+    exit 0
+}
+
+if ($GenerateSbom) {
+    Invoke-LibreSpotSbomGenerate -OutputPath $SbomOutputPath
     exit 0
 }
 

@@ -510,7 +510,6 @@ public sealed partial class MainViewModel
         RebuildSelectionInsights();
         OnPropertyChanged(nameof(CustomSelectionSummary));
         OnPropertyChanged(nameof(InstallPostureLabel));
-        OnPropertyChanged(nameof(EnabledToggleCountLabel));
         OnPropertyChanged(nameof(IsThemeSchemeAvailable));
         OnPropertyChanged(nameof(ThemeSchemeHint));
         OnPropertyChanged(nameof(ThemeSummary));
@@ -528,7 +527,6 @@ public sealed partial class MainViewModel
         OnPropertyChanged(nameof(CustomPatchesSummary));
         OnPropertyChanged(nameof(ExtensionSummary));
         OnPropertyChanged(nameof(SelectedExtensionCountLabel));
-        OnPropertyChanged(nameof(SelectedCustomAppCountLabel));
         OnPropertyChanged(nameof(HasSelectedExtensions));
         OnPropertyChanged(nameof(AccessPostureLabel));
         OnPropertyChanged(nameof(CustomChangeCountLabel));

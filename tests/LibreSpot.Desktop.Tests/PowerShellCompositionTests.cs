@@ -45,6 +45,8 @@ public sealed class PowerShellCompositionTests
 
         var buildScript = ReadRepoFile("Build-Scripts.ps1");
         Assert.Contains("if ($GenerateReleaseManifest)", buildScript, StringComparison.Ordinal);
+        Assert.Contains("if ($GenerateSbom)", buildScript, StringComparison.Ordinal);
+        Assert.Contains("Invoke-LibreSpotSbomGenerate", buildScript, StringComparison.Ordinal);
         Assert.Matches(@"(?s)if \(\$GenerateReleaseManifest\).*?Test-LibreSpotHostComposition -Smoke.*?New-LibreSpotReleaseManifest", buildScript);
         Assert.Contains("The separate sync commands are retired", buildScript, StringComparison.Ordinal);
     }

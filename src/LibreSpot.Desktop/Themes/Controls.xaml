@@ -12,7 +12,8 @@
                           so focus never shifts layout.
       • State transitions: short (~150ms) ease-out on color/opacity for hover,
                           press, and selection. No bouncy overshoot.
-      • Disabled:         40-45% opacity + Cursor=Arrow so intent is clear.
+      • Disabled:         DisabledTextBrush with no opacity composite, so the
+                          label stays at the WCAG 3:1 floor (GrayText in HC).
   -->
 
   <!-- ═══ Window ═══ -->
@@ -272,7 +273,9 @@
               <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-              <Setter Property="Opacity" Value="0.4" />
+              <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
+              <Setter Property="Background" Value="{DynamicResource Surface3Brush}" />
+              <Setter Property="BorderBrush" Value="{DynamicResource StrokeBrush}" />
               <Setter Property="Cursor" Value="Arrow" />
             </Trigger>
           </ControlTemplate.Triggers>
@@ -386,7 +389,7 @@
               <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-              <Setter Property="Opacity" Value="0.4" />
+              <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
               <Setter Property="Cursor" Value="Arrow" />
             </Trigger>
           </ControlTemplate.Triggers>
@@ -471,7 +474,7 @@
               <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-              <Setter Property="Opacity" Value="0.45" />
+              <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
               <Setter Property="Cursor" Value="Arrow" />
             </Trigger>
           </ControlTemplate.Triggers>
@@ -795,7 +798,7 @@
               <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-              <Setter Property="Opacity" Value="0.45" />
+              <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
               <Setter Property="Cursor" Value="Arrow" />
             </Trigger>
           </ControlTemplate.Triggers>
@@ -973,7 +976,7 @@
               <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-              <Setter Property="Opacity" Value="0.4" />
+              <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -1009,8 +1012,18 @@
                     BorderBrush="{TemplateBinding BorderBrush}"
                     BorderThickness="{TemplateBinding BorderThickness}"
                     CornerRadius="12">
-              <ScrollViewer x:Name="PART_ContentHost"
-                            Margin="{TemplateBinding Padding}" />
+              <Grid>
+                <TextBlock x:Name="Watermark"
+                           Text="{TemplateBinding Tag}"
+                           Margin="{TemplateBinding Padding}"
+                           Foreground="{DynamicResource MutedTextBrush}"
+                           FontSize="{TemplateBinding FontSize}"
+                           VerticalAlignment="Center"
+                           IsHitTestVisible="False"
+                           Visibility="Collapsed" />
+                <ScrollViewer x:Name="PART_ContentHost"
+                              Margin="{TemplateBinding Padding}" />
+              </Grid>
             </Border>
           </Grid>
           <ControlTemplate.Triggers>
@@ -1021,8 +1034,11 @@
               <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
               <Setter TargetName="FocusRing" Property="Opacity" Value="1" />
             </Trigger>
+            <Trigger Property="Text" Value="">
+              <Setter TargetName="Watermark" Property="Visibility" Value="Visible" />
+            </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-              <Setter Property="Opacity" Value="0.45" />
+              <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -1166,6 +1182,7 @@
               <!-- Invisible page-scroll zones must not be keyboard tab stops. -->
               <Track.DecreaseRepeatButton>
                 <RepeatButton Command="ScrollBar.PageUpCommand"
+                              Style="{x:Null}"
                               Opacity="0"
                               Focusable="False"
                               IsTabStop="False"
@@ -1176,6 +1193,7 @@
               </Track.Thumb>
               <Track.IncreaseRepeatButton>
                 <RepeatButton Command="ScrollBar.PageDownCommand"
+                              Style="{x:Null}"
                               Opacity="0"
                               Focusable="False"
                               IsTabStop="False"
@@ -1197,6 +1215,7 @@
                 <Track x:Name="PART_Track">
                   <Track.DecreaseRepeatButton>
                     <RepeatButton Command="ScrollBar.PageLeftCommand"
+                                  Style="{x:Null}"
                                   Opacity="0"
                                   Focusable="False"
                                   IsTabStop="False"
@@ -1207,6 +1226,7 @@
                   </Track.Thumb>
                   <Track.IncreaseRepeatButton>
                     <RepeatButton Command="ScrollBar.PageRightCommand"
+                                  Style="{x:Null}"
                                   Opacity="0"
                                   Focusable="False"
                                   IsTabStop="False"
@@ -1295,6 +1315,7 @@
                 </StackPanel>
                 <Button x:Name="CloseButton"
                         Grid.Column="2"
+                        Style="{x:Null}"
                         Width="32"
                         Height="32"
                         Margin="14,0,0,0"

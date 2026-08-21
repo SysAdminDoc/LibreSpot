@@ -42,6 +42,9 @@
        on every surface tier up to SurfaceRaised, while staying a full step
        below MutedText so the caption hierarchy reads clearly. -->
   <Color x:Key="TextSubtleColor">#8DA0AA</Color>
+  <!-- Disabled labels: same floor as Subtle so they stay ≥4.5:1 on every
+       surface (and ≥3:1 on the rail) without the 0.45 opacity composite. -->
+  <Color x:Key="DisabledTextColor">#8DA0AA</Color>
   <Color x:Key="TextOnAccentColor">#06120B</Color>
 
   <!-- ═══ Brand / accent — Spotify-green, calibrated for dark canvas ═══ -->
@@ -124,6 +127,7 @@
   <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}" />
   <SolidColorBrush x:Key="MutedTextBrush" Color="{StaticResource TextMutedColor}" />
   <SolidColorBrush x:Key="SubtleTextBrush" Color="{StaticResource TextSubtleColor}" />
+  <SolidColorBrush x:Key="DisabledTextBrush" Color="{StaticResource DisabledTextColor}" />
   <SolidColorBrush x:Key="TextOnAccentBrush" Color="{StaticResource TextOnAccentColor}" />
 
   <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />

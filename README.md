@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.27-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.28-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
@@ -80,7 +80,22 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 
 ---
 
-## What's New in v4.0.0-preview.27
+## What's New in v4.0.0-preview.28
+
+**The app tells you which version it is.** The version sits under the LibreSpot name in the navigation rail again, and crash reports record the full preview version rather than a shorter numeric one.
+
+**Home recovers from a failed check.** If LibreSpot cannot verify your PC, the screen now offers a Retry button instead of naming a control that did not exist.
+
+**Home fits the smallest window.** At the minimum window size the readiness checks were cut off at both edges with no way to scroll to them.
+
+**Search boxes tell you what they do.** Settings search and the theme gallery show placeholder text inside the empty field, and the theme box is no longer labeled as if it were the pack picker.
+
+**The taskbar Jump List matches the rail.** Those shortcuts now say Home and Settings instead of Recommended and Custom.
+
+**Maintenance matches Home when the PC check fails.** That workspace now shows the same unavailable copy and Retry control instead of looking like Spotify is simply missing.
+
+**Crash reports still appear when the usual folder cannot be created.** LibreSpot writes them under the temp directory in that case, and Open folder goes to wherever the report actually landed.
+
 
 **Dropdowns look right again.** Every themed dropdown in the shell had collapsed to a small pill with its text spilling out, including the Spotify build and download-path pickers. They render at full width with their chevrons again.
 
@@ -445,7 +460,7 @@ Get-Sha256 .\LibreSpot.ps1
 Get-Content  .\checksums.txt
 ```
 
-GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.0.0-preview.27` to verify the release tag and commit, then run `gh release verify-asset v4.0.0-preview.27 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
+GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.0.0-preview.28` to verify the release tag and commit, then run `gh release verify-asset v4.0.0-preview.28 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
 
 ## Local release procedure
 
@@ -474,15 +489,19 @@ checksum-covered assets into the release root. Generate the CycloneDX SBOM, writ
 
 ```powershell
 .\Build-Scripts.ps1 -CompileStableExe
+.\Build-Scripts.ps1 -GenerateSbom
 .\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.0.0-preview.N -ReleaseChannel preview
 ```
 
 `-CompileStableExe` writes `publish\LibreSpot.exe` with the pinned PS2EXE flags
 (icon, admin manifest, no console, and the file version taken from
-`LibreSpot.ps1`) and needs the `ps2exe` module available to `pwsh`. Manifest
-generation then re-checks that file version against the script and measures the
-desktop executable against the publish footprint budget, so a mismatched or
-oversized artifact fails before the release is uploaded.
+`LibreSpot.ps1`) and needs the `ps2exe` module available to `pwsh`.
+`-GenerateSbom` restores the pinned CycloneDX 6.2.0 local tool and writes
+`publish\LibreSpot.sbom.cdx.json` for the desktop project. Manifest
+generation then re-checks that file version against the script, checks the
+SBOM is CycloneDX 1.7 from that tool with per-component hashes and licenses,
+and measures the desktop executable against the publish footprint budget, so a
+mismatched or oversized artifact fails before the release is uploaded.
 
 Create and push the version tag, create a draft GitHub release, upload every
 file in `publish`, and publish the draft only after the asset list is complete.

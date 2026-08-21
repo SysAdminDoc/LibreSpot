@@ -62,8 +62,7 @@ public sealed class BackendScriptService
             : Path.GetFullPath(backendScriptPathOverride);
     }
 
-    public static string DefaultRuntimeDirectory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibreSpot", "Runtime");
+    public static string DefaultRuntimeDirectory => LibreSpotPaths.RuntimeDirectory;
 
     private string RuntimeDirectory => _runtimeDirectory;
 
@@ -497,11 +496,7 @@ public sealed class BackendScriptService
         onMessage(new BackendMessage(parts[1], parts[2], payload));
     }
 
-    private static string GetPowerShellPath()
-    {
-        var systemPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), @"WindowsPowerShell\v1.0\powershell.exe");
-        return File.Exists(systemPath) ? systemPath : "powershell.exe";
-    }
+    private static string GetPowerShellPath() => PowerShellHostPath.Resolve();
 
     private async Task<(string Path, string Hash)> EnsureBackendScriptAsync(CancellationToken cancellationToken)
     {

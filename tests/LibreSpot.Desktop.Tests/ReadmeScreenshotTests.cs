@@ -53,6 +53,8 @@ public sealed class ReadmeScreenshotTests
             AssertMetadata(relativePath, "LibreSpotShellVersion", expectedShellVersion, metadata, offenders);
             AssertMetadata(relativePath, "LibreSpotCaptureAssemblyVersion", expectedAssemblyVersion, metadata, offenders);
             AssertMetadata(relativePath, "LibreSpotCaptureState", expectedState, metadata, offenders);
+            AssertMetadata(relativePath, "LibreSpotCaptureTheme", "dark", metadata, offenders);
+            AssertMetadata(relativePath, "LibreSpotCaptureCulture", "en", metadata, offenders);
             if (!metadata.TryGetValue("LibreSpotCaptureUtc", out var capturedAt) ||
                 !DateTimeOffset.TryParse(capturedAt, out _))
             {
@@ -80,9 +82,9 @@ public sealed class ReadmeScreenshotTests
 
         var width = BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(16, 4));
         var height = BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(20, 4));
-        if (width < 1_000 || height < 700)
+        if (width != 1_800 || height != 1_280)
         {
-            offenders.Add($"{relativePath}: rendered size is {width}x{height}, expected at least 1000x700.");
+            offenders.Add($"{relativePath}: rendered size is {width}x{height}, expected 1800x1280 (capture with --uia-size=1440x1024).");
         }
     }
 

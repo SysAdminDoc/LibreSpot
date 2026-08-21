@@ -200,6 +200,7 @@
                         Margin="0,0,24,0" />
                 <ToggleButton x:Name="HeaderButton"
                               Grid.Column="1"
+                              Style="{x:Null}"
                               Background="Transparent"
                               BorderBrush="Transparent"
                               BorderThickness="0"
@@ -313,11 +314,11 @@
                   <Setter Property="Foreground" Value="{DynamicResource InfoBrush}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
-                  <Setter Property="Symbol" Value="Info48" />
+                  <Setter Property="Symbol" Value="Info24" />
                   <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
-                  <Setter Property="Symbol" Value="ShieldError48" />
+                  <Setter Property="Symbol" Value="ErrorCircle24" />
                   <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
                 </DataTrigger>
               </Style.Triggers>

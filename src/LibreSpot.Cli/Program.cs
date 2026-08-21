@@ -1010,22 +1010,7 @@ public static class CliApplication
         var directory = Path.GetDirectoryName(fullPath) ?? throw new InvalidOperationException("Configuration path has no directory.");
         Directory.CreateDirectory(directory);
         var normalized = AppCatalog.NormalizeConfiguration(config);
-        var tempPath = Path.Combine(directory, $"{Path.GetFileName(fullPath)}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp");
-        try
-        {
-            using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            {
-                JsonSerializer.Serialize(stream, normalized, ConfigurationJsonOptions);
-                stream.Flush(flushToDisk: true);
-            }
-
-            File.Move(tempPath, fullPath, overwrite: true);
-        }
-        catch
-        {
-            try { File.Delete(tempPath); } catch { }
-            throw;
-        }
+        AtomicFile.Write(fullPath, stream => JsonSerializer.Serialize(stream, normalized, ConfigurationJsonOptions));
     }
 
     private static void ApplySpotifyTarget(JsonElement root, InstallConfiguration config)
@@ -2068,14 +2053,11 @@ public static class CliApplication
         return UnhandledFailure;
     }
 
-    private static string DefaultConfigPath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LibreSpot", "config.json");
+    private static string DefaultConfigPath => LibreSpotPaths.ConfigPath;
 
-    private static string MachineConfigPath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "LibreSpot", "config.json");
+    private static string MachineConfigPath => LibreSpotPaths.MachineConfigPath;
 
-    private static string DefaultFleetLogDirectory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "LibreSpot", "logs");
+    private static string DefaultFleetLogDirectory => LibreSpotPaths.MachineLogsDirectory;
 
     private sealed record ParseResult(CliOptions? Options, string? Error);
 

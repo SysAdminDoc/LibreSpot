@@ -4,13 +4,37 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0-preview.28] (2026-08-21)
+
 ### Fixed
 
 - The desktop shell shows its version again. The simplified shell had collapsed every surface that displayed it, so the app reported its own version nowhere; it now sits under the LibreSpot name in the navigation rail. Crash reports and the startup log line also record the full preview version instead of the shorter numeric assembly version.
 
+- Home now offers a Retry button when the environment check fails. The failure text pointed at a control that did not exist, and the command behind it was reachable only through the undocumented F5 accelerator, so restarting the app was the only obvious way out.
+- Maintenance uses the same unavailable copy and Retry control when that check fails, instead of looking like a PC that simply does not have Spotify.
+- A bad shared-profile link no longer pretends the environment check failed. Opening a malformed `librespot://profile` URI after startup threw into the window-load catch, which flipped Home into the snapshot-error state even though the PC probe had already succeeded.
+- Crash reports fall back to the temp directory when `%LocalAppData%\LibreSpot\crashes` cannot be created, so the crash dialog still appears under Controlled Folder Access or a full disk. Opening the folder from that dialog now targets the directory that actually received the report.
+- Home no longer clips at the minimum window size. The readiness checks were pinned wider than the available space, so both edges were cut off with horizontal scrolling disabled.
+- Corrected user-facing copy on the primary paths: the risk prompt and first-run notes named a reset action that does not exist (in English by case, and in Portuguese and Spanish by using a different word than the action's own title), the attention headline claimed a single item when several can be waiting, and a possessive was missing from the remove-data prompt.
+- The taskbar Jump List now uses Home and Settings, matching the rail. It still opened those workspaces, but the labels were leftover Recommended and Custom names from before the shell was simplified.
+- Settings search and theme gallery search now show placeholder text inside the empty boxes. The theme box had sat under a "Theme pack" label with no hint that it filters the gallery.
+- Disabled rail buttons keep a readable label. They used to fade already-muted text down to about 1.6:1 contrast, including in high contrast where GrayText was then dimmed again.
+- The Home failure hero shows an information glyph instead of a stray "Z". The critical-attention hero uses a working error glyph at the same size.
+- Profile and config saves no longer share a process-id temp file. Concurrent saves of the same profile could clobber each other, and undo receipts could be truncated on a crash because they skipped a disk flush.
+- Environment probes now launch Windows PowerShell from System32, matching the backend launcher, instead of whatever `powershell.exe` is first on PATH.
+- The window title bar reads caption, text, and border colors from the palette, so it tracks the shell canvas instead of leftover green-era hex values.
+- Aligned the Bloom catalog checklist with the reviewed manifest. The checklist still accepted it after the review deferred it for stale maintenance.
+- Blocked WPF-UI implicit styles from leaking into the snackbar close button, scrollbar page buttons, and the Home details expander toggle. Those were the same class of leak that collapsed every dropdown in preview.26.
+- Disabled primary, secondary, checkbox, and dropdown controls keep a readable label. They used to fade the whole control with opacity, which dropped filled-button text well below the 3:1 floor and dimmed GrayText again in high contrast.
+- Export and activation staging writes go through the same atomic helper as config and profile saves, so a crash mid-export cannot leave a truncated `plan.json`.
+
 ### Changed
 
+- Uninstall help now says `--purge` needs `--yes` or `--silent`, matching the actual CLI guard.
 - Removed the `--accept-eula` fleet CLI flag. It was parsed but never read, while the CLI contract called it required for silent installs. Consent is recorded where it always actually was: `eulaAccepted` and `riskAcknowledged` in the answer file, both still required. Scripts passing the flag now fail with exit code 2 and an unsupported-flag message, so drop it from the command line.
+- Release builds now enforce what the schemas already documented. The publish footprint budget is measured and recorded in the release manifest, the stable script executable is compiled by `Build-Scripts.ps1 -CompileStableExe` with pinned flags and its file version checked against the script, `Build-Scripts.ps1 -GenerateSbom` restores the pinned CycloneDX 6.2.0 local tool, and the README screenshot gate verifies capture size, theme, and language instead of version metadata alone.
+- Dropped 13 unused localized strings left over from the removed elevation-relaunch flow.
+- Removed unused ViewModel and Core members that had no callers, and derived the Stats custom-app release tag from its version so the two strings cannot drift.
 
 ## [v4.0.0-preview.27] (2026-08-21)
 

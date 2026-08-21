@@ -232,11 +232,10 @@ public sealed class ThemeManagerTests
     [Fact]
     public void BodyTextTiers_ClearWcagAaOnEverySurface()
     {
-        // The dark palette layers text over four surface tiers (Surface1..
-        // SurfaceRaised). Every readable text tier — including the dimmest
-        // (Subtle) — must clear WCAG AA (4.5:1) on all of them, so a caption
-        // never lands below the accessibility floor no matter which card it
-        // sits in.
+        // The dark palette layers text over four card surfaces plus the rail.
+        // Every readable text tier — including the dimmest (Subtle / Disabled) —
+        // must clear WCAG AA (4.5:1) on all of them, so a caption never lands
+        // below the accessibility floor no matter which card it sits in.
         var palette = ReadFile("src", "LibreSpot.Desktop", "Themes", "Palette.xaml");
         var surfaces = new[]
         {
@@ -244,14 +243,15 @@ public sealed class ThemeManagerTests
             PaletteColor(palette, "Surface2Color"),
             PaletteColor(palette, "Surface3Color"),
             PaletteColor(palette, "SurfaceRaisedColor"),
+            PaletteColor(palette, "RailColor"),
         };
-        var textTiers = new[] { "TextColor", "TextMutedColor", "TextSubtleColor", "DangerTextColor" };
+        var textTiers = new[] { "TextColor", "TextMutedColor", "TextSubtleColor", "DisabledTextColor", "DangerTextColor" };
 
         var offenders = new List<string>();
         foreach (var tier in textTiers)
         {
             var fg = PaletteColor(palette, tier);
-            foreach (var (name, bg) in new[] { ("Surface1", surfaces[0]), ("Surface2", surfaces[1]), ("Surface3", surfaces[2]), ("SurfaceRaised", surfaces[3]) })
+            foreach (var (name, bg) in new[] { ("Surface1", surfaces[0]), ("Surface2", surfaces[1]), ("Surface3", surfaces[2]), ("SurfaceRaised", surfaces[3]), ("Rail", surfaces[4]) })
             {
                 var ratio = ContrastRatio(fg, bg);
                 if (ratio < 4.5)

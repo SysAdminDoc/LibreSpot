@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Brush = System.Windows.Media.Brush;
+using Color = System.Windows.Media.Color;
 
 namespace LibreSpot.Desktop.Services;
 
@@ -60,12 +61,14 @@ public static class Win11ShellIntegration
             DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_LEGACY, ref useDark, sizeof(int));
         }
 
-        var captionColor = ToColorRef(0x0B, 0x0F, 0x0D);
-        var captionTextColor = ToColorRef(0xEA, 0xF2, 0xED);
-        var borderColor = ToColorRef(0x2A, 0x36, 0x30);
-        DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ref captionColor, sizeof(int));
-        DwmSetWindowAttribute(hwnd, DWMWA_TEXT_COLOR, ref captionTextColor, sizeof(int));
-        DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref borderColor, sizeof(int));
+        if (TryGetColorRef(window, "CanvasColor", out var captionColor) &&
+            TryGetColorRef(window, "TextColor", out var captionTextColor) &&
+            TryGetColorRef(window, "StrokeColor", out var borderColor))
+        {
+            DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ref captionColor, sizeof(int));
+            DwmSetWindowAttribute(hwnd, DWMWA_TEXT_COLOR, ref captionTextColor, sizeof(int));
+            DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref borderColor, sizeof(int));
+        }
 
         if (Environment.OSVersion.Version.Build < 22621)
         {
@@ -117,6 +120,18 @@ public static class Win11ShellIntegration
         {
             window.Background = canvasBrush;
         }
+    }
+
+    private static bool TryGetColorRef(Window window, string resourceKey, out int colorRef)
+    {
+        if (window.TryFindResource(resourceKey) is Color color)
+        {
+            colorRef = ToColorRef(color.R, color.G, color.B);
+            return true;
+        }
+
+        colorRef = 0;
+        return false;
     }
 
     private static int ToColorRef(byte red, byte green, byte blue) =>

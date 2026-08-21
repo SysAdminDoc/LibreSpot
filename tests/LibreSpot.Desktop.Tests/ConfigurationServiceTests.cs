@@ -185,6 +185,30 @@ public sealed class ConfigurationServiceTests
         }
     }
 
+    [Fact]
+    public async Task SaveToPathAsync_WritesAtomicallyAndLeavesNoTempFile()
+    {
+        var configDirectory = CreateTempDirectory();
+        try
+        {
+            var service = new ConfigurationService(configDirectory);
+            var destination = Path.Combine(configDirectory, "export", "plan.json");
+
+            await service.SaveToPathAsync(new InstallConfiguration { ConfigSchemaVersion = 0 }, destination);
+
+            Assert.True(File.Exists(destination));
+            await using var stream = File.OpenRead(destination);
+            using var json = await JsonDocument.ParseAsync(stream);
+            var version = json.RootElement.GetProperty(nameof(InstallConfiguration.ConfigSchemaVersion)).GetInt32();
+            Assert.Equal(AppCatalog.CurrentConfigSchemaVersion, version);
+            Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(destination)!, "*.tmp"));
+        }
+        finally
+        {
+            DeleteDirectory(configDirectory);
+        }
+    }
+
     private static void AssertRecommendedDefaults(InstallConfiguration configuration)
     {
         var recommended = AppCatalog.CreateRecommendedConfiguration();

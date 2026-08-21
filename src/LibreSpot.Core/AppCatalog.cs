@@ -375,9 +375,6 @@ public sealed class CommunityAssetDriftReport
     public IReadOnlyList<CommunityAssetState> Assets { get; }
     public DateTimeOffset GeneratedAtUtc { get; }
     public bool IsDegraded => Assets.Any(asset => asset.IsDegraded);
-    public bool HasMissingAssets => Assets.Any(asset => string.Equals(asset.DriftState, "missing", StringComparison.OrdinalIgnoreCase));
-    public bool HasReviewRequiredAssets => Assets.Any(asset => asset.RequiresTrustReview);
-    public bool HasCatalogReviewIssues => Assets.Any(asset => asset.CatalogEligibilityIssues.Count > 0);
 }
 
 public sealed record CommunityAssetState(
@@ -698,7 +695,6 @@ public sealed record StackHealthComponent(
     string Evidence,
     IReadOnlyList<string> RecommendedActionIds)
 {
-    public bool HasDetectedVersion => !string.IsNullOrWhiteSpace(DetectedVersion);
     public bool HasPath => !string.IsNullOrWhiteSpace(Path);
     public bool HasLastChanged => LastChanged.HasValue;
     public bool HasRecommendedActions => RecommendedActionIds.Count > 0;
@@ -853,7 +849,7 @@ public static class AppCatalog
     public const string PinnedMarketplaceVersion = "1.0.9";
     public const string PinnedThemesCommit = "df033493a7dae30ca6e371de9cec1897871dbb0c";
     public const string PinnedStatsCustomAppVersion = "1.1.3";
-    public const string PinnedStatsCustomAppReleaseTag = "stats-v1.1.3";
+    public static string PinnedStatsCustomAppReleaseTag => $"stats-v{PinnedStatsCustomAppVersion}";
     public static DateTimeOffset UpstreamPinsLastVerifiedAtUtc { get; } =
         new(2026, 8, 20, 0, 0, 0, TimeSpan.Zero);
 

@@ -45,9 +45,6 @@ public sealed class LocalizationService : INotifyPropertyChanged
 
     public string this[string key] => GetString(key);
 
-    public static bool IsSupportedCulture(string? cultureName) =>
-        SupportedCultures.Any(option => string.Equals(option.CultureName, cultureName, StringComparison.OrdinalIgnoreCase));
-
     public static string NormalizeCultureName(string? cultureName)
     {
         if (string.IsNullOrWhiteSpace(cultureName))

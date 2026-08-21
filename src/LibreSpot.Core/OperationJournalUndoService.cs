@@ -683,16 +683,10 @@ public sealed class OperationJournalUndoService
             }
         };
         var path = Path.Combine(configDirectory, ReceiptFileName);
-        var tempPath = Path.Combine(configDirectory, $"{ReceiptFileName}.{Guid.NewGuid():N}.tmp");
-        try
-        {
-            await File.WriteAllTextAsync(tempPath, JsonSerializer.Serialize(receipt, new JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(false), cancellationToken);
-            File.Move(tempPath, path, overwrite: true);
-        }
-        finally
-        {
-            try { File.Delete(tempPath); } catch { }
-        }
+        await AtomicFile.WriteAllTextAsync(
+            path,
+            JsonSerializer.Serialize(receipt, new JsonSerializerOptions { WriteIndented = true }),
+            cancellationToken);
     }
 
     private static string HashText(string? value) =>

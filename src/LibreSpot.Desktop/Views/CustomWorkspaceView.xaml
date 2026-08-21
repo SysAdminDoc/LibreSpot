@@ -22,15 +22,14 @@
                                AutomationProperties.Name="{services:Loc Ui_CustomSettingsEditor}"
                                Margin="0,0,22,0">
                   <StackPanel>
-                    <TextBlock Text="{services:Loc SearchPlaceholder}"
-                               Style="{StaticResource LabelTextStyle}" />
-                    <Grid Margin="0,8,0,0">
+                    <Grid>
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                       </Grid.ColumnDefinitions>
                       <TextBox Text="{Binding SettingsSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                Style="{StaticResource TextBoxStylePremium}"
+                               Tag="{services:Loc SearchPlaceholder}"
                                Height="42"
                                AutomationProperties.AutomationId="SettingsSearchBox"
                                AutomationProperties.Name="{services:Loc SearchPlaceholder}"

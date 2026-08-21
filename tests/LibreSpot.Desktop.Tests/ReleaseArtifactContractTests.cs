@@ -268,6 +268,31 @@ public sealed class ReleaseArtifactContractTests
                 File.WriteAllText(Path.Combine(tempRoot, name), $"test artifact: {name}", Encoding.UTF8);
             }
 
+            File.WriteAllText(
+                Path.Combine(tempRoot, "LibreSpot.sbom.cdx.json"),
+                """
+                {
+                  "bomFormat": "CycloneDX",
+                  "specVersion": "1.7",
+                  "metadata": {
+                    "tools": {
+                      "components": [
+                        { "type": "application", "name": "CycloneDX module for .NET", "version": "6.2.0.0" }
+                      ]
+                    }
+                  },
+                  "components": [
+                    {
+                      "name": "LibreSpot",
+                      "version": "4.0.0-preview.6",
+                      "hashes": [ { "alg": "SHA-256", "content": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } ],
+                      "licenses": [ { "license": { "id": "MIT" } } ]
+                    }
+                  ]
+                }
+                """,
+                Encoding.UTF8);
+
             var checksumLines = coveredAssets
                 .Select(name => $"{Sha256File(Path.Combine(tempRoot, name))}  {name}");
 
@@ -278,6 +303,7 @@ public sealed class ReleaseArtifactContractTests
                 "-ExecutionPolicy", "Bypass",
                 "-File", Path.Combine(RepoRoot, "Build-Scripts.ps1"),
                 "-GenerateReleaseManifest",
+                "-SkipStableExeIdentity",
                 "-ReleaseRoot", tempRoot,
                 "-ReleaseVersion", "4.0.0-preview.6",
                 "-ReleaseChannel", "preview");

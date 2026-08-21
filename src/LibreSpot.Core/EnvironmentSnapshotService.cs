@@ -62,10 +62,10 @@ public sealed class EnvironmentSnapshotService
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "LibreSpot_Backups")
             : Path.GetFullPath(backupDirectory);
         _rollingLogDirectory = string.IsNullOrWhiteSpace(rollingLogDirectory)
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibreSpot", "logs")
+            ? LibreSpotPaths.LogsDirectory
             : Path.GetFullPath(rollingLogDirectory);
         _crashDirectory = string.IsNullOrWhiteSpace(crashDirectory)
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibreSpot", "crashes")
+            ? LibreSpotPaths.CrashesDirectory
             : Path.GetFullPath(crashDirectory);
         _spotifyVersionProbe = spotifyVersionProbe ?? (() => GetFileVersion(_spotifyPath));
         _spicetifyVersionProbe = spicetifyVersionProbe ?? (() => GetFileVersion(_spicetifyPath));
@@ -485,7 +485,7 @@ public sealed class EnvironmentSnapshotService
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "powershell.exe",
+                    FileName = PowerShellHostPath.Resolve(),
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
@@ -1825,7 +1825,7 @@ public sealed class EnvironmentSnapshotService
             }
         }
 
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LibreSpot");
+        return LibreSpotPaths.ConfigDirectory;
     }
 
     private static bool IsSpicetifyListEntryEnabled(
@@ -2457,7 +2457,7 @@ public sealed class EnvironmentSnapshotService
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "powershell.exe",
+                    FileName = PowerShellHostPath.Resolve(),
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,

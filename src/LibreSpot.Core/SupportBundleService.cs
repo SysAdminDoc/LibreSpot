@@ -85,10 +85,10 @@ public sealed class SupportBundleService
     {
         _configDirectory = Path.GetFullPath(configDirectory);
         _rollingLogDirectory = string.IsNullOrWhiteSpace(rollingLogDirectory)
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibreSpot", "logs")
+            ? LibreSpotPaths.LogsDirectory
             : Path.GetFullPath(rollingLogDirectory);
         _crashDirectory = string.IsNullOrWhiteSpace(crashDirectory)
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibreSpot", "crashes")
+            ? LibreSpotPaths.CrashesDirectory
             : Path.GetFullPath(crashDirectory);
         _redactor = new SupportBundleRedactor(_configDirectory);
         _redactedJsonOptions = new JsonSerializerOptions(JsonOptions);

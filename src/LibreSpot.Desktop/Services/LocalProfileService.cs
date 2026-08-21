@@ -279,24 +279,10 @@ public sealed class LocalProfileService
         var document = await CreateShareProfileDocumentAsync(id, cancellationToken);
 
         var fullPath = Path.GetFullPath(destinationPath);
-        var directory = Path.GetDirectoryName(fullPath) ?? Environment.CurrentDirectory;
-        Directory.CreateDirectory(directory);
-        var tempPath = Path.Combine(directory, $"{Path.GetFileName(fullPath)}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp");
-        try
+        await AtomicFile.WriteAsync(fullPath, async (stream, ct) =>
         {
-            await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            {
-                await JsonSerializer.SerializeAsync(stream, document, JsonOptions, cancellationToken);
-                await stream.FlushAsync(cancellationToken);
-            }
-
-            File.Move(tempPath, fullPath, overwrite: true);
-        }
-        catch
-        {
-            try { File.Delete(tempPath); } catch { }
-            throw;
-        }
+            await JsonSerializer.SerializeAsync(stream, document, JsonOptions, ct);
+        }, cancellationToken);
     }
 
     public async Task<LocalProfileShareCard> CreateShareCardAsync(string id, CancellationToken cancellationToken = default)
@@ -690,26 +676,11 @@ public sealed class LocalProfileService
         }
     }
 
-    private static async Task WriteJsonAtomicallyAsync<T>(string path, T document, CancellationToken cancellationToken)
-    {
-        var directory = Path.GetDirectoryName(path) ?? Environment.CurrentDirectory;
-        Directory.CreateDirectory(directory);
-        var tempPath = Path.Combine(directory, $"profile-activation.{Guid.NewGuid():N}.marker.tmp");
-        try
+    private static Task WriteJsonAtomicallyAsync<T>(string path, T document, CancellationToken cancellationToken) =>
+        AtomicFile.WriteAsync(path, async (stream, ct) =>
         {
-            await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            {
-                await JsonSerializer.SerializeAsync(stream, document, JsonOptions, cancellationToken);
-                await stream.FlushAsync(cancellationToken);
-                stream.Flush(flushToDisk: true);
-            }
-            File.Move(tempPath, path, overwrite: true);
-        }
-        finally
-        {
-            DeleteFileBestEffort(tempPath);
-        }
-    }
+            await JsonSerializer.SerializeAsync(stream, document, JsonOptions, ct);
+        }, cancellationToken);
 
     private static void DeleteFileBestEffort(string path)
     {
@@ -952,22 +923,10 @@ public sealed class LocalProfileService
     {
         Directory.CreateDirectory(_profileDirectory);
         var path = UserProfilePath(document.Id);
-        var tempPath = $"{path}.{Environment.ProcessId}.tmp";
-        try
+        await AtomicFile.WriteAsync(path, async (stream, ct) =>
         {
-            await using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
-            {
-                await JsonSerializer.SerializeAsync(stream, document, JsonOptions, cancellationToken);
-                await stream.FlushAsync(cancellationToken);
-            }
-
-            File.Move(tempPath, path, overwrite: true);
-        }
-        catch
-        {
-            try { File.Delete(tempPath); } catch { }
-            throw;
-        }
+            await JsonSerializer.SerializeAsync(stream, document, JsonOptions, ct);
+        }, cancellationToken);
     }
 
     private async Task<string> CreateUniqueProfileIdAsync(string name, CancellationToken cancellationToken)
@@ -1033,28 +992,11 @@ public sealed class LocalProfileService
         }
     }
 
-    private static async Task WritePointerAsync(string path, string profileId, CancellationToken cancellationToken)
-    {
-        var directory = Path.GetDirectoryName(path) ?? Environment.CurrentDirectory;
-        Directory.CreateDirectory(directory);
-        var tempPath = Path.Combine(directory, $"pointer.{Guid.NewGuid():N}.tmp");
-        try
+    private static Task WritePointerAsync(string path, string profileId, CancellationToken cancellationToken) =>
+        AtomicFile.WriteAsync(path, async (stream, ct) =>
         {
-            await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            {
-                await JsonSerializer.SerializeAsync(stream, new ProfilePointerDocument(ProfileStoreSchemaVersion, profileId, DateTimeOffset.UtcNow), JsonOptions, cancellationToken);
-                await stream.FlushAsync(cancellationToken);
-                stream.Flush(flushToDisk: true);
-            }
-
-            File.Move(tempPath, path, overwrite: true);
-        }
-        catch
-        {
-            try { File.Delete(tempPath); } catch { }
-            throw;
-        }
-    }
+            await JsonSerializer.SerializeAsync(stream, new ProfilePointerDocument(ProfileStoreSchemaVersion, profileId, DateTimeOffset.UtcNow), JsonOptions, ct);
+        }, cancellationToken);
 
     private string UserProfilePath(string id) => Path.Combine(_profileDirectory, $"{Slugify(id)}.json");
 
