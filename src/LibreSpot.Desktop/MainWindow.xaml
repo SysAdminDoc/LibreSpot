@@ -1247,7 +1247,7 @@
                         VerticalAlignment="Center">
               <TextBlock Text="{services:Loc AppTitle}"
                          Style="{StaticResource RailTitleTextStyle}"
-                         FontSize="23" />
+                         FontSize="24" />
               <TextBlock Text="{Binding ShellDisplayVersion}"
                          Style="{StaticResource CaptionTextStyle}"
                          Margin="0,2,0,0"
@@ -1369,7 +1369,7 @@
                 <ColumnDefinition Width="*" />
               </Grid.ColumnDefinitions>
               <ui:SymbolIcon Symbol="ShieldCheckmark24"
-                             FontSize="22"
+                             FontSize="24"
                              Foreground="{DynamicResource AccentBrush}" />
               <TextBlock Grid.Column="1"
                          Text="{services:Loc Vm_SimpleHomeReversible}"

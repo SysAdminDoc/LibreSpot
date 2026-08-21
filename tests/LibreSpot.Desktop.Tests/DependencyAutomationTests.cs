@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.RegularExpressions;
 using System.Text.Json;
 using LibreSpot.Desktop.Models;
@@ -30,7 +31,6 @@ public sealed class DependencyAutomationTests
         Assert.Contains("Build-Scripts.ps1 -Lint", readme, StringComparison.Ordinal);
         Assert.Contains("Build-Scripts.ps1 -DependencyHealth", readme, StringComparison.Ordinal);
         Assert.Contains("--filter-not-class \"*Wpf*\"", readme, StringComparison.Ordinal);
-        Assert.Contains("--filter-not-method \"*Wpf*\"", readme, StringComparison.Ordinal);
         Assert.Contains("Invoke-Pester", readme, StringComparison.Ordinal);
         Assert.Contains("gh release verify-asset", readme, StringComparison.Ordinal);
 
@@ -39,6 +39,45 @@ public sealed class DependencyAutomationTests
         {
             Assert.Empty(Directory.EnumerateFiles(workflowDirectory, "*", SearchOption.AllDirectories));
         }
+    }
+
+    [Fact]
+    public void ShellLaunchingTests_AllSitInClassesTheClassFilterExcludes()
+    {
+        // The documented local suite skips the shell-launching tests with
+        // --filter-not-class "*Wpf*" alone. A matching method filter used to be
+        // documented too, and it silently skipped every source lint that
+        // happened to be named Wpf* — including one that was failing. Keep the
+        // class filter sufficient so the method filter never comes back.
+        var testRoot = Path.Combine(RepoRoot, "tests", "LibreSpot.Desktop.Tests");
+        var offenders = new List<string>();
+        var launchers = 0;
+
+        foreach (var file in Directory.EnumerateFiles(testRoot, "*.cs", SearchOption.TopDirectoryOnly))
+        {
+            var name = Path.GetFileNameWithoutExtension(file);
+            if (name == nameof(DependencyAutomationTests))
+            {
+                // This file spells the markers out, so it matches itself.
+                continue;
+            }
+
+            var content = File.ReadAllText(file);
+            if (!content.Contains("--uia-smoke", StringComparison.Ordinal) &&
+                !content.Contains("new MainWindow", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            launchers++;
+            if (!name.Contains("Wpf", StringComparison.Ordinal))
+            {
+                offenders.Add($"{name} starts the WPF shell but its class name does not contain 'Wpf', so --filter-not-class does not exclude it.");
+            }
+        }
+
+        Assert.True(launchers > 0, "No shell-launching test was found; the marker scan is broken.");
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
     }
 
     [Fact]

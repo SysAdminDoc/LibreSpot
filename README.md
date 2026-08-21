@@ -476,7 +476,7 @@ reporting options are passed to the test runner itself:
 .\Build-Scripts.ps1 -Lint
 .\Build-Scripts.ps1 -DependencyHealth
 dotnet build .\tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj --no-restore
-dotnet .\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Desktop.Tests.dll --filter-not-class "*Wpf*" --filter-not-method "*Wpf*" --minimum-expected-tests 1 --progress off
+dotnet .\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Desktop.Tests.dll --filter-not-class "*Wpf*" --minimum-expected-tests 1 --progress off
 dotnet build .\tests\LibreSpot.Core.Tests\LibreSpot.Core.Tests.csproj --no-restore
 dotnet .\tests\LibreSpot.Core.Tests\bin\Debug\net10.0-windows\LibreSpot.Core.Tests.dll --minimum-expected-tests 1 --progress off
 Invoke-Pester .\tests\powershell\LibreSpot.Tests.ps1

@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows.Media.Imaging;
 using LibreSpot.Desktop.Services;
 using Xunit;
@@ -39,7 +40,10 @@ public sealed class CommunitySharingExperienceTests
     [Fact]
     public void WpfShell_ExposesCommunitySharingSurface()
     {
-        var xaml = ReadRepoFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        // The sharing surface moved out of MainWindow.xaml when the workspaces
+        // were split into Views/. Read the whole composed shell so a further
+        // split does not read as a missing feature.
+        var xaml = ReadShellMarkup();
 
         Assert.Contains("Ui_ProfileShareCard", xaml);
         Assert.Contains("SelectedProfileQrImage", xaml);
@@ -73,6 +77,16 @@ public sealed class CommunitySharingExperienceTests
 
     private static string ReadRepoFile(params string[] parts) =>
         File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(parts).ToArray()));
+
+    private static string ReadShellMarkup()
+    {
+        var desktopRoot = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop");
+        var files = new List<string> { Path.Combine(desktopRoot, "MainWindow.xaml") };
+        files.AddRange(Directory.EnumerateFiles(
+            Path.Combine(desktopRoot, "Views"), "*.xaml", SearchOption.AllDirectories));
+
+        return string.Join(Environment.NewLine, files.Select(File.ReadAllText));
+    }
 
     private static string ResolveRepoRoot()
     {

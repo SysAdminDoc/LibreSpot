@@ -85,9 +85,6 @@ public sealed class ColorLintTests
     }
 
     [Fact]
-    // Deliberately not named Wpf*: the local suite runs with
-    // --filter-not-method "*Wpf*" to skip the tests that launch the shell, and
-    // this one only reads files.
     public void PaletteResources_AreBoundDynamicallyOutsideThePaletteFiles()
     {
         var xamlRoot = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop");

@@ -20,7 +20,7 @@
 
 ## Checklist
 
-- [ ] Safe .NET tests pass locally (`dotnet tests/LibreSpot.Desktop.Tests/bin/Debug/net10.0-windows/LibreSpot.Desktop.Tests.dll --filter-not-class "*Wpf*" --filter-not-method "*Wpf*" --minimum-expected-tests 1`)
+- [ ] Safe .NET tests pass locally (`dotnet tests/LibreSpot.Desktop.Tests/bin/Debug/net10.0-windows/LibreSpot.Desktop.Tests.dll --filter-not-class "*Wpf*" --minimum-expected-tests 1`)
 - [ ] PowerShell composition and 5.1/7 parsing pass (`pwsh -File .\Build-Scripts.ps1 -Validate`)
 - [ ] PSScriptAnalyzer passes (`pwsh -File .\Build-Scripts.ps1 -Lint`)
 - [ ] Pester passes (`Invoke-Pester -Path .\tests\powershell\LibreSpot.Tests.ps1 -CI`)

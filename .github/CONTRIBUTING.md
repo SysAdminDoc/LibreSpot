@@ -16,7 +16,7 @@ For security vulnerabilities, use [private vulnerability reporting](https://gith
 
 1. Fork the repository and create a branch from `main`.
 2. Make your changes, matching the existing code style and patterns.
-3. Build the test project, then run its non-WPF MTP test application and fix any failures: `dotnet build .\tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj` followed by `dotnet .\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Desktop.Tests.dll --filter-not-class "*Wpf*" --filter-not-method "*Wpf*" --minimum-expected-tests 1`.
+3. Build the test project, then run its non-WPF MTP test application and fix any failures: `dotnet build .\tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj` followed by `dotnet .\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Desktop.Tests.dll --filter-not-class "*Wpf*" --minimum-expected-tests 1`.
 4. Test PowerShell changes on both Windows PowerShell 5.1 and PowerShell 7.
 5. Open a pull request using the provided template.
 
