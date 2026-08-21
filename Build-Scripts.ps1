@@ -870,6 +870,26 @@ function Get-PngTextMetadataValue {
     return $null
 }
 
+function Get-PngPixelSize {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    # 8-byte signature, then the IHDR chunk: 4-byte length, 4-byte type, then
+    # width and height as big-endian 32-bit integers.
+    if ($bytes.Length -lt 24) { return $null }
+    if ([System.Text.Encoding]::ASCII.GetString($bytes, 12, 4) -ne 'IHDR') { return $null }
+
+    $width = (
+        ([int]$bytes[16] -shl 24) -bor ([int]$bytes[17] -shl 16) -bor
+        ([int]$bytes[18] -shl 8) -bor [int]$bytes[19]
+    )
+    $height = (
+        ([int]$bytes[20] -shl 24) -bor ([int]$bytes[21] -shl 16) -bor
+        ([int]$bytes[22] -shl 8) -bor [int]$bytes[23]
+    )
+    return [pscustomobject]@{ Width = $width; Height = $height }
+}
+
 function Test-ReadmeWpfScreenshotMetadata {
     $readmePath = Join-Path $PSScriptRoot 'README.md'
     if (-not (Test-Path -LiteralPath $readmePath -PathType Leaf)) {
@@ -882,6 +902,13 @@ function Test-ReadmeWpfScreenshotMetadata {
         'assets/screenshots/wpf-maintenance.png'    = 'maintenance'
         'assets/screenshots/wpf-activity-undo.png'  = 'activity-undo'
     }
+    # README captures are taken at a 1440x1024 logical viewport, which renders at
+    # 1800x1280 on the 125% display the release is built from. Passing the pixel
+    # size to --uia-size instead of the logical size silently produces 2250x1600.
+    $expectedCaptureWidth = 1800
+    $expectedCaptureHeight = 1280
+    $expectedCaptureTheme = 'dark'
+    $expectedCaptureCulture = 'en'
     $expectedShellVersion = Get-LibreSpotShellDisplayVersion
     $expectedAssemblyVersion = Get-LibreSpotProjectInformationalVersion
     $readme = [System.IO.File]::ReadAllText($readmePath, [System.Text.Encoding]::UTF8)
@@ -908,6 +935,21 @@ function Test-ReadmeWpfScreenshotMetadata {
         $assemblyVersion = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotCaptureAssemblyVersion'
         $state = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotCaptureState'
         $capturedAt = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotCaptureUtc'
+        $theme = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotCaptureTheme'
+        $culture = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotCaptureCulture'
+        $pixelSize = Get-PngPixelSize -Path $fullPath
+
+        if ($null -eq $pixelSize) {
+            $failures += "${relativePath}: PNG header could not be read."
+        } elseif ($pixelSize.Width -ne $expectedCaptureWidth -or $pixelSize.Height -ne $expectedCaptureHeight) {
+            $failures += "${relativePath}: captured at $($pixelSize.Width)x$($pixelSize.Height); expected ${expectedCaptureWidth}x${expectedCaptureHeight} (use --uia-size=1440x1024)."
+        }
+        if ($theme -ne $expectedCaptureTheme) {
+            $failures += "${relativePath}: LibreSpotCaptureTheme '$theme' does not match '$expectedCaptureTheme'."
+        }
+        if ($culture -ne $expectedCaptureCulture) {
+            $failures += "${relativePath}: LibreSpotCaptureCulture '$culture' does not match '$expectedCaptureCulture'."
+        }
 
         if ($shellVersion -ne $expectedShellVersion) {
             $failures += "${relativePath}: LibreSpotShellVersion '$shellVersion' does not match '$expectedShellVersion'."

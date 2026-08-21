@@ -50,16 +50,6 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — RD-80: The README screenshot gate validates version metadata but not dimensions, theme, or culture
-  Category: reliability
-  Where: Build-Scripts.ps1:873-940 `Test-ReadmeWpfScreenshotMetadata` (reads LibreSpotShellVersion, CaptureAssemblyVersion, CaptureState, CaptureUtc — nothing else)
-  Problem: The gate cannot catch a screenshot captured at the wrong size, in the wrong theme, or in the wrong language. This bit for real during the preview.27 release: captures made with `--uia-size=1800x1280` on a 125% DPI machine produced 2250x1600 images and `-Validate` passed; only a manual check caught it before publishing. A future release can silently ship oversized, wrong-theme, or wrong-locale README screenshots.
-  Evidence: Gate source lines above; the PNGs already embed `LibreSpotCaptureTheme` and `LibreSpotCaptureCulture` tEXt chunks (verified by reading them this session), and tests/LibreSpot.Desktop.Tests/WpfQaMatrixTests.cs:343-345 already demonstrates IHDR width/height parsing in-repo.
-  Fix: Extend Test-ReadmeWpfScreenshotMetadata to also assert: IHDR dimensions equal 1800x1280 (the canonical 1440x1024 logical capture at 125% DPI — read expected values from one place, e.g. a constant pair at the top of the function with a comment), `LibreSpotCaptureTheme` = dark, `LibreSpotCaptureCulture` = en. Reuse the existing Get-PngTextMetadataValue helper and add a small IHDR reader mirroring the test's BinaryPrimitives logic.
-  Acceptance: `-Validate` fails with a clear message when a README screenshot is the wrong pixel size, theme, or culture; passes on the current assets.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — RD-81: The published community catalog can silently drift from the reviewed manifest
   Category: reliability
   Where: tools/Build-CommunityCatalog.ps1 (generator); gh-pages branch (catalog.json `generatedDate: 2026-08-20`, index.html); Build-Scripts.ps1 (no catalog gate); README.md:336 (links the catalog as the public trust surface)
