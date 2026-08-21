@@ -4,6 +4,14 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- The desktop shell shows its version again. The simplified shell had collapsed every surface that displayed it, so the app reported its own version nowhere; it now sits under the LibreSpot name in the navigation rail. Crash reports and the startup log line also record the full preview version instead of the shorter numeric assembly version.
+
+### Changed
+
+- Removed the `--accept-eula` fleet CLI flag. It was parsed but never read, while the CLI contract called it required for silent installs. Consent is recorded where it always actually was: `eulaAccepted` and `riskAcknowledged` in the answer file, both still required. Scripts passing the flag now fail with exit code 2 and an unsupported-flag message, so drop it from the command line.
+
 ## [v4.0.0-preview.27] (2026-08-21)
 
 ### Fixed
