@@ -12,12 +12,6 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
 
 ### P3
 
-- [ ] P3 — RD-93: Half the resx carries boilerplate translator comments
-  Why: 625 of 1,278 comments are "MainViewModel localized runtime text." or "User-facing WPF text"; placeholder keys are the ones a translator can break.
-  Where: src/LibreSpot.Desktop/Properties/Strings.resx
-  Fix: Backfill comments for `{n}` keys first, naming each placeholder.
-  Acceptance: Every key whose value contains `{0}` has a comment naming the placeholder.
-
 - [ ] P3 — RD-98: Areas this audit did not reach
   Why: Honest coverage so the next pass does not assume these were cleared.
   Where: LibreSpot.ps1 WinForms/WPF-in-PS GUI event flow and Module-* orchestration bodies; OperationJournalUndoService undo token execution beyond the CLI guard; Marketplace export/restore archive internals; AvalonEdit custom-patch editor runtime; Crowdin round-trip

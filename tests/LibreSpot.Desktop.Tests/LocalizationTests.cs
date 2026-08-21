@@ -150,6 +150,48 @@ public sealed class LocalizationTests
     }
 
     [Fact]
+    public void PlaceholderKeys_HaveACommentNamingEveryPlaceholder()
+    {
+        // A translator can reorder or drop a {n} without seeing the call site.
+        // These are the keys they can break, so each placeholder has to be named.
+        var placeholder = new Regex(@"\{(?<index>\d+)(?::[^}]*)?\}", RegexOptions.Compiled);
+        var offenders = new List<string>();
+        var checkedKeys = 0;
+
+        foreach (var name in new[] { "Strings.resx", "Strings.en.resx" })
+        {
+            var path = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Properties", name);
+            foreach (var data in XDocument.Load(path).Root!.Elements("data"))
+            {
+                var value = data.Element("value")?.Value ?? string.Empty;
+                var indexes = placeholder.Matches(value)
+                    .Select(match => match.Groups["index"].Value)
+                    .ToHashSet(StringComparer.Ordinal);
+                if (indexes.Count == 0)
+                {
+                    continue;
+                }
+
+                checkedKeys++;
+                var key = data.Attribute("name")?.Value ?? "(unnamed)";
+                var comment = data.Element("comment")?.Value ?? string.Empty;
+                var described = placeholder.Matches(comment)
+                    .Select(match => match.Groups["index"].Value)
+                    .ToHashSet(StringComparer.Ordinal);
+
+                var missing = indexes.Except(described).OrderBy(index => index).ToList();
+                if (missing.Count > 0)
+                {
+                    offenders.Add($"{name} '{key}': the comment does not name {string.Join(", ", missing.Select(index => "{" + index + "}"))}.");
+                }
+            }
+        }
+
+        Assert.True(checkedKeys > 0, "The placeholder scan found no format strings.");
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    [Fact]
     public void SourceResources_UseOneTermPerConcept()
     {
         // Both halves of each pair named the same thing on different surfaces.

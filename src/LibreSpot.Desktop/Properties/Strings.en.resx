@@ -1779,7 +1779,7 @@
   <data name="Vm_ActivityAssistiveRunning" xml:space="preserve"><value>LibreSpot keeps the live log and diagnostics on disk while this runs. You can cancel here if you need to stop early.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ActivityAssistiveStopping" xml:space="preserve"><value>LibreSpot is stopping the backend and preserving the log gathered so far.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ActivityBadgeStopping" xml:space="preserve"><value>Stopping</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ActivityLogPathFormat" xml:space="preserve"><value>Log file: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ActivityLogPathFormat" xml:space="preserve"><value>Log file: {0}</value><comment>{0} is the full path to the activity log file.</comment></data>
   <data name="Vm_ActivitySummaryNextStep" xml:space="preserve"><value>Next step</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ActivitySummaryNextStepRecommended" xml:space="preserve"><value>Recommended next step</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ActivitySummaryRunning" xml:space="preserve"><value>While this runs</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1787,24 +1787,24 @@
   <data name="Vm_ActivitySummaryStopping" xml:space="preserve"><value>Stopping safely</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_AutoReapplyActiveDetail" xml:space="preserve"><value>LibreSpot checks after Windows sign-in and every 30 minutes, then reapplies only after Spotify updates while Spotify is closed.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_AutoReapplyActiveTitle" xml:space="preserve"><value>Auto-reapply watcher active</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_AutoReapplyLogFormat" xml:space="preserve"><value>Log: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_AutoReapplyLogFormat" xml:space="preserve"><value>Log: {0}</value><comment>{0} is the full path to the auto-reapply watcher log.</comment></data>
   <data name="Vm_AutoReapplyOffDetail" xml:space="preserve"><value>Enable the watcher to restore your saved SpotX and Spicetify setup after Spotify updates itself.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_AutoReapplyOffTitle" xml:space="preserve"><value>Auto-reapply watcher off</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_AutoReapplyTaskNotRegistered" xml:space="preserve"><value>Task: LibreSpot\ReapplyWatcher not registered</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_AutoReapplyTaskRegistered" xml:space="preserve"><value>Task: LibreSpot\ReapplyWatcher registered</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CacheCeilingFormat" xml:space="preserve"><value>Cache ceiling: {0} MB</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CacheCeilingFormat" xml:space="preserve"><value>Cache ceiling: {0} MB</value><comment>{0} is the cache size ceiling in megabytes, already formatted.</comment></data>
   <data name="Vm_CacheDefault" xml:space="preserve"><value>Cache: default</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ClearCacheActionDescription" xml:space="preserve"><value>Remove stale or corrupt cached downloads. Verified assets will be cached again on demand.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ConfigRecoveryNewerBackupFormat" xml:space="preserve"><value>LibreSpot kept the config.json from a newer LibreSpot build aside and loaded safe defaults.{0} Update LibreSpot before reusing that profile. Backup kept as {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ConfigRecoveryNewerNoBackupFormat" xml:space="preserve"><value>LibreSpot loaded safe defaults because config.json was saved by a newer build.{0} Update LibreSpot before reusing that profile.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigRecoveryNewerBackupFormat" xml:space="preserve"><value>LibreSpot kept the config.json from a newer LibreSpot build aside and loaded safe defaults.{0} Update LibreSpot before reusing that profile. Backup kept as {1}.</value><comment>{0} is a line break; {1} is the file name the old config.json was kept as.</comment></data>
+  <data name="Vm_ConfigRecoveryNewerNoBackupFormat" xml:space="preserve"><value>LibreSpot loaded safe defaults because config.json was saved by a newer build.{0} Update LibreSpot before reusing that profile.</value><comment>{0} is a line break.</comment></data>
   <data name="Vm_ConfigRecoveryNewerTitle" xml:space="preserve"><value>Profile needs a newer LibreSpot</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ConfigRecoveryReasonFormat" xml:space="preserve"><value> Reason: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigRecoveryReasonFormat" xml:space="preserve"><value> Reason: {0}</value><comment>{0} is the reason the config could not be loaded.</comment></data>
   <data name="Vm_ConfigRecoveryRecoveredTitle" xml:space="preserve"><value>Unreadable profile was recovered</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ConfigRecoveryUnreadableBackupFormat" xml:space="preserve"><value>LibreSpot moved the unreadable config.json aside and reopened with safe defaults.{0} Apply Recommended or Custom to save a fresh profile. Backup kept as {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ConfigRecoveryUnreadableNoBackupFormat" xml:space="preserve"><value>LibreSpot reopened with safe defaults because config.json could not be read safely.{0} Apply Recommended or Custom to save a fresh profile.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ConfigRecoveryUnreadableBackupFormat" xml:space="preserve"><value>LibreSpot moved the unreadable config.json aside and reopened with safe defaults.{0} Apply Recommended or Custom to save a fresh profile. Backup kept as {1}.</value><comment>{0} is a line break; {1} is the file name the unreadable config.json was kept as.</comment></data>
+  <data name="Vm_ConfigRecoveryUnreadableNoBackupFormat" xml:space="preserve"><value>LibreSpot reopened with safe defaults because config.json could not be read safely.{0} Apply Recommended or Custom to save a fresh profile.</value><comment>{0} is a line break.</comment></data>
   <data name="Vm_CountNone" xml:space="preserve"><value>None</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CountOneSelected" xml:space="preserve"><value>1 selected</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CountSelectedFormat" xml:space="preserve"><value>{0} selected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CountSelectedFormat" xml:space="preserve"><value>{0} selected</value><comment>{0} is the number of selected items.</comment></data>
   <data name="Vm_CustomApplyAdmin" xml:space="preserve"><value>LibreSpot relaunches with administrator access before it touches Spotify.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomApplyConflict" xml:space="preserve"><value>Turn off either Hide right sidebar or Clear right sidebar styling; when both are selected, hiding wins.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomApplyPatchJson" xml:space="preserve"><value>Fix the custom patches JSON before LibreSpot stages it for SpotX.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1812,17 +1812,17 @@
   <data name="Vm_CustomApplyRecovery" xml:space="preserve"><value>LibreSpot replaces the unreadable config.json with this profile and keeps the recovered copy in the LibreSpot folder.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomAppsSectionDescription" xml:space="preserve"><value>Optional Spicetify apps installed from pinned release ZIPs. These appear as Spotify apps, not normal extensions.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomAppsSectionTitle" xml:space="preserve"><value>Custom apps</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CustomChangeManyFormat" xml:space="preserve"><value>{0} changes</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomChangeManyFormat" xml:space="preserve"><value>{0} changes</value><comment>{0} is the number of changes, always two or more.</comment></data>
   <data name="Vm_CustomChangeMatchesRecommended" xml:space="preserve"><value>Matches Recommended</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomChangeOne" xml:space="preserve"><value>1 change</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CustomPatchesImportProvenanceFormat" xml:space="preserve"><value>Imported from {0} at {1:u}; source {2}, SHA256 {3}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomPatchesImportProvenanceFormat" xml:space="preserve"><value>Imported from {0} at {1:u}; source {2}, SHA256 {3}.</value><comment>{0} is the file the patches were imported from; {1} is the import time in UTC; {2} is the source label; {3} is the SHA256 of the imported file.</comment></data>
   <data name="Vm_CustomPatchesNeedsReview" xml:space="preserve"><value>Needs review</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomPatchesOff" xml:space="preserve"><value>Off</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomPatchesSearchDescription" xml:space="preserve"><value>SpotX patches.json JSON authoring regex validation dry run import URL</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomPatchesSearchTitle" xml:space="preserve"><value>Custom patches</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CustomPatchesSummaryErrorFormat" xml:space="preserve"><value>{0} blocking issue(s) in patches.json.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomPatchesSummaryErrorFormat" xml:space="preserve"><value>{0} blocking issue(s) in patches.json.</value><comment>{0} is the number of blocking issues found in patches.json.</comment></data>
   <data name="Vm_CustomPatchesSummaryOff" xml:space="preserve"><value>Custom patches are off.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CustomPatchesSummaryReadyFormat" xml:space="preserve"><value>{0} group(s), {1} regex pattern(s), {2} replacement value(s).</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomPatchesSummaryReadyFormat" xml:space="preserve"><value>{0} group(s), {1} regex pattern(s), {2} replacement value(s).</value><comment>{0} is the number of patch groups; {1} the number of regex patterns; {2} the number of replacement values.</comment></data>
   <data name="Vm_CustomProfileBalanced" xml:space="preserve"><value>Balanced custom</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomProfileBalancedDetail" xml:space="preserve"><value>You are personalizing the stack without moving far beyond what is usually easy to reapply after updates.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomProfileHeavy" xml:space="preserve"><value>Heavy custom</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1841,15 +1841,15 @@
   <data name="Vm_CustomReadinessReadyDetail" xml:space="preserve"><value>LibreSpot saves this profile first, then applies it so maintenance and reapply stay in sync.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomReadinessRecoveryDetail" xml:space="preserve"><value>Applying now writes a fresh config.json and keeps the recovered backup untouched for reference.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomSearchDefaultSummary" xml:space="preserve"><value>Search titles and descriptions across Custom.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CustomSearchManyMatchesFormat" xml:space="preserve"><value>{0} matches for &quot;{1}&quot;.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CustomSearchNoMatchesFormat" xml:space="preserve"><value>No matches for &quot;{0}&quot;.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CustomSearchOneMatchFormat" xml:space="preserve"><value>1 match for &quot;{0}&quot;.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomSearchManyMatchesFormat" xml:space="preserve"><value>{0} matches for &quot;{1}&quot;.</value><comment>{0} is the number of matches, always two or more; {1} is the search text the user typed.</comment></data>
+  <data name="Vm_CustomSearchNoMatchesFormat" xml:space="preserve"><value>No matches for &quot;{0}&quot;.</value><comment>{0} is the search text the user typed.</comment></data>
+  <data name="Vm_CustomSearchOneMatchFormat" xml:space="preserve"><value>1 match for &quot;{0}&quot;.</value><comment>{0} is the search text the user typed.</comment></data>
   <data name="Vm_CustomSelectionAligned" xml:space="preserve"><value>Still aligned with the stable Recommended baseline.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CustomSelectionManyChangesFormat" xml:space="preserve"><value>{0} deliberate changes from the default stable profile.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomSelectionManyChangesFormat" xml:space="preserve"><value>{0} deliberate changes from the default stable profile.</value><comment>{0} is the number of settings that differ from the default profile, always two or more.</comment></data>
   <data name="Vm_CustomSelectionOneChange" xml:space="preserve"><value>1 deliberate change from the default stable profile.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_DependencyNotRequired" xml:space="preserve"><value>Not required</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_DependencyOptional" xml:space="preserve"><value>Optional</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_EnabledToggleCountFormat" xml:space="preserve"><value>{0} enabled</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_EnabledToggleCountFormat" xml:space="preserve"><value>{0} enabled</value><comment>{0} is the number of enabled toggles.</comment></data>
   <data name="Vm_EnvDotNetDesktopRuntime" xml:space="preserve"><value>.NET Desktop Runtime</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvNotRunning" xml:space="preserve"><value>Not running</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvPowerShell" xml:space="preserve"><value>PowerShell</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1866,17 +1866,17 @@
   <data name="Vm_EnvironmentStaleDetailFormat" xml:space="preserve"><value>Last checked at {0}. Recheck before you repair or reset if anything changed outside LibreSpot.</value><comment>EnvironmentSnapshotStateViewModel localized runtime text. {0} is a localized time.</comment></data>
   <data name="Vm_EnvironmentStatusUnchecked" xml:space="preserve"><value>Status not checked yet</value><comment>EnvironmentSnapshotStateViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvironmentUncheckedDetail" xml:space="preserve"><value>Use Refresh environment before you decide whether Spotify, Spicetify, or the saved profile need repair.</value><comment>EnvironmentSnapshotStateViewModel localized runtime text.</comment></data>
-  <data name="Vm_ExtensionManySelectedFormat" xml:space="preserve"><value>{0} extensions selected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ExtensionManySelectedFormat" xml:space="preserve"><value>{0} extensions selected</value><comment>{0} is the number of selected extensions, always two or more.</comment></data>
   <data name="Vm_ExtensionNoneSelected" xml:space="preserve"><value>None selected</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ExtensionOneSelected" xml:space="preserve"><value>1 extension selected</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_FileCountManyFormat" xml:space="preserve"><value>{0} files</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_FileCountManyFormat" xml:space="preserve"><value>{0} files</value><comment>{0} is the number of files, always two or more.</comment></data>
   <data name="Vm_FileCountOne" xml:space="preserve"><value>1 file</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InstallPostureClean" xml:space="preserve"><value>Clean start</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InstallPostureOverlay" xml:space="preserve"><value>Overlay</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_LyricsSummaryFormat" xml:space="preserve"><value>Lyrics: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LyricsSummaryFormat" xml:space="preserve"><value>Lyrics: {0}</value><comment>{0} is the selected lyrics theme name.</comment></data>
   <data name="Vm_LyricsThemeAvailableHint" xml:space="preserve"><value>SpotX restores this lyrics skin after patching.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_LyricsThemeUnavailableHint" xml:space="preserve"><value>Turn on the lyrics patch to make this selection matter.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceBackupLatestFormat" xml:space="preserve"><value>{0} Latest: {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceBackupLatestFormat" xml:space="preserve"><value>{0} Latest: {1}.</value><comment>{0} is the backup count sentence; {1} is the timestamp of the most recent backup.</comment></data>
   <data name="Vm_MaintenanceBackupUnchecked" xml:space="preserve"><value>Backup state has not been checked yet.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceIncompleteDetail" xml:space="preserve"><value>Reapply becomes useful once the customization layer is back in place. Until then, Recommended is usually the better path.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceIncompleteTitle" xml:space="preserve"><value>Customization layer is incomplete</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1884,7 +1884,7 @@
   <data name="Vm_MaintenanceReadinessAllReady" xml:space="preserve"><value>Spotify, SpotX, Spicetify, Marketplace, and theme state are all ready.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadinessNoneReady" xml:space="preserve"><value>No customization stack components are ready yet.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadinessPartial" xml:space="preserve"><value>Spotify, SpotX, Spicetify, Marketplace, and theme checks are partially ready.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceReadinessValueFormat" xml:space="preserve"><value>{0} of 5 ready</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessValueFormat" xml:space="preserve"><value>{0} of 5 ready</value><comment>{0} is the number of readiness checks that passed, out of five.</comment></data>
   <data name="Vm_MaintenanceReadyDetail" xml:space="preserve"><value>Start with the safer actions. Use reset only when you want to clear the stack and rebuild.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyTitle" xml:space="preserve"><value>Ready for upkeep or reset</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyWhenNeededDetail" xml:space="preserve"><value>Most repair actions matter after Spotify is installed. You can still inspect versions, export support details, or prepare a clean reset.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1897,10 +1897,10 @@
   <data name="Vm_MarketplaceUnavailable" xml:space="preserve"><value>Marketplace unavailable until Spicetify is installed</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ActivityLogClipboardUnavailable" xml:space="preserve"><value>Clipboard was unavailable. Log is still saved to install.log.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileActiveDetail" xml:space="preserve"><value>This profile is active. Applying another profile keeps this one as the previous active pointer for rollback.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileAutomationHelpActiveFormat" xml:space="preserve"><value>{0} is the active LibreSpot profile.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileAutomationHelpBuiltInFormat" xml:space="preserve"><value>{0} is a bundled template that can be previewed, applied, or duplicated.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileAutomationHelpLocalFormat" xml:space="preserve"><value>{0} is a local profile that can be previewed, renamed, exported, applied, duplicated, or deleted.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileAutomationNameFormat" xml:space="preserve"><value>{0} {1} profile</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileAutomationHelpActiveFormat" xml:space="preserve"><value>{0} is the active LibreSpot profile.</value><comment>{0} is the profile name.</comment></data>
+  <data name="Vm_ProfileAutomationHelpBuiltInFormat" xml:space="preserve"><value>{0} is a bundled template that can be previewed, applied, or duplicated.</value><comment>{0} is the bundled template name.</comment></data>
+  <data name="Vm_ProfileAutomationHelpLocalFormat" xml:space="preserve"><value>{0} is a local profile that can be previewed, renamed, exported, applied, duplicated, or deleted.</value><comment>{0} is the local profile name.</comment></data>
+  <data name="Vm_ProfileAutomationNameFormat" xml:space="preserve"><value>{0} {1} profile</value><comment>{0} is the profile name; {1} is its kind, such as bundled or local.</comment></data>
   <data name="Vm_ProfileCapabilityEditable" xml:space="preserve"><value>Editable</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileCapabilityEditableActive" xml:space="preserve"><value>Editable active</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileCapabilityReadOnly" xml:space="preserve"><value>Read-only</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1933,7 +1933,7 @@
   <data name="Vm_ProfileStateSaved" xml:space="preserve"><value>Saved</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileStateTemplate" xml:space="preserve"><value>Template</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileUpdatedBundledTemplate" xml:space="preserve"><value>Bundled template</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileUpdatedFormat" xml:space="preserve"><value>Updated {0:g}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileUpdatedFormat" xml:space="preserve"><value>Updated {0:g}</value><comment>{0} is the profile update time, formatted as a general short date and time.</comment></data>
   <data name="Vm_ProgressDone" xml:space="preserve"><value>Done</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProgressStopping" xml:space="preserve"><value>Stopping…</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProgressWorking" xml:space="preserve"><value>Working…</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1984,13 +1984,13 @@
   <data name="Vm_ShellCheckingShort" xml:space="preserve"><value>Checking</value><comment>Compact environment-check status.</comment></data>
   <data name="Vm_ShellRetryShort" xml:space="preserve"><value>Retry</value><comment>Compact environment-check failure status.</comment></data>
   <data name="Vm_ShellLogUsingDefaultProfile" xml:space="preserve"><value>Using profile: Default</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellLogUsingProfileFormat" xml:space="preserve"><value>Using profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellLogUsingProfileFormat" xml:space="preserve"><value>Using profile: {0}</value><comment>{0} is the profile name.</comment></data>
   <data name="Vm_ShellNoActiveTasks" xml:space="preserve"><value>No active tasks</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellNoBlockingIssues" xml:space="preserve"><value>No blocking issues detected.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellNotRunYet" xml:space="preserve"><value>Not run yet</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellProfileDefault" xml:space="preserve"><value>Profile: Default</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellProfileLabel" xml:space="preserve"><value>Profile</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellProfileNameFormat" xml:space="preserve"><value>Profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellProfileNameFormat" xml:space="preserve"><value>Profile: {0}</value><comment>{0} is the profile name.</comment></data>
   <data name="Vm_ShellProfileWillSave" xml:space="preserve"><value>Will be saved on apply</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellQuickActionsTitle" xml:space="preserve"><value>Quick actions</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellReadinessTitle" xml:space="preserve"><value>System health</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2022,15 +2022,15 @@
   <data name="Vm_SpicetifyNotInstalled" xml:space="preserve"><value>Spicetify not installed</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SpotifyDetected" xml:space="preserve"><value>Spotify detected</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SpotifyNotInstalled" xml:space="preserve"><value>Spotify not installed</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SupportBundleEstimatedSizeFormat" xml:space="preserve"><value>Estimated local zip size before compression: {0}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SupportBundleEstimatedSizeFormat" xml:space="preserve"><value>Estimated local zip size before compression: {0}.</value><comment>{0} is the estimated size, already formatted with its unit.</comment></data>
   <data name="Vm_SupportBundleHealthOnly" xml:space="preserve"><value>Health report only</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SupportBundleManyFilesFormat" xml:space="preserve"><value>{0} diagnostic files selected</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SupportBundleManyFilesFormat" xml:space="preserve"><value>{0} diagnostic files selected</value><comment>{0} is the number of selected diagnostic files, always two or more.</comment></data>
   <data name="Vm_SupportBundleOneFile" xml:space="preserve"><value>1 diagnostic file selected</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleRedactionSummary" xml:space="preserve"><value>User paths, machine/user names, GitHub headers, proxy credentials, tokens, passwords, and command-line secret arguments are redacted before the zip is written.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeMarketplaceOnly" xml:space="preserve"><value>Marketplace-only (no theme pack)</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeSchemeAvailableHint" xml:space="preserve"><value>Color scheme inside the selected theme pack.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeSchemeMarketplaceOnlyHint" xml:space="preserve"><value>Marketplace-only skips the theme pack, so no extra scheme is applied.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ThemeSummaryFormat" xml:space="preserve"><value>{0} ({1})</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeSummaryFormat" xml:space="preserve"><value>{0} ({1})</value><comment>{0} is the theme name; {1} is the colour scheme name.</comment></data>
   <data name="Vm_WorkspaceHeroCustomBody" xml:space="preserve"><value>Adjust supported options without losing track of the baseline.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceHeroCustomEyebrow" xml:space="preserve"><value>Custom profile</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceHeroCustomTitle" xml:space="preserve"><value>Custom settings</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2051,10 +2051,10 @@
   <data name="Vm_WorkspaceRecommendationStartDetail" xml:space="preserve"><value>No Spotify stack yet. Recommended is the safest starting point.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceRecommendationStartTitle" xml:space="preserve"><value>Start here</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeGalleryOneScheme" xml:space="preserve"><value>1 scheme</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ThemeGalleryManySchemesFormat" xml:space="preserve"><value>{0} schemes</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeGalleryManySchemesFormat" xml:space="preserve"><value>{0} schemes</value><comment>{0} is the number of colour schemes the theme offers, always two or more.</comment></data>
   <data name="Vm_ThemeGalleryMarketplaceHelp" xml:space="preserve"><value>Uses Spicetify Marketplace without installing a bundled theme.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ThemeGalleryRequiresJsHelpFormat" xml:space="preserve"><value>{0} includes a theme.js step and {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ThemeGalleryNoJsHelpFormat" xml:space="preserve"><value>{0} installs without a theme.js step and has {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeGalleryRequiresJsHelpFormat" xml:space="preserve"><value>{0} includes a theme.js step and {1}.</value><comment>{0} is the theme name; {1} is the scheme-count phrase.</comment></data>
+  <data name="Vm_ThemeGalleryNoJsHelpFormat" xml:space="preserve"><value>{0} installs without a theme.js step and has {1}.</value><comment>{0} is the theme name; {1} is the scheme-count phrase.</comment></data>
   <data name="NavTools" xml:space="preserve"><value>Tools</value><comment>User-facing WPF text</comment></data>
   <data name="NavSettings" xml:space="preserve"><value>Settings</value><comment>User-facing WPF text</comment></data>
   <data name="NavHome" xml:space="preserve"><value>Home</value><comment>User-facing WPF text</comment></data>
@@ -2097,7 +2097,7 @@
   <data name="Vm_ShellNeedsReviewShort" xml:space="preserve"><value>Review</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellNextActionsTitle" xml:space="preserve"><value>Next actions</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellNoSetupRunYet" xml:space="preserve"><value>No setup has run yet</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ShellOsBuildFormat" xml:space="preserve"><value>Build {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ShellOsBuildFormat" xml:space="preserve"><value>Build {0}</value><comment>{0} is the Windows build number.</comment></data>
   <data name="Vm_ShellRunRecommendedCaption" xml:space="preserve"><value>Applies all recommended patches and configuration for LibreSpot.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellSpotifyDetectedLabel" xml:space="preserve"><value>Spotify detected</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellSpotifyInstalled" xml:space="preserve"><value>Installed</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2120,7 +2120,7 @@
   <data name="Vm_InsightBalancedCustomizationTitle" xml:space="preserve"><value>Balanced customization</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightConservativeCoreDetail" xml:space="preserve"><value>Advanced toggles are off, so this profile stays closer to the setup LibreSpot can reapply most predictably.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightConservativeCoreTitle" xml:space="preserve"><value>Conservative core</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_InsightCustomAppsDetailFormat" xml:space="preserve"><value>{0} will be installed through Spicetify custom_apps.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightCustomAppsDetailFormat" xml:space="preserve"><value>{0} will be installed through Spicetify custom_apps.</value><comment>{0} is the list of custom app names.</comment></data>
   <data name="Vm_InsightCustomAppsTitle" xml:space="preserve"><value>Custom apps</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightCustomPatchesReadyTitle" xml:space="preserve"><value>Custom patches dry run ready</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightCustomPatchesReviewTitle" xml:space="preserve"><value>Custom patches need review</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2141,73 +2141,73 @@
   <data name="Vm_InsightRightSidebarOverlapTitle" xml:space="preserve"><value>Right sidebar settings overlap</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightSkippingCleanStartDetail" xml:space="preserve"><value>Because Spotify is not currently detected, overlay mode is unlikely to save time. A clean start is usually the calmer path.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_InsightSkippingCleanStartTitle" xml:space="preserve"><value>Skipping a clean start</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_InsightThemeRestoreReadyDetailFormat" xml:space="preserve"><value>{0} with {1} will be restored after the backend run completes.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_InsightThemeRestoreReadyDetailFormat" xml:space="preserve"><value>{0} with {1} will be restored after the backend run completes.</value><comment>{0} is the theme name; {1} is the colour scheme name.</comment></data>
   <data name="Vm_InsightThemeRestoreReadyTitle" xml:space="preserve"><value>Theme restore ready</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_LibreSpotReady" xml:space="preserve"><value>LibreSpot is ready</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_LogManyLinesFormat" xml:space="preserve"><value>{0} log lines</value><comment>ActivityRunStateViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogManyLinesFormat" xml:space="preserve"><value>{0} log lines</value><comment>{0} is the number of log lines, always two or more.</comment></data>
   <data name="Vm_LogNoOutputYet" xml:space="preserve"><value>No log output yet</value><comment>ActivityRunStateViewModel localized runtime text.</comment></data>
   <data name="Vm_LogOneLine" xml:space="preserve"><value>1 log line</value><comment>ActivityRunStateViewModel localized runtime text.</comment></data>
-  <data name="Vm_OpenLinkFailedFormat" xml:space="preserve"><value>Couldn&apos;t open link: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileActiveLogFormat" xml:space="preserve"><value>Set active local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileActiveStatusFormat" xml:space="preserve"><value>{0} is active. The previous active profile pointer is kept for rollback.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_OpenLinkFailedFormat" xml:space="preserve"><value>Couldn&apos;t open link: {0}</value><comment>{0} is the error message from the shell.</comment></data>
+  <data name="Vm_ProfileActiveLogFormat" xml:space="preserve"><value>Set active local profile: {0}</value><comment>{0} is the profile name.</comment></data>
+  <data name="Vm_ProfileActiveStatusFormat" xml:space="preserve"><value>{0} is active. The previous active profile pointer is kept for rollback.</value><comment>{0} is the profile name.</comment></data>
   <data name="Vm_ProfileComparisonAreaCleanInstall" xml:space="preserve"><value>clean install</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonAreaCustomAppsFormat" xml:space="preserve"><value>{0} custom apps</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaCustomAppsFormat" xml:space="preserve"><value>{0} custom apps</value><comment>{0} is the number of custom apps that differ.</comment></data>
   <data name="Vm_ProfileComparisonAreaCustomPatches" xml:space="preserve"><value>custom SpotX patches</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonAreaExtensionsFormat" xml:space="preserve"><value>{0} extensions</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonAreaLyricsFormat" xml:space="preserve"><value>lyrics color {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaExtensionsFormat" xml:space="preserve"><value>{0} extensions</value><comment>{0} is the number of extensions that differ.</comment></data>
+  <data name="Vm_ProfileComparisonAreaLyricsFormat" xml:space="preserve"><value>lyrics color {0}</value><comment>{0} is the lyrics colour value.</comment></data>
   <data name="Vm_ProfileComparisonAreaOverlayInstall" xml:space="preserve"><value>overlay install</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonAreaPremiumPatch" xml:space="preserve"><value>Premium account mode</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonAreaThemeFormat" xml:space="preserve"><value>theme {0}/{1}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonDiffersFormat" xml:space="preserve"><value>differs in {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaThemeFormat" xml:space="preserve"><value>theme {0}/{1}</value><comment>{0} is the theme name; {1} is the colour scheme name.</comment></data>
+  <data name="Vm_ProfileComparisonDiffersFormat" xml:space="preserve"><value>differs in {0}</value><comment>{0} is the list of areas that differ, already joined.</comment></data>
   <data name="Vm_ProfileComparisonMatchesBaseline" xml:space="preserve"><value>matches the Recommended baseline</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonPreparing" xml:space="preserve"><value>Comparing with Recommended…</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonSummaryFormat" xml:space="preserve"><value>{0} profile {1}. Theme: {2}/{3}; lyrics: {4}; extensions: {5}; custom apps: {6}; custom patches: {7}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonSummaryFormat" xml:space="preserve"><value>{0} profile {1}. Theme: {2}/{3}; lyrics: {4}; extensions: {5}; custom apps: {6}; custom patches: {7}.</value><comment>{0} is the profile kind; {1} the profile name; {2} the theme; {3} the colour scheme; {4} the lyrics theme; {5} the extension count; {6} the custom app count; {7} the custom patch count.</comment></data>
   <data name="Vm_ProfileComparisonUnavailable" xml:space="preserve"><value>Comparison is unavailable until the profile loads. Use Refresh above the profiles list, then select it again.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteBody" xml:space="preserve"><value>LibreSpot will remove this local profile file. Bundled templates are kept, and deleting the active profile falls back to Recommended.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteCancel" xml:space="preserve"><value>Keep profile</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteConfirm" xml:space="preserve"><value>Delete profile</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteSummaryBody" xml:space="preserve"><value>Only the selected local profile JSON file is deleted. config.json and bundled templates are left intact.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteSummaryTitle" xml:space="preserve"><value>What this removes</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileDeleteTitleFormat" xml:space="preserve"><value>Delete profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileDeletedLogFormat" xml:space="preserve"><value>Deleted local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileDeletedStatusFormat" xml:space="preserve"><value>{0} was deleted. Active fallback is visible in the profile list.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileDuplicatedLogFormat" xml:space="preserve"><value>Duplicated local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileDuplicatedStatusFormat" xml:space="preserve"><value>{0} was duplicated from {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileDeleteTitleFormat" xml:space="preserve"><value>Delete profile: {0}</value><comment>{0} is the profile name.</comment></data>
+  <data name="Vm_ProfileDeletedLogFormat" xml:space="preserve"><value>Deleted local profile: {0}</value><comment>{0} is the profile name.</comment></data>
+  <data name="Vm_ProfileDeletedStatusFormat" xml:space="preserve"><value>{0} was deleted. Active fallback is visible in the profile list.</value><comment>{0} is the profile name.</comment></data>
+  <data name="Vm_ProfileDuplicatedLogFormat" xml:space="preserve"><value>Duplicated local profile: {0}</value><comment>{0} is the new profile name.</comment></data>
+  <data name="Vm_ProfileDuplicatedStatusFormat" xml:space="preserve"><value>{0} was duplicated from {1}.</value><comment>{0} is the new profile name; {1} is the profile it was copied from.</comment></data>
   <data name="Vm_ProfileExportDialogFilter" xml:space="preserve"><value>LibreSpot profiles (*.librespot)|*.librespot</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileExportDialogTitle" xml:space="preserve"><value>Export LibreSpot profile</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileExportedLogFormat" xml:space="preserve"><value>Exported local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileExportedStatusFormat" xml:space="preserve"><value>{0} was exported to {1}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileExportedLogFormat" xml:space="preserve"><value>Exported local profile: {0}</value><comment>{0} is the profile name.</comment></data>
+  <data name="Vm_ProfileExportedStatusFormat" xml:space="preserve"><value>{0} was exported to {1}.</value><comment>{0} is the profile name; {1} is the path it was written to.</comment></data>
   <data name="Vm_ProfileImportBody" xml:space="preserve"><value>LibreSpot validated the profile file and will save it as a local profile only after you confirm. Importing does not start an install or acknowledge Spotify risk.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileImportConfirm" xml:space="preserve"><value>Import profile</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileImportDialogFilter" xml:space="preserve"><value>LibreSpot profiles (*.librespot)|*.librespot|JSON files (*.json)|*.json</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileImportDialogTitle" xml:space="preserve"><value>Import LibreSpot profile</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileImportSharedBody" xml:space="preserve"><value>LibreSpot opened this share link as a preview only. Confirming saves it as a local profile; it does not start setup, reapply Spotify, or acknowledge Spotify risk.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileImportSharedConfirm" xml:space="preserve"><value>Save shared profile</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileImportSharedTitleFormat" xml:space="preserve"><value>Import shared profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileImportTitleFormat" xml:space="preserve"><value>Import profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileImportedLogFormat" xml:space="preserve"><value>Imported local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileImportSharedTitleFormat" xml:space="preserve"><value>Import shared profile: {0}</value><comment>{0} is the shared profile name.</comment></data>
+  <data name="Vm_ProfileImportTitleFormat" xml:space="preserve"><value>Import profile: {0}</value><comment>{0} is the profile name.</comment></data>
+  <data name="Vm_ProfileImportedLogFormat" xml:space="preserve"><value>Imported local profile: {0}</value><comment>{0} is the profile name.</comment></data>
   <data name="Vm_ProfileImportedSettingsTitle" xml:space="preserve"><value>Imported settings</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileImportedStatusFormat" xml:space="preserve"><value>{0} was imported. Preview or set it active when you are ready.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileManyChoicesReadyFormat" xml:space="preserve"><value>{0} profile choices ready. Preview before applying if you want to inspect the settings first.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileImportedStatusFormat" xml:space="preserve"><value>{0} was imported. Preview or set it active when you are ready.</value><comment>{0} is the profile name.</comment></data>
+  <data name="Vm_ProfileManyChoicesReadyFormat" xml:space="preserve"><value>{0} profile choices ready. Preview before applying if you want to inspect the settings first.</value><comment>{0} is the number of available profiles, always two or more.</comment></data>
   <data name="Vm_ProfileNoChoicesStatus" xml:space="preserve"><value>No profiles are available yet. Save the current Custom selections to create one.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileOneChoiceReady" xml:space="preserve"><value>1 profile choice ready. Preview before applying if you want to inspect the settings first.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfilePreviewedLogFormat" xml:space="preserve"><value>Previewed local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfilePreviewedStatusFormat" xml:space="preserve"><value>{0} is previewed in Custom. No files were changed.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfilePreviewedLogFormat" xml:space="preserve"><value>Previewed local profile: {0}</value><comment>{0} is the profile name.</comment></data>
+  <data name="Vm_ProfilePreviewedStatusFormat" xml:space="preserve"><value>{0} is previewed in Custom. No files were changed.</value><comment>{0} is the profile name.</comment></data>
   <data name="Vm_ProfilePreviewSummaryTitle" xml:space="preserve"><value>Profile preview</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileRenamedLogFormat" xml:space="preserve"><value>Renamed local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileRenamedStatusFormat" xml:space="preserve"><value>{0} was renamed.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileSavedLogFormat" xml:space="preserve"><value>Saved local profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileSavedStatusFormat" xml:space="preserve"><value>{0} was saved from the current Custom selections.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileRenamedLogFormat" xml:space="preserve"><value>Renamed local profile: {0}</value><comment>{0} is the new profile name.</comment></data>
+  <data name="Vm_ProfileRenamedStatusFormat" xml:space="preserve"><value>{0} was renamed.</value><comment>{0} is the new profile name.</comment></data>
+  <data name="Vm_ProfileSavedLogFormat" xml:space="preserve"><value>Saved local profile: {0}</value><comment>{0} is the profile name.</comment></data>
+  <data name="Vm_ProfileSavedStatusFormat" xml:space="preserve"><value>{0} was saved from the current Custom selections.</value><comment>{0} is the profile name.</comment></data>
   <data name="Vm_ProfileSetActiveBody" xml:space="preserve"><value>LibreSpot will write this profile to config.json and keep the previous active profile pointer for rollback. This does not start an install by itself.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileSetActiveConfirm" xml:space="preserve"><value>Set active</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileSetActiveTitleFormat" xml:space="preserve"><value>Set active profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileShareFailedFormat" xml:space="preserve"><value>Couldn&apos;t prepare sharing for {0}: {1}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSetActiveTitleFormat" xml:space="preserve"><value>Set active profile: {0}</value><comment>{0} is the profile name.</comment></data>
+  <data name="Vm_ProfileShareFailedFormat" xml:space="preserve"><value>Couldn&apos;t prepare sharing for {0}: {1}</value><comment>{0} is the profile name; {1} is the error message.</comment></data>
   <data name="Vm_ProfileSharePreparing" xml:space="preserve"><value>Preparing share card…</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileShareQrTooLargeFormat" xml:space="preserve"><value>Share link is ready, but this profile is too large for a QR card: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileShareQrTooLargeFormat" xml:space="preserve"><value>Share link is ready, but this profile is too large for a QR card: {0}</value><comment>{0} is the reason the profile is too large to encode.</comment></data>
   <data name="Vm_ProfileShareReady" xml:space="preserve"><value>QR card and share link are ready. Import still opens as a preview before saving.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileSharedSettingsTitle" xml:space="preserve"><value>Shared settings</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileSummaryFormat" xml:space="preserve"><value>{0} profile. Theme: {1} / {2}. Lyrics: {3}. Extensions: {4}. Premium flag: {5}. Custom patches: {6}.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileSummaryManyExtensionsFormat" xml:space="preserve"><value>{0} extensions</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSummaryFormat" xml:space="preserve"><value>{0} profile. Theme: {1} / {2}. Lyrics: {3}. Extensions: {4}. Premium flag: {5}. Custom patches: {6}.</value><comment>{0} is the profile kind; {1} the theme; {2} the colour scheme; {3} the lyrics theme; {4} the extension count; {5} the Premium flag state; {6} the custom patch count.</comment></data>
+  <data name="Vm_ProfileSummaryManyExtensionsFormat" xml:space="preserve"><value>{0} extensions</value><comment>{0} is the number of extensions, always two or more.</comment></data>
   <data name="Vm_ProfileSummaryNoExtensions" xml:space="preserve"><value>no extensions</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileSummaryOneExtension" xml:space="preserve"><value>1 extension</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RestartingSpotify" xml:space="preserve"><value>Restarting Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2226,25 +2226,25 @@
   <data name="Vm_SupportBundleCategoryCrashesTitle" xml:space="preserve"><value>Crash reports</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SupportBundleCategoryCrashesDetail" xml:space="preserve"><value>Newest crash report windows when present.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ZipArchiveDialogFilter" xml:space="preserve"><value>Zip archives (*.zip)|*.zip</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SupportBundleLastExportFormat" xml:space="preserve"><value>Last export: {0} ({1}, {2} zip entries).</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SupportBundleExportedLogFormat" xml:space="preserve"><value>Support bundle exported locally: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SupportBundleExportFailedFormat" xml:space="preserve"><value>Export failed: {0}. Choose a folder you can write to, then export again.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SupportBundleExportFailedLogFormat" xml:space="preserve"><value>Support bundle export failed: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SupportBundleLastFailureExportFormat" xml:space="preserve"><value>Last failure bundle: {0} ({1}, {2} zip entries).</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_FailureBundleExportedLogFormat" xml:space="preserve"><value>Failure bundle exported locally: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_FailureBundleExportFailedFormat" xml:space="preserve"><value>Failure bundle export failed: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_FailureBundleExportFailedLogFormat" xml:space="preserve"><value>Failure bundle export failed: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SupportBundleLastExportFormat" xml:space="preserve"><value>Last export: {0} ({1}, {2} zip entries).</value><comment>{0} is the export path; {1} is the archive size; {2} is the number of entries in the zip.</comment></data>
+  <data name="Vm_SupportBundleExportedLogFormat" xml:space="preserve"><value>Support bundle exported locally: {0}</value><comment>{0} is the path the support bundle was written to.</comment></data>
+  <data name="Vm_SupportBundleExportFailedFormat" xml:space="preserve"><value>Export failed: {0}. Choose a folder you can write to, then export again.</value><comment>{0} is the error message from the failed export.</comment></data>
+  <data name="Vm_SupportBundleExportFailedLogFormat" xml:space="preserve"><value>Support bundle export failed: {0}</value><comment>{0} is the error message from the failed export.</comment></data>
+  <data name="Vm_SupportBundleLastFailureExportFormat" xml:space="preserve"><value>Last failure bundle: {0} ({1}, {2} zip entries).</value><comment>{0} is the export path; {1} is the archive size; {2} is the number of entries in the zip.</comment></data>
+  <data name="Vm_FailureBundleExportedLogFormat" xml:space="preserve"><value>Failure bundle exported locally: {0}</value><comment>{0} is the path the failure bundle was written to.</comment></data>
+  <data name="Vm_FailureBundleExportFailedFormat" xml:space="preserve"><value>Failure bundle export failed: {0}</value><comment>{0} is the error message from the failed export.</comment></data>
+  <data name="Vm_FailureBundleExportFailedLogFormat" xml:space="preserve"><value>Failure bundle export failed: {0}</value><comment>{0} is the error message from the failed export.</comment></data>
   <data name="Vm_CustomPatchesDryRunPassed" xml:space="preserve"><value>Custom patches dry run passed</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomPatchesNeedReviewTitle" xml:space="preserve"><value>Custom patches need review</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomPatchesDryRunPassedDetail" xml:space="preserve"><value>LibreSpot will stage a temporary patches.json when you apply this profile.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomPatchesFormattedTitle" xml:space="preserve"><value>Custom patches formatted</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomPatchesFormattedStatus" xml:space="preserve"><value>The patches.json document was normalized with indentation for review.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomPatchesFormattedDetail" xml:space="preserve"><value>Dry run still checks regex patterns and match/replace pairs before Apply.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CustomPatchesFormatFailedFormat" xml:space="preserve"><value>JSON could not be formatted: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomPatchesFormatFailedFormat" xml:space="preserve"><value>JSON could not be formatted: {0}</value><comment>{0} is the JSON parser error message.</comment></data>
   <data name="Vm_CustomPatchesFormatFailedDetail" xml:space="preserve"><value>Fix the JSON syntax, then run Format again.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomPatchesImportedTitle" xml:space="preserve"><value>Custom patches imported</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomPatchesImportedNeedReviewTitle" xml:space="preserve"><value>Imported patches need review</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CustomPatchesImportedDetailFormat" xml:space="preserve"><value>Review the JSON before applying this profile. Source SHA256 {0}.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomPatchesImportedDetailFormat" xml:space="preserve"><value>Review the JSON before applying this profile. Source SHA256 {0}.</value><comment>{0} is the SHA256 of the imported patches file.</comment></data>
   <data name="Vm_RecommendedSetupPromptTitle" xml:space="preserve"><value>Run recommended setup</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RecommendedSetupActivityTitle" xml:space="preserve"><value>Applying the recommended setup</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RecommendedSetupActivityStatus" xml:space="preserve"><value>LibreSpot is rebuilding the tested SpotX and Spicetify stack with the default premium preset.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2284,17 +2284,17 @@
   <data name="Vm_ElevatedResumeActivityTitle" xml:space="preserve"><value>Applying the setup after elevation</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ElevatedResumeActivityStatus" xml:space="preserve"><value>LibreSpot is resuming the setup you confirmed before relaunching as administrator.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_AdminPromptTitle" xml:space="preserve"><value>Administrator permission required</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_AdminPromptBodyFormat" xml:space="preserve"><value>LibreSpot can open safely in standard mode, but setup and maintenance actions still need elevated access to modify Spotify, SpotX, and Spicetify files.{0}Relaunching as administrator keeps the same desktop shell and unlocks apply, reapply, and reset actions.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_AdminPromptBodyFormat" xml:space="preserve"><value>LibreSpot can open safely in standard mode, but setup and maintenance actions still need elevated access to modify Spotify, SpotX, and Spicetify files.{0}Relaunching as administrator keeps the same desktop shell and unlocks apply, reapply, and reset actions.</value><comment>{0} is a paragraph break.</comment></data>
   <data name="Vm_AdminPromptKeepReviewing" xml:space="preserve"><value>Keep reviewing settings</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_AdminPromptSummaryTitle" xml:space="preserve"><value>Before you continue</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_AdminPromptSummaryBody" xml:space="preserve"><value>Nothing changes until Windows approves the relaunch. You can stay here and keep reviewing settings if you are not ready.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptTitle" xml:space="preserve"><value>Risk acknowledgment</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RiskPromptBodyFormat" xml:space="preserve"><value>LibreSpot modifies your Spotify installation to remove ads and apply themes. This violates Spotify Terms of Service and User Guidelines (https://spotify.com/legal/user-guidelines/). While enforcement against individual users has not been publicly documented, your account could be affected.{0}By continuing, you acknowledge this risk and agree to proceed at your own discretion.{0}You can restore stock Spotify at any time using Maintenance &gt; Full reset.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_RiskPromptBodyFormat" xml:space="preserve"><value>LibreSpot modifies your Spotify installation to remove ads and apply themes. This violates Spotify Terms of Service and User Guidelines (https://spotify.com/legal/user-guidelines/). While enforcement against individual users has not been publicly documented, your account could be affected.{0}By continuing, you acknowledge this risk and agree to proceed at your own discretion.{0}You can restore stock Spotify at any time using Maintenance &gt; Full reset.</value><comment>{0} is a paragraph break, used twice.</comment></data>
   <data name="Vm_RiskPromptConfirm" xml:space="preserve"><value>I understand, continue</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptSummaryTitle" xml:space="preserve"><value>What this means</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptSummaryBody" xml:space="preserve"><value>LibreSpot will record your acknowledgment so this dialog does not appear again. No data leaves your machine.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CloseWhileRunningTitle" xml:space="preserve"><value>Close LibreSpot now?</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CloseWhileRunningBody" xml:space="preserve"><value>LibreSpot is still modifying Spotify.{0}Closing now will stop the active backend run, dismiss the live progress shell, and leave any partial changes for a later reapply pass if you need one.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CloseWhileRunningBody" xml:space="preserve"><value>LibreSpot is still modifying Spotify.{0}Closing now will stop the active backend run, dismiss the live progress shell, and leave any partial changes for a later reapply pass if you need one.</value><comment>{0} is a paragraph break.</comment></data>
   <data name="Vm_CloseWhileRunningConfirm" xml:space="preserve"><value>Close and stop run</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CloseWhileRunningCancel" xml:space="preserve"><value>Keep LibreSpot open</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CloseWhileRunningSummaryTitle" xml:space="preserve"><value>Safer choice</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2302,15 +2302,15 @@
   <data name="Vm_LogConfigSaveCanceled" xml:space="preserve"><value>Configuration save was canceled.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_LogBackendCanceled" xml:space="preserve"><value>Backend run was canceled.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_LogResumingElevatedSetup" xml:space="preserve"><value>Resuming the confirmed setup after the administrator relaunch.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_LogConfigStageFailed" xml:space="preserve"><value>Could not stage configuration for the elevated relaunch: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogConfigStageFailed" xml:space="preserve"><value>Could not stage configuration for the elevated relaunch: {0}</value><comment>{0} is the error message.</comment></data>
   <data name="Vm_PromptSummaryDefaultTitle" xml:space="preserve"><value>What happens next</value><comment>PromptStateViewModel fallback summary title.</comment></data>
   <data name="Vm_PromptSummaryDefaultBody" xml:space="preserve"><value>LibreSpot will keep the window open, stream progress here, and leave the result easy to review afterward.</value><comment>PromptStateViewModel fallback summary for non-destructive prompts.</comment></data>
   <data name="Vm_PromptSummaryDestructiveBody" xml:space="preserve"><value>LibreSpot will make the requested change and leave the result visible here so you can review it afterward.</value><comment>PromptStateViewModel fallback summary for destructive prompts.</comment></data>
-  <data name="Vm_LogDesktopCommandFailed" xml:space="preserve"><value>Desktop command failed: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_LogConfigSaveFailed" xml:space="preserve"><value>Could not save configuration: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_LogBackendRunFailed" xml:space="preserve"><value>Backend run failed: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_LogOpenFolderFailed" xml:space="preserve"><value>Could not open the LibreSpot folder: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_LogElevatedResumeFailed" xml:space="preserve"><value>Could not load the staged setup to resume after elevation: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_LogDesktopCommandFailed" xml:space="preserve"><value>Desktop command failed: {0}</value><comment>{0} is the error message.</comment></data>
+  <data name="Vm_LogConfigSaveFailed" xml:space="preserve"><value>Could not save configuration: {0}</value><comment>{0} is the error message.</comment></data>
+  <data name="Vm_LogBackendRunFailed" xml:space="preserve"><value>Backend run failed: {0}</value><comment>{0} is the error message.</comment></data>
+  <data name="Vm_LogOpenFolderFailed" xml:space="preserve"><value>Could not open the LibreSpot folder: {0}</value><comment>{0} is the error message.</comment></data>
+  <data name="Vm_LogElevatedResumeFailed" xml:space="preserve"><value>Could not load the staged setup to resume after elevation: {0}</value><comment>{0} is the error message.</comment></data>
   <data name="CrashWindowTitle" xml:space="preserve"><value>LibreSpot recovery</value><comment>Crash and recovery dialog window title.</comment></data>
   <data name="CrashRecoverableTitle" xml:space="preserve"><value>LibreSpot saved a crash report</value><comment>Recoverable crash dialog title.</comment></data>
   <data name="CrashFatalTitle" xml:space="preserve"><value>LibreSpot hit an unexpected error and needs to close</value><comment>Fatal crash dialog title.</comment></data>
@@ -2324,7 +2324,7 @@
   <data name="CrashFatalSummaryBody" xml:space="preserve"><value>Copy the report path or open the crash folder now. When you reopen LibreSpot, the saved profile and logs will still be available for troubleshooting.</value><comment>Fatal crash next-step detail.</comment></data>
   <data name="CrashExceptionSummaryLabel" xml:space="preserve"><value>WHAT WENT WRONG</value><comment>Crash exception card label.</comment></data>
   <data name="CrashReportPathLabel" xml:space="preserve"><value>REPORT PATH</value><comment>Crash report path label.</comment></data>
-  <data name="CrashSourceFolderFormat" xml:space="preserve"><value>Source: {0}. Crash folder: {1}</value><comment>Crash source and folder detail.</comment></data>
+  <data name="CrashSourceFolderFormat" xml:space="preserve"><value>Source: {0}. Crash folder: {1}</value><comment>{0} is where the crash came from; {1} is the folder holding the report.</comment></data>
   <data name="CrashFooter" xml:space="preserve"><value>LibreSpot keeps the crash report and rolling session logs on disk after this dialog closes.</value><comment>Crash report retention note.</comment></data>
   <data name="CrashCopyReportPath" xml:space="preserve"><value>Copy report path</value><comment>Crash dialog copy action.</comment></data>
   <data name="CrashOpenFolder" xml:space="preserve"><value>Open crash folder</value><comment>Crash dialog open-folder action.</comment></data>
@@ -2337,7 +2337,7 @@
   <data name="ScrollPageRightAutomation" xml:space="preserve"><value>Scroll page right</value><comment>Automation name for the horizontal scrollbar page-right button.</comment></data>
   <data name="HealthActionNoAction" xml:space="preserve"><value>No action</value><comment>Fallback label when a health component has no recommended action.</comment></data>
   <data name="HealthActionReviewCommunityAsset" xml:space="preserve"><value>Review community asset</value><comment>Fallback health action label for a community asset trust review.</comment></data>
-  <data name="Vm_HealthEvidenceLastChangedFormat" xml:space="preserve"><value>{0} Last changed: {1}.</value><comment>Health evidence followed by its local last-change timestamp.</comment></data>
+  <data name="Vm_HealthEvidenceLastChangedFormat" xml:space="preserve"><value>{0} Last changed: {1}.</value><comment>{0} is the evidence sentence; {1} is the local last-change timestamp.</comment></data>
   <data name="HealthNameStoreSpotify" xml:space="preserve"><value>Microsoft Store Spotify</value><comment>Health component name.</comment></data>
   <data name="HealthNameAntivirusExclusion" xml:space="preserve"><value>Antivirus exclusion</value><comment>Health component name.</comment></data>
   <data name="HealthNameSpotify" xml:space="preserve"><value>Spotify</value><comment>Health component name.</comment></data>
@@ -2354,8 +2354,8 @@
   <data name="HealthNameSavedProfile" xml:space="preserve"><value>Saved LibreSpot profile</value><comment>Health component name.</comment></data>
   <data name="HealthNameAssetCache" xml:space="preserve"><value>Asset cache</value><comment>Health component name.</comment></data>
   <data name="HealthNameExtensionFiles" xml:space="preserve"><value>Extension files</value><comment>Health component name.</comment></data>
-  <data name="HealthNameUpstreamFormat" xml:space="preserve"><value>{0} upstream</value><comment>Health component name for a named upstream dependency.</comment></data>
-  <data name="HealthNameCommunityAssetFormat" xml:space="preserve"><value>{0} community {1}</value><comment>Health component name for a named community asset and kind.</comment></data>
+  <data name="HealthNameUpstreamFormat" xml:space="preserve"><value>{0} upstream</value><comment>{0} is the upstream dependency name.</comment></data>
+  <data name="HealthNameCommunityAssetFormat" xml:space="preserve"><value>{0} community {1}</value><comment>{0} is the community asset name; {1} is its kind, such as theme or extension.</comment></data>
   <data name="HealthStatusWillBeReplaced" xml:space="preserve"><value>Will be replaced</value><comment>Health status.</comment></data>
   <data name="HealthStatusExclusionRecommended" xml:space="preserve"><value>Exclusion recommended</value><comment>Health status.</comment></data>
   <data name="HealthStatusLatestUnknown" xml:space="preserve"><value>Latest unknown</value><comment>Health status.</comment></data>
@@ -2385,7 +2385,7 @@
   <data name="HealthStatusInjectionDisabled" xml:space="preserve"><value>Injection disabled</value><comment>Health status.</comment></data>
   <data name="HealthStatusActive" xml:space="preserve"><value>Active</value><comment>Health status.</comment></data>
   <data name="HealthStatusOneBackup" xml:space="preserve"><value>1 backup</value><comment>Health status count.</comment></data>
-  <data name="HealthStatusBackupsFormat" xml:space="preserve"><value>{0} backups</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusBackupsFormat" xml:space="preserve"><value>{0} backups</value><comment>{0} is the number of backups.</comment></data>
   <data name="HealthStatusNoneYet" xml:space="preserve"><value>None yet</value><comment>Health status.</comment></data>
   <data name="HealthStatusDisabled" xml:space="preserve"><value>Disabled</value><comment>Health status.</comment></data>
   <data name="HealthStatusNoRunRecorded" xml:space="preserve"><value>No run recorded</value><comment>Health status.</comment></data>
@@ -2396,7 +2396,7 @@
   <data name="HealthStatusWatcherDeferred" xml:space="preserve"><value>Deferred while Spotify is running</value><comment>Localized watcher outcome.</comment></data>
   <data name="HealthStatusWatcherNoConfig" xml:space="preserve"><value>No saved config</value><comment>Localized watcher outcome.</comment></data>
   <data name="HealthStatusWatcherPreferenceOff" xml:space="preserve"><value>Preference off</value><comment>Localized watcher outcome.</comment></data>
-  <data name="HealthStatusWatcherOutcomeFormat" xml:space="preserve"><value>Outcome: {0}</value><comment>Fallback localized wrapper for a watcher outcome token.</comment></data>
+  <data name="HealthStatusWatcherOutcomeFormat" xml:space="preserve"><value>Outcome: {0}</value><comment>{0} is the watcher outcome token.</comment></data>
   <data name="HealthStatusNotApplicable" xml:space="preserve"><value>Not applicable</value><comment>Health status.</comment></data>
   <data name="HealthStatusNoWatcherHistory" xml:space="preserve"><value>No watcher history</value><comment>Health status.</comment></data>
   <data name="HealthStatusWatcherNotEnabled" xml:space="preserve"><value>Watcher not enabled</value><comment>Health status.</comment></data>
@@ -2411,33 +2411,33 @@
   <data name="HealthStatusNoLogsYet" xml:space="preserve"><value>No logs yet</value><comment>Health status.</comment></data>
   <data name="HealthStatusAvailable" xml:space="preserve"><value>Available</value><comment>Health status.</comment></data>
   <data name="HealthStatusOneRecentCrash" xml:space="preserve"><value>1 recent crash</value><comment>Health status count.</comment></data>
-  <data name="HealthStatusRecentCrashesFormat" xml:space="preserve"><value>{0} recent crashes</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusRecentCrashesFormat" xml:space="preserve"><value>{0} recent crashes</value><comment>{0} is the number of recent crashes.</comment></data>
   <data name="HealthStatusNoRecentCrashes" xml:space="preserve"><value>No recent crashes</value><comment>Health status.</comment></data>
   <data name="HealthStatusNotSaved" xml:space="preserve"><value>Not saved</value><comment>Health status.</comment></data>
   <data name="HealthStatusProfileFolderMissing" xml:space="preserve"><value>Profile folder missing</value><comment>Health status.</comment></data>
   <data name="HealthStatusOneCorruptEntry" xml:space="preserve"><value>1 corrupt entry</value><comment>Health status count.</comment></data>
-  <data name="HealthStatusCorruptEntriesFormat" xml:space="preserve"><value>{0} corrupt entries</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusCorruptEntriesFormat" xml:space="preserve"><value>{0} corrupt entries</value><comment>{0} is the number of corrupt cache entries.</comment></data>
   <data name="HealthStatusOneStaleEntry" xml:space="preserve"><value>1 stale entry</value><comment>Health status count.</comment></data>
-  <data name="HealthStatusStaleEntriesFormat" xml:space="preserve"><value>{0} stale entries</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusStaleEntriesFormat" xml:space="preserve"><value>{0} stale entries</value><comment>{0} is the number of stale cache entries.</comment></data>
   <data name="HealthStatusEmpty" xml:space="preserve"><value>Empty</value><comment>Health status.</comment></data>
   <data name="HealthStatusOneEntry" xml:space="preserve"><value>1 entry</value><comment>Health status count.</comment></data>
-  <data name="HealthStatusEntriesFormat" xml:space="preserve"><value>{0} entries</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusEntriesFormat" xml:space="preserve"><value>{0} entries</value><comment>{0} is the number of cache entries.</comment></data>
   <data name="HealthStatusNoneRegistered" xml:space="preserve"><value>None registered</value><comment>Health status.</comment></data>
   <data name="HealthStatusInvalidEntry" xml:space="preserve"><value>Invalid entry</value><comment>Health status.</comment></data>
-  <data name="HealthStatusInvalidEntriesFormat" xml:space="preserve"><value>{0} invalid entries</value><comment>Health status count.</comment></data>
-  <data name="HealthStatusExtensionMissingFormat" xml:space="preserve"><value>&apos;{0}&apos; missing</value><comment>Health status for one missing extension file.</comment></data>
-  <data name="HealthStatusExtensionFilesMissingFormat" xml:space="preserve"><value>{0} files missing</value><comment>Health status count.</comment></data>
+  <data name="HealthStatusInvalidEntriesFormat" xml:space="preserve"><value>{0} invalid entries</value><comment>{0} is the number of invalid entries.</comment></data>
+  <data name="HealthStatusExtensionMissingFormat" xml:space="preserve"><value>&apos;{0}&apos; missing</value><comment>{0} is the missing extension file name.</comment></data>
+  <data name="HealthStatusExtensionFilesMissingFormat" xml:space="preserve"><value>{0} files missing</value><comment>{0} is the number of missing extension files.</comment></data>
   <data name="HealthStatusAllPresent" xml:space="preserve"><value>All present</value><comment>Health status.</comment></data>
   <data name="HealthValueUnknown" xml:space="preserve"><value>unknown</value><comment>Unknown health evidence value.</comment></data>
   <data name="HealthValueApply" xml:space="preserve"><value>apply</value><comment>Spicetify apply stage label in health evidence.</comment></data>
   <data name="HealthValueSucceeded" xml:space="preserve"><value>succeeded</value><comment>Successful health evidence result.</comment></data>
   <data name="HealthValueFailed" xml:space="preserve"><value>failed</value><comment>Failed health evidence result.</comment></data>
   <data name="HealthEvidenceStoreSpotify" xml:space="preserve"><value>The Microsoft Store version of Spotify is installed. LibreSpot patches the standard desktop build, so SpotX will replace the Store version during setup.</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidenceAntivirusExclusionFormat" xml:space="preserve"><value>Windows Defender real-time protection is on and the Spotify folder is not excluded, so patched files may be quarantined as a false positive. LibreSpot never changes antivirus settings. To add an exclusion yourself, open PowerShell as administrator and run: Add-MpPreference -ExclusionPath &quot;{0}&quot;</value><comment>Health evidence with the Spotify directory.</comment></data>
-  <data name="HealthEvidenceUpstreamUnavailableFormat" xml:space="preserve"><value>Pinned {0}; current {1}; live upstream metadata is unavailable. Detail: {2}</value><comment>Degraded upstream health evidence.</comment></data>
-  <data name="HealthEvidenceCommunityUnavailableFormat" xml:space="preserve"><value>Pinned commit {0}; live community asset metadata is unavailable. Detail: {1}</value><comment>Degraded community asset health evidence.</comment></data>
-  <data name="HealthEvidenceUpstreamFormat" xml:space="preserve"><value>Pinned: {0}; current: {1}; latest: {2}; drift: {3}; source: {4}; cache age {5}.</value><comment>Structured upstream dependency health evidence.</comment></data>
-  <data name="HealthEvidenceCommunityAssetFormat" xml:space="preserve"><value>Pinned commit: {0}; latest: {1}; drift: {2}; source: {3}; license: {4}; network behavior: {5}.</value><comment>Structured community asset health evidence.</comment></data>
+  <data name="HealthEvidenceAntivirusExclusionFormat" xml:space="preserve"><value>Windows Defender real-time protection is on and the Spotify folder is not excluded, so patched files may be quarantined as a false positive. LibreSpot never changes antivirus settings. To add an exclusion yourself, open PowerShell as administrator and run: Add-MpPreference -ExclusionPath &quot;{0}&quot;</value><comment>{0} is the Spotify directory path, quoted in the PowerShell command.</comment></data>
+  <data name="HealthEvidenceUpstreamUnavailableFormat" xml:space="preserve"><value>Pinned {0}; current {1}; live upstream metadata is unavailable. Detail: {2}</value><comment>{0} is the pinned value; {1} the current value; {2} the reason upstream metadata is unavailable.</comment></data>
+  <data name="HealthEvidenceCommunityUnavailableFormat" xml:space="preserve"><value>Pinned commit {0}; live community asset metadata is unavailable. Detail: {1}</value><comment>{0} is the pinned commit; {1} the reason community metadata is unavailable.</comment></data>
+  <data name="HealthEvidenceUpstreamFormat" xml:space="preserve"><value>Pinned: {0}; current: {1}; latest: {2}; drift: {3}; source: {4}; cache age {5}.</value><comment>{0} is the pinned value; {1} the current value; {2} the latest upstream value; {3} the drift state; {4} the metadata source; {5} the cache age.</comment></data>
+  <data name="HealthEvidenceCommunityAssetFormat" xml:space="preserve"><value>Pinned commit: {0}; latest: {1}; drift: {2}; source: {3}; license: {4}; network behavior: {5}.</value><comment>{0} is the pinned commit; {1} the latest commit; {2} the drift state; {3} the metadata source; {4} the SPDX license; {5} the network behavior.</comment></data>
   <data name="HealthEvidenceSpotifyMissing" xml:space="preserve"><value>Spotify.exe was not found in the expected per-user install path.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotifyDetected" xml:space="preserve"><value>Spotify.exe exists and can be used as the patch target.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotXNotChecked" xml:space="preserve"><value>SpotX patch markers are only meaningful after Spotify is installed.</value><comment>Health evidence.</comment></data>
@@ -2457,8 +2457,8 @@
   <data name="HealthEvidenceSpicetifyConfigUnavailable" xml:space="preserve"><value>Spicetify config is created after the CLI is installed.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyConfigMissing" xml:space="preserve"><value>config-xpui.ini is missing, so saved theme and extension state cannot be inspected.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyConfigNoTheme" xml:space="preserve"><value>config-xpui.ini exists; current_theme is not set.</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidenceSpicetifyConfigThemeFormat" xml:space="preserve"><value>config-xpui.ini exists; current_theme={0}.</value><comment>Health evidence with the active theme.</comment></data>
-  <data name="HealthEvidenceSpicetifyConfigAppsFormat" xml:space="preserve"><value>custom_apps={0}.</value><comment>Health evidence with enabled custom apps.</comment></data>
+  <data name="HealthEvidenceSpicetifyConfigThemeFormat" xml:space="preserve"><value>config-xpui.ini exists; current_theme={0}.</value><comment>{0} is the active theme name from config-xpui.ini.</comment></data>
+  <data name="HealthEvidenceSpicetifyConfigAppsFormat" xml:space="preserve"><value>custom_apps={0}.</value><comment>{0} is the enabled custom_apps list from config-xpui.ini.</comment></data>
   <data name="HealthEvidenceMarketplaceUnavailable" xml:space="preserve"><value>Marketplace is installed through Spicetify.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceMarketplaceReady" xml:space="preserve"><value>Marketplace files are present and custom_apps includes marketplace.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceMarketplaceStorage" xml:space="preserve"><value>Marketplace 1.0.9 stores saved themes, snippets, extensions, and settings in the embedded browser's IndexedDB database. LibreSpot detects this boundary but does not back it up. Use Marketplace's own export/import controls before a repair or reset.</value><comment>Health evidence and recovery guidance for Marketplace browser storage.</comment></data>
@@ -2467,38 +2467,38 @@
   <data name="HealthEvidenceMarketplaceNotEnabled" xml:space="preserve"><value>Marketplace is not registered and required files were not found.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceMarketplaceNoVisibility" xml:space="preserve"><value>No post-apply visibility evidence has been recorded yet.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceManifestUnknown" xml:space="preserve"><value>manifest version unknown</value><comment>Marketplace visibility evidence.</comment></data>
-  <data name="HealthEvidenceManifestFormat" xml:space="preserve"><value>manifest version {0}</value><comment>Marketplace visibility evidence.</comment></data>
-  <data name="HealthEvidenceApplyResultFormat" xml:space="preserve"><value>{0} {1}</value><comment>Marketplace visibility apply stage and result.</comment></data>
+  <data name="HealthEvidenceManifestFormat" xml:space="preserve"><value>manifest version {0}</value><comment>{0} is the Marketplace manifest version.</comment></data>
+  <data name="HealthEvidenceApplyResultFormat" xml:space="preserve"><value>{0} {1}</value><comment>{0} is the Spicetify apply stage; {1} is its result.</comment></data>
   <data name="HealthEvidenceApplyNotRecorded" xml:space="preserve"><value>apply result not recorded</value><comment>Marketplace visibility evidence.</comment></data>
-  <data name="HealthEvidenceOpenResultFormat" xml:space="preserve"><value>open URI {0}</value><comment>Marketplace visibility open result.</comment></data>
+  <data name="HealthEvidenceOpenResultFormat" xml:space="preserve"><value>open URI {0}</value><comment>{0} is the result of the spotify:app:marketplace open attempt.</comment></data>
   <data name="HealthEvidenceOpenNotRecorded" xml:space="preserve"><value>open URI not recorded</value><comment>Marketplace visibility evidence.</comment></data>
   <data name="HealthEvidenceSpotifyObserved" xml:space="preserve"><value>Spotify process observed after URI request</value><comment>Marketplace visibility evidence.</comment></data>
   <data name="HealthEvidenceSpotifyNotObserved" xml:space="preserve"><value>Spotify process not observed after URI request</value><comment>Marketplace visibility evidence.</comment></data>
-  <data name="HealthEvidenceMarketplaceVisibilityFormat" xml:space="preserve"><value>{0} Visibility evidence from {1}: {2}; {3}; {4}; {5}; likely visible={6}.</value><comment>Combined Marketplace visibility evidence.</comment></data>
-  <data name="HealthEvidenceApplyDetailFormat" xml:space="preserve"><value>Apply detail: {0}</value><comment>Marketplace apply detail.</comment></data>
-  <data name="HealthEvidenceOpenDetailFormat" xml:space="preserve"><value>Open detail: {0}</value><comment>Marketplace open detail.</comment></data>
+  <data name="HealthEvidenceMarketplaceVisibilityFormat" xml:space="preserve"><value>{0} Visibility evidence from {1}: {2}; {3}; {4}; {5}; likely visible={6}.</value><comment>{0} is the leading evidence sentence; {1} the evidence source; {2} the installed files; {3} the manifest version; {4} the custom_apps registration; {5} the apply stage; {6} the likely-visible verdict.</comment></data>
+  <data name="HealthEvidenceApplyDetailFormat" xml:space="preserve"><value>Apply detail: {0}</value><comment>{0} is the Spicetify apply detail.</comment></data>
+  <data name="HealthEvidenceOpenDetailFormat" xml:space="preserve"><value>Open detail: {0}</value><comment>{0} is the open-attempt detail.</comment></data>
   <data name="HealthEvidenceThemeUnavailable" xml:space="preserve"><value>Theme state is available after Spicetify writes config-xpui.ini.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceThemeStock" xml:space="preserve"><value>No bundled theme is active; Marketplace-only and stock looks are valid states.</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidenceThemeInjectionDisabledFormat" xml:space="preserve"><value>Theme &apos;{0}&apos; is selected, but inject_css or replace_colors is disabled.</value><comment>Health evidence with the selected theme.</comment></data>
-  <data name="HealthEvidenceThemeActiveFormat" xml:space="preserve"><value>Theme &apos;{0}&apos; is selected with CSS and color replacement enabled.</value><comment>Health evidence with the selected theme.</comment></data>
+  <data name="HealthEvidenceThemeInjectionDisabledFormat" xml:space="preserve"><value>Theme &apos;{0}&apos; is selected, but inject_css or replace_colors is disabled.</value><comment>{0} is the selected theme name.</comment></data>
+  <data name="HealthEvidenceThemeActiveFormat" xml:space="preserve"><value>Theme &apos;{0}&apos; is selected with CSS and color replacement enabled.</value><comment>{0} is the selected theme name.</comment></data>
   <data name="HealthEvidenceBackupsAvailable" xml:space="preserve"><value>At least one LibreSpot backup directory is available for restore.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceBackupsMissing" xml:space="preserve"><value>Spicetify is installed, but no LibreSpot backup directory is available.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceBackupsPending" xml:space="preserve"><value>Backups are created after Spicetify has something to save.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherDisabled" xml:space="preserve"><value>The watcher task is not registered; auto-reapply is opt-in.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherNoRun" xml:space="preserve"><value>The scheduled task exists, but watcher-state.json has no recorded tick yet.</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidenceWatcherFailedFormat" xml:space="preserve"><value>The last watcher tick failed: {0}</value><comment>Health evidence with the watcher outcome.</comment></data>
+  <data name="HealthEvidenceWatcherFailedFormat" xml:space="preserve"><value>The last watcher tick failed: {0}</value><comment>{0} is the watcher failure outcome.</comment></data>
   <data name="HealthEvidenceWatcherStale" xml:space="preserve"><value>The scheduled task exists, but it has not recorded a tick in more than seven days.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherActive" xml:space="preserve"><value>The scheduled task is registered and watcher state is recent.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidencePostUpdateNotApplicable" xml:space="preserve"><value>Post-update drift checks start after Spotify is installed.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidencePostUpdateNoHistory" xml:space="preserve"><value>LibreSpot has not recorded a patched Spotify version yet. Run setup or reapply once so future updates can be compared.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidencePostUpdateWatcherDisabled" xml:space="preserve"><value>Auto-reapply is not enabled and there is no recorded patched Spotify version for future comparison.</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidencePostUpdateMarketplaceMissingFormat" xml:space="preserve"><value>The watcher reapplied Spotify {0}, but Marketplace is not ready. Last successful apply: {1}. Spicetify: {2}.</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidencePostUpdateReappliedFormat" xml:space="preserve"><value>The watcher reapplied the current Spotify version. Last successful apply: {0}. Spicetify: {1}.</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidencePostUpdateDeferredFormat" xml:space="preserve"><value>Spotify changed from {0} to {1}, but the watcher deferred because Spotify was running. Close Spotify, then reapply the saved profile.</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidencePostUpdateWatcherFailedFormat" xml:space="preserve"><value>The watcher could not finish after Spotify changed from {0} to {1}. {2}</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidencePostUpdateRolledBackFormat" xml:space="preserve"><value>Spicetify apply failed after the Spotify update, but LibreSpot restored Spotify. Error: {0}</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidencePostUpdateReapplyNeededFormat" xml:space="preserve"><value>Spotify changed from {0} to {1}. Reapply the saved profile before escalating to reset.</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidencePostUpdateNoDriftFormat" xml:space="preserve"><value>The current Spotify version matches the last known patched version. Spicetify: {0}.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidencePostUpdateMarketplaceMissingFormat" xml:space="preserve"><value>The watcher reapplied Spotify {0}, but Marketplace is not ready. Last successful apply: {1}. Spicetify: {2}.</value><comment>{0} is the Spotify version the watcher reapplied; {1} the last successful apply time; {2} the Spicetify version.</comment></data>
+  <data name="HealthEvidencePostUpdateReappliedFormat" xml:space="preserve"><value>The watcher reapplied the current Spotify version. Last successful apply: {0}. Spicetify: {1}.</value><comment>{0} is the last successful apply time; {1} is the Spicetify version.</comment></data>
+  <data name="HealthEvidencePostUpdateDeferredFormat" xml:space="preserve"><value>Spotify changed from {0} to {1}, but the watcher deferred because Spotify was running. Close Spotify, then reapply the saved profile.</value><comment>{0} is the previous Spotify version; {1} is the new one.</comment></data>
+  <data name="HealthEvidencePostUpdateWatcherFailedFormat" xml:space="preserve"><value>The watcher could not finish after Spotify changed from {0} to {1}. {2}</value><comment>{0} is the previous Spotify version; {1} the new one; {2} the failure detail.</comment></data>
+  <data name="HealthEvidencePostUpdateRolledBackFormat" xml:space="preserve"><value>Spicetify apply failed after the Spotify update, but LibreSpot restored Spotify. Error: {0}</value><comment>{0} is the Spicetify apply error.</comment></data>
+  <data name="HealthEvidencePostUpdateReapplyNeededFormat" xml:space="preserve"><value>Spotify changed from {0} to {1}. Reapply the saved profile before escalating to reset.</value><comment>{0} is the previous Spotify version; {1} is the new one.</comment></data>
+  <data name="HealthEvidencePostUpdateNoDriftFormat" xml:space="preserve"><value>The current Spotify version matches the last known patched version. Spicetify: {0}.</value><comment>{0} is the Spicetify version.</comment></data>
   <data name="HealthEvidenceLogsMissing" xml:space="preserve"><value>No backend install log or desktop rolling log was found yet.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceLogsAvailable" xml:space="preserve"><value>Backend and desktop logs are available for local troubleshooting.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceRecentCrashes" xml:space="preserve"><value>Recent crash reports exist; inspect them before treating the shell as stable.</value><comment>Health evidence.</comment></data>
@@ -2507,25 +2507,25 @@
   <data name="HealthEvidenceSavedProfileAvailable" xml:space="preserve"><value>config.json exists and can seed reapply, watcher, and custom install flows.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSavedProfileNotSaved" xml:space="preserve"><value>The LibreSpot profile folder exists, but config.json has not been saved yet.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSavedProfileFolderMissing" xml:space="preserve"><value>The LibreSpot profile folder will be created on the first save.</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidenceCacheSummaryFormat" xml:space="preserve"><value>Cache entries: {0}; present: {1}; size: {2}.</value><comment>Asset-cache health summary.</comment></data>
-  <data name="HealthEvidenceCacheCorruptFormat" xml:space="preserve"><value>{0} {1} cached file(s) failed SHA256 verification and should be cleared before relying on offline installs.</value><comment>Corrupt asset-cache health evidence.</comment></data>
-  <data name="HealthEvidenceCacheStaleFormat" xml:space="preserve"><value>{0} Stale means an index row points at a missing file or a legacy hash file has no source label yet.</value><comment>Stale asset-cache health evidence.</comment></data>
+  <data name="HealthEvidenceCacheSummaryFormat" xml:space="preserve"><value>Cache entries: {0}; present: {1}; size: {2}.</value><comment>{0} is the number of cache entries; {1} how many are present on disk; {2} the total size.</comment></data>
+  <data name="HealthEvidenceCacheCorruptFormat" xml:space="preserve"><value>{0} {1} cached file(s) failed SHA256 verification and should be cleared before relying on offline installs.</value><comment>{0} is the cache summary sentence; {1} is the number of files that failed SHA256 verification.</comment></data>
+  <data name="HealthEvidenceCacheStaleFormat" xml:space="preserve"><value>{0} Stale means an index row points at a missing file or a legacy hash file has no source label yet.</value><comment>{0} is the cache summary sentence.</comment></data>
   <data name="HealthEvidenceCacheEmpty" xml:space="preserve"><value>No verified download cache entries were found yet.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceExtensionsNotApplicable" xml:space="preserve"><value>Extension file checks run after Spicetify is installed.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceExtensionsNoneRegistered" xml:space="preserve"><value>No Spicetify extensions are registered in config-xpui.ini.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceExtensionsInvalid" xml:space="preserve"><value>Extension entries must be plain file names under the Extensions folder; unsafe paths and invalid names are ignored.</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidenceExtensionsMissingFormat" xml:space="preserve"><value>Registered extensions are missing from disk: {0}. A security product may have quarantined them; check Windows Security protection history.</value><comment>Health evidence with missing extension names.</comment></data>
-  <data name="HealthEvidenceExtensionsAllPresentFormat" xml:space="preserve"><value>All {0} registered extension file(s) exist on disk.</value><comment>Health evidence with extension count.</comment></data>
-  <data name="HealthActionUnknownFormat" xml:space="preserve"><value>Review action: {0}</value><comment>Localized fallback wrapper for an unrecognized health action identifier.</comment></data>
+  <data name="HealthEvidenceExtensionsMissingFormat" xml:space="preserve"><value>Registered extensions are missing from disk: {0}. A security product may have quarantined them; check Windows Security protection history.</value><comment>{0} is the list of missing extension file names.</comment></data>
+  <data name="HealthEvidenceExtensionsAllPresentFormat" xml:space="preserve"><value>All {0} registered extension file(s) exist on disk.</value><comment>{0} is the number of registered extension files.</comment></data>
+  <data name="HealthActionUnknownFormat" xml:space="preserve"><value>Review action: {0}</value><comment>{0} is the unrecognized health action identifier.</comment></data>
   <data name="HealthValueNone" xml:space="preserve"><value>none</value><comment>Absent health evidence value.</comment></data>
-  <data name="HealthCacheAgeSecondsFormat" xml:space="preserve"><value>{0} seconds</value><comment>Age of cached health metadata in seconds.</comment></data>
-  <data name="HealthCacheAgeMinutesFormat" xml:space="preserve"><value>{0} minutes</value><comment>Age of cached health metadata in minutes.</comment></data>
-  <data name="HealthCacheAgeHoursFormat" xml:space="preserve"><value>{0} hours</value><comment>Age of cached health metadata in hours.</comment></data>
-  <data name="HealthCacheAgeDaysFormat" xml:space="preserve"><value>{0} days</value><comment>Age of cached health metadata in days.</comment></data>
+  <data name="HealthCacheAgeSecondsFormat" xml:space="preserve"><value>{0} seconds</value><comment>{0} is the age of the cached health metadata in seconds.</comment></data>
+  <data name="HealthCacheAgeMinutesFormat" xml:space="preserve"><value>{0} minutes</value><comment>{0} is the age of the cached health metadata in minutes.</comment></data>
+  <data name="HealthCacheAgeHoursFormat" xml:space="preserve"><value>{0} hours</value><comment>{0} is the age of the cached health metadata in hours.</comment></data>
+  <data name="HealthCacheAgeDaysFormat" xml:space="preserve"><value>{0} days</value><comment>{0} is the age of the cached health metadata in days.</comment></data>
   <data name="Vm_ShellProvenanceTitle" xml:space="preserve"><value>Pinned asset provenance</value><comment>Heading above the upstream source and version provenance list.</comment></data>
   <data name="Vm_ShellProvenanceDetail" xml:space="preserve"><value>Each core asset is pinned to a reviewed source. Freshness reflects the latest available upstream metadata.</value><comment>Explanation above the upstream provenance list.</comment></data>
-  <data name="Vm_ShellProvenancePinnedFormat" xml:space="preserve"><value>Pinned: {0}</value><comment>Pinned upstream version or commit.</comment></data>
-  <data name="Vm_ShellProvenanceVerifiedFormat" xml:space="preserve"><value>Last verified: {0}</value><comment>Last curated verification date for an upstream pin.</comment></data>
+  <data name="Vm_ShellProvenancePinnedFormat" xml:space="preserve"><value>Pinned: {0}</value><comment>{0} is the pinned upstream version or commit.</comment></data>
+  <data name="Vm_ShellProvenanceVerifiedFormat" xml:space="preserve"><value>Last verified: {0}</value><comment>{0} is the date the pin was last verified.</comment></data>
   <data name="Vm_ShellProvenanceVerifiedUnknown" xml:space="preserve"><value>Last verified: unknown</value><comment>Fallback when an upstream pin has no verification date.</comment></data>
   <data name="Vm_ShellProvenanceCurrent" xml:space="preserve"><value>Current</value><comment>Upstream provenance freshness status.</comment></data>
   <data name="Vm_ShellProvenanceStale" xml:space="preserve"><value>Update available</value><comment>Upstream provenance freshness status when the pin is behind.</comment></data>
@@ -2539,7 +2539,7 @@
   <data name="HealthStatusOwnershipForeign" xml:space="preserve"><value>Migration review needed</value></data>
   <data name="HealthStatusOwnershipLibreSpot" xml:space="preserve"><value>LibreSpot-owned</value></data>
   <data name="HealthStatusOwnershipNone" xml:space="preserve"><value>No patcher state</value></data>
-  <data name="HealthEvidencePatcherOwnershipFormat" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="HealthEvidencePatcherOwnershipFormat" xml:space="preserve"><value>{0} {1}</value><comment>Health evidence combining {0}=ownership summary and {1}=migration recommendation.</comment></data>
   <data name="Vm_UndoPreviewButton" xml:space="preserve"><value>Preview selected</value></data>
   <data name="Vm_UndoPreviewHelp" xml:space="preserve"><value>Validate current state and show exactly what selected undo items would restore.</value></data>
   <data name="Vm_UndoExecuteButton" xml:space="preserve"><value>Undo selected</value></data>
@@ -2547,23 +2547,23 @@
   <data name="Vm_UndoPreviewTitle" xml:space="preserve"><value>Undo preview</value></data>
   <data name="Vm_UndoNoneSelected" xml:space="preserve"><value>No executable undo item is selected.</value></data>
   <data name="Vm_UndoSelectLowRisk" xml:space="preserve"><value>Select an enabled low-risk item, then preview it again.</value></data>
-  <data name="Vm_UndoPreviewSummaryFormat" xml:space="preserve"><value>{0} of {1} selected undo items pass current-state validation.</value></data>
+  <data name="Vm_UndoPreviewSummaryFormat" xml:space="preserve"><value>{0} of {1} selected undo items pass current-state validation.</value><comment>Undo preview count; {0}=accepted and {1}=selected.</comment></data>
   <data name="Vm_UndoStateChanged" xml:space="preserve"><value>The current state changed, so undo was refused. Refresh Maintenance to pick up the new state, then try the undo again.</value></data>
   <data name="Vm_UndoConfirmTitle" xml:space="preserve"><value>Undo selected changes?</value></data>
-  <data name="Vm_UndoConfirmBodyFormat" xml:space="preserve"><value>LibreSpot will execute {0} selected low-risk undo item(s) in reverse order after revalidating current state.</value></data>
+  <data name="Vm_UndoConfirmBodyFormat" xml:space="preserve"><value>LibreSpot will execute {0} selected low-risk undo item(s) in reverse order after revalidating current state.</value><comment>Undo confirmation body; {0}=selected count.</comment></data>
   <data name="Vm_UndoConfirmButton" xml:space="preserve"><value>Undo selected</value></data>
   <data name="Vm_UndoActivityTitle" xml:space="preserve"><value>Undoing selected changes</value></data>
   <data name="Vm_UndoActivityStatus" xml:space="preserve"><value>Validating captured state</value></data>
-  <data name="Vm_UndoActivityStepFormat" xml:space="preserve"><value>Preparing {0} selected item(s)</value></data>
-  <data name="Vm_UndoSucceededFormat" xml:space="preserve"><value>Undo {0}: {1}</value></data>
-  <data name="Vm_UndoFailedFormat" xml:space="preserve"><value>Undo {0} failed: {1}</value></data>
+  <data name="Vm_UndoActivityStepFormat" xml:space="preserve"><value>Preparing {0} selected item(s)</value><comment>Undo activity step; {0}=selected count.</comment></data>
+  <data name="Vm_UndoSucceededFormat" xml:space="preserve"><value>Undo {0}: {1}</value><comment>Successful undo log line; {0}=operation ID and {1}=result.</comment></data>
+  <data name="Vm_UndoFailedFormat" xml:space="preserve"><value>Undo {0} failed: {1}</value><comment>Failed undo log line; {0}=operation ID and {1}=reason.</comment></data>
   <data name="Vm_UndoComplete" xml:space="preserve"><value>Selected changes were undone</value></data>
   <data name="Vm_UndoNeedsReview" xml:space="preserve"><value>Some selected changes need review</value></data>
-  <data name="Vm_UndoResultFormat" xml:space="preserve"><value>{0} succeeded; {1} failed. Operation IDs are in the activity log.</value></data>
+  <data name="Vm_UndoResultFormat" xml:space="preserve"><value>{0} succeeded; {1} failed. Operation IDs are in the activity log.</value><comment>Undo result summary; {0}=success count and {1}=failure count.</comment></data>
   <data name="Vm_OperationIdLabel" xml:space="preserve"><value>Operation ID</value></data>
   <data name="Vm_CopyOperationIdName" xml:space="preserve"><value>Copy operation ID</value></data>
   <data name="Vm_CopyOperationIdHelp" xml:space="preserve"><value>Copy this ID when matching activity, logs, crash reports, and support bundles.</value></data>
-  <data name="Vm_OperationStartedFormat" xml:space="preserve"><value>Operation {0} started.</value></data>
+  <data name="Vm_OperationStartedFormat" xml:space="preserve"><value>Operation {0} started.</value><comment>Activity log line. {0} is a stable operation GUID.</comment></data>
   <data name="Vm_OperationIdCopied" xml:space="preserve"><value>Operation ID copied.</value></data>
   <data name="Vm_OperationIdClipboardUnavailable" xml:space="preserve"><value>Clipboard is unavailable. Select the operation ID and copy it manually.</value></data>
   <data name="Vm_GlobalSearchLabel" xml:space="preserve"><value>Search LibreSpot</value></data>
@@ -2572,10 +2572,10 @@
   <data name="Vm_GlobalSearchShortcutText" xml:space="preserve"><value>Ctrl+K</value></data>
   <data name="Vm_GlobalSearchShortcutHelp" xml:space="preserve"><value>Ctrl+K focuses Search LibreSpot.</value></data>
   <data name="Vm_GlobalSearchResultsLabel" xml:space="preserve"><value>Search results</value></data>
-  <data name="Vm_GlobalSearchNoMatchesFormat" xml:space="preserve"><value>No matches for “{0}”.</value></data>
-  <data name="Vm_GlobalSearchOneMatchFormat" xml:space="preserve"><value>1 result for “{0}”.</value></data>
-  <data name="Vm_GlobalSearchManyMatchesFormat" xml:space="preserve"><value>{0} results for “{1}”.</value></data>
-  <data name="Vm_GlobalSearchOpenResultHelpFormat" xml:space="preserve"><value>Open {0} in {1}.</value></data>
+  <data name="Vm_GlobalSearchNoMatchesFormat" xml:space="preserve"><value>No matches for “{0}”.</value><comment>Global search summary when the query has no matches; {0}=query.</comment></data>
+  <data name="Vm_GlobalSearchOneMatchFormat" xml:space="preserve"><value>1 result for “{0}”.</value><comment>Global search summary when the query has one match; {0}=query.</comment></data>
+  <data name="Vm_GlobalSearchManyMatchesFormat" xml:space="preserve"><value>{0} results for “{1}”.</value><comment>Global search summary; {0}=result count and {1}=query.</comment></data>
+  <data name="Vm_GlobalSearchOpenResultHelpFormat" xml:space="preserve"><value>Open {0} in {1}.</value><comment>Accessible help for a global result; {0}=title and {1}=category.</comment></data>
   <data name="Vm_GlobalSearchEmptyTitle" xml:space="preserve"><value>Nothing matched</value></data>
   <data name="Vm_GlobalSearchEmptyHint" xml:space="preserve"><value>Try a feature name, setting, theme, profile, repair action, or health status.</value></data>
   <data name="Vm_GlobalSearchCategorySetup" xml:space="preserve"><value>Setup</value></data>
@@ -2587,7 +2587,7 @@
   <data name="Vm_GlobalSearchCategoryHealthTrust" xml:space="preserve"><value>Health &amp; trust</value></data>
   <data name="CompatibilityVerdictTitle" xml:space="preserve"><value>Compatibility verdict</value></data>
   <data name="CompatibilityVerdictDescription" xml:space="preserve"><value>Detected component versions are compared with the pinned Spotify, SpotX, Spicetify, and Marketplace tuple.</value></data>
-  <data name="CompatibilityVerdictSummaryFormat" xml:space="preserve"><value>Overall: {0}</value></data>
+  <data name="CompatibilityVerdictSummaryFormat" xml:space="preserve"><value>Overall: {0}</value><comment>{0} is the overall compatibility verdict.</comment></data>
   <data name="CompatibilityDetectedLabel" xml:space="preserve"><value>Detected</value></data>
   <data name="CompatibilityPinnedLabel" xml:space="preserve"><value>Pinned</value></data>
   <data name="CompatibilityNextStepLabel" xml:space="preserve"><value>Next step</value></data>
