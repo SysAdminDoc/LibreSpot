@@ -2285,19 +2285,6 @@
   <data name="Vm_AdminPromptKeepReviewing" xml:space="preserve"><value>继续检查设置</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_AdminPromptSummaryTitle" xml:space="preserve"><value>在继续之前</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_AdminPromptSummaryBody" xml:space="preserve"><value>在 Windows 批准重新启动之前不会发生任何更改。如果您还没有准备好，可以留在此处继续检查设置。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RelaunchUnableTitle" xml:space="preserve"><value>无法重新启动</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RelaunchMissingPathStatus" xml:space="preserve"><value>LibreSpot 无法解析其当前的可执行路径。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RelaunchStayStandard" xml:space="preserve"><value>保持标准模式</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RelaunchDeveloperTitle" xml:space="preserve"><value>以管理员身份运行 LibreSpot.exe</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RelaunchDeveloperStatus" xml:space="preserve"><value>LibreSpot 目前由以下托管者托管：开发者模式下的 dotnet.exe。构建发布二进制文件并以管理员身份重新启动。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RelaunchDeveloperStep" xml:space="preserve"><value>开发者会话</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RelaunchFailedTitle" xml:space="preserve"><value>重新启动失败</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RelaunchFailedStatus" xml:space="preserve"><value>无法启动提升的进程。尝试右键单击 LibreSpot.exe 并选择手动以管理员身份运行。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RelaunchCanceledTitle" xml:space="preserve"><value>管理员重新启动已取消</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RelaunchCanceledStatus" xml:space="preserve"><value>LibreSpot 仍以标准模式打开。您可以继续检查设置，并在准备好后重新启动。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RelaunchWaitingStep" xml:space="preserve"><value>等待提升</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RelaunchExceptionStatus" xml:space="preserve"><value>Windows 未启动提升的 LibreSpot 会话。您仍然可以关闭此窗口并以管理员身份手动运行该应用。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_RelaunchElevationFailedStep" xml:space="preserve"><value>提升失败</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptTitle" xml:space="preserve"><value>风险确认</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptBodyFormat" xml:space="preserve"><value>LibreSpot 会修改您的 Spotify 安装以删除广告并应用主题。这违反了 Spotify 服务条款和用户指南 (https://spotify.com/legal/user-guidelines/)。虽然针对个人用户的强制措施尚未公开记录，但您的帐户可能会受到影响。{0}继续即表示您承认此风险并同意自行决定继续操作。{0}您可以随时使用“维护”&gt;“完全重置”恢复库存 Spotify。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RiskPromptConfirm" xml:space="preserve"><value>我明白，继续</value><comment>MainViewModel localized runtime text.</comment></data>

@@ -82,16 +82,6 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
 
 ### P3
 
-- [ ] P3 — RD-84: Dead `Vm_Relaunch*` string family — 13 keys translated in 5 locales for a removed feature
-  Category: maintainability
-  Where: src/LibreSpot.Desktop/Properties/Strings.resx keys Vm_RelaunchCanceledStatus/CanceledTitle/DeveloperStatus/DeveloperStep/DeveloperTitle/ElevationFailedStep/ExceptionStatus/FailedStatus/FailedTitle/MissingPathStatus/StayStandard/UnableTitle/WaitingStep (plus the four satellites)
-  Problem: The UAC-relaunch flow these strings served was removed when the desktop adopted the asInvoker elevation contract (tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs:1463 pins that no relaunch exists). All 13 keys have zero references outside the generated Designer; 65 localized entries are being maintained and translation-reviewed for nothing.
-  Evidence: Per-key reference count run this session: refs=0 for all 13 across src/ and tests/ (excluding Designer/resx).
-  Fix: Delete the 13 keys from Strings.resx and all four satellite resx files; run `tools/Sync-Localization.ps1 -Validate` and the localization gate to confirm parity.
-  Acceptance: `-Validate` localization counts drop by 13 per locale and stay green; grep for `Vm_Relaunch` in Properties returns nothing.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — RD-85: Dead ViewModel/Core members batch (zero-reference properties and accessors)
   Category: maintainability
   Where: MainViewModel.cs:661-663 (HasWarningHealthIssues/HasInfoHealthIssues/HasAnyHealthIssues), :767 (WorkspaceRecommendationDetail), :804 (EnabledToggleCountLabel), :835 (SelectedCustomAppCountLabel), :1183/:1233 (IsOverviewWorkspaceSelected + ShowRailRunDuration pair); MainViewModel.Profiles.cs:93 (CanEditSelectedLocalProfile); ViewModels/LocalProfileCardViewModel.cs:38 (UpdatedText); Views/MaintenanceWorkspaceView.xaml.cs:15 (CompatibilityVerdictSurface accessor); Services/LocalizationService.cs:48 (IsSupportedCulture); src/LibreSpot.Core/AppCatalog.cs:378-380 (HasMissingAssets/HasReviewRequiredAssets/HasCatalogReviewIssues), :701 (StackHealthComponent.HasDetectedVersion), :855 (PinnedStatsCustomAppVersion — a hand-maintained duplicate of the version inside PinnedStatsCustomAppReleaseTag at :856 that nothing validates)
