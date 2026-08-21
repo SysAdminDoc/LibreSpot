@@ -542,7 +542,6 @@ public static class CliApplication
                 "--config-path",
                 "--silent",
                 "--quiet",
-                "--accept-eula",
                 "--no-restart",
                 "--dry-run",
                 "--yes",
@@ -1992,7 +1991,7 @@ public static class CliApplication
         writer.WriteLine("Usage:");
         writer.WriteLine("  LibreSpot.Cli --version [--json]");
         writer.WriteLine("  LibreSpot.Cli version [--json]");
-        writer.WriteLine("  LibreSpot.Cli install --answer-file <path> [--profile <name>] [--config-path <path>] [--silent] [--quiet] [--accept-eula] [--no-restart] [--dry-run] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--ndjson] [--scope <user|machine>]");
+        writer.WriteLine("  LibreSpot.Cli install --answer-file <path> [--profile <name>] [--config-path <path>] [--silent] [--quiet] [--no-restart] [--dry-run] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--ndjson] [--scope <user|machine>]");
         writer.WriteLine("  LibreSpot.Cli reapply --answer-file <path> [--profile <name>] [--config-path <path>] [--silent] [--quiet] [--no-restart] [--dry-run] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--ndjson] [--scope <user|machine>]");
         writer.WriteLine("  LibreSpot.Cli detect [--json] [--config-path <path>] [--answer-file <path>] [--profile <name>] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>] [--intune]");
         writer.WriteLine("  LibreSpot.Cli status [--json] [--config-path <path>] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
@@ -2003,9 +2002,10 @@ public static class CliApplication
         writer.WriteLine("    Marketplace IDs: ExportMarketplaceState, RestoreMarketplaceState");
         writer.WriteLine("  LibreSpot.Cli watcher install [--silent] [--quiet] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
         writer.WriteLine("  LibreSpot.Cli watcher remove [--silent] [--quiet] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
-        writer.WriteLine("  LibreSpot.Cli uninstall [--purge] [--keep-spotify] [--answer-file <path>] [--profile <name>] [--config-path <path>] [--silent] [--quiet] [--accept-eula] [--no-restart] [--dry-run] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--ndjson] [--scope <user|machine>]");
+        writer.WriteLine("  LibreSpot.Cli uninstall [--purge] [--keep-spotify] [--answer-file <path>] [--profile <name>] [--config-path <path>] [--silent] [--quiet] [--no-restart] [--dry-run] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--ndjson] [--scope <user|machine>]");
         writer.WriteLine("  LibreSpot.Cli export-support [--output <path>] [--correlation-id <guid>] [--log-dir <path>]");
         writer.WriteLine("  --purge and --yes are required together for destructive uninstall.");
+        writer.WriteLine("  Consent is recorded in the answer file: eulaAccepted and riskAcknowledged must both be true.");
     }
 
     private static bool IsHelp(string arg) =>

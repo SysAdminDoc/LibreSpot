@@ -18,7 +18,6 @@
         "--config-path",
         "--silent",
         "--quiet",
-        "--accept-eula",
         "--no-restart",
         "--dry-run",
         "--yes",
@@ -27,7 +26,7 @@
         "--ndjson",
         "--scope"
       ],
-      "notes": "Primary install workflow. JSON output is not supported because install emits a stream of progress events via NDJSON. Use 'plan' for a JSON-only preview."
+      "notes": "Primary install workflow. JSON output is not supported because install emits a stream of progress events via NDJSON. Use 'plan' for a JSON-only preview. Consent is recorded in the answer file: eulaAccepted and riskAcknowledged must both be true or validation fails with exit code 2."
     },
     {
       "verb": "reapply",
@@ -243,7 +242,6 @@
         "--config-path",
         "--silent",
         "--quiet",
-        "--accept-eula",
         "--no-restart",
         "--dry-run",
         "--yes",
@@ -360,14 +358,6 @@
       "enumValues": ["user", "machine"],
       "conflictsWith": [],
       "notes": "Determines whether operations target the per-user or per-machine Spotify installation. Defaults to 'user'."
-    },
-    {
-      "flag": "--accept-eula",
-      "aliases": [],
-      "description": "Accept the end-user license agreement non-interactively.",
-      "type": "switch",
-      "conflictsWith": [],
-      "notes": "Required for silent/unattended installs. Without this flag in silent mode, the CLI exits with code 2."
     },
     {
       "flag": "--no-restart",

@@ -383,6 +383,37 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public void Install_RejectsTheRemovedAcceptEulaFlag()
+    {
+        // Consent lives in the answer file (eulaAccepted + riskAcknowledged). The old
+        // --accept-eula switch was parsed but never read, so the contract promised a
+        // gate that did not exist; it is now an unsupported flag rather than a lie.
+        var answerFile = Path.Combine(Path.GetTempPath(), "librespot-answer-" + Guid.NewGuid().ToString("N") + ".json");
+        File.WriteAllText(answerFile, "{\"schemaVersion\":1,\"eulaAccepted\":true,\"riskAcknowledged\":true}");
+        try
+        {
+            var result = Run("install", "--answer-file", answerFile, "--silent", "--accept-eula", "--dry-run");
+
+            Assert.Equal(2, result.ExitCode);
+            Assert.Contains("unsupported flag", result.Stderr);
+        }
+        finally
+        {
+            File.Delete(answerFile);
+        }
+    }
+
+    [Fact]
+    public void Usage_DocumentsAnswerFileConsentInsteadOfAFlag()
+    {
+        var result = Run("--help");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.DoesNotContain("--accept-eula", result.Stderr);
+        Assert.Contains("eulaAccepted and riskAcknowledged", result.Stderr);
+    }
+
+    [Fact]
     public void ValidateAnswerFile_RequiresConsentFields()
     {
         var answerFile = Path.Combine(Path.GetTempPath(), "librespot-answer-" + Guid.NewGuid().ToString("N") + ".json");

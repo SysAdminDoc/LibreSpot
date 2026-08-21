@@ -10,16 +10,6 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
 
 ### P2
 
-- [ ] P2 — RD-74: `--accept-eula` is an inert flag that the fleet contract claims gates silent installs
-  Category: correctness
-  Where: src/LibreSpot.Cli/Program.cs:545 (allowlist), 1995/2006 (usage text); schemas/fleet-cli-contract.json globalFlags entry for `--accept-eula`
-  Problem: The contract says "Accept the end-user license agreement non-interactively. Required for silent/unattended installs. Without this flag in silent mode, the CLI exits with code 2." In reality the CLI never reads the flag: the EULA gate is the answer file's `eulaAccepted` field. Passing `--accept-eula` neither satisfies nor overrides anything, so a fleet operator following the contract gets exit 2 with an error about a field the contract never told them about.
-  Evidence: Live repro this session: `install --answer-file <file without eulaAccepted> --silent --dry-run` → exit 2 with `$.eulaAccepted is required`; `install --answer-file <eulaAccepted:false> --silent --accept-eula --dry-run` → still exit 2 (`eulaAccepted must be true`), proving the flag is dead. `grep -n "accept-eula\|AcceptEula" Program.cs` shows only the allowlist and two usage lines; no `HasFlag("--accept-eula")` anywhere. The gate itself fails closed, so this is contract/docs drift, not a bypass.
-  Fix: Pick one direction and align all three surfaces (Program.cs behavior, WriteUsage text, fleet-cli-contract.json): either (a) remove `--accept-eula` from the allowlist, usage, and contract and document `eulaAccepted`/`riskAcknowledged` as the consent mechanism in the contract's install verb notes, or (b) make the flag functional as an explicit override that satisfies `eulaAccepted` during answer-file validation. Option (a) is safer — the answer file stays the single auditable consent record. Add a CliApplicationTests case pinning whichever semantics ship.
-  Acceptance: Contract text, `--help` output, and actual behavior agree; a new test in tests/LibreSpot.Desktop.Tests/CliApplicationTests.cs asserts the chosen semantics (either "unknown flag → exit 2" or "flag satisfies EULA gate").
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — RD-75: Home content clips horizontally at the minimum window size
   Category: visual
   Where: src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml:351-352 (readiness strip `Width="820" MaxWidth="820"`), :365 (`Width="506"`), :405 (Details expander `Width="820"`); MainWindow.xaml:18 (`MinWidth="1080"`); MainWindow.xaml.cs:172-176 (compact rail 224 + workspace padding 32+32)
