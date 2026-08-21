@@ -1,7 +1,7 @@
 {
   "$comment": "Publish footprint budget and build-mode rationale for the WPF desktop shell.",
   "schemaVersion": 1,
-  "description": "Documents the size/startup tradeoffs behind the WPF publish profile. Release CI records actual metrics in publish-footprint.json per build; this file records the budget and the reasons behind each build-mode decision.",
+  "description": "Documents the size/startup tradeoffs behind the WPF publish profile. This repository has no build CI: the local release build enforces this budget in Build-Scripts.ps1 -GenerateReleaseManifest, which fails past maxSizeMiB, warns past warnSizeMiB, and records the measured size in the release manifest under publishFootprint.",
   "budget": {
     "artifact": "LibreSpot-Desktop.exe",
     "rid": "win-x64",

@@ -10,16 +10,6 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
 
 ### P2
 
-- [ ] P2 — RD-76: Home's failure state has no visible retry control, and its copy points at one that doesn't exist
-  Category: ux
-  Where: src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml (snapshot-error triggers at :291/:315, no refresh button anywhere in the view); MainWindow.xaml:1847, 2385, 2650 (all RefreshSnapshotCommand bindings — every one inside the collapsed ShellWorkspaceHost); Strings.resx `Vm_SimpleHomeUnavailableBody` = "Refresh the system check or open Maintenance for help."
-  Problem: When the environment snapshot fails to load, Home shows "We couldn't check this PC — Refresh the system check or open Maintenance for help." There is no control named "the system check" and no visible refresh control anywhere in the simplified shell; RefreshSnapshotCommand is reachable only via the undocumented F5 binding. The user's only discoverable recovery is restarting the app.
-  Evidence: Grep shows RefreshSnapshotCommand bound at MainWindow.xaml:1847/2385/2650, all within the collapsed region (1400–2995); RecommendedWorkspaceView.xaml contains no Refresh/Verify button (grep clean). The command exists and works (MainViewModel.cs:159,255; F5 global binding per schemas/keyboard-focus-contract.json).
-  Fix: In the snapshot-error state of RecommendedWorkspaceView, show a secondary button (SecondaryButtonStyle, AutomationId e.g. `RetrySystemCheckButton`) bound to RefreshSnapshotCommand, and reword `Vm_SimpleHomeUnavailableBody` to name it (e.g. "Select Try again, or open Maintenance for help."). While in that string family, fix the voice break: retitle `Vm_SimpleHomeUnavailableTitle` ("We couldn't check this PC") to match the app's third-person voice used by `Vm_ShellSnapshotUnavailableDetail` ("LibreSpot couldn't verify this PC."). Update all five locales.
-  Acceptance: `--uia-smoke=snapshot-error` capture shows a focusable retry button; invoking it re-runs the snapshot; QA matrix row for snapshot-error asserts the new AutomationId as focus target.
-  Confidence: Verified
-  Effort: M
-
 - [ ] P2 — RD-78: Theme search box is labeled "Theme pack" and both search fields look like empty broken controls
   Category: ux
   Where: src/LibreSpot.Desktop/Views/CustomAppearanceSection.xaml:24-34 (label `ThemePackLabel` directly above a TextBox whose real purpose — gallery search — exists only in AutomationProperties); src/LibreSpot.Desktop/Views/CustomWorkspaceView.xaml:25-37 ("Find a setting" as a label above an empty TextBox); Themes/Controls.xaml `TextBoxStylePremium`
@@ -41,6 +31,7 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
   Effort: S
 
 - [ ] P2 — RD-81: The published community catalog can silently drift from the reviewed manifest
+  Note (2026-08-21): `schemas/community-assets.json` defers Bloom (`lastPush` 2025-05-20); `schemas/catalog-refresh-checklist.json` still `accept`s `nimsandu/spicetify-bloom` (eval 2026-06-06, claimed lastPush 2026-03-15). Align those decisions in the same pass as the gh-pages gate.
   Category: reliability
   Where: tools/Build-CommunityCatalog.ps1 (generator); gh-pages branch (catalog.json `generatedDate: 2026-08-20`, index.html); Build-Scripts.ps1 (no catalog gate); README.md:336 (links the catalog as the public trust surface)
   Problem: The public catalog page advertises per-asset trust evidence (pinned SHA256, review decisions, provenance) but nothing ties the published gh-pages content to the current schemas/community-assets.json. If a review is revoked or an asset's pin changes, the local gates all pass while the public page keeps advertising stale trust data indefinitely. There is also no documented step anywhere in the tracked docs for regenerating and pushing the catalog.
@@ -69,6 +60,7 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
   Acceptance: `Build-Scripts.ps1 -CompileStableExe` reproduces the artifact; `-GenerateReleaseManifest` fails when publish\LibreSpot.exe's file version disagrees with LibreSpot.ps1's version; README documents the exact command.
   Confidence: Verified
   Effort: M
+  Note (2026-08-21 research): CycloneDX SBOM generation has the same gap — README says "Generate the CycloneDX SBOM" with no command, and the tool is not in `.config/dotnet-tools.json` even though preview.27's SBOM metadata names CycloneDX 6.2.0. Tracked as RD-102 rather than expanding this item.
 
 ### P3
 
@@ -183,16 +175,6 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
   Confidence: Verified
   Effort: S
 
-- [ ] P3 — RD-96: publish-footprint-budget.json cites a "Release CI" that doesn't exist, and no gate enforces the budget
-  Category: docs
-  Where: schemas/publish-footprint-budget.json (description: "Release CI records actual metrics in publish-footprint.json per build"; budget maxSizeMiB 200 / warnSizeMiB 180); no reference to the file anywhere in Build-Scripts.ps1 or tests (grep clean apart from CHANGELOG)
-  Problem: The repo's policy is local builds with no CI, so the recording mechanism the schema describes cannot run, no publish-footprint.json is ever produced, and nothing checks the budget. The preview.27 desktop exe is 175.4 MiB — inside 4.6 MiB of the warn threshold — so the budget will quietly trip with no gate to notice.
-  Evidence: Grep this session found zero enforcement references; publish\LibreSpot-Desktop.exe measured 183,934,130 bytes.
-  Fix: Wire the budget into `-GenerateReleaseManifest`: measure publish\LibreSpot-Desktop.exe, warn at warnSizeMiB, fail at maxSizeMiB, and write the measured value into the release manifest; update the schema's description to name the local mechanism instead of CI.
-  Acceptance: Release-manifest generation warns/fails per the budget; the stale CI sentence is gone.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — RD-97: WpfQaMatrix capture wait can time out spuriously in full-suite runs
   Category: testing
   Where: tests/LibreSpot.Desktop.Tests/WpfQaMatrixTests.cs:326 WaitForCapture / the per-row app launch around :118-:190
@@ -211,3 +193,40 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
   Acceptance: Each listed area either audited in a future pass or consciously accepted.
   Confidence: Verified
   Effort: L
+
+## Research-Driven Additions — 2026-08-21
+
+Evidence and rejected ideas live in `RESEARCH.md` (2026-08-21). Items already in this file or in `Roadmap_Blocked.md` are not duplicated. RD-76 (snapshot-error retry) landed on HEAD before this pass and was removed. Highest prior ID: RD-99.
+
+### P2
+
+- [ ] P2 — RD-100: Make ReadmeScreenshotTests assert the same 1800×1280 / dark / en contract `-Validate` now enforces
+  Why: the PowerShell screenshot gate and the xUnit test can disagree, so a wrong-size or wrong-theme PNG fails `-Validate` while `ReadmeScreenshotTests` stays green.
+  Evidence: `Build-Scripts.ps1:908-945` (commit `1653f84`) requires width 1800, height 1280, `LibreSpotCaptureTheme=dark`, `LibreSpotCaptureCulture=en`; `tests/LibreSpot.Desktop.Tests/ReadmeScreenshotTests.cs:83-85` still accepts any PNG ≥1000×700 and never reads theme or culture metadata. Vault note: README captures at `--uia-size=1440x1024` render at 1800×1280 on the 125% DPI release machine.
+  Touches: `tests/LibreSpot.Desktop.Tests/ReadmeScreenshotTests.cs`, optionally a shared size/theme/culture constant consumed by `Build-Scripts.ps1`
+  Acceptance: a PNG that is 1000×700, or 1800×1280 captured in light/zh-Hans, fails the xUnit test with the same numbers the PowerShell gate prints; the four README WPF screenshots still pass both gates.
+  Complexity: S
+
+- [ ] P2 — RD-101: Gate ControlTemplate children against WPF-UI implicit styles
+  Why: preview.26 shipped every themed dropdown as a content-sized pill because `<ui:ControlsDictionary />` leaked into `ComboBoxStylePremium`'s inner `ToggleButton`; the fix is one `Style="{x:Null}"` and nothing fails a second template that repeats the mistake.
+  Evidence: `App.xaml:10` merges ControlsDictionary first; the fix is `Themes/Controls.xaml:875`; CLAUDE.md gotcha; commit `81c3c8c`. The snackbar close `Button` at `Themes/Controls.xaml:1296` still has no null style (it currently supplies its own `Button.Template`, which is why it has not visibly broken). No test under `tests/` mentions ControlsDictionary or scans for this.
+  Touches: a new test in `tests/LibreSpot.Desktop.Tests/` (XAML parse of `Themes/Controls.xaml`, `MainWindow.xaml`, `Views/*.xaml`), possibly `scripts/` if a `-Validate` check is cleaner
+  Acceptance: any `ToggleButton`, `Button`, `RepeatButton`, or `TextBox` nested inside a `ControlTemplate` without `Style="{x:Null}"` or an explicit `BasedOn`/keyed Style fails the test; bait by removing the ComboBox ToggleButton's `{x:Null}` and confirming the test goes red; existing templates that already set a local `*.Template` still need the null style so implicit setters other than Template cannot leak.
+  Complexity: M
+
+- [ ] P2 — RD-102: Pin CycloneDX 6.2.0 as a local tool and script the SBOM step
+  Why: every other release artifact either has a Build-Scripts switch or is called out as a gap (RD-83); the SBOM is generated by an unpinned global tool with no command in README, so the next release can silently change tool, spec, or component set.
+  Evidence: preview.27 `LibreSpot.sbom.cdx.json` metadata.tools names "CycloneDX module for .NET" version 6.2.0.0, specVersion 1.7, 8 components with hashes and licenses, no `signature`. `.config/dotnet-tools.json` lists only `dotnet-stryker` 4.16.0. `schemas/third-party-notices.json` pins CycloneDX 6.2.0. README.md:472 says "Generate the CycloneDX SBOM" with no invocation. CISA 2026 minimum elements add a digital signature — that part stays blocked on SignPath; do not invent a detached SBOM signature here.
+  Touches: `.config/dotnet-tools.json`, `Build-Scripts.ps1` (new `-GenerateSbom` or a step inside `-GenerateReleaseManifest`), `README.md` local release procedure, `schemas/release-artifact-contract.json`, `schemas/third-party-notices.json`
+  Acceptance: `dotnet tool restore` installs CycloneDX 6.2.0; `Build-Scripts.ps1` produces `publish/LibreSpot.sbom.cdx.json` from a clean checkout with no global tools; `-GenerateReleaseManifest` fails when the SBOM is missing, is not spec 1.7, names a tool version other than 6.2.0, or lacks per-component hashes and licenses; README shows the one-line command.
+  Complexity: M
+
+### P3
+
+- [ ] P3 — RD-103: Record the four HEAD-only fixes that `[Unreleased]` currently omits
+  Why: the next preview changelog would ship without Home clipping, the screenshot gate, the dead `Vm_Relaunch*` family, or the copy pass, even though those commits are already on `main`.
+  Evidence: CHANGELOG `[Unreleased]` (2026-08-21) only lists rail version display and `--accept-eula` removal. Git log since `v4.0.0-preview.27`: `ef7cbab` (Home clip), `1653f84` (screenshot gate), `3d3e3bd` (`Vm_Relaunch*`), `eec679a` (highest-visibility copy). `8735adf` is an EOL restore, not user-facing.
+  Touches: `CHANGELOG.md`
+  Acceptance: `[Unreleased]` has a Fixed/Changed bullet for each of the four user- or gate-facing commits, matching the commit messages' user-visible outcome; no cycle log or commit hashes in the bullets.
+  Complexity: S
+

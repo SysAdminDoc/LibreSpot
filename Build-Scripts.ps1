@@ -1403,6 +1403,46 @@ function Test-LibreSpotReleaseManifest {
     }
 }
 
+function Test-LibreSpotPublishFootprint {
+    param([Parameter(Mandatory)][string]$Root)
+
+    # schemas/publish-footprint-budget.json recorded a budget nothing measured,
+    # because the mechanism it named (release CI) does not exist in this repo.
+    # The local release build is the only build, so it enforces the budget.
+    $budgetPath = Join-Path $PSScriptRoot 'schemas/publish-footprint-budget.json'
+    $budgetDocument = Get-JsonFile -Path $budgetPath
+    $budget = $budgetDocument.budget
+    $artifactName = [string]$budget.artifact
+    $artifactPath = Join-Path $Root $artifactName
+    if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
+        throw "Publish footprint budget cannot be checked; $artifactName not found in $Root."
+    }
+
+    $sizeBytes = (Get-Item -LiteralPath $artifactPath).Length
+    $sizeMiB = [math]::Round($sizeBytes / 1MB, 2)
+    $maxSizeMiB = [double]$budget.maxSizeMiB
+    $warnSizeMiB = [double]$budget.warnSizeMiB
+
+    if ($sizeMiB -gt $maxSizeMiB) {
+        throw "$artifactName is $sizeMiB MiB, over the $maxSizeMiB MiB publish budget in schemas/publish-footprint-budget.json."
+    }
+
+    if ($sizeMiB -gt $warnSizeMiB) {
+        Write-Host "  WARNING: $artifactName is $sizeMiB MiB, past the $warnSizeMiB MiB warning threshold (budget $maxSizeMiB MiB)." -ForegroundColor Yellow
+    } else {
+        Write-Host "  Publish footprint: $artifactName is $sizeMiB MiB (warn $warnSizeMiB MiB, max $maxSizeMiB MiB)." -ForegroundColor Green
+    }
+
+    return [ordered]@{
+        artifact    = $artifactName
+        sizeBytes   = $sizeBytes
+        sizeMiB     = $sizeMiB
+        warnSizeMiB = $warnSizeMiB
+        maxSizeMiB  = $maxSizeMiB
+        status      = if ($sizeMiB -gt $warnSizeMiB) { 'warn' } else { 'ok' }
+    }
+}
+
 function New-LibreSpotReleaseManifest {
     param(
         [Parameter(Mandatory)][string]$Root,
@@ -1416,6 +1456,7 @@ function New-LibreSpotReleaseManifest {
     }
 
     $contract = Get-JsonFile -Path $releaseContractPath
+    $footprint = Test-LibreSpotPublishFootprint -Root $Root
     if ([string]::IsNullOrWhiteSpace($Version)) {
         $Version = Get-LibreSpotProjectVersion
     }
@@ -1448,6 +1489,7 @@ function New-LibreSpotReleaseManifest {
         signingProvider  = [string]$contract.signingContract.provider
         signingStatus    = [string]$contract.signingContract.status
         artifactCount    = $entries.Count
+        publishFootprint = $footprint
         artifacts        = $entries
     }
 
