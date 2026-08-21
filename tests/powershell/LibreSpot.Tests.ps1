@@ -1,7 +1,7 @@
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' }
 <#
     .SYNOPSIS
-        Pester 5.x tests for pure/non-mutating PowerShell functions in LibreSpot.ps1.
+        Pester 5.x tests for isolated PowerShell behavior in LibreSpot.ps1.
 
     .DESCRIPTION
         Since LibreSpot.ps1 is a monolith that immediately bootstraps WPF when
@@ -2061,5 +2061,472 @@ AfterAll {
     It 'degrades to Unavailable when the artifact file does not exist' {
         $missing = Join-Path ([System.IO.Path]::GetTempPath()) ("ls-missing-{0}.zip" -f ([guid]::NewGuid().ToString('N')))
         Test-SpicetifyCliAttestation -Path $missing -Attestation $script:goodAttestation | Should -Be 'Unavailable'
+    }
+}
+
+Describe 'Lane orchestration modules and primary GUI dispatch' {
+    BeforeAll {
+        $script:orchestrationGlobalNames = @(
+            'TEMP_DIR', 'CONFIG_DIR', 'CACHE_DIR', 'SPOTIFY_EXE_PATH', 'PinnedReleases',
+            'URL_SPOTX', 'URL_SPICETIFY_FMT', 'URL_THEMES_REPO', 'URL_MARKETPLACE',
+            'CommunityThemeRepos', 'ThemesNeedingJS', 'DeprecatedCommunityExtensionNames', 'CommunityCustomApps'
+        )
+        $script:orchestrationOriginalGlobals = @{}
+        foreach ($name in $script:orchestrationGlobalNames) {
+            $existing = Get-Variable -Name $name -Scope Global -ErrorAction SilentlyContinue
+            $script:orchestrationOriginalGlobals[$name] = [pscustomobject]@{
+                Exists = $null -ne $existing
+                Value = if ($existing) { $existing.Value } else { $null }
+            }
+        }
+
+        $tokens = $null
+        $parseErrors = $null
+        $script:orchestrationAst = [System.Management.Automation.Language.Parser]::ParseFile(
+            (Join-Path $PSScriptRoot '..\..\LibreSpot.ps1'),
+            [ref]$tokens,
+            [ref]$parseErrors
+        )
+        @($parseErrors).Count | Should -Be 0
+
+        $moduleNames = @(
+            'Module-NukeSpotify',
+            'Module-InstallSpotX',
+            'Module-InstallSpicetifyCLI',
+            'Module-InstallThemes',
+            'Module-InstallExtensions',
+            'Module-InstallMarketplace',
+            'Module-InstallCustomApps',
+            'Module-ApplySpicetify'
+        )
+        foreach ($moduleName in $moduleNames) {
+            $moduleAst = $script:orchestrationAst.Find({
+                param($node)
+                $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                    $node.Name -eq $moduleName
+            }, $true)
+            if (-not $moduleAst) { throw "Could not find orchestration function '$moduleName'." }
+            Invoke-Expression $moduleAst.Extent.Text
+        }
+
+        function Get-GuiClickHandler {
+            param([string]$ControlName)
+
+            $expectedExpression = '$ui[' + [char]39 + $ControlName + [char]39 + ']'
+            $handlerAst = $script:orchestrationAst.Find({
+                param($node)
+                $node -is [System.Management.Automation.Language.InvokeMemberExpressionAst] -and
+                    $node.Member.Value -eq 'Add_Click' -and
+                    $node.Expression.Extent.Text -eq $expectedExpression
+            }, $true)
+            if (-not $handlerAst) { throw "Could not find the $ControlName click handler." }
+            return $handlerAst.Arguments[0].ScriptBlock.GetScriptBlock()
+        }
+
+        $script:installClickHandler = Get-GuiClickHandler -ControlName 'BtnInstall'
+        $script:reapplyClickHandler = Get-GuiClickHandler -ControlName 'BtnReapply'
+        $script:fullResetClickHandler = Get-GuiClickHandler -ControlName 'BtnFullReset'
+
+        function Test-Path {
+            [CmdletBinding(DefaultParameterSetName = 'Path')]
+            param(
+                [Parameter(Position = 0, ParameterSetName = 'Path')]
+                [string[]]$Path,
+                [Parameter(Mandatory, ParameterSetName = 'LiteralPath')]
+                [string[]]$LiteralPath,
+                [Microsoft.PowerShell.Commands.TestPathType]$PathType = [Microsoft.PowerShell.Commands.TestPathType]::Any
+            )
+
+            $targets = if ($PSCmdlet.ParameterSetName -eq 'LiteralPath') { $LiteralPath } else { $Path }
+            foreach ($target in $targets) {
+                if ([string]$target -match '^HK(CC|CR|CU|LM|U):') {
+                    $false
+                    continue
+                }
+                if ($PSCmdlet.ParameterSetName -eq 'LiteralPath') {
+                    Microsoft.PowerShell.Management\Test-Path -LiteralPath $target -PathType $PathType
+                } else {
+                    Microsoft.PowerShell.Management\Test-Path -Path $target -PathType $PathType
+                }
+            }
+        }
+
+        function Write-Log {
+            param([string]$Message, [string]$Level = 'INFO')
+            $script:orchestrationCalls.Log += "$Level|$Message"
+        }
+        function Write-OperationJournalEntry {
+            param(
+                [string]$OperationId,
+                [string]$Phase,
+                [string]$Target,
+                [string]$SafetyDecision,
+                [string]$Result,
+                [bool]$WouldChange,
+                [bool]$Reversible,
+                [string]$RollbackHint,
+                [string]$TokenKind,
+                [string]$PreviousStateRef,
+                [string]$NewState,
+                [string]$UndoAction,
+                [string]$Risk,
+                [hashtable]$Data
+            )
+            $script:orchestrationCalls.Journal += "$Phase|$Target|$Result"
+        }
+        function Get-SpicetifyV3Conflict { [pscustomobject]@{ IsConflict = $false; Message = '' } }
+        function New-LibreSpotTempFile {
+            param([string]$Name)
+            New-Item -Path $global:TEMP_DIR -ItemType Directory -Force | Out-Null
+            Join-Path $global:TEMP_DIR ("{0}-{1}" -f ([guid]::NewGuid().ToString('N')), $Name)
+        }
+        function New-LibreSpotTempDirectory {
+            param([string]$Name)
+            $path = Join-Path $global:TEMP_DIR ("{0}-{1}" -f ([guid]::NewGuid().ToString('N')), $Name)
+            New-Item -Path $path -ItemType Directory -Force | Out-Null
+            $path
+        }
+        function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPath, [string]$Label) $false }
+        function Download-FileSafe {
+            param([string]$Uri, [string]$OutFile)
+            $script:orchestrationCalls.Downloads += $Uri
+            $parent = Split-Path -Path $OutFile -Parent
+            if (-not (Test-Path -LiteralPath $parent)) { New-Item -Path $parent -ItemType Directory -Force | Out-Null }
+            Set-Content -LiteralPath $OutFile -Value 'fixture payload' -Encoding Ascii
+        }
+        function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]$Label) $true }
+        function Save-ToAssetCache { param([string]$SourcePath, [string]$SHA256Hash, [string]$Label, [string]$SourceUrl) }
+        function Build-SpotXParams { param($Config) '-confirm_uninstall_ms_spoti -block_update_on' }
+        function New-SpotXCustomPatchesFile { param($Config) '' }
+        function Invoke-ExternalScriptIsolated {
+            param([string]$FilePath, [string]$Arguments, [string]$ExpectedHash, [string]$Label)
+            if (-not (Test-Path -LiteralPath $FilePath -PathType Leaf)) { throw 'SpotX fixture script was not staged.' }
+            $script:orchestrationCalls.ExternalScripts += $FilePath
+        }
+        function Get-SpotXDownloadRetryPlan { param([string]$Category, [bool]$MirrorAlreadyUsed) $null }
+        function Get-SpotXPatchVerification { param([string]$SpotifyExePath) [pscustomobject]@{ Verified = $true; Signals = @('fixture'); Reason = '' } }
+        function Hide-SpotifyWindows { $script:orchestrationCalls.HideSpotify++ }
+        function Stop-SpotifyProcesses { param([int]$MaxAttempts = 3) $script:orchestrationCalls.StopSpotify++ }
+        function Start-Process { param([string]$FilePath, [string]$ArgumentList) $script:orchestrationCalls.Processes += "$FilePath|$ArgumentList" }
+        function Start-Sleep { param([int]$Seconds, [int]$Milliseconds) }
+        function Get-SpicetifyIntegrationContext { $script:orchestrationIntegration }
+        function Clear-DirectoryContentsSafely {
+            param([string]$Path, [string]$Label)
+            if (Test-Path -LiteralPath $Path) {
+                Get-ChildItem -LiteralPath $Path -Force | Microsoft.PowerShell.Management\Remove-Item -Recurse -Force
+            }
+            $true
+        }
+        function Add-PathEntry {
+            param([string]$Entry, [string]$Scope)
+            $script:orchestrationCalls.PathEntries += "$Scope|$Entry"
+            $true
+        }
+        function Test-SpicetifyCliAttestation { param([string]$Path, [hashtable]$Attestation) 'Unavailable' }
+        function Invoke-SpicetifyCli {
+            param([string[]]$Arguments, [string]$FailureMessage)
+            $script:orchestrationCalls.Cli += ($Arguments -join ' ')
+        }
+        function Expand-ArchiveSafely {
+            param([string]$ZipPath, [string]$DestinationPath, [string]$Label, [long]$MaxExpandedBytes = 0)
+            New-Item -Path $DestinationPath -ItemType Directory -Force | Out-Null
+            switch -Wildcard ($Label) {
+                'Spicetify CLI*' {
+                    Set-Content -LiteralPath (Join-Path $DestinationPath 'spicetify.exe') -Value 'fixture cli' -Encoding Ascii
+                }
+                'Themes archive' {
+                    $theme = Join-Path $DestinationPath 'spicetify-themes-fixture\Dribbblish'
+                    New-Item -Path $theme -ItemType Directory -Force | Out-Null
+                    Set-Content -LiteralPath (Join-Path $theme 'color.ini') -Value '[Base]' -Encoding Ascii
+                    Set-Content -LiteralPath (Join-Path $theme 'user.css') -Value 'body {}' -Encoding Ascii
+                }
+                'Marketplace*' {
+                    $marketplace = Join-Path $DestinationPath 'marketplace-dist'
+                    New-Item -Path $marketplace -ItemType Directory -Force | Out-Null
+                    Set-Content -LiteralPath (Join-Path $marketplace 'manifest.json') -Value '{}' -Encoding Ascii
+                    Set-Content -LiteralPath (Join-Path $marketplace 'extension.js') -Value 'fixture' -Encoding Ascii
+                }
+                'Custom app stats*' {
+                    $stats = Join-Path $DestinationPath 'stats'
+                    New-Item -Path $stats -ItemType Directory -Force | Out-Null
+                    Set-Content -LiteralPath (Join-Path $stats 'manifest.json') -Value '{}' -Encoding Ascii
+                    Set-Content -LiteralPath (Join-Path $stats 'extension.js') -Value 'fixture' -Encoding Ascii
+                }
+            }
+        }
+        function Download-CommunityExtensions { param($Config) $script:orchestrationCalls.ExtensionDownloads++ }
+        function Sync-SpicetifyListSetting {
+            param([string]$Key, [string[]]$DesiredItems, [string[]]$ManagedItems)
+            $script:orchestrationCalls.Sync += "$Key=$($DesiredItems -join ',')"
+        }
+        function Get-SpicetifyConfigEntries { $script:spicetifyConfigEntries }
+        function Install-MarketplacePlaceholderTheme {
+            $theme = Join-Path $script:orchestrationIntegration.ThemesDirectory 'marketplace'
+            New-Item -Path $theme -ItemType Directory -Force | Out-Null
+            Set-Content -LiteralPath (Join-Path $theme 'color.ini') -Value '[Marketplace]' -Encoding Ascii
+            $theme
+        }
+        function Install-MarketplaceNavFallbackExtension {
+            New-Item -Path $script:orchestrationIntegration.ExtensionsDirectory -ItemType Directory -Force | Out-Null
+            $name = 'librespot-marketplace-button.js'
+            Set-Content -LiteralPath (Join-Path $script:orchestrationIntegration.ExtensionsDirectory $name) -Value 'fixture' -Encoding Ascii
+            $name
+        }
+        function Get-MarketplaceHealth {
+            $manifest = Join-Path $script:orchestrationIntegration.MarketplaceDirectory 'manifest.json'
+            $hasFiles = Test-Path -LiteralPath $manifest -PathType Leaf
+            [pscustomobject]@{ HasFiles = $hasFiles; IsReady = $hasFiles; Status = if ($hasFiles) { 'Ready' } else { 'Missing' } }
+        }
+        function Remove-PathSafely {
+            param([string]$Path, [string]$Label)
+            $fixtureRoot = [System.IO.Path]::GetFullPath($script:orchestrationRoot).TrimEnd('\') + '\'
+            $fullPath = [System.IO.Path]::GetFullPath($Path)
+            if (-not $fullPath.StartsWith($fixtureRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "Orchestration fixture refused path outside its root: $Path"
+            }
+            $script:orchestrationCalls.RemovedPaths += $fullPath
+            $exists = Test-Path -LiteralPath $fullPath
+            if ($exists) { Microsoft.PowerShell.Management\Remove-Item -LiteralPath $fullPath -Recurse -Force }
+            [int]$exists
+        }
+        function Get-SpicetifyDiagnosticSnapshot { [ordered]@{ Spotify = $global:SPOTIFY_EXE_PATH; Config = $script:orchestrationIntegration.ConfigDirectory } }
+        function Repair-SpicetifyCustomAppWiring {
+            $script:orchestrationCalls.Wiring++
+            Set-Content -LiteralPath (Join-Path $script:orchestrationRoot 'marketplace-route.fixture') -Value 'wired' -Encoding Ascii
+            [pscustomobject]@{ Status = 'Wired'; Detail = 'Fixture route is wired.' }
+        }
+        function Write-MarketplaceVisibilityEvidence {
+            param([string]$Source, [string]$ApplyStage, [bool]$ApplySucceeded, [string]$ApplyMessage)
+            $script:orchestrationCalls.Evidence += "$Source|$ApplyStage|$ApplySucceeded"
+            Set-Content -LiteralPath (Join-Path $script:orchestrationRoot 'apply-evidence.fixture') -Value $ApplyMessage -Encoding Ascii
+        }
+
+        function Get-DesktopPath { $script:orchestrationDesktop }
+        function Get-AppxPackage { param([string]$Name) $script:orchestrationCalls.SystemQueries += "Appx|$Name" }
+        function Get-AppxProvisionedPackage { param([switch]$Online) $script:orchestrationCalls.SystemQueries += 'ProvisionedAppx' }
+        function Get-ItemProperty { param([string]$Path, [string]$Name) $script:orchestrationCalls.SystemQueries += "RegistryValue|$Path|$Name" }
+        function Get-ScheduledTask { $script:orchestrationCalls.SystemQueries += 'ScheduledTasks' }
+        function Get-NetFirewallRule { $script:orchestrationCalls.SystemQueries += 'FirewallRules' }
+        function Remove-AppxPackage { throw 'The fixture must not remove AppX packages.' }
+        function Remove-AppxProvisionedPackage { throw 'The fixture must not remove provisioned AppX packages.' }
+        function Remove-ItemProperty { throw 'The fixture must not remove registry values.' }
+        function Unregister-ScheduledTask { throw 'The fixture must not remove scheduled tasks.' }
+        function Remove-NetFirewallRule { throw 'The fixture must not remove firewall rules.' }
+
+        function Confirm-NetworkReadyForAction { param([string]$Message, [string]$Purpose) $true }
+        function Assert-RiskAcknowledged { $true }
+        function Test-CompatibilityGate { $true }
+        function Show-ThemedDialog {
+            param(
+                [string]$Message,
+                [string]$Title,
+                [string]$Buttons,
+                [string]$Icon,
+                [string]$PrimaryText,
+                [string]$SecondaryText,
+                [switch]$PrimaryIsDestructive
+            )
+            $script:orchestrationCalls.Dialogs += $Title
+            'Yes'
+        }
+        function Switch-ToInstallPage {
+            param(
+                [string]$Title,
+                [string]$Context,
+                [string]$PrepareLabel,
+                [string]$RunLabel,
+                [string]$VerifyLabel,
+                [string]$CompleteLabel
+            )
+            $script:orchestrationCalls.Pages += $Title
+        }
+        function Start-MaintenanceJob { param([string]$Action) $script:orchestrationCalls.Maintenance += $Action }
+        function Get-InstallConfig { param([bool]$EasyMode) [pscustomobject]@{ Mode = if ($EasyMode) { 'Easy' } else { 'Custom' }; CleanInstall = $true } }
+        function Normalize-LibreSpotConfig { param($Config) $Config }
+        function Save-LibreSpotConfig { param($Config) $true }
+        function Capture-CustomConfigBaseline { $script:orchestrationCalls.BaselineCaptures++ }
+        function Update-ModePresentation { }
+        function Start-InstallJob { param($Config) $script:orchestrationCalls.InstallJobs += [string]$Config.Mode }
+        function Reset-UiAfterLaunchFailure { param([string]$Title, [string]$Message) throw "$Title`: $Message" }
+    }
+
+    BeforeEach {
+        $script:previousAppData = $env:APPDATA
+        $script:previousLocalAppData = $env:LOCALAPPDATA
+        $script:previousTemp = $env:TEMP
+        $script:previousProcessorArchitecture = $env:PROCESSOR_ARCHITECTURE
+        $script:orchestrationRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $env:APPDATA = Join-Path $script:orchestrationRoot 'AppData\Roaming'
+        $env:LOCALAPPDATA = Join-Path $script:orchestrationRoot 'AppData\Local'
+        $env:TEMP = Join-Path $script:orchestrationRoot 'Temp'
+        $script:orchestrationDesktop = Join-Path $script:orchestrationRoot 'Desktop'
+        $global:TEMP_DIR = Join-Path $script:orchestrationRoot 'LibreSpotTemp'
+        $global:CONFIG_DIR = Join-Path $script:orchestrationRoot 'LibreSpotConfig'
+        $global:CACHE_DIR = Join-Path $global:CONFIG_DIR 'cache'
+        $global:SPOTIFY_EXE_PATH = Join-Path $env:APPDATA 'Spotify\Spotify.exe'
+        $script:orchestrationIntegration = [pscustomobject]@{
+            InstallDirectory = Join-Path $env:LOCALAPPDATA 'spicetify'
+            CliPath = Join-Path $env:LOCALAPPDATA 'spicetify\spicetify.exe'
+            ConfigDirectory = Join-Path $env:APPDATA 'spicetify'
+            ConfigPath = Join-Path $env:APPDATA 'spicetify\config-xpui.ini'
+            ThemesDirectory = Join-Path $env:APPDATA 'spicetify\Themes'
+            CustomAppsDirectory = Join-Path $env:APPDATA 'spicetify\CustomApps'
+            MarketplaceDirectory = Join-Path $env:APPDATA 'spicetify\CustomApps\marketplace'
+            LegacyMarketplaceDirectory = Join-Path $env:APPDATA 'spicetify\Apps\marketplace'
+            ExtensionsDirectory = Join-Path $env:APPDATA 'spicetify\Extensions'
+        }
+        foreach ($path in @(
+            $env:APPDATA,
+            $env:LOCALAPPDATA,
+            $env:TEMP,
+            $script:orchestrationDesktop,
+            $global:TEMP_DIR,
+            $global:CONFIG_DIR,
+            (Split-Path $global:SPOTIFY_EXE_PATH -Parent),
+            $script:orchestrationIntegration.ConfigDirectory
+        )) {
+            New-Item -Path $path -ItemType Directory -Force | Out-Null
+        }
+        Set-Content -LiteralPath $global:SPOTIFY_EXE_PATH -Value 'fixture spotify' -Encoding Ascii
+        Set-Content -LiteralPath (Join-Path (Split-Path $global:SPOTIFY_EXE_PATH -Parent) 'chrome_elf.dll') -Value 'fixture elf' -Encoding Ascii
+        Set-Content -LiteralPath (Join-Path (Split-Path $global:SPOTIFY_EXE_PATH -Parent) 'prefs') -Value 'fixture preferences are ready' -Encoding Ascii
+
+        $global:PinnedReleases = @{
+            SpotX = @{ Version = 'fixture'; SHA256 = 'spotx-fixture-hash' }
+            SpicetifyCLI = @{ Version = 'fixture'; SHA256 = @{ x64 = 'cli-fixture-hash'; arm64 = 'cli-fixture-hash' }; Attestation = @{ Repo = 'fixture/cli' } }
+            Themes = @{ SHA256 = 'themes-fixture-hash' }
+            Marketplace = @{ SHA256 = 'marketplace-fixture-hash' }
+        }
+        $global:URL_SPOTX = 'https://example.invalid/spotx.ps1'
+        $global:URL_SPICETIFY_FMT = 'https://example.invalid/spicetify-{0}-{1}.zip'
+        $global:URL_THEMES_REPO = 'https://example.invalid/themes.zip'
+        $global:URL_MARKETPLACE = 'https://example.invalid/marketplace.zip'
+        $global:CommunityThemeRepos = @{}
+        $global:ThemesNeedingJS = @()
+        $global:DeprecatedCommunityExtensionNames = @()
+        $global:CommunityCustomApps = [ordered]@{
+            stats = @{ DisplayName = 'Stats'; Source = 'fixture/stats'; Url = 'https://example.invalid/stats.zip'; AssetPath = 'stats'; SHA256 = 'stats-fixture-hash' }
+        }
+        $script:spicetifyConfigEntries = @{}
+        $script:orchestrationCalls = @{
+            Log = @(); Journal = @(); Downloads = @(); ExternalScripts = @(); Processes = @(); Cli = @(); PathEntries = @()
+            Sync = @(); RemovedPaths = @(); Evidence = @(); SystemQueries = @(); Dialogs = @(); Pages = @()
+            Maintenance = @(); InstallJobs = @(); StopSpotify = 0; HideSpotify = 0; ExtensionDownloads = 0
+            Wiring = 0; BaselineCaptures = 0
+        }
+        $env:PROCESSOR_ARCHITECTURE = 'AMD64'
+    }
+
+    AfterEach {
+        $env:APPDATA = $script:previousAppData
+        $env:LOCALAPPDATA = $script:previousLocalAppData
+        $env:TEMP = $script:previousTemp
+        $env:PROCESSOR_ARCHITECTURE = $script:previousProcessorArchitecture
+        if ($script:orchestrationRoot -and (Test-Path -LiteralPath $script:orchestrationRoot)) {
+            Microsoft.PowerShell.Management\Remove-Item -LiteralPath $script:orchestrationRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    AfterAll {
+        foreach ($name in $script:orchestrationGlobalNames) {
+            $original = $script:orchestrationOriginalGlobals[$name]
+            if ($original.Exists) {
+                Set-Variable -Name $name -Scope Global -Value $original.Value
+            } else {
+                Remove-Variable -Name $name -Scope Global -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    It 'Module-NukeSpotify removes only the fake Spotify tree' {
+        Module-NukeSpotify
+
+        Test-Path -LiteralPath (Join-Path $env:APPDATA 'Spotify') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $env:APPDATA 'spicetify') | Should -BeFalse
+        $script:orchestrationCalls.StopSpotify | Should -BeGreaterThan 0
+        @($script:orchestrationCalls.RemovedPaths).Count | Should -BeGreaterThan 0
+        @($script:orchestrationCalls.RemovedPaths | Where-Object { -not $_.StartsWith($script:orchestrationRoot, [System.StringComparison]::OrdinalIgnoreCase) }).Count | Should -Be 0
+    }
+
+    It 'Module-InstallSpotX stages and invokes the pinned script against fake Spotify' {
+        Module-InstallSpotX -Config ([pscustomobject]@{ SpotX_Mirror = $false }) -SyncHash $null
+
+        $script:orchestrationCalls.Downloads | Should -Contain $global:URL_SPOTX
+        @($script:orchestrationCalls.ExternalScripts).Count | Should -Be 1
+        @($script:orchestrationCalls.Processes | Where-Object { $_ -like 'explorer.exe*' }).Count | Should -Be 1
+        $script:orchestrationCalls.StopSpotify | Should -BeGreaterThan 0
+    }
+
+    It 'Module-InstallSpicetifyCLI expands the CLI into the fake integration root' {
+        Module-InstallSpicetifyCLI
+
+        Test-Path -LiteralPath $script:orchestrationIntegration.CliPath -PathType Leaf | Should -BeTrue
+        $script:orchestrationCalls.Cli | Should -Contain 'config --bypass-admin'
+        @($script:orchestrationCalls.PathEntries | Where-Object { $_ -like 'User|*' }).Count | Should -Be 1
+    }
+
+    It 'Module-InstallThemes copies and configures a theme in the fake root' {
+        $config = [pscustomobject]@{ Spicetify_Theme = 'Dribbblish'; Spicetify_Scheme = 'Base' }
+        Module-InstallThemes -Config $config
+
+        Test-Path -LiteralPath (Join-Path $script:orchestrationIntegration.ThemesDirectory 'Dribbblish\color.ini') -PathType Leaf | Should -BeTrue
+        $script:orchestrationCalls.Cli | Should -Contain 'config current_theme Dribbblish --bypass-admin'
+    }
+
+    It 'Module-InstallExtensions downloads and synchronizes the selected extensions' {
+        $config = [pscustomobject]@{ Spicetify_Extensions = @('shuffle+.js', 'beautiful-lyrics.mjs') }
+        Module-InstallExtensions -Config $config
+
+        $script:orchestrationCalls.ExtensionDownloads | Should -Be 1
+        $script:orchestrationCalls.Sync | Should -Contain 'extensions=shuffle+.js,beautiful-lyrics.mjs'
+    }
+
+    It 'Module-InstallMarketplace installs the app and placeholder theme in the fake root' {
+        Module-InstallMarketplace -Config ([pscustomobject]@{ Spicetify_Marketplace = $true })
+
+        Test-Path -LiteralPath (Join-Path $script:orchestrationIntegration.MarketplaceDirectory 'manifest.json') -PathType Leaf | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:orchestrationIntegration.ThemesDirectory 'marketplace\color.ini') -PathType Leaf | Should -BeTrue
+        $script:orchestrationCalls.Sync | Should -Contain 'custom_apps=marketplace'
+        $script:orchestrationCalls.Sync | Should -Contain 'extensions=librespot-marketplace-button.js'
+    }
+
+    It 'Module-InstallCustomApps installs and synchronizes a selected app in the fake root' {
+        Module-InstallCustomApps -Config ([pscustomobject]@{ Spicetify_CustomApps = @('stats') })
+
+        Test-Path -LiteralPath (Join-Path $script:orchestrationIntegration.CustomAppsDirectory 'stats\manifest.json') -PathType Leaf | Should -BeTrue
+        $script:orchestrationCalls.Sync | Should -Contain 'custom_apps=stats'
+    }
+
+    It 'Module-ApplySpicetify applies and records evidence against the fake root' {
+        $result = Module-ApplySpicetify -Config ([pscustomobject]@{ Spicetify_Marketplace = $true }) -EvidenceSource 'PesterFixture'
+
+        $result.Succeeded | Should -BeTrue
+        $script:orchestrationCalls.Cli | Should -Contain 'backup apply --bypass-admin'
+        $script:orchestrationCalls.Evidence | Should -Contain 'PesterFixture|backup apply|True'
+        Test-Path -LiteralPath (Join-Path $script:orchestrationRoot 'marketplace-route.fixture') -PathType Leaf | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:orchestrationRoot 'apply-evidence.fixture') -PathType Leaf | Should -BeTrue
+    }
+
+    It 'routes Reapply and Full Reset clicks to their maintenance jobs' {
+        $ui = @{}
+        & $script:reapplyClickHandler
+        & $script:fullResetClickHandler
+
+        @($script:orchestrationCalls.Maintenance) | Should -Be @('Reapply', 'FullReset')
+        $script:orchestrationCalls.Pages | Should -Contain 'Reapplying your setup'
+        $script:orchestrationCalls.Pages | Should -Contain 'Preparing full reset'
+    }
+
+    It 'routes the recommended setup click through save and async job launch' {
+        $ui = @{
+            BtnInstall = [pscustomobject]@{ IsEnabled = $true }
+            ModeEasy = [pscustomobject]@{ IsChecked = $true }
+        }
+        & $script:installClickHandler
+
+        $ui.BtnInstall.IsEnabled | Should -BeFalse
+        $script:orchestrationCalls.InstallJobs | Should -Contain 'Easy'
+        $script:orchestrationCalls.Pages | Should -Contain 'Preparing recommended setup'
+        $script:orchestrationCalls.BaselineCaptures | Should -Be 1
     }
 }

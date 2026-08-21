@@ -83,10 +83,10 @@ Read this as *no data*, not *no problems*. Every item below is sourced from code
 - **Shell:** Home / Maintenance / Settings rail (`NavHome` / `NavSettings`); language picker restored; `ShellWorkspaceHost` still `Visibility="Collapsed"` (~1,600 lines). Provenance card and global search remain operator-blocked. `ShellDisplayVersion` is bound in the rail.
 - **RD-76 is done:** `RetrySystemCheckButton` on Home, and Maintenance now shares the unavailable copy plus Retry. The snapshot-error hero uses `Info24` instead of the missing `Info48` glyph.
 - **PowerShell hosts:** `LibreSpot.ps1` ~10,850 lines, backend ~6,577, 121 shared functions, composition + parity gate. Zero TODO/FIXME/HACK/XXX in `src/` and `tests/`.
-- **Test stack:** xunit.v3 4.0.0 + MTP v2 via `global.json`; Core 31, Desktop non-WPF 927+, WPF 135, Pester 203. Stryker.NET 4.16.0 MTP pilot 24.32% / 24% break. `coverlet.collector` 10.0.1 remains MTP-incompatible. WPF QA capture flake is RD-97.
-- **i18n:** 1,278 keys × five reviewed satellites; DE/FR blocked. Fleet CLI stays English by contract.
+- **Test stack:** xunit.v3 4.0.0 + MTP v2 via `global.json`; Core 81, Desktop non-WPF 1,035, WPF 84, Pester 213. Stryker.NET 4.16.0 MTP pilot 24.32% / 24% break. `coverlet.collector` 10.0.1 remains MTP-incompatible.
+- **i18n:** 1,268 keys × five reviewed satellites; DE/FR blocked. Fleet CLI stays English by contract.
 - **Observability:** local NDJSON + `LibreSpot-Operations` EventSource. No upload path.
-- **Mobile / macOS / Linux:** out of scope. SpotX-Bash covers Unix SpotX.
+- **Mobile / macOS / Linux:** not part of this Windows-only product. SpotX-Bash covers Unix SpotX.
 
 ## Consciously Excluded Categories
 

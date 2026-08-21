@@ -51,6 +51,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- PowerShell regressions now execute all eight install, apply, and reset orchestration bodies against an isolated Spotify tree. The same Pester harness invokes the real Recommended Setup, Reapply, and Full Reset click-handler bodies without opening WPF or touching an installed Spotify copy. The suite grows from 203 to 213 tests.
 - Uninstall help now says `--purge` needs `--yes` or `--silent`, matching the actual CLI guard.
 - Removed the `--accept-eula` fleet CLI flag. It was parsed but never read, while the CLI contract called it required for silent installs. Consent is recorded where it always actually was: `eulaAccepted` and `riskAcknowledged` in the answer file, both still required. Scripts passing the flag now fail with exit code 2 and an unsupported-flag message, so drop it from the command line.
 - Release builds now enforce what the schemas already documented. The publish footprint budget is measured and recorded in the release manifest, the stable script executable is compiled by `Build-Scripts.ps1 -CompileStableExe` with pinned flags and its file version checked against the script, `Build-Scripts.ps1 -GenerateSbom` restores the pinned CycloneDX 6.2.0 local tool, and the README screenshot gate verifies capture size, theme, and language instead of version metadata alone.

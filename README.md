@@ -479,7 +479,7 @@ dotnet build .\tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj --no
 dotnet .\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Desktop.Tests.dll --filter-not-class "*Wpf*" --minimum-expected-tests 1 --progress off
 dotnet build .\tests\LibreSpot.Core.Tests\LibreSpot.Core.Tests.csproj --no-restore
 dotnet .\tests\LibreSpot.Core.Tests\bin\Debug\net10.0-windows\LibreSpot.Core.Tests.dll --minimum-expected-tests 1 --progress off
-Invoke-Pester .\tests\powershell\LibreSpot.Tests.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Import-Module Pester -RequiredVersion 5.9.1; Invoke-Pester -Configuration (New-PesterConfiguration -Hashtable (& .\tests\powershell\pester.config.ps1))"
 ```
 
 Clean `publish`, publish the Desktop and CLI projects self-contained for
