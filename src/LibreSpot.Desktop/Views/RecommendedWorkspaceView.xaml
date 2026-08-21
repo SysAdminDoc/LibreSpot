@@ -76,7 +76,7 @@
                       VerticalAlignment="Center">
             <TextBlock Text="{Binding Label}"
                        Foreground="{DynamicResource TextBrush}"
-                       FontSize="15"
+                       FontSize="16"
                        FontWeight="SemiBold"
                        TextTrimming="CharacterEllipsis" />
             <TextBlock Text="{Binding Status}"
@@ -113,7 +113,7 @@
           <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <ui:SymbolIcon Symbol="ShieldCheckmark20"
-                       FontSize="19"
+                       FontSize="20"
                        Foreground="{DynamicResource AccentBrush}"
                        VerticalAlignment="Center" />
         <TextBlock Grid.Column="1"
@@ -211,7 +211,7 @@
                   <StackPanel Orientation="Horizontal">
                     <TextBlock Text="{TemplateBinding Header}"
                                Foreground="{DynamicResource InfoBrush}"
-                               FontSize="15"
+                               FontSize="16"
                                FontWeight="SemiBold"
                                VerticalAlignment="Center" />
                     <ui:SymbolIcon x:Name="DetailsChevron"
@@ -340,7 +340,7 @@
 
       <TextBlock Grid.Row="2"
                  Text="{Binding SimpleHomeBody}"
-                 FontSize="17"
+                 FontSize="18"
                  Foreground="{DynamicResource MutedTextBrush}"
                  HorizontalAlignment="Center"
                  TextAlignment="Center"
@@ -376,10 +376,10 @@
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center">
           <ui:SymbolIcon Symbol="Play24"
-                         FontSize="25"
+                         FontSize="24"
                          Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
           <TextBlock Text="{services:Loc ButtonStartRecommendedSetup}"
-                     FontSize="19"
+                     FontSize="20"
                      FontWeight="SemiBold"
                      Margin="14,0,0,0"
                      VerticalAlignment="Center" />
@@ -403,7 +403,7 @@
                        FontSize="20"
                        Foreground="{DynamicResource MutedTextBrush}" />
         <TextBlock Text="{services:Loc Vm_SimpleHomeDuration}"
-                   FontSize="15"
+                   FontSize="16"
                    Foreground="{DynamicResource MutedTextBrush}"
                    Margin="8,0,0,0"
                    VerticalAlignment="Center" />

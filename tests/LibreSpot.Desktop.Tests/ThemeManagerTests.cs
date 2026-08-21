@@ -236,28 +236,41 @@ public sealed class ThemeManagerTests
     [Fact]
     public void XamlCornerRadii_DoNotExceedDocumentedRadiusMaximum()
     {
-        var files = new[]
-        {
-            Path.Combine("src", "LibreSpot.Desktop", "MainWindow.xaml"),
-            Path.Combine("src", "LibreSpot.Desktop", "Themes", "Controls.xaml")
-        };
         var offenders = new List<string>();
+        var scanned = 0;
 
-        foreach (var file in files)
+        foreach (var file in EnumerateDesktopXaml())
         {
-            var content = ReadFile(file.Split(Path.DirectorySeparatorChar));
+            scanned++;
+            var content = File.ReadAllText(file);
             foreach (Match match in Regex.Matches(content, @"CornerRadius\s*=\s*""(?<value>\d+)""|Property=""CornerRadius""\s+Value=""(?<value>\d+)"""))
             {
                 var value = int.Parse(match.Groups["value"].Value);
                 if (value > 12)
                 {
-                    offenders.Add($"{file}: CornerRadius {value} exceeds the 12 px radius token maximum.");
+                    offenders.Add($"{ToRelativePath(file)}: CornerRadius {value} exceeds the 12 px radius token maximum.");
                 }
             }
         }
 
+        Assert.True(scanned > 2, $"The radius gate must read every XAML file; it read {scanned}.");
         Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
     }
+
+    /// <summary>
+    /// Every XAML file the desktop ships. Both design gates below used to name
+    /// two files, which left the workspace views unchecked.
+    /// </summary>
+    private static IEnumerable<string> EnumerateDesktopXaml() =>
+        Directory.EnumerateFiles(
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop"),
+            "*.xaml",
+            SearchOption.AllDirectories)
+            .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase));
+
+    private static string ToRelativePath(string fullPath) =>
+        Path.GetRelativePath(RepoRoot, fullPath).Replace('\\', '/');
 
     [Fact]
     public void XamlCornerRadii_DoNotBypassTheSharedScaleWithRawTwoOrFivePixelValues()
@@ -280,18 +293,18 @@ public sealed class ThemeManagerTests
     {
         var allowed = new HashSet<string>(StringComparer.Ordinal)
         {
-            "10.5", "11", "12", "13", "14", "16", "18", "20", "24", "30"
-        };
-        var files = new[]
-        {
-            Path.Combine("src", "LibreSpot.Desktop", "MainWindow.xaml"),
-            Path.Combine("src", "LibreSpot.Desktop", "Themes", "Controls.xaml")
+            "10.5", "11", "12", "13", "14", "16", "18", "20", "24", "30",
+            // Two display steps above the text scale, used only by the Home
+            // readiness hero: its glyph and its headline.
+            "46", "78"
         };
         var offenders = new List<string>();
+        var scanned = 0;
 
-        foreach (var file in files)
+        foreach (var file in EnumerateDesktopXaml())
         {
-            var content = ReadFile(file.Split(Path.DirectorySeparatorChar));
+            scanned++;
+            var content = File.ReadAllText(file);
             foreach (Match match in Regex.Matches(
                          content,
                          @"(?:FontSize|TextElement\.FontSize)=""(?<value>[0-9.]+)""|Property=""FontSize""\s+Value=""(?<value>[0-9.]+)"""))
@@ -299,11 +312,12 @@ public sealed class ThemeManagerTests
                 var value = match.Groups["value"].Value;
                 if (!allowed.Contains(value))
                 {
-                    offenders.Add($"{file}: FontSize {value} is outside the product type scale.");
+                    offenders.Add($"{ToRelativePath(file)}: FontSize {value} is outside the product type scale.");
                 }
             }
         }
 
+        Assert.True(scanned > 2, $"The typography gate must read every XAML file; it read {scanned}.");
         Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
     }
 

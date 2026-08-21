@@ -42,6 +42,7 @@ All notable changes to LibreSpot will be documented in this file.
 - The local profiles list fades at its bottom edge, so a card that runs past the viewport reads as scrollable rather than as a title cut in half. High contrast leaves the edge flat and relies on the scrollbar.
 - The documented local test command no longer skips its own lints. `--filter-not-method "*Wpf*"` was there to avoid the tests that launch the shell, but it matched on name, so twelve file-reading gates never ran, one of them red. Every shell-launching test already lives in a `Wpf*` class, so the class filter alone does the job and a new gate keeps it that way.
 - Two font sizes in the navigation rail were off the product type scale. The app title read 23 and the reversible-setup shield glyph 22; both are now 24.
+- Seven more sizes on the Home workspace were off the scale as well: three labels at 15, a subtitle at 17, two labels at 19, and a play glyph at 25. The design gates that were meant to catch this only read two of the seventeen XAML files; they read all of them now.
 
 ### Changed
 

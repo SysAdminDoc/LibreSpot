@@ -19,13 +19,6 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
   Fix: give it a non-parallel collection, then rename it off the `Wpf` prefix so the class filter stops skipping it.
   Acceptance: the documented local command runs those 15 cases and the suite stays stable across repeated runs.
 
-- [ ] P2 — RD-123: The typography gate reads 2 of 17 XAML files
-  Why: it hardcodes MainWindow.xaml and Themes/Controls.xaml, while AutomationNameContractTests and KeyboardFocusContractTests already enumerate every `Views/*.xaml`.
-  Where: tests/LibreSpot.Desktop.Tests/ThemeManagerTests.cs WpfTypography_UsesTheTenStepProductTypeScale, XamlCornerRadii_DoNotExceedDocumentedRadiusMaximum
-  Problem: `Views/RecommendedWorkspaceView.xaml` carries nine sizes outside the ten-step scale (15, 19, 15, 78, 46, 17, 25, 19, 15) and the gate has never seen them. The 78 and 46 are deliberate hero display type; the rest look like drift.
-  Fix: widen both gates to every XAML file, name the hero display sizes as explicit scale steps, and move the small off-scale sizes onto the nearest step.
-  Acceptance: the gate reads every XAML file under src/LibreSpot.Desktop and passes.
-
 ### P3
 
 - [ ] P3 — RD-91: Terminology and punctuation drift across live UI strings
