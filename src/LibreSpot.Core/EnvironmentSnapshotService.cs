@@ -481,47 +481,18 @@ public sealed class EnvironmentSnapshotService
 
         try
         {
-            using var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
+            // A timed-out drain is treated as "not present": never surface a
+            // heads-up on a guess.
+            var probe = ProcessProbe.Run(
+                new ProcessStartInfo
                 {
                     FileName = PowerShellHostPath.Resolve(),
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
                     ArgumentList = { "-NoProfile", "-NonInteractive", "-Command", script }
-                }
-            };
+                },
+                exitTimeoutMilliseconds: 5000);
 
-            if (!process.Start())
-            {
-                return false;
-            }
-
-            var stdoutDrain = process.StandardOutput.ReadToEndAsync();
-            var stderrDrain = process.StandardError.ReadToEndAsync();
-
-            if (!process.WaitForExit(5000))
-            {
-                try { process.Kill(); } catch { }
-                try { process.WaitForExit(500); } catch { }
-                return false;
-            }
-
-            var drained = false;
-            try { drained = Task.WaitAll(new Task[] { stdoutDrain, stderrDrain }, 500); } catch { }
-
-            // Only read the drained output once the tasks have actually completed.
-            // If a grandchild inherited the stdout handle the read never finishes,
-            // and touching .Result here would block with no bound despite the 500 ms
-            // cap above. A timed-out drain is treated as "not present" (safe default).
-            if (!drained || process.ExitCode != 0)
-            {
-                return false;
-            }
-
-            return stdoutDrain.Result.Contains("present", StringComparison.OrdinalIgnoreCase);
+            return probe.HasOutput &&
+                   probe.StandardOutput.Contains("present", StringComparison.OrdinalIgnoreCase);
         }
         catch
         {
@@ -2453,45 +2424,17 @@ public sealed class EnvironmentSnapshotService
 
         try
         {
-            using var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
+            var probe = ProcessProbe.Run(
+                new ProcessStartInfo
                 {
                     FileName = PowerShellHostPath.Resolve(),
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
                     ArgumentList = { "-NoProfile", "-NonInteractive", "-Command", script }
-                }
-            };
+                },
+                exitTimeoutMilliseconds: 5000);
 
-            if (!process.Start())
-            {
-                return AntivirusExclusionStatus.Unavailable;
-            }
-
-            var stdoutDrain = process.StandardOutput.ReadToEndAsync();
-            var stderrDrain = process.StandardError.ReadToEndAsync();
-
-            if (!process.WaitForExit(5000))
-            {
-                try { process.Kill(); } catch { }
-                try { process.WaitForExit(500); } catch { }
-                return AntivirusExclusionStatus.Unavailable;
-            }
-
-            var drained = false;
-            try { drained = Task.WaitAll(new Task[] { stdoutDrain, stderrDrain }, 500); } catch { }
-
-            // Guard .Result the same way as QueryStoreSpotifyPresent: never block on
-            // an un-drained pipe (grandchild holding the handle) after the timed cap.
-            if (!drained || process.ExitCode != 0)
-            {
-                return AntivirusExclusionStatus.Unavailable;
-            }
-
-            return ParseDefenderStatus(stdoutDrain.Result);
+            return probe.HasOutput
+                ? ParseDefenderStatus(probe.StandardOutput)
+                : AntivirusExclusionStatus.Unavailable;
         }
         catch
         {
@@ -2552,42 +2495,19 @@ public sealed class EnvironmentSnapshotService
     {
         try
         {
-            using var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
+            // Only the exit code matters here, so an incomplete drain is fine.
+            return ProcessProbe.Run(
+                new ProcessStartInfo
                 {
                     FileName = "schtasks.exe",
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
                     ArgumentList =
                     {
                         "/Query",
                         "/TN",
                         @"LibreSpot\ReapplyWatcher"
                     }
-                }
-            };
-
-            if (!process.Start())
-            {
-                return false;
-            }
-
-            var stdoutDrain = process.StandardOutput.ReadToEndAsync();
-            var stderrDrain = process.StandardError.ReadToEndAsync();
-
-            if (!process.WaitForExit(1500))
-            {
-                try { process.Kill(); } catch { }
-                try { process.WaitForExit(500); } catch { }
-                return false;
-            }
-
-            try { Task.WaitAll(new Task[] { stdoutDrain, stderrDrain }, 500); } catch { }
-
-            return process.ExitCode == 0;
+                },
+                exitTimeoutMilliseconds: 1500).Succeeded;
         }
         catch
         {

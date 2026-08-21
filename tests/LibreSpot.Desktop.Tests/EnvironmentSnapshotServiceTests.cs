@@ -1,6 +1,7 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
 using Xunit;
@@ -155,18 +156,36 @@ public sealed class EnvironmentSnapshotServiceTests
     [Fact]
     public void AutoReapplyTaskProbe_DrainsRedirectedPipesBeforeWaitForExit()
     {
-        var source = File.ReadAllText(Path.Combine(
-            ResolveRepoRoot(), "src", "LibreSpot.Core", "EnvironmentSnapshotService.cs"));
+        // The drain now lives in ProcessProbe, which all three snapshot probes
+        // share. The ordering guarantee is unchanged: both reads must be in
+        // flight before the bounded wait, or a child that fills a pipe deadlocks.
+        var probeSource = File.ReadAllText(Path.Combine(
+            ResolveRepoRoot(), "src", "LibreSpot.Core", "ProcessProbe.cs"));
 
-        var stdoutIndex = source.IndexOf("StandardOutput.ReadToEndAsync", StringComparison.Ordinal);
-        var stderrIndex = source.IndexOf("StandardError.ReadToEndAsync", StringComparison.Ordinal);
-        var waitIndex = source.IndexOf("WaitForExit(1500)", StringComparison.Ordinal);
+        var stdoutIndex = probeSource.IndexOf("StandardOutput.ReadToEndAsync", StringComparison.Ordinal);
+        var stderrIndex = probeSource.IndexOf("StandardError.ReadToEndAsync", StringComparison.Ordinal);
+        var waitIndex = probeSource.IndexOf("WaitForExit(exitTimeoutMilliseconds)", StringComparison.Ordinal);
 
-        Assert.True(stdoutIndex > 0, "schtasks stdout must be drained asynchronously.");
-        Assert.True(stderrIndex > 0, "schtasks stderr must be drained asynchronously.");
-        Assert.True(waitIndex > 0, "schtasks probe must keep the bounded wait.");
+        Assert.True(stdoutIndex > 0, "stdout must be drained asynchronously.");
+        Assert.True(stderrIndex > 0, "stderr must be drained asynchronously.");
+        Assert.True(waitIndex > 0, "the probe must keep the bounded wait.");
         Assert.True(stdoutIndex < waitIndex, "stdout drain must start before WaitForExit.");
         Assert.True(stderrIndex < waitIndex, "stderr drain must start before WaitForExit.");
+
+        // And the schtasks probe must still route through it with its 1500 ms cap.
+        var snapshotSource = File.ReadAllText(Path.Combine(
+            ResolveRepoRoot(), "src", "LibreSpot.Core", "EnvironmentSnapshotService.cs"));
+        Assert.Matches(@"schtasks\.exe[\s\S]{0,400}?exitTimeoutMilliseconds:\s*1500", snapshotSource);
+    }
+
+    [Fact]
+    public void SnapshotProbes_ShareOneDrainImplementation()
+    {
+        var snapshotSource = File.ReadAllText(Path.Combine(
+            ResolveRepoRoot(), "src", "LibreSpot.Core", "EnvironmentSnapshotService.cs"));
+
+        Assert.DoesNotContain("ReadToEndAsync", snapshotSource, StringComparison.Ordinal);
+        Assert.Equal(3, Regex.Matches(snapshotSource, @"ProcessProbe\.Run\(").Count);
     }
 
     private static string ResolveRepoRoot()

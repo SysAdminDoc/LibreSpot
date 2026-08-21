@@ -67,9 +67,3 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
   Where: src/LibreSpot.Desktop/Themes/Controls.xaml CardListBoxItemStyle
   Fix: Mute via DisabledTextBrush / a disabled card fill, or leave opacity only if a capture proves inner text still clears 3:1.
   Acceptance: A disabled profile card in dark and high contrast keeps caption contrast ≥3:1 without a second GrayText dim.
-
-- [ ] P3 — RD-106: Snapshot probe stdout-drain boilerplate is still copied three times
-  Why: RD-88 shared the PowerShell path; the timed drain around Get-AppxPackage / Defender probes (and a third copy that dropped the drained-check) is still duplicated.
-  Where: src/LibreSpot.Core/EnvironmentSnapshotService.cs
-  Fix: One `ProcessProbe.Run` helper with the drained-check the second copy's comment already documents.
-  Acceptance: One drain implementation; existing snapshot tests pass.
