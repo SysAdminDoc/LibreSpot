@@ -176,6 +176,49 @@ BeforeAll {
     $global:SpotifyVersionIds = @($global:SpotifyVersionManifest | ForEach-Object { $_.Id })
 }
 
+Describe 'Build-CommunityCatalog' {
+    BeforeAll {
+        $script:catalogRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-catalog-{0}" -f ([guid]::NewGuid().ToString('N')))
+        $script:catalogGenerator = Join-Path $PSScriptRoot '..\..\tools\Build-CommunityCatalog.ps1'
+        $script:communityManifest = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..\..\schemas\community-assets.json') | ConvertFrom-Json
+        & $script:catalogGenerator -OutputDirectory $script:catalogRoot -GeneratedDate '2026-08-20' | Out-Null
+        $script:catalog = Get-Content -Raw -LiteralPath (Join-Path $script:catalogRoot 'catalog.json') | ConvertFrom-Json
+        $script:catalogHtml = Get-Content -Raw -LiteralPath (Join-Path $script:catalogRoot 'index.html')
+    }
+
+    AfterAll {
+        Remove-Item -LiteralPath $script:catalogRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'renders every community manifest asset with required trust metadata' {
+        $expectedCount = @($script:communityManifest.extensions).Count +
+            @($script:communityManifest.themes).Count +
+            @($script:communityManifest.customApps).Count
+        $script:catalog.items.Count | Should -Be $expectedCount
+
+        foreach ($item in @($script:catalog.items)) {
+            $item.provenance.sourceUrl | Should -Not -BeNullOrEmpty
+            $item.license.spdx | Should -Not -BeNullOrEmpty
+            $item.verification.badge | Should -Be 'Pinned SHA256 verified'
+            $item.verification.digest | Should -Not -BeNullOrEmpty
+            $item.review.evaluatedDate | Should -Not -BeNullOrEmpty
+            $item.review.evidenceUrls.Count | Should -BeGreaterThan 0
+        }
+    }
+
+    It 'joins every community theme to the shared preview manifest' {
+        @($script:catalog.items | Where-Object kind -eq 'theme').Count | Should -Be @($script:communityManifest.themes).Count
+        @($script:catalog.items | Where-Object { $_.kind -eq 'theme' -and $null -ne $_.preview }).Count |
+            Should -Be @($script:communityManifest.themes).Count
+    }
+
+    It 'shows provenance, license, verification, review, and evidence in the page' {
+        foreach ($token in @('Provenance', 'License', 'Pinned SHA256 verified', 'Reviewed', 'Evidence and release links')) {
+            $script:catalogHtml | Should -Match ([regex]::Escape($token))
+        }
+    }
+}
+
 Describe 'Per-user PATH registry isolation' {
     BeforeEach {
         $script:pathRegistryRoot = "Software\LibreSpot\Tests\PathIsolation\$([Guid]::NewGuid().ToString('N'))"
