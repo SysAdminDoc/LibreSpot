@@ -10,15 +10,6 @@ Highest ID: RD-106. Issue tracker: zero open issues/PRs; closed #1-#5 predate v4
 
 Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disabled rail contrast, RD-82 AtomicFile, RD-85 dead members, RD-87 LibreSpotPaths, RD-88 PowerShell host path, RD-89 DWM palette colors, RD-99 snapshot-error glyph, RD-100 screenshot contract, RD-101 WPF-UI template leak gate, RD-102 CycloneDX local tool, RD-103 changelog HEAD-only bullets, RD-104 Jump List labels. Filled/secondary/checkbox/combo disabled states now use DisabledTextBrush; CardListBoxItemStyle remains under RD-105. Bloom checklist/manifest decision drift (the RD-81 note) is aligned; the gh-pages gate below remains.
 
-### P2
-
-- [ ] P2 — RD-122: `WpfUiIntegrationTests` is skipped by name although it opens no window
-  Why: 15 cases, no process and no window; `EnsureApplication` builds a WPF `Application` without calling `Run()` and the heavy cases render offscreen to a RenderTargetBitmap.
-  Where: tests/LibreSpot.Desktop.Tests/WpfUiIntegrationTests.cs
-  Problem: it cannot simply be renamed into the default suite, because a WPF `Application` is process-global and the default suite runs in parallel.
-  Fix: give it a non-parallel collection, then rename it off the `Wpf` prefix so the class filter stops skipping it.
-  Acceptance: the documented local command runs those 15 cases and the suite stays stable across repeated runs.
-
 ### P3
 
 - [ ] P3 — RD-91: Terminology and punctuation drift across live UI strings

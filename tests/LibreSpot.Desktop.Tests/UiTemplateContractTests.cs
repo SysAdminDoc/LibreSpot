@@ -4,7 +4,9 @@ using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
 
-public sealed class WpfUiTemplateContractTests
+// Named without a Wpf prefix on purpose: these only read files, and
+// --filter-not-class "*Wpf*" would skip them on every local run.
+public sealed class UiTemplateContractTests
 {
     private static readonly string RepoRoot = ResolveRepoRoot();
 

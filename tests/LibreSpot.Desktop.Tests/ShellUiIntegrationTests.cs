@@ -12,7 +12,13 @@ using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
 
-public sealed class WpfUiIntegrationTests
+// No window and no process: EnsureApplication builds a WPF Application without
+// calling Run(), and the heavy cases render offscreen. It does not belong
+// behind --filter-not-class "*Wpf*". A WPF Application is process-global
+// though, so it takes the exclusive collection rather than running in parallel
+// with the rest of the suite.
+[Collection(WpfUiAutomationCollection.Name)]
+public sealed class ShellUiIntegrationTests
 {
     private static readonly string RepoRoot = ResolveRepoRoot();
 
