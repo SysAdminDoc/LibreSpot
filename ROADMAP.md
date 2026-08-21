@@ -72,6 +72,17 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
 
 ### P3
 
+- [ ] P3 — RD-99: Home hero icon renders a stray "Z" glyph in the snapshot-error state
+  Category: visual
+  Where: src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml:314-315 (`<DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">` sets `Symbol="Info48"` on the 78px hero `ui:SymbolIcon`)
+  Problem: In the snapshot-error state the 184px hero circle shows a capital "Z" instead of an information glyph. The small `ui:SymbolIcon` instances in the readiness strip render their info glyphs correctly in the same capture, and `Checkmark48` renders correctly in the ready state, so the failure is specific to this symbol/size. The error state is exactly where a user needs a legible signal.
+  Evidence: Observed in a `--uia-smoke=snapshot-error --uia-size=1440x1024 --uia-theme=dark` capture taken 2026-08-21, after adding the retry button (the trigger and icon were untouched by that change, so this predates it). The QA matrix does not catch it because its render-dropout assertion only runs for the high-contrast theme.
+  Fix: Verify `Info48` exists in the WPF-UI 4.3.0 `SymbolRegular` enum and that the bundled Fluent font ships that glyph; if it does not, switch to a symbol that does (the readiness strip's working info glyph, or `Info24`/`Info28` scaled up). Check `ShieldError48` on the critical-issues trigger at the same time, since it is the same size class and is not covered by a capture today.
+  Acceptance: The snapshot-error hero shows an information glyph in dark and high-contrast captures; a QA matrix row covers the critical-issues hero too.
+  Confidence: Verified
+  Effort: S
+
+
 - [ ] P3 — RD-85: Dead ViewModel/Core members batch (zero-reference properties and accessors)
   Category: maintainability
   Where: MainViewModel.cs:661-663 (HasWarningHealthIssues/HasInfoHealthIssues/HasAnyHealthIssues), :767 (WorkspaceRecommendationDetail), :804 (EnabledToggleCountLabel), :835 (SelectedCustomAppCountLabel), :1183/:1233 (IsOverviewWorkspaceSelected + ShowRailRunDuration pair); MainViewModel.Profiles.cs:93 (CanEditSelectedLocalProfile); ViewModels/LocalProfileCardViewModel.cs:38 (UpdatedText); Views/MaintenanceWorkspaceView.xaml.cs:15 (CompatibilityVerdictSurface accessor); Services/LocalizationService.cs:48 (IsSupportedCulture); src/LibreSpot.Core/AppCatalog.cs:378-380 (HasMissingAssets/HasReviewRequiredAssets/HasCatalogReviewIssues), :701 (StackHealthComponent.HasDetectedVersion), :855 (PinnedStatsCustomAppVersion — a hand-maintained duplicate of the version inside PinnedStatsCustomAppReleaseTag at :856 that nothing validates)
@@ -161,16 +172,6 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
   Acceptance: Every key whose value contains `{0}` has a comment naming the placeholder's meaning.
   Confidence: Verified
   Effort: M
-
-- [ ] P3 — RD-94: keyboard-focus-contract.json describes the pre-simplification shell
-  Category: docs
-  Where: schemas/keyboard-focus-contract.json `pages` section ("sidebar RadioButtons", "Recommended/Custom/Maintenance" pages, run-button placement); the simplified shell's rail (Buttons, Home/Maintenance/Settings) and its new language ComboBox are absent
-  Problem: The contract is the stated source of truth for tab order and focus behavior, but its pages section documents a shell that no longer exists; the tests that consume the file assert overlays/focus visuals, so nothing failed when the shell changed. An implementer following the contract would build the wrong tab order.
-  Evidence: Read this session; pages prose says "sidebar RadioButtons are keyboard-navigable" while the rail uses Button styles (MainWindow.xaml:1255+); SimpleShellLanguageSelector absent from the contract.
-  Fix: Rewrite the pages section for the simplified shell: rail order (Home, Maintenance, Settings, language selector, then workspace content), initial focus per state, and the F5/Escape bindings that survive. Keep overlay sections as-is (still accurate).
-  Acceptance: Contract matches a manual tab-through of the running shell; KeyboardFocusContractTests still pass.
-  Confidence: Verified
-  Effort: S
 
 - [ ] P3 — RD-95: Profiles list viewport bisects a card mid-title, reading as an overlap bug
   Category: visual

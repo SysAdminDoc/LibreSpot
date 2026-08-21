@@ -44,21 +44,24 @@
   "pages": [
     {
       "name": "Recommended",
-      "initialFocus": "RunSetup button (primary action at bottom)",
-      "tabOrder": "Sidebar nav → workspace content → run button",
-      "notes": "Single-action page; sidebar RadioButtons are keyboard-navigable."
+      "railLabel": "Home",
+      "initialFocus": "RunRecommendedSetupButton (primary action, centre of the page)",
+      "tabOrder": "Rail buttons (WorkspaceNavRecommended → WorkspaceNavMaintenance → WorkspaceNavCustom) → SimpleShellLanguageSelector → workspace content → RunRecommendedSetupButton → RecommendedDetailsExpander",
+      "notes": "Single-action page. The rail entries are Buttons, not RadioButtons, and each carries an AutomationProperties.Name matching its localized label. In the snapshot-error state RetrySystemCheckButton replaces the duration line and is the QA focus target."
     },
     {
       "name": "Custom",
-      "initialFocus": "First option in workspace content",
-      "tabOrder": "Sidebar nav → option groups → theme/scheme selectors → extensions → run button",
-      "notes": "Settings search box is reachable via Tab. Search results are focusable."
+      "railLabel": "Settings",
+      "initialFocus": "SettingsSearchBox, then the first option in workspace content",
+      "tabOrder": "Rail buttons → SimpleShellLanguageSelector → SettingsSearchBox → option groups → theme/scheme selectors → extensions → ApplyCustomProfileButton",
+      "notes": "Settings search box is reachable via Tab and SettingsSearchClearButton appears once it has text. Search results are focusable."
     },
     {
       "name": "Maintenance",
+      "railLabel": "Maintenance",
       "initialFocus": "First health card or action button",
-      "tabOrder": "Sidebar nav → health cards → action buttons",
-      "notes": "Destructive buttons (Full Reset) use warning/danger styling as non-color-only indicators."
+      "tabOrder": "Rail buttons → SimpleShellLanguageSelector → compatibility verdict → health cards → action buttons",
+      "notes": "Destructive actions (Full reset, whose button reads Reset everything) use warning/danger styling as non-color-only indicators."
     }
   ],
   "focusVisuals": {
