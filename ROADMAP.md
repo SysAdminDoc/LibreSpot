@@ -10,16 +10,6 @@ IDs continue the RD-nn scheme (highest prior ID: RD-72). Baseline at audit time,
 
 ### P2
 
-- [ ] P2 — RD-75: Home content clips horizontally at the minimum window size
-  Category: visual
-  Where: src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml:351-352 (readiness strip `Width="820" MaxWidth="820"`), :365 (`Width="506"`), :405 (Details expander `Width="820"`); MainWindow.xaml:18 (`MinWidth="1080"`); MainWindow.xaml.cs:172-176 (compact rail 224 + workspace padding 32+32)
-  Problem: At MinWidth 1080 the workspace content area is 1080 − 224 − 64 = 792 logical px, but the readiness check strip and Details expander are fixed at 820. The strip is centered so ~14px is cut on each side: the fourth check ("Dependencies") loses its trailing divider and runs to the window edge, and the host ScrollViewer (line 260) only scrolls vertically, so the clipped content is unreachable.
-  Evidence: Observed live this session: `--uia-smoke=recommended --uia-size=1080x720` capture shows the right edge of the readiness strip cut off flush with the window edge. Width math above from the XAML/code-behind lines listed.
-  Fix: Change the fixed `Width="820"` on the readiness ItemsControl and the Details expander (and `Width="506"` on the CTA if affected) to `MaxWidth` with `HorizontalAlignment="Center"` so they shrink at narrow sizes; the readiness ItemsControl's UniformGrid/columns should wrap or compress. Re-capture the QA matrix afterward.
-  Acceptance: At `--uia-size=1080x720` all four readiness checks including their dividers are fully visible; no content is horizontally clipped in the recommended, custom, or maintenance states.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — RD-76: Home's failure state has no visible retry control, and its copy points at one that doesn't exist
   Category: ux
   Where: src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml (snapshot-error triggers at :291/:315, no refresh button anywhere in the view); MainWindow.xaml:1847, 2385, 2650 (all RefreshSnapshotCommand bindings — every one inside the collapsed ShellWorkspaceHost); Strings.resx `Vm_SimpleHomeUnavailableBody` = "Refresh the system check or open Maintenance for help."
