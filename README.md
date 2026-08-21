@@ -517,6 +517,41 @@ gh release verify-asset vX.Y.Z .\publish\LibreSpot-Desktop.exe
 Compare every downloaded file with `checksums.txt`. `gh release verify-asset`
 does not cover GitHub source archives.
 
+### Republishing the community catalog
+
+`gh-pages` serves the public catalog page. It is generated output, so it has to
+be regenerated and pushed whenever `schemas/community-assets.json` or
+`schemas/theme-preview-manifest.json` changes. Otherwise the page keeps
+advertising trust evidence, review decisions, and pins that the repository no
+longer stands behind.
+
+```powershell
+.\Build-Scripts.ps1 -CatalogTruth
+```
+
+That fetches `gh-pages`, regenerates the catalog into a temporary directory, and
+compares it with the published `catalog.json`. A mismatch fails and names the
+regenerate step. When the `origin/gh-pages` ref cannot be reached the check
+warns and passes, so an offline machine is not blocked. `-Validate` runs the
+same comparison without fetching.
+
+When it reports drift, regenerate and push:
+
+```powershell
+$staging = Join-Path $env:TEMP 'librespot-catalog'
+.\tools\Build-CommunityCatalog.ps1 -OutputDirectory $staging
+git worktree add ..\LibreSpot-ghpages gh-pages
+Copy-Item "$staging\*" ..\LibreSpot-ghpages -Recurse -Force
+git -C ..\LibreSpot-ghpages add -A
+git -C ..\LibreSpot-ghpages commit -m "Publish the reviewed community catalog"
+git -C ..\LibreSpot-ghpages push origin gh-pages
+git worktree remove ..\LibreSpot-ghpages
+.\Build-Scripts.ps1 -CatalogTruth
+```
+
+The generator decodes both schemas as UTF-8 explicitly, so Windows PowerShell
+5.1 and PowerShell 7 produce byte-identical output.
+
 ## Local validation
 
 Run dependency-health checks before release packaging:

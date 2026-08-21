@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Composes and validates the executable PowerShell hosts from canonical
     shared, data-block, and lane-specific sources.
@@ -17,6 +17,7 @@
     pwsh -File Build-Scripts.ps1 -CompositionSmoke
     pwsh -File Build-Scripts.ps1 -Inventory
     pwsh -File Build-Scripts.ps1 -Lint
+    pwsh -File Build-Scripts.ps1 -CatalogTruth
 
 .NOTES
     Part of the "Extract shared PowerShell core logic" roadmap item (Cycle 11).
@@ -56,6 +57,7 @@ param(
     [string]$SbomOutputPath,
     [switch]$SkipStableExeIdentity,
     [switch]$ReleaseTruth,
+    [switch]$CatalogTruth,
     [switch]$WatcherIntegration
 )
 
@@ -823,6 +825,125 @@ function Test-PublicReleaseTruth {
     }
 
     Write-Host "Public release truth matches $tag ($($assetNames.Count) assets)." -ForegroundColor Green
+}
+
+function Invoke-GitCommand {
+    param([Parameter(Mandatory)][string]$Arguments)
+
+    # git writes UTF-8 regardless of the console codepage, so redirect through
+    # ProcessStartInfo with an explicit decoder instead of the pipeline.
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = 'git'
+    $startInfo.Arguments = $Arguments
+    $startInfo.WorkingDirectory = $PSScriptRoot
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.StandardOutputEncoding = [System.Text.Encoding]::UTF8
+    $startInfo.StandardErrorEncoding = [System.Text.Encoding]::UTF8
+
+    try {
+        $process = [System.Diagnostics.Process]::Start($startInfo)
+    } catch {
+        return [pscustomobject]@{
+            ExitCode = -1
+            StandardOutput = ''
+            StandardError = $_.Exception.Message
+        }
+    }
+
+    $standardOutput = $process.StandardOutput.ReadToEnd()
+    $standardError = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+
+    return [pscustomobject]@{
+        ExitCode = $process.ExitCode
+        StandardOutput = $standardOutput
+        StandardError = $standardError
+    }
+}
+
+function ConvertTo-CatalogComparable {
+    param(
+        [Parameter(Mandatory)][string]$Json,
+        [switch]$Pretty
+    )
+
+    $catalog = $Json | ConvertFrom-Json
+    # generatedDate is a build stamp, not reviewed trust data. Everything else
+    # in catalog.json is derived from the two schemas and must match.
+    if ($catalog.PSObject.Properties['generatedDate']) {
+        $catalog.PSObject.Properties.Remove('generatedDate')
+    }
+
+    if ($Pretty) {
+        return ($catalog | ConvertTo-Json -Depth 16)
+    }
+
+    return ($catalog | ConvertTo-Json -Depth 16 -Compress)
+}
+
+function Test-CommunityCatalogTruth {
+    param([switch]$FetchRemote)
+
+    $catalogTool = Join-Path $PSScriptRoot 'tools/Build-CommunityCatalog.ps1'
+    if (-not (Test-Path -LiteralPath $catalogTool -PathType Leaf)) {
+        throw "Cannot find the community catalog generator at $catalogTool"
+    }
+
+    if ($FetchRemote) {
+        $fetch = Invoke-GitCommand -Arguments 'fetch --quiet origin gh-pages'
+        if ($fetch.ExitCode -ne 0) {
+            Write-Host "Community catalog truth is unverified: could not reach origin/gh-pages. $($fetch.StandardError.Trim())" -ForegroundColor Yellow
+            return
+        }
+    }
+
+    $published = Invoke-GitCommand -Arguments 'show origin/gh-pages:catalog.json'
+    if ($published.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($published.StandardOutput)) {
+        Write-Host 'Community catalog truth is unverified: origin/gh-pages:catalog.json is not available locally.' -ForegroundColor Yellow
+        Write-Host '  Run "Build-Scripts.ps1 -CatalogTruth" (or "git fetch origin gh-pages") while online to compare against the published page.' -ForegroundColor Yellow
+        return
+    }
+
+    $stagingRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('librespot-catalog-truth-' + [Guid]::NewGuid().ToString('N'))
+    try {
+        & $catalogTool -OutputDirectory $stagingRoot -RepoRoot $PSScriptRoot | Out-Null
+        $localCatalogPath = Join-Path $stagingRoot 'catalog.json'
+        if (-not (Test-Path -LiteralPath $localCatalogPath -PathType Leaf)) {
+            throw 'The community catalog generator did not write catalog.json.'
+        }
+        $localJson = [System.IO.File]::ReadAllText($localCatalogPath, [System.Text.Encoding]::UTF8)
+    } finally {
+        if (Test-Path -LiteralPath $stagingRoot) {
+            Remove-Item -LiteralPath $stagingRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    if ((ConvertTo-CatalogComparable -Json $localJson) -eq (ConvertTo-CatalogComparable -Json $published.StandardOutput)) {
+        Write-Host 'Published community catalog matches the reviewed asset manifest.' -ForegroundColor Green
+        return
+    }
+
+    $localLines = (ConvertTo-CatalogComparable -Json $localJson -Pretty) -split "`r?`n"
+    $publishedLines = (ConvertTo-CatalogComparable -Json $published.StandardOutput -Pretty) -split "`r?`n"
+    $differences = @(Compare-Object -ReferenceObject $publishedLines -DifferenceObject $localLines -SyncWindow 50)
+
+    Write-Host '=== PUBLISHED COMMUNITY CATALOG DRIFT ===' -ForegroundColor Red
+    foreach ($difference in ($differences | Select-Object -First 12)) {
+        $lane = if ($difference.SideIndicator -eq '=>') { 'reviewed' } else { 'published' }
+        Write-Host "  [$lane] $($difference.InputObject.Trim())" -ForegroundColor Red
+    }
+    if ($differences.Count -gt 12) {
+        Write-Host "  ... $($differences.Count - 12) further differing lines" -ForegroundColor Red
+    }
+    Write-Host ''
+    Write-Host 'The catalog page at https://sysadmindoc.github.io/LibreSpot/ is advertising trust evidence that no longer matches schemas/community-assets.json.' -ForegroundColor Red
+    Write-Host 'Regenerate and republish:' -ForegroundColor Red
+    Write-Host '  .\tools\Build-CommunityCatalog.ps1 -OutputDirectory <staging>' -ForegroundColor Red
+    Write-Host '  git worktree add <worktree> gh-pages; copy the staging output over it; commit and push gh-pages' -ForegroundColor Red
+    throw 'The published community catalog has drifted from the reviewed asset manifest.'
 }
 
 function Get-PngTextMetadataValue {
@@ -2134,6 +2255,11 @@ if ($ReleaseTruth) {
     exit 0
 }
 
+if ($CatalogTruth) {
+    Test-CommunityCatalogTruth -FetchRemote
+    exit 0
+}
+
 if ($WatcherIntegration) {
     $watcherIntegrationPath = Join-Path $PSScriptRoot 'tests/powershell/Invoke-WatcherIntegration.ps1'
     if (-not (Test-Path -LiteralPath $watcherIntegrationPath -PathType Leaf)) {
@@ -2345,6 +2471,10 @@ if ($Validate) {
     Test-ReadmeWpfScreenshotMetadata
     Test-PinnedCompatibilityBaseline
     Test-LocalReleaseTruth
+    # Offline-safe: compares against whatever origin/gh-pages the clone already
+    # has and warns instead of failing when that ref is missing. -CatalogTruth
+    # fetches first.
+    Test-CommunityCatalogTruth
     exit 0
 }
 
@@ -2538,4 +2668,5 @@ Write-Host "  pwsh -File Build-Scripts.ps1 -DependencyHealth       # Emit depend
 Write-Host "  pwsh -File Build-Scripts.ps1 -SpotXSecurityPolicy    # Hash and inspect the pinned SpotX entrypoint for Defender mutations"
 Write-Host "  pwsh -File Build-Scripts.ps1 -CheckSpotifyVersionDrift # Compare pinned Spotify target vs SpotX-Bash buildVer (report-only)"
 Write-Host "  pwsh -File Build-Scripts.ps1 -ReleaseTruth          # Compare README claims with projects, scripts, and GitHub latest stable"
+Write-Host "  pwsh -File Build-Scripts.ps1 -CatalogTruth          # Fetch gh-pages and compare the published catalog with the reviewed manifest"
 Write-Host "  pwsh -File Build-Scripts.ps1 -WatcherIntegration    # Exercise the watcher through a disposable Task Scheduler task"

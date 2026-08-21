@@ -10,15 +10,6 @@ Highest ID: RD-106. Issue tracker: zero open issues/PRs; closed #1-#5 predate v4
 
 Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disabled rail contrast, RD-82 AtomicFile, RD-85 dead members, RD-87 LibreSpotPaths, RD-88 PowerShell host path, RD-89 DWM palette colors, RD-99 snapshot-error glyph, RD-100 screenshot contract, RD-101 WPF-UI template leak gate, RD-102 CycloneDX local tool, RD-103 changelog HEAD-only bullets, RD-104 Jump List labels. Filled/secondary/checkbox/combo disabled states now use DisabledTextBrush; CardListBoxItemStyle remains under RD-105. Bloom checklist/manifest decision drift (the RD-81 note) is aligned; the gh-pages gate below remains.
 
-### P2
-
-- [ ] P2 — RD-81: The published community catalog can silently drift from the reviewed manifest
-  Why: the public catalog page advertises per-asset trust evidence but nothing ties gh-pages to `schemas/community-assets.json`.
-  Where: tools/Build-CommunityCatalog.ps1; gh-pages `catalog.json`; Build-Scripts.ps1; README.md local release procedure
-  Problem: If a review is revoked or a pin changes, local gates pass while the public page keeps advertising stale trust data. The Bloom checklist vs manifest mismatch is fixed; the unpublished-page gap is not.
-  Fix: Add a `-Validate` or `-CatalogTruth` check that regenerates catalog.json into a temp directory and compares it to `origin/gh-pages:catalog.json` (match = pass, mismatch = fail with regenerate-and-push, unreachable remote = warn-only). Document the regenerate-and-push step in README.
-  Acceptance: Editing community-assets.json without republishing fails the gate; offline runs do not fail.
-
 ### P3
 
 - [ ] P3 — RD-86: Five Spotify-version parsers in Core with divergent semantics

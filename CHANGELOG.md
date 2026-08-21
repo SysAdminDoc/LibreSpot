@@ -6,6 +6,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [v4.0.0-preview.28] (2026-08-21)
 
+### Added
+
+- `Build-Scripts.ps1 -CatalogTruth` regenerates the community catalog and compares it with `catalog.json` on the published `gh-pages` branch, so a revoked review or a changed pin cannot keep advertising stale trust evidence on the public page. `-Validate` runs the same check against whatever `origin/gh-pages` the clone already has and warns rather than failing when that ref is missing, so offline runs still pass.
+
 ### Fixed
 
 - The desktop shell shows its version again. The simplified shell had collapsed every surface that displayed it, so the app reported its own version nowhere; it now sits under the LibreSpot name in the navigation rail. Crash reports and the startup log line also record the full preview version instead of the shorter numeric assembly version.
@@ -27,6 +31,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Blocked WPF-UI implicit styles from leaking into the snackbar close button, scrollbar page buttons, and the Home details expander toggle. Those were the same class of leak that collapsed every dropdown in preview.26.
 - Disabled primary, secondary, checkbox, and dropdown controls keep a readable label. They used to fade the whole control with opacity, which dropped filled-button text well below the 3:1 floor and dimmed GrayText again in high contrast.
 - Export and activation staging writes go through the same atomic helper as config and profile saves, so a crash mid-export cannot leave a truncated `plan.json`.
+- The community catalog generator decodes the asset schemas as UTF-8. Under Windows PowerShell 5.1 it read them in the ANSI codepage, so every em dash in a review note reached the published page as mojibake.
 
 ### Changed
 

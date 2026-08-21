@@ -62,7 +62,11 @@ function Read-JsonFile {
         throw "Manifest not found: $Path"
     }
 
-    return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+    # The schemas are BOM-less UTF-8. Windows PowerShell 5.1 reads those in the
+    # ANSI codepage, which turns every em-dash in a notes field into mojibake
+    # and publishes a corrupted catalog. Decode explicitly on both hosts.
+    $raw = [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8)
+    return $raw | ConvertFrom-Json
 }
 
 function Write-Utf8File {
