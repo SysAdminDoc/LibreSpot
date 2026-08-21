@@ -12,19 +12,6 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
 
 ### P2
 
-- [ ] P2 — RD-111: `SpotifyVersion` accepts trailing garbage past the component cap
-  Why: `TryParseComponents` only validates the first `maximumComponents` pieces, so what is rejected depends on where the junk lands.
-  Where: src/LibreSpot.Core/SpotifyVersion.cs
-  Repro: `TryParse("1.2.96.518 (Release)")` is true (1.2.96) while `TryParse("1.2.3 (build 4)")` is false; `TryParseReleaseTag("1.2.3.4.garbage", null)` is true (1.2.3.4) where the old `ParseSortableVersion` returned 0.0.0 and sorted it last.
-  Fix: Validate every piece, then take the first `maximumComponents`.
-  Acceptance: Both entry points agree on the same string; a tag with a non-numeric trailing piece is rejected; the sort-order case is covered by a test.
-
-- [ ] P2 — RD-112: `SpicetifySupportContract` no longer reads a version terminated by whitespace
-  Why: The old regex accepted whitespace as a terminator; the shared parser does not, so a vendor `FileVersion` like `1.2.3 rc1` or `1.2.3 (build 4)` now fails to parse and pushes `Evaluate` into the "cannot read version" refusal branch.
-  Where: src/LibreSpot.Core/SpotifyVersion.cs; SpicetifySupportContract.TryNormalizeVersion; EnvironmentSnapshotService reads `FileVersionInfo.FileVersion`, which is free-form vendor text.
-  Fix: Treat whitespace as a component terminator, matching the regex the parser replaced.
-  Acceptance: `1.2.3 rc1` and `1.2.3 (build 4)` parse to 1.2.3; a test covers both.
-
 - [ ] P2 — RD-113: Window chrome and background still need a restart on a high-contrast toggle
   Why: RD-90 fixed the resource-bound surfaces. `Win11ShellIntegration.ApplyMicaAndDarkChrome` runs once from `SourceInitialized` and unsubscribes, and `ThemeManager.ApplyTheme` never re-invokes it, so the DWM caption/text/border colors, the Mica backdrop, and the hard `window.Background = micaBrush` assignment all keep the dark palette.
   Where: src/LibreSpot.Desktop/Services/Win11ShellIntegration.cs; Services/ThemeManager.cs; MainWindow.xaml.cs SourceInitialized
@@ -44,13 +31,6 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
   Problem: A change to `New-CatalogHtml` leaves catalog.json byte-identical and passes while the live page is stale. In sync today, so latent.
   Fix: Compare every generated file, not just catalog.json.
   Acceptance: Editing the HTML generator without republishing fails the gate.
-
-- [ ] P2 — RD-116: `SpicetifyVersionSupport.TryGetMajor` is a second version reader on the same string
-  Why: RD-86 unified five parsers, but `CompatibilityVerdict.BuildSpicetify` still runs the detected version through both `SpotifyVersion.TryParse` and `TryGetMajor`, which disagree.
-  Where: src/LibreSpot.Core/AppCatalog.cs SpicetifyVersionSupport; CompatibilityVerdict.BuildSpicetify
-  Repro: for a reported Spicetify version of `3.0`, `TryParse` fails so the verdict is Unknown, while `IsUnsupportedMajor("3.0")` is true.
-  Fix: Route `TryGetMajor` through the shared parser, or make it explicit that a major-only reading is a different question and name it so.
-  Acceptance: One reading of a given version string drives both the verdict and the unsupported-major check.
 
 ### P3
 

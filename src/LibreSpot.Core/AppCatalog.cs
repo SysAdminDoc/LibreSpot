@@ -550,18 +550,8 @@ public static class SpicetifyVersionSupport
     /// "2.44.0", "v3.0.0", or "3.1.2-dev". Returns false for null/empty or
     /// non-numeric input (e.g. "Dev"), where the version is treated as unknown.
     /// </summary>
-    public static bool TryGetMajor(string? version, out int major)
-    {
-        major = 0;
-        if (string.IsNullOrWhiteSpace(version))
-        {
-            return false;
-        }
-
-        var trimmed = version.Trim().TrimStart('v', 'V');
-        var digits = new string(trimmed.TakeWhile(char.IsDigit).ToArray());
-        return int.TryParse(digits, out major);
-    }
+    public static bool TryGetMajor(string? version, out int major) =>
+        SpotifyVersion.TryParseMajor(version, out major);
 
     /// <summary>
     /// True only when the version parses to a major strictly greater than

@@ -161,11 +161,17 @@ public sealed class CompatibilityVerdictReport
         if (!TryParseVersion(component.DetectedVersion, out var detected) ||
             !TryParseVersion(pinned, out var pinnedVersion))
         {
+            // A partial report like "3.0" has no full version to compare, but
+            // the major is still readable and still tells us the CLI is past
+            // what LibreSpot supports. Answer that the same way the v3 guard
+            // does instead of calling it unknown.
             return new(
                 "spicetify-cli",
                 component.DetectedVersion,
                 pinned,
-                CompatibilityVerdictState.Unknown,
+                SpicetifyVersionSupport.IsUnsupportedMajor(component.DetectedVersion)
+                    ? CompatibilityVerdictState.Unsupported
+                    : CompatibilityVerdictState.Unknown,
                 CompatibilityDetectionCode.Unknown);
         }
 

@@ -15,7 +15,10 @@ namespace LibreSpot.Desktop.Models;
 /// </summary>
 public static class SpotifyVersion
 {
+    private const int MaximumComponents = 4;
+
     private static readonly char[] PrereleaseSeparators = ['-', '+'];
+    private static readonly char[] Whitespace = [' ', '\t', '\r', '\n', '\f', '\v'];
 
     /// <summary>
     /// Parses a Spotify version. Accepts an optional <c>v</c> prefix, a
@@ -31,7 +34,52 @@ public static class SpotifyVersion
     /// shorter tags to three so they order correctly.
     /// </summary>
     public static bool TryParseReleaseTag(string? value, string? prefixToStrip, out Version version) =>
-        TryParseComponents(value, prefixToStrip, minimumComponents: 1, maximumComponents: 4, out version);
+        TryParseComponents(value, prefixToStrip, minimumComponents: 1, maximumComponents: MaximumComponents, out version);
+
+    /// <summary>
+    /// Reads just the leading major from a version string. Deliberately looser
+    /// than <see cref="TryParse"/>: the Spicetify major guard has to fire on a
+    /// partial report like <c>3.0</c> or <c>3</c>, where there is no full
+    /// version to compare, so it takes the leading digits of the first
+    /// component rather than requiring a well-formed version.
+    /// </summary>
+    public static bool TryParseMajor(string? value, out int major)
+    {
+        major = 0;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var digits = new string(Normalize(value, prefixToStrip: null).TakeWhile(char.IsAsciiDigit).ToArray());
+        return int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out major);
+    }
+
+    private static string Normalize(string value, string? prefixToStrip)
+    {
+        var text = value.Trim();
+        if (!string.IsNullOrEmpty(prefixToStrip) &&
+            text.StartsWith(prefixToStrip, StringComparison.OrdinalIgnoreCase))
+        {
+            text = text[prefixToStrip.Length..];
+        }
+
+        if (text.StartsWith('v') || text.StartsWith('V'))
+        {
+            text = text[1..];
+        }
+
+        // A prerelease or build suffix ends the version, and so does whitespace:
+        // FileVersionInfo hands back free-form vendor text like "1.2.3 rc1".
+        var separator = text.IndexOfAny(PrereleaseSeparators);
+        var space = text.IndexOfAny(Whitespace);
+        if (space >= 0 && (separator < 0 || space < separator))
+        {
+            separator = space;
+        }
+
+        return separator >= 0 ? text[..separator] : text;
+    }
 
     private static bool TryParseComponents(
         string? value,
@@ -46,37 +94,31 @@ public static class SpotifyVersion
             return false;
         }
 
-        var text = value.Trim();
-        if (!string.IsNullOrEmpty(prefixToStrip) &&
-            text.StartsWith(prefixToStrip, StringComparison.OrdinalIgnoreCase))
-        {
-            text = text[prefixToStrip.Length..];
-        }
-
-        if (text.StartsWith('v') || text.StartsWith('V'))
-        {
-            text = text[1..];
-        }
-
-        var separator = text.IndexOfAny(PrereleaseSeparators);
-        if (separator >= 0)
-        {
-            text = text[..separator];
-        }
-
-        var pieces = text.Split('.', StringSplitOptions.RemoveEmptyEntries);
-        if (pieces.Length < minimumComponents)
+        var pieces = Normalize(value, prefixToStrip).Split('.', StringSplitOptions.RemoveEmptyEntries);
+        // Validity is the same question for both entry points: at most four
+        // numeric components, which is all System.Version can hold. They differ
+        // only in how much of that they keep.
+        if (pieces.Length < minimumComponents || pieces.Length > MaximumComponents)
         {
             return false;
         }
 
+        // Validate every piece before truncating. Checking only the first
+        // maximumComponents would accept trailing junk whenever it happened to
+        // land past the cap, so the two entry points would disagree about the
+        // same string.
         var count = Math.Min(pieces.Length, maximumComponents);
         var numbers = new int[Math.Max(count, 3)];
-        for (var index = 0; index < count; index++)
+        for (var index = 0; index < pieces.Length; index++)
         {
-            if (!int.TryParse(pieces[index], NumberStyles.None, CultureInfo.InvariantCulture, out numbers[index]))
+            if (!int.TryParse(pieces[index], NumberStyles.None, CultureInfo.InvariantCulture, out var component))
             {
                 return false;
+            }
+
+            if (index < count)
+            {
+                numbers[index] = component;
             }
         }
 
