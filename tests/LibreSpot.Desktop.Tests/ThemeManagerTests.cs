@@ -81,6 +81,15 @@ public sealed class ThemeManagerTests
         Assert.Contains("SystemParameters.StaticPropertyChanged -=", source);
         Assert.Contains($"e.PropertyName == nameof(SystemParameters.HighContrast)", source);
 
+        // The chrome must match the loaded palette, which --uia-theme=high-contrast
+        // can force while SystemParameters.HighContrast stays false. Only the
+        // change notification may read SystemParameters directly.
+        Assert.Contains("ThemeManager.IsHighContrastPaletteActive", source);
+        Assert.DoesNotContain("if (SystemParameters.HighContrast)", source);
+
+        var themeManager = ReadFile("src", "LibreSpot.Desktop", "Services", "ThemeManager.cs");
+        Assert.Contains("IsHighContrastPaletteActive => _forceHighContrast || IsHighContrast", themeManager);
+
         var subscribe = source.IndexOf("SystemParameters.StaticPropertyChanged +=", StringComparison.Ordinal);
         var clearDefinition = source.IndexOf("private static void ClearCustomChrome", StringComparison.Ordinal);
         var clearCall = source.IndexOf("ClearCustomChrome(window, hwnd);", StringComparison.Ordinal);

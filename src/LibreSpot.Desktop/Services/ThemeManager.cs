@@ -12,6 +12,15 @@ public static class ThemeManager
 
     public static bool IsHighContrast => SystemParameters.HighContrast;
     public static bool IsMotionReduced => !SystemParameters.ClientAreaAnimation;
+
+    /// <summary>
+    /// True when the high-contrast palette is the one loaded, whether Windows
+    /// asked for it or a QA capture forced it with <c>--uia-theme=high-contrast</c>.
+    /// Anything that has to match the palette must read this rather than
+    /// <see cref="SystemParameters.HighContrast"/>, which stays false under the
+    /// forced flag.
+    /// </summary>
+    public static bool IsHighContrastPaletteActive => _forceHighContrast || IsHighContrast;
     internal static bool ShouldSuppressMotion => _forceHighContrast || _forceReducedMotion || IsHighContrast || IsMotionReduced;
 
     public static void Initialize(Application app, bool forceHighContrast = false, bool forceReducedMotion = false)

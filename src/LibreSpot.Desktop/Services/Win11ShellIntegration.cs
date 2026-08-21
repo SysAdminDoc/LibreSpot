@@ -47,7 +47,11 @@ public static class Win11ShellIntegration
 
     private static void ApplyChrome(Window window, IntPtr hwnd)
     {
-        if (SystemParameters.HighContrast)
+        // Ask ThemeManager, not SystemParameters: --uia-theme=high-contrast loads
+        // the high-contrast palette while SystemParameters.HighContrast stays
+        // false, and a QA capture of that state must not get the Mica backdrop
+        // and a transparent window background.
+        if (ThemeManager.IsHighContrastPaletteActive)
         {
             ClearCustomChrome(window, hwnd);
             return;

@@ -10,15 +10,6 @@ Highest ID: RD-106. Issue tracker: zero open issues/PRs; closed #1-#5 predate v4
 
 Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disabled rail contrast, RD-82 AtomicFile, RD-85 dead members, RD-87 LibreSpotPaths, RD-88 PowerShell host path, RD-89 DWM palette colors, RD-99 snapshot-error glyph, RD-100 screenshot contract, RD-101 WPF-UI template leak gate, RD-102 CycloneDX local tool, RD-103 changelog HEAD-only bullets, RD-104 Jump List labels. Filled/secondary/checkbox/combo disabled states now use DisabledTextBrush; CardListBoxItemStyle remains under RD-105. Bloom checklist/manifest decision drift (the RD-81 note) is aligned; the gh-pages gate below remains.
 
-### P2
-
-- [ ] P2 — RD-119: Forced high contrast for QA captures gets dark-mode chrome
-  Why: `--uia-theme=high-contrast` makes ThemeManager load the high-contrast palette while `SystemParameters.HighContrast` stays false, so `Win11ShellIntegration.ApplyChrome` takes the non-high-contrast branch: it sets the immersive dark-mode hint, requests the Mica backdrop, and assigns the transparent `MicaCanvasBrush` as the window background. The caption colors happen to come out right because they are read from the swapped palette, but the backdrop and background do not.
-  Where: src/LibreSpot.Desktop/Services/Win11ShellIntegration.cs; Services/ThemeManager.cs `_forceHighContrast`; App.xaml.cs
-  Problem: every forced-high-contrast QA capture shows a window a real high-contrast user never sees, so the captures cannot be trusted for that state.
-  Fix: Have the chrome ask ThemeManager whether high contrast is in effect (forced or real) rather than reading `SystemParameters.HighContrast` directly.
-  Acceptance: A `--uia-theme=high-contrast` capture has an opaque window background and no Mica backdrop.
-
 ### P3
 
 - [ ] P3 — RD-91: Terminology and punctuation drift across live UI strings
