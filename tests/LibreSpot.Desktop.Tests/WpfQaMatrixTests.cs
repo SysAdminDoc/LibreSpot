@@ -111,32 +111,20 @@ public sealed class WpfQaMatrixTests
         {
             RunOnSta(() =>
             {
-                using var app = LaunchCaptureState(state, theme, culture, focusTarget, capture, keepOpen: true);
                 try
                 {
-                    var window = WaitForMainWindow(app.Process, MainWindowTimeout);
-                    var metadata = WaitForCapture(capture, CaptureTimeout);
-                    var expectedName = GetResource(expectedResource, culture);
-                    var snapshot = WaitForSnapshot(window, expectedName, focusTarget, TimeSpan.FromSeconds(10));
-                    var windowBounds = UiaNode.From(window).BoundingRectangle;
-
-                    var primary = snapshot.FirstOrDefault(node =>
-                        string.Equals(node.Name, expectedName, StringComparison.Ordinal) && HasUsableBounds(node));
-                    Assert.NotNull(primary);
-                    AssertWithinWindow(primary!, windowBounds, $"primary text '{expectedName}'");
-
-                    var focus = snapshot.FirstOrDefault(node =>
-                        string.Equals(node.AutomationId, focusTarget, StringComparison.Ordinal) && HasUsableBounds(node));
-                    Assert.NotNull(focus);
-                    Assert.True(focus!.IsKeyboardFocusable, $"{focusTarget} must be keyboard focusable.");
-                    AssertWithinWindow(focus, windowBounds, $"focus target '{focusTarget}'");
-                    AssertNoUnnamedActionableControls(snapshot);
-
-                    AssertCapture(capture, state, theme, culture, focusTarget, expectedFocusVisual: true, metadata);
+                    CaptureAndAssertSurface(state, theme, culture, expectedResource, focusTarget, capture);
                 }
-                finally
+                catch (TimeoutException ex)
                 {
-                    app.Dispose();
+                    // A single capture timeout is a known flake: with eighty rows
+                    // launching the shell one after another, one can lose the race
+                    // for the desktop and never paint. Relaunch that row once
+                    // rather than raising CaptureTimeout globally, which would hide
+                    // a real hang on every other row.
+                    TestContext.Current.SendDiagnosticMessage(
+                        $"Retrying WPF QA capture row {state}/{theme}/{culture} once after: {ex.Message}");
+                    CaptureAndAssertSurface(state, theme, culture, expectedResource, focusTarget, capture);
                 }
             });
         }
@@ -146,11 +134,54 @@ public sealed class WpfQaMatrixTests
         }
     }
 
+    private static void CaptureAndAssertSurface(
+        string state,
+        string theme,
+        string culture,
+        string expectedResource,
+        string focusTarget,
+        string capture)
+    {
+        // Never accept a capture from an earlier attempt or an earlier run. With
+        // LIBRESPOT_QA_CAPTURE_ROOT set the path is stable, so a stale PNG would
+        // satisfy the wait before the shell had painted anything.
+        DeleteCaptureFile(capture);
+
+        using var app = LaunchCaptureState(state, theme, culture, focusTarget, capture, keepOpen: true);
+        try
+        {
+            var window = WaitForMainWindow(app.Process, MainWindowTimeout);
+            var metadata = WaitForCapture(capture, CaptureTimeout);
+            var expectedName = GetResource(expectedResource, culture);
+            var snapshot = WaitForSnapshot(window, expectedName, focusTarget, TimeSpan.FromSeconds(10));
+            var windowBounds = UiaNode.From(window).BoundingRectangle;
+
+            var primary = snapshot.FirstOrDefault(node =>
+                string.Equals(node.Name, expectedName, StringComparison.Ordinal) && HasUsableBounds(node));
+            Assert.NotNull(primary);
+            AssertWithinWindow(primary!, windowBounds, $"primary text '{expectedName}'");
+
+            var focus = snapshot.FirstOrDefault(node =>
+                string.Equals(node.AutomationId, focusTarget, StringComparison.Ordinal) && HasUsableBounds(node));
+            Assert.NotNull(focus);
+            Assert.True(focus!.IsKeyboardFocusable, $"{focusTarget} must be keyboard focusable.");
+            AssertWithinWindow(focus, windowBounds, $"focus target '{focusTarget}'");
+            AssertNoUnnamedActionableControls(snapshot);
+
+            AssertCapture(capture, state, theme, culture, focusTarget, expectedFocusVisual: true, metadata);
+        }
+        finally
+        {
+            app.Dispose();
+        }
+    }
+
     [Theory]
     [MemberData(nameof(CrashDialogMatrix))]
     public void WpfShell_QaMatrixCapturesNestedCrashDialog(string theme, string culture)
     {
         var capture = CreateCapturePath("crash", theme, culture, out var isTemporary);
+        DeleteCaptureFile(capture);
         using (var app = LaunchCaptureState("crash", theme, culture, null, capture, keepOpen: false))
         {
             Assert.True(app.Process.WaitForExit((int)CaptureTimeout.TotalMilliseconds), "Crash-dialog capture did not exit.");
@@ -297,6 +328,21 @@ public sealed class WpfQaMatrixTests
         {
             Walk(child, nodes, walker);
             child = walker.GetNextSibling(child);
+        }
+    }
+
+    private static void DeleteCaptureFile(string capture)
+    {
+        try
+        {
+            if (File.Exists(capture))
+            {
+                File.Delete(capture);
+            }
+        }
+        catch (IOException)
+        {
+            // A locked leftover fails the wait below, which is the honest outcome.
         }
     }
 

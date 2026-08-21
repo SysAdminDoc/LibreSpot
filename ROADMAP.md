@@ -39,12 +39,6 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
   Fix: Backfill comments for `{n}` keys first, naming each placeholder.
   Acceptance: Every key whose value contains `{0}` has a comment naming the placeholder.
 
-- [ ] P3 — RD-97: WpfQaMatrix capture wait can time out spuriously in full-suite runs
-  Why: One home-navigation/dark/en row timed out in a full `*Wpf*` run, then passed in isolation. Do not raise the global timeout blindly.
-  Where: tests/LibreSpot.Desktop.Tests/WpfQaMatrixTests.cs WaitForCapture
-  Fix: Retry once by relaunching that row before failing.
-  Acceptance: Bounded retry is logged; a single capture timeout no longer fails the suite.
-
 - [ ] P3 — RD-98: Areas this audit did not reach
   Why: Honest coverage so the next pass does not assume these were cleared.
   Where: LibreSpot.ps1 WinForms/WPF-in-PS GUI event flow and Module-* orchestration bodies; OperationJournalUndoService undo token execution beyond the CLI guard; Marketplace export/restore archive internals; AvalonEdit custom-patch editor runtime; Crowdin round-trip
