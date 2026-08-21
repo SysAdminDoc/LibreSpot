@@ -197,9 +197,9 @@
   <data name="CacheLimitUnit" xml:space="preserve"><value>MB</value><comment>Cache limit unit suffix</comment></data>
   <data name="CacheLimitDefault" xml:space="preserve"><value>Leave 0 for the default cache behavior.</value><comment>Cache limit helper text</comment></data>
   <data name="CompatibilityTargetLabel" xml:space="preserve"><value>Compatibility target</value><comment>Section label for Spotify version targeting</comment></data>
-  <data name="SpotifyBuildLabel" xml:space="preserve"><value>Spotify build</value><comment>Version dropdown label</comment></data>
+  <data name="SpotifyBuildLabel" xml:space="preserve"><value>Spotify version</value><comment>Version dropdown label</comment></data>
   <data name="SpotifyCompatibilityName" xml:space="preserve"><value>Spotify compatibility target</value><comment>Accessibility name for version dropdown</comment></data>
-  <data name="SpotifyCompatibilityHint" xml:space="preserve"><value>Choose the Spotify build LibreSpot should pin when you want more explicit compatibility control.</value><comment>Version dropdown accessibility hint</comment></data>
+  <data name="SpotifyCompatibilityHint" xml:space="preserve"><value>Choose the Spotify version LibreSpot should pin when you want more explicit compatibility control.</value><comment>Version dropdown accessibility hint</comment></data>
   <data name="DownloadPathLabel" xml:space="preserve"><value>Download path</value><comment>Download method section label</comment></data>
   <data name="DownloadMethodName" xml:space="preserve"><value>Download method</value><comment>Accessibility name for download method dropdown</comment></data>
   <data name="DownloadMethodHint" xml:space="preserve"><value>Override LibreSpot's default transfer path only when your network or environment calls for it.</value><comment>Download method accessibility hint</comment></data>
@@ -361,7 +361,7 @@
   <data name="Extension_volumePercentage_Title" xml:space="preserve"><value>Volume Percentage</value><comment>Extension title for volumePercentage.js</comment></data>
   <data name="Extension_volumePercentage_Description" xml:space="preserve"><value>Display exact volume percentage next to the slider.</value><comment>Extension description for volumePercentage.js</comment></data>
   <data name="Extension_adblock_Title" xml:space="preserve"><value>Ad-block (Spicetify fallback)</value><comment>Extension title for adblock.js</comment></data>
-  <data name="Extension_adblock_Description" xml:space="preserve"><value>Spicetify-layer ad blocking for when SpotX patching fails on a newer Spotify build. Not a SpotX replacement.</value><comment>Extension description for adblock.js</comment></data>
+  <data name="Extension_adblock_Description" xml:space="preserve"><value>Spicetify-layer ad blocking for when SpotX patching fails on a newer Spotify version. Not a SpotX replacement.</value><comment>Extension description for adblock.js</comment></data>
 
   <!-- AppCatalog: Maintenance action titles, descriptions, and button text -->
   <data name="Maintenance_CheckUpdates_Title" xml:space="preserve"><value>Check compatibility matrix</value><comment>Maintenance action title for CheckUpdates</comment></data>
@@ -637,8 +637,8 @@
   <data name="Vm_MaintenanceReadyWhenNeededDetail" xml:space="preserve"><value>Most repair actions matter after Spotify is installed. You can still inspect versions, export support details, or prepare a clean reset.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyWhenNeededTitle" xml:space="preserve"><value>Maintenance is ready when you need it</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceThemeUnchecked" xml:space="preserve"><value>Theme state has not been checked yet.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MarketplaceFilesMissing" xml:space="preserve"><value>Marketplace files missing - repair available</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MarketplaceHidden" xml:space="preserve"><value>Marketplace hidden - repair available</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MarketplaceFilesMissing" xml:space="preserve"><value>Marketplace files are missing. Repair is available.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MarketplaceHidden" xml:space="preserve"><value>Marketplace is hidden. Repair is available.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MarketplaceNotEnabled" xml:space="preserve"><value>Marketplace not enabled</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MarketplaceReady" xml:space="preserve"><value>Marketplace ready</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MarketplaceUnavailable" xml:space="preserve"><value>Marketplace unavailable until Spicetify is installed</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -682,8 +682,8 @@
   <data name="Vm_ProfileUpdatedBundledTemplate" xml:space="preserve"><value>Bundled template</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileUpdatedFormat" xml:space="preserve"><value>Updated {0:g}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProgressDone" xml:space="preserve"><value>Done</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProgressStopping" xml:space="preserve"><value>Stopping...</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProgressWorking" xml:space="preserve"><value>Working...</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProgressStopping" xml:space="preserve"><value>Stopping…</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProgressWorking" xml:space="preserve"><value>Working…</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RecommendedDurationCleanMachine" xml:space="preserve"><value>Usually 3-4 minutes because LibreSpot may need to lay down the full stack first.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RecommendedDurationExistingSpotify" xml:space="preserve"><value>Usually 2-3 minutes, depending on whether Spotify restarts.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RecommendedFollowUpFirstProfile" xml:space="preserve"><value>LibreSpot will create the first saved profile during this run so maintenance has a dependable baseline.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -694,7 +694,7 @@
   <data name="Vm_SearchColorSchemeTitle" xml:space="preserve"><value>Color scheme</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SearchDownloadPathTitle" xml:space="preserve"><value>Download path</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SearchLyricsThemeTitle" xml:space="preserve"><value>Lyrics theme</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SearchSpotifyBuildTitle" xml:space="preserve"><value>Spotify build</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SearchSpotifyBuildTitle" xml:space="preserve"><value>Spotify version</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SearchThemePackDescription" xml:space="preserve"><value>Choose the Spicetify theme pack LibreSpot restores.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SearchThemePackTitle" xml:space="preserve"><value>Theme pack</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellActivityTitle" xml:space="preserve"><value>Activity</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -725,7 +725,7 @@
   <data name="Vm_ShellActivityEmptyDetail" xml:space="preserve"><value>Runs, repairs, and recovery notes will appear here.</value><comment>Activity dock empty-state guidance.</comment></data>
   <data name="Vm_ShellActivityFilterEmptyDetail" xml:space="preserve"><value>No activity matches this filter.</value><comment>Activity dock filtered empty-state guidance.</comment></data>
   <data name="Vm_ShellCheckingSystem" xml:space="preserve"><value>Checking system</value><comment>Readiness title while environment checks run.</comment></data>
-  <data name="Vm_ShellCheckingSystemDetail" xml:space="preserve"><value>Verifying Spotify, permissions, and dependencies...</value><comment>Readiness detail while environment checks run.</comment></data>
+  <data name="Vm_ShellCheckingSystemDetail" xml:space="preserve"><value>Verifying Spotify, permissions, and dependencies…</value><comment>Readiness detail while environment checks run.</comment></data>
   <data name="Vm_ShellSnapshotUnavailable" xml:space="preserve"><value>Check unavailable</value><comment>Readiness title after an environment check fails.</comment></data>
   <data name="Vm_ShellSnapshotUnavailableDetail" xml:space="preserve"><value>LibreSpot couldn't verify this PC. Select Verify environment to try again before running setup.</value><comment>Actionable environment-check failure guidance.</comment></data>
   <data name="Vm_ShellCheckingShort" xml:space="preserve"><value>Checking</value><comment>Compact environment-check status.</comment></data>
@@ -777,7 +777,7 @@
   <data name="Vm_ThemeMarketplaceOnly" xml:space="preserve"><value>Marketplace-only (no theme pack)</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeSchemeAvailableHint" xml:space="preserve"><value>Color scheme inside the selected theme pack.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeSchemeMarketplaceOnlyHint" xml:space="preserve"><value>Marketplace-only skips the theme pack, so no extra scheme is applied.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ThemeSummaryFormat" xml:space="preserve"><value>{0} - {1}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeSummaryFormat" xml:space="preserve"><value>{0} ({1})</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceHeroCustomBody" xml:space="preserve"><value>Adjust supported options without losing track of the baseline.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceHeroCustomEyebrow" xml:space="preserve"><value>Custom profile</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceHeroCustomTitle" xml:space="preserve"><value>Custom settings</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -903,11 +903,11 @@
   <data name="Vm_ProfileComparisonAreaExtensionsFormat" xml:space="preserve"><value>{0} extensions</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonAreaLyricsFormat" xml:space="preserve"><value>lyrics color {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonAreaOverlayInstall" xml:space="preserve"><value>overlay install</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonAreaPremiumPatch" xml:space="preserve"><value>Premium account patch posture</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaPremiumPatch" xml:space="preserve"><value>Premium account mode</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonAreaThemeFormat" xml:space="preserve"><value>theme {0}/{1}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonDiffersFormat" xml:space="preserve"><value>differs in {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonMatchesBaseline" xml:space="preserve"><value>matches the Recommended baseline</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonPreparing" xml:space="preserve"><value>Comparing with Recommended...</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonPreparing" xml:space="preserve"><value>Comparing with Recommended…</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonSummaryFormat" xml:space="preserve"><value>{0} profile {1}. Theme: {2}/{3}; lyrics: {4}; extensions: {5}; custom apps: {6}; custom patches: {7}.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonUnavailable" xml:space="preserve"><value>Comparison is unavailable until the profile loads. Use Refresh above the profiles list, then select it again.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteBody" xml:space="preserve"><value>LibreSpot will remove this local profile file. Bundled templates are kept, and deleting the active profile falls back to Recommended.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -949,7 +949,7 @@
   <data name="Vm_ProfileSetActiveConfirm" xml:space="preserve"><value>Set active</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileSetActiveTitleFormat" xml:space="preserve"><value>Set active profile: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileShareFailedFormat" xml:space="preserve"><value>Couldn&apos;t prepare sharing for {0}: {1}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileSharePreparing" xml:space="preserve"><value>Preparing share card...</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSharePreparing" xml:space="preserve"><value>Preparing share card…</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileShareQrTooLargeFormat" xml:space="preserve"><value>Share link is ready, but this profile is too large for a QR card: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileShareReady" xml:space="preserve"><value>QR card and share link are ready. Import still opens as a preview before saving.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileSharedSettingsTitle" xml:space="preserve"><value>Shared settings</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -959,7 +959,7 @@
   <data name="Vm_ProfileSummaryOneExtension" xml:space="preserve"><value>1 extension</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RestartingSpotify" xml:space="preserve"><value>Restarting Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RestartingSpotifyLog" xml:space="preserve"><value>Restarting Spotify so the completed changes load in a fresh client session.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SetupCompleteClosingLog" xml:space="preserve"><value>Setup complete - LibreSpot will close.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SetupCompleteClosingLog" xml:space="preserve"><value>Setup complete. LibreSpot will close.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SpotifyReopened" xml:space="preserve"><value>Spotify reopened</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SpotifyRestartSkipped" xml:space="preserve"><value>Spotify restart skipped</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ToggleOff" xml:space="preserve"><value>off</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1071,7 +1071,7 @@
   <data name="CrashFatalSummaryBody" xml:space="preserve"><value>Copy the report path or open the crash folder now. When you reopen LibreSpot, the saved profile and logs will still be available for troubleshooting.</value><comment>Fatal crash next-step detail.</comment></data>
   <data name="CrashExceptionSummaryLabel" xml:space="preserve"><value>WHAT WENT WRONG</value><comment>Crash exception card label.</comment></data>
   <data name="CrashReportPathLabel" xml:space="preserve"><value>REPORT PATH</value><comment>Crash report path label.</comment></data>
-  <data name="CrashSourceFolderFormat" xml:space="preserve"><value>Source: {0} - Crash folder: {1}</value><comment>Crash source and folder detail.</comment></data>
+  <data name="CrashSourceFolderFormat" xml:space="preserve"><value>Source: {0}. Crash folder: {1}</value><comment>Crash source and folder detail.</comment></data>
   <data name="CrashFooter" xml:space="preserve"><value>LibreSpot keeps the crash report and rolling session logs on disk after this dialog closes.</value><comment>Crash report retention note.</comment></data>
   <data name="CrashCopyReportPath" xml:space="preserve"><value>Copy report path</value><comment>Crash dialog copy action.</comment></data>
   <data name="CrashOpenFolder" xml:space="preserve"><value>Open crash folder</value><comment>Crash dialog open-folder action.</comment></data>
@@ -1200,7 +1200,7 @@
   <data name="HealthEvidenceSpicetifyCliMissing" xml:space="preserve"><value>spicetify.exe was not found in the expected per-user location.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyCliDetected" xml:space="preserve"><value>spicetify.exe exists and maintenance actions can call it.</value><comment>Health evidence.</comment></data>
   <data name="HealthStatusSpicetifyUnsupportedVersion" xml:space="preserve"><value>Unsupported version</value><comment>Health status shown when the installed Spicetify CLI is a newer major than LibreSpot supports.</comment></data>
-  <data name="HealthEvidenceSpicetifyUnsupportedVersionFormat" xml:space="preserve"><value>Spicetify {0} is not yet supported. LibreSpot targets Spicetify {1}.x - reinstall the pinned Spicetify version to continue.</value><comment>Health evidence. {0} is the detected version, {1} is the supported major version.</comment></data>
+  <data name="HealthEvidenceSpicetifyUnsupportedVersionFormat" xml:space="preserve"><value>Spicetify {0} is not yet supported. LibreSpot targets Spicetify {1}.x. Reinstall the pinned Spicetify version to continue.</value><comment>Health evidence. {0} is the detected version, {1} is the supported major version.</comment></data>
   <data name="HealthStatusSpicetifyV3Conflict" xml:space="preserve"><value>Spicetify v3 conflict</value><comment>Health status shown when Spicetify v3-or-newer filesystem markers make the pinned 2.x integration unsafe.</comment></data>
   <data name="HealthEvidenceSpicetifyV3ConflictFormat" xml:space="preserve"><value>Spicetify v3 artifacts were found ({0}). Restore Spotify with {1} before installing or applying the pinned Spicetify 2.x integration.</value><comment>Health evidence. {0} lists detected markers, and {1} is the safe restore command.</comment></data>
   <data name="HealthStatusMarketplaceThemeInactive" xml:space="preserve"><value>Theme support inactive</value><comment>Health status when Marketplace is installed but no Spicetify theme is active and CSS injection is off.</comment></data>

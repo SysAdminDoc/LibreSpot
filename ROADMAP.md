@@ -12,12 +12,6 @@ Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disab
 
 ### P3
 
-- [ ] P3 — RD-91: Terminology and punctuation drift across live UI strings
-  Why: "Spotify build" vs "Spotify version", "Premium account mode" vs "patch posture", mixed ellipsis and hyphen-as-dash, mixed quote styles.
-  Where: src/LibreSpot.Desktop/Properties/Strings.resx and the four satellites
-  Fix: One term per concept; `...` to `…`; no spaced hyphens as dashes; imperative Option descriptions; mirror satellites.
-  Acceptance: Localization gate passes; grep for sentence-position ` - ` and ASCII `...` in user-facing values is clean.
-
 - [ ] P3 — RD-93: Half the resx carries boilerplate translator comments
   Why: 625 of 1,278 comments are "MainViewModel localized runtime text." or "User-facing WPF text"; placeholder keys are the ones a translator can break.
   Where: src/LibreSpot.Desktop/Properties/Strings.resx

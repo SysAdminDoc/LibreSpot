@@ -116,6 +116,70 @@ public sealed class LocalizationTests
     }
 
     [Fact]
+    public void AllResources_UseRealEllipsesAndNoHyphenAsADash()
+    {
+        // Three dots is a typing shortcut, not the character; a spaced hyphen
+        // between two clauses is a dash the keyboard could not produce. Both
+        // read as drift and both were mixed with the correct forms.
+        var spacedHyphen = new Regex(@"\S \- \S", RegexOptions.Compiled);
+        var offenders = new List<string>();
+        var scanned = 0;
+
+        foreach (var path in EnumerateResourceFiles())
+        {
+            foreach (var data in XDocument.Load(path).Root!.Elements("data"))
+            {
+                var name = data.Attribute("name")?.Value ?? "(unnamed)";
+                var value = data.Element("value")?.Value ?? string.Empty;
+                scanned++;
+
+                if (value.Contains("...", StringComparison.Ordinal))
+                {
+                    offenders.Add($"{Path.GetFileName(path)} '{name}': use … rather than three dots.");
+                }
+
+                if (spacedHyphen.IsMatch(value))
+                {
+                    offenders.Add($"{Path.GetFileName(path)} '{name}': a spaced hyphen is not a dash; split the sentence or use a colon.");
+                }
+            }
+        }
+
+        Assert.True(scanned > 0, "The punctuation scan read no resource values.");
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    [Fact]
+    public void SourceResources_UseOneTermPerConcept()
+    {
+        // Both halves of each pair named the same thing on different surfaces.
+        var retired = new (string Term, string Preferred)[]
+        {
+            ("Spotify build", "Spotify version"),
+            ("patch posture", "Premium account mode"),
+        };
+        var offenders = new List<string>();
+
+        foreach (var name in new[] { "Strings.resx", "Strings.en.resx" })
+        {
+            var path = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Properties", name);
+            foreach (var data in XDocument.Load(path).Root!.Elements("data"))
+            {
+                var value = data.Element("value")?.Value ?? string.Empty;
+                foreach (var (term, preferred) in retired)
+                {
+                    if (value.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    {
+                        offenders.Add($"{name} '{data.Attribute("name")?.Value}': says \"{term}\"; the product term is \"{preferred}\".");
+                    }
+                }
+            }
+        }
+
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    [Fact]
     public void SatelliteResources_SourceIdenticalValuesHaveReviewedAllowlistEntries()
     {
         var sourceValues = LoadResx().Root!.Elements("data").ToDictionary(
@@ -427,6 +491,18 @@ public sealed class LocalizationTests
         // The desktop project must NOT also own Strings (would create a duplicate type).
         var desktop = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "LibreSpot.Desktop.csproj"));
         Assert.Contains("<Compile Remove=\"Properties\\Strings.Designer.cs\" />", desktop);
+    }
+
+    private static IEnumerable<string> EnumerateResourceFiles()
+    {
+        var properties = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Properties");
+        // SupportedCultures already includes "en", so Strings.en.resx comes
+        // from the loop.
+        yield return Path.Combine(properties, "Strings.resx");
+        foreach (var culture in SupportedCultures)
+        {
+            yield return Path.Combine(properties, $"Strings.{culture}.resx");
+        }
     }
 
     private static XDocument LoadResx()

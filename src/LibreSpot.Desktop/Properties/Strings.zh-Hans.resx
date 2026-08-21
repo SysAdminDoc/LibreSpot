@@ -567,7 +567,7 @@
     <comment>Section label for Spotify version targeting</comment>
   </data>
   <data name="SpotifyBuildLabel" xml:space="preserve">
-    <value>Spotify 构建</value>
+    <value>Spotify 版本</value>
     <comment>Version dropdown label</comment>
   </data>
   <data name="SpotifyCompatibilityName" xml:space="preserve">
@@ -575,7 +575,7 @@
     <comment>Accessibility name for version dropdown</comment>
   </data>
   <data name="SpotifyCompatibilityHint" xml:space="preserve">
-    <value>当您需要更明确的兼容性控制时，请选择 Spotify 版本 LibreSpot 应固定的版本。</value>
+    <value>当您需要更明确的兼容性控制时，请选择 LibreSpot 应固定的 Spotify 版本。</value>
     <comment>Version dropdown accessibility hint</comment>
   </data>
   <data name="DownloadPathLabel" xml:space="preserve">
@@ -808,7 +808,7 @@
     <comment>Activity title when run finishes successfully</comment>
   </data>
   <data name="StoppingBackend" xml:space="preserve">
-    <value>停止后端...</value>
+    <value>正在停止后端…</value>
     <comment>Status while backend is stopping</comment>
   </data>
   <data name="StatusInProgress" xml:space="preserve">
@@ -1890,8 +1890,8 @@
   <data name="Vm_MaintenanceReadyWhenNeededDetail" xml:space="preserve"><value>大多数修复操作在安装 Spotify 后才起作用。您仍然可以检查版本、导出支持详细信息或准备彻底重置。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyWhenNeededTitle" xml:space="preserve"><value>维护已在您需要时准备就绪</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceThemeUnchecked" xml:space="preserve"><value>尚未检查主题状态。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MarketplaceFilesMissing" xml:space="preserve"><value>Marketplace 文件丢失 - 可以修复</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MarketplaceHidden" xml:space="preserve"><value>Marketplace 隐藏 - 可以修复</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MarketplaceFilesMissing" xml:space="preserve"><value>Marketplace 文件丢失。可以修复。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MarketplaceHidden" xml:space="preserve"><value>Marketplace 已隐藏。可以修复。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MarketplaceNotEnabled" xml:space="preserve"><value>Marketplace 未启用</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MarketplaceReady" xml:space="preserve"><value>Marketplace 已准备就绪</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MarketplaceUnavailable" xml:space="preserve"><value>Marketplace 在安装 Spicetify 之前不可用</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1935,8 +1935,8 @@
   <data name="Vm_ProfileUpdatedBundledTemplate" xml:space="preserve"><value>捆绑模板</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileUpdatedFormat" xml:space="preserve"><value>已更新 {0:g}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProgressDone" xml:space="preserve"><value>完成</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProgressStopping" xml:space="preserve"><value>正在停止...</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProgressWorking" xml:space="preserve"><value>正在工作...</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProgressStopping" xml:space="preserve"><value>正在停止…</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProgressWorking" xml:space="preserve"><value>正在工作…</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RecommendedDurationCleanMachine" xml:space="preserve"><value>通常需要 3-4 分钟，因为 LibreSpot 可能需要先放下整个堆栈。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RecommendedDurationExistingSpotify" xml:space="preserve"><value>通常需要 2-3 分钟，取决于 Spotify 是否重新启动。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RecommendedFollowUpFirstProfile" xml:space="preserve"><value>LibreSpot 将在此运行期间创建第一个保存的配置文件，以便维护具有可靠的基线。</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1978,7 +1978,7 @@
   <data name="Vm_ShellActivityEmptyDetail" xml:space="preserve"><value>运行、修复和恢复说明将显示在此处。</value><comment>Activity dock empty-state guidance.</comment></data>
   <data name="Vm_ShellActivityFilterEmptyDetail" xml:space="preserve"><value>没有活动与此筛选条件匹配。</value><comment>Activity dock filtered empty-state guidance.</comment></data>
   <data name="Vm_ShellCheckingSystem" xml:space="preserve"><value>正在检查系统</value><comment>Readiness title while environment checks run.</comment></data>
-  <data name="Vm_ShellCheckingSystemDetail" xml:space="preserve"><value>正在验证 Spotify、权限和依赖项...</value><comment>Readiness detail while environment checks run.</comment></data>
+  <data name="Vm_ShellCheckingSystemDetail" xml:space="preserve"><value>正在验证 Spotify、权限和依赖项…</value><comment>Readiness detail while environment checks run.</comment></data>
   <data name="Vm_ShellSnapshotUnavailable" xml:space="preserve"><value>检查不可用</value><comment>Readiness title after an environment check fails.</comment></data>
   <data name="Vm_ShellSnapshotUnavailableDetail" xml:space="preserve"><value>LibreSpot 无法验证此电脑。请在运行设置前选择“验证环境”重试。</value><comment>Actionable environment-check failure guidance.</comment></data>
   <data name="Vm_ShellCheckingShort" xml:space="preserve"><value>检查中</value><comment>Compact environment-check status.</comment></data>
@@ -2030,7 +2030,7 @@
   <data name="Vm_ThemeMarketplaceOnly" xml:space="preserve"><value>Marketplace-仅（无主题包）</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeSchemeAvailableHint" xml:space="preserve"><value>所选主题包内的配色方案。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeSchemeMarketplaceOnlyHint" xml:space="preserve"><value>Marketplace-仅跳过主题包，因此无需额外应用方案。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ThemeSummaryFormat" xml:space="preserve"><value>{0} - {1}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeSummaryFormat" xml:space="preserve"><value>{0}（{1}）</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceHeroCustomBody" xml:space="preserve"><value>在不丢失基线跟踪的情况下调整支持的选项。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceHeroCustomEyebrow" xml:space="preserve"><value>自定义配置文件</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceHeroCustomTitle" xml:space="preserve"><value>自定义设置</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2156,11 +2156,11 @@
   <data name="Vm_ProfileComparisonAreaExtensionsFormat" xml:space="preserve"><value>{0} 扩展</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonAreaLyricsFormat" xml:space="preserve"><value>歌词颜色 {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonAreaOverlayInstall" xml:space="preserve"><value>覆盖式安装</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonAreaPremiumPatch" xml:space="preserve"><value>高级帐户补丁状态</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaPremiumPatch" xml:space="preserve"><value>高级账户模式</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonAreaThemeFormat" xml:space="preserve"><value>主题 {0}/{1}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonDiffersFormat" xml:space="preserve"><value>与 {0} 不同</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonMatchesBaseline" xml:space="preserve"><value>符合推荐基准</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonPreparing" xml:space="preserve"><value>与推荐...</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonPreparing" xml:space="preserve"><value>正在与推荐配置比较…</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonSummaryFormat" xml:space="preserve"><value>{0} 个人资料 {1}。主题：{2}/{3}；歌词：{4}；扩展名：{5}；自定义应用程序：{6}；自定义补丁：{7}。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonUnavailable" xml:space="preserve"><value>在配置文件加载完成之前无法比较。请使用配置文件列表上方的刷新按钮，然后重新选择该配置文件。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteBody" xml:space="preserve"><value>LibreSpot 将删除此本地配置文件。捆绑的模板将被保留，删除活动配置文件将返回到“推荐”。</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2202,7 +2202,7 @@
   <data name="Vm_ProfileSetActiveConfirm" xml:space="preserve"><value>设置活动</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileSetActiveTitleFormat" xml:space="preserve"><value>设置活动配置文件：{0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileShareFailedFormat" xml:space="preserve"><value>无法准备 {0} 的共享：{1}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileSharePreparing" xml:space="preserve"><value>正在准备共享卡...</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSharePreparing" xml:space="preserve"><value>正在准备共享卡…</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileShareQrTooLargeFormat" xml:space="preserve"><value>共享链接已准备就绪，但此配置文件对于 QR 卡而言太大：{0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileShareReady" xml:space="preserve"><value>QR 卡和共享链接已准备就绪。保存之前导入仍会以预览形式打开。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileSharedSettingsTitle" xml:space="preserve"><value>共享设置</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2212,7 +2212,7 @@
   <data name="Vm_ProfileSummaryOneExtension" xml:space="preserve"><value>1 个扩展</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RestartingSpotify" xml:space="preserve"><value>重新启动 Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RestartingSpotifyLog" xml:space="preserve"><value>重新启动 Spotify，以便在新的客户端会话中加载已完成的更改。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SetupCompleteClosingLog" xml:space="preserve"><value>设置完成 - LibreSpot 将关闭。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SetupCompleteClosingLog" xml:space="preserve"><value>设置完成。LibreSpot 将关闭。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SpotifyReopened" xml:space="preserve"><value>Spotify 重新打开</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SpotifyRestartSkipped" xml:space="preserve"><value>Spotify 重新启动已跳过</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ToggleOff" xml:space="preserve"><value>关闭</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2324,7 +2324,7 @@
   <data name="CrashFatalSummaryBody" xml:space="preserve"><value>立即复制报告路径或打开崩溃文件夹。当您重新打开 LibreSpot 时，保存的配置文件和日志仍可用于故障排除。</value><comment>Fatal crash next-step detail.</comment></data>
   <data name="CrashExceptionSummaryLabel" xml:space="preserve"><value>出了什么问题</value><comment>Crash exception card label.</comment></data>
   <data name="CrashReportPathLabel" xml:space="preserve"><value>报告路径</value><comment>Crash report path label.</comment></data>
-  <data name="CrashSourceFolderFormat" xml:space="preserve"><value>来源：{0} - 崩溃文件夹：{1}</value><comment>Crash source and folder detail.</comment></data>
+  <data name="CrashSourceFolderFormat" xml:space="preserve"><value>来源：{0}。崩溃文件夹：{1}</value><comment>Crash source and folder detail.</comment></data>
   <data name="CrashFooter" xml:space="preserve"><value>在此对话框后，LibreSpot 会将崩溃报告和滚动会话日志保留在磁盘上关闭。</value><comment>Crash report retention note.</comment></data>
   <data name="CrashCopyReportPath" xml:space="preserve"><value>复制报告路径</value><comment>Crash dialog copy action.</comment></data>
   <data name="CrashOpenFolder" xml:space="preserve"><value>打开崩溃文件夹</value><comment>Crash dialog open-folder action.</comment></data>
@@ -2447,7 +2447,7 @@
   <data name="HealthEvidenceSpicetifyCliMissing" xml:space="preserve"><value>在预期的每用户位置中未找到 spicetify.exe。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyCliDetected" xml:space="preserve"><value>spicetify.exe 存在，维护操作可以调用它。</value><comment>Health evidence.</comment></data>
   <data name="HealthStatusSpicetifyUnsupportedVersion" xml:space="preserve"><value>不支持的版本</value><comment>Health status shown when the installed Spicetify CLI is a newer major than LibreSpot supports.</comment></data>
-  <data name="HealthEvidenceSpicetifyUnsupportedVersionFormat" xml:space="preserve"><value>尚不支持 Spicetify {0}。LibreSpot 面向 Spicetify {1}.x — 请重新安装已固定的 Spicetify 版本以继续。</value><comment>Health evidence. {0} is the detected version, {1} is the supported major version.</comment></data>
+  <data name="HealthEvidenceSpicetifyUnsupportedVersionFormat" xml:space="preserve"><value>尚不支持 Spicetify {0}。LibreSpot 面向 Spicetify {1}.x。请重新安装已固定的 Spicetify 版本以继续。</value><comment>Health evidence. {0} is the detected version, {1} is the supported major version.</comment></data>
   <data name="HealthStatusSpicetifyV3Conflict" xml:space="preserve"><value>Spicetify v3 冲突</value><comment>Health status shown when Spicetify v3-or-newer filesystem markers make the pinned 2.x integration unsafe.</comment></data>
   <data name="HealthEvidenceSpicetifyV3ConflictFormat" xml:space="preserve"><value>检测到 Spicetify v3 痕迹（{0}）。请先使用 {1} 恢复 Spotify，然后再安装或应用固定的 Spicetify 2.x 集成。</value><comment>Health evidence. {0} lists detected markers, and {1} is the safe restore command.</comment></data>
   <data name="HealthStatusMarketplaceThemeInactive" xml:space="preserve"><value>主题支持未激活</value><comment>Health status when Marketplace is installed but no Spicetify theme is active and CSS injection is off.</comment></data>

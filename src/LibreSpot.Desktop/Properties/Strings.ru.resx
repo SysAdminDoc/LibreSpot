@@ -567,7 +567,7 @@
     <comment>Section label for Spotify version targeting</comment>
   </data>
   <data name="SpotifyBuildLabel" xml:space="preserve">
-    <value>Сборка Spotify</value>
+    <value>Версия Spotify</value>
     <comment>Version dropdown label</comment>
   </data>
   <data name="SpotifyCompatibilityName" xml:space="preserve">
@@ -575,7 +575,7 @@
     <comment>Accessibility name for version dropdown</comment>
   </data>
   <data name="SpotifyCompatibilityHint" xml:space="preserve">
-    <value>Выберите сборку Spotify, которую LibreSpot должен закрепить, если вам нужен более явный контроль совместимости.</value>
+    <value>Выберите версию Spotify, которую LibreSpot должен закрепить, если вам нужен более явный контроль совместимости.</value>
     <comment>Version dropdown accessibility hint</comment>
   </data>
   <data name="DownloadPathLabel" xml:space="preserve">
@@ -1174,7 +1174,7 @@
     <comment>Extension title for adblock.js</comment>
   </data>
   <data name="Extension_adblock_Description" xml:space="preserve">
-    <value>Блокировка рекламы на уровне Spicetify на случай, когда патч SpotX не срабатывает на более новой сборке Spotify. Не является заменой SpotX.</value>
+    <value>Блокировка рекламы на уровне Spicetify на случай, когда патч SpotX не срабатывает на более новой версии Spotify. Не является заменой SpotX.</value>
     <comment>Extension description for adblock.js</comment>
   </data>
   <!-- AppCatalog: Maintenance action titles, descriptions, and button text -->
@@ -1890,8 +1890,8 @@
   <data name="Vm_MaintenanceReadyWhenNeededDetail" xml:space="preserve"><value>Большинство действий по восстановлению имеют значение после установки Spotify. Вы по-прежнему можете проверять версии, экспортировать сведения о поддержке или подготовить полный сброс.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyWhenNeededTitle" xml:space="preserve"><value>Обслуживание готово, когда оно вам понадобится.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceThemeUnchecked" xml:space="preserve"><value>Состояние темы еще не проверено.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MarketplaceFilesMissing" xml:space="preserve"><value>Файлы Marketplace отсутствуют – доступно восстановление</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MarketplaceHidden" xml:space="preserve"><value>Marketplace скрыт – восстановление доступно</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MarketplaceFilesMissing" xml:space="preserve"><value>Файлы Marketplace отсутствуют. Доступно восстановление.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MarketplaceHidden" xml:space="preserve"><value>Marketplace скрыт. Доступно восстановление.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MarketplaceNotEnabled" xml:space="preserve"><value>Marketplace нет включен</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MarketplaceReady" xml:space="preserve"><value>Marketplace готов</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MarketplaceUnavailable" xml:space="preserve"><value>Marketplace недоступен, пока не будет установлен Spicetify</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1935,8 +1935,8 @@
   <data name="Vm_ProfileUpdatedBundledTemplate" xml:space="preserve"><value>Связанный шаблон</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileUpdatedFormat" xml:space="preserve"><value>Обновлено {0:g}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProgressDone" xml:space="preserve"><value>Готово</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProgressStopping" xml:space="preserve"><value>Остановка...</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProgressWorking" xml:space="preserve"><value>Работает...</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProgressStopping" xml:space="preserve"><value>Остановка…</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProgressWorking" xml:space="preserve"><value>Работает…</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RecommendedDurationCleanMachine" xml:space="preserve"><value>Обычно 3–4 минуты, поскольку сначала LibreSpot может потребоваться выложить весь стек.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RecommendedDurationExistingSpotify" xml:space="preserve"><value>Обычно 2–3 минуты, в зависимости от того, перезапустится ли Spotify.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RecommendedFollowUpFirstProfile" xml:space="preserve"><value>LibreSpot создаст первый сохраненный профиль во время этого запуска, чтобы обслуживание имело надежную основу.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1947,7 +1947,7 @@
   <data name="Vm_SearchColorSchemeTitle" xml:space="preserve"><value>Цветовая схема</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SearchDownloadPathTitle" xml:space="preserve"><value>Путь загрузки</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SearchLyricsThemeTitle" xml:space="preserve"><value>Тема текста</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SearchSpotifyBuildTitle" xml:space="preserve"><value>Сборка Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SearchSpotifyBuildTitle" xml:space="preserve"><value>Версия Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SearchThemePackDescription" xml:space="preserve"><value>Выберите пакет тем Spicetify, который восстанавливает LibreSpot.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SearchThemePackTitle" xml:space="preserve"><value>Пакет тем</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ShellActivityTitle" xml:space="preserve"><value>Действия</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1978,7 +1978,7 @@
   <data name="Vm_ShellActivityEmptyDetail" xml:space="preserve"><value>Здесь будут отображаться запуски, исправления и заметки по восстановлению.</value><comment>Activity dock empty-state guidance.</comment></data>
   <data name="Vm_ShellActivityFilterEmptyDetail" xml:space="preserve"><value>Нет событий, соответствующих этому фильтру.</value><comment>Activity dock filtered empty-state guidance.</comment></data>
   <data name="Vm_ShellCheckingSystem" xml:space="preserve"><value>Проверка системы</value><comment>Readiness title while environment checks run.</comment></data>
-  <data name="Vm_ShellCheckingSystemDetail" xml:space="preserve"><value>Проверка Spotify, разрешений и зависимостей...</value><comment>Readiness detail while environment checks run.</comment></data>
+  <data name="Vm_ShellCheckingSystemDetail" xml:space="preserve"><value>Проверка Spotify, разрешений и зависимостей…</value><comment>Readiness detail while environment checks run.</comment></data>
   <data name="Vm_ShellSnapshotUnavailable" xml:space="preserve"><value>Проверка недоступна</value><comment>Readiness title after an environment check fails.</comment></data>
   <data name="Vm_ShellSnapshotUnavailableDetail" xml:space="preserve"><value>LibreSpot не удалось проверить этот компьютер. Выберите «Проверить среду», чтобы повторить попытку перед запуском настройки.</value><comment>Actionable environment-check failure guidance.</comment></data>
   <data name="Vm_ShellCheckingShort" xml:space="preserve"><value>Проверка</value><comment>Compact environment-check status.</comment></data>
@@ -2030,7 +2030,7 @@
   <data name="Vm_ThemeMarketplaceOnly" xml:space="preserve"><value>Только для Marketplace (без пакета тем)</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeSchemeAvailableHint" xml:space="preserve"><value>Цветовая схема внутри выбранного пакета тем.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ThemeSchemeMarketplaceOnlyHint" xml:space="preserve"><value>Только для Marketplace пакет тем пропускает, поэтому дополнительная схема не применяется.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ThemeSummaryFormat" xml:space="preserve"><value>{0} - {1}</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ThemeSummaryFormat" xml:space="preserve"><value>{0} ({1})</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceHeroCustomBody" xml:space="preserve"><value>Настройте поддерживаемые параметры, не теряя базового уровня.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceHeroCustomEyebrow" xml:space="preserve"><value>Пользовательский профиль</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_WorkspaceHeroCustomTitle" xml:space="preserve"><value>Пользовательские настройки</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2156,11 +2156,11 @@
   <data name="Vm_ProfileComparisonAreaExtensionsFormat" xml:space="preserve"><value>{0} расширения</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonAreaLyricsFormat" xml:space="preserve"><value>цвет текста {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonAreaOverlayInstall" xml:space="preserve"><value>установка оверлея</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonAreaPremiumPatch" xml:space="preserve"><value>Положение патча для премиум-аккаунта</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonAreaPremiumPatch" xml:space="preserve"><value>Режим премиум-аккаунта</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonAreaThemeFormat" xml:space="preserve"><value>тема {0}/{1}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonDiffersFormat" xml:space="preserve"><value>отличается от {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonMatchesBaseline" xml:space="preserve"><value>соответствует рекомендуемому базовому уровню</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileComparisonPreparing" xml:space="preserve"><value>По сравнению с Рекомендуется...</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileComparisonPreparing" xml:space="preserve"><value>Сравнение с рекомендуемым профилем…</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonSummaryFormat" xml:space="preserve"><value>{0} профиль {1}. Тема: {2}/{3}; слова: {4}; расширения: {5}; пользовательские приложения: {6}; пользовательские патчи: {7}.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileComparisonUnavailable" xml:space="preserve"><value>Сравнение недоступно, пока профиль не загрузится. Нажмите «Обновить» над списком профилей и выберите профиль снова.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileDeleteBody" xml:space="preserve"><value>LibreSpot удалит этот локальный файл профиля. Связанные шаблоны сохраняются, а при удалении активного профиля возвращается состояние «Рекомендовано».</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2202,7 +2202,7 @@
   <data name="Vm_ProfileSetActiveConfirm" xml:space="preserve"><value>Установить активным</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileSetActiveTitleFormat" xml:space="preserve"><value>Установить активный профиль: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileShareFailedFormat" xml:space="preserve"><value>Не удалось подготовить общий доступ для {0}: {1}</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_ProfileSharePreparing" xml:space="preserve"><value>Подготовка карты общего доступа...</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_ProfileSharePreparing" xml:space="preserve"><value>Подготовка карты общего доступа…</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileShareQrTooLargeFormat" xml:space="preserve"><value>Ссылка для общего доступа готова, но этот профиль слишком велик для QR-карты: {0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileShareReady" xml:space="preserve"><value>QR-карта и ссылка для общего доступа готовы. Импорт по-прежнему открывается в виде предварительного просмотра перед сохранением.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ProfileSharedSettingsTitle" xml:space="preserve"><value>Общие настройки</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2212,7 +2212,7 @@
   <data name="Vm_ProfileSummaryOneExtension" xml:space="preserve"><value>1 расширение</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RestartingSpotify" xml:space="preserve"><value>Перезапуск Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_RestartingSpotifyLog" xml:space="preserve"><value>Перезапуск Spotify, чтобы завершенные изменения загружались в новом сеансе клиента.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SetupCompleteClosingLog" xml:space="preserve"><value>Настройка завершена – LibreSpot закроется.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_SetupCompleteClosingLog" xml:space="preserve"><value>Настройка завершена. LibreSpot закроется.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SpotifyReopened" xml:space="preserve"><value>Spotify снова открыт</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SpotifyRestartSkipped" xml:space="preserve"><value>Перезапуск Spotify пропущен</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_ToggleOff" xml:space="preserve"><value>выкл.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2324,7 +2324,7 @@
   <data name="CrashFatalSummaryBody" xml:space="preserve"><value>Скопируйте путь к отчету или откройте папку сбоя сейчас. При повторном открытии LibreSpot сохраненный профиль и журналы по-прежнему будут доступны для устранения неполадок.</value><comment>Fatal crash next-step detail.</comment></data>
   <data name="CrashExceptionSummaryLabel" xml:space="preserve"><value>ЧТО ПРОИЗОШЛО</value><comment>Crash exception card label.</comment></data>
   <data name="CrashReportPathLabel" xml:space="preserve"><value>ПУТЬ ОТЧЕТА</value><comment>Crash report path label.</comment></data>
-  <data name="CrashSourceFolderFormat" xml:space="preserve"><value>Источник: {0} — Папка сбоя: {1}</value><comment>Crash source and folder detail.</comment></data>
+  <data name="CrashSourceFolderFormat" xml:space="preserve"><value>Источник: {0}. Папка сбоя: {1}</value><comment>Crash source and folder detail.</comment></data>
   <data name="CrashFooter" xml:space="preserve"><value>LibreSpot сохраняет сбой отчет и журналы сеансов на диске после закрытия этого диалогового окна.</value><comment>Crash report retention note.</comment></data>
   <data name="CrashCopyReportPath" xml:space="preserve"><value>Копировать путь к отчету</value><comment>Crash dialog copy action.</comment></data>
   <data name="CrashOpenFolder" xml:space="preserve"><value>Открыть папку сбоя</value><comment>Crash dialog open-folder action.</comment></data>
@@ -2447,7 +2447,7 @@
   <data name="HealthEvidenceSpicetifyCliMissing" xml:space="preserve"><value>spicetify.exe не найден в ожидаемом для каждого пользователя местоположении.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpicetifyCliDetected" xml:space="preserve"><value>spicetify.exe существует, и действия по обслуживанию могут его вызвать.</value><comment>Health evidence.</comment></data>
   <data name="HealthStatusSpicetifyUnsupportedVersion" xml:space="preserve"><value>Неподдерживаемая версия</value><comment>Health status shown when the installed Spicetify CLI is a newer major than LibreSpot supports.</comment></data>
-  <data name="HealthEvidenceSpicetifyUnsupportedVersionFormat" xml:space="preserve"><value>Spicetify {0} пока не поддерживается. LibreSpot рассчитан на Spicetify {1}.x — переустановите закреплённую версию Spicetify, чтобы продолжить.</value><comment>Health evidence. {0} is the detected version, {1} is the supported major version.</comment></data>
+  <data name="HealthEvidenceSpicetifyUnsupportedVersionFormat" xml:space="preserve"><value>Spicetify {0} пока не поддерживается. LibreSpot рассчитан на Spicetify {1}.x. Переустановите закреплённую версию Spicetify, чтобы продолжить.</value><comment>Health evidence. {0} is the detected version, {1} is the supported major version.</comment></data>
   <data name="HealthStatusSpicetifyV3Conflict" xml:space="preserve"><value>Конфликт Spicetify v3</value><comment>Health status shown when Spicetify v3-or-newer filesystem markers make the pinned 2.x integration unsafe.</comment></data>
   <data name="HealthEvidenceSpicetifyV3ConflictFormat" xml:space="preserve"><value>Обнаружены артефакты Spicetify v3 ({0}). Восстановите Spotify с помощью {1} перед установкой или применением закреплённой интеграции Spicetify 2.x.</value><comment>Health evidence. {0} lists detected markers, and {1} is the safe restore command.</comment></data>
   <data name="HealthStatusMarketplaceThemeInactive" xml:space="preserve"><value>Поддержка тем неактивна</value><comment>Health status when Marketplace is installed but no Spicetify theme is active and CSS injection is off.</comment></data>
