@@ -4,9 +4,9 @@ Date: 2026-08-20. Replaces all prior research.
 
 ## Executive Summary
 
-LibreSpot is a Windows-only MIT orchestrator for pinned SpotX plus Spicetify. The stable script lane is v3.7.4 (public "Latest" release is still v3.7.2) and the WPF plus CLI lane is v4.0.0-preview.26. Its strongest shape is the tested Core/PowerShell/WPF/CLI boundary: SHA256-pinned assets, an asInvoker desktop, receipt-backed undo, a fleet CLI, five reviewed locales, and 25 machine-enforced JSON contracts.
+LibreSpot is a Windows-only MIT orchestrator for pinned SpotX plus Spicetify. The stable script lane is v3.7.4 (public "Latest" release is still v3.7.2) and the WPF plus CLI lane is v4.0.0-preview.27. Its strongest shape is the tested Core/PowerShell/WPF/CLI boundary: SHA256-pinned assets, an asInvoker desktop, receipt-backed undo, a fleet CLI, five reviewed locales, and 25 machine-enforced JSON contracts.
 
-The shipping gap that dominated the previous two passes is closed. `v4.0.0-preview.26` is tagged at HEAD `4dbded0`, published as an immutable GitHub prerelease, and it contains the PowerShell 7.6.5 floor, the .NET 10.0.11 runtime floor, the SpotX post-Defender pin policy, the Spicetify v3 coexistence guard, and the schema-v2 `supported-versions` contract. Every repo defect the earlier passes filed against that tag has since landed: parity manifest version, dead `packaging/` and `release.yml` references, CLI help parity, nav taxonomy, QA-matrix coverage, the MainViewModel and workspace-view split, Dependabot branch residue, and the Marketplace IndexedDB recovery boundary. The Home, Maintenance, and Settings rail replaced the older Home/Setup/Unblock labelling in the same release.
+The shipping gap that dominated the previous two passes is closed. `v4.0.0-preview.27` is tagged at HEAD, published as an immutable GitHub prerelease, and the line contains the PowerShell 7.6.5 floor, the .NET 10.0.11 runtime floor, the SpotX post-Defender pin policy, the Spicetify v3 coexistence guard, and the schema-v2 `supported-versions` contract. Every repo defect the earlier passes filed against that tag has since landed: parity manifest version, dead `packaging/` and `release.yml` references, CLI help parity, nav taxonomy, QA-matrix coverage, the MainViewModel and workspace-view split, Dependabot branch residue, and the Marketplace IndexedDB recovery boundary. The Home, Maintenance, and Settings rail replaced the older Home/Setup/Unblock labelling in the same release.
 
 What is left is not repo debt. It is upstream timing, and it belongs to the operator rather than the implementer:
 
@@ -26,12 +26,13 @@ Confidence: verified for repo state, tags, published release, and local test res
 
 ## Repository State (verified 2026-08-20)
 
-- HEAD `4dbded0`, tag `v4.0.0-preview.26` on the same commit, local and origin agree. Working tree carries only this research update.
-- Version strings match across `Directory.Build.props`, the three csproj files, the README badge, `schemas/parity-manifest.json` (`generatorVersion` 4.0.0-preview.26), and CHANGELOG. `-Validate` reports release truth as script v3.7.4 and preview v4.0.0-preview.26.
+- HEAD is tagged `v4.0.0-preview.27`, local and origin agree, and the release carries all seven verified assets.
+- Version strings match across `Directory.Build.props`, the three csproj files, the README badge, `schemas/parity-manifest.json` (`generatorVersion` 4.0.0-preview.27), and CHANGELOG. `-Validate` reports release truth as script v3.7.4 and preview v4.0.0-preview.27.
 - `.github/workflows` is empty by policy. Builds, tests, lint, and release artifacts are produced locally. Origin has exactly two heads, `main` and `gh-pages`, so the Dependabot branch residue is gone.
-- Local verification on this machine: PSScriptAnalyzer 1.25.0 clean on both hosts, `-Validate` clean, Core 31 of 31, Desktop non-WPF 920 of 920, Pester 203 of 203.
+- Local verification on this machine: PSScriptAnalyzer 1.25.0 clean on both hosts, `-Validate` clean, Core 31 of 31, Desktop non-WPF 920 of 920, WPF 135 of 135, Pester 203 of 203.
 - Structure: `MainViewModel.cs` is 2,764 lines with CustomInstall, Maintenance, and Profiles split into partials. Views use PascalCase filenames paired with their codebehind. `LibreSpot.ps1` is 10,864 lines and `LibreSpot.Backend.ps1` is 6,577, kept in sync by composition and the parity gate. Localization is 1,278 keys across five reviewed satellites.
 - The reviewed community catalog is published from `gh-pages` at https://sysadmindoc.github.io/LibreSpot/.
+- The simplified shell that landed in preview.26 hid three surfaces that had no replacement: the language picker, the pinned-asset provenance card, and global search. preview.27 restored the picker and repaired `ComboBoxStylePremium`, whose template inherited an implicit WPF-UI toggle-button style once the Fluent controls dictionary was merged into `App.xaml`, so every themed dropdown had been rendering as a content-sized pill. The remaining two surfaces are an operator decision in `Roadmap_Blocked.md`.
 
 ## Upstream Landscape
 
