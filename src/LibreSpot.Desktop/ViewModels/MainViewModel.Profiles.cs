@@ -90,7 +90,6 @@ public sealed partial class MainViewModel
 
     public bool HasLocalProfiles => LocalProfiles.Count > 0;
     public bool HasSelectedLocalProfile => SelectedLocalProfile is not null;
-    public bool CanEditSelectedLocalProfile => SelectedLocalProfile?.IsEditable == true;
     public string SelectedLocalProfileTitle => SelectedLocalProfile?.Name ?? L("Vm_ProfileNoSelectionTitle");
     public string SelectedLocalProfileDetail =>
         SelectedLocalProfile is null
@@ -166,7 +165,6 @@ public sealed partial class MainViewModel
     {
         OnPropertyChanged(nameof(HasLocalProfiles));
         OnPropertyChanged(nameof(HasSelectedLocalProfile));
-        OnPropertyChanged(nameof(CanEditSelectedLocalProfile));
         OnPropertyChanged(nameof(SelectedLocalProfileTitle));
         OnPropertyChanged(nameof(SelectedLocalProfileDetail));
         OnPropertyChanged(nameof(ProfileSelectionHint));
@@ -557,16 +555,28 @@ public sealed partial class MainViewModel
 
     public async Task PreviewSharedProfileUriAsync(string shareUri)
     {
-        var preview = await _profileService.PreviewShareUriAsync(shareUri);
-        ShowPrompt(
-            LF("Vm_ProfileImportSharedTitleFormat", preview.Name),
-            L("Vm_ProfileImportSharedBody"),
-            L("Vm_ProfileImportSharedConfirm"),
-            Strings.ButtonCancel,
-            false,
-            () => ImportLocalProfileConfirmedAsync(preview),
-            L("Vm_ProfileSharedSettingsTitle"),
-            BuildProfileSummary(preview.Configuration));
+        try
+        {
+            var preview = await _profileService.PreviewShareUriAsync(shareUri);
+            ShowPrompt(
+                LF("Vm_ProfileImportSharedTitleFormat", preview.Name),
+                L("Vm_ProfileImportSharedBody"),
+                L("Vm_ProfileImportSharedConfirm"),
+                Strings.ButtonCancel,
+                false,
+                () => ImportLocalProfileConfirmedAsync(preview),
+                L("Vm_ProfileSharedSettingsTitle"),
+                BuildProfileSummary(preview.Configuration));
+        }
+        catch (OperationCanceledException)
+        {
+            // Startup activation can be canceled during shutdown.
+        }
+        catch (Exception ex)
+        {
+            ProfileOperationStatus = ex.Message;
+            HandleAsyncCommandException(ex);
+        }
     }
 
     private async Task ImportLocalProfileConfirmedAsync(LocalProfileImportPreview preview)
