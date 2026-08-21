@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Reviewed, hash-pinned LibreSpot community extensions, themes, and custom apps.">
+  <title>LibreSpot Community Catalog</title>
+  <style>:root { color-scheme: dark; --bg: #11111b; --surface: #1e1e2e; --surface-2: #313244; --text: #cdd6f4; --muted: #a6adc8; --blue: #89b4fa; --teal: #94e2d5; --green: #a6e3a1; --border: #45475a; }
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(circle at top right, #1e1e2e 0, var(--bg) 42rem); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--blue); }
+header, main, footer { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+header { padding: 72px 0 34px; }
+h1 { margin: 0 0 12px; font-size: clamp(2rem, 5vw, 4rem); letter-spacing: -0.04em; }
+h2 { margin: 10px 0 8px; color: #f5e0e0; font-size: 1.45rem; }
+p { margin: 0 0 14px; }
+.lede { max-width: 760px; color: var(--muted); font-size: 1.1rem; }
+.meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; color: var(--muted); }
+.pill, .kind, .badge { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-size: .78rem; letter-spacing: .03em; }
+.kind { color: var(--teal); text-transform: uppercase; }
+.badge { border-color: #3f6f57; background: #1c3b2c; color: var(--green); }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 22px 0; }
+input, select { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); padding: 10px 12px; font: inherit; }
+input { flex: 1 1 300px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr)); gap: 18px; }
+.card { display: flex; flex-direction: column; min-height: 100%; border: 1px solid var(--border); border-radius: 14px; background: linear-gradient(145deg, rgba(49,50,68,.92), rgba(30,30,46,.96)); padding: 22px; box-shadow: 0 14px 36px rgba(0,0,0,.18); }
+.card:hover { border-color: var(--blue); transform: translateY(-2px); transition: transform .18s ease, border-color .18s ease; }
+.card-top { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.facts { display: grid; gap: 10px; margin: 18px 0; }
+.facts div { border-top: 1px solid rgba(69,71,90,.7); padding-top: 8px; }
+dt { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+dd { margin: 2px 0 0; }
+code { color: var(--teal); overflow-wrap: anywhere; }
+.subtle { color: var(--muted); font-size: .9rem; }
+.review { border-left: 3px solid var(--blue); padding-left: 10px; }
+.preview { border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); padding: 8px 10px; margin: 8px 0 12px; }
+.preview.unavailable { color: var(--muted); }
+details { margin-top: auto; padding-top: 10px; }
+summary { cursor: pointer; color: var(--blue); }
+ul { padding-left: 20px; overflow-wrap: anywhere; }
+footer { margin-top: 52px; padding: 24px 0 48px; border-top: 1px solid var(--border); color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .card:hover { transform: none; transition: none; } }</style>
+</head>
+<body>
+  <header>
+    <div class="pill">LibreSpot community catalog</div>
+    <h1>Reviewed assets for Spotify customization.</h1>
+    <p class="lede">Every entry comes from the repository's pinned catalog. Provenance, license posture, network behavior, SHA256 verification, and review evidence stay visible so you can decide before installing.</p>
+    <div class="meta">
+      <span class="pill">11 assets</span>
+      <span class="pill">5 extensions</span>
+      <span class="pill">5 themes</span>
+      <span class="pill">1 custom app</span>
+      <span class="pill">Generated 2026-08-20</span>
+    </div>
+  </header>
+  <main>
+    <div class="controls">
+      <input id="search" type="search" placeholder="Search assets, owners, or descriptions" aria-label="Search catalog">
+      <select id="kind" aria-label="Filter by asset type">
+        <option value="all">All asset types</option>
+        <option value="extension">Extensions</option>
+        <option value="theme">Themes</option>
+        <option value="custom-app">Custom apps</option>
+      </select>
+      <span id="count" class="pill">11 shown</span>
+    </div>
+    <section class="grid" aria-label="Catalog assets">
+      <article class="card" data-kind="extension" data-search="Hide Podcasts theRealPadster/spicetify-hide-podcasts Remove podcast, episode, and audiobook UI elements from the Spotify interface">
+  <div class="card-top"><span class="kind">extension</span><span class="badge">Pinned SHA256 verified</span></div>
+  <h2>Hide Podcasts</h2>
+  <p>Remove podcast, episode, and audiobook UI elements from the Spotify interface</p>
+  
+  
+  <dl class="facts">
+    <div><dt>Provenance</dt><dd><a href="https://raw.githubusercontent.com/theRealPadster/spicetify-hide-podcasts/b89365dd86fba24d610fae65d882d7e14a69f2fa/hidePodcasts.js" rel="noopener noreferrer">theRealPadster/spicetify-hide-podcasts</a><br><code>b89365dd86fba24d610fae65d882d7e14a69f2fa</code></dd></div>
+    <div><dt>License</dt><dd>GPL-3.0-only<br><span class="subtle">theRealPadster</span></dd></div>
+    <div><dt>Network behavior</dt><dd>local-only</dd></div>
+    <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-08-02</span></dd></div>
+    <div><dt>Catalog decision</dt><dd>accept</dd></div>
+  </dl>
+  <p class="review"><strong>Review:</strong> Pinned source is active and non-archived; existing hash, license, compatibility, fallback, and network disclosures remain valid.</p>
+  <p class="subtle">Redistribution: download-only-not-redistributed</p>
+  <details><summary>Evidence and release links</summary><ul><li><a href="https://github.com/theRealPadster/spicetify-hide-podcasts" rel="noopener noreferrer">https://github.com/theRealPadster/spicetify-hide-podcasts</a></li><li><a href="https://api.github.com/repos/theRealPadster/spicetify-hide-podcasts" rel="noopener noreferrer">https://api.github.com/repos/theRealPadster/spicetify-hide-podcasts</a></li><li><a href="https://github.com/theRealPadster/spicetify-hide-podcasts/compare/b89365dd86fba24d610fae65d882d7e14a69f2fa...main" rel="noopener noreferrer">Release notes</a></li></ul></details>
+</article>
+<article class="card" data-kind="extension" data-search="Beautiful Lyrics surfbryce/beautiful-lyrics Immersive synced lyrics with dynamic backgrounds, romanization, and blur effects">
+  <div class="card-top"><span class="kind">extension</span><span class="badge">Pinned SHA256 verified</span></div>
+  <h2>Beautiful Lyrics</h2>
+  <p>Immersive synced lyrics with dynamic backgrounds, romanization, and blur effects</p>
+  
+  
+  <dl class="facts">
+    <div><dt>Provenance</dt><dd><a href="https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/61ac582da092311e893423269ca7f09003108705/Extension/Builds/Release/beautiful-lyrics.mjs" rel="noopener noreferrer">surfbryce/beautiful-lyrics</a><br><code>61ac582da092311e893423269ca7f09003108705</code></dd></div>
+    <div><dt>License</dt><dd>NOASSERTION<br><span class="subtle">surfbryce</span></dd></div>
+    <div><dt>Network behavior</dt><dd>third-party-service. Fetches lyrics from a third-party lyrics backend (works for non-Premium accounts) and uses an external API for optional Discord-account features. Contacts servers other than GitHub and Spotify.</dd></div>
+    <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2025-11-05</span></dd></div>
+    <div><dt>Catalog decision</dt><dd>accept</dd></div>
+  </dl>
+  <p class="review"><strong>Review:</strong> Pinned source is active and non-archived; the existing third-party lyrics/API disclosure remains explicit.</p>
+  <p class="subtle">Redistribution: download-only-not-redistributed</p>
+  <details><summary>Evidence and release links</summary><ul><li><a href="https://github.com/surfbryce/beautiful-lyrics" rel="noopener noreferrer">https://github.com/surfbryce/beautiful-lyrics</a></li><li><a href="https://api.github.com/repos/surfbryce/beautiful-lyrics" rel="noopener noreferrer">https://api.github.com/repos/surfbryce/beautiful-lyrics</a></li><li><a href="https://github.com/surfbryce/beautiful-lyrics/compare/61ac582da092311e893423269ca7f09003108705...main" rel="noopener noreferrer">Release notes</a></li></ul></details>
+</article>
+<article class="card" data-kind="extension" data-search="Playlist Icons jeroentvb/spicetify-playlist-icons Add custom icons and folder images to your playlists and library">
+  <div class="card-top"><span class="kind">extension</span><span class="badge">Pinned SHA256 verified</span></div>
+  <h2>Playlist Icons</h2>
+  <p>Add custom icons and folder images to your playlists and library</p>
+  
+  
+  <dl class="facts">
+    <div><dt>Provenance</dt><dd><a href="https://raw.githubusercontent.com/jeroentvb/spicetify-playlist-icons/8f401f923a5c25f530935faaceb39089a25b701a/playlist-icons.js" rel="noopener noreferrer">jeroentvb/spicetify-playlist-icons</a><br><code>8f401f923a5c25f530935faaceb39089a25b701a</code></dd></div>
+    <div><dt>License</dt><dd>MIT<br><span class="subtle">jeroentvb</span></dd></div>
+    <div><dt>Network behavior</dt><dd>local-only</dd></div>
+    <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-01-01</span></dd></div>
+    <div><dt>Catalog decision</dt><dd>accept</dd></div>
+  </dl>
+  <p class="review"><strong>Review:</strong> Pinned source is active and non-archived; the existing pinned hash, license, and local-only network classification remain valid.</p>
+  <p class="subtle">Redistribution: download-only-not-redistributed</p>
+  <details><summary>Evidence and release links</summary><ul><li><a href="https://github.com/jeroentvb/spicetify-playlist-icons" rel="noopener noreferrer">https://github.com/jeroentvb/spicetify-playlist-icons</a></li><li><a href="https://api.github.com/repos/jeroentvb/spicetify-playlist-icons" rel="noopener noreferrer">https://api.github.com/repos/jeroentvb/spicetify-playlist-icons</a></li><li><a href="https://github.com/jeroentvb/spicetify-playlist-icons/compare/8f401f923a5c25f530935faaceb39089a25b701a...main" rel="noopener noreferrer">Release notes</a></li></ul></details>
+</article>
+<article class="card" data-kind="extension" data-search="Volume Percentage daksh2k/spicetify-stuff Display the exact volume percentage next to the volume slider">
+  <div class="card-top"><span class="kind">extension</span><span class="badge">Pinned SHA256 verified</span></div>
+  <h2>Volume Percentage</h2>
+  <p>Display the exact volume percentage next to the volume slider</p>
+  
+  
+  <dl class="facts">
+    <div><dt>Provenance</dt><dd><a href="https://raw.githubusercontent.com/daksh2k/spicetify-stuff/89e609d933946a888cdff9cc3d7c4f1e9b88cfde/Extensions/volumePercentage.js" rel="noopener noreferrer">daksh2k/spicetify-stuff</a><br><code>89e609d933946a888cdff9cc3d7c4f1e9b88cfde</code></dd></div>
+    <div><dt>License</dt><dd>MIT<br><span class="subtle">daksh2k</span></dd></div>
+    <div><dt>Network behavior</dt><dd>local-only</dd></div>
+    <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-07-23</span></dd></div>
+    <div><dt>Catalog decision</dt><dd>accept</dd></div>
+  </dl>
+  <p class="review"><strong>Review:</strong> Pinned source is active and non-archived; the existing pinned hash, license, and local-only network classification remain valid.</p>
+  <p class="subtle">Redistribution: download-only-not-redistributed</p>
+  <details><summary>Evidence and release links</summary><ul><li><a href="https://github.com/daksh2k/spicetify-stuff" rel="noopener noreferrer">https://github.com/daksh2k/spicetify-stuff</a></li><li><a href="https://api.github.com/repos/daksh2k/spicetify-stuff" rel="noopener noreferrer">https://api.github.com/repos/daksh2k/spicetify-stuff</a></li><li><a href="https://github.com/daksh2k/spicetify-stuff/compare/89e609d933946a888cdff9cc3d7c4f1e9b88cfde...master" rel="noopener noreferrer">Release notes</a></li></ul></details>
+</article>
+<article class="card" data-kind="extension" data-search="Ad-block (Spicetify fallback) rxri/spicetify-extensions Spicetify-layer ad blocking - a fallback for when SpotX patching fails on a newer Spotify build. Not a SpotX replacement.">
+  <div class="card-top"><span class="kind">extension</span><span class="badge">Pinned SHA256 verified</span></div>
+  <h2>Ad-block (Spicetify fallback)</h2>
+  <p>Spicetify-layer ad blocking - a fallback for when SpotX patching fails on a newer Spotify build. Not a SpotX replacement.</p>
+  
+  
+  <dl class="facts">
+    <div><dt>Provenance</dt><dd><a href="https://raw.githubusercontent.com/rxri/spicetify-extensions/60554c512739c6f2084879efe9d8a88f1dd16646/adblock/adblock.js" rel="noopener noreferrer">rxri/spicetify-extensions</a><br><code>60554c512739c6f2084879efe9d8a88f1dd16646</code></dd></div>
+    <div><dt>License</dt><dd>MIT<br><span class="subtle">CharlieS1103 and adblockify contributors</span></dd></div>
+    <div><dt>Network behavior</dt><dd>local-only. Talks only to Spotify&#39;s own ad endpoints to disable them and points the ad server at localhost; contacts no third party.</dd></div>
+    <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-07-04</span></dd></div>
+    <div><dt>Catalog decision</dt><dd>accept</dd></div>
+  </dl>
+  <p class="review"><strong>Review:</strong> Pinned source is active and non-archived; the existing hash, license, fallback, and local-only network classification remain valid.</p>
+  <p class="subtle">Redistribution: download-only-not-redistributed</p>
+  <details><summary>Evidence and release links</summary><ul><li><a href="https://github.com/rxri/spicetify-extensions" rel="noopener noreferrer">https://github.com/rxri/spicetify-extensions</a></li><li><a href="https://api.github.com/repos/rxri/spicetify-extensions" rel="noopener noreferrer">https://api.github.com/repos/rxri/spicetify-extensions</a></li><li><a href="https://github.com/rxri/spicetify-extensions/compare/60554c512739c6f2084879efe9d8a88f1dd16646...main" rel="noopener noreferrer">Release notes</a></li></ul></details>
+</article>
+<article class="card" data-kind="theme" data-search="Catppuccin catppuccin/spicetify Catppuccin from catppuccin/spicetify.">
+  <div class="card-top"><span class="kind">theme</span><span class="badge">Pinned SHA256 verified</span></div>
+  <h2>Catppuccin</h2>
+  <p>Catppuccin from catppuccin/spicetify.</p>
+  <div class="preview"><a href="https://raw.githubusercontent.com/catppuccin/spicetify/1ec645c4cf7f42f9792b9eeb1bb7930f94593277/assets/mocha.webp" rel="noopener noreferrer">Open preview</a></div>
+  <div class="subtle"><strong>Schemes:</strong> mocha, macchiato, frappe, latte</div>
+  <dl class="facts">
+    <div><dt>Provenance</dt><dd><a href="https://github.com/catppuccin/spicetify/tree/1ec645c4cf7f42f9792b9eeb1bb7930f94593277/." rel="noopener noreferrer">catppuccin/spicetify</a><br><code>1ec645c4cf7f42f9792b9eeb1bb7930f94593277</code></dd></div>
+    <div><dt>License</dt><dd>MIT<br><span class="subtle">Catppuccin contributors</span></dd></div>
+    <div><dt>Network behavior</dt><dd>local-only</dd></div>
+    <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2025-10-22</span></dd></div>
+    <div><dt>Catalog decision</dt><dd>accept</dd></div>
+  </dl>
+  <p class="review"><strong>Review:</strong> Pinned source is active and non-archived within the 12-month maintenance window; archive hash and local-only network metadata remain valid.</p>
+  <p class="subtle">Redistribution: download-only-not-redistributed</p>
+  <details><summary>Evidence and release links</summary><ul><li><a href="https://github.com/catppuccin/spicetify" rel="noopener noreferrer">https://github.com/catppuccin/spicetify</a></li><li><a href="https://api.github.com/repos/catppuccin/spicetify" rel="noopener noreferrer">https://api.github.com/repos/catppuccin/spicetify</a></li><li><a href="https://github.com/catppuccin/spicetify/compare/1ec645c4cf7f42f9792b9eeb1bb7930f94593277...main" rel="noopener noreferrer">Release notes</a></li></ul></details>
+</article>
+<article class="card" data-kind="theme" data-search="Comfy Comfy-Themes/Spicetify Comfy from Comfy-Themes/Spicetify.">
+  <div class="card-top"><span class="kind">theme</span><span class="badge">Pinned SHA256 verified</span></div>
+  <h2>Comfy</h2>
+  <p>Comfy from Comfy-Themes/Spicetify.</p>
+  <div class="preview"><a href="https://raw.githubusercontent.com/Comfy-Themes/Spicetify/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0/screenshots/Comfy.png" rel="noopener noreferrer">Open preview</a></div>
+  <div class="subtle"><strong>Schemes:</strong> Comfy, Mono, Chromatic</div>
+  <dl class="facts">
+    <div><dt>Provenance</dt><dd><a href="https://github.com/Comfy-Themes/Spicetify/tree/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0/." rel="noopener noreferrer">Comfy-Themes/Spicetify</a><br><code>32ff101e27cfd33d85b7cc587f7f95db6b2df8b0</code></dd></div>
+    <div><dt>License</dt><dd>WTFPL<br><span class="subtle">Comfy-Themes</span></dd></div>
+    <div><dt>Network behavior</dt><dd>local-only</dd></div>
+    <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-01-04</span></dd></div>
+    <div><dt>Catalog decision</dt><dd>accept</dd></div>
+  </dl>
+  <p class="review"><strong>Review:</strong> Pinned source is active and non-archived within the 12-month maintenance window; the existing license-review and local-only network metadata remain valid.</p>
+  <p class="subtle">Redistribution: download-only-not-redistributed</p>
+  <details><summary>Evidence and release links</summary><ul><li><a href="https://github.com/Comfy-Themes/Spicetify" rel="noopener noreferrer">https://github.com/Comfy-Themes/Spicetify</a></li><li><a href="https://api.github.com/repos/Comfy-Themes/Spicetify" rel="noopener noreferrer">https://api.github.com/repos/Comfy-Themes/Spicetify</a></li><li><a href="https://github.com/Comfy-Themes/Spicetify/compare/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0...main" rel="noopener noreferrer">Release notes</a></li></ul></details>
+</article>
+<article class="card" data-kind="theme" data-search="Bloom nimsandu/spicetify-bloom Bloom from nimsandu/spicetify-bloom.">
+  <div class="card-top"><span class="kind">theme</span><span class="badge">Pinned SHA256 verified</span></div>
+  <h2>Bloom</h2>
+  <p>Bloom from nimsandu/spicetify-bloom.</p>
+  <div class="preview"><a href="https://raw.githubusercontent.com/nimsandu/spicetify-bloom/654cfed682b94613b0029997ffafc1eadccc5bef/screenshots/dark.png" rel="noopener noreferrer">Open preview</a></div>
+  <div class="subtle"><strong>Schemes:</strong> dark, light, darkMono, darkGreen, coffee, comfy, violet</div>
+  <dl class="facts">
+    <div><dt>Provenance</dt><dd><a href="https://github.com/nimsandu/spicetify-bloom/tree/654cfed682b94613b0029997ffafc1eadccc5bef/." rel="noopener noreferrer">nimsandu/spicetify-bloom</a><br><code>654cfed682b94613b0029997ffafc1eadccc5bef</code></dd></div>
+    <div><dt>License</dt><dd>MIT<br><span class="subtle">nimsandu</span></dd></div>
+    <div><dt>Network behavior</dt><dd>local-only</dd></div>
+    <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2025-05-20</span></dd></div>
+    <div><dt>Catalog decision</dt><dd>defer</dd></div>
+  </dl>
+  <p class="review"><strong>Review:</strong> Source last pushed 2025-05-20, outside the 12-month maintenance threshold as of 2026-08-11; keep opt-in pending a fresh upstream review.</p>
+  <p class="subtle">Redistribution: download-only-not-redistributed</p>
+  <details><summary>Evidence and release links</summary><ul><li><a href="https://github.com/nimsandu/spicetify-bloom" rel="noopener noreferrer">https://github.com/nimsandu/spicetify-bloom</a></li><li><a href="https://api.github.com/repos/nimsandu/spicetify-bloom" rel="noopener noreferrer">https://api.github.com/repos/nimsandu/spicetify-bloom</a></li><li><a href="https://github.com/nimsandu/spicetify-bloom/compare/654cfed682b94613b0029997ffafc1eadccc5bef...main" rel="noopener noreferrer">Release notes</a></li></ul></details>
+</article>
+<article class="card" data-kind="theme" data-search="Lucid sanoojes/Spicetify-Lucid Lucid from sanoojes/Spicetify-Lucid.">
+  <div class="card-top"><span class="kind">theme</span><span class="badge">Pinned SHA256 verified</span></div>
+  <h2>Lucid</h2>
+  <p>Lucid from sanoojes/Spicetify-Lucid.</p>
+  <div class="preview"><a href="https://raw.githubusercontent.com/sanoojes/Spicetify-Lucid/5c28e9f955d5ca84a82d06084cc6652e5655ea2d/screenshots/dark.webp" rel="noopener noreferrer">Open preview</a></div>
+  <div class="subtle"><strong>Schemes:</strong> dark, light, dark-green, coffee, comfy, dark-fluent, greenland, biscuit, macos, rosepine, dracula, dracula-pro</div>
+  <dl class="facts">
+    <div><dt>Provenance</dt><dd><a href="https://github.com/sanoojes/Spicetify-Lucid/tree/5c28e9f955d5ca84a82d06084cc6652e5655ea2d/." rel="noopener noreferrer">sanoojes/Spicetify-Lucid</a><br><code>5c28e9f955d5ca84a82d06084cc6652e5655ea2d</code></dd></div>
+    <div><dt>License</dt><dd>AGPL-3.0-only<br><span class="subtle">sanoojes</span></dd></div>
+    <div><dt>Network behavior</dt><dd>local-only</dd></div>
+    <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-07-31</span></dd></div>
+    <div><dt>Catalog decision</dt><dd>accept</dd></div>
+  </dl>
+  <p class="review"><strong>Review:</strong> Pinned source is active and non-archived; the existing license-review, archive hash, and local-only network metadata remain valid.</p>
+  <p class="subtle">Redistribution: download-only-not-redistributed</p>
+  <details><summary>Evidence and release links</summary><ul><li><a href="https://github.com/sanoojes/Spicetify-Lucid" rel="noopener noreferrer">https://github.com/sanoojes/Spicetify-Lucid</a></li><li><a href="https://api.github.com/repos/sanoojes/Spicetify-Lucid" rel="noopener noreferrer">https://api.github.com/repos/sanoojes/Spicetify-Lucid</a></li><li><a href="https://github.com/sanoojes/Spicetify-Lucid/compare/5c28e9f955d5ca84a82d06084cc6652e5655ea2d...main" rel="noopener noreferrer">Release notes</a></li></ul></details>
+</article>
+<article class="card" data-kind="theme" data-search="Hazy Astromations/Hazy Hazy from Astromations/Hazy.">
+  <div class="card-top"><span class="kind">theme</span><span class="badge">Pinned SHA256 verified</span></div>
+  <h2>Hazy</h2>
+  <p>Hazy from Astromations/Hazy.</p>
+  <div class="preview"><a href="https://raw.githubusercontent.com/Astromations/Hazy/1926d9db3e0313b68ca6e2193c2b278e733ac3c4/screenshots/dark.png" rel="noopener noreferrer">Open preview</a></div>
+  <div class="subtle"><strong>Schemes:</strong> dark, light</div>
+  <dl class="facts">
+    <div><dt>Provenance</dt><dd><a href="https://github.com/Astromations/Hazy/tree/1926d9db3e0313b68ca6e2193c2b278e733ac3c4/." rel="noopener noreferrer">Astromations/Hazy</a><br><code>1926d9db3e0313b68ca6e2193c2b278e733ac3c4</code></dd></div>
+    <div><dt>License</dt><dd>NOASSERTION<br><span class="subtle">Astromations</span></dd></div>
+    <div><dt>Network behavior</dt><dd>local-only</dd></div>
+    <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-05-27</span></dd></div>
+    <div><dt>Catalog decision</dt><dd>accept</dd></div>
+  </dl>
+  <p class="review"><strong>Review:</strong> Pinned source is active and non-archived; the existing license-review, archive hash, and local-only network metadata remain valid.</p>
+  <p class="subtle">Redistribution: download-only-not-redistributed</p>
+  <details><summary>Evidence and release links</summary><ul><li><a href="https://github.com/Astromations/Hazy" rel="noopener noreferrer">https://github.com/Astromations/Hazy</a></li><li><a href="https://api.github.com/repos/Astromations/Hazy" rel="noopener noreferrer">https://api.github.com/repos/Astromations/Hazy</a></li><li><a href="https://github.com/Astromations/Hazy/compare/1926d9db3e0313b68ca6e2193c2b278e733ac3c4...main" rel="noopener noreferrer">Release notes</a></li></ul></details>
+</article>
+<article class="card" data-kind="custom-app" data-search="Stats harbassan/spicetify-apps View detailed listening statistics including top tracks, artists, genres, library charts, and optional Last.fm-backed views">
+  <div class="card-top"><span class="kind">custom-app</span><span class="badge">Pinned SHA256 verified</span></div>
+  <h2>Stats</h2>
+  <p>View detailed listening statistics including top tracks, artists, genres, library charts, and optional Last.fm-backed views</p>
+  
+  
+  <dl class="facts">
+    <div><dt>Provenance</dt><dd><a href="https://github.com/harbassan/spicetify-apps/releases/download/stats-v1.1.3/spicetify-stats.release.zip" rel="noopener noreferrer">harbassan/spicetify-apps</a><br><code>c39fef2b9ac9e9dbcdcd7c851b77c19a9a2eb8c1</code></dd></div>
+    <div><dt>License</dt><dd>MIT<br><span class="subtle">harbassan</span></dd></div>
+    <div><dt>Network behavior</dt><dd>third-party-service. Stats can contact Last.fm when users open Last.fm-backed views inside Spotify.</dd></div>
+    <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-02-26</span></dd></div>
+    <div><dt>Catalog decision</dt><dd>accept</dd></div>
+  </dl>
+  <p class="review"><strong>Review:</strong> Pinned release remains sourced from an active, non-archived repository; the existing release hash, license, and Last.fm disclosure remain valid.</p>
+  <p class="subtle">Redistribution: download-only-not-redistributed</p>
+  <details><summary>Evidence and release links</summary><ul><li><a href="https://github.com/harbassan/spicetify-apps" rel="noopener noreferrer">https://github.com/harbassan/spicetify-apps</a></li><li><a href="https://api.github.com/repos/harbassan/spicetify-apps" rel="noopener noreferrer">https://api.github.com/repos/harbassan/spicetify-apps</a></li><li><a href="https://github.com/harbassan/spicetify-apps/releases/tag/stats-v1.1.3" rel="noopener noreferrer">Release notes</a></li></ul></details>
+</article>
+
+    </section>
+  </main>
+  <footer>
+    <p>Generated locally from <a href="https://github.com/SysAdminDoc/LibreSpot/blob/main/schemas/community-assets.json">community-assets.json</a> and <a href="https://github.com/SysAdminDoc/LibreSpot/blob/main/schemas/theme-preview-manifest.json">theme-preview-manifest.json</a>. This site does not redistribute upstream files. Downloads come from the pinned source URLs shown on each card.</p>
+    <p><a href="catalog.json">Machine-readable catalog</a> · <a href="https://github.com/SysAdminDoc/LibreSpot">LibreSpot source repository</a></p>
+  </footer>
+  <script>const search = document.getElementById("search");
+const kind = document.getElementById("kind");
+const cards = Array.from(document.querySelectorAll(".card"));
+const count = document.getElementById("count");
+function applyFilter() {
+  const query = search.value.toLowerCase().trim();
+  const selected = kind.value;
+  let visible = 0;
+  cards.forEach(function (card) {
+    const matchesText = !query || card.dataset.search.toLowerCase().indexOf(query) >= 0;
+    const matchesKind = selected === "all" || card.dataset.kind === selected;
+    const show = matchesText && matchesKind;
+    card.hidden = !show;
+    if (show) visible += 1;
+  });
+  count.textContent = visible + " shown";
+}
+search.addEventListener("input", applyFilter);
+kind.addEventListener("change", applyFilter);
+applyFilter();</script>
+</body>
+</html>

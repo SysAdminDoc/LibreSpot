@@ -1,0 +1,580 @@
+{
+  "catalogVersion": 1,
+  "generatedDate": "2026-08-20",
+  "generator": "tools/Build-CommunityCatalog.ps1",
+  "sourceSchemas": [
+    "schemas/community-assets.json",
+    "schemas/theme-preview-manifest.json"
+  ],
+  "counts": {
+    "extensions": 5,
+    "themes": 5,
+    "customApps": 1
+  },
+  "items": [
+    {
+      "id": "hidePodcasts.js",
+      "kind": "extension",
+      "name": "Hide Podcasts",
+      "description": "Remove podcast, episode, and audiobook UI elements from the Spotify interface",
+      "schemes": [],
+      "provenance": {
+        "owner": "theRealPadster",
+        "repository": "theRealPadster/spicetify-hide-podcasts",
+        "branch": "main",
+        "commit": "b89365dd86fba24d610fae65d882d7e14a69f2fa",
+        "sourceUrl": "https://raw.githubusercontent.com/theRealPadster/spicetify-hide-podcasts/b89365dd86fba24d610fae65d882d7e14a69f2fa/hidePodcasts.js",
+        "releaseNotesUrl": "https://github.com/theRealPadster/spicetify-hide-podcasts/compare/b89365dd86fba24d610fae65d882d7e14a69f2fa...main"
+      },
+      "license": {
+        "spdx": "GPL-3.0-only",
+        "copyrightHolder": "theRealPadster",
+        "redistributionPosture": "download-only-not-redistributed"
+      },
+      "verification": {
+        "status": "verified",
+        "badge": "Pinned SHA256 verified",
+        "algorithm": "SHA256",
+        "digest": "727e5a2f9137f4be77eac83d234a0ce858c5d618e7ff56116a6def01793fc3f8",
+        "lastVerifiedDate": "2026-06-15"
+      },
+      "review": {
+        "decision": "accept",
+        "evaluatedDate": "2026-08-11",
+        "lastPush": "2026-08-02",
+        "archived": false,
+        "reason": "Pinned source is active and non-archived; existing hash, license, compatibility, fallback, and network disclosures remain valid.",
+        "evidenceUrls": [
+          "https://github.com/theRealPadster/spicetify-hide-podcasts",
+          "https://api.github.com/repos/theRealPadster/spicetify-hide-podcasts"
+        ]
+      },
+      "network": {
+        "behavior": "local-only",
+        "detail": null
+      },
+      "supportState": "active",
+      "fallbackBehavior": "skip-with-warning",
+      "notes": null,
+      "preview": null
+    },
+    {
+      "id": "beautiful-lyrics.mjs",
+      "kind": "extension",
+      "name": "Beautiful Lyrics",
+      "description": "Immersive synced lyrics with dynamic backgrounds, romanization, and blur effects",
+      "schemes": [],
+      "provenance": {
+        "owner": "surfbryce",
+        "repository": "surfbryce/beautiful-lyrics",
+        "branch": "main",
+        "commit": "61ac582da092311e893423269ca7f09003108705",
+        "sourceUrl": "https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/61ac582da092311e893423269ca7f09003108705/Extension/Builds/Release/beautiful-lyrics.mjs",
+        "releaseNotesUrl": "https://github.com/surfbryce/beautiful-lyrics/compare/61ac582da092311e893423269ca7f09003108705...main"
+      },
+      "license": {
+        "spdx": "NOASSERTION",
+        "copyrightHolder": "surfbryce",
+        "redistributionPosture": "download-only-not-redistributed"
+      },
+      "verification": {
+        "status": "verified",
+        "badge": "Pinned SHA256 verified",
+        "algorithm": "SHA256",
+        "digest": "93c9ecfcb0a83c832c5ee7ca8fe826bcfaeec7cdd129c0bf05bab84b8ba6ba72",
+        "lastVerifiedDate": "2026-06-15"
+      },
+      "review": {
+        "decision": "accept",
+        "evaluatedDate": "2026-08-11",
+        "lastPush": "2025-11-05",
+        "archived": false,
+        "reason": "Pinned source is active and non-archived; the existing third-party lyrics/API disclosure remains explicit.",
+        "evidenceUrls": [
+          "https://github.com/surfbryce/beautiful-lyrics",
+          "https://api.github.com/repos/surfbryce/beautiful-lyrics"
+        ]
+      },
+      "network": {
+        "behavior": "third-party-service",
+        "detail": "Fetches lyrics from a third-party lyrics backend (works for non-Premium accounts) and uses an external API for optional Discord-account features. Contacts servers other than GitHub and Spotify."
+      },
+      "supportState": "active",
+      "fallbackBehavior": "skip-with-warning",
+      "notes": "Migrated from beautifulLyrics.js to .mjs build",
+      "preview": null
+    },
+    {
+      "id": "playlist-icons.js",
+      "kind": "extension",
+      "name": "Playlist Icons",
+      "description": "Add custom icons and folder images to your playlists and library",
+      "schemes": [],
+      "provenance": {
+        "owner": "jeroentvb",
+        "repository": "jeroentvb/spicetify-playlist-icons",
+        "branch": "main",
+        "commit": "8f401f923a5c25f530935faaceb39089a25b701a",
+        "sourceUrl": "https://raw.githubusercontent.com/jeroentvb/spicetify-playlist-icons/8f401f923a5c25f530935faaceb39089a25b701a/playlist-icons.js",
+        "releaseNotesUrl": "https://github.com/jeroentvb/spicetify-playlist-icons/compare/8f401f923a5c25f530935faaceb39089a25b701a...main"
+      },
+      "license": {
+        "spdx": "MIT",
+        "copyrightHolder": "jeroentvb",
+        "redistributionPosture": "download-only-not-redistributed"
+      },
+      "verification": {
+        "status": "verified",
+        "badge": "Pinned SHA256 verified",
+        "algorithm": "SHA256",
+        "digest": "79bbe2bd6a52a521a382a73ef1c8c7ff0b0b9bd7674c48bb0ed44c5d2c944c8d",
+        "lastVerifiedDate": "2026-06-15"
+      },
+      "review": {
+        "decision": "accept",
+        "evaluatedDate": "2026-08-11",
+        "lastPush": "2026-01-01",
+        "archived": false,
+        "reason": "Pinned source is active and non-archived; the existing pinned hash, license, and local-only network classification remain valid.",
+        "evidenceUrls": [
+          "https://github.com/jeroentvb/spicetify-playlist-icons",
+          "https://api.github.com/repos/jeroentvb/spicetify-playlist-icons"
+        ]
+      },
+      "network": {
+        "behavior": "local-only",
+        "detail": null
+      },
+      "supportState": "active",
+      "fallbackBehavior": "skip-with-warning",
+      "notes": "Migrated from playlistIcons.js to playlist-icons.js",
+      "preview": null
+    },
+    {
+      "id": "volumePercentage.js",
+      "kind": "extension",
+      "name": "Volume Percentage",
+      "description": "Display the exact volume percentage next to the volume slider",
+      "schemes": [],
+      "provenance": {
+        "owner": "daksh2k",
+        "repository": "daksh2k/spicetify-stuff",
+        "branch": "master",
+        "commit": "89e609d933946a888cdff9cc3d7c4f1e9b88cfde",
+        "sourceUrl": "https://raw.githubusercontent.com/daksh2k/spicetify-stuff/89e609d933946a888cdff9cc3d7c4f1e9b88cfde/Extensions/volumePercentage.js",
+        "releaseNotesUrl": "https://github.com/daksh2k/spicetify-stuff/compare/89e609d933946a888cdff9cc3d7c4f1e9b88cfde...master"
+      },
+      "license": {
+        "spdx": "MIT",
+        "copyrightHolder": "daksh2k",
+        "redistributionPosture": "download-only-not-redistributed"
+      },
+      "verification": {
+        "status": "verified",
+        "badge": "Pinned SHA256 verified",
+        "algorithm": "SHA256",
+        "digest": "b88dcde894f4998abc4473773333015c09f0450ec563d256ed5af45db7129aca",
+        "lastVerifiedDate": "2026-06-15"
+      },
+      "review": {
+        "decision": "accept",
+        "evaluatedDate": "2026-08-11",
+        "lastPush": "2026-07-23",
+        "archived": false,
+        "reason": "Pinned source is active and non-archived; the existing pinned hash, license, and local-only network classification remain valid.",
+        "evidenceUrls": [
+          "https://github.com/daksh2k/spicetify-stuff",
+          "https://api.github.com/repos/daksh2k/spicetify-stuff"
+        ]
+      },
+      "network": {
+        "behavior": "local-only",
+        "detail": null
+      },
+      "supportState": "active",
+      "fallbackBehavior": "skip-with-warning",
+      "notes": null,
+      "preview": null
+    },
+    {
+      "id": "adblock.js",
+      "kind": "extension",
+      "name": "Ad-block (Spicetify fallback)",
+      "description": "Spicetify-layer ad blocking - a fallback for when SpotX patching fails on a newer Spotify build. Not a SpotX replacement.",
+      "schemes": [],
+      "provenance": {
+        "owner": "rxri",
+        "repository": "rxri/spicetify-extensions",
+        "branch": "main",
+        "commit": "60554c512739c6f2084879efe9d8a88f1dd16646",
+        "sourceUrl": "https://raw.githubusercontent.com/rxri/spicetify-extensions/60554c512739c6f2084879efe9d8a88f1dd16646/adblock/adblock.js",
+        "releaseNotesUrl": "https://github.com/rxri/spicetify-extensions/compare/60554c512739c6f2084879efe9d8a88f1dd16646...main"
+      },
+      "license": {
+        "spdx": "MIT",
+        "copyrightHolder": "CharlieS1103 and adblockify contributors",
+        "redistributionPosture": "download-only-not-redistributed"
+      },
+      "verification": {
+        "status": "verified",
+        "badge": "Pinned SHA256 verified",
+        "algorithm": "SHA256",
+        "digest": "fb6dc4dfc09ee369638ffaf47a9f36202bb99c1555edc79772d7fbb235114623",
+        "lastVerifiedDate": "2026-06-14"
+      },
+      "review": {
+        "decision": "accept",
+        "evaluatedDate": "2026-08-11",
+        "lastPush": "2026-07-04",
+        "archived": false,
+        "reason": "Pinned source is active and non-archived; the existing hash, license, fallback, and local-only network classification remain valid.",
+        "evidenceUrls": [
+          "https://github.com/rxri/spicetify-extensions",
+          "https://api.github.com/repos/rxri/spicetify-extensions"
+        ]
+      },
+      "network": {
+        "behavior": "local-only",
+        "detail": "Talks only to Spotify's own ad endpoints to disable them and points the ad server at localhost; contacts no third party."
+      },
+      "supportState": "active",
+      "fallbackBehavior": "skip-with-warning",
+      "notes": "Opt-in SpotX-independent ad-block fallback. Suggested by the post-install SpotX verification check when patching cannot be confirmed.",
+      "preview": null
+    },
+    {
+      "id": "Catppuccin",
+      "kind": "theme",
+      "name": "Catppuccin",
+      "description": "Catppuccin from catppuccin/spicetify.",
+      "schemes": [
+        "mocha",
+        "macchiato",
+        "frappe",
+        "latte"
+      ],
+      "provenance": {
+        "owner": "catppuccin",
+        "repository": "catppuccin/spicetify",
+        "branch": "main",
+        "commit": "1ec645c4cf7f42f9792b9eeb1bb7930f94593277",
+        "sourceUrl": "https://github.com/catppuccin/spicetify/tree/1ec645c4cf7f42f9792b9eeb1bb7930f94593277/.",
+        "releaseNotesUrl": "https://github.com/catppuccin/spicetify/compare/1ec645c4cf7f42f9792b9eeb1bb7930f94593277...main"
+      },
+      "license": {
+        "spdx": "MIT",
+        "copyrightHolder": "Catppuccin contributors",
+        "redistributionPosture": "download-only-not-redistributed"
+      },
+      "verification": {
+        "status": "verified",
+        "badge": "Pinned SHA256 verified",
+        "algorithm": "SHA256",
+        "digest": "59432d5dfba871f288331e72ca5eb9ae48783e94d96cc3835a2992b3df71ed65",
+        "lastVerifiedDate": "2026-06-15"
+      },
+      "review": {
+        "decision": "accept",
+        "evaluatedDate": "2026-08-11",
+        "lastPush": "2025-10-22",
+        "archived": false,
+        "reason": "Pinned source is active and non-archived within the 12-month maintenance window; archive hash and local-only network metadata remain valid.",
+        "evidenceUrls": [
+          "https://github.com/catppuccin/spicetify",
+          "https://api.github.com/repos/catppuccin/spicetify"
+        ]
+      },
+      "network": {
+        "behavior": "local-only",
+        "detail": null
+      },
+      "supportState": "active",
+      "fallbackBehavior": "skip-with-warning",
+      "notes": "Commit-pinned and archive hash-verified",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/catppuccin/spicetify/1ec645c4cf7f42f9792b9eeb1bb7930f94593277/assets/mocha.webp",
+        "status": "unavailable",
+        "contentType": "image/webp",
+        "fallbackLabel": "Catppuccin theme preview"
+      }
+    },
+    {
+      "id": "Comfy",
+      "kind": "theme",
+      "name": "Comfy",
+      "description": "Comfy from Comfy-Themes/Spicetify.",
+      "schemes": [
+        "Comfy",
+        "Mono",
+        "Chromatic"
+      ],
+      "provenance": {
+        "owner": "Comfy-Themes",
+        "repository": "Comfy-Themes/Spicetify",
+        "branch": "main",
+        "commit": "32ff101e27cfd33d85b7cc587f7f95db6b2df8b0",
+        "sourceUrl": "https://github.com/Comfy-Themes/Spicetify/tree/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0/.",
+        "releaseNotesUrl": "https://github.com/Comfy-Themes/Spicetify/compare/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0...main"
+      },
+      "license": {
+        "spdx": "WTFPL",
+        "copyrightHolder": "Comfy-Themes",
+        "redistributionPosture": "download-only-not-redistributed"
+      },
+      "verification": {
+        "status": "verified",
+        "badge": "Pinned SHA256 verified",
+        "algorithm": "SHA256",
+        "digest": "d82afe89be0a58c7c2d83a85a0dfa24b473d48d4f63241178e37c94c1fd1e7c6",
+        "lastVerifiedDate": "2026-06-15"
+      },
+      "review": {
+        "decision": "accept",
+        "evaluatedDate": "2026-08-11",
+        "lastPush": "2026-01-04",
+        "archived": false,
+        "reason": "Pinned source is active and non-archived within the 12-month maintenance window; the existing license-review and local-only network metadata remain valid.",
+        "evidenceUrls": [
+          "https://github.com/Comfy-Themes/Spicetify",
+          "https://api.github.com/repos/Comfy-Themes/Spicetify"
+        ]
+      },
+      "network": {
+        "behavior": "local-only",
+        "detail": null
+      },
+      "supportState": "active",
+      "fallbackBehavior": "skip-with-warning",
+      "notes": "Commit-pinned and archive hash-verified; WTFPL license — review-required per license policy",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/Comfy-Themes/Spicetify/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0/screenshots/Comfy.png",
+        "status": "unavailable",
+        "contentType": "image/png",
+        "fallbackLabel": "Comfy theme preview"
+      }
+    },
+    {
+      "id": "Bloom",
+      "kind": "theme",
+      "name": "Bloom",
+      "description": "Bloom from nimsandu/spicetify-bloom.",
+      "schemes": [
+        "dark",
+        "light",
+        "darkMono",
+        "darkGreen",
+        "coffee",
+        "comfy",
+        "violet"
+      ],
+      "provenance": {
+        "owner": "nimsandu",
+        "repository": "nimsandu/spicetify-bloom",
+        "branch": "main",
+        "commit": "654cfed682b94613b0029997ffafc1eadccc5bef",
+        "sourceUrl": "https://github.com/nimsandu/spicetify-bloom/tree/654cfed682b94613b0029997ffafc1eadccc5bef/.",
+        "releaseNotesUrl": "https://github.com/nimsandu/spicetify-bloom/compare/654cfed682b94613b0029997ffafc1eadccc5bef...main"
+      },
+      "license": {
+        "spdx": "MIT",
+        "copyrightHolder": "nimsandu",
+        "redistributionPosture": "download-only-not-redistributed"
+      },
+      "verification": {
+        "status": "verified",
+        "badge": "Pinned SHA256 verified",
+        "algorithm": "SHA256",
+        "digest": "12cb8678f7226b2a014a10fdef8ea462e0ac0a866f84b2de48050004fcd50a70",
+        "lastVerifiedDate": "2026-06-15"
+      },
+      "review": {
+        "decision": "defer",
+        "evaluatedDate": "2026-08-11",
+        "lastPush": "2025-05-20",
+        "archived": false,
+        "reason": "Source last pushed 2025-05-20, outside the 12-month maintenance threshold as of 2026-08-11; keep opt-in pending a fresh upstream review.",
+        "evidenceUrls": [
+          "https://github.com/nimsandu/spicetify-bloom",
+          "https://api.github.com/repos/nimsandu/spicetify-bloom"
+        ]
+      },
+      "network": {
+        "behavior": "local-only",
+        "detail": null
+      },
+      "supportState": "active",
+      "fallbackBehavior": "skip-with-warning",
+      "notes": "Commit-pinned and archive hash-verified",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/nimsandu/spicetify-bloom/654cfed682b94613b0029997ffafc1eadccc5bef/screenshots/dark.png",
+        "status": "unavailable",
+        "contentType": "image/png",
+        "fallbackLabel": "Bloom theme preview"
+      }
+    },
+    {
+      "id": "Lucid",
+      "kind": "theme",
+      "name": "Lucid",
+      "description": "Lucid from sanoojes/Spicetify-Lucid.",
+      "schemes": [
+        "dark",
+        "light",
+        "dark-green",
+        "coffee",
+        "comfy",
+        "dark-fluent",
+        "greenland",
+        "biscuit",
+        "macos",
+        "rosepine",
+        "dracula",
+        "dracula-pro"
+      ],
+      "provenance": {
+        "owner": "sanoojes",
+        "repository": "sanoojes/Spicetify-Lucid",
+        "branch": "main",
+        "commit": "5c28e9f955d5ca84a82d06084cc6652e5655ea2d",
+        "sourceUrl": "https://github.com/sanoojes/Spicetify-Lucid/tree/5c28e9f955d5ca84a82d06084cc6652e5655ea2d/.",
+        "releaseNotesUrl": "https://github.com/sanoojes/Spicetify-Lucid/compare/5c28e9f955d5ca84a82d06084cc6652e5655ea2d...main"
+      },
+      "license": {
+        "spdx": "AGPL-3.0-only",
+        "copyrightHolder": "sanoojes",
+        "redistributionPosture": "download-only-not-redistributed"
+      },
+      "verification": {
+        "status": "verified",
+        "badge": "Pinned SHA256 verified",
+        "algorithm": "SHA256",
+        "digest": "af3f1ed718b3deda7c52ebf7e0ca4bf7c07f03f212a88dd0534c2ebe81803bf8",
+        "lastVerifiedDate": "2026-06-15"
+      },
+      "review": {
+        "decision": "accept",
+        "evaluatedDate": "2026-08-11",
+        "lastPush": "2026-07-31",
+        "archived": false,
+        "reason": "Pinned source is active and non-archived; the existing license-review, archive hash, and local-only network metadata remain valid.",
+        "evidenceUrls": [
+          "https://github.com/sanoojes/Spicetify-Lucid",
+          "https://api.github.com/repos/sanoojes/Spicetify-Lucid"
+        ]
+      },
+      "network": {
+        "behavior": "local-only",
+        "detail": null
+      },
+      "supportState": "active",
+      "fallbackBehavior": "skip-with-warning",
+      "notes": "Commit-pinned and archive hash-verified; AGPL-3.0 — review-required per license policy; fetched from upstream, never bundled",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/sanoojes/Spicetify-Lucid/5c28e9f955d5ca84a82d06084cc6652e5655ea2d/screenshots/dark.webp",
+        "status": "unavailable",
+        "contentType": "image/webp",
+        "fallbackLabel": "Lucid theme preview"
+      }
+    },
+    {
+      "id": "Hazy",
+      "kind": "theme",
+      "name": "Hazy",
+      "description": "Hazy from Astromations/Hazy.",
+      "schemes": [
+        "dark",
+        "light"
+      ],
+      "provenance": {
+        "owner": "Astromations",
+        "repository": "Astromations/Hazy",
+        "branch": "main",
+        "commit": "1926d9db3e0313b68ca6e2193c2b278e733ac3c4",
+        "sourceUrl": "https://github.com/Astromations/Hazy/tree/1926d9db3e0313b68ca6e2193c2b278e733ac3c4/.",
+        "releaseNotesUrl": "https://github.com/Astromations/Hazy/compare/1926d9db3e0313b68ca6e2193c2b278e733ac3c4...main"
+      },
+      "license": {
+        "spdx": "NOASSERTION",
+        "copyrightHolder": "Astromations",
+        "redistributionPosture": "download-only-not-redistributed"
+      },
+      "verification": {
+        "status": "verified",
+        "badge": "Pinned SHA256 verified",
+        "algorithm": "SHA256",
+        "digest": "372938c3fea3cbac7850afeb6b66b15673236e248436a7afaacb2ab1d814c4bf",
+        "lastVerifiedDate": "2026-06-15"
+      },
+      "review": {
+        "decision": "accept",
+        "evaluatedDate": "2026-08-11",
+        "lastPush": "2026-05-27",
+        "archived": false,
+        "reason": "Pinned source is active and non-archived; the existing license-review, archive hash, and local-only network metadata remain valid.",
+        "evidenceUrls": [
+          "https://github.com/Astromations/Hazy",
+          "https://api.github.com/repos/Astromations/Hazy"
+        ]
+      },
+      "network": {
+        "behavior": "local-only",
+        "detail": null
+      },
+      "supportState": "active",
+      "fallbackBehavior": "skip-with-warning",
+      "notes": "Commit-pinned and archive hash-verified",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/Astromations/Hazy/1926d9db3e0313b68ca6e2193c2b278e733ac3c4/screenshots/dark.png",
+        "status": "unavailable",
+        "contentType": "image/png",
+        "fallbackLabel": "Hazy theme preview"
+      }
+    },
+    {
+      "id": "stats",
+      "kind": "custom-app",
+      "name": "Stats",
+      "description": "View detailed listening statistics including top tracks, artists, genres, library charts, and optional Last.fm-backed views",
+      "schemes": [],
+      "provenance": {
+        "owner": "harbassan",
+        "repository": "harbassan/spicetify-apps",
+        "branch": "main",
+        "commit": "c39fef2b9ac9e9dbcdcd7c851b77c19a9a2eb8c1",
+        "sourceUrl": "https://github.com/harbassan/spicetify-apps/releases/download/stats-v1.1.3/spicetify-stats.release.zip",
+        "releaseNotesUrl": "https://github.com/harbassan/spicetify-apps/releases/tag/stats-v1.1.3"
+      },
+      "license": {
+        "spdx": "MIT",
+        "copyrightHolder": "harbassan",
+        "redistributionPosture": "download-only-not-redistributed"
+      },
+      "verification": {
+        "status": "verified",
+        "badge": "Pinned SHA256 verified",
+        "algorithm": "SHA256",
+        "digest": "c5611ff8caafe9c673ed43de07fbae77296d42fbd14fab868e9cbeac5d2b6cb7",
+        "lastVerifiedDate": "2026-06-29"
+      },
+      "review": {
+        "decision": "accept",
+        "evaluatedDate": "2026-08-11",
+        "lastPush": "2026-02-26",
+        "archived": false,
+        "reason": "Pinned release remains sourced from an active, non-archived repository; the existing release hash, license, and Last.fm disclosure remain valid.",
+        "evidenceUrls": [
+          "https://github.com/harbassan/spicetify-apps",
+          "https://api.github.com/repos/harbassan/spicetify-apps"
+        ]
+      },
+      "network": {
+        "behavior": "third-party-service",
+        "detail": "Stats can contact Last.fm when users open Last.fm-backed views inside Spotify."
+      },
+      "supportState": "active",
+      "fallbackBehavior": "skip-with-warning",
+      "notes": "Custom app installs via Spicetify config custom_apps. Release asset verified from stats-v1.1.3; upstream main at c39fef2 contains projects/stats and no projects/new-releases.",
+      "preview": null
+    }
+  ]
+}
