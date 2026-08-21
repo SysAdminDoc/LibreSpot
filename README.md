@@ -111,6 +111,8 @@ LibreSpot wraps two powerful open-source projects into one polished interface:
 
 Instead of running multiple scripts, editing config files, and hoping the versions are compatible, LibreSpot handles the entire workflow: clean uninstall, fresh Spotify install, SpotX patching, Spicetify CLI setup, theme installation, extension configuration, verified custom-app installation, and Marketplace deployment — all in the correct order, with full error handling.
 
+The desktop shell keeps each workspace in a named UserControl. The Custom workspace is further divided into install, appearance, behavior, advanced, patch, extension, app, and profile sections, so the UI and its code-behind stay easy to trace without changing the user-facing workflow.
+
 ---
 
 ## Spotify Compatibility

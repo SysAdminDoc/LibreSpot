@@ -1,0 +1,26 @@
+<UserControl x:Class="LibreSpot.Desktop.Views.CustomBuiltInExtensionsSection"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+ xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+ xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
+ mc:Ignorable="d"
+ UseLayoutRounding="True"
+ SnapsToDevicePixels="True">
+                    <Border Style="{StaticResource MinimalSectionStyle}"
+                            BorderThickness="0"
+                            Visibility="{Binding HasVisibleExtensions, Converter={StaticResource BoolToVisibilityConverter}}">
+                      <StackPanel>
+                        <TextBlock Text="{services:Loc BuiltInExtensionsSection}" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="{services:Loc BuiltInExtensionsDescription}"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Margin="0,6,0,14" />
+                        <ItemsControl ItemsSource="{Binding Extensions}" ItemTemplate="{StaticResource ExtensionTemplate}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                      </StackPanel>
+                    </Border>
+</UserControl>
+

@@ -53,4 +53,40 @@
   <ItemGroup>
     <ProjectReference Include="..\LibreSpot.Core\LibreSpot.Core.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Views\RecommendedWorkspaceView.xaml.cs">
+      <DependentUpon>RecommendedWorkspaceView.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views\CustomWorkspaceView.xaml.cs">
+      <DependentUpon>CustomWorkspaceView.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views\CustomInstallSection.xaml.cs">
+      <DependentUpon>CustomInstallSection.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views\CustomAppearanceSection.xaml.cs">
+      <DependentUpon>CustomAppearanceSection.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views\CustomBehaviorSection.xaml.cs">
+      <DependentUpon>CustomBehaviorSection.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views\CustomAdvancedSection.xaml.cs">
+      <DependentUpon>CustomAdvancedSection.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views\CustomPatchesSection.xaml.cs">
+      <DependentUpon>CustomPatchesSection.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views\CustomBuiltInExtensionsSection.xaml.cs">
+      <DependentUpon>CustomBuiltInExtensionsSection.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views\CustomAppsSection.xaml.cs">
+      <DependentUpon>CustomAppsSection.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views\CustomProfileSummarySection.xaml.cs">
+      <DependentUpon>CustomProfileSummarySection.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views\MaintenanceWorkspaceView.xaml.cs">
+      <DependentUpon>MaintenanceWorkspaceView.xaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
 </Project>

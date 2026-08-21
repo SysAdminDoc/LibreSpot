@@ -131,7 +131,15 @@ public sealed class PremiumShellContractTests
     public void TrustPanel_ExposesPinnedProvenanceAndFreshnessActions()
     {
         var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
-        var viewModel = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
+        var viewModel = string.Join(
+            Environment.NewLine,
+            new[]
+            {
+                "MainViewModel.cs",
+                "MainViewModel.CustomInstall.cs",
+                "MainViewModel.Maintenance.cs",
+                "MainViewModel.Profiles.cs"
+            }.Select(fileName => ReadFile("src", "LibreSpot.Desktop", "ViewModels", fileName)));
 
         Assert.Contains("ProvenanceItemTemplate", xaml);
         Assert.Contains("ItemsSource=\"{Binding ShellProvenanceItems}\"", xaml);

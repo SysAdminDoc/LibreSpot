@@ -35,9 +35,17 @@ public sealed class AutomationNameContractTests
         var xamlFiles = new[]
         {
             Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "MainWindow.xaml"),
-            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "recommended-workspace-view.xaml"),
-            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "custom-workspace-view.xaml"),
-            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "maintenance-workspace-view.xaml")
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "RecommendedWorkspaceView.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomWorkspaceView.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomInstallSection.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomAppearanceSection.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomBehaviorSection.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomAdvancedSection.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomPatchesSection.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomBuiltInExtensionsSection.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomAppsSection.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomProfileSummarySection.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "MaintenanceWorkspaceView.xaml")
         };
         var unnamed = xamlFiles
             .SelectMany(path => XDocument.Load(path).Descendants())

@@ -1,0 +1,143 @@
+<UserControl x:Class="LibreSpot.Desktop.Views.CustomPatchesSection"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+ xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+ xmlns:controls="clr-namespace:LibreSpot.Desktop.Controls"
+ xmlns:avalon="clr-namespace:ICSharpCode.AvalonEdit;assembly=ICSharpCode.AvalonEdit"
+ xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
+ mc:Ignorable="d"
+ UseLayoutRounding="True"
+ SnapsToDevicePixels="True">
+                    <Border Style="{StaticResource MinimalSectionStyle}"
+                            Visibility="{Binding HasVisibleCustomPatchesSection, Converter={StaticResource BoolToVisibilityConverter}}">
+                      <StackPanel>
+                        <DockPanel LastChildFill="True">
+                          <StackPanel DockPanel.Dock="Left">
+                            <TextBlock Text="{services:Loc Ui_CustomPatches}"
+                                       Style="{StaticResource SectionTitleTextStyle}" />
+                            <TextBlock Text="{services:Loc Ui_AuthorAndDryRunASpotXPatchesJson}"
+                                       Style="{StaticResource BodyTextStyle}"
+                                       Margin="0,6,0,0" />
+                          </StackPanel>
+                          <Border Style="{StaticResource MicroBadgeStyle}"
+                                  DockPanel.Dock="Right"
+                                  Margin="12,2,0,0"
+                                  VerticalAlignment="Top">
+                            <TextBlock Text="{Binding CustomPatchesBadge}"
+                                       Style="{StaticResource MicroBadgeTextStyle}" />
+                          </Border>
+                        </DockPanel>
+
+                        <CheckBox Content="{services:Loc Ui_StageCustomPatchesDuringInstallAndReapply}"
+                                  IsChecked="{Binding CustomPatchesEnabled, Mode=TwoWay}"
+                                  Style="{StaticResource SettingCheckBoxStyle}"
+                                  Margin="0,14,0,10"
+                                  AutomationProperties.Name="{services:Loc Ui_StageCustomSpotXPatches}"
+                                  AutomationProperties.HelpText="{services:Loc Ui_WhenEnabledLibreSpotValidatesThisJSONAndWrites}" />
+
+                        <Grid Margin="0,2,0,10">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                          </Grid.ColumnDefinitions>
+                          <TextBox Text="{Binding CustomPatchesImportUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                   Style="{StaticResource TextBoxStylePremium}"
+                                   MinHeight="40"
+                                   ToolTip="{services:Loc Ui_HTTPSURLToASpotXPatchesJsonFile}"
+                                   AutomationProperties.Name="{services:Loc Ui_CustomPatchesImportURL}"
+                                   AutomationProperties.HelpText="{services:Loc Ui_EnterAnHTTPSURLThenImportTheJSON}" />
+                          <Button Grid.Column="1"
+                                  Content="{services:Loc Ui_ImportURL}"
+                                  Command="{Binding ImportCustomPatchesFromUrlCommand}"
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Margin="10,0,0,0"
+                                  MinWidth="112"
+                                  AutomationProperties.Name="{services:Loc Ui_ImportCustomPatchesFromURL}" />
+                        </Grid>
+
+                        <Border Background="{DynamicResource Surface3Brush}"
+                                BorderBrush="{DynamicResource StrokeBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                MinHeight="220">
+                          <avalon:TextEditor x:Name="CustomPatchesTextEditor"
+                                             ShowLineNumbers="True"
+                                             SyntaxHighlighting="JavaScript"
+                                             WordWrap="True"
+                                             FontFamily="Cascadia Mono, Consolas"
+                                             FontSize="13"
+                                             Background="{DynamicResource Surface3Brush}"
+                                             Foreground="{DynamicResource TextBrush}"
+                                             LineNumbersForeground="{DynamicResource MutedTextBrush}"
+                                             HorizontalScrollBarVisibility="Auto"
+                                             VerticalScrollBarVisibility="Auto"
+                                             PreviewMouseWheel="NestedScrollRegion_OnPreviewMouseWheel"
+                                             TextChanged="CustomPatchesTextEditor_OnTextChanged"
+                                             AutomationProperties.Name="{services:Loc Ui_SpotXCustomPatchesJSONEditor}"
+                                             AutomationProperties.HelpText="{services:Loc Ui_PasteOrEditSpotXPatchesJsonContentHere}" />
+                        </Border>
+
+                        <UniformGrid Columns="4"
+                                     Margin="0,12,0,8">
+                          <Button Content="{services:Loc Ui_DryRun}"
+                                  Command="{Binding ValidateCustomPatchesCommand}"
+                                  Style="{StaticResource PrimaryButtonStyle}"
+                                  Margin="0,0,6,0"
+                                  AutomationProperties.Name="{services:Loc Ui_ValidateCustomPatches}" />
+                          <Button Content="{services:Loc Ui_FormatJSON}"
+                                  Command="{Binding FormatCustomPatchesCommand}"
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Margin="3,0,3,0"
+                                  AutomationProperties.Name="{services:Loc Ui_FormatCustomPatchesJSON}" />
+                          <Button Content="{services:Loc ButtonClearSearch}"
+                                  Command="{Binding ClearCustomPatchesCommand}"
+                                  Style="{StaticResource SecondaryButtonStyle}"
+                                  Margin="3,0,3,0"
+                                  AutomationProperties.Name="{services:Loc Ui_ClearCustomPatches}" />
+                          <Button Content="{services:Loc Ui_Docs}"
+                                  Command="{Binding OpenRepositoryCommand}"
+                                  Style="{StaticResource GhostButtonStyle}"
+                                  Margin="6,0,0,0"
+                                  AutomationProperties.Name="{services:Loc Ui_OpenCustomPatchDocumentation}" />
+                        </UniformGrid>
+
+                        <TextBlock Text="{Binding CustomPatchesStatus}"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,8" />
+                        <TextBlock Text="{Binding CustomPatchesImportProvenance}"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,8"
+                                   Visibility="{Binding HasCustomPatchImportProvenance, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        <ItemsControl ItemsSource="{Binding CustomPatchFindings}">
+                          <ItemsControl.Style>
+                            <Style TargetType="ItemsControl">
+                              <Setter Property="Visibility" Value="Collapsed" />
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasCustomPatchFindings}" Value="True">
+                                  <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </ItemsControl.Style>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <DockPanel Margin="0,4,0,0">
+                                <Border Width="4"
+                                        Height="14"
+                                        CornerRadius="{StaticResource RadiusXs}"
+                                        Background="{DynamicResource WarningBrush}"
+                                        DockPanel.Dock="Left"
+                                        Margin="0,2,10,0" />
+                                <TextBlock Text="{Binding}"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           TextWrapping="Wrap" />
+                              </DockPanel>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </StackPanel>
+                    </Border>
+</UserControl>

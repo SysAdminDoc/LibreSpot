@@ -1,0 +1,94 @@
+<UserControl x:Class="LibreSpot.Desktop.Views.CustomWorkspaceView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
+        xmlns:views="clr-namespace:LibreSpot.Desktop.Views"
+        mc:Ignorable="d"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+              <Grid AutomationProperties.AutomationId="CustomWorkspace"
+                    AutomationProperties.Name="{services:Loc Ui_CustomWorkspace}">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="320" />
+                </Grid.ColumnDefinitions>
+
+                <ScrollViewer Grid.Column="0"
+                               VerticalScrollBarVisibility="Auto"
+                               HorizontalScrollBarVisibility="Disabled"
+                               AutomationProperties.AutomationId="CustomSettingsEditor"
+                               AutomationProperties.Name="{services:Loc Ui_CustomSettingsEditor}"
+                               Margin="0,0,22,0">
+                  <StackPanel>
+                    <TextBlock Text="{services:Loc SearchPlaceholder}"
+                               Style="{StaticResource LabelTextStyle}" />
+                    <Grid Margin="0,8,0,0">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+                      <TextBox Text="{Binding SettingsSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                               Style="{StaticResource TextBoxStylePremium}"
+                               Height="42"
+                               AutomationProperties.AutomationId="SettingsSearchBox"
+                               AutomationProperties.Name="{services:Loc SearchPlaceholder}"
+                               AutomationProperties.HelpText="{services:Loc SearchHelpText}" />
+                      <Button Grid.Column="1"
+                              Content="{services:Loc ButtonClearSearch}"
+                              Height="42"
+                              MinWidth="84"
+                              Margin="10,0,0,0"
+                              Padding="18,0"
+                              Style="{StaticResource SecondaryButtonStyle}"
+                              Visibility="{Binding HasSettingsSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
+                              Command="{Binding ClearSettingsSearchCommand}"
+                              AutomationProperties.AutomationId="SettingsSearchClearButton"
+                              AutomationProperties.Name="{services:Loc ButtonClearSearchName}" />
+                    </Grid>
+                    <TextBlock Text="{Binding CustomSearchSummary}"
+                               Style="{StaticResource CaptionTextStyle}"
+                               Foreground="{DynamicResource TextBrush}"
+                               Margin="0,10,0,18"
+                               MaxWidth="760"
+                               TextWrapping="Wrap" />
+
+                    <Border Style="{StaticResource SubtleCardStyle}"
+                            Background="{DynamicResource Surface1Brush}"
+                            Margin="0,0,0,18"
+                            Visibility="{Binding ShowCustomSearchEmptyState, Converter={StaticResource BoolToVisibilityConverter}}">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="Auto" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="4"
+                                Height="38"
+                                CornerRadius="{StaticResource RadiusXs}"
+                                Background="{DynamicResource StrokeStrongBrush}"
+                                Margin="0,2,12,0"
+                                VerticalAlignment="Top" />
+                        <StackPanel Grid.Column="1">
+                          <TextBlock Text="{services:Loc SearchNoResults}"
+                                     Style="{StaticResource EmptyStateTitleTextStyle}" />
+                          <TextBlock Text="{services:Loc SearchNoResultsHint}"
+                                     Style="{StaticResource EmptyStateBodyTextStyle}"
+                                     Margin="0,6,0,0" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                    <views:CustomInstallSection />
+                    <views:CustomAppearanceSection />
+                    <views:CustomBehaviorSection />
+                    <views:CustomAdvancedSection />
+                    <views:CustomPatchesSection x:Name="CustomPatchesSection" />
+                    <views:CustomBuiltInExtensionsSection />
+                    <views:CustomAppsSection />
+                  </StackPanel>
+                </ScrollViewer>
+
+                <views:CustomProfileSummarySection x:Name="ProfileSummarySection"
+                                                   Grid.Column="1" />
+              </Grid>
+</UserControl>

@@ -187,9 +187,17 @@ public sealed class KeyboardFocusContractTests
             new[]
             {
                 ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml"),
-                ReadFile("src", "LibreSpot.Desktop", "Views", "recommended-workspace-view.xaml"),
-                ReadFile("src", "LibreSpot.Desktop", "Views", "custom-workspace-view.xaml"),
-                ReadFile("src", "LibreSpot.Desktop", "Views", "maintenance-workspace-view.xaml")
+                ReadFile("src", "LibreSpot.Desktop", "Views", "RecommendedWorkspaceView.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "CustomWorkspaceView.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "CustomInstallSection.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "CustomAppearanceSection.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "CustomBehaviorSection.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "CustomAdvancedSection.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "CustomPatchesSection.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "CustomBuiltInExtensionsSection.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "CustomAppsSection.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "CustomProfileSummarySection.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "MaintenanceWorkspaceView.xaml")
             });
 
     private static string ExtractSection(string text, string markerName, int charWindow)

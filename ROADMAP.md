@@ -8,7 +8,7 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 IDs continue the RD-nn scheme. Highest ID in this file: RD-72. RD-47–RD-50 are absent because they already landed on `main` (CHANGELOG `[Unreleased]`); do not re-file them.
 
-Existing items RD-51–RD-57 and RD-59–RD-62 below are the same work items as the prior pass, with evidence corrections in-place (especially RD-54 / RD-60). New items start at RD-63.
+Existing items RD-51–RD-57 and RD-60–RD-62 below are the same work items as the prior pass, with evidence corrections in-place (especially RD-54 / RD-60). New items start at RD-63.
 
 ### P0
 
@@ -22,13 +22,6 @@ Existing items RD-51–RD-57 and RD-59–RD-62 below are the same work items as 
 ### P1
 
 ### P2
-
-- [ ] P2 — RD-59: Structural debt round 2 — MainViewModel and custom workspace view
-  Why: `MainViewModel.cs` regrew to 4,871 lines (larger than before the 2026-07-08 extraction); `Views/custom-workspace-view.xaml` is ~87 KB — bigger than the remaining MainWindow — and all three view files use kebab-case names against PascalCase codebehind.
-  Evidence: line counts 2026-08-20; `src/LibreSpot.Desktop/Views/` listing.
-  Touches: `ViewModels/MainViewModel.cs` (extract maintenance/custom-install satellites), `Views/*` (rename to PascalCase, split custom workspace by section), `WorkspaceViewCompositionTests.cs`, csproj DependentUpon wiring
-  Acceptance: MainViewModel under ~3,000 lines with behavior-preserving extraction; view files PascalCase-paired and nested; custom workspace split into per-section UserControls; UIA/localization/focus contracts and full suite green.
-  Complexity: L
 
 - [ ] P2 — RD-60: "How to verify LibreSpot" / fake-installer section in README and SECURITY
   Why: Jun 2026 ClickFix/Vidar campaigns instruct victims to paste PowerShell for “free Spotify Premium” and add Defender exclusions; LibreSpot’s checksum-verified Quick Start is the counter and will rank for the queries victims make.

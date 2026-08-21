@@ -23,18 +23,56 @@ public sealed class WorkspaceViewCompositionTests
     [Fact]
     public void WorkspaceViews_PreserveAutomationAndCodeBehindSurfaces()
     {
-        var recommended = ReadView("recommended-workspace-view.xaml");
-        var custom = ReadView("custom-workspace-view.xaml");
-        var maintenance = ReadView("maintenance-workspace-view.xaml");
+        var recommended = ReadView("RecommendedWorkspaceView.xaml");
+        var custom = string.Join(
+            Environment.NewLine,
+            new[]
+            {
+                "CustomWorkspaceView.xaml",
+                "CustomInstallSection.xaml",
+                "CustomAppearanceSection.xaml",
+                "CustomBehaviorSection.xaml",
+                "CustomAdvancedSection.xaml",
+                "CustomPatchesSection.xaml",
+                "CustomBuiltInExtensionsSection.xaml",
+                "CustomAppsSection.xaml",
+                "CustomProfileSummarySection.xaml"
+            }.Select(ReadView));
+        var maintenance = ReadView("MaintenanceWorkspaceView.xaml");
 
         Assert.Contains("AutomationProperties.AutomationId=\"RecommendedWorkspace\"", recommended);
         Assert.Contains("AutomationProperties.AutomationId=\"CustomWorkspace\"", custom);
         Assert.Contains("AutomationProperties.AutomationId=\"MaintenanceWorkspace\"", maintenance);
         Assert.Contains("x:Name=\"CustomPatchesTextEditor\"", custom);
         Assert.Contains("x:Name=\"ProfileQaSurface\"", custom);
+        Assert.Contains("<views:CustomInstallSection", custom);
+        Assert.Contains("<views:CustomProfileSummarySection", custom);
         Assert.Contains("x:Name=\"CompatibilityVerdictQaSurface\"", maintenance);
         Assert.Contains("AutomationProperties.AutomationId=\"CompatibilityVerdictMatrix\"", maintenance);
         Assert.Contains("x:Name=\"SupportBundleQaSurface\"", maintenance);
+    }
+
+    [Fact]
+    public void CustomWorkspace_UsesNamedSectionControlsAndKeepsTheViewModelSatelliteSmall()
+    {
+        var custom = ReadView("CustomWorkspaceView.xaml");
+        foreach (var section in new[]
+                 {
+                     "CustomInstallSection",
+                     "CustomAppearanceSection",
+                     "CustomBehaviorSection",
+                     "CustomAdvancedSection",
+                     "CustomPatchesSection",
+                     "CustomBuiltInExtensionsSection",
+                     "CustomAppsSection",
+                     "CustomProfileSummarySection"
+                 })
+        {
+            Assert.Contains($"<views:{section}", custom);
+        }
+
+        var mainViewModel = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
+        Assert.True(mainViewModel.Split('\n').Length < 3000);
     }
 
     [Fact]
@@ -52,6 +90,9 @@ public sealed class WorkspaceViewCompositionTests
 
     private static string ReadView(string fileName) =>
         File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", fileName));
+
+    private static string ReadFile(params string[] relativeParts) =>
+        File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(relativeParts).ToArray()));
 
     private static string ResolveRepoRoot()
     {
