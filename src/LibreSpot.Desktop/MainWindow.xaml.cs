@@ -343,7 +343,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            control.BorderBrush = (System.Windows.Media.Brush)FindResource("AccentRingBrush");
+            control.SetResourceReference(System.Windows.Controls.Control.BorderBrushProperty, "AccentRingBrush");
             control.BorderThickness = new Thickness(2);
             _uiAutomationFocusVisualApplied = true;
         }

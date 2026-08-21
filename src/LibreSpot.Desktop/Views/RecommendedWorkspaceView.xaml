@@ -280,7 +280,7 @@
             HorizontalAlignment="Center">
         <Ellipse StrokeThickness="4"
                  Fill="{DynamicResource AccentSoftBrush}"
-                 Effect="{StaticResource AccentGlow}">
+                 Effect="{DynamicResource AccentGlow}">
           <Ellipse.Style>
             <Style TargetType="Ellipse">
               <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />

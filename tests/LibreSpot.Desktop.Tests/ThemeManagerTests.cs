@@ -1,5 +1,10 @@
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Markup;
+using System.Windows.Media;
+using System.Windows.Media.Effects;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -33,6 +38,34 @@ public sealed class ThemeManagerTests
         Assert.DoesNotContain("Opacity=\"0.75\"", content);
         Assert.DoesNotContain("Opacity=\"0.45\"", content);
         Assert.DoesNotContain("Opacity=\"0.35\"", content);
+    }
+
+    [Fact]
+    public void SwappingThePaletteAtRuntimeFlattensEffectsAndRecolorsTheFocusRing()
+    {
+        RunSta(() =>
+        {
+            var host = new Border();
+            host.Resources.MergedDictionaries.Add(LoadPalette("Palette.xaml"));
+            var card = new Border();
+            host.Child = card;
+
+            // The shell binds these the same way: a DynamicResource in XAML and
+            // SetResourceReference from code behind.
+            card.SetResourceReference(UIElement.EffectProperty, "OverlayShadow");
+            card.SetResourceReference(Border.BorderBrushProperty, "AccentRingBrush");
+
+            var shadow = Assert.IsType<DropShadowEffect>(card.Effect);
+            Assert.True(shadow.BlurRadius > 0, "The dark palette must ship a real drop shadow.");
+            var darkRing = Assert.IsType<SolidColorBrush>(card.BorderBrush).Color;
+
+            host.Resources.MergedDictionaries[0] = LoadPalette("HighContrastPalette.xaml");
+
+            var flattened = Assert.IsType<DropShadowEffect>(card.Effect);
+            Assert.Equal(0d, flattened.BlurRadius);
+            Assert.Equal(0d, flattened.Opacity);
+            Assert.NotEqual(darkRing, Assert.IsType<SolidColorBrush>(card.BorderBrush).Color);
+        });
     }
 
     [Fact]
@@ -336,6 +369,31 @@ public sealed class ThemeManagerTests
 
     private static string ReadFile(params string[] relativeParts) =>
         File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(relativeParts).ToArray()));
+
+    private static ResourceDictionary LoadPalette(string fileName)
+    {
+        using var stream = File.OpenRead(
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Themes", fileName));
+        return (ResourceDictionary)XamlReader.Load(stream);
+    }
+
+    private static void RunSta(Action action)
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try { action(); }
+            catch (Exception ex) { failure = ex; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (failure is not null)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+    }
 
     private static string ResolveRepoRoot()
     {

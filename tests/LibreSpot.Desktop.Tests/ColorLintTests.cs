@@ -27,6 +27,13 @@ public sealed class ColorLintTests
         @"\b(?:Background|Foreground|BorderBrush|Fill|Stroke|Color|CaretBrush|SelectionBrush|SelectionTextBrush)\s*=\s*""(?<value>[A-Za-z][A-Za-z0-9]*)""|<Setter\s+Property=""(?:Background|Foreground|BorderBrush|Fill|Stroke|Color|CaretBrush|SelectionBrush|SelectionTextBrush)""\s+Value=""(?<value>[A-Za-z][A-Za-z0-9]*)""",
         RegexOptions.Compiled);
 
+    // ThemeManager swaps the merged palette dictionary at runtime, so anything
+    // that names a palette brush or effect through StaticResource keeps the
+    // palette it was built with when Windows high contrast is toggled.
+    private static readonly Regex StaticPaletteReferencePattern = new(
+        @"\{StaticResource\s+[A-Za-z0-9_.]*(?:Brush|Shadow|Glow)\s*\}",
+        RegexOptions.Compiled);
+
     private static readonly CSharpColorPattern[] CSharpColorPatterns =
     {
         new("hex string", new Regex(@"""#[0-9A-Fa-f]{3,8}""", RegexOptions.Compiled)),
@@ -75,6 +82,38 @@ public sealed class ColorLintTests
             .ToList();
 
         Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    [Fact]
+    // Deliberately not named Wpf*: the local suite runs with
+    // --filter-not-method "*Wpf*" to skip the tests that launch the shell, and
+    // this one only reads files.
+    public void PaletteResources_AreBoundDynamicallyOutsideThePaletteFiles()
+    {
+        var xamlRoot = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop");
+        var offenders = Directory
+            .EnumerateFiles(xamlRoot, "*.xaml", SearchOption.AllDirectories)
+            .Select(file => new
+            {
+                Path = ToRelativePath(file),
+                Content = File.ReadAllText(file)
+            })
+            .Where(file => !PaletteXamlFiles.Contains(file.Path))
+            .SelectMany(file => FindStaticPaletteReferences(file.Path, file.Content))
+            .ToList();
+
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    [Fact]
+    public void PaletteResourceLint_DetectsAStaticEffectReference()
+    {
+        var offenders = FindStaticPaletteReferences(
+                "src/LibreSpot.Desktop/Fake.xaml",
+                @"<Border Effect=""{StaticResource OverlayShadow}"" Background=""{DynamicResource CanvasBrush}"" />")
+            .ToList();
+
+        Assert.Contains(offenders, offender => offender.Contains("OverlayShadow", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -129,6 +168,14 @@ public sealed class ColorLintTests
         Assert.Contains("converter parsing", kinds);
         Assert.Contains("colorref bytes", kinds);
         Assert.Contains("interpolated swatch", kinds);
+    }
+
+    private static IEnumerable<string> FindStaticPaletteReferences(string relativePath, string content)
+    {
+        foreach (Match match in StaticPaletteReferencePattern.Matches(content))
+        {
+            yield return $"{relativePath}: {match.Value} resolves once at load, so a runtime theme swap leaves the old palette in place. Use DynamicResource.";
+        }
     }
 
     private static IEnumerable<string> FindXamlColorLiterals(string relativePath, string content)

@@ -10,13 +10,22 @@ Highest ID: RD-106. Issue tracker: zero open issues/PRs; closed #1-#5 predate v4
 
 Shipped this pass (deleted from this file): RD-78 search watermarks, RD-79 disabled rail contrast, RD-82 AtomicFile, RD-85 dead members, RD-87 LibreSpotPaths, RD-88 PowerShell host path, RD-89 DWM palette colors, RD-99 snapshot-error glyph, RD-100 screenshot contract, RD-101 WPF-UI template leak gate, RD-102 CycloneDX local tool, RD-103 changelog HEAD-only bullets, RD-104 Jump List labels. Filled/secondary/checkbox/combo disabled states now use DisabledTextBrush; CardListBoxItemStyle remains under RD-105. Bloom checklist/manifest decision drift (the RD-81 note) is aligned; the gh-pages gate below remains.
 
-### P3
+### P2
 
-- [ ] P3 — RD-90: Theme-dependent shadow/glow effects and one imperative brush lookup don't react to a runtime high-contrast toggle
-  Why: ThemeManager swaps palettes, but StaticResource effects and FindResource-assigned brushes keep the dark-theme instances.
-  Where: MainWindow.xaml ActivityCardStyle/PromptCardStyle; Views/RecommendedWorkspaceView.xaml AccentGlow; MainWindow.xaml.cs FindResource("AccentRingBrush")
-  Fix: Re-apply effects on ThemeManager change, or bind via an IsHighContrast property. Use `SetResourceReference` for the focus ring.
-  Acceptance: Toggling Windows high contrast while the app runs flattens glow/shadows and recolors the focus ring without a restart.
+- [ ] P2 — RD-107: `--filter-not-method "*Wpf*"` hides source-lint tests that never launch the shell
+  Why: the filter exists to skip the tests that start the WPF window, but it matches on name, so every pure file-reading gate named `Wpf*` is skipped by the documented local suite too.
+  Where: tests/LibreSpot.Desktop.Tests/ThemeManagerTests.cs (`WpfTypography_*`, `WpfXaml_*`), ColorLintTests.cs, README.md and CLAUDE.md verification commands
+  Problem: `WpfTypography_UsesTheTenStepProductTypeScale` is red and has been invisible to every local run. Anything the `Wpf*`-named lints were meant to guard can drift silently.
+  Fix: Rename the file-reading gates so they do not start with `Wpf`, or move the shell-launching tests into a class the class filter already excludes and drop the method filter.
+  Acceptance: The documented non-WPF command runs every gate that does not start a window; no lint test is skipped by name.
+
+- [ ] P2 — RD-108: Two MainWindow font sizes are off the product type scale
+  Why: `WpfTypography_UsesTheTenStepProductTypeScale` fails on FontSize 23 and 22, which are not in the ten-step scale. It only surfaced once RD-107 was noticed.
+  Where: src/LibreSpot.Desktop/MainWindow.xaml:1247, src/LibreSpot.Desktop/MainWindow.xaml:1369
+  Fix: Move both to the nearest scale step and re-capture the affected README screenshots.
+  Acceptance: The typography gate passes; screenshot metadata still matches.
+
+### P3
 
 - [ ] P3 — RD-91: Terminology and punctuation drift across live UI strings
   Why: "Spotify build" vs "Spotify version", "Premium account mode" vs "patch posture", mixed ellipsis and hyphen-as-dash, mixed quote styles.

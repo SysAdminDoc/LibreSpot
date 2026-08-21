@@ -1132,7 +1132,7 @@
     <Style x:Key="ActivityCardStyle" TargetType="Border" BasedOn="{StaticResource SurfaceCardStyle}">
       <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
-      <Setter Property="Effect" Value="{StaticResource OverlayShadow}" />
+      <Setter Property="Effect" Value="{DynamicResource OverlayShadow}" />
       <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
       <Setter Property="Opacity" Value="0" />
       <Setter Property="RenderTransform">
@@ -1167,7 +1167,7 @@
     <Style x:Key="PromptCardStyle" TargetType="Border" BasedOn="{StaticResource SurfaceCardStyle}">
       <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
-      <Setter Property="Effect" Value="{StaticResource OverlayShadow}" />
+      <Setter Property="Effect" Value="{DynamicResource OverlayShadow}" />
       <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
       <Setter Property="Opacity" Value="0" />
       <Setter Property="RenderTransform">
@@ -2027,7 +2027,7 @@
                   Style="{StaticResource SurfaceCardStyle}"
                   Background="{DynamicResource SurfaceCardBrush}"
                   BorderBrush="{DynamicResource StrokeStrongBrush}"
-                  Effect="{StaticResource OverlayShadow}"
+                  Effect="{DynamicResource OverlayShadow}"
                   Visibility="{Binding HasGlobalSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
                   AutomationProperties.AutomationId="GlobalSearchResultsPanel"
                   AutomationProperties.Name="{services:Loc Vm_GlobalSearchResultsLabel}">
