@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$comment": "Generated parity manifest — do not edit by hand. Regenerate by running the ParityManifestTests suite.",
-  "generatorVersion": "4.0.0-preview.28",
+  "generatorVersion": "4.0.0-preview.29",
   "configSchemaVersion": 1,
   "configKeys": [
     { "key": "ConfigSchemaVersion",    "type": "int",    "default": 1,                                                      "script": true, "wpf": true, "wpfBackend": true },
@@ -64,7 +64,7 @@
     { "action": "SafeMode",             "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Disable all themes/extensions without uninstalling — reversible via Reapply" },
     { "action": "CreateBackup",        "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Create a Spicetify configuration backup" },
     { "action": "RestoreBackup",       "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Restore latest Spicetify backup and reapply" },
-    { "action": "RestoreVanilla",      "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Remove all mods, restore stock Spotify" },
+    { "action": "RestoreVanilla",      "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Remove Spicetify customizations while keeping SpotX in place" },
     { "action": "UninstallSpicetify",  "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Remove Spicetify CLI and all themes/extensions" },
     { "action": "FullReset",           "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Complete teardown: Spicetify, SpotX, tasks, PATH entries" },
     { "action": "RemoveSelfData",     "script": true,  "wpfBackend": true,  "wpfAllowed": true,  "maintenanceUI": true,  "notes": "Remove LibreSpot config, backups, logs; does not touch Spotify/Spicetify" },

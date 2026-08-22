@@ -4,6 +4,14 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0-preview.29] (2026-08-22)
+
+### Fixed
+
+- The `RestoreVanilla` maintenance action now says what it actually does in every supported locale: it removes active Spicetify customizations while keeping SpotX in place. Its description and prompt also say that it does not restore an unpatched Spotify client.
+- The Home rail now says eligible changes have backups instead of promising that every change can be reversed.
+- Backend progress and success text now use the same factual recovery language without changing the `RestoreVanilla` action ID or its behavior.
+
 ## [v4.0.0-preview.28] (2026-08-21)
 
 ### Added

@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P1: RD-126: Describe recovery actions by what they actually restore
-  Why: The current **Restore vanilla Spotify** title leaves SpotX patches in place, and **Everything is reversible** overstates a stock restore path that is still blocked.
-  Evidence: `src/LibreSpot.Desktop/Properties/Strings.resx:81`, `:388-390`, `:827`; `Roadmap_Blocked.md:866-876`; `RESEARCH.md` Security, Privacy, and Reliability.
-  Touches: `src/LibreSpot.Desktop/Properties/Strings*.resx`, generated resource accessors, localization and maintenance-action tests, `assets/screenshots`, `README.md`.
-  Acceptance: Every locale calls action ID `RestoreVanilla` **Remove Spicetify customizations** or an equivalent accurate translation; its body and prompt explicitly say SpotX remains; no visible string promises that every change is reversible; the rail uses a factual backup or recovery statement; resource-key parity, maintenance-action tests, and refreshed screenshots pass; the backend action ID and behavior do not change.
-  Complexity: S
-
 - [ ] P1: RD-127: Make Home choose the next safe action from current health state
   Why: Home changes its message for loading and critical states, but its only primary button always runs Recommended Setup, including after the managed stack is already healthy.
   Evidence: `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:363-385`; `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml:364-387`; `src/LibreSpot.Desktop/ViewModels/MainViewModel.Maintenance.cs:23-80`; BetterDiscord Installer and UniGetUI in `RESEARCH.md` Competitive Landscape.

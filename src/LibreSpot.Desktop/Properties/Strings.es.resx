@@ -172,7 +172,7 @@
     <comment>Maintenance action title</comment>
   </data>
   <data name="ActionRestoreVanilla" xml:space="preserve">
-    <value>Restaurar Spotify vainilla</value>
+    <value>Quitar personalizaciones de Spicetify</value>
     <comment>Maintenance action title</comment>
   </data>
   <data name="ActionUninstallSpicetify" xml:space="preserve">
@@ -1263,15 +1263,15 @@
     <comment>Maintenance action button text for RestoreBackup</comment>
   </data>
   <data name="Maintenance_RestoreVanilla_Title" xml:space="preserve">
-    <value>Restaurar Spotify vainilla</value>
+    <value>Quitar personalizaciones de Spicetify</value>
     <comment>Maintenance action title for RestoreVanilla</comment>
   </data>
   <data name="Maintenance_RestoreVanilla_Description" xml:space="preserve">
-    <value>Elimine las personalizaciones activas de Spicetify mientras deja SpotX en su lugar.</value>
+    <value>Quita las personalizaciones activas de Spicetify y mantiene SpotX. Esto no restaura un cliente de Spotify sin parches.</value>
     <comment>Maintenance action description for RestoreVanilla</comment>
   </data>
   <data name="Maintenance_RestoreVanilla_ButtonText" xml:space="preserve">
-    <value>Restaurar</value>
+    <value>Quitar personalizaciones</value>
     <comment>Maintenance action button text for RestoreVanilla</comment>
   </data>
   <data name="Maintenance_UninstallSpicetify_Title" xml:space="preserve">
@@ -2077,7 +2077,7 @@
   <data name="Vm_SimpleHomeSpotify" xml:space="preserve"><value>Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomePermissions" xml:space="preserve"><value>Permisos</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeDependencies" xml:space="preserve"><value>Dependencias</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SimpleHomeReversible" xml:space="preserve"><value>Todo se puede deshacer</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_SimpleHomeReversible" xml:space="preserve"><value>Los cambios compatibles tienen copias de seguridad</value><comment>User-facing WPF text</comment></data>
   <data name="NavAbout" xml:space="preserve"><value>Acerca de</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_EnvAdministrator" xml:space="preserve"><value>Administrador</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvMachine" xml:space="preserve"><value>Máquina</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2267,7 +2267,7 @@
   <data name="Vm_MaintenanceSummaryReapply" xml:space="preserve"><value>Antes de actualizar SpotX y volver a aplicar Spicetify, LibreSpot captura las instantáneas config-xpui.ini y CustomApps en LibreSpot_Backups. Restaura archivos faltantes sin sobrescribir paquetes actualizados. El estado IndexedDB de Marketplace no está incluido, así que usa los controles propios de exportación e importación de Marketplace antes de reparar o restablecer.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceSummaryRepairMarketplace" xml:space="preserve"><value>Antes de reinstalar Marketplace, LibreSpot captura las instantáneas config-xpui.ini y CustomApps en LibreSpot_Backups. Restaura los archivos faltantes sin sobrescribir el paquete Marketplace actualizado. El estado IndexedDB de Marketplace no está incluido, así que usa los controles propios de exportación e importación de Marketplace antes de reparar o restablecer.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceSummaryOpenMarketplace" xml:space="preserve"><value>LibreSpot le pide a Spotify que abra spotify:app:marketplace sin reinstalar ni cambiar sus archivos de Spicetify.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceSummaryRestoreVanilla" xml:space="preserve"><value>Esto elimina la capa visible de Spicetify mientras deja SpotX en su lugar, por lo que Spotify vuelve a tener un aspecto predeterminado más tranquilo.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceSummaryRestoreVanilla" xml:space="preserve"><value>Esto elimina la capa visible de Spicetify y mantiene SpotX. No restaura un cliente de Spotify sin parches.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceSummaryUninstallSpicetify" xml:space="preserve"><value>LibreSpot restaura Spotify primero y luego elimina Spicetify. CLI, carpeta de configuración y entrada PATH de esta máquina.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceSummaryFullReset" xml:space="preserve"><value>LibreSpot borra el estado de personalización de Spotify y los restos relacionados para que la siguiente instalación pueda comenzar desde una línea base verdaderamente limpia.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceSummaryRemoveSelfData" xml:space="preserve"><value>LibreSpot elimina su propia configuración, perfiles, copias de seguridad, registros, informes de fallos y la tarea de vigilancia. Spotify, los parches SpotX y Spicetify no se modifican.</value><comment>MainViewModel localized runtime text.</comment></data>

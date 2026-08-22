@@ -151,7 +151,7 @@ If the SpotX repository (`SpotX-Official/SpotX`) is removed or DMCA'd:
 If the Spicetify CLI repository (`spicetify/cli`) is removed:
 - LibreSpot's Spicetify CLI download will fail. The installer will skip Spicetify setup and report the failure clearly.
 - SpotX ad-blocking will continue to work independently of Spicetify.
-- Users with existing Spicetify installations can run `spicetify restore` to remove theming, or use **Maintenance > Restore vanilla Spotify** in LibreSpot.
+- Users with existing Spicetify installations can run `spicetify restore` to remove theming, or use **Maintenance > Remove Spicetify customizations** in LibreSpot. SpotX remains in place after this action.
 - The Spicetify Marketplace, themes archive, and community extensions are hosted in separate repositories, a Spicetify CLI takedown would not necessarily affect those, but LibreSpot would not be able to apply them without the CLI.
 
 ### Restoring stock Spotify without LibreSpot

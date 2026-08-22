@@ -116,6 +116,78 @@ public sealed class LocalizationTests
     }
 
     [Fact]
+    public void RestoreVanillaCopy_DescribesSpicetifyCleanupAndSpotXRetention()
+    {
+        var expected = new Dictionary<string, (string Action, string Description, string Button, string Rail, string Summary)>(StringComparer.Ordinal)
+        {
+            ["en"] = (
+                "Remove Spicetify customizations",
+                "Remove active Spicetify customizations while leaving SpotX in place. This does not restore an unpatched Spotify client.",
+                "Remove customizations",
+                "Eligible changes have backups",
+                "This removes the visible Spicetify layer and leaves SpotX in place. It does not restore an unpatched Spotify client."),
+            ["es"] = (
+                "Quitar personalizaciones de Spicetify",
+                "Quita las personalizaciones activas de Spicetify y mantiene SpotX. Esto no restaura un cliente de Spotify sin parches.",
+                "Quitar personalizaciones",
+                "Los cambios compatibles tienen copias de seguridad",
+                "Esto elimina la capa visible de Spicetify y mantiene SpotX. No restaura un cliente de Spotify sin parches."),
+            ["pt-BR"] = (
+                "Remover personalizações do Spicetify",
+                "Remove as personalizações ativas do Spicetify e mantém o SpotX. Isso não restaura um cliente do Spotify sem patches.",
+                "Remover personalizações",
+                "Alterações compatíveis têm backup",
+                "Isso remove a camada visível do Spicetify e mantém o SpotX. Não restaura um cliente do Spotify sem patches."),
+            ["ru"] = (
+                "Удалить настройки Spicetify",
+                "Удаляет активные настройки Spicetify, сохраняя SpotX. Это не возвращает Spotify в состояние без патчей.",
+                "Удалить настройки",
+                "Для поддерживаемых изменений есть резервные копии",
+                "Удаляет видимый слой Spicetify и сохраняет SpotX. Spotify не возвращается к состоянию без патчей."),
+            ["zh-Hans"] = (
+                "移除 Spicetify 自定义内容",
+                "移除当前的 Spicetify 自定义内容并保留 SpotX。此操作不会恢复未打补丁的 Spotify 客户端。",
+                "移除自定义内容",
+                "支持的更改有备份",
+                "移除可见的 Spicetify 层并保留 SpotX。此操作不会恢复未打补丁的 Spotify 客户端。")
+        };
+
+        var resourcePaths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["source"] = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Properties", "Strings.resx")
+        };
+        foreach (var culture in SupportedCultures)
+        {
+            resourcePaths[culture] = Path.Combine(
+                RepoRoot,
+                "src",
+                "LibreSpot.Desktop",
+                "Properties",
+                $"Strings.{culture}.resx");
+        }
+
+        foreach (var (culture, path) in resourcePaths)
+        {
+            var values = XDocument.Load(path).Root!.Elements("data").ToDictionary(
+                element => element.Attribute("name")!.Value,
+                element => element.Element("value")!.Value,
+                StringComparer.Ordinal);
+            var locale = culture == "source" ? "en" : culture;
+            var contract = expected[locale];
+
+            Assert.Equal(contract.Action, values["ActionRestoreVanilla"]);
+            Assert.Equal(contract.Action, values["Maintenance_RestoreVanilla_Title"]);
+            Assert.Equal(contract.Description, values["Maintenance_RestoreVanilla_Description"]);
+            Assert.Equal(contract.Button, values["Maintenance_RestoreVanilla_ButtonText"]);
+            Assert.Equal(contract.Rail, values["Vm_SimpleHomeReversible"]);
+            Assert.Equal(contract.Summary, values["Vm_MaintenanceSummaryRestoreVanilla"]);
+            Assert.Contains("SpotX", contract.Description, StringComparison.Ordinal);
+            Assert.Contains("SpotX", contract.Summary, StringComparison.Ordinal);
+            Assert.DoesNotContain("Everything is reversible", values["Vm_SimpleHomeReversible"], StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void AllResources_UseRealEllipsesAndNoHyphenAsADash()
     {
         // Three dots is a typing shortcut, not the character; a spaced hyphen

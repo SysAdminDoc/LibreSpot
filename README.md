@@ -8,7 +8,7 @@ A single-script PowerShell GUI that installs, configures, and maintains ad-free 
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.28-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.0--preview.29-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
@@ -80,7 +80,9 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 
 ---
 
-## What's New in v4.0.0-preview.28
+## What's New in v4.0.0-preview.29
+
+**Recovery actions describe the change they make.** The action formerly called Restore vanilla Spotify now removes active Spicetify customizations and says clearly that SpotX remains in place. The Home rail now says eligible changes have backups instead of promising that every change can be reversed.
 
 **The app tells you which version it is.** The version sits under the LibreSpot name in the navigation rail again, and crash reports record the full preview version rather than a shorter numeric one.
 
@@ -179,7 +181,7 @@ Current source script version: **v3.7.4**. Public latest stable release: **v3.7.
 
 **Custom Install**, full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), author reviewed SpotX `patches.json` custom patches with JSON formatting, regex safety checks, dry-run feedback, and HTTPS import, browse 21 themes (16 official + 5 community) through a searchable gallery with per-theme color schemes, select from 15 extensions (10 built-in + 5 community) plus the verified Stats custom app, save and preview named local profiles, and choose between clean or overlay install.
 
-**Maintenance**, manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, inspect and clear verified download-cache health, preview and explicitly undo eligible low-risk PATH changes from the latest operation receipt, export a validated Marketplace state archive for missing-file recovery, export a redacted local support bundle, restore vanilla Spotify, uninstall Spicetify, check for dependency updates, or perform a full system reset. Marketplace 1.0.9 stores saved state in the embedded browser's IndexedDB database. LibreSpot detects that boundary but does not back it up. Use Marketplace's own export/import controls before a repair or reset.
+**Maintenance**, manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, inspect and clear verified download-cache health, preview and explicitly undo eligible low-risk PATH changes from the latest operation receipt, export a validated Marketplace state archive for missing-file recovery, export a redacted local support bundle, remove active Spicetify customizations while keeping SpotX in place, uninstall Spicetify, check for dependency updates, or perform a full system reset. Marketplace 1.0.9 stores saved state in the embedded browser's IndexedDB database. LibreSpot detects that boundary but does not back it up. Use Marketplace's own export/import controls before a repair or reset.
 
 ### Capability boundary
 
@@ -365,7 +367,7 @@ LibreSpot.ps1 -RemoveSelfData      # unregister the watcher and delete all Libre
 SpotX blocks Spotify auto-updates by default. If you manually update Spotify, use Maintenance > Reapply After Update to re-patch.
 
 **What should I do after Spotify updates?**
-Open Maintenance and check the After Spotify update note. LibreSpot compares the current Spotify version with the last patched version, watcher status, Spicetify apply result, and Marketplace state, then points to the safest next action: close Spotify, reapply the saved profile, repair Marketplace, restore vanilla Spotify, or open logs.
+Open Maintenance and check the After Spotify update note. LibreSpot compares the current Spotify version with the last patched version, watcher status, Spicetify apply result, and Marketplace state, then points to the safest next action: close Spotify, reapply the saved profile, repair Marketplace, remove Spicetify customizations, or open logs.
 
 **Can I use this with a Premium account?**
 Yes. Enable "Premium account (skip ad-blocking)" in Custom Install to skip ad-related patches while keeping all other modifications.
@@ -460,7 +462,7 @@ Get-Sha256 .\LibreSpot.ps1
 Get-Content  .\checksums.txt
 ```
 
-GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.0.0-preview.28` to verify the release tag and commit, then run `gh release verify-asset v4.0.0-preview.28 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
+GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.0.0-preview.29` to verify the release tag and commit, then run `gh release verify-asset v4.0.0-preview.29 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
 
 ## Local release procedure
 

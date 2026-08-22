@@ -2490,7 +2490,7 @@ public sealed class PowerShellRegressionTests
     [InlineData("BtnRepairMarketplace", "Repair and open Marketplace")]
     [InlineData("BtnReapply", "Reapply after a Spotify update")]
     [InlineData("BtnSafeMode", "Safe mode")]
-    [InlineData("BtnSpicetifyRestore", "Restore vanilla Spotify")]
+    [InlineData("BtnSpicetifyRestore", "Remove Spicetify customizations")]
     [InlineData("BtnUninstallSpicetify", "Uninstall Spicetify")]
     [InlineData("BtnFullReset", "Full Reset")]
     public void PowerShellXaml_InteractiveControlHasAutomationName(string controlName, string expectedFragment)

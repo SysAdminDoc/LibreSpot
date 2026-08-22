@@ -1310,12 +1310,12 @@ function Test-SpotifySessionStability {
         Start-Sleep -Seconds $WaitSeconds
         $afterProcs = @(Get-Process -Name 'Spotify' -ErrorAction SilentlyContinue)
         if ($afterProcs.Count -eq 0) {
-            Write-Log "Spotify exited within ${WaitSeconds}s of patched launch. This may indicate server-side enforcement. If Spotify keeps closing after patching, use Maintenance > Restore vanilla or Full reset before retrying." -Level 'WARN'
+            Write-Log "Spotify exited within ${WaitSeconds}s of patched launch. This may indicate server-side enforcement. If Spotify keeps closing after patching, use Maintenance > Remove Spicetify customizations or Full reset before retrying." -Level 'WARN'
             return $false
         }
         $afterPids = @($afterProcs | ForEach-Object { $_.Id })
         if ($afterPids -notcontains $initialPid) {
-            Write-Log "Spotify restarted within ${WaitSeconds}s of patched launch (initial PID $initialPid was replaced). This may indicate server-side enforcement or a self-repair restart. If Spotify keeps restarting after patching, use Maintenance > Restore vanilla or Full reset before retrying." -Level 'WARN'
+            Write-Log "Spotify restarted within ${WaitSeconds}s of patched launch (initial PID $initialPid was replaced). This may indicate server-side enforcement or a self-repair restart. If Spotify keeps restarting after patching, use Maintenance > Remove Spicetify customizations or Full reset before retrying." -Level 'WARN'
             return $false
         }
         return $true
@@ -6266,7 +6266,7 @@ function Invoke-LibreSpotInstall {
             }
 
             if ([string]::IsNullOrWhiteSpace($restoreError)) {
-                throw 'Spotify did not stay open after patching, and automatic Spicetify restore was unavailable. Use Maintenance > Restore vanilla or Full reset before retrying.'
+            throw 'Spotify did not stay open after patching, and automatic Spicetify restore was unavailable. Use Maintenance > Remove Spicetify customizations or Full reset before retrying.'
             }
 
             throw "Spotify did not stay open after patching, and automatic Spicetify restore failed: $restoreError"
@@ -6364,7 +6364,7 @@ function Invoke-LibreSpotMaintenance {
         'SafeMode' {
             Update-BackendState -Progress 10 -Status 'Entering safe mode' -Step 'Disabling all themes and extensions'
             Restore-SpotifyIfSpicetifyPresent `
-                -FailureMessage 'Spicetify restore failed — try Reapply or Restore Vanilla.' `
+                -FailureMessage 'Spicetify restore failed. Try Reapply or Remove Spicetify customizations.' `
                 -MissingMessage 'Spicetify CLI not found — no customizations to disable.'
             Write-Log 'Safe mode active — all customizations disabled. Use Reapply to restore your setup.' -Level 'SUCCESS'
         }
@@ -6387,9 +6387,9 @@ function Invoke-LibreSpotMaintenance {
             Write-Log 'Backup restored and customizations reapplied.' -Level 'SUCCESS'
         }
         'RestoreVanilla' {
-            Update-BackendState -Progress 35 -Status 'Restoring vanilla Spotify' -Step 'Removing active Spicetify customizations'
-            if (Restore-SpotifyIfSpicetifyPresent -FailureMessage 'Could not restore vanilla Spotify.' -MissingMessage 'Spicetify CLI was not found, so LibreSpot cannot run a restore. Spotify may already be vanilla.') {
-                Write-Log 'Vanilla Spotify restored successfully.' -Level 'SUCCESS'
+            Update-BackendState -Progress 35 -Status 'Removing Spicetify customizations' -Step 'Removing active Spicetify customizations'
+            if (Restore-SpotifyIfSpicetifyPresent -FailureMessage 'Could not remove Spicetify customizations.' -MissingMessage 'Spicetify CLI was not found, so LibreSpot cannot remove customizations. Spotify may already be free of Spicetify customizations.') {
+                Write-Log 'Spicetify customizations removed. SpotX remains in place.' -Level 'SUCCESS'
             }
         }
         'UninstallSpicetify' {

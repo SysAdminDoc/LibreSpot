@@ -172,7 +172,7 @@
     <comment>Maintenance action title</comment>
   </data>
   <data name="ActionRestoreVanilla" xml:space="preserve">
-    <value>恢复原版 Spotify</value>
+    <value>移除 Spicetify 自定义内容</value>
     <comment>Maintenance action title</comment>
   </data>
   <data name="ActionUninstallSpicetify" xml:space="preserve">
@@ -1263,15 +1263,15 @@
     <comment>Maintenance action button text for RestoreBackup</comment>
   </data>
   <data name="Maintenance_RestoreVanilla_Title" xml:space="preserve">
-    <value>恢复原版 Spotify</value>
+    <value>移除 Spicetify 自定义内容</value>
     <comment>Maintenance action title for RestoreVanilla</comment>
   </data>
   <data name="Maintenance_RestoreVanilla_Description" xml:space="preserve">
-    <value>删除活动的 Spicetify 自定义，同时保留 SpotX。</value>
+    <value>移除当前的 Spicetify 自定义内容并保留 SpotX。此操作不会恢复未打补丁的 Spotify 客户端。</value>
     <comment>Maintenance action description for RestoreVanilla</comment>
   </data>
   <data name="Maintenance_RestoreVanilla_ButtonText" xml:space="preserve">
-    <value>恢复</value>
+    <value>移除自定义内容</value>
     <comment>Maintenance action button text for RestoreVanilla</comment>
   </data>
   <data name="Maintenance_UninstallSpicetify_Title" xml:space="preserve">
@@ -2077,7 +2077,7 @@
   <data name="Vm_SimpleHomeSpotify" xml:space="preserve"><value>Spotify</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomePermissions" xml:space="preserve"><value>权限</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeDependencies" xml:space="preserve"><value>依赖项</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_SimpleHomeReversible" xml:space="preserve"><value>所有更改都可以撤销</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_SimpleHomeReversible" xml:space="preserve"><value>支持的更改有备份</value><comment>User-facing WPF text</comment></data>
   <data name="NavAbout" xml:space="preserve"><value>关于</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_EnvAdministrator" xml:space="preserve"><value>管理员</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_EnvMachine" xml:space="preserve"><value>机器</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2267,7 +2267,7 @@
   <data name="Vm_MaintenanceSummaryReapply" xml:space="preserve"><value>在刷新 SpotX 并重新应用 Spicetify 之前，LibreSpot 会在 LibreSpot_Backups 下对 config-xpui.ini 和 CustomApps 进行快照。它可以恢复丢失的文件，而不会覆盖刷新的包。Marketplace 的 IndexedDB 状态不包括在内，因此修复或重置之前，请使用 Marketplace 自带的导出和导入控件。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceSummaryRepairMarketplace" xml:space="preserve"><value>在重新安装 Marketplace 之前，LibreSpot 会在 LibreSpot_Backups 下创建 config-xpui.ini 和 CustomApps 快照。它可以恢复丢失的文件，而不会覆盖刷新的 Marketplace 包。Marketplace 的 IndexedDB 状态不包括在内，因此修复或重置之前，请使用 Marketplace 自带的导出和导入控件。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceSummaryOpenMarketplace" xml:space="preserve"><value>LibreSpot 要求 Spotify 打开 Spotify:app:marketplace，无需重新安装或更改您的 Spicetify 文件。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceSummaryRestoreVanilla" xml:space="preserve"><value>这会删除可见的 Spicetify 层，同时保留 SpotX，因此 Spotify 会恢复到更平静的默认外观。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceSummaryRestoreVanilla" xml:space="preserve"><value>移除可见的 Spicetify 层并保留 SpotX。此操作不会恢复未打补丁的 Spotify 客户端。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceSummaryUninstallSpicetify" xml:space="preserve"><value>LibreSpot 首先恢复 Spotify，然后再恢复从此计算机中删除 Spicetify CLI、配置文件夹和 PATH 条目。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceSummaryFullReset" xml:space="preserve"><value>LibreSpot 清除 Spotify 自定义状态和相关残留物，以便下一次安装可以从真正干净的基线开始。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceSummaryRemoveSelfData" xml:space="preserve"><value>LibreSpot 删除自己的配置、配置文件、备份、日志、崩溃报告和观察器任务。 Spotify、SpotX 补丁和 Spicetify 不会受到影响。</value><comment>MainViewModel localized runtime text.</comment></data>
