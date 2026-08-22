@@ -29,7 +29,7 @@ public static class CrashReporter
     private static int _initialized;
     private static int _crashDialogOpen;
 
-    // The bug-report template asks for the preview-suffixed version (4.0.0-preview.NN).
+    // The bug-report template asks for the full product version (4.0.0).
     // Assembly.GetName().Version only carries the numeric 4.0.0.NN, so read the
     // informational version the csproj pins and fall back the same way MainViewModel does.
     private static string ProductVersion =>

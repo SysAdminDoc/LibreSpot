@@ -11,7 +11,7 @@ body:
     id: librespot-version
     attributes:
       label: LibreSpot Version
-      placeholder: "e.g. v3.7.4 or v4.0.0-preview.17"
+      placeholder: "e.g. v3.7.4 or v4.0.0"
     validations:
       required: true
 

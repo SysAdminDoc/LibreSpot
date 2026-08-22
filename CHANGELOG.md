@@ -4,6 +4,12 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.0.0] (2026-08-22)
+
+### Changed
+
+- v4.0.0 takes the v4 desktop app and the fleet CLI out of preview and becomes the public latest stable release. The code is what shipped in v4.0.0-preview.29; what changes here is the identity. Version strings across the desktop, CLI, and Core projects drop the preview suffix, the release manifest is generated on the stable channel, and the README badges, release claims, and verification commands name v4.0.0. The release ships the same seven assets, including the source v3.7.4 PowerShell script and its PS2EXE build.
+
 ## [v4.0.0-preview.29] (2026-08-22)
 
 ### Fixed

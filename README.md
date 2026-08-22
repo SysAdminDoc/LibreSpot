@@ -4,12 +4,12 @@
 
 **SpotX + Spicetify Unified Installer**
 
-A single-script PowerShell GUI that installs, configures, and maintains ad-free Spotify with themes, extensions, custom apps, and the Spicetify Marketplace, no command-line knowledge required.
+Installs, configures, and maintains ad-free Spotify with themes, extensions, custom apps, and the Spicetify Marketplace. No command-line knowledge required. v4 ships a Windows desktop app and a fleet CLI alongside the original single-file PowerShell script, so you can run whichever suits the machine in front of you.
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0--preview.29-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
-[![Stable](https://img.shields.io/badge/Stable-3.7.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
+[![Version](https://img.shields.io/badge/Version-4.0.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Stable](https://img.shields.io/badge/Stable-4.0.0-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
 
@@ -38,6 +38,8 @@ Write-Host "SHA256 verified: $actual" -ForegroundColor Green
 ```
 
 Or [download LibreSpot.ps1](https://github.com/SysAdminDoc/LibreSpot/releases/latest) and right-click **Run with PowerShell**.
+
+**Prefer a window to a console?** The same release ships `LibreSpot-Desktop.exe`, the v4 desktop app. Download it from the [latest release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), check its SHA256 against `checksums.txt`, and run it. No install, no admin prompt. `LibreSpot.Cli.exe` in the same release is the unattended fleet artifact.
 
 <details>
 <summary><strong>Advanced: direct pipeline (lower trust)</strong></summary>
@@ -80,30 +82,29 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 
 ---
 
-## What's New in v4.0.0-preview.29
+## What's New in v4.0.0
 
-**Recovery actions describe the change they make.** The action formerly called Restore vanilla Spotify now removes active Spicetify customizations and says clearly that SpotX remains in place. The Home rail now says eligible changes have backups instead of promising that every change can be reversed.
+v4.0.0 is the first stable release of the v4 line. The desktop app and the fleet CLI leave preview, and the single-file PowerShell script ships in the same release for anyone who wants it. Everything below landed across the v4 previews and is now the released behavior.
 
-**The app tells you which version it is.** The version sits under the LibreSpot name in the navigation rail again, and crash reports record the full preview version rather than a shorter numeric one.
+**One screen that tells you what to do.** The everyday view has three choices: Home, Maintenance, and Settings. Home gives you one readiness result, four checks, and one recommended action. First-run guidance and technical environment details stay behind the Details row until you ask for them.
 
-**Home recovers from a failed check.** If LibreSpot cannot verify your PC, the screen now offers a Retry button instead of naming a control that did not exist.
+**Recovery actions describe the change they make.** The action formerly called Restore vanilla Spotify removes active Spicetify customizations and says plainly that SpotX stays in place. Home says eligible changes have backups rather than promising that every change can be reversed.
 
-**Home fits the smallest window.** At the minimum window size the readiness checks were cut off at both edges with no way to scroll to them.
+**The app tells you which version it is.** The version sits under the LibreSpot name in the navigation rail, and crash reports record the full product version instead of a shorter numeric one.
 
-**Search boxes tell you what they do.** Settings search and the theme gallery show placeholder text inside the empty field, and the theme box is no longer labeled as if it were the pack picker.
-
-**The taskbar Jump List matches the rail.** Those shortcuts now say Home and Settings instead of Recommended and Custom.
-
-**Maintenance matches Home when the PC check fails.** That workspace now shows the same unavailable copy and Retry control instead of looking like Spotify is simply missing.
+**Home recovers from a failed check.** If LibreSpot cannot verify your PC, the screen offers a Retry button instead of naming a control that does not exist. Maintenance behaves the same way rather than looking like Spotify is simply missing.
 
 **Crash reports still appear when the usual folder cannot be created.** LibreSpot writes them under the temp directory in that case, and Open folder goes to wherever the report actually landed.
 
+**Home fits the smallest window.** At the minimum window size the readiness checks used to be cut off at both edges with no way to scroll to them.
 
-**Dropdowns look right again.** Every themed dropdown in the shell had collapsed to a small pill with its text spilling out, including the Spotify build and download-path pickers. They render at full width with their chevrons again.
+**Search boxes tell you what they do.** Settings search and the theme gallery show placeholder text inside the empty field, and the theme box is no longer labeled as if it were the pack picker. The taskbar Jump List says Home and Settings, matching the rail.
 
-**Language switching is back where you can reach it.** The simplified shell shipped in preview.26 without a language control anywhere on screen, which left the five translated interfaces stranded. The picker now sits at the bottom of the navigation rail, next to the reversible-changes note.
+**Every language is reachable.** The picker sits at the bottom of the navigation rail, next to the reversible-changes note, and all five interfaces are complete and translation-reviewed.
 
-**The desktop is much easier to read.** The everyday view now has three choices: Home, Maintenance, and Settings. Home gives you one readiness result, four checks, and one recommended action. First-run guidance and technical environment details stay behind the Details row until you need them.
+**One answer about your Spotify build.** Version strings are read through a single parser, so a build carrying a git hash, a trailing note, or a fourth component gets the same verdict on every screen.
+
+**Readable in high contrast, and while you switch.** Disabled controls mute their label instead of fading the whole control below the contrast floor, and turning Windows high contrast on while the app is running recolors the shell immediately rather than waiting for a restart.
 
 LibreSpot refuses to install or reapply over Spicetify v3 artifacts. If the health report shows a Spicetify v3 conflict, run `spicetify restore` first, then reinstall the pinned Spicetify 2.x integration.
 
@@ -125,11 +126,9 @@ LibreSpot refuses to install or reapply over Spicetify v3 artifacts. If the heal
 
 **Marketplace that actually works.** The default Marketplace-only setup now follows the official Spicetify Marketplace install contract: LibreSpot creates and activates the placeholder theme and keeps CSS injection on, so store themes and snippets render instead of silently doing nothing, and a managed fallback restores a visible **Marketplace** button in Spotify's top bar when a Spotify redesign breaks Spicetify's own nav link. Marketplace health now warns when the theme contract is inactive and points you to Repair Marketplace, and the post-install launch guarantees a fresh, patched Spotify session.
 
-**A focused Home screen.** The redesign removes the top command bar, side inspector, dashboard cards, and activity dock from the everyday surface. The graphite shell keeps one green primary action, clear status colors, and generous spacing across Home, Settings, Maintenance, prompts, failures, and crash recovery.
-
 **Truthful, resilient UX.** Readiness starts in a checking state, reports system, Spotify, permission, and dependency results independently, and replaces success artwork with loading or failure guidance when needed. Maintenance holds the recovery tools. Activity updates announce changing content, translated prompts wrap and scroll safely, and high-contrast and reduced-motion variants share the same interaction contract.
 
-The v4 desktop preview keeps readable Settings cards, a searchable theme gallery, safe `.librespot` profile import and export, local profile sharing cards, dark native window chrome, completion notifications, issue-level repair buttons, a reversible-changes pane, and assistive-technology feedback. Common users no longer need to see those tools before starting the recommended setup.
+The v4 desktop keeps readable Settings cards, a searchable theme gallery, safe `.librespot` profile import and export, local profile sharing cards, dark native window chrome, completion notifications, issue-level repair buttons, a reversible-changes pane, and assistive-technology feedback. Common users no longer need to see those tools before starting the recommended setup.
 
 It also registers Windows shell affordances from the running desktop executable: per-user `librespot://` profile links, `.librespot` file imports, jump-list shortcuts, taskbar thumbnail actions, tray minimize/restore, and tray completion notifications that reopen LibreSpot when clicked. Registration is per-user and points at the current executable path, so portable and installed builds both repair stale associations on launch.
 
@@ -156,7 +155,7 @@ The desktop shell keeps each workspace in a named UserControl. The Custom worksp
 >
 > If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch. The WPF Maintenance dashboard also flags **After Spotify update** drift and recommends targeted recovery steps before a full reset.
 
-Current source script version: **v3.7.4**. Public latest stable release: **v3.7.2**.
+Current source script version: **v3.7.4**. Public latest stable release: **v4.0.0**.
 
 **Pinned dependency versions in the current source script:**
 
@@ -198,9 +197,9 @@ LibreSpot changes the local desktop client. It does not grant Spotify Premium or
 
 Maintenance > Full Reset can return the local Spotify installation to its stock state. It does not change your Spotify subscription or account entitlements.
 
-### Fleet CLI Preview
+### Fleet CLI
 
-`LibreSpot.Cli.exe` is the console-capable fleet artifact for endpoint tools. The implemented verbs are `--version`, `--version --json`, `version --json`, `status --json`, `detect --json`, `detect --intune`, `validate --answer-file <path> --json`, `install --answer-file <path> --profile <name> --ndjson`, `reapply --answer-file <path> --profile <name> --ndjson`, `repair --repair-id <id> --silent --yes --ndjson`, `uninstall --silent --yes --keep-spotify --ndjson`, `install|reapply --dry-run --answer-file <path> --ndjson`, `repair|uninstall --dry-run --ndjson`, `plan --answer-file <path> --json`, `undo --operation-id <id> --token-kind <kind> --dry-run --json`, `undo --operation-id <id> --token-kind <kind> --yes --json`, `export-support --output <path>`, `watcher install --silent`, and `watcher remove --silent`. `repair --repair-id ExportMarketplaceState` writes a timestamped archive under `%USERPROFILE%\LibreSpot_Backups\MarketplaceState`; `RestoreMarketplaceState` restores only missing files from the newest validated archive and then reapplies when Spicetify is available. Neither operation exports or claims to restore the embedded Marketplace IndexedDB database. Use Marketplace's own export/import controls for that state. `status --json` schema v3 includes structured patcher ownership plus asset-cache inventory counts, byte totals, stale/corrupt state, and per-entry labels when available, and each pinned upstream/community asset's source URL, version or commit, last-verification timestamp, changelog/release link, and freshness state. `detect --intune` exits `0` only when the existing health report maps to a compliant state; clean slate, drift, blocked, and repair states return documented nonzero fleet exit codes without mutating the machine. Mutating backend verbs stream stable `LS` NDJSON events from the fleet schema contract, write rotating `.ndjson` logs to `%ProgramData%\LibreSpot\logs` by default, and install/reapply write validated answer-file settings or named answer-file profiles to `config.json` before invoking the shared backend. One operation GUID now follows the command into the PowerShell journal and appears in CLI JSON/plain output, desktop activity, rolling logs, crash reports, and support-bundle manifests. Local EventPipe/ETW collectors can also subscribe to the `LibreSpot-Operations` EventSource; LibreSpot does not upload this telemetry.
+`LibreSpot.Cli.exe` is the console-capable fleet artifact for endpoint tools. It ships stable as of v4.0.0. The implemented verbs are `--version`, `--version --json`, `version --json`, `status --json`, `detect --json`, `detect --intune`, `validate --answer-file <path> --json`, `install --answer-file <path> --profile <name> --ndjson`, `reapply --answer-file <path> --profile <name> --ndjson`, `repair --repair-id <id> --silent --yes --ndjson`, `uninstall --silent --yes --keep-spotify --ndjson`, `install|reapply --dry-run --answer-file <path> --ndjson`, `repair|uninstall --dry-run --ndjson`, `plan --answer-file <path> --json`, `undo --operation-id <id> --token-kind <kind> --dry-run --json`, `undo --operation-id <id> --token-kind <kind> --yes --json`, `export-support --output <path>`, `watcher install --silent`, and `watcher remove --silent`. `repair --repair-id ExportMarketplaceState` writes a timestamped archive under `%USERPROFILE%\LibreSpot_Backups\MarketplaceState`; `RestoreMarketplaceState` restores only missing files from the newest validated archive and then reapplies when Spicetify is available. Neither operation exports or claims to restore the embedded Marketplace IndexedDB database. Use Marketplace's own export/import controls for that state. `status --json` schema v3 includes structured patcher ownership plus asset-cache inventory counts, byte totals, stale/corrupt state, and per-entry labels when available, and each pinned upstream/community asset's source URL, version or commit, last-verification timestamp, changelog/release link, and freshness state. `detect --intune` exits `0` only when the existing health report maps to a compliant state; clean slate, drift, blocked, and repair states return documented nonzero fleet exit codes without mutating the machine. Mutating backend verbs stream stable `LS` NDJSON events from the fleet schema contract, write rotating `.ndjson` logs to `%ProgramData%\LibreSpot\logs` by default, and install/reapply write validated answer-file settings or named answer-file profiles to `config.json` before invoking the shared backend. One operation GUID now follows the command into the PowerShell journal and appears in CLI JSON/plain output, desktop activity, rolling logs, crash reports, and support-bundle manifests. Local EventPipe/ETW collectors can also subscribe to the `LibreSpot-Operations` EventSource; LibreSpot does not upload this telemetry.
 
 The current `--help` output lists every flag declared by `schemas/fleet-cli-contract.json` for each verb, including the destructive uninstall requirements.
 
@@ -385,7 +384,7 @@ This is a known upstream issue (spicetify/cli#3837). Themes and extensions insta
 Use Maintenance > Support bundle. LibreSpot previews the selected health report, operation journal, log, and crash-report windows, redacts local user/machine paths, GitHub headers, proxy credentials, tokens, passwords, and command-line secret arguments, then writes a local zip. The manifest includes the latest stable operation GUID so support evidence can be matched to the activity dialog and logs. It does not upload the bundle.
 
 **What does Remove LibreSpot Data erase?**
-Maintenance > Remove LibreSpot data (in the v4 preview desktop app) deletes LibreSpot-owned config, local profiles, operation journals, logs, crashes, verified cache, backups, and watcher state while leaving Spotify and Spicetify files untouched. It writes a path-free irreversible receipt to `%TEMP%\LibreSpot\remove-self-data-receipt.latest.json`. In the stable script, run `LibreSpot.ps1 -RemoveSelfData` for the same cleanup.
+Maintenance > Remove LibreSpot data (in the v4 desktop app) deletes LibreSpot-owned config, local profiles, operation journals, logs, crashes, verified cache, backups, and watcher state while leaving Spotify and Spicetify files untouched. It writes a path-free irreversible receipt to `%TEMP%\LibreSpot\remove-self-data-receipt.latest.json`. In the stable script, run `LibreSpot.ps1 -RemoveSelfData` for the same cleanup.
 
 **How do I go back to stock Spotify?**
 Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify, and cleans up every trace.
@@ -441,7 +440,7 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 
 Releases ship unsigned by design. LibreSpot is not code-signed and is not waiting on a certificate: [SignPath Foundation](https://signpath.org/) OSS signing was evaluated and set aside, so there is no "once the cert arrives" milestone. `LibreSpot.exe`, `LibreSpot-Desktop.exe`, and `LibreSpot.Cli.exe` are published as unsigned artifacts, and Windows SmartScreen will show an "Unknown publisher" prompt for them. Verify integrity with the SHA256 `checksums.txt` published alongside each release (see below), that is the permanent, sufficient verification path.
 
-The public latest stable release, v3.7.2, ships `LibreSpot.ps1`, `LibreSpot.exe`, and `checksums.txt` **as GitHub release assets**. The repository itself does not track build artifacts, `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. The current source script is v3.7.4 but has not been published as the stable GitHub release. Preview release builds also add the .NET 10 `LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, CycloneDX SBOM output, and `librespot-release-manifest.json`.
+The public latest stable release, v4.0.0, ships seven assets: `LibreSpot.ps1`, `LibreSpot.exe`, the .NET 10 `LibreSpot-Desktop.exe` and `LibreSpot.Cli.exe`, the CycloneDX SBOM, `checksums.txt`, and `librespot-release-manifest.json`. The repository itself does not track build artifacts. `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. The script shipped in v4.0.0 is source v3.7.4.
 
 The .NET 10 desktop and CLI artifacts publish self-contained, which embeds the runtime, so they only receive .NET servicing security fixes when rebuilt against a patched runtime. Both projects set `TargetLatestRuntimePatch`, and `Build-Scripts.ps1 -DependencyHealth` records the resolved `Microsoft.NETCore.App` / `Microsoft.WindowsDesktop.App` patch level and fails the release preflight when the build host is below the documented 10.0.11 floor (`schemas/dependency-health-allowlist.json` → `dotnetRuntimeFloor`). Build release artifacts on an up-to-date .NET 10 SDK.
 
@@ -462,7 +461,7 @@ Get-Sha256 .\LibreSpot.ps1
 Get-Content  .\checksums.txt
 ```
 
-GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.0.0-preview.29` to verify the release tag and commit, then run `gh release verify-asset v4.0.0-preview.29 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
+GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.0.0` to verify the release tag and commit, then run `gh release verify-asset v4.0.0 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
 
 ## Local release procedure
 
@@ -492,7 +491,7 @@ checksum-covered assets into the release root. Generate the CycloneDX SBOM, writ
 ```powershell
 .\Build-Scripts.ps1 -CompileStableExe
 .\Build-Scripts.ps1 -GenerateSbom
-.\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.0.0-preview.N -ReleaseChannel preview
+.\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.0.0 -ReleaseChannel stable
 ```
 
 `-CompileStableExe` writes `publish\LibreSpot.exe` with the pinned PS2EXE flags
