@@ -8053,7 +8053,7 @@ function Write-PowerShellSecurityContext {
         Write-Log "PowerShell context: $($ctx.Edition) $($ctx.Version); language mode $($ctx.LanguageMode); execution policy [$($ctx.ExecutionPolicies)]."
         Write-PowerShell7SecurityFloorWarningIfNeeded
         if ($ctx.AppControlEnforced) {
-            Write-Log "This host enforces ConstrainedLanguage mode (AppLocker, Windows Defender Application Control, or Smart App Control). LibreSpot's scripts may be blocked. This is a platform-level control, not a LibreSpot error, and -ExecutionPolicy Bypass does not bypass it. On managed devices, ask your administrator to allow LibreSpot/SpotX. On personal devices with Smart App Control (Windows 11), open Settings > Privacy & security > Windows Security > App & browser control > Smart App Control settings to adjust. Alternatively, use the pre-compiled LibreSpot.exe from the Releases page." -Level 'WARN'
+            Write-Log "This host enforces ConstrainedLanguage mode (AppLocker, Windows Defender Application Control, or Smart App Control). LibreSpot's scripts may be blocked. This is a platform-level control, not a LibreSpot error, and -ExecutionPolicy Bypass does not bypass it. Do not disable or bypass application control for LibreSpot. On managed devices, ask your administrator whether an approved LibreSpot artifact is allowed. On personal devices, leave Smart App Control enabled and follow official Windows Security guidance." -Level 'WARN'
         }
     } catch {}
 }
@@ -8075,7 +8075,7 @@ function Test-IsLanguageModeOrAppControlError {
 # auto-restores quarantined files. Pure and side-effect free for unit testing.
 function Get-QuarantineGuidance {
     param([string]$What = 'A verified file')
-    return "$What is missing right after LibreSpot verified it. A security product (for example Microsoft Defender) may have quarantined it. Open Windows Security > Virus & threat protection > Protection history; if the file is listed, restore it and re-run LibreSpot. LibreSpot will not disable your antivirus, add exclusions, or restore quarantined files for you."
+    return "$What is missing right after LibreSpot verified it. A security product (for example Microsoft Defender) may have quarantined it. Open Windows Security > Virus & threat protection > Protection history. Only restore or allow the file after confirming that it came from the official source and its SHA256 matches LibreSpot's pinned value or the same release's checksums.txt entry. If either check fails or cannot be completed, leave the file blocked and submit it to your security vendor for analysis. LibreSpot will not disable antivirus protection, add exclusions, or restore quarantined files for you."
 }
 
 function Get-DownloadFailureHint {
@@ -8648,7 +8648,7 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
                 if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
                 if (-not $appControlHintShown -and (Test-IsLanguageModeOrAppControlError -Message $line)) {
                     $appControlHintShown = $true
-                    Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker, Windows Defender Application Control, or Smart App Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these controls. On managed devices, ask your administrator. On personal devices with Smart App Control (Windows 11), adjust it in Settings > Privacy & security > Windows Security. Alternatively, use LibreSpot.exe from the Releases page." -Level 'WARN'
+                    Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker, Windows Defender Application Control, or Smart App Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these controls. Do not disable or bypass application control for LibreSpot. On managed devices, ask your administrator whether an approved LibreSpot artifact is allowed. On personal devices, leave Smart App Control enabled and follow official Windows Security guidance." -Level 'WARN'
                 }
             }
             Start-Sleep -Milliseconds 200
@@ -8666,7 +8666,7 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
             if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
             if (-not $appControlHintShown -and (Test-IsLanguageModeOrAppControlError -Message $line)) {
                 $appControlHintShown = $true
-                Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker, Windows Defender Application Control, or Smart App Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these controls. On managed devices, ask your administrator. On personal devices with Smart App Control (Windows 11), adjust it in Settings > Privacy & security > Windows Security. Alternatively, use LibreSpot.exe from the Releases page." -Level 'WARN'
+                Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker, Windows Defender Application Control, or Smart App Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these controls. Do not disable or bypass application control for LibreSpot. On managed devices, ask your administrator whether an approved LibreSpot artifact is allowed. On personal devices, leave Smart App Control enabled and follow official Windows Security guidance." -Level 'WARN'
             }
         }
 

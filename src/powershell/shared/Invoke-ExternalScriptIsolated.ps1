@@ -42,7 +42,7 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
                 if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
                 if (-not $appControlHintShown -and (Test-IsLanguageModeOrAppControlError -Message $line)) {
                     $appControlHintShown = $true
-                    Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker, Windows Defender Application Control, or Smart App Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these controls. On managed devices, ask your administrator. On personal devices with Smart App Control (Windows 11), adjust it in Settings > Privacy & security > Windows Security. Alternatively, use LibreSpot.exe from the Releases page." -Level 'WARN'
+                    Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker, Windows Defender Application Control, or Smart App Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these controls. Do not disable or bypass application control for LibreSpot. On managed devices, ask your administrator whether an approved LibreSpot artifact is allowed. On personal devices, leave Smart App Control enabled and follow official Windows Security guidance." -Level 'WARN'
                 }
             }
             Start-Sleep -Milliseconds 200
@@ -60,7 +60,7 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
             if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
             if (-not $appControlHintShown -and (Test-IsLanguageModeOrAppControlError -Message $line)) {
                 $appControlHintShown = $true
-                Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker, Windows Defender Application Control, or Smart App Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these controls. On managed devices, ask your administrator. On personal devices with Smart App Control (Windows 11), adjust it in Settings > Privacy & security > Windows Security. Alternatively, use LibreSpot.exe from the Releases page." -Level 'WARN'
+                Write-Log "This looks like a PowerShell application-control / ConstrainedLanguage block (AppLocker, Windows Defender Application Control, or Smart App Control), not a normal LibreSpot error. -ExecutionPolicy Bypass does not bypass these controls. Do not disable or bypass application control for LibreSpot. On managed devices, ask your administrator whether an approved LibreSpot artifact is allowed. On personal devices, leave Smart App Control enabled and follow official Windows Security guidance." -Level 'WARN'
             }
         }
 

@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P0: RD-131: Remove endpoint-protection exception advice and the false degraded state
-  Why: LibreSpot currently treats a normal Defender configuration as degraded, prints an elevated exclusion command, tells personal users to turn off Smart App Control, and labels antivirus detections as definite false positives. That contradicts its own safety guidance and asks users to weaken platform protections without evidence of an actual quarantine.
-  Evidence: `src/LibreSpot.Core/EnvironmentSnapshotService.cs:387-410`; `src/LibreSpot.Desktop/Properties/Strings.resx:1108`, `:1189`; `README.md:61-69`, `:398-405`; `SECURITY.md:113`; Microsoft Defender exclusions, Protection History, Smart App Control, and false-positive submission sources in `RESEARCH.md` Security, Privacy, and Reliability.
-  Touches: `src/LibreSpot.Core/EnvironmentSnapshotService.cs`, `src/LibreSpot.Core/AppCatalog.cs`, all desktop localized resources, `src/powershell/shared/Get-QuarantineGuidance.ps1`, `src/powershell/shared/Write-PowerShellSecurityContext.ps1`, `src/powershell/shared/Invoke-ExternalScriptIsolated.ps1`, generated backend composition, Core, desktop, and Pester tests, `README.md`, `SECURITY.md`.
-  Acceptance: A missing Defender exclusion never creates a warning or degraded health state. No common-user UI, log guidance, or documentation recommends adding Defender exclusions, disabling Smart App Control, bypassing SmartScreen unconditionally, or running `Add-MpPreference`. An actual verified quarantine can point to Windows Security Protection History and vendor file submission, but tells the user to allow content only after its same-release SHA256 and source identity match. Antivirus copy says a detection is inconclusive, stops on any identity mismatch, and does not claim that open source or a matching hash proves safety. Keep the upstream SpotX mutation guard that rejects Defender-setting commands. Regression tests or content gates cover every locale and forbid the removed instructions without weakening that upstream scanner.
-  Complexity: M
-
 - [ ] P1: RD-127: Make Home choose the next safe action from current health state
   Why: Home changes its message for loading and critical states, but its only primary button always runs Recommended Setup, including after the managed stack is already healthy.
   Evidence: `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:363-385`; `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml:364-387`; `src/LibreSpot.Desktop/ViewModels/MainViewModel.Maintenance.cs:23-80`; BetterDiscord Installer and UniGetUI in `RESEARCH.md` Competitive Landscape.

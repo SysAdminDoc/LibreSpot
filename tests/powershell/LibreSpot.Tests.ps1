@@ -78,6 +78,7 @@ BeforeAll {
         'Register-AutoReapplyTask'
         'Get-PowerShell7SecurityFloorStatus'
         'Write-PowerShell7SecurityFloorWarningIfNeeded'
+        'Get-QuarantineGuidance'
     )
     $blocks = foreach ($fn in $functionsToLoad) {
         $block = Extract-FunctionBlock $scriptContent $fn
@@ -174,6 +175,18 @@ BeforeAll {
         @{ Id='1.2.92'; Label='1.2.92'; Version='1.2.92'; Notes='Previous fallback.' }
     )
     $global:SpotifyVersionIds = @($global:SpotifyVersionManifest | ForEach-Object { $_.Id })
+}
+
+Describe 'Get-QuarantineGuidance' {
+    It 'requires source and hash verification before restore' {
+        $guidance = Get-QuarantineGuidance -What 'The verified test file'
+
+        $guidance | Should -Match 'Protection history'
+        $guidance | Should -Match 'official source'
+        $guidance | Should -Match 'SHA256'
+        $guidance | Should -Match 'leave the file blocked'
+        $guidance | Should -Not -Match 'add an exclusion'
+    }
 }
 
 Describe 'Build-CommunityCatalog' {

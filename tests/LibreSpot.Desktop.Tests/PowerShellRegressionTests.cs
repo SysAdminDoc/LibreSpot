@@ -2293,6 +2293,53 @@ public sealed class PowerShellRegressionTests
     }
 
     [Fact]
+    public void EndpointProtectionGuidance_NeverRecommendsWeakeningPlatformControls()
+    {
+        var readme = ReadFile("README.md");
+        Assert.DoesNotContain("add an exclusion for the", readme, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("switch SAC to", readme, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("pattern-match false positives", readme, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("click **More info**", readme, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("A matching hash establishes file identity, not safety", readme);
+        Assert.Contains("Leave Smart App Control enabled", readme);
+
+        var resourceDirectory = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Properties");
+        foreach (var resourcePath in Directory.EnumerateFiles(resourceDirectory, "Strings*.resx"))
+        {
+            var resource = File.ReadAllText(resourcePath);
+            Assert.DoesNotContain("HealthNameAntivirusExclusion", resource);
+            Assert.DoesNotContain("HealthStatusExclusionRecommended", resource);
+            Assert.DoesNotContain("HealthEvidenceAntivirusExclusionFormat", resource);
+            Assert.DoesNotContain("Add-MpPreference", resource);
+        }
+
+        foreach (var path in new[]
+                 {
+                     new[] { "LibreSpot.ps1" },
+                     new[] { "src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1" }
+                 })
+        {
+            var script = ReadFile(path);
+            var context = ExtractFunction(script, "Write-PowerShellSecurityContext");
+            var runner = ExtractFunction(script, "Invoke-ExternalScriptIsolated");
+            var quarantine = ExtractFunction(script, "Get-QuarantineGuidance");
+
+            Assert.DoesNotContain("adjust it in Settings", context, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("adjust it in Settings", runner, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Do not disable or bypass application control", context);
+            Assert.Contains("Do not disable or bypass application control", runner);
+            Assert.Contains("Protection history", quarantine);
+            Assert.Contains("official source", quarantine);
+            Assert.Contains("SHA256", quarantine);
+            Assert.Contains("leave the file blocked", quarantine);
+        }
+
+        var buildScript = ReadFile("Build-Scripts.ps1");
+        Assert.Contains("Add-MpPreference", buildScript);
+        Assert.Contains("ExclusionPath", buildScript);
+    }
+
+    [Fact]
     public void PowerShellSecurityContextFunctions_AreExportedToWorkerRunspace()
     {
         var script = ReadFile("LibreSpot.ps1");

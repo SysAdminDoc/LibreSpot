@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Secure Windows defaults are no longer reported as degraded health. LibreSpot no longer probes for or recommends Defender exclusions, does not tell users to turn off Smart App Control or bypass SmartScreen, and treats an antivirus detection as unresolved until the official source and same-release hash are verified. Evidence-based quarantine guidance still points to Protection History and vendor analysis, while the separate SpotX supply-chain guard continues to reject scripts that can change Defender settings.
+
 ## [v4.0.0] (2026-08-22)
 
 ### Changed

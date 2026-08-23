@@ -1839,7 +1839,6 @@ public static class CliApplication
             : new EnvironmentSnapshotService(
                 upstreamDriftProbe: () => UpstreamDriftService.Default.GetReport(),
                 communityAssetDriftProbe: () => CommunityAssetDriftService.Default.GetReport(),
-                antivirusProbe: EnvironmentSnapshotService.QueryDefenderExclusionStatus,
                 storeSpotifyProbe: EnvironmentSnapshotService.QueryStoreSpotifyPresent).GetSnapshot(configPath);
 
     private static ParseResult Parse(string[] args)

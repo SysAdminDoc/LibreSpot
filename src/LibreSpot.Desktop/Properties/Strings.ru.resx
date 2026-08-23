@@ -2339,7 +2339,6 @@
   <data name="HealthActionReviewCommunityAsset" xml:space="preserve"><value>Просмотреть актив сообщества</value><comment>Fallback health action label for a community asset trust review.</comment></data>
   <data name="Vm_HealthEvidenceLastChangedFormat" xml:space="preserve"><value>{0} Последнее изменение: {1}.</value><comment>Health evidence followed by its local last-change timestamp.</comment></data>
   <data name="HealthNameStoreSpotify" xml:space="preserve"><value>Spotify из Microsoft Store</value><comment>Health component name.</comment></data>
-  <data name="HealthNameAntivirusExclusion" xml:space="preserve"><value>Исключение антивируса</value><comment>Health component name.</comment></data>
   <data name="HealthNameSpotify" xml:space="preserve"><value>Spotify</value><comment>Health component name.</comment></data>
   <data name="HealthNameSpotXPatch" xml:space="preserve"><value>Патч SpotX</value><comment>Health component name.</comment></data>
   <data name="HealthNameSpicetifyCli" xml:space="preserve"><value>Spicetify CLI</value><comment>Health component name.</comment></data>
@@ -2357,7 +2356,6 @@
   <data name="HealthNameUpstreamFormat" xml:space="preserve"><value>Источник {0}</value><comment>Health component name for a named upstream dependency.</comment></data>
   <data name="HealthNameCommunityAssetFormat" xml:space="preserve"><value>{0} сообщество {1}</value><comment>Health component name for a named community asset and kind.</comment></data>
   <data name="HealthStatusWillBeReplaced" xml:space="preserve"><value>Будут заменены</value><comment>Health status.</comment></data>
-  <data name="HealthStatusExclusionRecommended" xml:space="preserve"><value>Рекомендуется исключение</value><comment>Health status.</comment></data>
   <data name="HealthStatusLatestUnknown" xml:space="preserve"><value>Последние неизвестные</value><comment>Health status.</comment></data>
   <data name="HealthStatusCachedMetadata" xml:space="preserve"><value>Кэшированные метаданные</value><comment>Health status.</comment></data>
   <data name="HealthStatusCurrent" xml:space="preserve"><value>Текущие</value><comment>Health status.</comment></data>
@@ -2433,7 +2431,6 @@
   <data name="HealthValueSucceeded" xml:space="preserve"><value>успешно</value><comment>Successful health evidence result.</comment></data>
   <data name="HealthValueFailed" xml:space="preserve"><value>не удалось</value><comment>Failed health evidence result.</comment></data>
   <data name="HealthEvidenceStoreSpotify" xml:space="preserve"><value>Установлена ​​версия Spotify из Microsoft Store. LibreSpot исправляет стандартную сборку рабочего стола, поэтому SpotX заменит версию из Магазина во время установки.</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidenceAntivirusExclusionFormat" xml:space="preserve"><value>Постоянная защита Защитника Windows включена, а папка Spotify не исключается, поэтому исправленные файлы могут быть помещены в карантин как ложное срабатывание. LibreSpot никогда не меняет настройки антивируса. Чтобы добавить исключение самостоятельно, откройте PowerShell от имени администратора и выполните: Add-MpPreference -ExclusionPath &quot;{0}&quot;</value><comment>Health evidence with the Spotify directory.</comment></data>
   <data name="HealthEvidenceUpstreamUnavailableFormat" xml:space="preserve"><value>Pinned {0}; текущий {1}; живые восходящие метаданные недоступны. Подробности: {2}</value><comment>Degraded upstream health evidence.</comment></data>
   <data name="HealthEvidenceCommunityUnavailableFormat" xml:space="preserve"><value>Закрепленный коммит {0}; Метаданные активов живого сообщества недоступны. Деталь: {1}</value><comment>Degraded community asset health evidence.</comment></data>
   <data name="HealthEvidenceUpstreamFormat" xml:space="preserve"><value>Закреплено: {0}; текущий: {1}; последний: {2}; дрейф: {3}; источник: {4}; возраст кэша {5}.</value><comment>Structured upstream dependency health evidence.</comment></data>
