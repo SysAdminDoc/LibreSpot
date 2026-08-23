@@ -2061,6 +2061,14 @@
   <data name="ShellJumpHomeDescription" xml:space="preserve"><value>检查此电脑并应用受支持的设置。</value><comment>Jump List tooltip for the Home task</comment></data>
   <data name="ShellJumpSettingsDescription" xml:space="preserve"><value>选择主题、扩展和安装选项。</value><comment>Jump List tooltip for the Settings task</comment></data>
   <data name="ButtonStartRecommendedSetup" xml:space="preserve"><value>开始推荐设置</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_HomeCheckingAction" xml:space="preserve"><value>正在检查…</value><comment>Disabled Home action while the environment snapshot loads</comment></data>
+  <data name="Vm_HomeManagedReadyTitle" xml:space="preserve"><value>Spotify 已准备就绪</value><comment>Home title when the managed stack is healthy</comment></data>
+  <data name="Vm_HomeManagedReadyBody" xml:space="preserve"><value>Spotify、SpotX 和 Spicetify 状态正常。无需再次运行设置即可打开 Spotify。</value><comment>Home detail when the managed stack is healthy</comment></data>
+  <data name="Vm_HomeOpenSpotifyAction" xml:space="preserve"><value>打开 Spotify</value><comment>Home primary action for a healthy managed stack</comment></data>
+  <data name="Vm_HomeOpenSpotifyHelp" xml:space="preserve"><value>打开 Spotify，不更改已验证的设置。</value><comment>Accessibility help for the healthy Home action</comment></data>
+  <data name="Vm_HomeOpenMaintenanceAction" xml:space="preserve"><value>打开维护</value><comment>Home primary action when only destructive recovery is available</comment></data>
+  <data name="Vm_HomeOpenMaintenanceHelp" xml:space="preserve"><value>打开修复工具，但不执行破坏性操作。</value><comment>Accessibility help for the destructive-only Home state</comment></data>
+  <data name="Vm_HomeDestructiveOnlyBody" xml:space="preserve"><value>LibreSpot 发现了一个需要选择恢复方式的问题。打开“维护”进行检查。不会自动删除任何内容。</value><comment>Home detail when only destructive recovery is available</comment></data>
   <data name="Vm_SimpleHomeReadyTitle" xml:space="preserve"><value>可以开始了</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeReadyBody" xml:space="preserve"><value>Spotify 已安装，可使用推荐设置。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeInstallBody" xml:space="preserve"><value>LibreSpot 已准备好安装受支持的 Spotify 配置。</value><comment>MainViewModel localized runtime text.</comment></data>

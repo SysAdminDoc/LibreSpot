@@ -64,7 +64,7 @@ public sealed class PremiumShellContractTests
 
         Assert.Contains("(\"prompt-destructive\", \"PromptActionReset\", \"PromptCancelButton\")", matrix);
         Assert.Contains("(\"activity-running\", \"Ui_RunState\", \"ActivityCancelRunButton\")", matrix);
-        Assert.Contains("(\"reduced-motion\", \"ButtonStartRecommendedSetup\", \"RunRecommendedSetupButton\")", matrix);
+        Assert.Contains("(\"reduced-motion\", \"ButtonStartRecommendedSetup\", \"HomePrimaryActionButton\")", matrix);
         Assert.Contains("--uia-reduced-motion", matrix);
         Assert.Contains("AssertNoUnnamedActionableControls(snapshot)", matrix);
         Assert.Contains("if ($Quick) { 24 } else { 80 }", runner);
@@ -131,7 +131,7 @@ public sealed class PremiumShellContractTests
     {
         var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
         var recommended = ReadFile("src", "LibreSpot.Desktop", "Views", "RecommendedWorkspaceView.xaml");
-        var viewModel = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.cs");
+        var homeActionSource = ReadFile("src", "LibreSpot.Desktop", "ViewModels", "MainViewModel.Maintenance.cs");
         var simpleShell = ExtractSimpleShell(xaml);
 
         Assert.Contains("x:Name=\"SimpleShellHost\"", xaml);
@@ -139,11 +139,15 @@ public sealed class PremiumShellContractTests
         Assert.DoesNotContain("GlobalSearchBox", simpleShell);
         Assert.DoesNotContain("ActivityDock", simpleShell);
         Assert.DoesNotContain("InspectorPanel", simpleShell);
-        Assert.Contains("{Binding SimpleHomeTitle}", recommended);
+        Assert.Contains("{Binding HomeAction.Title}", recommended);
         Assert.Contains("{Binding SimpleHomeReadinessChecks}", recommended);
-        Assert.Contains("AutomationProperties.AutomationId=\"RunRecommendedSetupButton\"", recommended);
+        Assert.Contains("AutomationProperties.AutomationId=\"HomePrimaryActionButton\"", recommended);
+        Assert.Contains("AutomationProperties.Name=\"{Binding HomeAction.AutomationName}\"", recommended);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding HomeAction.HelpText}\"", recommended);
+        Assert.Contains("Command=\"{Binding HomeAction.Command}\"", recommended);
         Assert.Contains("AutomationProperties.AutomationId=\"RecommendedDetailsExpander\"", recommended);
-        Assert.Contains("Vm_SimpleHomeReadyTitle", viewModel);
+        Assert.Contains("Vm_SimpleHomeReadyTitle", homeActionSource);
+        Assert.Contains("HomeActionKind.OpenSpotify", homeActionSource);
     }
 
     [Fact]

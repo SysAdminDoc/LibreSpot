@@ -57,6 +57,22 @@ public sealed class WpfFlaUiSmokeTests
         });
     }
 
+    [Theory]
+    [InlineData("recommended", "ButtonStartRecommendedSetup")]
+    [InlineData("home-healthy", "Vm_HomeOpenSpotifyAction")]
+    [InlineData("home-repair", "Maintenance_RepairMarketplace_ButtonText")]
+    [InlineData("home-destructive", "Vm_HomeOpenMaintenanceAction")]
+    [InlineData("snapshot-error", "Vm_ShellRetryShort")]
+    public void FlaUiHomePrimaryAction_MatchesItsVisibleState(string state, string resourceKey)
+    {
+        var expectedName = Strings.ResourceManager.GetString(resourceKey, CultureInfo.GetCultureInfo("en")) ?? resourceKey;
+        WithSmokeWindow(state, window =>
+        {
+            var action = AssertControl(window, "HomePrimaryActionButton", ControlType.Button, expectedName);
+            Assert.False(string.IsNullOrWhiteSpace(action.Properties.HelpText.ValueOrDefault));
+        });
+    }
+
     [Fact]
     public void FlaUiCustomSearch_AcceptsInputAndClearButtonResetsIt()
     {

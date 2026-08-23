@@ -69,9 +69,13 @@ public sealed class WorkspaceViewCompositionTests
         Assert.Contains("{services:Loc Vm_RecommendedFirstRunReversible}", recommended);
         Assert.Contains("{services:Loc Vm_RecommendedFirstRunRisk}", recommended);
         Assert.Contains("{services:Loc Vm_SimpleHomeDuration}", recommended);
-        Assert.Contains("{Binding SimpleHomeTitle}", recommended);
-        Assert.Contains("{Binding SimpleHomeBody}", recommended);
-        Assert.Contains("{services:Loc ButtonStartRecommendedSetup}", recommended);
+        Assert.Contains("{Binding HomeAction.Title}", recommended);
+        Assert.Contains("{Binding HomeAction.Body}", recommended);
+        Assert.Contains("{Binding HomeAction.PrimaryLabel}", recommended);
+        Assert.Contains("{Binding HomeAction.IsEnabled}", recommended);
+        Assert.Contains("{Binding HomeAction.Command}", recommended);
+        Assert.Contains("AutomationProperties.Name=\"{Binding HomeAction.AutomationName}\"", recommended);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding HomeAction.HelpText}\"", recommended);
         Assert.Contains("AutomationProperties.AutomationId=\"RecommendedDetailsExpander\"", recommended);
         Assert.Contains("{Binding RecommendedFollowUpText}", recommended);
         Assert.Contains("ItemsSource=\"{Binding ShellEnvironmentRows}\"", recommended);

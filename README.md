@@ -86,7 +86,7 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 
 v4.0.0 is the first stable release of the v4 line. The desktop app and the fleet CLI leave preview, and the single-file PowerShell script ships in the same release for anyone who wants it. Everything below landed across the v4 previews and is now the released behavior.
 
-**One screen that tells you what to do.** The everyday view has three choices: Home, Maintenance, and Settings. Home gives you one readiness result, four checks, and one recommended action. First-run guidance and technical environment details stay behind the Details row until you ask for them.
+**One screen that tells you what to do.** The everyday view has three choices: Home, Maintenance, and Settings. Home gives you one readiness result, four checks, and one action chosen from the latest system check. A new setup starts the recommended path, a healthy managed stack opens Spotify, and a known problem offers its first safe repair. Recovery that could remove data opens Maintenance for review instead of running from Home. First-run guidance and technical environment details stay behind the Details row until you ask for them.
 
 **Recovery actions describe the change they make.** The action formerly called Restore vanilla Spotify removes active Spicetify customizations and says plainly that SpotX stays in place. Home says eligible changes have backups rather than promising that every change can be reversed.
 
@@ -604,9 +604,7 @@ Run the rendered WPF state matrix without activating foreground windows:
 .\tools\Invoke-WpfQaMatrix.ps1
 ```
 
-The command captures and verifies Home, Settings, Maintenance, navigation,
-readiness, Details, undo, support-bundle, profile, prompt, loading, error,
-success, and nested crash-dialog surfaces across the supported dark/high-contrast palettes
+The command captures and verifies Home setup, healthy, safe-repair, and recovery-review states, plus Settings, Maintenance, navigation, readiness, Details, undo, support-bundle, profile, prompt, loading, error, success, and nested crash-dialog surfaces across the supported dark/high-contrast palettes
 and English/Spanish locales, plus a long-text prompt in every advertised
 non-English locale. It rejects unnamed actions, clipped primary text, missing
 focus rings, incomplete renders, and mismatched capture metadata. Captures use

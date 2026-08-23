@@ -4,14 +4,36 @@ using System.IO;
 namespace LibreSpot.Desktop.Services;
 
 public sealed record SpotifyRestartResult(bool Reopened, string Message);
+public sealed record SpotifyOpenResult(bool Opened, string Message);
 
 public interface ISpotifyProcessService
 {
+    Task<SpotifyOpenResult> OpenAsync(string? preferredSpotifyPath, CancellationToken cancellationToken);
     Task<SpotifyRestartResult> RestartAsync(string? preferredSpotifyPath, TimeSpan reopenDelay, CancellationToken cancellationToken);
 }
 
 public sealed class SpotifyProcessService : ISpotifyProcessService
 {
+    public Task<SpotifyOpenResult> OpenAsync(string? preferredSpotifyPath, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var spotifyPath = ResolveSpotifyPath(preferredSpotifyPath);
+        if (spotifyPath is null)
+        {
+            return Task.FromResult(new SpotifyOpenResult(false, "LibreSpot could not find Spotify.exe to open it."));
+        }
+
+        try
+        {
+            StartThroughShell(spotifyPath);
+            return Task.FromResult(new SpotifyOpenResult(true, "Spotify opened without changing the current setup."));
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(new SpotifyOpenResult(false, $"LibreSpot could not open Spotify: {ex.Message}"));
+        }
+    }
+
     public async Task<SpotifyRestartResult> RestartAsync(string? preferredSpotifyPath, TimeSpan reopenDelay, CancellationToken cancellationToken)
     {
         var closeErrors = CloseSpotifyProcesses();

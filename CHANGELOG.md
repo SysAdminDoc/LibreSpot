@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Home now chooses one action from the latest environment snapshot. A new machine gets Recommended Setup, a healthy managed stack gets Open Spotify, and a degraded stack gets its first safe repair in critical-then-warning order. If recovery is destructive, Home opens Maintenance without running the action. Loading disables the button, Retry owns the failed-check state, and overlapping refreshes cannot restore stale copy or commands.
+
 ### Fixed
 
 - Secure Windows defaults are no longer reported as degraded health. LibreSpot no longer probes for or recommends Defender exclusions, does not tell users to turn off Smart App Control or bypass SmartScreen, and treats an antivirus detection as unresolved until the official source and same-release hash are verified. Evidence-based quarantine guidance still points to Protection History and vendor analysis, while the separate SpotX supply-chain guard continues to reject scripts that can change Defender settings.

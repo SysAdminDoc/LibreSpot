@@ -32,6 +32,118 @@ public sealed partial class MainViewModel
                     .ToArray()))
             .ToArray();
 
+    private HomeActionViewModel BuildHomeAction()
+    {
+        if (IsSnapshotLoading)
+        {
+            return new HomeActionViewModel(
+                HomeActionKind.Checking,
+                "Checking",
+                L("Vm_SimpleHomeCheckingTitle"),
+                L("Vm_SimpleHomeCheckingBody"),
+                L("Vm_HomeCheckingAction"),
+                null,
+                false,
+                L("Vm_HomeCheckingAction"),
+                L("Vm_SimpleHomeCheckingBody"),
+                HealthSeverity.Info,
+                false);
+        }
+
+        if (HasSnapshotLoadError)
+        {
+            return new HomeActionViewModel(
+                HomeActionKind.Retry,
+                "Retry",
+                L("Vm_SimpleHomeUnavailableTitle"),
+                L("Vm_SimpleHomeUnavailableBody"),
+                L("Vm_ShellRetryShort"),
+                RefreshSnapshotCommand,
+                RefreshSnapshotCommand.CanExecute(null),
+                L("Vm_ShellRetryShort"),
+                L("ButtonRefreshEnvironmentHint"),
+                HealthSeverity.Warning,
+                false);
+        }
+
+        var actionableIssues = HealthReport.CriticalIssues
+            .Concat(HealthReport.WarningIssues)
+            .SelectMany(component => component.RecommendedActionIds
+                .Select(BuildHealthIssueAction)
+                .OfType<HealthIssueActionViewModel>()
+                .Select(action => (Component: component, Action: action)))
+            .ToArray();
+        var safeAction = actionableIssues.FirstOrDefault(candidate => !candidate.Action.IsDestructive);
+        if (safeAction.Action is not null)
+        {
+            return new HomeActionViewModel(
+                HomeActionKind.HealthRepair,
+                safeAction.Action.Action,
+                safeAction.Component.Status,
+                safeAction.Component.Evidence,
+                safeAction.Action.ButtonText,
+                safeAction.Action.Command,
+                safeAction.Action.Command.CanExecute(null),
+                safeAction.Action.ButtonText,
+                safeAction.Action.Description,
+                safeAction.Component.Severity,
+                false);
+        }
+
+        var spotX = HealthComponent("spotx");
+        var managedStackIsHealthy = Snapshot.SpotifyInstalled &&
+            Snapshot.SpicetifyInstalled &&
+            spotX?.Severity == HealthSeverity.Ready &&
+            actionableIssues.Length == 0;
+        if (managedStackIsHealthy)
+        {
+            return new HomeActionViewModel(
+                HomeActionKind.OpenSpotify,
+                "OpenSpotify",
+                L("Vm_HomeManagedReadyTitle"),
+                L("Vm_HomeManagedReadyBody"),
+                L("Vm_HomeOpenSpotifyAction"),
+                OpenSpotifyCommand,
+                OpenSpotifyCommand.CanExecute(null),
+                L("Vm_HomeOpenSpotifyAction"),
+                L("Vm_HomeOpenSpotifyHelp"),
+                HealthSeverity.Ready,
+                false);
+        }
+
+        var destructiveAction = actionableIssues.FirstOrDefault(candidate => candidate.Action.IsDestructive);
+        if (destructiveAction.Action is not null)
+        {
+            return new HomeActionViewModel(
+                HomeActionKind.Maintenance,
+                "Maintenance",
+                L("Vm_SimpleHomeAttentionTitle"),
+                L("Vm_HomeDestructiveOnlyBody"),
+                L("Vm_HomeOpenMaintenanceAction"),
+                ShowMaintenanceWorkspaceCommand,
+                ShowMaintenanceWorkspaceCommand.CanExecute(null),
+                L("Vm_HomeOpenMaintenanceAction"),
+                L("Vm_HomeOpenMaintenanceHelp"),
+                destructiveAction.Component.Severity,
+                false);
+        }
+
+        return new HomeActionViewModel(
+            HomeActionKind.RecommendedSetup,
+            "Install",
+            L("Vm_SimpleHomeReadyTitle"),
+            Snapshot.SpotifyInstalled
+                ? L("Vm_SimpleHomeReadyBody")
+                : L("Vm_SimpleHomeInstallBody"),
+            L("ButtonStartRecommendedSetup"),
+            ApplyRecommendedCommand,
+            ApplyRecommendedCommand.CanExecute(null),
+            L("ButtonStartRecommendedSetup"),
+            L("Ui_RunsLibreSpotSMostReliableInstallPathWith"),
+            HealthSeverity.Ready,
+            true);
+    }
+
     private HealthIssueActionViewModel? BuildHealthIssueAction(string action)
     {
         var maintenanceCard = _maintenanceActions.Find(action);
@@ -564,4 +676,3 @@ public sealed partial class MainViewModel
             summaryBody);
     }
 }
-

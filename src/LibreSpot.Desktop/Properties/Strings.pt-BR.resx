@@ -2061,6 +2061,14 @@
   <data name="ShellJumpHomeDescription" xml:space="preserve"><value>Verifique este computador e aplique a configuração compatível.</value><comment>Jump List tooltip for the Home task</comment></data>
   <data name="ShellJumpSettingsDescription" xml:space="preserve"><value>Escolha temas, extensões e opções de instalação.</value><comment>Jump List tooltip for the Settings task</comment></data>
   <data name="ButtonStartRecommendedSetup" xml:space="preserve"><value>Iniciar configuração recomendada</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_HomeCheckingAction" xml:space="preserve"><value>Verificando…</value><comment>Disabled Home action while the environment snapshot loads</comment></data>
+  <data name="Vm_HomeManagedReadyTitle" xml:space="preserve"><value>O Spotify está pronto</value><comment>Home title when the managed stack is healthy</comment></data>
+  <data name="Vm_HomeManagedReadyBody" xml:space="preserve"><value>Spotify, SpotX e Spicetify estão funcionando corretamente. Abra o Spotify sem executar a configuração novamente.</value><comment>Home detail when the managed stack is healthy</comment></data>
+  <data name="Vm_HomeOpenSpotifyAction" xml:space="preserve"><value>Abrir o Spotify</value><comment>Home primary action for a healthy managed stack</comment></data>
+  <data name="Vm_HomeOpenSpotifyHelp" xml:space="preserve"><value>Abre o Spotify sem alterar a configuração verificada.</value><comment>Accessibility help for the healthy Home action</comment></data>
+  <data name="Vm_HomeOpenMaintenanceAction" xml:space="preserve"><value>Abrir Manutenção</value><comment>Home primary action when only destructive recovery is available</comment></data>
+  <data name="Vm_HomeOpenMaintenanceHelp" xml:space="preserve"><value>Abre as ferramentas de reparo sem executar uma ação destrutiva.</value><comment>Accessibility help for the destructive-only Home state</comment></data>
+  <data name="Vm_HomeDestructiveOnlyBody" xml:space="preserve"><value>O LibreSpot encontrou um problema que exige uma decisão de recuperação. Abra Manutenção para revisar. Nada será removido automaticamente.</value><comment>Home detail when only destructive recovery is available</comment></data>
   <data name="Vm_SimpleHomeReadyTitle" xml:space="preserve"><value>Tudo pronto para começar</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeReadyBody" xml:space="preserve"><value>O Spotify está instalado e a configuração recomendada está disponível.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeInstallBody" xml:space="preserve"><value>O LibreSpot está pronto para instalar a configuração compatível do Spotify.</value><comment>MainViewModel localized runtime text.</comment></data>

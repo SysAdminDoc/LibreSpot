@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P1: RD-127: Make Home choose the next safe action from current health state
-  Why: Home changes its message for loading and critical states, but its only primary button always runs Recommended Setup, including after the managed stack is already healthy.
-  Evidence: `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:363-385`; `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml:364-387`; `src/LibreSpot.Desktop/ViewModels/MainViewModel.Maintenance.cs:23-80`; BetterDiscord Installer and UniGetUI in `RESEARCH.md` Competitive Landscape.
-  Touches: `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs`, `src/LibreSpot.Desktop/ViewModels/MainViewModel.Maintenance.cs`, `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml`, `src/LibreSpot.Desktop/Services/SpotifyProcessService.cs`, localized resources, desktop tests, screenshots, `README.md`.
-  Acceptance: A single state-derived model owns Home title, body, primary label, command, enabled state, automation name, and help text. Loading disables the action; snapshot failure offers Retry; an unmanaged valid machine offers Recommended Setup; a snapshot with Spotify present, SpotX verified, Spicetify installed, and no actionable critical or warning issue offers Open Spotify without rerunning setup. Otherwise, Home takes the first non-destructive action in existing critical-then-warning issue order; a state with only destructive recovery available navigates to Maintenance without executing it. Table-driven tests cover every state and command, rapid snapshot refresh cannot leave stale text or command bindings, UI Automation properties match the visible action, and the Home capture is refreshed.
-  Complexity: M
-
 - [ ] P1: RD-128: Put Maintenance status and safe repair before diagnostics
   Why: A degraded machine currently shows environment cards and the compatibility matrix before the user can reach any repair action, even though typed issue-specific actions already exist.
   Evidence: `assets/screenshots/wpf-maintenance.png`; `src/LibreSpot.Desktop/Views/MaintenanceWorkspaceView.xaml:50-180`, `:423-450`; `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:657-660`; `src/LibreSpot.Desktop/ViewModels/MainViewModel.Maintenance.cs:23-80`; Microsoft Repair-before-Reset and progressive-disclosure sources in `RESEARCH.md`.

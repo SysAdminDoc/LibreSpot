@@ -33,7 +33,7 @@ public sealed class WpfQaMatrixTests
     {
         var surfaces = new (string State, string ExpectedResource, string FocusTarget)[]
         {
-            ("recommended", "ButtonStartRecommendedSetup", "RunRecommendedSetupButton"),
+            ("recommended", "ButtonStartRecommendedSetup", "HomePrimaryActionButton"),
             ("custom", "ButtonApplyCustomProfile", "ApplyCustomProfileButton"),
             ("maintenance", "Maintenance_CheckUpdates_ButtonText", "MaintenanceAction_CheckUpdates"),
             ("maintenance-compatibility", "CompatibilityVerdictTitle", "WorkspaceNavMaintenance"),
@@ -45,11 +45,14 @@ public sealed class WpfQaMatrixTests
             ("home-details", "Vm_SimpleHomeDetails", "RecommendedDetailsExpander"),
             ("prompt-destructive", "PromptActionReset", "PromptCancelButton"),
             ("activity-running", "Ui_RunState", "ActivityCancelRunButton"),
-            ("reduced-motion", "ButtonStartRecommendedSetup", "RunRecommendedSetupButton"),
+            ("reduced-motion", "ButtonStartRecommendedSetup", "HomePrimaryActionButton"),
             ("custom-no-results", "SearchNoResults", "SettingsSearchClearButton"),
-            ("home-readiness", "Vm_SimpleHomeReadyTitle", "RunRecommendedSetupButton"),
+            ("home-readiness", "Vm_SimpleHomeReadyTitle", "HomePrimaryActionButton"),
+            ("home-healthy", "Vm_HomeOpenSpotifyAction", "HomePrimaryActionButton"),
+            ("home-repair", "Maintenance_RepairMarketplace_ButtonText", "HomePrimaryActionButton"),
+            ("home-destructive", "Vm_HomeOpenMaintenanceAction", "HomePrimaryActionButton"),
             ("snapshot-loading", "Vm_SimpleHomeCheckingTitle", "WorkspaceNavRecommended"),
-            ("snapshot-error", "Vm_SimpleHomeUnavailableTitle", "RetrySystemCheckButton"),
+            ("snapshot-error", "Vm_SimpleHomeUnavailableTitle", "HomePrimaryActionButton"),
             ("activity-error", "RunNeedsAttention", "ActivityExportFailureBundleButton"),
             ("activity", "Ui_CloseActivityPanel", "ActivityCloseButton")
         };
@@ -73,7 +76,7 @@ public sealed class WpfQaMatrixTests
 
         if (quick)
         {
-            data.Add("recommended", themes[1], cultures[1], "ButtonStartRecommendedSetup", "RunRecommendedSetupButton");
+            data.Add("recommended", themes[1], cultures[1], "ButtonStartRecommendedSetup", "HomePrimaryActionButton");
         }
 
         foreach (var culture in new[] { "es", "pt-BR", "ru", "zh-Hans" })

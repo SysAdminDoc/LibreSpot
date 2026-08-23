@@ -295,19 +295,165 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
-    public Task SimpleHomeCopy_TracksLoadingAndUnavailableStates() =>
+    public Task HomeAction_TracksLoadingAndUnavailableStates() =>
         RunStaAsync(async () =>
         {
             using var fixture = new SnapshotFixture();
             using var viewModel = await fixture.CreateInitializedViewModelAsync();
 
             viewModel.ApplyUiAutomationSmokeState("snapshot-loading");
-            Assert.Equal(Strings.ResourceManager.GetString("Vm_SimpleHomeCheckingTitle"), viewModel.SimpleHomeTitle);
-            Assert.Equal(Strings.ResourceManager.GetString("Vm_SimpleHomeCheckingBody"), viewModel.SimpleHomeBody);
+            Assert.Equal(HomeActionKind.Checking, viewModel.HomeAction.Kind);
+            Assert.Equal(Strings.ResourceManager.GetString("Vm_SimpleHomeCheckingTitle"), viewModel.HomeAction.Title);
+            Assert.Equal(Strings.ResourceManager.GetString("Vm_SimpleHomeCheckingBody"), viewModel.HomeAction.Body);
+            Assert.False(viewModel.HomeAction.IsEnabled);
 
             viewModel.ApplyUiAutomationSmokeState("snapshot-error");
-            Assert.Equal(Strings.ResourceManager.GetString("Vm_SimpleHomeUnavailableTitle"), viewModel.SimpleHomeTitle);
-            Assert.Equal(Strings.ResourceManager.GetString("Vm_SimpleHomeUnavailableBody"), viewModel.SimpleHomeBody);
+            Assert.Equal(HomeActionKind.Retry, viewModel.HomeAction.Kind);
+            Assert.Equal(Strings.ResourceManager.GetString("Vm_SimpleHomeUnavailableTitle"), viewModel.HomeAction.Title);
+            Assert.Equal(Strings.ResourceManager.GetString("Vm_SimpleHomeUnavailableBody"), viewModel.HomeAction.Body);
+            Assert.Same(viewModel.RefreshSnapshotCommand, viewModel.HomeAction.Command);
+        });
+
+    [Fact]
+    public Task HomeAction_SelectsTheFirstSafeStateDerivedCommand() =>
+        RunStaAsync(async () =>
+        {
+            var cases = new[]
+            {
+                new
+                {
+                    Name = "unmanaged",
+                    Snapshot = UnmanagedSnapshot(),
+                    Kind = HomeActionKind.RecommendedSetup,
+                    ActionId = "Install",
+                    Command = "recommended"
+                },
+                new
+                {
+                    Name = "healthy",
+                    Snapshot = HealthySnapshot(),
+                    Kind = HomeActionKind.OpenSpotify,
+                    ActionId = "OpenSpotify",
+                    Command = "open"
+                },
+                new
+                {
+                    Name = "critical-safe-first",
+                    Snapshot = SnapshotWithIssues(
+                        Component("spotx", HealthSeverity.Critical, "Reapply", "FullReset"),
+                        Component("marketplace", HealthSeverity.Warning, "RepairMarketplace")),
+                    Kind = HomeActionKind.HealthRepair,
+                    ActionId = "Reapply",
+                    Command = "Reapply"
+                },
+                new
+                {
+                    Name = "warning-safe",
+                    Snapshot = SnapshotWithIssues(
+                        Component("marketplace", HealthSeverity.Warning, "RepairMarketplace")),
+                    Kind = HomeActionKind.HealthRepair,
+                    ActionId = "RepairMarketplace",
+                    Command = "RepairMarketplace"
+                },
+                new
+                {
+                    Name = "destructive-only",
+                    Snapshot = SnapshotWithIssues(
+                        Component("ownership", HealthSeverity.Critical, "FullReset")),
+                    Kind = HomeActionKind.Maintenance,
+                    ActionId = "Maintenance",
+                    Command = "maintenance"
+                }
+            };
+
+            foreach (var item in cases)
+            {
+                using var fixture = new SnapshotFixture();
+                using var viewModel = await fixture.CreateInitializedViewModelAsync(
+                    snapshotLoader: _ => Task.FromResult(item.Snapshot));
+
+                var action = viewModel.HomeAction;
+                Assert.Equal(item.Kind, action.Kind);
+                Assert.Equal(item.ActionId, action.ActionId);
+                Assert.False(string.IsNullOrWhiteSpace(action.Title));
+                Assert.False(string.IsNullOrWhiteSpace(action.Body));
+                Assert.Equal(action.PrimaryLabel, action.AutomationName);
+                Assert.False(string.IsNullOrWhiteSpace(action.HelpText));
+                Assert.True(action.IsEnabled, item.Name);
+
+                System.Windows.Input.ICommand expectedCommand = item.Command switch
+                {
+                    "recommended" => viewModel.ApplyRecommendedCommand,
+                    "open" => viewModel.OpenSpotifyCommand,
+                    "maintenance" => viewModel.ShowMaintenanceWorkspaceCommand,
+                    _ => Card(viewModel, item.Command).Command
+                };
+                Assert.Same(expectedCommand, action.Command);
+
+                if (item.Kind == HomeActionKind.Maintenance)
+                {
+                    Assert.Equal(
+                        Strings.ResourceManager.GetString("Vm_HomeDestructiveOnlyBody"),
+                        action.Body);
+                    Assert.Contains("Nothing will be removed automatically", action.Body, StringComparison.Ordinal);
+                    Assert.Equal(0, viewModel.SelectedWorkspaceIndex);
+                    action.Command!.Execute(null);
+                    Assert.Equal(2, viewModel.SelectedWorkspaceIndex);
+                }
+            }
+        });
+
+    [Fact]
+    public Task HomeAction_OpenSpotifyDoesNotRerunSetup() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            var spotify = new RecordingSpotifyProcessService();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync(
+                spotifyProcessService: spotify,
+                snapshotLoader: _ => Task.FromResult(HealthySnapshot()));
+
+            await viewModel.OpenSpotifyCommand.ExecuteAsync(null);
+
+            Assert.Equal(1, spotify.OpenCalls);
+            Assert.Equal(0, spotify.RestartCalls);
+            Assert.Equal(HomeActionKind.OpenSpotify, viewModel.HomeAction.Kind);
+        });
+
+    [Fact]
+    public Task HomeAction_RapidSnapshotRefreshKeepsTheLatestTextAndCommand() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            var slow = new TaskCompletionSource<EnvironmentSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var fast = new TaskCompletionSource<EnvironmentSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var calls = 0;
+            Task<EnvironmentSnapshot> LoadSnapshot(string _) => Interlocked.Increment(ref calls) switch
+            {
+                1 => Task.FromResult(UnmanagedSnapshot()),
+                2 => slow.Task,
+                3 => fast.Task,
+                _ => throw new InvalidOperationException("Unexpected snapshot request")
+            };
+
+            using var viewModel = await fixture.CreateInitializedViewModelAsync(snapshotLoader: LoadSnapshot);
+            var slowRefresh = InvokePrivateTask(viewModel, "RefreshSnapshotAsync");
+            var fastRefresh = InvokePrivateTask(viewModel, "RefreshSnapshotAsync");
+
+            fast.SetResult(HealthySnapshot());
+            await fastRefresh;
+            slow.SetResult(UnmanagedSnapshot());
+            await slowRefresh;
+
+            Assert.Equal(3, calls);
+            Assert.True(viewModel.Snapshot.SpotifyInstalled);
+            Assert.Equal(HomeActionKind.OpenSpotify, viewModel.HomeAction.Kind);
+            Assert.Same(viewModel.OpenSpotifyCommand, viewModel.HomeAction.Command);
+            Assert.Equal(
+                Strings.ResourceManager.GetString("Vm_HomeOpenSpotifyAction"),
+                viewModel.HomeAction.PrimaryLabel);
+            Assert.False(viewModel.IsSnapshotLoading);
+            Assert.False(viewModel.HasSnapshotLoadError);
         });
 
     [Fact]
@@ -639,6 +785,48 @@ public sealed class MainViewModelMaintenanceTests
             Assert.False(viewModel.HasGlobalSearchResults);
         });
 
+    private static EnvironmentSnapshot UnmanagedSnapshot() => new()
+    {
+        HealthReport = new StackHealthReport(
+        [
+            Component("spotify", HealthSeverity.Info, "Install"),
+            Component("spotx", HealthSeverity.Info, "Install"),
+            Component("spicetify-cli", HealthSeverity.Info, "Install")
+        ])
+    };
+
+    private static EnvironmentSnapshot HealthySnapshot() => new()
+    {
+        SpotifyInstalled = true,
+        SpicetifyInstalled = true,
+        HealthReport = new StackHealthReport(
+        [
+            Component("spotify", HealthSeverity.Ready),
+            Component("spotx", HealthSeverity.Ready),
+            Component("spicetify-cli", HealthSeverity.Ready),
+            Component("advisory", HealthSeverity.Warning)
+        ])
+    };
+
+    private static EnvironmentSnapshot SnapshotWithIssues(params StackHealthComponent[] issues) => new()
+    {
+        SpotifyInstalled = true,
+        SpicetifyInstalled = true,
+        HealthReport = new StackHealthReport(issues)
+    };
+
+    private static StackHealthComponent Component(string id, string severity, params string[] actions) =>
+        new(
+            id,
+            $"{id} check",
+            $"{id} status",
+            severity,
+            null,
+            null,
+            null,
+            $"{id} evidence",
+            actions);
+
     private static MaintenanceActionCardViewModel Card(MainViewModel viewModel, string action) =>
         viewModel.SafeMaintenanceActions
             .Concat(viewModel.DestructiveMaintenanceActions)
@@ -733,7 +921,8 @@ public sealed class MainViewModelMaintenanceTests
             string? spotifyVersion = null,
             string? spicetifyVersion = null,
             ISpotifyProcessService? spotifyProcessService = null,
-            bool noBackendMode = false)
+            bool noBackendMode = false,
+            Func<string, Task<EnvironmentSnapshot>>? snapshotLoader = null)
         {
             var viewModel = new MainViewModel(
                 new ConfigurationService(ConfigDirectory),
@@ -751,7 +940,8 @@ public sealed class MainViewModelMaintenanceTests
                     upstreamDriftProbe: () => UpstreamDriftReport.Empty,
                     communityAssetDriftProbe: () => CommunityAssetDriftReport.Empty),
                 new SupportBundleService(ConfigDirectory, RollingLogDirectory, CrashDirectory),
-                spotifyProcessService: spotifyProcessService);
+                spotifyProcessService: spotifyProcessService,
+                snapshotLoader: snapshotLoader);
 
             await viewModel.InitializeAsync();
             return viewModel;
@@ -866,8 +1056,17 @@ public sealed class MainViewModelMaintenanceTests
 
     private sealed class RecordingSpotifyProcessService : ISpotifyProcessService
     {
+        public int OpenCalls { get; private set; }
         public int RestartCalls { get; private set; }
         public TimeSpan? LastReopenDelay { get; private set; }
+
+        public Task<SpotifyOpenResult> OpenAsync(
+            string? preferredSpotifyPath,
+            CancellationToken cancellationToken)
+        {
+            OpenCalls++;
+            return Task.FromResult(new SpotifyOpenResult(true, "Spotify opened without changing the current setup."));
+        }
 
         public Task<SpotifyRestartResult> RestartAsync(
             string? preferredSpotifyPath,

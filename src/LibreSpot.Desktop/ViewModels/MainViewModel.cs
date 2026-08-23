@@ -22,7 +22,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 {
     private readonly ConfigurationService _configurationService;
     private readonly BackendScriptService _backendScriptService;
-    private readonly EnvironmentSnapshotService _snapshotService;
+    private readonly Func<string, Task<EnvironmentSnapshot>> _snapshotLoader;
     private readonly SupportBundleService _supportBundleService;
     private readonly OperationJournalUndoService _operationJournalUndoService;
     private readonly LocalProfileService _profileService;
@@ -48,6 +48,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private DateTimeOffset? _lastRunStartedAt;
     private DateTimeOffset? _lastRunCompletedAt;
     private int _shellLogFilterIndex;
+    private int _snapshotRequestVersion;
     private bool _isSnapshotLoading = true;
     private bool _snapshotLoadFailed;
 
@@ -92,11 +93,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         LocalProfileService? profileService = null,
         CustomPatchService? customPatchService = null,
         LocalizationService? localizationService = null,
-        ISpotifyProcessService? spotifyProcessService = null)
+        ISpotifyProcessService? spotifyProcessService = null,
+        Func<string, Task<EnvironmentSnapshot>>? snapshotLoader = null)
     {
         _configurationService = configurationService;
         _backendScriptService = backendScriptService;
-        _snapshotService = snapshotService;
+        _snapshotLoader = snapshotLoader ?? snapshotService.GetSnapshotAsync;
         _supportBundleService = supportBundleService ?? new SupportBundleService(configurationService.ConfigDirectory);
         _operationJournalUndoService = operationJournalUndoService ?? new OperationJournalUndoService();
         _profileService = profileService ?? new LocalProfileService(configurationService);
@@ -147,6 +149,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         ApplyRecommendedCommand = CreateAsyncCommand(ApplyRecommendedAsync, () => !IsRunning && IsEnvironmentReadyForActions);
         ApplyCustomCommand = CreateAsyncCommand(ApplyCustomAsync, () => !IsRunning && IsEnvironmentReadyForActions);
+        OpenSpotifyCommand = CreateAsyncCommand(OpenSpotifyAsync, () => !IsRunning && IsEnvironmentReadyForActions && Snapshot.SpotifyInstalled);
         CancelRunCommand = new RelayCommand(CancelRunningBackend, () => IsRunning && !IsCancelRequested);
         DismissActivityCommand = new RelayCommand(DismissActivity, () => IsActivityVisible && !IsRunning);
         CopyOperationIdCommand = new RelayCommand(CopyOperationId, () => HasActivityOperationId);
@@ -243,6 +246,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public IAsyncRelayCommand ApplyRecommendedCommand { get; }
     public IAsyncRelayCommand ApplyCustomCommand { get; }
+    public IAsyncRelayCommand OpenSpotifyCommand { get; }
     public RelayCommand CancelRunCommand { get; }
     public RelayCommand DismissActivityCommand { get; }
     public RelayCommand CopyOperationIdCommand { get; }
@@ -363,26 +367,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public bool IsSnapshotLoading => _isSnapshotLoading;
     public bool HasSnapshotLoadError => _snapshotLoadFailed;
     public bool IsEnvironmentReadyForActions => !IsSnapshotLoading && !HasSnapshotLoadError;
-
-    public string SimpleHomeTitle =>
-        IsSnapshotLoading
-            ? L("Vm_SimpleHomeCheckingTitle")
-            : HasSnapshotLoadError
-                ? L("Vm_SimpleHomeUnavailableTitle")
-                : HasCriticalHealthIssues
-                    ? L("Vm_SimpleHomeAttentionTitle")
-                    : L("Vm_SimpleHomeReadyTitle");
-
-    public string SimpleHomeBody =>
-        IsSnapshotLoading
-            ? L("Vm_SimpleHomeCheckingBody")
-            : HasSnapshotLoadError
-                ? L("Vm_SimpleHomeUnavailableBody")
-                : HasCriticalHealthIssues
-                    ? L("Vm_SimpleHomeAttentionBody")
-                    : Snapshot.SpotifyInstalled
-                        ? L("Vm_SimpleHomeReadyBody")
-                        : L("Vm_SimpleHomeInstallBody");
+    public HomeActionViewModel HomeAction => BuildHomeAction();
 
     public IReadOnlyList<ShellReadinessCheckItemViewModel> SimpleHomeReadinessChecks
     {
@@ -1475,6 +1460,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         ApplyRecommendedCommand.NotifyCanExecuteChanged();
         ApplyCustomCommand.NotifyCanExecuteChanged();
+        OpenSpotifyCommand.NotifyCanExecuteChanged();
         CancelRunCommand.NotifyCanExecuteChanged();
         DismissActivityCommand.NotifyCanExecuteChanged();
         EnableAutoReapplyCommand.NotifyCanExecuteChanged();
@@ -1532,8 +1518,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShellReadinessChecks));
         OnPropertyChanged(nameof(SimpleHomeReadinessChecks));
         OnPropertyChanged(nameof(ShellReadinessPercent));
-        OnPropertyChanged(nameof(SimpleHomeTitle));
-        OnPropertyChanged(nameof(SimpleHomeBody));
+        OnPropertyChanged(nameof(HomeAction));
         OnPropertyChanged(nameof(WorkspaceHeroBody));
     }
 
@@ -1811,6 +1796,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public void ApplyInitializationFailure()
     {
+        Interlocked.Increment(ref _snapshotRequestVersion);
         SetSnapshotQueryState(isLoading: false, loadFailed: true);
         AppendLog(L("Vm_ShellSnapshotUnavailableDetail"), "ERROR");
     }
@@ -2027,6 +2013,22 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             try { Application.Current?.Shutdown(); } catch { }
         };
         timer.Start();
+    }
+
+    private async Task OpenSpotifyAsync()
+    {
+        var result = await _spotifyProcessService.OpenAsync(
+            HealthComponent("spotify")?.Path,
+            CancellationToken.None);
+
+        AppendLog(result.Message, result.Opened ? "INFO" : "WARN");
+        if (!result.Opened)
+        {
+            ShowNotice(
+                Strings.RunNeedsAttention,
+                result.Message,
+                L("Vm_SpotifyRestartSkipped"));
+        }
     }
 
     private async Task RestartSpotifyAfterSuccessfulRunAsync(
@@ -2279,17 +2281,27 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private async Task RefreshSnapshotAsync()
     {
+        var requestVersion = Interlocked.Increment(ref _snapshotRequestVersion);
         SetSnapshotQueryState(isLoading: true, loadFailed: false);
         try
         {
-            _environmentState.Update(
-                await _snapshotService.GetSnapshotAsync(_configurationService.ConfigPath),
-                DateTime.Now);
+            var snapshot = await _snapshotLoader(_configurationService.ConfigPath);
+            if (requestVersion != Volatile.Read(ref _snapshotRequestVersion))
+            {
+                return;
+            }
+
+            _environmentState.Update(snapshot, DateTime.Now);
             SetSnapshotQueryState(isLoading: false, loadFailed: false);
             RaiseSnapshotInsightsChanged();
         }
         catch (Exception ex)
         {
+            if (requestVersion != Volatile.Read(ref _snapshotRequestVersion))
+            {
+                return;
+            }
+
             Serilog.Log.Warning(ex, "Environment snapshot refresh failed");
             SetSnapshotQueryState(isLoading: false, loadFailed: true);
             AppendLog(L("Vm_ShellSnapshotUnavailableDetail"), "ERROR");
@@ -2561,6 +2573,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public void ApplyUiAutomationSmokeState(string state)
     {
         var normalizedState = state.Trim().ToLowerInvariant();
+        if (normalizedState is "recommended" or "home-navigation" or "home-details" or "home-readiness" or "reduced-motion")
+        {
+            ApplyUiAutomationHomeSnapshot("unmanaged");
+        }
+        else if (normalizedState is "home-healthy" or "home-repair" or "home-destructive")
+        {
+            ApplyUiAutomationHomeSnapshot(normalizedState);
+        }
+
         if (normalizedState is "recommended" or "custom" or "maintenance" or "maintenance-compatibility" or "provenance" or "profile" or "support-bundle" or "activity-collapsed")
         {
             SeedUiAutomationActivityLog();
@@ -2597,6 +2618,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 SelectedWorkspaceIndex = 0;
                 ClearLog();
                 SetSnapshotQueryState(isLoading: false, loadFailed: true);
+                break;
+            case "home-healthy":
+            case "home-repair":
+            case "home-destructive":
+                SelectedWorkspaceIndex = 0;
                 break;
             case "custom-no-results":
                 SelectedWorkspaceIndex = 1;
@@ -2692,6 +2718,85 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 SelectedWorkspaceIndex = 0;
                 break;
         }
+    }
+
+    private void ApplyUiAutomationHomeSnapshot(string state)
+    {
+        StackHealthComponent Component(
+            string id,
+            string nameKey,
+            string statusKey,
+            string severity,
+            string evidenceKey,
+            params string[] actions) =>
+            new(
+                id,
+                L(nameKey),
+                L(statusKey),
+                severity,
+                null,
+                null,
+                null,
+                L(evidenceKey),
+                actions);
+
+        var readyComponents = new[]
+        {
+            Component("spotify", "HealthNameSpotify", "HealthStatusDetected", HealthSeverity.Ready, "HealthEvidenceSpotifyDetected"),
+            Component("spotx", "HealthNameSpotXPatch", "HealthStatusVerified", HealthSeverity.Ready, "HealthEvidenceSpotXVerified"),
+            Component("spicetify-cli", "HealthNameSpicetifyCli", "HealthStatusDetected", HealthSeverity.Ready, "HealthEvidenceSpicetifyCliDetected")
+        };
+
+        var snapshot = state switch
+        {
+            "home-healthy" => new EnvironmentSnapshot
+            {
+                SpotifyInstalled = true,
+                SpicetifyInstalled = true,
+                HealthReport = new StackHealthReport(readyComponents)
+            },
+            "home-repair" => new EnvironmentSnapshot
+            {
+                SpotifyInstalled = true,
+                SpicetifyInstalled = true,
+                MarketplaceFilesPresent = true,
+                MarketplaceRegistered = true,
+                HealthReport = new StackHealthReport(readyComponents.Append(
+                    Component(
+                        "marketplace",
+                        "HealthNameMarketplace",
+                        "HealthStatusMarketplaceThemeInactive",
+                        HealthSeverity.Warning,
+                        "HealthEvidenceMarketplaceThemeInactive",
+                        "RepairMarketplace")))
+            },
+            "home-destructive" => new EnvironmentSnapshot
+            {
+                SpotifyInstalled = true,
+                SpicetifyInstalled = true,
+                HealthReport = new StackHealthReport(readyComponents.Append(
+                    Component(
+                        "patcher-ownership",
+                        "HealthNamePatcherOwnership",
+                        "HealthStatusOwnershipForeign",
+                        HealthSeverity.Critical,
+                        "Maintenance_FullReset_Description",
+                        "FullReset")))
+            },
+            _ => new EnvironmentSnapshot
+            {
+                HealthReport = new StackHealthReport(
+                [
+                    Component("spotify", "HealthNameSpotify", "HealthStatusNotInstalled", HealthSeverity.Info, "HealthEvidenceSpotifyMissing", "Install"),
+                    Component("spotx", "HealthNameSpotXPatch", "HealthStatusNotChecked", HealthSeverity.Info, "HealthEvidenceSpotXNotChecked", "Install"),
+                    Component("spicetify-cli", "HealthNameSpicetifyCli", "HealthStatusNotInstalled", HealthSeverity.Info, "HealthEvidenceSpicetifyCliMissing", "Install")
+                ])
+            }
+        };
+
+        _environmentState.Update(snapshot, DateTime.Now);
+        SetSnapshotQueryState(isLoading: false, loadFailed: false);
+        RaiseSnapshotInsightsChanged();
     }
 
     private void SeedUiAutomationActivityLog()

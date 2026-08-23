@@ -808,6 +808,14 @@
   <data name="ShellJumpHomeDescription" xml:space="preserve"><value>Check this PC and apply the supported setup.</value><comment>Jump List tooltip for the Home task</comment></data>
   <data name="ShellJumpSettingsDescription" xml:space="preserve"><value>Choose themes, extensions, and install options.</value><comment>Jump List tooltip for the Settings task</comment></data>
   <data name="ButtonStartRecommendedSetup" xml:space="preserve"><value>Start recommended setup</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_HomeCheckingAction" xml:space="preserve"><value>Checking…</value><comment>Disabled Home action while the environment snapshot loads</comment></data>
+  <data name="Vm_HomeManagedReadyTitle" xml:space="preserve"><value>Spotify is ready</value><comment>Home title when the managed stack is healthy</comment></data>
+  <data name="Vm_HomeManagedReadyBody" xml:space="preserve"><value>Spotify, SpotX, and Spicetify are healthy. Open Spotify without running setup again.</value><comment>Home detail when the managed stack is healthy</comment></data>
+  <data name="Vm_HomeOpenSpotifyAction" xml:space="preserve"><value>Open Spotify</value><comment>Home primary action for a healthy managed stack</comment></data>
+  <data name="Vm_HomeOpenSpotifyHelp" xml:space="preserve"><value>Opens Spotify without changing the verified setup.</value><comment>Accessibility help for the healthy Home action</comment></data>
+  <data name="Vm_HomeOpenMaintenanceAction" xml:space="preserve"><value>Open Maintenance</value><comment>Home primary action when only destructive recovery is available</comment></data>
+  <data name="Vm_HomeOpenMaintenanceHelp" xml:space="preserve"><value>Opens repair tools without running a destructive action.</value><comment>Accessibility help for the destructive-only Home state</comment></data>
+  <data name="Vm_HomeDestructiveOnlyBody" xml:space="preserve"><value>LibreSpot found a problem that needs a recovery decision. Open Maintenance to review it. Nothing will be removed automatically.</value><comment>Home detail when only destructive recovery is available</comment></data>
   <data name="Vm_SimpleHomeReadyTitle" xml:space="preserve"><value>You're ready to start</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeReadyBody" xml:space="preserve"><value>Spotify is installed and the recommended setup is available.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeInstallBody" xml:space="preserve"><value>LibreSpot is ready to install the supported Spotify setup.</value><comment>MainViewModel localized runtime text.</comment></data>

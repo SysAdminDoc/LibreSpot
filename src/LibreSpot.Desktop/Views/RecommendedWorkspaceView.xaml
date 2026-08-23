@@ -285,15 +285,15 @@
             <Style TargetType="Ellipse">
               <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
               <Style.Triggers>
-                <DataTrigger Binding="{Binding IsSnapshotLoading}" Value="True">
+                <DataTrigger Binding="{Binding HomeAction.Tone}" Value="info">
                   <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
                   <Setter Property="Effect" Value="{x:Null}" />
                 </DataTrigger>
-                <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
+                <DataTrigger Binding="{Binding HomeAction.Tone}" Value="warning">
                   <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
                   <Setter Property="Effect" Value="{x:Null}" />
                 </DataTrigger>
-                <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
+                <DataTrigger Binding="{Binding HomeAction.Tone}" Value="critical">
                   <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
                   <Setter Property="Effect" Value="{x:Null}" />
                 </DataTrigger>
@@ -309,15 +309,15 @@
               <Setter Property="Symbol" Value="Checkmark48" />
               <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
               <Style.Triggers>
-                <DataTrigger Binding="{Binding IsSnapshotLoading}" Value="True">
+                <DataTrigger Binding="{Binding HomeAction.Tone}" Value="info">
                   <Setter Property="Symbol" Value="Clock48" />
                   <Setter Property="Foreground" Value="{DynamicResource InfoBrush}" />
                 </DataTrigger>
-                <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
+                <DataTrigger Binding="{Binding HomeAction.Tone}" Value="warning">
                   <Setter Property="Symbol" Value="Info24" />
                   <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
                 </DataTrigger>
-                <DataTrigger Binding="{Binding HasCriticalHealthIssues}" Value="True">
+                <DataTrigger Binding="{Binding HomeAction.Tone}" Value="critical">
                   <Setter Property="Symbol" Value="ErrorCircle24" />
                   <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
                 </DataTrigger>
@@ -328,7 +328,7 @@
       </Grid>
 
       <TextBlock Grid.Row="1"
-                 Text="{Binding SimpleHomeTitle}"
+                 Text="{Binding HomeAction.Title}"
                  FontFamily="{StaticResource HeadingFont}"
                  FontSize="46"
                  FontWeight="SemiBold"
@@ -339,7 +339,7 @@
                  Margin="0,38,0,0" />
 
       <TextBlock Grid.Row="2"
-                 Text="{Binding SimpleHomeBody}"
+                 Text="{Binding HomeAction.Body}"
                  FontSize="18"
                  Foreground="{DynamicResource MutedTextBrush}"
                  HorizontalAlignment="Center"
@@ -368,17 +368,18 @@
               Padding="22,0"
               HorizontalAlignment="Center"
               Style="{StaticResource PrimaryButtonStyle}"
-              AutomationProperties.AutomationId="RunRecommendedSetupButton"
-              AutomationProperties.Name="{services:Loc ButtonStartRecommendedSetup}"
-              AutomationProperties.HelpText="{services:Loc Ui_RunsLibreSpotSMostReliableInstallPathWith}"
-              Command="{Binding ApplyRecommendedCommand}">
+              IsEnabled="{Binding HomeAction.IsEnabled}"
+              AutomationProperties.AutomationId="HomePrimaryActionButton"
+              AutomationProperties.Name="{Binding HomeAction.AutomationName}"
+              AutomationProperties.HelpText="{Binding HomeAction.HelpText}"
+              Command="{Binding HomeAction.Command}">
         <StackPanel Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center">
           <ui:SymbolIcon Symbol="Play24"
                          FontSize="24"
                          Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-          <TextBlock Text="{services:Loc ButtonStartRecommendedSetup}"
+          <TextBlock Text="{Binding HomeAction.PrimaryLabel}"
                      FontSize="20"
                      FontWeight="SemiBold"
                      Margin="14,0,0,0"
@@ -389,16 +390,8 @@
       <StackPanel Grid.Row="5"
                   Orientation="Horizontal"
                   HorizontalAlignment="Center"
-                  Margin="0,24,0,0">
-        <StackPanel.Style>
-          <Style TargetType="StackPanel">
-            <Style.Triggers>
-              <DataTrigger Binding="{Binding HasSnapshotLoadError}" Value="True">
-                <Setter Property="Visibility" Value="Collapsed" />
-              </DataTrigger>
-            </Style.Triggers>
-          </Style>
-        </StackPanel.Style>
+                  Margin="0,24,0,0"
+                  Visibility="{Binding HomeAction.ShowsDuration, Converter={StaticResource BoolToVisibilityConverter}}">
         <ui:SymbolIcon Symbol="Clock20"
                        FontSize="20"
                        Foreground="{DynamicResource MutedTextBrush}" />
@@ -408,23 +401,6 @@
                    Margin="8,0,0,0"
                    VerticalAlignment="Center" />
       </StackPanel>
-
-      <!-- Recovery for the snapshot-error state. RefreshSnapshotCommand was
-           otherwise reachable only through the F5 accelerator, leaving a restart
-           as the only discoverable way out of a failed environment check. -->
-      <Button Grid.Row="5"
-              MinWidth="220"
-              Height="46"
-              Margin="0,24,0,0"
-              Padding="22,0"
-              HorizontalAlignment="Center"
-              Visibility="{Binding HasSnapshotLoadError, Converter={StaticResource BoolToVisibilityConverter}}"
-              Style="{StaticResource SecondaryButtonStyle}"
-              Command="{Binding RefreshSnapshotCommand}"
-              Content="{services:Loc Vm_ShellRetryShort}"
-              AutomationProperties.AutomationId="RetrySystemCheckButton"
-              AutomationProperties.Name="{services:Loc Vm_ShellRetryShort}"
-              AutomationProperties.HelpText="{services:Loc ButtonRefreshEnvironmentHint}" />
 
       <Expander Grid.Row="6"
                 Header="{services:Loc Vm_SimpleHomeDetails}"
