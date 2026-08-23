@@ -3,460 +3,620 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:controls="clr-namespace:LibreSpot.Desktop.Controls"
-        xmlns:avalon="clr-namespace:ICSharpCode.AvalonEdit;assembly=ICSharpCode.AvalonEdit"
         xmlns:models="clr-namespace:LibreSpot.Desktop.Models;assembly=LibreSpot.Core"
         xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
         xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
-        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
         mc:Ignorable="d"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
-              <ScrollViewer VerticalScrollBarVisibility="Auto"
-                            HorizontalScrollBarVisibility="Disabled"
-                            AutomationProperties.AutomationId="MaintenanceWorkspace"
-                            AutomationProperties.Name="{services:Loc Ui_MaintenanceWorkspace}">
-                <StackPanel Margin="0,12,0,0">
-                  <TextBlock Text="{Binding MaintenanceGuidanceTitle}"
-                             Style="{StaticResource SectionTitleTextStyle}"
-                             FontSize="24" />
-                  <TextBlock Text="{Binding MaintenanceGuidanceDetail}"
-                             Style="{StaticResource CaptionTextStyle}"
-                             Foreground="{DynamicResource TextBrush}"
-                             Margin="0,8,0,0"
-                             MaxWidth="780"
-                             HorizontalAlignment="Left"
-                             TextAlignment="Left"
-                             TextWrapping="Wrap" />
 
-                  <Button MinWidth="220"
-                          Height="46"
-                          Margin="0,18,0,0"
-                          Padding="22,0"
-                          HorizontalAlignment="Left"
-                          Visibility="{Binding HasSnapshotLoadError, Converter={StaticResource BoolToVisibilityConverter}}"
-                          Style="{StaticResource SecondaryButtonStyle}"
-                          Command="{Binding RefreshSnapshotCommand}"
-                          Content="{services:Loc Vm_ShellRetryShort}"
-                          AutomationProperties.AutomationId="MaintenanceRetrySystemCheckButton"
-                          AutomationProperties.Name="{services:Loc Vm_ShellRetryShort}"
-                          AutomationProperties.HelpText="{services:Loc ButtonRefreshEnvironmentHint}" />
+  <UserControl.Resources>
+    <Style x:Key="MaintenanceDisclosureToggleStyle" TargetType="ToggleButton">
+      <Setter Property="Background" Value="{DynamicResource Surface1Brush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <Border x:Name="ToggleSurface"
+                    Padding="{TemplateBinding Padding}"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{StaticResource RadiusSm}">
+              <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="ToggleSurface" Property="Background" Value="{DynamicResource Surface2Brush}" />
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="ToggleSurface" Property="Background" Value="{DynamicResource Surface2Brush}" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="ToggleSurface" Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
+                <Setter TargetName="ToggleSurface" Property="BorderThickness" Value="2" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
 
-                  <Border Height="1"
-                          Background="{DynamicResource StrokeSoftBrush}"
-                          Margin="0,18,0,18" />
+    <Style x:Key="MaintenanceDisclosureExpanderStyle" TargetType="Expander">
+      <Setter Property="Foreground" Value="{DynamicResource InfoBrush}" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Expander">
+            <Grid>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+              </Grid.RowDefinitions>
+              <ToggleButton x:Name="DisclosureHeader"
+                            MinHeight="54"
+                            Padding="18,0"
+                            Style="{StaticResource MaintenanceDisclosureToggleStyle}"
+                            Cursor="Hand"
+                            IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                            AutomationProperties.AutomationId="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                            AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource TemplatedParent}}"
+                            AutomationProperties.HelpText="{Binding AutomationProperties.HelpText, RelativeSource={RelativeSource TemplatedParent}}">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="{Binding Header, RelativeSource={RelativeSource TemplatedParent}}"
+                             Foreground="{Binding Foreground, RelativeSource={RelativeSource TemplatedParent}}"
+                             FontSize="16"
+                             FontWeight="SemiBold"
+                             VerticalAlignment="Center" />
+                  <ui:SymbolIcon x:Name="DisclosureChevron"
+                                 Grid.Column="1"
+                                 Symbol="ChevronDown20"
+                                 FontSize="18"
+                                 Foreground="{Binding Foreground, RelativeSource={RelativeSource TemplatedParent}}"
+                                 VerticalAlignment="Center"
+                                 RenderTransformOrigin="0.5,0.5">
+                    <ui:SymbolIcon.RenderTransform>
+                      <RotateTransform Angle="0" />
+                    </ui:SymbolIcon.RenderTransform>
+                  </ui:SymbolIcon>
+                </Grid>
+              </ToggleButton>
+              <ContentPresenter x:Name="ExpandSite"
+                                Grid.Row="1"
+                                ContentSource="Content"
+                                Visibility="Collapsed" />
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsExpanded" Value="True">
+                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+                <Setter TargetName="DisclosureChevron" Property="RenderTransform">
+                  <Setter.Value>
+                    <RotateTransform Angle="180" />
+                  </Setter.Value>
+                </Setter>
+              </Trigger>
+              <Trigger SourceName="DisclosureHeader" Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="DisclosureHeader" Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
+                <Setter TargetName="DisclosureHeader" Property="BorderThickness" Value="2" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
 
-                  <TextBlock Text="{services:Loc EnvironmentLabel}"
-                             Style="{StaticResource SectionEyebrowTextStyle}"
-                             Margin="0,0,0,10" />
-                  <ItemsControl ItemsSource="{Binding StatusDashboardItems}"
-                                ItemTemplate="{StaticResource StatusDashboardItemTemplate}"
-                                AutomationProperties.Name="{services:Loc EnvironmentLabel}"
-                                Margin="0,0,0,6">
-                    <ItemsControl.ItemsPanel>
-                      <ItemsPanelTemplate>
-                        <UniformGrid Columns="3" />
-                      </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                  </ItemsControl>
+    <Style x:Key="MaintenanceDangerExpanderStyle"
+           TargetType="Expander"
+           BasedOn="{StaticResource MaintenanceDisclosureExpanderStyle}">
+      <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
+    </Style>
+  </UserControl.Resources>
 
-                  <Border x:Name="CompatibilityVerdictQaSurface"
-                          Style="{StaticResource SubtleCardStyle}"
-                          Margin="0,4,0,14"
-                          AutomationProperties.AutomationId="CompatibilityVerdictMatrix"
-                          AutomationProperties.Name="{services:Loc CompatibilityVerdictTitle}">
-                    <StackPanel>
-                      <TextBlock Text="{services:Loc CompatibilityVerdictTitle}"
-                                 Style="{StaticResource SectionTitleTextStyle}"
-                                 FontSize="18" />
-                      <TextBlock Text="{services:Loc CompatibilityVerdictDescription}"
-                                 Style="{StaticResource CaptionTextStyle}"
-                                 Margin="0,6,0,0"
-                                 TextWrapping="Wrap" />
-                      <TextBlock Text="{Binding CompatibilityVerdictSummary}"
-                                 Foreground="{DynamicResource TextBrush}"
-                                 FontWeight="SemiBold"
-                                 Margin="0,8,0,0" />
+  <ScrollViewer VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Disabled"
+                AutomationProperties.AutomationId="MaintenanceWorkspace"
+                AutomationProperties.Name="{services:Loc Ui_MaintenanceWorkspace}">
+    <StackPanel MaxWidth="920"
+                HorizontalAlignment="Stretch"
+                Margin="0,24,0,28">
+      <TextBlock Text="{services:Loc ModeMaintenanceTitle}"
+                 Style="{StaticResource SectionEyebrowTextStyle}"
+                 HorizontalAlignment="Left" />
 
-                      <ItemsControl ItemsSource="{Binding CompatibilityVerdictItems}"
-                                    Margin="0,14,0,0"
-                                    AutomationProperties.Name="{services:Loc CompatibilityVerdictTitle}">
-                        <ItemsControl.ItemsPanel>
-                          <ItemsPanelTemplate>
-                            <UniformGrid Columns="2" />
-                          </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate>
-                            <Border Style="{StaticResource SubtleCardStyle}"
-                                    Margin="0,0,10,10"
-                                    AutomationProperties.AutomationId="{Binding AutomationId}"
-                                    AutomationProperties.Name="{Binding Label}"
-                                    AutomationProperties.HelpText="{Binding NextStep}">
-                              <Grid>
-                                <Grid.RowDefinitions>
-                                  <RowDefinition Height="Auto" />
-                                  <RowDefinition Height="Auto" />
-                                  <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                  <ColumnDefinition Width="*" />
-                                  <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding Label}"
-                                           Style="{StaticResource LabelTextStyle}" />
-                                <Border Grid.Column="1"
-                                        Padding="8,3"
-                                        CornerRadius="{StaticResource RadiusXs}">
-                                  <Border.Style>
-                                    <Style TargetType="Border">
-                                      <Setter Property="Background" Value="{DynamicResource StrokeSoftBrush}" />
-                                      <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Ready}">
-                                          <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Warning}">
-                                          <Setter Property="Background" Value="{DynamicResource WarningBrush}" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Critical}">
-                                          <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
-                                        </DataTrigger>
-                                      </Style.Triggers>
-                                    </Style>
-                                  </Border.Style>
-                                  <TextBlock Text="{Binding Verdict}"
-                                             Style="{StaticResource MicroBadgeTextStyle}"
-                                             Foreground="{DynamicResource TextBrush}" />
-                                </Border>
+      <Border Margin="0,12,0,0"
+              Padding="10,5"
+              HorizontalAlignment="Left"
+              CornerRadius="{StaticResource RadiusXs}">
+        <Border.Style>
+          <Style TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding MaintenanceOverallTone}" Value="info">
+                <Setter Property="Background" Value="{DynamicResource InfoSoftBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource InfoBrush}" />
+              </DataTrigger>
+              <DataTrigger Binding="{Binding MaintenanceOverallTone}" Value="warning">
+                <Setter Property="Background" Value="{DynamicResource WarningSoftBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource WarningRingBrush}" />
+              </DataTrigger>
+              <DataTrigger Binding="{Binding MaintenanceOverallTone}" Value="critical">
+                <Setter Property="Background" Value="{DynamicResource DangerSoftBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Border.Style>
+        <TextBlock Text="{Binding MaintenanceOverallStatus}"
+                   Style="{StaticResource MicroBadgeTextStyle}"
+                   Foreground="{DynamicResource TextBrush}" />
+      </Border>
 
-                                <Grid Grid.Row="1"
-                                      Grid.ColumnSpan="2"
-                                      Margin="0,12,0,0">
-                                  <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                  </Grid.RowDefinitions>
-                                  <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                  </Grid.ColumnDefinitions>
-                                  <TextBlock Text="{services:Loc CompatibilityDetectedLabel}"
-                                             Style="{StaticResource CaptionTextStyle}" />
-                                  <TextBlock Grid.Column="1"
-                                             Text="{Binding DetectedValue}"
-                                             Foreground="{DynamicResource TextBrush}"
-                                             TextAlignment="Right"
-                                             TextWrapping="Wrap"
-                                             Margin="12,0,0,0" />
-                                  <TextBlock Grid.Row="1"
-                                             Text="{services:Loc CompatibilityPinnedLabel}"
-                                             Style="{StaticResource CaptionTextStyle}"
-                                             Margin="0,4,0,0" />
-                                  <TextBlock Grid.Row="1"
-                                             Grid.Column="1"
-                                             Text="{Binding PinnedValue}"
-                                             Foreground="{DynamicResource TextBrush}"
-                                             TextAlignment="Right"
-                                             TextWrapping="Wrap"
-                                             Margin="12,4,0,0" />
-                                </Grid>
+      <Border x:Name="MaintenancePrimarySurface"
+              Style="{StaticResource SubtleCardStyle}"
+              Background="{DynamicResource Surface1Brush}"
+              Margin="0,18,0,0"
+              Padding="26"
+              AutomationProperties.AutomationId="MaintenancePrimarySurface"
+              AutomationProperties.Name="{Binding MaintenanceRecommendation.Title}"
+              AutomationProperties.HelpText="{Binding MaintenanceRecommendation.Body}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="112" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Grid Width="88"
+                Height="88"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top">
+            <Ellipse StrokeThickness="3"
+                     Fill="{DynamicResource AccentSoftBrush}">
+              <Ellipse.Style>
+                <Style TargetType="Ellipse">
+                  <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding MaintenanceRecommendation.Tone}" Value="info">
+                      <Setter Property="Stroke" Value="{DynamicResource InfoBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding MaintenanceRecommendation.Tone}" Value="warning">
+                      <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding MaintenanceRecommendation.Tone}" Value="critical">
+                      <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Ellipse.Style>
+            </Ellipse>
+            <ui:SymbolIcon FontSize="46"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center">
+              <ui:SymbolIcon.Style>
+                <Style TargetType="{x:Type ui:SymbolIcon}">
+                  <Setter Property="Symbol" Value="Checkmark48" />
+                  <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding MaintenanceRecommendation.Tone}" Value="info">
+                      <Setter Property="Symbol" Value="Clock48" />
+                      <Setter Property="Foreground" Value="{DynamicResource InfoBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding MaintenanceRecommendation.Tone}" Value="warning">
+                      <Setter Property="Symbol" Value="Info24" />
+                      <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding MaintenanceRecommendation.Tone}" Value="critical">
+                      <Setter Property="Symbol" Value="ErrorCircle24" />
+                      <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </ui:SymbolIcon.Style>
+            </ui:SymbolIcon>
+          </Grid>
 
-                                <StackPanel Grid.Row="2"
-                                            Grid.ColumnSpan="2"
-                                            Margin="0,12,0,0">
-                                  <TextBlock Text="{services:Loc CompatibilityNextStepLabel}"
-                                             Style="{StaticResource CaptionTextStyle}" />
-                                  <TextBlock Text="{Binding NextStep}"
-                                             Style="{StaticResource CaptionTextStyle}"
-                                             Foreground="{DynamicResource TextBrush}"
-                                             TextWrapping="Wrap"
-                                             Margin="0,3,0,0" />
-                                </StackPanel>
-                              </Grid>
-                            </Border>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                    </StackPanel>
-                  </Border>
+          <StackPanel Grid.Column="1">
+            <TextBlock Text="{services:Loc CompatibilityNextStepLabel}"
+                       Style="{StaticResource SectionEyebrowTextStyle}" />
+            <TextBlock Text="{Binding MaintenanceRecommendation.Title}"
+                       FontFamily="{StaticResource HeadingFont}"
+                       FontSize="30"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextBrush}"
+                       TextWrapping="Wrap"
+                       Margin="0,6,0,0" />
+            <TextBlock Text="{Binding MaintenanceRecommendation.Body}"
+                       Style="{StaticResource BodyTextStyle}"
+                       Foreground="{DynamicResource MutedTextBrush}"
+                       MaxWidth="650"
+                       HorizontalAlignment="Left"
+                       TextWrapping="Wrap"
+                       Margin="0,8,0,0" />
 
-                  <UniformGrid Columns="4"
-                               Margin="0,0,0,14">
-                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">
-                      <StackPanel>
-                        <TextBlock Text="{services:Loc StackLabel}"
-                                   Style="{StaticResource LabelTextStyle}" />
-                        <TextBlock Text="{Binding MaintenanceReadinessValue}"
-                                   Foreground="{DynamicResource TextBrush}"
-                                   FontWeight="SemiBold"
-                                   FontSize="16"
-                                   Margin="0,6,0,0"
-                                   TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding MaintenanceReadinessDetail}"
-                                   Style="{StaticResource CaptionTextStyle}"
-                                   Margin="0,6,0,0" />
-                      </StackPanel>
-                    </Border>
+            <Button Width="280"
+                    Height="52"
+                    Margin="0,20,0,0"
+                    Padding="20,0"
+                    HorizontalAlignment="Left"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Visibility="{Binding MaintenanceRecommendation.HasCommand, Converter={StaticResource BoolToVisibilityConverter}}"
+                    IsEnabled="{Binding MaintenanceRecommendation.IsEnabled}"
+                    Command="{Binding MaintenanceRecommendation.Command}"
+                    AutomationProperties.AutomationId="MaintenancePrimaryActionButton"
+                    AutomationProperties.Name="{Binding MaintenanceRecommendation.AutomationName}"
+                    AutomationProperties.HelpText="{Binding MaintenanceRecommendation.HelpText}">
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <ui:SymbolIcon Symbol="Play24"
+                               FontSize="24"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                <TextBlock Text="{Binding MaintenanceRecommendation.PrimaryLabel}"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Margin="10,0,0,0"
+                           VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
 
-                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">
-                      <StackPanel>
-                        <TextBlock Text="{services:Loc BackupsLabel}"
-                                   Style="{StaticResource LabelTextStyle}" />
-                        <TextBlock Text="{Binding MaintenanceBackupValue}"
-                                   Foreground="{DynamicResource TextBrush}"
-                                   FontWeight="SemiBold"
-                                   FontSize="16"
-                                   Margin="0,6,0,0"
-                                   TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding MaintenanceBackupDetail}"
-                                   Style="{StaticResource CaptionTextStyle}"
-                                   Margin="0,6,0,0" />
-                      </StackPanel>
-                    </Border>
+            <Border Margin="0,18,0,0"
+                    Padding="12,7"
+                    HorizontalAlignment="Left"
+                    CornerRadius="{StaticResource RadiusXs}"
+                    Background="{DynamicResource AccentSoftBrush}"
+                    BorderBrush="{DynamicResource AccentRingBrush}"
+                    BorderThickness="1">
+              <Border.Style>
+                <Style TargetType="Border">
+                  <Setter Property="Visibility" Value="Collapsed" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding MaintenanceRecommendation.Kind}"
+                                 Value="{x:Static viewModels:HomeActionKind.NoActionNeeded}">
+                      <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
+              <StackPanel Orientation="Horizontal">
+                <ui:SymbolIcon Symbol="Checkmark20"
+                               FontSize="18"
+                               Foreground="{DynamicResource AccentBrush}" />
+                <TextBlock Text="{Binding MaintenanceRecommendation.PrimaryLabel}"
+                           Foreground="{DynamicResource AccentBrush}"
+                           FontWeight="SemiBold"
+                           Margin="8,0,0,0" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Grid>
+      </Border>
 
-                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,10,0">
-                      <StackPanel>
-                        <TextBlock Text="{services:Loc MarketplaceLabel}"
-                                   Style="{StaticResource LabelTextStyle}" />
-                        <TextBlock Text="{Binding MaintenanceMarketplaceValue}"
-                                   Foreground="{DynamicResource TextBrush}"
-                                   FontWeight="SemiBold"
-                                   FontSize="16"
-                                   Margin="0,6,0,0"
-                                   TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding MaintenanceMarketplaceDetail}"
-                                   Style="{StaticResource CaptionTextStyle}"
-                                   Margin="0,6,0,0" />
-                      </StackPanel>
-                    </Border>
+      <Expander Header="{services:Loc MaintenanceDiagnosticsTitle}"
+                Tag="MaintenanceDiagnosticsToggle"
+                Margin="0,20,0,0"
+                Style="{StaticResource MaintenanceDisclosureExpanderStyle}"
+                IsExpanded="{Binding IsMaintenanceDiagnosticsExpanded, Mode=TwoWay}"
+                AutomationProperties.AutomationId="MaintenanceDiagnosticsExpander"
+                AutomationProperties.Name="{services:Loc MaintenanceDiagnosticsTitle}"
+                AutomationProperties.HelpText="{services:Loc MaintenanceDiagnosticsDescription}">
+        <StackPanel Margin="0,14,0,0">
+          <TextBlock Text="{services:Loc MaintenanceDiagnosticsDescription}"
+                     Style="{StaticResource CaptionTextStyle}"
+                     Foreground="{DynamicResource MutedTextBrush}"
+                     TextWrapping="Wrap"
+                     Margin="2,0,2,14" />
 
-                    <Border Style="{StaticResource SubtleCardStyle}">
-                      <StackPanel>
-                        <TextBlock Text="{services:Loc ThemeLabel}"
-                                   Style="{StaticResource LabelTextStyle}" />
-                        <TextBlock Text="{Binding MaintenanceThemeValue}"
-                                   Foreground="{DynamicResource TextBrush}"
-                                   FontWeight="SemiBold"
-                                   FontSize="16"
-                                   Margin="0,6,0,0"
-                                   TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding MaintenanceThemeDetail}"
-                                   Style="{StaticResource CaptionTextStyle}"
-                                   Margin="0,6,0,0" />
-                      </StackPanel>
-                    </Border>
-                  </UniformGrid>
+          <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,14">
+            <StackPanel>
+              <TextBlock Text="{services:Loc RefreshRecoverSection}"
+                         Style="{StaticResource SectionTitleTextStyle}"
+                         FontSize="18" />
+              <TextBlock Text="{services:Loc RefreshRecoverDescription}"
+                         Style="{StaticResource CaptionTextStyle}"
+                         Foreground="{DynamicResource MutedTextBrush}"
+                         TextWrapping="Wrap"
+                         Margin="0,6,0,12" />
+              <ItemsControl ItemsSource="{Binding SafeMaintenanceActions}"
+                            ItemTemplate="{StaticResource MaintenanceTemplate}" />
+            </StackPanel>
+          </Border>
 
-                  <Border x:Name="SupportBundleQaSurface"
-                          Style="{StaticResource SubtleCardStyle}"
-                          Margin="0,0,0,14"
-                          AutomationProperties.AutomationId="SupportBundleQaSurface"
-                          AutomationProperties.Name="{services:Loc SupportBundleTitle}">
-                    <StackPanel>
+          <TextBlock Text="{services:Loc EnvironmentLabel}"
+                     Style="{StaticResource SectionEyebrowTextStyle}"
+                     Margin="2,2,0,10" />
+          <ItemsControl ItemsSource="{Binding StatusDashboardItems}"
+                        ItemTemplate="{StaticResource StatusDashboardItemTemplate}"
+                        AutomationProperties.Name="{services:Loc EnvironmentLabel}"
+                        Margin="0,0,0,6">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><UniformGrid Columns="3" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+
+          <Border x:Name="CompatibilityVerdictQaSurface"
+                  Style="{StaticResource SubtleCardStyle}"
+                  Margin="0,4,0,14"
+                  AutomationProperties.AutomationId="CompatibilityVerdictMatrix"
+                  AutomationProperties.Name="{services:Loc CompatibilityVerdictTitle}">
+            <StackPanel>
+              <TextBlock Text="{services:Loc CompatibilityVerdictTitle}"
+                         Style="{StaticResource SectionTitleTextStyle}"
+                         FontSize="18" />
+              <TextBlock Text="{services:Loc CompatibilityVerdictDescription}"
+                         Style="{StaticResource CaptionTextStyle}"
+                         Margin="0,6,0,0"
+                         TextWrapping="Wrap" />
+              <TextBlock Text="{Binding CompatibilityVerdictSummary}"
+                         Foreground="{DynamicResource TextBrush}"
+                         FontWeight="SemiBold"
+                         Margin="0,8,0,0" />
+              <ItemsControl ItemsSource="{Binding CompatibilityVerdictItems}"
+                            Margin="0,14,0,0"
+                            AutomationProperties.Name="{services:Loc CompatibilityVerdictTitle}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Style="{StaticResource SubtleCardStyle}"
+                            Margin="0,0,10,10"
+                            AutomationProperties.AutomationId="{Binding AutomationId}"
+                            AutomationProperties.Name="{Binding Label}"
+                            AutomationProperties.HelpText="{Binding NextStep}">
                       <Grid>
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="Auto" />
+                          <RowDefinition Height="Auto" />
+                          <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                           <ColumnDefinition Width="*" />
                           <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Margin="0,0,18,0">
-                          <TextBlock Text="{services:Loc SupportBundleTitle}"
-                                     Style="{StaticResource SectionTitleTextStyle}"
-                                     FontSize="18" />
-                          <TextBlock Text="{Binding SupportBundlePreviewTitle}"
-                                     Foreground="{DynamicResource TextBrush}"
-                                     FontWeight="SemiBold"
-                                     Margin="0,8,0,0"
-                                     TextWrapping="Wrap" />
-                          <TextBlock Text="{Binding SupportBundlePreviewDetail}"
-                                     Style="{StaticResource CaptionTextStyle}"
-                                     Margin="0,4,0,0" />
-                          <TextBlock Text="{Binding SupportBundleRedactionSummary}"
-                                     Style="{StaticResource CaptionTextStyle}"
-                                     Foreground="{DynamicResource TextBrush}"
-                                     Margin="0,8,0,0"
-                                     TextWrapping="Wrap" />
-                        </StackPanel>
-
-                        <Button Grid.Column="1"
-                                MinWidth="170"
-                                Height="42"
-                                Padding="16,0"
-                                Content="{services:Loc ButtonExportBundle}"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                AutomationProperties.AutomationId="SupportBundleExportButton"
-                                AutomationProperties.Name="{services:Loc ButtonExportBundleName}"
-                                AutomationProperties.HelpText="{services:Loc ButtonExportBundleHint}"
-                                Command="{Binding ExportSupportBundleCommand}" />
-                      </Grid>
-
-                      <ItemsControl ItemsSource="{Binding SupportBundleItems}"
-                                    ItemTemplate="{StaticResource SupportBundleCategoryTemplate}"
-                                    Margin="0,16,0,0">
-                        <ItemsControl.ItemsPanel>
-                          <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                      </ItemsControl>
-
-                      <Border Height="1"
-                              Background="{DynamicResource StrokeSoftBrush}"
-                              Margin="0,8,0,14" />
-
-                      <ItemsControl ItemsSource="{Binding SupportBundleRedactionRules}"
-                                    Margin="0,10,0,0">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate>
-                            <Grid Margin="0,0,0,6">
-                              <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                              </Grid.ColumnDefinitions>
-                              <Border Width="4"
-                                      Height="14"
-                                      CornerRadius="{StaticResource RadiusXs}"
-                                      Background="{DynamicResource AccentBrush}"
-                                      Margin="0,3,10,0" />
-                              <TextBlock Grid.Column="1"
-                                         Text="{Binding}"
-                                         Style="{StaticResource CaptionTextStyle}"
-                                         TextWrapping="Wrap" />
-                            </Grid>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                      <TextBlock Text="{Binding SupportBundleLastExportText}"
-                                 Style="{StaticResource CaptionTextStyle}"
-                                 Foreground="{DynamicResource MutedTextBrush}"
-                                 Margin="0,8,0,0"
-                                 TextWrapping="Wrap" />
-                    </StackPanel>
-                  </Border>
-
-                  <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,14">
-                    <Grid>
-                      <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                      </Grid.RowDefinitions>
-
-                      <Grid Grid.Row="0">
-                        <Grid.ColumnDefinitions>
-                          <ColumnDefinition Width="*" />
-                          <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                          <TextBlock Text="{services:Loc AutoReapplyTitle}"
-                                     Style="{StaticResource SectionTitleTextStyle}"
-                                     FontSize="18" />
-                          <TextBlock Text="{Binding AutoReapplyStatusDetail}"
-                                     Style="{StaticResource CaptionTextStyle}"
-                                     Foreground="{DynamicResource TextBrush}"
-                                     Margin="0,8,0,0"
-                                     MaxWidth="760"
-                                     TextWrapping="Wrap" />
-                        </StackPanel>
-
-                        <Border Grid.Column="1"
-                                Style="{StaticResource MicroBadgeStyle}"
-                                Margin="18,0,0,0">
-                          <TextBlock Text="{Binding AutoReapplyStatusTitle}"
-                                     Style="{StaticResource MicroBadgeTextStyle}" />
-                        </Border>
-                      </Grid>
-
-                      <Grid Grid.Row="1" Margin="0,16,0,0">
-                        <Grid.ColumnDefinitions>
-                          <ColumnDefinition Width="4" />
-                          <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0"
-                                CornerRadius="{StaticResource RadiusXs}">
+                        <TextBlock Text="{Binding Label}" Style="{StaticResource LabelTextStyle}" />
+                        <Border Grid.Column="1" Padding="8,3" CornerRadius="{StaticResource RadiusXs}">
                           <Border.Style>
                             <Style TargetType="Border">
-                              <Setter Property="Background" Value="{DynamicResource WarningBrush}" />
+                              <Setter Property="Background" Value="{DynamicResource StrokeSoftBrush}" />
                               <Style.Triggers>
-                                <DataTrigger Binding="{Binding Snapshot.AutoReapplyTaskRegistered}" Value="True">
+                                <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Ready}">
                                   <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Warning}">
+                                  <Setter Property="Background" Value="{DynamicResource WarningBrush}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Tone}" Value="{x:Static models:HealthSeverity.Critical}">
+                                  <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
                                 </DataTrigger>
                               </Style.Triggers>
                             </Style>
                           </Border.Style>
+                          <TextBlock Text="{Binding Verdict}"
+                                     Style="{StaticResource MicroBadgeTextStyle}"
+                                     Foreground="{DynamicResource TextBrush}" />
                         </Border>
-                        <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                          <TextBlock Text="{Binding AutoReapplyTaskLine}"
+                        <Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,12,0,0">
+                          <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                          </Grid.RowDefinitions>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                          </Grid.ColumnDefinitions>
+                          <TextBlock Text="{services:Loc CompatibilityDetectedLabel}"
+                                     Style="{StaticResource CaptionTextStyle}" />
+                          <TextBlock Grid.Column="1"
+                                     Text="{Binding DetectedValue}"
                                      Foreground="{DynamicResource TextBrush}"
-                                     FontWeight="SemiBold"
-                                     TextWrapping="Wrap" />
-                          <TextBlock Text="{Binding AutoReapplyLogLine}"
+                                     TextAlignment="Right"
+                                     TextWrapping="Wrap"
+                                     Margin="12,0,0,0" />
+                          <TextBlock Grid.Row="1"
+                                     Text="{services:Loc CompatibilityPinnedLabel}"
                                      Style="{StaticResource CaptionTextStyle}"
-                                     Foreground="{DynamicResource SubtleTextBrush}"
-                                     Margin="0,4,0,0"
-                                     TextWrapping="Wrap" />
+                                     Margin="0,4,0,0" />
+                          <TextBlock Grid.Row="1"
+                                     Grid.Column="1"
+                                     Text="{Binding PinnedValue}"
+                                     Foreground="{DynamicResource TextBrush}"
+                                     TextAlignment="Right"
+                                     TextWrapping="Wrap"
+                                     Margin="12,4,0,0" />
+                        </Grid>
+                        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,12,0,0">
+                          <TextBlock Text="{services:Loc CompatibilityNextStepLabel}"
+                                     Style="{StaticResource CaptionTextStyle}" />
+                          <TextBlock Text="{Binding NextStep}"
+                                     Style="{StaticResource CaptionTextStyle}"
+                                     Foreground="{DynamicResource TextBrush}"
+                                     TextWrapping="Wrap"
+                                     Margin="0,3,0,0" />
                         </StackPanel>
                       </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
 
-                      <WrapPanel Grid.Row="2"
-                                 Margin="0,18,0,0"
-                                 HorizontalAlignment="Right">
-                        <Button Content="{services:Loc ButtonEnableWatcher}"
-                                MinWidth="136"
-                                Height="38"
-                                Padding="16,0"
-                                Margin="0,0,10,0"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                AutomationProperties.Name="{services:Loc ButtonEnableWatcherName}"
-                                AutomationProperties.HelpText="{services:Loc ButtonEnableWatcherHint}"
-                                Command="{Binding EnableAutoReapplyCommand}" />
-                        <Button Content="{services:Loc ButtonDisableWatcher}"
-                                MinWidth="136"
-                                Height="38"
-                                Padding="16,0"
-                                Style="{StaticResource SecondaryButtonStyle}"
-                                AutomationProperties.Name="{services:Loc ButtonDisableWatcherName}"
-                                AutomationProperties.HelpText="{services:Loc ButtonDisableWatcherHint}"
-                                Command="{Binding DisableAutoReapplyCommand}" />
-                      </WrapPanel>
-                    </Grid>
-                  </Border>
-
-                  <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,14">
-                    <StackPanel>
-                      <TextBlock Text="{services:Loc RefreshRecoverSection}"
-                                 Style="{StaticResource SectionTitleTextStyle}"
-                                 FontSize="18" />
-                      <TextBlock Text="{services:Loc RefreshRecoverDescription}"
-                                 Style="{StaticResource CaptionTextStyle}"
-                                 Foreground="{DynamicResource TextBrush}"
-                                 Margin="0,8,0,12" />
-                      <ItemsControl ItemsSource="{Binding SafeMaintenanceActions}"
-                                    ItemTemplate="{StaticResource MaintenanceTemplate}" />
-                    </StackPanel>
-                  </Border>
-
-                  <Border Style="{StaticResource SubtleCardStyle}"
-                          Background="{DynamicResource Surface1Brush}"
-                          BorderBrush="{DynamicResource StrokeSoftBrush}">
-                    <StackPanel>
-                      <TextBlock Text="{services:Loc ResetSection}"
-                                 Style="{StaticResource SectionTitleTextStyle}"
-                                 FontSize="18"
-                                 Foreground="{DynamicResource DangerTextBrush}" />
-                      <TextBlock Text="{services:Loc ResetDescription}"
-                                 Style="{StaticResource CaptionTextStyle}"
-                                 Foreground="{DynamicResource TextBrush}"
-                                 Margin="0,8,0,12" />
-                      <ItemsControl ItemsSource="{Binding DestructiveMaintenanceActions}"
-                                    ItemTemplate="{StaticResource MaintenanceTemplate}" />
-                    </StackPanel>
-                  </Border>
-
-                  <TextBlock Text="{services:Loc MaintenanceClosingHint}"
+          <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,14">
+            <Grid>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+              </Grid.RowDefinitions>
+              <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Text="{services:Loc AutoReapplyTitle}"
+                             Style="{StaticResource SectionTitleTextStyle}"
+                             FontSize="18" />
+                  <TextBlock Text="{Binding AutoReapplyStatusDetail}"
                              Style="{StaticResource CaptionTextStyle}"
-                             Foreground="{DynamicResource MutedTextBrush}"
-                             Margin="0,16,0,0"
+                             Foreground="{DynamicResource TextBrush}"
+                             Margin="0,8,0,0"
                              MaxWidth="760"
                              TextWrapping="Wrap" />
                 </StackPanel>
-              </ScrollViewer>
+                <Border Grid.Column="1" Style="{StaticResource MicroBadgeStyle}" Margin="18,0,0,0">
+                  <TextBlock Text="{Binding AutoReapplyStatusTitle}"
+                             Style="{StaticResource MicroBadgeTextStyle}" />
+                </Border>
+              </Grid>
+              <StackPanel Grid.Row="1" Margin="0,14,0,0">
+                <TextBlock Text="{Binding AutoReapplyTaskLine}"
+                           Foreground="{DynamicResource TextBrush}"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap" />
+                <TextBlock Text="{Binding AutoReapplyLogLine}"
+                           Style="{StaticResource CaptionTextStyle}"
+                           Foreground="{DynamicResource SubtleTextBrush}"
+                           Margin="0,4,0,0"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+              <WrapPanel Grid.Row="2" Margin="0,18,0,0" HorizontalAlignment="Right">
+                <Button Content="{services:Loc ButtonEnableWatcher}"
+                        MinWidth="150"
+                        Height="42"
+                        Padding="16,0"
+                        Margin="0,0,10,0"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        AutomationProperties.Name="{services:Loc ButtonEnableWatcherName}"
+                        AutomationProperties.HelpText="{services:Loc ButtonEnableWatcherHint}"
+                        Command="{Binding EnableAutoReapplyCommand}" />
+                <Button Content="{services:Loc ButtonDisableWatcher}"
+                        MinWidth="150"
+                        Height="42"
+                        Padding="16,0"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        AutomationProperties.Name="{services:Loc ButtonDisableWatcherName}"
+                        AutomationProperties.HelpText="{services:Loc ButtonDisableWatcherHint}"
+                        Command="{Binding DisableAutoReapplyCommand}" />
+              </WrapPanel>
+            </Grid>
+          </Border>
+
+          <Border x:Name="SupportBundleQaSurface"
+                  Style="{StaticResource SubtleCardStyle}"
+                  AutomationProperties.AutomationId="SupportBundleQaSurface"
+                  AutomationProperties.Name="{services:Loc SupportBundleTitle}">
+            <StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,18,0">
+                  <TextBlock Text="{services:Loc SupportBundleTitle}"
+                             Style="{StaticResource SectionTitleTextStyle}"
+                             FontSize="18" />
+                  <TextBlock Text="{Binding SupportBundlePreviewTitle}"
+                             Foreground="{DynamicResource TextBrush}"
+                             FontWeight="SemiBold"
+                             Margin="0,8,0,0"
+                             TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding SupportBundlePreviewDetail}"
+                             Style="{StaticResource CaptionTextStyle}"
+                             Margin="0,4,0,0" />
+                  <TextBlock Text="{Binding SupportBundleRedactionSummary}"
+                             Style="{StaticResource CaptionTextStyle}"
+                             Foreground="{DynamicResource TextBrush}"
+                             Margin="0,8,0,0"
+                             TextWrapping="Wrap" />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        MinWidth="170"
+                        Height="42"
+                        Padding="16,0"
+                        Content="{services:Loc ButtonExportBundle}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        AutomationProperties.AutomationId="SupportBundleExportButton"
+                        AutomationProperties.Name="{services:Loc ButtonExportBundleName}"
+                        AutomationProperties.HelpText="{services:Loc ButtonExportBundleHint}"
+                        Command="{Binding ExportSupportBundleCommand}" />
+              </Grid>
+              <ItemsControl ItemsSource="{Binding SupportBundleItems}"
+                            ItemTemplate="{StaticResource SupportBundleCategoryTemplate}"
+                            Margin="0,16,0,0">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+              </ItemsControl>
+              <Border Height="1" Background="{DynamicResource StrokeSoftBrush}" Margin="0,8,0,14" />
+              <ItemsControl ItemsSource="{Binding SupportBundleRedactionRules}" Margin="0,10,0,0">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Grid Margin="0,0,0,6">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+                      <Border Width="4"
+                              Height="14"
+                              CornerRadius="{StaticResource RadiusXs}"
+                              Background="{DynamicResource AccentBrush}"
+                              Margin="0,3,10,0" />
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding}"
+                                 Style="{StaticResource CaptionTextStyle}"
+                                 TextWrapping="Wrap" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Text="{Binding SupportBundleLastExportText}"
+                         Style="{StaticResource CaptionTextStyle}"
+                         Foreground="{DynamicResource MutedTextBrush}"
+                         Margin="0,8,0,0"
+                         TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+
+          <TextBlock Text="{services:Loc MaintenanceClosingHint}"
+                     Style="{StaticResource CaptionTextStyle}"
+                     Foreground="{DynamicResource MutedTextBrush}"
+                     Margin="2,14,2,2"
+                     TextWrapping="Wrap" />
+        </StackPanel>
+      </Expander>
+
+      <Expander Header="{services:Loc ResetSection}"
+                Tag="MaintenanceDangerToggle"
+                Margin="0,12,0,0"
+                Style="{StaticResource MaintenanceDangerExpanderStyle}"
+                IsExpanded="{Binding IsMaintenanceDangerExpanded, Mode=TwoWay}"
+                AutomationProperties.AutomationId="MaintenanceDangerExpander"
+                AutomationProperties.Name="{services:Loc ResetSection}"
+                AutomationProperties.HelpText="{services:Loc ResetDescription}">
+        <Border Style="{StaticResource SubtleCardStyle}"
+                Background="{DynamicResource DangerSoftBrush}"
+                BorderBrush="{DynamicResource DangerBrush}"
+                Margin="0,14,0,0">
+          <StackPanel>
+            <TextBlock Text="{services:Loc ResetDescription}"
+                       Style="{StaticResource CaptionTextStyle}"
+                       Foreground="{DynamicResource TextBrush}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,12" />
+            <ItemsControl ItemsSource="{Binding DestructiveMaintenanceActions}"
+                          ItemTemplate="{StaticResource MaintenanceTemplate}" />
+          </StackPanel>
+        </Border>
+      </Expander>
+    </StackPanel>
+  </ScrollViewer>
 </UserControl>

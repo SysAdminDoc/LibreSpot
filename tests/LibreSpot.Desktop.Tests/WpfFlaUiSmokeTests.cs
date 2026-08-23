@@ -94,12 +94,15 @@ public sealed class WpfFlaUiSmokeTests
         var text = LocalizedSmokeText.For("en");
         WithSmokeWindow("maintenance", window =>
         {
-            var action = WaitForControlByAutomationId(window, "MaintenanceAction_CheckUpdates", ControlType.Button);
-            Assert.Equal(text.CheckMatrix, action.Name);
+            var action = WaitForControlByAutomationId(window, "MaintenancePrimaryActionButton", ControlType.Button);
+            Assert.Equal(text.RepairMarketplace, action.Name);
             InvokeOrClick(action);
 
             AssertNamedVisible(window, AssertControl(window, "PromptCancelButton", ControlType.Button, text.Cancel), text.Cancel);
-            InvokeOrClick(AssertControl(window, "PromptConfirmButton", ControlType.Button, text.CheckMatrix));
+            InvokeOrClick(AssertControl(window, "PromptConfirmButton", ControlType.Button, text.RiskConfirm));
+
+            AssertNamedVisible(window, AssertControl(window, "PromptCancelButton", ControlType.Button, text.Cancel), text.Cancel);
+            InvokeOrClick(AssertControl(window, "PromptConfirmButton", ControlType.Button, text.RepairMarketplace));
 
             Assert.NotNull(AssertControl(window, "ActivityCloseButton", ControlType.Button, text.CloseActivityPanel));
         });
@@ -471,7 +474,8 @@ public sealed class WpfFlaUiSmokeTests
         string ClearSearch,
         string ApplyCustomProfile,
         string MaintenanceWorkspace,
-        string CheckMatrix,
+        string RepairMarketplace,
+        string RiskConfirm,
         string DecisionPrompt,
         string Cancel,
         string ActivityDialog,
@@ -495,7 +499,8 @@ public sealed class WpfFlaUiSmokeTests
                 Get("ButtonClearSearchName", info),
                 Get("ButtonApplyCustomProfile", info),
                 Get("Ui_MaintenanceWorkspace", info),
-                Get("Maintenance_CheckUpdates_ButtonText", info),
+                Get("Maintenance_RepairMarketplace_ButtonText", info),
+                Get("Vm_RiskPromptConfirm", info),
                 Get("Ui_DecisionPrompt", info),
                 Get("ButtonCancel", info),
                 Get("ActivityDialogName", info),

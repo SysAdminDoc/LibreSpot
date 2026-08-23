@@ -51,6 +51,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private int _snapshotRequestVersion;
     private bool _isSnapshotLoading = true;
     private bool _snapshotLoadFailed;
+    private bool _isMaintenanceDiagnosticsExpanded;
+    private bool _isMaintenanceDangerExpanded;
 
     private int _selectedWorkspaceIndex;
     private string _globalSearchText = string.Empty;
@@ -368,6 +370,29 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public bool HasSnapshotLoadError => _snapshotLoadFailed;
     public bool IsEnvironmentReadyForActions => !IsSnapshotLoading && !HasSnapshotLoadError;
     public HomeActionViewModel HomeAction => BuildHomeAction();
+    public HomeActionViewModel MaintenanceRecommendation => BuildMaintenanceRecommendation();
+
+    public string MaintenanceOverallStatus =>
+        IsSnapshotLoading
+            ? L("Vm_ShellCheckingShort")
+            : HasSnapshotLoadError
+                ? L("Vm_ShellSnapshotUnavailable")
+                : HealthReport.HasCriticalIssues
+                    ? Strings.SeverityCritical
+                    : HealthReport.WarningIssues.Count > 0
+                        ? Strings.SeverityWarning
+                        : Strings.SeverityReady;
+
+    public string MaintenanceOverallTone =>
+        IsSnapshotLoading
+            ? HealthSeverity.Info
+            : HasSnapshotLoadError
+                ? HealthSeverity.Warning
+                : HealthReport.HasCriticalIssues
+                    ? HealthSeverity.Critical
+                    : HealthReport.WarningIssues.Count > 0
+                        ? HealthSeverity.Warning
+                        : HealthSeverity.Ready;
 
     public IReadOnlyList<ShellReadinessCheckItemViewModel> SimpleHomeReadinessChecks
     {
@@ -947,27 +972,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    public string MaintenanceGuidanceTitle =>
-        IsSnapshotLoading
-            ? L("Vm_SimpleHomeCheckingTitle")
-            : HasSnapshotLoadError
-                ? L("Vm_SimpleHomeUnavailableTitle")
-                : Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-                    ? L("Vm_MaintenanceReadyTitle")
-                    : Snapshot.SpotifyInstalled
-                        ? L("Vm_MaintenanceIncompleteTitle")
-                        : L("Vm_MaintenanceReadyWhenNeededTitle");
+    public string MaintenanceGuidanceTitle => MaintenanceRecommendation.Title;
 
-    public string MaintenanceGuidanceDetail =>
-        IsSnapshotLoading
-            ? L("Vm_SimpleHomeCheckingBody")
-            : HasSnapshotLoadError
-                ? L("Vm_MaintenanceUnavailableBody")
-                : Snapshot.SpotifyInstalled && Snapshot.SpicetifyInstalled
-                    ? L("Vm_MaintenanceReadyDetail")
-                    : Snapshot.SpotifyInstalled
-                        ? L("Vm_MaintenanceIncompleteDetail")
-                        : L("Vm_MaintenanceReadyWhenNeededDetail");
+    public string MaintenanceGuidanceDetail => MaintenanceRecommendation.Body;
 
     private int MaintenanceReadyComponentCount =>
         new[] { "spotify", "spotx", "spicetify-cli", "marketplace", "active-theme" }
@@ -1184,6 +1191,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(ShowRecommendedRunBand));
             }
         }
+    }
+
+    public bool IsMaintenanceDiagnosticsExpanded
+    {
+        get => _isMaintenanceDiagnosticsExpanded;
+        set => SetProperty(ref _isMaintenanceDiagnosticsExpanded, value);
+    }
+
+    public bool IsMaintenanceDangerExpanded
+    {
+        get => _isMaintenanceDangerExpanded;
+        set => SetProperty(ref _isMaintenanceDangerExpanded, value);
     }
 
     public bool IsActivityVisible
@@ -1519,6 +1538,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(SimpleHomeReadinessChecks));
         OnPropertyChanged(nameof(ShellReadinessPercent));
         OnPropertyChanged(nameof(HomeAction));
+        OnPropertyChanged(nameof(MaintenanceRecommendation));
+        OnPropertyChanged(nameof(MaintenanceOverallStatus));
+        OnPropertyChanged(nameof(MaintenanceOverallTone));
+        OnPropertyChanged(nameof(MaintenanceGuidanceTitle));
+        OnPropertyChanged(nameof(MaintenanceGuidanceDetail));
         OnPropertyChanged(nameof(WorkspaceHeroBody));
     }
 
@@ -2573,6 +2597,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public void ApplyUiAutomationSmokeState(string state)
     {
         var normalizedState = state.Trim().ToLowerInvariant();
+        IsMaintenanceDiagnosticsExpanded = false;
+        IsMaintenanceDangerExpanded = false;
         if (normalizedState is "recommended" or "home-navigation" or "home-details" or "home-readiness" or "reduced-motion")
         {
             ApplyUiAutomationHomeSnapshot("unmanaged");
@@ -2580,6 +2606,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         else if (normalizedState is "home-healthy" or "home-repair" or "home-destructive")
         {
             ApplyUiAutomationHomeSnapshot(normalizedState);
+        }
+        else if (normalizedState is "maintenance" or "maintenance-compatibility" or "support-bundle")
+        {
+            ApplyUiAutomationHomeSnapshot("home-repair");
+        }
+        else if (normalizedState == "maintenance-healthy")
+        {
+            ApplyUiAutomationHomeSnapshot("home-healthy");
+        }
+        else if (normalizedState == "maintenance-danger")
+        {
+            ApplyUiAutomationHomeSnapshot("home-destructive");
         }
 
         if (normalizedState is "recommended" or "custom" or "maintenance" or "maintenance-compatibility" or "provenance" or "profile" or "support-bundle" or "activity-collapsed")
@@ -2593,14 +2631,27 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 SelectedWorkspaceIndex = 1;
                 break;
             case "maintenance":
-            case "maintenance-compatibility":
                 SelectedWorkspaceIndex = 2;
+                break;
+            case "maintenance-compatibility":
+            case "support-bundle":
+                SelectedWorkspaceIndex = 2;
+                IsMaintenanceDiagnosticsExpanded = true;
+                break;
+            case "maintenance-healthy":
+                SelectedWorkspaceIndex = 2;
+                break;
+            case "maintenance-error":
+                SelectedWorkspaceIndex = 2;
+                ClearLog();
+                SetSnapshotQueryState(isLoading: false, loadFailed: true);
+                break;
+            case "maintenance-danger":
+                SelectedWorkspaceIndex = 2;
+                IsMaintenanceDangerExpanded = true;
                 break;
             case "profile":
                 SelectedWorkspaceIndex = 1;
-                break;
-            case "support-bundle":
-                SelectedWorkspaceIndex = 2;
                 break;
             case "activity-empty":
                 SelectedWorkspaceIndex = 0;

@@ -7,6 +7,7 @@ All notable changes to LibreSpot will be documented in this file.
 ### Changed
 
 - Home now chooses one action from the latest environment snapshot. A new machine gets Recommended Setup, a healthy managed stack gets Open Spotify, and a degraded stack gets its first safe repair in critical-then-warning order. If recovery is destructive, Home opens Maintenance without running the action. Loading disables the button, Retry owns the failed-check state, and overlapping refreshes cannot restore stale copy or commands.
+- Maintenance now leads with overall status, the most important issue, and one safe repair. Diagnostics stay available in a collapsed section, reset actions have their own collapsed danger section, healthy systems say no action is needed, and failed checks offer Retry.
 
 ### Fixed
 

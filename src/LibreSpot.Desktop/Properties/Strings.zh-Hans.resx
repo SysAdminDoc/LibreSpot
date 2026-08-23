@@ -1876,6 +1876,10 @@
   <data name="Vm_LyricsSummaryFormat" xml:space="preserve"><value>歌词：{0}</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_LyricsThemeAvailableHint" xml:space="preserve"><value>SpotX 在修补后恢复此歌词皮肤。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_LyricsThemeUnavailableHint" xml:space="preserve"><value>打开歌词补丁以使此选择变得重要。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="MaintenanceDiagnosticsTitle" xml:space="preserve"><value>诊断和修复</value><comment>维护页面中用于技术详情和次要安全工具的折叠标题。</comment></data>
+  <data name="MaintenanceDiagnosticsDescription" xml:space="preserve"><value>打开此部分可查看环境详情、兼容性、修复工具、监视器和支持包。</value><comment>维护诊断区域的无障碍说明和可见说明。</comment></data>
+  <data name="Vm_MaintenanceNoActionTitle" xml:space="preserve"><value>无需操作</value><comment>托管组件运行正常时的维护建议标题。</comment></data>
+  <data name="Vm_MaintenanceReviewBodyFormat" xml:space="preserve"><value>{0} 此问题仅适用重置类恢复选项。LibreSpot 不会自动删除任何内容。</value><comment>没有适用的安全自动修复时的维护建议详情。{0} 是运行状况证据。</comment></data>
   <data name="Vm_MaintenanceBackupLatestFormat" xml:space="preserve"><value>{0} 最新：{1}。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceBackupUnchecked" xml:space="preserve"><value>尚未检查备份状态。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceIncompleteDetail" xml:space="preserve"><value>自定义层恢复到位后，重新应用将变得有用。在此之前，“推荐”通常是更好的路径。</value><comment>MainViewModel localized runtime text.</comment></data>

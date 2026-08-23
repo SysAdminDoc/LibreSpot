@@ -9,7 +9,9 @@ public enum HomeActionKind
     RecommendedSetup,
     OpenSpotify,
     HealthRepair,
-    Maintenance
+    Maintenance,
+    NoActionNeeded,
+    ReviewNeeded
 }
 
 public sealed class HomeActionViewModel
@@ -46,6 +48,7 @@ public sealed class HomeActionViewModel
     public string Body { get; }
     public string PrimaryLabel { get; }
     public ICommand? Command { get; }
+    public bool HasCommand => Command is not null;
     public bool IsEnabled { get; }
     public string AutomationName { get; }
     public string HelpText { get; }

@@ -292,6 +292,10 @@ public partial class MainWindow : Window
         {
             MaintenanceWorkspaceView.SupportBundleSurface.BringIntoView();
         }
+        else if (string.Equals(_uiAutomationSmokeState, "maintenance-compatibility", StringComparison.OrdinalIgnoreCase))
+        {
+            MaintenanceWorkspaceView.CompatibilityVerdictSurface.BringIntoView();
+        }
         else if (string.Equals(_uiAutomationSmokeState, "profile", StringComparison.OrdinalIgnoreCase))
         {
             CustomWorkspaceView.ProfileSurface.BringIntoView();

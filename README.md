@@ -88,6 +88,8 @@ v4.0.0 is the first stable release of the v4 line. The desktop app and the fleet
 
 **One screen that tells you what to do.** The everyday view has three choices: Home, Maintenance, and Settings. Home gives you one readiness result, four checks, and one action chosen from the latest system check. A new setup starts the recommended path, a healthy managed stack opens Spotify, and a known problem offers its first safe repair. Recovery that could remove data opens Maintenance for review instead of running from Home. First-run guidance and technical environment details stay behind the Details row until you ask for them.
 
+**Maintenance puts recovery first.** It shows the most important issue and one safe repair before any technical detail. Diagnostics stay under one labeled section, and reset actions remain separate and collapsed until you choose to review them.
+
 **Recovery actions describe the change they make.** The action formerly called Restore vanilla Spotify removes active Spicetify customizations and says plainly that SpotX stays in place. Home says eligible changes have backups rather than promising that every change can be reversed.
 
 **The app tells you which version it is.** The version sits under the LibreSpot name in the navigation rail, and crash reports record the full product version instead of a shorter numeric one.

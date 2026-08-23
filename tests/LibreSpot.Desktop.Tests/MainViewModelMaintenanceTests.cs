@@ -315,6 +315,114 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task MaintenanceRecommendation_ShowsTheHighestIssueAndOnlyOffersSafeActions() =>
+        RunStaAsync(async () =>
+        {
+            var cases = new[]
+            {
+                new
+                {
+                    Name = "unmanaged",
+                    Snapshot = UnmanagedSnapshot(),
+                    Kind = HomeActionKind.RecommendedSetup,
+                    ActionId = "Install",
+                    ExpectedTitle = "You're ready to start"
+                },
+                new
+                {
+                    Name = "healthy",
+                    Snapshot = HealthyMaintenanceSnapshot(),
+                    Kind = HomeActionKind.NoActionNeeded,
+                    ActionId = "NoActionNeeded",
+                    ExpectedTitle = "No action needed"
+                },
+                new
+                {
+                    Name = "marketplace-repair",
+                    Snapshot = SnapshotWithIssues(
+                        Component("marketplace", HealthSeverity.Warning, "RepairMarketplace")),
+                    Kind = HomeActionKind.HealthRepair,
+                    ActionId = "RepairMarketplace",
+                    ExpectedTitle = "marketplace status"
+                },
+                new
+                {
+                    Name = "critical-review-with-lower-safe-repair",
+                    Snapshot = SnapshotWithIssues(
+                        Component("ownership", HealthSeverity.Critical, "FullReset"),
+                        Component("marketplace", HealthSeverity.Warning, "RepairMarketplace")),
+                    Kind = HomeActionKind.HealthRepair,
+                    ActionId = "RepairMarketplace",
+                    ExpectedTitle = "ownership status"
+                },
+                new
+                {
+                    Name = "destructive-only",
+                    Snapshot = SnapshotWithIssues(
+                        Component("ownership", HealthSeverity.Critical, "FullReset")),
+                    Kind = HomeActionKind.ReviewNeeded,
+                    ActionId = "Review",
+                    ExpectedTitle = "ownership status"
+                }
+            };
+
+            foreach (var item in cases)
+            {
+                using var fixture = new SnapshotFixture();
+                using var viewModel = await fixture.CreateInitializedViewModelAsync(
+                    snapshotLoader: _ => Task.FromResult(item.Snapshot));
+
+                var recommendation = viewModel.MaintenanceRecommendation;
+                Assert.Equal(item.Kind, recommendation.Kind);
+                Assert.Equal(item.ActionId, recommendation.ActionId);
+                Assert.Equal(item.ExpectedTitle, recommendation.Title);
+                Assert.False(string.IsNullOrWhiteSpace(recommendation.Body));
+
+                if (item.Kind == HomeActionKind.RecommendedSetup)
+                {
+                    Assert.Same(viewModel.ApplyRecommendedCommand, recommendation.Command);
+                }
+                else if (item.Kind == HomeActionKind.HealthRepair)
+                {
+                    Assert.Same(Card(viewModel, "RepairMarketplace").Command, recommendation.Command);
+                    Assert.False(Card(viewModel, "RepairMarketplace").IsDestructive);
+                }
+                else
+                {
+                    Assert.Null(recommendation.Command);
+                    Assert.False(recommendation.HasCommand);
+                }
+
+                if (item.Kind == HomeActionKind.ReviewNeeded)
+                {
+                    Assert.Contains("Nothing will be removed automatically", recommendation.Body, StringComparison.Ordinal);
+                    Assert.NotSame(Card(viewModel, "FullReset").Command, recommendation.Command);
+                }
+            }
+        });
+
+    [Fact]
+    public Task MaintenanceDisclosureState_StartsCollapsedAndSmokeStatesOpenOnlyTheirTarget() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            Assert.False(viewModel.IsMaintenanceDiagnosticsExpanded);
+            Assert.False(viewModel.IsMaintenanceDangerExpanded);
+
+            viewModel.ApplyUiAutomationSmokeState("maintenance-compatibility");
+            Assert.True(viewModel.IsMaintenanceDiagnosticsExpanded);
+            Assert.False(viewModel.IsMaintenanceDangerExpanded);
+
+            viewModel.ApplyUiAutomationSmokeState("maintenance-danger");
+            Assert.False(viewModel.IsMaintenanceDiagnosticsExpanded);
+            Assert.True(viewModel.IsMaintenanceDangerExpanded);
+            Assert.Equal(HomeActionKind.ReviewNeeded, viewModel.MaintenanceRecommendation.Kind);
+            Assert.Null(viewModel.MaintenanceRecommendation.Command);
+        });
+
+    [Fact]
     public Task HomeAction_SelectsTheFirstSafeStateDerivedCommand() =>
         RunStaAsync(async () =>
         {
@@ -805,6 +913,20 @@ public sealed class MainViewModelMaintenanceTests
             Component("spotx", HealthSeverity.Ready),
             Component("spicetify-cli", HealthSeverity.Ready),
             Component("advisory", HealthSeverity.Warning)
+        ])
+    };
+
+    private static EnvironmentSnapshot HealthyMaintenanceSnapshot() => new()
+    {
+        SpotifyInstalled = true,
+        SpicetifyInstalled = true,
+        HealthReport = new StackHealthReport(
+        [
+            Component("spotify", HealthSeverity.Ready),
+            Component("spotx", HealthSeverity.Ready),
+            Component("spicetify-cli", HealthSeverity.Ready),
+            Component("marketplace", HealthSeverity.Ready),
+            Component("active-theme", HealthSeverity.Ready)
         ])
     };
 

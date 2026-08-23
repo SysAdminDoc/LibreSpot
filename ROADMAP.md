@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P1: RD-128: Put Maintenance status and safe repair before diagnostics
-  Why: A degraded machine currently shows environment cards and the compatibility matrix before the user can reach any repair action, even though typed issue-specific actions already exist.
-  Evidence: `assets/screenshots/wpf-maintenance.png`; `src/LibreSpot.Desktop/Views/MaintenanceWorkspaceView.xaml:50-180`, `:423-450`; `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:657-660`; `src/LibreSpot.Desktop/ViewModels/MainViewModel.Maintenance.cs:23-80`; Microsoft Repair-before-Reset and progressive-disclosure sources in `RESEARCH.md`.
-  Touches: `src/LibreSpot.Desktop/Views/MaintenanceWorkspaceView.xaml`, shared health-issue templates currently in `src/LibreSpot.Desktop/MainWindow.xaml`, `src/LibreSpot.Desktop/ViewModels/MainViewModel.Maintenance.cs`, localized resources, UI and view-model tests, screenshots, `README.md`.
-  Acceptance: At 1280 by 800, the first viewport contains overall status, the highest-priority issue in plain language, and one safe action when available. The Marketplace-degraded fixture shows Repair Marketplace without scrolling; a healthy fixture says no action is needed; a snapshot error shows Retry. Environment cards, compatibility details, support-bundle inventory, watcher details, and auto-reapply controls remain available under one labeled diagnostics expander. Reset stays visually separate in a collapsed danger section and never becomes the recommended action while a safe action exists. Focus order, automation names, 24-pixel minimum targets, localization parity, view-model state tests, and the Maintenance screenshot pass.
-  Complexity: L
-
 - [ ] P1: RD-132: Make the stable desktop download the default common-user installation path
   Why: The stable v4 desktop executable is built for common users, but Quick Start first asks them to paste a long PowerShell block and retains a lower-trust `irm | iex` command. This conditions users to follow the same interaction pattern used by ClickFix campaigns and makes the expert delivery lane look like the product default.
   Evidence: `README.md:16-53`; the v4.0.0 immutable release and Microsoft ClickFix, CISA Interlock, Windows PowerShell CVE-2025-54100, BetterDiscord Installer, BlockTheSpot Installer, Ninite, and r2modman sources in `RESEARCH.md`.

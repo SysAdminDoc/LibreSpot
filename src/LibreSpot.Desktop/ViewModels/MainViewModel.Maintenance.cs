@@ -144,6 +144,84 @@ public sealed partial class MainViewModel
             true);
     }
 
+    private HomeActionViewModel BuildMaintenanceRecommendation()
+    {
+        var homeAction = BuildHomeAction();
+        if (homeAction.Kind == HomeActionKind.Checking)
+        {
+            return homeAction;
+        }
+
+        if (homeAction.Kind == HomeActionKind.Retry)
+        {
+            return new HomeActionViewModel(
+                homeAction.Kind,
+                homeAction.ActionId,
+                homeAction.Title,
+                L("Vm_MaintenanceUnavailableBody"),
+                homeAction.PrimaryLabel,
+                homeAction.Command,
+                homeAction.IsEnabled,
+                homeAction.AutomationName,
+                homeAction.HelpText,
+                homeAction.Tone,
+                false);
+        }
+
+        var highestPriorityIssue = HealthReport.CriticalIssues
+            .Concat(HealthReport.WarningIssues)
+            .FirstOrDefault();
+        if (highestPriorityIssue is not null)
+        {
+            if (homeAction.Kind == HomeActionKind.HealthRepair)
+            {
+                return new HomeActionViewModel(
+                    HomeActionKind.HealthRepair,
+                    homeAction.ActionId,
+                    highestPriorityIssue.Status,
+                    highestPriorityIssue.Evidence,
+                    homeAction.PrimaryLabel,
+                    homeAction.Command,
+                    homeAction.IsEnabled,
+                    homeAction.AutomationName,
+                    homeAction.HelpText,
+                    highestPriorityIssue.Severity,
+                    false);
+            }
+
+            return new HomeActionViewModel(
+                HomeActionKind.ReviewNeeded,
+                "Review",
+                highestPriorityIssue.Status,
+                LF("Vm_MaintenanceReviewBodyFormat", highestPriorityIssue.Evidence),
+                L("StatusNeedsReview"),
+                null,
+                false,
+                L("StatusNeedsReview"),
+                L("ResetDescription"),
+                highestPriorityIssue.Severity,
+                false);
+        }
+
+        if (homeAction.Kind == HomeActionKind.OpenSpotify)
+        {
+            return new HomeActionViewModel(
+                HomeActionKind.NoActionNeeded,
+                "NoActionNeeded",
+                L("Vm_MaintenanceNoActionTitle"),
+                L("Vm_MaintenanceReadinessAllReady"),
+                L("Vm_MaintenanceNoActionTitle"),
+                null,
+                false,
+                L("Vm_MaintenanceNoActionTitle"),
+                L("Vm_MaintenanceReadinessAllReady"),
+                HealthSeverity.Ready,
+                false);
+        }
+
+        return homeAction;
+    }
+
     private HealthIssueActionViewModel? BuildHealthIssueAction(string action)
     {
         var maintenanceCard = _maintenanceActions.Find(action);

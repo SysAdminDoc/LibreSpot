@@ -12,4 +12,6 @@ public partial class MaintenanceWorkspaceView : UserControl
     }
 
     public FrameworkElement SupportBundleSurface => SupportBundleQaSurface;
+
+    public FrameworkElement CompatibilityVerdictSurface => CompatibilityVerdictQaSurface;
 }

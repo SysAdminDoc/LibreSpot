@@ -73,11 +73,19 @@ public sealed class UiTemplateContractTests
     }
 
     [Fact]
-    public void Maintenance_ShowsRetryWhenSnapshotLoadFails()
+    public void Maintenance_PutsOneSafeActionBeforeCollapsedDiagnosticsAndReset()
     {
         var maintenance = File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "MaintenanceWorkspaceView.xaml"));
-        Assert.Contains("MaintenanceRetrySystemCheckButton", maintenance);
-        Assert.Contains("HasSnapshotLoadError", maintenance);
+
+        Assert.Contains("AutomationProperties.AutomationId=\"MaintenancePrimaryActionButton\"", maintenance);
+        Assert.Contains("Command=\"{Binding MaintenanceRecommendation.Command}\"", maintenance);
+        Assert.Contains("AutomationProperties.AutomationId=\"MaintenanceDiagnosticsExpander\"", maintenance);
+        Assert.Contains("IsExpanded=\"{Binding IsMaintenanceDiagnosticsExpanded, Mode=TwoWay}\"", maintenance);
+        Assert.Contains("AutomationProperties.AutomationId=\"MaintenanceDangerExpander\"", maintenance);
+        Assert.Contains("IsExpanded=\"{Binding IsMaintenanceDangerExpanded, Mode=TwoWay}\"", maintenance);
+        Assert.True(
+            maintenance.IndexOf("MaintenancePrimaryActionButton", StringComparison.Ordinal) <
+            maintenance.IndexOf("DestructiveMaintenanceActions", StringComparison.Ordinal));
     }
 
     [Fact]
