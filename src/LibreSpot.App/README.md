@@ -7,6 +7,9 @@ The engine keeps one managed style element for the active palette and another fo
 ## Workspace
 
 - `src/core` contains the runtime, `color.ini` parser, profile and theme export, signal adapters, and named health checks.
+- `src/app.ts` is the Spotify custom app. Its rail opens Look, Tweaks, Features, Extensions, Presets, and Health.
+- `src/extensions/librespot-engine.ts` keeps the engine loaded on every Spotify route and supplies a menu entry when custom-app navigation is unavailable.
+- `src/panels` contains the six native React surfaces. The controls update the live runtime or clearly identify settings that need a desktop apply.
 - `tests` uses Vitest with happy-dom. Files run one at a time to stay within the Spotify fixture memory limit.
 - `vendor` holds pinned upstream source parts. See [third-party notices](THIRD_PARTY_NOTICES.md).
 
@@ -17,6 +20,6 @@ pnpm install --frozen-lockfile
 pnpm run check
 ```
 
-`pnpm run check` runs ESLint, the strict TypeScript build, and the DOM test suite.
+`pnpm run check` runs ESLint, the strict TypeScript build, the production bundle check, and the DOM test suite. The bundle command creates `dist/index.js`, `dist/style.css`, `dist/manifest.json`, and `dist/librespot-engine.js` for Spicetify.
 
 The component is [AGPL-3.0](LICENSE). The rest of LibreSpot keeps its root license.

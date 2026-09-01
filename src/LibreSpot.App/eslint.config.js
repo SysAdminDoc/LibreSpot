@@ -24,4 +24,11 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ["**/*.d.ts"],
+    rules: {
+      "@typescript-eslint/consistent-type-definitions": "off",
+      "@typescript-eslint/no-invalid-void-type": "off",
+    },
+  },
 );

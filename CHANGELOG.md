@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Added
 
+- LibreSpot now builds as a Spicetify custom app with a companion extension that keeps the live engine present on every route. Its six-panel rail covers Look, reviewed tweaks, captured Spotify feature flags, staged SpotX switches, installed extensions and apps, whole-profile presets, and named health checks. Scheme previews, four independent style layers, effects tiers, dynamic accents, per-region scale, schedules, snippet toggles, profile copy, route repair handoff, and diagnostics work through native Spotify controls. The production build checks the manifest, extension registration, render contract, and minified assets. An offscreen Chromium harness exercises Dark, Light, OLED, and high-contrast surfaces from 700 to 1920 pixels.
 - The in-Spotify customization engine now has a typed runtime core. It parses and exports multi-scheme `color.ini` files, derives missing Spicetify colors, injects one managed live palette, composes palette, layout, effects, and accessibility layers, responds to schedule and accent signals, applies client feature overrides through Spotify's debug API, and reports missing anchors or custom-app routes by name. A single-worker Vitest suite covers direct color round trips, live DOM changes, layer cleanup, Material palettes, profile export, schedules, feature flags, and self-test failures.
 
 ### Changed

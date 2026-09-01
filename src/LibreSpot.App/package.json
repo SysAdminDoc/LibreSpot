@@ -9,9 +9,10 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
+    "bundle": "node scripts/build.mjs",
     "lint": "eslint src tests vitest.config.ts",
     "test": "vitest run --pool=forks --maxWorkers=1 --fileParallelism=false",
-    "check": "pnpm run lint && pnpm run build && pnpm run test"
+    "check": "pnpm run lint && pnpm run build && pnpm run bundle && pnpm run test"
   },
   "dependencies": {
     "@material/material-color-utilities": "0.3.0"
@@ -22,6 +23,9 @@
     "esbuild": "0.28.2",
     "eslint": "10.9.1",
     "happy-dom": "20.12.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "spicetify-creator": "1.0.17",
     "typescript": "6.0.3",
     "typescript-eslint": "8.69.0",
     "vitest": "4.1.11"
