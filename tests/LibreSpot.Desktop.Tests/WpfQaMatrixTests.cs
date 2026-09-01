@@ -35,6 +35,7 @@ public sealed class WpfQaMatrixTests
         {
             ("recommended", "ButtonStartRecommendedSetup", "HomePrimaryActionButton"),
             ("custom", "ButtonApplyCustomProfile", "ApplyCustomProfileButton"),
+            ("custom-live", "LiveCustomizationTitle", "LiveCustomizationFeatureSearch"),
             ("maintenance", "Maintenance_RepairMarketplace_ButtonText", "MaintenancePrimaryActionButton"),
             ("maintenance-compatibility", "CompatibilityVerdictTitle", "WorkspaceNavMaintenance"),
             ("maintenance-healthy", "Vm_MaintenanceNoActionTitle", "MaintenanceDiagnosticsToggle"),

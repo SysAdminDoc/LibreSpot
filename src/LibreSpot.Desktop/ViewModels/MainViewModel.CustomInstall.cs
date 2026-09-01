@@ -20,6 +20,8 @@ namespace LibreSpot.Desktop.ViewModels;
 
 public sealed partial class MainViewModel
 {
+    private string _libreSpotEngineProfileJson = string.Empty;
+
     public string SelectedTheme
     {
         get => _customOptions.SelectedTheme;
@@ -73,6 +75,47 @@ public sealed partial class MainViewModel
     {
         get => _customOptions.CacheLimitText;
         set => _customOptions.CacheLimitText = value;
+    }
+
+    public string FeatureSearchText
+    {
+        get => _customOptions.FeatureSearchText;
+        set => _customOptions.FeatureSearchText = value;
+    }
+
+    public CustomizationGroupOption SelectedFeatureGroup
+    {
+        get => _customOptions.SelectedFeatureGroup;
+        set => _customOptions.SelectedFeatureGroup = value;
+    }
+
+    public IEnumerable<CustomizationFeatureOptionViewModel> FilteredCustomizationFeatures =>
+        CustomizationFeatures.Where(feature =>
+            feature.Matches(FeatureSearchText) &&
+            (SelectedFeatureGroup.Key == "*" || string.Equals(feature.Group, SelectedFeatureGroup.Key, StringComparison.Ordinal)) &&
+            MatchesLiveCustomizationSearch(feature.Name, feature.Description, feature.Group));
+
+    public IEnumerable<CustomizationSnippetToggleViewModel> FilteredCustomizationSnippets =>
+        CustomizationSnippets.Where(snippet =>
+            snippet.Matches(FeatureSearchText) &&
+            MatchesLiveCustomizationSearch(snippet.Title, snippet.Description, snippet.Category));
+
+    public bool HasFeatureSearchText => !string.IsNullOrWhiteSpace(FeatureSearchText);
+    public bool ShowLiveFeatureEmptyState => !FilteredCustomizationFeatures.Any();
+    public int LiveFeatureOverrideCount => CustomizationFeatures.Count(feature => feature.IsOverrideEnabled);
+    public int LiveSnippetCount => CustomizationSnippets.Count(snippet => snippet.IsSelected);
+    public string LiveFeatureCountText => LF("LiveCustomizationFeatureCountFormat", FilteredCustomizationFeatures.Count(), CustomizationFeatures.Count, LiveFeatureOverrideCount);
+    public string LiveSnippetCountText => LF("LiveCustomizationSnippetCountFormat", LiveSnippetCount, CustomizationSnippets.Count);
+
+    private bool MatchesLiveCustomizationSearch(params string[] values)
+    {
+        if (!HasSettingsSearchText ||
+            MatchesSettingsSearch(L("LiveCustomizationTitle"), L("LiveCustomizationDescription")))
+        {
+            return true;
+        }
+
+        return values.Any(value => MatchesSettingsSearch(value, string.Empty));
     }
 
     public bool CustomPatchesEnabled
@@ -175,6 +218,7 @@ public sealed partial class MainViewModel
         CollectionViewSource.GetDefaultView(ExperienceOptions).Refresh();
         CollectionViewSource.GetDefaultView(Extensions).Refresh();
         CollectionViewSource.GetDefaultView(CustomApps).Refresh();
+        RaiseLiveCustomizationFilterChanged();
         ClearSettingsSearchCommand.NotifyCanExecuteChanged();
         RaiseCustomSearchChanged();
     }
@@ -193,6 +237,7 @@ public sealed partial class MainViewModel
         OnPropertyChanged(nameof(HasVisibleAdvancedSection));
         OnPropertyChanged(nameof(HasVisibleExtensions));
         OnPropertyChanged(nameof(HasVisibleCustomApps));
+        OnPropertyChanged(nameof(HasVisibleLiveCustomization));
         OnPropertyChanged(nameof(CustomSearchMatchCount));
         OnPropertyChanged(nameof(HasAnyCustomSearchMatches));
         OnPropertyChanged(nameof(ShowCustomSearchEmptyState));
@@ -296,6 +341,18 @@ public sealed partial class MainViewModel
                 $"extension custom app asset {extension.Key}", () => OpenGlobalCustomFilter(extension.Title));
         }
 
+        foreach (var feature in CustomizationFeatures)
+        {
+            Add(2, "Vm_GlobalSearchCategoryThemesAssets", feature.Name, feature.Description,
+                $"Spotify feature flag {feature.Group} {feature.SpotXForcedText}", () => OpenGlobalLiveCustomization(feature.Name));
+        }
+
+        foreach (var snippet in CustomizationSnippets)
+        {
+            Add(2, "Vm_GlobalSearchCategoryThemesAssets", snippet.Title, snippet.Description,
+                $"CSS snippet {snippet.Id} {snippet.Category}", () => OpenGlobalLiveCustomization(snippet.Title));
+        }
+
         foreach (var profile in LocalProfiles)
         {
             Add(3, "Vm_GlobalSearchCategoryProfiles", profile.Name,
@@ -383,6 +440,13 @@ public sealed partial class MainViewModel
         SelectedThemeGalleryItem = theme;
     }
 
+    private void OpenGlobalLiveCustomization(string filter)
+    {
+        SelectedWorkspaceIndex = 1;
+        SettingsSearchText = L("LiveCustomizationTitle");
+        FeatureSearchText = filter;
+    }
+
     private void OpenGlobalProfile(LocalProfileCardViewModel profile)
     {
         SelectedWorkspaceIndex = 1;
@@ -431,12 +495,26 @@ public sealed partial class MainViewModel
         {
             customApp.PropertyChanged += OnSelectionItemPropertyChanged;
         }
+
+        foreach (var feature in CustomizationFeatures)
+        {
+            feature.PropertyChanged += OnSelectionItemPropertyChanged;
+        }
+
+        foreach (var snippet in CustomizationSnippets)
+        {
+            snippet.PropertyChanged += OnSelectionItemPropertyChanged;
+        }
     }
 
     private void OnSelectionItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(OptionToggleViewModel.IsSelected) ||
-            e.PropertyName == nameof(ExtensionToggleViewModel.IsSelected))
+            e.PropertyName == nameof(ExtensionToggleViewModel.IsSelected) ||
+            e.PropertyName == nameof(CustomizationFeatureOptionViewModel.IsOverrideEnabled) ||
+            e.PropertyName == nameof(CustomizationFeatureOptionViewModel.BooleanValue) ||
+            e.PropertyName == nameof(CustomizationFeatureOptionViewModel.ValueText) ||
+            e.PropertyName == nameof(CustomizationSnippetToggleViewModel.IsSelected))
         {
             if (_isApplyingSelectionDependencyRules)
             {
@@ -445,6 +523,7 @@ public sealed partial class MainViewModel
 
             ApplySelectionDependencyRules(sender as OptionToggleViewModel);
             RaiseSelectionInsightsChanged();
+            RaiseLiveCustomizationFilterChanged();
         }
     }
 
@@ -788,6 +867,19 @@ public sealed partial class MainViewModel
             customApp.IsSelected = customAppLookup.Contains(customApp.Key);
         }
 
+        _libreSpotEngineProfileJson = configuration.LibreSpot_EngineProfileJson;
+        var featureOverrides = ParseFeatureOverrides(configuration.LibreSpot_FeatureOverridesJson);
+        foreach (var feature in CustomizationFeatures)
+        {
+            feature.LoadOverride(featureOverrides.TryGetValue(feature.Name, out var value) ? value : null);
+        }
+
+        var snippetLookup = configuration.LibreSpot_EnabledSnippets.ToHashSet(StringComparer.Ordinal);
+        foreach (var snippet in CustomizationSnippets)
+        {
+            snippet.IsSelected = snippetLookup.Contains(snippet.Id);
+        }
+
         CustomPatchesEnabled = configuration.SpotX_CustomPatchesEnabled;
         _preserveCustomPatchProvenance = true;
         try
@@ -844,6 +936,22 @@ public sealed partial class MainViewModel
         configuration.SpotX_CustomPatchesSourceSha256 = _customPatchesSourceSha256;
         configuration.Spicetify_Extensions = Extensions.Where(item => item.IsSelected).Select(item => item.Key).ToList();
         configuration.Spicetify_CustomApps = CustomApps.Where(item => item.IsSelected).Select(item => item.Key).ToList();
+        configuration.LibreSpot_EngineProfileJson = _libreSpotEngineProfileJson;
+        configuration.LibreSpot_EnabledSnippets = CustomizationSnippets
+            .Where(item => item.IsSelected)
+            .Select(item => item.Id)
+            .ToList();
+        configuration.LibreSpot_FeatureOverridesJson = JsonSerializer.Serialize(
+            CustomizationFeatures
+                .Where(item => item.IsOverrideEnabled)
+                .ToDictionary(item => item.Name, item => item.GetSerializableValue(), StringComparer.Ordinal));
+        if ((!string.IsNullOrWhiteSpace(configuration.LibreSpot_EngineProfileJson) ||
+             configuration.LibreSpot_EnabledSnippets.Count > 0 ||
+             configuration.LibreSpot_FeatureOverridesJson != "{}") &&
+            !configuration.Spicetify_CustomApps.Contains("librespot", StringComparer.OrdinalIgnoreCase))
+        {
+            configuration.Spicetify_CustomApps.Insert(0, "librespot");
+        }
 
         return AppCatalog.NormalizeConfiguration(configuration);
     }
@@ -896,6 +1004,43 @@ public sealed partial class MainViewModel
             var property = typeof(InstallConfiguration).GetProperty(option.Key, BindingFlags.Public | BindingFlags.Instance);
             property?.SetValue(configuration, option.IsSelected);
         }
+    }
+
+    private static IReadOnlyDictionary<string, JsonElement> ParseFeatureOverrides(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                return new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+            }
+
+            return document.RootElement.EnumerateObject()
+                .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.Ordinal);
+        }
+        catch (JsonException)
+        {
+            return new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        }
+    }
+
+    private void RaiseLiveCustomizationFilterChanged()
+    {
+        OnPropertyChanged(nameof(FilteredCustomizationFeatures));
+        OnPropertyChanged(nameof(FilteredCustomizationSnippets));
+        OnPropertyChanged(nameof(HasFeatureSearchText));
+        OnPropertyChanged(nameof(ShowLiveFeatureEmptyState));
+        OnPropertyChanged(nameof(LiveFeatureOverrideCount));
+        OnPropertyChanged(nameof(LiveSnippetCount));
+        OnPropertyChanged(nameof(LiveFeatureCountText));
+        OnPropertyChanged(nameof(LiveSnippetCountText));
+        ClearFeatureSearchCommand.NotifyCanExecuteChanged();
     }
 
     private void RebuildSelectionInsights()
@@ -1045,6 +1190,8 @@ public sealed partial class MainViewModel
         var differences = EnumerateAllOptions().Count(option => option.IsSelected != option.IsRecommendedDefault);
         differences += Extensions.Count(extension => extension.IsSelected != extension.IsRecommendedDefault);
         differences += CustomApps.Count(customApp => customApp.IsSelected != customApp.IsRecommendedDefault);
+        differences += CustomizationFeatures.Count(feature => feature.IsOverrideEnabled);
+        differences += CustomizationSnippets.Count(snippet => snippet.IsSelected);
 
         if (!string.Equals(SelectedTheme, _recommendedBaseline.Spicetify_Theme, StringComparison.Ordinal))
         {

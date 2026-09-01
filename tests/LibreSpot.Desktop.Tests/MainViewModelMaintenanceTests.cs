@@ -58,7 +58,7 @@ public sealed class MainViewModelMaintenanceTests
 
             using var viewModel = await fixture.CreateInitializedViewModelAsync();
 
-            Assert.Equal("4 of 5 ready", viewModel.MaintenanceReadinessValue);
+            Assert.Equal("4 of 6 ready", viewModel.MaintenanceReadinessValue);
             Assert.Equal("Files installed", viewModel.MaintenanceMarketplaceValue);
             Assert.Contains("Latest:", viewModel.MaintenanceBackupDetail);
             Assert.True(Card(viewModel, "OpenMarketplace").IsRelevant);

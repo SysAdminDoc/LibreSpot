@@ -4,6 +4,7 @@ import {
   LibreSpotEngine,
   CATALOG_THEME_STYLES,
   createDefaultState,
+  parseProfile,
   runSelfTest,
   serializeProfile,
   type EngineState,
@@ -24,6 +25,76 @@ import { panelPath, type PanelId } from "../surface/navigation.ts";
 
 const ACCESS_ICON =
   '<svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M5 5.5h14M5 12h14M5 18.5h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="5.5" r="2.25" fill="currentColor"/><circle cx="15" cy="12" r="2.25" fill="currentColor"/><circle cx="11" cy="18.5" r="2.25" fill="currentColor"/></svg>';
+const DESKTOP_BOOTSTRAP_REVISION_KEY = "librespot:desktop-bootstrap-revision";
+
+type DesktopBootstrapPayload = {
+  schemaVersion: number;
+  profile: unknown;
+  enabledSnippets: unknown;
+  featureOverrides: unknown;
+  spotxSwitches: unknown;
+};
+
+function recordValues(value: unknown): Record<string, boolean | number | string> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, boolean | number | string] =>
+        ["boolean", "number", "string"].includes(typeof entry[1]),
+    ),
+  );
+}
+
+function applyDesktopBootstrap(store: EngineStore): EngineState | null {
+  const bootstrap = window.__libreSpotDesktopBootstrap;
+  if (
+    !bootstrap?.payloadBase64 ||
+    !/^[a-f0-9]{64}$/.test(bootstrap.revision) ||
+    Spicetify.LocalStorage.get(DESKTOP_BOOTSTRAP_REVISION_KEY) === bootstrap.revision
+  ) {
+    return null;
+  }
+
+  try {
+    const bytes = Uint8Array.from(atob(bootstrap.payloadBase64), (character) =>
+      character.charCodeAt(0),
+    );
+    const payload = JSON.parse(
+      new TextDecoder().decode(bytes),
+    ) as DesktopBootstrapPayload;
+    if (payload.schemaVersion !== 1) {
+      throw new Error(`Unsupported desktop bootstrap ${String(payload.schemaVersion)}.`);
+    }
+
+    let state: EngineState;
+    if (payload.profile && typeof payload.profile === "object") {
+      state = parseProfile(JSON.stringify(payload.profile));
+    } else {
+      state = store.load();
+    }
+    state = ensureSchemes(
+      Object.keys(state.schemes).length === 0 ? defaultEngineState() : state,
+    );
+    if (Array.isArray(payload.enabledSnippets)) {
+      state.enabledSnippets = payload.enabledSnippets.filter(
+        (value): value is string => typeof value === "string",
+      );
+    }
+    state.featureOverrides = recordValues(payload.featureOverrides);
+    state.spotxSwitches = recordValues(payload.spotxSwitches);
+    const saved = store.save(state);
+    Spicetify.LocalStorage.set(
+      DESKTOP_BOOTSTRAP_REVISION_KEY,
+      bootstrap.revision,
+    );
+    return saved;
+  } catch (error) {
+    console.warn("[LibreSpot] Desktop profile bootstrap was rejected.", error);
+    return null;
+  }
+}
 
 function storageAdapter(): StorageAdapter {
   return {
@@ -255,7 +326,7 @@ async function bootstrap(): Promise<void> {
   try {
     await waitForApi();
     const store = new EngineStore(storageAdapter());
-    let initial = store.load();
+    let initial = applyDesktopBootstrap(store) ?? store.load();
     if (Object.keys(initial.schemes).length === 0) {
       initial = store.save(defaultEngineState());
     } else {

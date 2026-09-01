@@ -5,13 +5,18 @@
   "sharedFunctions": {
     "directory": "src/powershell/shared",
     "pattern": "*.ps1",
-  "expectedCount": 121
+  "expectedCount": 123
   },
   "dataBlocks": [
     {
       "name": "PinnedReleases",
       "source": "src/powershell/data/PinnedReleases.ps1",
       "pattern": "(?ms)^\\$global:PinnedReleases\\s*=\\s*@\\{.+?^\\}"
+    },
+    {
+      "name": "CommunityCustomApps",
+      "source": "src/powershell/data/CommunityCustomApps.ps1",
+      "pattern": "(?ms)^\\$global:CommunityCustomApps\\s*=\\s*(?:\\[ordered\\])?@\\{.+?^\\}"
     }
   ],
   "laneFunctions": [

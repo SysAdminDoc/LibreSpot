@@ -39,6 +39,7 @@ public sealed class AutomationNameContractTests
             Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomWorkspaceView.xaml"),
             Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomInstallSection.xaml"),
             Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomAppearanceSection.xaml"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomLiveCustomizationSection.xaml"),
             Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomBehaviorSection.xaml"),
             Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomAdvancedSection.xaml"),
             Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", "CustomPatchesSection.xaml"),

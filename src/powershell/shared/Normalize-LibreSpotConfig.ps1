@@ -124,6 +124,8 @@ function Normalize-LibreSpotConfig {
         } elseif ($Config.Spicetify_CustomApps -is [System.Collections.IEnumerable]) {
             $rawCustomApps = @($Config.Spicetify_CustomApps)
         }
+    } else {
+        $rawCustomApps = @($normalized.Spicetify_CustomApps)
     }
     foreach ($customApp in $rawCustomApps) {
         $name = [string]$customApp
@@ -132,6 +134,52 @@ function Normalize-LibreSpotConfig {
         if (-not $customApps.Contains($name)) { $customApps.Add($name) }
     }
     $normalized.Spicetify_CustomApps = @($customApps)
+
+    if ($Config -and $Config.ContainsKey('LibreSpot_EngineProfileJson')) {
+        $engineProfileJson = [string]$Config.LibreSpot_EngineProfileJson
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        if (-not [string]::IsNullOrWhiteSpace($engineProfileJson) -and $utf8.GetByteCount($engineProfileJson) -le 262144) {
+            try {
+                $engineProfile = $engineProfileJson | ConvertFrom-Json -ErrorAction Stop
+                if ($null -ne $engineProfile -and $engineProfile -isnot [System.Array]) {
+                    $normalized.LibreSpot_EngineProfileJson = $engineProfile | ConvertTo-Json -Depth 64 -Compress
+                }
+            } catch {
+                $normalized.LibreSpot_EngineProfileJson = ''
+            }
+        }
+    }
+
+    $enabledSnippets = [System.Collections.Generic.List[string]]::new()
+    $rawEnabledSnippets = @()
+    if ($Config -and $Config.ContainsKey('LibreSpot_EnabledSnippets')) {
+        if ($Config.LibreSpot_EnabledSnippets -is [string]) {
+            $rawEnabledSnippets = @([string]$Config.LibreSpot_EnabledSnippets)
+        } elseif ($Config.LibreSpot_EnabledSnippets -is [System.Collections.IEnumerable]) {
+            $rawEnabledSnippets = @($Config.LibreSpot_EnabledSnippets)
+        }
+    }
+    foreach ($snippet in $rawEnabledSnippets) {
+        $snippetId = ([string]$snippet).Trim()
+        if ($snippetId -notmatch '^[a-z0-9][a-z0-9._-]{0,127}$') { continue }
+        if (-not $enabledSnippets.Contains($snippetId)) { $enabledSnippets.Add($snippetId) }
+    }
+    $normalized.LibreSpot_EnabledSnippets = @($enabledSnippets)
+
+    if ($Config -and $Config.ContainsKey('LibreSpot_FeatureOverridesJson')) {
+        $featureOverridesJson = [string]$Config.LibreSpot_FeatureOverridesJson
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        if (-not [string]::IsNullOrWhiteSpace($featureOverridesJson) -and $utf8.GetByteCount($featureOverridesJson) -le 131072) {
+            try {
+                $featureOverrides = $featureOverridesJson | ConvertFrom-Json -ErrorAction Stop
+                if ($null -ne $featureOverrides -and $featureOverrides -isnot [System.Array]) {
+                    $normalized.LibreSpot_FeatureOverridesJson = $featureOverrides | ConvertTo-Json -Depth 16 -Compress
+                }
+            } catch {
+                $normalized.LibreSpot_FeatureOverridesJson = '{}'
+            }
+        }
+    }
 
     if ($normalized.SpotX_RightSidebarOff) {
         $normalized.SpotX_RightSidebarClr = $false

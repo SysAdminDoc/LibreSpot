@@ -3,7 +3,7 @@ import {
   PROFILE_SCHEMA_VERSION,
   type EngineState,
 } from "./state.ts";
-import { parseProfile, serializeProfile } from "./profile.ts";
+import { parseProfile, serializeEngineState } from "./profile.ts";
 
 export const ENGINE_STORAGE_KEY = "librespot:engine-state";
 
@@ -48,7 +48,7 @@ export class EngineStore {
     const next = structuredClone(state);
     next.schemaVersion = PROFILE_SCHEMA_VERSION;
     next.updatedAt = this.now().toISOString();
-    this.storage.set(ENGINE_STORAGE_KEY, serializeProfile(next));
+    this.storage.set(ENGINE_STORAGE_KEY, serializeEngineState(next));
     return next;
   }
 

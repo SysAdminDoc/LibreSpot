@@ -663,6 +663,22 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("hash mismatch", body);
     }
 
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void Watcher_HeadlessReapply_RestoresManagedCustomAppsAndRoutes(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var headlessReapply = ExtractFunction(script, "Invoke-HeadlessReapply");
+        var savedSetup = ExtractFunction(script, "Reapply-SavedSpicetifySetup");
+        var apply = ExtractFunction(script, "Module-ApplySpicetify");
+
+        Assert.Contains("Reapply-SavedSpicetifySetup -Config $Config", headlessReapply);
+        Assert.Contains("Module-InstallCustomApps -Config $Config", savedSetup);
+        Assert.Contains("Module-ApplySpicetify -Config $Config", savedSetup);
+        Assert.Contains("Repair-LibreSpotManagedCustomAppRoutes -Config $Config", apply);
+    }
+
     [Fact]
     public void Watcher_OnFirstRun_InitializesStateWithoutReapplying()
     {
@@ -1305,7 +1321,8 @@ public sealed class PowerShellRegressionTests
         // or /marketplace renders a permanently blank page.
         Assert.Contains("function Test-SpicetifyCustomAppRouteWiring", script);
         Assert.Contains("function Repair-SpicetifyCustomAppWiring", script);
-        Assert.Contains("Repair-SpicetifyCustomAppWiring", applyBody.Groups["body"].Value);
+        Assert.Contains("function Repair-LibreSpotManagedCustomAppRoutes", script);
+        Assert.Contains("Repair-LibreSpotManagedCustomAppRoutes", applyBody.Groups["body"].Value);
     }
 
     [Theory]

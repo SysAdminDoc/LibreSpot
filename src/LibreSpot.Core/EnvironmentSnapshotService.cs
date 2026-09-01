@@ -178,7 +178,12 @@ public sealed class EnvironmentSnapshotService
             BuildSpotXComponent(spotifyInstalled),
             BuildSpicetifyCliComponent(spicetifyInstalled),
             BuildSpicetifyConfigComponent(spicetifyInstalled, spicetifyConfigPath, spicetifyConfig),
-            BuildMarketplaceComponent(spicetifyInstalled, marketplaceDirectory, marketplaceFilesPresent, marketplaceRegistered, marketplaceEvidence, spicetifyConfig, ProbeMarketplaceRouteWiring()),
+            BuildMarketplaceComponent(spicetifyInstalled, marketplaceDirectory, marketplaceFilesPresent, marketplaceRegistered, marketplaceEvidence, spicetifyConfig, ProbeCustomAppRouteWiring("marketplace")),
+            BuildLibreSpotEngineComponent(
+                spicetifyInstalled,
+                spicetifyConfig,
+                ProbeCustomAppRouteWiring("librespot"),
+                ProbeLibreSpotEngineAnchors()),
             BuildThemeComponent(spicetifyInstalled, spicetifyConfigPath, spicetifyConfig),
             BuildBackupComponent(spicetifyInstalled),
             BuildWatcherComponent(watcherStatePath, watcherState, autoReapplyTaskRegistered),
@@ -846,7 +851,7 @@ public sealed class EnvironmentSnapshotService
     // permanently blank page even though files and config look healthy.
     // Returns null when the state cannot be determined (no extracted bundle,
     // or the CLI-supported snapshot layout is live).
-    private bool? ProbeMarketplaceRouteWiring()
+    private bool? ProbeCustomAppRouteWiring(string appName)
     {
         try
         {
@@ -870,9 +875,203 @@ public sealed class EnvironmentSnapshotService
                 return null;
             }
 
-            return File.ReadAllText(bundlePath).Contains("spicetify-routes-marketplace", StringComparison.Ordinal);
+            return File.ReadAllText(bundlePath).Contains($"spicetify-routes-{appName}", StringComparison.Ordinal);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            return null;
+        }
+    }
+
+    private LibreSpotEngineAnchorProbe ProbeLibreSpotEngineAnchors()
+    {
+        try
+        {
+            var spotifyDirectory = Path.GetDirectoryName(_spotifyPath) ?? string.Empty;
+            var bundlePath = Path.Combine(spotifyDirectory, "Apps", "xpui", "xpui.js");
+            if (!File.Exists(bundlePath))
+            {
+                return LibreSpotEngineAnchorProbe.Unavailable(bundlePath);
+            }
+
+            var bundle = File.ReadAllText(bundlePath);
+            var anchorGroups = new Dictionary<string, string[]>(StringComparer.Ordinal)
+            {
+                ["main-view"] = ["Root__main-view", "main-view-container"],
+                ["navigation"] = ["Root__nav-bar", "global-nav-bar"],
+                ["playbar"] = ["Root__now-playing-bar", "now-playing-bar"],
+                ["scroll-container"] = ["main-view-container__scroll-node", "overlayscrollbars", "os-viewport"]
+            };
+            var missing = anchorGroups
+                .Where(group => !group.Value.Any(token => bundle.Contains(token, StringComparison.Ordinal)))
+                .Select(group => group.Key)
+                .ToArray();
+            return new LibreSpotEngineAnchorProbe(bundlePath, missing);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            return LibreSpotEngineAnchorProbe.Unavailable(null);
+        }
+    }
+
+    private StackHealthComponent BuildLibreSpotEngineComponent(
+        bool spicetifyInstalled,
+        IReadOnlyDictionary<string, string> spicetifyConfig,
+        bool? routeWired,
+        LibreSpotEngineAnchorProbe anchorProbe)
+    {
+        var appDirectory = Path.Combine(_spicetifyConfigDirectory, "CustomApps", "librespot");
+        var companionPath = Path.Combine(_spicetifyConfigDirectory, "Extensions", "librespot-engine.js");
+        var requiredFiles = new[] { "manifest.json", "index.js", "style.css", "librespot-engine.js" };
+        var missingFiles = requiredFiles
+            .Where(file => !File.Exists(Path.Combine(appDirectory, file)))
+            .ToArray();
+        var appRegistered = IsSpicetifyListEntryEnabled(spicetifyConfig, "custom_apps", "librespot");
+        var companionRegistered = IsSpicetifyListEntryEnabled(spicetifyConfig, "extensions", "librespot-engine.js");
+        var version = ReadManifestVersion(Path.Combine(appDirectory, "manifest.json"));
+
+        if (!spicetifyInstalled)
+        {
+            return Component(
+                "librespot-live-engine",
+                L("HealthNameLibreSpotEngine"),
+                L("HealthStatusNotAvailable"),
+                HealthSeverity.Info,
+                version,
+                appDirectory,
+                null,
+                L("HealthEvidenceLibreSpotEngineUnavailable"),
+                "Install");
+        }
+
+        if (missingFiles.Length > 0)
+        {
+            return Component(
+                "librespot-live-engine",
+                L("HealthNameLibreSpotEngine"),
+                L("HealthStatusFilesMissing"),
+                HealthSeverity.Warning,
+                version,
+                appDirectory,
+                GetNewestFileChange(appDirectory),
+                F("HealthEvidenceLibreSpotEngineFilesMissingFormat", string.Join(", ", missingFiles)),
+                "Reapply",
+                "OpenLogs");
+        }
+
+        if (!appRegistered)
+        {
+            return Component(
+                "librespot-live-engine",
+                L("HealthNameLibreSpotEngine"),
+                L("HealthStatusNotEnabled"),
+                HealthSeverity.Warning,
+                version,
+                appDirectory,
+                GetNewestFileChange(appDirectory),
+                L("HealthEvidenceLibreSpotEngineAppDisabled"),
+                "Reapply");
+        }
+
+        if (!File.Exists(companionPath))
+        {
+            return Component(
+                "librespot-live-engine",
+                L("HealthNameLibreSpotEngine"),
+                L("HealthStatusEngineCompanionMissing"),
+                HealthSeverity.Warning,
+                version,
+                companionPath,
+                null,
+                L("HealthEvidenceLibreSpotEngineCompanionMissing"),
+                "Reapply",
+                "OpenLogs");
+        }
+
+        if (!companionRegistered)
+        {
+            return Component(
+                "librespot-live-engine",
+                L("HealthNameLibreSpotEngine"),
+                L("HealthStatusEngineCompanionDisabled"),
+                HealthSeverity.Warning,
+                version,
+                companionPath,
+                GetLastChanged(companionPath),
+                L("HealthEvidenceLibreSpotEngineCompanionDisabled"),
+                "Reapply");
+        }
+
+        if (routeWired == false)
+        {
+            return Component(
+                "librespot-live-engine",
+                L("HealthNameLibreSpotEngine"),
+                L("HealthStatusEngineRouteNotWired"),
+                HealthSeverity.Warning,
+                version,
+                appDirectory,
+                GetNewestFileChange(appDirectory),
+                L("HealthEvidenceLibreSpotEngineRouteNotWired"),
+                "Reapply",
+                "OpenLogs");
+        }
+
+        if (anchorProbe.IsAvailable && anchorProbe.MissingGroups.Count > 0)
+        {
+            return Component(
+                "librespot-live-engine",
+                L("HealthNameLibreSpotEngine"),
+                L("HealthStatusEngineAnchorsChanged"),
+                HealthSeverity.Warning,
+                version,
+                anchorProbe.BundlePath,
+                GetLastChanged(anchorProbe.BundlePath!),
+                F("HealthEvidenceLibreSpotEngineAnchorsChangedFormat", string.Join(", ", anchorProbe.MissingGroups)),
+                "Reapply",
+                "OpenLogs");
+        }
+
+        if (!anchorProbe.IsAvailable)
+        {
+            return Component(
+                "librespot-live-engine",
+                L("HealthNameLibreSpotEngine"),
+                L("HealthStatusEngineAnchorProbeUnavailable"),
+                HealthSeverity.Info,
+                version,
+                appDirectory,
+                GetNewestFileChange(appDirectory),
+                L("HealthEvidenceLibreSpotEngineAnchorProbeUnavailable"),
+                "Reapply");
+        }
+
+        return Component(
+            "librespot-live-engine",
+            L("HealthNameLibreSpotEngine"),
+            L("HealthStatusEngineReady"),
+            HealthSeverity.Ready,
+            version,
+            appDirectory,
+            Max(GetNewestFileChange(appDirectory), GetLastChanged(companionPath)),
+            L("HealthEvidenceLibreSpotEngineReady"));
+    }
+
+    private static string? ReadManifestVersion(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(path));
+            return document.RootElement.TryGetProperty("version", out var version) && version.ValueKind == JsonValueKind.String
+                ? version.GetString()
+                : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
             return null;
         }
@@ -1711,6 +1910,14 @@ public sealed class EnvironmentSnapshotService
         }
 
         return LibreSpotPaths.ConfigDirectory;
+    }
+
+    private sealed record LibreSpotEngineAnchorProbe(string? BundlePath, IReadOnlyList<string> MissingGroups)
+    {
+        public bool IsAvailable => !string.IsNullOrWhiteSpace(BundlePath) && File.Exists(BundlePath);
+
+        public static LibreSpotEngineAnchorProbe Unavailable(string? bundlePath) =>
+            new(bundlePath, Array.Empty<string>());
     }
 
     private static bool IsSpicetifyListEntryEnabled(

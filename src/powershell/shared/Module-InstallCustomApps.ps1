@@ -1,6 +1,7 @@
 function Module-InstallCustomApps { param($Config)
     $requestedApps = @($Config.Spicetify_CustomApps | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     $managedApps = @($global:CommunityCustomApps.Keys)
+    $managedCompanionExtensions = @($global:CommunityCustomApps.Values | ForEach-Object { [string]$_.CompanionExtension } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     $integration = Get-SpicetifyIntegrationContext
     $customAppsDirectory = $integration.CustomAppsDirectory
 
@@ -10,12 +11,17 @@ function Module-InstallCustomApps { param($Config)
             $null = Remove-PathSafely -Path (Join-Path $customAppsDirectory $appId) -Label "Custom app $appId"
         }
         Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @() -ManagedItems $managedApps
+        foreach ($extensionName in $managedCompanionExtensions) {
+            $null = Remove-PathSafely -Path (Join-Path $integration.ExtensionsDirectory $extensionName) -Label "Companion extension $extensionName"
+        }
+        Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems @() -ManagedItems $managedCompanionExtensions
         return
     }
 
     Write-Log "Custom apps: $($requestedApps -join ', ')..." -Level 'STEP'
     New-Item -Path $customAppsDirectory -ItemType Directory -Force | Out-Null
     $installedApps = [System.Collections.Generic.List[string]]::new()
+    $installedCompanionExtensions = [System.Collections.Generic.List[string]]::new()
 
     foreach ($appId in $requestedApps) {
         if (-not $global:CommunityCustomApps.Contains($appId)) {
@@ -60,7 +66,8 @@ function Module-InstallCustomApps { param($Config)
                 throw "Custom app archive did not contain expected folder '$($info.AssetPath)'."
             }
 
-            foreach ($requiredFile in @('manifest.json', 'extension.js')) {
+            $requiredFiles = if ($info.RequiredFiles) { @($info.RequiredFiles) } else { @('manifest.json', 'extension.js') }
+            foreach ($requiredFile in $requiredFiles) {
                 if (-not (Test-Path -LiteralPath (Join-Path $sourcePath $requiredFile) -PathType Leaf)) {
                     throw "Custom app '$appId' is missing required file '$requiredFile'."
                 }
@@ -69,6 +76,15 @@ function Module-InstallCustomApps { param($Config)
             $null = Remove-PathSafely -Path $destinationPath -Label "Custom app $appId"
             New-Item -Path $destinationPath -ItemType Directory -Force | Out-Null
             Copy-Item -Path (Join-Path $sourcePath '*') -Destination $destinationPath -Recurse -Force
+            $companionExtension = [string]$info.CompanionExtension
+            if (-not [string]::IsNullOrWhiteSpace($companionExtension)) {
+                $bootstrap = New-LibreSpotEngineBootstrap `
+                    -Config $Config `
+                    -SourcePath (Join-Path $destinationPath $companionExtension) `
+                    -DestinationPath (Join-Path $integration.ExtensionsDirectory $companionExtension)
+                $installedCompanionExtensions.Add($companionExtension)
+                Write-Log "Companion extension '$companionExtension' staged with desktop profile $($bootstrap.Revision.Substring(0, 12))."
+            }
             $installedApps.Add($appId)
             Write-Log "Custom app '$($info.DisplayName)' installed to $destinationPath"
         } catch {
@@ -79,5 +95,10 @@ function Module-InstallCustomApps { param($Config)
         }
     }
 
+    foreach ($extensionName in $managedCompanionExtensions) {
+        if ($installedCompanionExtensions.Contains($extensionName)) { continue }
+        $null = Remove-PathSafely -Path (Join-Path $integration.ExtensionsDirectory $extensionName) -Label "Companion extension $extensionName"
+    }
     Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @($installedApps) -ManagedItems $managedApps
+    Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems @($installedCompanionExtensions) -ManagedItems $managedCompanionExtensions
 }

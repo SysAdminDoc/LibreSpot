@@ -68,6 +68,9 @@
     <Compile Update="Views\CustomAppearanceSection.xaml.cs">
       <DependentUpon>CustomAppearanceSection.xaml</DependentUpon>
     </Compile>
+    <Compile Update="Views\CustomLiveCustomizationSection.xaml.cs">
+      <DependentUpon>CustomLiveCustomizationSection.xaml</DependentUpon>
+    </Compile>
     <Compile Update="Views\CustomBehaviorSection.xaml.cs">
       <DependentUpon>CustomBehaviorSection.xaml</DependentUpon>
     </Compile>

@@ -197,6 +197,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         DisableAutoReapplyCommand = new RelayCommand(() => PresentAutoReapplyPrompt(enable: false), () => !IsRunning && Snapshot.AutoReapplyTaskRegistered);
         ClearSettingsSearchCommand = new RelayCommand(() => SettingsSearchText = string.Empty, () => HasSettingsSearchText);
         ClearThemeSearchCommand = new RelayCommand(() => ThemeSearchText = string.Empty, () => HasThemeSearchText);
+        ClearFeatureSearchCommand = new RelayCommand(() => FeatureSearchText = string.Empty, () => HasFeatureSearchText);
         ClearGlobalSearchCommand = new RelayCommand(() => GlobalSearchText = string.Empty, () => HasGlobalSearchText);
         FocusGlobalSearchCommand = new RelayCommand(() => GlobalSearchFocusRequested?.Invoke(this, EventArgs.Empty));
         ConfirmPromptCommand = CreateAsyncCommand(ConfirmPromptAsync, () => IsPromptVisible);
@@ -234,6 +235,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<OptionToggleViewModel> ExperienceOptions => _customOptions.ExperienceOptions;
     public ObservableCollection<ExtensionToggleViewModel> Extensions => _customOptions.Extensions;
     public ObservableCollection<ExtensionToggleViewModel> CustomApps => _customOptions.CustomApps;
+    public ObservableCollection<CustomizationFeatureOptionViewModel> CustomizationFeatures => _customOptions.CustomizationFeatures;
+    public ObservableCollection<CustomizationSnippetToggleViewModel> CustomizationSnippets => _customOptions.CustomizationSnippets;
+    public ObservableCollection<CustomizationGroupOption> FeatureGroups => _customOptions.FeatureGroups;
     public ObservableCollection<MaintenanceActionCardViewModel> SafeMaintenanceActions => _maintenanceActions.SafeActions;
     public ObservableCollection<MaintenanceActionCardViewModel> DestructiveMaintenanceActions => _maintenanceActions.DestructiveActions;
     public ObservableCollection<SupportBundleCategoryViewModel> SupportBundleItems { get; }
@@ -288,6 +292,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public RelayCommand DisableAutoReapplyCommand { get; }
     public RelayCommand ClearSettingsSearchCommand { get; }
     public RelayCommand ClearThemeSearchCommand { get; }
+    public RelayCommand ClearFeatureSearchCommand { get; }
     public RelayCommand ClearGlobalSearchCommand { get; }
     public RelayCommand FocusGlobalSearchCommand { get; }
     public IAsyncRelayCommand ConfirmPromptCommand { get; }
@@ -925,6 +930,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public bool HasVisibleCustomApps => CustomApps.Any(app => MatchesSettingsSearch(app.Title, app.Description));
 
+    public bool HasVisibleLiveCustomization =>
+        MatchesSettingsSearch(L("LiveCustomizationTitle"), L("LiveCustomizationDescription")) ||
+        CustomizationFeatures.Any(feature => MatchesSettingsSearch(feature.Name, feature.Description)) ||
+        CustomizationSnippets.Any(snippet => MatchesSettingsSearch(snippet.Title, snippet.Description));
+
     public int CustomSearchMatchCount =>
         CountMatchingOptions(InstallOptions) +
         CountAppearanceMatches() +
@@ -934,7 +944,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         CountMatchingOptions(ExperienceOptions) +
         (HasVisibleCustomPatchesSection ? 1 : 0) +
         Extensions.Count(extension => MatchesSettingsSearch(extension.Title, extension.Description)) +
-        CustomApps.Count(app => MatchesSettingsSearch(app.Title, app.Description));
+        CustomApps.Count(app => MatchesSettingsSearch(app.Title, app.Description)) +
+        CustomizationFeatures.Count(feature => MatchesSettingsSearch(feature.Name, feature.Description)) +
+        CustomizationSnippets.Count(snippet => MatchesSettingsSearch(snippet.Title, snippet.Description));
 
     public bool HasAnyCustomSearchMatches => !HasSettingsSearchText || CustomSearchMatchCount > 0;
 
@@ -977,7 +989,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public string MaintenanceGuidanceDetail => MaintenanceRecommendation.Body;
 
     private int MaintenanceReadyComponentCount =>
-        new[] { "spotify", "spotx", "spicetify-cli", "marketplace", "active-theme" }
+        new[] { "spotify", "spotx", "spicetify-cli", "marketplace", "librespot-live-engine", "active-theme" }
             .Count(id => HealthComponent(id)?.Severity == HealthSeverity.Ready);
 
     public string MaintenanceReadinessValue => LF("Vm_MaintenanceReadinessValueFormat", MaintenanceReadyComponentCount);
@@ -985,7 +997,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public string MaintenanceReadinessDetail =>
         MaintenanceReadyComponentCount switch
         {
-            5 => L("Vm_MaintenanceReadinessAllReady"),
+            6 => L("Vm_MaintenanceReadinessAllReady"),
             0 => L("Vm_MaintenanceReadinessNoneReady"),
             _ => L("Vm_MaintenanceReadinessPartial")
         };
@@ -1593,6 +1605,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             case nameof(CustomOptionEditorStateViewModel.CacheLimitText):
                 OnPropertyChanged(nameof(CacheLimitText));
                 RaiseSelectionInsightsChanged();
+                break;
+            case nameof(CustomOptionEditorStateViewModel.FeatureSearchText):
+                OnPropertyChanged(nameof(FeatureSearchText));
+                RaiseLiveCustomizationFilterChanged();
+                break;
+            case nameof(CustomOptionEditorStateViewModel.SelectedFeatureGroup):
+                OnPropertyChanged(nameof(SelectedFeatureGroup));
+                RaiseLiveCustomizationFilterChanged();
                 break;
         }
     }
@@ -2620,7 +2640,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             ApplyUiAutomationHomeSnapshot("home-destructive");
         }
 
-        if (normalizedState is "recommended" or "custom" or "maintenance" or "maintenance-compatibility" or "provenance" or "profile" or "support-bundle" or "activity-collapsed")
+        if (normalizedState is "recommended" or "custom" or "custom-live" or "maintenance" or "maintenance-compatibility" or "provenance" or "profile" or "support-bundle" or "activity-collapsed")
         {
             SeedUiAutomationActivityLog();
         }
@@ -2629,6 +2649,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             case "custom":
                 SelectedWorkspaceIndex = 1;
+                break;
+            case "custom-live":
+                SelectedWorkspaceIndex = 1;
+                SettingsSearchText = L("LiveCustomizationTitle");
+                FeatureSearchText = string.Empty;
                 break;
             case "maintenance":
                 SelectedWorkspaceIndex = 2;

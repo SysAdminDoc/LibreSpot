@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Text.Json;
 using LibreSpot.Desktop.Properties;
 
 namespace LibreSpot.Desktop.Models;
@@ -53,7 +54,10 @@ public sealed class InstallConfiguration
     public string Spicetify_Scheme { get; set; } = "Default";
     public bool Spicetify_Marketplace { get; set; } = true;
     public List<string> Spicetify_Extensions { get; set; } = new() { "fullAppDisplay.js", "shuffle+.js", "trashbin.js" };
-    public List<string> Spicetify_CustomApps { get; set; } = new();
+    public List<string> Spicetify_CustomApps { get; set; } = new() { "librespot" };
+    public string LibreSpot_EngineProfileJson { get; set; } = string.Empty;
+    public List<string> LibreSpot_EnabledSnippets { get; set; } = new();
+    public string LibreSpot_FeatureOverridesJson { get; set; } = "{}";
 
     // Track 4.2 auto-reapply watcher. The PowerShell side owns the scheduled
     // task; the WPF shell round-trips the preference so toggling from either
@@ -113,6 +117,9 @@ public sealed class InstallConfiguration
             Spicetify_Marketplace = Spicetify_Marketplace,
             Spicetify_Extensions = new List<string>(Spicetify_Extensions ?? []),
             Spicetify_CustomApps = new List<string>(Spicetify_CustomApps ?? []),
+            LibreSpot_EngineProfileJson = LibreSpot_EngineProfileJson,
+            LibreSpot_EnabledSnippets = new List<string>(LibreSpot_EnabledSnippets ?? []),
+            LibreSpot_FeatureOverridesJson = LibreSpot_FeatureOverridesJson,
             AutoReapply_Enabled = AutoReapply_Enabled,
             RiskAcknowledged = RiskAcknowledged
         };
@@ -1065,6 +1072,10 @@ public static class AppCatalog
     public static IReadOnlyList<CustomAppDefinition> CustomAppDefinitions { get; } = new ReadOnlyCollection<CustomAppDefinition>(new[]
     {
         new CustomAppDefinition(
+            "librespot",
+            "LibreSpot",
+            "Live themes, snippets, feature flags, presets, and health checks inside Spotify."),
+        new CustomAppDefinition(
             "stats",
             "Stats",
             "Detailed listening statistics with top tracks, artists, genres, library charts, and optional Last.fm-backed views.")
@@ -1296,7 +1307,72 @@ public static class AppCatalog
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        normalized.LibreSpot_EngineProfileJson = NormalizeEngineProfileJson(source.LibreSpot_EngineProfileJson);
+        var validSnippetIds = CustomizationCatalog.Snippets
+            .Select(snippet => snippet.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        normalized.LibreSpot_EnabledSnippets = (source.LibreSpot_EnabledSnippets ?? [])
+            .Where(validSnippetIds.Contains)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        normalized.LibreSpot_FeatureOverridesJson = NormalizeFeatureOverridesJson(source.LibreSpot_FeatureOverridesJson);
+
         return normalized;
+    }
+
+    private static string NormalizeEngineProfileJson(string? json)
+    {
+        var trimmed = (json ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(trimmed) || trimmed.Length > 256 * 1024)
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            return LibreSpotProfileCodec.Serialize(LibreSpotProfileCodec.Parse(trimmed)).Trim();
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidDataException)
+        {
+            return string.Empty;
+        }
+    }
+
+    private static string NormalizeFeatureOverridesJson(string? json)
+    {
+        var trimmed = string.IsNullOrWhiteSpace(json) ? "{}" : json.Trim();
+        if (trimmed.Length > 128 * 1024)
+        {
+            return "{}";
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(trimmed);
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                return "{}";
+            }
+
+            var known = CustomizationCatalog.SpotifyFeatures
+                .Select(feature => feature.Name)
+                .ToHashSet(StringComparer.Ordinal);
+            var normalized = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+            foreach (var property in document.RootElement.EnumerateObject())
+            {
+                if (!known.Contains(property.Name) ||
+                    property.Value.ValueKind is not (JsonValueKind.True or JsonValueKind.False or JsonValueKind.Number or JsonValueKind.String))
+                {
+                    continue;
+                }
+                normalized[property.Name] = property.Value.Clone();
+            }
+            return JsonSerializer.Serialize(normalized);
+        }
+        catch (JsonException)
+        {
+            return "{}";
+        }
     }
 
     private static string TruncateCustomPatchesJson(string? json)

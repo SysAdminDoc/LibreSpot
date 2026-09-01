@@ -153,6 +153,10 @@ declare global {
     Spicetify?: Partial<SpicetifyApi>;
     LibreSpot?: LibreSpotRuntimeApi;
     __libreSpotEngineLoaded?: boolean;
+    __libreSpotDesktopBootstrap?: {
+      payloadBase64: string;
+      revision: string;
+    };
     __libreSpotRouteWiring?: {
       librespot?: "wired" | "not-wired" | "unknown";
       marketplace?: "wired" | "not-wired" | "unknown";

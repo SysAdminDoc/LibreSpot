@@ -341,6 +341,70 @@ public sealed class LocalProfileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SpotifyClipboardProfile_ImportsPreviewsAndRoundTripsEngineSettings()
+    {
+        Directory.CreateDirectory(_root);
+        var snippetId = AppCatalog.CustomizationCatalog.Snippets[0].Id;
+        var featureName = AppCatalog.CustomizationCatalog.SpotifyFeatures
+            .First(feature => feature.Type == "bool")
+            .Name;
+        var engineState = JsonSerializer.Serialize(new
+        {
+            schemaVersion = 1,
+            name = "Spotify handoff",
+            theme = "Prism",
+            scheme = "Dark",
+            schemes = new Dictionary<string, Dictionary<string, string>>
+            {
+                ["Dark"] = new() { ["text"] = "ffffff", ["background"] = "121212" }
+            },
+            enabledSnippets = new[] { snippetId },
+            featureOverrides = new Dictionary<string, object> { [featureName] = true }
+        });
+        var path = Path.Combine(_root, "spotify-handoff.librespot");
+        await File.WriteAllTextAsync(
+            path,
+            JsonSerializer.Serialize(
+                new
+                {
+                    schemaVersion = 1,
+                    generator = "LibreSpot-Spotify",
+                    generatorVersion = "4.1.0",
+                    createdAt = "2026-09-01T12:00:00Z",
+                    profileName = "Spotify handoff",
+                    notes = "Copied from the Spotify panel.",
+                    settings = new
+                    {
+                        Mode = "Custom",
+                        Spicetify_CustomApps = new[] { "librespot" },
+                        LibreSpot_EngineProfileJson = engineState,
+                        LibreSpot_EnabledSnippets = new[] { snippetId },
+                        LibreSpot_FeatureOverridesJson = JsonSerializer.Serialize(
+                            new Dictionary<string, object> { [featureName] = true })
+                    }
+                }));
+
+        var preview = await _profileService.PreviewImportAsync(path);
+
+        Assert.Equal("Spotify handoff", preview.Name);
+        Assert.Contains("librespot", preview.Configuration.Spicetify_CustomApps);
+        Assert.Equal([snippetId], preview.Configuration.LibreSpot_EnabledSnippets);
+        Assert.Contains(featureName, preview.Configuration.LibreSpot_FeatureOverridesJson);
+        Assert.Contains("\"theme\": \"Prism\"", preview.Configuration.LibreSpot_EngineProfileJson);
+
+        var imported = await _profileService.ImportAsync(path);
+        var exportPath = Path.Combine(_root, "spotify-handoff-export.librespot");
+        await _profileService.ExportAsync(imported.Summary.Id, exportPath);
+
+        using var exported = JsonDocument.Parse(await File.ReadAllTextAsync(exportPath));
+        var settings = exported.RootElement.GetProperty("settings");
+        Assert.Contains("librespot", settings.GetProperty("Spicetify_CustomApps").EnumerateArray().Select(item => item.GetString()));
+        Assert.Equal(snippetId, settings.GetProperty("LibreSpot_EnabledSnippets")[0].GetString());
+        Assert.Contains(featureName, settings.GetProperty("LibreSpot_FeatureOverridesJson").GetString());
+        Assert.Contains("Prism", settings.GetProperty("LibreSpot_EngineProfileJson").GetString());
+    }
+
+    [Fact]
     public async Task ExportAsync_CanceledWriteDoesNotLeaveCorruptShareFile()
     {
         var created = await _profileService.CreateFromConfigurationAsync(

@@ -14,8 +14,29 @@ export type ThemeExport = {
   "theme.js": string;
 };
 
-export function serializeProfile(state: EngineState): string {
+export const ENGINE_VERSION = "4.0.0";
+
+export function serializeEngineState(state: EngineState): string {
   return `${JSON.stringify(state, null, 2)}\n`;
+}
+
+export function serializeProfile(state: EngineState): string {
+  const profile = {
+    schemaVersion: 1,
+    generator: "LibreSpot-Spotify",
+    generatorVersion: ENGINE_VERSION,
+    createdAt: state.updatedAt,
+    profileName: state.name,
+    notes: "Exported from the LibreSpot panel in Spotify.",
+    settings: {
+      Mode: "Custom",
+      Spicetify_CustomApps: ["librespot"],
+      LibreSpot_EngineProfileJson: JSON.stringify(state),
+      LibreSpot_EnabledSnippets: state.enabledSnippets,
+      LibreSpot_FeatureOverridesJson: JSON.stringify(state.featureOverrides),
+    },
+  };
+  return `${JSON.stringify(profile, null, 2)}\n`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -23,7 +44,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function parseProfile(source: string): EngineState {
-  const value: unknown = JSON.parse(source);
+  const parsed: unknown = JSON.parse(source);
+  let value: unknown = parsed;
+  if (
+    isRecord(parsed) &&
+    isRecord(parsed.settings) &&
+    typeof parsed.settings.LibreSpot_EngineProfileJson === "string"
+  ) {
+    value = JSON.parse(parsed.settings.LibreSpot_EngineProfileJson);
+  }
   if (!isRecord(value)) {
     throw new Error("LibreSpot profile must be a JSON object.");
   }

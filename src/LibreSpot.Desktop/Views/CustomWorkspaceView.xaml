@@ -79,6 +79,7 @@
                     </Border>
                     <views:CustomInstallSection />
                     <views:CustomAppearanceSection />
+                    <views:CustomLiveCustomizationSection />
                     <views:CustomBehaviorSection />
                     <views:CustomAdvancedSection />
                     <views:CustomPatchesSection x:Name="CustomPatchesSection" />

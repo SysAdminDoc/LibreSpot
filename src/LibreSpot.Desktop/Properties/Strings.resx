@@ -632,10 +632,10 @@
   <data name="Vm_MaintenanceIncompleteDetail" xml:space="preserve"><value>Reapply becomes useful once the customization layer is back in place. Until then, Recommended is usually the better path.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceIncompleteTitle" xml:space="preserve"><value>Customization layer is incomplete</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceMarketplaceUnchecked" xml:space="preserve"><value>Marketplace state has not been checked yet.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceReadinessAllReady" xml:space="preserve"><value>Spotify, SpotX, Spicetify, Marketplace, and theme state are all ready.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessAllReady" xml:space="preserve"><value>The full Spotify customization stack is ready, including the LibreSpot live engine.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadinessNoneReady" xml:space="preserve"><value>No customization stack components are ready yet.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceReadinessPartial" xml:space="preserve"><value>Spotify, SpotX, Spicetify, Marketplace, and theme checks are partially ready.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceReadinessValueFormat" xml:space="preserve"><value>{0} of 5 ready</value><comment>{0} is the number of readiness checks that passed, out of five.</comment></data>
+  <data name="Vm_MaintenanceReadinessPartial" xml:space="preserve"><value>Some Spotify customization checks still need attention, including the live engine when installed.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessValueFormat" xml:space="preserve"><value>{0} of 6 ready</value><comment>{0} is the number of readiness checks that passed, out of six.</comment></data>
   <data name="Vm_MaintenanceReadyDetail" xml:space="preserve"><value>Start with the safer actions. Use reset only when you want to clear the stack and rebuild.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyTitle" xml:space="preserve"><value>Ready for upkeep or reset</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyWhenNeededDetail" xml:space="preserve"><value>Most repair actions matter after Spotify is installed. You can still inspect versions, export support details, or prepare a clean reset.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -1364,4 +1364,43 @@
   <data name="CompatibilityDetectedUnknown" xml:space="preserve"><value>Version unknown</value><comment>Compatibility matrix fallback for an unreadable version.</comment></data>
   <data name="ShellProtocolUrlDescription" xml:space="preserve"><value>URL:LibreSpot profile link</value><comment>Localized Windows protocol registration description.</comment></data>
   <data name="ShellProfileFileDescription" xml:space="preserve"><value>LibreSpot profile</value><comment>Localized Windows .librespot file association description.</comment></data>
+  <data name="LiveCustomizationTitle" xml:space="preserve"><value>Live customization</value><comment>Custom Install section title for the LibreSpot in-client engine.</comment></data>
+  <data name="LiveCustomizationDescription" xml:space="preserve"><value>Choose Spotify feature overrides and reviewed CSS snippets from the catalog used by the in-client LibreSpot panel.</value><comment>Live customization section description.</comment></data>
+  <data name="LiveCustomizationHandoffDetail" xml:space="preserve"><value>Setup and reapply write these choices into the LibreSpot companion extension. The panel applies them inside Spotify without a background service.</value><comment>Desktop to Spotify handoff explanation.</comment></data>
+  <data name="LiveCustomizationFeatureSearchPlaceholder" xml:space="preserve"><value>Search 348 Spotify flags</value><comment>Feature flag search placeholder.</comment></data>
+  <data name="LiveCustomizationFeatureSearchHelp" xml:space="preserve"><value>Filter by exact flag name, description, group, or SpotX state.</value><comment>Feature flag search accessibility help.</comment></data>
+  <data name="LiveCustomizationGroupLabel" xml:space="preserve"><value>Feature group</value><comment>Feature group filter accessibility name.</comment></data>
+  <data name="LiveCustomizationAllGroups" xml:space="preserve"><value>All groups</value><comment>Feature group filter default.</comment></data>
+  <data name="LiveCustomizationFeatureCountFormat" xml:space="preserve"><value>{0} of {1} flags shown. {2} overrides enabled.</value><comment>Format parameters: {0} shown flags; {1} total flags; {2} enabled overrides.</comment></data>
+  <data name="LiveCustomizationSnippetCountFormat" xml:space="preserve"><value>{0} of {1} snippets enabled.</value><comment>Format parameters: {0} enabled snippets; {1} total snippets.</comment></data>
+  <data name="LiveCustomizationOverride" xml:space="preserve"><value>Override this Spotify flag</value><comment>Feature override checkbox help.</comment></data>
+  <data name="LiveCustomizationDefaultFormat" xml:space="preserve"><value>Default: {0}</value><comment>Format parameter: {0} feature default value.</comment></data>
+  <data name="LiveCustomizationServerGated" xml:space="preserve"><value>Server-gated</value><comment>Feature flag server control badge.</comment></data>
+  <data name="LiveCustomizationValue" xml:space="preserve"><value>Override value</value><comment>Feature override value label.</comment></data>
+  <data name="LiveCustomizationBooleanEnabled" xml:space="preserve"><value>Enabled</value><comment>Boolean feature value label.</comment></data>
+  <data name="LiveCustomizationNoFeatures" xml:space="preserve"><value>No flags match</value><comment>Feature picker empty state.</comment></data>
+  <data name="LiveCustomizationNoFeaturesHint" xml:space="preserve"><value>Clear the search or choose another group.</value><comment>Feature picker empty state help.</comment></data>
+  <data name="LiveCustomizationFeatureListName" xml:space="preserve"><value>Spotify feature flag overrides</value><comment>Feature list accessibility name.</comment></data>
+  <data name="LiveCustomizationSnippetsTitle" xml:space="preserve"><value>Reviewed snippets</value><comment>CSS snippet catalog title.</comment></data>
+  <data name="LiveCustomizationSnippetsDescription" xml:space="preserve"><value>These selectors were checked against the pinned Spotify version and can be toggled live in the panel.</value><comment>CSS snippet catalog description.</comment></data>
+  <data name="LiveCustomizationLiveBadge" xml:space="preserve"><value>Live</value><comment>Live-capable snippet badge.</comment></data>
+  <data name="LiveCustomizationSourceFormat" xml:space="preserve"><value>Source: {0}</value><comment>Format parameter: {0} snippet source.</comment></data>
+  <data name="CustomApp_librespot_Title" xml:space="preserve"><value>LibreSpot</value><comment>LibreSpot custom app title.</comment></data>
+  <data name="CustomApp_librespot_Description" xml:space="preserve"><value>Live themes, snippets, Spotify flags, presets, and health checks inside Spotify.</value><comment>LibreSpot custom app description.</comment></data>
+  <data name="HealthNameLibreSpotEngine" xml:space="preserve"><value>LibreSpot live engine</value><comment>Health component name.</comment></data>
+  <data name="HealthStatusEngineCompanionMissing" xml:space="preserve"><value>Companion missing</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineCompanionDisabled" xml:space="preserve"><value>Companion disabled</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineRouteNotWired" xml:space="preserve"><value>Panel route not wired</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineAnchorsChanged" xml:space="preserve"><value>Spotify anchors changed</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineAnchorProbeUnavailable" xml:space="preserve"><value>Anchor check unavailable</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineReady" xml:space="preserve"><value>Live engine ready</value><comment>Live engine health status.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineUnavailable" xml:space="preserve"><value>Spicetify is not installed, so the LibreSpot panel cannot be checked yet.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineFilesMissingFormat" xml:space="preserve"><value>The LibreSpot custom app is incomplete. Missing files: {0}.</value><comment>{0} is a list of missing file names.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineAppDisabled" xml:space="preserve"><value>custom_apps does not include librespot, so the panel route will not load.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineCompanionMissing" xml:space="preserve"><value>Extensions\librespot-engine.js is missing, so saved desktop choices cannot reach Spotify.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineCompanionDisabled" xml:space="preserve"><value>extensions does not include librespot-engine.js, so the live runtime will not start.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineRouteNotWired" xml:space="preserve"><value>The active Spotify bundle does not reference spicetify-routes-librespot. Reapply to repair the panel route.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineAnchorsChangedFormat" xml:space="preserve"><value>The pinned Spotify DOM contract is missing these anchor groups: {0}. The in-client Health panel can show the exact live result.</value><comment>{0} is a list of missing anchor groups.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineAnchorProbeUnavailable" xml:space="preserve"><value>The custom app and companion are installed, but no extracted xpui.js bundle is available for an offline anchor check.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineReady" xml:space="preserve"><value>The custom app, companion extension, route, and pinned Spotify anchors are present.</value><comment>Live engine health evidence.</comment></data>
 </root>

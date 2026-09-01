@@ -286,8 +286,10 @@ public sealed class EnvironmentSnapshotServiceTests
         using var fixture = new SnapshotFixture();
         fixture.WriteSavedConfig();
         fixture.WriteSpotify(withSpotXMarkers: true);
-        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = Catppuccin\r\ninject_css = 1\r\nreplace_colors = 1");
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace|librespot\r\nextensions = librespot-engine.js\r\ncurrent_theme = Catppuccin\r\ninject_css = 1\r\nreplace_colors = 1");
         fixture.WriteMarketplaceFiles();
+        fixture.WriteLibreSpotEngineFiles();
+        fixture.WriteExtractedXpuiBundle(routeWired: true, engineRouteWired: true, engineAnchorsReady: true);
         fixture.WriteBackup();
         fixture.WriteWatcherState(DateTime.Now.AddHours(-1), "UpToDate");
         fixture.WriteInstallLog();
@@ -694,6 +696,73 @@ public sealed class EnvironmentSnapshotServiceTests
     }
 
     [Fact]
+    public void GetSnapshot_HealthReport_LibreSpotEngineNamesMissingFilesAndRepair()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = librespot\r\nextensions = librespot-engine.js");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var engine = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "librespot-live-engine");
+        Assert.Equal("Files missing", engine.Status);
+        Assert.Contains("manifest.json", engine.Evidence);
+        Assert.Contains("Reapply", engine.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_HealthReport_LibreSpotEngineNamesBrokenRoute()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = librespot\r\nextensions = librespot-engine.js");
+        fixture.WriteLibreSpotEngineFiles();
+        fixture.WriteExtractedXpuiBundle(routeWired: true, engineRouteWired: false, engineAnchorsReady: true);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var engine = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "librespot-live-engine");
+        Assert.Equal("Panel route not wired", engine.Status);
+        Assert.Contains("spicetify-routes-librespot", engine.Evidence);
+        Assert.Contains("Reapply", engine.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_HealthReport_LibreSpotEngineNamesAnchorDrift()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = librespot\r\nextensions = librespot-engine.js");
+        fixture.WriteLibreSpotEngineFiles();
+        fixture.WriteExtractedXpuiBundle(routeWired: true, engineRouteWired: true, engineAnchorsReady: false);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var engine = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "librespot-live-engine");
+        Assert.Equal("Spotify anchors changed", engine.Status);
+        Assert.Contains("main-view", engine.Evidence);
+        Assert.Contains("OpenLogs", engine.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_HealthReport_LibreSpotEngineReadyCoversFilesRegistrationRouteAndAnchors()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace|librespot\r\nextensions = librespot-engine.js");
+        fixture.WriteLibreSpotEngineFiles(manifestVersion: "4.1.0");
+        fixture.WriteExtractedXpuiBundle(routeWired: true, engineRouteWired: true, engineAnchorsReady: true);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var engine = Assert.Single(snapshot.HealthReport.Components, component => component.Id == "librespot-live-engine");
+        Assert.Equal(HealthSeverity.Ready, engine.Severity);
+        Assert.Equal("Live engine ready", engine.Status);
+        Assert.Equal("4.1.0", engine.DetectedVersion);
+        Assert.Empty(engine.RecommendedActionIds);
+    }
+
+    [Fact]
     public void GetSnapshot_HealthReport_MarketplaceSnapshotLayoutSkipsWiringProbe()
     {
         using var fixture = new SnapshotFixture();
@@ -854,8 +923,10 @@ public sealed class EnvironmentSnapshotServiceTests
     {
         using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.93", SpicetifyVersion = "2.44.0" };
         fixture.WriteSpotify(withSpotXMarkers: true);
-        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = Catppuccin\r\ninject_css = 1\r\nreplace_colors = 1");
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace|librespot\r\nextensions = librespot-engine.js\r\ncurrent_theme = Catppuccin\r\ninject_css = 1\r\nreplace_colors = 1");
         fixture.WriteMarketplaceFiles();
+        fixture.WriteLibreSpotEngineFiles();
+        fixture.WriteExtractedXpuiBundle(routeWired: true, engineRouteWired: true, engineAnchorsReady: true);
         fixture.WriteWatcherState(
             DateTime.Now.AddMinutes(-5),
             "UpToDate",
@@ -1071,8 +1142,10 @@ public sealed class EnvironmentSnapshotServiceTests
         using var fixture = new SnapshotFixture { SpotifyVersion = "1.2.92.456", SpicetifyVersion = "2.44.0" };
         fixture.WriteSavedConfig();
         fixture.WriteSpotify(withSpotXMarkers: true);
-        fixture.WriteSpicetifyConfig("custom_apps = marketplace\r\ncurrent_theme = Catppuccin\r\ninject_css = 1\r\nreplace_colors = 1");
+        fixture.WriteSpicetifyConfig("custom_apps = marketplace|librespot\r\nextensions = librespot-engine.js\r\ncurrent_theme = Catppuccin\r\ninject_css = 1\r\nreplace_colors = 1");
         fixture.WriteMarketplaceFiles();
+        fixture.WriteLibreSpotEngineFiles();
+        fixture.WriteExtractedXpuiBundle(routeWired: true, engineRouteWired: true, engineAnchorsReady: true);
         fixture.WriteBackup();
         fixture.WriteWatcherState(DateTime.Now.AddHours(-1), "UpToDate",
             lastKnownVersion: "1.2.92.456",
@@ -1257,7 +1330,21 @@ public sealed class EnvironmentSnapshotServiceTests
             WriteFile(Path.Combine(marketplaceDirectory, "manifest.json"), JsonSerializer.Serialize(new { version = manifestVersion }));
         }
 
-        public void WriteExtractedXpuiBundle(bool routeWired, bool snapshotLayout = false)
+        public void WriteLibreSpotEngineFiles(string manifestVersion = "4.0.0")
+        {
+            var appDirectory = Path.Combine(SpicetifyConfigDirectory, "CustomApps", "librespot");
+            WriteFile(Path.Combine(appDirectory, "manifest.json"), JsonSerializer.Serialize(new { version = manifestVersion }));
+            WriteFile(Path.Combine(appDirectory, "index.js"), "export default {};");
+            WriteFile(Path.Combine(appDirectory, "style.css"), ":root{}");
+            WriteFile(Path.Combine(appDirectory, "librespot-engine.js"), "window.LibreSpotEngine={};");
+            WriteFile(Path.Combine(SpicetifyConfigDirectory, "Extensions", "librespot-engine.js"), "window.LibreSpotEngine={};");
+        }
+
+        public void WriteExtractedXpuiBundle(
+            bool routeWired,
+            bool snapshotLayout = false,
+            bool engineRouteWired = false,
+            bool engineAnchorsReady = false)
         {
             var xpuiDirectory = Path.Combine(Path.GetDirectoryName(SpotifyPath)!, "Apps", "xpui");
             if (snapshotLayout)
@@ -1269,9 +1356,14 @@ public sealed class EnvironmentSnapshotServiceTests
             }
 
             WriteFile(Path.Combine(xpuiDirectory, "index.html"), "<script defer=\"defer\" src=\"/xpui.js\"></script>");
+            var routeSource = routeWired ? "spicetify-routes-marketplace" : "route-unwired";
+            var engineRouteSource = engineRouteWired ? "spicetify-routes-librespot" : "engine-route-unwired";
+            var anchorSource = engineAnchorsReady
+                ? "Root__main-view Root__nav-bar Root__now-playing-bar main-view-container__scroll-node"
+                : "anchors-changed";
             WriteFile(
                 Path.Combine(xpuiDirectory, "xpui.js"),
-                routeWired ? "var route=i.e(\"spicetify-routes-marketplace\");" : "var route=1;");
+                $"var route=\"{routeSource}\";var engineRoute=\"{engineRouteSource}\";var anchors=\"{anchorSource}\";");
         }
 
         public void WriteMarketplaceEvidence(

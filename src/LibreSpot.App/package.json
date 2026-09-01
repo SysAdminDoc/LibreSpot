@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
-    "bundle": "node scripts/build.mjs",
+    "bundle": "node scripts/build.mjs && pwsh -NoProfile -File scripts/package.ps1",
     "catalog:refresh": "node scripts/catalog-tool.mjs refresh",
     "catalog:truth": "node scripts/catalog-tool.mjs truth",
     "lint": "eslint src tests scripts vitest.config.ts",

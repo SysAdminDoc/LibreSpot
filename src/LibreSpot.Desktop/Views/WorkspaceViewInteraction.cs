@@ -9,6 +9,8 @@ namespace LibreSpot.Desktop.Views;
 internal static class WorkspaceViewInteraction
 {
     private static readonly Regex NumericInput = new("^[0-9]+$", RegexOptions.Compiled);
+    private static readonly Regex FeatureNumberInput = new("^-?(?:[0-9]+(?:[.,][0-9]*)?|[.,][0-9]+)$", RegexOptions.Compiled);
+    private static readonly Regex FeatureNumberCharacter = new("^[0-9.,-]+$", RegexOptions.Compiled);
 
     public static void BubbleMouseWheel(object sender, MouseWheelEventArgs e)
     {
@@ -49,6 +51,18 @@ internal static class WorkspaceViewInteraction
 
         var pasted = e.DataObject.GetData(typeof(string)) as string ?? string.Empty;
         if (!NumericInput.IsMatch(pasted))
+        {
+            e.CancelCommand();
+        }
+    }
+
+    public static void FilterFeatureNumberTextInput(TextCompositionEventArgs e) =>
+        e.Handled = !FeatureNumberCharacter.IsMatch(e.Text);
+
+    public static void CancelInvalidFeatureNumberPaste(DataObjectPastingEventArgs e)
+    {
+        if (!e.DataObject.GetDataPresent(typeof(string)) ||
+            !FeatureNumberInput.IsMatch(e.DataObject.GetData(typeof(string)) as string ?? string.Empty))
         {
             e.CancelCommand();
         }

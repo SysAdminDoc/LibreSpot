@@ -1885,10 +1885,10 @@
   <data name="Vm_MaintenanceIncompleteDetail" xml:space="preserve"><value>Reaplicar se torna útil quando a camada de personalização estiver de volta no lugar. Até então, Recomendado geralmente é o melhor caminho.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceIncompleteTitle" xml:space="preserve"><value>A camada de personalização está incompleta</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceMarketplaceUnchecked" xml:space="preserve"><value>O estado do Marketplace ainda não foi verificado.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceReadinessAllReady" xml:space="preserve"><value>Spotify, SpotX, Spicetify, Marketplace e o estado do tema estão todos prontos.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessAllReady" xml:space="preserve"><value>Toda a pilha de personalização do Spotify está pronta, incluindo o motor ao vivo do LibreSpot.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadinessNoneReady" xml:space="preserve"><value>Nenhum componente da pilha de personalização está pronto ainda.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceReadinessPartial" xml:space="preserve"><value>Spotify, SpotX, Spicetify, Marketplace e verificações de tema estão parcialmente prontas.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceReadinessValueFormat" xml:space="preserve"><value>{0} de 5 prontas</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessPartial" xml:space="preserve"><value>Algumas verificações de personalização do Spotify ainda precisam de atenção, incluindo o motor ao vivo quando instalado.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessValueFormat" xml:space="preserve"><value>{0} de 6 prontas</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyDetail" xml:space="preserve"><value>Comece com as ações mais seguras. Use a redefinição apenas quando quiser limpar a pilha e reconstruir.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyTitle" xml:space="preserve"><value>Pronto para manutenção ou redefinição</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyWhenNeededDetail" xml:space="preserve"><value>A maioria das ações de reparo são importantes após a instalação do Spotify. Você ainda pode inspecionar versões, exportar detalhes de suporte ou preparar uma redefinição limpa.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2617,4 +2617,43 @@
   <data name="CompatibilityDetectedUnknown" xml:space="preserve"><value>Versão desconhecida</value></data>
   <data name="ShellProtocolUrlDescription" xml:space="preserve"><value>URL:link de perfil do LibreSpot</value></data>
   <data name="ShellProfileFileDescription" xml:space="preserve"><value>Perfil do LibreSpot</value></data>
+  <data name="LiveCustomizationTitle" xml:space="preserve"><value>Personalização ao vivo</value><comment>Custom Install section title for the LibreSpot in-client engine.</comment></data>
+  <data name="LiveCustomizationDescription" xml:space="preserve"><value>Escolha substituições de recursos do Spotify e trechos de CSS revisados no catálogo usado pelo painel LibreSpot dentro do cliente.</value><comment>Live customization section description.</comment></data>
+  <data name="LiveCustomizationHandoffDetail" xml:space="preserve"><value>A instalação e a reaplicação gravam estas escolhas na extensão complementar do LibreSpot. O painel as aplica dentro do Spotify sem um serviço em segundo plano.</value><comment>Desktop to Spotify handoff explanation.</comment></data>
+  <data name="LiveCustomizationFeatureSearchPlaceholder" xml:space="preserve"><value>Pesquisar 348 sinalizadores do Spotify</value><comment>Feature flag search placeholder.</comment></data>
+  <data name="LiveCustomizationFeatureSearchHelp" xml:space="preserve"><value>Filtre pelo nome exato, descrição, grupo ou estado do SpotX.</value><comment>Feature flag search accessibility help.</comment></data>
+  <data name="LiveCustomizationGroupLabel" xml:space="preserve"><value>Grupo de recursos</value><comment>Feature group filter accessibility name.</comment></data>
+  <data name="LiveCustomizationAllGroups" xml:space="preserve"><value>Todos os grupos</value><comment>Feature group filter default.</comment></data>
+  <data name="LiveCustomizationFeatureCountFormat" xml:space="preserve"><value>{0} de {1} sinalizadores exibidos. {2} substituições ativas.</value><comment>Format parameters: {0} shown flags; {1} total flags; {2} enabled overrides.</comment></data>
+  <data name="LiveCustomizationSnippetCountFormat" xml:space="preserve"><value>{0} de {1} trechos ativados.</value><comment>Format parameters: {0} enabled snippets; {1} total snippets.</comment></data>
+  <data name="LiveCustomizationOverride" xml:space="preserve"><value>Substituir este sinalizador do Spotify</value><comment>Feature override checkbox help.</comment></data>
+  <data name="LiveCustomizationDefaultFormat" xml:space="preserve"><value>Padrão: {0}</value><comment>Format parameter: {0} feature default value.</comment></data>
+  <data name="LiveCustomizationServerGated" xml:space="preserve"><value>Controlado pelo servidor</value><comment>Feature flag server control badge.</comment></data>
+  <data name="LiveCustomizationValue" xml:space="preserve"><value>Valor substituto</value><comment>Feature override value label.</comment></data>
+  <data name="LiveCustomizationBooleanEnabled" xml:space="preserve"><value>Ativado</value><comment>Boolean feature value label.</comment></data>
+  <data name="LiveCustomizationNoFeatures" xml:space="preserve"><value>Nenhum sinalizador corresponde</value><comment>Feature picker empty state.</comment></data>
+  <data name="LiveCustomizationNoFeaturesHint" xml:space="preserve"><value>Limpe a pesquisa ou escolha outro grupo.</value><comment>Feature picker empty state help.</comment></data>
+  <data name="LiveCustomizationFeatureListName" xml:space="preserve"><value>Substituições de sinalizadores do Spotify</value><comment>Feature list accessibility name.</comment></data>
+  <data name="LiveCustomizationSnippetsTitle" xml:space="preserve"><value>Trechos revisados</value><comment>CSS snippet catalog title.</comment></data>
+  <data name="LiveCustomizationSnippetsDescription" xml:space="preserve"><value>Estes seletores foram verificados com a versão fixada do Spotify e podem ser alternados ao vivo no painel.</value><comment>CSS snippet catalog description.</comment></data>
+  <data name="LiveCustomizationLiveBadge" xml:space="preserve"><value>Ao vivo</value><comment>Live-capable snippet badge.</comment></data>
+  <data name="LiveCustomizationSourceFormat" xml:space="preserve"><value>Fonte: {0}</value><comment>Format parameter: {0} snippet source.</comment></data>
+  <data name="CustomApp_librespot_Title" xml:space="preserve"><value>LibreSpot</value><comment>LibreSpot custom app title.</comment></data>
+  <data name="CustomApp_librespot_Description" xml:space="preserve"><value>Temas ao vivo, trechos, sinalizadores do Spotify, predefinições e verificações de integridade dentro do Spotify.</value><comment>LibreSpot custom app description.</comment></data>
+  <data name="HealthNameLibreSpotEngine" xml:space="preserve"><value>Motor ao vivo do LibreSpot</value><comment>Health component name.</comment></data>
+  <data name="HealthStatusEngineCompanionMissing" xml:space="preserve"><value>Extensão complementar ausente</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineCompanionDisabled" xml:space="preserve"><value>Extensão complementar desativada</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineRouteNotWired" xml:space="preserve"><value>Rota do painel desconectada</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineAnchorsChanged" xml:space="preserve"><value>Âncoras do Spotify alteradas</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineAnchorProbeUnavailable" xml:space="preserve"><value>Verificação de âncoras indisponível</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineReady" xml:space="preserve"><value>Motor ao vivo pronto</value><comment>Live engine health status.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineUnavailable" xml:space="preserve"><value>O Spicetify não está instalado, então o painel LibreSpot ainda não pode ser verificado.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineFilesMissingFormat" xml:space="preserve"><value>O aplicativo personalizado LibreSpot está incompleto. Arquivos ausentes: {0}.</value><comment>{0} is a list of missing file names.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineAppDisabled" xml:space="preserve"><value>custom_apps não inclui librespot, então a rota do painel não será carregada.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineCompanionMissing" xml:space="preserve"><value>Extensions\librespot-engine.js está ausente, então as escolhas salvas no desktop não chegam ao Spotify.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineCompanionDisabled" xml:space="preserve"><value>extensions não inclui librespot-engine.js, então o mecanismo ao vivo não será iniciado.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineRouteNotWired" xml:space="preserve"><value>O pacote ativo do Spotify não referencia spicetify-routes-librespot. Reaplique para reparar a rota do painel.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineAnchorsChangedFormat" xml:space="preserve"><value>O contrato DOM fixado do Spotify não contém estes grupos de âncoras: {0}. O painel de integridade no cliente mostra o resultado ao vivo exato.</value><comment>{0} is a list of missing anchor groups.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineAnchorProbeUnavailable" xml:space="preserve"><value>O aplicativo e a extensão complementar estão instalados, mas não há um pacote xpui.js extraído para a verificação offline de âncoras.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineReady" xml:space="preserve"><value>O aplicativo, a extensão complementar, a rota e as âncoras fixadas do Spotify estão presentes.</value><comment>Live engine health evidence.</comment></data>
 </root>

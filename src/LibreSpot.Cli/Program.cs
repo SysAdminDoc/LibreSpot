@@ -62,7 +62,7 @@ public static class CliApplication
 
     private static readonly HashSet<string> SpicetifyCustomApps = new(StringComparer.Ordinal)
     {
-        "stats"
+        "librespot", "stats"
     };
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -1101,6 +1101,18 @@ public static class CliApplication
                 .Where(item => !string.IsNullOrWhiteSpace(item))
                 .ToList();
         }
+
+        SetString(spicetify, "engineProfileJson", value => config.LibreSpot_EngineProfileJson = value);
+        SetString(spicetify, "featureOverridesJson", value => config.LibreSpot_FeatureOverridesJson = value);
+        if (spicetify.TryGetProperty("enabledSnippets", out var enabledSnippets) && enabledSnippets.ValueKind == JsonValueKind.Array)
+        {
+            config.LibreSpot_EnabledSnippets = enabledSnippets
+                .EnumerateArray()
+                .Where(item => item.ValueKind == JsonValueKind.String)
+                .Select(item => item.GetString() ?? string.Empty)
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .ToList();
+        }
     }
 
     private static void ApplyWatcherOptions(JsonElement root, InstallConfiguration config)
@@ -1517,12 +1529,15 @@ public static class CliApplication
         if (TryGetObject(root, "spicetify", pathPrefix, errors, out var spicetify))
         {
             var spicetifyPath = ChildPath(pathPrefix, "spicetify");
-            ValidateKnownProperties(spicetify, spicetifyPath, new[] { "theme", "scheme", "extensions", "customApps", "marketplace" }, errors);
+            ValidateKnownProperties(spicetify, spicetifyPath, new[] { "theme", "scheme", "extensions", "customApps", "marketplace", "engineProfileJson", "enabledSnippets", "featureOverridesJson" }, errors);
             ValidateStringProperty(spicetify, "theme", spicetifyPath, errors);
             ValidateStringProperty(spicetify, "scheme", spicetifyPath, errors);
             ValidateStringArray(spicetify, "extensions", SpicetifyExtensions, spicetifyPath, errors);
             ValidateStringArray(spicetify, "customApps", SpicetifyCustomApps, spicetifyPath, errors);
             ValidateBooleanProperty(spicetify, "marketplace", spicetifyPath, errors);
+            ValidateStringProperty(spicetify, "engineProfileJson", spicetifyPath, errors);
+            ValidateStringArray(spicetify, "enabledSnippets", null, spicetifyPath, errors);
+            ValidateStringProperty(spicetify, "featureOverridesJson", spicetifyPath, errors);
         }
 
         if (TryGetObject(root, "watcher", pathPrefix, errors, out var watcher))
@@ -1708,7 +1723,7 @@ public static class CliApplication
     private static void ValidateStringArray(
         JsonElement root,
         string property,
-        IReadOnlySet<string> allowedValues,
+        IReadOnlySet<string>? allowedValues,
         string pathPrefix,
         ICollection<ValidationErrorDocument> errors)
     {
@@ -1736,7 +1751,7 @@ public static class CliApplication
             else
             {
                 var actual = item.GetString() ?? string.Empty;
-                if (!allowedValues.Contains(actual))
+                if (allowedValues is not null && !allowedValues.Contains(actual))
                 {
                     errors.Add(new ValidationErrorDocument(itemPath, $"{property} entry '{actual}' is not supported."));
                 }

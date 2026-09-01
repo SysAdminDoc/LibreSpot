@@ -265,10 +265,29 @@
           "items": {
             "type": "string",
             "enum": [
+              "librespot",
               "stats"
             ]
           },
           "description": "Spicetify custom apps to install and enable through custom_apps."
+        },
+        "engineProfileJson": {
+          "type": "string",
+          "maxLength": 262144,
+          "description": "Serialized LibreSpot live engine state or a complete .librespot profile."
+        },
+        "enabledSnippets": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+          }
+        },
+        "featureOverridesJson": {
+          "type": "string",
+          "maxLength": 131072,
+          "description": "JSON object containing Spotify feature flag overrides."
         },
         "marketplace": {
           "type": "boolean",

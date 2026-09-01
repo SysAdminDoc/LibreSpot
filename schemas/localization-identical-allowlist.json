@@ -31,6 +31,10 @@
       "reason": "LibreSpot is the product name."
     },
     {
+      "key": "CustomApp_librespot_Title",
+      "reason": "LibreSpot is the product name."
+    },
+    {
       "key": "ThemeGalleryRequiresJsBadge",
       "reason": "theme.js is a literal Spicetify file name."
     },

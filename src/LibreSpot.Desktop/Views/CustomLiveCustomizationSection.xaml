@@ -1,0 +1,253 @@
+<UserControl x:Class="LibreSpot.Desktop.Views.CustomLiveCustomizationSection"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+ xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+ xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
+ mc:Ignorable="d"
+ UseLayoutRounding="True"
+ SnapsToDevicePixels="True">
+  <Border Style="{StaticResource MinimalSectionStyle}"
+          BorderThickness="0"
+          Visibility="{Binding HasVisibleLiveCustomization, Converter={StaticResource BoolToVisibilityConverter}}">
+    <StackPanel>
+      <TextBlock Text="{services:Loc LiveCustomizationTitle}"
+                 Style="{StaticResource SectionTitleTextStyle}" />
+      <TextBlock Text="{services:Loc LiveCustomizationDescription}"
+                 Style="{StaticResource BodyTextStyle}"
+                 Margin="0,6,0,12"
+                 TextWrapping="Wrap" />
+
+      <Border Style="{StaticResource SubtleCardStyle}"
+              Background="{DynamicResource AccentMistBrush}"
+              BorderBrush="{DynamicResource AccentRingBrush}"
+              Margin="0,0,0,14">
+        <TextBlock Text="{services:Loc LiveCustomizationHandoffDetail}"
+                   Style="{StaticResource CaptionTextStyle}"
+                   Foreground="{DynamicResource TextBrush}"
+                   TextWrapping="Wrap" />
+      </Border>
+
+      <Grid Margin="0,0,0,10">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="2*" />
+          <ColumnDefinition Width="180" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBox Text="{Binding FeatureSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                 Style="{StaticResource TextBoxStylePremium}"
+                 Tag="{services:Loc LiveCustomizationFeatureSearchPlaceholder}"
+                 Height="42"
+                 AutomationProperties.AutomationId="LiveCustomizationFeatureSearch"
+                 AutomationProperties.Name="{services:Loc LiveCustomizationFeatureSearchPlaceholder}"
+                 AutomationProperties.HelpText="{services:Loc LiveCustomizationFeatureSearchHelp}" />
+        <ComboBox Grid.Column="1"
+                  ItemsSource="{Binding FeatureGroups}"
+                  SelectedItem="{Binding SelectedFeatureGroup, Mode=TwoWay}"
+                  DisplayMemberPath="Label"
+                  Style="{StaticResource ComboBoxStylePremium}"
+                  Height="42"
+                  Margin="10,0,0,0"
+                  AutomationProperties.AutomationId="LiveCustomizationFeatureGroup"
+                  AutomationProperties.Name="{services:Loc LiveCustomizationGroupLabel}" />
+        <Button Grid.Column="2"
+                Content="{services:Loc ButtonClearSearch}"
+                Height="42"
+                MinWidth="84"
+                Margin="10,0,0,0"
+                Padding="18,0"
+                Style="{StaticResource SecondaryButtonStyle}"
+                Visibility="{Binding HasFeatureSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
+                Command="{Binding ClearFeatureSearchCommand}"
+                AutomationProperties.AutomationId="LiveCustomizationFeatureSearchClear"
+                AutomationProperties.Name="{services:Loc ButtonClearSearchName}" />
+      </Grid>
+
+      <TextBlock Text="{Binding LiveFeatureCountText}"
+                 Style="{StaticResource CaptionTextStyle}"
+                 Foreground="{DynamicResource SubtleTextBrush}"
+                 Margin="0,0,0,10" />
+
+      <Border Style="{StaticResource SubtleCardStyle}"
+              Background="{DynamicResource Surface1Brush}"
+              Margin="0,0,0,12"
+              Visibility="{Binding ShowLiveFeatureEmptyState, Converter={StaticResource BoolToVisibilityConverter}}">
+        <StackPanel>
+          <TextBlock Text="{services:Loc LiveCustomizationNoFeatures}"
+                     Style="{StaticResource EmptyStateTitleTextStyle}" />
+          <TextBlock Text="{services:Loc LiveCustomizationNoFeaturesHint}"
+                     Style="{StaticResource EmptyStateBodyTextStyle}"
+                     Margin="0,6,0,0" />
+        </StackPanel>
+      </Border>
+
+      <ListBox ItemsSource="{Binding FilteredCustomizationFeatures}"
+               MaxHeight="560"
+               Background="Transparent"
+               BorderThickness="0"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+               ScrollViewer.VerticalScrollBarVisibility="Auto"
+               ScrollViewer.CanContentScroll="True"
+               VirtualizingPanel.IsVirtualizing="True"
+               VirtualizingPanel.VirtualizationMode="Recycling"
+               PreviewMouseWheel="NestedScrollRegion_OnPreviewMouseWheel"
+               AutomationProperties.AutomationId="LiveCustomizationFeatureList"
+               AutomationProperties.Name="{services:Loc LiveCustomizationFeatureListName}">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+            <VirtualizingStackPanel />
+          </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.ItemContainerStyle>
+          <Style TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+          </Style>
+        </ListBox.ItemContainerStyle>
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <Border Style="{StaticResource SubtleCardStyle}"
+                    Padding="14,12">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="190" />
+                </Grid.ColumnDefinitions>
+                <CheckBox IsChecked="{Binding IsOverrideEnabled, Mode=TwoWay}"
+                          VerticalAlignment="Top"
+                          Margin="0,2,12,0"
+                          AutomationProperties.Name="{Binding Name}"
+                          AutomationProperties.HelpText="{services:Loc LiveCustomizationOverride}" />
+                <StackPanel Grid.Column="1" Margin="0,0,14,0">
+                  <TextBlock Text="{Binding Name}"
+                             Foreground="{DynamicResource TextBrush}"
+                             FontWeight="SemiBold"
+                             FontSize="14"
+                             TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Description}"
+                             Style="{StaticResource CaptionTextStyle}"
+                             Margin="0,4,0,0"
+                             TextWrapping="Wrap" />
+                  <WrapPanel Margin="0,7,0,0">
+                    <Border Style="{StaticResource MicroBadgeStyle}" Margin="0,0,6,4">
+                      <TextBlock Text="{Binding Group}" Style="{StaticResource MicroBadgeTextStyle}" />
+                    </Border>
+                    <Border Style="{StaticResource MicroBadgeStyle}" Margin="0,0,6,4">
+                      <TextBlock Text="{Binding DefaultText, StringFormat={}{services:Loc LiveCustomizationDefaultFormat}}"
+                                 Style="{StaticResource MicroBadgeTextStyle}" />
+                    </Border>
+                    <Border Style="{StaticResource MicroBadgeStyle}"
+                            Background="{DynamicResource WarningSoftBrush}"
+                            BorderBrush="{DynamicResource WarningRingBrush}"
+                            Margin="0,0,6,4"
+                            Visibility="{Binding IsServerGated, Converter={StaticResource BoolToVisibilityConverter}}">
+                      <TextBlock Text="{services:Loc LiveCustomizationServerGated}"
+                                 Style="{StaticResource MicroBadgeTextStyle}"
+                                 Foreground="{DynamicResource WarningBrush}" />
+                    </Border>
+                    <Border Style="{StaticResource MicroBadgeStyle}"
+                            Background="{DynamicResource WarningSoftBrush}"
+                            BorderBrush="{DynamicResource WarningRingBrush}"
+                            Margin="0,0,6,4"
+                            Visibility="{Binding HasSpotXForcedValue, Converter={StaticResource BoolToVisibilityConverter}}">
+                      <TextBlock Text="{Binding SpotXForcedText}"
+                                 Style="{StaticResource MicroBadgeTextStyle}"
+                                 Foreground="{DynamicResource WarningBrush}" />
+                    </Border>
+                  </WrapPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="2" IsEnabled="{Binding IsOverrideEnabled}">
+                  <TextBlock Text="{services:Loc LiveCustomizationValue}"
+                             Style="{StaticResource CaptionTextStyle}"
+                             Margin="0,0,0,5" />
+                  <CheckBox IsChecked="{Binding BooleanValue, Mode=TwoWay}"
+                            Content="{services:Loc LiveCustomizationBooleanEnabled}"
+                            Visibility="{Binding IsBoolean, Converter={StaticResource BoolToVisibilityConverter}}" />
+                  <ComboBox ItemsSource="{Binding Choices}"
+                            SelectedItem="{Binding ValueText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Style="{StaticResource ComboBoxStylePremium}"
+                            AutomationProperties.Name="{Binding Name}"
+                            Visibility="{Binding IsEnum, Converter={StaticResource BoolToVisibilityConverter}}" />
+                  <TextBox Text="{Binding ValueText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                           Style="{StaticResource TextBoxStylePremium}"
+                           AutomationProperties.Name="{Binding Name}"
+                           PreviewTextInput="NumericValueTextBox_OnPreviewTextInput"
+                           DataObject.Pasting="NumericValueTextBox_OnPasting"
+                           Visibility="{Binding IsNumber, Converter={StaticResource BoolToVisibilityConverter}}" />
+                  <TextBox Text="{Binding ValueText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                           Style="{StaticResource TextBoxStylePremium}"
+                           AutomationProperties.Name="{Binding Name}"
+                           Visibility="{Binding IsString, Converter={StaticResource BoolToVisibilityConverter}}" />
+                  <TextBlock Text="{Binding RangeText}"
+                             Style="{StaticResource CaptionTextStyle}"
+                             Margin="0,5,0,0"
+                             Visibility="{Binding IsNumber, Converter={StaticResource BoolToVisibilityConverter}}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <TextBlock Text="{services:Loc LiveCustomizationSnippetsTitle}"
+                 Style="{StaticResource SectionTitleTextStyle}"
+                 Margin="0,20,0,0" />
+      <TextBlock Text="{services:Loc LiveCustomizationSnippetsDescription}"
+                 Style="{StaticResource BodyTextStyle}"
+                 Margin="0,6,0,8"
+                 TextWrapping="Wrap" />
+      <TextBlock Text="{Binding LiveSnippetCountText}"
+                 Style="{StaticResource CaptionTextStyle}"
+                 Foreground="{DynamicResource SubtleTextBrush}"
+                 Margin="0,0,0,10" />
+      <ItemsControl ItemsSource="{Binding FilteredCustomizationSnippets}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Columns="2" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <CheckBox Style="{StaticResource SettingCheckBoxStyle}"
+                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                      AutomationProperties.Name="{Binding Title}"
+                      AutomationProperties.HelpText="{Binding Description}"
+                      Margin="0,0,10,10">
+              <StackPanel>
+                <TextBlock Text="{Binding Title}"
+                           Foreground="{DynamicResource TextBrush}"
+                           FontWeight="SemiBold"
+                           FontSize="14"
+                           TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Description}"
+                           Style="{StaticResource CaptionTextStyle}"
+                           Margin="0,6,0,0"
+                           TextWrapping="Wrap" />
+                <WrapPanel Margin="0,8,0,0">
+                  <Border Style="{StaticResource MicroBadgeStyle}" Margin="0,0,6,4">
+                    <TextBlock Text="{Binding Category}" Style="{StaticResource MicroBadgeTextStyle}" />
+                  </Border>
+                  <Border Style="{StaticResource MicroBadgeStyle}"
+                          Background="{DynamicResource AccentMistBrush}"
+                          BorderBrush="{DynamicResource AccentRingBrush}"
+                          Margin="0,0,6,4">
+                    <TextBlock Text="{services:Loc LiveCustomizationLiveBadge}"
+                               Style="{StaticResource MicroBadgeTextStyle}"
+                               Foreground="{DynamicResource AccentBrush}" />
+                  </Border>
+                </WrapPanel>
+                <TextBlock Text="{Binding SourceTitle, StringFormat={}{services:Loc LiveCustomizationSourceFormat}}"
+                           Style="{StaticResource CaptionTextStyle}"
+                           Margin="0,4,0,0" />
+              </StackPanel>
+            </CheckBox>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Border>
+</UserControl>

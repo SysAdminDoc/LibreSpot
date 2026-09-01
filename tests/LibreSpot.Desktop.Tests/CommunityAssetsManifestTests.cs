@@ -263,13 +263,9 @@ public sealed class CommunityAssetsManifestTests
     public void Manifest_ListsEveryCommunityCustomAppInScript()
     {
         var script = ReadFile("LibreSpot.ps1");
-
-        var scriptApps = Regex.Matches(
-                script,
-                @"\$global:CommunityCustomApps\s*=\s*\[ordered\]@\{(?<body>.+?)\n\}",
-                RegexOptions.Singleline)
-            .SelectMany(m => Regex.Matches(m.Groups["body"].Value, @"""([^""]+)""\s*=\s*@\{"))
-            .Select(m => m.Groups[1].Value)
+        var scriptApps = ReadCommunityCustomAppBlocks(script)
+            .Where(entry => !Regex.IsMatch(entry.Value, @"(?m)^\s*Bundled\s*=\s*\$true\s*$"))
+            .Select(entry => entry.Key)
             .ToHashSet(StringComparer.Ordinal);
 
         var manifestApps = Manifest.RootElement
@@ -288,20 +284,20 @@ public sealed class CommunityAssetsManifestTests
     public void Manifest_CustomAppSha256MatchesScript()
     {
         var script = ReadFile("LibreSpot.ps1");
+        var scriptApps = ReadCommunityCustomAppBlocks(script);
 
         foreach (var app in Manifest.RootElement.GetProperty("customApps").EnumerateArray())
         {
             var appId = app.GetProperty("appId").GetString()!;
             var manifestHash = app.GetProperty("sha256").GetString()!;
+            Assert.True(
+                scriptApps.TryGetValue(appId, out var appBlock),
+                $"Could not find custom app '{appId}' in script.");
 
             var hashMatch = Regex.Match(
-                script,
-                $@"""{Regex.Escape(appId)}""\s*=\s*@\{{[^}}]*SHA256\s*=\s*""([A-Fa-f0-9]{{64}})""",
-                RegexOptions.Singleline);
-
-            Assert.True(
-                hashMatch.Success,
-                $"Could not find SHA256 for custom app '{appId}' in script.");
+                appBlock!,
+                @"(?m)^\s*SHA256\s*=\s*['""]([A-Fa-f0-9]{64})['""]\s*$");
+            Assert.True(hashMatch.Success, $"Could not find SHA256 for custom app '{appId}' in script.");
 
             Assert.Equal(manifestHash, hashMatch.Groups[1].Value);
         }
@@ -726,6 +722,25 @@ public sealed class CommunityAssetsManifestTests
 
     private static string ReadFile(params string[] relativeParts) =>
         File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(relativeParts).ToArray()));
+
+    private static Dictionary<string, string> ReadCommunityCustomAppBlocks(string script)
+    {
+        var registry = Regex.Match(
+            script,
+            @"\$global:CommunityCustomApps\s*=\s*\[ordered\]@\{(?<body>.+?)\n\}",
+            RegexOptions.Singleline);
+        Assert.True(registry.Success, "CommunityCustomApps registry was not found in the composed script.");
+
+        return Regex.Matches(
+                registry.Groups["body"].Value,
+                @"(?ms)^\s*(?:'(?<single>[^']+)'|""(?<double>[^""]+)"")\s*=\s*@\{(?<entry>.*?)(?=^\s*(?:'[^']+'|""[^""]+"")\s*=\s*@\{|\z)")
+            .ToDictionary(
+                match => match.Groups["single"].Success
+                    ? match.Groups["single"].Value
+                    : match.Groups["double"].Value,
+                match => match.Groups["entry"].Value,
+                StringComparer.Ordinal);
+    }
 
     private static IEnumerable<JsonElement> AllAssets() =>
         Manifest.RootElement.GetProperty("extensions").EnumerateArray()

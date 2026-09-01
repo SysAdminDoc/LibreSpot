@@ -183,6 +183,7 @@ public sealed class KeyboardFocusContractTests
                 ReadFile("src", "LibreSpot.Desktop", "Views", "CustomWorkspaceView.xaml"),
                 ReadFile("src", "LibreSpot.Desktop", "Views", "CustomInstallSection.xaml"),
                 ReadFile("src", "LibreSpot.Desktop", "Views", "CustomAppearanceSection.xaml"),
+                ReadFile("src", "LibreSpot.Desktop", "Views", "CustomLiveCustomizationSection.xaml"),
                 ReadFile("src", "LibreSpot.Desktop", "Views", "CustomBehaviorSection.xaml"),
                 ReadFile("src", "LibreSpot.Desktop", "Views", "CustomAdvancedSection.xaml"),
                 ReadFile("src", "LibreSpot.Desktop", "Views", "CustomPatchesSection.xaml"),

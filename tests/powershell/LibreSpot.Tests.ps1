@@ -58,6 +58,8 @@ BeforeAll {
         'Get-LibreSpotConfigSchemaVersion'
         'Assert-LibreSpotConfigSchemaSupported'
         'Normalize-LibreSpotConfig'
+        'New-LibreSpotEngineBootstrap'
+        'Repair-LibreSpotManagedCustomAppRoutes'
         'Compare-LibreSpotVersions'
         'Get-SpotXChildFailureClassification'
         'Get-ThirdPartyPatcherReport'
@@ -127,6 +129,10 @@ BeforeAll {
         SpotX_CustomPatchesEnabled=$false; SpotX_CustomPatchesJson=""
         Spicetify_Theme="(None - Marketplace Only)"; Spicetify_Scheme="Default"; Spicetify_Marketplace=$true
         Spicetify_Extensions=@("fullAppDisplay.js","shuffle+.js","trashbin.js")
+        Spicetify_CustomApps=@('librespot')
+        LibreSpot_EngineProfileJson=''
+        LibreSpot_EnabledSnippets=@()
+        LibreSpot_FeatureOverridesJson='{}'
         CleanInstall=$true; LaunchAfter=$true
         AutoReapply_Enabled=$false
     }
@@ -167,6 +173,11 @@ BeforeAll {
     $global:CommunityExtensionAliases = @{
         "beautifulLyrics.js" = "beautiful-lyrics.mjs"
         "playlistIcons.js"   = "playlist-icons.js"
+    }
+
+    $global:CommunityCustomApps = [ordered]@{
+        librespot = @{ DisplayName = 'LibreSpot' }
+        stats = @{ DisplayName = 'Stats' }
     }
 
     $global:SpotifyVersionManifest = @(
@@ -926,6 +937,40 @@ Describe 'Normalize-LibreSpotConfig' {
 
             $result.SpotX_CustomPatchesEnabled | Should -BeTrue
             $result.SpotX_CustomPatchesJson | Should -Be $json
+        }
+    }
+
+    Context 'LibreSpot live engine configuration' {
+        It 'keeps a bounded profile, safe snippet IDs, and feature override JSON' {
+            $result = Normalize-LibreSpotConfig -Config @{
+                Spicetify_CustomApps = @('librespot', 'stats', 'librespot', 'unknown')
+                LibreSpot_EngineProfileJson = '{"schemaVersion":1,"name":"Desktop","theme":"Prism","scheme":"Dark","schemes":{"Dark":{"text":"ffffff"}}}'
+                LibreSpot_EnabledSnippets = @('compact-sidebar', 'compact-sidebar', '../unsafe', '')
+                LibreSpot_FeatureOverridesJson = '{"enableFoo":true,"limit":7}'
+            }
+
+            @($result.Spicetify_CustomApps) | Should -Be @('librespot', 'stats')
+            @($result.LibreSpot_EnabledSnippets) | Should -Be @('compact-sidebar')
+            $result.LibreSpot_EngineProfileJson | Should -Match '"theme":"Prism"'
+            $overrides = $result.LibreSpot_FeatureOverridesJson | ConvertFrom-Json
+            $overrides.enableFoo | Should -BeTrue
+            $overrides.limit | Should -Be 7
+        }
+
+        It 'drops malformed engine JSON and restores an empty override object' {
+            $result = Normalize-LibreSpotConfig -Config @{
+                LibreSpot_EngineProfileJson = '{not-json'
+                LibreSpot_FeatureOverridesJson = '[1,2,3]'
+            }
+
+            $result.LibreSpot_EngineProfileJson | Should -Be ''
+            $result.LibreSpot_FeatureOverridesJson | Should -Be '{}'
+        }
+
+        It 'keeps the LibreSpot custom app in the recommended defaults' {
+            $result = Normalize-LibreSpotConfig -Config @{}
+
+            @($result.Spicetify_CustomApps) | Should -Contain 'librespot'
         }
     }
 
@@ -2265,6 +2310,16 @@ Describe 'Lane orchestration modules and primary GUI dispatch' {
                     Set-Content -LiteralPath (Join-Path $stats 'manifest.json') -Value '{}' -Encoding Ascii
                     Set-Content -LiteralPath (Join-Path $stats 'extension.js') -Value 'fixture' -Encoding Ascii
                 }
+                'Custom app librespot*' {
+                    $librespot = Join-Path $DestinationPath 'librespot'
+                    New-Item -Path $librespot -ItemType Directory -Force | Out-Null
+                    Set-Content -LiteralPath (Join-Path $librespot 'manifest.json') -Value '{"version":"4.1.0"}' -Encoding Ascii
+                    Set-Content -LiteralPath (Join-Path $librespot 'index.js') -Value 'fixture app' -Encoding Ascii
+                    Set-Content -LiteralPath (Join-Path $librespot 'style.css') -Value ':root{}' -Encoding Ascii
+                    Set-Content -LiteralPath (Join-Path $librespot 'librespot-engine.js') -Value 'window.LibreSpotEngine={};' -Encoding Ascii
+                    Set-Content -LiteralPath (Join-Path $librespot 'LICENSE') -Value 'MIT' -Encoding Ascii
+                    Set-Content -LiteralPath (Join-Path $librespot 'THIRD_PARTY_NOTICES.md') -Value 'notices' -Encoding Ascii
+                }
             }
         }
         function Download-CommunityExtensions { param($Config) $script:orchestrationCalls.ExtensionDownloads++ }
@@ -2304,9 +2359,12 @@ Describe 'Lane orchestration modules and primary GUI dispatch' {
         }
         function Get-SpicetifyDiagnosticSnapshot { [ordered]@{ Spotify = $global:SPOTIFY_EXE_PATH; Config = $script:orchestrationIntegration.ConfigDirectory } }
         function Repair-SpicetifyCustomAppWiring {
+            param([string]$AppName)
             $script:orchestrationCalls.Wiring++
-            Set-Content -LiteralPath (Join-Path $script:orchestrationRoot 'marketplace-route.fixture') -Value 'wired' -Encoding Ascii
-            [pscustomobject]@{ Status = 'Wired'; Detail = 'Fixture route is wired.' }
+            $script:orchestrationCalls.WiringApps += $AppName
+            $bundlePath = Join-Path $script:orchestrationRoot "$AppName-route.fixture"
+            Set-Content -LiteralPath $bundlePath -Value 'wired' -Encoding Ascii
+            [pscustomobject]@{ Status = 'Wired'; BundlePath = $bundlePath; Detail = 'Fixture route is wired.' }
         }
         function Write-MarketplaceVisibilityEvidence {
             param([string]$Source, [string]$ApplyStage, [bool]$ApplySucceeded, [string]$ApplyMessage)
@@ -2419,13 +2477,22 @@ Describe 'Lane orchestration modules and primary GUI dispatch' {
         $global:DeprecatedCommunityExtensionNames = @()
         $global:CommunityCustomApps = [ordered]@{
             stats = @{ DisplayName = 'Stats'; Source = 'fixture/stats'; Url = 'https://example.invalid/stats.zip'; AssetPath = 'stats'; SHA256 = 'stats-fixture-hash' }
+            librespot = @{
+                DisplayName = 'LibreSpot'
+                Source = 'fixture/librespot'
+                Url = 'https://example.invalid/librespot.zip'
+                AssetPath = 'librespot'
+                RequiredFiles = @('manifest.json', 'index.js', 'style.css', 'librespot-engine.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md')
+                CompanionExtension = 'librespot-engine.js'
+                SHA256 = 'librespot-fixture-hash'
+            }
         }
         $script:spicetifyConfigEntries = @{}
         $script:orchestrationCalls = @{
             Log = @(); Journal = @(); Downloads = @(); ExternalScripts = @(); Processes = @(); Cli = @(); PathEntries = @()
             Sync = @(); RemovedPaths = @(); Evidence = @(); SystemQueries = @(); Dialogs = @(); Pages = @()
             Maintenance = @(); InstallJobs = @(); StopSpotify = 0; HideSpotify = 0; ExtensionDownloads = 0
-            Wiring = 0; BaselineCaptures = 0
+            Wiring = 0; WiringApps = @(); BaselineCaptures = 0
         }
         $env:PROCESSOR_ARCHITECTURE = 'AMD64'
     }
@@ -2508,6 +2575,43 @@ Describe 'Lane orchestration modules and primary GUI dispatch' {
 
         Test-Path -LiteralPath (Join-Path $script:orchestrationIntegration.CustomAppsDirectory 'stats\manifest.json') -PathType Leaf | Should -BeTrue
         $script:orchestrationCalls.Sync | Should -Contain 'custom_apps=stats'
+    }
+
+    It 'Module-InstallCustomApps installs the LibreSpot app and bootstrapped companion' {
+        $config = @{
+            Spicetify_CustomApps = @('librespot')
+            LibreSpot_EngineProfileJson = '{"schemaVersion":1,"name":"Desktop","theme":"Prism","scheme":"Dark","schemes":{"Dark":{"text":"ffffff"}}}'
+            LibreSpot_EnabledSnippets = @('compact-sidebar')
+            LibreSpot_FeatureOverridesJson = '{"enableFoo":true}'
+            SpotX_Premium = $true
+        }
+
+        Module-InstallCustomApps -Config $config
+
+        Test-Path -LiteralPath (Join-Path $script:orchestrationIntegration.CustomAppsDirectory 'librespot\manifest.json') -PathType Leaf | Should -BeTrue
+        $companionPath = Join-Path $script:orchestrationIntegration.ExtensionsDirectory 'librespot-engine.js'
+        Test-Path -LiteralPath $companionPath -PathType Leaf | Should -BeTrue
+        $companion = Get-Content -Raw -LiteralPath $companionPath
+        $companion | Should -Match '^window\.__libreSpotDesktopBootstrap='
+        $bootstrapMatch = [regex]::Match($companion, "payloadBase64:'([^']+)'")
+        $bootstrapMatch.Success | Should -BeTrue
+        $payloadJson = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($bootstrapMatch.Groups[1].Value))
+        $payload = $payloadJson | ConvertFrom-Json
+        @($payload.enabledSnippets) | Should -Be @('compact-sidebar')
+        $payload.featureOverrides.enableFoo | Should -BeTrue
+        $payload.spotxSwitches.SpotX_Premium | Should -BeTrue
+        $script:orchestrationCalls.Sync | Should -Contain 'custom_apps=librespot'
+        $script:orchestrationCalls.Sync | Should -Contain 'extensions=librespot-engine.js'
+    }
+
+    It 'repairs both managed custom app routes after apply' {
+        $results = Repair-LibreSpotManagedCustomAppRoutes -Config ([pscustomobject]@{
+            Spicetify_Marketplace = $true
+            Spicetify_CustomApps = @('librespot')
+        })
+
+        @($results.AppName) | Should -Be @('marketplace', 'librespot')
+        @($script:orchestrationCalls.WiringApps) | Should -Be @('marketplace', 'librespot')
     }
 
     It 'Module-ApplySpicetify applies and records evidence against the fake root' {

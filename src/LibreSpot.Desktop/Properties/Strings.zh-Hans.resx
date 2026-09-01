@@ -1885,10 +1885,10 @@
   <data name="Vm_MaintenanceIncompleteDetail" xml:space="preserve"><value>自定义层恢复到位后，重新应用将变得有用。在此之前，“推荐”通常是更好的路径。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceIncompleteTitle" xml:space="preserve"><value>自定义层不完整</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceMarketplaceUnchecked" xml:space="preserve"><value>Marketplace 状态尚未检查。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceReadinessAllReady" xml:space="preserve"><value>Spotify、SpotX、Spicetify、Marketplace 和主题状态均已准备就绪。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessAllReady" xml:space="preserve"><value>完整的 Spotify 自定义堆栈已就绪，其中包括 LibreSpot 实时引擎。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadinessNoneReady" xml:space="preserve"><value>尚未准备好任何自定义堆栈组件。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceReadinessPartial" xml:space="preserve"><value>Spotify， SpotX、Spicetify、Marketplace 和主题检查已部分准备就绪。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceReadinessValueFormat" xml:space="preserve"><value>{0} 已准备就绪，共 5 项</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessPartial" xml:space="preserve"><value>部分 Spotify 自定义检查仍需处理，包括安装后的实时引擎。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessValueFormat" xml:space="preserve"><value>{0} 已准备就绪，共 6 项</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyDetail" xml:space="preserve"><value>从更安全的操作开始。仅当您想要清除堆栈并重建时才使用重置。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyTitle" xml:space="preserve"><value>准备好维护或重置</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyWhenNeededDetail" xml:space="preserve"><value>大多数修复操作在安装 Spotify 后才起作用。您仍然可以检查版本、导出支持详细信息或准备彻底重置。</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2617,4 +2617,43 @@
   <data name="CompatibilityDetectedUnknown" xml:space="preserve"><value>版本未知</value></data>
   <data name="ShellProtocolUrlDescription" xml:space="preserve"><value>URL：LibreSpot 配置文件链接</value></data>
   <data name="ShellProfileFileDescription" xml:space="preserve"><value>LibreSpot 配置文件</value></data>
+  <data name="LiveCustomizationTitle" xml:space="preserve"><value>实时自定义</value><comment>Custom Install section title for the LibreSpot in-client engine.</comment></data>
+  <data name="LiveCustomizationDescription" xml:space="preserve"><value>从 Spotify 内 LibreSpot 面板使用的目录中选择功能覆盖和已审核的 CSS 片段。</value><comment>Live customization section description.</comment></data>
+  <data name="LiveCustomizationHandoffDetail" xml:space="preserve"><value>安装和重新应用会把这些选择写入 LibreSpot 配套扩展。面板无需后台服务即可在 Spotify 内应用它们。</value><comment>Desktop to Spotify handoff explanation.</comment></data>
+  <data name="LiveCustomizationFeatureSearchPlaceholder" xml:space="preserve"><value>搜索 348 个 Spotify 标志</value><comment>Feature flag search placeholder.</comment></data>
+  <data name="LiveCustomizationFeatureSearchHelp" xml:space="preserve"><value>按准确标志名、说明、分组或 SpotX 状态筛选。</value><comment>Feature flag search accessibility help.</comment></data>
+  <data name="LiveCustomizationGroupLabel" xml:space="preserve"><value>功能分组</value><comment>Feature group filter accessibility name.</comment></data>
+  <data name="LiveCustomizationAllGroups" xml:space="preserve"><value>所有分组</value><comment>Feature group filter default.</comment></data>
+  <data name="LiveCustomizationFeatureCountFormat" xml:space="preserve"><value>显示 {0}/{1} 个标志。已启用 {2} 个覆盖。</value><comment>Format parameters: {0} shown flags; {1} total flags; {2} enabled overrides.</comment></data>
+  <data name="LiveCustomizationSnippetCountFormat" xml:space="preserve"><value>已启用 {0}/{1} 个片段。</value><comment>Format parameters: {0} enabled snippets; {1} total snippets.</comment></data>
+  <data name="LiveCustomizationOverride" xml:space="preserve"><value>覆盖此 Spotify 标志</value><comment>Feature override checkbox help.</comment></data>
+  <data name="LiveCustomizationDefaultFormat" xml:space="preserve"><value>默认值：{0}</value><comment>Format parameter: {0} feature default value.</comment></data>
+  <data name="LiveCustomizationServerGated" xml:space="preserve"><value>服务器控制</value><comment>Feature flag server control badge.</comment></data>
+  <data name="LiveCustomizationValue" xml:space="preserve"><value>覆盖值</value><comment>Feature override value label.</comment></data>
+  <data name="LiveCustomizationBooleanEnabled" xml:space="preserve"><value>已启用</value><comment>Boolean feature value label.</comment></data>
+  <data name="LiveCustomizationNoFeatures" xml:space="preserve"><value>没有匹配的标志</value><comment>Feature picker empty state.</comment></data>
+  <data name="LiveCustomizationNoFeaturesHint" xml:space="preserve"><value>清除搜索或选择其他分组。</value><comment>Feature picker empty state help.</comment></data>
+  <data name="LiveCustomizationFeatureListName" xml:space="preserve"><value>Spotify 功能标志覆盖</value><comment>Feature list accessibility name.</comment></data>
+  <data name="LiveCustomizationSnippetsTitle" xml:space="preserve"><value>已审核片段</value><comment>CSS snippet catalog title.</comment></data>
+  <data name="LiveCustomizationSnippetsDescription" xml:space="preserve"><value>这些选择器已针对固定的 Spotify 版本检查，并可在面板中实时切换。</value><comment>CSS snippet catalog description.</comment></data>
+  <data name="LiveCustomizationLiveBadge" xml:space="preserve"><value>实时</value><comment>Live-capable snippet badge.</comment></data>
+  <data name="LiveCustomizationSourceFormat" xml:space="preserve"><value>来源：{0}</value><comment>Format parameter: {0} snippet source.</comment></data>
+  <data name="CustomApp_librespot_Title" xml:space="preserve"><value>LibreSpot</value><comment>LibreSpot custom app title.</comment></data>
+  <data name="CustomApp_librespot_Description" xml:space="preserve"><value>在 Spotify 内使用实时主题、片段、Spotify 标志、预设和健康检查。</value><comment>LibreSpot custom app description.</comment></data>
+  <data name="HealthNameLibreSpotEngine" xml:space="preserve"><value>LibreSpot 实时引擎</value><comment>Health component name.</comment></data>
+  <data name="HealthStatusEngineCompanionMissing" xml:space="preserve"><value>配套扩展缺失</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineCompanionDisabled" xml:space="preserve"><value>配套扩展已停用</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineRouteNotWired" xml:space="preserve"><value>面板路由未连接</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineAnchorsChanged" xml:space="preserve"><value>Spotify 锚点已变化</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineAnchorProbeUnavailable" xml:space="preserve"><value>锚点检查不可用</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineReady" xml:space="preserve"><value>实时引擎已就绪</value><comment>Live engine health status.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineUnavailable" xml:space="preserve"><value>尚未安装 Spicetify，因此暂时无法检查 LibreSpot 面板。</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineFilesMissingFormat" xml:space="preserve"><value>LibreSpot 自定义应用不完整。缺少文件：{0}。</value><comment>{0} is a list of missing file names.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineAppDisabled" xml:space="preserve"><value>custom_apps 不含 librespot，因此不会加载面板路由。</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineCompanionMissing" xml:space="preserve"><value>缺少 Extensions\librespot-engine.js，因此已保存的桌面选择无法传递到 Spotify。</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineCompanionDisabled" xml:space="preserve"><value>extensions 不含 librespot-engine.js，因此实时运行时不会启动。</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineRouteNotWired" xml:space="preserve"><value>活动 Spotify 包未引用 spicetify-routes-librespot。请重新应用以修复面板路由。</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineAnchorsChangedFormat" xml:space="preserve"><value>固定的 Spotify DOM 约定缺少这些锚点组：{0}。客户端内的健康面板可显示准确的实时结果。</value><comment>{0} is a list of missing anchor groups.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineAnchorProbeUnavailable" xml:space="preserve"><value>自定义应用和配套扩展已安装，但没有可供离线锚点检查的已提取 xpui.js 包。</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineReady" xml:space="preserve"><value>自定义应用、配套扩展、路由和固定的 Spotify 锚点均已存在。</value><comment>Live engine health evidence.</comment></data>
 </root>

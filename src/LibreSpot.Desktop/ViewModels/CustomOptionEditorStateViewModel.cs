@@ -14,6 +14,8 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
     private string _selectedDownloadMethod = string.Empty;
     private string _cacheLimitText = "0";
     private string _themeSearchText = string.Empty;
+    private string _featureSearchText = string.Empty;
+    private CustomizationGroupOption? _selectedFeatureGroup;
     private IReadOnlyList<ThemeGalleryItemViewModel>? _filteredThemeGalleryItemsCache;
 
     public CustomOptionEditorStateViewModel(InstallConfiguration recommendedBaseline)
@@ -43,6 +45,12 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
                 definition.Title,
                 definition.Description,
                 recommendedBaseline.Spicetify_CustomApps.Contains(definition.Key, StringComparer.OrdinalIgnoreCase))));
+        CustomizationFeatures = new ObservableCollection<CustomizationFeatureOptionViewModel>(
+            AppCatalog.CustomizationCatalog.SpotifyFeatures.Select(definition => new CustomizationFeatureOptionViewModel(definition)));
+        CustomizationSnippets = new ObservableCollection<CustomizationSnippetToggleViewModel>(
+            AppCatalog.CustomizationCatalog.Snippets.Select(definition => new CustomizationSnippetToggleViewModel(definition)));
+        FeatureGroups = new ObservableCollection<CustomizationGroupOption>();
+        RebuildFeatureGroups();
     }
 
     public ObservableCollection<string> ThemeNames { get; }
@@ -58,6 +66,21 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
     public ObservableCollection<OptionToggleViewModel> ExperienceOptions { get; }
     public ObservableCollection<ExtensionToggleViewModel> Extensions { get; }
     public ObservableCollection<ExtensionToggleViewModel> CustomApps { get; }
+    public ObservableCollection<CustomizationFeatureOptionViewModel> CustomizationFeatures { get; }
+    public ObservableCollection<CustomizationSnippetToggleViewModel> CustomizationSnippets { get; }
+    public ObservableCollection<CustomizationGroupOption> FeatureGroups { get; }
+
+    public string FeatureSearchText
+    {
+        get => _featureSearchText;
+        set => SetProperty(ref _featureSearchText, value ?? string.Empty);
+    }
+
+    public CustomizationGroupOption SelectedFeatureGroup
+    {
+        get => _selectedFeatureGroup ?? FeatureGroups[0];
+        set => SetProperty(ref _selectedFeatureGroup, value);
+    }
 
     public string SelectedTheme
     {
@@ -177,6 +200,7 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
         }
 
         SelectedTheme = selectedTheme;
+        RebuildFeatureGroups();
         _filteredThemeGalleryItemsCache = null;
         RaiseThemeFilterChanged();
     }
@@ -228,4 +252,20 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
 
     private static string ToCustomAppResourceKey(string key) =>
         $"CustomApp_{key.Replace("-", "_", StringComparison.Ordinal)}";
+
+    private void RebuildFeatureGroups()
+    {
+        var selectedKey = _selectedFeatureGroup?.Key ?? "*";
+        FeatureGroups.Clear();
+        FeatureGroups.Add(new CustomizationGroupOption(
+            "*",
+            Strings.ResourceManager.GetString("LiveCustomizationAllGroups", Strings.Culture) ?? "All groups"));
+        foreach (var group in AppCatalog.CustomizationCatalog.FeatureGroups)
+        {
+            FeatureGroups.Add(new CustomizationGroupOption(group, group));
+        }
+
+        _selectedFeatureGroup = FeatureGroups.FirstOrDefault(item => item.Key == selectedKey) ?? FeatureGroups[0];
+        OnPropertyChanged(nameof(SelectedFeatureGroup));
+    }
 }

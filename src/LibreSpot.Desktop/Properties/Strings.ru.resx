@@ -1885,10 +1885,10 @@
   <data name="Vm_MaintenanceIncompleteDetail" xml:space="preserve"><value>Повторное применение становится полезным, как только уровень настройки возвращается на место. До тех пор, как правило, лучшим вариантом является вариант «Рекомендовано».</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceIncompleteTitle" xml:space="preserve"><value>Уровень настройки не завершен.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceMarketplaceUnchecked" xml:space="preserve"><value>Состояние Marketplace еще не проверено.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceReadinessAllReady" xml:space="preserve"><value>Spotify, SpotX, Spicetify, Marketplace и состояние темы готовы.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessAllReady" xml:space="preserve"><value>Весь стек настройки Spotify готов, включая движок LibreSpot в реальном времени.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadinessNoneReady" xml:space="preserve"><value>Ни один компонент стека настройки еще не готов.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceReadinessPartial" xml:space="preserve"><value>Spotify, SpotX, Spicetify, Marketplace и проверки тем частично готовы.</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_MaintenanceReadinessValueFormat" xml:space="preserve"><value>{0} из 5 готовы</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessPartial" xml:space="preserve"><value>Некоторые проверки настройки Spotify требуют внимания, включая движок реального времени после его установки.</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_MaintenanceReadinessValueFormat" xml:space="preserve"><value>{0} из 6 готовы</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyDetail" xml:space="preserve"><value>Начните с более безопасных действий. Используйте сброс только в том случае, если вы хотите очистить стек и перестроить его.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyTitle" xml:space="preserve"><value>Готовность к обслуживанию или сбросу</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceReadyWhenNeededDetail" xml:space="preserve"><value>Большинство действий по восстановлению имеют значение после установки Spotify. Вы по-прежнему можете проверять версии, экспортировать сведения о поддержке или подготовить полный сброс.</value><comment>MainViewModel localized runtime text.</comment></data>
@@ -2617,4 +2617,43 @@
   <data name="CompatibilityDetectedUnknown" xml:space="preserve"><value>Версия неизвестна</value></data>
   <data name="ShellProtocolUrlDescription" xml:space="preserve"><value>URL:ссылка на профиль LibreSpot</value></data>
   <data name="ShellProfileFileDescription" xml:space="preserve"><value>Профиль LibreSpot</value></data>
+  <data name="LiveCustomizationTitle" xml:space="preserve"><value>Настройка в реальном времени</value><comment>Custom Install section title for the LibreSpot in-client engine.</comment></data>
+  <data name="LiveCustomizationDescription" xml:space="preserve"><value>Выберите переопределения функций Spotify и проверенные фрагменты CSS из каталога панели LibreSpot в клиенте.</value><comment>Live customization section description.</comment></data>
+  <data name="LiveCustomizationHandoffDetail" xml:space="preserve"><value>Установка и повторное применение записывают выбранные параметры в расширение LibreSpot. Панель применяет их внутри Spotify без фоновой службы.</value><comment>Desktop to Spotify handoff explanation.</comment></data>
+  <data name="LiveCustomizationFeatureSearchPlaceholder" xml:space="preserve"><value>Поиск по 348 флагам Spotify</value><comment>Feature flag search placeholder.</comment></data>
+  <data name="LiveCustomizationFeatureSearchHelp" xml:space="preserve"><value>Фильтр по точному имени флага, описанию, группе или состоянию SpotX.</value><comment>Feature flag search accessibility help.</comment></data>
+  <data name="LiveCustomizationGroupLabel" xml:space="preserve"><value>Группа функций</value><comment>Feature group filter accessibility name.</comment></data>
+  <data name="LiveCustomizationAllGroups" xml:space="preserve"><value>Все группы</value><comment>Feature group filter default.</comment></data>
+  <data name="LiveCustomizationFeatureCountFormat" xml:space="preserve"><value>Показано флагов: {0} из {1}. Переопределений включено: {2}.</value><comment>Format parameters: {0} shown flags; {1} total flags; {2} enabled overrides.</comment></data>
+  <data name="LiveCustomizationSnippetCountFormat" xml:space="preserve"><value>Включено фрагментов: {0} из {1}.</value><comment>Format parameters: {0} enabled snippets; {1} total snippets.</comment></data>
+  <data name="LiveCustomizationOverride" xml:space="preserve"><value>Переопределить этот флаг Spotify</value><comment>Feature override checkbox help.</comment></data>
+  <data name="LiveCustomizationDefaultFormat" xml:space="preserve"><value>По умолчанию: {0}</value><comment>Format parameter: {0} feature default value.</comment></data>
+  <data name="LiveCustomizationServerGated" xml:space="preserve"><value>Управляется сервером</value><comment>Feature flag server control badge.</comment></data>
+  <data name="LiveCustomizationValue" xml:space="preserve"><value>Новое значение</value><comment>Feature override value label.</comment></data>
+  <data name="LiveCustomizationBooleanEnabled" xml:space="preserve"><value>Включено</value><comment>Boolean feature value label.</comment></data>
+  <data name="LiveCustomizationNoFeatures" xml:space="preserve"><value>Подходящих флагов нет</value><comment>Feature picker empty state.</comment></data>
+  <data name="LiveCustomizationNoFeaturesHint" xml:space="preserve"><value>Очистите поиск или выберите другую группу.</value><comment>Feature picker empty state help.</comment></data>
+  <data name="LiveCustomizationFeatureListName" xml:space="preserve"><value>Переопределения флагов функций Spotify</value><comment>Feature list accessibility name.</comment></data>
+  <data name="LiveCustomizationSnippetsTitle" xml:space="preserve"><value>Проверенные фрагменты</value><comment>CSS snippet catalog title.</comment></data>
+  <data name="LiveCustomizationSnippetsDescription" xml:space="preserve"><value>Эти селекторы проверены с закрепленной сборкой Spotify. Их можно переключать в панели без перезапуска.</value><comment>CSS snippet catalog description.</comment></data>
+  <data name="LiveCustomizationLiveBadge" xml:space="preserve"><value>Сразу</value><comment>Live-capable snippet badge.</comment></data>
+  <data name="LiveCustomizationSourceFormat" xml:space="preserve"><value>Источник: {0}</value><comment>Format parameter: {0} snippet source.</comment></data>
+  <data name="CustomApp_librespot_Title" xml:space="preserve"><value>LibreSpot</value><comment>LibreSpot custom app title.</comment></data>
+  <data name="CustomApp_librespot_Description" xml:space="preserve"><value>Темы, фрагменты, флаги Spotify, профили и проверки состояния внутри Spotify.</value><comment>LibreSpot custom app description.</comment></data>
+  <data name="HealthNameLibreSpotEngine" xml:space="preserve"><value>Движок LibreSpot в реальном времени</value><comment>Health component name.</comment></data>
+  <data name="HealthStatusEngineCompanionMissing" xml:space="preserve"><value>Расширение отсутствует</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineCompanionDisabled" xml:space="preserve"><value>Расширение отключено</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineRouteNotWired" xml:space="preserve"><value>Маршрут панели не подключен</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineAnchorsChanged" xml:space="preserve"><value>Якоря Spotify изменились</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineAnchorProbeUnavailable" xml:space="preserve"><value>Проверка якорей недоступна</value><comment>Live engine health status.</comment></data>
+  <data name="HealthStatusEngineReady" xml:space="preserve"><value>Движок готов</value><comment>Live engine health status.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineUnavailable" xml:space="preserve"><value>Spicetify не установлен, поэтому панель LibreSpot пока нельзя проверить.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineFilesMissingFormat" xml:space="preserve"><value>Пользовательское приложение LibreSpot установлено не полностью. Отсутствуют файлы: {0}.</value><comment>{0} is a list of missing file names.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineAppDisabled" xml:space="preserve"><value>Список custom_apps не содержит librespot, поэтому маршрут панели не загрузится.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineCompanionMissing" xml:space="preserve"><value>Файл Extensions\librespot-engine.js отсутствует, поэтому сохраненные параметры не попадут в Spotify.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineCompanionDisabled" xml:space="preserve"><value>Список extensions не содержит librespot-engine.js, поэтому движок не запустится.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineRouteNotWired" xml:space="preserve"><value>Активная сборка Spotify не содержит ссылку spicetify-routes-librespot. Повторно примените настройки для восстановления маршрута.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineAnchorsChangedFormat" xml:space="preserve"><value>В закрепленном контракте DOM Spotify отсутствуют группы якорей: {0}. Панель «Состояние» в клиенте покажет точный результат.</value><comment>{0} is a list of missing anchor groups.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineAnchorProbeUnavailable" xml:space="preserve"><value>Приложение и расширение установлены, но извлеченная сборка xpui.js недоступна для автономной проверки якорей.</value><comment>Live engine health evidence.</comment></data>
+  <data name="HealthEvidenceLibreSpotEngineReady" xml:space="preserve"><value>Приложение, расширение, маршрут и закрепленные якоря Spotify на месте.</value><comment>Live engine health evidence.</comment></data>
 </root>

@@ -199,7 +199,7 @@ $global:CommunityExtensionAliases = @{
 $global:CommunityExtensionNames = @($global:CommunityExtensions.Keys)
 $global:DeprecatedCommunityExtensionNames = @('beautifulLyrics.js', 'playlistIcons.js', 'songStats.js')
 $global:AllManagedExtensionNames = $global:BuiltInExtensionNames + $global:CommunityExtensionNames + $global:DeprecatedCommunityExtensionNames
-$global:CommunityCustomApps = @{
+$global:CommunityCustomApps = [ordered]@{
     'stats' = @{
         DisplayName = 'Stats'
         Description = 'Detailed listening statistics with top tracks, artists, genres, library charts, and optional Last.fm-backed views.'
@@ -208,7 +208,21 @@ $global:CommunityCustomApps = @{
         Version     = '1.1.3'
         ReleaseTag  = 'stats-v1.1.3'
         AssetPath   = 'stats'
+        RequiredFiles = @('manifest.json', 'extension.js', 'index.js')
         SHA256      = 'c5611ff8caafe9c673ed43de07fbae77296d42fbd14fab868e9cbeac5d2b6cb7'
+    }
+    'librespot' = @{
+        Bundled     = $true
+        DisplayName = 'LibreSpot'
+        Description = 'Live themes, snippets, feature flags, presets, and health checks inside Spotify.'
+        Url         = 'https://raw.githubusercontent.com/SysAdminDoc/LibreSpot/main/resources/custom-apps/librespot-engine.zip'
+        Source      = 'SysAdminDoc/LibreSpot'
+        Version     = '4.0.0'
+        ReleaseTag  = 'main'
+        AssetPath   = 'librespot'
+        RequiredFiles = @('manifest.json', 'index.js', 'style.css', 'librespot-engine.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md')
+        CompanionExtension = 'librespot-engine.js'
+        SHA256      = 'd5fd9b95f0d2d54516be9a16cfec2addcfb286b683e0ae858fb2235bdbebfe9b'
     }
 }
 
@@ -274,7 +288,10 @@ $global:EasyDefaults = @{
     Spicetify_Scheme = 'Default'
     Spicetify_Marketplace = $true
     Spicetify_Extensions = @('fullAppDisplay.js', 'shuffle+.js', 'trashbin.js')
-    Spicetify_CustomApps = @()
+    Spicetify_CustomApps = @('librespot')
+    LibreSpot_EngineProfileJson = ''
+    LibreSpot_EnabledSnippets = @()
+    LibreSpot_FeatureOverridesJson = '{}'
     CleanInstall = $true
     LaunchAfter = $true
     # Track 4.2 auto-reapply watcher preference. The backend reads this so it
@@ -1029,6 +1046,8 @@ function Normalize-LibreSpotConfig {
         } elseif ($Config.Spicetify_CustomApps -is [System.Collections.IEnumerable]) {
             $rawCustomApps = @($Config.Spicetify_CustomApps)
         }
+    } else {
+        $rawCustomApps = @($normalized.Spicetify_CustomApps)
     }
     foreach ($customApp in $rawCustomApps) {
         $name = [string]$customApp
@@ -1037,6 +1056,52 @@ function Normalize-LibreSpotConfig {
         if (-not $customApps.Contains($name)) { $customApps.Add($name) }
     }
     $normalized.Spicetify_CustomApps = @($customApps)
+
+    if ($Config -and $Config.ContainsKey('LibreSpot_EngineProfileJson')) {
+        $engineProfileJson = [string]$Config.LibreSpot_EngineProfileJson
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        if (-not [string]::IsNullOrWhiteSpace($engineProfileJson) -and $utf8.GetByteCount($engineProfileJson) -le 262144) {
+            try {
+                $engineProfile = $engineProfileJson | ConvertFrom-Json -ErrorAction Stop
+                if ($null -ne $engineProfile -and $engineProfile -isnot [System.Array]) {
+                    $normalized.LibreSpot_EngineProfileJson = $engineProfile | ConvertTo-Json -Depth 64 -Compress
+                }
+            } catch {
+                $normalized.LibreSpot_EngineProfileJson = ''
+            }
+        }
+    }
+
+    $enabledSnippets = [System.Collections.Generic.List[string]]::new()
+    $rawEnabledSnippets = @()
+    if ($Config -and $Config.ContainsKey('LibreSpot_EnabledSnippets')) {
+        if ($Config.LibreSpot_EnabledSnippets -is [string]) {
+            $rawEnabledSnippets = @([string]$Config.LibreSpot_EnabledSnippets)
+        } elseif ($Config.LibreSpot_EnabledSnippets -is [System.Collections.IEnumerable]) {
+            $rawEnabledSnippets = @($Config.LibreSpot_EnabledSnippets)
+        }
+    }
+    foreach ($snippet in $rawEnabledSnippets) {
+        $snippetId = ([string]$snippet).Trim()
+        if ($snippetId -notmatch '^[a-z0-9][a-z0-9._-]{0,127}$') { continue }
+        if (-not $enabledSnippets.Contains($snippetId)) { $enabledSnippets.Add($snippetId) }
+    }
+    $normalized.LibreSpot_EnabledSnippets = @($enabledSnippets)
+
+    if ($Config -and $Config.ContainsKey('LibreSpot_FeatureOverridesJson')) {
+        $featureOverridesJson = [string]$Config.LibreSpot_FeatureOverridesJson
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        if (-not [string]::IsNullOrWhiteSpace($featureOverridesJson) -and $utf8.GetByteCount($featureOverridesJson) -le 131072) {
+            try {
+                $featureOverrides = $featureOverridesJson | ConvertFrom-Json -ErrorAction Stop
+                if ($null -ne $featureOverrides -and $featureOverrides -isnot [System.Array]) {
+                    $normalized.LibreSpot_FeatureOverridesJson = $featureOverrides | ConvertTo-Json -Depth 16 -Compress
+                }
+            } catch {
+                $normalized.LibreSpot_FeatureOverridesJson = '{}'
+            }
+        }
+    }
 
     if ($normalized.SpotX_RightSidebarOff) {
         $normalized.SpotX_RightSidebarClr = $false
@@ -5550,9 +5615,106 @@ function Open-SpicetifyMarketplace {
     return $result
 }
 
+function New-LibreSpotEngineBootstrap {
+    param(
+        [Parameter(Mandatory)][hashtable]$Config,
+        [Parameter(Mandatory)][string]$SourcePath,
+        [Parameter(Mandatory)][string]$DestinationPath
+    )
+
+    if (-not (Test-Path -LiteralPath $SourcePath -PathType Leaf)) {
+        throw "LibreSpot companion extension source is missing: $SourcePath"
+    }
+
+    $engineProfile = $null
+    if ($Config.ContainsKey('LibreSpot_EngineProfileJson') -and -not [string]::IsNullOrWhiteSpace([string]$Config.LibreSpot_EngineProfileJson)) {
+        try {
+            $engineProfile = [string]$Config.LibreSpot_EngineProfileJson | ConvertFrom-Json
+        } catch {
+            throw "The saved LibreSpot engine profile is not valid JSON: $($_.Exception.Message)"
+        }
+    }
+
+    $featureOverrides = [ordered]@{}
+    if ($Config.ContainsKey('LibreSpot_FeatureOverridesJson') -and -not [string]::IsNullOrWhiteSpace([string]$Config.LibreSpot_FeatureOverridesJson)) {
+        try {
+            $parsedOverrides = [string]$Config.LibreSpot_FeatureOverridesJson | ConvertFrom-Json
+            foreach ($property in @($parsedOverrides.PSObject.Properties)) {
+                $featureOverrides[$property.Name] = $property.Value
+            }
+        } catch {
+            throw "The saved LibreSpot feature overrides are not valid JSON: $($_.Exception.Message)"
+        }
+    }
+
+    $spotXSwitches = [ordered]@{}
+    foreach ($key in @($Config.Keys | Where-Object { [string]$_ -like 'SpotX_*' } | Sort-Object)) {
+        if ([string]$key -like 'SpotX_CustomPatchesSource*') { continue }
+        $spotXSwitches[[string]$key] = $Config[$key]
+    }
+
+    $payload = [ordered]@{
+        schemaVersion    = 1
+        profile          = $engineProfile
+        enabledSnippets  = @($Config.LibreSpot_EnabledSnippets)
+        featureOverrides = $featureOverrides
+        spotxSwitches    = $spotXSwitches
+    }
+    $payloadJson = $payload | ConvertTo-Json -Depth 32 -Compress
+    $encoding = New-Object System.Text.UTF8Encoding($false)
+    $payloadBytes = $encoding.GetBytes($payloadJson)
+    if ($payloadBytes.Length -gt 262144) {
+        throw "The LibreSpot engine bootstrap is too large ($($payloadBytes.Length) bytes)."
+    }
+
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $revision = ([BitConverter]::ToString($sha.ComputeHash($payloadBytes))).Replace('-', '').ToLowerInvariant()
+    } finally {
+        $sha.Dispose()
+    }
+    $base64 = [Convert]::ToBase64String($payloadBytes)
+    $source = [System.IO.File]::ReadAllText($SourcePath, [System.Text.Encoding]::UTF8)
+    $prefix = "window.__libreSpotDesktopBootstrap={payloadBase64:'$base64',revision:'$revision'};`n"
+    $destinationDirectory = Split-Path $DestinationPath -Parent
+    New-Item -Path $destinationDirectory -ItemType Directory -Force | Out-Null
+    [System.IO.File]::WriteAllText($DestinationPath, $prefix + $source, $encoding)
+    return [pscustomobject]@{
+        Revision = $revision
+        Bytes    = $payloadBytes.Length
+        Path     = $DestinationPath
+    }
+}
+
+function Repair-LibreSpotManagedCustomAppRoutes {
+    param($Config)
+
+    $appNames = [System.Collections.Generic.List[string]]::new()
+    if ($Config -and $Config.Spicetify_Marketplace) {
+        $appNames.Add('marketplace')
+    }
+    if ($Config -and @($Config.Spicetify_CustomApps) -contains 'librespot') {
+        $appNames.Add('librespot')
+    }
+
+    $results = [System.Collections.Generic.List[object]]::new()
+    foreach ($appName in $appNames) {
+        $wiring = Repair-SpicetifyCustomAppWiring -AppName $appName
+        $results.Add([pscustomobject]@{
+            AppName    = $appName
+            Status     = $wiring.Status
+            BundlePath = $wiring.BundlePath
+            Detail     = $wiring.Detail
+        })
+    }
+    return @($results)
+}
+
+
 function Module-InstallCustomApps { param($Config)
     $requestedApps = @($Config.Spicetify_CustomApps | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     $managedApps = @($global:CommunityCustomApps.Keys)
+    $managedCompanionExtensions = @($global:CommunityCustomApps.Values | ForEach-Object { [string]$_.CompanionExtension } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     $integration = Get-SpicetifyIntegrationContext
     $customAppsDirectory = $integration.CustomAppsDirectory
 
@@ -5562,12 +5724,17 @@ function Module-InstallCustomApps { param($Config)
             $null = Remove-PathSafely -Path (Join-Path $customAppsDirectory $appId) -Label "Custom app $appId"
         }
         Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @() -ManagedItems $managedApps
+        foreach ($extensionName in $managedCompanionExtensions) {
+            $null = Remove-PathSafely -Path (Join-Path $integration.ExtensionsDirectory $extensionName) -Label "Companion extension $extensionName"
+        }
+        Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems @() -ManagedItems $managedCompanionExtensions
         return
     }
 
     Write-Log "Custom apps: $($requestedApps -join ', ')..." -Level 'STEP'
     New-Item -Path $customAppsDirectory -ItemType Directory -Force | Out-Null
     $installedApps = [System.Collections.Generic.List[string]]::new()
+    $installedCompanionExtensions = [System.Collections.Generic.List[string]]::new()
 
     foreach ($appId in $requestedApps) {
         if (-not $global:CommunityCustomApps.Contains($appId)) {
@@ -5612,7 +5779,8 @@ function Module-InstallCustomApps { param($Config)
                 throw "Custom app archive did not contain expected folder '$($info.AssetPath)'."
             }
 
-            foreach ($requiredFile in @('manifest.json', 'extension.js')) {
+            $requiredFiles = if ($info.RequiredFiles) { @($info.RequiredFiles) } else { @('manifest.json', 'extension.js') }
+            foreach ($requiredFile in $requiredFiles) {
                 if (-not (Test-Path -LiteralPath (Join-Path $sourcePath $requiredFile) -PathType Leaf)) {
                     throw "Custom app '$appId' is missing required file '$requiredFile'."
                 }
@@ -5621,6 +5789,15 @@ function Module-InstallCustomApps { param($Config)
             $null = Remove-PathSafely -Path $destinationPath -Label "Custom app $appId"
             New-Item -Path $destinationPath -ItemType Directory -Force | Out-Null
             Copy-Item -Path (Join-Path $sourcePath '*') -Destination $destinationPath -Recurse -Force
+            $companionExtension = [string]$info.CompanionExtension
+            if (-not [string]::IsNullOrWhiteSpace($companionExtension)) {
+                $bootstrap = New-LibreSpotEngineBootstrap `
+                    -Config $Config `
+                    -SourcePath (Join-Path $destinationPath $companionExtension) `
+                    -DestinationPath (Join-Path $integration.ExtensionsDirectory $companionExtension)
+                $installedCompanionExtensions.Add($companionExtension)
+                Write-Log "Companion extension '$companionExtension' staged with desktop profile $($bootstrap.Revision.Substring(0, 12))."
+            }
             $installedApps.Add($appId)
             Write-Log "Custom app '$($info.DisplayName)' installed to $destinationPath"
         } catch {
@@ -5631,7 +5808,12 @@ function Module-InstallCustomApps { param($Config)
         }
     }
 
+    foreach ($extensionName in $managedCompanionExtensions) {
+        if ($installedCompanionExtensions.Contains($extensionName)) { continue }
+        $null = Remove-PathSafely -Path (Join-Path $integration.ExtensionsDirectory $extensionName) -Label "Companion extension $extensionName"
+    }
     Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @($installedApps) -ManagedItems $managedApps
+    Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems @($installedCompanionExtensions) -ManagedItems $managedCompanionExtensions
 }
 
 function Write-MarketplaceVisibilityEvidence {
@@ -5961,17 +6143,16 @@ function Module-ApplySpicetify {
         Update-ApplyState -Outcome 'SpicetifyApplySucceeded' -Successful $true
         # SpotX serves the combined /xpui.js bundle, but the Spicetify CLI only
         # wires custom-app routes into xpui-modules.js/xpui-snapshot.js. Port
-        # the injection to the live bundle or the store page renders blank.
-        if ($Config -and $Config.Spicetify_Marketplace) {
-            try {
-                $wiring = Repair-SpicetifyCustomAppWiring
-                Write-Log "Marketplace route wiring: $($wiring.Status). $($wiring.Detail)"
+        # every managed route to the live bundle after each apply.
+        try {
+            foreach ($wiring in @(Repair-LibreSpotManagedCustomAppRoutes -Config $Config)) {
+                Write-Log "$($wiring.AppName) route wiring: $($wiring.Status). $($wiring.Detail)"
                 if ($wiring.Status -eq 'AnchorsMissing') {
-                    Write-Log 'Spotify changed its bundle shape; the store page may stay blank until Spicetify supports this Spotify build.' -Level 'WARN'
+                    Write-Log "Spotify changed its bundle shape; $($wiring.AppName) may stay blank until Spicetify supports this Spotify build." -Level 'WARN'
                 }
-            } catch {
-                Write-Log "Marketplace route wiring failed: $($_.Exception.Message)" -Level 'WARN'
             }
+        } catch {
+            Write-Log "Custom-app route wiring failed: $($_.Exception.Message)" -Level 'WARN'
         }
         $message = 'Spicetify backup apply succeeded.'
         Write-MarketplaceVisibilityEvidence -Source $EvidenceSource -ApplyStage $applyStage -ApplySucceeded $true -ApplyMessage $message | Out-Null
