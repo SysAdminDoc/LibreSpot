@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- The in-Spotify customization engine now has a typed runtime core. It parses and exports multi-scheme `color.ini` files, derives missing Spicetify colors, injects one managed live palette, composes palette, layout, effects, and accessibility layers, responds to schedule and accent signals, applies client feature overrides through Spotify's debug API, and reports missing anchors or custom-app routes by name. A single-worker Vitest suite covers direct color round trips, live DOM changes, layer cleanup, Material palettes, profile export, schedules, feature flags, and self-test failures.
+
 ### Changed
 
 - Home now chooses one action from the latest environment snapshot. A new machine gets Recommended Setup, a healthy managed stack gets Open Spotify, and a degraded stack gets its first safe repair in critical-then-warning order. If recovery is destructive, Home opens Maintenance without running the action. Loading disables the button, Retry owns the failed-check state, and overlapping refreshes cannot restore stale copy or commands.

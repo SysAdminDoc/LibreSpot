@@ -1,0 +1,30 @@
+{
+  "name": "@librespot/live-customization-engine",
+  "version": "4.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src tests vitest.config.ts",
+    "test": "vitest run --pool=forks --maxWorkers=1 --fileParallelism=false",
+    "check": "pnpm run lint && pnpm run build && pnpm run test"
+  },
+  "dependencies": {
+    "@material/material-color-utilities": "0.3.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "26.4.1",
+    "esbuild": "0.28.2",
+    "eslint": "10.9.1",
+    "happy-dom": "20.12.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.69.0",
+    "vitest": "4.1.11"
+  },
+  "packageManager": "pnpm@10.17.1"
+}

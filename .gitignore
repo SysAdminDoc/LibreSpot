@@ -15,6 +15,11 @@ publish-new/
 tmp/
 *.user
 
+# Node workspace outputs
+node_modules/
+coverage/
+src/LibreSpot.App/dist/
+
 # Build artifacts are never tracked. Integrity comes from immutable GitHub
 # release assets, fresh checksums, the release manifest, and the SBOM.
 LibreSpot.exe
