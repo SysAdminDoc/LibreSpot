@@ -53,6 +53,13 @@ export type SpicetifyApi = {
     remove?(key: string): void;
   };
   Platform: {
+    version?: string;
+    PlatformData?: {
+      client_version_triple?: string;
+      event_sender_context_information?: {
+        client_version_string?: string;
+      };
+    };
     History: HistoryApi;
     ClipboardAPI?: ClipboardApi;
     RemoteConfigDebugAPI?: {

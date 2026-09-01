@@ -675,13 +675,14 @@ function Module-ApplySpicetify {
     Write-Log "Ensuring Spotify is fully closed before patching files..."
     Stop-SpotifyProcesses -MaxAttempts 3
 
-    # Spicetify expects `backup apply` as a combined invocation — especially after
-    # SpotX has patched the client (version mismatch between Spotify and any prior
-    # backup). Running them separately causes "version mismatch" failures.
+    # Fresh installs need the combined backup/apply form. Reapply must reuse a
+    # complete current-version backup because the CLI refuses to overwrite it.
     $applyError = $null
-    $applyStage = 'backup apply'
+    $applyPlan = Get-SpicetifyApplyPlan
+    $applyStage = [string]$applyPlan.Stage
+    Write-Log "  Apply strategy: $applyStage. $($applyPlan.Reason)"
     try {
-        Invoke-SpicetifyCli -Arguments @('backup', 'apply', '--bypass-admin') -FailureMessage 'Could not apply the selected Spicetify setup.'
+        Invoke-SpicetifyCli -Arguments @($applyPlan.Arguments) -FailureMessage ([string]$applyPlan.FailureMessage)
         Write-Log "Spicetify applied successfully."
         # SpotX serves the combined /xpui.js bundle, but the Spicetify CLI only
         # wires custom-app routes into xpui-modules.js/xpui-snapshot.js. Port
@@ -696,7 +697,7 @@ function Module-ApplySpicetify {
         } catch {
             Write-Log "Custom-app route wiring failed: $($_.Exception.Message)" -Level 'WARN'
         }
-        $message = 'Spicetify backup apply succeeded.'
+        $message = [string]$applyPlan.SuccessMessage
         Write-MarketplaceVisibilityEvidence -Source $EvidenceSource -ApplyStage $applyStage -ApplySucceeded $true -ApplyMessage $message | Out-Null
         return [pscustomobject]@{
             Stage     = $applyStage
@@ -705,7 +706,7 @@ function Module-ApplySpicetify {
         }
     } catch {
         $applyError = if ($_.Exception -and $_.Exception.Message) { [string]$_.Exception.Message } else { 'Unknown Spicetify apply error.' }
-        Write-Log "Spicetify backup apply failed: $applyError" -Level 'WARN'
+        Write-Log "Spicetify apply failed: $applyError" -Level 'WARN'
     }
 
     Write-Log "Attempting rollback to keep Spotify usable..." -Level 'WARN'

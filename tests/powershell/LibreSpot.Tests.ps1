@@ -59,6 +59,7 @@ BeforeAll {
         'Assert-LibreSpotConfigSchemaSupported'
         'Normalize-LibreSpotConfig'
         'New-LibreSpotEngineBootstrap'
+        'Get-SpicetifyApplyPlan'
         'Repair-LibreSpotManagedCustomAppRoutes'
         'Compare-LibreSpotVersions'
         'Get-SpotXChildFailureClassification'
@@ -186,6 +187,55 @@ BeforeAll {
         @{ Id='1.2.92'; Label='1.2.92'; Version='1.2.92'; Notes='Previous fallback.' }
     )
     $global:SpotifyVersionIds = @($global:SpotifyVersionManifest | ForEach-Object { $_.Id })
+}
+
+Describe 'Get-SpicetifyApplyPlan' {
+    It 'reuses a complete backup that matches the installed Spotify version' {
+        $root = Join-Path $TestDrive 'apply-plan-current'
+        $backup = Join-Path $root 'Backup'
+        $extracted = Join-Path $root 'Extracted'
+        New-Item -Path $backup, (Join-Path $extracted 'Raw'), (Join-Path $extracted 'Themed') -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $backup 'xpui.spa') -Value 'xpui' -Encoding Ascii
+        Set-Content -LiteralPath (Join-Path $backup 'login.spa') -Value 'login' -Encoding Ascii
+        $configPath = Join-Path $root 'config-xpui.ini'
+        Set-Content -LiteralPath $configPath -Value "[Backup]`r`nversion = 1.2.93.667.g7b5cc0ce" -Encoding Ascii
+
+        $plan = Get-SpicetifyApplyPlan -ConfigPath $configPath -BackupDirectory $backup -ExtractedDirectory $extracted -SpotifyVersion '1.2.93.667.g7b5cc0ce'
+
+        $plan.Stage | Should -Be 'apply --no-restart'
+        @($plan.Arguments) | Should -Be @('apply', '--no-restart', '--bypass-admin')
+    }
+
+    It 'creates a fresh backup when the saved backup is incomplete or stale' {
+        $root = Join-Path $TestDrive 'apply-plan-stale'
+        $backup = Join-Path $root 'Backup'
+        $extracted = Join-Path $root 'Extracted'
+        New-Item -Path $backup, (Join-Path $extracted 'Raw'), (Join-Path $extracted 'Themed') -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $backup 'xpui.spa') -Value 'xpui' -Encoding Ascii
+        $configPath = Join-Path $root 'config-xpui.ini'
+        Set-Content -LiteralPath $configPath -Value "[Backup]`r`nversion = 1.2.92.1" -Encoding Ascii
+
+        $plan = Get-SpicetifyApplyPlan -ConfigPath $configPath -BackupDirectory $backup -ExtractedDirectory $extracted -SpotifyVersion '1.2.93.667.g7b5cc0ce'
+
+        $plan.Stage | Should -Be 'backup apply'
+        @($plan.Arguments) | Should -Be @('backup', 'apply', '--bypass-admin')
+    }
+
+    It 'matches Spotify file versions to Spicetify versions with a git hash suffix' {
+        $root = Join-Path $TestDrive 'apply-plan-spotify-hash'
+        $backup = Join-Path $root 'Backup'
+        $extracted = Join-Path $root 'Extracted'
+        New-Item -Path $backup, (Join-Path $extracted 'Raw'), (Join-Path $extracted 'Themed') -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $backup 'xpui.spa') -Value 'xpui' -Encoding Ascii
+        Set-Content -LiteralPath (Join-Path $backup 'login.spa') -Value 'login' -Encoding Ascii
+        $configPath = Join-Path $root 'config-xpui.ini'
+        Set-Content -LiteralPath $configPath -Value "[Backup]`r`nversion = 1.2.93.667.g7b5cc0ce" -Encoding Ascii
+
+        $plan = Get-SpicetifyApplyPlan -ConfigPath $configPath -BackupDirectory $backup -ExtractedDirectory $extracted -SpotifyVersion '1.2.93.667'
+
+        $plan.Stage | Should -Be 'apply --no-restart'
+        @($plan.Arguments) | Should -Be @('apply', '--no-restart', '--bypass-admin')
+    }
 }
 
 Describe 'Get-QuarantineGuidance' {
@@ -1962,7 +2012,8 @@ Describe 'Marketplace route wiring (SpotX xpui.js layout)' {
             param(
                 [string]$IndexHtml,
                 [string]$BundleJs,
-                [switch]$SkipRouteBundle
+                [switch]$SkipRouteBundle,
+                [string[]]$RouteApps = @('marketplace')
             )
             $root = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-wiring-" + [Guid]::NewGuid().ToString('N'))
             $xpui = Join-Path $root 'xpui'
@@ -1972,7 +2023,9 @@ Describe 'Marketplace route wiring (SpotX xpui.js layout)' {
                 [System.IO.File]::WriteAllText((Join-Path $xpui 'xpui.js'), $BundleJs)
             }
             if (-not $SkipRouteBundle) {
-                [System.IO.File]::WriteAllText((Join-Path $xpui 'spicetify-routes-marketplace.js'), '/* chunk */')
+                foreach ($routeApp in $RouteApps) {
+                    [System.IO.File]::WriteAllText((Join-Path $xpui "spicetify-routes-$routeApp.js"), '/* chunk */')
+                }
             }
             return $root
         }
@@ -2030,6 +2083,21 @@ Describe 'Marketplace route wiring (SpotX xpui.js layout)' {
         Start-Sleep -Milliseconds 50
         (Repair-SpicetifyCustomAppWiring -AppsDirectory $script:fixtureRoot).Status | Should -Be 'Wired'
         (Get-Item $bundlePath).LastWriteTimeUtc | Should -Be $firstWrite
+    }
+
+    It 'assigns a distinct lazy component to every managed custom-app route' {
+        $script:fixtureRoot = New-WiringFixture -IndexHtml $script:LiveIndexHtml -BundleJs $script:AnchoredBundle -RouteApps @('marketplace', 'librespot')
+        (Repair-SpicetifyCustomAppWiring -AppsDirectory $script:fixtureRoot -AppName 'marketplace').Status | Should -Be 'Patched'
+        (Repair-SpicetifyCustomAppWiring -AppsDirectory $script:fixtureRoot -AppName 'librespot').Status | Should -Be 'Patched'
+
+        $patched = [System.IO.File]::ReadAllText((Join-Path $script:fixtureRoot 'xpui\xpui.js'))
+        $patched | Should -Match ([regex]::Escape('spicetifyApp0=b.lazy((()=>i.e("spicetify-routes-marketplace")'))
+        $patched | Should -Match ([regex]::Escape('spicetifyApp1=b.lazy((()=>i.e("spicetify-routes-librespot")'))
+        $patched | Should -Match ([regex]::Escape('path:"/marketplace/*",pathV6:"/marketplace/*",element:(0,m.jsx)(spicetifyApp0,{})'))
+        $patched | Should -Match ([regex]::Escape('path:"/librespot/*",pathV6:"/librespot/*",element:(0,m.jsx)(spicetifyApp1,{})'))
+        $patched | Should -Match ([regex]::Escape('({123:1,456:1,"spicetify-routes-marketplace":1,"spicetify-routes-librespot":1})[e]'))
+        ([regex]::Matches($patched, '\bspicetifyApp0=')).Count | Should -Be 1
+        ([regex]::Matches($patched, '\bspicetifyApp1=')).Count | Should -Be 1
     }
 
     It 'leaves the bundle untouched when the injection anchors are missing' {
@@ -2358,6 +2426,7 @@ Describe 'Lane orchestration modules and primary GUI dispatch' {
             [int]$exists
         }
         function Get-SpicetifyDiagnosticSnapshot { [ordered]@{ Spotify = $global:SPOTIFY_EXE_PATH; Config = $script:orchestrationIntegration.ConfigDirectory } }
+        function Get-SpicetifyApplyPlan { $script:orchestrationApplyPlan }
         function Repair-SpicetifyCustomAppWiring {
             param([string]$AppName)
             $script:orchestrationCalls.Wiring++
@@ -2488,6 +2557,13 @@ Describe 'Lane orchestration modules and primary GUI dispatch' {
             }
         }
         $script:spicetifyConfigEntries = @{}
+        $script:orchestrationApplyPlan = [pscustomobject]@{
+            Stage = 'backup apply'
+            Arguments = @('backup', 'apply', '--bypass-admin')
+            FailureMessage = 'fixture failure'
+            SuccessMessage = 'Spicetify backup apply succeeded.'
+            Reason = 'fixture fresh apply'
+        }
         $script:orchestrationCalls = @{
             Log = @(); Journal = @(); Downloads = @(); ExternalScripts = @(); Processes = @(); Cli = @(); PathEntries = @()
             Sync = @(); RemovedPaths = @(); Evidence = @(); SystemQueries = @(); Dialogs = @(); Pages = @()
@@ -2622,6 +2698,22 @@ Describe 'Lane orchestration modules and primary GUI dispatch' {
         $script:orchestrationCalls.Evidence | Should -Contain 'PesterFixture|backup apply|True'
         Test-Path -LiteralPath (Join-Path $script:orchestrationRoot 'marketplace-route.fixture') -PathType Leaf | Should -BeTrue
         Test-Path -LiteralPath (Join-Path $script:orchestrationRoot 'apply-evidence.fixture') -PathType Leaf | Should -BeTrue
+    }
+
+    It 'Module-ApplySpicetify reuses a current backup without restarting Spotify' {
+        $script:orchestrationApplyPlan = [pscustomobject]@{
+            Stage = 'apply --no-restart'
+            Arguments = @('apply', '--no-restart', '--bypass-admin')
+            FailureMessage = 'fixture failure'
+            SuccessMessage = 'Spicetify apply succeeded using the current verified backup.'
+            Reason = 'fixture reapply'
+        }
+
+        $result = Module-ApplySpicetify -Config ([pscustomobject]@{ Spicetify_Marketplace = $true }) -EvidenceSource 'PesterReapplyFixture'
+
+        $result.Succeeded | Should -BeTrue
+        $script:orchestrationCalls.Cli | Should -Contain 'apply --no-restart --bypass-admin'
+        $script:orchestrationCalls.Evidence | Should -Contain 'PesterReapplyFixture|apply --no-restart|True'
     }
 
     It 'routes Reapply and Full Reset clicks to their maintenance jobs' {

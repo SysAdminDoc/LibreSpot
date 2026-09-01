@@ -74,8 +74,18 @@ function Repair-SpicetifyCustomAppWiring {
     if ([string]::IsNullOrEmpty($prop)) { $prop = 'children' }
     elseif ($prop -eq 'element') { $wildcard = '*' }
 
-    $lazyDef = ',spicetifyApp0=' + $react + '.lazy((()=>' + $loader + '.' + $loadFn + '("' + $chunkName + '").then(' + $loader + '.bind(' + $loader + ',"' + $chunkName + '"))))'
-    $routeElement = $jsx + '(' + $routeComp + ',{path:"/' + $AppName + '/' + $wildcard + '",pathV6:"/' + $AppName + '/*",' + $prop + ':' + $jsx + '(spicetifyApp0,{})}),'
+    # The CLI numbers every injected lazy component. LibreSpot can repair more
+    # than one managed custom app in the same live bundle, so reuse would make
+    # the minified bundle invalid JavaScript (two declarations with one name).
+    $nextAppIndex = 0
+    foreach ($match in [regex]::Matches($text, '\bspicetifyApp(?<index>\d+)\b')) {
+        $candidate = [int]$match.Groups['index'].Value + 1
+        if ($candidate -gt $nextAppIndex) { $nextAppIndex = $candidate }
+    }
+    $appIdentifier = "spicetifyApp$nextAppIndex"
+
+    $lazyDef = ',' + $appIdentifier + '=' + $react + '.lazy((()=>' + $loader + '.' + $loadFn + '("' + $chunkName + '").then(' + $loader + '.bind(' + $loader + ',"' + $chunkName + '"))))'
+    $routeElement = $jsx + '(' + $routeComp + ',{path:"/' + $AppName + '/' + $wildcard + '",pathV6:"/' + $AppName + '/*",' + $prop + ':' + $jsx + '(' + $appIdentifier + ',{})}),'
 
     $inserts = New-Object System.Collections.Generic.List[object]
     $inserts.Add(@{ Index = $lazyEnd; Text = $lazyDef })
@@ -89,7 +99,10 @@ function Repair-SpicetifyCustomAppWiring {
         $mapMatch = [regex]::Match($text, $mapPattern)
         if ($mapMatch.Success) { $inserts.Add(@{ Index = $mapMatch.Index + $mapMatch.Length; Text = $mapEntry }) }
     }
-    $cssGate = [regex]::Match($text, '\.f\.miniCss=function\(\w+,\w+\).*?\(\{[0-9:,]+(?=\}\)\[\w+\])')
+    # The first managed app adds a quoted chunk key to this object. Match the
+    # complete flat gate on later passes too, otherwise the second app gets its
+    # JavaScript route but never loads its CSS.
+    $cssGate = [regex]::Match($text, '\.f\.miniCss=function\(\w+,\w+\).*?\(\{[^{}]+(?=\}\)\[\w+\])')
     if ($cssGate.Success) {
         $inserts.Add(@{ Index = $cssGate.Index + $cssGate.Length; Text = (',"' + $chunkName + '":1') })
     } else {

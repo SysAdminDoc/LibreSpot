@@ -614,16 +614,14 @@ function Module-ApplySpicetify {
     # stock state" errors caused by a stale process still running.
     Stop-SpotifyProcesses -MaxAttempts 3
 
-    # Run `spicetify backup apply` as a single combined command. Splitting it into two
-    # invocations breaks on Spicetify CLI 2.43.1: the standalone `backup` subcommand
-    # exits non-zero on fresh installs (reporting "Spotify version and backup version
-    # are mismatched" with no prior backup present), leaving `apply` with nothing to
-    # work from. The combined form matches the legacy LibreSpot.ps1 behavior and the
-    # CLI's own "Please run 'spicetify backup apply'" hint.
+    # Fresh installs need the combined backup/apply form. Reapply must reuse a
+    # complete current-version backup because the CLI refuses to overwrite it.
     $applyError = $null
-    $applyStage = 'backup apply'
+    $applyPlan = Get-SpicetifyApplyPlan
+    $applyStage = [string]$applyPlan.Stage
+    Write-Log "  Apply strategy: $applyStage. $($applyPlan.Reason)"
     try {
-        Invoke-SpicetifyCli -Arguments @('backup', 'apply', '--bypass-admin') -FailureMessage 'Could not backup and apply Spicetify changes.'
+        Invoke-SpicetifyCli -Arguments @($applyPlan.Arguments) -FailureMessage ([string]$applyPlan.FailureMessage)
         Write-Log 'Spicetify applied successfully.' -Level 'SUCCESS'
         Update-ApplyState -Outcome 'SpicetifyApplySucceeded' -Successful $true
         # SpotX serves the combined /xpui.js bundle, but the Spicetify CLI only
@@ -639,7 +637,7 @@ function Module-ApplySpicetify {
         } catch {
             Write-Log "Custom-app route wiring failed: $($_.Exception.Message)" -Level 'WARN'
         }
-        $message = 'Spicetify backup apply succeeded.'
+        $message = [string]$applyPlan.SuccessMessage
         Write-MarketplaceVisibilityEvidence -Source $EvidenceSource -ApplyStage $applyStage -ApplySucceeded $true -ApplyMessage $message | Out-Null
         return [pscustomobject]@{
             Stage     = $applyStage

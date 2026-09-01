@@ -46,7 +46,10 @@ export class ManagedRuntimeStyles {
         `--spice-rgb-${key}: ${rgbCss(color)};`,
       ];
     });
-    style.textContent = `:root {\n  ${variables.join("\n  ")}\n}`;
+    // Spicetify can append color.css and user.css after extensions start. The
+    // layer class gives this managed rule enough specificity to keep a live
+    // scheme change visible even when those later :root rules load afterward.
+    style.textContent = `:root.librespot-layer-palette {\n  ${variables.join("\n  ")}\n}`;
     return style;
   }
 

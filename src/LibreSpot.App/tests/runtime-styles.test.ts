@@ -19,6 +19,7 @@ describe("managed runtime styles", () => {
 
     const styles = document.querySelectorAll(`#${PALETTE_STYLE_ID}`);
     expect(styles).toHaveLength(1);
+    expect(styles[0]?.textContent).toContain(":root.librespot-layer-palette");
     expect(styles[0]?.textContent).toContain("--spice-main: #040506");
     expect(styles[0]?.textContent).toContain("--spice-rgb-main: 4, 5, 6");
   });

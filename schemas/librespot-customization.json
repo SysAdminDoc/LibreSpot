@@ -5,7 +5,7 @@
   "catalogVersion": "4.0.0",
   "pins": {
     "spotifyVersion": "1.2.93",
-    "xpuiSha256": "4e12f06626dff9e9dab67354376b85231c0d5ac7cd1ab01d132ef4a97babbb58",
+    "xpuiSha256": "696a3405a78a7ea0c06de42ae3c50349bfe51ce17013d85f582b646ba48ff054",
     "spotxCommit": "550bc72cd15f6e2a172a6ecc0873d0991eb1c83c",
     "spicetifyVersion": "2.44.0",
     "marketplaceVersion": "1.0.9",

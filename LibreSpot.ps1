@@ -1407,7 +1407,7 @@ $global:CommunityCustomApps = [ordered]@{
         AssetPath   = 'librespot'
         RequiredFiles = @('manifest.json', 'index.js', 'style.css', 'librespot-engine.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md')
         CompanionExtension = 'librespot-engine.js'
-        SHA256      = 'd5fd9b95f0d2d54516be9a16cfec2addcfb286b683e0ae858fb2235bdbebfe9b'
+        SHA256      = '925f51a72afdb229582b8afd119cee736d58a9399886eab89342f7311830fd9e'
     }
 }
 
@@ -9735,8 +9735,18 @@ function Repair-SpicetifyCustomAppWiring {
     if ([string]::IsNullOrEmpty($prop)) { $prop = 'children' }
     elseif ($prop -eq 'element') { $wildcard = '*' }
 
-    $lazyDef = ',spicetifyApp0=' + $react + '.lazy((()=>' + $loader + '.' + $loadFn + '("' + $chunkName + '").then(' + $loader + '.bind(' + $loader + ',"' + $chunkName + '"))))'
-    $routeElement = $jsx + '(' + $routeComp + ',{path:"/' + $AppName + '/' + $wildcard + '",pathV6:"/' + $AppName + '/*",' + $prop + ':' + $jsx + '(spicetifyApp0,{})}),'
+    # The CLI numbers every injected lazy component. LibreSpot can repair more
+    # than one managed custom app in the same live bundle, so reuse would make
+    # the minified bundle invalid JavaScript (two declarations with one name).
+    $nextAppIndex = 0
+    foreach ($match in [regex]::Matches($text, '\bspicetifyApp(?<index>\d+)\b')) {
+        $candidate = [int]$match.Groups['index'].Value + 1
+        if ($candidate -gt $nextAppIndex) { $nextAppIndex = $candidate }
+    }
+    $appIdentifier = "spicetifyApp$nextAppIndex"
+
+    $lazyDef = ',' + $appIdentifier + '=' + $react + '.lazy((()=>' + $loader + '.' + $loadFn + '("' + $chunkName + '").then(' + $loader + '.bind(' + $loader + ',"' + $chunkName + '"))))'
+    $routeElement = $jsx + '(' + $routeComp + ',{path:"/' + $AppName + '/' + $wildcard + '",pathV6:"/' + $AppName + '/*",' + $prop + ':' + $jsx + '(' + $appIdentifier + ',{})}),'
 
     $inserts = New-Object System.Collections.Generic.List[object]
     $inserts.Add(@{ Index = $lazyEnd; Text = $lazyDef })
@@ -9750,7 +9760,10 @@ function Repair-SpicetifyCustomAppWiring {
         $mapMatch = [regex]::Match($text, $mapPattern)
         if ($mapMatch.Success) { $inserts.Add(@{ Index = $mapMatch.Index + $mapMatch.Length; Text = $mapEntry }) }
     }
-    $cssGate = [regex]::Match($text, '\.f\.miniCss=function\(\w+,\w+\).*?\(\{[0-9:,]+(?=\}\)\[\w+\])')
+    # The first managed app adds a quoted chunk key to this object. Match the
+    # complete flat gate on later passes too, otherwise the second app gets its
+    # JavaScript route but never loads its CSS.
+    $cssGate = [regex]::Match($text, '\.f\.miniCss=function\(\w+,\w+\).*?\(\{[^{}]+(?=\}\)\[\w+\])')
     if ($cssGate.Success) {
         $inserts.Add(@{ Index = $cssGate.Index + $cssGate.Length; Text = (',"' + $chunkName + '":1') })
     } else {
@@ -10483,6 +10496,84 @@ function Get-SpicetifyDiagnosticSnapshot {
     return $snapshot
 }
 
+function Get-SpicetifyApplyPlan {
+    param(
+        [string]$ConfigPath = '',
+        [string]$BackupDirectory = '',
+        [string]$ExtractedDirectory = '',
+        [string]$SpotifyVersion = ''
+    )
+
+    $integration = $null
+    if ([string]::IsNullOrWhiteSpace($ConfigPath) -or
+        [string]::IsNullOrWhiteSpace($BackupDirectory) -or
+        [string]::IsNullOrWhiteSpace($ExtractedDirectory)) {
+        $integration = Get-SpicetifyIntegrationContext
+    }
+    if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
+        $ConfigPath = [string]$integration.ConfigPath
+    }
+    if ([string]::IsNullOrWhiteSpace($BackupDirectory)) {
+        $BackupDirectory = Join-Path ([string]$integration.ConfigDirectory) 'Backup'
+    }
+    if ([string]::IsNullOrWhiteSpace($ExtractedDirectory)) {
+        $ExtractedDirectory = Join-Path ([string]$integration.ConfigDirectory) 'Extracted'
+    }
+    if ([string]::IsNullOrWhiteSpace($SpotifyVersion)) {
+        $SpotifyVersion = [string](Get-InstalledSpotifyVersion)
+    }
+
+    $backupVersion = ''
+    if (Test-Path -LiteralPath $ConfigPath -PathType Leaf) {
+        $section = ''
+        foreach ($line in Get-Content -LiteralPath $ConfigPath -ErrorAction SilentlyContinue) {
+            if ($line -match '^\s*\[([^\]]+)\]\s*$') {
+                $section = [string]$Matches[1]
+                continue
+            }
+            if ($section -eq 'Backup' -and $line -match '^\s*version\s*=\s*(.*?)\s*$') {
+                $backupVersion = [string]$Matches[1]
+                break
+            }
+        }
+    }
+
+    $normalizedSpotifyVersion = ([string]$SpotifyVersion).Trim().TrimStart('v')
+    $normalizedBackupVersion = ([string]$backupVersion).Trim().TrimStart('v')
+    # Spotify.exe exposes the four-part file version while Spicetify records
+    # the same build with Spotify's trailing git hash. Compare the shared build
+    # tuple or every real current backup looks stale (1.2.93.667 versus
+    # 1.2.93.667.g7b5cc0ce).
+    $comparableSpotifyVersion = $normalizedSpotifyVersion -replace '\.g[0-9a-f]+$', ''
+    $comparableBackupVersion = $normalizedBackupVersion -replace '\.g[0-9a-f]+$', ''
+    $versionsMatch = -not [string]::IsNullOrWhiteSpace($comparableSpotifyVersion) -and
+        $comparableSpotifyVersion.Equals($comparableBackupVersion, [StringComparison]::OrdinalIgnoreCase)
+    $backupReady = (Test-Path -LiteralPath (Join-Path $BackupDirectory 'xpui.spa') -PathType Leaf) -and
+        (Test-Path -LiteralPath (Join-Path $BackupDirectory 'login.spa') -PathType Leaf)
+    $extractedReady = (Test-Path -LiteralPath (Join-Path $ExtractedDirectory 'Raw') -PathType Container) -and
+        (Test-Path -LiteralPath (Join-Path $ExtractedDirectory 'Themed') -PathType Container)
+
+    if ($versionsMatch -and $backupReady -and $extractedReady) {
+        return [pscustomobject]@{
+            Stage          = 'apply --no-restart'
+            Arguments      = @('apply', '--no-restart', '--bypass-admin')
+            FailureMessage = 'Could not apply Spicetify changes from the current verified backup.'
+            SuccessMessage = 'Spicetify apply succeeded using the current verified backup.'
+            Reason         = "Reusing the prepared Spicetify backup for Spotify $normalizedSpotifyVersion."
+            BackupVersion  = $normalizedBackupVersion
+        }
+    }
+
+    return [pscustomobject]@{
+        Stage          = 'backup apply'
+        Arguments      = @('backup', 'apply', '--bypass-admin')
+        FailureMessage = 'Could not backup and apply Spicetify changes.'
+        SuccessMessage = 'Spicetify backup apply succeeded.'
+        Reason         = 'No complete current-version Spicetify backup was available.'
+        BackupVersion  = $normalizedBackupVersion
+    }
+}
+
 function Module-ApplySpicetify {
     param(
         $Config,
@@ -10509,13 +10600,14 @@ function Module-ApplySpicetify {
     Write-Log "Ensuring Spotify is fully closed before patching files..."
     Stop-SpotifyProcesses -MaxAttempts 3
 
-    # Spicetify expects `backup apply` as a combined invocation — especially after
-    # SpotX has patched the client (version mismatch between Spotify and any prior
-    # backup). Running them separately causes "version mismatch" failures.
+    # Fresh installs need the combined backup/apply form. Reapply must reuse a
+    # complete current-version backup because the CLI refuses to overwrite it.
     $applyError = $null
-    $applyStage = 'backup apply'
+    $applyPlan = Get-SpicetifyApplyPlan
+    $applyStage = [string]$applyPlan.Stage
+    Write-Log "  Apply strategy: $applyStage. $($applyPlan.Reason)"
     try {
-        Invoke-SpicetifyCli -Arguments @('backup', 'apply', '--bypass-admin') -FailureMessage 'Could not apply the selected Spicetify setup.'
+        Invoke-SpicetifyCli -Arguments @($applyPlan.Arguments) -FailureMessage ([string]$applyPlan.FailureMessage)
         Write-Log "Spicetify applied successfully."
         # SpotX serves the combined /xpui.js bundle, but the Spicetify CLI only
         # wires custom-app routes into xpui-modules.js/xpui-snapshot.js. Port
@@ -10530,7 +10622,7 @@ function Module-ApplySpicetify {
         } catch {
             Write-Log "Custom-app route wiring failed: $($_.Exception.Message)" -Level 'WARN'
         }
-        $message = 'Spicetify backup apply succeeded.'
+        $message = [string]$applyPlan.SuccessMessage
         Write-MarketplaceVisibilityEvidence -Source $EvidenceSource -ApplyStage $applyStage -ApplySucceeded $true -ApplyMessage $message | Out-Null
         return [pscustomobject]@{
             Stage     = $applyStage
@@ -10539,7 +10631,7 @@ function Module-ApplySpicetify {
         }
     } catch {
         $applyError = if ($_.Exception -and $_.Exception.Message) { [string]$_.Exception.Message } else { 'Unknown Spicetify apply error.' }
-        Write-Log "Spicetify backup apply failed: $applyError" -Level 'WARN'
+        Write-Log "Spicetify apply failed: $applyError" -Level 'WARN'
     }
 
     Write-Log "Attempting rollback to keep Spotify usable..." -Level 'WARN'

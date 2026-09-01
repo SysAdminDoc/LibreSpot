@@ -213,6 +213,10 @@ function routeFromWindow(app: "librespot" | "marketplace"): RouteState {
 function spotifyVersion(): string | null {
   return (
     document.documentElement.getAttribute("data-spotify-version") ??
+    Spicetify.Platform.version ??
+    Spicetify.Platform.PlatformData?.client_version_triple ??
+    Spicetify.Platform.PlatformData?.event_sender_context_information
+      ?.client_version_string ??
     Spicetify.LocalStorage.get("librespot:spotify-version")
   );
 }
