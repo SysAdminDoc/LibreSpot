@@ -102,7 +102,7 @@ export function TweaksPanel(properties: PanelProperties): UiNode {
     }),
     Section({
       title: "Snippet catalog",
-      description: "The catalog expands from Marketplace data in the next layer. These reviewed rules exercise the live path.",
+      description: `${SURFACE_SNIPPETS.length} reviewed rules use stable anchors and apply through the live style layer.`,
       children: h(
         "div",
         { className: "librespot-catalog-list" },
@@ -110,6 +110,16 @@ export function TweaksPanel(properties: PanelProperties): UiNode {
           h(
             "article",
             { className: "librespot-catalog-card", key: snippet.id },
+            h(
+              "div",
+              {
+                className: `librespot-snippet-preview is-${snippet.preview}`,
+                "aria-hidden": "true",
+              },
+              h("span"),
+              h("span"),
+              h("span"),
+            ),
             ToggleRow({
               label: snippet.title,
               description: snippet.description,
@@ -135,6 +145,7 @@ export function TweaksPanel(properties: PanelProperties): UiNode {
               "div",
               { className: "librespot-catalog-meta" },
               h("span", null, `Spotify ${snippet.lastVerifiedSpotify}`),
+              h("span", null, snippet.sourceTitle),
               h(
                 "a",
                 {

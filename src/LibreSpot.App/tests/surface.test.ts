@@ -58,6 +58,7 @@ describe("LibreSpot surface contract", () => {
   });
 
   it("keeps reviewed snippet metadata and hot-path CSS constraints", () => {
+    expect(SURFACE_SNIPPETS).toHaveLength(12);
     for (const snippet of SURFACE_SNIPPETS) {
       expect(snippet.source).toMatch(/^https:\/\//);
       expect(snippet.lastVerifiedSpotify).toBe("1.2.93");
@@ -74,6 +75,7 @@ describe("LibreSpot surface contract", () => {
     expect(css).toContain("@media (max-width: 700px)");
     expect(css).not.toContain(":has(");
     expect(css).not.toContain("backdrop-filter");
+    expect(css).toContain(".librespot-snippet-preview");
   });
 
   it("keeps the source free of JSX and keyboard shortcut handlers", () => {

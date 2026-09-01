@@ -4,6 +4,7 @@ import {
   LAYER_STYLE_ID,
   PALETTE_STYLE_ID,
   SNIPPET_STYLE_ID,
+  THEME_STYLE_ID,
 } from "./layer-styles.ts";
 import type { EffectsTier, EngineState, LayerState } from "./state.ts";
 
@@ -70,6 +71,17 @@ export class ManagedRuntimeStyles {
     }
   }
 
+  public applyTheme(className: string, css: string): HTMLStyleElement {
+    const root = this.document.documentElement;
+    for (const name of [...root.classList]) {
+      if (name.startsWith("librespot-theme-")) root.classList.remove(name);
+    }
+    if (className) root.classList.add(className);
+    const style = this.ensureStyle(THEME_STYLE_ID);
+    style.textContent = css;
+    return style;
+  }
+
   public applySnippets(cssBlocks: readonly string[]): HTMLStyleElement {
     const style = this.ensureStyle(SNIPPET_STYLE_ID);
     style.textContent = cssBlocks.join("\n\n");
@@ -102,7 +114,7 @@ export class ManagedRuntimeStyles {
   }
 
   public dispose(): void {
-    for (const id of [LAYER_STYLE_ID, PALETTE_STYLE_ID, SNIPPET_STYLE_ID]) {
+    for (const id of [LAYER_STYLE_ID, PALETTE_STYLE_ID, SNIPPET_STYLE_ID, THEME_STYLE_ID]) {
       this.document.getElementById(id)?.remove();
     }
     const root = this.document.documentElement;
@@ -112,6 +124,9 @@ export class ManagedRuntimeStyles {
       "librespot-reduced-motion",
       "librespot-high-contrast",
     );
+    for (const name of [...root.classList]) {
+      if (name.startsWith("librespot-theme-")) root.classList.remove(name);
+    }
     root.removeAttribute("data-librespot-effects-tier");
     const properties = Array.from(
       { length: root.style.length },

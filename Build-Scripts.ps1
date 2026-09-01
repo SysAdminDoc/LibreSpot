@@ -1074,6 +1074,23 @@ function Test-CommunityCatalogTruth {
     throw 'The published community catalog has drifted from the reviewed asset manifest.'
 }
 
+function Test-CustomizationCatalogTruth {
+    $catalogTool = Join-Path $PSScriptRoot 'src/LibreSpot.App/scripts/catalog-tool.mjs'
+    if (-not (Test-Path -LiteralPath $catalogTool -PathType Leaf)) {
+        throw "Cannot find the customization catalog verifier at $catalogTool"
+    }
+
+    $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
+    if ($null -eq $nodeCommand) {
+        throw 'Node.js is required to verify the Spotify customization catalog.'
+    }
+
+    & $nodeCommand.Source $catalogTool truth
+    if ($LASTEXITCODE -ne 0) {
+        throw 'The Spotify customization catalog has drifted from the pinned xpui and SpotX sources.'
+    }
+}
+
 function Get-PngTextMetadataValue {
     param(
         [Parameter(Mandatory)][string]$Path,
@@ -2385,6 +2402,7 @@ if ($ReleaseTruth) {
 
 if ($CatalogTruth) {
     Test-CommunityCatalogTruth -FetchRemote
+    Test-CustomizationCatalogTruth
     exit 0
 }
 
@@ -2603,6 +2621,7 @@ if ($Validate) {
     # has and warns instead of failing when that ref is missing. -CatalogTruth
     # fetches first.
     Test-CommunityCatalogTruth
+    Test-CustomizationCatalogTruth
     exit 0
 }
 
@@ -2796,5 +2815,5 @@ Write-Host "  pwsh -File Build-Scripts.ps1 -DependencyHealth       # Emit depend
 Write-Host "  pwsh -File Build-Scripts.ps1 -SpotXSecurityPolicy    # Hash and inspect the pinned SpotX entrypoint for Defender mutations"
 Write-Host "  pwsh -File Build-Scripts.ps1 -CheckSpotifyVersionDrift # Compare pinned Spotify target vs SpotX-Bash buildVer (report-only)"
 Write-Host "  pwsh -File Build-Scripts.ps1 -ReleaseTruth          # Compare README claims with projects, scripts, and GitHub latest stable"
-Write-Host "  pwsh -File Build-Scripts.ps1 -CatalogTruth          # Fetch gh-pages and compare the published catalog with the reviewed manifest"
+Write-Host "  pwsh -File Build-Scripts.ps1 -CatalogTruth          # Check published assets plus pinned Spotify and SpotX customization data"
 Write-Host "  pwsh -File Build-Scripts.ps1 -WatcherIntegration    # Exercise the watcher through a disposable Task Scheduler task"

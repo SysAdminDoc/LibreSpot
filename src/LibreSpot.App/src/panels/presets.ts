@@ -1,4 +1,5 @@
 import type { UiNode } from "../spicetify-globals.d.ts";
+import { applyUserPreset, captureUserPreset } from "../core/index.ts";
 import { SURFACE_PRESETS } from "../surface/builtins.ts";
 import type { PanelProperties } from "../surface/panel-types.ts";
 import {
@@ -9,6 +10,19 @@ import {
 } from "../surface/ui.ts";
 
 export function PresetsPanel(properties: PanelProperties): UiNode {
+  const React = Spicetify.React;
+  const [presetName, setPresetName] = React.useState("");
+  const savePreset = () => {
+    const name = presetName.trim() || `Preset ${properties.snapshot.state.userPresets.length + 1}`;
+    void properties.runtime.update(
+      (draft) => {
+        const id = `user-${Date.now().toString(36)}`;
+        draft.userPresets.push(captureUserPreset(draft, id, name));
+      },
+      `${name} saved`,
+    );
+    setPresetName("");
+  };
   return h(
     "div",
     { className: "librespot-panel", "data-librespot-panel": "presets" },
@@ -64,6 +78,76 @@ export function PresetsPanel(properties: PanelProperties): UiNode {
             }),
           ),
         ),
+      ),
+    }),
+    Section({
+      title: "Saved presets",
+      description: "Save the current controls into this .librespot profile, then apply or remove the preset here.",
+      children: h(
+        Spicetify.React.Fragment,
+        null,
+        h(
+          "div",
+          { className: "librespot-preset-save" },
+          h(
+            "label",
+            null,
+            h("span", null, "Preset name"),
+            h("input", {
+              className: "librespot-input",
+              type: "text",
+              value: presetName,
+              placeholder: "My preset",
+              onInput: (event: unknown) => {
+                if (event instanceof Event && event.target instanceof HTMLInputElement) {
+                  setPresetName(event.target.value);
+                }
+              },
+            }),
+          ),
+          ActionButton({ label: "Save current", onClick: savePreset }),
+        ),
+        properties.snapshot.state.userPresets.length === 0
+          ? h("p", { className: "librespot-empty" }, "No saved presets yet.")
+          : h(
+              "div",
+              { className: "librespot-extension-grid" },
+              ...properties.snapshot.state.userPresets.map((preset) =>
+                h(
+                  "article",
+                  { className: "librespot-extension-card", key: preset.id },
+                  h("h3", null, preset.name),
+                  h("p", null, `${preset.theme} / ${preset.scheme} / ${preset.effectsTier}`),
+                  h(
+                    "div",
+                    { className: "librespot-inline-actions" },
+                    ActionButton({
+                      label: "Apply",
+                      onClick: () => {
+                        void properties.runtime.update(
+                          (draft) => {
+                            applyUserPreset(draft, preset);
+                          },
+                          `${preset.name} applied`,
+                        );
+                      },
+                    }),
+                    ActionButton({
+                      label: "Remove",
+                      secondary: true,
+                      onClick: () => {
+                        void properties.runtime.update(
+                          (draft) => {
+                            draft.userPresets = draft.userPresets.filter((item) => item.id !== preset.id);
+                          },
+                          `${preset.name} removed`,
+                        );
+                      },
+                    }),
+                  ),
+                ),
+              ),
+            ),
       ),
     }),
     Section({

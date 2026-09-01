@@ -22,6 +22,7 @@
     <ProjectReference Include="..\..\src\LibreSpot.Core\LibreSpot.Core.csproj" />
     <Compile Include="..\LibreSpot.Desktop.Tests\AppCatalogTests.cs" Link="AppCatalogTests.cs" />
     <Compile Include="..\LibreSpot.Desktop.Tests\CommunityAssetDriftServiceTests.cs" Link="CommunityAssetDriftServiceTests.cs" />
+    <Compile Include="..\LibreSpot.Desktop.Tests\CustomizationCatalogTests.cs" Link="CustomizationCatalogTests.cs" />
     <Compile Include="..\LibreSpot.Desktop.Tests\OperationCorrelationTests.cs" Link="OperationCorrelationTests.cs" />
     <Compile Include="..\LibreSpot.Desktop.Tests\SpotifyVersionTests.cs" Link="SpotifyVersionTests.cs" />
     <Compile Include="..\LibreSpot.Desktop.Tests\UpstreamDriftServiceTests.cs" Link="UpstreamDriftServiceTests.cs" />

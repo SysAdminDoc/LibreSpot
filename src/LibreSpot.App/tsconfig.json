@@ -5,6 +5,7 @@
     "moduleResolution": "Bundler",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "strict": true,
+    "allowJs": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "noFallthroughCasesInSwitch": true,
@@ -17,6 +18,6 @@
     "isolatedModules": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts", "eslint.config.js"],
+  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.mjs", "vitest.config.ts", "eslint.config.js"],
   "exclude": ["vendor", "dist", "node_modules"]
 }

@@ -1,4 +1,12 @@
-import type { ColorScheme, EngineState } from "../core/index.ts";
+import {
+  CUSTOMIZATION_CATALOG,
+  type CatalogFeature,
+  type CatalogPreset,
+  type CatalogSnippet,
+  type CatalogSpotxSwitch,
+  type ColorScheme,
+  type EngineState,
+} from "../core/index.ts";
 
 export const BUILTIN_SCHEMES: Record<string, ColorScheme> = {
   Dark: {
@@ -87,219 +95,49 @@ export const BUILTIN_SCHEMES: Record<string, ColorScheme> = {
   },
 };
 
-export type SnippetDefinition = {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  css: string;
-  source: string;
-  lastVerifiedSpotify: string;
-};
-
-export const SURFACE_SNIPPETS: readonly SnippetDefinition[] = [
-  {
-    id: "rounded-covers",
-    title: "Rounded cover art",
-    description: "Rounds playlist and album artwork without changing cards.",
-    category: "Cover art",
-    css: '[data-testid="cover-art-image"], .main-image-image { border-radius: var(--librespot-radius) !important; }',
-    source: "https://github.com/spicetify/marketplace",
-    lastVerifiedSpotify: "1.2.93",
-  },
-  {
-    id: "compact-track-rows",
-    title: "Compact track rows",
-    description: "Reduces track-list padding while keeping controls usable.",
-    category: "Layout",
-    css: '.main-trackList-trackListRow { --row-height: 40px; min-height: var(--row-height); }',
-    source: "https://github.com/Comfy-Themes/Spicetify",
-    lastVerifiedSpotify: "1.2.93",
-  },
-  {
-    id: "quiet-scrollbars",
-    title: "Quiet scrollbars",
-    description: "Keeps scrollbars narrow until the pointer reaches them.",
-    category: "Window",
-    css: '.os-scrollbar-handle { opacity: .55; } .os-scrollbar:hover .os-scrollbar-handle { opacity: 1; }',
-    source: "https://github.com/spicetify/marketplace",
-    lastVerifiedSpotify: "1.2.93",
-  },
-] as const;
-
-export type PresetDefinition = {
-  id: string;
-  title: string;
-  description: string;
+export type PresetDefinition = CatalogPreset & {
   apply(draft: EngineState): void;
 };
 
-export const SURFACE_PRESETS: readonly PresetDefinition[] = [
-  {
-    id: "oled",
-    title: "OLED",
-    description: "Black surfaces, restrained effects, and artwork accent.",
+function applyPreset(preset: CatalogPreset, draft: EngineState): void {
+  const profile = preset.profile;
+  draft.name = preset.title;
+  draft.theme = profile.theme;
+  draft.scheme = profile.scheme;
+  draft.effectsTier = profile.effectsTier;
+  draft.dynamicAccent.mode = profile.accentMode;
+  draft.dynamicAccent.materialPalette = profile.materialPalette;
+  draft.enabledSnippets = [...profile.snippets];
+  if (profile.contentScale !== undefined) draft.appearance.scale.content = profile.contentScale;
+  if (profile.navigationScale !== undefined) draft.appearance.scale.navigation = profile.navigationScale;
+  if (profile.playbarScale !== undefined) draft.appearance.scale.playbar = profile.playbarScale;
+  if (profile.fontFamily) draft.appearance.fontFamily = profile.fontFamily;
+  draft.layers.accessibility = preset.id === "accessibility" || draft.layers.accessibility;
+  draft.autoEffects = preset.id !== "performance";
+}
+
+export const SURFACE_SNIPPETS: readonly CatalogSnippet[] =
+  CUSTOMIZATION_CATALOG.snippets;
+
+export const SURFACE_PRESETS: readonly PresetDefinition[] =
+  CUSTOMIZATION_CATALOG.presets.map((preset) => ({
+    ...preset,
     apply: (draft) => {
-      draft.name = "OLED";
-      draft.scheme = "OLED";
-      draft.effectsTier = "eco";
-      draft.dynamicAccent.mode = "album-art";
+      applyPreset(preset, draft);
     },
-  },
-  {
-    id: "accessibility",
-    title: "Accessibility",
-    description: "High contrast, flat surfaces, large targets, and thick focus.",
-    apply: (draft) => {
-      draft.name = "Accessibility";
-      draft.scheme = "HighContrast";
-      draft.effectsTier = "flat";
-      draft.layers.accessibility = true;
-      draft.appearance.scale.content = 1.12;
-      draft.appearance.scale.navigation = 1.1;
-      draft.appearance.fontFamily = "Atkinson Hyperlegible, SpotifyMixUI, sans-serif";
-    },
-  },
-  {
-    id: "compact",
-    title: "Compact",
-    description: "Dense rows, a smaller rail, and a low-profile playbar.",
-    apply: (draft) => {
-      draft.name = "Compact";
-      draft.effectsTier = "eco";
-      draft.enabledSnippets = [
-        ...new Set([...draft.enabledSnippets, "compact-track-rows"]),
-      ];
-      draft.appearance.scale.navigation = 0.9;
-      draft.appearance.scale.content = 0.92;
-      draft.appearance.scale.playbar = 0.9;
-    },
-  },
-  {
-    id: "performance",
-    title: "Performance",
-    description: "No blur or motion, with dynamic palette work disabled.",
-    apply: (draft) => {
-      draft.name = "Performance";
-      draft.effectsTier = "flat";
-      draft.autoEffects = false;
-      draft.dynamicAccent.mode = "scheme";
-      draft.dynamicAccent.materialPalette = false;
-    },
-  },
-] as const;
+  }));
 
 export const SURFACE_SNIPPET_CSS = Object.fromEntries(
   SURFACE_SNIPPETS.map((snippet) => [snippet.id, snippet.css]),
 );
 
-export type ClientFeatureSeed = {
-  name: string;
-  description: string;
-  type: "bool" | "enum";
-  default: boolean | string;
-  values?: string[];
-  group: string;
-  serverGated?: boolean;
-};
+export const SURFACE_FEATURE_SEEDS: readonly CatalogFeature[] =
+  CUSTOMIZATION_CATALOG.spotifyFeatures;
 
-export const SURFACE_FEATURE_SEEDS: readonly ClientFeatureSeed[] = [
-  {
-    name: "enableGlobalNavBar",
-    description: "Use Spotify's global navigation bar layout.",
-    type: "bool",
-    default: true,
-    group: "Layout",
-  },
-  {
-    name: "enableLyricsFullscreen",
-    description: "Expose the full-screen lyrics presentation.",
-    type: "bool",
-    default: true,
-    group: "Lyrics",
-  },
-  {
-    name: "enableNowPlayingView",
-    description: "Use the right-side Now Playing view.",
-    type: "bool",
-    default: true,
-    group: "Now Playing",
-  },
-  {
-    name: "enableEnhanceLikedSongs",
-    description: "Show Enhance controls when the account and server allow them.",
-    type: "bool",
-    default: false,
-    group: "Library",
-    serverGated: true,
-  },
-  {
-    name: "enableJam",
-    description: "Show Jam entry points when the account and server allow them.",
-    type: "bool",
-    default: false,
-    group: "Playback",
-    serverGated: true,
-  },
-  {
-    name: "homeStructure",
-    description: "Select the Home shelf structure supplied by Spotify.",
-    type: "enum",
-    default: "default",
-    values: ["default", "compact", "expanded"],
-    group: "Home",
-  },
-] as const;
+export const SURFACE_SPOTX_SEEDS: readonly CatalogSpotxSwitch[] =
+  CUSTOMIZATION_CATALOG.spotxSwitches;
 
-export type SpotXControlSeed = {
-  id: string;
-  label: string;
-  description: string;
-  group: string;
-  default: boolean;
-};
-
-export const SURFACE_SPOTX_SEEDS: readonly SpotXControlSeed[] = [
-  {
-    id: "adblock",
-    label: "Ad blocking",
-    description: "Pass SpotX's pinned ad patch switches through on the next desktop apply.",
-    group: "Ads and tracking",
-    default: true,
-  },
-  {
-    id: "podcasts-off",
-    label: "Hide podcasts",
-    description: "Hide podcast surfaces through SpotX on the next desktop apply.",
-    group: "Home",
-    default: false,
-  },
-  {
-    id: "audiobooks-off",
-    label: "Hide audiobooks",
-    description: "Hide audiobook surfaces through SpotX on the next desktop apply.",
-    group: "Library",
-    default: false,
-  },
-  {
-    id: "lyrics",
-    label: "Lyrics patch",
-    description: "Keep the pinned SpotX lyrics patch enabled after the next desktop apply.",
-    group: "Lyrics",
-    default: true,
-  },
-  {
-    id: "block-update",
-    label: "Block Spotify updates",
-    description: "Pass the update-blocking switch to SpotX on the next desktop apply.",
-    group: "Everything else",
-    default: true,
-  },
-  {
-    id: "telemetry-off",
-    label: "Reduce telemetry",
-    description: "Pass SpotX telemetry switches through on the next desktop apply.",
-    group: "Ads and tracking",
-    default: true,
-  },
+export const SURFACE_THEMES = [
+  ...CUSTOMIZATION_CATALOG.builtInThemes,
+  ...CUSTOMIZATION_CATALOG.themes,
 ] as const;

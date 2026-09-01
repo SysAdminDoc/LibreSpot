@@ -1,7 +1,10 @@
-import type {
-  CapturedFeature,
-  EngineState,
-  FeatureValue,
+import {
+  CUSTOMIZATION_CATALOG,
+  type CatalogFeature,
+  type CatalogSpotxSwitch,
+  type CapturedFeature,
+  type EngineState,
+  type FeatureValue,
 } from "../core/index.ts";
 import type { UiNode } from "../spicetify-globals.d.ts";
 import {
@@ -9,24 +12,16 @@ import {
   SURFACE_SPOTX_SEEDS,
 } from "../surface/builtins.ts";
 import type { PanelProperties } from "../surface/panel-types.ts";
-import { PanelIntro, Section, SelectRow, ToggleRow, h } from "../surface/ui.ts";
+import { InputRow, PanelIntro, Section, SelectRow, ToggleRow, h } from "../surface/ui.ts";
 
 type DisplayFeature = CapturedFeature & {
   group: string;
   serverGated: boolean;
+  source?: string;
+  spotxForced?: CatalogFeature["spotxForced"];
 };
 
-const GROUP_ORDER = [
-  "Playback",
-  "Now Playing",
-  "Library",
-  "Home",
-  "Lyrics",
-  "Layout",
-  "Ads and tracking",
-  "Fun",
-  "Everything else",
-] as const;
+const GROUP_ORDER = CUSTOMIZATION_CATALOG.featureGroups;
 
 function inferredGroup(name: string): string {
   const value = name.toLowerCase();
@@ -63,8 +58,12 @@ function mergedFeatures(properties: PanelProperties): DisplayFeature[] {
       type: seed.type,
       default: seed.default,
       ...(seed.values ? { values: [...seed.values] } : {}),
+      ...(seed.minimum === undefined ? {} : { minimum: seed.minimum }),
+      ...(seed.maximum === undefined ? {} : { maximum: seed.maximum }),
       group: seed.group,
-      serverGated: seed.serverGated ?? false,
+      serverGated: seed.serverGated,
+      source: seed.source,
+      ...(seed.spotxForced ? { spotxForced: seed.spotxForced } : {}),
     });
   }
   for (const captured of properties.snapshot.features) {
@@ -73,6 +72,8 @@ function mergedFeatures(properties: PanelProperties): DisplayFeature[] {
       ...captured,
       group: seed?.group ?? inferredGroup(captured.name),
       serverGated: seed?.serverGated ?? false,
+      ...(seed?.source ? { source: seed.source } : {}),
+      ...(seed?.spotxForced ? { spotxForced: seed.spotxForced } : {}),
     });
   }
   return [...features.values()].sort((left, right) =>
@@ -99,11 +100,16 @@ function featureControl(
 ): UiNode {
   const stored = properties.snapshot.state.featureOverrides[feature.name];
   const value = stored ?? feature.default;
-  const badge = feature.serverGated ? "Account gated" : "Live";
+  const badge = feature.spotxForced
+    ? `SpotX ${feature.spotxForced.mode}`
+    : feature.serverGated
+      ? "Account gated"
+      : "Live";
+  const description = `${feature.description}${feature.serverGated ? " It may do nothing on a free account." : ""}${feature.spotxForced ? ` SpotX pins the default from ${feature.spotxForced.source}.` : ""}`;
   if (feature.type === "enum" && feature.values) {
     return SelectRow({
       label: feature.name,
-      description: `${feature.description}${feature.serverGated ? " It may do nothing on a free account." : ""}`,
+      description,
       value: String(value),
       options: feature.values.map((option) => ({ value: option, label: option })),
       onChange: (next) => {
@@ -111,13 +117,94 @@ function featureControl(
       },
     });
   }
+  if (feature.type === "number") {
+    return InputRow({
+      label: feature.name,
+      description,
+      value: typeof value === "number" ? value : Number(value),
+      type: "number",
+      ...(feature.minimum === undefined ? {} : { min: feature.minimum }),
+      ...(feature.maximum === undefined ? {} : { max: feature.maximum }),
+      onChange: (next) => {
+        const number = Number(next);
+        if (Number.isFinite(number)) setFeature(properties, feature.name, number);
+      },
+    });
+  }
+  if (feature.type === "string") {
+    return InputRow({
+      label: feature.name,
+      description,
+      value: String(value),
+      type: "text",
+      onChange: (next) => {
+        setFeature(properties, feature.name, next);
+      },
+    });
+  }
   return ToggleRow({
     label: feature.name,
-    description: `${feature.description}${feature.serverGated ? " It may do nothing on a free account." : ""}`,
+    description,
     checked: Boolean(value),
     badge,
     onChange: (checked) => {
       setFeature(properties, feature.name, checked);
+    },
+  });
+}
+
+function saveSpotx(
+  properties: PanelProperties,
+  control: CatalogSpotxSwitch,
+  value: FeatureValue,
+): void {
+  void properties.runtime.update(
+    (draft: EngineState) => {
+      draft.spotxSwitches[control.configKey] = value;
+    },
+    `${control.label} saved for desktop import`,
+  );
+}
+
+function spotxControl(
+  properties: PanelProperties,
+  control: CatalogSpotxSwitch,
+): UiNode {
+  const value = properties.snapshot.state.spotxSwitches[control.configKey] ?? control.default;
+  if (control.type === "enum" && control.values) {
+    return SelectRow({
+      label: control.label,
+      description: control.description,
+      value: String(value),
+      options: control.values.map((option) => ({ value: option, label: option || "Automatic" })),
+      onChange: (next) => {
+        saveSpotx(properties, control, next);
+      },
+    });
+  }
+  if (control.type === "number" || control.type === "string") {
+    return InputRow({
+      label: control.label,
+      description: control.description,
+      value: value as string | number,
+      type: control.type === "number" ? "number" : "text",
+      ...(control.minimum === undefined ? {} : { min: control.minimum }),
+      ...(control.maximum === undefined ? {} : { max: control.maximum }),
+      onChange: (next) => {
+        const resolved = control.type === "number" ? Number(next) : next;
+        if (typeof resolved === "string" || Number.isFinite(resolved)) {
+          saveSpotx(properties, control, resolved);
+        }
+      },
+    });
+  }
+  return ToggleRow({
+    label: control.label,
+    description: control.description,
+    badge: "Desktop apply",
+    checked: Boolean(value),
+    onChange: (checked) => {
+      saveSpotx(properties, control, checked);
     },
   });
 }
@@ -189,25 +276,7 @@ export function FeaturesPanel(properties: PanelProperties): UiNode {
       children: h(
         Spicetify.React.Fragment,
         null,
-        ...SURFACE_SPOTX_SEEDS.map((control) =>
-          ToggleRow({
-            label: control.label,
-            description: control.description,
-            badge: "Desktop apply",
-            checked: Boolean(
-              properties.snapshot.state.spotxSwitches[control.id] ??
-                control.default,
-            ),
-            onChange: (checked) => {
-              void properties.runtime.update(
-                (draft: EngineState) => {
-                  draft.spotxSwitches[control.id] = checked;
-                },
-                `${control.label} saved for desktop import`,
-              );
-            },
-          }),
-        ),
+        ...SURFACE_SPOTX_SEEDS.map((control) => spotxControl(properties, control)),
       ),
     }),
   );

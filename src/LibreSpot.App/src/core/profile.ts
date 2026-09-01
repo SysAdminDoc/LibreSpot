@@ -1,6 +1,7 @@
 import { parseColorIni, serializeColorIni, type ColorIniDocument } from "./color-ini.ts";
 import { deriveScheme, normalizeHex } from "./colors.ts";
 import { LAYER_CSS } from "./layer-styles.ts";
+import { CATALOG_THEME_STYLES } from "./catalog.ts";
 import {
   PROFILE_SCHEMA_VERSION,
   createDefaultState,
@@ -105,9 +106,10 @@ export function exportTheme(state: EngineState): ThemeExport {
   const variables = Object.entries(complete)
     .map(([key, value]) => `  --spice-${key}: #${value};`)
     .join("\n");
+  const themeCss = CATALOG_THEME_STYLES[state.theme]?.css ?? "";
   return {
     "color.ini": serializeColorIni(document, { deriveMissing: true }),
-    "user.css": `:root {\n${variables}\n}\n\n${LAYER_CSS.trim()}\n`,
+    "user.css": `:root {\n${variables}\n}\n\n${LAYER_CSS.trim()}\n\n${themeCss.trim()}\n`,
     "theme.js": exportThemeRuntime(state),
   };
 }

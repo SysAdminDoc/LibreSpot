@@ -10,9 +10,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
     "bundle": "node scripts/build.mjs",
-    "lint": "eslint src tests vitest.config.ts",
+    "catalog:refresh": "node scripts/catalog-tool.mjs refresh",
+    "catalog:truth": "node scripts/catalog-tool.mjs truth",
+    "lint": "eslint src tests scripts vitest.config.ts",
     "test": "vitest run --pool=forks --maxWorkers=1 --fileParallelism=false",
-    "check": "pnpm run lint && pnpm run build && pnpm run bundle && pnpm run test"
+    "check": "pnpm run lint && pnpm run catalog:truth && pnpm run build && pnpm run bundle && pnpm run test"
   },
   "dependencies": {
     "@material/material-color-utilities": "0.3.0"

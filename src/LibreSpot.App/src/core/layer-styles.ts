@@ -1,6 +1,7 @@
 export const LAYER_STYLE_ID = "librespot-engine-layers";
 export const PALETTE_STYLE_ID = "librespot-engine-palette";
 export const SNIPPET_STYLE_ID = "librespot-engine-snippets";
+export const THEME_STYLE_ID = "librespot-engine-theme";
 
 export const LAYER_CSS = `
 :root {

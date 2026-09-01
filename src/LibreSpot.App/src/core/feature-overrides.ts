@@ -83,17 +83,29 @@ export async function applyFeatureOverrides(
 export type CapturedFeature = {
   name: string;
   description: string;
-  type: "bool" | "enum";
+  type: "bool" | "enum" | "number" | "string";
   default: FeatureValue;
   values?: string[];
+  minimum?: number;
+  maximum?: number;
 };
 
 export class FeatureCapture {
   readonly #features = new Map<string, CapturedFeature>();
 
   public capture(feature: CapturedFeature): CapturedFeature {
-    this.#features.set(feature.name, structuredClone(feature));
-    return feature;
+    const rawValues: unknown = feature.values;
+    const values = Array.isArray(rawValues)
+      ? rawValues.map(String)
+      : typeof rawValues === "object" && rawValues !== null
+        ? Object.values(rawValues).map(String)
+        : undefined;
+    const normalized: CapturedFeature = {
+      ...feature,
+      ...(values ? { values: [...new Set(values)] } : {}),
+    };
+    this.#features.set(feature.name, structuredClone(normalized));
+    return normalized;
   }
 
   public list(): CapturedFeature[] {

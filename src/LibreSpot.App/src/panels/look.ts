@@ -1,4 +1,4 @@
-import type { EngineState } from "../core/index.ts";
+import { CUSTOMIZATION_CATALOG, type EngineState } from "../core/index.ts";
 import type { UiNode } from "../spicetify-globals.d.ts";
 import type { PanelProperties } from "../surface/panel-types.ts";
 import {
@@ -183,6 +183,11 @@ function scheduleControls(properties: PanelProperties): UiNode {
 
 export function LookPanel(properties: PanelProperties): UiNode {
   const state = properties.snapshot.state;
+  const themeNames = [
+    ...CUSTOMIZATION_CATALOG.builtInThemes.map((theme) => theme.id),
+    ...(Spicetify.Config?.current_theme ? [Spicetify.Config.current_theme] : []),
+  ];
+  const themes = [...new Set(themeNames)];
   const layerLabels: {
     key: keyof EngineState["layers"];
     label: string;
@@ -241,9 +246,9 @@ export function LookPanel(properties: PanelProperties): UiNode {
         null,
         SelectRow({
           label: "Theme",
-          description: "Layer source for this profile.",
+          description: "Built-in layer source plus the Spicetify theme active on this client.",
           value: state.theme,
-          options: [{ value: "Prism", label: "Prism" }],
+          options: themes.map((theme) => ({ value: theme, label: theme })),
           onChange: (value) => {
             update(
               properties,

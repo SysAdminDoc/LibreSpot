@@ -31,4 +31,15 @@ export default tseslint.config(
       "@typescript-eslint/no-invalid-void-type": "off",
     },
   },
+  {
+    ...tseslint.configs.disableTypeChecked,
+    files: ["scripts/*.mjs"],
+    languageOptions: {
+      ...tseslint.configs.disableTypeChecked.languageOptions,
+      globals: {
+        console: "readonly",
+        process: "readonly",
+      },
+    },
+  },
 );

@@ -806,6 +806,12 @@ public sealed class EnvironmentSnapshot
 
 public static class AppCatalog
 {
+    private static readonly Lazy<CustomizationCatalogDocument> CustomizationCatalogValue =
+        new(() => CustomizationCatalogLoader.LoadEmbedded());
+
+    public static CustomizationCatalogDocument CustomizationCatalog =>
+        CustomizationCatalogValue.Value;
+
     public const int CurrentConfigSchemaVersion = 1;
     public const string DefaultUiCulture = "en";
     public const string PinnedSpotXVersion = "2.0";

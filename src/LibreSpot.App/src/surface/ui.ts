@@ -175,6 +175,37 @@ export function SliderRow(properties: {
   );
 }
 
+export function InputRow(properties: {
+  label: string;
+  description: string;
+  value: string | number;
+  type: "text" | "number";
+  min?: number;
+  max?: number;
+  onChange: (value: string) => void;
+}): UiNode {
+  return h(
+    "label",
+    { className: "librespot-control-row" },
+    h(
+      "div",
+      { className: "librespot-control-copy" },
+      h("span", { className: "librespot-control-label" }, properties.label),
+      h("p", null, properties.description),
+    ),
+    h("input", {
+      className: "librespot-input",
+      type: properties.type,
+      value: String(properties.value),
+      ...(properties.min === undefined ? {} : { min: String(properties.min) }),
+      ...(properties.max === undefined ? {} : { max: String(properties.max) }),
+      onChange: (event: unknown) => {
+        properties.onChange(targetValue(event));
+      },
+    }),
+  );
+}
+
 export function SegmentedControl(properties: {
   label: string;
   value: string;

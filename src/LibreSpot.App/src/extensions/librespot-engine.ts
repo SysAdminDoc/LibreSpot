@@ -2,6 +2,7 @@ import {
   EngineStore,
   FeatureCapture,
   LibreSpotEngine,
+  CATALOG_THEME_STYLES,
   createDefaultState,
   runSelfTest,
   serializeProfile,
@@ -267,6 +268,7 @@ async function bootstrap(): Promise<void> {
       store,
       initialState: initial,
       snippetCss: SURFACE_SNIPPET_CSS,
+      themeStyles: CATALOG_THEME_STYLES,
       featureRuntime: remoteRuntime(),
       colorExtractor: async (uri) => {
         if (!Spicetify.colorExtractor) {

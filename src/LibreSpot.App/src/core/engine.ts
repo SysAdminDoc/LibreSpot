@@ -25,6 +25,7 @@ export type EngineEnvironment = {
   store: EngineStore;
   initialState: EngineState;
   snippetCss?: Readonly<Record<string, string>>;
+  themeStyles?: Readonly<Record<string, { className: string; css: string }>>;
   featureRuntime?: FeatureOverrideRuntime;
   colorExtractor?: ColorExtractor;
   artworkUri?: () => string | undefined;
@@ -48,6 +49,7 @@ export class LibreSpotEngine extends EventTarget {
   readonly #osAccent: (() => string | null) | undefined;
   readonly #now: () => Date;
   #snippetCss: Readonly<Record<string, string>>;
+  readonly #themeStyles: Readonly<Record<string, { className: string; css: string }>>;
   #state: EngineState;
   #activeScheme: string;
 
@@ -59,6 +61,7 @@ export class LibreSpotEngine extends EventTarget {
     this.#state = cloneState(environment.initialState);
     this.#activeScheme = this.#state.scheme;
     this.#snippetCss = environment.snippetCss ?? {};
+    this.#themeStyles = environment.themeStyles ?? {};
     this.#featureRuntime = environment.featureRuntime;
     this.#colorExtractor = environment.colorExtractor;
     this.#artworkUri = environment.artworkUri;
@@ -95,6 +98,8 @@ export class LibreSpotEngine extends EventTarget {
     this.#styles.applyPalette(scheme, this.#state.layers.palette);
     this.#styles.applyLayers(this.#state.layers, this.#state.effectsTier);
     this.#styles.applyAppearance(this.#state);
+    const theme = this.#themeStyles[this.#state.theme];
+    this.#styles.applyTheme(theme?.className ?? "", theme?.css ?? "");
     this.#styles.setHighContrast(
       this.#state.layers.accessibility &&
         this.#activeScheme.toLowerCase().includes("contrast"),

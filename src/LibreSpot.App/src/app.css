@@ -347,6 +347,7 @@
 }
 
 .librespot-select,
+.librespot-input,
 .librespot-search input,
 .librespot-time-control input {
   background: var(--ls-surface-2);
@@ -358,6 +359,11 @@
 }
 
 .librespot-select {
+  max-width: 260px;
+  min-width: 180px;
+}
+
+.librespot-input {
   max-width: 260px;
   min-width: 180px;
 }
@@ -601,6 +607,40 @@
   padding-top: 0;
 }
 
+.librespot-snippet-preview {
+  align-items: center;
+  background: var(--ls-canvas);
+  border: 1px solid var(--ls-border);
+  border-radius: 9px;
+  display: flex;
+  gap: 7px;
+  height: 46px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  padding: 9px;
+}
+
+.librespot-snippet-preview span {
+  background: var(--ls-surface-3);
+  border-radius: 4px;
+  display: block;
+  height: 100%;
+  width: 22%;
+}
+
+.librespot-snippet-preview span:first-child { width: 12%; }
+.librespot-snippet-preview span:last-child { flex: 1; }
+.librespot-snippet-preview.is-rounded-cover span:first-child { border-radius: 9px; }
+.librespot-snippet-preview.is-circular-cover span:first-child { border-radius: 50%; }
+.librespot-snippet-preview.is-square-cover span:first-child { border-radius: 0; }
+.librespot-snippet-preview.is-compact-rows { height: 36px; }
+.librespot-snippet-preview.is-centered-lines { justify-content: center; }
+.librespot-snippet-preview.is-centered-lines span { height: 4px; width: 25%; }
+.librespot-snippet-preview.is-progress-bar span:last-child { background: var(--ls-accent); height: 6px; }
+.librespot-snippet-preview.is-hidden-control span:last-child,
+.librespot-snippet-preview.is-hidden-panel span:last-child,
+.librespot-snippet-preview.is-quiet-panel span:last-child { opacity: .18; }
+
 .librespot-catalog-meta {
   align-items: center;
   color: var(--ls-muted);
@@ -713,6 +753,30 @@
   gap: 10px;
   grid-template-columns: repeat(4, minmax(70px, 1fr));
   margin: 0;
+}
+
+.librespot-preset-save,
+.librespot-inline-actions {
+  align-items: end;
+  display: flex;
+  gap: 10px;
+}
+
+.librespot-preset-save {
+  margin-bottom: 14px;
+}
+
+.librespot-preset-save label {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+}
+
+.librespot-preset-save label > span {
+  color: var(--ls-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .librespot-profile-summary dl div {
@@ -904,6 +968,7 @@
     flex-direction: column;
   }
 
+  .librespot-input,
   .librespot-select,
   .librespot-slider-wrap {
     max-width: none;
