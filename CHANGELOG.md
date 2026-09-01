@@ -7,17 +7,24 @@ All notable changes to LibreSpot will be documented in this file.
 ### Added
 
 - The shared customization catalog now carries every one of the 348 flags found in the pinned Spotify 1.2.93 `xpui.js`, including descriptions, defaults, value types, bounds, choices, groups, server-gated markers, and 104 SpotX-forced defaults. It also records all 31 SpotX controls, 21 supported Spicetify settings, 12 reviewed CSS snippets, three built-in themes, four presets, and the reviewed extension, app, and theme catalogs. The Spotify app renders the complete data set, saves user presets, and keeps unknown profile fields during import and export. Catalog truth checks exact source hashes and extracted metadata from both JavaScript and the root build gate.
-- LibreSpot now builds as a Spicetify custom app with a companion extension that keeps the live engine present on every route. Its six-panel rail covers Look, reviewed tweaks, captured Spotify feature flags, staged SpotX switches, installed extensions and apps, whole-profile presets, and named health checks. Scheme previews, four independent style layers, effects tiers, dynamic accents, per-region scale, schedules, snippet toggles, profile copy, route repair handoff, and diagnostics work through native Spotify controls. The production build checks the manifest, extension registration, render contract, and minified assets. An offscreen Chromium harness exercises Dark, Light, OLED, and high-contrast surfaces from 700 to 1920 pixels.
+- LibreSpot now builds as a Spicetify custom app with a companion extension that keeps the live engine present on every route. Its six-panel rail covers Look, reviewed tweaks, captured Spotify feature flags, staged SpotX switches, installed extensions and apps, whole-profile presets, and named health checks. Scheme previews, four independent style layers, effects tiers, dynamic accents, per-region scale, schedules, snippet toggles, profile copy, route repair handoff, and diagnostics work through native Spotify controls. The production build checks the manifest, extension registration, render contract, and minified assets. An offscreen Chromium runner exercises Dark, Light, OLED, and high-contrast surfaces from 700 to 1920 pixels.
 - The in-Spotify customization engine now has a typed runtime core. It parses and exports multi-scheme `color.ini` files, derives missing Spicetify colors, injects one managed live palette, composes palette, layout, effects, and accessibility layers, responds to schedule and accent signals, applies client feature overrides through Spotify's debug API, and reports missing anchors or custom-app routes by name. A single-worker Vitest suite covers direct color round trips, live DOM changes, layer cleanup, Material palettes, profile export, schedules, feature flags, and self-test failures.
+- The desktop app installs the LibreSpot custom app and companion extension through its reviewed asset path. Custom Install reads the same flags and snippets as Spotify, profiles carry live engine state without dropping unknown fields, Maintenance names engine health failures, and the update watcher reinstalls the app before repairing both managed routes.
+- Prism, Compact, and Accessibility ship as composable layer themes. OLED, Accessibility, Compact, and Performance presets fill the same editable state used by manual controls and `.librespot` profiles.
 
 ### Changed
 
 - Home now chooses one action from the latest environment snapshot. A new machine gets Recommended Setup, a healthy managed stack gets Open Spotify, and a degraded stack gets its first safe repair in critical-then-warning order. If recovery is destructive, Home opens Maintenance without running the action. Loading disables the button, Retry owns the failed-check state, and overlapping refreshes cannot restore stale copy or commands.
 - Maintenance now leads with overall status, the most important issue, and one safe repair. Diagnostics stay available in a collapsed section, reset actions have their own collapsed danger section, healthy systems say no action is needed, and failed checks offer Retry.
+- Reapply now chooses its Spicetify command from verified local state. A complete current-version backup uses `apply --no-restart --bypass-admin`; a new or stale setup uses `backup apply --bypass-admin`. Spotify's four-part file version is compared with Spicetify's matching `.g<hash>` form.
+- The live audit used Spotify 1.2.93.667 and Spicetify 2.44.0 through the real desktop backend. Scheme, layer, flag, snippet, preset, Marketplace, and eight health checks changed or loaded without a restart. Thirty-six scheme, tier, and viewport combinations had no horizontal overflow or clipped LibreSpot controls.
 
 ### Fixed
 
 - Secure Windows defaults are no longer reported as degraded health. LibreSpot no longer probes for or recommends Defender exclusions, does not tell users to turn off Smart App Control or bypass SmartScreen, and treats an antivirus detection as unresolved until the official source and same-release hash are verified. Evidence-based quarantine guidance still points to Protection History and vendor analysis, while the separate SpotX supply-chain guard continues to reject scripts that can change Defender settings.
+- Managed custom-app repair now assigns a different `spicetifyAppN` identifier to each route and extends the existing CSS gate after quoted route chunks appear. Marketplace and LibreSpot can load together without a duplicate JavaScript declaration or missing second-app styles.
+- Live palette rules use a root class so late Spicetify styles no longer hide a selected scheme. The Light scheme now changes the computed main surface to `#FFFFFF` immediately.
+- Engine health reads the client version from `Spicetify.Platform` before local fallback state, which makes the pinned Spotify check accurate on a real client.
 
 ## [v4.0.0] (2026-08-22)
 
@@ -80,7 +87,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
-- PowerShell regressions now execute all eight install, apply, and reset orchestration bodies against an isolated Spotify tree. The same Pester harness invokes the real Recommended Setup, Reapply, and Full Reset click-handler bodies without opening WPF or touching an installed Spotify copy. The suite grows from 203 to 213 tests.
+- PowerShell regressions now execute all eight install, apply, and reset orchestration bodies against an isolated Spotify tree. The same Pester fixture invokes the real Recommended Setup, Reapply, and Full Reset click-handler bodies without opening WPF or touching an installed Spotify copy. The suite grows from 203 to 213 tests.
 - Uninstall help now says `--purge` needs `--yes` or `--silent`, matching the actual CLI guard.
 - Removed the `--accept-eula` fleet CLI flag. It was parsed but never read, while the CLI contract called it required for silent installs. Consent is recorded where it always actually was: `eulaAccepted` and `riskAcknowledged` in the answer file, both still required. Scripts passing the flag now fail with exit code 2 and an unsupported-flag message, so drop it from the command line.
 - Release builds now enforce what the schemas already documented. The publish footprint budget is measured and recorded in the release manifest, the stable script executable is compiled by `Build-Scripts.ps1 -CompileStableExe` with pinned flags and its file version checked against the script, `Build-Scripts.ps1 -GenerateSbom` restores the pinned CycloneDX 6.2.0 local tool, and the README screenshot gate verifies capture size, theme, and language instead of version metadata alone.
@@ -128,7 +135,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Derived the shell display version from the desktop assembly informational version so project version bumps update the chrome automatically.
 - Aligned the fleet distribution matrix with the implemented CLI contract and removed the obsolete blocked shell-integration design item.
 - Added a localized Recommended first-run checklist with setup contents, update blocking, risk confirmation, duration, and Full Reset recovery guidance above the environment tables.
-- Added an explicit capability boundary to README and SECURITY. LibreSpot does not grant Premium or unlock Spotify's account-controlled catalog features; Premium users can still use the skip-ad-blocking path.
+- Added an explicit capability boundary to README and SECURITY. LibreSpot does not grant Premium or provide Spotify's account-controlled catalog features; Premium users can still use the skip-ad-blocking path.
 - Added a locally generated community catalog site that lists every reviewed asset with provenance, license, SHA256 verification, review date, and evidence links.
 - Published the generated community catalog to [GitHub Pages](https://sysadmindoc.github.io/LibreSpot/) from the reviewed `gh-pages` branch.
 
@@ -266,7 +273,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Made watcher state replacement fail cleanly when another process interrupts the atomic update instead of leaking a non-terminating `Move-Item` error before recovery.
 - Restored `.librespot` Explorer imports from arbitrary local folders: file-association activations now enter the validated preview/confirm flow directly instead of being converted into a store-confined protocol URI, while malformed, missing, oversized, and wrong-extension inputs fail without crashing startup.
 - Removed the WPF shell's obsolete whole-app UAC relaunch: Recommended, Custom, and maintenance actions now run in the current standard-user token, readiness no longer treats a standard session as blocked, and the elevation boundary tests require every desktop backend action to remain no-admin.
-- Fixed `Unlock-SpotifyUpdateFolder` throwing "collection modified" and unlocking nothing when the Update folder carried more than one Deny ACE, the exact multi-ACE case it exists to clear; Deny rules are now snapshotted before removal.
+- Fixed `Unlock-SpotifyUpdateFolder` throwing "collection modified" and clearing nothing when the Update folder carried more than one Deny ACE, the exact multi-ACE case it exists to handle; Deny rules are now snapshotted before removal.
 - Fixed the in-app "what's new" preview going blank whenever the changelog's leading `[Unreleased]` section was empty (the normal state right after a release); the preview now falls through to the newest section that actually has content.
 - Stopped run-receipt undo entries from mislabelling the operation token kind as the operation "phase" in the undo history; receipt entries have no phase, so the field now reads as unknown instead of showing the token kind.
 - Relaxed the archive-extraction traversal guard so legitimate entry names that merely begin or end with two dots (e.g. `..gitkeep`) are no longer rejected, while the authoritative resolved-destination prefix check still blocks real path traversal.
@@ -1080,7 +1087,7 @@ Accumulated since v3.7.2 / v4.0.0-preview.6.
 - WPF section frames now use the shared 12 px radius token instead of a
   hardcoded 18 px corner, keeping the shell within the documented radius system.
 - WPF desktop shell second polish pass: softened global scrollbars, moved hero and sidebar micro-labels to title case, replaced backend-centric activity overlay copy with product-level run-log language, fixed log-count pluralization, and cleaned up support-bundle preview wording.
-- WPF desktop shell polish pass: normalized the radius system to 6-12 px, removed pill-shaped badge/progress treatments, shortened the first-run rail copy, hid non-actionable informational health details from the sidebar, fixed Custom option-card title wrapping, forced dark native DWM caption colors, and made activity log empty/count states bind directly to the log collection. The UIA smoke harness now checks stable visible landmarks and named actionable controls.
+- WPF desktop shell polish pass: normalized the radius system to 6-12 px, removed pill-shaped badge/progress treatments, shortened the first-run rail copy, hid non-actionable informational health details from the sidebar, fixed Custom option-card title wrapping, forced dark native DWM caption colors, and made activity log empty/count states bind directly to the log collection. The UIA smoke runner now checks stable visible landmarks and named actionable controls.
 - Community theme downloads are now commit-pinned and SHA256-verified, matching the existing integrity model for community extensions and the official themes archive. All five community themes (Catppuccin, Comfy, Bloom, Lucid, Hazy) use immutable commit-SHA archive URLs with `Confirm-FileHash` verification instead of mutable branch-based downloads. CI tests enforce that no branch-pinned archive URLs remain and that commit SHAs and hashes stay consistent across the script, WPF backend, and community-assets manifest.
 - Dependency update checks (`Check-ForUpdates`) now use `Invoke-GitHubApiSafe` which reads `x-ratelimit-remaining` and `x-ratelimit-reset` headers, warns when rate limits are nearly exhausted, and provides actionable error messages with reset times for HTTP 403/429 responses instead of generic failure messages.
 
@@ -1413,7 +1420,7 @@ Six new SpotX flags surfaced end-to-end (Custom Install UI + config persistence 
 ## [v3.2.0] (2026-04-15)
 
 ### Added
-- Robust self-elevation that handles .ps1, .exe, and inline scriptblock launch contexts
+- Self-elevation that handles .ps1, .exe, and inline scriptblock launch contexts
 - Config normalization with type-safe boolean/int parsing and corrupt config quarantine
 - Custom themed dark dialogs replacing native MessageBox throughout the app
 - Safe file removal system with blocklist protection against accidental deletion of system directories
@@ -1536,7 +1543,7 @@ the user's Spotify installation and interact with classic desktop locations.
 These require fresh research before implementation:
 
 - Whether the April 2026 SpotX and Spicetify pin guidance is still current.
-- Spotify Connect regression test harness.
+- Spotify Connect regression test fixture.
 - Spicetify v3 readiness and migration risk.
 
 ## 🔬 Researcher Queue (Cycle 11, 2026-06-04)

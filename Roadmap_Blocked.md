@@ -637,7 +637,7 @@ Blocked on: product strategy decision (covered by Cycle 1 macOS/Linux item above
 ### DMCA/availability contingency if SpotX distribution changes
 Blocked on: legal/policy decision. Operator must define the contingency plan.
 
-## P2 - Spotify Connect regression test harness
+## P2 - Spotify Connect regression test fixture
 
 | Field | Value |
 |---|---|
@@ -646,7 +646,7 @@ Blocked on: legal/policy decision. Operator must define the contingency plan.
 
 Why: the repository documents Spotify Connect as a capability to compare in the
 alternative-client matrix, but LibreSpot has no Connect client, device fixture,
-or protocol mock. A trustworthy regression harness needs a real authenticated
+or protocol mock. A trustworthy regression fixture needs a real authenticated
 Spotify session and a reachable device to prove discovery, transfer, pause,
 resume, and recovery behavior; none is available in this development
 environment and fabricating the protocol would not validate Spotify behavior.
@@ -802,7 +802,7 @@ static resource inspection alone.
 Touches: `src/LibreSpot.Desktop/Themes/HighContrastPalette.xaml`.
 
 Acceptance: HC #1 and HC #2 are manually/device verified or a deterministic
-capture harness records contrast-safe Warning/Info/Danger rendering in both.
+capture runner records contrast-safe Warning/Info/Danger rendering in both.
 
 ## P3 - Decide Mica backdrop: make it visible or remove the machinery
 
@@ -903,7 +903,7 @@ overwriting anything.
 | Source | Research-Driven Additions (2026-07-14) |
 | Blocker | Local Task Scheduler starts but indefinitely suspends every disposable action process |
 
-Why: the repeatable `Build-Scripts.ps1 -WatcherIntegration` harness now
+Why: the repeatable `Build-Scripts.ps1 -WatcherIntegration` test runner now
 registers and exports a unique least-privilege task, isolates watcher state,
 defines seven boundary scenarios, captures Scheduler evidence on failure, and
 always removes its task/temp data. On 2026-07-14 this machine registered the

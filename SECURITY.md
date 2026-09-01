@@ -10,10 +10,10 @@
 
 ## Capability boundary
 
-LibreSpot changes the local Windows desktop client. It does not grant Spotify Premium, change account entitlements, or unlock service-side catalog features.
+LibreSpot changes the local Windows desktop client. It does not grant Spotify Premium, change account entitlements, or provide service-side catalog features.
 
 - Offline downloads, lossless audio, Very High quality, mobile on-demand playback, and Jams remain Spotify account or service capabilities.
-- Lyrics availability remains controlled by Spotify, your account, and your region. LibreSpot does not unlock unavailable lyrics.
+- Lyrics availability remains controlled by Spotify, your account, and your region. LibreSpot cannot provide unavailable lyrics.
 - Existing Premium users can select Custom Install's **Premium account (skip ad-blocking)** option. That leaves ad-related patches off and does not alter the subscription.
 - Maintenance > Full Reset restores the local Spotify installation to stock state. It does not change a Spotify account or subscription.
 
@@ -165,7 +165,7 @@ If LibreSpot itself becomes unavailable, users can restore an unmodified Spotify
 
 ### Spotify's enforcement posture (as of mid-2026)
 
-Spotify has taken enforcement actions against tools that redistribute patched binaries or unlock premium features: 520 GitHub repos were DMCA'd in August 2025, and ReVanced's premium-unlock patch was specifically targeted. Desktop tools that focus on ad-blocking and UI customization (SpotX, Spicetify) have not been targeted and remain live. However, Spotify's January 2026 server-side dual-sync verification killed mobile mod APKs (xManager archived, ReVancedXposed archived), demonstrating that enforcement can escalate. See the README's [Trust & risk disclosure](#trust--risk-disclosure) section for current details. LibreSpot's session-stability canary (20-second post-launch monitor) will warn if desktop enforcement expands.
+Spotify has taken enforcement actions against tools that redistribute patched binaries or claim paid features: 520 GitHub repos were DMCA'd in August 2025, and ReVanced's Premium-access patch was specifically targeted. Desktop tools that focus on ad-blocking and UI customization (SpotX, Spicetify) have not been targeted and remain live. However, Spotify's January 2026 server-side dual-sync verification killed mobile mod APKs (xManager archived, ReVancedXposed archived), demonstrating that enforcement can escalate. See the README's [Trust & risk disclosure](#trust--risk-disclosure) section for current details. LibreSpot's session-stability canary (20-second post-launch monitor) will warn if desktop enforcement expands.
 
 ## External process execution contract
 

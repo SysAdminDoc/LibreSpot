@@ -1330,7 +1330,7 @@ public sealed class EnvironmentSnapshotServiceTests
             WriteFile(Path.Combine(marketplaceDirectory, "manifest.json"), JsonSerializer.Serialize(new { version = manifestVersion }));
         }
 
-        public void WriteLibreSpotEngineFiles(string manifestVersion = "4.0.0")
+        public void WriteLibreSpotEngineFiles(string manifestVersion = "4.1.0")
         {
             var appDirectory = Path.Combine(SpicetifyConfigDirectory, "CustomApps", "librespot");
             WriteFile(Path.Combine(appDirectory, "manifest.json"), JsonSerializer.Serialize(new { version = manifestVersion }));

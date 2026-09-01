@@ -102,7 +102,7 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
 
-$global:VERSION = '3.7.4'
+$global:VERSION = '3.8.0'
 $global:CONFIG_SCHEMA_VERSION = 1
 
 
@@ -1402,12 +1402,12 @@ $global:CommunityCustomApps = [ordered]@{
         Description = 'Live themes, snippets, feature flags, presets, and health checks inside Spotify.'
         Url         = 'https://raw.githubusercontent.com/SysAdminDoc/LibreSpot/main/resources/custom-apps/librespot-engine.zip'
         Source      = 'SysAdminDoc/LibreSpot'
-        Version     = '4.0.0'
+        Version     = '4.1.0'
         ReleaseTag  = 'main'
         AssetPath   = 'librespot'
         RequiredFiles = @('manifest.json', 'index.js', 'style.css', 'librespot-engine.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md')
         CompanionExtension = 'librespot-engine.js'
-        SHA256      = '925f51a72afdb229582b8afd119cee736d58a9399886eab89342f7311830fd9e'
+        SHA256      = '745f7a62c3ee6c7cfeb9b40933b4645e484143944f63f2fc2c7ddaad8a7f4084'
     }
 }
 

@@ -8,7 +8,7 @@ Installs, configures, and maintains ad-free Spotify with themes, extensions, cus
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.0.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.1.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-4.0.0-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
@@ -50,7 +50,7 @@ The original one-liner executes without checksum verification. Use only if you u
 irm https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/LibreSpot.ps1 | iex
 ```
 
-This path does not verify the release checksum before execution, cannot self-elevate or register the watcher task reliably, and should not be used for persistent installations.
+This path does not verify the release checksum before execution, cannot raise itself to admin or register the watcher task reliably, and should not be used for persistent installations.
 
 </details>
 
@@ -81,6 +81,14 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 </div>
 
 ---
+
+## What's New in v4.1.0
+
+v4.1.0 adds a LibreSpot workspace inside Spotify and a companion engine that stays active on every route. Palette, layout, effects, client feature flags, snippets, and presets update in place. The desktop app installs the hash-pinned bundle, keeps its profile in sync, repairs both LibreSpot and Marketplace routes after each apply, and reports engine health in Maintenance.
+
+The shared catalog is tied to the pinned Spotify 1.2.93 bundle. It contains all 348 declared flags, 31 SpotX controls, 12 reviewed snippets, 25 themes, three built-in layer themes, and four presets. Source hashes make a stale catalog fail the build.
+
+The live proof used Spotify 1.2.93.667 with Spicetify 2.44.0. Hidden browser control exercised the common live changes and the Marketplace route without restarting Spotify. A 36-case visual matrix covered four schemes, three effects tiers, and three viewport sizes with no horizontal overflow or clipped LibreSpot controls.
 
 ## What's New in v4.0.0
 
@@ -151,13 +159,44 @@ The desktop shell keeps each workspace in a named UserControl. The Custom worksp
 
 ---
 
+## Live customization inside Spotify
+
+Choose **LibreSpot** in Spotify's navigation after installing the LibreSpot custom app from the desktop app. The companion extension keeps the selected state active while you move through Home, Search, Library, playlists, Marketplace, and Spotify settings.
+
+| Look | Tweaks |
+|---|---|
+| Live theme, scheme, layer, accent, type, scale, corner, schedule, and effects controls. | Twelve reviewed CSS snippets with source and Spotify-version evidence. |
+| ![LibreSpot Look panel](assets/screenshots/spotify-librespot-look.png) | ![LibreSpot Tweaks panel](assets/screenshots/spotify-librespot-tweaks.png) |
+
+| Features | Extensions |
+|---|---|
+| All 348 client flags and all 31 SpotX controls, grouped and searchable. | Installed state, enabled state, source, last verification, and known issues. |
+| ![LibreSpot Features panel](assets/screenshots/spotify-librespot-features.png) | ![LibreSpot Extensions panel](assets/screenshots/spotify-librespot-extensions.png) |
+
+| Presets | Health |
+|---|---|
+| OLED, Accessibility, Compact, Performance, and user-saved profiles. | Named checks for layout anchors, both custom-app routes, Spotify version, and the live engine. |
+| ![LibreSpot Presets panel](assets/screenshots/spotify-librespot-presets.png) | ![LibreSpot Health panel](assets/screenshots/spotify-librespot-health.png) |
+
+Three layer themes ship with the engine:
+
+| Theme | Purpose | Schemes |
+|---|---|---|
+| Prism | Scheduled color changes, artwork accents, Material palette generation, and adaptive effects. | Dark, Light, OLED, HighContrast |
+| Compact | Denser track rows, a thinner navigation rail, and a lower playbar. | Dark, Light, OLED, HighContrast |
+| Accessibility | Larger controls, thicker focus, a readable font option, flat surfaces, and stronger contrast. | Light, HighContrast, Dark, OLED |
+
+Scheme previews, layers, effects tiers, client-side flags, snippets, and presets change immediately. Installing a new custom app or extension still needs the desktop app. SpotX controls and cosmetic bundle patches also need a desktop reapply because they change files before Spotify starts. LibreSpot marks those controls clearly and copies a `.librespot` profile for the existing desktop import path.
+
+---
+
 ## Spotify Compatibility
 
 > **Note:** Spotify frequently updates its client, which can break SpotX and Spicetify patches. LibreSpot blocks Spotify auto-updates by default (via SpotX) to keep your installation stable.
 >
 > If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch. The WPF Maintenance dashboard also flags **After Spotify update** drift and recommends targeted recovery steps before a full reset.
 
-Current source script version: **v3.7.4**. Public latest stable release: **v4.0.0**.
+Current source script version: **v3.8.0**. Current source release candidate: **v4.1.0**. Public latest stable release: **v4.0.0**.
 
 **Pinned dependency versions in the current source script:**
 
@@ -442,7 +481,7 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 
 Releases ship unsigned by design. LibreSpot is not code-signed and is not waiting on a certificate: [SignPath Foundation](https://signpath.org/) OSS signing was evaluated and set aside, so there is no "once the cert arrives" milestone. `LibreSpot.exe`, `LibreSpot-Desktop.exe`, and `LibreSpot.Cli.exe` are published as unsigned artifacts, and Windows SmartScreen may warn about them. Verify identity with the SHA256 `checksums.txt` published alongside each release. A matching hash proves that the file is the release artifact, but it does not prove that the file is safe.
 
-The public latest stable release, v4.0.0, ships seven assets: `LibreSpot.ps1`, `LibreSpot.exe`, the .NET 10 `LibreSpot-Desktop.exe` and `LibreSpot.Cli.exe`, the CycloneDX SBOM, `checksums.txt`, and `librespot-release-manifest.json`. The repository itself does not track build artifacts. `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. The script shipped in v4.0.0 is source v3.7.4.
+The public latest stable release, v4.0.0, ships seven assets: `LibreSpot.ps1`, `LibreSpot.exe`, the .NET 10 `LibreSpot-Desktop.exe` and `LibreSpot.Cli.exe`, the CycloneDX SBOM, `checksums.txt`, and `librespot-release-manifest.json`. The repository itself does not track build artifacts. `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. The local v4.1.0 release candidate uses source script v3.8.0 and is not published yet.
 
 The .NET 10 desktop and CLI artifacts publish self-contained, which embeds the runtime, so they only receive .NET servicing security fixes when rebuilt against a patched runtime. Both projects set `TargetLatestRuntimePatch`, and `Build-Scripts.ps1 -DependencyHealth` records the resolved `Microsoft.NETCore.App` / `Microsoft.WindowsDesktop.App` patch level and fails the release preflight when the build host is below the documented 10.0.11 floor (`schemas/dependency-health-allowlist.json` → `dotnetRuntimeFloor`). Build release artifacts on an up-to-date .NET 10 SDK.
 
@@ -493,7 +532,7 @@ checksum-covered assets into the release root. Generate the CycloneDX SBOM, writ
 ```powershell
 .\Build-Scripts.ps1 -CompileStableExe
 .\Build-Scripts.ps1 -GenerateSbom
-.\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.0.0 -ReleaseChannel stable
+.\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.1.0 -ReleaseChannel stable
 ```
 
 `-CompileStableExe` writes `publish\LibreSpot.exe` with the pinned PS2EXE flags
@@ -540,7 +579,7 @@ of each source schema, so a change to a manifest field the page does not render
 show on a card.
 
 When the remote cannot be reached the check warns and passes, so an offline
-machine is not blocked. It only warns for a genuinely unreachable remote: if
+machine is not blocked. It only warns for an unreachable remote: if
 the fetch succeeds and the catalog still cannot be read, that is a failure.
 `-Validate` runs the same comparison against whatever `origin/gh-pages` the
 clone already has, without fetching.
@@ -596,7 +635,7 @@ disposable Task Scheduler task:
 .\Build-Scripts.ps1 -WatcherIntegration
 ```
 
-The harness isolates all watcher files under `%TEMP%`, covers success and
+The test runner isolates all watcher files under `%TEMP%`, covers success and
 failure/cancellation state transitions, emits Scheduler evidence on failure,
 and removes its task and temp data in a `finally` block.
 
