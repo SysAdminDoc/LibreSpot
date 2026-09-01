@@ -618,6 +618,8 @@ sweep, one Spanish high-contrast proof, and the four long-text locale proofs.
 
 Development planning is maintained in local working-tree docs. `ROADMAP.md` is the only active queue for incomplete work; completed work is represented by Git history and release notes.
 
+If you want to understand what the upstream tools actually change inside Spotify (the binary patches, the bundle rewrites, how themes and feature flags work, and why the two tools sometimes fight), read [docs/how-spotx-and-spicetify-alter-spotify.md](docs/how-spotx-and-spicetify-alter-spotify.md).
+
 ## Credits
 
 LibreSpot is a wrapper and installer, the real work is done by these projects:
