@@ -99,6 +99,49 @@ External reports do show a repeated support pattern:
 - **Accessibility and localization travel with each UI item.** UI work must retain keyboard focus, AutomationProperties, target size, contrast, and all five satellite resources. WCAG 2.2 remains the baseline ([WCAG 2.2](https://www.w3.org/TR/WCAG22/)).
 - **Stable-release truth needs one contract.** `SECURITY.md:8` still calls v4.0.x preview and best-effort. `Roadmap_Blocked.md` still contains pending SignPath enrollment, v3.7.2 stable-channel assumptions, preview release work, and pre-.NET 10 decisions that conflict with the shipped v4.0.0 state. `README.md`, `SECURITY.md`, `SIGNPATH.md`, and the blocked plan should agree that v4 is stable and unsigned by design. RD-134 should also add a cheap release-truth regression check.
 
+## Customization and Theming Deep-Dive (2026-09-01)
+
+A focused pass on how SpotX and Spicetify actually alter Spotify, what the customization ecosystem does and does not cover, and where LibreSpot can lead. Sources are in the dedicated blocks at the end of this section; the SpotX patch table was read from the pinned `run.ps1` and `patches.json` on disk, and the Spicetify pipeline from `spicetify/cli` at tag `v2.44.0`.
+
+### How the two patchers alter Spotify
+
+- **SpotX is an offline file patcher.** It rewrites the client on disk and exits. Two layers. Native: it reads `Spotify.dll` (or `Spotify.exe` below 1.2.70.253) as code-page-1251 text and regex-replaces short strings (`slots`->`slot}`, `gabo`->`dodo`, `desktop-update/v2`->`v7`, `?payload=`->`}payload=`), plus true byte patches for the DLL signature-check stub (`B8 01 00 00 00 C3`), crossfade (`B0 01 90 90 90`), and, on 1.2.94+, a control-flow analysis of `slot_is_disabled` because the string trick stopped working. Web: it opens `Apps\xpui.spa` (a plain ZIP with no integrity check), reconstructs `xpui.js` from the V8 snapshot when needed, and applies the `patches.json` tables to the JS and CSS. The flag engine (`ForcedExp`) injects a `putOverridesValues` shim that force-flips roughly 250 Spotify experiment flags, and `spotx-helper/sectionBlock.js` monkey-patches `fetch` to strip home sections by ID.
+- **Spicetify is a live injector.** `spicetify backup` unzips the SPA, runs `preprocess.go` (disable Sentry with `864e5<30`->`<0`, strip logging endpoints, `removeRTL`, expose the `Spicetify.*` APIs by wrapping webpack internals, rewrite hashed classnames to semantic names through `css-map.json`), and `apply.go` writes `colors.css`/`user.css`, injects `<script>`/`<link>` tags into `index.html`, and wires custom-app routes by regex-matching `React.lazy` and the `/settings` route.
+- **The order is strict and they fight.** Stock -> SpotX -> `spicetify apply`. SpotX serves the combined `/xpui.js`; Spicetify 2.44.0 patches `xpui-modules.js`/snapshot. When they disagree the store or home page goes blank, which is exactly the route collision LibreSpot's `Repair-SpicetifyCustomAppWiring.ps1` already ports the CLI's injection logic to fix.
+
+### Insight for LibreSpot
+
+- **LibreSpot already owns the machinery the ecosystem lacks.** It pins SpotX/Spicetify/Marketplace/themes to reviewed commits with SHA256, has a 64 KB custom-`patches.json` pipeline (`New-SpotXCustomPatchesFile.ps1`, `SpotX_CustomPatchesJson`), a community-theme catalog keyed by owner/commit/hash (`Module-InstallThemes.ps1`), and a route-repair that mirrors the CLI. Every customization below plugs into existing code rather than a new subsystem, which is why the plugin-framework rejection still holds.
+- **The single biggest untapped surface is the experiment flags.** LibreSpot exposes about a dozen SpotX switches (`Build-SpotXParams.ps1`), but SpotX's own `EnableExp`/`DisableExp` catalog and the live client carry ~330 `enable*` flags with Spotify's own descriptions. The client-side ones (Equalizer, Lyrics UI, Sleep Timer, PiP mini-player, Fullscreen, right-sidebar variants, tracklist sorting, ambient mode) are exactly the top community requests and flip locally. A curated, version-gated flag picker is the highest-value customization LibreSpot can add, and it is data plus UI, not new plumbing.
+- **The theme layer is where new capability is both easy and legally safe.** The 2025-2026 GitHub takedowns (Perkins Coie for Spotify) hit premium-unlock and ad-circumvention projects and never touched SpotX, Spicetify, or any theme. Spotify's own rules forbid ad-blocking and reverse-engineering; theming, layout, window chrome, and local UI-flag overrides sit on the safe side. LibreSpot already runs SpotX ad-blocking, which is the higher-risk part; net-new customization work should lean into theming, not more ad tricks.
+- **css-map fragility is the ecosystem's recurring wound.** Spotify 1.2.86 shortened hashed classnames from 20 to 16 characters and broke every theme until Spicetify re-mapped over weeks; the trackers filled with "playbar disappeared / marketplace missing." LibreSpot's version-resilience story (pinned tuple, route repair) is already better than most themes, and a post-apply self-test that logs unmatched anchors would turn that into a visible advantage.
+
+### Invented customizations that do not exist yet
+
+Each is grounded in the API surface and mechanics above, ranked by value and feasibility, and each is legally safe (theming or local UI flags only).
+
+1. **Curated experimental-feature picker.** Surface a reviewed subset of the client-side `enable*` flags as labeled toggles, written through SpotX's `ForcedExp` custom-patch path or Spicetify's `expFeatureOverride`. Server-gated flags (Enhance, quality, Jam) are shown as unavailable, not offered. Persisted in the `.librespot` profile. Feasible now; it is a data catalog plus one Custom Install section.
+2. **A LibreSpot-original theme with three unbuilt features.** Time-scheduled light/dark that defeats forced-dark-mode (no OS hook, no binary patch), per-context accent from `colorExtractor`, and a frame-rate probe that steps glass down on slow machines, plus a real high-contrast accessibility scheme. Built and validated as the `Prism` proof of concept at `C:\repos\LibreSpot-Prism` (see below).
+3. **One-click customization presets.** Bundle theme + scheme + flags + snippets into named presets (OLED, Accessibility, Compact, Performance) that write through the existing profile format. The ecosystem ships monolithic themes; nobody ships composable presets.
+4. **Version-resilience self-test.** After apply, probe the live bundle for the anchors LibreSpot depends on and log any that no longer match, so a Spotify class-hash change surfaces as a named warning instead of a silently blank page.
+5. **Curated CSS snippets.** Marketplace ships 93 one-line snippets (hide-this, rounded UI, progress-bar mascots, cover shapes) with no install counts and no version resilience. LibreSpot could pin a reviewed set and inject them the way it injects themes.
+6. **Composable theme layers.** Because palettes are just `--spice-*` maps and layouts are class-scoped CSS, a theme that loads palette, layout, and effects as independent modules would absorb the constant "add scheme X" request traffic that every theme repo carries.
+
+### Rejected on the customization axis
+
+- **Windows Mica/acrylic and native title bar:** the only working path is a native Windhawk-style CEF mod plus `--no-sandbox` (see WMPotify). That is a separate native component with its own update treadmill and a real support burden, and it conflicts with LibreSpot's least-privilege, no-native-hook contract. Track as research, not a near-term feature.
+- **Auto light/dark from the real OS setting:** Spotify's forced dark mode blinds `matchMedia`, so a true OS-follow needs either a binary patch or an external helper. The time-scheduled approach in Prism delivers the practical benefit without either.
+- **Audio-reactive visuals and any audio processing:** the client exposes no PCM, and `getAudioData` depends on the analysis endpoint Spotify deprecated on 2024-11-27. Equalizer, normalization, and silence trimming are native and only reachable as flags.
+
+### Customization sources
+
+- SpotX `run.ps1` / `patches.json` (pinned `550bc72c`, read on disk) and https://github.com/SpotX-Official/SpotX
+- Spicetify pipeline: https://github.com/spicetify/cli/blob/v2.44.0/src/preprocess/preprocess.go , https://github.com/spicetify/cli/blob/v2.44.0/src/apply/apply.go , https://github.com/spicetify/cli/blob/v2.44.0/jsHelper/expFeatures.js , https://spicetify.app/docs/development/themes
+- Marketplace mechanics: https://github.com/spicetify/marketplace/blob/main/src/logic/Storage.ts , https://github.com/spicetify/marketplace/blob/main/resources/snippets.json
+- Theme ecosystem and unmet demand: https://github.com/spicetify/cli/issues/1095 (auto light/dark), https://github.com/spicetify/cli/issues/860 (visualiser), https://github.com/spicetify/cli/issues/2836 (PIP theming), https://github.com/Astromations/Hazy/issues/141 (glass perf), https://github.com/Ingan121/WMPotify , https://github.com/Comfy-Themes/Spicetify
+- Legal boundary: https://www.spotify.com/us/legal/user-guidelines/ , https://github.com/github/dmca/blob/master/2025/08/2025-08-14-spotify.md
+- Proof of concept: `C:\repos\LibreSpot-Prism` (Prism v0.1.0)
+
 ## Rejected Ideas
 
 - **Adopt Spicetify v3 now:** beta.9 was still a prerelease on 2026-08-23, and the schema-v2 support data ended at Spotify 1.2.94 ([release](https://github.com/spicetify/cli/releases/tag/v3.0.0-beta.9); [support data](https://raw.githubusercontent.com/spicetify/cli/v3-beta/supported-versions.json); [architecture issue](https://github.com/spicetify/cli/issues/3038)).
