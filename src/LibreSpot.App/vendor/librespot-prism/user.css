@@ -1,0 +1,96 @@
+/* Prism - user.css
+ * Layered theme: a palette layer (color.ini drives --spice-*), an optional
+ * glass-effect layer, and an accessibility layer. Effects are gated so a
+ * low-power machine or a reduced-motion user gets a flat, fast UI.
+ *
+ * Runtime classes set by theme.js on <html>:
+ *   .prism-glass   full translucency + blur
+ *   .prism-eco     effects stepped down (FPS probe or user choice)
+ *   .prism-flat    no effects at all
+ *   .prism-contrast  accessibility pass (thicker focus, no transparency)
+ */
+
+:root {
+  --prism-blur: 18px;
+  --prism-glass-alpha: 0.55;
+  --prism-radius: 12px;
+  --prism-focus-ring: 2px;
+  /* --prism-accent is repointed by theme.js from album art; falls back to the
+     scheme's own accent so the theme is correct before the first track. */
+  --prism-accent: var(--spice-accent, var(--spice-button));
+}
+
+/* ---- Base surfaces ---------------------------------------------------- */
+.Root__main-view,
+.Root__right-sidebar,
+.Root__nav-bar,
+.main-view-container__scroll-node {
+  background-color: var(--spice-main);
+}
+
+/* Accent flows into the primary controls without overriding the scheme. */
+.main-playButton-PlayButton button,
+.main-repeatButton-active,
+.main-shuffleButton-active,
+.progress-bar__slider,
+.x-progressBar-fillColor,
+.volume-bar__slider {
+  background-color: var(--prism-accent) !important;
+}
+.main-trackList-rowMarkedAsPlaying .main-trackList-rowTitle,
+.main-nowPlayingWidget-trackLink:hover {
+  color: var(--prism-accent) !important;
+}
+
+/* ---- Glass layer (only when .prism-glass and not reduced-motion) ------ */
+html.prism-glass:not(.prism-flat) .Root__right-sidebar,
+html.prism-glass:not(.prism-flat) .main-nowPlayingBar-nowPlayingBar,
+html.prism-glass:not(.prism-flat) .Root__nav-bar {
+  background-color: rgba(var(--spice-rgb-player), var(--prism-glass-alpha));
+  backdrop-filter: blur(var(--prism-blur)) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--prism-blur)) saturate(1.2);
+}
+
+/* Eco tier: keep translucency, drop the expensive blur. */
+html.prism-eco {
+  --prism-blur: 0px;
+  --prism-glass-alpha: 0.9;
+}
+
+/* Flat tier: no blur, no translucency, no transitions. */
+html.prism-flat * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition-duration: 0.001ms !important;
+  animation-duration: 0.001ms !important;
+}
+
+/* Reduced-motion users get the same flattening regardless of tier. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+  }
+}
+
+/* ---- Rounded cards --------------------------------------------------- */
+.main-card-card,
+.main-nowPlayingBar-nowPlayingBar,
+.main-entityHeader-imageContainer img {
+  border-radius: var(--prism-radius);
+}
+
+/* ---- Accessibility pass ---------------------------------------------- */
+html.prism-contrast *:focus-visible {
+  outline: calc(var(--prism-focus-ring) * 2) solid var(--prism-accent) !important;
+  outline-offset: 2px !important;
+}
+html.prism-contrast .Root__right-sidebar,
+html.prism-contrast .main-nowPlayingBar-nowPlayingBar,
+html.prism-contrast .Root__nav-bar {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: var(--spice-player) !important;
+}

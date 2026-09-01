@@ -634,3 +634,5 @@ LibreSpot is a wrapper and installer, the real work is done by these projects:
 ## License
 
 [MIT](LICENSE)
+
+The in-Spotify live customization engine under `src/LibreSpot.App` is an AGPL-3.0 component because it incorporates compatible upstream work. Its [license](src/LibreSpot.App/LICENSE) and [third-party notices](src/LibreSpot.App/THIRD_PARTY_NOTICES.md) apply to that component.
