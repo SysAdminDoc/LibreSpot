@@ -3279,7 +3279,7 @@
       <Grid Margin="64">
         <Border x:Name="ActivityDialogRoot"
                 Width="900"
-                MaxHeight="720"
+                MaxHeight="760"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Padding="32"
@@ -3764,30 +3764,37 @@
             </Grid>
 
             <Grid Grid.Row="4" Margin="0,18,0,0">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+              </Grid.RowDefinitions>
 
-              <StackPanel Margin="0,0,20,0">
+              <StackPanel>
                 <TextBlock Text="{Binding ActivitySummaryTitle}"
                            Style="{StaticResource LabelTextStyle}" />
                 <TextBlock Text="{Binding ActivityAssistiveText}"
                            Style="{StaticResource CaptionTextStyle}"
                            Margin="0,6,0,0"
-                           TextWrapping="Wrap"
-                           MaxWidth="430" />
-                <TextBlock Text="{Binding ActivityLogPathText}"
-                           Style="{StaticResource CaptionTextStyle}"
-                           Foreground="{DynamicResource SubtleTextBrush}"
-                           Margin="0,8,0,0"
-                           MaxWidth="430"
                            TextWrapping="Wrap" />
+                <Border Background="{DynamicResource Surface1Brush}"
+                        BorderBrush="{DynamicResource StrokeSoftBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource RadiusMd}"
+                        Margin="0,10,0,0"
+                        Padding="10,8">
+                  <TextBlock Text="{Binding ActivityLogPathText}"
+                             Foreground="{DynamicResource SubtleTextBrush}"
+                             FontFamily="{StaticResource MonoFont}"
+                             FontSize="11"
+                             TextWrapping="NoWrap"
+                             TextTrimming="CharacterEllipsis"
+                             ToolTip="{Binding ActivityLogPathText}" />
+                </Border>
               </StackPanel>
 
-              <StackPanel Grid.Column="1"
-                          Orientation="Horizontal"
-                          HorizontalAlignment="Right">
+              <WrapPanel Grid.Row="1"
+                         HorizontalAlignment="Right"
+                         Margin="0,14,0,0">
                 <Button Content="{services:Loc ButtonCopyLog}"
                         x:Name="ActivityCopyLogButton"
                         MinWidth="120"
@@ -3865,7 +3872,7 @@
                     </Style>
                   </Button.Style>
                 </Button>
-              </StackPanel>
+              </WrapPanel>
             </Grid>
           </Grid>
         </Border>

@@ -93,6 +93,23 @@ public sealed class PremiumShellContractTests
     }
 
     [Fact]
+    public void ActivityDialogFooterKeepsRecoveryGuidanceAboveActions()
+    {
+        var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        var dialogStart = xaml.IndexOf("x:Name=\"ActivityDialogRoot\"", StringComparison.Ordinal);
+        var footerStart = xaml.IndexOf("<Grid Grid.Row=\"4\" Margin=\"0,18,0,0\">", dialogStart, StringComparison.Ordinal);
+        var promptStart = xaml.IndexOf("<!-- ═══ Prompt overlay ═══ -->", footerStart, StringComparison.Ordinal);
+
+        Assert.True(dialogStart >= 0 && footerStart > dialogStart && promptStart > footerStart);
+        var footer = xaml[footerStart..promptStart];
+        Assert.Contains("<Grid.RowDefinitions>", footer);
+        Assert.Contains("<WrapPanel Grid.Row=\"1\"", footer);
+        Assert.Contains("Text=\"{Binding ActivityLogPathText}\"", footer);
+        Assert.Contains("TextTrimming=\"CharacterEllipsis\"", footer);
+        Assert.DoesNotContain("<Grid.ColumnDefinitions>", footer);
+    }
+
+    [Fact]
     public void StartupFailuresBecomeRetryableShellState()
     {
         var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
