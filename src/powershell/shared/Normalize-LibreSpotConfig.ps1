@@ -1,7 +1,7 @@
 function Normalize-LibreSpotConfig {
     param([hashtable]$Config)
 
-    $null = Assert-LibreSpotConfigSchemaSupported -Config $Config
+    $sourceSchemaVersion = Assert-LibreSpotConfigSchemaSupported -Config $Config
 
     $normalized = @{
         ConfigSchemaVersion = $global:CONFIG_SCHEMA_VERSION
@@ -132,6 +132,9 @@ function Normalize-LibreSpotConfig {
         if ([string]::IsNullOrWhiteSpace($name)) { continue }
         if (-not $global:CommunityCustomApps.Contains($name)) { continue }
         if (-not $customApps.Contains($name)) { $customApps.Add($name) }
+    }
+    if ($sourceSchemaVersion -lt 2 -and $normalized.Mode -eq 'Easy' -and -not $customApps.Contains('librespot')) {
+        $customApps.Add('librespot')
     }
     $normalized.Spicetify_CustomApps = @($customApps)
 

@@ -1429,7 +1429,7 @@ public sealed class PowerShellRegressionTests
             RegexOptions.Singleline | RegexOptions.Multiline);
 
         Assert.True(fnBody.Success, $"Normalize-LibreSpotConfig function block not found in {relativePath}.");
-        Assert.Contains("$global:CONFIG_SCHEMA_VERSION = 1", script);
+        Assert.Contains("$global:CONFIG_SCHEMA_VERSION = 2", script);
         Assert.Contains("function Get-LibreSpotConfigSchemaVersion", script);
         Assert.Contains("function Assert-LibreSpotConfigSchemaSupported", script);
         Assert.Contains("Saved config schema version", script);

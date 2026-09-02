@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$comment": "Generated parity manifest — do not edit by hand. Regenerate by running the ParityManifestTests suite.",
   "generatorVersion": "4.1.1",
-  "configSchemaVersion": 1,
+  "configSchemaVersion": 2,
   "configKeys": [
-    { "key": "ConfigSchemaVersion",    "type": "int",    "default": 1,                                                      "script": true, "wpf": true, "wpfBackend": true },
+    { "key": "ConfigSchemaVersion",    "type": "int",    "default": 2,                                                      "script": true, "wpf": true, "wpfBackend": true },
     { "key": "Mode",                   "type": "string", "default": "Easy",                                                 "script": true, "wpf": true, "wpfBackend": false },
     { "key": "UiCulture",              "type": "string", "default": "en",                                                   "script": true, "wpf": true, "wpfBackend": true },
     { "key": "CleanInstall",           "type": "bool",   "default": true,                                                   "script": true, "wpf": true, "wpfBackend": true },

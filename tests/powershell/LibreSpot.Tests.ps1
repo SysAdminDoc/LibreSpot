@@ -807,6 +807,24 @@ Describe 'Normalize-LibreSpotConfig' {
             $result = Normalize-LibreSpotConfig -Config @{ ConfigSchemaVersion = 0; Mode = 'Easy' }
             $result.ConfigSchemaVersion | Should -Be $global:CONFIG_SCHEMA_VERSION
         }
+
+        It 'Adds the LibreSpot live app when migrating a legacy Easy profile' {
+            $result = Normalize-LibreSpotConfig -Config @{
+                ConfigSchemaVersion = 1
+                Mode = 'Easy'
+                Spicetify_CustomApps = @()
+            }
+            @($result.Spicetify_CustomApps) | Should -Be @('librespot')
+        }
+
+        It 'Preserves a legacy Custom profile that explicitly omitted the live app' {
+            $result = Normalize-LibreSpotConfig -Config @{
+                ConfigSchemaVersion = 1
+                Mode = 'Custom'
+                Spicetify_CustomApps = @()
+            }
+            @($result.Spicetify_CustomApps).Count | Should -Be 0
+        }
     }
 
     Context 'Unknown keys are stripped' {

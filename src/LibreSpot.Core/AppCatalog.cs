@@ -819,7 +819,7 @@ public static class AppCatalog
     public static CustomizationCatalogDocument CustomizationCatalog =>
         CustomizationCatalogValue.Value;
 
-    public const int CurrentConfigSchemaVersion = 1;
+    public const int CurrentConfigSchemaVersion = 2;
     public const string DefaultUiCulture = "en";
     public const string PinnedSpotXVersion = "2.0";
     public const string PinnedSpotXCommit = "550bc72cd15f6e2a172a6ecc0873d0991eb1c83c";
@@ -1306,6 +1306,12 @@ public static class AppCatalog
             .Where(item => !string.IsNullOrWhiteSpace(item) && validCustomApps.Contains(item))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+        if (source.ConfigSchemaVersion < 2 &&
+            string.Equals(normalized.Mode, "Easy", StringComparison.Ordinal) &&
+            !normalized.Spicetify_CustomApps.Contains("librespot", StringComparer.OrdinalIgnoreCase))
+        {
+            normalized.Spicetify_CustomApps.Add("librespot");
+        }
 
         normalized.LibreSpot_EngineProfileJson = NormalizeEngineProfileJson(source.LibreSpot_EngineProfileJson);
         var validSnippetIds = CustomizationCatalog.Snippets

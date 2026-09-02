@@ -10,8 +10,8 @@
   "properties": {
     "ConfigSchemaVersion": {
       "type": "integer",
-      "const": 1,
-      "description": "Version of the LibreSpot config schema this file was written against."
+      "const": 2,
+      "description": "Version of the LibreSpot config schema this file was written against. Version 2 adds the built-in LibreSpot live app to legacy Easy profiles."
     },
     "Mode": {
       "type": "string",

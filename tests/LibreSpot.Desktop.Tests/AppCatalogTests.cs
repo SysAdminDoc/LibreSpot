@@ -33,6 +33,37 @@ public sealed class AppCatalogTests
     }
 
     [Fact]
+    public void NormalizeConfiguration_MigratesLegacyEasyProfileToLibreSpotLiveApp()
+    {
+        var configuration = new InstallConfiguration
+        {
+            ConfigSchemaVersion = 1,
+            Mode = "Easy",
+            Spicetify_CustomApps = []
+        };
+
+        var normalized = AppCatalog.NormalizeConfiguration(configuration);
+
+        Assert.Equal(AppCatalog.CurrentConfigSchemaVersion, normalized.ConfigSchemaVersion);
+        Assert.Equal(["librespot"], normalized.Spicetify_CustomApps);
+    }
+
+    [Fact]
+    public void NormalizeConfiguration_PreservesLegacyCustomProfileWithoutLiveApp()
+    {
+        var configuration = new InstallConfiguration
+        {
+            ConfigSchemaVersion = 1,
+            Mode = "Custom",
+            Spicetify_CustomApps = []
+        };
+
+        var normalized = AppCatalog.NormalizeConfiguration(configuration);
+
+        Assert.Empty(normalized.Spicetify_CustomApps);
+    }
+
+    [Fact]
     public void NormalizeConfiguration_DisablesSidebarStylingWhenSidebarIsHidden()
     {
         var configuration = new InstallConfiguration
