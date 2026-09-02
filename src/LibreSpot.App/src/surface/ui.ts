@@ -245,6 +245,7 @@ export function ActionButton(properties: {
   onClick: () => void;
   secondary?: boolean;
   disabled?: boolean;
+  accessibleLabel?: string;
 }): UiNode {
   return h(
     "button",
@@ -253,6 +254,7 @@ export function ActionButton(properties: {
       className: properties.secondary
         ? "librespot-button librespot-button--secondary"
         : "librespot-button",
+      "aria-label": properties.accessibleLabel,
       disabled: properties.disabled ?? false,
       onClick: properties.onClick,
     },

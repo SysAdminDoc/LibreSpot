@@ -1,4 +1,5 @@
 import "./app.css";
+import brandIconSource from "./icons/librespot.generated.txt";
 import { ExtensionsPanel } from "./panels/extensions.ts";
 import { FeaturesPanel } from "./panels/features.ts";
 import { HealthPanel } from "./panels/health.ts";
@@ -108,6 +109,7 @@ function LoadingSurface(): UiNode {
 }
 
 function AppShell(properties: PanelProperties & { activePanel: PanelId }): UiNode {
+  const brandIconMask = `url("data:image/svg+xml,${encodeURIComponent(brandIconSource)}")`;
   const activeDefinition = PANEL_DEFINITIONS.find(
     (panel) => panel.id === properties.activePanel,
   );
@@ -131,10 +133,14 @@ function AppShell(properties: PanelProperties & { activePanel: PanelId }): UiNod
         { className: "librespot-brand" },
         h(
           "span",
-          { className: "librespot-brand__mark", "aria-hidden": "true" },
-          h("i"),
-          h("i"),
-          h("i"),
+          {
+            className: "librespot-brand__mark",
+            "aria-hidden": "true",
+            style: {
+              maskImage: brandIconMask,
+              WebkitMaskImage: brandIconMask,
+            },
+          },
         ),
         h(
           "div",

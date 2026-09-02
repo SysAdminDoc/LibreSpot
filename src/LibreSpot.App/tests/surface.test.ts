@@ -71,10 +71,12 @@ describe("LibreSpot surface contract", () => {
     const css = readFileSync(resolve(import.meta.dirname, "../src/app.css"), "utf8");
     expect(css).toContain(":focus-visible");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).toContain("@media (forced-colors: active)");
     expect(css).toContain("@media (max-width: 900px)");
-    expect(css).toContain("@media (max-width: 700px)");
+    expect(css).toContain("@media (max-width: 780px)");
     expect(css).not.toContain(":has(");
     expect(css).not.toContain("backdrop-filter");
+    expect(css).not.toContain("border-radius: 999px");
     expect(css).toContain(".librespot-snippet-preview");
   });
 
@@ -97,5 +99,7 @@ describe("LibreSpot surface contract", () => {
     expect(app).not.toMatch(/return\s*\([^)]*<[A-Za-z]/s);
     expect(app).not.toContain("keydown");
     expect(app).not.toContain("keyup");
+    expect(app).toContain("brandIconSource");
+    expect(app).not.toContain('h("i")');
   });
 });

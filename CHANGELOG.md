@@ -14,6 +14,9 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- The Spotify workspace now uses one compact corner scale across buttons, badges, switches, and cards. Selected rows carry an accent edge, small labels are larger, and controls have larger targets. The narrow layout switches to a horizontal rail at 780 pixels, so header actions no longer collapse into tall pills.
+- The Tweaks catalog uses two columns at desktop widths, which shortens the page while keeping each preview and its source metadata readable. Built-in presets use quieter secondary actions so Save current remains the clear primary action.
+- The in-app brand mark now comes from the same reviewed SVG used by the custom-app manifest. The build stages that source as text for Spicetify Creator, embeds it as an accent-aware mask, and removes the temporary file after bundling.
 - The Spotify Features panel now opens as a compact group index instead of rendering all 351 flags in one 29,000-pixel page. Search opens matching groups, each summary shows its count and any custom values, and SpotX settings remain available in their own collapsible group.
 - Home now chooses one action from the latest environment snapshot. A new machine gets Recommended Setup, a healthy managed stack gets Open Spotify, and a degraded stack gets its first safe repair in critical-then-warning order. If recovery is destructive, Home opens Maintenance without running the action. Loading disables the button, Retry owns the failed-check state, and overlapping refreshes cannot restore stale copy or commands.
 - Maintenance now leads with overall status, the most important issue, and one safe repair. Diagnostics stay available in a collapsed section, reset actions have their own collapsed danger section, healthy systems say no action is needed, and failed checks offer Retry.

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const workspace = resolve(import.meta.dirname, "..");
@@ -11,16 +11,28 @@ const creator = resolve(
   "dist",
   "index.js",
 );
+const brandIcon = resolve(workspace, "src", "icons", "librespot.svg");
+const generatedBrandIcon = resolve(
+  workspace,
+  "src",
+  "icons",
+  "librespot.generated.txt",
+);
 
 rmSync(output, { recursive: true, force: true });
-execFileSync(
-  process.execPath,
-  [creator, "--out", output, "--in", resolve(workspace, "src"), "--minify"],
-  {
-    cwd: workspace,
-    stdio: "inherit",
-  },
-);
+writeFileSync(generatedBrandIcon, readFileSync(brandIcon, "utf8"), "utf8");
+try {
+  execFileSync(
+    process.execPath,
+    [creator, "--out", output, "--in", resolve(workspace, "src"), "--minify"],
+    {
+      cwd: workspace,
+      stdio: "inherit",
+    },
+  );
+} finally {
+  rmSync(generatedBrandIcon, { force: true });
+}
 
 const requiredFiles = [
   "index.js",

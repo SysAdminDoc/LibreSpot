@@ -66,6 +66,11 @@ export function PresetsPanel(properties: PanelProperties): UiNode {
                 properties.snapshot.state.name === preset.title
                   ? "Applied"
                   : "Apply preset",
+              accessibleLabel:
+                properties.snapshot.state.name === preset.title
+                  ? `${preset.title} preset applied`
+                  : `Apply ${preset.title} preset`,
+              secondary: true,
               disabled: properties.snapshot.state.name === preset.title,
               onClick: () => {
                 void properties.runtime.update(
