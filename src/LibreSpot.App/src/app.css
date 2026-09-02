@@ -672,6 +672,117 @@
   width: 100%;
 }
 
+.librespot-feature-toolbar {
+  align-items: end;
+  background: var(--ls-canvas);
+  border: 1px solid var(--ls-border);
+  border-radius: 12px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 16px;
+  padding: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.librespot-feature-toolbar .librespot-search {
+  margin: 0;
+}
+
+.librespot-feature-toolbar__status {
+  align-items: center;
+  color: var(--ls-muted);
+  display: flex;
+  font-size: 11px;
+  gap: 10px;
+  min-height: 38px;
+  white-space: nowrap;
+}
+
+.librespot-feature-group {
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  overflow: clip;
+}
+
+.librespot-feature-group__summary {
+  align-items: center;
+  color: var(--ls-text);
+  cursor: pointer;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 68px;
+  padding: 14px 18px;
+}
+
+.librespot-feature-group[open] .librespot-feature-group__summary {
+  border-bottom: 1px solid var(--ls-border);
+}
+
+.librespot-feature-group__summary::marker {
+  color: var(--ls-accent);
+}
+
+.librespot-feature-group__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.librespot-feature-group__copy strong {
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.librespot-feature-group__copy > span {
+  color: var(--ls-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.librespot-feature-group__count {
+  background: var(--ls-surface-3);
+  border: 1px solid var(--ls-border);
+  border-radius: 6px;
+  color: var(--ls-muted);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
+.librespot-feature-group__body {
+  padding: 4px 18px 12px;
+}
+
+.librespot-feature + .librespot-feature {
+  border-top: 1px solid var(--ls-border);
+}
+
+.librespot-empty-state {
+  align-items: start;
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-radius: 12px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin-bottom: 16px;
+  padding: 18px;
+}
+
+.librespot-empty-state p {
+  color: var(--ls-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+
 .librespot-extension-card__title,
 .librespot-health-check__title {
   align-items: center;
@@ -925,6 +1036,16 @@
   .librespot-control-row {
     gap: 14px;
   }
+
+  .librespot-feature-toolbar {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .librespot-feature-toolbar__status {
+    justify-content: space-between;
+    white-space: normal;
+  }
 }
 
 @media (max-width: 700px) {
@@ -982,6 +1103,15 @@
 
   .librespot-profile-summary dl {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .librespot-feature-toolbar__status {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .librespot-feature-toolbar__status .librespot-button {
+    width: 100%;
   }
 }
 

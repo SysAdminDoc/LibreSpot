@@ -78,6 +78,20 @@ describe("LibreSpot surface contract", () => {
     expect(css).toContain(".librespot-snippet-preview");
   });
 
+  it("keeps the large feature catalog searchable and grouped", () => {
+    const source = readFileSync(
+      resolve(import.meta.dirname, "../src/panels/features.ts"),
+      "utf8",
+    );
+    const css = readFileSync(resolve(import.meta.dirname, "../src/app.css"), "utf8");
+    expect(source).toContain('className: "librespot-feature-group"');
+    expect(source).toContain('"aria-live": "polite"');
+    expect(source).toContain('label: "Clear search"');
+    expect(source).toContain("HTMLDetailsElement");
+    expect(css).toContain(".librespot-feature-toolbar");
+    expect(css).toContain(".librespot-feature-group[open]");
+  });
+
   it("keeps the source free of JSX and keyboard shortcut handlers", () => {
     const app = readFileSync(resolve(import.meta.dirname, "../src/app.ts"), "utf8");
     expect(app).not.toMatch(/return\s*\([^)]*<[A-Za-z]/s);

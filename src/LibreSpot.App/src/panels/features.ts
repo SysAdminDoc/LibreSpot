@@ -12,7 +12,14 @@ import {
   SURFACE_SPOTX_SEEDS,
 } from "../surface/builtins.ts";
 import type { PanelProperties } from "../surface/panel-types.ts";
-import { InputRow, PanelIntro, Section, SelectRow, ToggleRow, h } from "../surface/ui.ts";
+import {
+  ActionButton,
+  InputRow,
+  PanelIntro,
+  SelectRow,
+  ToggleRow,
+  h,
+} from "../surface/ui.ts";
 
 type DisplayFeature = CapturedFeature & {
   group: string;
@@ -22,6 +29,7 @@ type DisplayFeature = CapturedFeature & {
 };
 
 const GROUP_ORDER = CUSTOMIZATION_CATALOG.featureGroups;
+const SPOTX_GROUP_KEY = "SpotX switches";
 
 function inferredGroup(name: string): string {
   const value = name.toLowerCase();
@@ -100,11 +108,13 @@ function featureControl(
 ): UiNode {
   const stored = properties.snapshot.state.featureOverrides[feature.name];
   const value = stored ?? feature.default;
-  const badge = feature.spotxForced
-    ? `SpotX ${feature.spotxForced.mode}`
-    : feature.serverGated
-      ? "Account gated"
-      : "Live";
+  const badge = stored !== undefined
+    ? "Custom"
+    : feature.spotxForced
+      ? `SpotX ${feature.spotxForced.mode}`
+      : feature.serverGated
+        ? "Account gated"
+        : "Live";
   const description = `${feature.description}${feature.serverGated ? " It may do nothing on a free account." : ""}${feature.spotxForced ? ` SpotX pins the default from ${feature.spotxForced.source}.` : ""}`;
   if (feature.type === "enum" && feature.values) {
     return SelectRow({
@@ -213,14 +223,29 @@ export function FeaturesPanel(properties: PanelProperties): UiNode {
   const React = Spicetify.React;
   const [query, setQuery] = React.useState("");
   const features = mergedFeatures(properties);
+  const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>(
+    () => Object.fromEntries([...GROUP_ORDER, SPOTX_GROUP_KEY].map((group) => [group, false])),
+  );
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = normalizedQuery
     ? features.filter(
         (feature) =>
           feature.name.toLowerCase().includes(normalizedQuery) ||
-          feature.description.toLowerCase().includes(normalizedQuery),
+          feature.description.toLowerCase().includes(normalizedQuery) ||
+          feature.group.toLowerCase().includes(normalizedQuery) ||
+          feature.source?.toLowerCase().includes(normalizedQuery),
       )
     : features;
+  const visibleGroupCount = GROUP_ORDER.filter((group) =>
+    filtered.some((feature) => feature.group === group),
+  ).length;
+  const customizedCount = features.filter(
+    (feature) =>
+      properties.snapshot.state.featureOverrides[feature.name] !== undefined,
+  ).length;
+  const resultLabel = normalizedQuery
+    ? `${filtered.length} ${filtered.length === 1 ? "match" : "matches"} in ${visibleGroupCount} ${visibleGroupCount === 1 ? "group" : "groups"}`
+    : `${features.length} flags in ${visibleGroupCount} groups, ${customizedCount} customized`;
 
   const onSearch = (event: unknown) => {
     if (event instanceof Event && event.target instanceof HTMLInputElement) {
@@ -237,28 +262,104 @@ export function FeaturesPanel(properties: PanelProperties): UiNode {
       body: "Client flags use Spotify's own override APIs and change live. SpotX switches are saved into the same profile, then handed to the desktop because binary patches need a reapply.",
     }),
     h(
-      "label",
-      { className: "librespot-search" },
-      h("span", null, "Search features"),
-      h("input", {
-        type: "search",
-        value: query,
-        placeholder: "Name or Spotify description",
-        onInput: onSearch,
-      }),
+      "div",
+      { className: "librespot-feature-toolbar" },
+      h(
+        "label",
+        { className: "librespot-search" },
+        h("span", null, "Search features"),
+        h("input", {
+          type: "search",
+          value: query,
+          placeholder: "Name, group, source, or Spotify description",
+          onInput: onSearch,
+        }),
+      ),
+      h(
+        "div",
+        { className: "librespot-feature-toolbar__status" },
+        h("span", { "aria-live": "polite" }, resultLabel),
+        normalizedQuery
+          ? ActionButton({
+              label: "Clear search",
+              secondary: true,
+              onClick: () => {
+                setQuery("");
+              },
+            })
+          : null,
+      ),
     ),
+    filtered.length === 0
+      ? h(
+          "div",
+          { className: "librespot-empty-state", role: "status" },
+          h("strong", null, "No matching features"),
+          h("p", null, "Try a flag name, category, source, or a word from Spotify's description."),
+          ActionButton({
+            label: "Clear search",
+            secondary: true,
+            onClick: () => {
+              setQuery("");
+            },
+          }),
+        )
+      : null,
     ...GROUP_ORDER.flatMap((group) => {
       const groupFeatures = filtered.filter((feature) => feature.group === group);
       if (groupFeatures.length === 0) {
         return [];
       }
+      const groupCustomizedCount = groupFeatures.filter(
+        (feature) =>
+          properties.snapshot.state.featureOverrides[feature.name] !== undefined,
+      ).length;
+      const groupCountLabel = `${groupFeatures.length} ${groupFeatures.length === 1 ? "flag" : "flags"}${groupCustomizedCount > 0 ? `, ${groupCustomizedCount} custom` : ""}`;
       return [
-        Section({
-          title: group,
-          description: `${groupFeatures.length} client-side ${groupFeatures.length === 1 ? "flag" : "flags"} visible in this build.`,
-          children: h(
-            Spicetify.React.Fragment,
-            null,
+        h(
+          "details",
+          {
+            className: "librespot-feature-group",
+            key: group,
+            open: normalizedQuery ? true : Boolean(openGroups[group]),
+            onToggle: (event: unknown) => {
+              if (
+                normalizedQuery ||
+                !(event instanceof Event) ||
+                !(event.currentTarget instanceof HTMLDetailsElement)
+              ) {
+                return;
+              }
+              const next = event.currentTarget.open;
+              setOpenGroups((current) =>
+                current[group] === next
+                  ? current
+                  : { ...current, [group]: next },
+              );
+            },
+          },
+          h(
+            "summary",
+            { className: "librespot-feature-group__summary" },
+            h(
+              "span",
+              { className: "librespot-feature-group__copy" },
+              h("strong", null, group),
+              h(
+                "span",
+                null,
+                "Client-side flags captured from this Spotify build.",
+              ),
+            ),
+            h(
+              "span",
+              { className: "librespot-feature-group__count" },
+              groupCountLabel,
+            ),
+          ),
+          h(
+            "div",
+            { className: "librespot-feature-group__body" },
             ...groupFeatures.map((feature) =>
               h(
                 "div",
@@ -267,17 +368,53 @@ export function FeaturesPanel(properties: PanelProperties): UiNode {
               ),
             ),
           ),
-        }),
+        ),
       ];
     }),
-    Section({
-      title: "SpotX switches",
-      description: "These values are staged for LibreSpot Desktop. They do not claim to change the already-patched binary.",
-      children: h(
-        Spicetify.React.Fragment,
-        null,
+    h(
+      "details",
+      {
+        className: "librespot-feature-group",
+        open: Boolean(openGroups[SPOTX_GROUP_KEY]),
+        onToggle: (event: unknown) => {
+          if (
+            !(event instanceof Event) ||
+            !(event.currentTarget instanceof HTMLDetailsElement)
+          ) {
+            return;
+          }
+          const next = event.currentTarget.open;
+          setOpenGroups((current) =>
+            current[SPOTX_GROUP_KEY] === next
+              ? current
+              : { ...current, [SPOTX_GROUP_KEY]: next },
+          );
+        },
+      },
+      h(
+        "summary",
+        { className: "librespot-feature-group__summary" },
+        h(
+          "span",
+          { className: "librespot-feature-group__copy" },
+          h("strong", null, SPOTX_GROUP_KEY),
+          h(
+            "span",
+            null,
+            "Staged for LibreSpot Desktop and applied with the next binary patch.",
+          ),
+        ),
+        h(
+          "span",
+          { className: "librespot-feature-group__count" },
+          `${SURFACE_SPOTX_SEEDS.length} settings`,
+        ),
+      ),
+      h(
+        "div",
+        { className: "librespot-feature-group__body" },
         ...SURFACE_SPOTX_SEEDS.map((control) => spotxControl(properties, control)),
       ),
-    }),
+    ),
   );
 }
