@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
+  CUSTOMIZATION_CATALOG,
   contrastRatio,
   readableText,
   validateSchemeContrast,
 } from "../src/core/index.ts";
+import { countInstalledManagedAssets } from "../src/panels/extensions.ts";
 import {
   BUILTIN_SCHEMES,
   SURFACE_PRESETS,
@@ -105,6 +107,27 @@ describe("LibreSpot surface contract", () => {
     expect(source).toContain("spicetifyOptions.length");
     expect(css).toContain(".librespot-disclosure-section[open]");
     expect(css).toContain(".librespot-disclosure-summary__copy");
+  });
+
+  it("counts only installed items represented by the managed catalogs", () => {
+    const managedExtensionId = CUSTOMIZATION_CATALOG.extensions.at(0)?.id;
+    expect(managedExtensionId).toBeDefined();
+    if (!managedExtensionId) {
+      throw new Error("The managed extension catalog must not be empty.");
+    }
+
+    expect(
+      countInstalledManagedAssets(
+        ["marketplace", "librespot"],
+        CUSTOMIZATION_CATALOG.customApps,
+      ),
+    ).toBe(1);
+    expect(
+      countInstalledManagedAssets(
+        ["unmanaged.js", managedExtensionId],
+        CUSTOMIZATION_CATALOG.extensions,
+      ),
+    ).toBe(1);
   });
 
   it("keeps the source free of JSX and keyboard shortcut handlers", () => {

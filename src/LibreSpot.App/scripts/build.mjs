@@ -45,14 +45,21 @@ for (const file of requiredFiles) {
     throw new Error(`Custom-app bundle is missing ${file}.`);
   }
 }
-const manifest = JSON.parse(
-  readFileSync(resolve(output, "manifest.json"), "utf8"),
+const packageMetadata = JSON.parse(
+  readFileSync(resolve(workspace, "package.json"), "utf8"),
 );
+const manifestPath = resolve(output, "manifest.json");
+const manifest = JSON.parse(
+  readFileSync(manifestPath, "utf8"),
+);
+manifest.version = packageMetadata.version;
+writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 if (
   manifest.name !== "LibreSpot" ||
+  manifest.version !== packageMetadata.version ||
   !manifest.subfiles_extension?.includes("librespot-engine.js")
 ) {
-  throw new Error("Custom-app manifest does not register the companion extension.");
+  throw new Error("Custom-app manifest metadata is incomplete.");
 }
 const index = readFileSync(resolve(output, "index.js"), "utf8");
 if (!/(?:const|let|var)\s+render=/.test(index)) {

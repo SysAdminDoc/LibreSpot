@@ -8,6 +8,17 @@ import type { UiNode } from "../spicetify-globals.d.ts";
 import type { PanelProperties } from "../surface/panel-types.ts";
 import { InputRow, PanelIntro, Section, ToggleRow, h } from "../surface/ui.ts";
 
+export function countInstalledManagedAssets(
+  installed: readonly string[],
+  managedAssets: readonly CatalogAsset[],
+): number {
+  const installedIds = new Set(installed);
+  return managedAssets.reduce(
+    (count, asset) => count + (installedIds.has(asset.id) ? 1 : 0),
+    0,
+  );
+}
+
 function itemCard(
   name: string,
   kind: "Extension" | "Custom app",
@@ -108,6 +119,14 @@ export function ExtensionsPanel(properties: PanelProperties): UiNode {
   const customApps = properties.snapshot.installedCustomApps;
   const installedExtensions = new Set(extensions);
   const installedApps = new Set(customApps);
+  const managedExtensionCount = countInstalledManagedAssets(
+    extensions,
+    CUSTOMIZATION_CATALOG.extensions,
+  );
+  const managedCustomAppCount = countInstalledManagedAssets(
+    customApps,
+    CUSTOMIZATION_CATALOG.customApps,
+  );
   return h(
     "div",
     { className: "librespot-panel", "data-librespot-panel": "extensions" },
@@ -131,7 +150,7 @@ export function ExtensionsPanel(properties: PanelProperties): UiNode {
     }),
     Section({
       title: "Extension catalog",
-      description: `${extensions.length} installed of ${CUSTOMIZATION_CATALOG.extensions.length} managed extensions. Bundle-loaded changes use LibreSpot Desktop.`,
+      description: `${managedExtensionCount} installed of ${CUSTOMIZATION_CATALOG.extensions.length} managed extensions. Bundle-loaded changes use LibreSpot Desktop.`,
       children: h(
         "div",
         { className: "librespot-extension-grid" },
@@ -150,7 +169,7 @@ export function ExtensionsPanel(properties: PanelProperties): UiNode {
     }),
     Section({
       title: "Custom app catalog",
-      description: `${customApps.length} installed of ${CUSTOMIZATION_CATALOG.customApps.length} managed custom apps. Route health is checked after navigation.`,
+      description: `${managedCustomAppCount} installed of ${CUSTOMIZATION_CATALOG.customApps.length} managed custom apps. Route health is checked after navigation.`,
       children: h(
         "div",
         { className: "librespot-extension-grid" },

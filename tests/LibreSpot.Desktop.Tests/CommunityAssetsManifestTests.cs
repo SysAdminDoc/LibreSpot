@@ -1,4 +1,6 @@
 using System.IO;
+using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using LibreSpot.Desktop.Models;
@@ -10,6 +12,41 @@ public sealed class CommunityAssetsManifestTests
 {
     private static readonly string RepoRoot = ResolveRepoRoot();
     private static readonly JsonDocument Manifest = LoadManifest();
+
+    [Fact]
+    public void BundledLibreSpotArchive_MatchesEveryPinAndShipsItsPackageVersion()
+    {
+        var archivePath = Path.Combine(RepoRoot, "resources", "custom-apps", "librespot-engine.zip");
+        Assert.True(File.Exists(archivePath), $"Bundled LibreSpot archive was not found at {archivePath}.");
+
+        var actualHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(archivePath))).ToLowerInvariant();
+        var pinnedSources = new[]
+        {
+            new[] { "src", "powershell", "data", "CommunityCustomApps.ps1" },
+            new[] { "src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1" },
+            new[] { "LibreSpot.ps1" }
+        };
+
+        foreach (var source in pinnedSources)
+        {
+            var appBlocks = ReadCommunityCustomAppBlocks(ReadFile(source));
+            Assert.True(appBlocks.TryGetValue("librespot", out var appBlock), $"LibreSpot custom-app block is missing from {string.Join('/', source)}.");
+            var hash = Regex.Match(appBlock, @"SHA256\s*=\s*'(?<hash>[a-f0-9]{64})'").Groups["hash"].Value;
+            Assert.Equal(actualHash, hash);
+        }
+
+        using var package = JsonDocument.Parse(ReadFile("src", "LibreSpot.App", "package.json"));
+        var expectedVersion = package.RootElement.GetProperty("version").GetString();
+        using var archive = ZipFile.OpenRead(archivePath);
+        var manifestEntry = archive.GetEntry("librespot/manifest.json");
+        Assert.NotNull(manifestEntry);
+        using var manifestStream = manifestEntry.Open();
+        using var bundledManifest = JsonDocument.Parse(manifestStream);
+        Assert.Equal(expectedVersion, bundledManifest.RootElement.GetProperty("version").GetString());
+
+        using var distManifest = JsonDocument.Parse(ReadFile("src", "LibreSpot.App", "dist", "manifest.json"));
+        Assert.Equal(expectedVersion, distManifest.RootElement.GetProperty("version").GetString());
+    }
 
     [Fact]
     public void Manifest_ListsEveryCommunityExtensionInScript()

@@ -3279,7 +3279,7 @@
       <Grid Margin="64">
         <Border x:Name="ActivityDialogRoot"
                 Width="900"
-                MaxHeight="760"
+                MaxHeight="880"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Padding="32"
@@ -3501,13 +3501,13 @@
 
             <!-- Log -->
             <Grid Grid.Row="3" Margin="0,20,0,0">
-              <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-              </Grid.RowDefinitions>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
 
-              <Border Grid.Row="0"
+              <Border Grid.Column="0"
+                      Width="420"
                       Margin="0,0,0,14"
                       Background="{DynamicResource Surface1Brush}"
                       BorderBrush="{DynamicResource StrokeSoftBrush}"
@@ -3607,28 +3607,33 @@
                 </Grid>
               </Border>
 
-              <Grid Grid.Row="1" Margin="0,0,0,10">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="*" />
-                  <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel VerticalAlignment="Center">
-                  <TextBlock Text="{services:Loc RunLogLabel}"
-                             Style="{StaticResource LabelTextStyle}"
-                             VerticalAlignment="Center" />
-                  <TextBlock Text="{services:Loc RunLogDescription}"
+              <Grid Grid.Column="1" Margin="16,0,0,0">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{services:Loc RunLogLabel}"
+                               Style="{StaticResource LabelTextStyle}"
+                               VerticalAlignment="Center" />
+                    <TextBlock Text="{services:Loc RunLogDescription}"
+                               Style="{StaticResource CaptionTextStyle}"
+                               Margin="0,6,0,0" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1"
+                             Text="{Binding LogLineCountText}"
                              Style="{StaticResource CaptionTextStyle}"
-                             Margin="0,6,0,0" />
-                </StackPanel>
-                <TextBlock Grid.Column="1"
-                           Text="{Binding LogLineCountText}"
-                           Style="{StaticResource CaptionTextStyle}"
-                           Foreground="{DynamicResource MutedTextBrush}"
-                           VerticalAlignment="Center"
-                           Margin="12,0,0,0" />
-              </Grid>
-              <Border Grid.Row="2"
-                      MinHeight="220"
+                             Foreground="{DynamicResource MutedTextBrush}"
+                             VerticalAlignment="Center"
+                             Margin="12,0,0,0" />
+                </Grid>
+                <Border Grid.Row="1"
+                      MinHeight="160"
                       Background="{DynamicResource TerminalBgBrush}"
                       BorderBrush="{DynamicResource StrokeBrush}"
                       BorderThickness="1"
@@ -3672,6 +3677,7 @@
                            VirtualizingPanel.ScrollUnit="Pixel"
                            VirtualizingPanel.CacheLength="2"
                            VirtualizingPanel.CacheLengthUnit="Page"
+                           AutomationProperties.AutomationId="ActivityRunLogList"
                            AutomationProperties.Name="{services:Loc RunLogLabel}">
                     <ListBox.ItemsPanel>
                       <ItemsPanelTemplate>
@@ -3761,6 +3767,7 @@
                   </ListBox>
                 </Grid>
               </Border>
+              </Grid>
             </Grid>
 
             <Grid Grid.Row="4" Margin="0,18,0,0">

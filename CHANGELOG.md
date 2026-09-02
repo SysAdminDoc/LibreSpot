@@ -28,8 +28,11 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- The bundled live engine now writes v4.1.1 into its shipped manifest and validates that value during both build and ZIP packaging. A release-integrity test hashes the tracked archive and compares it with all three installer pins, so rebuilding the custom app can no longer leave installs pointing at a stale SHA256.
+- Extension and custom-app totals now count only IDs represented by LibreSpot's managed catalogs. An unrelated registered app such as Marketplace no longer makes an available card look installed.
+- Reversible changes and the run log now use separate columns in the activity dialog. The log keeps a 160-pixel minimum height, and an offscreen UI test fails if its rendered bounds collapse again.
 - The scheduled dependency review now reflects the September scan. It found no vulnerable packages and no outdated direct dependencies; the accepted version lag remains limited to test-only packages that are not present in release artifacts.
-- The run activity dialog no longer squeezes recovery guidance and long log paths beside four action buttons. Guidance and the path now span the dialog above a wrapping action row, which keeps translated button labels intact.
+- The run activity dialog no longer squeezes recovery guidance and long log paths beside four action buttons. Guidance and the path span the dialog above a wrapping action row, which keeps translated button labels intact.
 - Secure Windows defaults are no longer reported as degraded health. LibreSpot no longer probes for or recommends Defender exclusions, does not tell users to turn off Smart App Control or bypass SmartScreen, and treats an antivirus detection as unresolved until the official source and same-release hash are verified. Evidence-based quarantine guidance still points to Protection History and vendor analysis, while the separate SpotX supply-chain guard continues to reject scripts that can change Defender settings.
 - Managed custom-app repair now assigns a different `spicetifyAppN` identifier to each route and extends the existing CSS gate after quoted route chunks appear. Marketplace and LibreSpot can load together without a duplicate JavaScript declaration or missing second-app styles.
 - Live palette rules use a root class so late Spicetify styles no longer hide a selected scheme. The Light scheme now changes the computed main surface to `#FFFFFF` immediately.

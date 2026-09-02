@@ -110,6 +110,22 @@ public sealed class PremiumShellContractTests
     }
 
     [Fact]
+    public void ActivityDialogGivesUndoAndRunLogIndependentColumns()
+    {
+        var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");
+        var dialogStart = xaml.IndexOf("x:Name=\"ActivityDialogRoot\"", StringComparison.Ordinal);
+        var logStart = xaml.IndexOf("<!-- Log -->", dialogStart, StringComparison.Ordinal);
+        var footerStart = xaml.IndexOf("<Grid Grid.Row=\"4\"", logStart, StringComparison.Ordinal);
+
+        Assert.True(dialogStart >= 0 && logStart > dialogStart && footerStart > logStart);
+        var log = xaml[logStart..footerStart];
+        Assert.Contains("<Grid.ColumnDefinitions>", log);
+        Assert.Contains("Width=\"420\"", log);
+        Assert.Contains("AutomationProperties.AutomationId=\"ActivityRunLogList\"", log);
+        Assert.Contains("MinHeight=\"160\"", log);
+    }
+
+    [Fact]
     public void StartupFailuresBecomeRetryableShellState()
     {
         var xaml = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml");

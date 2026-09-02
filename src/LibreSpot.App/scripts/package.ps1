@@ -22,6 +22,13 @@ foreach ($file in $requiredFiles) {
     }
 }
 
+$packageMetadata = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\package.json') -Raw | ConvertFrom-Json
+$manifestMetadata = Get-Content -LiteralPath (Join-Path $InputDirectory 'manifest.json') -Raw | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace([string]$manifestMetadata.version) -or
+    [string]$manifestMetadata.version -ne [string]$packageMetadata.version) {
+    throw "Cannot package LibreSpot because manifest version '$($manifestMetadata.version)' does not match package version '$($packageMetadata.version)'."
+}
+
 $resolvedOutput = [System.IO.Path]::GetFullPath($OutputPath)
 $outputDirectory = [System.IO.Path]::GetDirectoryName($resolvedOutput)
 [System.IO.Directory]::CreateDirectory($outputDirectory) | Out-Null

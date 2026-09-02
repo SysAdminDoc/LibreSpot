@@ -226,6 +226,28 @@ public sealed class WpfUiAutomationSmokeTests
     }
 
     [Fact]
+    public void WpfShell_UiaActivityUndoStateKeepsRunLogReadable()
+    {
+        RunOnSta(() =>
+        {
+            using var app = LaunchSmokeState("activity-undo");
+            try
+            {
+                var window = WaitForMainWindow(app.Process, MainWindowTimeout);
+                var snapshot = WaitForSnapshotContainingAutomationId(window, "ActivityRunLogList", SmokeReadyTimeout);
+                var runLog = FindSnapshotNode(snapshot, "ActivityRunLogList");
+
+                Assert.True(runLog.BoundingRectangle.Width >= 320, $"Activity run log is too narrow: {runLog.BoundingRectangle}.");
+                Assert.True(runLog.BoundingRectangle.Height >= 120, $"Activity run log is vertically collapsed: {runLog.BoundingRectangle}.");
+            }
+            finally
+            {
+                app.Dispose();
+            }
+        });
+    }
+
+    [Fact]
     public void LiveRegionContentControl_AutomationPeerReportsPolite()
     {
         RunOnSta(() =>

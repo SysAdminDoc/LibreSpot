@@ -84,11 +84,13 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 
 ## What's New in v4.1.1
 
-v4.1.1 finishes a visual audit across the in-Spotify workspace and the desktop recovery flow. The 351-feature catalog now opens as a compact group index and searches names, groups, sources, and Spotify descriptions. Extensions show installed items before the 21 advanced Spicetify options. The Tweaks panel uses a denser two-column catalog on wide screens, and the 720-pixel layout keeps primary actions intact.
+v4.1.1 finishes a visual audit across the in-Spotify workspace and the desktop recovery flow. The 351-feature catalog now opens as a compact group index and searches names, groups, sources, and Spotify descriptions. Extensions show installed items before the 21 advanced Spicetify options, and their totals count only items represented by LibreSpot's managed catalogs. The Tweaks panel uses a denser two-column catalog on wide screens, and the 720-pixel layout keeps primary actions intact.
 
-Controls now share one corner scale, larger small text and targets, clearer selected rows, and stronger high-contrast states. The brand mark uses the reviewed manifest SVG. In the desktop app, recovery guidance and the log path have the full dialog width above the activity actions, so long paths and translated labels don't collide.
+Controls now share one corner scale, larger small text and targets, clearer selected rows, and stronger high-contrast states. The brand mark uses the reviewed manifest SVG. In the desktop app, reversible changes sit beside a readable run log. Recovery guidance and the log path have the full dialog width above the activity actions, so long paths and translated labels don't collide.
 
-The final WPF matrix passed 112 tests and saved 111 offscreen captures across dark and high-contrast palettes, English and Spanish states, and extra translated prompts. The Spotify surface suite passed 38 tests; private browser verification covered all six panels plus the 720-pixel Features and Presets layouts.
+The packaged live engine carries the same v4.1.1 identity as the desktop app. Packaging checks that manifest value, then a release-integrity test compares the built ZIP with every installer hash pin before the candidate can ship.
+
+The final WPF matrix passed 112 tests and saved 111 offscreen captures across dark and high-contrast palettes, English and Spanish states, and extra translated prompts. The Spotify surface suite passed 39 tests; private browser verification covered all six panels plus the 720-pixel Features and Presets layouts.
 
 ## What's New in v4.1.0
 
