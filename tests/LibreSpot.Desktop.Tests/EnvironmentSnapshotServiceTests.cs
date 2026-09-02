@@ -750,7 +750,7 @@ public sealed class EnvironmentSnapshotServiceTests
         using var fixture = new SnapshotFixture();
         fixture.WriteSpotify(withSpotXMarkers: true);
         fixture.WriteSpicetifyConfig("custom_apps = marketplace|librespot\r\nextensions = librespot-engine.js");
-        fixture.WriteLibreSpotEngineFiles(manifestVersion: "4.1.0");
+        fixture.WriteLibreSpotEngineFiles(manifestVersion: "4.1.1");
         fixture.WriteExtractedXpuiBundle(routeWired: true, engineRouteWired: true, engineAnchorsReady: true);
 
         var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
@@ -758,7 +758,7 @@ public sealed class EnvironmentSnapshotServiceTests
         var engine = Assert.Single(snapshot.HealthReport.Components, component => component.Id == "librespot-live-engine");
         Assert.Equal(HealthSeverity.Ready, engine.Severity);
         Assert.Equal("Live engine ready", engine.Status);
-        Assert.Equal("4.1.0", engine.DetectedVersion);
+        Assert.Equal("4.1.1", engine.DetectedVersion);
         Assert.Empty(engine.RecommendedActionIds);
     }
 
@@ -1330,7 +1330,7 @@ public sealed class EnvironmentSnapshotServiceTests
             WriteFile(Path.Combine(marketplaceDirectory, "manifest.json"), JsonSerializer.Serialize(new { version = manifestVersion }));
         }
 
-        public void WriteLibreSpotEngineFiles(string manifestVersion = "4.1.0")
+        public void WriteLibreSpotEngineFiles(string manifestVersion = "4.1.1")
         {
             var appDirectory = Path.Combine(SpicetifyConfigDirectory, "CustomApps", "librespot");
             WriteFile(Path.Combine(appDirectory, "manifest.json"), JsonSerializer.Serialize(new { version = manifestVersion }));

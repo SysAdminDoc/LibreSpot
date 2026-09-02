@@ -176,7 +176,7 @@ Custom apps: a folder with `manifest.json` (`name`, `icon`, `active-icon`, `subf
 
 ### LibreSpot's live engine
 
-LibreSpot 4.1.0 installs `CustomApps\librespot` plus the `librespot-engine.js` companion through the same reviewed custom-app path used by the other catalog apps. The custom app supplies the six-panel `/librespot/*` surface. The companion runs on every route, owns the live state in Spicetify local storage, and adds a guarded top-bar entry if Spotify does not render the normal custom-app navigation link.
+LibreSpot 4.1.1 installs `CustomApps\librespot` plus the `librespot-engine.js` companion through the same reviewed custom-app path used by the other catalog apps. The custom app supplies the six-panel `/librespot/*` surface. The companion runs on every route, owns the live state in Spicetify local storage, and adds a guarded top-bar entry if Spotify does not render the normal custom-app navigation link.
 
 Palette changes never call the CLI. `ManagedRuntimeStyles` parses `color.ini`, derives missing Spicetify keys, writes `--spice-*` and `--spice-rgb-*` variables into one managed `:root.librespot-layer-palette` rule, and removes stale values before the next write. The extra root class gives the managed rule enough specificity to win when `colors.css` and `user.css` load later. Layout, effects, palette, and accessibility stay independent through classes on `<html>`. Glass uses blur only in its explicit tier, eco keeps translucent surfaces without blur, and flat removes blur and transitions. Reduced-motion state forces the flat behavior.
 

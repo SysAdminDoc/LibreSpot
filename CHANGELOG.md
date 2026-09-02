@@ -4,6 +4,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.1.1] (2026-09-01)
+
 ### Added
 
 - The shared customization catalog now carries every one of the 348 flags found in the pinned Spotify 1.2.93 `xpui.js`, including descriptions, defaults, value types, bounds, choices, groups, server-gated markers, and 104 SpotX-forced defaults. It also records all 31 SpotX controls, 21 supported Spicetify settings, 12 reviewed CSS snippets, three built-in themes, four presets, and the reviewed extension, app, and theme catalogs. The Spotify app renders the complete data set, saves user presets, and keeps unknown profile fields during import and export. Catalog truth checks exact source hashes and extracted metadata from both JavaScript and the root build gate.
@@ -26,6 +28,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- The scheduled dependency review now reflects the September scan. It found no vulnerable packages and no outdated direct dependencies; the accepted version lag remains limited to test-only packages that are not present in release artifacts.
 - The run activity dialog no longer squeezes recovery guidance and long log paths beside four action buttons. Guidance and the path now span the dialog above a wrapping action row, which keeps translated button labels intact.
 - Secure Windows defaults are no longer reported as degraded health. LibreSpot no longer probes for or recommends Defender exclusions, does not tell users to turn off Smart App Control or bypass SmartScreen, and treats an antivirus detection as unresolved until the official source and same-release hash are verified. Evidence-based quarantine guidance still points to Protection History and vendor analysis, while the separate SpotX supply-chain guard continues to reject scripts that can change Defender settings.
 - Managed custom-app repair now assigns a different `spicetifyAppN` identifier to each route and extends the existing CSS gate after quoted route chunks appear. Marketplace and LibreSpot can load together without a duplicate JavaScript declaration or missing second-app styles.
