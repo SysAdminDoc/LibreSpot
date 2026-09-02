@@ -94,6 +94,19 @@ describe("LibreSpot surface contract", () => {
     expect(css).toContain(".librespot-feature-group[open]");
   });
 
+  it("keeps the long Spicetify configuration catalog disclosed on demand", () => {
+    const source = readFileSync(
+      resolve(import.meta.dirname, "../src/panels/extensions.ts"),
+      "utf8",
+    );
+    const css = readFileSync(resolve(import.meta.dirname, "../src/app.css"), "utf8");
+    expect(source).toContain('"details"');
+    expect(source).toContain("librespot-disclosure-section");
+    expect(source).toContain("spicetifyOptions.length");
+    expect(css).toContain(".librespot-disclosure-section[open]");
+    expect(css).toContain(".librespot-disclosure-summary__copy");
+  });
+
   it("keeps the source free of JSX and keyboard shortcut handlers", () => {
     const app = readFileSync(resolve(import.meta.dirname, "../src/app.ts"), "utf8");
     expect(app).not.toMatch(/return\s*\([^)]*<[A-Za-z]/s);

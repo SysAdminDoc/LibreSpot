@@ -167,16 +167,43 @@ export function ExtensionsPanel(properties: PanelProperties): UiNode {
         ),
       ),
     }),
-    Section({
-      title: "Spicetify configuration",
-      description: `All ${CUSTOMIZATION_CATALOG.spicetifyOptions.length} pinned Spicetify options share this profile. Live engine equivalents update now, while bundle settings wait for Desktop apply.`,
-      children: h(
-        Spicetify.React.Fragment,
+    h(
+      "details",
+      { className: "librespot-section librespot-disclosure-section" },
+      h(
+        "summary",
         null,
-        ...CUSTOMIZATION_CATALOG.spicetifyOptions.map((option) =>
-          h("div", { className: "librespot-feature", key: option.id }, optionControl(properties, option)),
+        h(
+          "span",
+          { className: "librespot-disclosure-summary" },
+          h(
+            "span",
+            { className: "librespot-disclosure-summary__copy" },
+            h("strong", null, "Spicetify configuration"),
+            h(
+              "span",
+              null,
+              "Live engine equivalents update now. Bundle settings wait for LibreSpot Desktop.",
+            ),
+          ),
+          h(
+            "span",
+            { className: "librespot-badge" },
+            `${CUSTOMIZATION_CATALOG.spicetifyOptions.length} options`,
+          ),
         ),
       ),
-    }),
+      h(
+        "div",
+        { className: "librespot-section__body" },
+        h(
+          Spicetify.React.Fragment,
+          null,
+          ...CUSTOMIZATION_CATALOG.spicetifyOptions.map((option) =>
+            h("div", { className: "librespot-feature", key: option.id }, optionControl(properties, option)),
+          ),
+        ),
+      ),
+    ),
   );
 }

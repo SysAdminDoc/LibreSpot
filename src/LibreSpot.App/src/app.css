@@ -272,6 +272,49 @@
   padding: 4px 22px 18px;
 }
 
+.librespot-disclosure-section > summary {
+  color: var(--ls-text);
+  cursor: pointer;
+  list-style-position: inside;
+  padding: 18px 22px;
+}
+
+.librespot-disclosure-section > summary::marker {
+  color: var(--ls-accent);
+}
+
+.librespot-disclosure-section[open] > summary {
+  border-bottom: 1px solid var(--ls-border);
+}
+
+.librespot-disclosure-summary {
+  align-items: center;
+  display: inline-flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-left: 4px;
+  vertical-align: middle;
+  width: calc(100% - 24px);
+}
+
+.librespot-disclosure-summary__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.librespot-disclosure-summary__copy strong {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.librespot-disclosure-summary__copy > span {
+  color: var(--ls-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .librespot-control-row {
   align-items: center;
   border-bottom: 1px solid var(--ls-border);
