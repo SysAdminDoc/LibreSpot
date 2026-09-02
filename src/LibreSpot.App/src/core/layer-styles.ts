@@ -47,6 +47,43 @@ html.librespot-layer-layout .main-entityHeader-imageContainer img {
   border-radius: var(--librespot-radius);
 }
 
+html.librespot-layer-palette .main-nowPlayingView-aboutArtist .main-nowPlayingView-sectionHeaderText {
+  color: #fff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+html.librespot-layer-palette .main-entityHeader-container {
+  --text-base: #fff;
+  --text-subdued: rgba(255, 255, 255, 0.78);
+}
+
+html.librespot-layer-palette .main-entityHeader-container .encore-internal-color-text-base,
+html.librespot-layer-palette .main-entityHeader-container .encore-internal-color-text-subdued,
+html.librespot-layer-palette .main-entityHeader-container .main-entityHeader-pretitle,
+html.librespot-layer-palette .main-entityHeader-container .main-entityHeader-metaData a {
+  color: var(--text-base) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.72);
+}
+
+html.librespot-layer-palette .main-actionBar-ActionBar .encore-internal-color-text-subdued,
+html.librespot-layer-palette .main-actionBar-ActionBar .x-filterBox-expandButton,
+html.librespot-layer-palette .main-actionBar-ActionBar .x-sortBox-sortDropdown {
+  color: var(--spice-text) !important;
+}
+
+html.librespot-layer-palette .Root__now-playing-bar .encore-internal-color-text-subdued:not(.main-genericButton-buttonActive) {
+  color: var(--spice-subtext) !important;
+}
+
+html.librespot-layer-palette [role="alert"] > [data-encore-id="box"] {
+  background: var(--spice-notification) !important;
+  color: #000 !important;
+}
+
+html.librespot-layer-palette [role="alert"] > [data-encore-id="box"] [data-encore-id="text"] {
+  color: #000 !important;
+}
+
 html.librespot-layer-effects.librespot-tier-glass .Root__nav-bar,
 html.librespot-layer-effects.librespot-tier-glass .Root__right-sidebar,
 html.librespot-layer-effects.librespot-tier-glass .Root__now-playing-bar,

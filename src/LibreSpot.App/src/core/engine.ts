@@ -7,6 +7,7 @@ import { deriveScheme, type ColorScheme } from "./colors.ts";
 import {
   applyFeatureOverrides,
   type FeatureOverrideRuntime,
+  type FeatureValue,
 } from "./feature-overrides.ts";
 import {
   browserFrameClock,
@@ -78,12 +79,17 @@ export class LibreSpotEngine extends EventTarget {
     return this.#activeScheme;
   }
 
-  public async start(options: { probePerformance?: boolean } = {}): Promise<void> {
+  public async start(
+    options: {
+      probePerformance?: boolean;
+      previousFeatureOverrides?: Readonly<Record<string, FeatureValue>>;
+    } = {},
+  ): Promise<void> {
     this.#styles.installLayerStyles();
     this.#styles.setReducedMotion(prefersReducedMotion(this.#window));
     this.apply();
     await this.refreshAccent();
-    await this.applyFlags();
+    await this.applyFlags(options.previousFeatureOverrides);
     if (options.probePerformance ?? true) {
       await this.probePerformance();
     }
@@ -157,7 +163,9 @@ export class LibreSpotEngine extends EventTarget {
     return result;
   }
 
-  public async applyFlags(): Promise<
+  public async applyFlags(
+    previousOverrides: Readonly<Record<string, FeatureValue>> = {},
+  ): Promise<
     "debug-api" | "resolver" | "unavailable"
   > {
     if (!this.#featureRuntime) {
@@ -166,6 +174,7 @@ export class LibreSpotEngine extends EventTarget {
     return await applyFeatureOverrides(
       this.#state.featureOverrides,
       this.#featureRuntime,
+      previousOverrides,
     );
   }
 

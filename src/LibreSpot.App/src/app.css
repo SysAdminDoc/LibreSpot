@@ -413,6 +413,25 @@
   min-width: 180px;
 }
 
+.librespot-color-control {
+  align-items: center;
+  color: var(--ls-muted);
+  display: flex;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 9px;
+}
+
+.librespot-color-control input {
+  background: var(--ls-surface-3);
+  border: 1px solid var(--ls-border);
+  border-radius: 6px;
+  cursor: pointer;
+  height: 34px;
+  padding: 3px;
+  width: 44px;
+}
+
 .librespot-slider-wrap {
   align-items: center;
   display: flex;
@@ -422,6 +441,7 @@
 
 .librespot-slider-wrap input {
   accent-color: var(--ls-accent);
+  min-height: 32px;
   min-width: 100px;
   width: 100%;
 }
@@ -700,33 +720,33 @@
   border: 1px solid var(--ls-border);
   border-radius: 8px;
   display: flex;
-  gap: 7px;
   height: 46px;
+  justify-content: center;
   margin-bottom: 8px;
   overflow: hidden;
   padding: 9px;
 }
 
-.librespot-snippet-preview span {
-  background: var(--ls-surface-3);
-  border-radius: 4px;
-  display: block;
-  height: 100%;
-  width: 22%;
+.librespot-snippet-preview img {
+  height: 34px;
+  object-fit: cover;
+  width: 34px;
 }
 
-.librespot-snippet-preview span:first-child { width: 12%; }
-.librespot-snippet-preview span:last-child { flex: 1; }
-.librespot-snippet-preview.is-rounded-cover span:first-child { border-radius: 8px; }
-.librespot-snippet-preview.is-circular-cover span:first-child { border-radius: 50%; }
-.librespot-snippet-preview.is-square-cover span:first-child { border-radius: 0; }
+.librespot-snippet-preview svg {
+  fill: var(--ls-accent);
+  height: 20px;
+  width: 20px;
+}
+
+.librespot-snippet-preview.is-rounded-cover img { border-radius: 8px; }
+.librespot-snippet-preview.is-circular-cover img { border-radius: 50%; }
+.librespot-snippet-preview.is-square-cover img,
+.librespot-snippet-preview.is-sidebar-art img { border-radius: 0; }
 .librespot-snippet-preview.is-compact-rows { height: 36px; }
-.librespot-snippet-preview.is-centered-lines { justify-content: center; }
-.librespot-snippet-preview.is-centered-lines span { height: 4px; width: 25%; }
-.librespot-snippet-preview.is-progress-bar span:last-child { background: var(--ls-accent); height: 6px; }
-.librespot-snippet-preview.is-hidden-control span:last-child,
-.librespot-snippet-preview.is-hidden-panel span:last-child,
-.librespot-snippet-preview.is-quiet-panel span:last-child { opacity: .18; }
+.librespot-snippet-preview.is-hidden-control svg,
+.librespot-snippet-preview.is-hidden-panel svg,
+.librespot-snippet-preview.is-quiet-panel svg { opacity: .45; }
 
 .librespot-catalog-meta {
   align-items: center;
@@ -739,7 +759,18 @@
 }
 
 .librespot-catalog-meta a {
+  align-items: center;
   color: var(--ls-accent);
+  display: inline-flex;
+  min-height: 24px;
+}
+
+.librespot-empty-state {
+  color: var(--ls-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 12px 0;
 }
 
 .librespot-search {
@@ -923,15 +954,24 @@
   overflow: hidden;
 }
 
-.preset-preview {
-  display: block;
+.librespot-preset-card__preview img {
   height: 100%;
+  object-fit: contain;
+  width: 100%;
 }
 
-.preset-preview--oled { background: radial-gradient(circle at 72% 30%, #1ed760 0 10%, transparent 11%), #000; }
-.preset-preview--accessibility { background: linear-gradient(135deg, #000 0 62%, #ff0 63% 69%, #000 70%); }
-.preset-preview--compact { background: repeating-linear-gradient(#181818 0 7px, #282828 8px 9px); }
-.preset-preview--performance { background: linear-gradient(145deg, #121212 0 55%, #1ed760 56% 58%, #181818 59%); }
+.librespot-preset-card__preview svg {
+  fill: var(--ls-accent);
+  height: 24px;
+  margin: 27px auto;
+  width: 24px;
+}
+
+.librespot-preset-card__preview.is-oled img { filter: brightness(.58) contrast(1.18); }
+.librespot-preset-card__preview.is-accessibility { outline: 2px solid #ff0; outline-offset: -2px; }
+.librespot-preset-card__preview.is-accessibility img { filter: contrast(1.35) saturate(1.15); }
+.librespot-preset-card__preview.is-compact img { object-position: 50% 38%; }
+.librespot-preset-card__preview.is-performance img { filter: saturate(.72); }
 
 .librespot-profile-summary {
   align-items: center;
@@ -1029,6 +1069,12 @@
   width: 32px;
 }
 
+.librespot-health-hero__icon svg {
+  fill: currentColor;
+  height: 16px;
+  width: 16px;
+}
+
 .librespot-health-hero.is-warning .librespot-health-hero__icon {
   background: #f5a623;
 }
@@ -1067,9 +1113,12 @@
 }
 
 .librespot-health-details summary {
+  align-items: center;
   cursor: pointer;
+  display: flex;
   font-size: 12px;
   font-weight: 700;
+  min-height: 32px;
 }
 
 .librespot-empty {

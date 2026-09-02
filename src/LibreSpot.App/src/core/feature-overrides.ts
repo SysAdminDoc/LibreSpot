@@ -4,6 +4,7 @@ export type RemoteProperty = {
   source: string;
   type: string;
   name: string;
+  remoteValue?: FeatureValue;
   localValue?: FeatureValue;
 };
 
@@ -38,9 +39,13 @@ function valueType(value: FeatureValue): string {
 export async function applyFeatureOverrides(
   overrides: Readonly<Record<string, FeatureValue>>,
   runtime: FeatureOverrideRuntime,
+  previousOverrides: Readonly<Record<string, FeatureValue>> = {},
 ): Promise<"debug-api" | "resolver" | "unavailable"> {
   const entries = Object.entries(overrides);
-  if (entries.length === 0) {
+  const removedEntries = Object.entries(previousOverrides).filter(
+    ([name]) => overrides[name] === undefined,
+  );
+  if (entries.length === 0 && removedEntries.length === 0) {
     return "unavailable";
   }
 
@@ -56,6 +61,20 @@ export async function applyFeatureOverrides(
       );
       return ref ? [{ ref, value }] : [];
     });
+    for (const [name, previousValue] of removedEntries) {
+      const ref = properties.find(
+        (property) =>
+          property.source === "web" &&
+          property.name === name &&
+          property.type === valueType(previousValue),
+      );
+      if (
+        ref?.remoteValue !== undefined &&
+        typeof ref.remoteValue === typeof previousValue
+      ) {
+        resolved.push({ ref, value: ref.remoteValue });
+      }
+    }
     if (resolved.length === 0) {
       return "unavailable";
     }

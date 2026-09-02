@@ -29,8 +29,8 @@ public static class CrashReporter
     private static int _initialized;
     private static int _crashDialogOpen;
 
-    // The bug-report template asks for the full product version (4.1.1).
-    // Assembly.GetName().Version only carries the numeric 4.1.1.NN, so read the
+    // The bug-report template asks for the full product version (4.1.2).
+    // Assembly.GetName().Version only carries the numeric 4.1.2.NN, so read the
     // informational version the csproj pins and fall back the same way MainViewModel does.
     private static string ProductVersion =>
         typeof(CrashReporter).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion

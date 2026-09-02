@@ -18,6 +18,8 @@ import {
   PanelIntro,
   SelectRow,
   ToggleRow,
+  eventCurrentTarget,
+  eventTarget,
   h,
 } from "../surface/ui.ts";
 
@@ -243,13 +245,17 @@ export function FeaturesPanel(properties: PanelProperties): UiNode {
     (feature) =>
       properties.snapshot.state.featureOverrides[feature.name] !== undefined,
   ).length;
+  const catalogDescription = properties.snapshot.features.length > 0
+    ? `${properties.snapshot.features.length} definitions were discovered live. The tested Spotify ${CUSTOMIZATION_CATALOG.pins.spotifyVersion} catalog fills the remaining gaps.`
+    : `Tested against Spotify ${CUSTOMIZATION_CATALOG.pins.spotifyVersion}. Changes still apply through this client's live override API.`;
   const resultLabel = normalizedQuery
     ? `${filtered.length} ${filtered.length === 1 ? "match" : "matches"} in ${visibleGroupCount} ${visibleGroupCount === 1 ? "group" : "groups"}`
     : `${features.length} flags in ${visibleGroupCount} groups, ${customizedCount} customized`;
 
   const onSearch = (event: unknown) => {
-    if (event instanceof Event && event.target instanceof HTMLInputElement) {
-      setQuery(event.target.value);
+    const target = eventTarget(event);
+    if (target instanceof HTMLInputElement) {
+      setQuery(target.value);
     }
   };
 
@@ -270,6 +276,7 @@ export function FeaturesPanel(properties: PanelProperties): UiNode {
         h("span", null, "Search features"),
         h("input", {
           type: "search",
+          "aria-label": "Search features",
           value: query,
           placeholder: "Name, group, source, or Spotify description",
           onInput: onSearch,
@@ -285,6 +292,20 @@ export function FeaturesPanel(properties: PanelProperties): UiNode {
               secondary: true,
               onClick: () => {
                 setQuery("");
+              },
+            })
+          : null,
+        customizedCount > 0
+          ? ActionButton({
+              label: "Reset custom flags",
+              secondary: true,
+              onClick: () => {
+                void properties.runtime.update(
+                  (draft) => {
+                    draft.featureOverrides = {};
+                  },
+                  "Client flag overrides reset",
+                );
               },
             })
           : null,
@@ -323,14 +344,14 @@ export function FeaturesPanel(properties: PanelProperties): UiNode {
             key: group,
             open: normalizedQuery ? true : Boolean(openGroups[group]),
             onToggle: (event: unknown) => {
+              const target = eventCurrentTarget(event);
               if (
                 normalizedQuery ||
-                !(event instanceof Event) ||
-                !(event.currentTarget instanceof HTMLDetailsElement)
+                !(target instanceof HTMLDetailsElement)
               ) {
                 return;
               }
-              const next = event.currentTarget.open;
+              const next = target.open;
               setOpenGroups((current) =>
                 current[group] === next
                   ? current
@@ -348,7 +369,7 @@ export function FeaturesPanel(properties: PanelProperties): UiNode {
               h(
                 "span",
                 null,
-                "Client-side flags captured from this Spotify build.",
+                catalogDescription,
               ),
             ),
             h(
@@ -377,13 +398,13 @@ export function FeaturesPanel(properties: PanelProperties): UiNode {
         className: "librespot-feature-group",
         open: Boolean(openGroups[SPOTX_GROUP_KEY]),
         onToggle: (event: unknown) => {
+          const target = eventCurrentTarget(event);
           if (
-            !(event instanceof Event) ||
-            !(event.currentTarget instanceof HTMLDetailsElement)
+            !(target instanceof HTMLDetailsElement)
           ) {
             return;
           }
-          const next = event.currentTarget.open;
+          const next = target.open;
           setOpenGroups((current) =>
             current[SPOTX_GROUP_KEY] === next
               ? current

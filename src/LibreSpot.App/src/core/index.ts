@@ -1,4 +1,5 @@
 export * from "./accent.ts";
+export * from "./arrangement.ts";
 export * from "./catalog.ts";
 export * from "./color-ini.ts";
 export * from "./colors.ts";

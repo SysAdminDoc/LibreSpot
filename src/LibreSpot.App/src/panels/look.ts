@@ -1,13 +1,16 @@
 import { CUSTOMIZATION_CATALOG, type EngineState } from "../core/index.ts";
 import type { UiNode } from "../spicetify-globals.d.ts";
 import type { PanelProperties } from "../surface/panel-types.ts";
+import { displaySchemeName } from "../surface/labels.ts";
 import {
+  ColorRow,
   PanelIntro,
   Section,
   SegmentedControl,
   SelectRow,
   SliderRow,
   ToggleRow,
+  eventTarget,
   h,
 } from "../surface/ui.ts";
 
@@ -20,10 +23,8 @@ function update(
 }
 
 function eventValue(event: unknown): string {
-  if (!(event instanceof Event)) {
-    return "";
-  }
-  return event.target instanceof HTMLInputElement ? event.target.value : "";
+  const target = eventTarget(event);
+  return target instanceof HTMLInputElement ? target.value : "";
 }
 
 function schemeCards(properties: PanelProperties): UiNode {
@@ -31,8 +32,9 @@ function schemeCards(properties: PanelProperties): UiNode {
   return h(
     "div",
     { className: "librespot-scheme-grid" },
-    ...Object.entries(state.schemes).map(([name, scheme]) =>
-      h(
+    ...Object.entries(state.schemes).map(([name, scheme]) => {
+      const label = displaySchemeName(name);
+      return h(
         "button",
         {
           type: "button",
@@ -60,7 +62,7 @@ function schemeCards(properties: PanelProperties): UiNode {
               (draft) => {
                 draft.scheme = name;
               },
-              `${name} scheme applied`,
+              `${label} scheme applied`,
             );
           },
         },
@@ -72,14 +74,14 @@ function schemeCards(properties: PanelProperties): UiNode {
             "--scheme-text": `#${scheme.text ?? "FFFFFF"}`,
           },
         }),
-        h("span", { className: "librespot-scheme__name" }, name),
+        h("span", { className: "librespot-scheme__name" }, label),
         h(
           "span",
           { className: "librespot-scheme__hint" },
           name === state.scheme ? "Saved" : "Preview on focus",
         ),
-      ),
-    ),
+      );
+    }),
   );
 }
 
@@ -96,6 +98,7 @@ function scheduleControls(properties: PanelProperties): UiNode {
       h("span", null, label),
       h("input", {
         type: "time",
+        "aria-label": label,
         value,
         onChange: (event: unknown) => {
           onChange(eventValue(event));
@@ -148,7 +151,7 @@ function scheduleControls(properties: PanelProperties): UiNode {
       value: schedule.lightScheme,
       options: Object.keys(properties.snapshot.state.schemes).map((name) => ({
         value: name,
-        label: name,
+        label: displaySchemeName(name),
       })),
       onChange: (value) => {
         update(
@@ -166,7 +169,7 @@ function scheduleControls(properties: PanelProperties): UiNode {
       value: schedule.darkScheme,
       options: Object.keys(properties.snapshot.state.schemes).map((name) => ({
         value: name,
-        label: name,
+        label: displaySchemeName(name),
       })),
       onChange: (value) => {
         update(
@@ -352,6 +355,24 @@ export function LookPanel(properties: PanelProperties): UiNode {
             );
           },
         }),
+        state.dynamicAccent.mode === "fixed"
+          ? ColorRow({
+              label: "Fixed accent",
+              description: "Pick the accent used until another source is selected.",
+              value: state.dynamicAccent.fixed,
+              onChange: (value) => {
+                update(
+                  properties,
+                  (draft) => {
+                    draft.dynamicAccent.fixed = value
+                      .replace(/^#/, "")
+                      .toUpperCase();
+                  },
+                  "Fixed accent updated",
+                );
+              },
+            })
+          : null,
         SelectRow({
           label: "Artwork swatch",
           description: "The colorExtractor result used for album-art accents.",

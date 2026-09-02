@@ -369,7 +369,7 @@ public sealed class LocalProfileServiceTests : IDisposable
                 {
                     schemaVersion = 1,
                     generator = "LibreSpot-Spotify",
-                    generatorVersion = "4.1.1",
+                    generatorVersion = "4.1.2",
                     createdAt = "2026-09-01T12:00:00Z",
                     profileName = "Spotify handoff",
                     notes = "Copied from the Spotify panel.",

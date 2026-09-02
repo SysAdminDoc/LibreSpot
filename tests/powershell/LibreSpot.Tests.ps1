@@ -2399,7 +2399,7 @@ Describe 'Lane orchestration modules and primary GUI dispatch' {
                 'Custom app librespot*' {
                     $librespot = Join-Path $DestinationPath 'librespot'
                     New-Item -Path $librespot -ItemType Directory -Force | Out-Null
-                    Set-Content -LiteralPath (Join-Path $librespot 'manifest.json') -Value '{"version":"4.1.1"}' -Encoding Ascii
+                    Set-Content -LiteralPath (Join-Path $librespot 'manifest.json') -Value '{"version":"4.1.2"}' -Encoding Ascii
                     Set-Content -LiteralPath (Join-Path $librespot 'index.js') -Value 'fixture app' -Encoding Ascii
                     Set-Content -LiteralPath (Join-Path $librespot 'style.css') -Value ':root{}' -Encoding Ascii
                     Set-Content -LiteralPath (Join-Path $librespot 'librespot-engine.js') -Value 'window.LibreSpotEngine={};' -Encoding Ascii

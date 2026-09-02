@@ -12,11 +12,45 @@ export function h<Properties extends object>(
   );
 }
 
-function targetValue(event: unknown): string {
-  if (!(event instanceof Event)) {
-    return "";
+export function SpotifyIcon(properties: {
+  name: string;
+  className?: string;
+}): UiNode {
+  return h("svg", {
+    className: properties.className,
+    viewBox: "0 0 16 16",
+    focusable: "false",
+    "aria-hidden": "true",
+    dangerouslySetInnerHTML: {
+      __html: Spicetify.SVGIcons?.[properties.name] ?? "",
+    },
+  });
+}
+
+export function eventTarget(event: unknown): EventTarget | null {
+  if (typeof event !== "object" || event === null || !("target" in event)) {
+    return null;
   }
-  const target = event.target;
+  return typeof event.target === "object" && event.target !== null
+    ? (event.target as EventTarget)
+    : null;
+}
+
+export function eventCurrentTarget(event: unknown): EventTarget | null {
+  if (
+    typeof event !== "object" ||
+    event === null ||
+    !("currentTarget" in event)
+  ) {
+    return null;
+  }
+  return typeof event.currentTarget === "object" && event.currentTarget !== null
+    ? (event.currentTarget as EventTarget)
+    : null;
+}
+
+function targetValue(event: unknown): string {
+  const target = eventTarget(event);
   return target instanceof HTMLInputElement || target instanceof HTMLSelectElement
     ? target.value
     : "";
@@ -125,6 +159,7 @@ export function SelectRow(properties: {
       "select",
       {
         className: "librespot-select",
+        "aria-label": properties.label,
         value: properties.value,
         onChange: (event: unknown) => {
           properties.onChange(targetValue(event));
@@ -195,6 +230,7 @@ export function InputRow(properties: {
     ),
     h("input", {
       className: "librespot-input",
+      "aria-label": properties.label,
       type: properties.type,
       value: String(properties.value),
       ...(properties.min === undefined ? {} : { min: String(properties.min) }),
@@ -203,6 +239,38 @@ export function InputRow(properties: {
         properties.onChange(targetValue(event));
       },
     }),
+  );
+}
+
+export function ColorRow(properties: {
+  label: string;
+  description: string;
+  value: string;
+  onChange: (value: string) => void;
+}): UiNode {
+  const value = `#${properties.value.replace(/^#/, "")}`;
+  return h(
+    "label",
+    { className: "librespot-control-row" },
+    h(
+      "div",
+      { className: "librespot-control-copy" },
+      h("span", { className: "librespot-control-label" }, properties.label),
+      h("p", null, properties.description),
+    ),
+    h(
+      "span",
+      { className: "librespot-color-control" },
+      h("input", {
+        type: "color",
+        value,
+        "aria-label": properties.label,
+        onChange: (event: unknown) => {
+          properties.onChange(targetValue(event));
+        },
+      }),
+      h("span", null, value.toUpperCase()),
+    ),
   );
 }
 

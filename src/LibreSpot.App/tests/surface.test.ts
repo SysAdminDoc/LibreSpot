@@ -7,6 +7,7 @@ import {
   validateSchemeContrast,
 } from "../src/core/index.ts";
 import { countInstalledManagedAssets } from "../src/panels/extensions.ts";
+import { updateSnippetSelection } from "../src/panels/tweaks.ts";
 import {
   BUILTIN_SCHEMES,
   SURFACE_PRESETS,
@@ -17,6 +18,11 @@ import {
   panelFromPath,
   panelPath,
 } from "../src/surface/navigation.ts";
+import { displaySchemeName } from "../src/surface/labels.ts";
+import {
+  eventCurrentTarget,
+  eventTarget,
+} from "../src/surface/ui.ts";
 
 describe("LibreSpot surface contract", () => {
   it("keeps the six panels in the requested mental order", () => {
@@ -50,6 +56,19 @@ describe("LibreSpot surface contract", () => {
     }
   });
 
+  it("keeps internal scheme ids out of human-facing labels", () => {
+    expect(displaySchemeName("HighContrast")).toBe("High contrast");
+    expect(displaySchemeName("OLED")).toBe("OLED");
+  });
+
+  it("accepts React synthetic event shapes for form controls", () => {
+    const input = document.createElement("input");
+    const details = document.createElement("details");
+    expect(eventTarget({ target: input })).toBe(input);
+    expect(eventCurrentTarget({ currentTarget: details })).toBe(details);
+    expect(eventTarget(new Event("input"))).toBeNull();
+  });
+
   it("provides the four named starting presets", () => {
     expect(SURFACE_PRESETS.map((preset) => preset.id)).toEqual([
       "oled",
@@ -69,6 +88,19 @@ describe("LibreSpot surface contract", () => {
     }
   });
 
+  it("keeps mutually exclusive cover-art shapes from conflicting", () => {
+    expect(
+      updateSnippetSelection(
+        ["hide-upgrade-button", "rounded-cover-art"],
+        "circular-cover-art",
+        true,
+      ),
+    ).toEqual(["hide-upgrade-button", "circular-cover-art"]);
+    expect(
+      updateSnippetSelection(["circular-cover-art"], "circular-cover-art", false),
+    ).toEqual([]);
+  });
+
   it("keeps focus, reduced motion, and responsive behavior in the surface CSS", () => {
     const css = readFileSync(resolve(import.meta.dirname, "../src/app.css"), "utf8");
     expect(css).toContain(":focus-visible");
@@ -80,6 +112,15 @@ describe("LibreSpot surface contract", () => {
     expect(css).not.toContain("backdrop-filter");
     expect(css).not.toContain("border-radius: 999px");
     expect(css).toContain(".librespot-snippet-preview");
+    const layerCss = readFileSync(
+      resolve(import.meta.dirname, "../src/core/layer-styles.ts"),
+      "utf8",
+    );
+    expect(layerCss).toContain(".main-nowPlayingView-aboutArtist");
+    expect(layerCss).toContain(".main-entityHeader-container");
+    expect(layerCss).toContain(".main-actionBar-ActionBar");
+    expect(layerCss).toContain(".Root__now-playing-bar .encore-internal-color-text-subdued");
+    expect(layerCss).toContain('[role="alert"] > [data-encore-id="box"]');
   });
 
   it("keeps the large feature catalog searchable and grouped", () => {

@@ -5,6 +5,7 @@ import {
   ActionButton,
   PanelIntro,
   Section,
+  SpotifyIcon,
   h,
 } from "../surface/ui.ts";
 
@@ -74,7 +75,13 @@ export function HealthPanel(properties: PanelProperties): UiNode {
           ? "librespot-health-hero is-healthy"
           : "librespot-health-hero is-warning",
       },
-      h("span", { className: "librespot-health-hero__icon", "aria-hidden": "true" }, report.healthy ? "✓" : "!"),
+      h(
+        "span",
+        { className: "librespot-health-hero__icon", "aria-hidden": "true" },
+        SpotifyIcon({
+          name: report.healthy ? "check" : "exclamation-circle",
+        }),
+      ),
       h(
         "div",
         null,

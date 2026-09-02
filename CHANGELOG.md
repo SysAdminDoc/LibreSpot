@@ -4,8 +4,25 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.1.2] (2026-09-01)
+
+### Added
+
+- The in-Spotify Tweaks panel now reads the current Home sections and Your Library rows from Spotify. It stores stable identities, moves the real elements, preserves their natural order, updates row indexes, and reapplies the saved order after navigation or a Spotify redraw.
+- Fixed-accent mode now includes a native color picker. Its value updates the profile and the live `--librespot-accent` variable without a restart.
+
+### Changed
+
+- Snippet and preset previews now use current Spotify artwork with Spotify's own icon set as the fallback. The old CSS drawings and text symbols are gone.
+- Cover-art shapes are mutually exclusive. The reviewed snippet selectors now match Spotify 1.2.93 for track rows, entity art, sidebar art, the Now Playing cards, progress bars, and top-bar controls.
+- Form controls carry explicit accessible names, slider targets are 32 pixels tall, source links have a 24-pixel target, and the internal `HighContrast` identifier is shown as `High contrast`.
+
 ### Fixed
 
+- React form events no longer get rejected as non-browser events. Feature search, preset naming, selects, sliders, schedule times, disclosures, saved presets, profile copy, and staged Spicetify options now retain and apply their values in the production custom app.
+- Removing a live feature override restores the value Spotify received from its remote configuration. The Features panel also provides one reset action when any custom values are present.
+- LibreSpot notifications now use Spotify's Snackbar API and coalesce rapid updates. Prism waits for the React, menu, and modal APIs before registering its settings entry, which removes the startup race seen after a full client reload.
+- Light mode keeps playlist headers readable over Spotify's dynamic art color. Action-bar controls, the playbar, the About the artist heading, and default notifications now use the correct palette tokens.
 - Health checks now recognize extensions bundled with the verified Spicetify CLI as installed. The dashboard no longer asks for a reapply when those files are correctly present in Spicetify's program folder instead of its user configuration folder.
 - Fleet plans now honor the effective `installMode` from the selected answer-file profile. A reapply plan is labeled and targeted as reapply instead of being reported as a fresh install.
 - Config schema 2 migrates legacy Easy profiles to include the LibreSpot live custom app. Existing Custom profiles keep their explicit app choices, including an intentionally empty list.

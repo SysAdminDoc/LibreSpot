@@ -8,8 +8,8 @@ Installs, configures, and maintains ad-free Spotify with themes, extensions, cus
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.1.1-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
-[![Stable](https://img.shields.io/badge/Stable-4.0.0-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
+[![Version](https://img.shields.io/badge/Version-4.1.2-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Stable](https://img.shields.io/badge/Stable-4.1.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
 
@@ -82,15 +82,15 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 
 ---
 
-## What's New in v4.1.1
+## What's New in v4.1.2
 
-v4.1.1 finishes a visual audit across the in-Spotify workspace and the desktop recovery flow. The 351-feature catalog now opens as a compact group index and searches names, groups, sources, and Spotify descriptions. Extensions show installed items before the 21 advanced Spicetify options, and their totals count only items represented by LibreSpot's managed catalogs. The Tweaks panel uses a denser two-column catalog on wide screens, and the 720-pixel layout keeps primary actions intact.
+v4.1.2 completes an installed-client audit of the LibreSpot workspace in Spotify 1.2.93.667 with Spicetify 2.44.0. Text fields, selects, sliders, time inputs, disclosures, saved presets, profile copying, diagnostics, snippets, and live flags now use Spotify's real event shapes and APIs. Removing a custom flag restores Spotify's remote value instead of leaving the override behind.
 
-Controls now share one corner scale, larger small text and targets, clearer selected rows, and stronger high-contrast states. The brand mark uses the reviewed manifest SVG. In the desktop app, reversible changes sit beside a readable run log. Recovery guidance and the log path have the full dialog width above the activity actions, so long paths and translated labels don't collide.
+Tweaks reads the Home and Your Library items that Spotify is actually showing, stores their stable identities, and reapplies the chosen order after navigation or a redraw. Snippet selectors were checked against the pinned client. Cover shapes are mutually exclusive, progress and compact-row rules work on current classes, and the optional Now Playing cards can be hidden without disturbing the rest of the sidebar.
 
-The packaged live engine carries the same v4.1.1 identity as the desktop app. Packaging checks that manifest value, then a release-integrity test compares the built ZIP with every installer hash pin before the candidate can ship.
+The extension now uses Spotify artwork and Spotify's icon library for previews and status marks. Light, OLED, dark, and high-contrast palettes keep entity headers, action controls, the playbar, and notifications readable. The fixed-accent mode has a native color picker, all form controls have names, and sliders expose a 32-pixel target.
 
-The final WPF matrix passed 112 tests and saved 111 offscreen captures across dark and high-contrast palettes, English and Spanish states, and extra translated prompts. The Spotify surface suite passed 39 tests; private browser verification covered all six panels plus the 720-pixel Features and Presets layouts.
+The Spotify surface suite passes 45 tests. Hidden live-client verification covered all six panels, Marketplace coexistence, settings, a playlist, persistence across a full reload, failure feedback, and 36 scheme, effects, and viewport combinations. The matrix found no clipped controls or horizontal overflow.
 
 ## What's New in v4.1.0
 
@@ -206,7 +206,7 @@ Scheme previews, layers, effects tiers, client-side flags, snippets, and presets
 >
 > If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch. The WPF Maintenance dashboard also flags **After Spotify update** drift and recommends targeted recovery steps before a full reset.
 
-Current source script version: **v3.8.1**. Current source release candidate: **v4.1.1**. Public latest stable release: **v4.0.0**.
+Current source script version: **v3.8.2**. Current desktop and CLI release: **v4.1.2**. Public latest stable release: **v4.1.2**.
 
 **Pinned dependency versions in the current source script:**
 
@@ -491,7 +491,7 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 
 Releases ship unsigned by design. LibreSpot is not code-signed and is not waiting on a certificate: [SignPath Foundation](https://signpath.org/) OSS signing was evaluated and set aside, so there is no "once the cert arrives" milestone. `LibreSpot.exe`, `LibreSpot-Desktop.exe`, and `LibreSpot.Cli.exe` are published as unsigned artifacts, and Windows SmartScreen may warn about them. Verify identity with the SHA256 `checksums.txt` published alongside each release. A matching hash proves that the file is the release artifact, but it does not prove that the file is safe.
 
-The public latest stable release, v4.0.0, ships seven assets: `LibreSpot.ps1`, `LibreSpot.exe`, the .NET 10 `LibreSpot-Desktop.exe` and `LibreSpot.Cli.exe`, the CycloneDX SBOM, `checksums.txt`, and `librespot-release-manifest.json`. The repository itself does not track build artifacts. `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. The local v4.1.1 release candidate uses source script v3.8.1 and is not published yet.
+The public latest stable release, v4.1.2, ships seven assets: `LibreSpot.ps1`, `LibreSpot.exe`, the .NET 10 `LibreSpot-Desktop.exe` and `LibreSpot.Cli.exe`, the CycloneDX SBOM, `checksums.txt`, and `librespot-release-manifest.json`. The repository itself does not track build artifacts. `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. v4.1.2 uses source script v3.8.2.
 
 The .NET 10 desktop and CLI artifacts publish self-contained, which embeds the runtime, so they only receive .NET servicing security fixes when rebuilt against a patched runtime. Both projects set `TargetLatestRuntimePatch`, and `Build-Scripts.ps1 -DependencyHealth` records the resolved `Microsoft.NETCore.App` / `Microsoft.WindowsDesktop.App` patch level and fails the release preflight when the build host is below the documented 10.0.11 floor (`schemas/dependency-health-allowlist.json` → `dotnetRuntimeFloor`). Build release artifacts on an up-to-date .NET 10 SDK.
 
@@ -512,7 +512,7 @@ Get-Sha256 .\LibreSpot.ps1
 Get-Content  .\checksums.txt
 ```
 
-GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.0.0` to verify the release tag and commit, then run `gh release verify-asset v4.0.0 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
+GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.1.2` to verify the release tag and commit, then run `gh release verify-asset v4.1.2 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
 
 ## Local release procedure
 
@@ -542,7 +542,7 @@ checksum-covered assets into the release root. Generate the CycloneDX SBOM, writ
 ```powershell
 .\Build-Scripts.ps1 -CompileStableExe
 .\Build-Scripts.ps1 -GenerateSbom
-.\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.1.1 -ReleaseChannel stable
+.\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.1.2 -ReleaseChannel stable
 ```
 
 `-CompileStableExe` writes `publish\LibreSpot.exe` with the pinned PS2EXE flags

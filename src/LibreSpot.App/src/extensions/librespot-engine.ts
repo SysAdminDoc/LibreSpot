@@ -1,4 +1,6 @@
 import {
+  applyHomeArrangement,
+  applySidebarArrangement,
   EngineStore,
   FeatureCapture,
   LibreSpotEngine,
@@ -8,6 +10,7 @@ import {
   runSelfTest,
   serializeProfile,
   type EngineState,
+  type ArrangementItem,
   type FeatureOverrideRuntime,
   type HealthReport,
   type RouteState,
@@ -23,8 +26,6 @@ import {
 } from "../surface/builtins.ts";
 import { panelPath, type PanelId } from "../surface/navigation.ts";
 
-const ACCESS_ICON =
-  '<svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M5 5.5h14M5 12h14M5 18.5h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="5.5" r="2.25" fill="currentColor"/><circle cx="15" cy="12" r="2.25" fill="currentColor"/><circle cx="11" cy="18.5" r="2.25" fill="currentColor"/></svg>';
 const DESKTOP_BOOTSTRAP_REVISION_KEY = "librespot:desktop-bootstrap-revision";
 
 type DesktopBootstrapPayload = {
@@ -262,8 +263,45 @@ async function copyThroughPlatform(value: string): Promise<void> {
   throw new Error("Spotify's clipboard API is unavailable.");
 }
 
+let activeNotificationKey: string | number | undefined;
+let pendingNotificationTimer: number | undefined;
+let notificationReadyAt = 0;
+
 function notify(message: string, error = false): void {
-  Spicetify.showNotification?.(message, error);
+  const snackbar = Spicetify.Snackbar;
+  if (snackbar) {
+    if (pendingNotificationTimer !== undefined) {
+      window.clearTimeout(pendingNotificationTimer);
+    }
+    const duration = error ? 4_000 : 2_200;
+    const show = () => {
+      pendingNotificationTimer = undefined;
+      if (activeNotificationKey !== undefined) {
+        snackbar.closeSnackbar(activeNotificationKey);
+        activeNotificationKey = undefined;
+        notificationReadyAt = Date.now() + 360;
+      }
+      const remainingExitTime = notificationReadyAt - Date.now();
+      if (remainingExitTime > 0) {
+        pendingNotificationTimer = window.setTimeout(show, remainingExitTime);
+        return;
+      }
+      const key = snackbar.enqueueSnackbar(message, {
+        variant: error ? "error" : "default",
+        autoHideDuration: duration,
+        preventDuplicate: true,
+      });
+      activeNotificationKey = key;
+      window.setTimeout(() => {
+        if (activeNotificationKey === key) {
+          activeNotificationKey = undefined;
+        }
+      }, duration + 500);
+    };
+    pendingNotificationTimer = window.setTimeout(show, 90);
+    return;
+  }
+  Spicetify.showNotification?.(message, error, error ? 4_000 : 2_200);
 }
 
 function navEntryPresent(): boolean {
@@ -275,6 +313,7 @@ function navEntryPresent(): boolean {
 }
 
 function registerAccessEntries(): void {
+  const icon = Spicetify.SVGIcons?.brightness ?? Spicetify.SVGIcons?.edit ?? "";
   const open = () => {
     Spicetify.Platform.History.push(panelPath("look"));
   };
@@ -283,7 +322,7 @@ function registerAccessEntries(): void {
     if (!MenuItem) {
       throw new Error("Menu API unavailable.");
     }
-    new MenuItem("LibreSpot", false, open, ACCESS_ICON).register();
+    new MenuItem("LibreSpot", false, open, icon).register();
   } catch {
     console.warn("[LibreSpot] Profile-menu entry could not be registered.");
   }
@@ -296,7 +335,7 @@ function registerAccessEntries(): void {
       if (!TopbarButton) {
         throw new Error("Topbar API unavailable.");
       }
-      new TopbarButton("LibreSpot", ACCESS_ICON, open);
+      new TopbarButton("LibreSpot", icon, open);
     } catch {
       console.warn("[LibreSpot] Topbar fallback could not be registered.");
     }
@@ -330,7 +369,8 @@ async function bootstrap(): Promise<void> {
   try {
     await waitForApi();
     const store = new EngineStore(storageAdapter());
-    let initial = applyDesktopBootstrap(store) ?? store.load();
+    const stored = store.load();
+    let initial = applyDesktopBootstrap(store) ?? stored;
     if (Object.keys(initial.schemes).length === 0) {
       initial = store.save(defaultEngineState());
     } else {
@@ -357,7 +397,57 @@ async function bootstrap(): Promise<void> {
     let librespotRoute = routeFromWindow("librespot");
     let marketplaceRoute = routeFromWindow("marketplace");
     let health: HealthReport = runHealth();
+    let availableHomeSections: ArrangementItem[] = [];
+    let availableSidebarItems: ArrangementItem[] = [];
+    let arrangementTimer: number | undefined;
     const listeners = new Set<(snapshot: LibreSpotRuntimeSnapshot) => void>();
+
+    function sameArrangementItems(
+      left: readonly ArrangementItem[],
+      right: readonly ArrangementItem[],
+    ): boolean {
+      return (
+        left.length === right.length &&
+        left.every((item, index) => {
+          const candidate = right.at(index);
+          return candidate?.id === item.id && candidate.label === item.label;
+        })
+      );
+    }
+
+    function refreshArrangements(): boolean {
+      const state = engine.state;
+      const home = applyHomeArrangement(document, state.homeSections);
+      const sidebar = applySidebarArrangement(document, state.sidebarItems);
+      let changed = false;
+      if (
+        home.items.length > 0 &&
+        !sameArrangementItems(availableHomeSections, home.items)
+      ) {
+        availableHomeSections = home.items;
+        changed = true;
+      }
+      if (
+        sidebar.items.length > 0 &&
+        !sameArrangementItems(availableSidebarItems, sidebar.items)
+      ) {
+        availableSidebarItems = sidebar.items;
+        changed = true;
+      }
+      return changed;
+    }
+
+    function scheduleArrangementRefresh(delay = 100): void {
+      if (arrangementTimer !== undefined) {
+        window.clearTimeout(arrangementTimer);
+      }
+      arrangementTimer = window.setTimeout(() => {
+        arrangementTimer = undefined;
+        if (refreshArrangements()) {
+          emit();
+        }
+      }, delay);
+    }
 
     function runHealth(): HealthReport {
       return runSelfTest({
@@ -376,6 +466,8 @@ async function bootstrap(): Promise<void> {
         features: capture.list(),
         installedExtensions: installedList(Spicetify.Config?.extensions),
         installedCustomApps: installedList(Spicetify.Config?.custom_apps),
+        availableHomeSections,
+        availableSidebarItems,
       };
     }
 
@@ -420,12 +512,15 @@ async function bootstrap(): Promise<void> {
         };
       },
       update: async (mutator, notice) => {
-        const beforeFlags = JSON.stringify(engine.state.featureOverrides);
+        const beforeFlags = engine.state.featureOverrides;
         const next = engine.update(mutator);
         await engine.refreshAccent();
-        if (JSON.stringify(next.featureOverrides) !== beforeFlags) {
-          await engine.applyFlags();
+        if (
+          JSON.stringify(next.featureOverrides) !== JSON.stringify(beforeFlags)
+        ) {
+          await engine.applyFlags(beforeFlags);
         }
+        refreshArrangements();
         health = runHealth();
         emit();
         if (notice) {
@@ -485,9 +580,23 @@ async function bootstrap(): Promise<void> {
 
     window.LibreSpot = runtime;
     engine.addEventListener("applied", emit);
-    await engine.start();
+    await engine.start({
+      previousFeatureOverrides: stored.featureOverrides,
+    });
+    refreshArrangements();
     health = runHealth();
     emit();
+
+    const arrangementObserver = new MutationObserver(() => {
+      scheduleArrangementRefresh();
+    });
+    const arrangementRoots = [
+      document.querySelector(".Root__main-view"),
+      document.querySelector(".Root__nav-bar"),
+    ].filter((element): element is Element => element !== null);
+    for (const root of arrangementRoots) {
+      arrangementObserver.observe(root, { childList: true, subtree: true });
+    }
 
     const onSongChange = () => {
       void engine.refreshAccent().then(emit);
@@ -497,10 +606,15 @@ async function bootstrap(): Promise<void> {
       engine.apply();
       health = runHealth();
       emit();
+      scheduleArrangementRefresh();
+      window.setTimeout(() => {
+        scheduleArrangementRefresh(0);
+      }, 900);
       void refreshRoutes();
     });
     window.setInterval(() => {
       engine.apply();
+      refreshArrangements();
       emit();
     }, 60_000);
     registerAccessEntries();

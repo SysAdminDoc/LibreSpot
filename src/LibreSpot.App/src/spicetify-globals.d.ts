@@ -1,4 +1,5 @@
 import type {
+  ArrangementItem,
   CapturedFeature,
   EngineState,
   HealthReport,
@@ -68,6 +69,7 @@ export type SpicetifyApi = {
           source: string;
           type: string;
           name: string;
+          remoteValue?: boolean | number | string;
           localValue?: boolean | number | string;
         }[]
       >;
@@ -109,7 +111,18 @@ export type SpicetifyApi = {
     imageOrUri: string,
   ): Promise<Record<string, string> | null | undefined>;
   expFeatureOverride?: (feature: CapturedFeature) => CapturedFeature;
-  showNotification?(message: string, isError?: boolean): void;
+  Snackbar?: {
+    enqueueSnackbar(
+      message: string,
+      options?: {
+        variant?: "default" | "error";
+        autoHideDuration?: number;
+        preventDuplicate?: boolean;
+      },
+    ): string | number;
+    closeSnackbar(key: string | number): void;
+  };
+  showNotification?(message: string, isError?: boolean, duration?: number): void;
   SVGIcons?: Record<string, string>;
   Topbar?: {
     Button: new (
@@ -136,6 +149,8 @@ export type LibreSpotRuntimeSnapshot = {
   features: CapturedFeature[];
   installedExtensions: string[];
   installedCustomApps: string[];
+  availableHomeSections: ArrangementItem[];
+  availableSidebarItems: ArrangementItem[];
 };
 
 export type LibreSpotRuntimeApi = {

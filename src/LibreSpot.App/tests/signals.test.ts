@@ -67,6 +67,7 @@ describe("runtime signals", () => {
         source: "web",
         type: "boolean",
         name: "enableExample",
+        remoteValue: false,
         localValue: false,
       },
     ];
@@ -83,6 +84,33 @@ describe("runtime signals", () => {
     expect(result).toBe("debug-api");
     expect(setOverrides).toHaveBeenCalledWith(
       [{ ref: properties[0], value: true }],
+      { autoRunOverrideEffects: true },
+    );
+  });
+
+  it("restores a removed remote property to its Spotify value", async () => {
+    const property: RemoteProperty = {
+      source: "web",
+      type: "boolean",
+      name: "enableExample",
+      remoteValue: true,
+      localValue: false,
+    };
+    const setOverrides = vi.fn(() => Promise.resolve(undefined));
+    const result = await applyFeatureOverrides(
+      {},
+      {
+        debugApi: {
+          getProperties: () => Promise.resolve([property]),
+          setOverrides,
+        },
+      },
+      { enableExample: false },
+    );
+
+    expect(result).toBe("debug-api");
+    expect(setOverrides).toHaveBeenCalledWith(
+      [{ ref: property, value: true }],
       { autoRunOverrideEffects: true },
     );
   });

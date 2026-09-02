@@ -123,7 +123,16 @@
           { name: "enableJam", description: "Show Jam entry points when the account allows them.", type: "bool", default: false, group: "Playback", serverGated: true }
         ],
         installedExtensions: ["librespot-engine.js", "adblock.js"],
-        installedCustomApps: ["librespot", "marketplace"]
+        installedCustomApps: ["librespot", "marketplace"],
+        availableHomeSections: [
+          { id: "Made For Polyjamorous", label: "Polyjamorous" },
+          { id: "Recents", label: "Recents" },
+          { id: "Jump back in", label: "Jump back in" }
+        ],
+        availableSidebarItems: [
+          { id: "spotify:playlist:liked", label: "Liked Songs" },
+          { id: "spotify:playlist:mix", label: "Daily Mix" }
+        ]
       };
 
       const listeners = new Set();

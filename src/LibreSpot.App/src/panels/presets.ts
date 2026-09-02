@@ -2,12 +2,35 @@ import type { UiNode } from "../spicetify-globals.d.ts";
 import { applyUserPreset, captureUserPreset } from "../core/index.ts";
 import { SURFACE_PRESETS } from "../surface/builtins.ts";
 import type { PanelProperties } from "../surface/panel-types.ts";
+import { displaySchemeName } from "../surface/labels.ts";
 import {
   ActionButton,
   PanelIntro,
   Section,
+  SpotifyIcon,
+  eventTarget,
   h,
 } from "../surface/ui.ts";
+
+function presetPreview(id: string): UiNode {
+  const image = document.querySelector<HTMLImageElement>(
+    '.Root__now-playing-bar img[src^="https://"], .Root__nav-bar img[src^="https://"]',
+  );
+  return h(
+    "div",
+    {
+      className: `librespot-preset-card__preview is-${id}`,
+      "aria-hidden": "true",
+    },
+    image
+      ? h("img", {
+          src: image.currentSrc || image.src,
+          alt: "",
+          loading: "lazy",
+        })
+      : SpotifyIcon({ name: "album" }),
+  );
+}
 
 export function PresetsPanel(properties: PanelProperties): UiNode {
   const React = Spicetify.React;
@@ -54,11 +77,7 @@ export function PresetsPanel(properties: PanelProperties): UiNode {
                   : "librespot-preset-card",
               key: preset.id,
             },
-            h(
-              "div",
-              { className: "librespot-preset-card__preview", "aria-hidden": "true" },
-              h("span", { className: `preset-preview preset-preview--${preset.id}` }),
-            ),
+            presetPreview(preset.id),
             h("h3", null, preset.title),
             h("p", null, preset.description),
             ActionButton({
@@ -101,11 +120,13 @@ export function PresetsPanel(properties: PanelProperties): UiNode {
             h("input", {
               className: "librespot-input",
               type: "text",
+              "aria-label": "Preset name",
               value: presetName,
               placeholder: "My preset",
               onInput: (event: unknown) => {
-                if (event instanceof Event && event.target instanceof HTMLInputElement) {
-                  setPresetName(event.target.value);
+                const target = eventTarget(event);
+                if (target instanceof HTMLInputElement) {
+                  setPresetName(target.value);
                 }
               },
             }),
@@ -122,7 +143,7 @@ export function PresetsPanel(properties: PanelProperties): UiNode {
                   "article",
                   { className: "librespot-extension-card", key: preset.id },
                   h("h3", null, preset.name),
-                  h("p", null, `${preset.theme} / ${preset.scheme} / ${preset.effectsTier}`),
+                  h("p", null, `${preset.theme} / ${displaySchemeName(preset.scheme)} / ${preset.effectsTier}`),
                   h(
                     "div",
                     { className: "librespot-inline-actions" },
@@ -171,7 +192,7 @@ export function PresetsPanel(properties: PanelProperties): UiNode {
           "dl",
           null,
           h("div", null, h("dt", null, "Theme"), h("dd", null, properties.snapshot.state.theme)),
-          h("div", null, h("dt", null, "Scheme"), h("dd", null, properties.snapshot.activeScheme)),
+          h("div", null, h("dt", null, "Scheme"), h("dd", null, displaySchemeName(properties.snapshot.activeScheme))),
           h("div", null, h("dt", null, "Effects"), h("dd", null, properties.snapshot.state.effectsTier)),
           h(
             "div",
