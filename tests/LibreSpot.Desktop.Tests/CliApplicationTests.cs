@@ -606,6 +606,39 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public void PlanJson_UsesEffectiveReapplyModeFromAnswerFile()
+    {
+        var answerFile = Path.Combine(Path.GetTempPath(), "librespot-answer-" + Guid.NewGuid().ToString("N") + ".json");
+        File.WriteAllText(
+            answerFile,
+            """
+            {
+              "schemaVersion": 1,
+              "installMode": "reapply",
+              "eulaAccepted": true,
+              "riskAcknowledged": true
+            }
+            """);
+
+        try
+        {
+            var result = Run("plan", "--answer-file", answerFile, "--json");
+
+            Assert.Equal(0, result.ExitCode);
+            using var doc = JsonDocument.Parse(result.Stdout);
+            Assert.Equal("reapply", doc.RootElement.GetProperty("operation").GetString());
+            Assert.Contains(
+                doc.RootElement.GetProperty("steps").EnumerateArray(),
+                step => step.GetProperty("id").GetString() == "run-backend-plan" &&
+                        step.GetProperty("target").GetString() == "reapply");
+        }
+        finally
+        {
+            File.Delete(answerFile);
+        }
+    }
+
+    [Fact]
     public void ExportSupport_WritesLocalRedactedZip()
     {
         var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));

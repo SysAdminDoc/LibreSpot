@@ -156,7 +156,7 @@
         "--log-dir",
         "--scope"
       ],
-      "notes": "Dry-run by nature — never mutates. Produces an operation plan in JSON that describes each step, required downloads, and expected changes. Use this verb when a single JSON plan document is preferred over install --dry-run --ndjson streaming output."
+      "notes": "Dry-run by nature. Never mutates. Produces an operation plan in JSON that describes each step, required downloads, and expected changes. The operation follows the effective installMode from the selected answer-file profile. Use this verb when a single JSON plan document is preferred over install --dry-run --ndjson streaming output."
     },
     {
       "verb": "repair",

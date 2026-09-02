@@ -7,6 +7,7 @@ All notable changes to LibreSpot will be documented in this file.
 ### Fixed
 
 - Health checks now recognize extensions bundled with the verified Spicetify CLI as installed. The dashboard no longer asks for a reapply when those files are correctly present in Spicetify's program folder instead of its user configuration folder.
+- Fleet plans now honor the effective `installMode` from the selected answer-file profile. A reapply plan is labeled and targeted as reapply instead of being reported as a fresh install.
 
 ## [v4.1.1] (2026-09-01)
 

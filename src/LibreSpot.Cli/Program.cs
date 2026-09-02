@@ -632,6 +632,11 @@ public static class CliApplication
             return ValidationError;
         }
 
+        if (planVerb && validation is not null)
+        {
+            operation = ResolvePlanOperation(validation.AnswerFile, options.GetValue("--profile"));
+        }
+
         if (!planVerb && !options.HasFlag("--dry-run"))
         {
             return RunBackendOperation(operation, options, stdout, stderr, validation, repairAction, operationId, backendRunner);
@@ -1335,6 +1340,26 @@ public static class CliApplication
         {
             throw new IOException($"{label} is {stream.Length} bytes; the maximum is {maxBytes} bytes.");
         }
+    }
+
+    private static string ResolvePlanOperation(string answerFile, string? profile)
+    {
+        using var stream = File.OpenRead(answerFile);
+        EnsureFileSize(stream, MaxAnswerFileBytes, "Answer file");
+        using var doc = JsonDocument.Parse(stream, new JsonDocumentOptions { AllowTrailingCommas = true });
+        var root = doc.RootElement;
+        var settings = ResolveProfileSettings(root, profile);
+
+        var installMode = settings is { } selected &&
+                          selected.TryGetProperty("installMode", out var profileMode)
+            ? profileMode.GetString()
+            : root.TryGetProperty("installMode", out var rootMode)
+                ? rootMode.GetString()
+                : "recommended";
+
+        return string.Equals(installMode, "reapply", StringComparison.Ordinal)
+            ? "reapply"
+            : "install";
     }
 
     private static JsonElement? ResolveProfileSettings(JsonElement root, string? profile)
