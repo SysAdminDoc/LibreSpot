@@ -1780,6 +1780,9 @@ public sealed class EnvironmentSnapshotService
         IReadOnlyDictionary<string, string> spicetifyConfig)
     {
         var extensionsDir = Path.Combine(_spicetifyConfigDirectory, "Extensions");
+        var bundledExtensionsDir = Path.Combine(
+            Path.GetDirectoryName(_spicetifyPath) ?? string.Empty,
+            "Extensions");
 
         if (!spicetifyInstalled)
         {
@@ -1842,7 +1845,9 @@ public sealed class EnvironmentSnapshotService
         }
 
         var missing = registered
-            .Where(ext => !File.Exists(Path.Combine(extensionsDir, ext)))
+            .Where(ext =>
+                !File.Exists(Path.Combine(extensionsDir, ext)) &&
+                !File.Exists(Path.Combine(bundledExtensionsDir, ext)))
             .ToArray();
 
         if (missing.Length > 0)

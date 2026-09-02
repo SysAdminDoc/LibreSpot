@@ -984,6 +984,21 @@ public sealed class EnvironmentSnapshotServiceTests
     }
 
     [Fact]
+    public void GetSnapshot_ExtensionIntegrity_AcceptsCliBundledExtensionFiles()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteSpicetifyConfig("extensions = fullAppDisplay.js|shuffle+.js|trashbin.js\r\ncustom_apps = marketplace");
+        fixture.WriteBundledExtensionFiles("fullAppDisplay.js", "shuffle+.js", "trashbin.js");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: false);
+
+        var ext = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "extension-integrity");
+        Assert.Equal("All present", ext.Status);
+        Assert.Equal(HealthSeverity.Ready, ext.Severity);
+        Assert.DoesNotContain("Reapply", ext.RecommendedActionIds);
+    }
+
+    [Fact]
     public void GetSnapshot_ExtensionIntegrity_MissingFileTriggersQuarantineWarning()
     {
         using var fixture = new SnapshotFixture();
@@ -1498,6 +1513,15 @@ public sealed class EnvironmentSnapshotServiceTests
             foreach (var name in extensionNames)
             {
                 WriteFile(Path.Combine(extensionsDir, name), "// extension content");
+            }
+        }
+
+        public void WriteBundledExtensionFiles(params string[] extensionNames)
+        {
+            var extensionsDir = Path.Combine(Path.GetDirectoryName(SpicetifyPath)!, "Extensions");
+            foreach (var name in extensionNames)
+            {
+                WriteFile(Path.Combine(extensionsDir, name), "// bundled extension content");
             }
         }
 

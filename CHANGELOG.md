@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Health checks now recognize extensions bundled with the verified Spicetify CLI as installed. The dashboard no longer asks for a reapply when those files are correctly present in Spicetify's program folder instead of its user configuration folder.
+
 ## [v4.1.1] (2026-09-01)
 
 ### Added
