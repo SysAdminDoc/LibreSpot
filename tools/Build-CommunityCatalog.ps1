@@ -222,6 +222,10 @@ function New-CatalogItem {
             behavior = $networkBehavior
             detail = Get-ManifestValue -Object $Asset -Name 'networkDetail'
         }
+        webApi = [ordered]@{
+            use = Get-ManifestValue -Object $Asset -Name 'webApiUse' -Default 'not-declared'
+            detail = Get-ManifestValue -Object $Asset -Name 'webApiDetail'
+        }
         supportState = Get-ManifestValue -Object $Asset -Name 'supportState' -Default 'active'
         supportDetail = Get-ManifestValue -Object $Asset -Name 'supportDetail'
         supportIssueUrl = Get-ManifestValue -Object $Asset -Name 'supportIssueUrl'
@@ -264,6 +268,13 @@ function New-CatalogHtml {
         } else {
             "$network. $networkDetail"
         }
+        $webApiUse = ConvertTo-Html $item.webApi.use
+        $webApiDetail = ConvertTo-Html $item.webApi.detail
+        $webApiMarkup = if ([string]::IsNullOrWhiteSpace([string]$webApiDetail)) {
+            $webApiUse
+        } else {
+            "$webApiUse. $webApiDetail"
+        }
         $schemeMarkup = if (@($item.schemes).Count -gt 0) {
             '<div class="subtle"><strong>Schemes:</strong> ' + (ConvertTo-Html ((@($item.schemes) -join ', '))) + '</div>'
         } else {
@@ -305,6 +316,7 @@ function New-CatalogHtml {
     <div><dt>Provenance</dt><dd>$sourceLink<br><code>$commit</code></dd></div>
     <div><dt>License</dt><dd>$license<br><span class="subtle">$holder</span></dd></div>
     <div><dt>Network behavior</dt><dd>$networkMarkup</dd></div>
+    <div><dt>Spotify Web API</dt><dd>$webApiMarkup</dd></div>
     <div><dt>Verified against the pinned Spotify</dt><dd>$lastVerified</dd></div>
     <div><dt>Support state</dt><dd>$supportMarkup</dd></div>
     <div><dt>Reviewed</dt><dd>$evaluated<br><span class="subtle">Last push: $lastPush</span></dd></div>

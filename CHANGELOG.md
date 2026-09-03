@@ -6,6 +6,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- Every reviewed extension, theme and app now records whether it talks to Spotify's Web API, and the catalog page shows it. Since February 2026 an add-on that calls that API under its own developer registration works for five people and then stops working for everyone after them, so this is the difference between an add-on that keeps working and one that quietly dies. None of the reviewed assets is in that position: they either stay inside the Spotify app's own interfaces or make no Spotify call at all.
+
+  Checking each one against its pinned source turned up two entries describing themselves too kindly. Bloom was listed as running entirely locally while it pulls two JavaScript libraries off public CDNs and runs them inside Spotify every time it loads, one of them from an address with no version in it, so it can change underneath you. Beautiful Lyrics was described as fetching lyrics from a service; the file that gets installed is a small loader whose real body is downloaded at startup from a server that chooses the version, which means the checksum covers almost none of what runs. Both now say so plainly.
+
 - The accessibility of the desktop shell is now checked by a rule engine, not just by hand. Every build scans the Home, Settings and Maintenance screens with the same engine Accessibility Insights uses, with the window hidden so it never interrupts anything. Ten known findings are recorded with a reason each, and anything new fails the build. A deliberately broken control is planted in a test-only screen so a scan that has quietly stopped working cannot be mistaken for a clean result.
 
 - A changed Spotify flag now says so on its own row and can be put back on its own. Any flag holding a value you set is marked Custom and carries a Revert control that names the flag it undoes; reverting one restores the value Spotify sent for it and leaves every other change alone. The count of customized flags in the summary follows.

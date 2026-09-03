@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text.Json;
 using LibreSpot.Desktop.Properties;
@@ -243,7 +243,12 @@ public static class CommunityAssetCatalogPolicy
         new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "local-only",
-            "third-party-service"
+            "third-party-service",
+            // Added to the manifest for the themes on 2026-09-03 and missed here,
+            // because no theme goes through easy-mode eligibility. The omission
+            // read as "a remote loader can never be an easy-mode default", which
+            // was never a decision anybody took.
+            "remote-loader"
         };
 
     public static CommunityAssetCatalogReview Evaluate(
@@ -339,9 +344,13 @@ public static class CommunityAssetCatalogPolicy
         {
             issues.Add($"network behavior '{networkBehavior}' is not recognized");
         }
-        else if (string.Equals(networkBehavior, "third-party-service", StringComparison.OrdinalIgnoreCase) &&
+        else if ((string.Equals(networkBehavior, "third-party-service", StringComparison.OrdinalIgnoreCase) ||
+                  string.Equals(networkBehavior, "remote-loader", StringComparison.OrdinalIgnoreCase)) &&
                  string.IsNullOrWhiteSpace(networkDetail))
         {
+            // A remote loader needs disclosure at least as much as a third-party
+            // service does: the pinned hash covers the loader and none of the code
+            // it fetches, so the detail is the only record of what actually runs.
             issues.Add("third-party network behavior is not disclosed");
         }
 
@@ -993,6 +1002,8 @@ public static class AppCatalog
         new Dictionary<string, IReadOnlyList<string>>
         {
             ["(None - Marketplace Only)"] = new[] { "Default" },
+            // Bundled theme — ships inside LibreSpot and installs from disk
+            ["Prism"] = new[] { "Dark", "Light", "OLED", "HighContrast" },
             ["Sleek"] = new[] { "Wealthy", "Cherry", "Coral", "Deep", "Greener", "Deeper", "Psycho", "UltraBlack", "Nord", "Futura", "Elementary", "BladeRunner", "Dracula", "VantaBlack", "RosePine", "Eldritch", "Catppuccin", "AyuDark", "TokyoNight" },
             ["Dribbblish"] = new[] { "base", "white", "dark", "dracula", "nord-light", "nord-dark", "purple", "samurai", "beach-sunset", "gruvbox", "gruvbox-material-dark", "rosepine", "lunar", "catppuccin-latte", "catppuccin-frappe", "catppuccin-macchiato", "catppuccin-mocha", "tokyo-night", "kanagawa" },
             ["Ziro"] = new[] { "blue-dark", "blue-light", "gray-dark", "gray-light", "green-dark", "green-light", "orange-dark", "orange-light", "purple-dark", "purple-light", "red-dark", "red-light", "rose-pine", "rose-pine-moon", "rose-pine-dawn", "tokyo-night" },

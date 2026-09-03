@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
@@ -603,6 +603,7 @@ public sealed class CommunityAssetsManifestTests
     {
         // remote-loader: the pinned archive only fetches the real code from a CDN at
         // runtime, so the commit and hash cover the loader and nothing else.
+        var allowedWebApiUse = new[] { "none", "platform-api", "client-id" };
         var allowed = new[] { "local-only", "third-party-service", "remote-loader" };
 
         IEnumerable<JsonElement> assets =
@@ -626,6 +627,32 @@ public sealed class CommunityAssetsManifestTests
             Assert.True(
                 allowed.Contains(value),
                 $"Asset '{id}' has unknown networkBehavior '{value}'. Allowed: {string.Join(", ", allowed)}.");
+
+            // Spotify's 2026 Development Mode rules cap a registered client ID at
+            // five authorised users, so an asset that calls the Web API with its
+            // own client ID silently stops working for the sixth person who
+            // installs it. Every asset records which of the three it does, and the
+            // evidence that settles it.
+            Assert.True(
+                asset.TryGetProperty("webApiUse", out var webApiUse) && webApiUse.ValueKind == JsonValueKind.String,
+                $"Asset '{id}' is missing a string 'webApiUse'.");
+
+            var webApiValue = webApiUse.GetString()!;
+            Assert.True(
+                allowedWebApiUse.Contains(webApiValue),
+                $"Asset '{id}' has unknown webApiUse '{webApiValue}'. Allowed: {string.Join(", ", allowedWebApiUse)}.");
+
+            Assert.True(
+                asset.TryGetProperty("webApiDetail", out var webApiDetail)
+                    && !string.IsNullOrWhiteSpace(webApiDetail.GetString()),
+                $"Asset '{id}' records webApiUse '{webApiValue}' with no evidence in 'webApiDetail'.");
+
+            if (webApiValue == "client-id")
+            {
+                Assert.True(
+                    asset.GetProperty("supportState").GetString() == "degraded",
+                    $"Asset '{id}' calls the Web API with its own client ID, so it works for five users and then stops. Mark it degraded or explain it in the catalog.");
+            }
 
             if (value == "third-party-service")
             {

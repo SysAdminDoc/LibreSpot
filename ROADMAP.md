@@ -18,13 +18,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: WHEN the user turns the toggle on under Maintenance diagnostics, the next launch SHALL set `DOTNET_DbgEnableMiniDump=1`, `DOTNET_DbgMiniDumpType=3`, and a `%e-%p-%t` name under the crashes folder; the support bundle SHALL include the newest dump only when the toggle is on and SHALL list it in the redaction report; the data inventory SHALL document the path and retention (keep 2).
   Complexity: M
 
-- [ ] P3: RD-158: Audit the reviewed extensions and custom apps for Spotify Web API client IDs under the 2026 developer-access rules
-  Why: since 2026-02-06 Spotify's Development Mode requires Premium and caps each client ID at five authorised users, so any bundled or catalog extension that calls the Web API with its own client ID will fail for the sixth user; extensions that use the client's internal Platform APIs are unaffected.
-  Evidence: https://developer.spotify.com/blog/2026-02-06-update-on-developer-access-and-platform-security; https://developer.spotify.com/blog/2026-07-23-web-api-quota-updates; `schemas/community-assets.json`; `src/powershell/data/CommunityCustomApps.ps1`.
-  Touches: `schemas/community-assets.json`, `tools/Build-CommunityCatalog.ps1`, `README.md` catalog copy.
-  Acceptance: WHEN the audit completes, every catalog asset SHALL carry a recorded `webApiUse` value (`none`, `platform-api`, `client-id`) with the file and line that proves it; any `client-id` asset SHALL show a plain-language note in the catalog page and the Extensions panel, or be moved to `degraded`.
-  Complexity: S
-
 - [ ] P3: RD-159: Add a safe-mode launch that starts Spotify once with LibreSpot-managed extensions and apps disabled
   Why: when an extension breaks Spotify's startup, the only recovery paths are Repair (reinstalls the same set) or Restore vanilla (removes everything); BetterDiscord's most-requested recovery feature is a crash screen that lets users disable addons, and a one-session safe mode gives the same result without a UI inside a broken client.
   Evidence: https://github.com/BetterDiscord/BetterDiscord/issues/1920; https://github.com/BetterDiscord/BetterDiscord/issues/2237; `src/powershell/shared/Get-SpicetifyApplyPlan.ps1`; `src/LibreSpot.Desktop/ViewModels/MainViewModel.Maintenance.cs`.
@@ -66,3 +59,10 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Touches: the Home workspace list in `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml`, six resx files for the name, `schemas/axe-windows-baseline.json`.
   Acceptance: WHEN the Axe.Windows scan runs on the recommended state, no `NameNotNull` violation SHALL be reported, its baseline entry SHALL be deleted, and the name SHALL come from the localized resources rather than a literal so every shipped culture announces it.
   Complexity: S
+
+- [ ] P2: RD-169: Decide whether a remote loader belongs in Recommended Setup at all
+  Why: the RD-158 audit established that `beautiful-lyrics.mjs` is a 4.6 KB loader whose entire body is fetched from a third-party host at load time, and it is an easy-mode default, so Recommended Setup installs code that no pin covers on every machine. The eligibility rule now recognises `remote-loader` and requires disclosure, which is the honest description of what ships, but it is not an answer to whether it should ship by default. The same question applies to any future asset in that category. This is a product and risk decision, not a defect, and it is deliberately not being taken silently inside an audit commit.
+  Evidence: `schemas/community-assets.json` (`beautiful-lyrics.mjs`, `networkBehavior: remote-loader`, `easyModeDefault: true`); the pinned file fetches `https://extensions.socalifornian.live/version/beautiful-lyrics` at line 154 and dynamically imports `https://extensions-storage.socalifornian.live/beautiful-lyrics@<version>.mjs` at line 91, both verified against the pinned commit on 2026-09-03; `src/LibreSpot.Cli/Program.cs:59` and `src/LibreSpot.Core/AppCatalog.cs:1068` carry the easy-mode extension set; `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:192` and the monolith carry the pin.
+  Touches: `schemas/community-assets.json`, `src/LibreSpot.Cli/Program.cs`, `src/LibreSpot.Core/AppCatalog.cs`, both composed hosts, `README.md` extension copy, `tests/LibreSpot.Desktop.Tests/CommunityAssetsManifestTests.cs`.
+  Acceptance: WHEN the decision is recorded, either `beautiful-lyrics.mjs` SHALL stop being an easy-mode default and be removed from every hard-coded recommended set so the catalog and the installed set agree, or the catalog SHALL carry a written rationale for shipping unpinned third-party code by default; a test SHALL fail if the easy-mode set in `Program.cs` and the `easyModeDefault` flags in the manifest ever disagree, whichever way the decision goes.
+  Complexity: M
