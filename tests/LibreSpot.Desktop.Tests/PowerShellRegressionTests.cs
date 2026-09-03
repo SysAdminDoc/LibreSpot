@@ -950,7 +950,9 @@ public sealed class PowerShellRegressionTests
 
         Assert.Contains("Version = '2.44.0'", script);
         Assert.Contains("WindowsMinSpotify = '1.2.14'", script);
-        Assert.Contains("WindowsMaxTestedSpotify = '1.2.93'", script);
+        Assert.Contains("WindowsDeclaredMaxSpotify = '1.2.96'", script);
+        Assert.Contains("LibreSpotVerifiedMaxSpotify = '1.2.93'", script);
+        Assert.DoesNotContain("WindowsMaxTestedSpotify", script);
         Assert.Contains("CompatibilityUrl = 'https://github.com/spicetify/cli/releases/tag/v2.44.0'", script);
         Assert.Contains("215435095420e3804001a650c072f51befde897b414b0dac054edc2ea258ebea", script);
         Assert.Contains("a6f827ae6387203bb87ff4af1f5ab21e4671a542ce1a0e3cb82ddc77d2ac7444", script);
@@ -970,7 +972,9 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("function Write-LibreSpotCompatibilityMatrix", script);
         Assert.Contains("Write-LibreSpotCompatibilityMatrix", script);
         Assert.Contains("SpotX target Spotify", script);
-        Assert.Contains("max-tested Windows/Microsoft Store Spotify", script);
+        Assert.Contains("declares Windows/Microsoft Store Spotify", script);
+        Assert.Contains("LibreSpot verified: Spotify up to", script);
+        Assert.DoesNotContain("max-tested", script);
         Assert.Contains("validate Spicetify CSS maps after patching", script);
         Assert.Contains("does not hard-refuse 'backup apply'", script);
         Assert.Contains("Marketplace:", script);

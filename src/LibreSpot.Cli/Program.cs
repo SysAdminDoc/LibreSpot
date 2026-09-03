@@ -1178,8 +1178,9 @@ public static class CliApplication
                     AppCatalog.PinnedSpotXSpotifyVersion),
                 new SpicetifyPinDocument(
                     AppCatalog.PinnedSpicetifyCliVersion,
-                    AppCatalog.SpicetifyWindowsMinTestedSpotify,
-                    AppCatalog.SpicetifyWindowsMaxTestedSpotify),
+                    AppCatalog.SpicetifyWindowsDeclaredMinSpotify,
+                    AppCatalog.SpicetifyWindowsDeclaredMaxSpotify,
+                    AppCatalog.LibreSpotVerifiedMaxSpotify),
                 AppCatalog.PinnedMarketplaceVersion,
                 AppCatalog.PinnedThemesCommit));
 

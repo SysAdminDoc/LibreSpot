@@ -696,7 +696,8 @@ function Test-PinnedCompatibilityBaseline {
         @{ Label = 'SpotX Defender policy active'; Source = $pinnedSource; Pattern = '(?ms)SpotX\s*=\s*@\{.*?^\s*DefenderPolicyActive\s*=\s*\$(true|false)'; Expected = ([bool]$baseline.spotx.defenderPolicyActive).ToString().ToLowerInvariant() },
         @{ Label = 'Spicetify CLI version'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?^\s*Version\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.version },
         @{ Label = 'Spicetify Windows minimum'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?^\s*WindowsMinSpotify\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.windowsMinSpotify },
-        @{ Label = 'Spicetify Windows maximum'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?^\s*WindowsMaxTestedSpotify\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.windowsMaxTestedSpotify },
+        @{ Label = 'Spicetify Windows declared maximum'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?^\s*WindowsDeclaredMaxSpotify\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.windowsDeclaredMaxSpotify },
+        @{ Label = 'LibreSpot verified maximum'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?^\s*LibreSpotVerifiedMaxSpotify\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.libreSpotVerifiedMaxSpotify },
         @{ Label = 'Spicetify x64 SHA256'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?x64\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.sha256.x64 },
         @{ Label = 'Spicetify arm64 SHA256'; Source = $pinnedSource; Pattern = '(?ms)SpicetifyCLI\s*=\s*@\{.*?arm64\s*=\s*''([^'']+)'; Expected = [string]$baseline.spicetifyCli.sha256.arm64 },
         @{ Label = 'Marketplace version'; Source = $pinnedSource; Pattern = '(?ms)Marketplace\s*=\s*@\{.*?^\s*Version\s*=\s*''([^'']+)'; Expected = [string]$baseline.marketplace.version },
@@ -708,8 +709,9 @@ function Test-PinnedCompatibilityBaseline {
         @{ Label = 'AppCatalog Spotify target ID'; Source = $catalogSource; Pattern = 'public const string PinnedSpotXSpotifyVersionId\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spotify.version },
         @{ Label = 'AppCatalog Spotify target'; Source = $catalogSource; Pattern = 'public const string PinnedSpotXSpotifyVersion\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spotify.version },
         @{ Label = 'AppCatalog Spicetify CLI version'; Source = $catalogSource; Pattern = 'public const string PinnedSpicetifyCliVersion\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spicetifyCli.version },
-        @{ Label = 'AppCatalog Spicetify Windows minimum'; Source = $catalogSource; Pattern = 'public const string SpicetifyWindowsMinTestedSpotify\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spicetifyCli.windowsMinSpotify },
-        @{ Label = 'AppCatalog Spicetify Windows maximum'; Source = $catalogSource; Pattern = 'public const string SpicetifyWindowsMaxTestedSpotify\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spicetifyCli.windowsMaxTestedSpotify },
+        @{ Label = 'AppCatalog Spicetify Windows minimum'; Source = $catalogSource; Pattern = 'public const string SpicetifyWindowsDeclaredMinSpotify\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spicetifyCli.windowsMinSpotify },
+        @{ Label = 'AppCatalog Spicetify Windows declared maximum'; Source = $catalogSource; Pattern = 'public const string SpicetifyWindowsDeclaredMaxSpotify\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spicetifyCli.windowsDeclaredMaxSpotify },
+        @{ Label = 'AppCatalog LibreSpot verified maximum'; Source = $catalogSource; Pattern = 'public const string LibreSpotVerifiedMaxSpotify\s*=\s*"([^"]+)"'; Expected = [string]$baseline.spicetifyCli.libreSpotVerifiedMaxSpotify },
         @{ Label = 'AppCatalog Marketplace version'; Source = $catalogSource; Pattern = 'public const string PinnedMarketplaceVersion\s*=\s*"([^"]+)"'; Expected = [string]$baseline.marketplace.version },
         @{ Label = 'AppCatalog Themes commit'; Source = $catalogSource; Pattern = 'public const string PinnedThemesCommit\s*=\s*"([^"]+)"'; Expected = [string]$baseline.themes.commit }
     )
@@ -730,9 +732,16 @@ function Test-PinnedCompatibilityBaseline {
     try {
         $spotifyVersion = [Version]::Parse([string]$baseline.spotify.version)
         $minimumVersion = [Version]::Parse([string]$baseline.spicetifyCli.windowsMinSpotify)
-        $maximumVersion = [Version]::Parse([string]$baseline.spicetifyCli.windowsMaxTestedSpotify)
-        if ($spotifyVersion -lt $minimumVersion -or $spotifyVersion -gt $maximumVersion) {
-            $failures += "Pinned Spotify '$spotifyVersion' is outside the Spicetify Windows range '$minimumVersion'-'$maximumVersion'."
+        $declaredMaximum = [Version]::Parse([string]$baseline.spicetifyCli.windowsDeclaredMaxSpotify)
+        $verifiedMaximum = [Version]::Parse([string]$baseline.spicetifyCli.libreSpotVerifiedMaxSpotify)
+        if ($spotifyVersion -lt $minimumVersion -or $spotifyVersion -gt $declaredMaximum) {
+            $failures += "Pinned Spotify '$spotifyVersion' is outside the range Spicetify declares '$minimumVersion'-'$declaredMaximum'."
+        }
+        if ($verifiedMaximum -lt $minimumVersion -or $verifiedMaximum -gt $declaredMaximum) {
+            $failures += "LibreSpot verified Spotify '$verifiedMaximum' is outside the range Spicetify declares '$minimumVersion'-'$declaredMaximum'."
+        }
+        if ($spotifyVersion -gt $verifiedMaximum) {
+            $failures += "Pinned Spotify '$spotifyVersion' is newer than the build LibreSpot has verified '$verifiedMaximum'."
         }
     } catch {
         $failures += 'Compatibility baseline contains an invalid Spotify or Spicetify version range.'

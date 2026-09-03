@@ -546,8 +546,9 @@ public sealed class SupportBundleService
                 spicetifyCli = new
                 {
                     version = AppCatalog.PinnedSpicetifyCliVersion,
-                    windowsMinTestedSpotify = AppCatalog.SpicetifyWindowsMinTestedSpotify,
-                    windowsMaxTestedSpotify = AppCatalog.SpicetifyWindowsMaxTestedSpotify
+                    windowsDeclaredMinSpotify = AppCatalog.SpicetifyWindowsDeclaredMinSpotify,
+                    windowsDeclaredMaxSpotify = AppCatalog.SpicetifyWindowsDeclaredMaxSpotify,
+                    libreSpotVerifiedMaxSpotify = AppCatalog.LibreSpotVerifiedMaxSpotify
                 },
                 marketplace = new
                 {

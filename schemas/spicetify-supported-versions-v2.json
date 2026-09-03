@@ -3,6 +3,12 @@
   "updated": "2026-07-21",
   "policy": "allowlist",
   "default_map_status": "classic",
+  "cli_declared_windows_range": {
+    "min": "1.2.14",
+    "max": "1.2.96",
+    "source": "https://github.com/spicetify/cli/releases/tag/v2.44.0",
+    "note": "What the pinned CLI release itself declares for Windows and Microsoft Store. Wider than the ranges below, which record the css-map window LibreSpot has verified. Keep the two apart: the first is upstream's claim, the second is ours."
+  },
   "versions": [],
   "ranges": [
     {

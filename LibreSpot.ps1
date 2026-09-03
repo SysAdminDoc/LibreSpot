@@ -152,7 +152,8 @@ $global:PinnedReleases = @{
     SpicetifyCLI = @{
         Version = '2.44.0'
         WindowsMinSpotify = '1.2.14'
-        WindowsMaxTestedSpotify = '1.2.93'
+        WindowsDeclaredMaxSpotify = '1.2.96'
+        LibreSpotVerifiedMaxSpotify = '1.2.93'
         CompatibilityUrl = 'https://github.com/spicetify/cli/releases/tag/v2.44.0'
         SHA256  = @{
             x64   = '215435095420e3804001a650c072f51befde897b414b0dac054edc2ea258ebea'
@@ -6328,12 +6329,15 @@ function Test-CompatibilityGate {
     $installedVersion = Get-InstalledSpotifyVersion
     if ([string]::IsNullOrWhiteSpace($installedVersion)) { return $true }
     $spotxTarget = Get-LibreSpotCurrentSpotifyTarget
-    $spicetifyMax = [string]$global:PinnedReleases.SpicetifyCLI.WindowsMaxTestedSpotify
+    $spicetifyDeclaredMax = [string]$global:PinnedReleases.SpicetifyCLI.WindowsDeclaredMaxSpotify
     $issues = @()
-    if (-not [string]::IsNullOrWhiteSpace($spicetifyMax)) {
+    # Only a client past what Spicetify itself declares is worth blocking on.
+    # Past LibreSpot's own verified build is a Degraded state, not a broken one,
+    # and gating there would be blaming Spicetify for LibreSpot's ceiling again.
+    if (-not [string]::IsNullOrWhiteSpace($spicetifyDeclaredMax)) {
         $installedNorm = ($installedVersion -replace '\.(\d+)$','') -replace '^(\d+\.\d+\.\d+).*','$1'
-        if (Compare-LibreSpotVersions -Latest $installedNorm -Current $spicetifyMax) {
-            $issues += "Installed Spotify $installedVersion is newer than Spicetify CLI's max-tested version ($spicetifyMax). Themes and extensions may not apply correctly."
+        if (Compare-LibreSpotVersions -Latest $installedNorm -Current $spicetifyDeclaredMax) {
+            $issues += "Installed Spotify $installedVersion is newer than Spicetify CLI $($global:PinnedReleases.SpicetifyCLI.Version) declares support for ($spicetifyDeclaredMax). Themes and extensions may not apply correctly."
         }
     }
     if ($issues.Count -eq 0) { return $true }
@@ -6347,8 +6351,13 @@ function Update-CompatibilityWarningBadge {
     $warnings = @(Get-LibreSpotCompatibilityWarnings)
     if ($warnings.Count -gt 0) {
         $spotxTarget = Get-LibreSpotCurrentSpotifyTarget
-        $spicetifyMax = [string]$global:PinnedReleases.SpicetifyCLI.WindowsMaxTestedSpotify
-        $ui['CompatibilityWarning'].Text = "⚠ SpotX targets Spotify $($spotxTarget.Id) but Spicetify max-tested is $spicetifyMax"
+        $spicetifyDeclaredMax = [string]$global:PinnedReleases.SpicetifyCLI.WindowsDeclaredMaxSpotify
+        $verifiedMax = [string]$global:PinnedReleases.SpicetifyCLI.LibreSpotVerifiedMaxSpotify
+        $ui['CompatibilityWarning'].Text = if (Compare-LibreSpotVersions -Latest $spotxTarget.Id -Current $spicetifyDeclaredMax) {
+            "⚠ SpotX targets Spotify $($spotxTarget.Id) but Spicetify declares support to $spicetifyDeclaredMax"
+        } else {
+            "⚠ SpotX targets Spotify $($spotxTarget.Id) but LibreSpot has verified to $verifiedMax"
+        }
         $ui['CompatibilityWarning'].Visibility = 'Visible'
     } else {
         $ui['CompatibilityWarning'].Visibility = 'Collapsed'
@@ -6358,11 +6367,16 @@ function Update-CompatibilityWarningBadge {
 function Get-LibreSpotCompatibilityWarnings {
     $warnings = @()
     $spotxTarget = Get-LibreSpotCurrentSpotifyTarget
-    $spicetifyMax = [string]$global:PinnedReleases.SpicetifyCLI.WindowsMaxTestedSpotify
+    $spicetifyDeclaredMax = [string]$global:PinnedReleases.SpicetifyCLI.WindowsDeclaredMaxSpotify
+    $verifiedMax = [string]$global:PinnedReleases.SpicetifyCLI.LibreSpotVerifiedMaxSpotify
     if (-not [string]::IsNullOrWhiteSpace($spotxTarget.Id) -and
-        -not [string]::IsNullOrWhiteSpace($spicetifyMax) -and
-        (Compare-LibreSpotVersions -Latest $spotxTarget.Id -Current $spicetifyMax)) {
-        $warnings += "SpotX target Spotify $($spotxTarget.Id) is newer than Spicetify CLI v$($global:PinnedReleases.SpicetifyCLI.Version) max-tested Windows/Microsoft Store Spotify $spicetifyMax; validate Spicetify CSS maps after patching, and if the pinned Spicetify is advanced past 2.44.0, confirm the newer build does not hard-refuse 'backup apply' on this Spotify version (spicetify/cli main gate merged after 2.44.0)."
+        -not [string]::IsNullOrWhiteSpace($spicetifyDeclaredMax) -and
+        (Compare-LibreSpotVersions -Latest $spotxTarget.Id -Current $spicetifyDeclaredMax)) {
+        $warnings += "SpotX target Spotify $($spotxTarget.Id) is newer than Spicetify CLI v$($global:PinnedReleases.SpicetifyCLI.Version) declares for Windows/Microsoft Store ($spicetifyDeclaredMax); validate Spicetify CSS maps after patching, and if the pinned Spicetify is advanced past 2.44.0, confirm the newer build does not hard-refuse 'backup apply' on this Spotify version (spicetify/cli main gate merged after 2.44.0)."
+    } elseif (-not [string]::IsNullOrWhiteSpace($spotxTarget.Id) -and
+        -not [string]::IsNullOrWhiteSpace($verifiedMax) -and
+        (Compare-LibreSpotVersions -Latest $spotxTarget.Id -Current $verifiedMax)) {
+        $warnings += "SpotX target Spotify $($spotxTarget.Id) is newer than the build LibreSpot has verified ($verifiedMax), though Spicetify CLI v$($global:PinnedReleases.SpicetifyCLI.Version) declares Windows/Microsoft Store support through $spicetifyDeclaredMax; this ceiling is LibreSpot's own, so apply as usual and confirm themes and extensions loaded."
     }
     return $warnings
 }
@@ -6378,7 +6392,8 @@ function Write-LibreSpotCompatibilityMatrix {
 
     Write-Log '  Compatibility matrix:'
     Write-Log "    SpotX: commit $($global:PinnedReleases.SpotX.Commit.Substring(0,10)) targets Spotify $spotxLabel"
-    Write-Log "    Spicetify CLI: v$($spicetify.Version) max-tested Windows/Microsoft Store Spotify $($spicetify.WindowsMinSpotify) -> $($spicetify.WindowsMaxTestedSpotify)"
+    Write-Log "    Spicetify CLI: v$($spicetify.Version) declares Windows/Microsoft Store Spotify $($spicetify.WindowsMinSpotify) -> $($spicetify.WindowsDeclaredMaxSpotify)"
+    Write-Log "    LibreSpot verified: Spotify up to $($spicetify.LibreSpotVerifiedMaxSpotify) checked against this pin set"
     Write-Log "    Marketplace: v$($global:PinnedReleases.Marketplace.Version) checked as a custom app package independent of Spotify CSS-map coverage"
     Write-Log "    Themes: commit $($global:PinnedReleases.Themes.Commit.Substring(0,10)) checked as a theme archive independent of Spotify CSS-map coverage"
 

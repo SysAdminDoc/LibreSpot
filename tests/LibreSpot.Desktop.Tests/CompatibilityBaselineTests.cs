@@ -35,8 +35,9 @@ public sealed class CompatibilityBaselineTests
 
         var spicetify = root.GetProperty("spicetifyCli");
         Assert.Equal(AppCatalog.PinnedSpicetifyCliVersion, spicetify.GetProperty("version").GetString());
-        Assert.Equal(AppCatalog.SpicetifyWindowsMinTestedSpotify, spicetify.GetProperty("windowsMinSpotify").GetString());
-        Assert.Equal(AppCatalog.SpicetifyWindowsMaxTestedSpotify, spicetify.GetProperty("windowsMaxTestedSpotify").GetString());
+        Assert.Equal(AppCatalog.SpicetifyWindowsDeclaredMinSpotify, spicetify.GetProperty("windowsMinSpotify").GetString());
+        Assert.Equal(AppCatalog.SpicetifyWindowsDeclaredMaxSpotify, spicetify.GetProperty("windowsDeclaredMaxSpotify").GetString());
+        Assert.Equal(AppCatalog.LibreSpotVerifiedMaxSpotify, spicetify.GetProperty("libreSpotVerifiedMaxSpotify").GetString());
 
         var v3Support = root.GetProperty("spicetifyV3Support");
         Assert.Equal(2, v3Support.GetProperty("schemaVersion").GetInt32());
@@ -63,6 +64,34 @@ public sealed class CompatibilityBaselineTests
             Assert.NotNull(pin.LastVerifiedAtUtc);
             Assert.Equal(AppCatalog.UpstreamPinsLastVerifiedAtUtc, pin.LastVerifiedAtUtc!.Value);
         });
+    }
+
+    [Fact]
+    public void DeclaredWindowsCeiling_MatchesTheSupportedVersionsFixture()
+    {
+        // The declared ceiling is upstream's claim, so it has to be recorded
+        // where upstream's support data lives rather than only in a constant.
+        using var document = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(RepoRoot, "schemas", "spicetify-supported-versions-v2.json")));
+        var declared = document.RootElement.GetProperty("cli_declared_windows_range");
+
+        Assert.Equal(AppCatalog.SpicetifyWindowsDeclaredMinSpotify, declared.GetProperty("min").GetString());
+        Assert.Equal(AppCatalog.SpicetifyWindowsDeclaredMaxSpotify, declared.GetProperty("max").GetString());
+        Assert.Equal(
+            $"https://github.com/spicetify/cli/releases/tag/v{AppCatalog.PinnedSpicetifyCliVersion}",
+            declared.GetProperty("source").GetString());
+
+        // The css-map window below it records what LibreSpot has verified, so it
+        // cannot claim more than upstream declares. Keeping this here is what
+        // stops the two numbers being conflated again.
+        var declaredMax = Version.Parse(declared.GetProperty("max").GetString()!);
+        foreach (var range in document.RootElement.GetProperty("ranges").EnumerateArray())
+        {
+            var mapped = Version.Parse(range.GetProperty("max").GetString()!);
+            Assert.True(
+                mapped <= declaredMax,
+                $"css-map range max {mapped} claims more than Spicetify declares ({declaredMax}).");
+        }
     }
 
     private static string ResolveRepoRoot()

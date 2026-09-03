@@ -18,8 +18,10 @@
   },
   "spicetifyCli": {
     "version": "2.44.0",
+    "$comment": "windowsMinSpotify and windowsDeclaredMaxSpotify are the range the pinned release declares for Windows and Microsoft Store, read off https://github.com/spicetify/cli/releases/tag/v2.44.0. libreSpotVerifiedMaxSpotify is the newest Spotify build LibreSpot has checked against this whole pin set; it is LibreSpot's own ceiling and is never reported as Spicetify's.",
     "windowsMinSpotify": "1.2.14",
-    "windowsMaxTestedSpotify": "1.2.93",
+    "windowsDeclaredMaxSpotify": "1.2.96",
+    "libreSpotVerifiedMaxSpotify": "1.2.93",
     "sha256": {
       "x64": "215435095420e3804001a650c072f51befde897b414b0dac054edc2ea258ebea",
       "arm64": "a6f827ae6387203bb87ff4af1f5ab21e4671a542ce1a0e3cb82ddc77d2ac7444"

@@ -356,8 +356,9 @@ public sealed record SpotXPinDocument(
 
 public sealed record SpicetifyPinDocument(
     string Version,
-    string WindowsMinTestedSpotify,
-    string WindowsMaxTestedSpotify);
+    string WindowsDeclaredMinSpotify,
+    string WindowsDeclaredMaxSpotify,
+    string LibreSpotVerifiedMaxSpotify);
 
 public sealed record NdjsonLogLine(
     int SchemaVersion,

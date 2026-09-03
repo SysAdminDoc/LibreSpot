@@ -61,10 +61,54 @@ public sealed class CompatibilityVerdictTests
             marketplaceRegistered: false);
 
         Assert.Equal(CompatibilityVerdictState.Unsupported, report.OverallVerdict);
-        Assert.Equal(CompatibilityVerdictState.Unsupported, Item(report, "spotify").Verdict);
+
+        // 1.2.96 is the top of the range Spicetify declares, so the client
+        // itself is not unsupported. It is past the build LibreSpot verified,
+        // which is what Degraded means. This row used to read Unsupported and
+        // that was the defect: it blamed Spicetify for LibreSpot's own ceiling.
+        Assert.Equal(CompatibilityVerdictState.Degraded, Item(report, "spotify").Verdict);
         Assert.Equal(CompatibilityVerdictState.Unsupported, Item(report, "spotx").Verdict);
         Assert.Equal(CompatibilityVerdictState.Unsupported, Item(report, "spicetify-cli").Verdict);
         Assert.Equal(CompatibilityVerdictState.Unsupported, Item(report, "marketplace").Verdict);
+    }
+
+    [Theory]
+    [InlineData("1.2.94")]
+    [InlineData("1.2.95")]
+    [InlineData("1.2.96")]
+    public void Create_ReportsDegradedInsideTheDeclaredRangeAboveTheVerifiedBuild(string detected)
+    {
+        var report = CompatibilityVerdictReport.Create(
+            HealthReport(
+                Spotify(detected, HealthSeverity.Ready),
+                SpotX(HealthSeverity.Ready),
+                Spicetify(AppCatalog.PinnedSpicetifyCliVersion, HealthSeverity.Ready),
+                Marketplace(AppCatalog.PinnedMarketplaceVersion, HealthSeverity.Ready)),
+            spotifyInstalled: true,
+            spicetifyInstalled: true,
+            marketplaceFilesPresent: true,
+            marketplaceRegistered: true);
+
+        Assert.Equal(CompatibilityVerdictState.Degraded, Item(report, "spotify").Verdict);
+    }
+
+    [Fact]
+    public void Create_ReportsUnsupportedAboveWhatSpicetifyDeclares()
+    {
+        // One patch past the declared ceiling is the first version where
+        // Unsupported is honest, because upstream really does stop there.
+        var report = CompatibilityVerdictReport.Create(
+            HealthReport(
+                Spotify("1.2.97", HealthSeverity.Ready),
+                SpotX(HealthSeverity.Ready),
+                Spicetify(AppCatalog.PinnedSpicetifyCliVersion, HealthSeverity.Ready),
+                Marketplace(AppCatalog.PinnedMarketplaceVersion, HealthSeverity.Ready)),
+            spotifyInstalled: true,
+            spicetifyInstalled: true,
+            marketplaceFilesPresent: true,
+            marketplaceRegistered: true);
+
+        Assert.Equal(CompatibilityVerdictState.Unsupported, Item(report, "spotify").Verdict);
     }
 
     [Fact]

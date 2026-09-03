@@ -257,14 +257,51 @@ public sealed class AppCatalogTests
     }
 
     [Fact]
-    public void CompatibilityBaseline_TracksCurrentSpotXAndSpicetifyWindowsMaximum()
+    public void CompatibilityBaseline_KeepsSpicetifysDeclaredRangeApartFromTheVerifiedBuild()
     {
         Assert.Equal("2.44.0", AppCatalog.PinnedSpicetifyCliVersion);
-        Assert.Equal("1.2.14", AppCatalog.SpicetifyWindowsMinTestedSpotify);
-        Assert.Equal("1.2.93", AppCatalog.SpicetifyWindowsMaxTestedSpotify);
+        Assert.Equal("1.2.14", AppCatalog.SpicetifyWindowsDeclaredMinSpotify);
+        Assert.Equal("1.2.96", AppCatalog.SpicetifyWindowsDeclaredMaxSpotify);
+        Assert.Equal("1.2.93", AppCatalog.LibreSpotVerifiedMaxSpotify);
+
+        // Two separate fields holding two different numbers is the whole point.
+        // One constant serving both jobs is what made LibreSpot's ceiling get
+        // reported as Spicetify's testing.
+        Assert.NotEqual(
+            AppCatalog.SpicetifyWindowsDeclaredMaxSpotify,
+            AppCatalog.LibreSpotVerifiedMaxSpotify);
+
+        var declaredMin = Version.Parse(AppCatalog.SpicetifyWindowsDeclaredMinSpotify);
+        var declaredMax = Version.Parse(AppCatalog.SpicetifyWindowsDeclaredMaxSpotify);
+        var verified = Version.Parse(AppCatalog.LibreSpotVerifiedMaxSpotify);
+
         Assert.True(
-            Version.Parse(AppCatalog.PinnedSpotXSpotifyVersionId) <= Version.Parse(AppCatalog.SpicetifyWindowsMaxTestedSpotify),
-            "Pinned SpotX target should stay inside Spicetify CLI's Windows max-tested Spotify baseline after a coordinated pin refresh.");
+            verified > declaredMin && verified < declaredMax,
+            "The verified build should sit inside the range Spicetify declares, not at either edge of it.");
+        Assert.True(
+            Version.Parse(AppCatalog.PinnedSpotXSpotifyVersionId) <= verified,
+            "Pinned SpotX target should stay at or below the newest Spotify build LibreSpot has verified.");
+    }
+
+    [Fact]
+    public void CheckInstalledSpotifyCompatibility_SeparatesLibreSpotsCeilingFromSpicetifys()
+    {
+        // Inside what Spicetify declares but past what LibreSpot has checked.
+        var inBetween = AppCatalog.CheckInstalledSpotifyCompatibility("1.2.95");
+        var betweenText = Assert.Single(inBetween);
+        Assert.Contains("LibreSpot has verified", betweenText);
+        Assert.Contains("1.2.93", betweenText);
+        Assert.Contains("1.2.96", betweenText);
+        Assert.DoesNotContain("max-tested", betweenText);
+
+        // Past what Spicetify itself declares. That limit really is upstream's.
+        var beyond = AppCatalog.CheckInstalledSpotifyCompatibility("1.2.99");
+        var beyondText = Assert.Single(beyond);
+        Assert.Contains("Spicetify CLI 2.44.0 declares support for", beyondText);
+        Assert.Contains("1.2.96", beyondText);
+
+        // At or below the verified build there is nothing to warn about.
+        Assert.Empty(AppCatalog.CheckInstalledSpotifyCompatibility("1.2.93"));
     }
 
     [Fact]

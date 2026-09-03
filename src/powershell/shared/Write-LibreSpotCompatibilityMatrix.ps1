@@ -9,7 +9,8 @@ function Write-LibreSpotCompatibilityMatrix {
 
     Write-Log '  Compatibility matrix:'
     Write-Log "    SpotX: commit $($global:PinnedReleases.SpotX.Commit.Substring(0,10)) targets Spotify $spotxLabel"
-    Write-Log "    Spicetify CLI: v$($spicetify.Version) max-tested Windows/Microsoft Store Spotify $($spicetify.WindowsMinSpotify) -> $($spicetify.WindowsMaxTestedSpotify)"
+    Write-Log "    Spicetify CLI: v$($spicetify.Version) declares Windows/Microsoft Store Spotify $($spicetify.WindowsMinSpotify) -> $($spicetify.WindowsDeclaredMaxSpotify)"
+    Write-Log "    LibreSpot verified: Spotify up to $($spicetify.LibreSpotVerifiedMaxSpotify) checked against this pin set"
     Write-Log "    Marketplace: v$($global:PinnedReleases.Marketplace.Version) checked as a custom app package independent of Spotify CSS-map coverage"
     Write-Log "    Themes: commit $($global:PinnedReleases.Themes.Commit.Substring(0,10)) checked as a theme archive independent of Spotify CSS-map coverage"
 

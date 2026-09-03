@@ -840,8 +840,14 @@ public static class AppCatalog
     public const string PinnedSpotXDefenderPolicyOptOutArgument = "-defender_exclusions_off";
     public const bool PinnedSpotXDefenderPolicyActive = false;
     public const string PinnedSpicetifyCliVersion = "2.44.0";
-    public const string SpicetifyWindowsMinTestedSpotify = "1.2.14";
-    public const string SpicetifyWindowsMaxTestedSpotify = "1.2.93";
+    // Spicetify's own declared Windows/Microsoft Store range, read off the
+    // pinned v2.44.0 release. This is what upstream says it supports.
+    public const string SpicetifyWindowsDeclaredMinSpotify = "1.2.14";
+    public const string SpicetifyWindowsDeclaredMaxSpotify = "1.2.96";
+    // The newest Spotify build LibreSpot has actually verified the pipeline
+    // against. It is LibreSpot's own ceiling and is never attributed to
+    // Spicetify. It sits inside the declared range above, not at its edge.
+    public const string LibreSpotVerifiedMaxSpotify = "1.2.93";
     public const string PinnedMarketplaceVersion = "1.0.11";
     public const string PinnedThemesCommit = "df033493a7dae30ca6e371de9cec1897871dbb0c";
     public const string PinnedStatsCustomAppVersion = "1.1.3";
@@ -854,12 +860,13 @@ public static class AppCatalog
     /// SpotX <c>main</c>. As of the last verification, SpotX <c>main</c> targets
     /// Spotify 1.2.94 and — since commit afb4c3f (2026-07-11) — adds Microsoft
     /// Defender exclusions by default (opt-out <c>-defender_exclusions_off</c>),
-    /// while Spicetify CLI 2.44.0 still tops out at 1.2.93
-    /// (<see cref="SpicetifyWindowsMaxTestedSpotify"/>). The pinned SpotX commit
-    /// predates afb4c3f and matches Spicetify's ceiling, so holding avoids both
-    /// the unverified 1.2.94 pairing and the Defender-exclusion behavior. Advance
-    /// the SpotX pin + Spotify target together only once Spicetify declares
-    /// 1.2.94+ support; the refreshed adapter must then set
+    /// while the newest build LibreSpot has verified is
+    /// 1.2.93 (<see cref="LibreSpotVerifiedMaxSpotify"/>). Spicetify 2.44.0 itself
+    /// declares 1.2.14 to 1.2.96, so the limit here is LibreSpot's, not
+    /// Spicetify's. The pinned SpotX commit predates afb4c3f and pairs with the
+    /// verified build, so holding avoids both the unverified 1.2.94 pairing and
+    /// the Defender-exclusion behavior. Advance the SpotX pin + Spotify target
+    /// together only once 1.2.94+ is verified here; the refreshed adapter must then set
     /// <see cref="PinnedSpotXContainsDefenderMutations"/> and pass
     /// <c>-defender_exclusions_off</c>. A pin advance must also confirm the new
     /// Spicetify build still applies over the new Spotify target: spicetify/cli
@@ -1187,12 +1194,27 @@ public static class AppCatalog
         }
 
         var installed = NormalizeSpotifyVersion(installedSpotifyVersion);
-        var maxTested = NormalizeSpotifyVersion(SpicetifyWindowsMaxTestedSpotify);
-        if (installed is not null && maxTested is not null && installed > maxTested)
+        var verified = NormalizeSpotifyVersion(LibreSpotVerifiedMaxSpotify);
+        var declaredMax = NormalizeSpotifyVersion(SpicetifyWindowsDeclaredMaxSpotify);
+        if (installed is null)
+        {
+            return warnings;
+        }
+
+        // Past what Spicetify itself claims to handle is a different situation
+        // from past what LibreSpot has checked, and only the first is upstream's.
+        if (declaredMax is not null && installed > declaredMax)
         {
             warnings.Add(
-                $"Installed Spotify {installedSpotifyVersion} is newer than Spicetify CLI's max-tested version ({SpicetifyWindowsMaxTestedSpotify}). " +
-                "Themes and extensions may not apply correctly.");
+                $"Installed Spotify {installedSpotifyVersion} is newer than Spicetify CLI {PinnedSpicetifyCliVersion} declares support for " +
+                $"({SpicetifyWindowsDeclaredMaxSpotify}). Themes and extensions may not apply correctly.");
+        }
+        else if (verified is not null && installed > verified)
+        {
+            warnings.Add(
+                $"Installed Spotify {installedSpotifyVersion} is newer than the build LibreSpot has verified ({LibreSpotVerifiedMaxSpotify}), " +
+                $"though Spicetify CLI {PinnedSpicetifyCliVersion} declares support through {SpicetifyWindowsDeclaredMaxSpotify}. " +
+                "Apply as usual, then check that themes and extensions loaded before relying on them.");
         }
 
         return warnings;

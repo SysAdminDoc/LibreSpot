@@ -88,8 +88,8 @@ public sealed class CompatibilityVerdictReport
 
         if (!TryParseVersion(component.DetectedVersion, out var detected) ||
             !TryParseVersion(pinned, out var pinnedVersion) ||
-            !TryParseVersion(AppCatalog.SpicetifyWindowsMinTestedSpotify, out var minimum) ||
-            !TryParseVersion(AppCatalog.SpicetifyWindowsMaxTestedSpotify, out var maximum))
+            !TryParseVersion(AppCatalog.SpicetifyWindowsDeclaredMinSpotify, out var minimum) ||
+            !TryParseVersion(AppCatalog.SpicetifyWindowsDeclaredMaxSpotify, out var maximum))
         {
             return new(
                 "spotify",
@@ -99,6 +99,10 @@ public sealed class CompatibilityVerdictReport
                 CompatibilityDetectionCode.Unknown);
         }
 
+        // Outside what Spicetify declares is Unsupported. Inside that range but
+        // past the build LibreSpot has verified is Degraded: the tooling claims
+        // to handle it, we just have not checked it, and saying Unsupported
+        // there would blame Spicetify for a limit that is ours.
         var verdict = detected < minimum || detected > maximum
             ? CompatibilityVerdictState.Unsupported
             : detected == pinnedVersion && component.Severity == HealthSeverity.Ready
