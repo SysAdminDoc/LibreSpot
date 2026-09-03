@@ -5,7 +5,7 @@
   "sharedFunctions": {
     "directory": "src/powershell/shared",
     "pattern": "*.ps1",
-  "expectedCount": 124
+  "expectedCount": 125
   },
   "dataBlocks": [
     {

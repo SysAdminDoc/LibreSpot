@@ -405,7 +405,7 @@ Custom Install also exposes **Stats** from [harbassan/spicetify-apps](https://gi
 
 Spotify auto-updates roughly every 1-2 weeks and overwrites the SpotX patches every time. Manually reapplying after every update gets old fast.
 
-**Maintenance > Protect and repair > "Auto-reapply when Spotify updates itself"** registers a per-user scheduled task that fires at logon and every 30 minutes. It silently does nothing unless Spotify's version actually changed; when it changes, it hash-verifies the pinned SpotX script and reruns your saved config, but only when Spotify is closed, so it never interrupts playback. Every action gets logged to `%APPDATA%\LibreSpot\watcher.log` for audit.
+**Maintenance > Protect and repair > "Auto-reapply when Spotify updates itself"** registers a per-user scheduled task that fires at logon and repeats every 30 minutes. Between those repeats it watches Spotify's own folders, so an update that lands a minute after a check is picked up in about a minute rather than waiting out the half hour; the repeat stays as the backstop if watching is not possible. It silently does nothing unless Spotify's version actually changed; when it changes, it hash-verifies the pinned SpotX script and reruns your saved config, but only when Spotify is closed, so it never interrupts playback. Every action gets logged to `%APPDATA%\LibreSpot\watcher.log` for audit.
 
 You can also manage the task from the command line if you prefer:
 

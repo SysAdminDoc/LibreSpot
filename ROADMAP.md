@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P2: RD-149: Trigger the auto-reapply watcher from a Spotify file change instead of only the 30-minute poll
-  Why: the watcher is a logon-triggered scheduled task repeating every 30 minutes, so a Spotify update that gets past the SpotX block leaves the client unpatched for up to half an hour; "Spotify updated and my setup vanished" is the single most common complaint upstream and the reason people write their own daily scripts.
-  Evidence: `src/powershell/gui/lane-functions.ps1:106-186`; https://www.reddit.com/r/spicetify/comments/1p29rqh/; https://www.reddit.com/r/spicetify/comments/1vw95y7/; https://github.com/spicetify/cli/issues/3869; https://github.com/BetterDiscord/Installer#faq (loader survives host updates).
-  Touches: `src/powershell/gui/lane-functions.ps1`, `src/powershell/backend/lane-functions.ps1`, `src/powershell/shared/Reapply-SavedSpicetifySetup.ps1`, `src/powershell/shared/Write-WatcherLog.ps1`, `tests/powershell/LibreSpot.Tests.ps1`, `tests/powershell` watcher harness, `README.md` Auto-Reapply section.
-  Acceptance: WHEN the watcher task body starts, it SHALL watch `%APPDATA%\Spotify\Spotify.exe` and `%LOCALAPPDATA%\Spotify\Update` for changes and run the existing reapply within 60 seconds of a version change while the 30-minute poll remains as a backstop; a Pester test SHALL simulate a version change against a fake Spotify folder and assert one reapply and one watcher log line; the task SHALL keep `LeastPrivilege`, battery flags off, and `IgnoreNew`.
-  Complexity: M
-
 - [ ] P2: RD-150: Add per-flag revert and a non-default marker to the Features panel
   Why: the Features panel offers one "Reset custom flags" action for everything; Windhawk 2.0 marks each non-default row and offers revert-to-default per row, which is the pattern users of a 348-flag catalog need to undo one experiment without losing the rest.
   Evidence: `src/LibreSpot.App/src/panels/features.ts:300-307`; https://github.com/ramensoftware/windhawk/releases (2.0 alpha 3 settings UI); `CHANGELOG.md` v4.1.2 "one reset action when any custom values are present".
@@ -101,3 +94,10 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Touches: `src/powershell/shared/Module-InstallThemes.ps1`, `src/powershell/shared/Module-InstallCustomApps.ps1`, `src/powershell/shared/Reapply-SavedSpicetifySetup.ps1`, both composed hosts, `src/LibreSpot.Core/BackendScriptService.cs` or the result parsing that decides success, six resx files for the user-facing wording, `tests/powershell/LibreSpot.Tests.ps1`.
   Acceptance: WHEN a selected theme, extension, or custom app fails to install while the rest of the run succeeds, the run SHALL finish with a state that names the asset and says it was not installed, the desktop and CLI SHALL surface that as a warning rather than a plain success, and the fleet CLI SHALL return a distinct non-zero exit code documented in `schemas/fleet-exit-codes.json`; a Pester test SHALL fail if a forced theme-copy failure still produces a success result.
   Complexity: M
+
+- [ ] P3: RD-163: Isolate the environment-snapshot tests from the machine's real Spicetify folder
+  Why: `EnvironmentSnapshotServiceTests.GetSnapshot_ExtensionIntegrity_NoExtensionsRegistered` failed once in a full run and passed alone immediately after, while live work was writing to `%APPDATA%\spicetify\Extensions`. A test named "no extensions registered" that reads the developer's own Spicetify install is non-deterministic and will fail for anyone who has LibreSpot installed.
+  Evidence: observed 2026-09-03 during the RD-149 verification run (failed in the 1130-test suite, `--filter-method "*NoExtensionsRegistered*"` passed immediately after with no code change); `src/LibreSpot.Core/EnvironmentSnapshotService.cs` extension-integrity probe.
+  Touches: `tests/LibreSpot.Desktop.Tests/EnvironmentSnapshotServiceTests.cs`, `src/LibreSpot.Core/EnvironmentSnapshotService.cs` if the probe needs an injectable root.
+  Acceptance: WHEN the extension-integrity tests run on a machine with a populated Spicetify Extensions folder, they SHALL read a temporary directory the test created rather than the real one, and SHALL pass with the real folder both empty and full; a test SHALL fail if the production path is read during the run.
+  Complexity: S

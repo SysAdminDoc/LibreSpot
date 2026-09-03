@@ -3021,3 +3021,74 @@ Describe 'Module-InstallCustomApps bundled archive resolution' {
         $script:cacheLookups | Should -Be 2
     }
 }
+
+Describe 'Wait-SpotifyChangeSignal' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Wait-SpotifyChangeSignal.ps1')
+
+        function Write-WatcherLog { param([string]$Message, [string]$Level = 'INFO') $script:watchLog.Add("$Level|$Message") }
+
+        function New-WatchFixture {
+            $script:watchLog = New-Object System.Collections.Generic.List[string]
+            $script:watchRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-watch-" + [Guid]::NewGuid().ToString('N'))
+            $spotifyDir = Join-Path $script:watchRoot 'Spotify'
+            New-Item -Path $spotifyDir -ItemType Directory -Force | Out-Null
+            Set-Content -LiteralPath (Join-Path $spotifyDir 'Spotify.exe') -Value 'stub' -Encoding ascii
+            $global:SPOTIFY_EXE_PATH = Join-Path $spotifyDir 'Spotify.exe'
+            $spotifyDir
+        }
+
+        function Remove-WatchFixture {
+            if ($script:watchRoot -and (Test-Path -LiteralPath $script:watchRoot)) {
+                Remove-Item -LiteralPath $script:watchRoot -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    AfterEach { Remove-WatchFixture }
+
+    It 'returns as soon as Spotify files change and then settle' {
+        $spotifyDir = New-WatchFixture
+
+        # Change the folder shortly after the wait starts, the way an update would.
+        # A background job, not a thread-pool task: a PowerShell script block needs
+        # a runspace, which is exactly why the watcher cannot use an event handler.
+        $writer = Start-Job -ScriptBlock {
+            param($target)
+            Start-Sleep -Milliseconds 500
+            Set-Content -LiteralPath $target -Value 'updated' -Encoding ascii
+        } -ArgumentList (Join-Path $spotifyDir 'Spotify.exe')
+
+        $watch = [Diagnostics.Stopwatch]::StartNew()
+        $signalled = Wait-SpotifyChangeSignal -TimeoutSeconds 30 -QuietSeconds 1
+        $watch.Stop()
+        Receive-Job $writer -Wait | Out-Null
+        Remove-Job $writer -Force
+
+        $signalled | Should -BeTrue
+        # It must wait for the writes to settle, then return promptly.
+        $watch.Elapsed.TotalSeconds | Should -BeGreaterThan 1
+        $watch.Elapsed.TotalSeconds | Should -BeLessThan 25
+        ($script:watchLog -join "`n") | Should -Match 'changed and settled'
+    }
+
+    It 'returns false when nothing changes before the timeout' {
+        New-WatchFixture | Out-Null
+
+        $signalled = Wait-SpotifyChangeSignal -TimeoutSeconds 2 -QuietSeconds 1
+
+        $signalled | Should -BeFalse
+        ($script:watchLog -join "`n") | Should -Match 'Watching 1 Spotify folder'
+    }
+
+    It 'falls back to the poll when there is no Spotify folder to watch' {
+        $script:watchLog = New-Object System.Collections.Generic.List[string]
+        $script:watchRoot = $null
+        $global:SPOTIFY_EXE_PATH = Join-Path ([System.IO.Path]::GetTempPath()) ("missing-" + [Guid]::NewGuid().ToString('N') + "\Spotify.exe")
+
+        $signalled = Wait-SpotifyChangeSignal -TimeoutSeconds 30 -QuietSeconds 1
+
+        $signalled | Should -BeFalse
+        ($script:watchLog -join "`n") | Should -Match 'relying on the scheduled repeat'
+    }
+}

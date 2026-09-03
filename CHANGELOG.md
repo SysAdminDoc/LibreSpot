@@ -6,6 +6,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- Auto-reapply reacts to Spotify updating instead of waiting for the next check. The task still runs at logon and repeats every 30 minutes, but between repeats it now watches Spotify's own folders, so an update that lands a minute after a check is picked up in about a minute rather than up to half an hour later. If watching is not possible the repeat still covers it, and the task keeps running as a standard user with a single instance.
+
 - The desktop download is less than half the size it was. Turning on single-file compression takes `LibreSpot-Desktop.exe` from about 176 MB to about 76 MB and the fleet CLI from about 76 MB to about 38 MB. It also starts faster the first time, not slower: the first launch has far less to read from disk than it costs to decompress, and later launches are about a quarter of a second slower. The measurements and the method behind that decision are recorded alongside the size budget.
 
 ### Fixed
