@@ -8,7 +8,7 @@
   ],
   "sourceDigests": {
     "schemas/community-assets.json": "63de2cac70435020eaf40c8f7dc0fc967cbb420b2dcd9aaba81c2e98a1620a34",
-    "schemas/theme-preview-manifest.json": "6508ac45ad37cc5fcf674cd1cda35667b87b49be669f0fd6e9f627fc6b067e4e"
+    "schemas/theme-preview-manifest.json": "09bfe81493b060c2ff03a50546c3df0e67d35ca9b47fdef4c7284ad69dd40831"
   },
   "counts": {
     "extensions": 5,
