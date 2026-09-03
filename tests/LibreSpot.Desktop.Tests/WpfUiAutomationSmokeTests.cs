@@ -282,7 +282,7 @@ public sealed class WpfUiAutomationSmokeTests
         WaitForSnapshotContaining(window, expectedName, SmokeReadyTimeout);
 
         var baseline = LoadAxeBaseline(state);
-        var scan = ScanUntilSettled(app.Process, SmokeReadyTimeout);
+        var scan = ScanUntilSettled(app.Process, window, SmokeReadyTimeout);
 
         // Without this, a scan that returns nothing at all satisfies every
         // assertion below and the state goes quietly green forever.
@@ -342,7 +342,7 @@ public sealed class WpfUiAutomationSmokeTests
         var window = WaitForMainWindow(app.Process, MainWindowTimeout);
         WaitForSnapshotContaining(window, "Home", SmokeReadyTimeout);
 
-        var scan = ScanUntilSettled(app.Process, SmokeReadyTimeout);
+        var scan = ScanUntilSettled(app.Process, window, SmokeReadyTimeout);
         Assert.True(scan.WindowsScanned > 0, "Axe.Windows scanned no windows, so this control proved nothing.");
         var violations = scan.Violations;
 
@@ -358,7 +358,11 @@ public sealed class WpfUiAutomationSmokeTests
                 + string.Join(", ", violations.Select(violation => violation.Key).Distinct().OrderBy(key => key, StringComparer.Ordinal)));
     }
 
-    private sealed record AxeScan(int WindowsScanned, IReadOnlyList<AxeViolation> Violations);
+    private sealed record AxeScan(int WindowsScanned, int ElementsCharted, IReadOnlyList<AxeViolation> Violations)
+    {
+        public AxeScanShape Shape =>
+            new(WindowsScanned, ElementsCharted, Violations.Select(violation => violation.Key).ToArray());
+    }
 
     /// <summary>
     /// Scans until two consecutive scans agree, or the timeout runs out.
@@ -372,17 +376,23 @@ public sealed class WpfUiAutomationSmokeTests
     /// moving tree, so the scan settles rather than the test guessing a delay.
     /// A tree that never settles falls through and is reported by the caller's
     /// assertion, which is the honest outcome for a UI that is still churning.
+    ///
+    /// The violation counts cannot carry that signal on their own. A state with
+    /// an empty baseline reports zero of them while it is half drawn and zero
+    /// again when it is finished, so two passes agree on the first comparison
+    /// and the scan is taken before the cards exist. The charted element count
+    /// is what keeps moving, so the window is walked alongside every scan.
     /// </remarks>
-    private static AxeScan ScanUntilSettled(Process process, TimeSpan timeout)
+    private static AxeScan ScanUntilSettled(Process process, AutomationElement window, TimeSpan timeout)
     {
         var deadline = DateTime.UtcNow + timeout;
-        var previous = ScanForAccessibilityViolations(process);
+        var previous = ScanForAccessibilityViolations(process, window);
 
         while (DateTime.UtcNow < deadline)
         {
             Thread.Sleep(400);
-            var current = ScanForAccessibilityViolations(process);
-            if (HaveSameShape(previous, current))
+            var current = ScanForAccessibilityViolations(process, window);
+            if (previous.Shape.HasSameShapeAs(current.Shape))
             {
                 return current;
             }
@@ -393,23 +403,7 @@ public sealed class WpfUiAutomationSmokeTests
         return previous;
     }
 
-    private static bool HaveSameShape(AxeScan left, AxeScan right)
-    {
-        if (left.WindowsScanned != right.WindowsScanned || left.Violations.Count != right.Violations.Count)
-        {
-            return false;
-        }
-
-        var leftCounts = left.Violations.GroupBy(v => v.Key, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
-        var rightCounts = right.Violations.GroupBy(v => v.Key, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
-
-        return leftCounts.Count == rightCounts.Count
-            && leftCounts.All(pair => rightCounts.TryGetValue(pair.Key, out var count) && count == pair.Value);
-    }
-
-    private static AxeScan ScanForAccessibilityViolations(Process process)
+    private static AxeScan ScanForAccessibilityViolations(Process process, AutomationElement window)
     {
         var config = Config.Builder
             .ForProcessId(process.Id)
@@ -418,10 +412,16 @@ public sealed class WpfUiAutomationSmokeTests
 
         var output = ScannerFactory.CreateScanner(config).Scan(null);
 
+        // Axe reports no element count of its own, so the tree is walked here.
+        // Taken after the scan so a window that grew during it reads as changed
+        // and the loop goes round again rather than accepting a partial pass.
+        var elementsCharted = Snapshot(window).Count;
+
         // The window count travels with the result so callers can tell "this
         // window is clean" from "nothing was looked at".
         return new AxeScan(
             output.WindowScanOutputs.Count,
+            elementsCharted,
             output.WindowScanOutputs
                 .SelectMany(window => window.Errors)
                 .Select(AxeViolation.FromScanResult)

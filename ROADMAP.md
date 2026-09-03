@@ -63,24 +63,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   a machine-readable result file SHALL be written so any future failure is identifiable after the fact.
   Complexity: M
 
-- [ ] P2: RD-174: Restore a churn signal for the accessibility states whose baselines are now empty
-  Why: `ScanUntilSettled` decides the shell has stopped rendering when two consecutive scans agree on their shape,
-  and shape is the window count plus the per-key violation counts. The icon-glyph violations were that signal for
-  `custom` and `maintenance`. RD-167 deleted them, so both states now settle on window count alone: a half-drawn
-  window reports zero violations and so does a finished one, the two scans agree after about 400 ms, and the
-  baseline test can pass before the cards it is meant to scan exist. `recommended` still has its `NameNotNull`
-  entry and keeps a real signal, which is what makes the other two look fine.
-  Evidence: `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs` `ScanUntilSettled`, whose own comment
-  names maintenance as the state "seen reporting six icon glyphs where a quiet machine reports two";
-  `schemas/axe-windows-baseline.json` now carries `"custom": []` and `"maintenance": []`. Raised by an adversarial
-  review on 2026-09-03.
-  Touches: `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`.
-  Acceptance: WHEN a scanned state has no recorded violations, settling SHALL still be decided from something that
-  changes as the window fills, such as the charted element count, and a scan taken before the state's content
-  exists SHALL NOT be accepted as settled; a test SHALL fail if the settle loop returns on the first pair of scans
-  for a state whose content has not rendered.
-  Complexity: M
-
 - [ ] P2: RD-175: Guard `DecorativeSymbolIcon` the way the other custom control is guarded
   Why: RD-167 is a per-usage rename in XAML with nothing but a slow app-launching scan behind it. A new
   `ui:SymbolIcon` added anywhere, or a deleted `GetChildrenCore`, leaves all 1159 non-WPF tests green. Worse, an
