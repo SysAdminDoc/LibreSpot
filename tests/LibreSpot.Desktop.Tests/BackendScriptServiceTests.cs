@@ -192,9 +192,14 @@ public sealed class BackendScriptServiceTests
         Directory.CreateDirectory(tempRoot);
         // The script must keep talking for longer than the stall timeout, or the run
         // finishes before the watchdog could ever fire and the test passes whether or
-        // not output resets the timer. Each gap stays an order of magnitude under the
-        // timeout so a loaded machine does not trip it.
-        const int tickCount = 15;
+        // not output resets the timer.
+        //
+        // Two different gaps have to fit inside the budget. The inter-tick gaps are
+        // 300 ms and are not the risk. The first gap is PowerShell's cold start,
+        // because the idle clock begins at Process.Start and nothing is written
+        // until the host is up; that gap was measured near 1.7 s on a busy machine,
+        // so the budget is set well above it rather than an inch above it.
+        const int tickCount = 20;
         var tickGap = TimeSpan.FromMilliseconds(300);
         await File.WriteAllTextAsync(
             scriptPath,
@@ -208,16 +213,12 @@ public sealed class BackendScriptServiceTests
 
         try
         {
-            // The stall budget also has to cover PowerShell's cold start, because the
-            // idle clock begins at Process.Start and the first line only arrives once
-            // the host is up. A 1s budget was shorter than a cold start on a busy
-            // machine and killed healthy runs.
-            var stallTimeout = TimeSpan.FromSeconds(3);
+            var stallTimeout = TimeSpan.FromSeconds(5);
             var service = new BackendScriptService(
                 runtimeDirectory,
                 noBackendMode: false,
                 new BackendWatchdogOptions(
-                    TimeSpan.FromMilliseconds(1500),
+                    TimeSpan.FromMilliseconds(2500),
                     stallTimeout,
                     TimeSpan.FromMilliseconds(50)),
                 scriptPath);

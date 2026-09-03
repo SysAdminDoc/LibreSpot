@@ -55,8 +55,14 @@ public static class ProcessProbe
         // continuation that fast. An undrained read is indistinguishable from a
         // child that printed nothing, so the cost of being stingy here is a wrong
         // answer, not a slow one.
+        // Half the exit timeout, with a floor so a short-lived child still gets a
+        // usable read, but never more than the child's own budget: a drain cap
+        // larger than the time the process is allowed to live is nonsense and
+        // would make a probe slower than the thing it is probing.
         var drainTimeout = drainTimeoutMilliseconds
-            ?? Math.Max(MinimumDrainTimeoutMilliseconds, exitTimeoutMilliseconds / 2);
+            ?? Math.Min(
+                exitTimeoutMilliseconds,
+                Math.Max(MinimumDrainTimeoutMilliseconds, exitTimeoutMilliseconds / 2));
 
         startInfo.UseShellExecute = false;
         startInfo.CreateNoWindow = true;

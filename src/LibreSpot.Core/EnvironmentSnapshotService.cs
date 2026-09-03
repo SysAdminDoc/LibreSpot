@@ -2553,7 +2553,10 @@ public sealed class EnvironmentSnapshotService
                         @"LibreSpot\ReapplyWatcher"
                     }
                 },
-                exitTimeoutMilliseconds: 1500).Succeeded;
+                exitTimeoutMilliseconds: 1500,
+                // Only .Succeeded is read, so there is no reason to wait on a read
+                // whose result is discarded.
+                drainTimeoutMilliseconds: 0).Succeeded;
         }
         catch
         {

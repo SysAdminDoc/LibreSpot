@@ -2317,13 +2317,51 @@ function Get-LibreSpotJavaScriptAudit {
         $arguments = @('audit', '--json')
         if ($scope -eq 'prod') { $arguments += '--prod' }
 
-        $raw = & $pnpm @arguments 2>&1 | Out-String
+        # pnpm audits the lockfile of the directory it is invoked in. The gate is
+        # documented as being run from the repository root, which has no lockfile,
+        # so without this the command failed with ERR_PNPM_AUDIT_NO_LOCKFILE and
+        # the gate passed having examined nothing.
+        $stderrPath = [System.IO.Path]::GetTempFileName()
+        Push-Location -LiteralPath $WorkspacePath
+        try {
+            # stderr goes to its own file: pnpm writes registry and deprecation
+            # notices there, and folding them into stdout breaks the JSON parse.
+            $raw = & $pnpm @arguments 2>$stderrPath | Out-String
+        } finally {
+            Pop-Location
+        }
+
+        $exitCode = $LASTEXITCODE
+        # Casting an EMPTY pipeline to [string] yields $null, not '', so the Trim
+        # has to come after a null check rather than being chained onto the cast.
+        $stderrRaw = Get-Content -LiteralPath $stderrPath -Raw -ErrorAction SilentlyContinue
+        $stderrText = if ($null -eq $stderrRaw) { '' } else { ([string]$stderrRaw).Trim() }
+        Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
         $result.ran = $true
-        if ([string]::IsNullOrWhiteSpace($raw)) { continue }
+
+        # Every path out of here records a failure. A silent skip is what let the
+        # broken invocation above look like a clean audit. Note that pnpm exits
+        # non-zero when it FINDS advisories, so the exit code is diagnostic only.
+        if ([string]::IsNullOrWhiteSpace($raw)) {
+            $result.failures += "pnpm audit --$scope produced no output (exit $exitCode). $stderrText".Trim()
+            continue
+        }
 
         $parsed = $null
-        try { $parsed = $raw | ConvertFrom-Json } catch { $parsed = $null }
-        if (-not $parsed -or -not $parsed.PSObject.Properties['advisories']) { continue }
+        try { $parsed = $raw | ConvertFrom-Json } catch {
+            $result.failures += "pnpm audit --$scope output could not be parsed (exit $exitCode): $($_.Exception.Message)"
+            continue
+        }
+
+        if ($parsed.PSObject.Properties['error']) {
+            $result.failures += "pnpm audit --$scope failed: $($parsed.error.code) $($parsed.error.message)"
+            continue
+        }
+
+        if (-not $parsed.PSObject.Properties['advisories']) {
+            $result.failures += "pnpm audit --$scope returned no advisories section (exit $exitCode); the audit cannot be trusted."
+            continue
+        }
 
         foreach ($property in $parsed.advisories.PSObject.Properties) {
             $advisory = $property.Value
@@ -2358,13 +2396,36 @@ function Get-DependencyHealthAllowlist {
             }
         }
 
-        [void][DateTime]::Parse([string]$entry.recheckDate)
+        [void][DateTime]::Parse([string]$entry.recheckDate, [System.Globalization.CultureInfo]::InvariantCulture)
         if ([string]$entry.scope -ne 'test-transitive') {
             throw "Dependency health allowlist only accepts test-transitive lag: $($entry.packageId)."
         }
     }
 
+    # Accepted JavaScript advisories carry the same obligations as lagging
+    # packages. They are validated here, where the file is already open, so a
+    # malformed entry stops the gate instead of silently accepting an advisory.
+    foreach ($advisory in @($doc.acceptedJavaScriptAdvisories)) {
+        foreach ($field in @('id', 'owner', 'reason', 'recheckDate')) {
+            if (-not $advisory.PSObject.Properties[$field] -or [string]::IsNullOrWhiteSpace([string]$advisory.$field)) {
+                throw "Dependency health allowlist JavaScript advisory entry is missing '$field'."
+            }
+        }
+
+        [void][DateTime]::Parse([string]$advisory.recheckDate, [System.Globalization.CultureInfo]::InvariantCulture)
+    }
+
     return $entries
+}
+
+function Get-DependencyHealthJavaScriptAllowlist {
+    param([Parameter(Mandatory)][string]$Path)
+
+    # Get-DependencyHealthAllowlist returns the transitive-lag entries alone, so
+    # reading acceptedJavaScriptAdvisories off its result always found nothing and
+    # no advisory could ever be accepted. Validation still lives there.
+    $doc = Get-JsonFile -Path $Path
+    return @($doc.acceptedJavaScriptAdvisories)
 }
 
 function Test-TransitiveLagAllowed {
@@ -2514,14 +2575,11 @@ function New-LibreSpotDependencyHealthReport {
     }
 
     $javaScriptAudit = Get-LibreSpotJavaScriptAudit -WorkspacePath (Join-Path $PSScriptRoot 'src/LibreSpot.App')
-    $allowedAdvisories = @()
-    if ($allowlist.PSObject.Properties['acceptedJavaScriptAdvisories']) {
-        $allowedAdvisories = @($allowlist.acceptedJavaScriptAdvisories)
-    }
+    $allowedAdvisories = @(Get-DependencyHealthJavaScriptAllowlist -Path $AllowlistPath)
     foreach ($advisory in @($javaScriptAudit.advisories)) {
         $accepted = $allowedAdvisories | Where-Object { [string]$_.id -eq [string]$advisory.id } | Select-Object -First 1
         if ($accepted) {
-            if ([DateTime]::Parse([string]$accepted.recheckDate) -lt [DateTime]::UtcNow.Date) {
+            if ([DateTime]::Parse([string]$accepted.recheckDate, [System.Globalization.CultureInfo]::InvariantCulture) -lt [DateTime]::UtcNow.Date) {
                 $failures += "Expired JavaScript advisory acceptance: $($advisory.id) $($advisory.moduleName) recheckDate $($accepted.recheckDate)."
             }
             continue

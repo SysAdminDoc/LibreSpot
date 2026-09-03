@@ -83,13 +83,18 @@ public sealed class ProcessProbeTests
         // probe has to give up on the read instead of waiting for the grandchild.
         var stopwatch = Stopwatch.StartNew();
         var probe = ProcessProbe.Run(
-            Cmd("start /b ping -n 30 127.0.0.1"),
-            exitTimeoutMilliseconds: 2000,
+            Cmd("start /b ping -n 8 127.0.0.1"),
+            // Generous: cmd only has to start and detach, and a tight budget here
+            // would fail this test for host cold start rather than for the drain
+            // it is measuring. The grandchild outlives the drain cap either way.
+            exitTimeoutMilliseconds: 20000,
             drainTimeoutMilliseconds: 1000);
         stopwatch.Stop();
 
-        Assert.True(probe.Exited);
-        Assert.False(probe.Drained);
+        Assert.True(probe.Exited, "cmd did not exit, so this test never reached the drain it is measuring.");
+        Assert.False(
+            probe.Drained,
+            "The read completed, so the grandchild did not inherit the pipe and this test proves nothing. Check that ping resolves and that start /b still detaches.");
         Assert.False(probe.HasOutput);
         Assert.Equal(string.Empty, probe.StandardOutput);
         Assert.True(
@@ -105,13 +110,15 @@ public sealed class ProcessProbeTests
         // for 200 ms has to come back long before that.
         var stopwatch = Stopwatch.StartNew();
         var probe = ProcessProbe.Run(
-            Cmd("start /b ping -n 30 127.0.0.1"),
+            Cmd("start /b ping -n 8 127.0.0.1"),
             exitTimeoutMilliseconds: 20000,
             drainTimeoutMilliseconds: 200);
         stopwatch.Stop();
 
-        Assert.True(probe.Exited);
-        Assert.False(probe.Drained);
+        Assert.True(probe.Exited, "cmd did not exit, so this test never reached the drain it is measuring.");
+        Assert.False(
+            probe.Drained,
+            "The read completed, so the grandchild did not inherit the pipe and this test proves nothing. Check that ping resolves and that start /b still detaches.");
         Assert.True(
             stopwatch.Elapsed < TimeSpan.FromSeconds(5),
             $"The caller asked for a 200 ms drain but the probe took {stopwatch.Elapsed}, which is the default budget for this exit timeout.");
