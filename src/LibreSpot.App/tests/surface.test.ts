@@ -7,6 +7,11 @@ import {
   validateSchemeContrast,
 } from "../src/core/index.ts";
 import { countInstalledManagedAssets } from "../src/panels/extensions.ts";
+import {
+  countCustomizedFeatures,
+  isCustomizedFeature,
+  withFeatureReverted,
+} from "../src/panels/features.ts";
 import { updateSnippetSelection } from "../src/panels/tweaks.ts";
 import {
   BUILTIN_SCHEMES,
@@ -121,6 +126,46 @@ describe("LibreSpot surface contract", () => {
     expect(layerCss).toContain(".main-actionBar-ActionBar");
     expect(layerCss).toContain(".Root__now-playing-bar .encore-internal-color-text-subdued");
     expect(layerCss).toContain('[role="alert"] > [data-encore-id="box"]');
+  });
+
+  it("marks only changed flags and reverts one without touching the rest", () => {
+    const overrides = { automix_enabled: true, enableEqualizer: false } as const;
+
+    expect(isCustomizedFeature(overrides, "automix_enabled")).toBe(true);
+    expect(isCustomizedFeature(overrides, "enableSleepTimer")).toBe(false);
+    expect(
+      countCustomizedFeatures(overrides, [
+        "automix_enabled",
+        "enableEqualizer",
+        "enableSleepTimer",
+      ]),
+    ).toBe(2);
+
+    // Reverting one flag drops only that key. The engine restores Spotify's own
+    // value for whatever disappeared, so the count has to fall by exactly one.
+    const reverted = withFeatureReverted(overrides, "automix_enabled");
+    expect(reverted).toEqual({ enableEqualizer: false });
+    expect(isCustomizedFeature(reverted, "automix_enabled")).toBe(false);
+    expect(isCustomizedFeature(reverted, "enableEqualizer")).toBe(true);
+    expect(countCustomizedFeatures(reverted, ["automix_enabled", "enableEqualizer"])).toBe(1);
+
+    // A flag that was never customized leaves the map untouched.
+    expect(withFeatureReverted(reverted, "enableSleepTimer")).toEqual(reverted);
+    // The original is not mutated.
+    expect(Object.keys(overrides).sort()).toEqual(["automix_enabled", "enableEqualizer"]);
+  });
+
+  it("gives every changed flag a revert control with an accessible name", () => {
+    const source = readFileSync(
+      resolve(import.meta.dirname, "../src/panels/features.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain('label: "Revert"');
+    expect(source).toContain("accessibleLabel: `Revert ${feature.name} to Spotify's value`");
+    // The control is only built for a customized flag, and every row type gets it.
+    expect(source).toContain("const action = isCustom");
+    expect(source.match(/\.\.\.\(action \? \{ action \} : \{\}\)/g)?.length).toBe(4);
   });
 
   it("keeps the large feature catalog searchable and grouped", () => {

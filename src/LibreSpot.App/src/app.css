@@ -325,6 +325,11 @@
   padding: 13px 0;
 }
 
+/* A per-row action (Revert) sits beside the control, not between the label and it. */
+.librespot-control-row > .librespot-button {
+  flex: 0 0 auto;
+}
+
 .librespot-control-row:last-child {
   border-bottom: 0;
 }

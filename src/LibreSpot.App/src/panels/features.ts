@@ -104,19 +104,73 @@ function setFeature(
   );
 }
 
+/**
+ * True when a flag is holding a value the user set rather than Spotify's. The
+ * marker and the revert control both hang off this, so the row cannot show one
+ * without the other.
+ */
+export function isCustomizedFeature(
+  overrides: Readonly<Record<string, FeatureValue>>,
+  name: string,
+): boolean {
+  return overrides[name] !== undefined;
+}
+
+/** Overrides with one flag removed, which is what restores Spotify's own value. */
+export function withFeatureReverted(
+  overrides: Readonly<Record<string, FeatureValue>>,
+  name: string,
+): Record<string, FeatureValue> {
+  return Object.fromEntries(
+    Object.entries(overrides).filter(([key]) => key !== name),
+  );
+}
+
+/** How many flags in this catalog are customized, for the summary line. */
+export function countCustomizedFeatures(
+  overrides: Readonly<Record<string, FeatureValue>>,
+  names: readonly string[],
+): number {
+  return names.filter((name) => isCustomizedFeature(overrides, name)).length;
+}
+
+function revertFeature(properties: PanelProperties, name: string): void {
+  // Removing the key is what restores the value Spotify sent: the override
+  // resolver looks up the remote value for every entry that disappeared.
+  void properties.runtime.update(
+    (draft) => {
+      draft.featureOverrides = withFeatureReverted(draft.featureOverrides, name);
+    },
+    `${name} back to Spotify's value`,
+  );
+}
+
 function featureControl(
   properties: PanelProperties,
   feature: DisplayFeature,
 ): UiNode {
   const stored = properties.snapshot.state.featureOverrides[feature.name];
   const value = stored ?? feature.default;
-  const badge = stored !== undefined
+  const isCustom = isCustomizedFeature(properties.snapshot.state.featureOverrides, feature.name);
+  const badge = isCustom
     ? "Custom"
     : feature.spotxForced
       ? `SpotX ${feature.spotxForced.mode}`
       : feature.serverGated
         ? "Account gated"
         : "Live";
+  // Only a changed flag gets a revert control, so the row reads as default until
+  // it is not.
+  const action = isCustom
+    ? ActionButton({
+        label: "Revert",
+        secondary: true,
+        accessibleLabel: `Revert ${feature.name} to Spotify's value`,
+        onClick: () => {
+          revertFeature(properties, feature.name);
+        },
+      })
+    : null;
   const description = `${feature.description}${feature.serverGated ? " It may do nothing on a free account." : ""}${feature.spotxForced ? ` SpotX pins the default from ${feature.spotxForced.source}.` : ""}`;
   if (feature.type === "enum" && feature.values) {
     return SelectRow({
@@ -124,6 +178,8 @@ function featureControl(
       description,
       value: String(value),
       options: feature.values.map((option) => ({ value: option, label: option })),
+      badge,
+      ...(action ? { action } : {}),
       onChange: (next) => {
         setFeature(properties, feature.name, next);
       },
@@ -137,6 +193,8 @@ function featureControl(
       type: "number",
       ...(feature.minimum === undefined ? {} : { min: feature.minimum }),
       ...(feature.maximum === undefined ? {} : { max: feature.maximum }),
+      badge,
+      ...(action ? { action } : {}),
       onChange: (next) => {
         const number = Number(next);
         if (Number.isFinite(number)) setFeature(properties, feature.name, number);
@@ -149,6 +207,8 @@ function featureControl(
       description,
       value: String(value),
       type: "text",
+      badge,
+      ...(action ? { action } : {}),
       onChange: (next) => {
         setFeature(properties, feature.name, next);
       },
@@ -159,6 +219,7 @@ function featureControl(
     description,
     checked: Boolean(value),
     badge,
+    ...(action ? { action } : {}),
     onChange: (checked) => {
       setFeature(properties, feature.name, checked);
     },
@@ -241,10 +302,10 @@ export function FeaturesPanel(properties: PanelProperties): UiNode {
   const visibleGroupCount = GROUP_ORDER.filter((group) =>
     filtered.some((feature) => feature.group === group),
   ).length;
-  const customizedCount = features.filter(
-    (feature) =>
-      properties.snapshot.state.featureOverrides[feature.name] !== undefined,
-  ).length;
+  const customizedCount = countCustomizedFeatures(
+    properties.snapshot.state.featureOverrides,
+    features.map((feature) => feature.name),
+  );
   const catalogDescription = properties.snapshot.features.length > 0
     ? `${properties.snapshot.features.length} definitions were discovered live. The tested Spotify ${CUSTOMIZATION_CATALOG.pins.spotifyVersion} catalog fills the remaining gaps.`
     : `Tested against Spotify ${CUSTOMIZATION_CATALOG.pins.spotifyVersion}. Changes still apply through this client's live override API.`;

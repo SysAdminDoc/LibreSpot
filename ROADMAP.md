@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P2: RD-150: Add per-flag revert and a non-default marker to the Features panel
-  Why: the Features panel offers one "Reset custom flags" action for everything; Windhawk 2.0 marks each non-default row and offers revert-to-default per row, which is the pattern users of a 348-flag catalog need to undo one experiment without losing the rest.
-  Evidence: `src/LibreSpot.App/src/panels/features.ts:300-307`; https://github.com/ramensoftware/windhawk/releases (2.0 alpha 3 settings UI); `CHANGELOG.md` v4.1.2 "one reset action when any custom values are present".
-  Touches: `src/LibreSpot.App/src/panels/features.ts`, `src/LibreSpot.App/src/core/feature-overrides.ts`, `src/LibreSpot.App/src/app.css`, `src/LibreSpot.App/tests`.
-  Acceptance: WHEN a flag holds a value different from its catalog default, its row SHALL show a visible non-default marker with an accessible name and a Revert control; WHEN Revert is used, the override SHALL be removed and the remote value restored through the existing restore path; group summaries SHALL keep their custom-value counts; a Vitest test SHALL cover marker, revert, and count.
-  Complexity: S
-
 - [ ] P2: RD-151: Audit the live engine's JavaScript dependencies in the local gates and retire spicetify-creator
   Why: `Build-Scripts.ps1 -DependencyHealth` audits NuGet only; `spicetify-creator` 1.0.17 has no releases and pins esbuild `^0.14`, so the lockfile carries esbuild 0.14.54 beside the direct 0.28.2, inside an advisory range that no local gate can see; the repository already has its own esbuild build script.
   Evidence: `src/LibreSpot.App/package.json`; `src/LibreSpot.App/pnpm-lock.yaml`; `Build-Scripts.ps1`; https://registry.npmjs.org/spicetify-creator/latest; https://github.com/vitejs/vite/issues/19428; https://github.com/evanw/esbuild/security/advisories; `src/LibreSpot.App/scripts/build.mjs`.

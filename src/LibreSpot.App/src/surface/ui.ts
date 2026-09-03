@@ -104,6 +104,8 @@ export function ToggleRow(properties: {
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   badge?: string;
+  /** Rendered after the control, for a per-row action such as Revert. */
+  action?: UiNode;
 }): UiNode {
   return h(
     "div",
@@ -136,6 +138,7 @@ export function ToggleRow(properties: {
       },
       h("span", { className: "librespot-switch__thumb" }),
     ),
+    properties.action ?? null,
   );
 }
 
@@ -145,6 +148,8 @@ export function SelectRow(properties: {
   value: string;
   options: readonly { value: string; label: string }[];
   onChange: (value: string) => void;
+  badge?: string;
+  action?: UiNode;
 }): UiNode {
   return h(
     "label",
@@ -152,7 +157,14 @@ export function SelectRow(properties: {
     h(
       "div",
       { className: "librespot-control-copy" },
-      h("span", { className: "librespot-control-label" }, properties.label),
+      h(
+        "div",
+        { className: "librespot-control-label" },
+        h("span", null, properties.label),
+        properties.badge
+          ? h("span", { className: "librespot-badge" }, properties.badge)
+          : null,
+      ),
       h("p", null, properties.description),
     ),
     h(
@@ -169,6 +181,7 @@ export function SelectRow(properties: {
         h("option", { value: option.value, key: option.value }, option.label),
       ),
     ),
+    properties.action ?? null,
   );
 }
 
@@ -218,6 +231,8 @@ export function InputRow(properties: {
   min?: number;
   max?: number;
   onChange: (value: string) => void;
+  badge?: string;
+  action?: UiNode;
 }): UiNode {
   return h(
     "label",
@@ -225,7 +240,14 @@ export function InputRow(properties: {
     h(
       "div",
       { className: "librespot-control-copy" },
-      h("span", { className: "librespot-control-label" }, properties.label),
+      h(
+        "div",
+        { className: "librespot-control-label" },
+        h("span", null, properties.label),
+        properties.badge
+          ? h("span", { className: "librespot-badge" }, properties.badge)
+          : null,
+      ),
       h("p", null, properties.description),
     ),
     h("input", {
@@ -239,6 +261,7 @@ export function InputRow(properties: {
         properties.onChange(targetValue(event));
       },
     }),
+    properties.action ?? null,
   );
 }
 
