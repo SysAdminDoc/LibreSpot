@@ -7,316 +7,205 @@
  mc:Ignorable="d"
  UseLayoutRounding="True"
  SnapsToDevicePixels="True">
-                    <Border Style="{StaticResource MinimalSectionStyle}"
-                            Visibility="{Binding HasVisibleAppearanceSettings, Converter={StaticResource BoolToVisibilityConverter}}">
-                      <Grid>
-                        <Grid.ColumnDefinitions>
-                          <ColumnDefinition Width="1.15*" />
-                          <ColumnDefinition Width="0.85*" />
-                        </Grid.ColumnDefinitions>
+  <!-- The four common choices: theme, Spotify build, Marketplace, and
+       whether Spotify opens when the run finishes. Everything else is behind
+       the expanders in CustomWorkspaceView. -->
+  <Border Style="{StaticResource MinimalSectionStyle}"
+          Visibility="{Binding HasVisibleEssentials, Converter={StaticResource BoolToVisibilityConverter}}"
+          AutomationProperties.AutomationId="SettingsEssentials"
+          AutomationProperties.Name="{services:Loc Settings_EssentialsTitle}">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="1.15*" />
+        <ColumnDefinition Width="0.85*" />
+      </Grid.ColumnDefinitions>
 
-                        <StackPanel Margin="0,0,20,0">
-                          <TextBlock Text="{services:Loc AppearanceSection}" Style="{StaticResource SectionTitleTextStyle}" />
-                          <TextBlock Text="{services:Loc AppearanceDescription}"
-                                     Style="{StaticResource BodyTextStyle}"
-                                     Margin="0,6,0,16" />
+      <StackPanel Margin="0,0,20,0">
+        <TextBlock Text="{services:Loc Settings_EssentialsTitle}" Style="{StaticResource SectionTitleTextStyle}" />
+        <TextBlock Text="{services:Loc Settings_EssentialsDescription}"
+                   Style="{StaticResource BodyTextStyle}"
+                   Margin="0,6,0,16" />
 
-                          <Grid Margin="0,0,0,10">
-                            <Grid.ColumnDefinitions>
-                              <ColumnDefinition Width="*" />
-                              <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox Text="{Binding ThemeSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource TextBoxStylePremium}"
-                                     Tag="{services:Loc ThemeGallerySearchName}"
-                                     Height="42"
-                                     AutomationProperties.Name="{services:Loc ThemeGallerySearchName}"
-                                     AutomationProperties.HelpText="{services:Loc ThemeGallerySearchHint}" />
-                            <Button Grid.Column="1"
-                                    Content="{services:Loc ButtonClearSearch}"
-                                    Height="42"
-                                    MinWidth="84"
-                                    Margin="10,0,0,0"
-                                    Padding="18,0"
-                                    Style="{StaticResource SecondaryButtonStyle}"
-                                    Visibility="{Binding HasThemeSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
-                                    Command="{Binding ClearThemeSearchCommand}"
-                                    AutomationProperties.Name="{services:Loc ButtonClearSearchName}" />
-                          </Grid>
+        <Grid Margin="0,0,0,10">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBox Text="{Binding ThemeSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                   Style="{StaticResource TextBoxStylePremium}"
+                   Tag="{services:Loc ThemeGallerySearchName}"
+                   Height="42"
+                   AutomationProperties.Name="{services:Loc ThemeGallerySearchName}"
+                   AutomationProperties.HelpText="{services:Loc ThemeGallerySearchHint}" />
+          <Button Grid.Column="1"
+                  Content="{services:Loc ButtonClearSearch}"
+                  Height="42"
+                  MinWidth="84"
+                  Margin="10,0,0,0"
+                  Padding="18,0"
+                  Style="{StaticResource SecondaryButtonStyle}"
+                  Visibility="{Binding HasThemeSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
+                  Command="{Binding ClearThemeSearchCommand}"
+                  AutomationProperties.Name="{services:Loc ButtonClearSearchName}" />
+        </Grid>
 
-                          <TextBlock Text="{services:Loc ThemePackLabel}"
-                                     Style="{StaticResource LabelTextStyle}"
-                                     Margin="0,0,0,8" />
-                          <ListBox ItemsSource="{Binding FilteredThemeGalleryItems}"
-                                   SelectedItem="{Binding SelectedThemeGalleryItem, Mode=TwoWay}"
-                                   Background="Transparent"
-                                   BorderThickness="0"
-                                   Padding="0"
-                                   MaxHeight="340"
-                                   PreviewMouseWheel="NestedScrollRegion_OnPreviewMouseWheel"
-                                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                   ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                   KeyboardNavigation.DirectionalNavigation="Contained"
-                                   AutomationProperties.Name="{services:Loc ThemePackLabel}"
-                                   AutomationProperties.HelpText="{services:Loc ThemePackHint}"
-                                   Margin="0,0,0,14">
-                            <ListBox.ItemsPanel>
-                              <ItemsPanelTemplate>
-                                <WrapPanel />
-                              </ItemsPanelTemplate>
-                            </ListBox.ItemsPanel>
-                            <ListBox.ItemContainerStyle>
-                              <Style TargetType="ListBoxItem" BasedOn="{StaticResource CardListBoxItemStyle}">
-                                <Setter Property="Margin" Value="0,0,10,10" />
-                                <Setter Property="Padding" Value="0" />
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                <Setter Property="VerticalContentAlignment" Value="Stretch" />
-                                <Setter Property="Background" Value="Transparent" />
-                                <!-- Constant thickness: the keyboard focus ring swaps brush
-                                     only, so focus never shifts layout. -->
-                                <Setter Property="BorderBrush" Value="Transparent" />
-                                <Setter Property="BorderThickness" Value="2" />
-                                <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
-                                <Setter Property="AutomationProperties.HelpText" Value="{Binding AutomationHelpText}" />
-                                <Style.Triggers>
-                                  <Trigger Property="IsKeyboardFocused" Value="True">
-                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
-                                  </Trigger>
-                                </Style.Triggers>
-                              </Style>
-                            </ListBox.ItemContainerStyle>
-                            <ListBox.ItemTemplate>
-                              <DataTemplate>
-                                <Border Width="246"
-                                        MinHeight="152"
-                                        Padding="12"
-                                        Background="{DynamicResource Surface1Brush}"
-                                        BorderThickness="1"
-                                        CornerRadius="8">
-                                  <Border.Style>
-                                    <Style TargetType="Border">
-                                      <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
-                                      <Style.Triggers>
-                                        <!-- Hover affordance; selection accent overrides it. -->
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                          <Setter Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
-                                          <Setter Property="Background" Value="{DynamicResource Surface2Brush}" />
-                                        </Trigger>
-                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                          <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-                                        </DataTrigger>
-                                      </Style.Triggers>
-                                    </Style>
-                                  </Border.Style>
-                                  <StackPanel>
-                                    <Grid Height="46" ClipToBounds="True">
-                                      <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                      </Grid.ColumnDefinitions>
-                                      <Border Grid.Column="0" Background="{Binding SwatchA}" CornerRadius="6,0,0,6" />
-                                      <Border Grid.Column="1" Background="{Binding SwatchB}" />
-                                      <Border Grid.Column="2" Background="{Binding SwatchC}" CornerRadius="0,6,6,0" />
-                                    </Grid>
-                                    <StackPanel Margin="0,10,0,0">
-                                      <TextBlock Text="{Binding Label}"
-                                                 Foreground="{DynamicResource TextBrush}"
-                                                 FontWeight="SemiBold"
-                                                 TextWrapping="Wrap" />
-                                      <Border Style="{StaticResource MicroBadgeStyle}"
-                                              HorizontalAlignment="Left"
-                                              Margin="0,7,0,0">
-                                        <TextBlock Text="{Binding SourceBadge}"
-                                                   Style="{StaticResource MicroBadgeTextStyle}" />
-                                      </Border>
-                                    </StackPanel>
-                                    <TextBlock Text="{Binding SchemeCountText}"
-                                               Style="{StaticResource CaptionTextStyle}"
-                                               Foreground="{DynamicResource SubtleTextBrush}"
-                                               Margin="0,6,0,0" />
-                                    <TextBlock Text="{Binding SchemePreview}"
-                                               Style="{StaticResource CaptionTextStyle}"
-                                               Foreground="{DynamicResource MutedTextBrush}"
-                                               TextWrapping="Wrap"
-                                               MaxHeight="36"
-                                               Margin="0,4,0,0" />
-                                    <Border Style="{StaticResource MicroBadgeStyle}"
-                                            Margin="0,8,0,0"
-                                            HorizontalAlignment="Left"
-                                            Visibility="{Binding HasJsBadge, Converter={StaticResource BoolToVisibilityConverter}}">
-                                      <TextBlock Text="{Binding JsBadge}"
-                                                 Style="{StaticResource MicroBadgeTextStyle}" />
-                                    </Border>
-                                  </StackPanel>
-                                </Border>
-                              </DataTemplate>
-                            </ListBox.ItemTemplate>
-                          </ListBox>
-
-                          <TextBlock Text="{Binding ThemeGalleryEmptyText}"
-                                     Style="{StaticResource CaptionTextStyle}"
-                                     Foreground="{DynamicResource WarningBrush}"
-                                     Visibility="{Binding ShowThemeGalleryEmptyState, Converter={StaticResource BoolToVisibilityConverter}}"
-                                     Margin="0,0,0,14" />
-
-                          <TextBlock Text="{services:Loc ColorSchemeLabel}" Style="{StaticResource LabelTextStyle}" />
-                          <ListBox ItemsSource="{Binding SchemeOptions}"
-                                   SelectedItem="{Binding SelectedScheme, Mode=TwoWay}"
-                                   Background="Transparent"
-                                   BorderThickness="0"
-                                   Padding="0"
-                                   IsEnabled="{Binding IsThemeSchemeAvailable}"
-                                   PreviewMouseWheel="NestedScrollRegion_OnPreviewMouseWheel"
-                                   AutomationProperties.Name="{services:Loc ColorSchemeLabel}"
-                                   AutomationProperties.HelpText="{Binding ThemeSchemeHint}"
-                                   Margin="0,6,0,6">
-                            <ListBox.ItemsPanel>
-                              <ItemsPanelTemplate>
-                                <WrapPanel />
-                              </ItemsPanelTemplate>
-                            </ListBox.ItemsPanel>
-                            <ListBox.ItemContainerStyle>
-                              <Style TargetType="ListBoxItem" BasedOn="{StaticResource CardListBoxItemStyle}">
-                                <Setter Property="Margin" Value="0,0,8,8" />
-                                <Setter Property="Padding" Value="0" />
-                                <Setter Property="Background" Value="Transparent" />
-                                <Setter Property="BorderBrush" Value="Transparent" />
-                                <Setter Property="BorderThickness" Value="2" />
-                                <Setter Property="AutomationProperties.Name" Value="{Binding Converter={StaticResource PrettifyConverter}}" />
-                                <Style.Triggers>
-                                  <Trigger Property="IsKeyboardFocused" Value="True">
-                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
-                                  </Trigger>
-                                </Style.Triggers>
-                              </Style>
-                            </ListBox.ItemContainerStyle>
-                            <ListBox.ItemTemplate>
-                              <DataTemplate>
-                                <Border MinWidth="76"
-                                        Height="32"
-                                        Padding="12,0"
-                                        Background="{DynamicResource Surface1Brush}"
-                                        BorderThickness="1"
-                                        CornerRadius="8">
-                                  <Border.Style>
-                                    <Style TargetType="Border">
-                                      <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
-                                      <Style.Triggers>
-                                        <!-- Hover affordance; selection accent overrides it. -->
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                          <Setter Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
-                                          <Setter Property="Background" Value="{DynamicResource Surface2Brush}" />
-                                        </Trigger>
-                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                          <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-                                        </DataTrigger>
-                                      </Style.Triggers>
-                                    </Style>
-                                  </Border.Style>
-                                  <!-- Inherits the container foreground on purpose: this is
-                                       the one card list that gets disabled, and
-                                       CardListBoxItemStyle swaps it for DisabledTextBrush. -->
-                                  <TextBlock Text="{Binding Converter={StaticResource PrettifyConverter}}"
-                                             VerticalAlignment="Center"
-                                             TextAlignment="Center"
-                                             FontSize="12" />
-                                </Border>
-                              </DataTemplate>
-                            </ListBox.ItemTemplate>
-                          </ListBox>
-                          <TextBlock Text="{Binding ThemeSchemeHint}"
-                                     Style="{StaticResource CaptionTextStyle}"
-                                     Margin="0,0,0,14" />
-
-                          <TextBlock Text="{services:Loc LyricsThemeLabel}" Style="{StaticResource LabelTextStyle}" />
-                          <ComboBox ItemsSource="{Binding LyricsThemes}"
-                                     SelectedItem="{Binding SelectedLyricsTheme, Mode=TwoWay}"
-                                     Style="{StaticResource ComboBoxStylePremium}"
-                                     IsEnabled="{Binding IsLyricsThemeAvailable}"
-                                     AutomationProperties.Name="{services:Loc LyricsThemeLabel}"
-                                     AutomationProperties.HelpText="{Binding LyricsThemeHint}"
-                                     Margin="0,6,0,6">
-                            <ComboBox.ItemTemplate>
-                              <DataTemplate>
-                                <TextBlock Text="{Binding Converter={StaticResource PrettifyConverter}}" />
-                              </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                          </ComboBox>
-                          <TextBlock Text="{Binding LyricsThemeHint}"
-                                     Style="{StaticResource CaptionTextStyle}" />
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="1">
-                          <TextBlock Text="{services:Loc CacheLimitLabel}" Style="{StaticResource LabelTextStyle}" />
-                          <Grid Margin="0,6,0,8">
-                            <Grid.ColumnDefinitions>
-                              <ColumnDefinition Width="*" />
-                              <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox Text="{Binding CacheLimitText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource TextBoxStylePremium}"
-                                     MaxLength="6"
-                                     AutomationProperties.Name="{services:Loc CacheLimitName}"
-                                     AutomationProperties.HelpText="{services:Loc CacheLimitHint}"
-                                     DataObject.Pasting="CacheLimitTextBox_OnPasting"
-                                     PreviewTextInput="CacheLimitTextBox_OnPreviewTextInput" />
-                            <TextBlock Grid.Column="1"
-                                       Text="{services:Loc CacheLimitUnit}"
-                                       Foreground="{DynamicResource MutedTextBrush}"
-                                       FontWeight="SemiBold"
-                                       VerticalAlignment="Center"
-                                       Margin="10,0,0,0" />
-                          </Grid>
-                          <TextBlock Text="{services:Loc CacheLimitDefault}"
-                                     Style="{StaticResource CaptionTextStyle}" />
-
-                          <Border Height="1"
-                                  Background="{DynamicResource StrokeSoftBrush}"
-                                  Margin="0,16,0,16" />
-
-                          <TextBlock Text="{services:Loc CompatibilityTargetLabel}"
-                                     Style="{StaticResource LabelTextStyle}" />
-                          <TextBlock Text="{services:Loc SpotifyBuildLabel}"
-                                     Style="{StaticResource SectionTitleTextStyle}"
-                                     FontSize="16"
-                                     Margin="0,6,0,0" />
-                          <ComboBox ItemsSource="{Binding SpotifyVersionOptions}"
-                                     SelectedValue="{Binding SelectedSpotifyVersionId, Mode=TwoWay}"
-                                     SelectedValuePath="Id"
-                                     Style="{StaticResource ComboBoxStylePremium}"
-                                     AutomationProperties.Name="{services:Loc SpotifyCompatibilityName}"
-                                     AutomationProperties.HelpText="{services:Loc SpotifyCompatibilityHint}"
-                                     Margin="0,10,0,6">
-                            <ComboBox.ItemTemplate>
-                              <DataTemplate>
-                                <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
-                              </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                          </ComboBox>
-                          <TextBlock Text="{Binding SpotifyVersionNotes}"
-                                     Style="{StaticResource CaptionTextStyle}" />
-
-                          <TextBlock Text="{services:Loc DownloadPathLabel}"
-                                     Style="{StaticResource LabelTextStyle}"
-                                     Margin="0,16,0,0" />
-                          <ComboBox ItemsSource="{Binding DownloadMethodOptions}"
-                                     SelectedValue="{Binding SelectedDownloadMethod, Mode=TwoWay}"
-                                     SelectedValuePath="Id"
-                                     Style="{StaticResource ComboBoxStylePremium}"
-                                     AutomationProperties.Name="{services:Loc DownloadMethodName}"
-                                     AutomationProperties.HelpText="{services:Loc DownloadMethodHint}"
-                                     Margin="0,10,0,6">
-                            <ComboBox.ItemTemplate>
-                              <DataTemplate>
-                                <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
-                              </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                          </ComboBox>
-                          <TextBlock Text="{Binding DownloadMethodDetail}"
-                                     Style="{StaticResource CaptionTextStyle}" />
-                        </StackPanel>
-                      </Grid>
+        <TextBlock Text="{services:Loc ThemePackLabel}"
+                   Style="{StaticResource LabelTextStyle}"
+                   Margin="0,0,0,8" />
+        <!-- Cards vary in height, so the gallery viewport cannot be sized to
+             whole cards. A bottom fade makes a partial card read as scrollable
+             instead of as a title cut in half. -->
+        <Grid Margin="0,0,0,6">
+        <ListBox ItemsSource="{Binding FilteredThemeGalleryItems}"
+                 SelectedItem="{Binding SelectedThemeGalleryItem, Mode=TwoWay}"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 Padding="0"
+                 MaxHeight="340"
+                 PreviewMouseWheel="NestedScrollRegion_OnPreviewMouseWheel"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 KeyboardNavigation.DirectionalNavigation="Contained"
+                 AutomationProperties.Name="{services:Loc ThemePackLabel}"
+                 AutomationProperties.HelpText="{services:Loc ThemePackHint}"
+                 Margin="0">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel />
+            </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemContainerStyle>
+            <Style TargetType="ListBoxItem" BasedOn="{StaticResource CardListBoxItemStyle}">
+              <Setter Property="Margin" Value="0,0,10,10" />
+              <Setter Property="Padding" Value="0" />
+              <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+              <Setter Property="VerticalContentAlignment" Value="Stretch" />
+              <Setter Property="Background" Value="Transparent" />
+              <!-- Constant thickness: the keyboard focus ring swaps brush
+                   only, so focus never shifts layout. -->
+              <Setter Property="BorderBrush" Value="Transparent" />
+              <Setter Property="BorderThickness" Value="2" />
+              <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
+              <Setter Property="AutomationProperties.HelpText" Value="{Binding AutomationHelpText}" />
+              <Style.Triggers>
+                <Trigger Property="IsKeyboardFocused" Value="True">
+                  <Setter Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
+                </Trigger>
+              </Style.Triggers>
+            </Style>
+          </ListBox.ItemContainerStyle>
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <Border Width="246"
+                      MinHeight="152"
+                      Padding="12"
+                      Background="{DynamicResource Surface1Brush}"
+                      BorderThickness="1"
+                      CornerRadius="8">
+                <Border.Style>
+                  <Style TargetType="Border">
+                    <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
+                    <Style.Triggers>
+                      <!-- Hover affordance; selection accent overrides it. -->
+                      <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
+                        <Setter Property="Background" Value="{DynamicResource Surface2Brush}" />
+                      </Trigger>
+                      <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Border.Style>
+                <StackPanel>
+                  <Grid Height="46" ClipToBounds="True">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Background="{Binding SwatchA}" CornerRadius="6,0,0,6" />
+                    <Border Grid.Column="1" Background="{Binding SwatchB}" />
+                    <Border Grid.Column="2" Background="{Binding SwatchC}" CornerRadius="0,6,6,0" />
+                  </Grid>
+                  <StackPanel Margin="0,10,0,0">
+                    <TextBlock Text="{Binding Label}"
+                               Foreground="{DynamicResource TextBrush}"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap" />
+                    <Border Style="{StaticResource MicroBadgeStyle}"
+                            HorizontalAlignment="Left"
+                            Margin="0,7,0,0">
+                      <TextBlock Text="{Binding SourceBadge}"
+                                 Style="{StaticResource MicroBadgeTextStyle}" />
                     </Border>
-</UserControl>
+                  </StackPanel>
+                  <TextBlock Text="{Binding SchemeCountText}"
+                             Style="{StaticResource CaptionTextStyle}"
+                             Foreground="{DynamicResource SubtleTextBrush}"
+                             Margin="0,6,0,0" />
+                  <TextBlock Text="{Binding SchemePreview}"
+                             Style="{StaticResource CaptionTextStyle}"
+                             Foreground="{DynamicResource MutedTextBrush}"
+                             TextWrapping="Wrap"
+                             MaxHeight="36"
+                             Margin="0,4,0,0" />
+                  <Border Style="{StaticResource MicroBadgeStyle}"
+                          Margin="0,8,0,0"
+                          HorizontalAlignment="Left"
+                          Visibility="{Binding HasJsBadge, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="{Binding JsBadge}"
+                               Style="{StaticResource MicroBadgeTextStyle}" />
+                  </Border>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+          <Border Height="28"
+                  VerticalAlignment="Bottom"
+                  Margin="0,0,10,10"
+                  Background="{DynamicResource ScrollFadeBrush}"
+                  IsHitTestVisible="False" />
+        </Grid>
 
+        <TextBlock Text="{Binding ThemeGalleryEmptyText}"
+                   Style="{StaticResource CaptionTextStyle}"
+                   Foreground="{DynamicResource WarningBrush}"
+                   Visibility="{Binding ShowThemeGalleryEmptyState, Converter={StaticResource BoolToVisibilityConverter}}"
+                   Margin="0,0,0,6" />
+        <TextBlock Text="{Binding ThemeSummary}"
+                   Style="{StaticResource CaptionTextStyle}" />
+      </StackPanel>
+
+      <StackPanel Grid.Column="1">
+        <TextBlock Text="{services:Loc SpotifyBuildLabel}"
+                   Style="{StaticResource LabelTextStyle}" />
+        <ComboBox ItemsSource="{Binding SpotifyVersionOptions}"
+                  SelectedValue="{Binding SelectedSpotifyVersionId, Mode=TwoWay}"
+                  SelectedValuePath="Id"
+                  Style="{StaticResource ComboBoxStylePremium}"
+                  AutomationProperties.Name="{services:Loc SpotifyCompatibilityName}"
+                  AutomationProperties.HelpText="{services:Loc SpotifyCompatibilityHint}"
+                  Margin="0,8,0,6">
+          <ComboBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Text="{Binding SpotifyVersionNotes}"
+                   Style="{StaticResource CaptionTextStyle}"
+                   Margin="0,0,0,16" />
+
+        <ContentControl Content="{Binding MarketplaceOption}"
+                        ContentTemplate="{StaticResource OptionTemplate}"
+                        Focusable="False"
+                        Margin="0,0,0,10" />
+        <ContentControl Content="{Binding LaunchAfterOption}"
+                        ContentTemplate="{StaticResource OptionTemplate}"
+                        Focusable="False" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

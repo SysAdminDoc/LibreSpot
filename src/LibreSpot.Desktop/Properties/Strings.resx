@@ -831,6 +831,13 @@
   <data name="Vm_SimpleHomeUnavailableBody" xml:space="preserve"><value>Select Retry, or open Maintenance for help.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceUnavailableBody" xml:space="preserve"><value>Select Retry to check this PC again.</value><comment>Maintenance copy when the environment snapshot failed to load</comment></data>
   <data name="Vm_SimpleHomeDuration" xml:space="preserve"><value>Usually 2 to 4 minutes</value><comment>User-facing WPF text</comment></data>
+  <data name="Settings_EssentialsTitle" xml:space="preserve"><value>Essentials</value><comment>User-facing WPF text</comment></data>
+  <data name="Settings_EssentialsDescription" xml:space="preserve"><value>The four choices most people change. Everything else is one click away below.</value><comment>User-facing WPF text</comment></data>
+  <data name="Settings_InstallationDetails" xml:space="preserve"><value>Installation details</value><comment>User-facing WPF text</comment></data>
+  <data name="Settings_AppearanceDetails" xml:space="preserve"><value>Appearance details</value><comment>User-facing WPF text</comment></data>
+  <data name="Settings_PlaybackInterfacePatches" xml:space="preserve"><value>Playback and interface patches</value><comment>User-facing WPF text</comment></data>
+  <data name="Settings_AdvancedSpotXFlags" xml:space="preserve"><value>Advanced SpotX flags</value><comment>User-facing WPF text</comment></data>
+  <data name="Settings_ProfileTools" xml:space="preserve"><value>Profile tools</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_LibreSpotUpdateNoticeFormat" xml:space="preserve"><value>LibreSpot v{0} is available.</value><comment>{0} is the newer stable LibreSpot version number, such as 4.2.0.</comment></data>
   <data name="Vm_LibreSpotUpdateNoticeLink" xml:space="preserve"><value>Update LibreSpot</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_SimpleHomeDetails" xml:space="preserve"><value>Details</value><comment>User-facing WPF text</comment></data>

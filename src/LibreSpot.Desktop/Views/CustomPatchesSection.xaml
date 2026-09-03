@@ -15,7 +15,7 @@
                         <DockPanel LastChildFill="True">
                           <StackPanel DockPanel.Dock="Left">
                             <TextBlock Text="{services:Loc Ui_CustomPatches}"
-                                       Style="{StaticResource SectionTitleTextStyle}" />
+                                       Style="{StaticResource LabelTextStyle}" />
                             <TextBlock Text="{services:Loc Ui_AuthorAndDryRunASpotXPatchesJson}"
                                        Style="{StaticResource BodyTextStyle}"
                                        Margin="0,6,0,0" />

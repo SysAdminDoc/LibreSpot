@@ -7,19 +7,71 @@
  mc:Ignorable="d"
  UseLayoutRounding="True"
  SnapsToDevicePixels="True">
-                    <Border Style="{StaticResource MinimalSectionStyle}"
-                            Visibility="{Binding HasVisibleInstallOptions, Converter={StaticResource BoolToVisibilityConverter}}">
-                      <StackPanel>
-                        <TextBlock Text="{services:Loc InstallPostureSection}" Style="{StaticResource SectionTitleTextStyle}" />
-                        <TextBlock Text="{services:Loc InstallPostureDescription}"
-                                   Style="{StaticResource BodyTextStyle}"
-                                   Margin="0,6,0,14" />
-                        <ItemsControl ItemsSource="{Binding InstallOptions}" ItemTemplate="{StaticResource OptionTemplate}">
-                          <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
-                          </ItemsControl.ItemsPanel>
-                        </ItemsControl>
-                      </StackPanel>
-                    </Border>
-</UserControl>
+  <Border Style="{StaticResource MinimalSectionStyle}">
+    <StackPanel>
+      <TextBlock Text="{services:Loc InstallPostureDescription}"
+                 Style="{StaticResource BodyTextStyle}"
+                 Margin="0,0,0,14" />
+      <ItemsControl ItemsSource="{Binding InstallDetailOptions}"
+                    ItemTemplate="{StaticResource OptionTemplate}"
+                    Visibility="{Binding HasVisibleInstallDetailOptions, Converter={StaticResource BoolToVisibilityConverter}}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ItemsControl>
 
+      <Grid Margin="0,14,0,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="20" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0">
+          <TextBlock Text="{services:Loc DownloadPathLabel}"
+                     Style="{StaticResource LabelTextStyle}" />
+          <ComboBox ItemsSource="{Binding DownloadMethodOptions}"
+                    SelectedValue="{Binding SelectedDownloadMethod, Mode=TwoWay}"
+                    SelectedValuePath="Id"
+                    Style="{StaticResource ComboBoxStylePremium}"
+                    AutomationProperties.Name="{services:Loc DownloadMethodName}"
+                    AutomationProperties.HelpText="{services:Loc DownloadMethodHint}"
+                    Margin="0,8,0,6">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Text="{Binding DownloadMethodDetail}"
+                     Style="{StaticResource CaptionTextStyle}" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="2">
+          <TextBlock Text="{services:Loc CacheLimitLabel}" Style="{StaticResource LabelTextStyle}" />
+          <Grid Margin="0,8,0,6">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox Text="{Binding CacheLimitText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource TextBoxStylePremium}"
+                     MaxLength="6"
+                     AutomationProperties.Name="{services:Loc CacheLimitName}"
+                     AutomationProperties.HelpText="{services:Loc CacheLimitHint}"
+                     DataObject.Pasting="CacheLimitTextBox_OnPasting"
+                     PreviewTextInput="CacheLimitTextBox_OnPreviewTextInput" />
+            <TextBlock Grid.Column="1"
+                       Text="{services:Loc CacheLimitUnit}"
+                       Foreground="{DynamicResource MutedTextBrush}"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center"
+                       Margin="10,0,0,0" />
+          </Grid>
+          <TextBlock Text="{services:Loc CacheLimitDefault}"
+                     Style="{StaticResource CaptionTextStyle}" />
+        </StackPanel>
+      </Grid>
+    </StackPanel>
+  </Border>
+</UserControl>

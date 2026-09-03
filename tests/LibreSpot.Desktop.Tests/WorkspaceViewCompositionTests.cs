@@ -36,6 +36,7 @@ public sealed class WorkspaceViewCompositionTests
                 "CustomWorkspaceView.xaml",
                 "CustomInstallSection.xaml",
                 "CustomAppearanceSection.xaml",
+                "CustomAppearanceDetailsSection.xaml",
                 "CustomLiveCustomizationSection.xaml",
                 "CustomBehaviorSection.xaml",
                 "CustomAdvancedSection.xaml",

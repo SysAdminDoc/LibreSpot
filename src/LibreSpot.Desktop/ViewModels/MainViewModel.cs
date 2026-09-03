@@ -944,7 +944,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public bool HasVisibleExperienceOptions => HasVisibleOptions(ExperienceOptions);
 
-    public bool HasVisibleAdvancedSection => HasVisibleAdvancedOptions || HasVisibleExperienceOptions || HasVisibleCustomPatchesSection;
+    public bool HasVisibleAdvancedSection => HasVisibleAdvancedOptions || HasVisibleCustomPatchesSection;
 
     public bool HasVisibleExtensions => Extensions.Any(extension => MatchesSettingsSearch(extension.Title, extension.Description));
 
@@ -2728,6 +2728,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             case "custom":
                 SelectedWorkspaceIndex = 1;
+                break;
+            case "custom-profiles":
+                SelectedWorkspaceIndex = 1;
+                IsProfileToolsExpanded = true;
                 break;
             case "custom-live":
                 SelectedWorkspaceIndex = 1;

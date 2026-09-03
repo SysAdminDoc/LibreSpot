@@ -8,87 +8,189 @@
         mc:Ignorable="d"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
-              <Grid AutomationProperties.AutomationId="CustomWorkspace"
-                    AutomationProperties.Name="{services:Loc Ui_CustomWorkspace}">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="*" />
-                  <ColumnDefinition Width="320" />
-                </Grid.ColumnDefinitions>
+  <!-- One column, one page scrollbar. The four common choices sit first;
+       everything else stays one click away behind a one-level expander, and
+       the apply action lives in a footer so it is never clipped or hidden. -->
+  <Grid AutomationProperties.AutomationId="CustomWorkspace"
+        AutomationProperties.Name="{services:Loc Ui_CustomWorkspace}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
 
-                <ScrollViewer Grid.Column="0"
-                               VerticalScrollBarVisibility="Auto"
-                               HorizontalScrollBarVisibility="Disabled"
-                               AutomationProperties.AutomationId="CustomSettingsEditor"
-                               AutomationProperties.Name="{services:Loc Ui_CustomSettingsEditor}"
-                               Margin="0,0,22,0">
-                  <StackPanel>
-                    <Grid>
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                      </Grid.ColumnDefinitions>
-                      <TextBox Text="{Binding SettingsSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                               Style="{StaticResource TextBoxStylePremium}"
-                               Tag="{services:Loc SearchPlaceholder}"
-                               Height="42"
-                               AutomationProperties.AutomationId="SettingsSearchBox"
-                               AutomationProperties.Name="{services:Loc SearchPlaceholder}"
-                               AutomationProperties.HelpText="{services:Loc SearchHelpText}" />
-                      <Button Grid.Column="1"
-                              Content="{services:Loc ButtonClearSearch}"
-                              Height="42"
-                              MinWidth="84"
-                              Margin="10,0,0,0"
-                              Padding="18,0"
-                              Style="{StaticResource SecondaryButtonStyle}"
-                              Visibility="{Binding HasSettingsSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
-                              Command="{Binding ClearSettingsSearchCommand}"
-                              AutomationProperties.AutomationId="SettingsSearchClearButton"
-                              AutomationProperties.Name="{services:Loc ButtonClearSearchName}" />
-                    </Grid>
-                    <TextBlock Text="{Binding CustomSearchSummary}"
-                               Style="{StaticResource CaptionTextStyle}"
-                               Foreground="{DynamicResource TextBrush}"
-                               Margin="0,10,0,18"
-                               MaxWidth="760"
-                               TextWrapping="Wrap" />
+    <ScrollViewer x:Name="SettingsScrollViewer"
+                  Grid.Row="0"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  AutomationProperties.AutomationId="CustomSettingsEditor"
+                  AutomationProperties.Name="{services:Loc Ui_CustomSettingsEditor}">
+      <StackPanel MaxWidth="920"
+                  HorizontalAlignment="Stretch"
+                  Margin="0,0,12,16">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBox Text="{Binding SettingsSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                   Style="{StaticResource TextBoxStylePremium}"
+                   Tag="{services:Loc SearchPlaceholder}"
+                   Height="42"
+                   AutomationProperties.AutomationId="SettingsSearchBox"
+                   AutomationProperties.Name="{services:Loc SearchPlaceholder}"
+                   AutomationProperties.HelpText="{services:Loc SearchHelpText}" />
+          <Button Grid.Column="1"
+                  Content="{services:Loc ButtonClearSearch}"
+                  Height="42"
+                  MinWidth="84"
+                  Margin="10,0,0,0"
+                  Padding="18,0"
+                  Style="{StaticResource SecondaryButtonStyle}"
+                  Visibility="{Binding HasSettingsSearchText, Converter={StaticResource BoolToVisibilityConverter}}"
+                  Command="{Binding ClearSettingsSearchCommand}"
+                  AutomationProperties.AutomationId="SettingsSearchClearButton"
+                  AutomationProperties.Name="{services:Loc ButtonClearSearchName}" />
+        </Grid>
+        <TextBlock Text="{Binding CustomSearchSummary}"
+                   Style="{StaticResource CaptionTextStyle}"
+                   Foreground="{DynamicResource TextBrush}"
+                   Margin="0,10,0,18"
+                   MaxWidth="760"
+                   HorizontalAlignment="Left"
+                   TextWrapping="Wrap" />
 
-                    <Border Style="{StaticResource SubtleCardStyle}"
-                            Background="{DynamicResource Surface1Brush}"
-                            Margin="0,0,0,18"
-                            Visibility="{Binding ShowCustomSearchEmptyState, Converter={StaticResource BoolToVisibilityConverter}}">
-                      <Grid>
-                        <Grid.ColumnDefinitions>
-                          <ColumnDefinition Width="Auto" />
-                          <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Border Width="4"
-                                Height="38"
-                                CornerRadius="{StaticResource RadiusXs}"
-                                Background="{DynamicResource StrokeStrongBrush}"
-                                Margin="0,2,12,0"
-                                VerticalAlignment="Top" />
-                        <StackPanel Grid.Column="1">
-                          <TextBlock Text="{services:Loc SearchNoResults}"
-                                     Style="{StaticResource EmptyStateTitleTextStyle}" />
-                          <TextBlock Text="{services:Loc SearchNoResultsHint}"
-                                     Style="{StaticResource EmptyStateBodyTextStyle}"
-                                     Margin="0,6,0,0" />
-                        </StackPanel>
-                      </Grid>
-                    </Border>
-                    <views:CustomInstallSection />
-                    <views:CustomAppearanceSection />
-                    <views:CustomLiveCustomizationSection />
-                    <views:CustomBehaviorSection />
-                    <views:CustomAdvancedSection />
-                    <views:CustomPatchesSection x:Name="CustomPatchesSection" />
-                    <views:CustomBuiltInExtensionsSection />
-                    <views:CustomAppsSection />
-                  </StackPanel>
-                </ScrollViewer>
+        <Border Style="{StaticResource SubtleCardStyle}"
+                Background="{DynamicResource Surface1Brush}"
+                Margin="0,0,0,18"
+                Visibility="{Binding ShowCustomSearchEmptyState, Converter={StaticResource BoolToVisibilityConverter}}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Width="4"
+                    Height="38"
+                    CornerRadius="{StaticResource RadiusXs}"
+                    Background="{DynamicResource StrokeStrongBrush}"
+                    Margin="0,2,12,0"
+                    VerticalAlignment="Top" />
+            <StackPanel Grid.Column="1">
+              <TextBlock Text="{services:Loc SearchNoResults}"
+                         Style="{StaticResource EmptyStateTitleTextStyle}" />
+              <TextBlock Text="{services:Loc SearchNoResultsHint}"
+                         Style="{StaticResource EmptyStateBodyTextStyle}"
+                         Margin="0,6,0,0" />
+            </StackPanel>
+          </Grid>
+        </Border>
 
-                <views:CustomProfileSummarySection x:Name="ProfileSummarySection"
-                                                   Grid.Column="1" />
-              </Grid>
+        <views:CustomAppearanceSection />
+
+        <Expander Style="{StaticResource SettingsSectionExpanderStyle}"
+                  Header="{services:Loc Settings_InstallationDetails}"
+                  IsExpanded="{Binding IsInstallDetailsExpanded, Mode=TwoWay}"
+                  Visibility="{Binding HasVisibleInstallDetails, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.AutomationId="SettingsInstallDetailsExpander"
+                  AutomationProperties.Name="{services:Loc Settings_InstallationDetails}">
+          <views:CustomInstallSection />
+        </Expander>
+
+        <Expander Style="{StaticResource SettingsSectionExpanderStyle}"
+                  Header="{services:Loc Settings_AppearanceDetails}"
+                  IsExpanded="{Binding IsAppearanceDetailsExpanded, Mode=TwoWay}"
+                  Visibility="{Binding HasVisibleAppearanceDetails, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.AutomationId="SettingsAppearanceDetailsExpander"
+                  AutomationProperties.Name="{services:Loc Settings_AppearanceDetails}">
+          <views:CustomAppearanceDetailsSection />
+        </Expander>
+
+        <Expander Style="{StaticResource SettingsSectionExpanderStyle}"
+                  Header="{services:Loc Settings_PlaybackInterfacePatches}"
+                  IsExpanded="{Binding IsBehaviorExpanded, Mode=TwoWay}"
+                  Visibility="{Binding HasVisibleBehaviorSection, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.AutomationId="SettingsBehaviorExpander"
+                  AutomationProperties.Name="{services:Loc Settings_PlaybackInterfacePatches}">
+          <views:CustomBehaviorSection />
+        </Expander>
+
+        <Expander Style="{StaticResource SettingsSectionExpanderStyle}"
+                  Header="{services:Loc Settings_AdvancedSpotXFlags}"
+                  IsExpanded="{Binding IsAdvancedExpanded, Mode=TwoWay}"
+                  Visibility="{Binding HasVisibleAdvancedSection, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.AutomationId="SettingsAdvancedExpander"
+                  AutomationProperties.Name="{services:Loc Settings_AdvancedSpotXFlags}">
+          <StackPanel>
+            <views:CustomAdvancedSection />
+            <views:CustomPatchesSection x:Name="CustomPatchesSection" />
+          </StackPanel>
+        </Expander>
+
+        <Expander Style="{StaticResource SettingsSectionExpanderStyle}"
+                  Header="{services:Loc LiveCustomizationTitle}"
+                  IsExpanded="{Binding IsLiveCustomizationExpanded, Mode=TwoWay}"
+                  Visibility="{Binding HasVisibleLiveCustomization, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.AutomationId="SettingsLiveCustomizationExpander"
+                  AutomationProperties.Name="{services:Loc LiveCustomizationTitle}">
+          <views:CustomLiveCustomizationSection />
+        </Expander>
+
+        <Expander Style="{StaticResource SettingsSectionExpanderStyle}"
+                  Header="{services:Loc BuiltInExtensionsSection}"
+                  IsExpanded="{Binding IsExtensionsExpanded, Mode=TwoWay}"
+                  Visibility="{Binding HasVisibleExtensions, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.AutomationId="SettingsExtensionsExpander"
+                  AutomationProperties.Name="{services:Loc BuiltInExtensionsSection}">
+          <views:CustomBuiltInExtensionsSection />
+        </Expander>
+
+        <Expander Style="{StaticResource SettingsSectionExpanderStyle}"
+                  Header="{Binding CustomAppsSectionTitle}"
+                  IsExpanded="{Binding IsCustomAppsExpanded, Mode=TwoWay}"
+                  Visibility="{Binding HasVisibleCustomApps, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.AutomationId="SettingsCustomAppsExpander"
+                  AutomationProperties.Name="{Binding CustomAppsSectionTitle}">
+          <views:CustomAppsSection />
+        </Expander>
+
+        <Expander Style="{StaticResource SettingsSectionExpanderStyle}"
+                  Header="{services:Loc Settings_ProfileTools}"
+                  IsExpanded="{Binding IsProfileToolsExpanded, Mode=TwoWay}"
+                  Visibility="{Binding HasVisibleProfileTools, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.AutomationId="SettingsProfileToolsExpander"
+                  AutomationProperties.Name="{services:Loc Settings_ProfileTools}">
+          <views:CustomProfileSummarySection x:Name="ProfileSummarySection" />
+        </Expander>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Border Grid.Row="1"
+            Background="{DynamicResource SurfaceCardBrush}"
+            BorderBrush="{DynamicResource StrokeBrush}"
+            BorderThickness="0,1,0,0"
+            Padding="0,14,12,0"
+            AutomationProperties.Name="{services:Loc ButtonApplyCustomProfile}">
+      <Grid MaxWidth="920" HorizontalAlignment="Stretch">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="{Binding CustomApplyCaption}"
+                   Style="{StaticResource CaptionTextStyle}"
+                   Foreground="{DynamicResource MutedTextBrush}"
+                   TextWrapping="Wrap"
+                   VerticalAlignment="Center"
+                   Margin="0,0,16,0" />
+        <Button Grid.Column="1"
+                Content="{services:Loc ButtonApplyCustomProfile}"
+                Height="46"
+                MinWidth="240"
+                Padding="22,0"
+                Style="{StaticResource PrimaryButtonStyle}"
+                AutomationProperties.AutomationId="ApplyCustomProfileButton"
+                AutomationProperties.Name="{services:Loc ButtonApplyCustomProfile}"
+                AutomationProperties.HelpText="{services:Loc ButtonApplyCustomProfileHint}"
+                Command="{Binding ApplyCustomCommand}" />
+      </Grid>
+    </Border>
+  </Grid>
 </UserControl>

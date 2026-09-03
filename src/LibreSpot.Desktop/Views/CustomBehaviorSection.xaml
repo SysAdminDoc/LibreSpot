@@ -10,10 +10,9 @@
                     <Border Style="{StaticResource MinimalSectionStyle}"
                             Visibility="{Binding HasVisibleBehaviorSection, Converter={StaticResource BoolToVisibilityConverter}}">
                       <StackPanel>
-                        <TextBlock Text="{services:Loc PlaybackBehaviorSection}" Style="{StaticResource SectionTitleTextStyle}" />
                         <TextBlock Text="{services:Loc PlaybackBehaviorDescription}"
                                    Style="{StaticResource BodyTextStyle}"
-                                   Margin="0,6,0,14" />
+                                   Margin="0,0,0,14" />
 
                         <TextBlock Text="{services:Loc CoreBehaviorLabel}"
                                    Style="{StaticResource LabelTextStyle}"

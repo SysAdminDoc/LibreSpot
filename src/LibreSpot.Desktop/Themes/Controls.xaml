@@ -1416,4 +1416,100 @@
       </controls:MotionAwareDoubleAnimation.EasingFunction>
     </controls:MotionAwareDoubleAnimation>
   </Storyboard>
+
+  <!-- Settings groups: one level deep, a full-width header that is the whole
+       click and keyboard target, and content that only exists while open. The
+       header border keeps a constant thickness so the focus ring never moves
+       the layout. -->
+  <Style x:Key="SettingsSectionExpanderStyle" TargetType="Expander">
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Margin" Value="0,0,0,10" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Expander">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <ToggleButton x:Name="HeaderButton"
+                          Style="{x:Null}"
+                          MinHeight="48"
+                          Padding="16,0"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch"
+                          Background="{DynamicResource Surface1Brush}"
+                          BorderBrush="{DynamicResource StrokeSoftBrush}"
+                          BorderThickness="2"
+                          Cursor="Hand"
+                          FocusVisualStyle="{x:Null}"
+                          AutomationProperties.Name="{TemplateBinding Header}"
+                          IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+              <ToggleButton.Template>
+                <ControlTemplate TargetType="ToggleButton">
+                  <Border Background="{TemplateBinding Background}"
+                          BorderBrush="{TemplateBinding BorderBrush}"
+                          BorderThickness="{TemplateBinding BorderThickness}"
+                          CornerRadius="{StaticResource RadiusLg}"
+                          Padding="{TemplateBinding Padding}">
+                    <ContentPresenter VerticalAlignment="Center" />
+                  </Border>
+                </ControlTemplate>
+              </ToggleButton.Template>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{TemplateBinding Header}"
+                           FontFamily="{StaticResource HeadingFont}"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextBrush}"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center" />
+                <ui:SymbolIcon x:Name="SectionChevron"
+                               Grid.Column="1"
+                               Symbol="ChevronDown20"
+                               FontSize="18"
+                               Foreground="{DynamicResource MutedTextBrush}"
+                               Margin="12,0,0,0"
+                               VerticalAlignment="Center"
+                               RenderTransformOrigin="0.5,0.5">
+                  <ui:SymbolIcon.RenderTransform>
+                    <RotateTransform Angle="0" />
+                  </ui:SymbolIcon.RenderTransform>
+                </ui:SymbolIcon>
+              </Grid>
+            </ToggleButton>
+
+            <ContentPresenter x:Name="ExpandSite"
+                              Grid.Row="1"
+                              ContentSource="Content"
+                              Margin="0,10,0,0"
+                              Visibility="Collapsed" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsExpanded" Value="True">
+              <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+              <Setter TargetName="HeaderButton" Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
+              <Setter TargetName="SectionChevron" Property="RenderTransform">
+                <Setter.Value>
+                  <RotateTransform Angle="180" />
+                </Setter.Value>
+              </Setter>
+            </Trigger>
+            <Trigger SourceName="HeaderButton" Property="IsMouseOver" Value="True">
+              <Setter TargetName="HeaderButton" Property="Background" Value="{DynamicResource Surface2Brush}" />
+            </Trigger>
+            <Trigger SourceName="HeaderButton" Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="HeaderButton" Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
 </ResourceDictionary>

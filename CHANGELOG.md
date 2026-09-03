@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Added
 
+- Settings now opens with the four choices most people change: the Spotify build (Auto by default), the theme, the Marketplace, and whether Spotify opens when the run finishes. Installation details, appearance details, playback and interface patches, advanced SpotX flags, live customization, extensions, apps, and profile tools each sit behind one labeled group that is one click away, with no nested groups. The page is a single column with one scrollbar, the apply action lives in a footer that is never clipped, and searching for a hidden option opens its group and scrolls it into view while clearing the search restores the groups you had opened. Every option still round-trips through the existing configuration and profile format.
 - Home shows a quiet Update LibreSpot link when a newer stable release exists. The check runs in the background after startup without delaying the system snapshot, reads the latest stable GitHub release with a conditional request, keeps a 24-hour local cache, and never selects a prerelease, downloads anything, raises a toast, or takes focus. Offline, malformed, missing, and rate-limited responses use a valid cache or stay silent. The link sits below the primary action and never replaces it.
 
 ### Changed

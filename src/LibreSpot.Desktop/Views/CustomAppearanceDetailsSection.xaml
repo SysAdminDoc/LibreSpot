@@ -1,0 +1,103 @@
+<UserControl x:Class="LibreSpot.Desktop.Views.CustomAppearanceDetailsSection"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+ xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+ xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
+ mc:Ignorable="d"
+ UseLayoutRounding="True"
+ SnapsToDevicePixels="True">
+  <Border Style="{StaticResource MinimalSectionStyle}">
+    <StackPanel>
+      <TextBlock Text="{services:Loc AppearanceDescription}"
+                 Style="{StaticResource BodyTextStyle}"
+                 Margin="0,0,0,14" />
+
+      <TextBlock Text="{services:Loc ColorSchemeLabel}" Style="{StaticResource LabelTextStyle}" />
+      <ListBox ItemsSource="{Binding SchemeOptions}"
+               SelectedItem="{Binding SelectedScheme, Mode=TwoWay}"
+               Background="Transparent"
+               BorderThickness="0"
+               Padding="0"
+               IsEnabled="{Binding IsThemeSchemeAvailable}"
+               PreviewMouseWheel="NestedScrollRegion_OnPreviewMouseWheel"
+               AutomationProperties.Name="{services:Loc ColorSchemeLabel}"
+               AutomationProperties.HelpText="{Binding ThemeSchemeHint}"
+               Margin="0,6,0,6">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.ItemContainerStyle>
+          <Style TargetType="ListBoxItem" BasedOn="{StaticResource CardListBoxItemStyle}">
+            <Setter Property="Margin" Value="0,0,8,8" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="AutomationProperties.Name" Value="{Binding Converter={StaticResource PrettifyConverter}}" />
+            <Style.Triggers>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentRingBrush}" />
+              </Trigger>
+            </Style.Triggers>
+          </Style>
+        </ListBox.ItemContainerStyle>
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <Border MinWidth="76"
+                    Height="32"
+                    Padding="12,0"
+                    Background="{DynamicResource Surface1Brush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+              <Border.Style>
+                <Style TargetType="Border">
+                  <Setter Property="BorderBrush" Value="{DynamicResource StrokeSoftBrush}" />
+                  <Style.Triggers>
+                    <!-- Hover affordance; selection accent overrides it. -->
+                    <Trigger Property="IsMouseOver" Value="True">
+                      <Setter Property="BorderBrush" Value="{DynamicResource StrokeStrongBrush}" />
+                      <Setter Property="Background" Value="{DynamicResource Surface2Brush}" />
+                    </Trigger>
+                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
+              <!-- Inherits the container foreground on purpose: this is
+                   the one card list that gets disabled, and
+                   CardListBoxItemStyle swaps it for DisabledTextBrush. -->
+              <TextBlock Text="{Binding Converter={StaticResource PrettifyConverter}}"
+                         VerticalAlignment="Center"
+                         TextAlignment="Center"
+                         FontSize="12" />
+            </Border>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <TextBlock Text="{Binding ThemeSchemeHint}"
+                 Style="{StaticResource CaptionTextStyle}"
+                 Margin="0,0,0,14" />
+
+      <TextBlock Text="{services:Loc LyricsThemeLabel}" Style="{StaticResource LabelTextStyle}" />
+      <ComboBox ItemsSource="{Binding LyricsThemes}"
+                SelectedItem="{Binding SelectedLyricsTheme, Mode=TwoWay}"
+                Style="{StaticResource ComboBoxStylePremium}"
+                IsEnabled="{Binding IsLyricsThemeAvailable}"
+                AutomationProperties.Name="{services:Loc LyricsThemeLabel}"
+                AutomationProperties.HelpText="{Binding LyricsThemeHint}"
+                Margin="0,6,0,6">
+        <ComboBox.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Text="{Binding Converter={StaticResource PrettifyConverter}}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBlock Text="{Binding LyricsThemeHint}"
+                 Style="{StaticResource CaptionTextStyle}" />
+    </StackPanel>
+  </Border>
+</UserControl>

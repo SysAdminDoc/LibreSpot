@@ -211,6 +211,8 @@ public sealed partial class MainViewModel
 
     private void RefreshSettingsSearch()
     {
+        _settingsGroupsToggledDuringSearch.Clear();
+        _installDetailOptions?.Refresh();
         CollectionViewSource.GetDefaultView(InstallOptions).Refresh();
         CollectionViewSource.GetDefaultView(CoreOptions).Refresh();
         CollectionViewSource.GetDefaultView(InterfaceOptions).Refresh();
@@ -242,6 +244,12 @@ public sealed partial class MainViewModel
         OnPropertyChanged(nameof(HasAnyCustomSearchMatches));
         OnPropertyChanged(nameof(ShowCustomSearchEmptyState));
         OnPropertyChanged(nameof(CustomSearchSummary));
+        OnPropertyChanged(nameof(HasVisibleEssentials));
+        OnPropertyChanged(nameof(HasVisibleInstallDetailOptions));
+        OnPropertyChanged(nameof(HasVisibleInstallDetails));
+        OnPropertyChanged(nameof(HasVisibleAppearanceDetails));
+        OnPropertyChanged(nameof(HasVisibleProfileTools));
+        RaiseSettingsDisclosureChanged();
     }
 
     private int CountMatchingOptions(IEnumerable<OptionToggleViewModel> options) =>
@@ -264,6 +272,90 @@ public sealed partial class MainViewModel
 
     private bool MatchesSettingsSearch(string title, string description)
         => _settingsSearch.Matches(title, description);
+
+    // ---- Settings disclosure: essentials first, one level of groups ----
+    // The four common choices always show. Every other group starts closed,
+    // opens when a search matches something inside it, and returns to the
+    // state the user left it in once the search is cleared.
+    private readonly Dictionary<string, bool> _settingsGroupsOpenedByUser = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, bool> _settingsGroupsToggledDuringSearch = new(StringComparer.Ordinal);
+    private System.ComponentModel.ICollectionView? _installDetailOptions;
+
+    public OptionToggleViewModel LaunchAfterOption => FindOption(InstallOptions, nameof(InstallConfiguration.LaunchAfter));
+
+    public OptionToggleViewModel MarketplaceOption => FindOption(ExperienceOptions, nameof(InstallConfiguration.Spicetify_Marketplace));
+
+    public System.ComponentModel.ICollectionView InstallDetailOptions => _installDetailOptions ??= new System.Windows.Data.ListCollectionView(InstallOptions)
+    {
+        Filter = item => item is OptionToggleViewModel option && IsInstallDetailOption(option) && MatchesSettingsSearch(option.Title, option.Description)
+    };
+
+    public bool HasVisibleEssentials => !HasSettingsSearchText
+        || MatchesSettingsSearch(L("Vm_SearchThemePackTitle"), L("Vm_SearchThemePackDescription"))
+        || MatchesSettingsSearch(L("Vm_SearchSpotifyBuildTitle"), SpotifyVersionNotes)
+        || MatchesSettingsSearch(MarketplaceOption.Title, MarketplaceOption.Description)
+        || MatchesSettingsSearch(LaunchAfterOption.Title, LaunchAfterOption.Description);
+
+    public bool HasVisibleInstallDetailOptions => InstallOptions.Any(option => IsInstallDetailOption(option) && MatchesSettingsSearch(option.Title, option.Description));
+
+    public bool HasVisibleInstallDetails => HasVisibleInstallDetailOptions
+        || MatchesSettingsSearch(L("Vm_SearchCacheLimitTitle"), L("Vm_SearchCacheLimitDescription"))
+        || MatchesSettingsSearch(L("Vm_SearchDownloadPathTitle"), DownloadMethodDetail);
+
+    public bool HasVisibleAppearanceDetails =>
+        MatchesSettingsSearch(L("Vm_SearchColorSchemeTitle"), ThemeSchemeHint)
+        || MatchesSettingsSearch(L("Vm_SearchLyricsThemeTitle"), LyricsThemeHint);
+
+    public bool HasVisibleProfileTools => !HasSettingsSearchText;
+
+    public bool IsInstallDetailsExpanded { get => IsSettingsGroupOpen("install", HasVisibleInstallDetails); set => SetSettingsGroupOpen("install", value); }
+    public bool IsAppearanceDetailsExpanded { get => IsSettingsGroupOpen("appearance", HasVisibleAppearanceDetails); set => SetSettingsGroupOpen("appearance", value); }
+    public bool IsBehaviorExpanded { get => IsSettingsGroupOpen("behavior", HasVisibleBehaviorSection); set => SetSettingsGroupOpen("behavior", value); }
+    public bool IsAdvancedExpanded { get => IsSettingsGroupOpen("advanced", HasVisibleAdvancedSection); set => SetSettingsGroupOpen("advanced", value); }
+    public bool IsLiveCustomizationExpanded { get => IsSettingsGroupOpen("live", HasVisibleLiveCustomization); set => SetSettingsGroupOpen("live", value); }
+    public bool IsExtensionsExpanded { get => IsSettingsGroupOpen("extensions", HasVisibleExtensions); set => SetSettingsGroupOpen("extensions", value); }
+    public bool IsCustomAppsExpanded { get => IsSettingsGroupOpen("apps", HasVisibleCustomApps); set => SetSettingsGroupOpen("apps", value); }
+    public bool IsProfileToolsExpanded { get => IsSettingsGroupOpen("profiles", matchesSearch: false); set => SetSettingsGroupOpen("profiles", value); }
+
+    private static bool IsInstallDetailOption(OptionToggleViewModel option) =>
+        !string.Equals(option.Key, nameof(InstallConfiguration.LaunchAfter), StringComparison.Ordinal);
+
+    private static OptionToggleViewModel FindOption(IEnumerable<OptionToggleViewModel> options, string key) =>
+        options.First(option => string.Equals(option.Key, key, StringComparison.Ordinal));
+
+    private bool IsSettingsGroupOpen(string group, bool matchesSearch)
+    {
+        if (!HasSettingsSearchText)
+        {
+            return _settingsGroupsOpenedByUser.GetValueOrDefault(group);
+        }
+
+        return _settingsGroupsToggledDuringSearch.TryGetValue(group, out var toggled) ? toggled : matchesSearch;
+    }
+
+    private void SetSettingsGroupOpen(string group, bool isOpen)
+    {
+        var store = HasSettingsSearchText ? _settingsGroupsToggledDuringSearch : _settingsGroupsOpenedByUser;
+        if (store.TryGetValue(group, out var current) && current == isOpen)
+        {
+            return;
+        }
+
+        store[group] = isOpen;
+        RaiseSettingsDisclosureChanged();
+    }
+
+    private void RaiseSettingsDisclosureChanged()
+    {
+        OnPropertyChanged(nameof(IsInstallDetailsExpanded));
+        OnPropertyChanged(nameof(IsAppearanceDetailsExpanded));
+        OnPropertyChanged(nameof(IsBehaviorExpanded));
+        OnPropertyChanged(nameof(IsAdvancedExpanded));
+        OnPropertyChanged(nameof(IsLiveCustomizationExpanded));
+        OnPropertyChanged(nameof(IsExtensionsExpanded));
+        OnPropertyChanged(nameof(IsCustomAppsExpanded));
+        OnPropertyChanged(nameof(IsProfileToolsExpanded));
+    }
 
     private void RefreshGlobalSearch()
     {

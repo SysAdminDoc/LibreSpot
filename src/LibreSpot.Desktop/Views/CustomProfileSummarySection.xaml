@@ -8,20 +8,7 @@
  mc:Ignorable="d"
  UseLayoutRounding="True"
  SnapsToDevicePixels="True">
-                <Border Grid.Column="1"
-                        Style="{StaticResource SubtleCardStyle}"
-                        Background="{DynamicResource SurfaceCardBrush}"
-                        BorderBrush="{DynamicResource StrokeBrush}">
-                  <Grid>
-                    <Grid.RowDefinitions>
-                      <RowDefinition Height="*" />
-                      <RowDefinition Height="Auto" />
-                      <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <ScrollViewer Grid.Row="0"
-                                  VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled">
+                <Border Style="{StaticResource MinimalSectionStyle}">
                       <StackPanel>
                         <Grid>
                           <Grid.ColumnDefinitions>
@@ -47,10 +34,6 @@
                                    Style="{StaticResource CaptionTextStyle}"
                                    Foreground="{DynamicResource TextBrush}"
                                    Margin="0,8,0,12" />
-
-                        <!-- Cards vary in height, so the viewport cannot be sized to
-                             whole cards. A bottom fade makes a partial card read as
-                             scrollable instead of as a title cut in half. -->
                         <Grid>
                         <ListBox x:Name="LocalProfilesList"
                                  ItemsSource="{Binding LocalProfiles}"
@@ -59,8 +42,6 @@
                                  Background="Transparent"
                                  BorderThickness="0"
                                  Padding="0"
-                                 MinHeight="220"
-                                 MaxHeight="260"
                                  PreviewMouseWheel="NestedScrollRegion_OnPreviewMouseWheel"
                                  HorizontalContentAlignment="Stretch"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -95,11 +76,6 @@
                             </Style>
                           </ListBox.ItemContainerStyle>
                         </ListBox>
-                          <Border Height="28"
-                                  VerticalAlignment="Bottom"
-                                  Background="{DynamicResource ScrollFadeBrush}"
-                                  IsHitTestVisible="False"
-                                  Visibility="{Binding HasLocalProfiles, Converter={StaticResource BoolToVisibilityConverter}}" />
                         </Grid>
 
                         <Border Margin="0,0,0,12">
@@ -630,22 +606,5 @@
                                      Margin="0,6,0,0" />
                         </StackPanel>
                       </StackPanel>
-                    </ScrollViewer>
-
-                    <Button Grid.Row="1"
-                            Content="{services:Loc ButtonApplyCustomProfile}"
-                            Height="48"
-                            Margin="0,16,0,0"
-                            Style="{StaticResource PrimaryButtonStyle}"
-                            AutomationProperties.AutomationId="ApplyCustomProfileButton"
-                            AutomationProperties.Name="{services:Loc ButtonApplyCustomProfile}"
-                            AutomationProperties.HelpText="{services:Loc ButtonApplyCustomProfileHint}"
-                            Command="{Binding ApplyCustomCommand}" />
-                    <TextBlock Grid.Row="2"
-                               Text="{Binding CustomApplyCaption}"
-                               Style="{StaticResource CaptionTextStyle}"
-                               Margin="0,10,0,0"
-                               TextAlignment="Center" />
-                  </Grid>
                 </Border>
 </UserControl>

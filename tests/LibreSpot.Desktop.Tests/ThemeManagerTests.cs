@@ -110,7 +110,9 @@ public sealed class ThemeManagerTests
     [Fact]
     public void ScrollingCardListsFadeTheirBottomEdgeExceptInHighContrast()
     {
-        var view = ReadFile("src", "LibreSpot.Desktop", "Views", "CustomProfileSummarySection.xaml");
+        // The theme gallery is the one card list that still scrolls inside the
+        // page; the profile list flows with the page since the Settings recomposition.
+        var view = ReadFile("src", "LibreSpot.Desktop", "Views", "CustomAppearanceSection.xaml");
         Assert.Contains("ScrollFadeBrush", view);
         Assert.Contains("IsHitTestVisible=\"False\"", view);
 

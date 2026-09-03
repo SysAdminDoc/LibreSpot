@@ -180,9 +180,11 @@ public sealed class WpfUiAutomationSmokeTests
     [Fact]
     public void WpfShell_UiaCustomStateExposesThemeGallery()
     {
+        // Profile tools are one click away behind a closed group in the default
+        // Settings view; this state opens that group so its controls are present.
         RunOnSta(() =>
         {
-            using var app = LaunchSmokeState("custom");
+            using var app = LaunchSmokeState("custom-profiles");
             try
             {
                     var window = WaitForMainWindow(app.Process, MainWindowTimeout);
@@ -196,6 +198,8 @@ public sealed class WpfUiAutomationSmokeTests
                 Assert.Contains(snapshot, node => string.Equals(node.Name, "Set selected profile active", StringComparison.Ordinal));
                 Assert.Contains(snapshot, node => string.Equals(node.Name, "Theme pack", StringComparison.Ordinal));
                 Assert.Contains(snapshot, node => node.Name.Contains("Marketplace only", StringComparison.Ordinal));
+                Assert.Contains(snapshot, node => string.Equals(node.Name, "Profile tools", StringComparison.Ordinal));
+                Assert.Contains(snapshot, node => string.Equals(node.Name, "Apply custom profile", StringComparison.Ordinal));
             }
             finally
             {

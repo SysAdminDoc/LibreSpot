@@ -10,10 +10,9 @@
                     <Border Style="{StaticResource MinimalSectionStyle}"
                             Visibility="{Binding HasVisibleAdvancedSection, Converter={StaticResource BoolToVisibilityConverter}}">
                       <StackPanel>
-                        <TextBlock Text="{services:Loc AdvancedAdjustmentsSection}" Style="{StaticResource SectionTitleTextStyle}" />
                         <TextBlock Text="{services:Loc AdvancedAdjustmentsHint}"
                                    Style="{StaticResource BodyTextStyle}"
-                                   Margin="0,6,0,14" />
+                                   Margin="0,0,0,14" />
                         <ItemsControl ItemsSource="{Binding AdvancedOptions}" ItemTemplate="{StaticResource OptionTemplate}">
                           <ItemsControl.Style>
                             <Style TargetType="ItemsControl">
@@ -27,39 +26,6 @@
                           <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
                           </ItemsControl.ItemsPanel>
-                        </ItemsControl>
-
-                        <Border Height="1"
-                                Background="{DynamicResource StrokeSoftBrush}"
-                                Margin="0,8,0,14">
-                          <Border.Style>
-                            <Style TargetType="Border">
-                              <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasVisibleAdvancedOptions}" Value="False">
-                                  <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding HasVisibleExperienceOptions}" Value="False">
-                                  <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                              </Style.Triggers>
-                            </Style>
-                          </Border.Style>
-                        </Border>
-
-                        <TextBlock Text="{services:Loc ExperienceExtrasLabel}"
-                                   Style="{StaticResource LabelTextStyle}"
-                                   Margin="0,0,0,8"
-                                   Visibility="{Binding HasVisibleExperienceOptions, Converter={StaticResource BoolToVisibilityConverter}}" />
-                        <ItemsControl ItemsSource="{Binding ExperienceOptions}" ItemTemplate="{StaticResource OptionTemplate}">
-                          <ItemsControl.Style>
-                            <Style TargetType="ItemsControl">
-                              <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasVisibleExperienceOptions}" Value="False">
-                                  <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                              </Style.Triggers>
-                            </Style>
-                          </ItemsControl.Style>
                         </ItemsControl>
                       </StackPanel>
                     </Border>
