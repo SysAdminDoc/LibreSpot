@@ -4,9 +4,11 @@
 
 | Version | Supported |
 |---------|-----------|
-| v3.7.x (PowerShell script) | Yes |
-| v4.0.x-preview (WPF desktop shell) | Best-effort |
+| v4.0.x and later (`LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, and the `LibreSpot.ps1` shipped in the same release) | Yes. This is the supported stable line. Fixes land in the next v4 release. |
+| v3.7.x (standalone PowerShell script releases) | Superseded. No separate fixes are published for these tags. Move to the `LibreSpot.ps1` or `LibreSpot.exe` from the latest v4 release; the script reads the same `config.json`. |
 | < v3.7.0 | No |
+
+Every v4 release carries the desktop app, the fleet CLI, and the PowerShell script together, so there is one stable line rather than a script channel and a desktop channel. Releases are unsigned by design and are verified with `checksums.txt` and the GitHub release attestation.
 
 ## Capability boundary
 
@@ -127,7 +129,7 @@ OpenSSF Scorecard findings are still treated as work, not noise. The accepted-ri
 | Branch-Protection | 0 | Required reviews are not practical without additional contributors. Branch protection is enabled with admin enforcement, force-push and deletion disabled. |
 | Code-Review | 0 | All commits are direct pushes. Quality is maintained through local tests, static analysis, and research/build machine separation. |
 | Contributors | 0 | Single-maintainer project by design. |
-| CII-Best-Practices | 0 | Enrollment deferred until v4.0 stable ships and community adoption grows. |
+| CII-Best-Practices | 0 | v4.0.0 stable has shipped; enrollment stays deferred until community adoption grows. |
 | Fuzzing | 0 | Property-based testing (FsCheck) is planned; OSS-Fuzz enrollment is deferred. |
 | Signed-Releases | N/A | Unsigned by design. SignPath Foundation OSS signing was evaluated and set aside, so there is no pending certificate. Local releases ship with checksums, a release manifest, and SBOM output. They are not Authenticode-signed and do not include GitHub Actions build-provenance attestations. Immutable GitHub releases do include a release attestation. Integrity is verified with that attestation and the published SHA256 checksums. |
 

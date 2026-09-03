@@ -4,7 +4,9 @@ Items moved here from `ROADMAP.md` because they require operator decisions,
 credentials, or policy calls that an implementer cannot resolve autonomously.
 Return items to `ROADMAP.md` once the blocking decision is made.
 
-Last updated: 2026-08-21.
+Last updated: 2026-09-02.
+
+Entries whose blocker was resolved or whose premise was overtaken by v4.0.0 stable, local-only releases, immutable release assets, the unsigned-by-design decision, or .NET 10 are kept under an `Archived` heading with the resolution, so the decision record survives without steering new work.
 
 ---
 
@@ -54,16 +56,18 @@ Decide whether to keep LibreSpot, rename before package-manager distribution,
 or keep the repo name but rename the app. Decision must be recorded before
 winget/scoop/choco work begins.
 
-## P0 - Signing (SignPath Foundation enrollment)
+## Archived - Signing (SignPath Foundation enrollment)
 
 | Field | Value |
 |---|---|
 | Source | Next Release Queue |
-| Blocker | Credential enrollment - operator must complete SignPath Foundation application |
+| Resolution | Unsigned by design. SignPath Foundation OSS signing was evaluated and set aside; there is no enrollment in progress and no certificate to wait for. |
 
-Complete SignPath Foundation enrollment and wire Authenticode signing into tagged
-releases. Exit criteria: release assets are signed and verification docs are
-current.
+The evaluation and the answers that would be submitted are kept in
+`SIGNPATH.md` for the record. `schemas/release-artifact-contract.json`
+records `unsigned-by-design`, and release identity is proven with
+`checksums.txt`, the release manifest, the SBOM, and the GitHub release
+attestation. Reopen only if the unsigned-by-design decision is reversed.
 
 ## P0 - Finalize package identity before any public distribution manifest
 
@@ -87,7 +91,7 @@ https://github.com/microsoft/winget-pkgs,
 `src/LibreSpot.Desktop/app.manifest:3`,
 `SIGNPATH.md:3`
 
-Touches: product decision record, package manifests, SignPath docs, README,
+Touches: product decision record, package manifests, `SIGNPATH.md`, README,
 shell integration docs, future protocol/file associations.
 
 Acceptance: operator records one canonical identity set: display name,
@@ -96,15 +100,15 @@ protocol URI, and whether old `%APPDATA%\LibreSpot` paths stay forever or
 migrate.
 
 Verify: repeat winget search; search Chocolatey and Scoop; check GitHub and
-crates.io name collision notes; review SignPath and package manifests before
-first submission.
+crates.io name collision notes; review package manifests before first
+submission.
 
 ## P1 - Define the Velopack app identity and update feed before packaging
 
 | Field | Value |
 |---|---|
 | Source | Cycle 2 |
-| Blocker | Package identity, install identity, update channel, and signing policy decisions |
+| Blocker | Package identity, install identity, and update channel decisions |
 
 Why: distribution planning names Velopack, but the repo currently has no
 Velopack package, app ID, update channel, or `RELEASES` feed. Velopack
@@ -118,13 +122,14 @@ https://docs.velopack.io/distributing/overview,
 https://github.com/velopack/velopack/releases/tag/1.2.0,
 https://www.nuget.org/packages/Velopack/1.2.0
 
-Touches: packaging docs, release workflow, WPF csproj, app manifest, update
-check UX, installer/uninstaller docs.
+Touches: packaging docs, the local release procedure, WPF csproj, app manifest,
+update check UX, installer/uninstaller docs.
 
 Acceptance: a packaging design note chooses package ID, display name,
 update channel names, GitHub Releases vs external feed hosting, install
-root, Start Menu shortcut behavior, state migration from portable builds,
-and the rule for preserving Authenticode signatures across updates.
+root, Start Menu shortcut behavior, and state migration from portable
+builds. Releases are unsigned by design, so no signature preservation rule
+is needed.
 
 Verify: after implementation, run `vpk pack` / `vpk upload` dry-runs in a
 temp release folder and verify update discovery against a local feed.
@@ -134,7 +139,7 @@ temp release folder and verify update discovery against a local feed.
 | Field | Value |
 |---|---|
 | Source | Cycle 22 |
-| Blocker | Package identity, update-channel ownership, and signing policy decisions |
+| Blocker | Package identity and update-channel ownership decisions |
 
 Why: Velopack replaces the app's `current` directory on update and installs
 under `%LocalAppData%\{packId}` by default. LibreSpot already stores config,
@@ -225,41 +230,19 @@ cards cannot show install buttons until every row has a support state,
 verified source URL, and policy note; docs state that LibreSpot does not
 endorse, bundle, modify, or support third-party clients.
 
-## P1 - Define the stable script support and retirement boundary
+## Archived - Define the stable script support and retirement boundary
 
 | Field | Value |
 |---|---|
 | Source | Cycle 12 |
-| Blocker | Release channel / support lifecycle policy - operator must decide |
+| Resolution | Superseded by v4.0.0 stable (2026-08-22). |
 
-Why: README describes LibreSpot as a single-script PowerShell GUI, and the
-latest stable release is still `v3.7.2` with `LibreSpot.ps1` and
-`LibreSpot.exe` assets. At the same time, the roadmap makes v4 stable the
-native WPF shell. Without a channel policy, users will not know whether the
-PowerShell GUI continues receiving accessibility fixes, security fixes,
-dependency pin updates, watcher fixes, or only critical hotfixes after WPF
-stabilizes.
-
-Evidence: `README.md:7`, `README.md:18`,
-`README.md:38`, `README.md:181`,
-`gh release view v3.7.2 --json assets,isPrerelease` on 2026-06-04,
-`gh release view v4.0.0-preview.1 --json assets,isPrerelease` on
-2026-06-04
-
-Touches: README channel table, release notes, roadmap v4 stable scope,
-support docs, self-update messaging.
-
-Acceptance: repo documents whether the PowerShell GUI is active stable,
-maintenance-only LTS, or deprecated after WPF stable. The policy names what
-still lands in the script lane, how long critical fixes are backported, how
-users migrate saved `config.json`, whether PS2EXE continues shipping, and
-which release channel `/latest` should point at during and after the v4
-transition.
-
-Verify: README and release notes show one stable recommendation; release
-workflow enforces the channel policy; self-update/check-update messaging
-does not suggest preview WPF builds as stable unless maintainers have made
-that decision.
+The question assumed a `v3.7.2` script channel competing with a preview
+desktop channel. Every v4 release now ships `LibreSpot.ps1`, `LibreSpot.exe`,
+`LibreSpot-Desktop.exe`, and `LibreSpot.Cli.exe` together, `/latest` points
+at that single stable line, and `SECURITY.md` names v4.0.x and later as
+supported with v3.7.x superseded. The script reads the same `config.json`,
+so there is no migration step.
 
 ## P1 - Define the architecture support matrix and release artifact lanes
 
@@ -271,7 +254,7 @@ that decision.
 Why: README currently advertises x64 and ARM64 support with
 per-architecture hash verification, and both PowerShell backends choose
 Spicetify CLI `arm64` on ARM64 hosts and `x64` otherwise. The native WPF
-release workflow, however, publishes only one self-contained single-file
+local release build, however, publishes only one self-contained single-file
 `win-x64` artifact, and the desktop project has no `RuntimeIdentifiers`
 matrix. Microsoft documents Windows RIDs such as `win-x64`, `win-x86`, and
 `win-arm64`, and notes that single-file apps are OS- and
@@ -280,15 +263,15 @@ package-manager distribution repeats a broader claim than the release
 artifacts prove.
 
 Evidence: `README.md:154`,
-the retired release automation,
+the local release procedure in `README.md`,
 `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:3`,
 `LibreSpot.ps1:5151`,
 `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:1855`,
 https://learn.microsoft.com/en-us/dotnet/core/rid-catalog
 
-Touches: release workflow, README architecture section, package-manager
-manifests, checksum/SBOM/attestation naming, WPF publish docs, support
-policy.
+Touches: the local release procedure, README architecture section,
+package-manager manifests, checksum/SBOM/attestation naming, WPF publish
+docs, support policy.
 
 Acceptance: document one table that names support status for the stable
 `.ps1`, PS2EXE, WPF `win-x64`, WPF `win-arm64`, and any `win-x86`
@@ -298,87 +281,28 @@ Spicetify CLI architecture/hash is expected; whether package-manager
 manifests may install it; and what manual or automated smoke test proves
 the claim.
 
-Verify: release CI either builds and uploads every supported RID or fails
-when docs claim an unsupported RID. Artifact names, checksums, SBOMs, and
+Verify: the local release build either publishes every supported RID or
+the release truth check fails when docs claim an unsupported RID. Artifact names, checksums, SBOMs, and
 attestations include the RID where multiple native WPF artifacts exist.
 README/package-manager manifests no longer imply ARM64 WPF support unless a
 `win-arm64` artifact is produced and smoke-tested.
 
-## P1 - Move signing and publishing through protected GitHub environments
+## Archived - Move signing and publishing through protected GitHub environments
 
 | Field | Value |
 |---|---|
 | Source | Cycle 15 |
-| Blocker | Repository admin access + SignPath credentials required |
+| Resolution | Superseded. Releases are built and uploaded locally, GitHub Actions do not publish anything, and signing is unsigned by design, so there are no signing secrets or workflow jobs to put behind an environment. |
 
-Why: the release workflow already uses least-privilege defaults and
-escalates the final release job to `contents: write`, `id-token: write`,
-and `attestations: write`, but the repo has zero GitHub environments and no
-workflow job declares an `environment`. SignPath submission steps will use
-repository secrets/variables once configured, so the signing credential
-boundary should be explicit before Authenticode signing becomes the normal
-release path. GitHub environments can hold environment-scoped secrets and
-add required reviewers or wait timers before jobs access those secrets.
-
-Evidence: the retired release automation,
-live `gh api repos/SysAdminDoc/LibreSpot/environments` on 2026-06-04
-returned `total_count: 0`,
-https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments
-
-Touches: repository environments, release workflow, SignPath setup docs,
-operator release checklist, `SIGNPATH.md`.
-
-Acceptance: create named environments such as `release-signing` and
-`github-release`, move SignPath secrets/variables into the signing
-environment, require a documented maintainer review before signing or
-publishing, and attach the relevant workflow jobs to those environments.
-Manual `workflow_dispatch` releases must resolve an existing validated tag
-and pass the same environment gates as tag-push releases.
-
-Verify: `gh api repos/SysAdminDoc/LibreSpot/environments` lists the release
-environments with required reviewers configured; release workflow runs show
-protected deployment gates before any SignPath or release-upload step; a
-dry-run or temporary test tag proves the workflow cannot access signing
-secrets without environment approval.
-
-## P1 - Add branch and tag rulesets for release-critical paths
+## Archived - Add branch and tag rulesets for release-critical paths
 
 | Field | Value |
 |---|---|
 | Source | Cycle 15 |
-| Blocker | Repository admin access + operator signing/commit policy required |
+| Resolution | Superseded. The entry protected a tag-triggered release automation that no longer exists. `main` keeps branch protection with admin enforcement, and published releases are immutable, so release tags cannot be moved or deleted after publication. |
 
-Why: live GitHub API data shows `main` is protected, admin enforcement and
-conversation resolution are enabled, force-pushes and deletions are
-disabled, but required status checks are off, required signatures are off,
-and repository rulesets are empty. Since the release workflow runs on
-`v*.*.*` tags and can also be triggered manually, workflow-internal checks
-should be backed by repository rules that protect `main`, release tags, and
-high-risk files such as the release workflow, signing docs, backend script,
-and package manifests.
-
-Evidence: the retired release automation,
-live `gh api repos/SysAdminDoc/LibreSpot/branches/main` on 2026-06-04
-reported `protected: true` with required status check enforcement `off`,
-live `gh api repos/SysAdminDoc/LibreSpot/rulesets` on 2026-06-04 returned
-`[]`,
-https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets
-
-Touches: repository rulesets/branch protection, release workflow, future CI
-workflow from Cycle 8, maintainer docs, release checklist.
-
-Acceptance: define one branch ruleset for `main` and one tag ruleset for
-`v*.*.*` releases. The `main` ruleset requires the release/CI status checks
-that matter for changed paths, blocks bypass except documented maintainers,
-and requires signed commits or a recorded exception policy. The tag ruleset
-blocks deletion/force movement of release tags and limits who can create
-tags that match the release pattern. High-risk file changes either require
-CODEOWNERS once Cycle 8 lands or a temporary manual reviewer policy.
-
-Verify: GitHub API returns non-empty rulesets with the expected branch and
-tag targets; a test branch cannot merge a release-workflow change without
-the required checks; a non-authorized actor or test token cannot create,
-move, or delete a `v*.*.*` tag.
+A tag ruleset for `v*.*.*` would still be optional hardening; open a fresh
+item with current evidence if it is wanted.
 
 ## P1 - Separate LibreSpot-managed profile sharing from Marketplace-state backup
 
@@ -419,52 +343,50 @@ copying it; import of a profile with unknown marketplace sections is shown
 as unsupported unless the advanced backup feature exists and is explicitly
 enabled.
 
-## P2 - Write a bad-release, signing, and rollback runbook
+## P2 - Write a bad-release and rollback runbook
 
 | Field | Value |
 |---|---|
 | Source | Cycle 5 |
-| Blocker | SignPath credentials + incident response policy - operator only |
+| Blocker | Incident response policy - operator only |
 
-Why: SignPath enrollment is pending, existing releases are mutable, and the
-workflow currently uses `--clobber` for asset upload. There is no documented
-operator path for a bad checksum, missing asset, compromised token,
-unsigned fallback, SmartScreen false positive, SignPath failure, or release
-that must be marked unsafe after publication.
+Why: published releases are immutable, so a bad asset cannot be replaced in
+place, and releases ship unsigned by design, so there is no certificate to
+revoke. There is still no documented operator path for a bad checksum, a
+missing asset, a compromised GitHub token, a SmartScreen or antivirus false
+positive, or a release that must be marked unsafe after publication.
 
-Evidence: `SIGNPATH.md:76`, `SIGNPATH.md:106`,
-the retired release automation,
+Evidence: `SECURITY.md`, the local release procedure in `README.md`,
+`schemas/release-artifact-contract.json`.
 
-Touches: release docs, `SECURITY.md`, SignPath docs, release workflow
-policy comments, support templates.
+Touches: release docs, `SECURITY.md`, support templates.
 
-Acceptance: runbook defines when to yank, mark prerelease, edit release
-notes, delete assets, revoke/reissue signing credentials, rotate GitHub
-secrets, publish a superseding hotfix, and notify users. It distinguishes
-historical mutable releases from future immutable releases and says whether
-`--clobber` is allowed only for draft releases.
+Acceptance: runbook defines when to mark a release as unsafe in its notes,
+publish a superseding hotfix, rotate GitHub credentials, and notify users.
+It states that immutable assets are never edited and that a draft release
+is the only place an asset can be replaced before publication.
 
 Verify: tabletop exercise against one hypothetical missing-SBOM release and
-one compromised-signing-token scenario; checklist includes exact `gh` and
-SignPath dashboard commands without requiring destructive execution.
+one compromised-token scenario; checklist includes exact `gh` commands
+without requiring destructive execution.
 
-## P2 - Keep Chocolatey behind signing plus silent uninstall evidence
+## P2 - Keep Chocolatey behind silent uninstall evidence
 
 | Field | Value |
 |---|---|
 | Source | Cycle 22 |
-| Blocker | Signing, CLI artifact, uninstall behavior, and public-channel policy decisions |
+| Blocker | CLI artifact, uninstall behavior, and public-channel policy decisions |
 
 Why: Chocolatey's verifier and community moderation surface install/uninstall
-failures publicly. LibreSpot's current GUI-heavy artifacts, pending signing,
-and destructive cleanup scope make Chocolatey riskier than winget/Scoop CLI
-drafts or Velopack WPF previews.
+failures publicly. LibreSpot's current GUI-heavy artifacts, unsigned-by-design
+executables, and destructive cleanup scope make Chocolatey riskier than
+winget/Scoop CLI drafts or Velopack WPF packages.
 
 Touches: Chocolatey package templates, CLI exit-code contract, uninstall
 behavior, docs.
 
-Acceptance: Chocolatey package remains draft/internal until the signed CLI
-artifact exists, `uninstall --silent --purge --yes --keep-spotify` is
+Acceptance: Chocolatey package remains draft/internal until the CLI
+artifact is the package payload, `uninstall --silent --purge --yes --keep-spotify` is
 implemented, valid exit codes are documented, checksums come from the
 release manifest, and a clean Windows VM verifier run proves install,
 upgrade, and uninstall. Package scripts use explicit `silentArgs`,
@@ -708,7 +630,7 @@ That artifact is a better first target for winget portable and Scoop than
 the GUI EXEs, while Velopack is the better owner for an installed WPF shell
 with shortcuts and auto-update.
 
-Touches: package channel matrix, release workflow, future CLI project,
+Touches: package channel matrix, the local release procedure, future CLI project,
 winget/Scoop/Chocolatey templates, README install docs.
 
 Acceptance: initial package sequence is explicit: GitHub Releases remains
@@ -734,7 +656,7 @@ Why: existing roadmap items ask for manifests, but package-manager drift is
 most damaging when a tag ships with invalid hashes, wrong silent switches,
 or stale package IDs. Validation should run before public submission.
 
-Touches: release workflow, package templates, `docs/distribution.md`,
+Touches: the local release procedure, package templates, `docs/distribution.md`,
 CI artifacts.
 
 Acceptance: release preflight can generate draft winget YAML, Scoop JSON,
@@ -770,22 +692,12 @@ Acceptance: operator records one protocol rule for backend activity text; the
 implementation either maps stable backend event keys through WPF resources or
 documents backend output as English diagnostic text outside localization scope.
 
-## P3 - Publish the v3.7.4 / v4.0.0-preview.9 GitHub release with the full artifact contract
+## Archived - Publish the v3.7.4 / v4.0.0-preview.9 GitHub release with the full artifact contract
 
 | Field | Value |
 |---|---|
 | Source | Audit-Driven Additions (July 7, 2026) |
-| Blocker | Operator release publication pass required |
-
-Why: version strings, changelog, and local artifacts are bumped; release upload
-requires the operator's publishing pass for PS2EXE, desktop, CLI, SBOM,
-manifest, and checksums per `schemas/release-artifact-contract.json`.
-
-Touches: `Build-Scripts.ps1`, `schemas/release-artifact-contract.json`,
-GitHub Releases.
-
-Acceptance: GitHub release page for the version contains the full artifact
-contract and downloadable checksums/SBOM/manifest assets.
+| Resolution | Superseded by the v4.0.0 stable release (2026-08-22), which was published with the full artifact contract: PS2EXE, desktop, CLI, SBOM, manifest, and checksums. |
 
 ## P3 - Verify HotTrack-based Warning/Info/Danger contrast in HC #1 and HC #2 themes on-device
 
@@ -843,25 +755,26 @@ the implementation updates both shells consistently.
 | Field | Value |
 |---|---|
 | Source | Research-Driven Additions (2026-07-08) |
-| Blocker | Entangled with blocked SignPath signing + operator release pass; deliverable is a decision record + AV-flag comparison, not autonomous code |
+| Blocker | Operator release pass; deliverable is a decision record + AV-flag comparison, not autonomous code |
 
 Why: PS2EXE output (`LibreSpot.exe`, the packed standalone script) inherits the
 packer's chronic HackTool/loader AV reputation. A native .NET launcher hosting
 the script would shed that, but the acceptance is a decision record plus a
-prototype with a before/after AV-flag comparison — which requires building and
-antivirus-scanning signed release artifacts. That depends on the blocked
-SignPath enrollment and the operator release/publishing pass, and the "decision
-record" is a research deliverable rather than an implementable code change.
+prototype with a before/after AV-flag comparison, which requires building and
+antivirus-scanning release artifacts across an operator release pass. Signing
+is not part of the comparison: releases are unsigned by design, so both sides
+of the comparison ship unsigned.
 
 Evidence: Win-PS2EXE #4, Malwarebytes PS2EXE false-positive thread; RESEARCH.md
 architecture note. The fleet CLI (`LibreSpot.Cli.exe`) is already a native .NET
 executable; this concerns the PS2EXE-packed `LibreSpot.exe` GUI artifact.
 
-Touches: the retired release automation, a possible native
-launcher project, `SIGNPATH.md`.
+Touches: the local release procedure, a possible native launcher project,
+`schemas/release-artifact-contract.json`.
 
-Acceptance: once signing is unblocked, ship the standalone entrypoint as a
-native signed exe instead of PS2EXE output, with a documented AV-flag comparison.
+Acceptance: a decision record that compares the PS2EXE artifact with a native
+launcher prototype on AV flags and startup behavior, and either ships the
+launcher as the standalone entrypoint or records why PS2EXE stays.
 
 ## P2 - One-click "restore stock Spotify client" escape hatch
 

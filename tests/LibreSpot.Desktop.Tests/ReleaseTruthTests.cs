@@ -41,6 +41,46 @@ public sealed class ReleaseTruthTests
     }
 
     [Fact]
+    public void SupportAndSigningDocsMatchTheStableReleaseLine()
+    {
+        var desktopVersion = ProjectValue("src/LibreSpot.Desktop/LibreSpot.Desktop.csproj", "Version");
+        var security = Read("SECURITY.md");
+        var supportTable = security.Split("## Supported Versions")[1].Split("## ")[0];
+        var docs = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SECURITY.md"] = security,
+            ["SIGNPATH.md"] = Read("SIGNPATH.md"),
+            ["Roadmap_Blocked.md"] = Read("Roadmap_Blocked.md"),
+            ["README.md"] = Read("README.md")
+        };
+
+        if (!desktopVersion.Contains('-', StringComparison.Ordinal))
+        {
+            // Stable metadata must not sit beside preview-only support wording.
+            Assert.Matches(@"(?m)^\| v4\.0\.x and later[^|]*\| Yes", supportTable);
+            Assert.Contains("v3.7.x", supportTable, StringComparison.Ordinal);
+            Assert.Contains("Superseded", supportTable, StringComparison.Ordinal);
+            Assert.DoesNotContain("-preview", supportTable, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Best-effort", supportTable, StringComparison.OrdinalIgnoreCase);
+        }
+
+        foreach (var (path, content) in docs)
+        {
+            foreach (var pendingClaim in new[] { "pending-enrollment", "enrollment is pending", "pending signing", "SignPath credentials", "Complete SignPath Foundation enrollment", "once signing is unblocked" })
+            {
+                Assert.False(
+                    content.Contains(pendingClaim, StringComparison.OrdinalIgnoreCase),
+                    $"{path} still describes signing as pending: '{pendingClaim}'.");
+            }
+        }
+
+        Assert.Contains("unsigned by design", docs["SECURITY.md"], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("unsigned by design", docs["SIGNPATH.md"], StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("latest stable release is still `v3.7.2`", docs["Roadmap_Blocked.md"], StringComparison.Ordinal);
+        Assert.DoesNotContain("release workflow", docs["Roadmap_Blocked.md"], StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void LiveReleaseValidatorQueriesGithubLatestAndRequiredAssets()
     {
         var buildScript = Read("Build-Scripts.ps1");
