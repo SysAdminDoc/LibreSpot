@@ -2322,22 +2322,46 @@ function Get-LibreSpotJavaScriptAudit {
         # so without this the command failed with ERR_PNPM_AUDIT_NO_LOCKFILE and
         # the gate passed having examined nothing.
         $stderrPath = [System.IO.Path]::GetTempFileName()
+        $previousErrorAction = $ErrorActionPreference
+        $raw = ''
+        $exitCode = $null
+        $stderrText = ''
+        $invocationError = $null
         Push-Location -LiteralPath $WorkspacePath
         try {
             # stderr goes to its own file: pnpm writes registry and deprecation
             # notices there, and folding them into stdout breaks the JSON parse.
+            #
+            # The preference is lowered for the call itself. This script runs with
+            # ErrorActionPreference = Stop, and pnpm has two entirely normal ways
+            # to upset that: it writes update and deprecation notices to stderr,
+            # and `pnpm audit` exits non-zero precisely when it FINDS something.
+            # Either can become a terminating error depending on the host and on
+            # $PSNativeCommandUseErrorActionPreference, which would abort the gate
+            # at the moment it had news to report. Both are inspected below.
+            $ErrorActionPreference = 'Continue'
             $raw = & $pnpm @arguments 2>$stderrPath | Out-String
+            $exitCode = $LASTEXITCODE
+        } catch {
+            # Still a failure to record, never a reason to abandon the gate.
+            $invocationError = $_.Exception.Message
         } finally {
+            $ErrorActionPreference = $previousErrorAction
             Pop-Location
+
+            # Casting an EMPTY pipeline to [string] yields $null, not '', so the
+            # Trim has to come after a null check rather than off the cast.
+            $stderrRaw = Get-Content -LiteralPath $stderrPath -Raw -ErrorAction SilentlyContinue
+            $stderrText = if ($null -eq $stderrRaw) { '' } else { ([string]$stderrRaw).Trim() }
+            Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
         }
 
-        $exitCode = $LASTEXITCODE
-        # Casting an EMPTY pipeline to [string] yields $null, not '', so the Trim
-        # has to come after a null check rather than being chained onto the cast.
-        $stderrRaw = Get-Content -LiteralPath $stderrPath -Raw -ErrorAction SilentlyContinue
-        $stderrText = if ($null -eq $stderrRaw) { '' } else { ([string]$stderrRaw).Trim() }
-        Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
         $result.ran = $true
+
+        if ($null -ne $invocationError) {
+            $result.failures += "pnpm audit --$scope could not be run: $invocationError $stderrText".Trim()
+            continue
+        }
 
         # Every path out of here records a failure. A silent skip is what let the
         # broken invocation above look like a clean audit. Note that pnpm exits
@@ -2405,7 +2429,11 @@ function Get-DependencyHealthAllowlist {
     # Accepted JavaScript advisories carry the same obligations as lagging
     # packages. They are validated here, where the file is already open, so a
     # malformed entry stops the gate instead of silently accepting an advisory.
-    foreach ($advisory in @($doc.acceptedJavaScriptAdvisories)) {
+    # @($null) is a ONE-element array holding $null, not an empty array, so an
+    # allowlist written before this section existed would run the body once with
+    # a null entry and die on "Cannot index into a null array" instead of being
+    # skipped.
+    foreach ($advisory in @($doc.acceptedJavaScriptAdvisories | Where-Object { $null -ne $_ })) {
         foreach ($field in @('id', 'owner', 'reason', 'recheckDate')) {
             if (-not $advisory.PSObject.Properties[$field] -or [string]::IsNullOrWhiteSpace([string]$advisory.$field)) {
                 throw "Dependency health allowlist JavaScript advisory entry is missing '$field'."
@@ -2425,7 +2453,7 @@ function Get-DependencyHealthJavaScriptAllowlist {
     # reading acceptedJavaScriptAdvisories off its result always found nothing and
     # no advisory could ever be accepted. Validation still lives there.
     $doc = Get-JsonFile -Path $Path
-    return @($doc.acceptedJavaScriptAdvisories)
+    return @($doc.acceptedJavaScriptAdvisories | Where-Object { $null -ne $_ })
 }
 
 function Test-TransitiveLagAllowed {

@@ -9,7 +9,11 @@
 
 BeforeAll {
     $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-    . (Join-Path $script:RepoRoot 'Build-Scripts.ps1') | Out-Null
+    # Dot-sourced for its functions. It prints an eleven line usage banner with
+    # Write-Host when given no switch, which `| Out-Null` does not catch, so every
+    # stream is redirected. Redirection does not affect what the dot-source
+    # defines.
+    . (Join-Path $script:RepoRoot 'Build-Scripts.ps1') *> $null
 
     function script:New-AllowlistFile {
         param($JavaScriptAdvisories)
@@ -62,6 +66,21 @@ Describe 'Get-DependencyHealthAllowlist' {
         try {
             { Get-DependencyHealthAllowlist -Path $path } |
                 Should -Throw -ExpectedMessage "*missing '$Missing'*"
+        } finally {
+            Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'skips an allowlist written before the JavaScript section existed' {
+        # @($null) is a one-element array holding $null, so the validation loop ran
+        # once against nothing and died on "Cannot index into a null array" rather
+        # than skipping. Any allowlist predating that section hit it.
+        $path = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-allowlist-" + [guid]::NewGuid().ToString('N') + ".json")
+        '{ "schemaVersion": 1, "acceptedTransitiveLag": [] }' | Set-Content -LiteralPath $path -Encoding UTF8
+
+        try {
+            { Get-DependencyHealthAllowlist -Path $path } | Should -Not -Throw
+            @(Get-DependencyHealthJavaScriptAllowlist -Path $path).Count | Should -Be 0
         } finally {
             Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
         }
