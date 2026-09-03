@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P1: RD-132: Make the stable desktop download the default common-user installation path
-  Why: The stable v4 desktop executable is built for common users, but Quick Start first asks them to paste a long PowerShell block and retains a lower-trust `irm | iex` command. This conditions users to follow the same interaction pattern used by ClickFix campaigns and makes the expert delivery lane look like the product default.
-  Evidence: `README.md:16-53`; the v4.0.0 immutable release and Microsoft ClickFix, CISA Interlock, Windows PowerShell CVE-2025-54100, BetterDiscord Installer, BlockTheSpot Installer, Ninite, and r2modman sources in `RESEARCH.md`.
-  Touches: `README.md`, release-truth and documentation tests, common-user download and verification copy, advanced PowerShell and managed CLI sections.
-  Acceptance: The first Quick Start path links directly to `LibreSpot-Desktop.exe` and `checksums.txt` from the official latest stable release, explains same-release SHA256 and release-attestation verification in concise language, and does not ask the common user to paste a command. PowerShell source, the PS2EXE compatibility artifact, and the CLI remain documented under clearly labeled advanced or managed paths. Remove `irm | iex` from common-user documentation. A regression test confirms the desktop path appears first, no paste instruction occurs before advanced documentation, all links target the official repository, and release asset names match the release contract.
-  Complexity: S
-
 - [ ] P2: RD-129: Close Spotify normally before forcing remaining processes to exit
   Why: Both active process-control paths kill Spotify immediately, which skips the normal Windows application shutdown path.
   Evidence: `src/LibreSpot.Desktop/Services/SpotifyProcessService.cs:44-56`; `src/powershell/shared/Stop-SpotifyProcesses.ps1:1-10`; Microsoft Restart Manager guidance in `RESEARCH.md` Security, Privacy, and Reliability.

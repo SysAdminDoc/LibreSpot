@@ -414,13 +414,50 @@ public sealed class ReleaseArtifactContractTests
     }
 
     [Fact]
-    public void Readme_KeepsLowerTrustPipelinePathLabeled()
+    public void Readme_QuickStartLeadsWithDesktopDownloadAndNoPasteBeforeAdvanced()
     {
         var readme = ReadFile("README.md");
+        var quickStart = readme.Split("## Quick Start")[1].Split("##")[0];
 
-        Assert.Contains("irm", readme);
-        Assert.Contains("iex", readme);
-        Assert.Contains("lower trust", readme, StringComparison.OrdinalIgnoreCase);
+        var advancedIndex = quickStart.IndexOf("<details>", StringComparison.Ordinal);
+        Assert.True(advancedIndex > 0, "Quick Start must keep the script and CLI paths behind a disclosure.");
+        var commonPath = quickStart[..advancedIndex];
+
+        Assert.Contains("releases/latest/download/LibreSpot-Desktop.exe", commonPath, StringComparison.Ordinal);
+        Assert.Contains("releases/latest/download/checksums.txt", commonPath, StringComparison.Ordinal);
+        Assert.Contains("SHA256", commonPath, StringComparison.Ordinal);
+        Assert.Contains("attestation", commonPath, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("LibreSpot.ps1", commonPath, StringComparison.Ordinal);
+        Assert.DoesNotContain("```", commonPath, StringComparison.Ordinal);
+        Assert.DoesNotContain("paste", commonPath, StringComparison.OrdinalIgnoreCase);
+
+        var firstCommandBlock = readme.IndexOf("```", StringComparison.Ordinal);
+        var firstAdvanced = readme.IndexOf("<details>", StringComparison.Ordinal);
+        Assert.True(firstAdvanced >= 0 && firstCommandBlock > firstAdvanced,
+            "No command block may appear before the advanced documentation.");
+
+        Assert.DoesNotMatch(@"\|\s*iex\b", readme);
+        Assert.DoesNotMatch(@"\birm\s+https?://", readme);
+
+        foreach (Match link in Regex.Matches(quickStart, @"\]\((https?://[^)\s]+)\)"))
+        {
+            Assert.StartsWith("https://github.com/SysAdminDoc/LibreSpot", link.Groups[1].Value, StringComparison.Ordinal);
+        }
+
+        var knownAssets = Contract.RootElement.GetProperty("artifacts").EnumerateArray()
+            .Select(a => a.GetProperty("name").GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
+        var directDownloads = Regex.Matches(quickStart, @"releases/latest/download/([^)\s`""']+)");
+        Assert.NotEmpty(directDownloads);
+        foreach (Match asset in directDownloads)
+        {
+            Assert.Contains(asset.Groups[1].Value, knownAssets);
+        }
+
+        foreach (Match asset in Regex.Matches(quickStart, @"`(LibreSpot[\w.-]*\.(?:exe|ps1)|checksums\.txt)`"))
+        {
+            Assert.Contains(asset.Groups[1].Value, knownAssets);
+        }
     }
 
     [Fact]

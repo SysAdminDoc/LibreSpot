@@ -36,7 +36,7 @@
     },
     {
       "name": "LibreSpot.ps1",
-      "description": "Raw PowerShell script for iex one-liner installs",
+      "description": "Raw PowerShell script for the advanced verified-download path",
       "packageRole": "source-script",
       "runtimeIdentifier": "any",
       "buildMode": "script",

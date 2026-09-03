@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Quick Start now leads with the desktop app. The first path links straight to `LibreSpot-Desktop.exe` and `checksums.txt` from the latest stable release and explains the same-release hash and release attestation checks in plain language, with no command to paste. The verified PowerShell script and the fleet CLI stay documented under labeled Advanced and Managed disclosures, and the unverified `irm | iex` one-liner is gone from the README and the security policy. A regression test keeps the desktop path first, keeps command blocks behind the advanced section, checks that every Quick Start link targets the official repository, and matches the named assets against the release contract.
+
 ## [v4.1.2] (2026-09-01)
 
 ### Added

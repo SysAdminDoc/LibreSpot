@@ -84,7 +84,7 @@ LibreSpot's pinned Spicetify v2.44.0 flow does not read the v3 support document.
 - **Patch-level preflight**, the downloader runs a non-blocking check (`Get-DownloaderCveExposure`) the first time it fetches anything. On Windows PowerShell 5.1 (Desktop edition) it inspects the host's most recent Windows update and logs a `WARN` when the host predates the December 2025 patch wave. It never blocks the install, it tells you to update Windows.
 - **PowerShell 7+ is unaffected**, PowerShell 7 (Core) is a separate product and isn't affected by this CVE, so the preflight skips it.
 
-**Required action for users:** keep Windows fully updated. Hosts on the December 2025 cumulative update or later have the fix; older hosts should install pending updates before running LibreSpot's `irm … | iex` quickstart.
+**Required action for users:** keep Windows fully updated. Hosts on the December 2025 cumulative update or later have the fix; older hosts should install pending updates before using LibreSpot's PowerShell script path.
 
 ### PowerShell 7.6.0 through 7.6.4 security floor
 

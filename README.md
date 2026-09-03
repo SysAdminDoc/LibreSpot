@@ -15,7 +15,18 @@ Installs, configures, and maintains ad-free Spotify with themes, extensions, cus
 
 ## Quick Start
 
-**Verified install**, paste into PowerShell and hit Enter. This downloads `LibreSpot.ps1` and `checksums.txt` from the latest release, validates SHA256 before execution, and saves the script to a reusable local path:
+**1. Download the desktop app.** Get [LibreSpot-Desktop.exe](https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/LibreSpot-Desktop.exe) and [checksums.txt](https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/checksums.txt) from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest). Both files come from the same release page, and the official repository is the only place to get them.
+
+**2. Check the file.** Every release asset has a SHA256 line in `checksums.txt` from that same release, and the hash of the file you downloaded has to match its line. GitHub also records a signed attestation for each published release, which `gh release verify-asset` can confirm. [How to verify a LibreSpot download](#how-to-verify-a-librespot-download) shows both checks. A mismatch means delete the file and don't run it.
+
+**3. Run it.** Double-click `LibreSpot-Desktop.exe`. No install, no admin prompt. Home tells you what it found and offers one action, so a new machine starts with Recommended Setup and a healthy one opens Spotify.
+
+Windows SmartScreen may warn because the file is unsigned by design. A hash that matches `checksums.txt` is what proves the file is the release artifact. See [Signing & verification](#signing--verification).
+
+<details>
+<summary><strong>Advanced: the PowerShell script</strong></summary>
+
+`LibreSpot.ps1` is the single-file script the v4 apps grew out of, and `LibreSpot.exe` is that script compiled with PS2EXE. Both ship in every release. This block downloads `LibreSpot.ps1` and `checksums.txt` from the latest release, validates SHA256 before anything runs, and keeps the script at a reusable local path:
 
 ```powershell
 $d = "$env:LOCALAPPDATA\LibreSpot\bootstrap"; New-Item -ItemType Directory -Path $d -Force | Out-Null
@@ -37,33 +48,34 @@ Write-Host "SHA256 verified: $actual" -ForegroundColor Green
 & "$d\LibreSpot.ps1"
 ```
 
-Or [download LibreSpot.ps1](https://github.com/SysAdminDoc/LibreSpot/releases/latest) and right-click **Run with PowerShell**.
-
-**Prefer a window to a console?** The same release ships `LibreSpot-Desktop.exe`, the v4 desktop app. Download it from the [latest release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), check its SHA256 against `checksums.txt`, and run it. No install, no admin prompt. `LibreSpot.Cli.exe` in the same release is the unattended fleet artifact.
-
-<details>
-<summary><strong>Advanced: direct pipeline (lower trust)</strong></summary>
-
-The original one-liner executes without checksum verification. Use only if you understand the risk:
-
-```powershell
-irm https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/LibreSpot.ps1 | iex
-```
-
-This path does not verify the release checksum before execution, cannot raise itself to admin or register the watcher task reliably, and should not be used for persistent installations.
+Or [download LibreSpot.ps1](https://github.com/SysAdminDoc/LibreSpot/releases/latest) and right-click **Run with PowerShell**. Either way the script asks for admin only when a step needs it.
 
 </details>
 
-> **Requirements:** Windows 10/11, PowerShell 5.1+ (built-in), internet connection. Tested on Windows PowerShell 5.1 and PowerShell 7.6 LTS.
+<details>
+<summary><strong>Managed: the fleet CLI</strong></summary>
+
+`LibreSpot.Cli.exe` is the unattended artifact for Intune, PDQ, SCCM, WinRM, and PSRemoting. The fleet section further down lists the implemented verbs and answer-file examples.
+
+</details>
+
+> **Requirements:** Windows 10/11 (64-bit) and an internet connection. The PowerShell script path also needs Windows PowerShell 5.1 or PowerShell 7.6 LTS, both of which it's tested on.
 
 ## How to verify a LibreSpot download
 
-Fake “free Spotify Premium” installers often begin with a video or message that tells you to paste PowerShell. Use the [official LibreSpot repository](https://github.com/SysAdminDoc/LibreSpot) and its linked release page instead.
+Fake “free Spotify Premium” installers often begin with a video or message that tells you to paste PowerShell. Use the [official LibreSpot repository](https://github.com/SysAdminDoc/LibreSpot) and its linked release page instead. Installing the desktop app never involves pasting a command.
 
-For a release asset, download `checksums.txt` from that same release page and compare the asset with the matching SHA256 entry:
+For a release asset, download `checksums.txt` from that same release page and compare the asset with its SHA256 line. In PowerShell, from the folder that holds the download:
 
 ```powershell
-(Get-FileHash .\LibreSpot.ps1 -Algorithm SHA256).Hash
+(Get-FileHash .\LibreSpot-Desktop.exe -Algorithm SHA256).Hash
+Get-Content .\checksums.txt
+```
+
+If the GitHub CLI is installed, the release attestation check confirms the asset was uploaded to that published release:
+
+```powershell
+gh release verify-asset -R SysAdminDoc/LibreSpot v4.1.2 .\LibreSpot-Desktop.exe
 ```
 
 Do not use Telegram links, rehosted files, or builds copied to another site. Never paste commands from videos, social posts, or chat messages. If a command asks you to disable Defender or add an exclusion, close it. A hash mismatch means the file must be deleted and not run.
@@ -495,7 +507,7 @@ The public latest stable release, v4.1.2, ships seven assets: `LibreSpot.ps1`, `
 
 The .NET 10 desktop and CLI artifacts publish self-contained, which embeds the runtime, so they only receive .NET servicing security fixes when rebuilt against a patched runtime. Both projects set `TargetLatestRuntimePatch`, and `Build-Scripts.ps1 -DependencyHealth` records the resolved `Microsoft.NETCore.App` / `Microsoft.WindowsDesktop.App` patch level and fails the release preflight when the build host is below the documented 10.0.11 floor (`schemas/dependency-health-allowlist.json` → `dotnetRuntimeFloor`). Build release artifacts on an up-to-date .NET 10 SDK.
 
-The recommended Quick Start snippet above verifies `LibreSpot.ps1` automatically. For manual verification of any downloaded release asset:
+The advanced PowerShell path in Quick Start verifies `LibreSpot.ps1` automatically. For manual verification of any downloaded release asset:
 
 ```powershell
 # Compare the hash of each downloaded asset to its line in checksums.txt
@@ -507,12 +519,13 @@ function Get-Sha256 {
   try { return (($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') }) -join '').ToUpperInvariant() }
   finally { $stream.Dispose(); $sha.Dispose() }
 }
+Get-Sha256 .\LibreSpot-Desktop.exe
 Get-Sha256 .\LibreSpot.exe
 Get-Sha256 .\LibreSpot.ps1
 Get-Content  .\checksums.txt
 ```
 
-GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.1.2` to verify the release tag and commit, then run `gh release verify-asset v4.1.2 .\LibreSpot.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
+GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.1.2` to verify the release tag and commit, then run `gh release verify-asset v4.1.2 .\LibreSpot-Desktop.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
 
 ## Local release procedure
 
