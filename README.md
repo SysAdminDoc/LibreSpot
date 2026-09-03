@@ -662,7 +662,10 @@ Run dependency-health checks before release packaging:
 
 This writes `publish\dependency-health.json`, fails on outdated direct NuGet
 packages, records vulnerable package metadata, and allows only documented
-test-only transitive lag from `schemas\dependency-health-allowlist.json`.
+test-only transitive lag from `schemas\dependency-health-allowlist.json`. It also
+audits the live customization engine's JavaScript dependencies with `pnpm audit`,
+both the shipped tree and the build tooling, and fails on any advisory that is
+not accepted in the same allowlist with an owner, a reason and a recheck date.
 
 The repository also carries a bounded Core mutation pilot. Restore the local
 tool and run it from `src\LibreSpot.Core` when changing Core logic:

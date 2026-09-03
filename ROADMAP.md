@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P2: RD-151: Audit the live engine's JavaScript dependencies in the local gates and retire spicetify-creator
-  Why: `Build-Scripts.ps1 -DependencyHealth` audits NuGet only; `spicetify-creator` 1.0.17 has no releases and pins esbuild `^0.14`, so the lockfile carries esbuild 0.14.54 beside the direct 0.28.2, inside an advisory range that no local gate can see; the repository already has its own esbuild build script.
-  Evidence: `src/LibreSpot.App/package.json`; `src/LibreSpot.App/pnpm-lock.yaml`; `Build-Scripts.ps1`; https://registry.npmjs.org/spicetify-creator/latest; https://github.com/vitejs/vite/issues/19428; https://github.com/evanw/esbuild/security/advisories; `src/LibreSpot.App/scripts/build.mjs`.
-  Touches: `Build-Scripts.ps1 -DependencyHealth`, `schemas/dependency-health-allowlist.json`, `src/LibreSpot.App/package.json`, `src/LibreSpot.App/scripts/build.mjs`, `src/LibreSpot.App/THIRD_PARTY_NOTICES.md`, `README.md` local validation.
-  Acceptance: WHEN `-DependencyHealth` runs, it SHALL run `pnpm audit --prod` and `pnpm audit` for `src/LibreSpot.App` and fail on any advisory not listed in the allowlist with an expiry; WHEN the custom app builds, it SHALL use the repository's esbuild 0.28.x pipeline with the required global `render` binding validated by the existing build check, and `spicetify-creator` SHALL be absent from the lockfile; the deterministic ZIP hash pins SHALL be updated and the 45-test app suite SHALL pass.
-  Complexity: M
-
 - [ ] P2: RD-152: Run an Axe.Windows rule scan inside the UIA smoke suite
   Why: 341 `AutomationProperties` uses and contract tests exist, but no automated UIA rule engine checks the rendered shell; Axe.Windows runs the same rules as Accessibility Insights and can scan the offscreen shell the smoke tests already launch.
   Evidence: https://github.com/microsoft/axe-windows; `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`; `tests/LibreSpot.Desktop.Tests/AutomationNameContractTests.cs`.
@@ -83,7 +76,7 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 - [ ] P1: RD-162: Report a failed community asset install as a failed step, not a successful run
   Why: when a community theme cannot be installed, `Module-InstallThemes` logs a warning, returns, and the run continues to report success. A user who picks Catppuccin gets no theme and is told the run completed. That is how three of the five reviewed themes stayed broken in the catalog without anyone noticing: the archive downloaded, its SHA256 verified, and only the copy step failed. The same swallow exists for custom apps in `Module-InstallCustomApps`.
-  Evidence: `src/powershell/shared/Module-InstallThemes.ps1:55-57` (`catch { Write-Log ... -Level 'WARN'; return }`); `src/powershell/shared/Module-InstallCustomApps.ps1` (`Could not install custom app ... Skipping.`); live run `work/rd145-theme-Catppuccin.log` on 2026-09-03 ended `Maintenance action 'Reapply' completed successfully` after the theme failed to install.
+  Evidence: `src/powershell/shared/Module-InstallThemes.ps1:55-57` (`catch { Write-Log ... -Level 'WARN'; return }`); `src/powershell/shared/Module-InstallCustomApps.ps1` (`Could not install custom app ... Skipping.`); live run `work/rd145-theme-Catppuccin.log` on 2026-09-03 ended `Maintenance action 'Reapply' completed successfully` after the theme failed to install. The bundled-theme branch added on 2026-09-03 is a third site with the same shape, and it matters more there because a bundled theme has no download to fall back to: a Prism copy that fails its pin check leaves the user with no theme and a successful run.
   Touches: `src/powershell/shared/Module-InstallThemes.ps1`, `src/powershell/shared/Module-InstallCustomApps.ps1`, `src/powershell/shared/Reapply-SavedSpicetifySetup.ps1`, both composed hosts, `src/LibreSpot.Core/BackendScriptService.cs` or the result parsing that decides success, six resx files for the user-facing wording, `tests/powershell/LibreSpot.Tests.ps1`.
   Acceptance: WHEN a selected theme, extension, or custom app fails to install while the rest of the run succeeds, the run SHALL finish with a state that names the asset and says it was not installed, the desktop and CLI SHALL surface that as a warning rather than a plain success, and the fleet CLI SHALL return a distinct non-zero exit code documented in `schemas/fleet-exit-codes.json`; a Pester test SHALL fail if a forced theme-copy failure still produces a success result.
   Complexity: M
@@ -93,4 +86,11 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Evidence: observed 2026-09-03 during the RD-149 verification run (failed in the 1130-test suite, `--filter-method "*NoExtensionsRegistered*"` passed immediately after with no code change); `src/LibreSpot.Core/EnvironmentSnapshotService.cs` extension-integrity probe.
   Touches: `tests/LibreSpot.Desktop.Tests/EnvironmentSnapshotServiceTests.cs`, `src/LibreSpot.Core/EnvironmentSnapshotService.cs` if the probe needs an injectable root.
   Acceptance: WHEN the extension-integrity tests run on a machine with a populated Spicetify Extensions folder, they SHALL read a temporary directory the test created rather than the real one, and SHALL pass with the real folder both empty and full; a test SHALL fail if the production path is read during the run.
+  Complexity: S
+
+- [ ] P3: RD-164: Stop the backend watchdog test from failing under machine load
+  Why: `BackendScriptServiceTests.RunAsync_ResetsWatchdogWhenBackendKeepsEmittingOutput` writes a script that ticks every 75 ms and runs it under a 250 ms idle watchdog. On a busy machine a tick lands late, the watchdog kills the process, and `Assert.True(result.Success)` fails. The margin is 3.3x on a test whose whole purpose is that output keeps the watchdog quiet, so it reports a load spike as a product defect.
+  Evidence: observed 2026-09-03 while a second session ran its own suites on the same machine: the full non-WPF run failed 3 of 1130, an immediate rerun failed 1, and `--filter-class "*BackendScriptServiceTests*"` alone passed 22 of 22 at 85% CPU with no code change; `tests/LibreSpot.Desktop.Tests/BackendScriptServiceTests.cs:185-220` (tick 75 ms, `BackendWatchdogOptions` idle 250 ms).
+  Touches: `tests/LibreSpot.Desktop.Tests/BackendScriptServiceTests.cs`.
+  Acceptance: WHEN the watchdog reset test runs on a machine held under sustained load, it SHALL pass; the test SHALL keep proving that output resets the watchdog by failing when the reset is removed from `BackendScriptService`; and the two other tests that failed in the same loaded run SHALL be identified and given the same treatment or a recorded reason they are sound.
   Complexity: S

@@ -2281,6 +2281,67 @@ function ConvertTo-DependencyPackageRows {
     return @($rows)
 }
 
+function Get-LibreSpotJavaScriptAudit {
+    param([Parameter(Mandatory)][string]$WorkspacePath)
+
+    # The live customization engine is a real dependency of the shipped product,
+    # but -DependencyHealth only ever looked at NuGet, so an advisory in its
+    # JavaScript tree was invisible to every local gate.
+    $result = [ordered]@{
+        workspace   = ConvertTo-RepoRelativePath -Path $WorkspacePath
+        ran         = $false
+        reason      = ''
+        advisories  = @()
+        failures    = @()
+    }
+
+    if (-not (Test-Path -LiteralPath (Join-Path $WorkspacePath 'package.json') -PathType Leaf)) {
+        $result.reason = 'No package.json; nothing to audit.'
+        return $result
+    }
+
+    $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
+    if (-not $pnpm) {
+        $candidate = Join-Path $env:APPDATA 'npm\pnpm.cmd'
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) { $pnpm = $candidate } 
+    } else {
+        $pnpm = $pnpm.Source
+    }
+    if (-not $pnpm) {
+        $result.reason = 'pnpm was not found on PATH; the JavaScript audit was skipped.'
+        $result.failures += 'pnpm is required to audit the live customization engine.'
+        return $result
+    }
+
+    foreach ($scope in @('prod', 'all')) {
+        $arguments = @('audit', '--json')
+        if ($scope -eq 'prod') { $arguments += '--prod' }
+
+        $raw = & $pnpm @arguments 2>&1 | Out-String
+        $result.ran = $true
+        if ([string]::IsNullOrWhiteSpace($raw)) { continue }
+
+        $parsed = $null
+        try { $parsed = $raw | ConvertFrom-Json } catch { $parsed = $null }
+        if (-not $parsed -or -not $parsed.PSObject.Properties['advisories']) { continue }
+
+        foreach ($property in $parsed.advisories.PSObject.Properties) {
+            $advisory = $property.Value
+            $result.advisories += [ordered]@{
+                scope       = $scope
+                id          = [string]$advisory.id
+                moduleName  = [string]$advisory.module_name
+                severity    = [string]$advisory.severity
+                title       = [string]$advisory.title
+                url         = [string]$advisory.url
+                vulnerable  = [string]$advisory.vulnerable_versions
+            }
+        }
+    }
+
+    return $result
+}
+
 function Get-DependencyHealthAllowlist {
     param([Parameter(Mandatory)][string]$Path)
 
@@ -2452,6 +2513,25 @@ function New-LibreSpotDependencyHealthReport {
         $failures += $runtimeFailure
     }
 
+    $javaScriptAudit = Get-LibreSpotJavaScriptAudit -WorkspacePath (Join-Path $PSScriptRoot 'src/LibreSpot.App')
+    $allowedAdvisories = @()
+    if ($allowlist.PSObject.Properties['acceptedJavaScriptAdvisories']) {
+        $allowedAdvisories = @($allowlist.acceptedJavaScriptAdvisories)
+    }
+    foreach ($advisory in @($javaScriptAudit.advisories)) {
+        $accepted = $allowedAdvisories | Where-Object { [string]$_.id -eq [string]$advisory.id } | Select-Object -First 1
+        if ($accepted) {
+            if ([DateTime]::Parse([string]$accepted.recheckDate) -lt [DateTime]::UtcNow.Date) {
+                $failures += "Expired JavaScript advisory acceptance: $($advisory.id) $($advisory.moduleName) recheckDate $($accepted.recheckDate)."
+            }
+            continue
+        }
+        $failures += "JavaScript advisory: $($advisory.moduleName) $($advisory.severity) $($advisory.id) $($advisory.url) (scope $($advisory.scope))."
+    }
+    foreach ($auditFailure in @($javaScriptAudit.failures)) {
+        $failures += $auditFailure
+    }
+
     $report = [ordered]@{
         schemaVersion                = 1
         generatedAtUtc               = [DateTime]::UtcNow.ToString('o')
@@ -2471,6 +2551,7 @@ function New-LibreSpotDependencyHealthReport {
         outdatedTransitivePackages   = $outdatedTransitive
         acceptedTransitiveLag        = $allowedTransitive
         dotnetRuntime                = $dotnetRuntime
+        javaScriptAudit              = $javaScriptAudit
         spotXSecurityPolicy           = $spotXSecurityPolicy
         failures                     = $failures
     }

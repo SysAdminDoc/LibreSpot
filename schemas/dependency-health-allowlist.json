@@ -1,6 +1,8 @@
 {
   "schemaVersion": 1,
   "generatedAtUtc": "2026-09-02T00:45:00Z",
+  "$commentJavaScript": "Advisories from `pnpm audit` in src/LibreSpot.App that are accepted for now. Each needs an owner, a reason and a recheckDate, and expires like the NuGet entries.",
+  "acceptedJavaScriptAdvisories": [],
   "acceptedTransitiveLag": [
     {
       "packageId": "FSharp.Core",
