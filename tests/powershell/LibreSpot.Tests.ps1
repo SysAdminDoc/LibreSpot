@@ -2757,3 +2757,98 @@ Describe 'Lane orchestration modules and primary GUI dispatch' {
         $script:orchestrationCalls.BaselineCaptures | Should -Be 1
     }
 }
+
+# ---------------------------------------------------------------------------
+# Stop-SpotifyProcesses (dot-sourced from shared module)
+# ---------------------------------------------------------------------------
+Describe 'Stop-SpotifyProcesses' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Stop-SpotifyProcesses.ps1')
+
+        function New-FakeSpotifyProcess {
+            param([string]$Name, [int]$Id, [bool]$HasWindow, [bool]$AcceptsClose, [bool]$ExitsAfterClose, [bool]$AlreadyExited)
+            $handle = if ($HasWindow) { [IntPtr]1 } else { [IntPtr]::Zero }
+            $fake = [pscustomobject]@{ ProcessName = $Name; Id = $Id; MainWindowHandle = $handle; AcceptsClose = $AcceptsClose; ExitsAfterClose = $ExitsAfterClose; Exited = $AlreadyExited }
+            $fake | Add-Member -MemberType ScriptProperty -Name HasExited -Value { $this.Exited }
+            $fake | Add-Member -MemberType ScriptMethod -Name CloseMainWindow -Value {
+                if (-not $this.AcceptsClose) { return $false }
+                $script:shutdownEvents.Add("close:$($this.ProcessName):$($this.Id)")
+                if ($this.ExitsAfterClose) { $this.Exited = $true }
+                return $true
+            }
+            $fake
+        }
+
+        # The same table the desktop shutdown tests use, so both paths are held
+        # to one expected sequence.
+        function Reset-ShutdownFixture {
+            $script:shutdownEvents = New-Object System.Collections.Generic.List[string]
+            $script:shutdownLog = New-Object System.Collections.Generic.List[string]
+            $script:shutdownEnumerations = 0
+            $script:shutdownTable = @(
+                (New-FakeSpotifyProcess -Name 'Spotify' -Id 1 -HasWindow $true -AcceptsClose $true -ExitsAfterClose $true -AlreadyExited $false)
+                (New-FakeSpotifyProcess -Name 'Spotify' -Id 2 -HasWindow $true -AcceptsClose $true -ExitsAfterClose $false -AlreadyExited $false)
+                (New-FakeSpotifyProcess -Name 'SpotifyWebHelper' -Id 3 -HasWindow $false -AcceptsClose $false -ExitsAfterClose $false -AlreadyExited $false)
+                (New-FakeSpotifyProcess -Name 'Spotify' -Id 4 -HasWindow $true -AcceptsClose $false -ExitsAfterClose $false -AlreadyExited $false)
+                (New-FakeSpotifyProcess -Name 'SpotifyCrashService' -Id 5 -HasWindow $false -AcceptsClose $false -ExitsAfterClose $false -AlreadyExited $true)
+            )
+        }
+
+        function Get-Process { [CmdletBinding()] param([string[]]$Name)
+            $script:shutdownEnumerations++
+            if ($script:shutdownEnumerations -eq 1) { return $script:shutdownTable }
+            $script:shutdownTable | Where-Object { -not $_.Exited }
+        }
+        function Stop-Process { [CmdletBinding()] param([int]$Id, [switch]$Force)
+            $target = $script:shutdownTable | Where-Object { $_.Id -eq $Id }
+            $script:shutdownEvents.Add("kill:$($target.ProcessName):$Id")
+            $target.Exited = $true
+        }
+        function Write-Log { param([string]$Message, [string]$Level = 'INFO') $script:shutdownLog.Add("$Level|$Message") }
+        function Start-Sleep { param([int]$Seconds, [int]$Milliseconds) }
+    }
+
+    BeforeEach { Reset-ShutdownFixture }
+
+    It 'asks windowed processes to close before forcing only the survivors' {
+        Stop-SpotifyProcesses -MaxAttempts 3 -RetryDelay 0 -CloseWaitMs 40 -PollIntervalMs 1
+
+        ($script:shutdownEvents -join ',') | Should -Be 'close:Spotify:1,close:Spotify:2,kill:Spotify:2,kill:SpotifyWebHelper:3,kill:Spotify:4'
+    }
+
+    It 'logs the name, PID, elapsed time, and reason for every forced process' {
+        Stop-SpotifyProcesses -MaxAttempts 3 -RetryDelay 0 -CloseWaitMs 40 -PollIntervalMs 1
+
+        $forced = @($script:shutdownLog | Where-Object { $_ -like 'WARN|*forcing it*' })
+        $forced.Count | Should -Be 3
+        $forced | Should -Match '^WARN\|Spotify\w* \(PID \d+\): .+ after \d+ ms \(attempt 1/3\)\.$'
+        ($forced | Where-Object { $_ -like '*PID 2)*' }) | Should -Match 'did not exit within 40 ms'
+        ($forced | Where-Object { $_ -like '*PID 3)*' }) | Should -Match 'has no main window'
+        ($forced | Where-Object { $_ -like '*PID 4)*' }) | Should -Match 'refused the close request'
+        ($script:shutdownLog | Where-Object { $_ -like '*PID 5)*' }) | Should -Match 'already exited'
+    }
+
+    It 'returns without forcing when every process honors the close request' {
+        $script:shutdownTable = @(
+            (New-FakeSpotifyProcess -Name 'Spotify' -Id 8 -HasWindow $true -AcceptsClose $true -ExitsAfterClose $true -AlreadyExited $false)
+        )
+
+        Stop-SpotifyProcesses -MaxAttempts 3 -RetryDelay 0 -CloseWaitMs 40 -PollIntervalMs 1
+
+        ($script:shutdownEvents -join ',') | Should -Be 'close:Spotify:8'
+        $script:shutdownLog[-1] | Should -Match '^INFO\|Spotify closed after \d+ ms\.$'
+    }
+
+    It 'bounds the wait when nothing exits' {
+        $stubborn = New-FakeSpotifyProcess -Name 'Spotify' -Id 9 -HasWindow $true -AcceptsClose $true -ExitsAfterClose $false -AlreadyExited $false
+        $script:shutdownTable = @($stubborn)
+        function Stop-Process { [CmdletBinding()] param([int]$Id, [switch]$Force) $script:shutdownEvents.Add("kill:Spotify:$Id") }
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+
+        Stop-SpotifyProcesses -MaxAttempts 2 -RetryDelay 0 -CloseWaitMs 40 -PollIntervalMs 1
+
+        $sw.ElapsedMilliseconds | Should -BeLessThan 5000
+        @($script:shutdownEvents | Where-Object { $_ -like 'kill:*' }).Count | Should -Be 2
+        $script:shutdownLog[-1] | Should -Match 'survived kill attempts'
+    }
+}

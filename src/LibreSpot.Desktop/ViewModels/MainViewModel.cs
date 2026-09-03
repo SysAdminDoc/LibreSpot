@@ -2094,6 +2094,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             TimeSpan.FromSeconds(3),
             cancellationToken);
 
+        foreach (var shutdownEvent in result.ShutdownEvents ?? [])
+        {
+            AppendLog(shutdownEvent.Message, shutdownEvent.Level);
+        }
+
         AppendLog(result.Message, result.Reopened ? "INFO" : "WARN");
         ActivityStatus = Strings.RunComplete;
         ActivityStep = result.Reopened ? L("Vm_SpotifyReopened") : L("Vm_SpotifyRestartSkipped");

@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P2: RD-129: Close Spotify normally before forcing remaining processes to exit
-  Why: Both active process-control paths kill Spotify immediately, which skips the normal Windows application shutdown path.
-  Evidence: `src/LibreSpot.Desktop/Services/SpotifyProcessService.cs:44-56`; `src/powershell/shared/Stop-SpotifyProcesses.ps1:1-10`; Microsoft Restart Manager guidance in `RESEARCH.md` Security, Privacy, and Reliability.
-  Touches: `src/LibreSpot.Desktop/Services/SpotifyProcessService.cs`, a testable process adapter under `src/LibreSpot.Desktop/Services`, `src/powershell/shared/Stop-SpotifyProcesses.ps1`, desktop and Pester tests, local operation logs.
-  Acceptance: The desktop and PowerShell paths request normal close from Spotify processes that own windows, wait for a documented bounded interval, then force only surviving Spotify processes and helpers. The fallback is logged with process name, ID, elapsed wait, and reason without user data. Cancellation and already-exited races finish cleanly; total wait is bounded; table-driven fake-process tests prove close-before-kill ordering, survivor-only force, and parity between both paths. One installed-client smoke test confirms LibreSpot can still patch and relaunch Spotify before release.
-  Complexity: M
-
 - [ ] P2: RD-130: Recompose Settings as essentials first with one-level disclosure
   Why: Settings renders seven full sections next to a separately scrolling profile rail, making the expert configuration surface the default reading path.
   Evidence: `src/LibreSpot.Desktop/Views/CustomWorkspaceView.xaml:20-91`; `src/LibreSpot.Core/AppCatalog.cs:1023-1053`; `assets/screenshots/wpf-custom.png`; Microsoft app-settings guidance dated 2026-04-15 in `RESEARCH.md` Architecture Assessment.
