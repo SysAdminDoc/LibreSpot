@@ -1,13 +1,13 @@
 {
   "catalogVersion": 1,
-  "generatedDate": "2026-08-21",
+  "generatedDate": "2026-09-03",
   "generator": "tools/Build-CommunityCatalog.ps1",
   "sourceSchemas": [
     "schemas/community-assets.json",
     "schemas/theme-preview-manifest.json"
   ],
   "sourceDigests": {
-    "schemas/community-assets.json": "40fb1b192f3094805ec8ad68c23f041500f9ec2bb3f9e5499b962d2ad4eb389c",
+    "schemas/community-assets.json": "b96a5fc974f3e52f8f1881c8e25ab8699489e767a48a72bfd3bc6bb90f429f85",
     "schemas/theme-preview-manifest.json": "6508ac45ad37cc5fcf674cd1cda35667b87b49be669f0fd6e9f627fc6b067e4e"
   },
   "counts": {
@@ -40,7 +40,7 @@
         "badge": "Pinned SHA256 verified",
         "algorithm": "SHA256",
         "digest": "727e5a2f9137f4be77eac83d234a0ce858c5d618e7ff56116a6def01793fc3f8",
-        "lastVerifiedDate": "2026-06-15"
+        "lastVerifiedDate": "2026-09-03"
       },
       "review": {
         "decision": "accept",
@@ -86,7 +86,7 @@
         "badge": "Pinned SHA256 verified",
         "algorithm": "SHA256",
         "digest": "93c9ecfcb0a83c832c5ee7ca8fe826bcfaeec7cdd129c0bf05bab84b8ba6ba72",
-        "lastVerifiedDate": "2026-06-15"
+        "lastVerifiedDate": "2026-09-03"
       },
       "review": {
         "decision": "accept",
@@ -132,7 +132,7 @@
         "badge": "Pinned SHA256 verified",
         "algorithm": "SHA256",
         "digest": "79bbe2bd6a52a521a382a73ef1c8c7ff0b0b9bd7674c48bb0ed44c5d2c944c8d",
-        "lastVerifiedDate": "2026-06-15"
+        "lastVerifiedDate": "2026-09-03"
       },
       "review": {
         "decision": "accept",
@@ -178,7 +178,7 @@
         "badge": "Pinned SHA256 verified",
         "algorithm": "SHA256",
         "digest": "b88dcde894f4998abc4473773333015c09f0450ec563d256ed5af45db7129aca",
-        "lastVerifiedDate": "2026-06-15"
+        "lastVerifiedDate": "2026-09-03"
       },
       "review": {
         "decision": "accept",
@@ -210,9 +210,9 @@
         "owner": "rxri",
         "repository": "rxri/spicetify-extensions",
         "branch": "main",
-        "commit": "60554c512739c6f2084879efe9d8a88f1dd16646",
-        "sourceUrl": "https://raw.githubusercontent.com/rxri/spicetify-extensions/60554c512739c6f2084879efe9d8a88f1dd16646/adblock/adblock.js",
-        "releaseNotesUrl": "https://github.com/rxri/spicetify-extensions/compare/60554c512739c6f2084879efe9d8a88f1dd16646...main"
+        "commit": "64cb2b8c235b13cf943e4c265c19199f69e5d170",
+        "sourceUrl": "https://raw.githubusercontent.com/rxri/spicetify-extensions/64cb2b8c235b13cf943e4c265c19199f69e5d170/adblock/adblock.js",
+        "releaseNotesUrl": "https://github.com/rxri/spicetify-extensions/compare/64cb2b8c235b13cf943e4c265c19199f69e5d170...main"
       },
       "license": {
         "spdx": "MIT",
@@ -223,8 +223,8 @@
         "status": "verified",
         "badge": "Pinned SHA256 verified",
         "algorithm": "SHA256",
-        "digest": "fb6dc4dfc09ee369638ffaf47a9f36202bb99c1555edc79772d7fbb235114623",
-        "lastVerifiedDate": "2026-06-14"
+        "digest": "b607243a02a799bba8e40289ff1e5d8b632b885ddfee951aaaf1c3d733e8001b",
+        "lastVerifiedDate": "2026-09-03"
       },
       "review": {
         "decision": "accept",
@@ -262,7 +262,7 @@
         "repository": "catppuccin/spicetify",
         "branch": "main",
         "commit": "1ec645c4cf7f42f9792b9eeb1bb7930f94593277",
-        "sourceUrl": "https://github.com/catppuccin/spicetify/tree/1ec645c4cf7f42f9792b9eeb1bb7930f94593277/.",
+        "sourceUrl": "https://github.com/catppuccin/spicetify/tree/1ec645c4cf7f42f9792b9eeb1bb7930f94593277/catppuccin",
         "releaseNotesUrl": "https://github.com/catppuccin/spicetify/compare/1ec645c4cf7f42f9792b9eeb1bb7930f94593277...main"
       },
       "license": {
@@ -275,7 +275,7 @@
         "badge": "Pinned SHA256 verified",
         "algorithm": "SHA256",
         "digest": "59432d5dfba871f288331e72ca5eb9ae48783e94d96cc3835a2992b3df71ed65",
-        "lastVerifiedDate": "2026-06-15"
+        "lastVerifiedDate": "2026-09-03"
       },
       "review": {
         "decision": "accept",
@@ -317,7 +317,7 @@
         "repository": "Comfy-Themes/Spicetify",
         "branch": "main",
         "commit": "32ff101e27cfd33d85b7cc587f7f95db6b2df8b0",
-        "sourceUrl": "https://github.com/Comfy-Themes/Spicetify/tree/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0/.",
+        "sourceUrl": "https://github.com/Comfy-Themes/Spicetify/tree/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0/Comfy",
         "releaseNotesUrl": "https://github.com/Comfy-Themes/Spicetify/compare/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0...main"
       },
       "license": {
@@ -330,7 +330,7 @@
         "badge": "Pinned SHA256 verified",
         "algorithm": "SHA256",
         "digest": "d82afe89be0a58c7c2d83a85a0dfa24b473d48d4f63241178e37c94c1fd1e7c6",
-        "lastVerifiedDate": "2026-06-15"
+        "lastVerifiedDate": "2026-09-03"
       },
       "review": {
         "decision": "accept",
@@ -376,7 +376,7 @@
         "repository": "nimsandu/spicetify-bloom",
         "branch": "main",
         "commit": "654cfed682b94613b0029997ffafc1eadccc5bef",
-        "sourceUrl": "https://github.com/nimsandu/spicetify-bloom/tree/654cfed682b94613b0029997ffafc1eadccc5bef/.",
+        "sourceUrl": "https://github.com/nimsandu/spicetify-bloom/tree/654cfed682b94613b0029997ffafc1eadccc5bef/src",
         "releaseNotesUrl": "https://github.com/nimsandu/spicetify-bloom/compare/654cfed682b94613b0029997ffafc1eadccc5bef...main"
       },
       "license": {
@@ -389,7 +389,7 @@
         "badge": "Pinned SHA256 verified",
         "algorithm": "SHA256",
         "digest": "12cb8678f7226b2a014a10fdef8ea462e0ac0a866f84b2de48050004fcd50a70",
-        "lastVerifiedDate": "2026-06-15"
+        "lastVerifiedDate": "2026-09-03"
       },
       "review": {
         "decision": "defer",
@@ -453,7 +453,7 @@
         "badge": "Pinned SHA256 verified",
         "algorithm": "SHA256",
         "digest": "af3f1ed718b3deda7c52ebf7e0ca4bf7c07f03f212a88dd0534c2ebe81803bf8",
-        "lastVerifiedDate": "2026-06-15"
+        "lastVerifiedDate": "2026-09-03"
       },
       "review": {
         "decision": "accept",
@@ -507,7 +507,7 @@
         "badge": "Pinned SHA256 verified",
         "algorithm": "SHA256",
         "digest": "372938c3fea3cbac7850afeb6b66b15673236e248436a7afaacb2ab1d814c4bf",
-        "lastVerifiedDate": "2026-06-15"
+        "lastVerifiedDate": "2026-09-03"
       },
       "review": {
         "decision": "accept",
@@ -558,7 +558,7 @@
         "badge": "Pinned SHA256 verified",
         "algorithm": "SHA256",
         "digest": "c5611ff8caafe9c673ed43de07fbae77296d42fbd14fab868e9cbeac5d2b6cb7",
-        "lastVerifiedDate": "2026-06-29"
+        "lastVerifiedDate": "2026-09-03"
       },
       "review": {
         "decision": "accept",
