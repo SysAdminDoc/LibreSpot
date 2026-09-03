@@ -35,7 +35,10 @@ public sealed class WpfQaMatrixTests
         {
             ("recommended", "ButtonStartRecommendedSetup", "HomePrimaryActionButton"),
             ("custom", "ButtonApplyCustomProfile", "ApplyCustomProfileButton"),
-            ("custom-live", "LiveCustomizationTitle", "LiveCustomizationFeatureSearch"),
+            // The group header names both the Expander (whose UIA node spans the open
+            // content) and its toggle, so the description inside the open group is the
+            // witness that the live customization surface is on screen.
+            ("custom-live", "LiveCustomizationDescription", "LiveCustomizationFeatureSearch"),
             ("maintenance", "Maintenance_RepairMarketplace_ButtonText", "MaintenancePrimaryActionButton"),
             ("maintenance-compatibility", "CompatibilityVerdictTitle", "WorkspaceNavMaintenance"),
             ("maintenance-healthy", "Vm_MaintenanceNoActionTitle", "MaintenanceDiagnosticsToggle"),
