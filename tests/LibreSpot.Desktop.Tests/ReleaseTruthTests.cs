@@ -43,6 +43,26 @@ public sealed class ReleaseTruthTests
     }
 
     [Fact]
+    public void VerificationSectionNamesTheOnlyPlaceLibreSpotIsPublished()
+    {
+        // Several lookalike projects outrank this one on stars in the same
+        // searches, so "download it from the official repo" is not enough on its
+        // own: a reader has to be able to recognise one, and to check a file
+        // rather than trust a page.
+        var readme = Read("README.md");
+        var security = Read("SECURITY.md");
+        var verification = readme.Split("## How to verify a LibreSpot download")[1].Split("## ")[0];
+
+        const string canonical = "https://github.com/SysAdminDoc/LibreSpot/releases";
+        Assert.Contains(canonical, verification, StringComparison.Ordinal);
+        Assert.Contains(canonical, security, StringComparison.Ordinal);
+
+        Assert.Contains("gh release verify-asset", verification, StringComparison.Ordinal);
+        Assert.Contains("activation", verification, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("template", verification, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void ApplicationControlGuidanceCoversEveryShippedArtifactNotJustTheScript()
     {
         // The FAQ answered for LibreSpot.ps1 alone while the desktop executable had

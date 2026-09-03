@@ -18,13 +18,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: WHEN the user turns the toggle on under Maintenance diagnostics, the next launch SHALL set `DOTNET_DbgEnableMiniDump=1`, `DOTNET_DbgMiniDumpType=3`, and a `%e-%p-%t` name under the crashes folder; the support bundle SHALL include the newest dump only when the toggle is on and SHALL list it in the redaction report; the data inventory SHALL document the path and retention (keep 2).
   Complexity: M
 
-- [ ] P3: RD-157: Name the star-farmed decoy repositories pattern in the download verification section
-  Why: two repositories with nonsense READMEs and off-GitHub download links ("spicetify-elite", "spotify-adblock-studio") outrank LibreSpot in stars and appear in the same searches; the verification section already teaches hash and attestation checks and can add one sentence on what a decoy looks like.
-  Evidence: https://github.com/NeedChandlerMonitor/spicetify-elite; https://github.com/SecretBarber/spotify-adblock-studio; `README.md` "Check the file" section.
-  Touches: `README.md` verification and FAQ sections, `SECURITY.md`.
-  Acceptance: WHEN a reader reaches the verification section, it SHALL state that LibreSpot is only published at `github.com/SysAdminDoc/LibreSpot/releases`, that any page offering it elsewhere or asking for a "template" or "activation" download is not LibreSpot, and how to check the release attestation; the release-truth test SHALL assert the canonical URL sentence exists.
-  Complexity: S
-
 - [ ] P3: RD-158: Audit the reviewed extensions and custom apps for Spotify Web API client IDs under the 2026 developer-access rules
   Why: since 2026-02-06 Spotify's Development Mode requires Premium and caps each client ID at five authorised users, so any bundled or catalog extension that calls the Web API with its own client ID will fail for the sixth user; extensions that use the client's internal Platform APIs are unaffected.
   Evidence: https://developer.spotify.com/blog/2026-02-06-update-on-developer-access-and-platform-security; https://developer.spotify.com/blog/2026-07-23-web-api-quota-updates; `schemas/community-assets.json`; `src/powershell/data/CommunityCustomApps.ps1`.

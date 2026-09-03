@@ -65,6 +65,16 @@ Or [download LibreSpot.ps1](https://github.com/SysAdminDoc/LibreSpot/releases/la
 
 Fake “free Spotify Premium” installers often begin with a video or message that tells you to paste PowerShell. Use the [official LibreSpot repository](https://github.com/SysAdminDoc/LibreSpot) and its linked release page instead. Installing the desktop app never involves pasting a command.
 
+LibreSpot is published in exactly one place: `https://github.com/SysAdminDoc/LibreSpot/releases`. Anything offering it from another host is not LibreSpot, whatever the repository is called and however many stars it has. Star counts are cheap to buy and several lookalike projects sitting in the same search results have more of them than this one does. The tells are consistent. The README is padded or barely says what the tool does, the download is a link to a file host rather than a GitHub release asset, and somewhere you are asked to fetch a separate "template", "config" or "activation" file to make it work. LibreSpot has no such file and never asks for one.
+
+A release asset can prove where it came from, which no amount of presentation can fake:
+
+```powershell
+gh release verify-asset v4.1.2 .\LibreSpot-Desktop.exe
+```
+
+That checks GitHub's signed attestation for the asset against this repository. If it fails, or if the asset did not come from a release page here, delete the download.
+
 For a release asset, download `checksums.txt` from that same release page and compare the asset with its SHA256 line. In PowerShell, from the folder that holds the download:
 
 ```powershell

@@ -122,6 +122,8 @@ Because the artifacts ship unsigned, each release starts with no Microsoft Smart
 
 Unsigned also means Smart App Control blocks every LibreSpot artifact, the two executables and the script alike, with no per-app allowance to grant. A device with it enabled cannot run LibreSpot at all, and that is the expected outcome rather than a defect to work around. Nothing in the project should ever suggest disabling it.
 
+Because the artifacts are unsigned, provenance rests entirely on where a file came from. LibreSpot is published only at `https://github.com/SysAdminDoc/LibreSpot/releases`. Lookalike repositories with inflated star counts appear in the same searches, and they share a shape: a padded README, downloads hosted off GitHub, and a second "template" or "activation" file needed to make the tool work. A report about a LibreSpot build obtained anywhere else is a report about someone else's binary, and the first question to settle is whether `gh release verify-asset` accepts the file at all.
+
 OpenSSF Scorecard findings are still treated as work, not noise. The accepted-risk baseline in [schemas/scorecard-baseline.json](schemas/scorecard-baseline.json) records the project's single-maintainer limits and local gate expectations; if a manual Scorecard run finds a new low score, it should become a `ROADMAP.md` item with a remediation plan rather than a silently ignored warning.
 
 **Accepted single-maintainer limits:** the following Scorecard checks score zero or low and are documented as expected for a single-maintainer project, they are not silently ignored:
