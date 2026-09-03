@@ -558,7 +558,9 @@ public sealed class CommunityAssetsManifestTests
     [Fact]
     public void Manifest_AllAssetsDeclareNetworkBehavior()
     {
-        var allowed = new[] { "local-only", "third-party-service" };
+        // remote-loader: the pinned archive only fetches the real code from a CDN at
+        // runtime, so the commit and hash cover the loader and nothing else.
+        var allowed = new[] { "local-only", "third-party-service", "remote-loader" };
 
         IEnumerable<JsonElement> assets =
             Manifest.RootElement.GetProperty("extensions").EnumerateArray()

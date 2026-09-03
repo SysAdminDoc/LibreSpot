@@ -223,6 +223,8 @@ function New-CatalogItem {
             detail = Get-ManifestValue -Object $Asset -Name 'networkDetail'
         }
         supportState = Get-ManifestValue -Object $Asset -Name 'supportState' -Default 'active'
+        supportDetail = Get-ManifestValue -Object $Asset -Name 'supportDetail'
+        supportIssueUrl = Get-ManifestValue -Object $Asset -Name 'supportIssueUrl'
         fallbackBehavior = Get-ManifestValue -Object $Asset -Name 'fallbackBehavior'
         notes = Get-ManifestValue -Object $Asset -Name 'notes'
         preview = $preview
@@ -267,6 +269,20 @@ function New-CatalogHtml {
         } else {
             ''
         }
+        # The page has to say what the catalog says: when each asset was last
+        # checked against the pinned client, and whether it is still installable.
+        $supportState = [string]$item.supportState
+        $lastVerified = ConvertTo-Html ([string]$item.verification.lastVerifiedDate)
+        $supportDetail = ConvertTo-Html ([string]$item.supportDetail)
+        $supportMarkup = '<span class="support is-' + (ConvertTo-Html $supportState) + '">' +
+            (ConvertTo-Html $supportState) + '</span>'
+        if (-not [string]::IsNullOrWhiteSpace([string]$item.supportDetail)) {
+            $supportMarkup += '<br><span class="subtle">' + $supportDetail + '</span>'
+        }
+        if (-not [string]::IsNullOrWhiteSpace([string]$item.supportIssueUrl)) {
+            $supportMarkup += '<br>' + (ConvertTo-HtmlLink -Url ([string]$item.supportIssueUrl) -Label 'Upstream')
+        }
+
         $previewMarkup = ''
         if ($null -ne $item.preview) {
             $previewLabel = ConvertTo-Html $item.preview.fallbackLabel
@@ -279,7 +295,7 @@ function New-CatalogHtml {
         }
 
         [void]$cards.AppendLine(@"
-<article class="card" data-kind="$kind" data-search="$name $repository $description">
+<article class="card is-$supportState" data-kind="$kind" data-search="$name $repository $description">
   <div class="card-top"><span class="kind">$kind</span><span class="badge">$($item.verification.badge)</span></div>
   <h2>$name</h2>
   <p>$description</p>
@@ -289,6 +305,8 @@ function New-CatalogHtml {
     <div><dt>Provenance</dt><dd>$sourceLink<br><code>$commit</code></dd></div>
     <div><dt>License</dt><dd>$license<br><span class="subtle">$holder</span></dd></div>
     <div><dt>Network behavior</dt><dd>$networkMarkup</dd></div>
+    <div><dt>Verified against the pinned Spotify</dt><dd>$lastVerified</dd></div>
+    <div><dt>Support state</dt><dd>$supportMarkup</dd></div>
     <div><dt>Reviewed</dt><dd>$evaluated<br><span class="subtle">Last push: $lastPush</span></dd></div>
     <div><dt>Catalog decision</dt><dd>$decision</dd></div>
   </dl>

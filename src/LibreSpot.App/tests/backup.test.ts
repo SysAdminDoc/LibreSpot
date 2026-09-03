@@ -32,7 +32,7 @@ function memoryMarketplace(seed: MarketplaceEntries = {}): MarketplaceStore & {
     get entries() {
       return state.entries;
     },
-    readAll: () => Promise.resolve({ ...state.entries }),
+    readAll: () => Promise.resolve({ available: true, entries: { ...state.entries } }),
     writeAll: (entries) => {
       state.entries = { ...state.entries, ...entries };
       return Promise.resolve();
@@ -83,14 +83,14 @@ describe("backup", () => {
       name: "Evening",
     });
     const file = serializeBackup(
-      createBackup(saved, await marketplace.readAll(), new Date("2026-09-03T11:00:00.000Z")),
+      createBackup(saved, (await marketplace.readAll()).entries, new Date("2026-09-03T11:00:00.000Z")),
     );
 
     // Everything a cleared Spotify profile takes with it.
     store.reset();
     const wipedMarketplace = memoryMarketplace();
     expect(storage.get("librespot:engine-state")).toBeNull();
-    expect(await wipedMarketplace.readAll()).toEqual({});
+    expect((await wipedMarketplace.readAll()).entries).toEqual({});
 
     const restored = parseBackup(file);
     const reloaded = store.save(restored.engine);
@@ -98,7 +98,7 @@ describe("backup", () => {
 
     expect(reloaded.name).toBe("Evening");
     expect(store.load().name).toBe("Evening");
-    expect(await wipedMarketplace.readAll()).toEqual(MARKETPLACE_SEED);
+    expect((await wipedMarketplace.readAll()).entries).toEqual(MARKETPLACE_SEED);
     expect(restored.createdAt).toBe("2026-09-03T11:00:00.000Z");
   });
 
@@ -158,7 +158,9 @@ describe("backup", () => {
 
     const store = indexedDbMarketplaceStore(fakeFactory, 200);
 
-    expect(await store.readAll()).toEqual({
+    const read = await store.readAll();
+    expect(read.available).toBe(true);
+    expect({ ...read.entries }).toEqual({
       "marketplace:active-tab": "Themes",
       "internal:local-storage-migrated": "1",
     });
@@ -176,7 +178,10 @@ describe("backup", () => {
 
     const store = indexedDbMarketplaceStore(stalled, 20);
 
-    expect(await store.readAll()).toEqual({});
+    // An unreadable database must report itself, not look like an empty one.
+    const read = await store.readAll();
+    expect(read.available).toBe(false);
+    expect(read.entries).toEqual({});
     await expect(store.writeAll({ a: 1 })).rejects.toThrow(/not available/);
   });
 
@@ -194,6 +199,18 @@ describe("backup", () => {
         }),
       ),
     ).toThrow(/schema/);
+  });
+
+  it("keeps a __proto__ key as data instead of losing it", () => {
+    const state = stateFixture(new Date("2026-09-03T10:00:00.000Z"));
+    // Written as raw JSON on purpose: in an object literal "__proto__:" sets the
+    // prototype and the key never reaches the file at all.
+    const file = `{"schemaVersion": ${BACKUP_SCHEMA_VERSION}, "engine": ${JSON.stringify(state)}, "marketplace": {"__proto__": {"polluted": true}, "real": 1}}`;
+
+    const restored = parseBackup(file);
+
+    expect(Object.keys(restored.marketplace).sort()).toEqual(["__proto__", "real"]);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 
   it("treats a missing Marketplace section as nothing to restore", () => {

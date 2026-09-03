@@ -582,15 +582,25 @@ async function bootstrap(): Promise<void> {
       backupState: async () => {
         try {
           const marketplace = await marketplaceStore.readAll();
+          if (!marketplace.available) {
+            // Never present an unreadable database as an empty one: someone would
+            // keep that file, wipe their profile, and lose every Marketplace setting.
+            notify(
+              "Marketplace's settings could not be read, so no backup was taken. Close any other Spotify window and try again.",
+              true,
+            );
+            return;
+          }
+
           const file = serializeBackup(
-            createBackup(engine.state, marketplace, new Date()),
+            createBackup(engine.state, marketplace.entries, new Date()),
           );
           await copyThroughPlatform(file);
-          const count = Object.keys(marketplace).length;
+          const count = Object.keys(marketplace.entries).length;
           notify(
             count > 0
               ? `Backup copied: this profile and ${count} Marketplace settings. Paste it into a file to keep it.`
-              : "Backup copied: this profile. Marketplace had nothing saved yet.",
+              : "Backup copied: this profile. Marketplace has nothing saved yet.",
           );
         } catch (error) {
           const message =
@@ -599,15 +609,22 @@ async function bootstrap(): Promise<void> {
         }
       },
       restoreState: async (source) => {
+        let engineRestored = false;
         try {
           const restored = parseBackup(source);
-          await runtime.update((draft) => {
-            Object.assign(draft, restored.engine);
-          });
           const count = Object.keys(restored.marketplace).length;
+
+          // Marketplace first: it is the half that can refuse. Overwriting the
+          // profile and then failing would leave the user worse off with a
+          // message that reads like nothing happened.
           if (count > 0) {
             await marketplaceStore.writeAll(restored.marketplace);
           }
+          await runtime.update((draft) => {
+            Object.assign(draft, restored.engine);
+          });
+          engineRestored = true;
+
           notify(
             count > 0
               ? `Restored this profile and ${count} Marketplace settings. Reload Spotify to see Marketplace pick them up.`
@@ -616,8 +633,14 @@ async function bootstrap(): Promise<void> {
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Restore failed.";
-          notify(message, true);
+          notify(
+            engineRestored ? `This profile was restored, but ${message}` : message,
+            true,
+          );
         }
+      },
+      reportError: (message) => {
+        notify(message, true);
       },
       openPanel: (panel) => {
         Spicetify.Platform.History.push(panelPath(panel as PanelId));

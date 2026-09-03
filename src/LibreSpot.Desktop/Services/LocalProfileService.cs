@@ -48,6 +48,8 @@ public sealed class LocalProfileService
 {
     private const int ProfileStoreSchemaVersion = 1;
     private const int ShareProfileSchemaVersion = 1;
+    /// <summary>Backup envelope version the Spotify Health panel writes.</summary>
+    private const int BackupSchemaVersion = 1;
     private const int MaxEmbeddedProfileBytes = 8 * 1024;
     private const int MaxLocalProfileBytes = 128 * 1024;
     private const int MaxRemoteProfileBytes = 128 * 1024;
@@ -416,6 +418,18 @@ public sealed class LocalProfileService
             root.TryGetProperty("profile", out var wrappedProfile) &&
             wrappedProfile.ValueKind == JsonValueKind.Object)
         {
+            // The envelope carries its own version. Reading the profile out of a
+            // format this build does not know would import a half-understood file
+            // rather than refusing it.
+            if (!root.TryGetProperty("schemaVersion", out var backupVersion) ||
+                backupVersion.ValueKind != JsonValueKind.Number ||
+                !backupVersion.TryGetInt32(out var backupSchema) ||
+                backupSchema > BackupSchemaVersion)
+            {
+                throw new InvalidOperationException(
+                    "This backup was written by a newer LibreSpot. Update LibreSpot and import it again.");
+            }
+
             root = wrappedProfile;
         }
 

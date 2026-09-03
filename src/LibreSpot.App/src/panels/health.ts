@@ -31,18 +31,30 @@ function checkCard(check: HealthCheck): UiNode {
 }
 
 /**
- * Reads a backup the user pastes back. Spotify's client blocks a file picker,
- * so the clipboard is the delivery both ways: Back up copies the file out, this
- * reads it in.
+ * Reads a backup from the clipboard. Spotify's client offers no file picker, so
+ * the clipboard is the delivery both ways: Back up copies the file out, this
+ * reads it back in. Throws with a readable reason so the caller can report it;
+ * a silent no-op would look like a dead button.
  */
-async function readPastedBackup(): Promise<string | null> {
+async function readClipboardBackup(): Promise<string> {
   const clipboard = Spicetify.Platform.ClipboardAPI;
-  if (clipboard?.paste) {
-    const pasted = await clipboard.paste();
-    return typeof pasted === "string" && pasted.trim().length > 0 ? pasted : null;
+  let pasted: string;
+  try {
+    pasted =
+      typeof clipboard?.paste === "function"
+        ? await clipboard.paste()
+        : await navigator.clipboard.readText();
+  } catch (error) {
+    throw new Error(
+      `The clipboard could not be read: ${error instanceof Error ? error.message : "permission denied"}.`,
+      { cause: error },
+    );
   }
-  const pasted = await navigator.clipboard.readText();
-  return pasted.trim().length > 0 ? pasted : null;
+
+  if (pasted.trim().length === 0) {
+    throw new Error("The clipboard is empty. Copy a backup file's contents first.");
+  }
+  return pasted;
 }
 
 export function HealthPanel(properties: PanelProperties): UiNode {
@@ -139,7 +151,7 @@ export function HealthPanel(properties: PanelProperties): UiNode {
         h(
           "p",
           null,
-          "Back up copies the file to the clipboard. Paste it into a text file and keep it. Restore reads a file you paste back.",
+          "Back up copies the file to the clipboard. Paste it into a text file and keep it somewhere safe. Restore reads that text back from the clipboard.",
         ),
         h(
           "div",
@@ -151,13 +163,16 @@ export function HealthPanel(properties: PanelProperties): UiNode {
             },
           }),
           ActionButton({
-            label: "Restore from a file",
+            label: "Restore from the clipboard",
             secondary: true,
             onClick: () => {
               void (async () => {
-                const source = await readPastedBackup();
-                if (source) {
-                  await properties.runtime.restoreState(source);
+                try {
+                  await properties.runtime.restoreState(await readClipboardBackup());
+                } catch (error) {
+                  properties.runtime.reportError(
+                    error instanceof Error ? error.message : "Restore failed.",
+                  );
                 }
               })();
             },

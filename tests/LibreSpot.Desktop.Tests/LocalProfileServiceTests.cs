@@ -483,6 +483,16 @@ public sealed class LocalProfileServiceTests : IDisposable
 
         var imported = await _profileService.ImportAsync(path);
         Assert.Equal("Backup restore", imported.Summary.Name);
+
+        // A newer envelope must be refused rather than half-read: the client's own
+        // reader rejects it, and the desktop has to agree.
+        var newer = Path.Combine(_root, "librespot-backup-v99.librespot");
+        await File.WriteAllTextAsync(
+            newer,
+            (await File.ReadAllTextAsync(path)).Replace("\"schemaVersion\":1,", "\"schemaVersion\":99,", StringComparison.Ordinal));
+        var rejected = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _profileService.PreviewImportAsync(newer));
+        Assert.Contains("newer LibreSpot", rejected.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -4,6 +4,12 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- The Lucid theme is marked as not installable rather than offered as working. Its pinned archive holds an empty `color.ini` stub at the root and keeps the real files under `remote/`, so no theme folder has a usable set and picking it did nothing. Comfy, Hazy and Lucid are also no longer described as local-only: each ships a loader whose CSS and script are fetched from a content network at a moving address every time Spotify starts, so the pinned commit and checksum cover the loader and not the code that runs. The catalog page now shows each asset's support state and the date it was last checked against the pinned Spotify build.
+- The ad-block pin advance reached the customization catalog too. One copy still named the build that fails on Spotify 1.2.93, and that copy is what the desktop app and the in-Spotify panel read.
+- Building a release no longer deletes whatever folder it is pointed at. `-PublishRelease` refuses a drive root, the repository, and any folder holding files a release build did not produce.
+
 ### Added
 
 - The Health panel in Spotify can now back up and restore in one file. Back up copies out this profile together with the settings Marketplace keeps in its own database, which is what a cleared Spotify profile takes with it. Restore reads that file back and writes both halves. The same file imports in the desktop app as an ordinary profile, so one export covers both places. Nothing leaves the machine.

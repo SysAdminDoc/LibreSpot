@@ -168,6 +168,7 @@ export type LibreSpotRuntimeApi = {
   copyDiagnostics(): Promise<void>;
   backupState(): Promise<void>;
   restoreState(source: string): Promise<void>;
+  reportError(message: string): void;
   openPanel(panel: string): void;
 };
 

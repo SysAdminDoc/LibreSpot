@@ -83,10 +83,17 @@ export function parseBackup(source: string): ParsedBackup {
   // Reuse the profile reader so a backup is validated exactly like a profile is.
   const engine = parseProfile(JSON.stringify(parsed.engine));
 
-  const marketplace: MarketplaceEntries = {};
+  // A null-prototype object so a "__proto__" key is stored as data rather than
+  // being swallowed by the prototype setter and lost from the restore.
+  const marketplace = Object.create(null) as MarketplaceEntries;
   if (isRecord(parsed.marketplace)) {
     for (const [key, value] of Object.entries(parsed.marketplace)) {
-      marketplace[key] = value;
+      Object.defineProperty(marketplace, key, {
+        value,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
     }
   }
 
@@ -97,9 +104,19 @@ export function parseBackup(source: string): ParsedBackup {
   };
 }
 
-/** Minimal surface of the Marketplace database, so tests can supply a fake. */
+/**
+ * Minimal surface of the Marketplace database, so tests can supply a fake.
+ * readAll reports whether it could read at all: an unreadable database and an
+ * empty one both yield no entries, and a backup must never present the first as
+ * the second.
+ */
+export type MarketplaceReadResult = {
+  available: boolean;
+  entries: MarketplaceEntries;
+};
+
 export type MarketplaceStore = {
-  readAll(): Promise<MarketplaceEntries>;
+  readAll(): Promise<MarketplaceReadResult>;
   writeAll(entries: MarketplaceEntries): Promise<void>;
 };
 
@@ -164,31 +181,31 @@ export function indexedDbMarketplaceStore(
   return {
     readAll: async () => {
       const database = await open();
-      if (!database) return {};
+      if (!database) return { available: false, entries: {} };
       try {
-        return await new Promise<MarketplaceEntries>((resolve) => {
+        return await new Promise<MarketplaceReadResult>((resolve) => {
           let request: IDBRequest<unknown[]>;
           try {
             const transaction = database.transaction(MARKETPLACE_STORE, "readonly");
             request = transaction.objectStore(MARKETPLACE_STORE).getAll();
             transaction.oncomplete = () => {
-              const entries: MarketplaceEntries = {};
+              const entries: MarketplaceEntries = Object.create(null) as MarketplaceEntries;
               for (const record of request.result) {
                 // Marketplace stores { key, value } records with an in-line key.
                 if (isRecord(record) && typeof record.key === "string") {
                   entries[record.key] = record.value;
                 }
               }
-              resolve(entries);
+              resolve({ available: true, entries });
             };
             transaction.onerror = () => {
-              resolve({});
+              resolve({ available: false, entries: {} });
             };
             transaction.onabort = () => {
-              resolve({});
+              resolve({ available: false, entries: {} });
             };
           } catch {
-            resolve({});
+            resolve({ available: false, entries: {} });
           }
         });
       } finally {

@@ -773,20 +773,46 @@ function Test-CommunityAssetVerificationFreshness {
         throw "schemas/compatibility-baseline.json spotify.releasedDate is not a yyyy-MM-dd date: $releasedRaw"
     }
 
+    # Discover the sections instead of listing them: a renamed or newly added
+    # section used to make every asset inside it invisible to this gate.
     $entries = @()
-    foreach ($section in @('extensions', 'themes', 'customApps')) {
-        foreach ($asset in @($manifest.$section)) {
-            $id = if ($asset.filename) { [string]$asset.filename } elseif ($asset.themeId) { [string]$asset.themeId } else { [string]$asset.appId }
-            $entries += [pscustomobject]@{ Section = $section; Id = $id; Asset = $asset }
+    foreach ($property in $manifest.PSObject.Properties) {
+        if ($property.Name -in @('$comment', 'manifestVersion', 'policy')) { continue }
+        $value = $property.Value
+        if ($null -eq $value) { continue }
+
+        $assets = if ($value -is [System.Collections.IEnumerable] -and $value -isnot [string]) { @($value) } else { @($value) }
+        foreach ($asset in $assets) {
+            if ($null -eq $asset -or $asset -isnot [psobject]) { continue }
+            if (-not $asset.PSObject.Properties['lastVerifiedDate']) { continue }
+            $id = if ($asset.filename) { [string]$asset.filename }
+                elseif ($asset.themeId) { [string]$asset.themeId }
+                elseif ($asset.appId) { [string]$asset.appId }
+                else { $property.Name }
+            $entries += [pscustomobject]@{ Section = $property.Name; Id = $id; Asset = $asset }
         }
     }
-    if ($manifest.officialThemesArchive) {
-        $entries += [pscustomobject]@{ Section = 'officialThemesArchive'; Id = 'officialThemesArchive'; Asset = $manifest.officialThemesArchive }
+
+    if ($entries.Count -eq 0) {
+        throw 'schemas/community-assets.json produced no verifiable assets; the freshness gate would pass vacuously.'
     }
 
     $stale = @()
     foreach ($entry in $entries) {
-        if ([string]$entry.Asset.supportState -ne 'active') { continue }
+        $supportState = [string]$entry.Asset.supportState
+        if ([string]::IsNullOrWhiteSpace($supportState)) {
+            # An absent supportState used to skip the asset entirely.
+            $stale += "$($entry.Section)/$($entry.Id): supportState is missing, so its verification cannot be judged."
+            continue
+        }
+        if ($supportState -ne 'active') {
+            # A non-active asset is exempt from the date, but it must say why and
+            # point somewhere, or 'degraded' becomes a silent way to dodge this gate.
+            if ([string]::IsNullOrWhiteSpace([string]$entry.Asset.supportDetail)) {
+                $stale += "$($entry.Section)/$($entry.Id): supportState is '$supportState' with no supportDetail explaining it."
+            }
+            continue
+        }
 
         $verifiedRaw = [string]$entry.Asset.lastVerifiedDate
         $verified = [datetime]::MinValue
@@ -1788,7 +1814,31 @@ function Invoke-LibreSpotReleasePublish {
     $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
     if ($null -eq $dotnet) { throw 'Cannot publish the release; dotnet was not found on PATH.' }
 
+    # This deletes the folder it is given, so refuse anything that is not a
+    # disposable release root. A mistyped -ReleaseRoot must not take a source
+    # tree, a profile folder, or a drive root with it.
+    $repoRoot = [System.IO.Path]::GetFullPath($PSScriptRoot)
+    $rootParent = [System.IO.Path]::GetDirectoryName($Root)
+    if ([string]::IsNullOrEmpty($rootParent)) {
+        throw "Refusing to publish into a drive root: $Root"
+    }
+    if ($Root.TrimEnd('\') -ieq $repoRoot.TrimEnd('\')) {
+        throw "Refusing to publish into the repository root: $Root"
+    }
+    foreach ($protectedName in @('.git', 'src', 'tests', 'schemas', 'tools', 'resources', 'docs')) {
+        if (Test-Path -LiteralPath (Join-Path $Root $protectedName)) {
+            throw "Refusing to delete $Root because it contains '$protectedName'. Point -ReleaseRoot at a disposable folder."
+        }
+    }
+
     if (Test-Path -LiteralPath $Root) {
+        $unexpected = @(Get-ChildItem -LiteralPath $Root -Force -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -notmatch '^(LibreSpot[-.].*|librespot-.*|checksums\.txt|dependency-health\.json|stage-.*)$' })
+        if ($unexpected.Count -gt 0) {
+            throw ("Refusing to delete $Root because it holds files a release build did not produce: " +
+                (($unexpected | Select-Object -First 5 | ForEach-Object { $_.Name }) -join ', ') +
+                ". Point -ReleaseRoot at a disposable folder or empty it yourself.")
+        }
         Write-Host "Cleaning $Root..." -ForegroundColor Cyan
         Remove-Item -LiteralPath $Root -Recurse -Force
     }
@@ -2102,6 +2152,9 @@ function New-LibreSpotReleaseManifest {
         buildInputs      = [ordered]@{
             sdkVersion            = (& dotnet --version 2>$null | Select-Object -First 1)
             commit                = (& git -C $PSScriptRoot rev-parse HEAD 2>$null | Select-Object -First 1)
+            # A commit only identifies the build when the tree matched it. Say so
+            # rather than let the manifest imply a rebuild will reproduce this.
+            treeClean             = (@(& git -C $PSScriptRoot status --porcelain 2>$null).Count -eq 0)
             properties            = Get-LibreSpotReleaseBuildProperties
             # Measured on 2026-09-03 by publishing the same commit into two roots
             # and comparing SHA256: the .NET assets matched, LibreSpot.exe did not.

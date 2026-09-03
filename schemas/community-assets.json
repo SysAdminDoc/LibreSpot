@@ -257,8 +257,8 @@
         ]
       },
       "fallbackBehavior": "skip-with-warning",
-      "networkBehavior": "local-only",
-      "networkDetail": null,
+      "networkBehavior": "remote-loader",
+      "networkDetail": "The pinned archive holds a loader, not the theme: user.css imports and theme.js injects from https://comfy-themes.github.io/Spicetify/Comfy/ at a moving reference every time Spotify starts, so the pinned commit and archive hash cover the loader only and not the styling or script that run.",
       "schemes": ["Comfy", "Mono", "Chromatic"],
       "requiresJsInjection": true,
       "notes": "Commit-pinned and archive hash-verified; WTFPL license — review-required per license policy"
@@ -308,7 +308,9 @@
       "spdxLicense": "AGPL-3.0-only",
       "copyrightHolder": "sanoojes",
       "redistributionPosture": "download-only-not-redistributed",
-      "supportState": "active",
+      "supportState": "degraded",
+      "supportDetail": "Cannot be installed from the pinned archive: the root color.ini is an empty stub and user.css and theme.js live under remote/, so no single theme folder holds a usable set. Checked against Spotify 1.2.93.667 on 2026-09-03.",
+      "supportIssueUrl": "https://github.com/sanoojes/Spicetify-Lucid/tree/5c28e9f955d5ca84a82d06084cc6652e5655ea2d",
       "lastVerifiedDate": "2026-09-03",
       "releaseNotesUrl": "https://github.com/sanoojes/Spicetify-Lucid/compare/5c28e9f955d5ca84a82d06084cc6652e5655ea2d...main",
       "catalogReview": {
@@ -323,8 +325,8 @@
         ]
       },
       "fallbackBehavior": "skip-with-warning",
-      "networkBehavior": "local-only",
-      "networkDetail": null,
+      "networkBehavior": "remote-loader",
+      "networkDetail": "The pinned archive holds a loader, not the theme: user.css imports and theme.js injects from https://cdn.jsdelivr.net/gh/sanoojes/Spicetify-Lucid@refs/heads/main/src/ at a moving reference every time Spotify starts, so the pinned commit and archive hash cover the loader only and not the styling or script that run.",
       "schemes": ["dark", "light", "dark-green", "coffee", "comfy", "dark-fluent", "greenland", "biscuit", "macos", "rosepine", "dracula", "dracula-pro"],
       "requiresJsInjection": true,
       "notes": "Commit-pinned and archive hash-verified; AGPL-3.0 — review-required per license policy; fetched from upstream, never bundled"
@@ -356,8 +358,8 @@
         ]
       },
       "fallbackBehavior": "skip-with-warning",
-      "networkBehavior": "local-only",
-      "networkDetail": null,
+      "networkBehavior": "remote-loader",
+      "networkDetail": "The pinned archive holds a loader, not the theme: user.css imports and theme.js injects from https://cdn.jsdelivr.net/gh/astromations/hazy/ at a moving reference every time Spotify starts, so the pinned commit and archive hash cover the loader only and not the styling or script that run.",
       "schemes": ["dark", "light"],
       "requiresJsInjection": true,
       "notes": "Commit-pinned and archive hash-verified",
