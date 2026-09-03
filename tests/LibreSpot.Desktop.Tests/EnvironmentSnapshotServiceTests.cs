@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -1043,6 +1043,51 @@ public sealed class EnvironmentSnapshotServiceTests
         var ext = Assert.Single(snapshot.HealthReport.Components, c => c.Id == "extension-integrity");
         Assert.Equal("None registered", ext.Status);
         Assert.Equal(HealthSeverity.Ready, ext.Severity);
+    }
+
+    [Fact]
+    public void GetSnapshot_NeverNamesAPathUnderTheMachinesRealSpotifyOrSpicetifyFolders()
+    {
+        // Every root the snapshot reads is a constructor argument, and the fixture
+        // supplies temporary ones. Nothing enforced that: a component that fell
+        // back to a constructor default would read whatever the developer happens
+        // to have installed, and would then pass or fail depending on the machine
+        // rather than on the code. This is the guard for that.
+        var realRoots = new[]
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Spotify"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "spicetify"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "spicetify"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "LibreSpot_Backups"),
+        };
+
+        using var fixture = new SnapshotFixture
+        {
+            SpotifyVersion = "1.2.93.667",
+            SpicetifyVersion = "2.44.0",
+        };
+        fixture.WriteSavedConfig();
+        fixture.WriteSpotify(withSpotXMarkers: true);
+        fixture.WriteSpicetifyConfig(
+            """
+            extensions = keyboardShortcut.js|trashbin.js
+            custom_apps = marketplace
+            """);
+        fixture.WriteMarketplaceFiles();
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: true);
+
+        var leaked = snapshot.HealthReport.Components
+            .Where(component => component.HasPath)
+            .Where(component => realRoots.Any(root =>
+                component.Path!.StartsWith(root, StringComparison.OrdinalIgnoreCase)))
+            .Select(component => component.Id + " -> " + component.Path)
+            .ToArray();
+
+        var leakedText = string.Join("; ", leaked);
+        Assert.True(
+            leaked.Length == 0,
+            "These components read the machine's own installation instead of the paths the test supplied: " + leakedText);
     }
 
     [Fact]
