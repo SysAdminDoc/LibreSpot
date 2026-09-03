@@ -667,6 +667,20 @@ audits the live customization engine's JavaScript dependencies with `pnpm audit`
 both the shipped tree and the build tooling, and fails on any advisory that is
 not accepted in the same allowlist with an owner, a reason and a recheck date.
 
+The UI automation suite runs an Axe.Windows rule scan, the same engine behind
+Accessibility Insights, against the Home, Settings and Maintenance states. The
+shell is launched hidden, so the scan never takes over the screen:
+
+```powershell
+dotnet .\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Desktop.Tests.dll --filter-method "*AxeWindowsScan*" --minimum-expected-tests 1
+```
+
+Known violations live in `schemas\axe-windows-baseline.json` with a count and a
+reason for each. A new violation, or one more of an existing kind, fails the
+scan. A fourth test plants a button with no accessible name and fails if the
+scan does not report it, so a scan that has quietly stopped working cannot pass
+as a clean result.
+
 The repository also carries a bounded Core mutation pilot. Restore the local
 tool and run it from `src\LibreSpot.Core` when changing Core logic:
 

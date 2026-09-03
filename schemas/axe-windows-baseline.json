@@ -1,0 +1,33 @@
+{
+  "$comment": "Axe.Windows rule violations accepted for now in the offscreen UIA smoke scan. Keys are ruleId|controlType|automationId as the scan reports them. Counts matter: these elements are generated chrome with no automation id, so without a count one recorded entry would absorb every future violation of the same shape. A key that is not listed, or a count higher than the one recorded, fails WpfUiAutomationSmokeTests.AxeWindowsScan_FindsNoViolationOutsideTheRecordedBaseline. Regenerate by running that test and reading the failure message.",
+  "schemaVersion": 1,
+  "lastUpdated": "2026-09-03",
+  "states": {
+    "recommended": [
+      {
+        "key": "NameExcludesPrivateUnicodeCharacters|Text(50020)|(none)",
+        "count": 7,
+        "reason": "Decorative icon glyphs. Each is a TextBlock whose text is a private-use character from the symbol font, so its accessible name is empty. The control that owns each glyph carries the real name and is covered by AutomationNameContractTests. Taking the glyphs out of the automation tree is a separate change, tracked as RD-167."
+      },
+      {
+        "key": "NameNotNull|List(50008)|(none)",
+        "count": 1,
+        "reason": "A list on the Home workspace exposes no accessible name of its own. Its items are named and reachable, but a screen reader announces the container as an unnamed list. Tracked as RD-168."
+      }
+    ],
+    "custom": [
+      {
+        "key": "NameExcludesPrivateUnicodeCharacters|Text(50020)|(none)",
+        "count": 1,
+        "reason": "Same decorative icon glyph as the Home workspace. Tracked as RD-167."
+      }
+    ],
+    "maintenance": [
+      {
+        "key": "NameExcludesPrivateUnicodeCharacters|Text(50020)|(none)",
+        "count": 2,
+        "reason": "Same decorative icon glyphs as the Home workspace. Tracked as RD-167."
+      }
+    ]
+  }
+}

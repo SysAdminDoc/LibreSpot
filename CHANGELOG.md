@@ -6,6 +6,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- The accessibility of the desktop shell is now checked by a rule engine, not just by hand. Every build scans the Home, Settings and Maintenance screens with the same engine Accessibility Insights uses, with the window hidden so it never interrupts anything. Ten known findings are recorded with a reason each, and anything new fails the build. A deliberately broken control is planted in a test-only screen so a scan that has quietly stopped working cannot be mistaken for a clean result.
+
 - A changed Spotify flag now says so on its own row and can be put back on its own. Any flag holding a value you set is marked Custom and carries a Revert control that names the flag it undoes; reverting one restores the value Spotify sent for it and leaves every other change alone. The count of customized flags in the summary follows.
 
 - Auto-reapply reacts to Spotify updating instead of waiting for the next check. The task still runs at logon and repeats every 30 minutes, but between repeats it now watches Spotify's own folders, so an update that lands a minute after a check is picked up in about a minute rather than up to half an hour later. If watching is not possible the repeat still covers it, and the task keeps running as a standard user with a single instance.

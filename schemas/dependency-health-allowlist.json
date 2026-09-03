@@ -5,6 +5,14 @@
   "acceptedJavaScriptAdvisories": [],
   "acceptedTransitiveLag": [
     {
+      "packageId": "System.IO.Packaging",
+      "scope": "test-transitive",
+      "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",
+      "owner": "SysAdminDoc",
+      "reason": "Pinned at 8.0.1 by Axe.Windows 2.4.2, the accessibility rule engine used by the offscreen UIA scan. Test-only and never shipped; the lag is upstream's to resolve.",
+      "recheckDate": "2026-12-01"
+    },
+    {
       "packageId": "FSharp.Core",
       "scope": "test-transitive",
       "projectPath": "tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj",

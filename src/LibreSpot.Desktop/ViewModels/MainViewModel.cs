@@ -2696,7 +2696,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var normalizedState = state.Trim().ToLowerInvariant();
         IsMaintenanceDiagnosticsExpanded = false;
         IsMaintenanceDangerExpanded = false;
-        if (normalizedState is "recommended" or "home-navigation" or "home-details" or "home-readiness" or "reduced-motion")
+        if (normalizedState is "recommended" or "home-navigation" or "home-details" or "home-readiness" or "reduced-motion" or "axe-positive-control")
         {
             ApplyUiAutomationHomeSnapshot("unmanaged");
         }

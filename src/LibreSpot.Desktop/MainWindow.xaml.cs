@@ -220,6 +220,21 @@ public partial class MainWindow : Window
                     ActivityDockToggle.IsChecked = false;
                     ApplyResponsiveShellLayout();
                 }
+                if (string.Equals(uiAutomationSmokeState, "axe-positive-control", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Positive control for the Axe.Windows scan. This button has no
+                    // content, no automation name and no labelled-by target, so the
+                    // rule engine must report it. A scan that comes back clean here
+                    // is broken, and every other state's clean result would be worth
+                    // nothing. Only reachable through --uia-smoke.
+                    SimpleShellHost.Children.Add(new System.Windows.Controls.Button
+                    {
+                        Width = 24,
+                        Height = 24,
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Top
+                    });
+                }
                 if (string.Equals(uiAutomationSmokeState, "provenance", StringComparison.OrdinalIgnoreCase))
                 {
                     await Dispatcher.InvokeAsync(ApplyResponsiveShellLayout, DispatcherPriority.Loaded);

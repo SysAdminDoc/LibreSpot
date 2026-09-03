@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P2: RD-152: Run an Axe.Windows rule scan inside the UIA smoke suite
-  Why: 341 `AutomationProperties` uses and contract tests exist, but no automated UIA rule engine checks the rendered shell; Axe.Windows runs the same rules as Accessibility Insights and can scan the offscreen shell the smoke tests already launch.
-  Evidence: https://github.com/microsoft/axe-windows; `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`; `tests/LibreSpot.Desktop.Tests/AutomationNameContractTests.cs`.
-  Touches: `tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj`, `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`, `schemas/scorecard-baseline.json`, `README.md` local validation.
-  Acceptance: WHEN the UIA smoke suite runs, an Axe.Windows scan of the Home, Settings, and Maintenance states SHALL run offscreen and fail on any violation not recorded in a baseline file; the baseline SHALL start at the current violation set with each entry justified; a planted unnamed button in a test-only state SHALL be detected (positive control).
-  Complexity: M
-
 - [ ] P2: RD-153: Cover the desktop executable in the Smart App Control and SmartScreen guidance
   Why: the README FAQ entry says "Smart App Control blocks the script from running" and answers for the script, but the desktop executable is now the first install path and Smart App Control blocks unsigned executables outright with no per-app bypass; SmartScreen reputation restarts from zero for each unsigned release.
   Evidence: `README.md:476-480`; `SECURITY.md`; https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-frequently-asked-questions; https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation.
@@ -80,3 +73,17 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Touches: `src/powershell/shared/Module-InstallThemes.ps1`, `src/powershell/shared/Module-InstallCustomApps.ps1`, `src/powershell/shared/Reapply-SavedSpicetifySetup.ps1`, both composed hosts, `src/LibreSpot.Core/BackendScriptService.cs` or the result parsing that decides success, six resx files for the user-facing wording, `tests/powershell/LibreSpot.Tests.ps1`.
   Acceptance: WHEN a selected theme, extension, or custom app fails to install while the rest of the run succeeds, the run SHALL finish with a state that names the asset and says it was not installed, the desktop and CLI SHALL surface that as a warning rather than a plain success, and the fleet CLI SHALL return a distinct non-zero exit code documented in `schemas/fleet-exit-codes.json`; a Pester test SHALL fail if a forced theme-copy failure still produces a success result.
   Complexity: M
+
+- [ ] P3: RD-167: Keep decorative icon glyphs out of the automation tree
+  Why: the Axe.Windows scan added in RD-152 reports `NameExcludesPrivateUnicodeCharacters` ten times across the three scanned states, every one of them a `TextBlock` whose text is a private-use character from the symbol font. A screen reader meets an unnamed text element with no useful content beside the control it decorates. The owning control carries the real name, so the fix is to hide the glyph rather than name it.
+  Evidence: `schemas/axe-windows-baseline.json` records 7 on `recommended`, 1 on `custom`, 2 on `maintenance`, observed 2026-09-03; each element reports `ClassName=TextBlock`, `ControlType=Text(50020)`, `Name=` (empty), `FrameworkId=WPF`.
+  Touches: the XAML that renders icon glyphs (`src/LibreSpot.Desktop/Views/*.xaml`, `src/LibreSpot.Desktop/MainWindow.xaml`), `schemas/axe-windows-baseline.json`.
+  Acceptance: WHEN the Axe.Windows scan runs on the three scanned states, no `NameExcludesPrivateUnicodeCharacters` violation SHALL be reported, the corresponding baseline entries SHALL be deleted rather than reduced, and the glyphs SHALL still render unchanged in the captured screenshots.
+  Complexity: S
+
+- [ ] P3: RD-168: Give the Home workspace list an accessible name
+  Why: the Axe.Windows scan reports `NameNotNull` on a `List` control in the Home workspace. The items inside it are named and reachable, but a screen reader announces the container itself as an unnamed list, so there is nothing to say what the list holds when a user lands on it.
+  Evidence: `schemas/axe-windows-baseline.json`, `recommended` state, key `NameNotNull|List(50008)|(none)`, count 1, observed 2026-09-03.
+  Touches: the Home workspace list in `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml`, six resx files for the name, `schemas/axe-windows-baseline.json`.
+  Acceptance: WHEN the Axe.Windows scan runs on the recommended state, no `NameNotNull` violation SHALL be reported, its baseline entry SHALL be deleted, and the name SHALL come from the localized resources rather than a literal so every shipped culture announces it.
+  Complexity: S

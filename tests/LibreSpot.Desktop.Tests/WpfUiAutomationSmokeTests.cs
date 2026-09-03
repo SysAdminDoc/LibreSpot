@@ -1,9 +1,11 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.ExceptionServices;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Automation.Peers;
+using Axe.Windows.Automation;
 using LibreSpot.Desktop.Controls;
 using LibreSpot.Desktop.Properties;
 using Xunit;
@@ -266,6 +268,159 @@ public sealed class WpfUiAutomationSmokeTests
             control.Content = "Retry environment check";
             Assert.Equal("Retry environment check", peer.GetName());
         });
+    }
+
+    [Theory]
+    [InlineData("recommended")]
+    [InlineData("custom")]
+    [InlineData("maintenance")]
+    public void AxeWindowsScan_FindsNoViolationOutsideTheRecordedBaseline(string state)
+    {
+        using var app = LaunchSmokeState(state);
+        WaitForMainWindow(app.Process, MainWindowTimeout);
+
+        var baseline = LoadAxeBaseline(state);
+        var observed = ScanForAccessibilityViolations(app.Process)
+            .GroupBy(violation => violation.Key, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
+
+        // Counting matters. Every one of these violations sits on generated chrome
+        // with no automation id, so keying on the rule alone would let one recorded
+        // entry absorb every future one of the same shape.
+        var unexpected = new List<string>();
+        foreach (var (key, violations) in observed)
+        {
+            if (!baseline.TryGetValue(key, out var allowed))
+            {
+                unexpected.Add(violations.Length + "x " + key + " (not in the baseline)");
+                continue;
+            }
+
+            if (violations.Length > allowed)
+            {
+                unexpected.Add(violations.Length + "x " + key + " (baseline records " + allowed + ")");
+            }
+        }
+
+        var report = string.Join(Environment.NewLine, unexpected.Select(line => "  " + line));
+        var sample = string.Join(
+            Environment.NewLine,
+            observed.Values.SelectMany(group => group).Take(3).Select(violation => "  " + violation.Detail));
+
+        Assert.True(
+            unexpected.Count == 0,
+            "Axe.Windows reported accessibility violations for the "
+                + state
+                + " state that schemas/axe-windows-baseline.json does not record:"
+                + Environment.NewLine
+                + report
+                + Environment.NewLine
+                + "First few elements seen:"
+                + Environment.NewLine
+                + sample);
+    }
+
+    [Fact]
+    public void AxeWindowsScan_ReportsAPlantedButtonThatHasNoAccessibleName()
+    {
+        // Positive control. Without it the three baseline tests would pass just as
+        // happily against a scan that returned nothing. It has to name the planted
+        // button specifically: every state already reports name-related violations
+        // on icon glyphs, so matching on the rule alone would prove nothing.
+        using var app = LaunchSmokeState("axe-positive-control");
+        WaitForMainWindow(app.Process, MainWindowTimeout);
+
+        var violations = ScanForAccessibilityViolations(app.Process);
+
+        Assert.True(
+            violations.Any(violation =>
+                violation.ControlType.Contains("Button", StringComparison.OrdinalIgnoreCase) &&
+                violation.RuleId.Contains("Name", StringComparison.OrdinalIgnoreCase)),
+            "The scan did not report the unnamed button planted in the axe-positive-control state, so it is not "
+                + "checking anything. Keys reported: "
+                + string.Join(", ", violations.Select(violation => violation.Key).Distinct().OrderBy(key => key, StringComparer.Ordinal)));
+    }
+
+    private static IReadOnlyList<AxeViolation> ScanForAccessibilityViolations(Process process)
+    {
+        var config = Config.Builder
+            .ForProcessId(process.Id)
+            .WithOutputFileFormat(OutputFileFormat.None)
+            .Build();
+
+        var output = ScannerFactory.CreateScanner(config).Scan(null);
+
+        return output.WindowScanOutputs
+            .SelectMany(window => window.Errors)
+            .Select(AxeViolation.FromScanResult)
+            .OrderBy(violation => violation.Key, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static string ResolveRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "LibreSpot.ps1")))
+        {
+            dir = dir.Parent;
+        }
+
+        return dir?.FullName ?? throw new InvalidOperationException("Could not locate repo root.");
+    }
+
+    private static Dictionary<string, int> LoadAxeBaseline(string state)
+    {
+        var path = Path.Combine(ResolveRepoRoot(), "schemas", "axe-windows-baseline.json");
+        Assert.True(File.Exists(path), $"Axe.Windows baseline was not found at {path}.");
+
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var states = document.RootElement.GetProperty("states");
+        Assert.True(
+            states.TryGetProperty(state, out var entries),
+            $"schemas/axe-windows-baseline.json records no baseline for the {state} state.");
+
+        return entries.EnumerateArray().ToDictionary(
+            entry => entry.GetProperty("key").GetString() ?? string.Empty,
+            entry => entry.GetProperty("count").GetInt32(),
+            StringComparer.Ordinal);
+    }
+
+    private sealed record AxeViolation(string RuleId, string ControlType, string Key, string Detail)
+    {
+        public static AxeViolation FromScanResult(ScanResult result)
+        {
+            var ruleId = result.Rule?.ID.ToString() ?? "UnknownRule";
+            var properties = result.Element?.Properties ?? new Dictionary<string, string>();
+
+            var automationId = Lookup(properties, "AutomationId");
+            var controlType = Lookup(properties, "ControlType", "LocalizedControlType");
+
+            var detail = string.Join(
+                ", ",
+                properties
+                    .Where(pair => pair.Key is "ClassName" or "ControlType" or "Name" or "AutomationId" or "BoundingRectangle")
+                    .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                    .Select(pair => pair.Key + "=" + pair.Value));
+
+            return new AxeViolation(
+                ruleId,
+                controlType,
+                ruleId + "|" + controlType + "|" + automationId,
+                detail);
+        }
+
+        private static string Lookup(IReadOnlyDictionary<string, string> properties, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                if (properties.TryGetValue(name, out var value) && !string.IsNullOrWhiteSpace(value))
+                {
+                    return value;
+                }
+            }
+
+            return "(none)";
+        }
     }
 
     private static SmokeApp LaunchSmokeState(string state, string culture = "en")
