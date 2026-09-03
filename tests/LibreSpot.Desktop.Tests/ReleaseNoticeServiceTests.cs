@@ -1,0 +1,279 @@
+using System.IO;
+using System.Text.Json;
+using LibreSpot.Desktop.Services;
+using Xunit;
+
+namespace LibreSpot.Desktop.Tests;
+
+public sealed class ReleaseNoticeServiceTests
+{
+    private static readonly DateTimeOffset Now = DateTimeOffset.Parse("2026-09-02T12:00:00Z");
+
+    [Theory]
+    [InlineData("4.1.2", "4.1.3", true)]
+    [InlineData("4.1.2", "4.2.0", true)]
+    [InlineData("4.1.2", "5.0.0", true)]
+    [InlineData("4.1.2", "4.1.10", true)]
+    [InlineData("4.0.0-preview.28", "4.0.0", true)]
+    [InlineData("4.0.0-preview.9", "4.0.0-preview.28", true)]
+    [InlineData("4.1.2", "4.1.2", false)]
+    [InlineData("4.1.2", "4.1.1", false)]
+    [InlineData("4.1.2", "4.0.9", false)]
+    [InlineData("4.1.2", "3.9.9", false)]
+    [InlineData("4.1.2", "4.1.3-rc.1", true)]
+    [InlineData("4.1.3-rc.1", "4.1.3", true)]
+    public void ReleaseVersion_OrdersSemanticVersions(string current, string candidate, bool candidateIsNewer)
+    {
+        Assert.True(ReleaseVersion.TryParse(current, out var currentVersion));
+        Assert.True(ReleaseVersion.TryParse("v" + candidate, out var candidateVersion));
+
+        Assert.Equal(candidateIsNewer, candidateVersion.CompareTo(currentVersion) > 0);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("latest")]
+    [InlineData("4")]
+    [InlineData("4.1.2.3")]
+    [InlineData("4.1.x")]
+    [InlineData("4.1.2-")]
+    public void ReleaseVersion_RejectsNonVersions(string value)
+    {
+        Assert.False(ReleaseVersion.TryParse(value, out _));
+    }
+
+    [Fact]
+    public async Task NewerStableRelease_ProducesNoticeAndWritesCache()
+    {
+        using var root = new TempRoot();
+        var client = new FakeClient(ReleaseNoticeLookup.Found("v4.2.0", "https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.2.0", false, "\"etag-1\""));
+        var service = Create(root, client);
+
+        var notice = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.True(notice.UpdateAvailable);
+        Assert.Equal("4.2.0", notice.LatestVersion);
+        Assert.Equal("https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.2.0", notice.ReleaseUrl);
+        Assert.Equal("live", notice.Source);
+        Assert.True(File.Exists(root.CachePath));
+        using var cache = JsonDocument.Parse(File.ReadAllText(root.CachePath));
+        Assert.Equal("\"etag-1\"", cache.RootElement.GetProperty("eTag").GetString());
+        Assert.Equal("v4.2.0", cache.RootElement.GetProperty("tagName").GetString());
+    }
+
+    [Fact]
+    public async Task CurrentRelease_StaysSilent()
+    {
+        using var root = new TempRoot();
+        var service = Create(root, new FakeClient(ReleaseNoticeLookup.Found("v4.1.2", null, false, null)));
+
+        var notice = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.False(notice.UpdateAvailable);
+        Assert.Null(notice.LatestVersion);
+    }
+
+    [Fact]
+    public async Task PrereleaseLatest_IsNeverOfferedOrCached()
+    {
+        using var root = new TempRoot();
+        var service = Create(root, new FakeClient(ReleaseNoticeLookup.Found("v5.0.0-preview.1", null, true, null)));
+
+        var notice = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.False(notice.UpdateAvailable);
+        Assert.False(File.Exists(root.CachePath));
+    }
+
+    [Fact]
+    public async Task PrereleaseTagWithoutFlag_IsStillNotOffered()
+    {
+        using var root = new TempRoot();
+        var service = Create(root, new FakeClient(ReleaseNoticeLookup.Found("v5.0.0-rc.1", null, false, null)));
+
+        var notice = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.False(notice.UpdateAvailable);
+    }
+
+    [Fact]
+    public async Task FreshCache_SkipsTheNetwork()
+    {
+        using var root = new TempRoot();
+        var client = new FakeClient(ReleaseNoticeLookup.Offline("should not be called"));
+        WriteCache(root, Now.AddHours(-23), "v4.3.0", "\"etag-cached\"");
+        var service = Create(root, client);
+
+        var notice = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.True(notice.UpdateAvailable);
+        Assert.Equal("4.3.0", notice.LatestVersion);
+        Assert.Equal("cache", notice.Source);
+        Assert.Equal(0, client.Calls);
+    }
+
+    [Fact]
+    public async Task ExpiredCache_RefetchesWithTheCachedETag()
+    {
+        using var root = new TempRoot();
+        var client = new FakeClient(ReleaseNoticeLookup.Found("v4.3.1", null, false, "\"etag-new\""));
+        WriteCache(root, Now.AddHours(-25), "v4.3.0", "\"etag-cached\"");
+        var service = Create(root, client);
+
+        var notice = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.Equal(1, client.Calls);
+        Assert.Equal("\"etag-cached\"", client.LastETag);
+        Assert.Equal("4.3.1", notice.LatestVersion);
+        Assert.Equal("live", notice.Source);
+    }
+
+    [Fact]
+    public async Task NotModified_KeepsTheCachedReleaseAndRefreshesItsAge()
+    {
+        using var root = new TempRoot();
+        var client = new FakeClient(ReleaseNoticeLookup.NotModified("\"etag-cached\""));
+        WriteCache(root, Now.AddHours(-30), "v4.3.0", "\"etag-cached\"");
+        var service = Create(root, client);
+
+        var notice = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.True(notice.UpdateAvailable);
+        Assert.Equal("4.3.0", notice.LatestVersion);
+        Assert.Equal("live-conditional", notice.Source);
+        using var cache = JsonDocument.Parse(File.ReadAllText(root.CachePath));
+        Assert.Equal(Now, cache.RootElement.GetProperty("checkedAtUtc").GetDateTimeOffset());
+    }
+
+    [Fact]
+    public async Task RateLimited_UsesTheStaleCache()
+    {
+        using var root = new TempRoot();
+        WriteCache(root, Now.AddDays(-3), "v4.3.0", null);
+        var service = Create(root, new FakeClient(ReleaseNoticeLookup.RateLimited("HTTP 403")));
+
+        var notice = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.True(notice.UpdateAvailable);
+        Assert.Equal("cache-stale", notice.Source);
+    }
+
+    [Theory]
+    [InlineData(ReleaseNoticeLookupStatus.RateLimited)]
+    [InlineData(ReleaseNoticeLookupStatus.Offline)]
+    [InlineData(ReleaseNoticeLookupStatus.Missing)]
+    [InlineData(ReleaseNoticeLookupStatus.Malformed)]
+    [InlineData(ReleaseNoticeLookupStatus.NotModified)]
+    public async Task FailuresWithoutCache_StaySilentAndWriteNothing(ReleaseNoticeLookupStatus status)
+    {
+        using var root = new TempRoot();
+        var service = Create(root, new FakeClient(new ReleaseNoticeLookup(status, null, null, false, null, "failure")));
+
+        var notice = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.False(notice.UpdateAvailable);
+        Assert.Null(notice.ReleaseUrl);
+        Assert.False(File.Exists(root.CachePath));
+    }
+
+    [Fact]
+    public async Task Cancellation_StaysSilentWithoutThrowingOrCaching()
+    {
+        using var root = new TempRoot();
+        using var cancellation = new CancellationTokenSource();
+        var client = new FakeClient(ReleaseNoticeLookup.Found("v9.9.9", null, false, null)) { CancelOnCall = cancellation };
+        var service = Create(root, client);
+
+        var notice = await service.GetNoticeAsync("4.1.2", cancellation.Token);
+
+        Assert.False(notice.UpdateAvailable);
+        Assert.Equal("canceled", notice.Source);
+        Assert.False(File.Exists(root.CachePath));
+    }
+
+    [Fact]
+    public async Task CorruptCache_IsTreatedAsAbsent()
+    {
+        using var root = new TempRoot();
+        Directory.CreateDirectory(Path.GetDirectoryName(root.CachePath)!);
+        File.WriteAllText(root.CachePath, "{ not json");
+        var client = new FakeClient(ReleaseNoticeLookup.Found("v4.1.3", null, false, null));
+        var service = Create(root, client);
+
+        var notice = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.Equal(1, client.Calls);
+        Assert.Null(client.LastETag);
+        Assert.True(notice.UpdateAvailable);
+    }
+
+    [Fact]
+    public async Task UnreadableCurrentVersion_StaysSilentWithoutANetworkCall()
+    {
+        using var root = new TempRoot();
+        var client = new FakeClient(ReleaseNoticeLookup.Found("v4.1.3", null, false, null));
+        var service = Create(root, client);
+
+        var notice = await service.GetNoticeAsync("unknown", CancellationToken.None);
+
+        Assert.False(notice.UpdateAvailable);
+        Assert.Equal(0, client.Calls);
+    }
+
+    private static ReleaseNoticeService Create(TempRoot root, FakeClient client) =>
+        new(client, root.CachePath, () => Now);
+
+    private static void WriteCache(TempRoot root, DateTimeOffset checkedAtUtc, string tag, string? etag)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(root.CachePath)!);
+        File.WriteAllText(root.CachePath, JsonSerializer.Serialize(new
+        {
+            schemaVersion = 1,
+            checkedAtUtc,
+            tagName = tag,
+            htmlUrl = (string?)null,
+            eTag = etag
+        }));
+    }
+
+    private sealed class FakeClient : IReleaseNoticeClient
+    {
+        private readonly ReleaseNoticeLookup _result;
+
+        public FakeClient(ReleaseNoticeLookup result) => _result = result;
+
+        public int Calls { get; private set; }
+        public string? LastETag { get; private set; }
+        public CancellationTokenSource? CancelOnCall { get; init; }
+
+        public Task<ReleaseNoticeLookup> TryGetLatestStableAsync(string? cachedETag, CancellationToken cancellationToken)
+        {
+            Calls++;
+            LastETag = cachedETag;
+            if (CancelOnCall is not null)
+            {
+                CancelOnCall.Cancel();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            return Task.FromResult(_result);
+        }
+    }
+
+    private sealed class TempRoot : IDisposable
+    {
+        public TempRoot()
+        {
+            Root = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", "release-notice", Guid.NewGuid().ToString("N"));
+            CachePath = Path.Combine(Root, "release-notice-cache.json");
+        }
+
+        public string Root { get; }
+        public string CachePath { get; }
+
+        public void Dispose()
+        {
+            try { Directory.Delete(Root, recursive: true); } catch { }
+        }
+    }
+}

@@ -2084,6 +2084,8 @@
   <data name="Vm_SimpleHomeUnavailableBody" xml:space="preserve"><value>请选择“重试”，或打开“维护”获取帮助。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_MaintenanceUnavailableBody" xml:space="preserve"><value>请选择“重试”以再次检查此电脑。</value><comment>Maintenance copy when the environment snapshot failed to load</comment></data>
   <data name="Vm_SimpleHomeDuration" xml:space="preserve"><value>通常需要 2 到 4 分钟</value><comment>User-facing WPF text</comment></data>
+  <data name="Vm_LibreSpotUpdateNoticeFormat" xml:space="preserve"><value>LibreSpot v{0} 已可用。</value><comment>{0} is the newer stable LibreSpot version number, such as 4.2.0.</comment></data>
+  <data name="Vm_LibreSpotUpdateNoticeLink" xml:space="preserve"><value>更新 LibreSpot</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_SimpleHomeDetails" xml:space="preserve"><value>详细信息</value><comment>User-facing WPF text</comment></data>
   <data name="Vm_SimpleHomeSystem" xml:space="preserve"><value>系统</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_SimpleHomeSpotify" xml:space="preserve"><value>Spotify</value><comment>MainViewModel localized runtime text.</comment></data>

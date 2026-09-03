@@ -273,6 +273,7 @@
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
 
       <Grid Width="184"
@@ -402,7 +403,32 @@
                    VerticalAlignment="Center" />
       </StackPanel>
 
-      <Expander Grid.Row="6"
+      <StackPanel Grid.Row="6"
+                  Orientation="Horizontal"
+                  HorizontalAlignment="Center"
+                  Margin="0,18,0,0"
+                  Visibility="{Binding HasLibreSpotUpdateNotice, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.AutomationId="HomeUpdateNotice"
+                  AutomationProperties.Name="{Binding LibreSpotUpdateNoticeAutomationName}">
+        <ui:SymbolIcon Symbol="ArrowSync20"
+                       FontSize="18"
+                       Foreground="{DynamicResource MutedTextBrush}"
+                       VerticalAlignment="Center" />
+        <TextBlock Text="{Binding LibreSpotUpdateNoticeText}"
+                   FontSize="16"
+                   Foreground="{DynamicResource MutedTextBrush}"
+                   Margin="8,0,0,0"
+                   VerticalAlignment="Center" />
+        <Button Content="{Binding LibreSpotUpdateNoticeLinkLabel}"
+                Command="{Binding OpenLibreSpotUpdateCommand}"
+                Style="{StaticResource ShellQuickLinkButtonStyle}"
+                Margin="6,0,0,0"
+                VerticalAlignment="Center"
+                AutomationProperties.AutomationId="HomeUpdateLibreSpotLink"
+                AutomationProperties.Name="{Binding LibreSpotUpdateNoticeLinkLabel}" />
+      </StackPanel>
+
+      <Expander Grid.Row="7"
                 Header="{services:Loc Vm_SimpleHomeDetails}"
                 MaxWidth="820"
                 HorizontalAlignment="Stretch"

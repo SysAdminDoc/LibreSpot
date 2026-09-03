@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Home shows a quiet Update LibreSpot link when a newer stable release exists. The check runs in the background after startup without delaying the system snapshot, reads the latest stable GitHub release with a conditional request, keeps a 24-hour local cache, and never selects a prerelease, downloads anything, raises a toast, or takes focus. Offline, malformed, missing, and rate-limited responses use a valid cache or stay silent. The link sits below the primary action and never replaces it.
+
 ### Changed
 
 - The security policy names v4.0.x and later as the supported stable line, with the desktop app, the fleet CLI, and the shipped `LibreSpot.ps1` covered together, and marks the standalone v3.7.x script releases as superseded. `SIGNPATH.md` and the blocked plan no longer describe signing as pending: entries built on a pending SignPath enrollment, a tag-triggered release workflow, a `v3.7.2` stable channel, or the old preview release are archived with their resolution, and the remaining blocked entries were reworded to match local, unsigned, immutable releases. A release-truth test fails if stable version metadata coexists with preview-only support wording or a pending signing claim.
