@@ -4,6 +4,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.2.0] (2026-09-02)
+
 ### Fixed
 
 - `SIGNPATH.md`, the record of why LibreSpot ships unsigned, is now tracked. It was listed in `.gitignore`, so a fresh clone failed the two release-trust tests that read it and the security policy pointed at a file that only existed on the maintainer's machine.

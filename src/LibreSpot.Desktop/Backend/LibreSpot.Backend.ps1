@@ -70,7 +70,7 @@ public sealed class LibreSpotNativeOutputCollector {
 
 # Keep this aligned with LibreSpot.ps1:$global:VERSION and the WPF shell's
 # csproj <Version>. The release workflow fails the build if these drift.
-$global:VERSION = '3.8.2'
+$global:VERSION = '3.8.3'
 $global:CONFIG_SCHEMA_VERSION = 2
 $global:PinnedReleases = @{
     SpotX = @{
@@ -217,12 +217,12 @@ $global:CommunityCustomApps = [ordered]@{
         Description = 'Live themes, snippets, feature flags, presets, and health checks inside Spotify.'
         Url         = 'https://raw.githubusercontent.com/SysAdminDoc/LibreSpot/main/resources/custom-apps/librespot-engine.zip'
         Source      = 'SysAdminDoc/LibreSpot'
-        Version     = '4.1.2'
+        Version     = '4.2.0'
         ReleaseTag  = 'main'
         AssetPath   = 'librespot'
         RequiredFiles = @('manifest.json', 'index.js', 'style.css', 'librespot-engine.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md')
         CompanionExtension = 'librespot-engine.js'
-        SHA256      = 'c30ea64c21fa088b9064626664d01e35e6e9c90840f9e419c3417ddab4d5b1b7'
+        SHA256      = 'e280fbdf04193b8f98d2b23a3de37e6592af1bc6f5df206d1cd30133201d6c35'
     }
 }
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$comment": "Generated parity manifest — do not edit by hand. Regenerate by running the ParityManifestTests suite.",
-  "generatorVersion": "4.1.2",
+  "generatorVersion": "4.2.0",
   "configSchemaVersion": 2,
   "configKeys": [
     { "key": "ConfigSchemaVersion",    "type": "int",    "default": 2,                                                      "script": true, "wpf": true, "wpfBackend": true },

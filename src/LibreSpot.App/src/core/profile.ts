@@ -14,7 +14,7 @@ export type ThemeExport = {
   "theme.js": string;
 };
 
-export const ENGINE_VERSION = "4.1.2";
+export const ENGINE_VERSION = "4.2.0";
 
 export function serializeEngineState(state: EngineState): string {
   return `${JSON.stringify(state, null, 2)}\n`;

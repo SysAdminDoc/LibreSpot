@@ -8,7 +8,7 @@ Installs, configures, and maintains ad-free Spotify with themes, extensions, cus
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.1.2-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.2.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-4.1.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
@@ -93,6 +93,18 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 </div>
 
 ---
+
+## What's New in v4.2.0
+
+v4.2.0 makes the desktop app the front door and tidies what sits behind it. Quick Start now points straight at `LibreSpot-Desktop.exe` and `checksums.txt`, explains the same-release hash and release attestation checks in plain words, and keeps the PowerShell script and the fleet CLI behind labeled Advanced and Managed sections. The unverified one-line install command is gone.
+
+Settings opens with the four choices most people change: the Spotify build, the theme, the Marketplace, and whether Spotify opens when the run finishes. Everything else is one click away in labeled groups, the page has a single scrollbar, and the apply button lives in a footer that never scrolls out of reach. Searching for a hidden option opens its group and scrolls it into view. Clearing the search puts the groups back the way you left them.
+
+Home shows a quiet Update LibreSpot link when a newer stable release exists. The check runs in the background once a day, never downloads anything, and never interrupts you.
+
+Closing Spotify is polite now. Both the desktop restart and the script ask each Spotify window to close, wait up to five seconds, and only then force whatever is still running. The run log names each process, its PID, the wait, and the reason.
+
+The security policy names v4.0.x and later as the supported stable line and marks the old standalone v3.7.x script releases as superseded. The blocked plan no longer describes signing as pending, and the signing decision record ships with the repository.
 
 ## What's New in v4.1.2
 
@@ -218,7 +230,7 @@ Scheme previews, layers, effects tiers, client-side flags, snippets, and presets
 >
 > If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch. The WPF Maintenance dashboard also flags **After Spotify update** drift and recommends targeted recovery steps before a full reset.
 
-Current source script version: **v3.8.2**. Current desktop and CLI release: **v4.1.2**. Public latest stable release: **v4.1.2**.
+Current source script version: **v3.8.3**. Current desktop and CLI release: **v4.2.0**. Public latest stable release: **v4.1.2**.
 
 **Pinned dependency versions in the current source script:**
 
@@ -555,7 +567,7 @@ checksum-covered assets into the release root. Generate the CycloneDX SBOM, writ
 ```powershell
 .\Build-Scripts.ps1 -CompileStableExe
 .\Build-Scripts.ps1 -GenerateSbom
-.\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.1.2 -ReleaseChannel stable
+.\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.2.0 -ReleaseChannel stable
 ```
 
 `-CompileStableExe` writes `publish\LibreSpot.exe` with the pinned PS2EXE flags
