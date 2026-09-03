@@ -61,6 +61,24 @@ public sealed class ReleaseNoticeServiceTests
         Assert.Equal("v4.2.0", cache.RootElement.GetProperty("tagName").GetString());
     }
 
+    [Theory]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("file:///C:/Windows/System32/calc.exe")]
+    [InlineData("http://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.2.0")]
+    [InlineData("https://example.com/SysAdminDoc/LibreSpot/releases/tag/v4.2.0")]
+    [InlineData("https://github.com/someone-else/LibreSpot/releases/tag/v4.2.0")]
+    public async Task UntrustedReleaseUrl_FallsBackToTheReleasesPage(string htmlUrl)
+    {
+        using var root = new TempRoot();
+        var service = Create(root, new FakeClient(ReleaseNoticeLookup.Found("v4.2.0", htmlUrl, false, null)));
+
+        var notice = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.True(notice.UpdateAvailable);
+        Assert.Equal(ReleaseNoticeService.LatestStableReleasePage, notice.ReleaseUrl);
+        Assert.False(ReleaseNoticeService.IsTrustedReleaseUrl(htmlUrl));
+    }
+
     [Fact]
     public async Task CurrentRelease_StaysSilent()
     {

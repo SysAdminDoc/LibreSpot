@@ -8,6 +8,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Opening a profile from global search, double-clicking a `.librespot` file, or following a `librespot://` link now opens the Profile tools group so the selected card and any failure message are visible. The Update LibreSpot link only ever opens an https GitHub page for this repository; any other address in the release response or the local cache falls back to the releases page. Searching Settings scrolls to a newly opened group once instead of on every keystroke.
 - `SIGNPATH.md`, the record of why LibreSpot ships unsigned, is now tracked. It was listed in `.gitignore`, so a fresh clone failed the two release-trust tests that read it and the security policy pointed at a file that only existed on the maintainer's machine.
 
 ### Added

@@ -544,6 +544,8 @@ public sealed partial class MainViewModel
         SelectedWorkspaceIndex = 1;
         SettingsSearchText = string.Empty;
         ThemeSearchText = string.Empty;
+        // The profile list lives in a closed group by default; a search hit must land on it.
+        IsProfileToolsExpanded = true;
         SelectedLocalProfile = profile;
     }
 

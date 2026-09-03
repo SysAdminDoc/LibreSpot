@@ -88,6 +88,21 @@ public sealed class SettingsDisclosureTests
         Assert.True(viewModel.IsInstallDetailsExpanded, "A new search term starts from the matches again.");
     });
 
+    [Theory]
+    [InlineData("profile")]
+    [InlineData("custom-profiles")]
+    public Task SmokeStatesThatShowProfileControls_OpenTheProfileToolsGroup(string state) => RunStaAsync(async () =>
+    {
+        using var fixture = new ShellFixture();
+        using var viewModel = fixture.Create();
+        await viewModel.InitializeAsync();
+
+        viewModel.ApplyUiAutomationSmokeState(state);
+
+        Assert.Equal(1, viewModel.SelectedWorkspaceIndex);
+        Assert.True(viewModel.IsProfileToolsExpanded, $"{state} must open Profile tools or its focus target has no bounds.");
+    });
+
     [Fact]
     public void EssentialsSection_ExposesExactlyTheFourCommonChoices()
     {
@@ -105,11 +120,13 @@ public sealed class SettingsDisclosureTests
     }
 
     [Fact]
-    public void SettingsWorkspace_HasOneScrollbarOneLevelOfDisclosureAndAnUnclippedApplyAction()
+    public void SettingsWorkspace_HasOnePageScrollViewerOneLevelOfDisclosureAndAnUnclippedApplyAction()
     {
         var workspace = ReadView("CustomWorkspaceView.xaml");
         var sectionFiles = Directory.GetFiles(ViewsDirectory, "Custom*Section.xaml");
 
+        // One page ScrollViewer. Card pickers (theme gallery, flag list, patch
+        // editor) may still scroll inside it; the profile rail's own viewer is gone.
         var scrollViewers = Regex.Matches(workspace, "<ScrollViewer").Count
             + sectionFiles.Sum(file => Regex.Matches(File.ReadAllText(file), "<ScrollViewer").Count);
         Assert.Equal(1, scrollViewers);

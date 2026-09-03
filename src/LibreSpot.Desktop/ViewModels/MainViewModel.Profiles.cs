@@ -524,6 +524,8 @@ public sealed partial class MainViewModel
 
     public async Task PreviewLocalProfileFileAsync(string filePath)
     {
+        // Shell activations land in Settings; the profile card and its status live in the Profile tools group.
+        IsProfileToolsExpanded = true;
         try
         {
             var preview = await _profileService.PreviewImportAsync(filePath);
@@ -555,6 +557,8 @@ public sealed partial class MainViewModel
 
     public async Task PreviewSharedProfileUriAsync(string shareUri)
     {
+        // Shell activations land in Settings; the profile card and its status live in the Profile tools group.
+        IsProfileToolsExpanded = true;
         try
         {
             var preview = await _profileService.PreviewShareUriAsync(shareUri);

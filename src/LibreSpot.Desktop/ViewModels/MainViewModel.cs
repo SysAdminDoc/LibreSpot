@@ -1898,9 +1898,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private void OpenLibreSpotUpdate()
     {
-        if (_libreSpotUpdateNotice is { UpdateAvailable: true, ReleaseUrl: { Length: > 0 } url })
+        if (_libreSpotUpdateNotice is { UpdateAvailable: true })
         {
-            OpenExternalUri(url);
+            // The link only ever opens the GitHub release page; anything else
+            // (including a tampered cache) falls back to the releases page.
+            OpenExternalUri(ReleaseNoticeService.IsTrustedReleaseUrl(_libreSpotUpdateNotice.ReleaseUrl)
+                ? _libreSpotUpdateNotice.ReleaseUrl!
+                : ReleaseNoticeService.LatestStableReleasePage);
         }
     }
 
@@ -2760,6 +2764,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 break;
             case "profile":
                 SelectedWorkspaceIndex = 1;
+                IsProfileToolsExpanded = true;
                 break;
             case "activity-empty":
                 SelectedWorkspaceIndex = 0;

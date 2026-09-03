@@ -269,9 +269,16 @@ public sealed class ReleaseNoticeService
         }
 
         return latest.CompareTo(current) > 0
-            ? new ReleaseNotice(true, latest.ToString(), string.IsNullOrWhiteSpace(htmlUrl) ? LatestStableReleasePage : htmlUrl, source, reason)
+            ? new ReleaseNotice(true, latest.ToString(), IsTrustedReleaseUrl(htmlUrl) ? htmlUrl! : LatestStableReleasePage, source, reason)
             : ReleaseNotice.Silent(source, $"Version {current} is current; latest stable is {latest}.");
     }
+
+    /// <summary>Only an https GitHub page for this repository may be opened from the notice.</summary>
+    public static bool IsTrustedReleaseUrl(string? url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri)
+        && uri.Scheme == Uri.UriSchemeHttps
+        && string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase)
+        && uri.AbsolutePath.StartsWith("/SysAdminDoc/LibreSpot/", StringComparison.OrdinalIgnoreCase);
 
     private CacheDocument? ReadCache()
     {

@@ -10,6 +10,7 @@ namespace LibreSpot.Desktop.Views;
 public partial class CustomWorkspaceView : UserControl
 {
     private MainViewModel? _viewModel;
+    private Expander? _lastRevealedGroup;
 
     public CustomWorkspaceView()
     {
@@ -41,18 +42,32 @@ public partial class CustomWorkspaceView : UserControl
     // expanders have laid out.
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(MainViewModel.SettingsSearchText) || _viewModel is null || !_viewModel.HasSettingsSearchText)
+        if (e.PropertyName != nameof(MainViewModel.SettingsSearchText) || _viewModel is null)
         {
+            return;
+        }
+
+        if (!_viewModel.HasSettingsSearchText)
+        {
+            _lastRevealedGroup = null;
             return;
         }
 
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(ScrollFirstOpenGroupIntoView));
     }
 
+    // Scroll once per revealed group, not once per keystroke, so typing a
+    // longer term does not keep pulling the search box out of the viewport.
     private void ScrollFirstOpenGroupIntoView()
     {
         var target = FindFirstOpenExpander(SettingsScrollViewer);
-        target?.BringIntoView();
+        if (target is null || ReferenceEquals(target, _lastRevealedGroup))
+        {
+            return;
+        }
+
+        _lastRevealedGroup = target;
+        target.BringIntoView();
     }
 
     private static Expander? FindFirstOpenExpander(DependencyObject root)
