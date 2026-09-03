@@ -66,7 +66,7 @@ public sealed class ReleaseTruthTests
 
         foreach (var (path, content) in docs)
         {
-            foreach (var pendingClaim in new[] { "pending-enrollment", "enrollment is pending", "pending signing", "SignPath credentials", "Complete SignPath Foundation enrollment", "once signing is unblocked" })
+            foreach (var pendingClaim in new[] { "pending-enrollment", "enrollment is pending", "pending signing", "SignPath credentials", "Complete SignPath Foundation enrollment", "once signing is unblocked", "signing enrollment", "signed CLI artifact", "unsigned-gated", "waits until signing" })
             {
                 Assert.False(
                     content.Contains(pendingClaim, StringComparison.OrdinalIgnoreCase),

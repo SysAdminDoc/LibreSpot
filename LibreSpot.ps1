@@ -8918,14 +8918,16 @@ function Stop-SpotifyProcesses { param([int]$MaxAttempts=5,[int]$RetryDelay=500,
             } else {
                 Write-Log "$($p.ProcessName) (PID $($p.Id)): refused the close request after $($sw.ElapsedMilliseconds) ms."
             }
-        } catch {
+        } catch [System.InvalidOperationException] {
             Write-Log "$($p.ProcessName) (PID $($p.Id)): exited while the close request was sent after $($sw.ElapsedMilliseconds) ms."
+        } catch {
+            Write-Log "$($p.ProcessName) (PID $($p.Id)): could not be asked to close ($($_.Exception.Message)) after $($sw.ElapsedMilliseconds) ms." -Level 'WARN'
         }
     }
     if ($closeRequested.Count -gt 0) {
         $closePhase = [System.Diagnostics.Stopwatch]::StartNew()
         while ($closePhase.ElapsedMilliseconds -lt $CloseWaitMs) {
-            $waiting = @($procs | Where-Object { $closeRequested.ContainsKey([int]$_.Id) -and -not $_.HasExited })
+            $waiting = @($procs | Where-Object { -not $_.HasExited })
             if (-not $waiting) { break }
             Start-Sleep -Milliseconds $PollIntervalMs
         }

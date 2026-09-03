@@ -2839,6 +2839,22 @@ Describe 'Stop-SpotifyProcesses' {
         $script:shutdownLog[-1] | Should -Match '^INFO\|Spotify closed after \d+ ms\.$'
     }
 
+    It 'lets helpers drain after the window closes instead of forcing them' {
+        $window = New-FakeSpotifyProcess -Name 'Spotify' -Id 21 -HasWindow $true -AcceptsClose $true -ExitsAfterClose $true -AlreadyExited $false
+        $helper = New-FakeSpotifyProcess -Name 'SpotifyCrashService' -Id 23 -HasWindow $false -AcceptsClose $false -ExitsAfterClose $false -AlreadyExited $false
+        $helper | Add-Member -MemberType NoteProperty -Name DrainPolls -Value 3
+        $helper | Add-Member -MemberType ScriptProperty -Name HasExited -Value {
+            if (-not $this.Exited -and $this.DrainPolls -gt 0) { $this.DrainPolls--; if ($this.DrainPolls -eq 0) { $this.Exited = $true } }
+            $this.Exited
+        } -Force
+        $script:shutdownTable = @($window, $helper)
+
+        Stop-SpotifyProcesses -MaxAttempts 3 -RetryDelay 0 -CloseWaitMs 2000 -PollIntervalMs 1
+
+        ($script:shutdownEvents -join ',') | Should -Be 'close:Spotify:21'
+        @($script:shutdownLog | Where-Object { $_ -like 'WARN|*' }).Count | Should -Be 0
+    }
+
     It 'bounds the wait when nothing exits' {
         $stubborn = New-FakeSpotifyProcess -Name 'Spotify' -Id 9 -HasWindow $true -AcceptsClose $true -ExitsAfterClose $false -AlreadyExited $false
         $script:shutdownTable = @($stubborn)

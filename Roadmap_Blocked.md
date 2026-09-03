@@ -515,11 +515,11 @@ distribution consequences.
 Verify: review decision against install flow, watcher, package, and support
 burden.
 
-## P2 - Decide the v4 theming base before the .NET 10 migration lands
+## P2 - Decide the v4 theming base
 
 | Field | Value |
 |---|---|
-| Source | Research-Driven Additions (June 9, 2026) |
+| Source | Research-Driven Additions (June 9, 2026); the .NET 10 migration this entry once waited for has landed |
 | Blocker | Architecture/design decision - operator must choose theming strategy |
 
 Why: three options now overlap: the current hand-rolled
@@ -623,7 +623,7 @@ The row is ready — operator needs to create the account and decide.
 | Field | Value |
 |---|---|
 | Source | Cycle 22 |
-| Blocker | Package identity decision + signing enrollment must complete first |
+| Blocker | Package identity decision must come first |
 
 Why: Cycle 21 concludes that the fleet CLI needs a console-capable artifact.
 That artifact is a better first target for winget portable and Scoop than
@@ -634,10 +634,11 @@ Touches: package channel matrix, the local release procedure, future CLI project
 winget/Scoop/Chocolatey templates, README install docs.
 
 Acceptance: initial package sequence is explicit: GitHub Releases remains
-canonical for all assets; winget portable and Scoop target the signed CLI
+canonical for all assets; winget portable and Scoop target the CLI
 artifact first; Velopack targets the WPF shell after state migration and
-update-feed decisions; Chocolatey waits until signing, silent install,
-uninstall, and verifier-friendly behavior are proven. If a GUI package is
+update-feed decisions; Chocolatey waits until silent install, uninstall,
+and verifier-friendly behavior are proven. Every artifact ships unsigned by
+design, so no channel waits on a certificate. If a GUI package is
 published through winget/Chocolatey, the matrix documents why it will not
 conflict with Velopack's own updater.
 
@@ -650,7 +651,7 @@ channels claiming to auto-update the same install root.
 | Field | Value |
 |---|---|
 | Source | Cycle 22 |
-| Blocker | Package identity decision + signing enrollment required for validation targets |
+| Blocker | Package identity decision required for validation targets |
 
 Why: existing roadmap items ask for manifests, but package-manager drift is
 most damaging when a tag ships with invalid hashes, wrong silent switches,
@@ -668,8 +669,7 @@ artifacts for review but do not publish unless an explicit release channel
 flag is enabled.
 
 Verify: a test tag/dry-run proves invalid SHA, missing silent switch,
-missing package ID, unsupported artifact role, or unsigned-gated channel
-fails before upload.
+missing package ID, or unsupported artifact role fails before upload.
 
 ## P2 - Decide backend status localization contract before translating activity events
 

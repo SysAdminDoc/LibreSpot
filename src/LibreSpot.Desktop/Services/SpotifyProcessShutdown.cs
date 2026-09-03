@@ -126,12 +126,19 @@ public static class SpotifyProcessShutdown
                 {
                     events.Add(Event(SpotifyShutdownEventKinds.Exited, process, stopwatch, "exited while the close request was sent"));
                 }
+                catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or NotSupportedException)
+                {
+                    events.Add(Event(SpotifyShutdownEventKinds.Skipped, process, stopwatch, $"could not be asked to close ({ex.GetType().Name}: {ex.Message})"));
+                }
             }
 
             if (closeRequested.Count > 0)
             {
+                // A window that honors the request takes its helpers and
+                // renderer children down with it a moment later, so the whole
+                // family gets the bounded wait, not just the windowed process.
                 await WaitUntilAsync(
-                    () => running.Where(p => closeRequested.Contains(p.Id)).All(HasExited),
+                    () => running.All(HasExited),
                     closeWait,
                     pollInterval,
                     cancellationToken);

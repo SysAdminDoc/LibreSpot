@@ -89,7 +89,26 @@ public sealed class SpotifyProcessShutdownTests
 
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), $"Shutdown took {stopwatch.Elapsed}.");
         Assert.Single(result.Events, e => e.Kind == SpotifyShutdownEventKinds.CloseRequested);
-        Assert.Single(result.Events, e => e.Kind == SpotifyShutdownEventKinds.Forced);
+        var forced = Assert.Single(result.Events, e => e.Kind == SpotifyShutdownEventKinds.Forced);
+        Assert.True(forced.ElapsedMs >= ShortWait.TotalMilliseconds, $"Forced after {forced.ElapsedMs} ms, before the {ShortWait.TotalMilliseconds} ms close wait elapsed.");
+    }
+
+    [Fact]
+    public async Task Shutdown_LetsHelpersDrainAfterTheWindowClosesInsteadOfForcingThem()
+    {
+        // Spotify's renderer children and helpers exit a moment after the
+        // window honors the close request; they must not be counted as forced.
+        var events = new List<string>();
+        var source = new FakeSource(
+            new[] { ("Spotify", 21, true, true, true, false), ("Spotify", 22, false, false, false, false), ("SpotifyCrashService", 23, false, false, false, false) },
+            events,
+            exitAfterPolls: 3);
+
+        var result = await SpotifyProcessShutdown.ShutdownAsync(source, TimeSpan.FromSeconds(2), ShortWait, Poll, CancellationToken.None);
+
+        Assert.Equal("close:Spotify:21", Assert.Single(events));
+        Assert.Equal(0, result.ForcedCount);
+        Assert.Empty(result.Errors);
     }
 
     [Fact]
@@ -228,9 +247,10 @@ function Start-Sleep { param([int]$Seconds, [int]$Milliseconds) }
             IEnumerable<(string Name, int Id, bool HasWindow, bool AcceptsClose, bool ExitsAfterClose, bool AlreadyExited)> rows,
             List<string> events,
             bool survivesKill = false,
-            bool killThrows = false)
+            bool killThrows = false,
+            int exitAfterPolls = 0)
         {
-            Handles = rows.Select(r => new FakeHandle(r.Name, r.Id, r.HasWindow, r.AcceptsClose, r.ExitsAfterClose, r.AlreadyExited, events, survivesKill, killThrows)).ToList();
+            Handles = rows.Select(r => new FakeHandle(r.Name, r.Id, r.HasWindow, r.AcceptsClose, r.ExitsAfterClose, r.AlreadyExited, events, survivesKill, killThrows, exitAfterPolls)).ToList();
         }
 
         public List<FakeHandle> Handles { get; }
@@ -253,9 +273,13 @@ function Start-Sleep { param([int]$Seconds, [int]$Milliseconds) }
         private readonly bool _survivesKill;
         private readonly bool _killThrows;
         private readonly List<string> _events;
+        private int _drainPolls;
 
-        public FakeHandle(string name, int id, bool hasWindow, bool acceptsClose, bool exitsAfterClose, bool alreadyExited, List<string> events, bool survivesKill, bool killThrows)
+        public FakeHandle(string name, int id, bool hasWindow, bool acceptsClose, bool exitsAfterClose, bool alreadyExited, List<string> events, bool survivesKill, bool killThrows, int exitAfterPolls = 0)
         {
+            // A windowless helper with exitAfterPolls > 0 disappears on its own
+            // after that many HasExited reads, like a child following its parent.
+            _drainPolls = hasWindow ? 0 : exitAfterPolls;
             Name = name;
             Id = id;
             HasMainWindow = hasWindow;
@@ -270,7 +294,18 @@ function Start-Sleep { param([int]$Seconds, [int]$Milliseconds) }
         public string Name { get; }
         public int Id { get; }
         public bool Exited { get; private set; }
-        public bool HasExited => Exited;
+        public bool HasExited
+        {
+            get
+            {
+                if (!Exited && _drainPolls > 0 && --_drainPolls == 0)
+                {
+                    Exited = true;
+                }
+
+                return Exited;
+            }
+        }
         public bool HasMainWindow { get; }
         public int DisposeCount { get; private set; }
 
