@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -175,7 +175,7 @@ public sealed class ReleaseNoticeService
     public const string LatestStableReleasePage = "https://github.com/SysAdminDoc/LibreSpot/releases/latest";
     public static readonly TimeSpan DefaultCacheLifetime = TimeSpan.FromHours(24);
 
-    private const int CacheSchemaVersion = 1;
+    private const int CacheSchemaVersion = 2;
     private static readonly JsonSerializerOptions CacheJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -218,7 +218,19 @@ public sealed class ReleaseNoticeService
         var cache = ReadCache();
         if (cache is not null && now >= cache.CheckedAtUtc && now - cache.CheckedAtUtc < _cacheLifetime)
         {
-            return Evaluate(current, cache.TagName, cache.HtmlUrl, "cache", "The cached release is less than a day old.");
+            if (string.IsNullOrWhiteSpace(cache.TagName))
+            {
+                return ReleaseNotice.Silent("cache", "The last release check was refused and the next one is not due yet.");
+            }
+
+            // Age is reported from when the release was actually read, not from
+            // the last time the service spoke to GitHub, so a run of refusals
+            // cannot describe a month-old answer as less than a day old.
+            var fetchedAt = cache.FetchedAtUtc ?? cache.CheckedAtUtc;
+            var reason = now - fetchedAt < _cacheLifetime
+                ? "The cached release is less than a day old."
+                : $"The cached release was last confirmed {FormatAge(now - fetchedAt)} ago; checks since then were refused.";
+            return Evaluate(current, cache.TagName, cache.HtmlUrl, "cache", reason);
         }
 
         ReleaseNoticeLookup lookup;
@@ -239,7 +251,7 @@ public sealed class ReleaseNoticeService
         switch (lookup.Status)
         {
             case ReleaseNoticeLookupStatus.Found when !lookup.IsPrerelease && !string.IsNullOrWhiteSpace(lookup.TagName):
-                WriteCache(new CacheDocument(CacheSchemaVersion, now, lookup.TagName, lookup.HtmlUrl, lookup.ETag));
+                WriteCache(new CacheDocument(CacheSchemaVersion, now, lookup.TagName, lookup.HtmlUrl, lookup.ETag, now));
                 return Evaluate(current, lookup.TagName, lookup.HtmlUrl, "live", lookup.Message);
 
             case ReleaseNoticeLookupStatus.Found:
@@ -247,16 +259,22 @@ public sealed class ReleaseNoticeService
                 return FallBack(current, cache, "live", "The latest release response was a prerelease or had no tag.");
 
             case ReleaseNoticeLookupStatus.NotModified when cache is not null:
-                WriteCache(cache with { CheckedAtUtc = now, ETag = lookup.ETag ?? cache.ETag });
+                WriteCache(cache with { CheckedAtUtc = now, ETag = lookup.ETag ?? cache.ETag, FetchedAtUtc = now });
                 return Evaluate(current, cache.TagName, cache.HtmlUrl, "live-conditional", lookup.Message);
 
-            case ReleaseNoticeLookupStatus.RateLimited when cache is not null:
+            case ReleaseNoticeLookupStatus.RateLimited:
                 // Being told to slow down and then retrying on the next launch is
-                // how an anonymous client burns the rest of its hourly budget.
-                // Restarting the cache window backs off for a day and keeps
-                // serving the release already known.
-                WriteCache(cache with { CheckedAtUtc = now });
-                return Evaluate(current, cache.TagName, cache.HtmlUrl, "cache-stale", lookup.Message);
+                // how an anonymous client burns the rest of its hourly budget. The
+                // machine with nothing cached is the one that needs this most: a
+                // fresh install behind a shared address can arrive already over
+                // the limit and would otherwise ask again every time it starts.
+                // FetchedAtUtc is deliberately not moved.
+                WriteCache(cache is null
+                    ? new CacheDocument(CacheSchemaVersion, now, null, null, null)
+                    : cache with { CheckedAtUtc = now });
+                return cache is null
+                    ? ReleaseNotice.Silent("rate-limited", lookup.Message)
+                    : Evaluate(current, cache.TagName, cache.HtmlUrl, "cache-stale", lookup.Message);
 
             default:
                 return FallBack(current, cache, lookup.Status.ToString().ToLowerInvariant(), lookup.Message);
@@ -267,6 +285,13 @@ public sealed class ReleaseNoticeService
         cache is null
             ? ReleaseNotice.Silent(source, reason)
             : Evaluate(current, cache.TagName, cache.HtmlUrl, "cache-stale", reason);
+
+    private static string FormatAge(TimeSpan age) =>
+        age.TotalDays >= 2
+            ? $"{(int)age.TotalDays} days"
+            : age.TotalHours >= 2
+                ? $"{(int)age.TotalHours} hours"
+                : "under an hour";
 
     private static ReleaseNotice Evaluate(ReleaseVersion current, string? tagName, string? htmlUrl, string source, string reason)
     {
@@ -302,9 +327,10 @@ public sealed class ReleaseNoticeService
             }
 
             var cache = JsonSerializer.Deserialize<CacheDocument>(File.ReadAllText(_cachePath), CacheJsonOptions);
-            return cache is { SchemaVersion: CacheSchemaVersion } && !string.IsNullOrWhiteSpace(cache.TagName)
-                ? cache
-                : null;
+            // A record with no tag is a backoff marker and is still meaningful: it
+            // is the only thing standing between a rate-limited machine with no
+            // cached release and a request on every single launch.
+            return cache is { SchemaVersion: CacheSchemaVersion } ? cache : null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
@@ -324,12 +350,20 @@ public sealed class ReleaseNoticeService
         }
     }
 
+    /// <param name="CheckedAtUtc">When the service last spoke to GitHub. Throttles requests.</param>
+    /// <param name="FetchedAtUtc">
+    /// When <paramref name="TagName"/> was actually read from a response. A rate-limited
+    /// answer moves CheckedAtUtc and leaves this alone, so backing off cannot make an old
+    /// release look freshly confirmed.
+    /// </param>
+    /// <param name="TagName">Null for a record that carries nothing but a backoff.</param>
     private sealed record CacheDocument(
         int SchemaVersion,
         DateTimeOffset CheckedAtUtc,
-        string TagName,
+        string? TagName,
         string? HtmlUrl,
-        string? ETag);
+        string? ETag,
+        DateTimeOffset? FetchedAtUtc = null);
 }
 
 public sealed class GitHubReleaseNoticeClient : IReleaseNoticeClient

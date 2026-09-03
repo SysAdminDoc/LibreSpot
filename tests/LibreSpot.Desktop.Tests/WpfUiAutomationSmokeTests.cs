@@ -271,16 +271,26 @@ public sealed class WpfUiAutomationSmokeTests
     }
 
     [Theory]
-    [InlineData("recommended")]
-    [InlineData("custom")]
-    [InlineData("maintenance")]
-    public void AxeWindowsScan_FindsNoViolationOutsideTheRecordedBaseline(string state)
+    [InlineData("recommended", "Home")]
+    [InlineData("custom", "Settings")]
+    [InlineData("maintenance", "Maintenance")]
+    public void AxeWindowsScan_FindsNoViolationOutsideTheRecordedBaseline(string state, string expectedName)
     {
         using var app = LaunchSmokeState(state);
-        WaitForMainWindow(app.Process, MainWindowTimeout);
+        var window = WaitForMainWindow(app.Process, MainWindowTimeout);
+
+        WaitForSnapshotContaining(window, expectedName, SmokeReadyTimeout);
 
         var baseline = LoadAxeBaseline(state);
-        var observed = ScanForAccessibilityViolations(app.Process)
+        var scan = ScanUntilSettled(app.Process, SmokeReadyTimeout);
+
+        // Without this, a scan that returns nothing at all satisfies every
+        // assertion below and the state goes quietly green forever.
+        Assert.True(
+            scan.WindowsScanned > 0,
+            "Axe.Windows scanned no windows, so this state proved nothing. The shell was probably gone or never charted.");
+
+        var observed = scan.Violations
             .GroupBy(violation => violation.Key, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
 
@@ -328,9 +338,12 @@ public sealed class WpfUiAutomationSmokeTests
         // button specifically: every state already reports name-related violations
         // on icon glyphs, so matching on the rule alone would prove nothing.
         using var app = LaunchSmokeState("axe-positive-control");
-        WaitForMainWindow(app.Process, MainWindowTimeout);
+        var window = WaitForMainWindow(app.Process, MainWindowTimeout);
+        WaitForSnapshotContaining(window, "Home", SmokeReadyTimeout);
 
-        var violations = ScanForAccessibilityViolations(app.Process);
+        var scan = ScanUntilSettled(app.Process, SmokeReadyTimeout);
+        Assert.True(scan.WindowsScanned > 0, "Axe.Windows scanned no windows, so this control proved nothing.");
+        var violations = scan.Violations;
 
         Assert.True(
             violations.Any(violation =>
@@ -341,7 +354,58 @@ public sealed class WpfUiAutomationSmokeTests
                 + string.Join(", ", violations.Select(violation => violation.Key).Distinct().OrderBy(key => key, StringComparer.Ordinal)));
     }
 
-    private static IReadOnlyList<AxeViolation> ScanForAccessibilityViolations(Process process)
+    private sealed record AxeScan(int WindowsScanned, IReadOnlyList<AxeViolation> Violations);
+
+    /// <summary>
+    /// Scans until two consecutive scans agree, or the timeout runs out.
+    /// </summary>
+    /// <remarks>
+    /// Waiting for a named element is not enough. The shell keeps populating
+    /// after its title is charted, so at full CPU the Maintenance state has been
+    /// seen reporting six icon glyphs where a quiet machine reports two, and the
+    /// Home list has been caught mid-virtualization with DataItems that have no
+    /// bounding rectangle yet. A count-based baseline cannot be built on a
+    /// moving tree, so the scan settles rather than the test guessing a delay.
+    /// A tree that never settles falls through and is reported by the caller's
+    /// assertion, which is the honest outcome for a UI that is still churning.
+    /// </remarks>
+    private static AxeScan ScanUntilSettled(Process process, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        var previous = ScanForAccessibilityViolations(process);
+
+        while (DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(400);
+            var current = ScanForAccessibilityViolations(process);
+            if (HaveSameShape(previous, current))
+            {
+                return current;
+            }
+
+            previous = current;
+        }
+
+        return previous;
+    }
+
+    private static bool HaveSameShape(AxeScan left, AxeScan right)
+    {
+        if (left.WindowsScanned != right.WindowsScanned || left.Violations.Count != right.Violations.Count)
+        {
+            return false;
+        }
+
+        var leftCounts = left.Violations.GroupBy(v => v.Key, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+        var rightCounts = right.Violations.GroupBy(v => v.Key, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+
+        return leftCounts.Count == rightCounts.Count
+            && leftCounts.All(pair => rightCounts.TryGetValue(pair.Key, out var count) && count == pair.Value);
+    }
+
+    private static AxeScan ScanForAccessibilityViolations(Process process)
     {
         var config = Config.Builder
             .ForProcessId(process.Id)
@@ -350,11 +414,15 @@ public sealed class WpfUiAutomationSmokeTests
 
         var output = ScannerFactory.CreateScanner(config).Scan(null);
 
-        return output.WindowScanOutputs
-            .SelectMany(window => window.Errors)
-            .Select(AxeViolation.FromScanResult)
-            .OrderBy(violation => violation.Key, StringComparer.Ordinal)
-            .ToArray();
+        // The window count travels with the result so callers can tell "this
+        // window is clean" from "nothing was looked at".
+        return new AxeScan(
+            output.WindowScanOutputs.Count,
+            output.WindowScanOutputs
+                .SelectMany(window => window.Errors)
+                .Select(AxeViolation.FromScanResult)
+                .OrderBy(violation => violation.Key, StringComparer.Ordinal)
+                .ToArray());
     }
 
     private static string ResolveRepoRoot()

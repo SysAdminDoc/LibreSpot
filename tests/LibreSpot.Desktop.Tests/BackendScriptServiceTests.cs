@@ -202,9 +202,12 @@ public sealed class BackendScriptServiceTests
         var probe = new BackendScriptService(
             probeDirectory,
             noBackendMode: false,
+            // Generous enough that the probe is never the thing that times out,
+            // tight enough that a host which cannot start fails this test in half
+            // a minute instead of five.
             new BackendWatchdogOptions(
-                TimeSpan.FromMinutes(4),
-                TimeSpan.FromMinutes(5),
+                TimeSpan.FromSeconds(20),
+                TimeSpan.FromSeconds(30),
                 TimeSpan.FromSeconds(1)),
             probeScript);
 
@@ -232,8 +235,15 @@ public sealed class BackendScriptServiceTests
         // small, so the budget is measured on this machine at this moment instead
         // of guessed: start a host that prints one line and exits, see how long
         // the line took, and give the real run several times that.
+        // Clamped at both ends. The floor is what a quiet machine gets, where the
+        // measurement is a few hundred milliseconds and multiplying it would give
+        // a budget thinner than the one that already proved too small. The ceiling
+        // matters more: the script has to outlast the budget, so an unbounded
+        // measurement would size a script to match and a single pathological
+        // reading could leave this test running for half an hour.
         var coldStart = await MeasureBackendColdStartAsync(tempRoot);
-        var stallTimeout = TimeSpan.FromMilliseconds(Math.Max(5000, coldStart.TotalMilliseconds * 4));
+        var stallTimeout = TimeSpan.FromMilliseconds(
+            Math.Clamp(coldStart.TotalMilliseconds * 4, 5000, 15000));
 
         // The script then has to keep talking for longer than that budget, or the
         // run finishes before the watchdog could ever fire and the assertions hold

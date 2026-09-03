@@ -176,8 +176,12 @@ public sealed class ReleaseNoticeServiceTests
         Assert.Equal("cache-stale", notice.Source);
     }
 
+    // RateLimited is deliberately not in this set any more. Writing nothing is
+    // right for a failure the server did not ask us to slow down over, but for a
+    // rate limit it meant asking again on the very next launch, which is what
+    // GetNoticeAsync_ARateLimitedResponseBacksOffEvenWithNothingCached now covers.
+    // The two are mutually exclusive by design, not by oversight.
     [Theory]
-    [InlineData(ReleaseNoticeLookupStatus.RateLimited)]
     [InlineData(ReleaseNoticeLookupStatus.Offline)]
     [InlineData(ReleaseNoticeLookupStatus.Missing)]
     [InlineData(ReleaseNoticeLookupStatus.Malformed)]
@@ -297,6 +301,66 @@ public sealed class ReleaseNoticeServiceTests
         Assert.True(second.UpdateAvailable);
     }
 
+    [Fact]
+    public async Task GetNoticeAsync_ARateLimitedResponseBacksOffEvenWithNothingCached()
+    {
+        // The machine that needs this most is the one with no cache: a fresh
+        // install behind a shared address can arrive already over the anonymous
+        // limit, and it used to ask again on every single launch, silently.
+        using var root = new TempRoot();
+        var client = new FakeClient(ReleaseNoticeLookup.RateLimited("HTTP 429 while reading the latest release."));
+        var service = Create(root, client);
+
+        for (var i = 0; i < 5; i++)
+        {
+            await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+        }
+
+        Assert.Equal(1, client.Calls);
+    }
+
+    [Fact]
+    public async Task GetNoticeAsync_BackingOffDoesNotMakeAnOldReleaseLookFreshlyConfirmed()
+    {
+        // The backoff moves the throttle, not the freshness. Storing a refusal as
+        // if it were a successful read would let a run of them describe a release
+        // confirmed two months ago as less than a day old, forever.
+        using var root = new TempRoot();
+        var client = new FakeClient(ReleaseNoticeLookup.RateLimited("HTTP 403 while reading the latest release."));
+        var service = Create(root, client);
+        WriteCache(root, Now.AddDays(-60), "v4.1.3", "W/\"etag\"");
+
+        var refused = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+        var afterBackoff = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.Equal(1, client.Calls);
+        Assert.Equal("cache", afterBackoff.Source);
+        Assert.DoesNotContain("less than a day old", afterBackoff.Reason, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("refused", afterBackoff.Reason, StringComparison.OrdinalIgnoreCase);
+
+        // The release itself is still offered; only the wording changes.
+        Assert.True(refused.UpdateAvailable);
+        Assert.True(afterBackoff.UpdateAvailable);
+    }
+
+    [Fact]
+    public async Task GetNoticeAsync_ReadsLiveThenServesTheCacheItJustWrote()
+    {
+        // The criterion's literal wording: the first call goes out, the second is
+        // served by the cache the first one wrote, not by a cache set up by hand.
+        using var root = new TempRoot();
+        var client = new FakeClient(ReleaseNoticeLookup.Found("v4.1.3", null, isPrerelease: false, etag: "W/\"etag\""));
+        var service = Create(root, client);
+
+        var first = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+        var second = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.Equal(1, client.Calls);
+        Assert.Equal("live", first.Source);
+        Assert.Equal("cache", second.Source);
+        Assert.True(second.UpdateAvailable);
+    }
+
     private static ReleaseNoticeService Create(TempRoot root, FakeClient client) =>
         new(client, root.CachePath, () => Now);
 
@@ -305,8 +369,11 @@ public sealed class ReleaseNoticeServiceTests
         Directory.CreateDirectory(Path.GetDirectoryName(root.CachePath)!);
         File.WriteAllText(root.CachePath, JsonSerializer.Serialize(new
         {
-            schemaVersion = 1,
+            schemaVersion = 2,
             checkedAtUtc,
+            // A hand-written cache stands for one that was genuinely fetched then,
+            // which is what makes the staleness assertions mean anything.
+            fetchedAtUtc = checkedAtUtc,
             tagName = tag,
             htmlUrl = (string?)null,
             eTag = etag
