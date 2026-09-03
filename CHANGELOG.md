@@ -6,12 +6,14 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- The desktop app and the fleet CLI now report Marketplace 1.0.11 in their health guidance, matching the script. Six resource files and the UI smoke fixture still said 1.0.9.
 - The README now says which lane each behaviour belongs to. Hiding Spotify windows happens in the script and the desktop app, keeping LibreSpot's own window on top is script-only, background runspaces are the script's mechanism while the desktop app uses a separate process, self-elevation belongs to the script and the compiled exe, and the per-architecture hashes cover the Spicetify download rather than LibreSpot's own x64 executables. Full removal is described as the seven phases the script actually logs, without the native-uninstaller step that was removed. The SpotX pin is identified by commit and date, with a note that `2.0` is LibreSpot's own adapter version because upstream's newest tag is 1.9. Two upstream facts were out of date: SpotX `main` now recommends Spotify 1.2.99, and Spicetify 2.44.0 declares Windows support through 1.2.96 while 1.2.93 stays the build LibreSpot has verified.
 
 - The reviewed stack now installs Spicetify Marketplace 1.0.11 instead of 1.0.9. The two releases in between fixed the key migration and the settings write that ran too late during a reload, which is the failure people describe as losing their installed themes and extensions after a restart. Verified against the pinned Spotify 1.2.93.667 client: the new archive downloads and matches its checksum, the store page and the LibreSpot page both load, and the registered extensions, custom apps, engine state, route wiring, and Marketplace's own saved settings are byte-identical after a full client restart.
 
 ### Fixed
 
+- A bundled archive that cannot be read, because antivirus or a parallel run is holding it open, no longer abandons the custom-app install. It falls through to the cache and the download like any other miss. The compiled `LibreSpot.exe` now finds an archive sitting beside it, which it could not before because PS2EXE leaves the script-root variable empty.
 - The live customization app now installs from the release that carries it, or from the copy LibreSpot brings with it, instead of a file on the main branch. The old branch address served whatever the branch held at that moment, so rebuilding the archive broke the pinned checksum for every release already published and a fresh install refused to add the app. The desktop app and the fleet CLI now unpack their own copy and install it with no download at all, the script lane looks for `librespot-engine.zip` beside itself, and a local copy whose bytes do not match the pinned checksum is ignored rather than trusted. Releases now publish `librespot-engine.zip` with its own checksum line.
 
 ## [v4.2.0] (2026-09-02)

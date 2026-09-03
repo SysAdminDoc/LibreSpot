@@ -838,7 +838,7 @@ public static class AppCatalog
     public const string PinnedStatsCustomAppVersion = "1.1.3";
     public static string PinnedStatsCustomAppReleaseTag => $"stats-v{PinnedStatsCustomAppVersion}";
     public static DateTimeOffset UpstreamPinsLastVerifiedAtUtc { get; } =
-        new(2026, 8, 20, 0, 0, 0, TimeSpan.Zero);
+        new(2026, 9, 3, 0, 0, 0, TimeSpan.Zero);
 
     /// <summary>
     /// Records why LibreSpot deliberately holds the SpotX pin instead of tracking

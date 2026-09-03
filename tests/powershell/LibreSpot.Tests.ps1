@@ -2984,6 +2984,26 @@ Describe 'Module-InstallCustomApps bundled archive resolution' {
         ($script:appLog -join "`n") | Should -Match 'does not match the pinned hash'
     }
 
+    It 'falls back to the download when the bundled archive cannot be read' {
+        Reset-CustomAppFixture -WithBundle
+        $locked = [System.IO.File]::Open(
+            (Join-Path $script:bundleDir 'librespot-engine.zip'),
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::Read,
+            [System.IO.FileShare]::None)
+        try {
+            Module-InstallCustomApps -Config ([pscustomobject]@{ Spicetify_CustomApps = @('librespot') })
+        } finally {
+            $locked.Dispose()
+        }
+
+        # A copy held open by antivirus or a parallel run must not abandon the app:
+        # the run has to reach the cache and the download like any other miss.
+        $script:cacheLookups | Should -Be 2
+        $script:downloadAttempts | Should -Be 1
+        ($script:appLog -join "`n") | Should -Match 'could not be read'
+    }
+
     It 'falls back to the download when no bundled copy is present' {
         Reset-CustomAppFixture
         Module-InstallCustomApps -Config ([pscustomobject]@{ Spicetify_CustomApps = @('librespot') })

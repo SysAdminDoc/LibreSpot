@@ -2479,7 +2479,7 @@
   <data name="HealthEvidenceSpicetifyConfigAppsFormat" xml:space="preserve"><value>custom_apps={0}.</value><comment>Health evidence with enabled custom apps.</comment></data>
   <data name="HealthEvidenceMarketplaceUnavailable" xml:space="preserve"><value>Marketplace 通过 Spicetify 安装。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceMarketplaceReady" xml:space="preserve"><value>Marketplace 文件存在，custom_apps 包含市场。</value><comment>Health evidence.</comment></data>
-  <data name="HealthEvidenceMarketplaceStorage" xml:space="preserve"><value>Marketplace 1.0.9 会将已保存的主题、代码片段、扩展和设置存储在内置浏览器的 IndexedDB 数据库中。LibreSpot 会检测到这一边界，但不会备份其中的内容。修复或重置之前，请使用 Marketplace 自带的导出和导入控件。</value><comment>Health evidence and recovery guidance for Marketplace browser storage.</comment></data>
+  <data name="HealthEvidenceMarketplaceStorage" xml:space="preserve"><value>Marketplace 1.0.11 会将已保存的主题、代码片段、扩展和设置存储在内置浏览器的 IndexedDB 数据库中。LibreSpot 会检测到这一边界，但不会备份其中的内容。修复或重置之前，请使用 Marketplace 自带的导出和导入控件。</value><comment>Health evidence and recovery guidance for Marketplace browser storage.</comment></data>
   <data name="HealthEvidenceMarketplaceHidden" xml:space="preserve"><value>Marketplace 文件存在，但 custom_apps 不包含市场。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceMarketplaceFilesMissing" xml:space="preserve"><value>custom_apps 包含市场，但未找到所需文件。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceMarketplaceNotEnabled" xml:space="preserve"><value>Marketplace 未注册，且未找到所需文件。</value><comment>Health evidence.</comment></data>

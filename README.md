@@ -241,7 +241,7 @@ Current source script version: **v3.8.3**. Current desktop and CLI release: **v4
 | Marketplace | v1.0.11 |
 | Themes | Commit `df033493` |
 
-**Compatibility matrix:** Maintenance > Check matrix reports SpotX, Spicetify CLI, Marketplace, and theme archive status separately. The Maintenance workspace also shows detected Spotify, SpotX, Spicetify CLI, and Marketplace values beside the pinned tuple, with a supported, degraded, unsupported, or unknown verdict and a next step for each state. The current SpotX target is Spotify `1.2.93`. Spicetify CLI v2.44.0 declares Windows/Microsoft Store compatibility through Spotify `1.2.96`, and `1.2.93` is the newest build LibreSpot has verified end to end with the rest of the tuple. The supported tuple is recorded in `schemas/compatibility-baseline.json`; `Build-Scripts.ps1 -Validate` and the Core contract tests fail if the PowerShell pins, WPF/CLI constants, or documented range drift apart.
+**Compatibility matrix:** Maintenance > Check matrix reports SpotX, Spicetify CLI, Marketplace, and theme archive status separately. The Maintenance workspace also shows detected Spotify, SpotX, Spicetify CLI, and Marketplace values beside the pinned tuple, with a supported, degraded, unsupported, or unknown verdict and a next step for each state. The current SpotX target is Spotify `1.2.93`. Spicetify CLI v2.44.0 declares Windows/Microsoft Store compatibility through Spotify `1.2.96`, and `1.2.93` is the newest build LibreSpot has verified end to end with the rest of the tuple. LibreSpot's own compatibility check still treats `1.2.93` as the ceiling and attributes it to Spicetify, so a client between the two reads as unsupported for the wrong reason. Separating the two limits is tracked work, not a shipped behaviour. The supported tuple is recorded in `schemas/compatibility-baseline.json`; `Build-Scripts.ps1 -Validate` and the Core contract tests fail if the PowerShell pins, WPF/CLI constants, or documented range drift apart.
 
 SpotX has no release tag for the pinned commit; upstream's newest tag is 1.9 (2025-01-03). The `2.0` value LibreSpot records for SpotX is its own adapter version for commit `550bc72c`, which is why the table above identifies the pin by commit and date.
 
@@ -346,7 +346,7 @@ package templates or install-level package checks.
 
 ### Comprehensive Uninstaller
 
-Full removal does the same work in every lane. The script logs it as seven numbered phases; the desktop app and the fleet CLI report the same steps as progress instead of phase numbers:
+The script and the compiled `LibreSpot.exe` log full removal as seven numbered phases:
 
 1. Process termination (with retry logic)
 2. Microsoft Store / AppX removal
@@ -355,6 +355,8 @@ Full removal does the same work in every lane. The script logs it as seven numbe
 5. Scheduled task removal
 6. Firewall rule removal
 7. Verification sweep with retry
+
+The desktop app and the fleet CLI run their own cleanup and report it as progress rather than numbered phases. It covers processes, the Microsoft Store package, files and shortcuts, the registry, scheduled tasks, and a final verification sweep. It does not remove firewall rules or sweep the temporary-folder patterns, so use the script for those.
 
 ### 27 Lyrics Color Themes
 

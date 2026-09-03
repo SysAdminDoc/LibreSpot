@@ -837,15 +837,39 @@ public sealed class CommunityAssetsManifestTests
             RegexOptions.Singleline);
         Assert.True(registry.Success, "CommunityCustomApps registry was not found in the composed script.");
 
-        return Regex.Matches(
+        // PowerShell accepts a bareword hashtable key, so a key pattern that only
+        // matched quoted names let an entry hide from every gate built on this
+        // helper. Match any key shape that opens a nested hashtable.
+        // The lookahead must not reuse these group names: .NET allows duplicates and
+        // keeps the LAST capture, so a named lookahead overwrites the key it just read.
+        const string KeyPattern = @"(?:'(?<single>[^']+)'|""(?<double>[^""]+)""|(?<bare>[A-Za-z_][A-Za-z0-9_]*))";
+        const string AnyKeyPattern = @"(?:'[^']+'|""[^""]+""|[A-Za-z_][A-Za-z0-9_]*)";
+        var blocks = Regex.Matches(
                 registry.Groups["body"].Value,
-                @"(?ms)^\s*(?:'(?<single>[^']+)'|""(?<double>[^""]+)"")\s*=\s*@\{(?<entry>.*?)(?=^\s*(?:'[^']+'|""[^""]+"")\s*=\s*@\{|\z)")
+                $@"(?ms)^\s*{KeyPattern}\s*=\s*@\{{(?<entry>.*?)(?=^\s*{AnyKeyPattern}\s*=\s*@\{{|\z)")
             .ToDictionary(
                 match => match.Groups["single"].Success
                     ? match.Groups["single"].Value
-                    : match.Groups["double"].Value,
+                    : match.Groups["double"].Success
+                        ? match.Groups["double"].Value
+                        : match.Groups["bare"].Value,
                 match => match.Groups["entry"].Value,
                 StringComparer.Ordinal);
+
+        // Every top-level key in the registry must be one this parser understands,
+        // so a shape it cannot read fails loudly instead of vanishing. Top level is
+        // the shallowest indentation that opens a nested hashtable, which keeps this
+        // working across the data file and both composed hosts.
+        var opens = Regex.Matches(registry.Groups["body"].Value, @"(?m)^(?<indent>[ \t]+)(?<key>\S+)\s*=\s*@\{").ToArray();
+        Assert.NotEmpty(opens);
+        var topLevelIndent = opens.Min(match => match.Groups["indent"].Value.Length);
+        var declared = opens
+            .Where(match => match.Groups["indent"].Value.Length == topLevelIndent)
+            .Select(match => match.Groups["key"].Value.Trim('\'', '"'))
+            .ToArray();
+        Assert.Equal(declared.OrderBy(key => key, StringComparer.Ordinal), blocks.Keys.OrderBy(key => key, StringComparer.Ordinal));
+
+        return blocks;
     }
 
     private static IEnumerable<JsonElement> AllAssets() =>

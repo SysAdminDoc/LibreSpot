@@ -10208,24 +10208,47 @@ function Module-InstallCustomApps { param($Config)
             # LIBRESPOT_BUNDLED_ASSETS at the folder; the script lane looks beside
             # itself and in a source checkout.
             if ([bool]$info.Bundled -and -not [string]::IsNullOrWhiteSpace($bundledFileName)) {
+                # PS2EXE leaves $PSScriptRoot empty, which is why the monolith computes
+                # $script:ScriptRoot. Prefer it so the compiled LibreSpot.exe finds an
+                # archive sitting beside it; the backend host has no such variable and
+                # relies on LIBRESPOT_BUNDLED_ASSETS instead.
+                $bundleScriptRoot = if (-not [string]::IsNullOrWhiteSpace($script:ScriptRoot)) {
+                    [string]$script:ScriptRoot
+                } elseif (-not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
+                    [string]$PSScriptRoot
+                } elseif (-not [string]::IsNullOrWhiteSpace($PSCommandPath)) {
+                    Split-Path -Parent $PSCommandPath
+                } else {
+                    try { Split-Path -Parent ([System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName) } catch { '' }
+                }
+
                 $bundleRoots = [System.Collections.Generic.List[string]]::new()
                 if (-not [string]::IsNullOrWhiteSpace($env:LIBRESPOT_BUNDLED_ASSETS)) {
                     $bundleRoots.Add([string]$env:LIBRESPOT_BUNDLED_ASSETS)
                 }
-                if (-not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
-                    $bundleRoots.Add([string]$PSScriptRoot)
-                    $bundleRoots.Add([string](Join-Path $PSScriptRoot 'resources\custom-apps'))
+                if (-not [string]::IsNullOrWhiteSpace($bundleScriptRoot)) {
+                    $bundleRoots.Add($bundleScriptRoot)
+                    $bundleRoots.Add([string](Join-Path $bundleScriptRoot 'resources\custom-apps'))
                 }
 
                 foreach ($bundleRoot in $bundleRoots) {
-                    $bundlePath = Join-Path $bundleRoot $bundledFileName
-                    if (-not (Test-Path -LiteralPath $bundlePath -PathType Leaf)) { continue }
-                    $bundleHash = Get-FileSha256Lower -Path $bundlePath
-                    if ($bundleHash -ne $expectedHash.ToLowerInvariant()) {
-                        Write-Log "  Bundled archive $bundlePath does not match the pinned hash for '$appId'. Ignoring it." -Level 'WARN'
+                    # A bundled copy is an optimisation, never a requirement: any failure
+                    # reading or copying it must fall through to the cache and download
+                    # rather than abandon the app. A locked file (antivirus, a parallel
+                    # run) throws out of Get-FileSha256Lower.
+                    try {
+                        $bundlePath = Join-Path $bundleRoot $bundledFileName
+                        if (-not (Test-Path -LiteralPath $bundlePath -PathType Leaf)) { continue }
+                        $bundleHash = Get-FileSha256Lower -Path $bundlePath
+                        if ($bundleHash -ne $expectedHash.ToLowerInvariant()) {
+                            Write-Log "  Bundled archive $bundlePath does not match the pinned hash for '$appId'. Ignoring it." -Level 'WARN'
+                            continue
+                        }
+                        Copy-Item -LiteralPath $bundlePath -Destination $zipPath -Force
+                    } catch {
+                        Write-Log "  Bundled archive $bundlePath could not be read: $($_.Exception.Message). Falling back to the cache and download." -Level 'WARN'
                         continue
                     }
-                    Copy-Item -LiteralPath $bundlePath -Destination $zipPath -Force
                     Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $expectedHash -Label "Custom app $appId archive" -SourceUrl $bundlePath
                     Write-Log "  Using the copy bundled with LibreSpot ($bundledFileName)."
                     $resolvedFromBundle = $true

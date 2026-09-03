@@ -186,8 +186,11 @@ public sealed class ReleaseTruthTests
     {
         var start = document.IndexOf(heading, StringComparison.Ordinal);
         Assert.True(start >= 0, $"Heading '{heading}' is missing.");
-        var next = document.IndexOf("\n### ", start + heading.Length, StringComparison.Ordinal);
-        var end = next < 0 ? document.Length : next;
+        // Stop at the next heading of ANY level. Scanning only for "### " ran past
+        // a following "## " and swallowed unrelated sections, which made every
+        // assertion below satisfiable by text somewhere else in the file.
+        var next = Regex.Match(document[(start + heading.Length)..], @"(?m)^#{1,6} ");
+        var end = next.Success ? start + heading.Length + next.Index : document.Length;
         return document[start..end];
     }
 
