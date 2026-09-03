@@ -23,6 +23,7 @@ export type HistoryApi = {
 export type ClipboardApi = {
   copy?(value: string): unknown;
   copyText?(value: string): unknown;
+  paste?(): Promise<string> | string;
 };
 
 export type SpicetifyApi = {
@@ -165,6 +166,8 @@ export type LibreSpotRuntimeApi = {
   refreshHealth(): HealthReport;
   copyProfile(): Promise<void>;
   copyDiagnostics(): Promise<void>;
+  backupState(): Promise<void>;
+  restoreState(source: string): Promise<void>;
   openPanel(panel: string): void;
 };
 

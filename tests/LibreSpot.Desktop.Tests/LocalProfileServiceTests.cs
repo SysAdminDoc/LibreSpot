@@ -423,6 +423,69 @@ public sealed class LocalProfileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task PreviewImportAsync_ReadsTheProfileOutOfASpotifyBackupFile()
+    {
+        // The Health panel writes one file holding the engine state, the Marketplace
+        // settings, and the same profile envelope. Importing that file here has to
+        // find the profile rather than reject the whole thing.
+        Directory.CreateDirectory(_root);
+        var engineState = JsonSerializer.Serialize(new
+        {
+            schemaVersion = 1,
+            name = "Backup restore",
+            theme = "Prism",
+            scheme = "Dark",
+            schemes = new Dictionary<string, Dictionary<string, string>>
+            {
+                ["Dark"] = new() { ["text"] = "ffffff", ["background"] = "121212" }
+            },
+            enabledSnippets = Array.Empty<string>(),
+            featureOverrides = new Dictionary<string, object>()
+        });
+        var path = Path.Combine(_root, "librespot-backup.librespot");
+        await File.WriteAllTextAsync(
+            path,
+            JsonSerializer.Serialize(new
+            {
+                schemaVersion = 1,
+                generator = "LibreSpot-Spotify",
+                generatorVersion = "4.2.0",
+                createdAt = "2026-09-03T12:00:00Z",
+                engine = JsonSerializer.Deserialize<JsonElement>(engineState),
+                marketplace = new Dictionary<string, object>
+                {
+                    ["marketplace:installed-extensions"] = new[] { "owner/repo/main.js" }
+                },
+                profile = new
+                {
+                    schemaVersion = 1,
+                    generator = "LibreSpot-Spotify",
+                    generatorVersion = "4.2.0",
+                    createdAt = "2026-09-03T12:00:00Z",
+                    profileName = "Backup restore",
+                    notes = "Exported from the LibreSpot panel in Spotify.",
+                    settings = new
+                    {
+                        Mode = "Custom",
+                        Spicetify_CustomApps = new[] { "librespot" },
+                        LibreSpot_EngineProfileJson = engineState,
+                        LibreSpot_EnabledSnippets = Array.Empty<string>(),
+                        LibreSpot_FeatureOverridesJson = "{}"
+                    }
+                }
+            }));
+
+        var preview = await _profileService.PreviewImportAsync(path);
+
+        Assert.Equal("Backup restore", preview.Name);
+        Assert.Contains("librespot", preview.Configuration.Spicetify_CustomApps);
+        Assert.Contains("\"theme\": \"Prism\"", preview.Configuration.LibreSpot_EngineProfileJson);
+
+        var imported = await _profileService.ImportAsync(path);
+        Assert.Equal("Backup restore", imported.Summary.Name);
+    }
+
+    [Fact]
     public async Task PreviewImportAsync_RejectsOversizedLocalProfileFiles()
     {
         Directory.CreateDirectory(_root);

@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P1: RD-147: Add a one-click backup file for live engine and Marketplace state, importable by the desktop and restorable in the client
-  Why: engine state lives in browser localStorage under `librespot:engine-state`, the same store whose wipes fill the Spicetify tracker, and Marketplace state lives in IndexedDB; Marketplace already exports its settings as a JSON file from its Backup modal, so a LibreSpot Health-panel action can write one file holding both, and the desktop can fold it into a `.librespot` profile without copying Chromium files.
-  Evidence: `src/LibreSpot.App/src/core/store.ts:8-23`; https://github.com/spicetify/marketplace/blob/main/src/components/Modals/BackupModal/index.tsx; https://github.com/spicetify/cli/issues/3861; https://github.com/spicetify/marketplace/issues/1201; `Roadmap_Blocked.md` "Separate LibreSpot-managed profile sharing from Marketplace-state backup".
-  Touches: `src/LibreSpot.App/src/panels/health.ts`, `src/LibreSpot.App/src/core/store.ts`, `src/LibreSpot.App/src/core/profile.ts`, `schemas/librespot-profile.schema.json`, `src/LibreSpot.Desktop/ViewModels/MainViewModel.Profiles.cs`, `schemas/data-inventory.json`, `README.md`.
-  Acceptance: WHEN the user chooses Back up in the Health panel, the system SHALL save one JSON file containing the engine state and the Marketplace export in Marketplace's own format with a schema version and timestamp; WHEN that file is imported in the desktop, it SHALL become a `.librespot` profile that preserves unknown fields; WHEN the user chooses Restore in the client with a file, the engine state and Marketplace keys SHALL be written back and a Vitest round-trip test SHALL prove equality after export, wipe, and restore; nothing SHALL be sent off the machine.
-  Complexity: M
-
 - [ ] P2: RD-148: Enable single-file compression for the desktop and CLI executables and record measured size and cold start
   Why: the desktop executable is 175.7 MiB against a 180 MiB warning line and the CLI is 72.2 MiB; the publish budget documents trimming, ReadyToRun, self-contained, single-file, and native extraction but not `EnableCompressionInSingleFile`, and its cold-start section says the metrics were never measured with a rationale that still refers to GitHub Actions runners.
   Evidence: https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.1.2 (asset sizes); `schemas/publish-footprint-budget.json`; `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:17`; https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview.

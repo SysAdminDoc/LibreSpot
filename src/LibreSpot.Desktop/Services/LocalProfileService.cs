@@ -407,6 +407,18 @@ public sealed class LocalProfileService
     {
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
         var root = document.RootElement;
+
+        // A backup written from the Health panel in Spotify wraps the same profile
+        // envelope beside the Marketplace settings, so importing that file here
+        // reads the profile out of it instead of refusing the whole thing.
+        if (root.ValueKind == JsonValueKind.Object &&
+            root.TryGetProperty("engine", out _) &&
+            root.TryGetProperty("profile", out var wrappedProfile) &&
+            wrappedProfile.ValueKind == JsonValueKind.Object)
+        {
+            root = wrappedProfile;
+        }
+
         if (!root.TryGetProperty("schemaVersion", out var schemaVersion) ||
             schemaVersion.ValueKind != JsonValueKind.Number ||
             !schemaVersion.TryGetInt32(out var version) ||

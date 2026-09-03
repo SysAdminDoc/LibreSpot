@@ -6,6 +6,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Added
 
+- The Health panel in Spotify can now back up and restore in one file. Back up copies out this profile together with the settings Marketplace keeps in its own database, which is what a cleared Spotify profile takes with it. Restore reads that file back and writes both halves. The same file imports in the desktop app as an ordinary profile, so one export covers both places. Nothing leaves the machine.
+
 - `Build-Scripts.ps1 -PublishRelease` builds the whole release root in one command: it empties `publish`, publishes the desktop app and the fleet CLI as self-contained single-file executables, copies in the script and the live customization archive, and prints the size and checksum of each. The build pins the properties that make the output reproducible, and the release manifest records the SDK version, the commit, and that property set, so anyone can rebuild the same commit and compare. Publishing twice was checked: both .NET executables come out byte-identical. `LibreSpot.exe` is the exception because ps2exe does not build reproducibly, and the manifest says so.
 
 ### Fixed

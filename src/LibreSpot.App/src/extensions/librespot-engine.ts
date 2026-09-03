@@ -5,8 +5,12 @@ import {
   FeatureCapture,
   LibreSpotEngine,
   CATALOG_THEME_STYLES,
+  createBackup,
   createDefaultState,
+  indexedDbMarketplaceStore,
+  parseBackup,
   parseProfile,
+  serializeBackup,
   runSelfTest,
   serializeProfile,
   type EngineState,
@@ -502,6 +506,8 @@ async function bootstrap(): Promise<void> {
       emit();
     }
 
+    const marketplaceStore = indexedDbMarketplaceStore(window.indexedDB);
+
     const runtime: LibreSpotRuntimeApi = {
       getSnapshot: snapshot,
       subscribe: (listener) => {
@@ -570,6 +576,46 @@ async function bootstrap(): Promise<void> {
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Diagnostics copy failed.";
+          notify(message, true);
+        }
+      },
+      backupState: async () => {
+        try {
+          const marketplace = await marketplaceStore.readAll();
+          const file = serializeBackup(
+            createBackup(engine.state, marketplace, new Date()),
+          );
+          await copyThroughPlatform(file);
+          const count = Object.keys(marketplace).length;
+          notify(
+            count > 0
+              ? `Backup copied: this profile and ${count} Marketplace settings. Paste it into a file to keep it.`
+              : "Backup copied: this profile. Marketplace had nothing saved yet.",
+          );
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Backup failed.";
+          notify(message, true);
+        }
+      },
+      restoreState: async (source) => {
+        try {
+          const restored = parseBackup(source);
+          await runtime.update((draft) => {
+            Object.assign(draft, restored.engine);
+          });
+          const count = Object.keys(restored.marketplace).length;
+          if (count > 0) {
+            await marketplaceStore.writeAll(restored.marketplace);
+          }
+          notify(
+            count > 0
+              ? `Restored this profile and ${count} Marketplace settings. Reload Spotify to see Marketplace pick them up.`
+              : "Restored this profile.",
+          );
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Restore failed.";
           notify(message, true);
         }
       },

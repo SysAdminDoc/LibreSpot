@@ -30,6 +30,21 @@ function checkCard(check: HealthCheck): UiNode {
   );
 }
 
+/**
+ * Reads a backup the user pastes back. Spotify's client blocks a file picker,
+ * so the clipboard is the delivery both ways: Back up copies the file out, this
+ * reads it in.
+ */
+async function readPastedBackup(): Promise<string | null> {
+  const clipboard = Spicetify.Platform.ClipboardAPI;
+  if (clipboard?.paste) {
+    const pasted = await clipboard.paste();
+    return typeof pasted === "string" && pasted.trim().length > 0 ? pasted : null;
+  }
+  const pasted = await navigator.clipboard.readText();
+  return pasted.trim().length > 0 ? pasted : null;
+}
+
 export function HealthPanel(properties: PanelProperties): UiNode {
   const report = properties.snapshot.health;
   const visibleChecks = report.healthy
@@ -114,6 +129,42 @@ export function HealthPanel(properties: PanelProperties): UiNode {
           ),
         })
       : null,
+    Section({
+      title: "Back up and restore",
+      description:
+        "One file holds this profile and the settings Marketplace keeps in its own database, which is what a cleared Spotify profile takes with it. The file stays on this machine.",
+      children: h(
+        "div",
+        { className: "librespot-repair-callout" },
+        h(
+          "p",
+          null,
+          "Back up copies the file to the clipboard. Paste it into a text file and keep it. Restore reads a file you paste back.",
+        ),
+        h(
+          "div",
+          { className: "librespot-health-actions" },
+          ActionButton({
+            label: "Back up",
+            onClick: () => {
+              void properties.runtime.backupState();
+            },
+          }),
+          ActionButton({
+            label: "Restore from a file",
+            secondary: true,
+            onClick: () => {
+              void (async () => {
+                const source = await readPastedBackup();
+                if (source) {
+                  await properties.runtime.restoreState(source);
+                }
+              })();
+            },
+          }),
+        ),
+      ),
+    }),
     visibleChecks.length > 0
       ? Section({
           title: "Needs attention",
