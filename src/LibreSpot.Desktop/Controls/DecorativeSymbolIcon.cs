@@ -8,11 +8,11 @@ namespace LibreSpot.Desktop.Controls;
 /// </summary>
 /// <remarks>
 /// Wpf.Ui builds an icon from a <c>TextBlock</c> it adds as a visual child, and
-/// the glyph it holds is a private-use character from the symbol font. Neither
-/// the icon nor that TextBlock creates a peer of its own, so WPF walks straight
-/// past the icon and hands the TextBlock to UIA, where a screen reader meets an
-/// element whose entire content is an unreadable character. The control beside
-/// each glyph carries the real name.
+/// the glyph it holds is a private-use character from the symbol font.
+/// <c>IconElement</c> is a bare <c>FrameworkElement</c> and creates no peer, so
+/// WPF walks past the icon and reaches the TextBlock, which does create one.
+/// That is why the glyph arrived at UIA as <c>Text(50020)</c> holding an
+/// unreadable name. The control beside each glyph carries the real one.
 ///
 /// Setting <c>AutomationProperties.Name</c> on the icon does not reach the
 /// TextBlock, because the TextBlock is a visual child rather than a templated

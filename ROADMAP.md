@@ -53,17 +53,69 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: WHEN the decision is recorded, either `beautiful-lyrics.mjs` SHALL stop being an easy-mode default and be removed from every hard-coded recommended set so the catalog and the installed set agree, or the catalog SHALL carry a written rationale for shipping unpinned third-party code by default; a test SHALL fail if the easy-mode set in `Program.cs` and the `easyModeDefault` flags in the manifest ever disagree, whichever way the decision goes.
   Complexity: M
 
-- [ ] P3: RD-173: Identify the non-WPF suite failure that appeared once and did not come back
-  Why: one run of `--filter-not-class "*Wpf*"` on 2026-09-03 reported `failed: 1` out of 1154 while the four runs
-  around it reported `failed: 0`. The failing test's name was not captured before the output scrolled, so there is
-  nothing to reproduce from. A suite that can fail one test in five runs cannot tell a real regression from noise,
-  and the next person to see it will have the same nothing to work with.
-  Evidence: four consecutive clean runs of the same command in the same working tree on 2026-09-03 (1153 passed,
-  1 skipped) either side of a single `failed: 1`; the run happened immediately after two git worktrees were removed
-  from under `%TEMP%`, which is the only external event in the window.
-  Touches: `tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj` (a TRX or diagnostic logger so a failure
-  survives the console), whichever test the log then names.
-  Acceptance: WHEN the non-WPF suite runs, a machine-readable result file SHALL be written so a failure can be
-  identified after the fact; the suite SHALL then be run enough times to either name the flaky test and fix its
-  root cause, or record that it did not recur across the runs that were made.
+- [ ] P2: RD-173: Fix the flaky `Settings_SearchOpensOnlyTheGroupsThatHoldAMatch`
+  Why: this test fails intermittently in a full `--filter-not-class "*Wpf*"` run and never in isolation, so the
+  suite cannot tell a real regression from noise. It was seen twice on 2026-09-03, once as an unidentified
+  `failed: 1` and once by name, with clean runs either side both times. Passing 9/9 three times as a class while
+  failing inside the full run points at cross-test interference or a shared static, not at the assertion.
+  Evidence: `failed: 1` of 1154 on 2026-09-03 with the name lost to the console, then
+  `failed LibreSpot.Desktop.Tests.SettingsDisclosureTests.Settings_SearchOpensOnlyTheGroupsThatHoldAMatch (175ms)`
+  in a later full run of 1160; `--filter-class "*SettingsDisclosureTests*"` passed 9/9 three consecutive times
+  immediately after, and two further full runs passed 1159/1159.
+  Touches: `tests/LibreSpot.Desktop.Tests/SettingsDisclosureTests.cs`, whatever state it shares with the tests that
+  run beside it, and `tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj` if a result file is needed to
+  catch the next occurrence.
+  Acceptance: WHEN the non-WPF suite runs repeatedly, this test SHALL pass every time, and the cause SHALL be named
+  in the fix rather than worked around with a retry, a sleep, or a collection attribute that only serialises it;
+  a machine-readable result file SHALL be written so any future failure is identifiable after the fact.
+  Complexity: M
+
+- [ ] P2: RD-174: Restore a churn signal for the accessibility states whose baselines are now empty
+  Why: `ScanUntilSettled` decides the shell has stopped rendering when two consecutive scans agree on their shape,
+  and shape is the window count plus the per-key violation counts. The icon-glyph violations were that signal for
+  `custom` and `maintenance`. RD-167 deleted them, so both states now settle on window count alone: a half-drawn
+  window reports zero violations and so does a finished one, the two scans agree after about 400 ms, and the
+  baseline test can pass before the cards it is meant to scan exist. `recommended` still has its `NameNotNull`
+  entry and keeps a real signal, which is what makes the other two look fine.
+  Evidence: `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs` `ScanUntilSettled`, whose own comment
+  names maintenance as the state "seen reporting six icon glyphs where a quiet machine reports two";
+  `schemas/axe-windows-baseline.json` now carries `"custom": []` and `"maintenance": []`. Raised by an adversarial
+  review on 2026-09-03.
+  Touches: `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`.
+  Acceptance: WHEN a scanned state has no recorded violations, settling SHALL still be decided from something that
+  changes as the window fills, such as the charted element count, and a scan taken before the state's content
+  exists SHALL NOT be accepted as settled; a test SHALL fail if the settle loop returns on the first pair of scans
+  for a state whose content has not rendered.
+  Complexity: M
+
+- [ ] P2: RD-175: Guard `DecorativeSymbolIcon` the way the other custom control is guarded
+  Why: RD-167 is a per-usage rename in XAML with nothing but a slow app-launching scan behind it. A new
+  `ui:SymbolIcon` added anywhere, or a deleted `GetChildrenCore`, leaves all 1159 non-WPF tests green. Worse, an
+  icon added to a state that is not one of the three scanned (`activity-undo`, `support-bundle`, `profile` and
+  `prompt` are all real smoke states) is caught by nothing at all. `LiveRegionContentControl` has both halves of
+  the pattern this control is missing: a source lint that pins its peer and an in-process STA peer test.
+  Evidence: `AutomationNameContractTests.LiveRegionContentControl_KeepsPoliteLiveRegionPeer` and
+  `WpfUiAutomationSmokeTests.LiveRegionContentControl_AutomationPeerReportsPolite` as the model; raised by an
+  adversarial review on 2026-09-03.
+  Touches: `tests/LibreSpot.Desktop.Tests/AutomationNameContractTests.cs`,
+  `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`.
+  Acceptance: WHEN any XAML under `src/LibreSpot.Desktop` uses `ui:SymbolIcon` directly, a source test SHALL fail
+  and name the file; WHEN `DecorativeSymbolIcon` creates its peer, an in-process test SHALL assert that peer
+  reports no children and is neither a control nor a content element, without launching the app.
+  Complexity: S
+
+- [ ] P3: RD-176: Assert the rate-limit message carries the status code it was given
+  Why: `TryGetLatestStableAsync` puts its message into `ReleaseNotice.Reason`, which reaches the user, but the new
+  mapping tests assert only `Status`. Replacing `RateLimited($"HTTP {(int)response.StatusCode} ...")` with a
+  hardcoded `RateLimited("HTTP 429 ...")` passes every test in the repo while reporting a 403 to the user as a 429.
+  The same seam would also cover 304, 200 and malformed JSON, none of which touch the real client today.
+  Evidence: `src/LibreSpot.Core/ReleaseNoticeService.cs` rate-limit and missing branches;
+  `tests/LibreSpot.Desktop.Tests/ReleaseNoticeServiceTests.cs` `TryGetLatestStableAsync_*` theories, which use
+  `StubResponse` but assert status only; `GetNoticeAsync_AConditionalRequestSendsTheCachedETag` still asserts the
+  header against `FakeClient`, so the real `If-None-Match` write and `ETag` read are untested. Raised by an
+  adversarial review on 2026-09-03.
+  Touches: `tests/LibreSpot.Desktop.Tests/ReleaseNoticeServiceTests.cs`.
+  Acceptance: WHEN the client maps a refused response, a test SHALL assert the returned message names the status
+  code it actually received, failing if the code is hardcoded; the existing stub handler SHALL also cover 304, a
+  successful body and a malformed body through the real client.
   Complexity: S

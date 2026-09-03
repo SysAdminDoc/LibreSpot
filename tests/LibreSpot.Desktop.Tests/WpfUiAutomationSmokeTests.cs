@@ -335,8 +335,9 @@ public sealed class WpfUiAutomationSmokeTests
     {
         // Positive control. Without it the three baseline tests would pass just as
         // happily against a scan that returned nothing. It has to name the planted
-        // button specifically: every state already reports name-related violations
-        // on icon glyphs, so matching on the rule alone would prove nothing.
+        // button specifically: a scan that charts the wrong window, or one that has
+        // quietly stopped charting, still returns a result set, so matching on the
+        // rule alone would not say the plant is what was found.
         using var app = LaunchSmokeState("axe-positive-control");
         var window = WaitForMainWindow(app.Process, MainWindowTimeout);
         WaitForSnapshotContaining(window, "Home", SmokeReadyTimeout);
