@@ -1320,9 +1320,9 @@ $global:ThemeData = [ordered]@{
 # this table to decide whether to pull from the official themes archive or
 # from the community repo.
 $global:CommunityThemeRepos = @{
-    "Catppuccin" = @{ Owner="catppuccin"; Repo="spicetify"; CommitSha="1ec645c4cf7f42f9792b9eeb1bb7930f94593277"; SHA256="59432d5dfba871f288331e72ca5eb9ae48783e94d96cc3835a2992b3df71ed65"; ThemeFolder="." }
-    "Comfy"      = @{ Owner="Comfy-Themes"; Repo="Spicetify"; CommitSha="32ff101e27cfd33d85b7cc587f7f95db6b2df8b0"; SHA256="d82afe89be0a58c7c2d83a85a0dfa24b473d48d4f63241178e37c94c1fd1e7c6"; ThemeFolder="." }
-    "Bloom"      = @{ Owner="nimsandu"; Repo="spicetify-bloom"; CommitSha="654cfed682b94613b0029997ffafc1eadccc5bef"; SHA256="12cb8678f7226b2a014a10fdef8ea462e0ac0a866f84b2de48050004fcd50a70"; ThemeFolder="." }
+    "Catppuccin" = @{ Owner="catppuccin"; Repo="spicetify"; CommitSha="1ec645c4cf7f42f9792b9eeb1bb7930f94593277"; SHA256="59432d5dfba871f288331e72ca5eb9ae48783e94d96cc3835a2992b3df71ed65"; ThemeFolder="catppuccin" }
+    "Comfy"      = @{ Owner="Comfy-Themes"; Repo="Spicetify"; CommitSha="32ff101e27cfd33d85b7cc587f7f95db6b2df8b0"; SHA256="d82afe89be0a58c7c2d83a85a0dfa24b473d48d4f63241178e37c94c1fd1e7c6"; ThemeFolder="Comfy" }
+    "Bloom"      = @{ Owner="nimsandu"; Repo="spicetify-bloom"; CommitSha="654cfed682b94613b0029997ffafc1eadccc5bef"; SHA256="12cb8678f7226b2a014a10fdef8ea462e0ac0a866f84b2de48050004fcd50a70"; ThemeFolder="src" }
     "Lucid"      = @{ Owner="sanoojes"; Repo="Spicetify-Lucid"; CommitSha="5c28e9f955d5ca84a82d06084cc6652e5655ea2d"; SHA256="af3f1ed718b3deda7c52ebf7e0ca4bf7c07f03f212a88dd0534c2ebe81803bf8"; ThemeFolder="." }
     "Hazy"       = @{ Owner="Astromations"; Repo="Hazy"; CommitSha="1926d9db3e0313b68ca6e2193c2b278e733ac3c4"; SHA256="372938c3fea3cbac7850afeb6b66b15673236e248436a7afaacb2ab1d814c4bf"; ThemeFolder="." }
 }
@@ -1374,9 +1374,9 @@ $global:CommunityExtensions = [ordered]@{
     }
     "adblock.js" = @{
         Description = "Spicetify-layer ad blocking - a fallback for when SpotX patching fails on a newer Spotify build. Not a SpotX replacement."
-        Url         = "https://raw.githubusercontent.com/rxri/spicetify-extensions/60554c512739c6f2084879efe9d8a88f1dd16646/adblock/adblock.js"
+        Url         = "https://raw.githubusercontent.com/rxri/spicetify-extensions/64cb2b8c235b13cf943e4c265c19199f69e5d170/adblock/adblock.js"
         Source      = "rxri/spicetify-extensions"
-        SHA256      = "fb6dc4dfc09ee369638ffaf47a9f36202bb99c1555edc79772d7fbb235114623"
+        SHA256      = "b607243a02a799bba8e40289ff1e5d8b632b885ddfee951aaaf1c3d733e8001b"
     }
 }
 $global:CommunityExtensionAliases = @{

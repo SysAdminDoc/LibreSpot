@@ -4,6 +4,11 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Three of the five reviewed community themes could not be installed at all. Catppuccin, Comfy, and Bloom keep their theme files in a subfolder, but the catalog said the files sat at the root of the archive, so LibreSpot downloaded the archive, verified its checksum, then found nothing to copy and carried on reporting success. Picking one of those themes did nothing and said it worked. All three now install and apply on the pinned client.
+- The Spicetify-layer ad-block fallback was pinned to a build from before Spotify 1.2.93 and threw 138 errors on the client LibreSpot installs. It now uses the upstream fix for that release and loads cleanly.
+
 ### Changed
 
 - The desktop app and the fleet CLI now report Marketplace 1.0.11 in their health guidance, matching the script. Six resource files and the UI smoke fixture still said 1.0.9.

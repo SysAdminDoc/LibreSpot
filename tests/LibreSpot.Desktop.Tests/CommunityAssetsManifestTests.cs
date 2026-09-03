@@ -255,6 +255,39 @@ public sealed class CommunityAssetsManifestTests
     }
 
     [Fact]
+    public void Manifest_ThemeFolderMatchesBothScripts()
+    {
+        // The subfolder holding color.ini differs per repository. When it is wrong
+        // the archive still downloads and its hash still verifies, then the install
+        // is skipped with a warning while the run reports success, so the three
+        // copies of this value have to agree.
+        var sources = new[]
+        {
+            new[] { "src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1" },
+            new[] { "LibreSpot.ps1" }
+        };
+
+        foreach (var theme in Manifest.RootElement.GetProperty("themes").EnumerateArray())
+        {
+            var themeId = theme.GetProperty("themeId").GetString()!;
+            Assert.True(
+                theme.TryGetProperty("themeFolder", out var folderElement),
+                $"Theme '{themeId}' is missing required field 'themeFolder'.");
+            var folder = folderElement.GetString()!;
+
+            foreach (var source in sources)
+            {
+                var script = ReadFile(source);
+                var match = Regex.Match(
+                    script,
+                    $@"['""]{Regex.Escape(themeId)}['""]\s*=\s*@\{{[^}}]*ThemeFolder\s*=\s*['""](?<folder>[^'""]+)['""]");
+                Assert.True(match.Success, $"Could not find ThemeFolder for theme '{themeId}' in {string.Join('/', source)}.");
+                Assert.Equal(folder, match.Groups["folder"].Value);
+            }
+        }
+    }
+
+    [Fact]
     public void Manifest_AllThemesHaveRequiredFields()
     {
         foreach (var theme in Manifest.RootElement.GetProperty("themes").EnumerateArray())

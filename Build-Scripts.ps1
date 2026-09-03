@@ -746,6 +746,70 @@ function Test-PinnedCompatibilityBaseline {
     Write-Host "Pinned compatibility baseline matches the fixture verified $($baseline.lastVerifiedAtUtc)." -ForegroundColor Green
 }
 
+function Test-CommunityAssetVerificationFreshness {
+    # An asset reviewed against an older Spotify build proves nothing about the one
+    # LibreSpot ships. Every active entry must have been re-checked no earlier than
+    # the pinned Spotify release, so a pin advance drags the catalog with it.
+    $baselinePath = Join-Path $PSScriptRoot 'schemas/compatibility-baseline.json'
+    $manifestPath = Join-Path $PSScriptRoot 'schemas/community-assets.json'
+
+    foreach ($path in @($baselinePath, $manifestPath)) {
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Community asset freshness input is missing: $path"
+        }
+    }
+
+    $baseline = Get-Content -Raw -LiteralPath $baselinePath | ConvertFrom-Json
+    $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
+
+    $releasedRaw = [string]$baseline.spotify.releasedDate
+    if ([string]::IsNullOrWhiteSpace($releasedRaw)) {
+        throw 'schemas/compatibility-baseline.json is missing spotify.releasedDate; the community catalog cannot be checked against the pinned client.'
+    }
+
+    $released = [datetime]::MinValue
+    if (-not [datetime]::TryParseExact($releasedRaw, 'yyyy-MM-dd', [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$released)) {
+        throw "schemas/compatibility-baseline.json spotify.releasedDate is not a yyyy-MM-dd date: $releasedRaw"
+    }
+
+    $entries = @()
+    foreach ($section in @('extensions', 'themes', 'customApps')) {
+        foreach ($asset in @($manifest.$section)) {
+            $id = if ($asset.filename) { [string]$asset.filename } elseif ($asset.themeId) { [string]$asset.themeId } else { [string]$asset.appId }
+            $entries += [pscustomobject]@{ Section = $section; Id = $id; Asset = $asset }
+        }
+    }
+    if ($manifest.officialThemesArchive) {
+        $entries += [pscustomobject]@{ Section = 'officialThemesArchive'; Id = 'officialThemesArchive'; Asset = $manifest.officialThemesArchive }
+    }
+
+    $stale = @()
+    foreach ($entry in $entries) {
+        if ([string]$entry.Asset.supportState -ne 'active') { continue }
+
+        $verifiedRaw = [string]$entry.Asset.lastVerifiedDate
+        $verified = [datetime]::MinValue
+        if ([string]::IsNullOrWhiteSpace($verifiedRaw) -or
+            -not [datetime]::TryParseExact($verifiedRaw, 'yyyy-MM-dd', [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$verified)) {
+            $stale += "$($entry.Section)/$($entry.Id): lastVerifiedDate is missing or not a yyyy-MM-dd date ('$verifiedRaw')."
+            continue
+        }
+
+        if ($verified -lt $released) {
+            $stale += "$($entry.Section)/$($entry.Id): last verified $verifiedRaw, before pinned Spotify $($baseline.spotify.version) was released on $releasedRaw."
+        }
+    }
+
+    if ($stale.Count -gt 0) {
+        Write-Host '=== COMMUNITY ASSET VERIFICATION IS STALE ===' -ForegroundColor Red
+        foreach ($item in $stale) { Write-Host "  $item" -ForegroundColor Red }
+        Write-Host '  Re-check each asset against the pinned client and update lastVerifiedDate, or move it to a non-active supportState.' -ForegroundColor Red
+        throw 'Active community assets must be verified against the pinned Spotify build.'
+    }
+
+    Write-Host "Community catalog verification is current for Spotify $($baseline.spotify.version) (released $releasedRaw); $($entries.Count) entries checked." -ForegroundColor Green
+}
+
 function Test-LocalReleaseTruth {
     $readmePath = Join-Path $PSScriptRoot 'README.md'
     if (-not (Test-Path -LiteralPath $readmePath -PathType Leaf)) {
@@ -2616,6 +2680,7 @@ if ($Validate) {
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Test-ReadmeWpfScreenshotMetadata
     Test-PinnedCompatibilityBaseline
+    Test-CommunityAssetVerificationFreshness
     Test-LocalReleaseTruth
     # Offline-safe: compares against whatever origin/gh-pages the clone already
     # has and warns instead of failing when that ref is missing. -CatalogTruth

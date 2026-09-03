@@ -190,7 +190,7 @@ $global:CommunityExtensions = @{
     'beautiful-lyrics.mjs'  = @{ Url = 'https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/61ac582da092311e893423269ca7f09003108705/Extension/Builds/Release/beautiful-lyrics.mjs';      Source = 'surfbryce/beautiful-lyrics'; SHA256 = '93c9ecfcb0a83c832c5ee7ca8fe826bcfaeec7cdd129c0bf05bab84b8ba6ba72' }
     'playlist-icons.js'     = @{ Url = 'https://raw.githubusercontent.com/jeroentvb/spicetify-playlist-icons/8f401f923a5c25f530935faaceb39089a25b701a/playlist-icons.js';                         Source = 'jeroentvb/spicetify-playlist-icons'; SHA256 = '79bbe2bd6a52a521a382a73ef1c8c7ff0b0b9bd7674c48bb0ed44c5d2c944c8d' }
     'volumePercentage.js'   = @{ Url = 'https://raw.githubusercontent.com/daksh2k/spicetify-stuff/89e609d933946a888cdff9cc3d7c4f1e9b88cfde/Extensions/volumePercentage.js';                       Source = 'daksh2k/spicetify-stuff'; SHA256 = 'b88dcde894f4998abc4473773333015c09f0450ec563d256ed5af45db7129aca' }
-    'adblock.js'            = @{ Url = 'https://raw.githubusercontent.com/rxri/spicetify-extensions/60554c512739c6f2084879efe9d8a88f1dd16646/adblock/adblock.js';                                    Source = 'rxri/spicetify-extensions'; SHA256 = 'fb6dc4dfc09ee369638ffaf47a9f36202bb99c1555edc79772d7fbb235114623' }
+    'adblock.js'            = @{ Url = 'https://raw.githubusercontent.com/rxri/spicetify-extensions/64cb2b8c235b13cf943e4c265c19199f69e5d170/adblock/adblock.js';                                    Source = 'rxri/spicetify-extensions'; SHA256 = 'b607243a02a799bba8e40289ff1e5d8b632b885ddfee951aaaf1c3d733e8001b' }
 }
 $global:CommunityExtensionAliases = @{
     'beautifulLyrics.js' = 'beautiful-lyrics.mjs'
@@ -235,9 +235,9 @@ $global:CommunityCustomApps = [ordered]@{
 }
 
 $global:CommunityThemeRepos = @{
-    'Catppuccin' = @{ Owner = 'catppuccin'; Repo = 'spicetify';       CommitSha = '1ec645c4cf7f42f9792b9eeb1bb7930f94593277'; SHA256 = '59432d5dfba871f288331e72ca5eb9ae48783e94d96cc3835a2992b3df71ed65'; ThemeFolder = '.' }
-    'Comfy'      = @{ Owner = 'Comfy-Themes'; Repo = 'Spicetify';    CommitSha = '32ff101e27cfd33d85b7cc587f7f95db6b2df8b0'; SHA256 = 'd82afe89be0a58c7c2d83a85a0dfa24b473d48d4f63241178e37c94c1fd1e7c6'; ThemeFolder = '.' }
-    'Bloom'      = @{ Owner = 'nimsandu'; Repo = 'spicetify-bloom';   CommitSha = '654cfed682b94613b0029997ffafc1eadccc5bef'; SHA256 = '12cb8678f7226b2a014a10fdef8ea462e0ac0a866f84b2de48050004fcd50a70'; ThemeFolder = '.' }
+    'Catppuccin' = @{ Owner = 'catppuccin'; Repo = 'spicetify';       CommitSha = '1ec645c4cf7f42f9792b9eeb1bb7930f94593277'; SHA256 = '59432d5dfba871f288331e72ca5eb9ae48783e94d96cc3835a2992b3df71ed65'; ThemeFolder = 'catppuccin' }
+    'Comfy'      = @{ Owner = 'Comfy-Themes'; Repo = 'Spicetify';    CommitSha = '32ff101e27cfd33d85b7cc587f7f95db6b2df8b0'; SHA256 = 'd82afe89be0a58c7c2d83a85a0dfa24b473d48d4f63241178e37c94c1fd1e7c6'; ThemeFolder = 'Comfy' }
+    'Bloom'      = @{ Owner = 'nimsandu'; Repo = 'spicetify-bloom';   CommitSha = '654cfed682b94613b0029997ffafc1eadccc5bef'; SHA256 = '12cb8678f7226b2a014a10fdef8ea462e0ac0a866f84b2de48050004fcd50a70'; ThemeFolder = 'src' }
     'Lucid'      = @{ Owner = 'sanoojes'; Repo = 'Spicetify-Lucid';   CommitSha = '5c28e9f955d5ca84a82d06084cc6652e5655ea2d'; SHA256 = 'af3f1ed718b3deda7c52ebf7e0ca4bf7c07f03f212a88dd0534c2ebe81803bf8'; ThemeFolder = '.' }
     'Hazy'       = @{ Owner = 'Astromations'; Repo = 'Hazy';          CommitSha = '1926d9db3e0313b68ca6e2193c2b278e733ac3c4'; SHA256 = '372938c3fea3cbac7850afeb6b66b15673236e248436a7afaacb2ab1d814c4bf'; ThemeFolder = '.' }
 }

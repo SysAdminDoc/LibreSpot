@@ -12,7 +12,9 @@
       "defenderPolicyActive": false
   },
   "spotify": {
-    "version": "1.2.93"
+    "version": "1.2.93",
+    "$comment": "releasedDate is the publication date of the pinned Windows build (1.2.93.667). Community assets reviewed before it are treated as stale by Build-Scripts.ps1 -Validate.",
+    "releasedDate": "2026-07-03"
   },
   "spicetifyCli": {
     "version": "2.44.0",
