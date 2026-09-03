@@ -68,6 +68,37 @@ public sealed class EnvironmentSnapshotService
         _communityAssetDriftProbe = communityAssetDriftProbe ?? CommunityAssetDriftService.Default.GetCachedReport;
     }
 
+    /// <summary>
+    /// Every filesystem root this service will consult, whether or not a snapshot
+    /// reports it.
+    /// </summary>
+    /// <remarks>
+    /// A test can assert what a snapshot NAMES, but a probe can read a folder and
+    /// report a different one: the bundled-extensions directory below is read
+    /// during the missing-file check and never surfaced in any component. That is
+    /// how a test can appear isolated while reading the developer's own install,
+    /// so the roots are listed here and the isolation guard checks these too.
+    /// </remarks>
+    internal IReadOnlyList<string> ConsultedRoots =>
+    [
+        _spotifyPath,
+        _spicetifyPath,
+        _spicetifyConfigDirectory,
+        _backupDirectory,
+        _rollingLogDirectory,
+        _crashDirectory,
+        ExtensionsDirectory,
+        BundledExtensionsDirectory
+    ];
+
+    // Defined once and used by both the probe and ConsultedRoots. Restating the
+    // derivation in the list instead would let the two drift apart, which is the
+    // whole failure the list exists to catch.
+    private string ExtensionsDirectory => Path.Combine(_spicetifyConfigDirectory, "Extensions");
+
+    private string BundledExtensionsDirectory =>
+        Path.Combine(Path.GetDirectoryName(_spicetifyPath) ?? string.Empty, "Extensions");
+
     // Snapshot probing touches the filesystem and shells out to schtasks.exe
     // (up to 1500ms). Callers on the UI thread must use this async variant so
     // the dispatcher is never blocked; the work runs on the thread pool and the
@@ -1783,10 +1814,8 @@ public sealed class EnvironmentSnapshotService
         bool spicetifyInstalled,
         IReadOnlyDictionary<string, string> spicetifyConfig)
     {
-        var extensionsDir = Path.Combine(_spicetifyConfigDirectory, "Extensions");
-        var bundledExtensionsDir = Path.Combine(
-            Path.GetDirectoryName(_spicetifyPath) ?? string.Empty,
-            "Extensions");
+        var extensionsDir = ExtensionsDirectory;
+        var bundledExtensionsDir = BundledExtensionsDirectory;
 
         if (!spicetifyInstalled)
         {

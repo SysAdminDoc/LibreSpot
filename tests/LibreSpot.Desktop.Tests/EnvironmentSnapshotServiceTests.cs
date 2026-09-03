@@ -10,6 +10,28 @@ namespace LibreSpot.Desktop.Tests;
 
 public sealed class EnvironmentSnapshotServiceTests
 {
+    /// <summary>
+    /// A service whose every root is under <paramref name="root"/>.
+    /// </summary>
+    /// <remarks>
+    /// Three tests here used to construct the service with no paths, which left
+    /// every probe reading the developer's own %APPDATA%\Spotify,
+    /// %APPDATA%\spicetify and %LOCALAPPDATA%\spicetify\Extensions. They passed
+    /// or failed on what the machine happened to have installed, and the guard in
+    /// GetSnapshot_NeverNamesAPathUnderTheMachinesRealSpotifyOrSpicetifyFolders
+    /// could not see it, because it inspects the paths a snapshot REPORTS and the
+    /// bundled-extensions directory is read without ever being surfaced.
+    /// </remarks>
+    private static EnvironmentSnapshotService IsolatedService(string root, Func<bool>? autoReapplyTaskProbe = null) =>
+        new(
+            autoReapplyTaskProbe: autoReapplyTaskProbe ?? (() => false),
+            spotifyPath: Path.Combine(root, "Spotify", "Spotify.exe"),
+            spicetifyPath: Path.Combine(root, "spicetify", "spicetify.exe"),
+            spicetifyConfigDirectory: Path.Combine(root, "spicetify-config"),
+            backupDirectory: Path.Combine(root, "backups"),
+            rollingLogDirectory: Path.Combine(root, "logs"),
+            crashDirectory: Path.Combine(root, "crashes"));
+
     [Fact]
     public void GetSnapshot_UsesDirectoryFromSuppliedConfigPath()
     {
@@ -19,7 +41,7 @@ public sealed class EnvironmentSnapshotServiceTests
         try
         {
             Directory.CreateDirectory(configDirectory);
-            var service = new EnvironmentSnapshotService();
+            var service = IsolatedService(configDirectory);
 
             var snapshotBeforeSave = service.GetSnapshot(configPath);
             Assert.True(snapshotBeforeSave.ConfigFolderExists);
@@ -94,7 +116,7 @@ public sealed class EnvironmentSnapshotServiceTests
         try
         {
             Directory.CreateDirectory(configDirectory);
-            var service = new EnvironmentSnapshotService(autoReapplyTaskProbe: () => true);
+            var service = IsolatedService(configDirectory, autoReapplyTaskProbe: () => true);
 
             var snapshot = service.GetSnapshot(configPath);
 
@@ -120,7 +142,7 @@ public sealed class EnvironmentSnapshotServiceTests
             Directory.CreateDirectory(configDirectory);
             File.WriteAllText(configPath, "{}");
 
-            var service = new EnvironmentSnapshotService(autoReapplyTaskProbe: () => true);
+            var service = IsolatedService(configDirectory, autoReapplyTaskProbe: () => true);
 
             // GetSnapshotAsync offloads the blocking schtasks probe to the thread
             // pool (so the UI dispatcher is never blocked) and must return the
@@ -1088,6 +1110,14 @@ public sealed class EnvironmentSnapshotServiceTests
         Assert.True(
             leaked.Length == 0,
             "These components read the machine's own installation instead of the paths the test supplied: " + leakedText);
+
+        // Reported paths are only half of it. A probe can read one folder and name
+        // another, which is exactly what the bundled-extensions directory does, so
+        // the roots the service will consult are checked directly.
+        var consultedLeaks = fixture.ConsultedRoots(realRoots);
+        Assert.True(
+            consultedLeaks.Length == 0,
+            "The service would read the machine's own installation: " + string.Join("; ", consultedLeaks));
     }
 
     [Fact]
@@ -1339,6 +1369,23 @@ public sealed class EnvironmentSnapshotServiceTests
         public string BackupDirectory { get; }
         public string RollingLogDirectory { get; }
         public string CrashDirectory { get; }
+
+        /// <summary>Roots the service will consult that fall under one of <paramref name="realRoots"/>.</summary>
+        public string[] ConsultedRoots(IEnumerable<string> realRoots)
+        {
+            var service = new EnvironmentSnapshotService(
+                autoReapplyTaskProbe: () => false,
+                spotifyPath: SpotifyPath,
+                spicetifyPath: SpicetifyPath,
+                spicetifyConfigDirectory: SpicetifyConfigDirectory,
+                backupDirectory: BackupDirectory,
+                rollingLogDirectory: RollingLogDirectory,
+                crashDirectory: CrashDirectory);
+
+            return service.ConsultedRoots
+                .Where(root => realRoots.Any(real => root.StartsWith(real, StringComparison.OrdinalIgnoreCase)))
+                .ToArray();
+        }
 
         public EnvironmentSnapshot GetSnapshot(
             bool autoReapplyRegistered,
