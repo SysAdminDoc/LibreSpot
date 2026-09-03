@@ -7,7 +7,7 @@
     "schemas/theme-preview-manifest.json"
   ],
   "sourceDigests": {
-    "schemas/community-assets.json": "21bf013e00cf13ca19e1a71a48a758f8ed6cd1f67c810bf67bbdbe84b9f54e10",
+    "schemas/community-assets.json": "63de2cac70435020eaf40c8f7dc0fc967cbb420b2dcd9aaba81c2e98a1620a34",
     "schemas/theme-preview-manifest.json": "6508ac45ad37cc5fcf674cd1cda35667b87b49be669f0fd6e9f627fc6b067e4e"
   },
   "counts": {
@@ -57,6 +57,10 @@
         "behavior": "local-only",
         "detail": null
       },
+      "webApi": {
+        "use": "platform-api",
+        "detail": "Reads and hides podcast shelves through Spicetify.Platform (hidePodcasts.js:5). No Spotify Web API call and no client ID."
+      },
       "supportState": "active",
       "supportDetail": null,
       "supportIssueUrl": null,
@@ -102,8 +106,12 @@
         ]
       },
       "network": {
-        "behavior": "third-party-service",
-        "detail": "Fetches lyrics from a third-party lyrics backend (works for non-Premium accounts) and uses an external API for optional Discord-account features. Contacts servers other than GitHub and Spotify."
+        "behavior": "remote-loader",
+        "detail": "The pinned file is a 4.6 KB loader, not the extension: it fetches a version string from https://extensions.socalifornian.live/version/beautiful-lyrics and then dynamically imports https://extensions-storage.socalifornian.live/beautiful-lyrics@<version>.mjs, so the code that actually runs is chosen by that server at load time and the pinned hash covers none of it. Lyrics themselves come from the same third-party backend, and an external API backs the optional Discord-account features."
+      },
+      "webApi": {
+        "use": "none",
+        "detail": "The pinned file is a loader and calls no Spotify API itself. What it imports at runtime is not covered by the pin, so this value describes the loader only."
       },
       "supportState": "active",
       "supportDetail": null,
@@ -153,6 +161,10 @@
         "behavior": "local-only",
         "detail": null
       },
+      "webApi": {
+        "use": "platform-api",
+        "detail": "Uses Spicetify.Platform for playlist metadata (playlist-icons.js:1). No Spotify Web API call and no client ID."
+      },
       "supportState": "active",
       "supportDetail": null,
       "supportIssueUrl": null,
@@ -201,6 +213,10 @@
         "behavior": "local-only",
         "detail": null
       },
+      "webApi": {
+        "use": "platform-api",
+        "detail": "Reads and sets volume through Spicetify.Platform (volumePercentage.js:14,31). No Spotify Web API call and no client ID."
+      },
       "supportState": "active",
       "supportDetail": null,
       "supportIssueUrl": null,
@@ -248,6 +264,10 @@
       "network": {
         "behavior": "local-only",
         "detail": "Talks only to Spotify's own ad endpoints to disable them and points the ad server at localhost; contacts no third party."
+      },
+      "webApi": {
+        "use": "platform-api",
+        "detail": "Redirects ad endpoints through Spicetify.Platform (adblock.js:1-2). No Spotify Web API call and no client ID."
       },
       "supportState": "active",
       "supportDetail": null,
@@ -301,6 +321,10 @@
       "network": {
         "behavior": "local-only",
         "detail": null
+      },
+      "webApi": {
+        "use": "platform-api",
+        "detail": "theme.js reads player state through Spicetify.Platform only."
       },
       "supportState": "active",
       "supportDetail": null,
@@ -358,6 +382,10 @@
       "network": {
         "behavior": "remote-loader",
         "detail": "The pinned archive holds a loader, not the theme: user.css imports and theme.js injects from https://comfy-themes.github.io/Spicetify/Comfy/ at a moving reference every time Spotify starts, so the pinned commit and archive hash cover the loader only and not the styling or script that run."
+      },
+      "webApi": {
+        "use": "none",
+        "detail": "The pinned theme.js is a loader and calls no Spotify API itself."
       },
       "supportState": "active",
       "supportDetail": null,
@@ -417,8 +445,12 @@
         ]
       },
       "network": {
-        "behavior": "local-only",
-        "detail": null
+        "behavior": "remote-loader",
+        "detail": "theme.js builds a script element for each of https://unpkg.com/fast-average-color/dist/index.browser.min.js and https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.3/gsap.min.js and appends it to the page, so two third-party libraries are fetched and executed inside Spotify every time the theme loads. The unpkg URL carries no version, so it resolves to whatever is newest at load time. The pinned archive hash covers the theme, not those files."
+      },
+      "webApi": {
+        "use": "platform-api",
+        "detail": "theme.js reads player state through Spicetify.Platform only."
       },
       "supportState": "active",
       "supportDetail": null,
@@ -486,6 +518,10 @@
         "behavior": "remote-loader",
         "detail": "The pinned archive holds a loader, not the theme: user.css imports and theme.js injects from https://cdn.jsdelivr.net/gh/sanoojes/Spicetify-Lucid@refs/heads/main/src/ at a moving reference every time Spotify starts, so the pinned commit and archive hash cover the loader only and not the styling or script that run."
       },
+      "webApi": {
+        "use": "none",
+        "detail": "No usable theme.js at the pinned commit; the theme is already marked degraded."
+      },
       "supportState": "degraded",
       "supportDetail": "Cannot be installed from the pinned archive: the root color.ini is an empty stub and user.css and theme.js live under remote/, so no single theme folder holds a usable set. Checked against Spotify 1.2.93.667 on 2026-09-03.",
       "supportIssueUrl": "https://github.com/sanoojes/Spicetify-Lucid/tree/5c28e9f955d5ca84a82d06084cc6652e5655ea2d",
@@ -542,6 +578,10 @@
         "behavior": "remote-loader",
         "detail": "The pinned archive holds a loader, not the theme: user.css imports and theme.js injects from https://cdn.jsdelivr.net/gh/astromations/hazy/ at a moving reference every time Spotify starts, so the pinned commit and archive hash cover the loader only and not the styling or script that run."
       },
+      "webApi": {
+        "use": "none",
+        "detail": "The pinned theme.js is a loader and calls no Spotify API itself."
+      },
       "supportState": "active",
       "supportDetail": null,
       "supportIssueUrl": null,
@@ -594,6 +634,10 @@
       "network": {
         "behavior": "third-party-service",
         "detail": "Stats can contact Last.fm when users open Last.fm-backed views inside Spotify."
+      },
+      "webApi": {
+        "use": "platform-api",
+        "detail": "Calls api.spotify.com endpoints, but every request goes through Spicetify.CosmosAsync (stats/index.js apiFetch), which uses the signed-in client's own session. There is no registered client ID anywhere in the archive, so the five-user Development Mode cap does not apply."
       },
       "supportState": "active",
       "supportDetail": null,

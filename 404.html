@@ -76,6 +76,7 @@ footer { margin-top: 52px; padding: 24px 0 48px; border-top: 1px solid var(--bor
     <div><dt>Provenance</dt><dd><a href="https://raw.githubusercontent.com/theRealPadster/spicetify-hide-podcasts/b89365dd86fba24d610fae65d882d7e14a69f2fa/hidePodcasts.js" rel="noopener noreferrer">theRealPadster/spicetify-hide-podcasts</a><br><code>b89365dd86fba24d610fae65d882d7e14a69f2fa</code></dd></div>
     <div><dt>License</dt><dd>GPL-3.0-only<br><span class="subtle">theRealPadster</span></dd></div>
     <div><dt>Network behavior</dt><dd>local-only</dd></div>
+    <div><dt>Spotify Web API</dt><dd>platform-api. Reads and hides podcast shelves through Spicetify.Platform (hidePodcasts.js:5). No Spotify Web API call and no client ID.</dd></div>
     <div><dt>Verified against the pinned Spotify</dt><dd>2026-09-03</dd></div>
     <div><dt>Support state</dt><dd><span class="support is-active">active</span></dd></div>
     <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-08-02</span></dd></div>
@@ -94,7 +95,8 @@ footer { margin-top: 52px; padding: 24px 0 48px; border-top: 1px solid var(--bor
   <dl class="facts">
     <div><dt>Provenance</dt><dd><a href="https://raw.githubusercontent.com/surfbryce/beautiful-lyrics/61ac582da092311e893423269ca7f09003108705/Extension/Builds/Release/beautiful-lyrics.mjs" rel="noopener noreferrer">surfbryce/beautiful-lyrics</a><br><code>61ac582da092311e893423269ca7f09003108705</code></dd></div>
     <div><dt>License</dt><dd>NOASSERTION<br><span class="subtle">surfbryce</span></dd></div>
-    <div><dt>Network behavior</dt><dd>third-party-service. Fetches lyrics from a third-party lyrics backend (works for non-Premium accounts) and uses an external API for optional Discord-account features. Contacts servers other than GitHub and Spotify.</dd></div>
+    <div><dt>Network behavior</dt><dd>remote-loader. The pinned file is a 4.6 KB loader, not the extension: it fetches a version string from https://extensions.socalifornian.live/version/beautiful-lyrics and then dynamically imports https://extensions-storage.socalifornian.live/beautiful-lyrics@&lt;version&gt;.mjs, so the code that actually runs is chosen by that server at load time and the pinned hash covers none of it. Lyrics themselves come from the same third-party backend, and an external API backs the optional Discord-account features.</dd></div>
+    <div><dt>Spotify Web API</dt><dd>none. The pinned file is a loader and calls no Spotify API itself. What it imports at runtime is not covered by the pin, so this value describes the loader only.</dd></div>
     <div><dt>Verified against the pinned Spotify</dt><dd>2026-09-03</dd></div>
     <div><dt>Support state</dt><dd><span class="support is-active">active</span></dd></div>
     <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2025-11-05</span></dd></div>
@@ -114,6 +116,7 @@ footer { margin-top: 52px; padding: 24px 0 48px; border-top: 1px solid var(--bor
     <div><dt>Provenance</dt><dd><a href="https://raw.githubusercontent.com/jeroentvb/spicetify-playlist-icons/8f401f923a5c25f530935faaceb39089a25b701a/playlist-icons.js" rel="noopener noreferrer">jeroentvb/spicetify-playlist-icons</a><br><code>8f401f923a5c25f530935faaceb39089a25b701a</code></dd></div>
     <div><dt>License</dt><dd>MIT<br><span class="subtle">jeroentvb</span></dd></div>
     <div><dt>Network behavior</dt><dd>local-only</dd></div>
+    <div><dt>Spotify Web API</dt><dd>platform-api. Uses Spicetify.Platform for playlist metadata (playlist-icons.js:1). No Spotify Web API call and no client ID.</dd></div>
     <div><dt>Verified against the pinned Spotify</dt><dd>2026-09-03</dd></div>
     <div><dt>Support state</dt><dd><span class="support is-active">active</span></dd></div>
     <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-01-01</span></dd></div>
@@ -133,6 +136,7 @@ footer { margin-top: 52px; padding: 24px 0 48px; border-top: 1px solid var(--bor
     <div><dt>Provenance</dt><dd><a href="https://raw.githubusercontent.com/daksh2k/spicetify-stuff/89e609d933946a888cdff9cc3d7c4f1e9b88cfde/Extensions/volumePercentage.js" rel="noopener noreferrer">daksh2k/spicetify-stuff</a><br><code>89e609d933946a888cdff9cc3d7c4f1e9b88cfde</code></dd></div>
     <div><dt>License</dt><dd>MIT<br><span class="subtle">daksh2k</span></dd></div>
     <div><dt>Network behavior</dt><dd>local-only</dd></div>
+    <div><dt>Spotify Web API</dt><dd>platform-api. Reads and sets volume through Spicetify.Platform (volumePercentage.js:14,31). No Spotify Web API call and no client ID.</dd></div>
     <div><dt>Verified against the pinned Spotify</dt><dd>2026-09-03</dd></div>
     <div><dt>Support state</dt><dd><span class="support is-active">active</span></dd></div>
     <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-07-23</span></dd></div>
@@ -152,6 +156,7 @@ footer { margin-top: 52px; padding: 24px 0 48px; border-top: 1px solid var(--bor
     <div><dt>Provenance</dt><dd><a href="https://raw.githubusercontent.com/rxri/spicetify-extensions/64cb2b8c235b13cf943e4c265c19199f69e5d170/adblock/adblock.js" rel="noopener noreferrer">rxri/spicetify-extensions</a><br><code>64cb2b8c235b13cf943e4c265c19199f69e5d170</code></dd></div>
     <div><dt>License</dt><dd>MIT<br><span class="subtle">CharlieS1103 and adblockify contributors</span></dd></div>
     <div><dt>Network behavior</dt><dd>local-only. Talks only to Spotify&#39;s own ad endpoints to disable them and points the ad server at localhost; contacts no third party.</dd></div>
+    <div><dt>Spotify Web API</dt><dd>platform-api. Redirects ad endpoints through Spicetify.Platform (adblock.js:1-2). No Spotify Web API call and no client ID.</dd></div>
     <div><dt>Verified against the pinned Spotify</dt><dd>2026-09-03</dd></div>
     <div><dt>Support state</dt><dd><span class="support is-active">active</span></dd></div>
     <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-07-04</span></dd></div>
@@ -171,6 +176,7 @@ footer { margin-top: 52px; padding: 24px 0 48px; border-top: 1px solid var(--bor
     <div><dt>Provenance</dt><dd><a href="https://github.com/catppuccin/spicetify/tree/1ec645c4cf7f42f9792b9eeb1bb7930f94593277/catppuccin" rel="noopener noreferrer">catppuccin/spicetify</a><br><code>1ec645c4cf7f42f9792b9eeb1bb7930f94593277</code></dd></div>
     <div><dt>License</dt><dd>MIT<br><span class="subtle">Catppuccin contributors</span></dd></div>
     <div><dt>Network behavior</dt><dd>local-only</dd></div>
+    <div><dt>Spotify Web API</dt><dd>platform-api. theme.js reads player state through Spicetify.Platform only.</dd></div>
     <div><dt>Verified against the pinned Spotify</dt><dd>2026-09-03</dd></div>
     <div><dt>Support state</dt><dd><span class="support is-active">active</span></dd></div>
     <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2025-10-22</span></dd></div>
@@ -190,6 +196,7 @@ footer { margin-top: 52px; padding: 24px 0 48px; border-top: 1px solid var(--bor
     <div><dt>Provenance</dt><dd><a href="https://github.com/Comfy-Themes/Spicetify/tree/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0/Comfy" rel="noopener noreferrer">Comfy-Themes/Spicetify</a><br><code>32ff101e27cfd33d85b7cc587f7f95db6b2df8b0</code></dd></div>
     <div><dt>License</dt><dd>WTFPL<br><span class="subtle">Comfy-Themes</span></dd></div>
     <div><dt>Network behavior</dt><dd>remote-loader. The pinned archive holds a loader, not the theme: user.css imports and theme.js injects from https://comfy-themes.github.io/Spicetify/Comfy/ at a moving reference every time Spotify starts, so the pinned commit and archive hash cover the loader only and not the styling or script that run.</dd></div>
+    <div><dt>Spotify Web API</dt><dd>none. The pinned theme.js is a loader and calls no Spotify API itself.</dd></div>
     <div><dt>Verified against the pinned Spotify</dt><dd>2026-09-03</dd></div>
     <div><dt>Support state</dt><dd><span class="support is-active">active</span></dd></div>
     <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-01-04</span></dd></div>
@@ -208,7 +215,8 @@ footer { margin-top: 52px; padding: 24px 0 48px; border-top: 1px solid var(--bor
   <dl class="facts">
     <div><dt>Provenance</dt><dd><a href="https://github.com/nimsandu/spicetify-bloom/tree/654cfed682b94613b0029997ffafc1eadccc5bef/src" rel="noopener noreferrer">nimsandu/spicetify-bloom</a><br><code>654cfed682b94613b0029997ffafc1eadccc5bef</code></dd></div>
     <div><dt>License</dt><dd>MIT<br><span class="subtle">nimsandu</span></dd></div>
-    <div><dt>Network behavior</dt><dd>local-only</dd></div>
+    <div><dt>Network behavior</dt><dd>remote-loader. theme.js builds a script element for each of https://unpkg.com/fast-average-color/dist/index.browser.min.js and https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.3/gsap.min.js and appends it to the page, so two third-party libraries are fetched and executed inside Spotify every time the theme loads. The unpkg URL carries no version, so it resolves to whatever is newest at load time. The pinned archive hash covers the theme, not those files.</dd></div>
+    <div><dt>Spotify Web API</dt><dd>platform-api. theme.js reads player state through Spicetify.Platform only.</dd></div>
     <div><dt>Verified against the pinned Spotify</dt><dd>2026-09-03</dd></div>
     <div><dt>Support state</dt><dd><span class="support is-active">active</span></dd></div>
     <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2025-05-20</span></dd></div>
@@ -228,6 +236,7 @@ footer { margin-top: 52px; padding: 24px 0 48px; border-top: 1px solid var(--bor
     <div><dt>Provenance</dt><dd><a href="https://github.com/sanoojes/Spicetify-Lucid/tree/5c28e9f955d5ca84a82d06084cc6652e5655ea2d/." rel="noopener noreferrer">sanoojes/Spicetify-Lucid</a><br><code>5c28e9f955d5ca84a82d06084cc6652e5655ea2d</code></dd></div>
     <div><dt>License</dt><dd>AGPL-3.0-only<br><span class="subtle">sanoojes</span></dd></div>
     <div><dt>Network behavior</dt><dd>remote-loader. The pinned archive holds a loader, not the theme: user.css imports and theme.js injects from https://cdn.jsdelivr.net/gh/sanoojes/Spicetify-Lucid@refs/heads/main/src/ at a moving reference every time Spotify starts, so the pinned commit and archive hash cover the loader only and not the styling or script that run.</dd></div>
+    <div><dt>Spotify Web API</dt><dd>none. No usable theme.js at the pinned commit; the theme is already marked degraded.</dd></div>
     <div><dt>Verified against the pinned Spotify</dt><dd>2026-09-03</dd></div>
     <div><dt>Support state</dt><dd><span class="support is-degraded">degraded</span><br><span class="subtle">Cannot be installed from the pinned archive: the root color.ini is an empty stub and user.css and theme.js live under remote/, so no single theme folder holds a usable set. Checked against Spotify 1.2.93.667 on 2026-09-03.</span><br><a href="https://github.com/sanoojes/Spicetify-Lucid/tree/5c28e9f955d5ca84a82d06084cc6652e5655ea2d" rel="noopener noreferrer">Upstream</a></dd></div>
     <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-07-31</span></dd></div>
@@ -247,6 +256,7 @@ footer { margin-top: 52px; padding: 24px 0 48px; border-top: 1px solid var(--bor
     <div><dt>Provenance</dt><dd><a href="https://github.com/Astromations/Hazy/tree/1926d9db3e0313b68ca6e2193c2b278e733ac3c4/." rel="noopener noreferrer">Astromations/Hazy</a><br><code>1926d9db3e0313b68ca6e2193c2b278e733ac3c4</code></dd></div>
     <div><dt>License</dt><dd>NOASSERTION<br><span class="subtle">Astromations</span></dd></div>
     <div><dt>Network behavior</dt><dd>remote-loader. The pinned archive holds a loader, not the theme: user.css imports and theme.js injects from https://cdn.jsdelivr.net/gh/astromations/hazy/ at a moving reference every time Spotify starts, so the pinned commit and archive hash cover the loader only and not the styling or script that run.</dd></div>
+    <div><dt>Spotify Web API</dt><dd>none. The pinned theme.js is a loader and calls no Spotify API itself.</dd></div>
     <div><dt>Verified against the pinned Spotify</dt><dd>2026-09-03</dd></div>
     <div><dt>Support state</dt><dd><span class="support is-active">active</span></dd></div>
     <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-05-27</span></dd></div>
@@ -266,6 +276,7 @@ footer { margin-top: 52px; padding: 24px 0 48px; border-top: 1px solid var(--bor
     <div><dt>Provenance</dt><dd><a href="https://github.com/harbassan/spicetify-apps/releases/download/stats-v1.1.3/spicetify-stats.release.zip" rel="noopener noreferrer">harbassan/spicetify-apps</a><br><code>c39fef2b9ac9e9dbcdcd7c851b77c19a9a2eb8c1</code></dd></div>
     <div><dt>License</dt><dd>MIT<br><span class="subtle">harbassan</span></dd></div>
     <div><dt>Network behavior</dt><dd>third-party-service. Stats can contact Last.fm when users open Last.fm-backed views inside Spotify.</dd></div>
+    <div><dt>Spotify Web API</dt><dd>platform-api. Calls api.spotify.com endpoints, but every request goes through Spicetify.CosmosAsync (stats/index.js apiFetch), which uses the signed-in client&#39;s own session. There is no registered client ID anywhere in the archive, so the five-user Development Mode cap does not apply.</dd></div>
     <div><dt>Verified against the pinned Spotify</dt><dd>2026-09-03</dd></div>
     <div><dt>Support state</dt><dd><span class="support is-active">active</span></dd></div>
     <div><dt>Reviewed</dt><dd>2026-08-11<br><span class="subtle">Last push: 2026-02-26</span></dd></div>
