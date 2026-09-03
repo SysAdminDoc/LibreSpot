@@ -1,3 +1,4 @@
+﻿using System.Diagnostics;
 using System.IO;
 using System.Security.AccessControl;
 using System.Security.Cryptography;
@@ -189,35 +190,55 @@ public sealed class BackendScriptServiceTests
         var scriptPath = Path.Combine(tempRoot, "chatty-backend.ps1");
         var messages = new List<BackendMessage>();
         Directory.CreateDirectory(tempRoot);
+        // The script must keep talking for longer than the stall timeout, or the run
+        // finishes before the watchdog could ever fire and the test passes whether or
+        // not output resets the timer. Each gap stays an order of magnitude under the
+        // timeout so a loaded machine does not trip it.
+        const int tickCount = 15;
+        var tickGap = TimeSpan.FromMilliseconds(300);
         await File.WriteAllTextAsync(
             scriptPath,
-            """
-            for ($i = 0; $i -lt 6; $i++) {
+            $$"""
+            for ($i = 0; $i -lt {{tickCount}}; $i++) {
                 Write-Output "@@LS@@|status|INFO|tick $i"
-                Start-Sleep -Milliseconds 75
+                Start-Sleep -Milliseconds {{(int)tickGap.TotalMilliseconds}}
             }
             exit 0
             """);
 
         try
         {
+            // The stall budget also has to cover PowerShell's cold start, because the
+            // idle clock begins at Process.Start and the first line only arrives once
+            // the host is up. A 1s budget was shorter than a cold start on a busy
+            // machine and killed healthy runs.
+            var stallTimeout = TimeSpan.FromSeconds(3);
             var service = new BackendScriptService(
                 runtimeDirectory,
                 noBackendMode: false,
                 new BackendWatchdogOptions(
-                    TimeSpan.FromMilliseconds(250),
-                    TimeSpan.FromMilliseconds(1000),
-                    TimeSpan.FromMilliseconds(25)),
+                    TimeSpan.FromMilliseconds(1500),
+                    stallTimeout,
+                    TimeSpan.FromMilliseconds(50)),
                 scriptPath);
 
+            var startedAt = Stopwatch.StartNew();
             var result = await service.RunAsync("Install", Path.Combine(tempRoot, "config.json"), messages.Add);
+            startedAt.Stop();
 
             Assert.True(result.Success);
             Assert.Null(result.ErrorCode);
-            Assert.Contains(messages, message => message.Kind == "status" && message.Payload == "tick 5");
+            Assert.Contains(messages, message => message.Kind == "status" && message.Payload == $"tick {tickCount - 1}");
             Assert.DoesNotContain(messages, message =>
                 message.Kind == "log" &&
                 message.Payload.Contains("watchdog", StringComparison.OrdinalIgnoreCase));
+
+            // Guards the assertions above against going vacuous: if the script is ever
+            // shortened below the stall budget, the watchdog cannot fire and the rest
+            // of this test stops meaning anything.
+            Assert.True(
+                startedAt.Elapsed > stallTimeout,
+                $"The backend ran for {startedAt.Elapsed}, which is inside the {stallTimeout} stall budget, so this test would pass even with the watchdog reset removed.");
         }
         finally
         {
