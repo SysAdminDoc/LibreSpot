@@ -6,6 +6,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- The README now says which lane each behaviour belongs to. Hiding Spotify windows happens in the script and the desktop app, keeping LibreSpot's own window on top is script-only, background runspaces are the script's mechanism while the desktop app uses a separate process, self-elevation belongs to the script and the compiled exe, and the per-architecture hashes cover the Spicetify download rather than LibreSpot's own x64 executables. Full removal is described as the seven phases the script actually logs, without the native-uninstaller step that was removed. The SpotX pin is identified by commit and date, with a note that `2.0` is LibreSpot's own adapter version because upstream's newest tag is 1.9. Two upstream facts were out of date: SpotX `main` now recommends Spotify 1.2.99, and Spicetify 2.44.0 declares Windows support through 1.2.96 while 1.2.93 stays the build LibreSpot has verified.
+
 - The reviewed stack now installs Spicetify Marketplace 1.0.11 instead of 1.0.9. The two releases in between fixed the key migration and the settings write that ran too late during a reload, which is the failure people describe as losing their installed themes and extensions after a restart. Verified against the pinned Spotify 1.2.93.667 client: the new archive downloads and matches its checksum, the store page and the LibreSpot page both load, and the registered extensions, custom apps, engine state, route wiring, and Marketplace's own saved settings are byte-identical after a full client restart.
 
 ### Fixed
@@ -16,7 +18,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
-- Opening a profile from global search, double-clicking a `.librespot` file, or following a `librespot://` link now opens the Profile tools group so the selected card and any failure message are visible. The Update LibreSpot link only ever opens an https GitHub page for this repository; any other address in the release response or the local cache falls back to the releases page. Searching Settings scrolls to a newly opened group once instead of on every keystroke.
+- Double-clicking a `.librespot` file or following a `librespot://` link now opens the Profile tools group so the selected card and any failure message are visible. The Update LibreSpot link only ever opens an https GitHub page for this repository; any other address in the release response or the local cache falls back to the releases page. Searching Settings scrolls to a newly opened group once instead of on every keystroke.
 - `SIGNPATH.md`, the record of why LibreSpot ships unsigned, is now tracked. It was listed in `.gitignore`, so a fresh clone failed the two release-trust tests that read it and the security policy pointed at a file that only existed on the maintainer's machine.
 
 ### Added

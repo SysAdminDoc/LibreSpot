@@ -236,14 +236,16 @@ Current source script version: **v3.8.3**. Current desktop and CLI release: **v4
 
 | Component | Pinned Version |
 |---|---|
-| SpotX | `550bc72c` (Spotify 1.2.93) |
+| SpotX | `550bc72c`, 2026-07-06 (Spotify 1.2.93) |
 | Spicetify CLI | v2.44.0 |
 | Marketplace | v1.0.11 |
 | Themes | Commit `df033493` |
 
-**Compatibility matrix:** Maintenance > Check matrix reports SpotX, Spicetify CLI, Marketplace, and theme archive status separately. The Maintenance workspace also shows detected Spotify, SpotX, Spicetify CLI, and Marketplace values beside the pinned tuple, with a supported, degraded, unsupported, or unknown verdict and a next step for each state. The current SpotX target is Spotify `1.2.93`, and Spicetify CLI v2.44.0 declares Windows/Microsoft Store compatibility through Spotify `1.2.93`. The supported tuple is recorded in `schemas/compatibility-baseline.json`; `Build-Scripts.ps1 -Validate` and the Core contract tests fail if the PowerShell pins, WPF/CLI constants, or documented range drift apart.
+**Compatibility matrix:** Maintenance > Check matrix reports SpotX, Spicetify CLI, Marketplace, and theme archive status separately. The Maintenance workspace also shows detected Spotify, SpotX, Spicetify CLI, and Marketplace values beside the pinned tuple, with a supported, degraded, unsupported, or unknown verdict and a next step for each state. The current SpotX target is Spotify `1.2.93`. Spicetify CLI v2.44.0 declares Windows/Microsoft Store compatibility through Spotify `1.2.96`, and `1.2.93` is the newest build LibreSpot has verified end to end with the rest of the tuple. The supported tuple is recorded in `schemas/compatibility-baseline.json`; `Build-Scripts.ps1 -Validate` and the Core contract tests fail if the PowerShell pins, WPF/CLI constants, or documented range drift apart.
 
-**Why the SpotX pin holds (verified 2026-08-20):** SpotX `main` now targets Spotify 1.2.94 and, since commit `afb4c3f` (2026-07-11), adds Microsoft Defender exclusions by default (opt-out `-defender_exclusions_off`). Spicetify CLI 2.44.0 still tops out at Spotify 1.2.93. LibreSpot deliberately holds the pre-Defender SpotX commit `550bc72c` at Spotify 1.2.93 to match Spicetify's tested ceiling and avoid weakening Defender. The policy boundary is recorded as `afb4c3fc` in the pinned metadata. A changed SpotX commit must declare the post-boundary policy, declare the exact `-defender_exclusions_off` adapter argument, and prove that argument is passed before any exclusion command can run. The SpotX pin and Spotify target advance together only once Spicetify declares 1.2.94+ support. The advance must also confirm the newer Spicetify build still applies rather than hard-refusing: `spicetify/cli` `main` merged a hard-fail-on-unsupported-version gate after 2.44.0, so a future build can refuse `backup apply` on Spotify versions above its declared ceiling instead of best-effort patching. The pinned 2.44.0 predates that gate, which is why LibreSpot's post-apply route re-wiring works on 1.2.94.
+SpotX has no release tag for the pinned commit; upstream's newest tag is 1.9 (2025-01-03). The `2.0` value LibreSpot records for SpotX is its own adapter version for commit `550bc72c`, which is why the table above identifies the pin by commit and date.
+
+**Why the SpotX pin holds (verified 2026-09-03):** SpotX `main` now recommends Spotify 1.2.99 and, since commit `afb4c3f` (2026-07-11), adds Microsoft Defender exclusions by default (opt-out `-defender_exclusions_off`). Spicetify CLI 2.44.0 declares Windows support through Spotify 1.2.96, while the newest Spotify build LibreSpot has verified with this tuple is 1.2.93. LibreSpot deliberately holds the pre-Defender SpotX commit `550bc72c` at Spotify 1.2.93 so it ships a pairing it has actually tested and does not weaken Defender. The policy boundary is recorded as `afb4c3fc` in the pinned metadata. A changed SpotX commit must declare the post-boundary policy, declare the exact `-defender_exclusions_off` adapter argument, and prove that argument is passed before any exclusion command can run. The SpotX pin and Spotify target advance together only once Spicetify declares 1.2.94+ support. The advance must also confirm the newer Spicetify build still applies rather than hard-refusing: `spicetify/cli` `main` merged a hard-fail-on-unsupported-version gate after 2.44.0, so a future build can refuse `backup apply` on Spotify versions above its declared ceiling instead of best-effort patching. The pinned 2.44.0 predates that gate, which is why LibreSpot's post-apply route re-wiring works on 1.2.94.
 
 ---
 
@@ -344,16 +346,15 @@ package templates or install-level package checks.
 
 ### Comprehensive Uninstaller
 
-The built-in 8-phase uninstaller handles every trace of Spotify and Spicetify:
+Full removal does the same work in every lane. The script logs it as seven numbered phases; the desktop app and the fleet CLI report the same steps as progress instead of phase numbers:
 
 1. Process termination (with retry logic)
 2. Microsoft Store / AppX removal
-3. Native silent uninstaller
-4. File system cleanup (Roaming, Local, Temp, cache, shortcuts, glob patterns)
-5. Registry cleanup (uninstall keys, protocol handlers, app paths, startup entries)
-6. Scheduled task removal
-7. Firewall rule removal
-8. Verification sweep with retry
+3. File system cleanup (Roaming, Local, Temp, cache, shortcuts, glob patterns)
+4. Registry cleanup (uninstall keys, protocol handlers, app paths, startup entries)
+5. Scheduled task removal
+6. Firewall rule removal
+7. Verification sweep with retry
 
 ### 27 Lyrics Color Themes
 
@@ -416,12 +417,12 @@ LibreSpot.ps1 -RemoveSelfData      # unregister the watcher and delete all Libre
 
 ### Other Details
 
-- **Threaded UI**, installation runs in background runspaces; the GUI stays responsive with a live log, elapsed timer, and progress bar
+- **Responsive UI**, the script runs an install in background runspaces, and the desktop app runs it in a separate PowerShell process. Either way the window stays responsive with a live log, elapsed timer, and progress bar
 - **Windows shell integration**, WPF builds register `librespot://` sharing and `.librespot` Explorer handlers, route double-clicked profile files through the validated preview/confirm flow, expose jump-list/taskbar actions, and minimize to a tray icon with clickable completion notices
 - **Least-privilege desktop workflow**, WPF setup and maintenance run in the current standard-user session without relaunching the whole app through UAC; the legacy PowerShell and PS2EXE entry points retain their existing self-elevation behavior
 - **Profile sharing cards**, WPF Custom mode renders an inert local share URI, QR card, selected-profile comparison, embedded changelog preview, and community links without requiring a hosted sharing service
 - **Runtime localization**, WPF builds include a persisted language selector with reviewed EN, RU, ZH-Hans, PT-BR, and ES resources; validation rejects missing/raw UI strings, broken placeholders, translated product/file tokens, and unreviewed English carry-over
-- **Window management**, Spotify and installer windows are automatically hidden during installation; LibreSpot stays on top until finished
+- **Window management**, Spotify and installer windows are hidden while an install runs, in both the script and the desktop app. Only the script keeps its own window on top until the run finishes
 - **Settings persistence**, your Custom Install configuration is saved to `%APPDATA%\LibreSpot\config.json` and restored next launch
 - **Community asset verification**, opt-in community extensions, themes, and custom apps are pinned in `schemas/community-assets.json` with provenance, SHA256, license, branch, support, fallback, network-behavior, and catalog-review metadata; the review gate rejects archived, stale, undocumented, or unknown-network entries from easy-mode defaults while retaining deferred entries as opt-in, and Maintenance health, `status --json`, and redacted support bundles report the decision and reason without failing offline
 - **Community catalog:** browse the reviewed asset list and its trust evidence on the [LibreSpot community catalog](https://sysadmindoc.github.io/LibreSpot/), generated from the same schemas used by the local review gate
@@ -429,9 +430,9 @@ LibreSpot.ps1 -RemoveSelfData      # unregister the watcher and delete all Libre
 - **Repair preservation**, before Reapply or Repair Marketplace replaces managed Spicetify files, LibreSpot snapshots `config-xpui.ini` and `CustomApps` under `%USERPROFILE%\LibreSpot_Backups`, restores only missing files, and retains support-bundle evidence. The Marketplace IndexedDB database is detected but not backed up, so use Marketplace's own export/import controls before repair and expect that state may reset
 - **Asset-cache inventory**, verified download-cache entries keep source labels, source URLs, byte size, first-seen, last-used, and last-verified metadata; corrupt files are quarantined with journal receipts, and Maintenance, `status --json`, and support bundles show cache count, size, stale, corrupt, and clear-cache state
 - **Config backup**, up to 5 rotating Spicetify config backups stored in `%USERPROFILE%\LibreSpot_Backups`
-- **Architecture support**, x64 and ARM64 with per-architecture hash verification
-- **Dual download methods**, falls back to BITS transfer if `Invoke-WebRequest` fails
-- **Self-elevating**, auto-requests admin privileges when needed
+- **Architecture support**, the Spicetify CLI download is pinned with a separate SHA256 for x64 and ARM64. LibreSpot's own desktop and CLI executables are built for x64 only and run under emulation on ARM devices
+- **Dual download methods**, every lane falls back to a BITS transfer when `Invoke-WebRequest` fails
+- **Self-elevating script**, `LibreSpot.ps1` and the compiled `LibreSpot.exe` request administrator rights when a step needs them. The desktop app and the fleet CLI stay in the current user's session instead
 
 ---
 

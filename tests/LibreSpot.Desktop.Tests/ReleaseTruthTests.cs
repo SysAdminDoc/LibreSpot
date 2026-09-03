@@ -1,5 +1,7 @@
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using LibreSpot.Desktop.Models;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -107,6 +109,86 @@ public sealed class ReleaseTruthTests
         var match = Regex.Match(content, pattern);
         Assert.True(match.Success, $"Expected pattern was not found: {pattern}");
         return match.Groups["value"].Value;
+    }
+
+    [Fact]
+    public void ReadmeUninstallerPhaseCountMatchesTheScript()
+    {
+        var script = Read("LibreSpot.ps1");
+        var readme = Read("README.md");
+
+        var logged = Regex.Matches(script, @"\[Phase (?<index>\d+)/(?<total>\d+)\]")
+            .Select(match => (Index: int.Parse(match.Groups["index"].Value), Total: int.Parse(match.Groups["total"].Value)))
+            .ToList();
+        Assert.NotEmpty(logged);
+        var total = Assert.Single(logged.Select(entry => entry.Total).Distinct());
+        Assert.Equal(Enumerable.Range(1, total), logged.Select(entry => entry.Index).Distinct().OrderBy(index => index));
+
+        var section = Section(readme, "### Comprehensive Uninstaller");
+        var steps = Regex.Matches(section, @"(?m)^(?<index>\d+)\. ").Select(match => int.Parse(match.Groups["index"].Value)).ToList();
+        Assert.Equal(Enumerable.Range(1, total), steps);
+        Assert.DoesNotMatch(@"\d+-phase uninstaller", section);
+    }
+
+    [Fact]
+    public void ReadmeLyricsThemeCountMatchesTheCatalog()
+    {
+        var readme = Read("README.md");
+        var expected = AppCatalog.LyricsThemes.Count;
+
+        var heading = Regex.Match(readme, @"### (?<count>\d+) Lyrics Color Themes");
+        Assert.True(heading.Success, "The lyrics theme heading is missing from README.md.");
+        Assert.Equal(expected, int.Parse(heading.Groups["count"].Value));
+
+        var sentence = Regex.Match(readme, @"exposes all (?<count>\d+) SpotX static lyrics color options: (?<list>[^.]+)\.");
+        Assert.True(sentence.Success, "The lyrics theme list is missing from README.md.");
+        Assert.Equal(expected, int.Parse(sentence.Groups["count"].Value));
+
+        var listed = sentence.Groups["list"].Value
+            .Replace(", and ", ", ")
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(AppCatalog.LyricsThemes.OrderBy(name => name, StringComparer.Ordinal),
+            listed.OrderBy(name => name, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void ReadmeNamesTheLaneForClaimsOnlyOneLaneFulfils()
+    {
+        var readme = Read("README.md");
+        var details = Section(readme, "### Other Details");
+
+        // Every claim here held for the script long before the desktop app existed.
+        // Presenting them as product-wide misled anyone reading the download page.
+        Assert.Contains("Only the script keeps its own window on top", details, StringComparison.Ordinal);
+        Assert.DoesNotContain("LibreSpot stays on top until finished", details, StringComparison.Ordinal);
+        Assert.Contains("**Self-elevating script**", details, StringComparison.Ordinal);
+        Assert.DoesNotContain("- **Self-elevating**, auto-requests admin privileges when needed", details, StringComparison.Ordinal);
+        Assert.Contains("built for x64 only", details, StringComparison.Ordinal);
+        Assert.DoesNotContain("- **Architecture support**, x64 and ARM64 with per-architecture hash verification", details, StringComparison.Ordinal);
+        Assert.Contains("the script runs an install in background runspaces", details, StringComparison.Ordinal);
+
+        // The desktop shell has no reachable global search, so no document may
+        // describe one until the collapsed shell decision is made.
+        Assert.DoesNotContain("from global search", Read("CHANGELOG.md"), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ReadmePresentsTheSpotXPinByCommitAndExplainsItsRecordedVersion()
+    {
+        var readme = Read("README.md");
+
+        Assert.Matches(@"\| SpotX \| `[0-9a-f]{8}`, \d{4}-\d{2}-\d{2} \(Spotify \d+\.\d+\.\d+\) \|", readme);
+        Assert.Contains("upstream's newest tag is 1.9", readme, StringComparison.Ordinal);
+        Assert.Contains("its own adapter version for commit", readme, StringComparison.Ordinal);
+    }
+
+    private static string Section(string document, string heading)
+    {
+        var start = document.IndexOf(heading, StringComparison.Ordinal);
+        Assert.True(start >= 0, $"Heading '{heading}' is missing.");
+        var next = document.IndexOf("\n### ", start + heading.Length, StringComparison.Ordinal);
+        var end = next < 0 ? document.Length : next;
+        return document[start..end];
     }
 
     private static string Read(string relativePath) =>
