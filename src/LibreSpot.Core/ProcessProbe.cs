@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace LibreSpot.Desktop.Services;
 
@@ -28,7 +28,7 @@ public readonly record struct ProcessProbeResult(bool Exited, bool Drained, int 
 /// </summary>
 public static class ProcessProbe
 {
-    private const int DrainTimeoutMilliseconds = 500;
+    private const int MinimumDrainTimeoutMilliseconds = 2000;
     private const int KillWaitMilliseconds = 500;
 
     /// <summary>
@@ -37,9 +37,26 @@ public static class ProcessProbe
     /// overruns. Never throws for a child that misbehaves; a failure to start
     /// propagates as it would from <see cref="Process.Start()"/>.
     /// </summary>
-    public static ProcessProbeResult Run(ProcessStartInfo startInfo, int exitTimeoutMilliseconds)
+    /// <param name="drainTimeoutMilliseconds">
+    /// How long the output reads get after the child exits. Defaults to half the
+    /// exit timeout, never below <see cref="MinimumDrainTimeoutMilliseconds"/>.
+    /// The reads run from the moment the child starts, so this only bounds the
+    /// tail; it is a cap for the grandchild case, not a budget the reads spend.
+    /// </param>
+    public static ProcessProbeResult Run(
+        ProcessStartInfo startInfo,
+        int exitTimeoutMilliseconds,
+        int? drainTimeoutMilliseconds = null)
     {
         ArgumentNullException.ThrowIfNull(startInfo);
+
+        // A fixed 500 ms cap failed a healthy child on a loaded machine: the reads
+        // complete on the thread pool, and a starved pool does not schedule the
+        // continuation that fast. An undrained read is indistinguishable from a
+        // child that printed nothing, so the cost of being stingy here is a wrong
+        // answer, not a slow one.
+        var drainTimeout = drainTimeoutMilliseconds
+            ?? Math.Max(MinimumDrainTimeoutMilliseconds, exitTimeoutMilliseconds / 2);
 
         startInfo.UseShellExecute = false;
         startInfo.CreateNoWindow = true;
@@ -65,7 +82,7 @@ public static class ProcessProbe
         var drained = false;
         try
         {
-            drained = Task.WaitAll(new Task[] { stdoutDrain, stderrDrain }, DrainTimeoutMilliseconds);
+            drained = Task.WaitAll(new Task[] { stdoutDrain, stderrDrain }, drainTimeout);
         }
         catch
         {

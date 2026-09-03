@@ -16,6 +16,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- A Microsoft Store install of Spotify is detected reliably on a busy machine. The check asked PowerShell for the answer in its output, and reading that output was capped at half a second measured after the command had already finished. On a loaded machine the read did not land in time, which looked exactly like no package being installed, so the heads-up about the Store build silently did not appear. The answer now comes back in the exit code, which nothing has to read, and the output cap scales with the time the command itself is given.
+
 - The Lucid theme is marked as not installable rather than offered as working. Its pinned archive holds an empty `color.ini` stub at the root and keeps the real files under `remote/`, so no theme folder has a usable set and picking it did nothing. Comfy, Hazy and Lucid are also no longer described as local-only: each ships a loader whose CSS and script are fetched from a content network at a moving address every time Spotify starts, so the pinned commit and checksum cover the loader and not the code that runs. The catalog page now shows each asset's support state and the date it was last checked against the pinned Spotify build.
 - The ad-block pin advance reached the customization catalog too. One copy still named the build that fails on Spotify 1.2.93, and that copy is what the desktop app and the in-Spotify panel read.
 - Building a release no longer deletes whatever folder it is pointed at. `-PublishRelease` refuses a drive root, the repository, and any folder holding files a release build did not produce.

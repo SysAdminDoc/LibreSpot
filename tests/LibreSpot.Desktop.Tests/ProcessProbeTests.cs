@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using LibreSpot.Desktop.Services;
 using Xunit;
 
@@ -73,6 +73,48 @@ public sealed class ProcessProbeTests
         Assert.False(failed.HasOutput);
         Assert.Equal(-1, failed.ExitCode);
         Assert.Equal(string.Empty, failed.StandardOutput);
+    }
+
+    [Fact]
+    public void Run_ReturnsWithinABoundWhenAGrandchildKeepsTheOutputPipeOpen()
+    {
+        // The reason the drain is capped at all. cmd exits at once but the ping it
+        // detached inherited the stdout handle, so the read never completes. The
+        // probe has to give up on the read instead of waiting for the grandchild.
+        var stopwatch = Stopwatch.StartNew();
+        var probe = ProcessProbe.Run(
+            Cmd("start /b ping -n 30 127.0.0.1"),
+            exitTimeoutMilliseconds: 2000,
+            drainTimeoutMilliseconds: 1000);
+        stopwatch.Stop();
+
+        Assert.True(probe.Exited);
+        Assert.False(probe.Drained);
+        Assert.False(probe.HasOutput);
+        Assert.Equal(string.Empty, probe.StandardOutput);
+        Assert.True(
+            stopwatch.Elapsed < TimeSpan.FromSeconds(15),
+            $"The probe must abandon the read rather than wait for the grandchild; it took {stopwatch.Elapsed}.");
+    }
+
+    [Fact]
+    public void Run_HonoursACallerSuppliedDrainBudget()
+    {
+        // Only measurable where the read cannot finish, so this reuses the
+        // grandchild. A 20 s exit timeout would default to a 10 s drain; asking
+        // for 200 ms has to come back long before that.
+        var stopwatch = Stopwatch.StartNew();
+        var probe = ProcessProbe.Run(
+            Cmd("start /b ping -n 30 127.0.0.1"),
+            exitTimeoutMilliseconds: 20000,
+            drainTimeoutMilliseconds: 200);
+        stopwatch.Stop();
+
+        Assert.True(probe.Exited);
+        Assert.False(probe.Drained);
+        Assert.True(
+            stopwatch.Elapsed < TimeSpan.FromSeconds(5),
+            $"The caller asked for a 200 ms drain but the probe took {stopwatch.Elapsed}, which is the default budget for this exit timeout.");
     }
 
     private static ProcessStartInfo Cmd(string command) => new()

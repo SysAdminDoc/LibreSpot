@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
@@ -394,14 +394,19 @@ public sealed class EnvironmentSnapshotService
     /// </summary>
     public static bool QueryStoreSpotifyPresent()
     {
+        // The answer travels in the exit code rather than stdout so that reading
+        // the pipe cannot change it. Asking through stdout meant an output read
+        // that had not finished looked exactly like an absent package, and on a
+        // loaded machine that turned a present Store install into a silent "no".
         const string script =
             "$ErrorActionPreference='Stop';" +
-            "if (Get-AppxPackage -Name 'SpotifyAB.SpotifyMusic' -ErrorAction SilentlyContinue) { 'present' } else { 'absent' }";
+            "if (Get-AppxPackage -Name 'SpotifyAB.SpotifyMusic' -ErrorAction SilentlyContinue) { exit 0 } else { exit 3 }";
 
         try
         {
-            // A timed-out drain is treated as "not present": never surface a
-            // heads-up on a guess.
+            // Anything other than a clean exit stays "not present": an error, a
+            // missing Appx module or a timeout must never surface a heads-up on a
+            // guess. Only an unread pipe is no longer one of those cases.
             var probe = ProcessProbe.Run(
                 new ProcessStartInfo
                 {
@@ -410,8 +415,7 @@ public sealed class EnvironmentSnapshotService
                 },
                 exitTimeoutMilliseconds: 5000);
 
-            return probe.HasOutput &&
-                   probe.StandardOutput.Contains("present", StringComparison.OrdinalIgnoreCase);
+            return probe.Exited && probe.ExitCode == 0;
         }
         catch
         {
