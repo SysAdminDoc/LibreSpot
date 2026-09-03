@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using LibreSpot.Desktop.Models;
@@ -40,6 +40,40 @@ public sealed class ReleaseTruthTests
         Assert.Contains($"Current source script version: **v{mainVersion}**", readme);
         Assert.Contains($"public latest stable release, v{stableBadge}", readme);
         Assert.DoesNotContain($"current latest stable release, v{mainVersion}", readme, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ApplicationControlGuidanceCoversEveryShippedArtifactNotJustTheScript()
+    {
+        // The FAQ answered for LibreSpot.ps1 alone while the desktop executable had
+        // become the first install path. Smart App Control blocks unsigned code with
+        // no per-app allowance, so a reader on that device needs to be told the
+        // executables are blocked too and that there is nothing to click through.
+        var readme = Read("README.md");
+        var security = Read("SECURITY.md");
+
+        var smartAppControl = readme.Split("**Smart App Control")[1].Split("---")[0];
+
+        foreach (var artifact in new[] { "LibreSpot-Desktop.exe", "LibreSpot.Cli.exe", "LibreSpot.exe", "LibreSpot.ps1" })
+        {
+            Assert.Contains(artifact, smartAppControl, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("no per-app allowance", smartAppControl, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("evaluation", smartAppControl, StringComparison.OrdinalIgnoreCase);
+
+        // Nothing anywhere may tell a reader to turn the feature off.
+        foreach (var text in new[] { readme, security })
+        {
+            Assert.DoesNotContain("disable Smart App Control", text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("turn off Smart App Control", text, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // SmartScreen reputation does not carry across releases, and both documents
+        // should say so rather than leaving a returning user to wonder.
+        Assert.Contains("reputation", security, StringComparison.OrdinalIgnoreCase);
+        var smartScreen = readme.Split("**Windows SmartScreen says")[1].Split("**Smart App Control")[0];
+        Assert.Contains("next release", smartScreen, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

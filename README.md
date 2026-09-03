@@ -479,8 +479,12 @@ A detection alone cannot answer that. Security products can flag scripts and pat
 **Windows SmartScreen says "Unknown publisher", what do I do?**
 LibreSpot ships unsigned by design and is not code-signed. [SignPath Foundation](https://signpath.org/) OSS signing was evaluated and set aside, so there is no pending certificate to wait for. Do not bypass the warning merely because this README says the project is legitimate. First confirm that the file came from the official Releases page and that its SHA256 matches `checksums.txt` from the same release. A match proves identity only. Continue only when your Windows policy permits unsigned software and you have independently accepted that risk. Leave the file blocked if you are unsure.
 
-**Smart App Control blocks the script from running.**
-Leave Smart App Control enabled. It blocks untrusted or unsigned code by design, and LibreSpot does not provide or recommend a bypass. On a managed device, ask the administrator whether an approved LibreSpot artifact is allowed. On a personal device, use only an artifact that Windows Security accepts under the current policy, or do not run LibreSpot.
+Expect the warning again on the next release. SmartScreen builds reputation per file, and an unsigned artifact starts from nothing every time, so a version you have run happily for months earns no credit for the one that replaces it. That is not a sign something changed for the worse.
+
+**Smart App Control blocks LibreSpot from running.**
+This applies to everything LibreSpot ships, not just the script: `LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, `LibreSpot.exe` and `LibreSpot.ps1` are all blocked while Smart App Control is on, because it refuses unsigned code and none of them is signed. There is no per-app allowance, no "run anyway", and no exclusion list; the feature is on, in evaluation, or off for the whole device, and turning it off again requires reinstalling Windows.
+
+Leave Smart App Control enabled. LibreSpot does not provide or recommend a bypass. The supported answer is to run LibreSpot on a device where Smart App Control is off or still in evaluation mode. On a managed device, ask the administrator whether an approved LibreSpot artifact is allowed. If neither applies, do not run LibreSpot.
 
 ---
 

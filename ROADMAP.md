@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P2: RD-153: Cover the desktop executable in the Smart App Control and SmartScreen guidance
-  Why: the README FAQ entry says "Smart App Control blocks the script from running" and answers for the script, but the desktop executable is now the first install path and Smart App Control blocks unsigned executables outright with no per-app bypass; SmartScreen reputation restarts from zero for each unsigned release.
-  Evidence: `README.md:476-480`; `SECURITY.md`; https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-frequently-asked-questions; https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation.
-  Touches: `README.md` FAQ and Trust sections, `SECURITY.md`, `src/LibreSpot.Desktop/Properties/Strings.resx` and the five satellites if the in-app application-control copy names only the script, `tests/LibreSpot.Desktop.Tests/ReleaseTruthTests.cs`.
-  Acceptance: WHEN a reader reaches the Smart App Control entry, it SHALL state that `LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, `LibreSpot.exe`, and the script are all blocked while Smart App Control is on, that no per-app bypass exists, and that the supported answer is a device where it is off or in evaluation mode; the SmartScreen entry SHALL explain that the "Unknown publisher" warning recurs for every release; the release-truth test SHALL fail if the FAQ names only the script.
-  Complexity: S
-
 - [ ] P3: RD-155: Show the asset digest and the verify command beside the Update LibreSpot link
   Why: the latest-release payload already carries per-asset SHA256 digests, and the README teaches `gh release verify-asset`; the Home notice could show the desktop asset's digest and the one command so a user verifies before running, matching the release-trust story.
   Evidence: https://github.blog/changelog/2025-06-03-releases-now-expose-digests-for-release-assets/; https://cli.github.com/manual/gh_attestation_verify; `src/LibreSpot.Core/ReleaseNoticeService.cs`; `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml` update-notice row.
