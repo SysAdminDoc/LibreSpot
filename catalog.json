@@ -7,7 +7,7 @@
     "schemas/theme-preview-manifest.json"
   ],
   "sourceDigests": {
-    "schemas/community-assets.json": "b96a5fc974f3e52f8f1881c8e25ab8699489e767a48a72bfd3bc6bb90f429f85",
+    "schemas/community-assets.json": "21bf013e00cf13ca19e1a71a48a758f8ed6cd1f67c810bf67bbdbe84b9f54e10",
     "schemas/theme-preview-manifest.json": "6508ac45ad37cc5fcf674cd1cda35667b87b49be669f0fd6e9f627fc6b067e4e"
   },
   "counts": {
@@ -58,6 +58,8 @@
         "detail": null
       },
       "supportState": "active",
+      "supportDetail": null,
+      "supportIssueUrl": null,
       "fallbackBehavior": "skip-with-warning",
       "notes": null,
       "preview": null
@@ -104,6 +106,8 @@
         "detail": "Fetches lyrics from a third-party lyrics backend (works for non-Premium accounts) and uses an external API for optional Discord-account features. Contacts servers other than GitHub and Spotify."
       },
       "supportState": "active",
+      "supportDetail": null,
+      "supportIssueUrl": null,
       "fallbackBehavior": "skip-with-warning",
       "notes": "Migrated from beautifulLyrics.js to .mjs build",
       "preview": null
@@ -150,6 +154,8 @@
         "detail": null
       },
       "supportState": "active",
+      "supportDetail": null,
+      "supportIssueUrl": null,
       "fallbackBehavior": "skip-with-warning",
       "notes": "Migrated from playlistIcons.js to playlist-icons.js",
       "preview": null
@@ -196,6 +202,8 @@
         "detail": null
       },
       "supportState": "active",
+      "supportDetail": null,
+      "supportIssueUrl": null,
       "fallbackBehavior": "skip-with-warning",
       "notes": null,
       "preview": null
@@ -242,6 +250,8 @@
         "detail": "Talks only to Spotify's own ad endpoints to disable them and points the ad server at localhost; contacts no third party."
       },
       "supportState": "active",
+      "supportDetail": null,
+      "supportIssueUrl": null,
       "fallbackBehavior": "skip-with-warning",
       "notes": "Opt-in SpotX-independent ad-block fallback. Suggested by the post-install SpotX verification check when patching cannot be confirmed.",
       "preview": null
@@ -293,6 +303,8 @@
         "detail": null
       },
       "supportState": "active",
+      "supportDetail": null,
+      "supportIssueUrl": null,
       "fallbackBehavior": "skip-with-warning",
       "notes": "Commit-pinned and archive hash-verified",
       "preview": {
@@ -344,10 +356,12 @@
         ]
       },
       "network": {
-        "behavior": "local-only",
-        "detail": null
+        "behavior": "remote-loader",
+        "detail": "The pinned archive holds a loader, not the theme: user.css imports and theme.js injects from https://comfy-themes.github.io/Spicetify/Comfy/ at a moving reference every time Spotify starts, so the pinned commit and archive hash cover the loader only and not the styling or script that run."
       },
       "supportState": "active",
+      "supportDetail": null,
+      "supportIssueUrl": null,
       "fallbackBehavior": "skip-with-warning",
       "notes": "Commit-pinned and archive hash-verified; WTFPL license — review-required per license policy",
       "preview": {
@@ -407,6 +421,8 @@
         "detail": null
       },
       "supportState": "active",
+      "supportDetail": null,
+      "supportIssueUrl": null,
       "fallbackBehavior": "skip-with-warning",
       "notes": "Commit-pinned and archive hash-verified",
       "preview": {
@@ -467,10 +483,12 @@
         ]
       },
       "network": {
-        "behavior": "local-only",
-        "detail": null
+        "behavior": "remote-loader",
+        "detail": "The pinned archive holds a loader, not the theme: user.css imports and theme.js injects from https://cdn.jsdelivr.net/gh/sanoojes/Spicetify-Lucid@refs/heads/main/src/ at a moving reference every time Spotify starts, so the pinned commit and archive hash cover the loader only and not the styling or script that run."
       },
-      "supportState": "active",
+      "supportState": "degraded",
+      "supportDetail": "Cannot be installed from the pinned archive: the root color.ini is an empty stub and user.css and theme.js live under remote/, so no single theme folder holds a usable set. Checked against Spotify 1.2.93.667 on 2026-09-03.",
+      "supportIssueUrl": "https://github.com/sanoojes/Spicetify-Lucid/tree/5c28e9f955d5ca84a82d06084cc6652e5655ea2d",
       "fallbackBehavior": "skip-with-warning",
       "notes": "Commit-pinned and archive hash-verified; AGPL-3.0 — review-required per license policy; fetched from upstream, never bundled",
       "preview": {
@@ -521,10 +539,12 @@
         ]
       },
       "network": {
-        "behavior": "local-only",
-        "detail": null
+        "behavior": "remote-loader",
+        "detail": "The pinned archive holds a loader, not the theme: user.css imports and theme.js injects from https://cdn.jsdelivr.net/gh/astromations/hazy/ at a moving reference every time Spotify starts, so the pinned commit and archive hash cover the loader only and not the styling or script that run."
       },
       "supportState": "active",
+      "supportDetail": null,
+      "supportIssueUrl": null,
       "fallbackBehavior": "skip-with-warning",
       "notes": "Commit-pinned and archive hash-verified",
       "preview": {
@@ -576,6 +596,8 @@
         "detail": "Stats can contact Last.fm when users open Last.fm-backed views inside Spotify."
       },
       "supportState": "active",
+      "supportDetail": null,
+      "supportIssueUrl": null,
       "fallbackBehavior": "skip-with-warning",
       "notes": "Custom app installs via Spicetify config custom_apps. Release asset verified from stats-v1.1.3; upstream main at c39fef2 contains projects/stats and no projects/new-releases.",
       "preview": null
