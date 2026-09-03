@@ -3092,3 +3092,182 @@ Describe 'Wait-SpotifyChangeSignal' {
         ($script:watchLog -join "`n") | Should -Match 'relying on the scheduled repeat'
     }
 }
+
+Describe 'Module-InstallThemes bundled theme resolution' {
+    BeforeAll {
+        $sharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
+        . (Join-Path $sharedDir 'Module-InstallThemes.ps1')
+        . (Join-Path $sharedDir 'Get-FileSha256Lower.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\data\BundledThemes.ps1')
+
+        $script:themeSourceDir = (Resolve-Path (Join-Path $PSScriptRoot '..\..\resources\themes\Prism')).Path
+        $script:themeFileNames = @($global:BundledThemes['Prism'].Files.Keys)
+
+        function Reset-BundledThemeFixture {
+            param([switch]$WithBundle, [switch]$TamperFile, [switch]$RemoveFile, [switch]$WithStrayFile, [switch]$AsSourceCheckout)
+
+            $script:themeLog = New-Object System.Collections.Generic.List[string]
+            $script:cliCalls = New-Object System.Collections.Generic.List[string]
+            $script:downloadAttempts = 0
+            $script:cacheLookups = 0
+
+            $global:CommunityThemeRepos = @{}
+            $global:ThemesNeedingJS = @('Prism')
+            $global:LibreSpotScriptRoot = $null
+
+            $script:themeRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-theme-" + [Guid]::NewGuid().ToString('N'))
+            $script:bundleDir = Join-Path $script:themeRoot 'bundle'
+            $script:tempDir = Join-Path $script:themeRoot 'temp'
+            $script:spicetifyDir = Join-Path $script:themeRoot 'spicetify'
+            foreach ($dir in @($script:tempDir, (Join-Path $script:spicetifyDir 'Themes'))) {
+                New-Item -Path $dir -ItemType Directory -Force | Out-Null
+            }
+
+            # The desktop and CLI hosts point LIBRESPOT_BUNDLED_ASSETS at a folder
+            # holding themes\<name>; the script lane finds resources\themes\<name>
+            # beside itself instead.
+            if ($AsSourceCheckout) {
+                $env:LIBRESPOT_BUNDLED_ASSETS = $null
+                $global:LibreSpotScriptRoot = $script:bundleDir
+                $stagedParent = Join-Path $script:bundleDir 'resources\themes'
+            } else {
+                $env:LIBRESPOT_BUNDLED_ASSETS = $script:bundleDir
+                $stagedParent = Join-Path $script:bundleDir 'themes'
+            }
+            $script:stagedTheme = Join-Path $stagedParent 'Prism'
+
+            if ($WithBundle -or $TamperFile -or $RemoveFile -or $WithStrayFile -or $AsSourceCheckout) {
+                New-Item -Path $script:stagedTheme -ItemType Directory -Force | Out-Null
+                foreach ($fileName in $script:themeFileNames) {
+                    Copy-Item -LiteralPath (Join-Path $script:themeSourceDir $fileName) -Destination (Join-Path $script:stagedTheme $fileName) -Force
+                }
+            }
+            if ($TamperFile) {
+                # Same name, wrong bytes: the pinned hash must reject it.
+                Set-Content -LiteralPath (Join-Path $script:stagedTheme 'user.css') -Value '/* not the reviewed theme */' -Encoding ascii
+            }
+            if ($RemoveFile) {
+                Remove-Item -LiteralPath (Join-Path $script:stagedTheme 'theme.js') -Force
+            }
+            if ($WithStrayFile) {
+                Set-Content -LiteralPath (Join-Path $script:stagedTheme 'notes.txt') -Value 'not part of the pinned set' -Encoding ascii
+            }
+        }
+
+        function Remove-BundledThemeFixture {
+            $env:LIBRESPOT_BUNDLED_ASSETS = $null
+            $global:LibreSpotScriptRoot = $null
+            if ($script:themeRoot -and (Test-Path -LiteralPath $script:themeRoot)) {
+                Remove-Item -LiteralPath $script:themeRoot -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        function Get-InstalledThemeDirectory { Join-Path (Join-Path $script:spicetifyDir 'Themes') 'Prism' }
+
+        function Write-Log { param([string]$Message, [string]$Level = 'INFO') $script:themeLog.Add("$Level|$Message") }
+        function Get-SpicetifyIntegrationContext {
+            [pscustomobject]@{ ThemesDirectory = Join-Path $script:spicetifyDir 'Themes' }
+        }
+        function New-LibreSpotTempFile { param([string]$Name) Join-Path $script:tempDir $Name }
+        function New-LibreSpotTempDirectory {
+            param([string]$Name)
+            $path = Join-Path $script:tempDir $Name
+            New-Item -Path $path -ItemType Directory -Force | Out-Null
+            $path
+        }
+        function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPath, [string]$Label) $script:cacheLookups++; return $false }
+        function Save-ToAssetCache { param([string]$SourcePath, [string]$SHA256Hash, [string]$Label, [string]$SourceUrl) }
+        function Download-FileSafe { param([string]$Uri, [string]$OutFile) $script:downloadAttempts++; throw "network unavailable: $Uri" }
+        function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]$Label) }
+        function Expand-ArchiveSafely { param([string]$ZipPath, [string]$DestinationPath, [string]$Label, $MaxExpandedBytes) }
+        function Invoke-SpicetifyCli { param($Arguments, [string]$FailureMessage) $script:cliCalls.Add(($Arguments -join ' ')) }
+    }
+
+    AfterEach { Remove-BundledThemeFixture }
+
+    It 'installs the bundled theme with no network and no cache lookup' {
+        Reset-BundledThemeFixture -WithBundle
+
+        Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = 'Prism'; Spicetify_Scheme = 'OLED' })
+
+        $installed = Get-InstalledThemeDirectory
+        foreach ($fileName in $script:themeFileNames) {
+            Test-Path -LiteralPath (Join-Path $installed $fileName) | Should -BeTrue
+        }
+        $script:downloadAttempts | Should -Be 0
+        $script:cacheLookups | Should -Be 0
+        ($script:themeLog -join "`n") | Should -Match 'Bundled theme .Prism. copied to'
+    }
+
+    It 'points Spicetify at the theme and turns on theme.js injection' {
+        Reset-BundledThemeFixture -WithBundle
+
+        Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = 'Prism'; Spicetify_Scheme = 'OLED' })
+
+        $calls = $script:cliCalls -join "`n"
+        $calls | Should -Match 'config current_theme Prism'
+        $calls | Should -Match 'config color_scheme OLED'
+        $calls | Should -Match 'inject_theme_js 1'
+    }
+
+    It 'copies only the pinned files' {
+        Reset-BundledThemeFixture -WithStrayFile
+
+        Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = 'Prism'; Spicetify_Scheme = 'Dark' })
+
+        $installed = Get-InstalledThemeDirectory
+        Test-Path -LiteralPath (Join-Path $installed 'color.ini') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $installed 'notes.txt') | Should -BeFalse
+    }
+
+    It 'refuses a bundled file whose bytes do not match the pinned hash' {
+        Reset-BundledThemeFixture -TamperFile
+
+        Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = 'Prism'; Spicetify_Scheme = 'Dark' })
+
+        Test-Path -LiteralPath (Get-InstalledThemeDirectory) | Should -BeFalse
+        $log = $script:themeLog -join "`n"
+        $log | Should -Match 'does not match the pinned hash'
+        $log | Should -Match 'failed to install'
+        $script:cliCalls.Count | Should -Be 0
+    }
+
+    It 'refuses a bundled copy that is missing a pinned file' {
+        Reset-BundledThemeFixture -RemoveFile
+
+        Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = 'Prism'; Spicetify_Scheme = 'Dark' })
+
+        Test-Path -LiteralPath (Get-InstalledThemeDirectory) | Should -BeFalse
+        ($script:themeLog -join "`n") | Should -Match 'is missing theme\.js'
+    }
+
+    It 'reports the theme as not installed when no bundled copy is present' {
+        Reset-BundledThemeFixture
+
+        Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = 'Prism'; Spicetify_Scheme = 'Dark' })
+
+        Test-Path -LiteralPath (Get-InstalledThemeDirectory) | Should -BeFalse
+        $script:downloadAttempts | Should -Be 0
+        ($script:themeLog -join "`n") | Should -Match 'No verified bundled copy'
+    }
+
+    It 'finds the theme in a source checkout when no bundled asset folder is set' {
+        Reset-BundledThemeFixture -AsSourceCheckout
+
+        Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = 'Prism'; Spicetify_Scheme = 'Light' })
+
+        Test-Path -LiteralPath (Join-Path (Get-InstalledThemeDirectory) 'user.css') | Should -BeTrue
+    }
+
+    It 'replaces an earlier install instead of merging into it' {
+        Reset-BundledThemeFixture -WithBundle
+        $installed = Get-InstalledThemeDirectory
+        New-Item -Path $installed -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $installed 'leftover.css') -Value 'from an older version' -Encoding ascii
+
+        Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = 'Prism'; Spicetify_Scheme = 'Dark' })
+
+        Test-Path -LiteralPath (Join-Path $installed 'leftover.css') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $installed 'color.ini') | Should -BeTrue
+    }
+}

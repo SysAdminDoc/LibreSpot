@@ -25,6 +25,25 @@
       }
     },
     {
+      "id": "Prism",
+      "source": "bundled",
+      "sourceRepo": "SysAdminDoc/LibreSpot",
+      "commitSha": null,
+      "schemes": ["Dark", "Light", "OLED", "HighContrast"],
+      "requiresJs": true,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": null,
+        "sha256": null,
+        "contentType": null,
+        "maxBytes": 3145728,
+        "fallbackLabel": "Prism theme preview",
+        "lastVerified": null,
+        "status": "placeholder"
+      }
+    },
+    {
       "id": "Sleek",
       "source": "official",
       "sourceRepo": "spicetify/spicetify-themes",

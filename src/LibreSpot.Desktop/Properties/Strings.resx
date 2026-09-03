@@ -185,6 +185,7 @@
   <data name="ThemeGalleryEmpty" xml:space="preserve"><value>No themes available.</value><comment>Theme gallery empty state</comment></data>
   <data name="ThemeGalleryNoResults" xml:space="preserve"><value>No themes match this search.</value><comment>Theme gallery no-results state</comment></data>
   <data name="ThemeGalleryRequiresJsBadge" xml:space="preserve"><value>theme.js</value><comment>Badge for themes that require theme.js</comment></data>
+  <data name="ThemeGalleryBundledBadge" xml:space="preserve"><value>LibreSpot</value><comment>Badge for themes bundled with LibreSpot</comment></data>
   <data name="ThemeGalleryCommunityBadge" xml:space="preserve"><value>Community</value><comment>Badge for community themes</comment></data>
   <data name="ThemeGalleryOfficialBadge" xml:space="preserve"><value>Official</value><comment>Badge for official themes</comment></data>
   <data name="ThemeGalleryMarketplaceBadge" xml:space="preserve"><value>Marketplace only</value><comment>Badge for marketplace-only fallback theme selection</comment></data>

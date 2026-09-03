@@ -518,6 +518,10 @@
     <value>theme.js</value>
     <comment>Badge for themes that require theme.js</comment>
   </data>
+  <data name="ThemeGalleryBundledBadge" xml:space="preserve">
+    <value>LibreSpot</value>
+    <comment>Badge for themes bundled with LibreSpot</comment>
+  </data>
   <data name="ThemeGalleryCommunityBadge" xml:space="preserve">
     <value>Comunidad</value>
     <comment>Badge for community themes</comment>

@@ -5935,6 +5935,22 @@
       "lastVerifiedSpotify": "1.2.93"
     },
     {
+      "id": "Prism",
+      "title": "Prism",
+      "schemes": [
+        "Dark",
+        "Light",
+        "OLED",
+        "HighContrast"
+      ],
+      "source": "SysAdminDoc/LibreSpot",
+      "commit": null,
+      "requiresJs": true,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "lastVerifiedSpotify": "1.2.93"
+    },
+    {
       "id": "Sleek",
       "title": "Sleek",
       "schemes": [

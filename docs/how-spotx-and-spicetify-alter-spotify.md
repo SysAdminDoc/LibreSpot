@@ -160,7 +160,7 @@ Why themes break: when Spotify renames or re-hashes classes the css-map lags. Sp
 
 Dynamic colour: three generations exist in the ecosystem. Vibrant.js bundled as an extension (JulienMaille), raw canvas sampling of the cover (Hazy, Bloom), and `Spicetify.colorExtractor(uri)`, which calls Spotify's own `colorextractor/v1/extract-presets` service and returns named presets (`VIBRANT`, `LIGHT_VIBRANT`, `DARK_VIBRANT`, `DESATURATED`, `PROMINENT`, `VIBRANT_NON_ALARMING`; `PROMINENT` has been unreliable since cli issue #3120). Marketplace uses it for "change colours based on album art".
 
-Forced dark mode: Spotify launches CEF with `--force-dark-mode`, so `prefers-color-scheme` and `matchMedia` always report dark inside the client. Any "follow the OS" theme needs a binary patch or an external helper (the Windhawk CEF mod exposes a switch). A time-scheduled switch inside `theme.js` needs neither; that is what the Prism proof of concept in `C:\repos\LibreSpot-Prism` does.
+Forced dark mode: Spotify launches CEF with `--force-dark-mode`, so `prefers-color-scheme` and `matchMedia` always report dark inside the client. Any "follow the OS" theme needs a binary patch or an external helper (the Windhawk CEF mod exposes a switch). A time-scheduled switch inside `theme.js` needs neither; that is what the bundled Prism theme in `resources/themes/Prism` does.
 
 Window chrome and transparency are outside CSS reach. Real transparency, Mica, or a native title bar needs Ingan121's Windhawk "CEF/Spotify Tweaks" mod (patches CEF vtable entries per CEF version and exposes a JS bridge), which is what WMPotify builds on.
 
@@ -279,4 +279,4 @@ Themes and ecosystem: https://github.com/spicetify/spicetify-themes, https://git
 
 Policy: https://www.spotify.com/us/legal/user-guidelines/, https://www.spotify.com/us/legal/end-user-agreement/, https://github.com/github/dmca (2025-08-14, 2025-09-11, 2026-03-17, 2026-05-28 Spotify notices), https://torrentfreak.com/revanced-complies-with-spotify-takedown-but-explores-options-to-fight-back/.
 
-Local evidence used: `%APPDATA%\LibreSpot\cache\863cd194...` (the pinned SpotX `run.ps1`), the live `%APPDATA%\Spotify` install (binary diffs against the `.bak` files, the extracted `Apps\xpui` bundle, `prefs`), `%APPDATA%\spicetify\` (config, `Backup\xpui.spa`, `Extracted\`), and the Prism proof of concept at `C:\repos\LibreSpot-Prism`.
+Local evidence used: `%APPDATA%\LibreSpot\cache\863cd194...` (the pinned SpotX `run.ps1`), the live `%APPDATA%\Spotify` install (binary diffs against the `.bak` files, the extracted `Apps\xpui` bundle, `prefs`), `%APPDATA%\spicetify\` (config, `Backup\xpui.spa`, `Extracted\`), and the Prism theme at `resources/themes/Prism`, which moved into this repository from `C:\repos\LibreSpot-Prism` on 2026-09-03.

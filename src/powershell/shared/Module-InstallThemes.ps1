@@ -4,9 +4,87 @@ function Module-InstallThemes { param($Config)
     $td = (Get-SpicetifyIntegrationContext).ThemesDirectory
     if (-not (Test-Path $td)) { New-Item -Path $td -ItemType Directory -Force | Out-Null }
 
+    $isBundled = ($null -ne $global:BundledThemes) -and $global:BundledThemes.Contains($tn)
     $isCommunity = $global:CommunityThemeRepos.ContainsKey($tn)
 
-    if ($isCommunity) {
+    if ($isBundled) {
+        # Bundled theme — LibreSpot writes this one itself, so it ships inside the
+        # package and never touches the network. Every file is pinned, so a
+        # truncated or edited copy is rejected rather than half-installed.
+        $bundle = $global:BundledThemes[$tn]
+        try {
+            # PS2EXE leaves $PSScriptRoot empty, and the install runs in a worker
+            # runspace where a script-scoped root is not visible either, so the
+            # monolith publishes $global:LibreSpotScriptRoot and exports it. The
+            # backend host has neither and relies on LIBRESPOT_BUNDLED_ASSETS,
+            # which the desktop and CLI hosts set.
+            $bundleScriptRoot = if (-not [string]::IsNullOrWhiteSpace($global:LibreSpotScriptRoot)) {
+                [string]$global:LibreSpotScriptRoot
+            } elseif (-not [string]::IsNullOrWhiteSpace($script:ScriptRoot)) {
+                [string]$script:ScriptRoot
+            } elseif (-not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
+                [string]$PSScriptRoot
+            } elseif (-not [string]::IsNullOrWhiteSpace($PSCommandPath)) {
+                Split-Path -Parent $PSCommandPath
+            } else {
+                try { Split-Path -Parent ([System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName) } catch { '' }
+            }
+
+            $bundleRoots = [System.Collections.Generic.List[string]]::new()
+            if (-not [string]::IsNullOrWhiteSpace($env:LIBRESPOT_BUNDLED_ASSETS)) {
+                $bundleRoots.Add([string](Join-Path $env:LIBRESPOT_BUNDLED_ASSETS 'themes'))
+            }
+            if (-not [string]::IsNullOrWhiteSpace($bundleScriptRoot)) {
+                $bundleRoots.Add([string](Join-Path $bundleScriptRoot 'themes'))
+                $bundleRoots.Add([string](Join-Path $bundleScriptRoot 'resources\themes'))
+            }
+
+            $src = ''
+            foreach ($bundleRoot in $bundleRoots) {
+                $candidate = Join-Path $bundleRoot ([string]$bundle.Folder)
+                if (-not (Test-Path -LiteralPath $candidate -PathType Container)) { continue }
+                $verified = $true
+                foreach ($fileName in @($bundle.Files.Keys)) {
+                    $filePath = Join-Path $candidate $fileName
+                    if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) {
+                        Write-Log "  Bundled theme copy $candidate is missing $fileName. Ignoring it." -Level 'WARN'
+                        $verified = $false
+                        break
+                    }
+                    # A locked file (antivirus, a parallel run) throws out of the
+                    # hash helper; treat it like a mismatch and try the next root.
+                    $actualHash = ''
+                    try { $actualHash = Get-FileSha256Lower -Path $filePath } catch {
+                        Write-Log "  Bundled theme file $filePath could not be read: $($_.Exception.Message)." -Level 'WARN'
+                        $verified = $false
+                        break
+                    }
+                    if ($actualHash -ne ([string]$bundle.Files[$fileName]).ToLowerInvariant()) {
+                        Write-Log "  Bundled theme file $filePath does not match the pinned hash. Ignoring it." -Level 'WARN'
+                        $verified = $false
+                        break
+                    }
+                }
+                if ($verified) { $src = $candidate; break }
+            }
+
+            if ([string]::IsNullOrWhiteSpace($src)) {
+                throw "No verified bundled copy of '$tn' was found. Looked in: $($bundleRoots -join '; ')."
+            }
+
+            $dst = Join-Path $td $tn
+            if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Recurse -Force }
+            New-Item -Path $dst -ItemType Directory -Force | Out-Null
+            # Copy only the pinned files so the installed theme is exactly what was verified.
+            foreach ($fileName in @($bundle.Files.Keys)) {
+                Copy-Item -LiteralPath (Join-Path $src $fileName) -Destination (Join-Path $dst $fileName) -Force
+            }
+            Write-Log "Bundled theme '$tn' copied to $dst"
+        } catch {
+            Write-Log "Bundled theme '$tn' failed to install: $($_.Exception.Message). The install will continue without this theme." -Level 'WARN'
+            return
+        }
+    } elseif ($isCommunity) {
         # Community theme — download commit-pinned archive and verify hash
         $repo = $global:CommunityThemeRepos[$tn]
         $archiveUrl = "https://github.com/$($repo.Owner)/$($repo.Repo)/archive/$($repo.CommitSha).zip"

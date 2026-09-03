@@ -15,13 +15,16 @@ public sealed class ThemeGalleryItemViewModel
             ? ViewModelText.Get("Vm_ThemeGalleryOneScheme")
             : ViewModelText.Format("Vm_ThemeGalleryManySchemesFormat", schemes.Count);
         IsMarketplaceOnly = string.Equals(name, "(None - Marketplace Only)", StringComparison.Ordinal);
+        IsBundled = BundledThemeNames.Contains(name);
         IsCommunity = CommunityThemeNames.Contains(name);
         RequiresThemeJs = ThemesNeedingJs.Contains(name);
         SourceBadge = IsMarketplaceOnly
             ? Strings.ThemeGalleryMarketplaceBadge
-            : IsCommunity
-                ? Strings.ThemeGalleryCommunityBadge
-                : Strings.ThemeGalleryOfficialBadge;
+            : IsBundled
+                ? Strings.ThemeGalleryBundledBadge
+                : IsCommunity
+                    ? Strings.ThemeGalleryCommunityBadge
+                    : Strings.ThemeGalleryOfficialBadge;
         JsBadge = RequiresThemeJs ? Strings.ThemeGalleryRequiresJsBadge : string.Empty;
         HasJsBadge = RequiresThemeJs;
 
@@ -30,6 +33,12 @@ public sealed class ThemeGalleryItemViewModel
         SwatchB = Swatch(hash >> 4, 0x46);
         SwatchC = Swatch(hash >> 8, 0x61);
     }
+
+    // Themes LibreSpot ships itself; they install from disk with no download.
+    private static readonly HashSet<string> BundledThemeNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Prism"
+    };
 
     private static readonly HashSet<string> CommunityThemeNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -42,6 +51,7 @@ public sealed class ThemeGalleryItemViewModel
 
     private static readonly HashSet<string> ThemesNeedingJs = new(StringComparer.OrdinalIgnoreCase)
     {
+        "Prism",
         "Dribbblish",
         "StarryNight",
         "Turntable",
@@ -58,6 +68,7 @@ public sealed class ThemeGalleryItemViewModel
     public string SchemePreview { get; }
     public string SchemeCountText { get; }
     public bool IsMarketplaceOnly { get; }
+    public bool IsBundled { get; }
     public bool IsCommunity { get; }
     public bool RequiresThemeJs { get; }
     public string SourceBadge { get; }

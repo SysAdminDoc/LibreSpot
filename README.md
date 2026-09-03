@@ -130,7 +130,7 @@ The Spotify surface suite passes 45 tests. Hidden live-client verification cover
 
 v4.1.0 adds a LibreSpot workspace inside Spotify and a companion engine that stays active on every route. Palette, layout, effects, client feature flags, snippets, and presets update in place. The desktop app installs the hash-pinned bundle, keeps its profile in sync, repairs both LibreSpot and Marketplace routes after each apply, and reports engine health in Maintenance.
 
-The shared catalog is tied to the pinned Spotify 1.2.93 bundle. It contains all 348 declared flags, 31 SpotX controls, 12 reviewed snippets, 25 themes, three built-in layer themes, and four presets. Source hashes make a stale catalog fail the build.
+The shared catalog is tied to the pinned Spotify 1.2.93 bundle. It contains all 348 declared flags, 31 SpotX controls, 12 reviewed snippets, 22 installable themes, three built-in layer themes, and four presets. Source hashes make a stale catalog fail the build.
 
 The live proof used Spotify 1.2.93.667 with Spicetify 2.44.0. Hidden browser control exercised the common live changes and the Marketplace route without restarting Spotify. A 36-case visual matrix covered four schemes, three effects tiers, and three viewport sizes with no horizontal overflow or clipped LibreSpot controls.
 
@@ -240,7 +240,7 @@ Scheme previews, layers, effects tiers, client-side flags, snippets, and presets
 >
 > If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch. The WPF Maintenance dashboard also flags **After Spotify update** drift and recommends targeted recovery steps before a full reset.
 
-Current source script version: **v3.8.3**. Current desktop and CLI release: **v4.2.0**. Public latest stable release: **v4.1.2**.
+Current source script version: **v3.9.0**. Current desktop and CLI release: **v4.2.0**. Public latest stable release: **v4.1.2**.
 
 **Pinned dependency versions in the current source script:**
 
@@ -265,7 +265,7 @@ SpotX has no release tag for the pinned commit; upstream's newest tag is 1.9 (20
 
 **Recommended setup**, one click, sensible defaults. Removes any existing installation, applies SpotX ad-blocking with the new UI theme, installs Spicetify CLI with Marketplace, and enables Full App Display, True Shuffle, and Trash Bin extensions.
 
-**Custom Install**, full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), author reviewed SpotX `patches.json` custom patches with JSON formatting, regex safety checks, dry-run feedback, and HTTPS import, browse 21 themes (16 official + 5 community) through a searchable gallery with per-theme color schemes, select from 15 extensions (10 built-in + 5 community) plus the verified Stats custom app, save and preview named local profiles, and choose between clean or overlay install.
+**Custom Install**, full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), author reviewed SpotX `patches.json` custom patches with JSON formatting, regex safety checks, dry-run feedback, and HTTPS import, browse 22 themes (16 official, 5 community, and the bundled Prism) through a searchable gallery with per-theme color schemes, select from 15 extensions (10 built-in + 5 community) plus the verified Stats custom app, save and preview named local profiles, and choose between clean or overlay install.
 
 **Maintenance**, manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, inspect and clear verified download-cache health, preview and explicitly undo eligible low-risk PATH changes from the latest operation receipt, export a validated Marketplace state archive for missing-file recovery, export a redacted local support bundle, remove active Spicetify customizations while keeping SpotX in place, uninstall Spicetify, check for dependency updates, or perform a full system reset. Marketplace 1.0.11 stores saved state in the embedded browser's IndexedDB database. LibreSpot detects that boundary but does not back it up. Use Marketplace's own export/import controls before a repair or reset.
 
@@ -372,13 +372,21 @@ The desktop app and the fleet CLI run their own cleanup and report it as progres
 
 Custom Install exposes all 27 SpotX static lyrics color options: spotify, blueberry, blue, discord, forest, fresh, github, lavender, orange, pumpkin, purple, red, strawberry, turquoise, yellow, oceano, royal, krux, pinkle, zing, radium, sandbar, postlight, relish, drot, default, and spotify#2.
 
-### 21 Themes, 200+ Color Schemes
+### 22 Themes, 200+ Color Schemes
+
+**Prism, the bundled theme.** LibreSpot's own Spicetify theme. It travels inside the package, so it installs from disk with nothing to download and no pinned release asset that can go stale. Four schemes: Dark, Light, OLED, and HighContrast.
+
+Prism does three things the wider theme ecosystem has not shipped. It switches between light and dark on a clock you set, which matters because Spotify launches its browser with dark mode forced and `prefers-color-scheme` reports the wrong answer to every theme that asks. It repaints the play button, progress bar, and highlights from the current album art through Spotify's own colour extractor, falling back to the scheme's fixed accent when that service is unavailable. And it runs a one-second frame-rate probe at startup, dropping from full glass to a cheaper tier on its own when the machine cannot keep up. Reduced-motion users get the flat, fast version with no probe at all. Appearance, effects, dynamic accent, and the auto-reduce switch live in one dialog reached from the profile menu.
+
+Every file is pinned by SHA256 in all three hosts, so a truncated or edited copy is refused instead of half-installed. The theme is UI customization only: nothing in it touches ads, Premium state, telemetry, or any Spotify binary, and removing the theme reverses all of it.
 
 **16 official themes:** Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntSienna, Default, Dreary, Flow, Matte, Nightlight, Onepunch, and SharkBlue.
 
 **5 community themes:** Catppuccin (4 flavors), Comfy, Bloom (Fluent Design), Lucid (dynamic album-art backgrounds), and Hazy (glassmorphism). Downloaded directly from their GitHub repos.
 
 Each theme ships with its full set of color schemes. **Live theme previews** load inline when selecting a theme in Custom Install. Or skip the theme and use the Marketplace to browse and install themes from within Spotify.
+
+`samples/spotx-custom-patches-prism.json` is a small companion to Prism: two cosmetic tweaks written in SpotX's own `patches.json` format, ready to paste into Custom Install > Custom Patches. Because they land at the SpotX layer they survive without Spicetify. They are cosmetic only.
 
 ### 15 Extensions (10 Built-in + 5 Community)
 

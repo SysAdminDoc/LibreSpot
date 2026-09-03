@@ -951,6 +951,14 @@ namespace LibreSpot.Desktop.Properties {
             }
         }
         /// <summary>
+        ///   Badge for themes bundled with LibreSpot
+        /// </summary>
+        public static string ThemeGalleryBundledBadge {
+            get {
+                return ResourceManager.GetString("ThemeGalleryBundledBadge", resourceCulture);
+            }
+        }
+        /// <summary>
         ///   Badge for community themes
         /// </summary>
         public static string ThemeGalleryCommunityBadge {

@@ -70,7 +70,7 @@ public sealed class LibreSpotNativeOutputCollector {
 
 # Keep this aligned with LibreSpot.ps1:$global:VERSION and the WPF shell's
 # csproj <Version>. The release workflow fails the build if these drift.
-$global:VERSION = '3.8.3'
+$global:VERSION = '3.9.0'
 $global:CONFIG_SCHEMA_VERSION = 2
 $global:PinnedReleases = @{
     SpotX = @{
@@ -148,6 +148,8 @@ $global:WATCHER_TASK_NAME    = if ($script:BackendTestRoot) { 'LibreSpot\TestRea
 
 $global:ThemeSchemes = [ordered]@{
     '(None - Marketplace Only)' = @('Default')
+    # Bundled theme (ships inside LibreSpot, installed from disk)
+    'Prism'       = @('Dark', 'Light', 'OLED', 'HighContrast')
     'Sleek'       = @('Wealthy', 'Cherry', 'Coral', 'Deep', 'Greener', 'Deeper', 'Psycho', 'UltraBlack', 'Nord', 'Futura', 'Elementary', 'BladeRunner', 'Dracula', 'VantaBlack', 'RosePine', 'Eldritch', 'Catppuccin', 'AyuDark', 'TokyoNight')
     'Dribbblish'  = @('base', 'white', 'dark', 'dracula', 'nord-light', 'nord-dark', 'purple', 'samurai', 'beach-sunset', 'gruvbox', 'gruvbox-material-dark', 'rosepine', 'lunar', 'catppuccin-latte', 'catppuccin-frappe', 'catppuccin-macchiato', 'catppuccin-mocha', 'tokyo-night', 'kanagawa')
     'Ziro'        = @('blue-dark', 'blue-light', 'gray-dark', 'gray-light', 'green-dark', 'green-light', 'orange-dark', 'orange-light', 'purple-dark', 'purple-light', 'red-dark', 'red-light', 'rose-pine', 'rose-pine-moon', 'rose-pine-dawn', 'tokyo-night')
@@ -242,7 +244,28 @@ $global:CommunityThemeRepos = @{
     'Hazy'       = @{ Owner = 'Astromations'; Repo = 'Hazy';          CommitSha = '1926d9db3e0313b68ca6e2193c2b278e733ac3c4'; SHA256 = '372938c3fea3cbac7850afeb6b66b15673236e248436a7afaacb2ab1d814c4bf'; ThemeFolder = '.' }
 }
 
-$global:ThemesNeedingJS = @('Dribbblish', 'StarryNight', 'Turntable', 'Catppuccin', 'Comfy', 'Bloom', 'Lucid', 'Hazy')
+$global:ThemesNeedingJS = @('Prism', 'Dribbblish', 'StarryNight', 'Turntable', 'Catppuccin', 'Comfy', 'Bloom', 'Lucid', 'Hazy')
+
+$global:BundledThemes = [ordered]@{
+    # Themes LibreSpot writes itself. They ship inside the package instead of
+    # being downloaded, so the install works with no network and there is no
+    # release asset to drift away from an already-published pin. Folder is the
+    # directory name under the bundled asset root; Files pins every file that
+    # gets copied, so a truncated or edited copy is rejected instead of
+    # producing a half-installed theme. Module-InstallThemes looks for
+    # <root>\themes\<Folder> under $env:LIBRESPOT_BUNDLED_ASSETS (set by the
+    # desktop and CLI hosts), beside the script, and in a source checkout.
+    'Prism' = @{
+        Folder      = 'Prism'
+        DisplayName = 'Prism'
+        Description = 'The LibreSpot house theme. Scheduled light and dark, an accent taken from the album art, and effects that step down on slow machines.'
+        Files       = [ordered]@{
+            'color.ini' = 'bacd6b54c170600488b79f310dd4f41a349db81c3cfdccd43c38be2d898b17bc'
+            'theme.js'  = '1e2e2c84c402db0e5cbbedefd98ca47e6d96bd6512bd8e079fc022fbed507870'
+            'user.css'  = '05dce4408a12742388d9a20c3d8c1b7b36629c584a9e96774d3f6ded16700025'
+        }
+    }
+}
 
 # ThemeData and BuiltInExtensions are the hashtable forms that
 # Normalize-LibreSpotConfig uses for .Contains() validation.
@@ -5154,9 +5177,87 @@ function Module-InstallThemes { param($Config)
     $td = (Get-SpicetifyIntegrationContext).ThemesDirectory
     if (-not (Test-Path $td)) { New-Item -Path $td -ItemType Directory -Force | Out-Null }
 
+    $isBundled = ($null -ne $global:BundledThemes) -and $global:BundledThemes.Contains($tn)
     $isCommunity = $global:CommunityThemeRepos.ContainsKey($tn)
 
-    if ($isCommunity) {
+    if ($isBundled) {
+        # Bundled theme — LibreSpot writes this one itself, so it ships inside the
+        # package and never touches the network. Every file is pinned, so a
+        # truncated or edited copy is rejected rather than half-installed.
+        $bundle = $global:BundledThemes[$tn]
+        try {
+            # PS2EXE leaves $PSScriptRoot empty, and the install runs in a worker
+            # runspace where a script-scoped root is not visible either, so the
+            # monolith publishes $global:LibreSpotScriptRoot and exports it. The
+            # backend host has neither and relies on LIBRESPOT_BUNDLED_ASSETS,
+            # which the desktop and CLI hosts set.
+            $bundleScriptRoot = if (-not [string]::IsNullOrWhiteSpace($global:LibreSpotScriptRoot)) {
+                [string]$global:LibreSpotScriptRoot
+            } elseif (-not [string]::IsNullOrWhiteSpace($script:ScriptRoot)) {
+                [string]$script:ScriptRoot
+            } elseif (-not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
+                [string]$PSScriptRoot
+            } elseif (-not [string]::IsNullOrWhiteSpace($PSCommandPath)) {
+                Split-Path -Parent $PSCommandPath
+            } else {
+                try { Split-Path -Parent ([System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName) } catch { '' }
+            }
+
+            $bundleRoots = [System.Collections.Generic.List[string]]::new()
+            if (-not [string]::IsNullOrWhiteSpace($env:LIBRESPOT_BUNDLED_ASSETS)) {
+                $bundleRoots.Add([string](Join-Path $env:LIBRESPOT_BUNDLED_ASSETS 'themes'))
+            }
+            if (-not [string]::IsNullOrWhiteSpace($bundleScriptRoot)) {
+                $bundleRoots.Add([string](Join-Path $bundleScriptRoot 'themes'))
+                $bundleRoots.Add([string](Join-Path $bundleScriptRoot 'resources\themes'))
+            }
+
+            $src = ''
+            foreach ($bundleRoot in $bundleRoots) {
+                $candidate = Join-Path $bundleRoot ([string]$bundle.Folder)
+                if (-not (Test-Path -LiteralPath $candidate -PathType Container)) { continue }
+                $verified = $true
+                foreach ($fileName in @($bundle.Files.Keys)) {
+                    $filePath = Join-Path $candidate $fileName
+                    if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) {
+                        Write-Log "  Bundled theme copy $candidate is missing $fileName. Ignoring it." -Level 'WARN'
+                        $verified = $false
+                        break
+                    }
+                    # A locked file (antivirus, a parallel run) throws out of the
+                    # hash helper; treat it like a mismatch and try the next root.
+                    $actualHash = ''
+                    try { $actualHash = Get-FileSha256Lower -Path $filePath } catch {
+                        Write-Log "  Bundled theme file $filePath could not be read: $($_.Exception.Message)." -Level 'WARN'
+                        $verified = $false
+                        break
+                    }
+                    if ($actualHash -ne ([string]$bundle.Files[$fileName]).ToLowerInvariant()) {
+                        Write-Log "  Bundled theme file $filePath does not match the pinned hash. Ignoring it." -Level 'WARN'
+                        $verified = $false
+                        break
+                    }
+                }
+                if ($verified) { $src = $candidate; break }
+            }
+
+            if ([string]::IsNullOrWhiteSpace($src)) {
+                throw "No verified bundled copy of '$tn' was found. Looked in: $($bundleRoots -join '; ')."
+            }
+
+            $dst = Join-Path $td $tn
+            if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Recurse -Force }
+            New-Item -Path $dst -ItemType Directory -Force | Out-Null
+            # Copy only the pinned files so the installed theme is exactly what was verified.
+            foreach ($fileName in @($bundle.Files.Keys)) {
+                Copy-Item -LiteralPath (Join-Path $src $fileName) -Destination (Join-Path $dst $fileName) -Force
+            }
+            Write-Log "Bundled theme '$tn' copied to $dst"
+        } catch {
+            Write-Log "Bundled theme '$tn' failed to install: $($_.Exception.Message). The install will continue without this theme." -Level 'WARN'
+            return
+        }
+    } elseif ($isCommunity) {
         # Community theme — download commit-pinned archive and verify hash
         $repo = $global:CommunityThemeRepos[$tn]
         $archiveUrl = "https://github.com/$($repo.Owner)/$($repo.Repo)/archive/$($repo.CommitSha).zip"
@@ -5894,11 +5995,15 @@ function Module-InstallCustomApps { param($Config)
             # LIBRESPOT_BUNDLED_ASSETS at the folder; the script lane looks beside
             # itself and in a source checkout.
             if ([bool]$info.Bundled -and -not [string]::IsNullOrWhiteSpace($bundledFileName)) {
-                # PS2EXE leaves $PSScriptRoot empty, which is why the monolith computes
-                # $script:ScriptRoot. Prefer it so the compiled LibreSpot.exe finds an
-                # archive sitting beside it; the backend host has no such variable and
-                # relies on LIBRESPOT_BUNDLED_ASSETS instead.
-                $bundleScriptRoot = if (-not [string]::IsNullOrWhiteSpace($script:ScriptRoot)) {
+                # PS2EXE leaves $PSScriptRoot empty, and the install runs in a worker
+                # runspace where a script-scoped root is not visible either, so the
+                # monolith publishes $global:LibreSpotScriptRoot and exports it.
+                # Prefer it so the compiled LibreSpot.exe finds an archive sitting
+                # beside it; the backend host has no such variable and relies on
+                # LIBRESPOT_BUNDLED_ASSETS instead.
+                $bundleScriptRoot = if (-not [string]::IsNullOrWhiteSpace($global:LibreSpotScriptRoot)) {
+                    [string]$global:LibreSpotScriptRoot
+                } elseif (-not [string]::IsNullOrWhiteSpace($script:ScriptRoot)) {
                     [string]$script:ScriptRoot
                 } elseif (-not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
                     [string]$PSScriptRoot

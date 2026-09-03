@@ -27,6 +27,21 @@ public sealed class BackendScriptService
     private const string ResourceName = "LibreSpot.Desktop.Backend.LibreSpot.Backend.ps1";
     internal const string BundledEngineResourceName = "LibreSpot.Desktop.Resources.librespot-engine.zip";
     internal const string BundledEngineFileName = "librespot-engine.zip";
+    internal const string BundledThemeResourcePrefix = "LibreSpot.Desktop.Resources.themes.";
+
+    /// <summary>
+    /// Bundled theme files, as embedded resource name to the path they take under
+    /// <see cref="BundledAssetsDirectory"/>. The backend script reads
+    /// &lt;assets&gt;\themes\&lt;theme&gt; and verifies each file against the pins in
+    /// $global:BundledThemes before it copies anything.
+    /// </summary>
+    internal static readonly IReadOnlyDictionary<string, string> BundledThemeFiles =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [BundledThemeResourcePrefix + "Prism.color.ini"] = Path.Combine("themes", "Prism", "color.ini"),
+            [BundledThemeResourcePrefix + "Prism.theme.js"] = Path.Combine("themes", "Prism", "theme.js"),
+            [BundledThemeResourcePrefix + "Prism.user.css"] = Path.Combine("themes", "Prism", "user.css")
+        };
     private const string Prefix = "@@LS@@|";
     private static readonly SemaphoreSlim RuntimeScriptLock = new(1, 1);
 
@@ -75,21 +90,42 @@ public sealed class BackendScriptService
     internal string BundledAssetsDirectory => Path.Combine(_runtimeDirectory, "assets");
 
     /// <summary>
-    /// Writes the embedded live customization archive into <see cref="BundledAssetsDirectory"/>
-    /// so a custom-app install works with no network. Returns the folder when the
-    /// archive is in place, or null when it could not be written; the install then
-    /// falls back to the pinned release download.
+    /// Writes the embedded live customization archive and the bundled theme files
+    /// into <see cref="BundledAssetsDirectory"/> so the custom-app and theme
+    /// installs work with no network. Returns the folder when at least one asset
+    /// is in place, or null when none could be written; the custom-app install
+    /// then falls back to the pinned release download, and a theme that has no
+    /// verified copy is reported as not installed.
     /// </summary>
     internal string? TryEnsureBundledAssets()
     {
-        var destination = Path.Combine(BundledAssetsDirectory, BundledEngineFileName);
+        var written = TryWriteBundledResource(BundledEngineResourceName, BundledEngineFileName);
+
+        // Non-short-circuiting so one unreadable file cannot skip the rest.
+        foreach (var themeFile in BundledThemeFiles)
+        {
+            written |= TryWriteBundledResource(themeFile.Key, themeFile.Value);
+        }
+
+        return written ? BundledAssetsDirectory : null;
+    }
+
+    /// <summary>
+    /// Writes one embedded resource to <paramref name="relativePath"/> under
+    /// <see cref="BundledAssetsDirectory"/>, skipping the write when the file on
+    /// disk already hashes the same. Returns false rather than throwing so a
+    /// single unwritable asset never stops the run.
+    /// </summary>
+    private bool TryWriteBundledResource(string resourceName, string relativePath)
+    {
+        var destination = Path.Combine(BundledAssetsDirectory, relativePath);
 
         try
         {
-            using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(BundledEngineResourceName);
+            using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
             if (resourceStream is null)
             {
-                return null;
+                return false;
             }
 
             var expectedHash = ComputeHash(resourceStream);
@@ -102,7 +138,7 @@ public sealed class BackendScriptService
                     using var existing = File.Open(destination, FileMode.Open, FileAccess.Read, FileShare.Read);
                     if (ComputeHash(existing) == expectedHash)
                     {
-                        return BundledAssetsDirectory;
+                        return true;
                     }
                 }
                 catch
@@ -110,8 +146,9 @@ public sealed class BackendScriptService
                 }
             }
 
-            Directory.CreateDirectory(BundledAssetsDirectory);
-            var tempPath = Path.Combine(BundledAssetsDirectory, $"{BundledEngineFileName}.{Guid.NewGuid():N}.tmp");
+            var destinationDirectory = Path.GetDirectoryName(destination)!;
+            Directory.CreateDirectory(destinationDirectory);
+            var tempPath = Path.Combine(destinationDirectory, $"{Path.GetFileName(destination)}.{Guid.NewGuid():N}.tmp");
             try
             {
                 using (var fileStream = File.Create(tempPath))
@@ -121,7 +158,7 @@ public sealed class BackendScriptService
                 }
 
                 File.Move(tempPath, destination, overwrite: true);
-                return BundledAssetsDirectory;
+                return true;
             }
             catch
             {
@@ -131,7 +168,7 @@ public sealed class BackendScriptService
         }
         catch
         {
-            return null;
+            return false;
         }
     }
 

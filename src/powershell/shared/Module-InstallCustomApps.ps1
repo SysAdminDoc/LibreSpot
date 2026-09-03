@@ -46,11 +46,15 @@ function Module-InstallCustomApps { param($Config)
             # LIBRESPOT_BUNDLED_ASSETS at the folder; the script lane looks beside
             # itself and in a source checkout.
             if ([bool]$info.Bundled -and -not [string]::IsNullOrWhiteSpace($bundledFileName)) {
-                # PS2EXE leaves $PSScriptRoot empty, which is why the monolith computes
-                # $script:ScriptRoot. Prefer it so the compiled LibreSpot.exe finds an
-                # archive sitting beside it; the backend host has no such variable and
-                # relies on LIBRESPOT_BUNDLED_ASSETS instead.
-                $bundleScriptRoot = if (-not [string]::IsNullOrWhiteSpace($script:ScriptRoot)) {
+                # PS2EXE leaves $PSScriptRoot empty, and the install runs in a worker
+                # runspace where a script-scoped root is not visible either, so the
+                # monolith publishes $global:LibreSpotScriptRoot and exports it.
+                # Prefer it so the compiled LibreSpot.exe finds an archive sitting
+                # beside it; the backend host has no such variable and relies on
+                # LIBRESPOT_BUNDLED_ASSETS instead.
+                $bundleScriptRoot = if (-not [string]::IsNullOrWhiteSpace($global:LibreSpotScriptRoot)) {
+                    [string]$global:LibreSpotScriptRoot
+                } elseif (-not [string]::IsNullOrWhiteSpace($script:ScriptRoot)) {
                     [string]$script:ScriptRoot
                 } elseif (-not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
                     [string]$PSScriptRoot

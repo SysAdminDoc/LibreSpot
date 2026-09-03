@@ -36,6 +36,13 @@
          install never depends on a download (RD-142). The backend script reads it
          from the runtime folder through LIBRESPOT_BUNDLED_ASSETS. -->
     <EmbeddedResource Include="..\..\resources\custom-apps\librespot-engine.zip" LogicalName="LibreSpot.Desktop.Resources.librespot-engine.zip" />
+    <!-- Prism, the bundled theme, travels the same way. It is three text files
+         rather than an archive so the source stays diffable and there is no
+         binary pin to go stale. BundledThemeFilesAreEmbedded fails if a file is
+         added under resources/themes/Prism without being listed here. -->
+    <EmbeddedResource Include="..\..\resources\themes\Prism\color.ini" LogicalName="LibreSpot.Desktop.Resources.themes.Prism.color.ini" />
+    <EmbeddedResource Include="..\..\resources\themes\Prism\theme.js" LogicalName="LibreSpot.Desktop.Resources.themes.Prism.theme.js" />
+    <EmbeddedResource Include="..\..\resources\themes\Prism\user.css" LogicalName="LibreSpot.Desktop.Resources.themes.Prism.user.css" />
   </ItemGroup>
 
   <ItemGroup>

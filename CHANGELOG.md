@@ -4,6 +4,16 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Prism is now a LibreSpot theme, not a separate project. It ships inside the package and installs from disk, so picking it needs no network and there is no release asset that can drift away from an older build's pin. Four schemes come with it: Dark, Light, OLED, and a genuine high-contrast one. It switches between light and dark on a clock you set, which no other theme manages because Spotify forces dark mode on its own browser and every theme that asks the OS gets the wrong answer. It takes the accent for the play button, progress bar, and highlights from the album art, and falls back to the scheme's own accent when Spotify's colour service is unavailable. It measures the frame rate once at startup and drops to cheaper effects by itself on a machine that cannot keep up, and reduced-motion users get the flat version straight away. Everything is in one dialog in the profile menu. Nothing in it touches ads, Premium state, telemetry, or any binary, and removing the theme puts everything back.
+
+  Each of the theme's files is pinned by SHA256 in the script, the desktop backend, and the shared data source, so a truncated or edited copy is refused rather than half-installed. `samples/spotx-custom-patches-prism.json` ships alongside it: two cosmetic tweaks in SpotX's own `patches.json` format that can be pasted into Custom Install > Custom Patches.
+
+### Fixed
+
+- Bundled assets were invisible to the install that needed them. The script hands the install work to a background runspace seeded with a fixed list of variables, and the folder the script is running from was not on it, so the lookup for a bundled copy fell through to whatever folder `powershell.exe` itself lives in and never found one. The custom app hid this by downloading instead; a bundled theme has nothing to fall back on. The folder is now published and handed to the runspace with the rest.
+
 ### Changed
 
 - Every reviewed extension, theme and app now records whether it talks to Spotify's Web API, and the catalog page shows it. Since February 2026 an add-on that calls that API under its own developer registration works for five people and then stops working for everyone after them, so this is the difference between an add-on that keeps working and one that quietly dies. None of the reviewed assets is in that position: they either stay inside the Spotify app's own interfaces or make no Spotify call at all.

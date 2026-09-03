@@ -41,7 +41,7 @@ public sealed class ThemePreviewManifestTests
     public void Manifest_SourcesAreKnown()
     {
         using var doc = LoadManifest();
-        var known = new HashSet<string> { "official", "community", "virtual" };
+        var known = new HashSet<string> { "official", "community", "virtual", "bundled" };
 
         foreach (var theme in doc.RootElement.GetProperty("themes").EnumerateArray())
         {

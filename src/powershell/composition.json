@@ -17,6 +17,11 @@
       "name": "CommunityCustomApps",
       "source": "src/powershell/data/CommunityCustomApps.ps1",
       "pattern": "(?ms)^\\$global:CommunityCustomApps\\s*=\\s*(?:\\[ordered\\])?@\\{.+?^\\}"
+    },
+    {
+      "name": "BundledThemes",
+      "source": "src/powershell/data/BundledThemes.ps1",
+      "pattern": "(?ms)^\\$global:BundledThemes\\s*=\\s*(?:\\[ordered\\])?@\\{.+?^\\}"
     }
   ],
   "laneFunctions": [

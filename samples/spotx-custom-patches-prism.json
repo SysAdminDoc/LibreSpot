@@ -1,0 +1,18 @@
+{
+  "_comment": "LibreSpot custom SpotX patches, demonstration. Loaded through LibreSpot's Custom Install > Custom Patches (SpotX_CustomPatchesJson), which SpotX consumes via -CustomPatchesPath. Every entry follows the real SpotX patches.json shape: a version gate plus a regex match/replace against a named xpui file. These are cosmetic-only patches applied at the SpotX layer, so they survive even without Spicetify. Nothing here touches ads, premium state, telemetry, or any binary.",
+  "VariousJs": {
+    "prism_compact_rows": {
+      "_comment": "Tighten track-row height for a denser list, a long-standing layout request with no native toggle.",
+      "version": { "fr": "1.2.50", "to": "" },
+      "match": "(--track-list-row-height:)[^;]+;",
+      "replace": "$156px;"
+    }
+  },
+  "others": {
+    "prism_css": {
+      "_comment": "Appended to xpui.css. 'add' entries are concatenated onto the file by SpotX's extract(-add). Hides the Now Playing view upsell nag and rounds album art without needing a full theme.",
+      "version": { "fr": "1.2.50", "to": "" },
+      "add": ".main-nowPlayingView-section[aria-label*='upsell'],.main-entityHeader-premiumMark{display:none!important}.main-image-image.main-entityHeader-image,.main-card-imageContainer img{border-radius:12px!important}"
+    }
+  }
+}
