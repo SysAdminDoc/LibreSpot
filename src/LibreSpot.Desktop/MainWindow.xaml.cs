@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
@@ -30,7 +30,16 @@ public partial class MainWindow : Window
     private const string UiAutomationThemeArgumentPrefix = "--uia-theme=";
     private const string UiAutomationFocusArgumentPrefix = "--uia-focus=";
     private const string UiAutomationBackgroundArgument = "--uia-background";
+
     private const string UiAutomationCaptureKeepOpenArgument = "--uia-capture-keep-open";
+
+    /// <summary>
+    /// Automation id of the deliberately unnamed button planted in the
+    /// axe-positive-control state, so the accessibility scan's positive control
+    /// can name the element it expects to be reported.
+    /// </summary>
+    internal const string UiAutomationPositiveControlAutomationId = "AxePositiveControlUnnamedButton";
+
     private readonly MainViewModel _viewModel;
     private readonly string? _uiAutomationSmokeState;
     private readonly string _uiAutomationSmokeCulture;
@@ -227,13 +236,23 @@ public partial class MainWindow : Window
                     // rule engine must report it. A scan that comes back clean here
                     // is broken, and every other state's clean result would be worth
                     // nothing. Only reachable through --uia-smoke.
-                    SimpleShellHost.Children.Add(new System.Windows.Controls.Button
+                    var plantedButton = new System.Windows.Controls.Button
                     {
                         Width = 24,
                         Height = 24,
                         HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
                         VerticalAlignment = System.Windows.VerticalAlignment.Top
-                    });
+                    };
+
+                    // The automation id is the whole point: it lets the control
+                    // assert on THIS button rather than on "some unnamed button
+                    // somewhere", which a real regression elsewhere could satisfy.
+                    // An id is not an accessible name, so the element stays exactly
+                    // as broken as the scan needs it to be.
+                    System.Windows.Automation.AutomationProperties.SetAutomationId(
+                        plantedButton,
+                        UiAutomationPositiveControlAutomationId);
+                    SimpleShellHost.Children.Add(plantedButton);
                 }
                 if (string.Equals(uiAutomationSmokeState, "provenance", StringComparison.OrdinalIgnoreCase))
                 {

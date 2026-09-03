@@ -67,13 +67,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: WHEN the decision is recorded, either `beautiful-lyrics.mjs` SHALL stop being an easy-mode default and be removed from every hard-coded recommended set so the catalog and the installed set agree, or the catalog SHALL carry a written rationale for shipping unpinned third-party code by default; a test SHALL fail if the easy-mode set in `Program.cs` and the `easyModeDefault` flags in the manifest ever disagree, whichever way the decision goes.
   Complexity: M
 
-- [ ] P3: RD-171: Tie the accessibility positive control to the planted button specifically
-  Why: `AxeWindowsScan_ReportsAPlantedButtonThatHasNoAccessibleName` matches any violation whose control type contains Button and whose rule mentions Name. Removing the plant turns it red today only because no other unnamed button exists in that state. A future regression that leaves some other button unnamed would satisfy it and the control would stop controlling anything.
-  Evidence: `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs` positive-control assertion; raised by an adversarial review on 2026-09-03 as a durability risk rather than a live defect.
-  Touches: `src/LibreSpot.Desktop/MainWindow.xaml.cs` (give the planted button a known automation id), `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`.
-  Acceptance: WHEN the positive control runs, it SHALL match on the planted button's own automation id rather than on control type, and SHALL still fail when the plant is removed.
-  Complexity: S
-
 - [ ] P3: RD-172: Cover the mapping from HTTP status to a rate-limited lookup
   Why: `GetNoticeAsync_ARateLimitedResponseBacksOff...` is a theory over 403 and 429, but the status code only ever reaches a message string, so both rows execute identical code and prove one thing twice. The actual mapping lives in `GitHubReleaseNoticeClient` and nothing tests it, so a change there could stop recognising 429 with every existing test still green.
   Evidence: `src/LibreSpot.Core/ReleaseNoticeService.cs` (`ReleaseNoticeLookup.RateLimited($"HTTP {(int)response.StatusCode} ...")`); `tests/LibreSpot.Desktop.Tests/ReleaseNoticeServiceTests.cs` theory rows; raised by an adversarial review on 2026-09-03.

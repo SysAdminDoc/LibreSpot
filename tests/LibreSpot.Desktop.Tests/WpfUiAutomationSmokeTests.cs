@@ -345,9 +345,12 @@ public sealed class WpfUiAutomationSmokeTests
         Assert.True(scan.WindowsScanned > 0, "Axe.Windows scanned no windows, so this control proved nothing.");
         var violations = scan.Violations;
 
+        // Matched on the plant's own automation id. Matching on "some unnamed
+        // button" would be satisfied by a real regression elsewhere in the shell,
+        // and the control would quietly stop controlling anything.
         Assert.True(
             violations.Any(violation =>
-                violation.ControlType.Contains("Button", StringComparison.OrdinalIgnoreCase) &&
+                violation.AutomationId == MainWindow.UiAutomationPositiveControlAutomationId &&
                 violation.RuleId.Contains("Name", StringComparison.OrdinalIgnoreCase)),
             "The scan did not report the unnamed button planted in the axe-positive-control state, so it is not "
                 + "checking anything. Keys reported: "
@@ -453,7 +456,7 @@ public sealed class WpfUiAutomationSmokeTests
             StringComparer.Ordinal);
     }
 
-    private sealed record AxeViolation(string RuleId, string ControlType, string Key, string Detail)
+    private sealed record AxeViolation(string RuleId, string ControlType, string AutomationId, string Key, string Detail)
     {
         public static AxeViolation FromScanResult(ScanResult result)
         {
@@ -473,6 +476,7 @@ public sealed class WpfUiAutomationSmokeTests
             return new AxeViolation(
                 ruleId,
                 controlType,
+                automationId,
                 ruleId + "|" + controlType + "|" + automationId,
                 detail);
         }
