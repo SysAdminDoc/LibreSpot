@@ -5,9 +5,9 @@
   "budget": {
     "artifact": "LibreSpot-Desktop.exe",
     "rid": "win-x64",
-    "maxSizeMiB": 200,
-    "warnSizeMiB": 180,
-    "rationale": "The WPF shell ships as a self-contained single-file executable. 200 MiB keeps the portable download under typical browser and endpoint-tool size limits while accommodating the .NET runtime, WPF framework, WPF-UI, Serilog, and the embedded PowerShell backend."
+    "maxSizeMiB": 120,
+    "warnSizeMiB": 100,
+    "rationale": "The WPF shell ships as a compressed self-contained single-file executable. Compression measured 175.93 MiB down to 76.03 MiB on 2026-09-03, so 120 MiB leaves room for growth while keeping the download well inside typical browser and endpoint-tool limits."
   },
   "buildModeDecisions": [
     {
@@ -35,33 +35,54 @@
     {
       "option": "singleFile",
       "enabled": true,
-      "rationale": "Single-file bundling simplifies distribution: one file to download, verify, and run. The native extraction on first launch adds a few seconds but only happens once per version."
+      "rationale": "Single-file bundling simplifies distribution: one file to download, verify, and run. The native extraction on first launch happens once per version."
     },
     {
       "option": "includeNativeLibrariesForSelfExtract",
       "enabled": true,
       "rationale": "Required for single-file to bundle native dependencies (e.g., WPF compositor, DirectWrite). Without this, the app would need a companion directory."
+    },
+    {
+      "option": "enableCompressionInSingleFile",
+      "enabled": true,
+      "rationale": "Measured on 2026-09-03 on this machine, three runs per variant, twice, using the offscreen --uia-smoke capture as the first-frame signal. Compression more than halves the download (175.93 MiB to 76.03 MiB) and makes the cold first launch faster, because the host reads far less from disk than it saves decompressing: cold 7023 ms and 5545 ms uncompressed against 5167 ms and 3771 ms compressed. Warm launches cost about 250 ms more (3643 ms and 3680 ms against 3898 ms and 3946 ms), which is inside the 1.5 s ceiling this decision was gated on.",
+      "references": [
+        "https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview"
+      ]
     }
   ],
   "coldStartMetrics": {
-    "status": "not-yet-measured",
-    "rationale": "Cold-start-to-main-window, first-refresh, and working-set measurements require a Windows desktop with a display. GitHub Actions windows-latest runners provide a desktop but timing is noisy. These metrics should be captured from a local release-equivalent publish and documented here once a baseline is established.",
-    "targetMetrics": [
+    "status": "measured",
+    "method": "LibreSpot-Desktop.exe launched with --uia-smoke=recommended --uia-background --uia-size=1280x800 --uia-capture, timed from process start to the capture file appearing, with a fresh DOTNET_BUNDLE_EXTRACT_BASE_DIR per run so run 1 is a true cold start. Three runs per variant, repeated twice, on the maintainer machine.",
+    "measuredOn": "2026-09-03",
+    "measuredMetrics": [
       {
-        "metric": "coldStartToMainWindowMs",
-        "description": "Time from process start to MainWindow.Loaded event.",
-        "budgetMs": null
+        "metric": "coldStartToFirstFrameMs",
+        "description": "Process start to the first offscreen frame, with no prior extraction.",
+        "uncompressed": [
+          7023,
+          5545
+        ],
+        "compressed": [
+          5167,
+          3771
+        ],
+        "budgetMs": 9000
       },
       {
-        "metric": "firstRefreshMs",
-        "description": "Time from MainWindow.Loaded to first environment snapshot completion.",
-        "budgetMs": null
-      },
-      {
-        "metric": "baselineWorkingSetMiB",
-        "description": "Private working set after first refresh settles.",
-        "budgetMiB": null
+        "metric": "warmStartToFirstFrameMs",
+        "description": "Same measurement once the bundle has been extracted before.",
+        "uncompressed": [
+          3643,
+          3680
+        ],
+        "compressed": [
+          3898,
+          3946
+        ],
+        "budgetMs": 6000
       }
-    ]
+    ],
+    "notes": "First-refresh and working-set are still unmeasured: the offscreen capture completes before the environment snapshot finishes, so timing it needs a separate signal."
   }
 }

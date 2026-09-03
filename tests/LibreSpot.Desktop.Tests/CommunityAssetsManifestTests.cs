@@ -134,6 +134,35 @@ public sealed class CommunityAssetsManifestTests
     }
 
     [Fact]
+    public void PublishFootprint_RecordsTheCompressionDecisionAndItsMeasurements()
+    {
+        using var budget = JsonDocument.Parse(ReadFile("schemas", "publish-footprint-budget.json"));
+        var root = budget.RootElement;
+
+        // A size ceiling nobody measured is a guess. This holds the decision to the
+        // numbers it was made from, so turning compression off again has to restate them.
+        var compression = root.GetProperty("buildModeDecisions").EnumerateArray()
+            .Single(decision => decision.GetProperty("option").GetString() == "enableCompressionInSingleFile");
+        Assert.True(compression.GetProperty("enabled").GetBoolean());
+        Assert.Contains("EnableCompressionInSingleFile", ReadFile("Build-Scripts.ps1"), StringComparison.Ordinal);
+
+        Assert.True(root.GetProperty("budget").GetProperty("maxSizeMiB").GetInt32() <= 120);
+
+        var metrics = root.GetProperty("coldStartMetrics");
+        Assert.Equal("measured", metrics.GetProperty("status").GetString());
+        foreach (var metric in metrics.GetProperty("measuredMetrics").EnumerateArray())
+        {
+            var name = metric.GetProperty("metric").GetString();
+            foreach (var variant in new[] { "uncompressed", "compressed" })
+            {
+                var samples = metric.GetProperty(variant).EnumerateArray().Select(value => value.GetInt32()).ToArray();
+                Assert.True(samples.Length >= 2, $"{name}/{variant} needs more than one sample.");
+                Assert.All(samples, sample => Assert.InRange(sample, 1, 60_000));
+            }
+        }
+    }
+
+    [Fact]
     public void ReleaseContract_ShipsTheEngineArchiveWithAChecksumEntry()
     {
         using var contract = JsonDocument.Parse(ReadFile("schemas", "release-artifact-contract.json"));

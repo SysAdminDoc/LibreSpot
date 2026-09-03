@@ -1798,6 +1798,7 @@ function Get-LibreSpotReleaseBuildProperties {
         RuntimeIdentifier           = 'win-x64'
         SelfContained               = 'true'
         PublishSingleFile           = 'true'
+        EnableCompressionInSingleFile = 'true'
         Deterministic               = 'true'
         ContinuousIntegrationBuild  = 'true'
         EmbedUntrackedSources       = 'true'
@@ -1858,7 +1859,7 @@ function Invoke-LibreSpotReleasePublish {
 
         $stage = Join-Path $Root ('stage-' + [System.IO.Path]::GetFileNameWithoutExtension($project.Path))
         $arguments = @('publish', $projectPath, '-c', $properties.Configuration, '-r', $properties.RuntimeIdentifier, '--self-contained', $properties.SelfContained, '-o', $stage, '--nologo')
-        foreach ($name in @('PublishSingleFile', 'Deterministic', 'ContinuousIntegrationBuild', 'EmbedUntrackedSources', 'PublishRepositoryUrl')) {
+        foreach ($name in @('PublishSingleFile', 'EnableCompressionInSingleFile', 'Deterministic', 'ContinuousIntegrationBuild', 'EmbedUntrackedSources', 'PublishRepositoryUrl')) {
             $arguments += "-p:$name=$($properties[$name])"
         }
         # ContinuousIntegrationBuild is gated on this flag in Directory.Build.props so

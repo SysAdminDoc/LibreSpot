@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- The desktop download is less than half the size it was. Turning on single-file compression takes `LibreSpot-Desktop.exe` from about 176 MB to about 76 MB and the fleet CLI from about 76 MB to about 38 MB. It also starts faster the first time, not slower: the first launch has far less to read from disk than it costs to decompress, and later launches are about a quarter of a second slower. The measurements and the method behind that decision are recorded alongside the size budget.
+
 ### Fixed
 
 - The Lucid theme is marked as not installable rather than offered as working. Its pinned archive holds an empty `color.ini` stub at the root and keeps the real files under `remote/`, so no theme folder has a usable set and picking it did nothing. Comfy, Hazy and Lucid are also no longer described as local-only: each ships a loader whose CSS and script are fetched from a content network at a moving address every time Spotify starts, so the pinned commit and checksum cover the loader and not the code that runs. The catalog page now shows each asset's support state and the date it was last checked against the pinned Spotify build.

@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P2: RD-148: Enable single-file compression for the desktop and CLI executables and record measured size and cold start
-  Why: the desktop executable is 175.7 MiB against a 180 MiB warning line and the CLI is 72.2 MiB; the publish budget documents trimming, ReadyToRun, self-contained, single-file, and native extraction but not `EnableCompressionInSingleFile`, and its cold-start section says the metrics were never measured with a rationale that still refers to GitHub Actions runners.
-  Evidence: https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.1.2 (asset sizes); `schemas/publish-footprint-budget.json`; `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:17`; https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview.
-  Touches: both app csproj files, `schemas/publish-footprint-budget.json`, `Build-Scripts.ps1 -GenerateReleaseManifest`, `README.md` footprint copy.
-  Acceptance: WHEN the release builds with compression on, the desktop executable SHALL be smaller than 120 MiB and the manifest SHALL record the size; cold-start-to-main-window and first-refresh SHALL be measured offscreen (`--uia-smoke` timing) before and after on this machine and written into `coldStartMetrics` with budgets; if the compressed build starts more than 1.5 seconds slower, compression SHALL stay off and the budget file SHALL record the numbers and the decision.
-  Complexity: S
-
 - [ ] P2: RD-149: Trigger the auto-reapply watcher from a Spotify file change instead of only the 30-minute poll
   Why: the watcher is a logon-triggered scheduled task repeating every 30 minutes, so a Spotify update that gets past the SpotX block leaves the client unpatched for up to half an hour; "Spotify updated and my setup vanished" is the single most common complaint upstream and the reason people write their own daily scripts.
   Evidence: `src/powershell/gui/lane-functions.ps1:106-186`; https://www.reddit.com/r/spicetify/comments/1p29rqh/; https://www.reddit.com/r/spicetify/comments/1vw95y7/; https://github.com/spicetify/cli/issues/3869; https://github.com/BetterDiscord/Installer#faq (loader survives host updates).
