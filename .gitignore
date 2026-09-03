@@ -30,7 +30,6 @@ update-check.json
 
 # Project documentation is tracked. Keep scratch files under work/ and use
 # that folder's own ignore rules for generated notes and release checksums.
-SIGNPATH.md
 LOGO_PROMPTS.md
 design-qa.md
 Roadmap_Blocks.md

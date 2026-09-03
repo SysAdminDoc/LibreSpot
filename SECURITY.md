@@ -8,7 +8,7 @@
 | v3.7.x (standalone PowerShell script releases) | Superseded. No separate fixes are published for these tags. Move to the `LibreSpot.ps1` or `LibreSpot.exe` from the latest v4 release; the script reads the same `config.json`. |
 | < v3.7.0 | No |
 
-Every v4 release carries the desktop app, the fleet CLI, and the PowerShell script together, so there is one stable line rather than a script channel and a desktop channel. Releases are unsigned by design and are verified with `checksums.txt` and the GitHub release attestation.
+Every v4 release carries the desktop app, the fleet CLI, and the PowerShell script together, so there is one stable line rather than a script channel and a desktop channel. Releases are unsigned by design (the evaluation is recorded in [SIGNPATH.md](SIGNPATH.md)) and are verified with `checksums.txt` and the GitHub release attestation.
 
 ## Capability boundary
 

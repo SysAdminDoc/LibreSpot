@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- `SIGNPATH.md`, the record of why LibreSpot ships unsigned, is now tracked. It was listed in `.gitignore`, so a fresh clone failed the two release-trust tests that read it and the security policy pointed at a file that only existed on the maintainer's machine.
+
 ### Added
 
 - Settings now opens with the four choices most people change: the Spotify build (Auto by default), the theme, the Marketplace, and whether Spotify opens when the run finishes. Installation details, appearance details, playback and interface patches, advanced SpotX flags, live customization, extensions, apps, and profile tools each sit behind one labeled group that is one click away, with no nested groups. The page is a single column with one scrollbar, the apply action lives in a footer that is never clipped, and searching for a hidden option opens its group and scrolls it into view while clearing the search restores the groups you had opened. Every option still round-trips through the existing configuration and profile format.
