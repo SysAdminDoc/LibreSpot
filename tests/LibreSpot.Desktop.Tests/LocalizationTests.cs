@@ -580,6 +580,47 @@ public sealed class LocalizationTests
     }
 
     [Fact]
+    public void EveryTestThatChangesTheProcessCultureJoinsThisCollection()
+    {
+        // Culture lives in statics: LocalizationService.ApplyCulture writes
+        // Strings.Culture and CultureInfo.DefaultThreadCurrentUICulture. xunit
+        // runs collections in parallel, so a class that changes the culture
+        // outside this collection changes it underneath every test that is
+        // asserting English text at that moment. That is what made
+        // SettingsDisclosureTests.Settings_SearchOpensOnlyTheGroupsThatHoldAMatch
+        // fail about one run in five: searching for "lyrics" matches nothing
+        // once the option titles have turned into "Habilitar parche de letras".
+        var needles = new[]
+        {
+            "LocalizationService.Current.ApplyCulture",
+            "Strings.Culture =",
+            "DefaultThreadCurrentUICulture"
+        };
+
+        var testsDirectory = Path.Combine(RepoRoot, "tests", "LibreSpot.Desktop.Tests");
+        var offenders = new List<string>();
+        foreach (var path in Directory.EnumerateFiles(testsDirectory, "*.cs", SearchOption.AllDirectories))
+        {
+            var source = File.ReadAllText(path);
+            if (!needles.Any(needle => source.Contains(needle, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            if (!source.Contains("[Collection(\"Localization\")]", StringComparison.Ordinal))
+            {
+                offenders.Add(Path.GetFileName(path));
+            }
+        }
+
+        Assert.True(
+            offenders.Count == 0,
+            "These test classes change the process-wide culture but do not join the Localization collection, so "
+                + "they run in parallel with tests that assert English text: "
+                + string.Join(", ", offenders.OrderBy(name => name, StringComparer.Ordinal)));
+    }
+
+    [Fact]
     public void LocalizationService_SwitchesCulturesAtRuntime()
     {
         var service = LocalizationService.Current;

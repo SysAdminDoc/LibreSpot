@@ -46,23 +46,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: WHEN the decision is recorded, either `beautiful-lyrics.mjs` SHALL stop being an easy-mode default and be removed from every hard-coded recommended set so the catalog and the installed set agree, or the catalog SHALL carry a written rationale for shipping unpinned third-party code by default; a test SHALL fail if the easy-mode set in `Program.cs` and the `easyModeDefault` flags in the manifest ever disagree, whichever way the decision goes.
   Complexity: M
 
-- [ ] P2: RD-173: Fix the flaky `Settings_SearchOpensOnlyTheGroupsThatHoldAMatch`
-  Why: this test fails intermittently in a full `--filter-not-class "*Wpf*"` run and never in isolation, so the
-  suite cannot tell a real regression from noise. It was seen twice on 2026-09-03, once as an unidentified
-  `failed: 1` and once by name, with clean runs either side both times. Passing 9/9 three times as a class while
-  failing inside the full run points at cross-test interference or a shared static, not at the assertion.
-  Evidence: `failed: 1` of 1154 on 2026-09-03 with the name lost to the console, then
-  `failed LibreSpot.Desktop.Tests.SettingsDisclosureTests.Settings_SearchOpensOnlyTheGroupsThatHoldAMatch (175ms)`
-  in a later full run of 1160; `--filter-class "*SettingsDisclosureTests*"` passed 9/9 three consecutive times
-  immediately after, and two further full runs passed 1159/1159.
-  Touches: `tests/LibreSpot.Desktop.Tests/SettingsDisclosureTests.cs`, whatever state it shares with the tests that
-  run beside it, and `tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj` if a result file is needed to
-  catch the next occurrence.
-  Acceptance: WHEN the non-WPF suite runs repeatedly, this test SHALL pass every time, and the cause SHALL be named
-  in the fix rather than worked around with a retry, a sleep, or a collection attribute that only serialises it;
-  a machine-readable result file SHALL be written so any future failure is identifiable after the fact.
-  Complexity: M
-
 - [ ] P3: RD-176: Assert the rate-limit message carries the status code it was given
   Why: `TryGetLatestStableAsync` puts its message into `ReleaseNotice.Reason`, which reaches the user, but the new
   mapping tests assert only `Status`. Replacing `RateLimited($"HTTP {(int)response.StatusCode} ...")` with a

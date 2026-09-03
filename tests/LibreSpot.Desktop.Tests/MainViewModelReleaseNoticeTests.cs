@@ -8,6 +8,11 @@ using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
 
+// Applies each supported culture to LocalizationService.Current, which writes
+// Strings.Culture and CultureInfo.DefaultThreadCurrentUICulture for the whole
+// process. Anything asserting English UI text while that loop is mid-flight
+// reads Spanish, Russian or Chinese instead, so this cannot run in parallel.
+[Collection("Localization")]
 public sealed class MainViewModelReleaseNoticeTests
 {
     [Fact]
