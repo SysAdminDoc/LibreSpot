@@ -51,6 +51,7 @@ param(
     [AllowEmptyString()][string]$SpotXCandidateDefenderOptOut = '',
     [AllowEmptyString()][string]$SpotXCandidateArguments = '',
     [switch]$CheckSpotifyVersionDrift,
+    [switch]$PublishRelease,
     [switch]$CompileStableExe,
     [string]$StableExeOutputPath,
     [switch]$GenerateSbom,
@@ -1763,6 +1764,87 @@ function Test-LibreSpotStableExeIdentity {
     Write-Host "  Stable script executable identity matches LibreSpot.ps1 v$scriptVersion (file version $fileVersion)." -ForegroundColor Green
 }
 
+function Get-LibreSpotReleaseBuildProperties {
+    # The exact property set the release build pins. Recorded in the manifest so a
+    # second party can rebuild with the same inputs and compare.
+    [ordered]@{
+        Configuration               = 'Release'
+        RuntimeIdentifier           = 'win-x64'
+        SelfContained               = 'true'
+        PublishSingleFile           = 'true'
+        Deterministic               = 'true'
+        ContinuousIntegrationBuild  = 'true'
+        EmbedUntrackedSources       = 'true'
+        PublishRepositoryUrl        = 'true'
+    }
+}
+
+function Invoke-LibreSpotReleasePublish {
+    param([string]$Root)
+
+    if ([string]::IsNullOrWhiteSpace($Root)) { $Root = Join-Path $PSScriptRoot 'publish' }
+    $Root = [System.IO.Path]::GetFullPath($Root)
+
+    $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+    if ($null -eq $dotnet) { throw 'Cannot publish the release; dotnet was not found on PATH.' }
+
+    if (Test-Path -LiteralPath $Root) {
+        Write-Host "Cleaning $Root..." -ForegroundColor Cyan
+        Remove-Item -LiteralPath $Root -Recurse -Force
+    }
+    New-Item -Path $Root -ItemType Directory -Force | Out-Null
+
+    $properties = Get-LibreSpotReleaseBuildProperties
+    $projects = @(
+        @{ Path = 'src/LibreSpot.Desktop/LibreSpot.Desktop.csproj'; Produces = 'LibreSpot.dll'; Asset = 'LibreSpot-Desktop.exe'; Built = 'LibreSpot.exe' }
+        @{ Path = 'src/LibreSpot.Cli/LibreSpot.Cli.csproj';         Produces = 'LibreSpot.Cli.dll'; Asset = 'LibreSpot.Cli.exe'; Built = 'LibreSpot.Cli.exe' }
+    )
+
+    foreach ($project in $projects) {
+        $projectPath = Join-Path $PSScriptRoot $project.Path
+        if (-not (Test-Path -LiteralPath $projectPath -PathType Leaf)) {
+            throw "Cannot publish the release; project not found: $projectPath"
+        }
+
+        $stage = Join-Path $Root ('stage-' + [System.IO.Path]::GetFileNameWithoutExtension($project.Path))
+        $arguments = @('publish', $projectPath, '-c', $properties.Configuration, '-r', $properties.RuntimeIdentifier, '--self-contained', $properties.SelfContained, '-o', $stage, '--nologo')
+        foreach ($name in @('PublishSingleFile', 'Deterministic', 'ContinuousIntegrationBuild', 'EmbedUntrackedSources', 'PublishRepositoryUrl')) {
+            $arguments += "-p:$name=$($properties[$name])"
+        }
+        # ContinuousIntegrationBuild is gated on this flag in Directory.Build.props so
+        # a developer build keeps its local paths for debugging.
+        $arguments += '-p:LibreSpotReleaseBuild=true'
+
+        Write-Host "Publishing $($project.Path)..." -ForegroundColor Cyan
+        & dotnet @arguments | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for $($project.Path) with exit code $LASTEXITCODE." }
+
+        $built = Join-Path $stage $project.Built
+        if (-not (Test-Path -LiteralPath $built -PathType Leaf)) {
+            throw "Publish did not produce $built."
+        }
+        Move-Item -LiteralPath $built -Destination (Join-Path $Root $project.Asset) -Force
+        Remove-Item -LiteralPath $stage -Recurse -Force
+    }
+
+    # The custom-app archive is installed at run time from the release that ships
+    # it (RD-142), so it travels with the other assets.
+    $engineArchive = Join-Path $PSScriptRoot 'resources/custom-apps/librespot-engine.zip'
+    if (-not (Test-Path -LiteralPath $engineArchive -PathType Leaf)) {
+        throw "Cannot publish the release; $engineArchive not found."
+    }
+    Copy-Item -LiteralPath $engineArchive -Destination (Join-Path $Root 'librespot-engine.zip') -Force
+    Copy-Item -LiteralPath $mainScript -Destination (Join-Path $Root 'LibreSpot.ps1') -Force
+
+    foreach ($asset in @('LibreSpot-Desktop.exe', 'LibreSpot.Cli.exe', 'librespot-engine.zip', 'LibreSpot.ps1')) {
+        $path = Join-Path $Root $asset
+        Write-Host ("  {0,-24} {1,12:N0} bytes  {2}" -f $asset, (Get-Item -LiteralPath $path).Length, (Get-FileSha256Lower -Path $path)) -ForegroundColor Gray
+    }
+
+    Write-Host "Release publish complete: $Root" -ForegroundColor Green
+    Write-Host 'Run -CompileStableExe, -GenerateSbom, then -GenerateReleaseManifest to finish the release root.' -ForegroundColor Gray
+}
+
 function Invoke-LibreSpotStableExeCompile {
     param([string]$OutputPath)
 
@@ -2014,6 +2096,20 @@ function New-LibreSpotReleaseManifest {
         signingStatus    = [string]$contract.signingContract.status
         artifactCount    = $entries.Count
         publishFootprint = $footprint
+        # What the release was built with, so anyone can rebuild and compare
+        # (RD-146). Recorded, not asserted: a rebuild that differs tells you the
+        # inputs differed, and these are the inputs.
+        buildInputs      = [ordered]@{
+            sdkVersion            = (& dotnet --version 2>$null | Select-Object -First 1)
+            commit                = (& git -C $PSScriptRoot rev-parse HEAD 2>$null | Select-Object -First 1)
+            properties            = Get-LibreSpotReleaseBuildProperties
+            # Measured on 2026-09-03 by publishing the same commit into two roots
+            # and comparing SHA256: the .NET assets matched, LibreSpot.exe did not.
+            reproducibleAssets    = @('LibreSpot-Desktop.exe', 'LibreSpot.Cli.exe', 'librespot-engine.zip', 'LibreSpot.ps1')
+            nonDeterministicNotes = @(
+                'LibreSpot.exe is produced by ps2exe, which does not build reproducibly: two compiles of the same script produce different bytes. Verify it against checksums.txt from its own release rather than by rebuilding.'
+            )
+        }
         artifacts        = $entries
     }
 
@@ -2447,6 +2543,11 @@ function Test-SpotifyVersionDrift {
     Write-Host "LibreSpot.ps1 and LibreSpot.Backend.ps1) after confirming SpotX + Spicetify" -ForegroundColor Red
     Write-Host "support the new build. Report-only: no pin was changed." -ForegroundColor Red
     exit 1
+}
+
+if ($PublishRelease) {
+    Invoke-LibreSpotReleasePublish -Root $ReleaseRoot
+    exit 0
 }
 
 if ($CompileStableExe) {

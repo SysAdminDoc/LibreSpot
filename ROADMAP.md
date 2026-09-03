@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P1: RD-146: Script the release publish in `Build-Scripts.ps1` and make the desktop and CLI builds reproducible
-  Why: the README release procedure names every step except the `dotnet publish` invocation, and no csproj sets `Deterministic`, `ContinuousIntegrationBuild`, `EmbedUntrackedSources`, or `PublishRepositoryUrl`, so nobody, the maintainer included, can rebuild a released asset and compare it; the release manifest cannot record what it was built with.
-  Evidence: `README.md:562-570`; `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj`; `src/LibreSpot.Cli/LibreSpot.Cli.csproj`; `Directory.Build.props`; `Build-Scripts.ps1:27-59`; https://github.com/dotnet/reproducible-builds; https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props.
-  Touches: `Build-Scripts.ps1` (new `-PublishRelease`), `Directory.Build.props`, both app csproj files, `schemas/release-artifact-contract.json`, `Build-Scripts.ps1 -GenerateReleaseManifest`, `README.md` release procedure, `tests/powershell/LibreSpot.Tests.ps1`.
-  Acceptance: WHEN `Build-Scripts.ps1 -PublishRelease` runs, it SHALL clean `publish`, publish both projects self-contained for `win-x64` with `Deterministic`, `ContinuousIntegrationBuild=true`, `EmbedUntrackedSources`, and `PublishRepositoryUrl` set, and write the property set, SDK version, and commit into the release manifest; WHEN the command runs twice on the same commit, the two `LibreSpot.Cli.exe` outputs SHALL be byte-identical and the two desktop outputs SHALL differ only in fields the manifest lists as non-deterministic; the README release procedure SHALL show the one command.
-  Complexity: M
-
 - [ ] P1: RD-147: Add a one-click backup file for live engine and Marketplace state, importable by the desktop and restorable in the client
   Why: engine state lives in browser localStorage under `librespot:engine-state`, the same store whose wipes fill the Spicetify tracker, and Marketplace state lives in IndexedDB; Marketplace already exports its settings as a JSON file from its Backup modal, so a LibreSpot Health-panel action can write one file holding both, and the desktop can fold it into a `.librespot` profile without copying Chromium files.
   Evidence: `src/LibreSpot.App/src/core/store.ts:8-23`; https://github.com/spicetify/marketplace/blob/main/src/components/Modals/BackupModal/index.tsx; https://github.com/spicetify/cli/issues/3861; https://github.com/spicetify/marketplace/issues/1201; `Roadmap_Blocked.md` "Separate LibreSpot-managed profile sharing from Marketplace-state backup".

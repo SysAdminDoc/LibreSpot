@@ -1,5 +1,16 @@
 <Project>
   <PropertyGroup>
+    <!-- Reproducible builds (RD-146). Deterministic is on by default for the
+         Roslyn compilers; ContinuousIntegrationBuild is what normalises the
+         source paths stored in the assembly, and it is keyed to a CI variable by
+         convention, so Build-Scripts.ps1 -PublishRelease sets LibreSpotReleaseBuild
+         to turn it on for a local release. -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(LibreSpotReleaseBuild)' == 'true'">true</ContinuousIntegrationBuild>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <RepositoryUrl>https://github.com/SysAdminDoc/LibreSpot</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <NuGetAudit>true</NuGetAudit>
     <NuGetAuditMode>all</NuGetAuditMode>

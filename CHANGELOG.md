@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `Build-Scripts.ps1 -PublishRelease` builds the whole release root in one command: it empties `publish`, publishes the desktop app and the fleet CLI as self-contained single-file executables, copies in the script and the live customization archive, and prints the size and checksum of each. The build pins the properties that make the output reproducible, and the release manifest records the SDK version, the commit, and that property set, so anyone can rebuild the same commit and compare. Publishing twice was checked: both .NET executables come out byte-identical. `LibreSpot.exe` is the exception because ps2exe does not build reproducibly, and the manifest says so.
+
 ### Fixed
 
 - Three of the five reviewed community themes could not be installed at all. Catppuccin, Comfy, and Bloom keep their theme files in a subfolder, but the catalog said the files sat at the root of the archive, so LibreSpot downloaded the archive, verified its checksum, then found nothing to copy and carried on reporting success. Picking one of those themes did nothing and said it worked. All three now install and apply on the pinned client.

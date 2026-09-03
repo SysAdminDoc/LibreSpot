@@ -562,17 +562,29 @@ dotnet .\tests\LibreSpot.Core.Tests\bin\Debug\net10.0-windows\LibreSpot.Core.Tes
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Import-Module Pester -RequiredVersion 5.9.1; Invoke-Pester -Configuration (New-PesterConfiguration -Hashtable (& .\tests\powershell\pester.config.ps1))"
 ```
 
-Clean `publish`, publish the Desktop and CLI projects self-contained for
-`win-x64`, compile `LibreSpot.ps1` with PS2EXE, and copy the six
-checksum-covered assets (including `resources\custom-apps\librespot-engine.zip`)
-into the release root. Generate the CycloneDX SBOM, write SHA256
-`checksums.txt`, and create the release manifest:
+Build the release root, compile `LibreSpot.ps1` with PS2EXE, generate the
+CycloneDX SBOM, write SHA256 `checksums.txt`, then create the release manifest:
 
 ```powershell
+.\Build-Scripts.ps1 -PublishRelease
 .\Build-Scripts.ps1 -CompileStableExe
 .\Build-Scripts.ps1 -GenerateSbom
 .\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.2.0 -ReleaseChannel stable
 ```
+
+`-PublishRelease` empties `publish`, publishes the desktop and CLI projects as
+self-contained single-file `win-x64` executables, and copies in `LibreSpot.ps1`
+and `resources\custom-apps\librespot-engine.zip`. It pins the build properties
+that make the output reproducible (`Deterministic`,
+`ContinuousIntegrationBuild`, `EmbedUntrackedSources`, `PublishRepositoryUrl`)
+and prints the size and SHA256 of each asset. The release manifest records the
+SDK version, the commit, and that property set under `buildInputs`, so anyone
+can rebuild the same commit and compare.
+
+Publishing the same commit twice produces byte-identical
+`LibreSpot-Desktop.exe` and `LibreSpot.Cli.exe`. `LibreSpot.exe` is the
+exception: ps2exe does not build reproducibly, so verify that one against the
+`checksums.txt` published with it rather than by rebuilding.
 
 `-CompileStableExe` writes `publish\LibreSpot.exe` with the pinned PS2EXE flags
 (icon, admin manifest, no console, and the file version taken from

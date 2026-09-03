@@ -103,6 +103,37 @@ public sealed class CommunityAssetsManifestTests
     }
 
     [Fact]
+    public void BuildScripts_PublishesTheReleaseWithReproducibleProperties()
+    {
+        var script = ReadFile("Build-Scripts.ps1");
+
+        // A release nobody can rebuild cannot be checked by anyone but the person
+        // who built it, so the property set and the command that applies it are
+        // both part of the contract.
+        Assert.Contains("[switch]$PublishRelease,", script, StringComparison.Ordinal);
+        Assert.Contains("Invoke-LibreSpotReleasePublish", script, StringComparison.Ordinal);
+        foreach (var property in new[] { "Deterministic", "ContinuousIntegrationBuild", "EmbedUntrackedSources", "PublishRepositoryUrl", "PublishSingleFile" })
+        {
+            Assert.Contains(property, script, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("buildInputs", script, StringComparison.Ordinal);
+        Assert.Contains("sdkVersion", script, StringComparison.Ordinal);
+        Assert.Contains("nonDeterministicNotes", script, StringComparison.Ordinal);
+
+        var props = ReadFile("Directory.Build.props");
+        Assert.Contains("<Deterministic>true</Deterministic>", props, StringComparison.Ordinal);
+        Assert.Contains("LibreSpotReleaseBuild", props, StringComparison.Ordinal);
+        Assert.Contains("<EmbedUntrackedSources>true</EmbedUntrackedSources>", props, StringComparison.Ordinal);
+        Assert.Contains("<PublishRepositoryUrl>true</PublishRepositoryUrl>", props, StringComparison.Ordinal);
+
+        // The documented procedure must lead with the command that builds the root.
+        var readme = ReadFile("README.md");
+        Assert.Contains(".\\Build-Scripts.ps1 -PublishRelease", readme, StringComparison.Ordinal);
+        Assert.Matches(@"-PublishRelease[\s\S]{0,400}-CompileStableExe[\s\S]{0,200}-GenerateSbom[\s\S]{0,200}-GenerateReleaseManifest", readme);
+    }
+
+    [Fact]
     public void ReleaseContract_ShipsTheEngineArchiveWithAChecksumEntry()
     {
         using var contract = JsonDocument.Parse(ReadFile("schemas", "release-artifact-contract.json"));
