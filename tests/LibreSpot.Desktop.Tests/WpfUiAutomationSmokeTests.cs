@@ -270,6 +270,26 @@ public sealed class WpfUiAutomationSmokeTests
         });
     }
 
+    [Fact]
+    public void DecorativeSymbolIcon_AutomationPeerHidesItselfAndTheGlyphBeneathIt()
+    {
+        RunOnSta(() =>
+        {
+            var icon = new DecorativeSymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.Home24 };
+            var peer = UIElementAutomationPeer.CreatePeerForElement(icon)
+                ?? throw new InvalidOperationException("Could not create the decorative icon automation peer.");
+
+            // No children is what keeps the glyph TextBlock out of the tree:
+            // Wpf.Ui adds it as a raw visual child and TextBlock creates a peer
+            // of its own, so the walk has to stop here.
+            Assert.Empty(peer.GetChildren());
+
+            // And the icon must not take the glyph's place as an unnamed element.
+            Assert.False(peer.IsControlElement());
+            Assert.False(peer.IsContentElement());
+        });
+    }
+
     [Theory]
     [InlineData("recommended", "Home")]
     [InlineData("custom", "Settings")]

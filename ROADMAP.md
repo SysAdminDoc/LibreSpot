@@ -63,22 +63,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   a machine-readable result file SHALL be written so any future failure is identifiable after the fact.
   Complexity: M
 
-- [ ] P2: RD-175: Guard `DecorativeSymbolIcon` the way the other custom control is guarded
-  Why: RD-167 is a per-usage rename in XAML with nothing but a slow app-launching scan behind it. A new
-  `ui:SymbolIcon` added anywhere, or a deleted `GetChildrenCore`, leaves all 1159 non-WPF tests green. Worse, an
-  icon added to a state that is not one of the three scanned (`activity-undo`, `support-bundle`, `profile` and
-  `prompt` are all real smoke states) is caught by nothing at all. `LiveRegionContentControl` has both halves of
-  the pattern this control is missing: a source lint that pins its peer and an in-process STA peer test.
-  Evidence: `AutomationNameContractTests.LiveRegionContentControl_KeepsPoliteLiveRegionPeer` and
-  `WpfUiAutomationSmokeTests.LiveRegionContentControl_AutomationPeerReportsPolite` as the model; raised by an
-  adversarial review on 2026-09-03.
-  Touches: `tests/LibreSpot.Desktop.Tests/AutomationNameContractTests.cs`,
-  `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`.
-  Acceptance: WHEN any XAML under `src/LibreSpot.Desktop` uses `ui:SymbolIcon` directly, a source test SHALL fail
-  and name the file; WHEN `DecorativeSymbolIcon` creates its peer, an in-process test SHALL assert that peer
-  reports no children and is neither a control nor a content element, without launching the app.
-  Complexity: S
-
 - [ ] P3: RD-176: Assert the rate-limit message carries the status code it was given
   Why: `TryGetLatestStableAsync` puts its message into `ReleaseNotice.Reason`, which reaches the user, but the new
   mapping tests assert only `Status`. Replacing `RateLimited($"HTTP {(int)response.StatusCode} ...")` with a

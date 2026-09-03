@@ -75,6 +75,44 @@ public sealed class AutomationNameContractTests
     }
 
     [Fact]
+    public void DecorativeSymbolIcon_KeepsThePeerThatHidesTheGlyph()
+    {
+        var control = File.ReadAllText(
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Controls", "DecorativeSymbolIcon.cs"));
+
+        // Every part of this is load bearing. Without the empty children the
+        // glyph TextBlock is handed to UIA as an unreadable Text element; with
+        // the children gone but the icon still a control element, the icon
+        // itself becomes an unnamed Custom element in its place.
+        Assert.Contains("OnCreateAutomationPeer", control);
+        Assert.Contains("GetChildrenCore", control);
+        Assert.Contains("IsControlElementCore() => false", control);
+        Assert.Contains("IsContentElementCore() => false", control);
+    }
+
+    [Fact]
+    public void NoXamlUsesAnIconThatWouldPutItsGlyphBackInTheAutomationTree()
+    {
+        // The fix for the glyphs is a per-usage rename, so nothing stops the
+        // next icon being added as a plain ui:SymbolIcon. The offscreen scan
+        // would only catch that if the icon landed in one of the three states
+        // it visits, and there are more states than that.
+        var offenders = Directory
+            .EnumerateFiles(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop"), "*.xaml", SearchOption.AllDirectories)
+            .Where(path => File.ReadAllText(path).Contains("ui:SymbolIcon", StringComparison.Ordinal))
+            .Select(path => Path.GetRelativePath(RepoRoot, path))
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.True(
+            offenders.Length == 0,
+            "These files use ui:SymbolIcon directly, which puts an unreadable glyph back into the automation "
+                + "tree. Use controls:DecorativeSymbolIcon instead:"
+                + Environment.NewLine
+                + string.Join(Environment.NewLine, offenders.Select(path => "  " + path)));
+    }
+
+    [Fact]
     public void SharedScrollbarAutomationNames_ResolveFromLocaleResources()
     {
         var controls = File.ReadAllText(
