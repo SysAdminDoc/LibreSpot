@@ -11,13 +11,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: WHEN a reader reaches the Smart App Control entry, it SHALL state that `LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, `LibreSpot.exe`, and the script are all blocked while Smart App Control is on, that no per-app bypass exists, and that the supported answer is a device where it is off or in evaluation mode; the SmartScreen entry SHALL explain that the "Unknown publisher" warning recurs for every release; the release-truth test SHALL fail if the FAQ names only the script.
   Complexity: S
 
-- [ ] P3: RD-154: Correct the release-notice rate-limit assumption and prove one request per day
-  Why: the code comment says an unchanged release "costs no rate limit" because of `If-None-Match`, but GitHub only exempts conditional 304s on authenticated requests; the anonymous budget is 60 per hour and the 24-hour cache is the real protection.
-  Evidence: `src/LibreSpot.Core/ReleaseNoticeService.cs:50,345`; https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api; https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api.
-  Touches: `src/LibreSpot.Core/ReleaseNoticeService.cs`, `tests/LibreSpot.Desktop.Tests/ReleaseNoticeServiceTests.cs`.
-  Acceptance: WHEN the comment is read, it SHALL state the anonymous budget and that the cache, not the ETag, bounds requests; a test SHALL prove that two `GetNoticeAsync` calls inside the cache lifetime make exactly one HTTP request even when the server would answer 304, and that a 403 or 429 extends the cache before retrying.
-  Complexity: S
-
 - [ ] P3: RD-155: Show the asset digest and the verify command beside the Update LibreSpot link
   Why: the latest-release payload already carries per-asset SHA256 digests, and the README teaches `gh release verify-asset`; the Home notice could show the desktop asset's digest and the one command so a user verifies before running, matching the release-trust story.
   Evidence: https://github.blog/changelog/2025-06-03-releases-now-expose-digests-for-release-assets/; https://cli.github.com/manual/gh_attestation_verify; `src/LibreSpot.Core/ReleaseNoticeService.cs`; `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml` update-notice row.

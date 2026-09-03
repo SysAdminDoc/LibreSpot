@@ -182,25 +182,65 @@ public sealed class BackendScriptServiceTests
         }
     }
 
+    /// <summary>
+    /// How long this machine takes, right now, to get a PowerShell host up and its
+    /// first line back through the service. Runs with a watchdog that cannot fire
+    /// so the measurement itself is never the thing that times out.
+    /// </summary>
+    private static async Task<TimeSpan> MeasureBackendColdStartAsync(string tempRoot)
+    {
+        var probeDirectory = Path.Combine(tempRoot, "ColdStartProbe");
+        var probeScript = Path.Combine(tempRoot, "cold-start-probe.ps1");
+        Directory.CreateDirectory(probeDirectory);
+        await File.WriteAllTextAsync(
+            probeScript,
+            """
+            Write-Output "@@LS@@|status|INFO|up"
+            exit 0
+            """);
+
+        var probe = new BackendScriptService(
+            probeDirectory,
+            noBackendMode: false,
+            new BackendWatchdogOptions(
+                TimeSpan.FromMinutes(4),
+                TimeSpan.FromMinutes(5),
+                TimeSpan.FromSeconds(1)),
+            probeScript);
+
+        var stopwatch = Stopwatch.StartNew();
+        var result = await probe.RunAsync("Install", Path.Combine(tempRoot, "probe-config.json"), _ => { });
+        stopwatch.Stop();
+
+        Assert.True(result.Success, "The cold-start probe could not start a backend host at all.");
+        return stopwatch.Elapsed;
+    }
+
     [Fact]
     public async Task RunAsync_ResetsWatchdogWhenBackendKeepsEmittingOutput()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
         var runtimeDirectory = Path.Combine(tempRoot, "Runtime");
-        var scriptPath = Path.Combine(tempRoot, "chatty-backend.ps1");
         var messages = new List<BackendMessage>();
         Directory.CreateDirectory(tempRoot);
-        // The script must keep talking for longer than the stall timeout, or the run
-        // finishes before the watchdog could ever fire and the test passes whether or
-        // not output resets the timer.
-        //
-        // Two different gaps have to fit inside the budget. The inter-tick gaps are
-        // 300 ms and are not the risk. The first gap is PowerShell's cold start,
-        // because the idle clock begins at Process.Start and nothing is written
-        // until the host is up; that gap was measured near 1.7 s on a busy machine,
-        // so the budget is set well above it rather than an inch above it.
-        const int tickCount = 20;
+        // Two different gaps have to fit inside the stall budget, and only one of
+        // them is under this test's control. The inter-tick gaps are small and
+        // predictable. The first gap is the PowerShell host's cold start, because
+        // the idle clock begins at Process.Start and nothing is written until the
+        // host is up, and on a saturated machine that has been measured at over
+        // ten seconds. Every fixed budget picked so far has eventually been too
+        // small, so the budget is measured on this machine at this moment instead
+        // of guessed: start a host that prints one line and exits, see how long
+        // the line took, and give the real run several times that.
+        var coldStart = await MeasureBackendColdStartAsync(tempRoot);
+        var stallTimeout = TimeSpan.FromMilliseconds(Math.Max(5000, coldStart.TotalMilliseconds * 4));
+
+        // The script then has to keep talking for longer than that budget, or the
+        // run finishes before the watchdog could ever fire and the assertions hold
+        // whether or not output resets the timer.
         var tickGap = TimeSpan.FromMilliseconds(300);
+        var tickCount = (int)Math.Ceiling(stallTimeout.TotalMilliseconds * 1.2 / tickGap.TotalMilliseconds);
+        var scriptPath = Path.Combine(tempRoot, "chatty-backend.ps1");
         await File.WriteAllTextAsync(
             scriptPath,
             $$"""
@@ -213,12 +253,11 @@ public sealed class BackendScriptServiceTests
 
         try
         {
-            var stallTimeout = TimeSpan.FromSeconds(5);
             var service = new BackendScriptService(
                 runtimeDirectory,
                 noBackendMode: false,
                 new BackendWatchdogOptions(
-                    TimeSpan.FromMilliseconds(2500),
+                    TimeSpan.FromMilliseconds(stallTimeout.TotalMilliseconds / 2),
                     stallTimeout,
                     TimeSpan.FromMilliseconds(50)),
                 scriptPath);

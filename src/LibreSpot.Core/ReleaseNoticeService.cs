@@ -47,7 +47,11 @@ public interface IReleaseNoticeClient
 {
     /// <summary>
     /// Reads the latest stable LibreSpot release. <paramref name="cachedETag"/>
-    /// is sent as If-None-Match so an unchanged release costs no rate limit.
+    /// is sent as If-None-Match, which saves bandwidth but not budget: GitHub
+    /// exempts a conditional 304 from the rate limit only for authenticated
+    /// requests, and these are anonymous, so every call counts against the 60 an
+    /// hour an unauthenticated client gets. What actually bounds how often this
+    /// runs is the 24 hour cache in <see cref="ReleaseNoticeService"/>.
     /// </summary>
     Task<ReleaseNoticeLookup> TryGetLatestStableAsync(string? cachedETag, CancellationToken cancellationToken);
 }
@@ -245,6 +249,14 @@ public sealed class ReleaseNoticeService
             case ReleaseNoticeLookupStatus.NotModified when cache is not null:
                 WriteCache(cache with { CheckedAtUtc = now, ETag = lookup.ETag ?? cache.ETag });
                 return Evaluate(current, cache.TagName, cache.HtmlUrl, "live-conditional", lookup.Message);
+
+            case ReleaseNoticeLookupStatus.RateLimited when cache is not null:
+                // Being told to slow down and then retrying on the next launch is
+                // how an anonymous client burns the rest of its hourly budget.
+                // Restarting the cache window backs off for a day and keeps
+                // serving the release already known.
+                WriteCache(cache with { CheckedAtUtc = now });
+                return Evaluate(current, cache.TagName, cache.HtmlUrl, "cache-stale", lookup.Message);
 
             default:
                 return FallBack(current, cache, lookup.Status.ToString().ToLowerInvariant(), lookup.Message);

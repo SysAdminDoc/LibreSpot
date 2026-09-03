@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 using LibreSpot.Desktop.Services;
 using Xunit;
@@ -236,6 +236,65 @@ public sealed class ReleaseNoticeServiceTests
 
         Assert.False(notice.UpdateAvailable);
         Assert.Equal(0, client.Calls);
+    }
+
+    [Fact]
+    public async Task GetNoticeAsync_InsideTheCacheWindowMakesNoRequestEvenThoughTheServerWouldAnswer304()
+    {
+        // The ETag saves bandwidth, not budget: an anonymous conditional request
+        // still costs one of the 60 an hour. Only the cache window keeps the
+        // request count down, so it has to hold even when a 304 is on offer.
+        using var root = new TempRoot();
+        var client = new FakeClient(ReleaseNoticeLookup.NotModified("W/\"etag\""));
+        var service = Create(root, client);
+        WriteCache(root, Now.AddHours(-1), "v4.1.2", "W/\"etag\"");
+
+        var first = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+        var second = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.Equal(0, client.Calls);
+        Assert.Equal("cache", first.Source);
+        Assert.Equal("cache", second.Source);
+    }
+
+    [Fact]
+    public async Task GetNoticeAsync_OnceTheCacheExpiresMakesExactlyOneRequestPerCall()
+    {
+        // The companion to the test above: proves the zero above comes from the
+        // cache window and not from the service never calling the client at all.
+        using var root = new TempRoot();
+        var client = new FakeClient(ReleaseNoticeLookup.NotModified("W/\"etag\""));
+        var service = Create(root, client);
+        WriteCache(root, Now.AddHours(-25), "v4.1.2", "W/\"etag\"");
+
+        await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.Equal(1, client.Calls);
+        Assert.Equal("W/\"etag\"", client.LastETag);
+    }
+
+    [Theory]
+    [InlineData(403)]
+    [InlineData(429)]
+    public async Task GetNoticeAsync_ARateLimitedResponseBacksOffInsteadOfRetryingOnTheNextCall(int statusCode)
+    {
+        // Retrying immediately after being told to slow down is how the rest of
+        // an anonymous hourly budget disappears. The cache window has to restart.
+        using var root = new TempRoot();
+        var client = new FakeClient(ReleaseNoticeLookup.RateLimited($"HTTP {statusCode} while reading the latest release."));
+        var service = Create(root, client);
+        WriteCache(root, Now.AddHours(-25), "v4.1.3", "W/\"etag\"");
+
+        var first = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+        var second = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.Equal(1, client.Calls);
+        Assert.Equal("cache-stale", first.Source);
+        Assert.Equal("cache", second.Source);
+
+        // The release already known is still offered while backing off.
+        Assert.True(first.UpdateAvailable);
+        Assert.True(second.UpdateAvailable);
     }
 
     private static ReleaseNoticeService Create(TempRoot root, FakeClient client) =>
