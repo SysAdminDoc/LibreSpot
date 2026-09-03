@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Net;
 using System.Text.Json;
 using LibreSpot.Desktop.Services;
 using Xunit;
@@ -277,15 +278,16 @@ public sealed class ReleaseNoticeServiceTests
         Assert.Equal("W/\"etag\"", client.LastETag);
     }
 
-    [Theory]
-    [InlineData(403)]
-    [InlineData(429)]
-    public async Task GetNoticeAsync_ARateLimitedResponseBacksOffInsteadOfRetryingOnTheNextCall(int statusCode)
+    [Fact]
+    public async Task GetNoticeAsync_ARateLimitedResponseBacksOffInsteadOfRetryingOnTheNextCall()
     {
         // Retrying immediately after being told to slow down is how the rest of
         // an anonymous hourly budget disappears. The cache window has to restart.
+        // This was a theory over 403 and 429, but the status code only reaches a
+        // message string here, so both rows ran identical code. Which codes become
+        // RateLimited is the client's decision and is asserted against the client.
         using var root = new TempRoot();
-        var client = new FakeClient(ReleaseNoticeLookup.RateLimited($"HTTP {statusCode} while reading the latest release."));
+        var client = new FakeClient(ReleaseNoticeLookup.RateLimited("HTTP 429 while reading the latest release."));
         var service = Create(root, client);
         WriteCache(root, Now.AddHours(-25), "v4.1.3", "W/\"etag\"");
 
@@ -361,6 +363,38 @@ public sealed class ReleaseNoticeServiceTests
         Assert.True(second.UpdateAvailable);
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden)]
+    [InlineData(HttpStatusCode.TooManyRequests)]
+    public async Task TryGetLatestStableAsync_ARefusedRequestIsReportedAsRateLimited(HttpStatusCode status)
+    {
+        // The service backs off only for RateLimited, and every test of that
+        // backoff hands the status in directly. Which HTTP codes actually become
+        // RateLimited is decided here, so it has to be asserted here.
+        using var http = StubResponse(status);
+
+        var lookup = await new GitHubReleaseNoticeClient(http).TryGetLatestStableAsync(null, CancellationToken.None);
+
+        Assert.Equal(ReleaseNoticeLookupStatus.RateLimited, lookup.Status);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.NotFound)]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.BadGateway)]
+    public async Task TryGetLatestStableAsync_AnOrdinaryFailureIsNotTreatedAsRateLimited(HttpStatusCode status)
+    {
+        // Without this, mapping every failure to RateLimited would satisfy the
+        // test above while a single 404 silenced the update check for a day.
+        using var http = StubResponse(status);
+
+        var lookup = await new GitHubReleaseNoticeClient(http).TryGetLatestStableAsync(null, CancellationToken.None);
+
+        Assert.Equal(ReleaseNoticeLookupStatus.Missing, lookup.Status);
+    }
+
+    private static HttpClient StubResponse(HttpStatusCode status) => new(new StubHandler(status));
+
     private static ReleaseNoticeService Create(TempRoot root, FakeClient client) =>
         new(client, root.CachePath, () => Now);
 
@@ -378,6 +412,16 @@ public sealed class ReleaseNoticeServiceTests
             htmlUrl = (string?)null,
             eTag = etag
         }));
+    }
+
+    private sealed class StubHandler : HttpMessageHandler
+    {
+        private readonly HttpStatusCode _status;
+
+        public StubHandler(HttpStatusCode status) => _status = status;
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(_status) { RequestMessage = request });
     }
 
     private sealed class FakeClient : IReleaseNoticeClient

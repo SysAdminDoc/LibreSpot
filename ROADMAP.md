@@ -66,10 +66,3 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Touches: `schemas/community-assets.json`, `src/LibreSpot.Cli/Program.cs`, `src/LibreSpot.Core/AppCatalog.cs`, both composed hosts, `README.md` extension copy, `tests/LibreSpot.Desktop.Tests/CommunityAssetsManifestTests.cs`.
   Acceptance: WHEN the decision is recorded, either `beautiful-lyrics.mjs` SHALL stop being an easy-mode default and be removed from every hard-coded recommended set so the catalog and the installed set agree, or the catalog SHALL carry a written rationale for shipping unpinned third-party code by default; a test SHALL fail if the easy-mode set in `Program.cs` and the `easyModeDefault` flags in the manifest ever disagree, whichever way the decision goes.
   Complexity: M
-
-- [ ] P3: RD-172: Cover the mapping from HTTP status to a rate-limited lookup
-  Why: `GetNoticeAsync_ARateLimitedResponseBacksOff...` is a theory over 403 and 429, but the status code only ever reaches a message string, so both rows execute identical code and prove one thing twice. The actual mapping lives in `GitHubReleaseNoticeClient` and nothing tests it, so a change there could stop recognising 429 with every existing test still green.
-  Evidence: `src/LibreSpot.Core/ReleaseNoticeService.cs` (`ReleaseNoticeLookup.RateLimited($"HTTP {(int)response.StatusCode} ...")`); `tests/LibreSpot.Desktop.Tests/ReleaseNoticeServiceTests.cs` theory rows; raised by an adversarial review on 2026-09-03.
-  Touches: `tests/LibreSpot.Desktop.Tests/ReleaseNoticeServiceTests.cs`, a test seam for `GitHubReleaseNoticeClient` if one is needed.
-  Acceptance: WHEN the client receives 403 or 429, a test SHALL assert the lookup status is RateLimited, driven through the real status-to-status mapping rather than a hand-built lookup; the existing theory SHALL either exercise that mapping or drop to a single case.
-  Complexity: S
