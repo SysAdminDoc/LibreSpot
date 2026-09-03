@@ -65,7 +65,9 @@ public sealed class PremiumShellContractTests
         Assert.Contains("(\"prompt-destructive\", \"PromptActionReset\", \"PromptCancelButton\")", matrix);
         Assert.Contains("(\"activity-running\", \"Ui_RunState\", \"ActivityCancelRunButton\")", matrix);
         Assert.Contains("(\"reduced-motion\", \"ButtonStartRecommendedSetup\", \"HomePrimaryActionButton\")", matrix);
-        Assert.Contains("(\"custom-live\", \"LiveCustomizationTitle\", \"LiveCustomizationFeatureSearch\")", matrix);
+        // The group header is an Expander whose UIA node spans the open content, so the
+        // row witnesses the state by a text node inside the group instead.
+        Assert.Contains("(\"custom-live\", \"LiveCustomizationDescription\", \"LiveCustomizationFeatureSearch\")", matrix);
         Assert.Contains("--uia-reduced-motion", matrix);
         Assert.Contains("AssertNoUnnamedActionableControls(snapshot)", matrix);
         Assert.Contains("if ($Quick) { 24 } else { 80 }", runner);
