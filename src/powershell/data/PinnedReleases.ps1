@@ -32,9 +32,9 @@ $global:PinnedReleases = @{
         }
     }
     Marketplace = @{
-        Version = '1.0.9'
-        Url     = 'https://github.com/spicetify/marketplace/releases/download/v1.0.9/marketplace.zip'
-        SHA256  = '2713054703c2365e391658a58c782dd2ebdd8d573f2015b5a2bab58b7eee8685'
+        Version = '1.0.11'
+        Url     = 'https://github.com/spicetify/marketplace/releases/download/v1.0.11/marketplace.zip'
+        SHA256  = 'ea90ea292621c9d1643a71c5eb939e89f068f3558e0d2b789eb46f90a933122f'
     }
     Themes = @{
         Commit  = 'df033493a7dae30ca6e371de9cec1897871dbb0c'

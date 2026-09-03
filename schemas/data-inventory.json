@@ -345,7 +345,7 @@
       "owner": "spicetify-marketplace",
       "codeOwner": "Get-MarketplaceHealth",
       "schemaVersion": 1,
-      "description": "Marketplace 1.0.9 saved themes, snippets, extensions, and settings in the embedded browser IndexedDB store.",
+      "description": "Marketplace 1.0.11 keeps saved themes, snippets, extensions, and settings in the embedded browser IndexedDB store, as every build since 1.0.9 has.",
       "sensitivity": "high",
       "sensitivityNote": "May contain user-selected Marketplace state and extension settings; LibreSpot never reads or exports the database contents.",
       "storageModel": "indexeddb",

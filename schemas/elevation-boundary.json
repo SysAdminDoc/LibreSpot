@@ -60,7 +60,7 @@
       "destructive": false,
       "toastCompatible": true,
       "description": "Writes a validated local Marketplace file archive and manifest",
-      "notes": "Per-user file archive only; Marketplace 1.0.9 IndexedDB state is detected but not exported"
+      "notes": "Per-user file archive only; Marketplace 1.0.11 IndexedDB state is detected but not exported"
     },
     {
       "action": "RestoreMarketplaceState",

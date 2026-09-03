@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- The reviewed stack now installs Spicetify Marketplace 1.0.11 instead of 1.0.9. The two releases in between fixed the key migration and the settings write that ran too late during a reload, which is the failure people describe as losing their installed themes and extensions after a restart. Verified against the pinned Spotify 1.2.93.667 client: the new archive downloads and matches its checksum, the store page and the LibreSpot page both load, and the registered extensions, custom apps, engine state, route wiring, and Marketplace's own saved settings are byte-identical after a full client restart.
+
 ### Fixed
 
 - The live customization app now installs from the release that carries it, or from the copy LibreSpot brings with it, instead of a file on the main branch. The old branch address served whatever the branch held at that moment, so rebuilding the archive broke the pinned checksum for every release already published and a fresh install refused to add the app. The desktop app and the fleet CLI now unpack their own copy and install it with no download at all, the script lane looks for `librespot-engine.zip` beside itself, and a local copy whose bytes do not match the pinned checksum is ignored rather than trusted. Releases now publish `librespot-engine.zip` with its own checksum line.

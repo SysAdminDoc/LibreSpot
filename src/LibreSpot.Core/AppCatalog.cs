@@ -833,7 +833,7 @@ public static class AppCatalog
     public const string PinnedSpicetifyCliVersion = "2.44.0";
     public const string SpicetifyWindowsMinTestedSpotify = "1.2.14";
     public const string SpicetifyWindowsMaxTestedSpotify = "1.2.93";
-    public const string PinnedMarketplaceVersion = "1.0.9";
+    public const string PinnedMarketplaceVersion = "1.0.11";
     public const string PinnedThemesCommit = "df033493a7dae30ca6e371de9cec1897871dbb0c";
     public const string PinnedStatsCustomAppVersion = "1.1.3";
     public static string PinnedStatsCustomAppReleaseTag => $"stats-v{PinnedStatsCustomAppVersion}";

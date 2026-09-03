@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P1: RD-143: Advance the Marketplace pin from 1.0.9 to 1.0.11 with a live persistence proof
-  Why: 1.0.10 added manifest validation and persistence before reload and 1.0.11 "properly migrate keys"; those target the "installed extensions and settings vanish after restart" reports that are the third most common complaint upstream, and LibreSpot is two releases behind while pinning the release that moved storage to IndexedDB.
-  Evidence: https://github.com/spicetify/marketplace/releases (v1.0.10 2026-08-29, v1.0.11 2026-09-02); https://github.com/spicetify/marketplace/issues/1201; https://github.com/spicetify/cli/issues/3861; `src/powershell/data/PinnedReleases.ps1:35`; `src/LibreSpot.Core/AppCatalog.cs:836`.
-  Touches: `src/powershell/data/PinnedReleases.ps1`, `src/LibreSpot.Core/AppCatalog.cs`, `schemas/compatibility-baseline.json`, `schemas/community-assets.json`, `docs/how-spotx-and-spicetify-alter-spotify.md`, both composed hosts, `CHANGELOG.md`, `README.md` compatibility table.
-  Acceptance: WHEN the pinned Marketplace version and SHA256 move to 1.0.11, `Build-Scripts.ps1 -Validate` and `CommunityAssetsManifestTests` SHALL pass; a hidden CDP run against the installed 1.2.93 client SHALL show the Marketplace route loading, an installed extension surviving a full client restart, and the LibreSpot store route still wired (`Repair-SpicetifyCustomAppWiring` reports `Patched`); the `Marketplace v1.0.9` data-inventory note is updated.
-  Complexity: M
-
 - [ ] P1: RD-144: Make README feature claims lane-accurate and test the uninstaller phase count
   Why: the README describes script-lane behaviour as product-wide: an "8-phase uninstaller" (the script logs seven phases since the native phase was removed), hidden Spotify windows and a topmost LibreSpot (`Hide-SpotifyWindows` is a no-op stub and the desktop has no `Topmost`), "x64 and ARM64", "Self-elevating", "Dual download methods", and "runspaces"; it counts 27 lyrics options where the catalog has 28; it labels the SpotX pin "2.0" although no such upstream tag exists; and the 4.2.0 changelog says a profile opens "from global search" while the only search box is inside the collapsed legacy shell.
   Evidence: `README.md:347,358-360,418-436`; `LibreSpot.ps1:9134-9171`; `src/powershell/backend/lane-functions.ps1:415`; `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:8`; `src/LibreSpot.Core/AppCatalog.cs:962-968`; `src/powershell/data/PinnedReleases.ps1:3`; `src/LibreSpot.Desktop/MainWindow.xaml:1408-1410,3046`; https://github.com/SpotX-Official/SpotX/releases.

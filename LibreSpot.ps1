@@ -171,9 +171,9 @@ $global:PinnedReleases = @{
         }
     }
     Marketplace = @{
-        Version = '1.0.9'
-        Url     = 'https://github.com/spicetify/marketplace/releases/download/v1.0.9/marketplace.zip'
-        SHA256  = '2713054703c2365e391658a58c782dd2ebdd8d573f2015b5a2bab58b7eee8685'
+        Version = '1.0.11'
+        Url     = 'https://github.com/spicetify/marketplace/releases/download/v1.0.11/marketplace.zip'
+        SHA256  = 'ea90ea292621c9d1643a71c5eb939e89f068f3558e0d2b789eb46f90a933122f'
     }
     Themes = @{
         Commit  = 'df033493a7dae30ca6e371de9cec1897871dbb0c'
@@ -4942,7 +4942,7 @@ function Get-MarketplaceHealth {
     $routeWiring = Test-SpicetifyCustomAppRouteWiring
     $routeWired = ($routeWiring.State -ne 'NotWired')
 
-    # Marketplace 1.0.9 persists saved themes, snippets, extensions, and
+    # Marketplace 1.0.11 persists saved themes, snippets, extensions, and
     # settings in the embedded browser's IndexedDB database. LibreSpot can
     # detect and describe that boundary, but file-level backup has not been
     # validated. Marketplace's own export/import flow is the recovery path.
@@ -4955,7 +4955,7 @@ function Get-MarketplaceHealth {
         fileLevelBackup = 'not-validated'
         exported = $false
         restored = $false
-        message = 'Marketplace 1.0.9 stores saved state in the embedded browser IndexedDB database. LibreSpot detects this boundary but does not back it up.'
+        message = 'Marketplace 1.0.11 stores saved state in the embedded browser IndexedDB database. LibreSpot detects this boundary but does not back it up.'
         recovery = "Use Marketplace's own export/import controls before a repair or reset."
     }
 

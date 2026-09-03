@@ -12,8 +12,8 @@ public sealed class CompatibilityVerdictTests
             HealthReport(
                 Spotify("1.2.93.647", HealthSeverity.Ready),
                 SpotX(HealthSeverity.Ready),
-                Spicetify("2.44.0", HealthSeverity.Ready),
-                Marketplace("1.0.9", HealthSeverity.Ready)),
+                Spicetify(AppCatalog.PinnedSpicetifyCliVersion, HealthSeverity.Ready),
+                Marketplace(AppCatalog.PinnedMarketplaceVersion, HealthSeverity.Ready)),
             spotifyInstalled: true,
             spicetifyInstalled: true,
             marketplaceFilesPresent: true,

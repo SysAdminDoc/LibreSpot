@@ -26,7 +26,7 @@ function Get-MarketplaceHealth {
     $routeWiring = Test-SpicetifyCustomAppRouteWiring
     $routeWired = ($routeWiring.State -ne 'NotWired')
 
-    # Marketplace 1.0.9 persists saved themes, snippets, extensions, and
+    # Marketplace 1.0.11 persists saved themes, snippets, extensions, and
     # settings in the embedded browser's IndexedDB database. LibreSpot can
     # detect and describe that boundary, but file-level backup has not been
     # validated. Marketplace's own export/import flow is the recovery path.
@@ -39,7 +39,7 @@ function Get-MarketplaceHealth {
         fileLevelBackup = 'not-validated'
         exported = $false
         restored = $false
-        message = 'Marketplace 1.0.9 stores saved state in the embedded browser IndexedDB database. LibreSpot detects this boundary but does not back it up.'
+        message = 'Marketplace 1.0.11 stores saved state in the embedded browser IndexedDB database. LibreSpot detects this boundary but does not back it up.'
         recovery = "Use Marketplace's own export/import controls before a repair or reset."
     }
 

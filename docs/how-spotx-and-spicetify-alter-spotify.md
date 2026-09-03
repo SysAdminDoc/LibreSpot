@@ -1,6 +1,6 @@
 # How SpotX and Spicetify alter Spotify
 
-Reference for maintainers and for any automated run that needs to reason about what LibreSpot installs. Last verified 2026-09-01 against SpotX commit `550bc72c` (the pinned adapter, read from the local asset cache) and SpotX `main` (version 1.2.99, 2026-08-31), Spicetify CLI `v2.44.0` source, Spicetify `v3-beta` source, Spicetify Marketplace 1.0.9 source, BlockTheSpot and BlockTheSpot-Resilient source, and a live Spotify 1.2.93.667 install patched by both tools. Where a claim was not verified in code it says so.
+Reference for maintainers and for any automated run that needs to reason about what LibreSpot installs. Last verified 2026-09-01 against SpotX commit `550bc72c` (the pinned adapter, read from the local asset cache) and SpotX `main` (version 1.2.99, 2026-08-31), Spicetify CLI `v2.44.0` source, Spicetify `v3-beta` source, Spicetify Marketplace 1.0.11 source, BlockTheSpot and BlockTheSpot-Resilient source, and a live Spotify 1.2.93.667 install patched by both tools. Where a claim was not verified in code it says so.
 
 Sections:
 
@@ -207,7 +207,7 @@ Coexistence with v2 is not workable: after a v3 apply the `Apps` folder has `xpu
 
 ## 11. Marketplace
 
-Marketplace is a custom app (`spicetify/marketplace`, 1.0.9 pinned). Discovery: GitHub search on the topics `spicetify-extensions`, `spicetify-themes`, `spicetify-apps`, filtered by `resources/blacklist.json`, then each repo's `manifest.json` validated against a zod schema (`name`, `description`, `main`, `usercss`, `authors`, `preview`, `readme`, `tags`, `branch`, `schemes`, `include`). `main` present means extension, `usercss` present means theme, neither means app (listed, not installable). Snippets are one-line CSS entries in `resources/snippets.json` (93 on 2026-09-01, PR-only).
+Marketplace is a custom app (`spicetify/marketplace`, 1.0.11 pinned). Discovery: GitHub search on the topics `spicetify-extensions`, `spicetify-themes`, `spicetify-apps`, filtered by `resources/blacklist.json`, then each repo's `manifest.json` validated against a zod schema (`name`, `description`, `main`, `usercss`, `authors`, `preview`, `readme`, `tags`, `branch`, `schemes`, `include`). `main` present means extension, `usercss` present means theme, neither means app (listed, not installable). Snippets are one-line CSS entries in `resources/snippets.json` (93 on 2026-09-01, PR-only).
 
 Runtime: installed extensions are re-fetched every launch as `<script defer src="https://cdn.jsdelivr.net/gh/<user>/<repo>@<branch>/<main>?time=...">`; themes inject `<style class="marketplaceCSS marketplaceScheme">` with `--spice-*` variables and `<style class="marketplaceCSS marketplaceUserCSS">` with the fetched `user.css`, remove the `user.css` link, and require `current_theme` to be `marketplace` or refuse to load (that is why LibreSpot's Marketplace-only setup installs the placeholder theme and keeps `inject_css` on). Scheme switching is instant because it is runtime injection, not a re-apply.
 

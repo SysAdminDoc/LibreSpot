@@ -238,7 +238,7 @@ Current source script version: **v3.8.3**. Current desktop and CLI release: **v4
 |---|---|
 | SpotX | `550bc72c` (Spotify 1.2.93) |
 | Spicetify CLI | v2.44.0 |
-| Marketplace | v1.0.9 |
+| Marketplace | v1.0.11 |
 | Themes | Commit `df033493` |
 
 **Compatibility matrix:** Maintenance > Check matrix reports SpotX, Spicetify CLI, Marketplace, and theme archive status separately. The Maintenance workspace also shows detected Spotify, SpotX, Spicetify CLI, and Marketplace values beside the pinned tuple, with a supported, degraded, unsupported, or unknown verdict and a next step for each state. The current SpotX target is Spotify `1.2.93`, and Spicetify CLI v2.44.0 declares Windows/Microsoft Store compatibility through Spotify `1.2.93`. The supported tuple is recorded in `schemas/compatibility-baseline.json`; `Build-Scripts.ps1 -Validate` and the Core contract tests fail if the PowerShell pins, WPF/CLI constants, or documented range drift apart.
@@ -255,7 +255,7 @@ Current source script version: **v3.8.3**. Current desktop and CLI release: **v4
 
 **Custom Install**, full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), author reviewed SpotX `patches.json` custom patches with JSON formatting, regex safety checks, dry-run feedback, and HTTPS import, browse 21 themes (16 official + 5 community) through a searchable gallery with per-theme color schemes, select from 15 extensions (10 built-in + 5 community) plus the verified Stats custom app, save and preview named local profiles, and choose between clean or overlay install.
 
-**Maintenance**, manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, inspect and clear verified download-cache health, preview and explicitly undo eligible low-risk PATH changes from the latest operation receipt, export a validated Marketplace state archive for missing-file recovery, export a redacted local support bundle, remove active Spicetify customizations while keeping SpotX in place, uninstall Spicetify, check for dependency updates, or perform a full system reset. Marketplace 1.0.9 stores saved state in the embedded browser's IndexedDB database. LibreSpot detects that boundary but does not back it up. Use Marketplace's own export/import controls before a repair or reset.
+**Maintenance**, manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, inspect and clear verified download-cache health, preview and explicitly undo eligible low-risk PATH changes from the latest operation receipt, export a validated Marketplace state archive for missing-file recovery, export a redacted local support bundle, remove active Spicetify customizations while keeping SpotX in place, uninstall Spicetify, check for dependency updates, or perform a full system reset. Marketplace 1.0.11 stores saved state in the embedded browser's IndexedDB database. LibreSpot detects that boundary but does not back it up. Use Marketplace's own export/import controls before a repair or reset.
 
 ### Capability boundary
 

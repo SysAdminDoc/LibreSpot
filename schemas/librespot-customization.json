@@ -8,7 +8,7 @@
     "xpuiSha256": "696a3405a78a7ea0c06de42ae3c50349bfe51ce17013d85f582b646ba48ff054",
     "spotxCommit": "550bc72cd15f6e2a172a6ecc0873d0991eb1c83c",
     "spicetifyVersion": "2.44.0",
-    "marketplaceVersion": "1.0.9",
+    "marketplaceVersion": "1.0.11",
     "themesCommit": "df033493a7dae30ca6e371de9cec1897871dbb0c"
   },
   "featureGroups": [

@@ -48,7 +48,7 @@ public sealed class CliApplicationTests
         Assert.Equal(1, doc.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("4.2.0", doc.RootElement.GetProperty("productVersion").GetString());
         Assert.Equal("2.44.0", doc.RootElement.GetProperty("dependencies").GetProperty("spicetifyCli").GetProperty("version").GetString());
-        Assert.Equal("1.0.9", doc.RootElement.GetProperty("dependencies").GetProperty("marketplaceVersion").GetString());
+        Assert.Equal("1.0.11", doc.RootElement.GetProperty("dependencies").GetProperty("marketplaceVersion").GetString());
         Assert.StartsWith("550bc72", doc.RootElement.GetProperty("dependencies").GetProperty("spotX").GetProperty("commit").GetString());
     }
 
