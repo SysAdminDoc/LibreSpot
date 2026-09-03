@@ -4,7 +4,7 @@ Items moved here from `ROADMAP.md` because they require operator decisions,
 credentials, or policy calls that an implementer cannot resolve autonomously.
 Return items to `ROADMAP.md` once the blocking decision is made.
 
-Last updated: 2026-09-02.
+Last updated: 2026-09-03.
 
 Entries whose blocker was resolved or whose premise was overtaken by v4.0.0 stable, local-only releases, immutable release assets, the unsigned-by-design decision, or .NET 10 are kept under an `Archived` heading with the resolution, so the decision record survives without steering new work.
 
@@ -55,6 +55,8 @@ them today.
 Decide whether to keep LibreSpot, rename before package-manager distribution,
 or keep the repo name but rename the app. Decision must be recorded before
 winget/scoop/choco work begins.
+
+Research note (2026-09-03): `gh search issues LibreSpot` returns only `librespot-org/librespot` (the Rust Spotify client) and its consumers; this project does not appear at all, so the name collision now measurably hides it from search.
 
 ## Archived - Signing (SignPath Foundation enrollment)
 
@@ -287,6 +289,8 @@ attestations include the RID where multiple native WPF artifacts exist.
 README/package-manager manifests no longer imply ARM64 WPF support unless a
 `win-arm64` artifact is produced and smoke-tested.
 
+Research note (2026-09-03): the technical blocker is gone. SpotX added ARM64 binary patches on 2026-09-01 (https://github.com/SpotX-Official/SpotX/issues/888) and Spicetify 2.44.0 ships a `windows-arm64` archive, so an ARM64 lane is buildable once this policy call is made. The desktop and CLI still publish `win-x64` only.
+
 ## Archived - Move signing and publishing through protected GitHub environments
 
 | Field | Value |
@@ -342,6 +346,8 @@ default; diagnostics can mention unmanaged Marketplace state without
 copying it; import of a profile with unknown marketplace sections is shown
 as unsupported unless the advanced backup feature exists and is explicitly
 enabled.
+
+Research note (2026-09-03): Marketplace's own Backup modal exports and imports a `marketplace-settings-<date>.json` file (https://github.com/spicetify/marketplace/blob/main/src/components/Modals/BackupModal/index.tsx), and Marketplace 1.0.11 (2026-09-02) fixed key migration. RD-147 in ROADMAP.md uses that JSON format from inside the client, which needs no Chromium file copy; the file-copy question here stays open.
 
 ## P2 - Write a bad-release and rollback runbook
 
@@ -526,7 +532,7 @@ Why: three options now overlap: the current hand-rolled
 Themes/Palette.xaml + Controls.xaml, the planned WPF-UI 4.3.0
 evaluation (Cycle 2 "De-risk Wpf.Ui adoption"), and the native WPF
 Fluent theme via ThemeMode that shipped in .NET 9 and improves in
-.NET 10 — which did not exist when the WPF-UI item was written.
+.NET 10, which did not exist when the WPF-UI item was written.
 Picking the base before/with the .NET 10 retarget avoids restyling
 the shell twice. Constraints to weigh: ThemeMode is still
 experimental (WPF0001 suppression required), Fluent parity gaps are
@@ -616,7 +622,7 @@ checks plus hidden long-text rendering review for both locales.
 The distribution matrix (`schemas/distribution-matrix.json`) already has a
 PSGallery row with draft status. Remaining work is account creation, script
 metadata headers, the former publish step, and a go/no-go decision.
-The row is ready — operator needs to create the account and decide.
+The row is ready. The operator needs to create the account and decide.
 
 ## P1 - Split package-manager targets by artifact role
 
@@ -793,7 +799,7 @@ backup-name drift), and LibreSpot keeps no structured pre-patch snapshot of its
 own (`CreateBackup`/`RestoreBackup` are Spicetify-only). The acceptance requires
 "verifies the result," which for a binary restore can only be trusted after
 exercising it against a real patched Spotify and confirming the restored client
-launches as stock — a live validation this environment cannot provide, and
+launches as stock, a live validation this environment cannot provide, and
 shipping it unverified risks bricking a user's Spotify.
 
 Evidence: `Get-SpotXPatchVerification` backup scheme (`LibreSpot.Backend.ps1`
@@ -845,13 +851,13 @@ pass, and no `LibreSpot-WatcherIntegration-*` task or temp directory remains.
 | Source | Research-Driven Additions (2026-07-24), RD-41 |
 
 Why: this is the blocked runtime portion of the active Spicetify v3 readiness
-and migration item. The actionable half of RD-41 shipped — the pin-advance guardrail
+and migration item. The actionable half of RD-41 shipped. The pin-advance guardrail
 (`AppCatalog.PinnedSpotXHoldRationale`, README compatibility note, and the
 compatibility-matrix warning) now requires confirming a newer Spicetify build
 does not hard-refuse `backup apply` before advancing the pin. The remaining
-half — detecting at runtime that an installed Spicetify build *carries* the
+half, detecting at runtime that an installed Spicetify build *carries* the
 hard-fail gate and would refuse on the resolved Spotify target, and surfacing a
-distinct localized WPF stack-health state for it — needs the released gated
+distinct localized WPF stack-health state for it, needs the released gated
 Spicetify build to know the gate's exact runtime signature (declared-ceiling
 query / exit code / message). LibreSpot also always installs and uses its own
 pinned 2.44.0 (clearing any existing install), so the detection only matters
@@ -869,6 +875,8 @@ refuse to apply on this Spotify version" health state pointing at holding the
 tested build; unknown/unparseable ceilings degrade to the existing soft
 warning, never a false hard block.
 
+Research note (2026-09-03): Spicetify v3 reached 3.0.0-beta.11 on 2026-09-02 with empty release notes; the beta refuses Spotify older than 1.2.80 and replaces custom apps with modules (https://github.com/spicetify/cli/issues/3038). The v2 line ended at 2.44.0 with declared support to Spotify 1.2.96.
+
 ---
 
 ## P2 - Verify Spicetify applies over a stock (non-SpotX) backup (RD-40)
@@ -877,12 +885,12 @@ warning, never a false hard block.
 |---|---|
 | Source | Audit-Driven Additions (2026-07-23), RD-40 |
 
-Why: the detection half of RD-40 shipped in v4.0.0-preview.19 — the
+Why: the detection half of RD-40 shipped in v4.0.0-preview.19. The
 `RouteNotWired` stack-health state plus `Repair-SpicetifyCustomAppWiring`
 already flag and repair the silent post-apply render failure (store chunk not
-referenced by the live bundle). The residual — empirically determining whether
+referenced by the live bundle). The residual, empirically determining whether
 re-backing-up after SpotX (or backing up a clean client before SpotX) changes
-the Marketplace/theme render outcome on Spotify 1.2.93 — requires a live
+the Marketplace/theme render outcome on Spotify 1.2.93, requires a live
 SpotX-patched Spotify install to observe render results, which this build
 environment cannot produce (same live-rig blocker as "restore stock Spotify
 binary"). Reordering the SpotX/Spicetify backup steps without a live render
