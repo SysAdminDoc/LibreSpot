@@ -41,12 +41,26 @@ public sealed class CommunityAssetsManifestTests
         using var archive = ZipFile.OpenRead(archivePath);
         var manifestEntry = archive.GetEntry("librespot/manifest.json");
         Assert.NotNull(manifestEntry);
-        using var manifestStream = manifestEntry.Open();
-        using var bundledManifest = JsonDocument.Parse(manifestStream);
+        string archiveManifestText;
+        using (var manifestReader = new StreamReader(manifestEntry.Open()))
+        {
+            archiveManifestText = manifestReader.ReadToEnd();
+        }
+
+        using var bundledManifest = JsonDocument.Parse(archiveManifestText);
         Assert.Equal(expectedVersion, bundledManifest.RootElement.GetProperty("version").GetString());
 
-        using var distManifest = JsonDocument.Parse(ReadFile("src", "LibreSpot.App", "dist", "manifest.json"));
-        Assert.Equal(expectedVersion, distManifest.RootElement.GetProperty("version").GetString());
+        // dist/ is a build output and is gitignored, so a checkout that has never
+        // run `pnpm run bundle` legitimately has none and the pins above are still
+        // fully checked. Reading it unconditionally threw an IO exception there
+        // instead of failing with a reason. When it is present it has to agree with
+        // the archive that was committed from it, which comparing it against
+        // package.json never established.
+        var distManifestPath = Path.Combine(RepoRoot, "src", "LibreSpot.App", "dist", "manifest.json");
+        if (File.Exists(distManifestPath))
+        {
+            Assert.Equal(archiveManifestText, File.ReadAllText(distManifestPath));
+        }
     }
 
     [Fact]
