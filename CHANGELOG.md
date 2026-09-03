@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- The live customization app now installs from the release that carries it, or from the copy LibreSpot brings with it, instead of a file on the main branch. The old branch address served whatever the branch held at that moment, so rebuilding the archive broke the pinned checksum for every release already published and a fresh install refused to add the app. The desktop app and the fleet CLI now unpack their own copy and install it with no download at all, the script lane looks for `librespot-engine.zip` beside itself, and a local copy whose bytes do not match the pinned checksum is ignored rather than trusted. Releases now publish `librespot-engine.zip` with its own checksum line.
+
 ## [v4.2.0] (2026-09-02)
 
 ### Fixed

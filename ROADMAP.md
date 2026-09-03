@@ -4,13 +4,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions
 
-- [ ] P0: RD-142: Pin the live engine download to an immutable per-release source
-  Why: the installer downloads `librespot-engine.zip` from `raw.githubusercontent.com/.../main/...` and checks it against a SHA256 frozen at release time, so the public v4.1.2 release (pin `c30ea64c...`) now fails its own hash check on any machine whose asset cache is empty because `main` serves the 4.2.0 build (`e280fbdf...`); `Bundled = $true` is set and never read.
-  Evidence: `src/powershell/data/CommunityCustomApps.ps1:17-25`; `src/powershell/shared/Module-InstallCustomApps.ps1:40-50`; `git show v4.1.2:src/powershell/data/CommunityCustomApps.ps1`; `sha256sum resources/custom-apps/librespot-engine.zip`; RESEARCH.md "Security, Privacy, and Reliability".
-  Touches: `src/powershell/data/CommunityCustomApps.ps1`, `src/powershell/shared/Module-InstallCustomApps.ps1`, `src/LibreSpot.Core/AppCatalog.cs`, both composed hosts, `schemas/release-artifact-contract.json`, `Build-Scripts.ps1 -GenerateReleaseManifest`, `tests/LibreSpot.Desktop.Tests/CommunityAssetsManifestTests.cs`, `README.md` release procedure.
-  Acceptance: WHEN a tagged release installs the LibreSpot custom app, the system SHALL fetch it either from `https://github.com/SysAdminDoc/LibreSpot/releases/download/v<version>/librespot-engine.zip` or from the archive embedded in the release, never from a branch URL; the release manifest and `checksums.txt` list `librespot-engine.zip`; a Core test fails when any catalog entry URL contains `/main/` or a `ReleaseTag` of `main`; a Pester test proves the bundled-first path installs with the network unavailable.
-  Complexity: M
-
 - [ ] P1: RD-143: Advance the Marketplace pin from 1.0.9 to 1.0.11 with a live persistence proof
   Why: 1.0.10 added manifest validation and persistence before reload and 1.0.11 "properly migrate keys"; those target the "installed extensions and settings vanish after restart" reports that are the third most common complaint upstream, and LibreSpot is two releases behind while pinning the release that moved storage to IndexedDB.
   Evidence: https://github.com/spicetify/marketplace/releases (v1.0.10 2026-08-29, v1.0.11 2026-09-02); https://github.com/spicetify/marketplace/issues/1201; https://github.com/spicetify/cli/issues/3861; `src/powershell/data/PinnedReleases.ps1:35`; `src/LibreSpot.Core/AppCatalog.cs:836`.

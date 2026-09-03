@@ -25,6 +25,8 @@ internal sealed record BackendWatchdogOptions(
 public sealed class BackendScriptService
 {
     private const string ResourceName = "LibreSpot.Desktop.Backend.LibreSpot.Backend.ps1";
+    internal const string BundledEngineResourceName = "LibreSpot.Desktop.Resources.librespot-engine.zip";
+    internal const string BundledEngineFileName = "librespot-engine.zip";
     private const string Prefix = "@@LS@@|";
     private static readonly SemaphoreSlim RuntimeScriptLock = new(1, 1);
 
@@ -65,6 +67,73 @@ public sealed class BackendScriptService
     public static string DefaultRuntimeDirectory => LibreSpotPaths.RuntimeDirectory;
 
     private string RuntimeDirectory => _runtimeDirectory;
+
+    /// <summary>
+    /// Folder the backend script reads bundled archives from. It sits inside the
+    /// hardened runtime directory, so only this user and administrators can write it.
+    /// </summary>
+    internal string BundledAssetsDirectory => Path.Combine(_runtimeDirectory, "assets");
+
+    /// <summary>
+    /// Writes the embedded live customization archive into <see cref="BundledAssetsDirectory"/>
+    /// so a custom-app install works with no network. Returns the folder when the
+    /// archive is in place, or null when it could not be written; the install then
+    /// falls back to the pinned release download.
+    /// </summary>
+    internal string? TryEnsureBundledAssets()
+    {
+        var destination = Path.Combine(BundledAssetsDirectory, BundledEngineFileName);
+
+        try
+        {
+            using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(BundledEngineResourceName);
+            if (resourceStream is null)
+            {
+                return null;
+            }
+
+            var expectedHash = ComputeHash(resourceStream);
+            resourceStream.Position = 0;
+
+            if (File.Exists(destination))
+            {
+                try
+                {
+                    using var existing = File.Open(destination, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    if (ComputeHash(existing) == expectedHash)
+                    {
+                        return BundledAssetsDirectory;
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            Directory.CreateDirectory(BundledAssetsDirectory);
+            var tempPath = Path.Combine(BundledAssetsDirectory, $"{BundledEngineFileName}.{Guid.NewGuid():N}.tmp");
+            try
+            {
+                using (var fileStream = File.Create(tempPath))
+                {
+                    resourceStream.CopyTo(fileStream);
+                    fileStream.Flush();
+                }
+
+                File.Move(tempPath, destination, overwrite: true);
+                return BundledAssetsDirectory;
+            }
+            catch
+            {
+                try { File.Delete(tempPath); } catch { }
+                throw;
+            }
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     public Task<BackendRunResult> RunAsync(
         string action,
@@ -233,6 +302,11 @@ public sealed class BackendScriptService
 
         // Prefer the ArgumentList collection (.NET 6+) so each value is individually quoted.
         // This avoids any chance of argument-smuggling via a weird username in configPath.
+        if (TryEnsureBundledAssets() is { } bundledAssetsDirectory)
+        {
+            process.StartInfo.Environment["LIBRESPOT_BUNDLED_ASSETS"] = bundledAssetsDirectory;
+        }
+
         var args = process.StartInfo.ArgumentList;
         args.Add("-NoProfile");
         args.Add("-ExecutionPolicy");

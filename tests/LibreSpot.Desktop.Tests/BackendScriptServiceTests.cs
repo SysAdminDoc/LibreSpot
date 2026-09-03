@@ -1,5 +1,6 @@
 using System.IO;
 using System.Security.AccessControl;
+using System.Security.Cryptography;
 using System.Security.Principal;
 using LibreSpot.Desktop.Services;
 using Xunit;
@@ -30,6 +31,47 @@ public sealed class BackendScriptServiceTests
         Assert.Contains("await _viewModel.InitializeAsync();", mainWindowSource);
         Assert.Contains("ShellIntegrationService.RegisterCurrentUserShellHooksIfPossible()", mainWindowSource);
         Assert.Contains("ShellIntegrationService.ConfigureJumpListIfPossible()", mainWindowSource);
+    }
+
+    [Fact]
+    public void TryEnsureBundledAssets_ExtractsTheEngineArchiveThatEveryPinExpects()
+    {
+        var runtimeDirectory = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var service = new BackendScriptService(runtimeDirectory);
+
+            var assetsDirectory = service.TryEnsureBundledAssets();
+
+            Assert.Equal(Path.Combine(runtimeDirectory, "assets"), assetsDirectory);
+            var extracted = Path.Combine(assetsDirectory!, BackendScriptService.BundledEngineFileName);
+            Assert.True(File.Exists(extracted), $"The bundled engine archive was not written to {extracted}.");
+
+            // The extracted copy is what the backend installs, so its bytes must be
+            // the archive every pinned SHA256 in the catalog was taken from.
+            var expected = Convert.ToHexString(SHA256.HashData(
+                ReadRepoBytes("resources", "custom-apps", "librespot-engine.zip"))).ToLowerInvariant();
+            var actual = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(extracted))).ToLowerInvariant();
+            Assert.Equal(expected, actual);
+
+            // A second call must reuse the extracted copy rather than rewrite it.
+            var writtenAt = File.GetLastWriteTimeUtc(extracted);
+            Assert.Equal(assetsDirectory, service.TryEnsureBundledAssets());
+            Assert.Equal(writtenAt, File.GetLastWriteTimeUtc(extracted));
+        }
+        finally
+        {
+            try { Directory.Delete(runtimeDirectory, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void RunAsync_PointsTheBackendAtTheBundledAssetsFolder()
+    {
+        var source = ReadRepoFile("src", "LibreSpot.Core", "BackendScriptService.cs");
+
+        Assert.Contains("process.StartInfo.Environment[\"LIBRESPOT_BUNDLED_ASSETS\"] = bundledAssetsDirectory;", source);
+        Assert.Contains("LIBRESPOT_BUNDLED_ASSETS", ReadRepoFile("src", "powershell", "shared", "Module-InstallCustomApps.ps1"));
     }
 
     [Fact]
@@ -336,7 +378,13 @@ public sealed class BackendScriptServiceTests
         }
     }
 
-    private static string ReadRepoFile(params string[] relativeParts)
+    private static byte[] ReadRepoBytes(params string[] relativeParts) =>
+        File.ReadAllBytes(ResolveRepoPath(relativeParts));
+
+    private static string ReadRepoFile(params string[] relativeParts) =>
+        File.ReadAllText(ResolveRepoPath(relativeParts));
+
+    private static string ResolveRepoPath(params string[] relativeParts)
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "LibreSpot.ps1")))
@@ -345,6 +393,6 @@ public sealed class BackendScriptServiceTests
         }
 
         var root = dir?.FullName ?? throw new InvalidOperationException("Could not locate repo root.");
-        return File.ReadAllText(Path.Combine(new[] { root }.Concat(relativeParts).ToArray()));
+        return Path.Combine(new[] { root }.Concat(relativeParts).ToArray());
     }
 }

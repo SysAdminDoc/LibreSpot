@@ -1,5 +1,6 @@
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -46,6 +47,74 @@ public sealed class CommunityAssetsManifestTests
 
         using var distManifest = JsonDocument.Parse(ReadFile("src", "LibreSpot.App", "dist", "manifest.json"));
         Assert.Equal(expectedVersion, distManifest.RootElement.GetProperty("version").GetString());
+    }
+
+    [Fact]
+    public void CustomAppDownloads_ComeFromImmutableTaggedAssetsNotBranches()
+    {
+        // A branch URL serves whatever the branch holds today, so rebuilding an
+        // archive breaks the pinned hash for every release already published.
+        var pinnedSources = new[]
+        {
+            new[] { "src", "powershell", "data", "CommunityCustomApps.ps1" },
+            new[] { "src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1" },
+            new[] { "LibreSpot.ps1" }
+        };
+
+        using var package = JsonDocument.Parse(ReadFile("src", "LibreSpot.App", "package.json"));
+        var engineVersion = package.RootElement.GetProperty("version").GetString();
+
+        foreach (var source in pinnedSources)
+        {
+            var label = string.Join('/', source);
+            var appBlocks = ReadCommunityCustomAppBlocks(ReadFile(source));
+            Assert.NotEmpty(appBlocks);
+
+            foreach (var (appId, appBlock) in appBlocks)
+            {
+                var url = Regex.Match(appBlock, @"Url\s*=\s*'(?<url>[^']+)'").Groups["url"].Value;
+                Assert.False(string.IsNullOrWhiteSpace(url), $"Custom app '{appId}' has no Url in {label}.");
+                Assert.StartsWith("https://", url, StringComparison.Ordinal);
+                Assert.DoesNotContain("/main/", url, StringComparison.Ordinal);
+                Assert.DoesNotContain("/master/", url, StringComparison.Ordinal);
+                Assert.DoesNotContain("/refs/heads/", url, StringComparison.Ordinal);
+                Assert.Contains("/releases/download/", url, StringComparison.Ordinal);
+
+                var releaseTag = Regex.Match(appBlock, @"ReleaseTag\s*=\s*'(?<tag>[^']+)'").Groups["tag"].Value;
+                Assert.False(string.IsNullOrWhiteSpace(releaseTag), $"Custom app '{appId}' has no ReleaseTag in {label}.");
+                Assert.NotEqual("main", releaseTag);
+                Assert.NotEqual("master", releaseTag);
+                Assert.Contains($"/releases/download/{releaseTag}/", url, StringComparison.Ordinal);
+
+                if (appId != "librespot")
+                {
+                    continue;
+                }
+
+                // The bundled engine must advertise the release that carries this
+                // exact archive, and name the file both lanes look for locally.
+                Assert.Equal($"v{engineVersion}", releaseTag);
+                Assert.Equal(
+                    "librespot-engine.zip",
+                    Regex.Match(appBlock, @"BundledFileName\s*=\s*'(?<name>[^']+)'").Groups["name"].Value);
+                Assert.Matches(@"Bundled\s*=\s*\$true", appBlock);
+            }
+        }
+    }
+
+    [Fact]
+    public void ReleaseContract_ShipsTheEngineArchiveWithAChecksumEntry()
+    {
+        using var contract = JsonDocument.Parse(ReadFile("schemas", "release-artifact-contract.json"));
+        var artifact = contract.RootElement.GetProperty("artifacts").EnumerateArray()
+            .Single(a => a.GetProperty("name").GetString() == "librespot-engine.zip");
+
+        Assert.True(artifact.GetProperty("required").GetBoolean());
+        Assert.True(artifact.GetProperty("checksumEntry").GetBoolean());
+
+        var covered = contract.RootElement.GetProperty("checksumContract").GetProperty("coveredAssets")
+            .EnumerateArray().Select(a => a.GetString()).ToArray();
+        Assert.Contains("librespot-engine.zip", covered);
     }
 
     [Fact]

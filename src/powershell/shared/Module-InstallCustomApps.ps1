@@ -36,9 +36,42 @@ function Module-InstallCustomApps { param($Config)
         $destinationPath = Join-Path $customAppsDirectory $appId
 
         try {
-            Write-Log "Downloading custom app '$($info.DisplayName)' from $($info.Source)..."
+            Write-Log "Installing custom app '$($info.DisplayName)' from $($info.Source)..."
             $expectedHash = [string]$info.SHA256
-            if (-not (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zipPath -Label "Custom app $appId archive")) {
+            $resolvedFromBundle = $false
+            $bundledFileName = [string]$info.BundledFileName
+
+            # A bundled app ships with LibreSpot itself, so prefer the local copy over
+            # any download. The desktop and CLI hosts extract it and point
+            # LIBRESPOT_BUNDLED_ASSETS at the folder; the script lane looks beside
+            # itself and in a source checkout.
+            if ([bool]$info.Bundled -and -not [string]::IsNullOrWhiteSpace($bundledFileName)) {
+                $bundleRoots = [System.Collections.Generic.List[string]]::new()
+                if (-not [string]::IsNullOrWhiteSpace($env:LIBRESPOT_BUNDLED_ASSETS)) {
+                    $bundleRoots.Add([string]$env:LIBRESPOT_BUNDLED_ASSETS)
+                }
+                if (-not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
+                    $bundleRoots.Add([string]$PSScriptRoot)
+                    $bundleRoots.Add([string](Join-Path $PSScriptRoot 'resources\custom-apps'))
+                }
+
+                foreach ($bundleRoot in $bundleRoots) {
+                    $bundlePath = Join-Path $bundleRoot $bundledFileName
+                    if (-not (Test-Path -LiteralPath $bundlePath -PathType Leaf)) { continue }
+                    $bundleHash = Get-FileSha256Lower -Path $bundlePath
+                    if ($bundleHash -ne $expectedHash.ToLowerInvariant()) {
+                        Write-Log "  Bundled archive $bundlePath does not match the pinned hash for '$appId'. Ignoring it." -Level 'WARN'
+                        continue
+                    }
+                    Copy-Item -LiteralPath $bundlePath -Destination $zipPath -Force
+                    Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $expectedHash -Label "Custom app $appId archive" -SourceUrl $bundlePath
+                    Write-Log "  Using the copy bundled with LibreSpot ($bundledFileName)."
+                    $resolvedFromBundle = $true
+                    break
+                }
+            }
+
+            if (-not $resolvedFromBundle -and -not (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zipPath -Label "Custom app $appId archive")) {
                 try {
                     Download-FileSafe -Uri $info.Url -OutFile $zipPath
                 } catch {

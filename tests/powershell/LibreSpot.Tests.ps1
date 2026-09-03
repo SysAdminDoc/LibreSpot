@@ -2868,3 +2868,136 @@ Describe 'Stop-SpotifyProcesses' {
         $script:shutdownLog[-1] | Should -Match 'survived kill attempts'
     }
 }
+
+Describe 'Module-InstallCustomApps bundled archive resolution' {
+    BeforeAll {
+        $sharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
+        . (Join-Path $sharedDir 'Module-InstallCustomApps.ps1')
+        . (Join-Path $sharedDir 'Expand-ArchiveSafely.ps1')
+        . (Join-Path $sharedDir 'Get-FileSha256Lower.ps1')
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\data\CommunityCustomApps.ps1')
+
+        $script:bundledArchive = (Resolve-Path (Join-Path $PSScriptRoot '..\..\resources\custom-apps\librespot-engine.zip')).Path
+
+        function Reset-CustomAppFixture {
+            param([switch]$WithBundle, [switch]$CorruptBundle)
+
+            $script:appLog = New-Object System.Collections.Generic.List[string]
+            $script:downloadAttempts = 0
+            $script:cacheLookups = 0
+            $script:cacheSaves = New-Object System.Collections.Generic.List[string]
+            $script:syncedLists = @{}
+
+            $script:appRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-customapp-" + [Guid]::NewGuid().ToString('N'))
+            $script:bundleDir = Join-Path $script:appRoot 'bundle'
+            $script:tempDir = Join-Path $script:appRoot 'temp'
+            $script:spicetifyDir = Join-Path $script:appRoot 'spicetify'
+            foreach ($dir in @($script:bundleDir, $script:tempDir, (Join-Path $script:spicetifyDir 'CustomApps'), (Join-Path $script:spicetifyDir 'Extensions'))) {
+                New-Item -Path $dir -ItemType Directory -Force | Out-Null
+            }
+
+            $env:LIBRESPOT_BUNDLED_ASSETS = $script:bundleDir
+            if ($WithBundle) {
+                Copy-Item -LiteralPath $script:bundledArchive -Destination (Join-Path $script:bundleDir 'librespot-engine.zip') -Force
+            }
+            if ($CorruptBundle) {
+                # Same name, wrong bytes: the pinned hash must reject it.
+                Set-Content -LiteralPath (Join-Path $script:bundleDir 'librespot-engine.zip') -Value 'not the reviewed archive' -Encoding ascii
+            }
+        }
+
+        function Remove-CustomAppFixture {
+            $env:LIBRESPOT_BUNDLED_ASSETS = $null
+            if ($script:appRoot -and (Test-Path -LiteralPath $script:appRoot)) {
+                Remove-Item -LiteralPath $script:appRoot -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        function Write-Log { param([string]$Message, [string]$Level = 'INFO') $script:appLog.Add("$Level|$Message") }
+        function Write-OperationJournalEntry { param($Phase, $Target, $SafetyDecision, $Result, $WouldChange, $Reversible, $RollbackHint, $Data) }
+        function Get-SpicetifyIntegrationContext {
+            [pscustomobject]@{
+                CustomAppsDirectory = Join-Path $script:spicetifyDir 'CustomApps'
+                ExtensionsDirectory = Join-Path $script:spicetifyDir 'Extensions'
+            }
+        }
+        function New-LibreSpotTempFile { param([string]$Name) Join-Path $script:tempDir $Name }
+        function New-LibreSpotTempDirectory {
+            param([string]$Name)
+            $path = Join-Path $script:tempDir $Name
+            New-Item -Path $path -ItemType Directory -Force | Out-Null
+            $path
+        }
+        function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPath, [string]$Label) $script:cacheLookups++; return $false }
+        function Save-ToAssetCache { param([string]$SourcePath, [string]$SHA256Hash, [string]$Label, [string]$SourceUrl) $script:cacheSaves.Add($SourceUrl) }
+        function Download-FileSafe { param([string]$Uri, [string]$OutFile) $script:downloadAttempts++; throw "network unavailable: $Uri" }
+        function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]$Label) }
+        function Remove-PathSafely {
+            param([string]$Path, [string]$Label)
+            if (Test-Path -LiteralPath $Path) { Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue }
+            return $true
+        }
+        function Sync-SpicetifyListSetting { param([string]$Key, $DesiredItems, $ManagedItems) $script:syncedLists[$Key] = @($DesiredItems) }
+        function New-LibreSpotEngineBootstrap {
+            param($Config, [string]$SourcePath, [string]$DestinationPath)
+            Copy-Item -LiteralPath $SourcePath -Destination $DestinationPath -Force
+            [pscustomobject]@{ Revision = 'abcdef0123456789' }
+        }
+    }
+
+    AfterEach { Remove-CustomAppFixture }
+
+    It 'installs the bundled engine with no network and no cache entry' {
+        Reset-CustomAppFixture -WithBundle
+        $config = [pscustomobject]@{ Spicetify_CustomApps = @('librespot') }
+
+        Module-InstallCustomApps -Config $config
+
+        $installed = Join-Path (Join-Path $script:spicetifyDir 'CustomApps') 'librespot'
+        Test-Path -LiteralPath (Join-Path $installed 'manifest.json') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $installed 'librespot-engine.js') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path (Join-Path $script:spicetifyDir 'Extensions') 'librespot-engine.js') | Should -BeTrue
+        $script:syncedLists['custom_apps'] | Should -Be @('librespot')
+        $script:downloadAttempts | Should -Be 0
+        $script:cacheLookups | Should -Be 0
+        ($script:appLog -join "`n") | Should -Match 'bundled with LibreSpot'
+    }
+
+    It 'seeds the asset cache from the bundled copy so later runs reuse it' {
+        Reset-CustomAppFixture -WithBundle
+        Module-InstallCustomApps -Config ([pscustomobject]@{ Spicetify_CustomApps = @('librespot') })
+
+        $script:cacheSaves.Count | Should -Be 1
+        $script:cacheSaves[0] | Should -Match 'librespot-engine\.zip$'
+    }
+
+    It 'refuses a bundled archive whose bytes do not match the pinned hash' {
+        Reset-CustomAppFixture -CorruptBundle
+        Module-InstallCustomApps -Config ([pscustomobject]@{ Spicetify_CustomApps = @('librespot') })
+
+        # The tampered file is ignored, so the run falls through to the cache and
+        # then the download, which is unavailable here. The cache is consulted
+        # twice: once before the download and once in the download-failure fallback.
+        $script:cacheLookups | Should -Be 2
+        $script:downloadAttempts | Should -Be 1
+        Test-Path -LiteralPath (Join-Path (Join-Path $script:spicetifyDir 'CustomApps') 'librespot') | Should -BeFalse
+        ($script:appLog -join "`n") | Should -Match 'does not match the pinned hash'
+    }
+
+    It 'falls back to the download when no bundled copy is present' {
+        Reset-CustomAppFixture
+        Module-InstallCustomApps -Config ([pscustomobject]@{ Spicetify_CustomApps = @('librespot') })
+
+        $script:cacheLookups | Should -Be 2
+        $script:downloadAttempts | Should -Be 1
+    }
+
+    It 'downloads a non-bundled app from its pinned release asset' {
+        Reset-CustomAppFixture -WithBundle
+        Module-InstallCustomApps -Config ([pscustomobject]@{ Spicetify_CustomApps = @('stats') })
+
+        # Stats is not bundled, so the bundle folder must not satisfy it.
+        $script:downloadAttempts | Should -Be 1
+        $script:cacheLookups | Should -Be 2
+    }
+}

@@ -101,6 +101,19 @@
       "distributionChannels": ["github-releases", "github-releases-wpf"]
     },
     {
+      "name": "librespot-engine.zip",
+      "description": "Live customization engine custom app, installed from this asset when no bundled copy is available",
+      "packageRole": "custom-app-archive",
+      "runtimeIdentifier": "any",
+      "buildMode": "deterministic-zip",
+      "channels": ["stable", "preview", "rc"],
+      "required": true,
+      "checksumEntry": true,
+      "signingRequirement": "none",
+      "attestation": "none",
+      "distributionChannels": ["github-releases"]
+    },
+    {
       "name": "librespot-release-manifest.json",
       "description": "Machine-readable release manifest with per-artifact SHA256, size, RID, and role for package-manager automation",
       "packageRole": "release-manifest",
@@ -118,7 +131,7 @@
   "checksumContract": {
     "algorithm": "SHA256",
     "format": "sha256sum",
-    "coveredAssets": ["LibreSpot.exe", "LibreSpot.ps1", "LibreSpot-Desktop.exe", "LibreSpot.Cli.exe", "LibreSpot.sbom.cdx.json"],
+    "coveredAssets": ["LibreSpot.exe", "LibreSpot.ps1", "LibreSpot-Desktop.exe", "LibreSpot.Cli.exe", "LibreSpot.sbom.cdx.json", "librespot-engine.zip"],
     "verificationCommand": "sha256sum --check checksums.txt"
   },
   "attestationContract": {

@@ -339,7 +339,7 @@ as a starting answer file and keep `riskAcknowledged` explicit in any production
 copy.
 
 Package-manager distribution remains disabled. The local release manifest is
-the source of truth for the seven published assets, and there are no checked-in
+the source of truth for the eight published assets, and there are no checked-in
 package templates or install-level package checks.
 
 ### Comprehensive Uninstaller
@@ -515,7 +515,7 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 
 Releases ship unsigned by design. LibreSpot is not code-signed and is not waiting on a certificate: [SignPath Foundation](https://signpath.org/) OSS signing was evaluated and set aside, so there is no "once the cert arrives" milestone. `LibreSpot.exe`, `LibreSpot-Desktop.exe`, and `LibreSpot.Cli.exe` are published as unsigned artifacts, and Windows SmartScreen may warn about them. Verify identity with the SHA256 `checksums.txt` published alongside each release. A matching hash proves that the file is the release artifact, but it does not prove that the file is safe.
 
-The public latest stable release, v4.1.2, ships seven assets: `LibreSpot.ps1`, `LibreSpot.exe`, the .NET 10 `LibreSpot-Desktop.exe` and `LibreSpot.Cli.exe`, the CycloneDX SBOM, `checksums.txt`, and `librespot-release-manifest.json`. The repository itself does not track build artifacts. `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. v4.1.2 uses source script v3.8.2.
+The public latest stable release, v4.1.2, ships seven assets: `LibreSpot.ps1`, `LibreSpot.exe`, the .NET 10 `LibreSpot-Desktop.exe` and `LibreSpot.Cli.exe`, the CycloneDX SBOM, `checksums.txt`, and `librespot-release-manifest.json`. Releases after it add `librespot-engine.zip`, the live customization engine the desktop app also carries inside itself, so the script lane can install that app from a file next to `LibreSpot.ps1` instead of a download. The repository itself does not track build artifacts. `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. v4.1.2 uses source script v3.8.2.
 
 The .NET 10 desktop and CLI artifacts publish self-contained, which embeds the runtime, so they only receive .NET servicing security fixes when rebuilt against a patched runtime. Both projects set `TargetLatestRuntimePatch`, and `Build-Scripts.ps1 -DependencyHealth` records the resolved `Microsoft.NETCore.App` / `Microsoft.WindowsDesktop.App` patch level and fails the release preflight when the build host is below the documented 10.0.11 floor (`schemas/dependency-health-allowlist.json` → `dotnetRuntimeFloor`). Build release artifacts on an up-to-date .NET 10 SDK.
 
@@ -560,8 +560,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "Import-Module Pester -Re
 ```
 
 Clean `publish`, publish the Desktop and CLI projects self-contained for
-`win-x64`, compile `LibreSpot.ps1` with PS2EXE, and copy the five
-checksum-covered assets into the release root. Generate the CycloneDX SBOM, write SHA256
+`win-x64`, compile `LibreSpot.ps1` with PS2EXE, and copy the six
+checksum-covered assets (including `resources\custom-apps\librespot-engine.zip`)
+into the release root. Generate the CycloneDX SBOM, write SHA256
 `checksums.txt`, and create the release manifest:
 
 ```powershell

@@ -32,6 +32,10 @@
     <EmbeddedResource Include="..\..\schemas\community-assets.json" LogicalName="LibreSpot.Desktop.Schemas.community-assets.json" />
     <EmbeddedResource Include="..\..\schemas\librespot-customization.json" LogicalName="LibreSpot.Desktop.Schemas.librespot-customization.json" />
     <EmbeddedResource Include="..\LibreSpot.Desktop\Backend\LibreSpot.Backend.ps1" LogicalName="LibreSpot.Desktop.Backend.LibreSpot.Backend.ps1" />
+    <!-- The live customization engine travels inside the app so the custom-app
+         install never depends on a download (RD-142). The backend script reads it
+         from the runtime folder through LIBRESPOT_BUNDLED_ASSETS. -->
+    <EmbeddedResource Include="..\..\resources\custom-apps\librespot-engine.zip" LogicalName="LibreSpot.Desktop.Resources.librespot-engine.zip" />
   </ItemGroup>
 
   <ItemGroup>
