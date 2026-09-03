@@ -46,13 +46,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: WHEN a selected theme, extension, or custom app fails to install while the rest of the run succeeds, the run SHALL finish with a state that names the asset and says it was not installed, the desktop and CLI SHALL surface that as a warning rather than a plain success, and the fleet CLI SHALL return a distinct non-zero exit code documented in `schemas/fleet-exit-codes.json`; a Pester test SHALL fail if a forced theme-copy failure still produces a success result.
   Complexity: M
 
-- [ ] P3: RD-167: Keep decorative icon glyphs out of the automation tree
-  Why: the Axe.Windows scan added in RD-152 reports `NameExcludesPrivateUnicodeCharacters` ten times across the three scanned states, every one of them a `TextBlock` whose text is a private-use character from the symbol font. A screen reader meets an unnamed text element with no useful content beside the control it decorates. The owning control carries the real name, so the fix is to hide the glyph rather than name it.
-  Evidence: `schemas/axe-windows-baseline.json` records 7 on `recommended`, 1 on `custom`, 2 on `maintenance`, observed 2026-09-03; each element reports `ClassName=TextBlock`, `ControlType=Text(50020)`, `Name=` (empty), `FrameworkId=WPF`.
-  Touches: the XAML that renders icon glyphs (`src/LibreSpot.Desktop/Views/*.xaml`, `src/LibreSpot.Desktop/MainWindow.xaml`), `schemas/axe-windows-baseline.json`.
-  Acceptance: WHEN the Axe.Windows scan runs on the three scanned states, no `NameExcludesPrivateUnicodeCharacters` violation SHALL be reported, the corresponding baseline entries SHALL be deleted rather than reduced, and the glyphs SHALL still render unchanged in the captured screenshots.
-  Complexity: S
-
 - [ ] P3: RD-168: Give the Home workspace list an accessible name
   Why: the Axe.Windows scan reports `NameNotNull` on a `List` control in the Home workspace. The items inside it are named and reachable, but a screen reader announces the container itself as an unnamed list, so there is nothing to say what the list holds when a user lands on it.
   Evidence: `schemas/axe-windows-baseline.json`, `recommended` state, key `NameNotNull|List(50008)|(none)`, count 1, observed 2026-09-03.
@@ -66,3 +59,18 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Touches: `schemas/community-assets.json`, `src/LibreSpot.Cli/Program.cs`, `src/LibreSpot.Core/AppCatalog.cs`, both composed hosts, `README.md` extension copy, `tests/LibreSpot.Desktop.Tests/CommunityAssetsManifestTests.cs`.
   Acceptance: WHEN the decision is recorded, either `beautiful-lyrics.mjs` SHALL stop being an easy-mode default and be removed from every hard-coded recommended set so the catalog and the installed set agree, or the catalog SHALL carry a written rationale for shipping unpinned third-party code by default; a test SHALL fail if the easy-mode set in `Program.cs` and the `easyModeDefault` flags in the manifest ever disagree, whichever way the decision goes.
   Complexity: M
+
+- [ ] P3: RD-173: Identify the non-WPF suite failure that appeared once and did not come back
+  Why: one run of `--filter-not-class "*Wpf*"` on 2026-09-03 reported `failed: 1` out of 1154 while the four runs
+  around it reported `failed: 0`. The failing test's name was not captured before the output scrolled, so there is
+  nothing to reproduce from. A suite that can fail one test in five runs cannot tell a real regression from noise,
+  and the next person to see it will have the same nothing to work with.
+  Evidence: four consecutive clean runs of the same command in the same working tree on 2026-09-03 (1153 passed,
+  1 skipped) either side of a single `failed: 1`; the run happened immediately after two git worktrees were removed
+  from under `%TEMP%`, which is the only external event in the window.
+  Touches: `tests/LibreSpot.Desktop.Tests/LibreSpot.Desktop.Tests.csproj` (a TRX or diagnostic logger so a failure
+  survives the console), whichever test the log then names.
+  Acceptance: WHEN the non-WPF suite runs, a machine-readable result file SHALL be written so a failure can be
+  identified after the fact; the suite SHALL then be run enough times to either name the flaky test and fix its
+  root cause, or record that it did not recur across the runs that were made.
+  Complexity: S

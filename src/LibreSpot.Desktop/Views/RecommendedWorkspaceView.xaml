@@ -6,6 +6,7 @@
         xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
         xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
         xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
+        xmlns:controls="clr-namespace:LibreSpot.Desktop.Controls"
         mc:Ignorable="d"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
@@ -45,11 +46,11 @@
                 </Style>
               </Ellipse.Style>
             </Ellipse>
-            <ui:SymbolIcon FontSize="20"
+            <controls:DecorativeSymbolIcon FontSize="20"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center">
-              <ui:SymbolIcon.Style>
-                <Style TargetType="{x:Type ui:SymbolIcon}">
+              <controls:DecorativeSymbolIcon.Style>
+                <Style TargetType="{x:Type controls:DecorativeSymbolIcon}">
                   <Setter Property="Symbol" Value="Checkmark20" />
                   <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
                   <Style.Triggers>
@@ -67,8 +68,8 @@
                     </DataTrigger>
                   </Style.Triggers>
                 </Style>
-              </ui:SymbolIcon.Style>
-            </ui:SymbolIcon>
+              </controls:DecorativeSymbolIcon.Style>
+            </controls:DecorativeSymbolIcon>
           </Grid>
 
           <StackPanel Grid.Column="1"
@@ -112,7 +113,7 @@
           <ColumnDefinition Width="120" />
           <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <ui:SymbolIcon Symbol="ShieldCheckmark20"
+        <controls:DecorativeSymbolIcon Symbol="ShieldCheckmark20"
                        FontSize="20"
                        Foreground="{DynamicResource AccentBrush}"
                        VerticalAlignment="Center" />
@@ -140,11 +141,11 @@
           <ColumnDefinition Width="30" />
           <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <ui:SymbolIcon FontSize="18"
+        <controls:DecorativeSymbolIcon FontSize="18"
                        VerticalAlignment="Center"
                        HorizontalAlignment="Left">
-          <ui:SymbolIcon.Style>
-            <Style TargetType="{x:Type ui:SymbolIcon}">
+          <controls:DecorativeSymbolIcon.Style>
+            <Style TargetType="{x:Type controls:DecorativeSymbolIcon}">
               <Setter Property="Symbol" Value="Info20" />
               <Setter Property="Foreground" Value="{DynamicResource InfoBrush}" />
               <Style.Triggers>
@@ -161,8 +162,8 @@
                 </DataTrigger>
               </Style.Triggers>
             </Style>
-          </ui:SymbolIcon.Style>
-        </ui:SymbolIcon>
+          </controls:DecorativeSymbolIcon.Style>
+        </controls:DecorativeSymbolIcon>
         <StackPanel Grid.Column="1" VerticalAlignment="Center">
           <TextBlock Text="{Binding Component}"
                      Foreground="{DynamicResource TextBrush}"
@@ -214,16 +215,16 @@
                                FontSize="16"
                                FontWeight="SemiBold"
                                VerticalAlignment="Center" />
-                    <ui:SymbolIcon x:Name="DetailsChevron"
+                    <controls:DecorativeSymbolIcon x:Name="DetailsChevron"
                                    Symbol="ChevronDown20"
                                    FontSize="18"
                                    Foreground="{DynamicResource InfoBrush}"
                                    Margin="8,0,0,0"
                                    RenderTransformOrigin="0.5,0.5">
-                      <ui:SymbolIcon.RenderTransform>
+                      <controls:DecorativeSymbolIcon.RenderTransform>
                         <RotateTransform Angle="0" />
-                      </ui:SymbolIcon.RenderTransform>
-                    </ui:SymbolIcon>
+                      </controls:DecorativeSymbolIcon.RenderTransform>
+                    </controls:DecorativeSymbolIcon>
                   </StackPanel>
                 </ToggleButton>
                 <Border Grid.Column="2"
@@ -302,11 +303,11 @@
             </Style>
           </Ellipse.Style>
         </Ellipse>
-        <ui:SymbolIcon FontSize="78"
+        <controls:DecorativeSymbolIcon FontSize="78"
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center">
-          <ui:SymbolIcon.Style>
-            <Style TargetType="{x:Type ui:SymbolIcon}">
+          <controls:DecorativeSymbolIcon.Style>
+            <Style TargetType="{x:Type controls:DecorativeSymbolIcon}">
               <Setter Property="Symbol" Value="Checkmark48" />
               <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
               <Style.Triggers>
@@ -324,8 +325,8 @@
                 </DataTrigger>
               </Style.Triggers>
             </Style>
-          </ui:SymbolIcon.Style>
-        </ui:SymbolIcon>
+          </controls:DecorativeSymbolIcon.Style>
+        </controls:DecorativeSymbolIcon>
       </Grid>
 
       <TextBlock Grid.Row="1"
@@ -377,7 +378,7 @@
         <StackPanel Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center">
-          <ui:SymbolIcon Symbol="Play24"
+          <controls:DecorativeSymbolIcon Symbol="Play24"
                          FontSize="24"
                          Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
           <TextBlock Text="{Binding HomeAction.PrimaryLabel}"
@@ -393,7 +394,7 @@
                   HorizontalAlignment="Center"
                   Margin="0,24,0,0"
                   Visibility="{Binding HomeAction.ShowsDuration, Converter={StaticResource BoolToVisibilityConverter}}">
-        <ui:SymbolIcon Symbol="Clock20"
+        <controls:DecorativeSymbolIcon Symbol="Clock20"
                        FontSize="20"
                        Foreground="{DynamicResource MutedTextBrush}" />
         <TextBlock Text="{services:Loc Vm_SimpleHomeDuration}"
@@ -410,7 +411,7 @@
                   Visibility="{Binding HasLibreSpotUpdateNotice, Converter={StaticResource BoolToVisibilityConverter}}"
                   AutomationProperties.AutomationId="HomeUpdateNotice"
                   AutomationProperties.Name="{Binding LibreSpotUpdateNoticeAutomationName}">
-        <ui:SymbolIcon Symbol="ArrowSync20"
+        <controls:DecorativeSymbolIcon Symbol="ArrowSync20"
                        FontSize="18"
                        Foreground="{DynamicResource MutedTextBrush}"
                        VerticalAlignment="Center" />

@@ -7,6 +7,7 @@
         xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
         xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
         xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
+        xmlns:controls="clr-namespace:LibreSpot.Desktop.Controls"
         mc:Ignorable="d"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
@@ -78,17 +79,17 @@
                              FontSize="16"
                              FontWeight="SemiBold"
                              VerticalAlignment="Center" />
-                  <ui:SymbolIcon x:Name="DisclosureChevron"
+                  <controls:DecorativeSymbolIcon x:Name="DisclosureChevron"
                                  Grid.Column="1"
                                  Symbol="ChevronDown20"
                                  FontSize="18"
                                  Foreground="{Binding Foreground, RelativeSource={RelativeSource TemplatedParent}}"
                                  VerticalAlignment="Center"
                                  RenderTransformOrigin="0.5,0.5">
-                    <ui:SymbolIcon.RenderTransform>
+                    <controls:DecorativeSymbolIcon.RenderTransform>
                       <RotateTransform Angle="0" />
-                    </ui:SymbolIcon.RenderTransform>
-                  </ui:SymbolIcon>
+                    </controls:DecorativeSymbolIcon.RenderTransform>
+                  </controls:DecorativeSymbolIcon>
                 </Grid>
               </ToggleButton>
               <ContentPresenter x:Name="ExpandSite"
@@ -199,11 +200,11 @@
                 </Style>
               </Ellipse.Style>
             </Ellipse>
-            <ui:SymbolIcon FontSize="46"
+            <controls:DecorativeSymbolIcon FontSize="46"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center">
-              <ui:SymbolIcon.Style>
-                <Style TargetType="{x:Type ui:SymbolIcon}">
+              <controls:DecorativeSymbolIcon.Style>
+                <Style TargetType="{x:Type controls:DecorativeSymbolIcon}">
                   <Setter Property="Symbol" Value="Checkmark48" />
                   <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
                   <Style.Triggers>
@@ -221,8 +222,8 @@
                     </DataTrigger>
                   </Style.Triggers>
                 </Style>
-              </ui:SymbolIcon.Style>
-            </ui:SymbolIcon>
+              </controls:DecorativeSymbolIcon.Style>
+            </controls:DecorativeSymbolIcon>
           </Grid>
 
           <StackPanel Grid.Column="1">
@@ -256,7 +257,7 @@
                     AutomationProperties.Name="{Binding MaintenanceRecommendation.AutomationName}"
                     AutomationProperties.HelpText="{Binding MaintenanceRecommendation.HelpText}">
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <ui:SymbolIcon Symbol="Play24"
+                <controls:DecorativeSymbolIcon Symbol="Play24"
                                FontSize="24"
                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                 <TextBlock Text="{Binding MaintenanceRecommendation.PrimaryLabel}"
@@ -286,7 +287,7 @@
                 </Style>
               </Border.Style>
               <StackPanel Orientation="Horizontal">
-                <ui:SymbolIcon Symbol="Checkmark20"
+                <controls:DecorativeSymbolIcon Symbol="Checkmark20"
                                FontSize="18"
                                Foreground="{DynamicResource AccentBrush}" />
                 <TextBlock Text="{Binding MaintenanceRecommendation.PrimaryLabel}"

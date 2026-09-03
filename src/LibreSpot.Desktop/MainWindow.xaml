@@ -1274,7 +1274,7 @@
                   <ColumnDefinition Width="28" />
                   <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <ui:SymbolIcon Symbol="Home24"
+                <controls:DecorativeSymbolIcon Symbol="Home24"
                                FontSize="24"
                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                 <TextBlock Grid.Column="1"
@@ -1302,7 +1302,7 @@
                   <ColumnDefinition Width="28" />
                   <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <ui:SymbolIcon Symbol="ArrowSync24"
+                <controls:DecorativeSymbolIcon Symbol="ArrowSync24"
                                FontSize="24"
                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                 <TextBlock Grid.Column="1"
@@ -1330,7 +1330,7 @@
                   <ColumnDefinition Width="28" />
                   <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <ui:SymbolIcon Symbol="Settings24"
+                <controls:DecorativeSymbolIcon Symbol="Settings24"
                                FontSize="24"
                                Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                 <TextBlock Grid.Column="1"
@@ -1368,7 +1368,7 @@
                 <ColumnDefinition Width="26" />
                 <ColumnDefinition Width="*" />
               </Grid.ColumnDefinitions>
-              <ui:SymbolIcon Symbol="ShieldCheckmark24"
+              <controls:DecorativeSymbolIcon Symbol="ShieldCheckmark24"
                              FontSize="24"
                              Foreground="{DynamicResource AccentBrush}" />
               <TextBlock Grid.Column="1"

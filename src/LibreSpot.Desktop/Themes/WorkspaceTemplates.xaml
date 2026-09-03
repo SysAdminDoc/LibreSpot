@@ -2,7 +2,8 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:viewModels="clr-namespace:LibreSpot.Desktop.ViewModels"
                     xmlns:services="clr-namespace:LibreSpot.Desktop.Services"
-                    xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui">
+                    xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
+                    xmlns:controls="clr-namespace:LibreSpot.Desktop.Controls">
 
   <Style x:Key="MinimalSectionStyle" TargetType="Border">
     <Setter Property="Background" Value="{DynamicResource Surface1Brush}" />
@@ -176,7 +177,7 @@
         <ColumnDefinition Width="24" />
         <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
-      <ui:SymbolIcon Symbol="Info20"
+      <controls:DecorativeSymbolIcon Symbol="Info20"
                      FontSize="18"
                      Foreground="{DynamicResource InfoBrush}"
                      VerticalAlignment="Top" />

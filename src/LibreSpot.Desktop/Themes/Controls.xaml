@@ -1469,7 +1469,7 @@
                            Foreground="{DynamicResource TextBrush}"
                            TextTrimming="CharacterEllipsis"
                            VerticalAlignment="Center" />
-                <ui:SymbolIcon x:Name="SectionChevron"
+                <controls:DecorativeSymbolIcon x:Name="SectionChevron"
                                Grid.Column="1"
                                Symbol="ChevronDown20"
                                FontSize="18"
@@ -1477,10 +1477,10 @@
                                Margin="12,0,0,0"
                                VerticalAlignment="Center"
                                RenderTransformOrigin="0.5,0.5">
-                  <ui:SymbolIcon.RenderTransform>
+                  <controls:DecorativeSymbolIcon.RenderTransform>
                     <RotateTransform Angle="0" />
-                  </ui:SymbolIcon.RenderTransform>
-                </ui:SymbolIcon>
+                  </controls:DecorativeSymbolIcon.RenderTransform>
+                </controls:DecorativeSymbolIcon>
               </Grid>
             </ToggleButton>
 
