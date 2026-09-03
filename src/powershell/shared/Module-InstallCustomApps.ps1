@@ -25,7 +25,7 @@ function Module-InstallCustomApps { param($Config)
 
     foreach ($appId in $requestedApps) {
         if (-not $global:CommunityCustomApps.Contains($appId)) {
-            Write-Log "Unknown custom app '$appId'. Skipping." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Custom app' -Name $appId -Reason 'LibreSpot does not know this custom app.'
             continue
         }
 
@@ -148,7 +148,7 @@ function Module-InstallCustomApps { param($Config)
             $installedApps.Add($appId)
             Write-Log "Custom app '$($info.DisplayName)' installed to $destinationPath"
         } catch {
-            Write-Log "Could not install custom app '$appId': $($_.Exception.Message). Skipping." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Custom app' -Name $appId -Reason $_.Exception.Message
         } finally {
             Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $unpackPath -Recurse -Force -ErrorAction SilentlyContinue

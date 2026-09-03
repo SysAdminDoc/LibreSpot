@@ -2873,6 +2873,8 @@ Describe 'Module-InstallCustomApps bundled archive resolution' {
     BeforeAll {
         $sharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
         . (Join-Path $sharedDir 'Module-InstallCustomApps.ps1')
+        . (Join-Path $sharedDir 'Add-LibreSpotAssetInstallFailure.ps1')
+        . (Join-Path $sharedDir 'Get-LibreSpotAssetInstallFailureSummary.ps1')
         . (Join-Path $sharedDir 'Expand-ArchiveSafely.ps1')
         . (Join-Path $sharedDir 'Get-FileSha256Lower.ps1')
         . (Join-Path $PSScriptRoot '..\..\src\powershell\data\CommunityCustomApps.ps1')
@@ -3097,6 +3099,8 @@ Describe 'Module-InstallThemes bundled theme resolution' {
     BeforeAll {
         $sharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
         . (Join-Path $sharedDir 'Module-InstallThemes.ps1')
+        . (Join-Path $sharedDir 'Add-LibreSpotAssetInstallFailure.ps1')
+        . (Join-Path $sharedDir 'Get-LibreSpotAssetInstallFailureSummary.ps1')
         . (Join-Path $sharedDir 'Get-FileSha256Lower.ps1')
         . (Join-Path $PSScriptRoot '..\..\src\powershell\data\BundledThemes.ps1')
 
@@ -3108,6 +3112,7 @@ Describe 'Module-InstallThemes bundled theme resolution' {
 
             $script:themeLog = New-Object System.Collections.Generic.List[string]
             $script:cliCalls = New-Object System.Collections.Generic.List[string]
+            $global:LibreSpotAssetInstallFailures = [System.Collections.Generic.List[object]]::new()
             $script:downloadAttempts = 0
             $script:cacheLookups = 0
 
@@ -3228,7 +3233,32 @@ Describe 'Module-InstallThemes bundled theme resolution' {
         Test-Path -LiteralPath (Get-InstalledThemeDirectory) | Should -BeFalse
         $log = $script:themeLog -join "`n"
         $log | Should -Match 'does not match the pinned hash'
-        $log | Should -Match 'failed to install'
+        $log | Should -Match "Theme 'Prism' was not installed"
+        $script:cliCalls.Count | Should -Be 0
+
+        # The log wording alone used to be the only evidence. What decides the
+        # run's outcome now is the recorded failure, so assert that instead.
+        @($global:LibreSpotAssetInstallFailures).Count | Should -Be 1
+        $global:LibreSpotAssetInstallFailures[0].Kind | Should -Be 'Theme'
+        $global:LibreSpotAssetInstallFailures[0].Name | Should -Be 'Prism'
+        Get-LibreSpotAssetInstallFailureSummary | Should -Match "Theme 'Prism'"
+    }
+
+    It 'cannot report a successful run when the theme copy itself fails' {
+        # The copy step is the one that broke three catalog themes without
+        # anyone noticing: the archive arrived, the hash verified, and only
+        # the write failed. Forcing exactly that must leave the run unable to
+        # call itself a success.
+        Reset-BundledThemeFixture -WithBundle
+        Mock -CommandName Copy-Item -MockWith { throw 'The process cannot access the file because it is being used by another process.' }
+
+        Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = 'Prism'; Spicetify_Scheme = 'Dark' })
+
+        $summary = Get-LibreSpotAssetInstallFailureSummary
+        $summary | Should -Not -BeNullOrEmpty
+        $summary | Should -Match "Theme 'Prism'"
+        $summary | Should -Match 'not installed'
+        # Nothing was applied, so the Spicetify config must not have been touched.
         $script:cliCalls.Count | Should -Be 0
     }
 

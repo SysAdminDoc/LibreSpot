@@ -52,6 +52,14 @@
       "intuneBehavior": "failure"
     },
     {
+      "code": 13,
+      "name": "AssetsNotInstalled",
+      "category": "failure",
+      "description": "The run completed but one or more selected themes, extensions, or custom apps were not installed. Everything else was applied; the run output names each asset that is missing.",
+      "retryable": false,
+      "intuneBehavior": "failure"
+    },
+    {
       "code": 20,
       "name": "BlockedByUserState",
       "category": "blocked",

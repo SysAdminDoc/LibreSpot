@@ -1043,6 +1043,41 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public void InstallWithAnAssetThatDidNotInstall_ReturnsItsOwnExitCodeAndSaysWhich()
+    {
+        // A run that applied everything except the theme the user picked is
+        // neither a failure nor a clean success, and an admin tool has to be
+        // able to tell it from both.
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
+        var sample = Path.Combine(ResolveRepoRoot(), "samples", "minimal.json");
+        var configPath = Path.Combine(root, "config.json");
+        var logDir = Path.Combine(root, "logs");
+        Directory.CreateDirectory(root);
+        try
+        {
+            const string warning = "The run finished but 1 selected asset was not installed: Theme 'Catppuccin'";
+            var result = Run(
+                new[] { "install", "--answer-file", sample, "--config-path", configPath, "--log-dir", logDir, "--ndjson" },
+                _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+                (_, _, _, _) => Task.FromResult(new CliBackendRunResult(true, ExitCode: 13, WarningMessage: warning)));
+
+            Assert.Equal(13, result.ExitCode);
+            Assert.Contains("Catppuccin", result.Stderr);
+            var lines = result.Stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+            using var completed = JsonDocument.Parse(lines[^1]);
+            Assert.Equal("LS1002", completed.RootElement.GetProperty("eventId").GetString());
+            Assert.Equal(13, completed.RootElement.GetProperty("exitCode").GetInt32());
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void InstallBackendSoftReboot_ReturnsSoftRebootExitCode()
     {
         var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));

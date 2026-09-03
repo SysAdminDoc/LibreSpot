@@ -5178,6 +5178,50 @@ function Module-InstallSpicetifyCLI {
     }
 }
 
+function Add-LibreSpotAssetInstallFailure {
+    # Records one selected asset that could not be installed while the rest of
+    # the run carried on. Every caller used to log a warning and return, which
+    # left the run reporting success to a user who got no theme.
+    param(
+        [Parameter(Mandatory = $true)][string]$Kind,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [string]$Reason = ''
+    )
+
+    if ($null -eq $global:LibreSpotAssetInstallFailures) {
+        $global:LibreSpotAssetInstallFailures = [System.Collections.Generic.List[object]]::new()
+    }
+
+    $trimmedReason = if ($null -eq $Reason) { '' } else { ([string]$Reason).Trim() }
+    $global:LibreSpotAssetInstallFailures.Add([pscustomobject]@{
+        Kind   = [string]$Kind
+        Name   = [string]$Name
+        Reason = $trimmedReason
+    })
+
+    $suffix = if ([string]::IsNullOrWhiteSpace($trimmedReason)) { '' } else { " $trimmedReason" }
+    Write-Log "$Kind '$Name' was not installed.$suffix" -Level 'WARN'
+}
+
+function Get-LibreSpotAssetInstallFailureSummary {
+    # One line naming everything the run was asked to install and did not. Empty
+    # when nothing failed, so callers can test it to decide the run's outcome.
+    $failures = @($global:LibreSpotAssetInstallFailures)
+    if ($failures.Count -eq 0) { return '' }
+
+    $parts = foreach ($failure in $failures) {
+        $reason = [string]$failure.Reason
+        if ([string]::IsNullOrWhiteSpace($reason)) {
+            "$($failure.Kind) '$($failure.Name)'"
+        } else {
+            "$($failure.Kind) '$($failure.Name)' ($reason)"
+        }
+    }
+
+    $noun = if ($failures.Count -eq 1) { 'asset was' } else { 'assets were' }
+    return "The run finished but $($failures.Count) selected $noun not installed: $($parts -join '; ')"
+}
+
 function Module-InstallThemes { param($Config)
     $tn = $Config.Spicetify_Theme; if ($tn -eq '(None - Marketplace Only)') { Write-Log "No theme selected."; return }
     Write-Log "Installing theme: $tn..." -Level 'STEP'
@@ -5261,7 +5305,7 @@ function Module-InstallThemes { param($Config)
             }
             Write-Log "Bundled theme '$tn' copied to $dst"
         } catch {
-            Write-Log "Bundled theme '$tn' failed to install: $($_.Exception.Message). The install will continue without this theme." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason "The bundled copy could not be installed: $($_.Exception.Message)."
             return
         }
     } elseif ($isCommunity) {
@@ -5311,7 +5355,7 @@ function Module-InstallThemes { param($Config)
             }
             Write-Log "Community theme '$tn' copied to $dst"
         } catch {
-            Write-Log "Community theme '$tn' failed to install: $($_.Exception.Message). The install will continue without this theme." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason "The download could not be installed: $($_.Exception.Message)."
             return
         } finally {
             Remove-Item -LiteralPath $tz -Force -ErrorAction SilentlyContinue
@@ -5351,7 +5395,12 @@ function Module-InstallThemes { param($Config)
         }
     }
 
-    if (-not (Test-Path (Join-Path $td $tn))) { return }
+    if (-not (Test-Path (Join-Path $td $tn))) {
+        # The copy reported no error and still left nothing behind. Returning
+        # quietly here is what let a run with no theme report success.
+        Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason 'Nothing was written to the themes directory.'
+        return
+    }
     $sc = $Config.Spicetify_Scheme; Write-Log "Setting theme=$tn, scheme=$sc"
     Invoke-SpicetifyCli -Arguments @('config', 'current_theme', $tn, '--bypass-admin') -FailureMessage "Could not set Spicetify theme '$tn'."
     if (-not [string]::IsNullOrWhiteSpace($sc)) {
@@ -5981,7 +6030,7 @@ function Module-InstallCustomApps { param($Config)
 
     foreach ($appId in $requestedApps) {
         if (-not $global:CommunityCustomApps.Contains($appId)) {
-            Write-Log "Unknown custom app '$appId'. Skipping." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Custom app' -Name $appId -Reason 'LibreSpot does not know this custom app.'
             continue
         }
 
@@ -6104,7 +6153,7 @@ function Module-InstallCustomApps { param($Config)
             $installedApps.Add($appId)
             Write-Log "Custom app '$($info.DisplayName)' installed to $destinationPath"
         } catch {
-            Write-Log "Could not install custom app '$appId': $($_.Exception.Message). Skipping." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Custom app' -Name $appId -Reason $_.Exception.Message
         } finally {
             Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $unpackPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -7103,6 +7152,10 @@ try {
         exit $code
     }
 
+    # Assets that could not be installed are collected as the run goes and
+    # decide its outcome at the end, so a missing theme cannot finish as a
+    # plain success.
+    $global:LibreSpotAssetInstallFailures = [System.Collections.Generic.List[object]]::new()
     $journalWouldChange = ($Action -notin @('CheckUpdates', 'OpenMarketplace', 'WatchAutoReapply', 'Plan'))
     Start-OperationJournalRun -Action $Action -Target "Backend action: $Action" -WouldChange $journalWouldChange -Reversible $false -RollbackHint 'Review individual journal entries for action-specific rollback hints.' -OperationId $OperationId | Out-Null
     Write-EventLine -Kind 'action' -Payload $Action
@@ -7131,6 +7184,17 @@ try {
         Invoke-LibreSpotInstall
     } else {
         Invoke-LibreSpotMaintenance
+    }
+    $assetFailureSummary = Get-LibreSpotAssetInstallFailureSummary
+    if (-not [string]::IsNullOrWhiteSpace($assetFailureSummary)) {
+        # The action itself did what it could, so this is not a failed run, but
+        # it is not a clean one either and must not be reported as success.
+        if ($Action -ne 'RemoveSelfData') {
+            Complete-OperationJournalRun -Result 'Succeeded' -Message $assetFailureSummary
+        }
+        Write-Log $assetFailureSummary -Level 'WARN'
+        Write-EventLine -Kind 'result' -Level 'WARN' -Payload $assetFailureSummary
+        exit 13
     }
     if ($Action -ne 'RemoveSelfData') {
         Complete-OperationJournalRun -Result 'Succeeded' -Message "Backend action $Action completed."

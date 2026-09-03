@@ -56,7 +56,7 @@ public sealed class FleetSchemaTests
             .Select(e => e.GetProperty("code").GetInt32())
             .ToHashSet();
 
-        var expected = new[] { 0, 1, 2, 10, 11, 12, 20, 30, 40, 50, 60, 1618, 3010, 1641 };
+        var expected = new[] { 0, 1, 2, 10, 11, 12, 13, 20, 30, 40, 50, 60, 1618, 3010, 1641 };
         foreach (var code in expected)
         {
             Assert.Contains(code, codes);

@@ -9588,6 +9588,50 @@ function Module-InstallSpicetifyCLI {
     }
 }
 
+function Add-LibreSpotAssetInstallFailure {
+    # Records one selected asset that could not be installed while the rest of
+    # the run carried on. Every caller used to log a warning and return, which
+    # left the run reporting success to a user who got no theme.
+    param(
+        [Parameter(Mandatory = $true)][string]$Kind,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [string]$Reason = ''
+    )
+
+    if ($null -eq $global:LibreSpotAssetInstallFailures) {
+        $global:LibreSpotAssetInstallFailures = [System.Collections.Generic.List[object]]::new()
+    }
+
+    $trimmedReason = if ($null -eq $Reason) { '' } else { ([string]$Reason).Trim() }
+    $global:LibreSpotAssetInstallFailures.Add([pscustomobject]@{
+        Kind   = [string]$Kind
+        Name   = [string]$Name
+        Reason = $trimmedReason
+    })
+
+    $suffix = if ([string]::IsNullOrWhiteSpace($trimmedReason)) { '' } else { " $trimmedReason" }
+    Write-Log "$Kind '$Name' was not installed.$suffix" -Level 'WARN'
+}
+
+function Get-LibreSpotAssetInstallFailureSummary {
+    # One line naming everything the run was asked to install and did not. Empty
+    # when nothing failed, so callers can test it to decide the run's outcome.
+    $failures = @($global:LibreSpotAssetInstallFailures)
+    if ($failures.Count -eq 0) { return '' }
+
+    $parts = foreach ($failure in $failures) {
+        $reason = [string]$failure.Reason
+        if ([string]::IsNullOrWhiteSpace($reason)) {
+            "$($failure.Kind) '$($failure.Name)'"
+        } else {
+            "$($failure.Kind) '$($failure.Name)' ($reason)"
+        }
+    }
+
+    $noun = if ($failures.Count -eq 1) { 'asset was' } else { 'assets were' }
+    return "The run finished but $($failures.Count) selected $noun not installed: $($parts -join '; ')"
+}
+
 function Module-InstallThemes { param($Config)
     $tn = $Config.Spicetify_Theme; if ($tn -eq '(None - Marketplace Only)') { Write-Log "No theme selected."; return }
     Write-Log "Installing theme: $tn..." -Level 'STEP'
@@ -9671,7 +9715,7 @@ function Module-InstallThemes { param($Config)
             }
             Write-Log "Bundled theme '$tn' copied to $dst"
         } catch {
-            Write-Log "Bundled theme '$tn' failed to install: $($_.Exception.Message). The install will continue without this theme." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason "The bundled copy could not be installed: $($_.Exception.Message)."
             return
         }
     } elseif ($isCommunity) {
@@ -9721,7 +9765,7 @@ function Module-InstallThemes { param($Config)
             }
             Write-Log "Community theme '$tn' copied to $dst"
         } catch {
-            Write-Log "Community theme '$tn' failed to install: $($_.Exception.Message). The install will continue without this theme." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason "The download could not be installed: $($_.Exception.Message)."
             return
         } finally {
             Remove-Item -LiteralPath $tz -Force -ErrorAction SilentlyContinue
@@ -9761,7 +9805,12 @@ function Module-InstallThemes { param($Config)
         }
     }
 
-    if (-not (Test-Path (Join-Path $td $tn))) { return }
+    if (-not (Test-Path (Join-Path $td $tn))) {
+        # The copy reported no error and still left nothing behind. Returning
+        # quietly here is what let a run with no theme report success.
+        Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason 'Nothing was written to the themes directory.'
+        return
+    }
     $sc = $Config.Spicetify_Scheme; Write-Log "Setting theme=$tn, scheme=$sc"
     Invoke-SpicetifyCli -Arguments @('config', 'current_theme', $tn, '--bypass-admin') -FailureMessage "Could not set Spicetify theme '$tn'."
     if (-not [string]::IsNullOrWhiteSpace($sc)) {
@@ -10381,7 +10430,7 @@ function Module-InstallCustomApps { param($Config)
 
     foreach ($appId in $requestedApps) {
         if (-not $global:CommunityCustomApps.Contains($appId)) {
-            Write-Log "Unknown custom app '$appId'. Skipping." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Custom app' -Name $appId -Reason 'LibreSpot does not know this custom app.'
             continue
         }
 
@@ -10504,7 +10553,7 @@ function Module-InstallCustomApps { param($Config)
             $installedApps.Add($appId)
             Write-Log "Custom app '$($info.DisplayName)' installed to $destinationPath"
         } catch {
-            Write-Log "Could not install custom app '$appId': $($_.Exception.Message). Skipping." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Custom app' -Name $appId -Reason $_.Exception.Message
         } finally {
             Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $unpackPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -11089,14 +11138,23 @@ $installBlock = { param($sh,$cfg)
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Verifying Spotify session stability" })
             Test-SpotifySessionStability -WaitSeconds 20 | Out-Null
         }
-        Complete-OperationJournalRun -Result 'Succeeded' -Message 'Install completed.'
+        $assetFailureSummary = Get-LibreSpotAssetInstallFailureSummary
+        $installHadAssetFailures = -not [string]::IsNullOrWhiteSpace($assetFailureSummary)
+        if ($installHadAssetFailures) { Write-Log $assetFailureSummary -Level 'WARN' }
+        Complete-OperationJournalRun -Result 'Succeeded' -Message $(if ($installHadAssetFailures) { $assetFailureSummary } else { 'Install completed.' })
         Write-Log "--- Installation Complete ---" -Level 'SUCCESS'; $sh.IsRunning=$false
-        $installDoneContext = if ($cfg.LaunchAfter -and (Test-Path $global:SPOTIFY_EXE_PATH)) {
+        # An asset the user picked and did not get is the one thing the finish
+        # screen has to say, so it replaces the hand-off sentence rather than
+        # sitting under it in the log where nobody looks.
+        $installDoneTitle = if ($installHadAssetFailures) { 'Setup finished with warnings' } else { 'Setup complete' }
+        $installDoneContext = if ($installHadAssetFailures) {
+            "$assetFailureSummary. Everything else was applied; you can retry the missing item from Custom Install."
+        } elseif ($cfg.LaunchAfter -and (Test-Path $global:SPOTIFY_EXE_PATH)) {
             'LibreSpot finished applying your selected setup and is handing off to Spotify now.'
         } else {
             'LibreSpot finished applying your selected setup. You can close the window or copy the detailed log for reference.'
         }
-        $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text="Setup complete"; $sh.StepLabel.Text=$finalStep; $sh.InstallTitle.Text='Setup complete'; $sh.InstallContext.Text=$installDoneContext; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
+        $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text=$installDoneTitle; $sh.StepLabel.Text=$finalStep; $sh.InstallTitle.Text=$installDoneTitle; $sh.InstallContext.Text=$installDoneContext; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     } catch { $sh.IsRunning=$false; $em=$_.Exception.Message; $st=$_.ScriptStackTrace
         try { Complete-OperationJournalRun -Result 'Failed' -Message $em } catch {}
         try { Write-Log "[FATAL] $em`n$st" -Level 'ERROR' } catch {}
@@ -11318,6 +11376,8 @@ function New-SyncHash {
 }
 
 function Start-InstallJob { param($Config)
+    # Cleared per run so a theme that failed last time does not colour this one.
+    $global:LibreSpotAssetInstallFailures = [System.Collections.Generic.List[object]]::new()
     Clear-CompletedRunspaceResources | Out-Null
     try {
         $script:installStartTime = Get-Date; $timer.Start()

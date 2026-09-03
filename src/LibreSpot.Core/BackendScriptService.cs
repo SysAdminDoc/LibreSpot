@@ -9,7 +9,16 @@ using System.Text;
 namespace LibreSpot.Desktop.Services;
 
 public sealed record BackendMessage(string Kind, string Level, string Payload, Guid? OperationId = null);
-public sealed record BackendRunResult(bool Success, string? ErrorMessage = null, bool Canceled = false, string? ErrorCode = null, int? ExitCode = null);
+public sealed record BackendRunResult(
+    bool Success,
+    string? ErrorMessage = null,
+    bool Canceled = false,
+    string? ErrorCode = null,
+    int? ExitCode = null,
+    // Set when the run finished but something it was asked to install did not.
+    // Not a failure and not a clean success, so it travels beside Success
+    // rather than replacing it.
+    string? WarningMessage = null);
 
 internal sealed record BackendWatchdogOptions(
     TimeSpan IdleWarningAfter,
@@ -42,6 +51,8 @@ public sealed class BackendScriptService
             [BundledThemeResourcePrefix + "Prism.theme.js"] = Path.Combine("themes", "Prism", "theme.js"),
             [BundledThemeResourcePrefix + "Prism.user.css"] = Path.Combine("themes", "Prism", "user.css")
         };
+    /// <summary>Backend exit code for a run that finished with a selected asset not installed.</summary>
+    public const int AssetsNotInstalledExitCode = 13;
     private const string Prefix = "@@LS@@|";
     private static readonly SemaphoreSlim RuntimeScriptLock = new(1, 1);
 
@@ -250,11 +261,18 @@ public sealed class BackendScriptService
 
         Exception? messageDeliveryException = null;
         var messageDeliveryLock = new object();
+        string? assetWarning = null;
 
         void Notify(BackendMessage message)
         {
             try
             {
+                if (string.Equals(message.Kind, "result", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(message.Level, "WARN", StringComparison.OrdinalIgnoreCase))
+                {
+                    assetWarning = message.Payload;
+                }
+
                 if (message.OperationId is { } reportedOperationId && reportedOperationId != operationId)
                 {
                     throw new InvalidDataException(
@@ -456,6 +474,12 @@ public sealed class BackendScriptService
         {
             0 => new BackendRunResult(true),
             3010 or 1641 => new BackendRunResult(true, ExitCode: process.ExitCode),
+            // The action ran; a selected asset did not install. Reporting this as
+            // a failed run would be as wrong as reporting it as a clean one.
+            AssetsNotInstalledExitCode => new BackendRunResult(
+                true,
+                ExitCode: process.ExitCode,
+                WarningMessage: assetWarning ?? "The run finished but a selected asset was not installed."),
             _ => new BackendRunResult(false, $"LibreSpot backend exited with code {process.ExitCode}.", ExitCode: process.ExitCode)
         };
     }

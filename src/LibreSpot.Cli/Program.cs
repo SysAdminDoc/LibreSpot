@@ -25,6 +25,7 @@ public static class CliApplication
     private const int NotInstalled = 10;
     private const int DriftDetected = 11;
     private const int RepairNeeded = 12;
+    private const int AssetsNotInstalled = 13;
     private const int MaxCustomPatchesJsonBytes = 65536;
     private const int MaxAnswerFileBytes = 1024 * 1024;
     private const int MaxConfigurationBytes = 1024 * 1024;
@@ -815,6 +816,14 @@ public static class CliApplication
             if (result.ExitCode is 3010 or 1641)
             {
                 finalExitCode = result.ExitCode.Value;
+            }
+            else if (result.ExitCode == AssetsNotInstalled)
+            {
+                // The run is not a failure, so it does not take the branch above,
+                // but an admin tool has to be able to tell it from a clean one.
+                finalExitCode = AssetsNotInstalled;
+                stderr.WriteLine(result.WarningMessage
+                    ?? "The run finished but a selected asset was not installed.");
             }
         }
 

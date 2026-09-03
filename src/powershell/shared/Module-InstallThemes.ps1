@@ -81,7 +81,7 @@ function Module-InstallThemes { param($Config)
             }
             Write-Log "Bundled theme '$tn' copied to $dst"
         } catch {
-            Write-Log "Bundled theme '$tn' failed to install: $($_.Exception.Message). The install will continue without this theme." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason "The bundled copy could not be installed: $($_.Exception.Message)."
             return
         }
     } elseif ($isCommunity) {
@@ -131,7 +131,7 @@ function Module-InstallThemes { param($Config)
             }
             Write-Log "Community theme '$tn' copied to $dst"
         } catch {
-            Write-Log "Community theme '$tn' failed to install: $($_.Exception.Message). The install will continue without this theme." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason "The download could not be installed: $($_.Exception.Message)."
             return
         } finally {
             Remove-Item -LiteralPath $tz -Force -ErrorAction SilentlyContinue
@@ -171,7 +171,12 @@ function Module-InstallThemes { param($Config)
         }
     }
 
-    if (-not (Test-Path (Join-Path $td $tn))) { return }
+    if (-not (Test-Path (Join-Path $td $tn))) {
+        # The copy reported no error and still left nothing behind. Returning
+        # quietly here is what let a run with no theme report success.
+        Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason 'Nothing was written to the themes directory.'
+        return
+    }
     $sc = $Config.Spicetify_Scheme; Write-Log "Setting theme=$tn, scheme=$sc"
     Invoke-SpicetifyCli -Arguments @('config', 'current_theme', $tn, '--bypass-admin') -FailureMessage "Could not set Spicetify theme '$tn'."
     if (-not [string]::IsNullOrWhiteSpace($sc)) {

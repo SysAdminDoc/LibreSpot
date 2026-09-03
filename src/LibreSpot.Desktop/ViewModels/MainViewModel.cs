@@ -2222,58 +2222,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _runCts = null;
     }
 
-    private void HandleBackendMessage(BackendMessage message)
-    {
-        // Use BeginInvoke (fire-and-forget) instead of synchronous Invoke to
-        // prevent deadlock during shutdown: if the dispatcher thread is blocked
-        // waiting for the backend process to exit while the process output
-        // callback tries to Invoke back onto the dispatcher, both threads block.
-        _dispatcher.BeginInvoke(() =>
-        {
-            switch (message.Kind)
-            {
-                case "progress":
-                    if (double.TryParse(message.Payload, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var value))
-                    {
-                        ProgressValue = Math.Clamp(value, 0, 100);
-                    }
-                    break;
-                case "status":
-                    ActivityStatus = message.Payload;
-                    break;
-                case "step":
-                    ActivityStep = message.Payload;
-                    break;
-                case "result":
-                    if (string.Equals(message.Level, "SUCCESS", StringComparison.OrdinalIgnoreCase))
-                    {
-                        _activityOutcome = ActivityOutcome.Success;
-                        ActivityStatus = Strings.RunComplete;
-                        ActivityStep = L("Vm_LibreSpotReady");
-                        ProgressValue = 100;
-                    }
-                    else
-                    {
-                        _activityOutcome = ActivityOutcome.Error;
-                        ActivityStatus = Strings.RunNeedsAttention;
-                    }
-
-                    AppendLog(message.Payload, message.Level);
-                    break;
-                default:
-                    AppendLog(message.Payload, message.Level);
-                    break;
-            }
-        });
-    }
-
-    private void AppendLog(string payload, string level)
-    {
-        _activityState.AppendLog(payload, level, DateTime.Now);
-    }
-
-    private void ClearLog() => _activityState.ClearLog();
-
     private void CycleShellLogFilter()
     {
         _shellLogFilterIndex = (_shellLogFilterIndex + 1) % 3;
@@ -2993,5 +2941,5 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
 
-    private enum ActivityOutcome { None, Success, Error, Canceled }
+    private enum ActivityOutcome { None, Success, Warning, Error, Canceled }
 }
