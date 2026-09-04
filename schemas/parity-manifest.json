@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$comment": "Generated parity manifest — do not edit by hand. Regenerate by running the ParityManifestTests suite.",
-  "generatorVersion": "4.2.0",
+  "generatorVersion": "4.3.0",
   "configSchemaVersion": 2,
   "configKeys": [
     { "key": "ConfigSchemaVersion",    "type": "int",    "default": 2,                                                      "script": true, "wpf": true, "wpfBackend": true },
@@ -45,9 +45,9 @@
     { "key": "SpotX_CustomPatchesFetchedAtUtc", "type": "datetime?", "default": null,                                        "script": false, "wpf": true, "wpfBackend": false },
     { "key": "SpotX_CustomPatchesSourceByteCount", "type": "int", "default": 0,                                             "script": false, "wpf": true, "wpfBackend": false },
     { "key": "SpotX_CustomPatchesSourceSha256", "type": "string", "default": "",                                           "script": false, "wpf": true, "wpfBackend": false },
-    { "key": "Spicetify_Theme",        "type": "string", "default": "(None - Marketplace Only)",                             "script": true, "wpf": true, "wpfBackend": true },
-    { "key": "Spicetify_Scheme",       "type": "string", "default": "Default",                                              "script": true, "wpf": true, "wpfBackend": true },
-    { "key": "Spicetify_Marketplace",  "type": "bool",   "default": true,                                                   "script": true, "wpf": true, "wpfBackend": true },
+    { "key": "Spicetify_Theme",        "type": "string", "default": "Prism",                                                "script": true, "wpf": true, "wpfBackend": true },
+    { "key": "Spicetify_Scheme",       "type": "string", "default": "Dark",                                                 "script": true, "wpf": true, "wpfBackend": true },
+    { "key": "Spicetify_Marketplace",  "type": "bool",   "default": false,                                                  "script": true, "wpf": true, "wpfBackend": true },
     { "key": "Spicetify_Extensions",   "type": "array",  "default": ["fullAppDisplay.js", "shuffle+.js", "trashbin.js"],     "script": true, "wpf": true, "wpfBackend": true },
     { "key": "Spicetify_CustomApps",   "type": "array",  "default": ["librespot"],                                            "script": true, "wpf": true, "wpfBackend": true },
     { "key": "LibreSpot_EngineProfileJson", "type": "string", "default": "",                                                "script": true, "wpf": true, "wpfBackend": true },

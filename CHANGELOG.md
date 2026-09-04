@@ -4,7 +4,13 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.3.0] (2026-09-03)
+
 ### Added
+
+- LibreSpot is now the default store inside Spotify. Store sits first in the rail and combines all 24 supported themes, 16 extensions, and two apps in searchable tabs. Theme cards include real screenshots, available schemes, source details, compatibility state, and a focused preview. The profile menu opens Store, while a separate settings cog in Spotify's top bar opens LibreSpot's Look panel.
+- Prism, Compact, and Accessibility can be previewed live without changing the saved profile. Ending the preview restores the previous runtime state. Community items use a validated `librespot://store` handoff that opens the exact theme, extension, or app in the desktop setup screen for review.
+- Store tabs follow the standard keyboard pattern, expose their panel relationship to assistive technology, and retain visible focus. Reduced motion and Windows forced colors use the existing LibreSpot accessibility contracts.
 
 - Prism is now a LibreSpot theme, not a separate project. It ships inside the package and installs from disk, so picking it needs no network and there is no release asset that can drift away from an older build's pin. Four schemes come with it: Dark, Light, OLED, and a genuine high-contrast one. It switches between light and dark on a clock you set, which no other theme manages because Spotify forces dark mode on its own browser and every theme that asks the OS gets the wrong answer. It takes the accent for the play button, progress bar, and highlights from the album art, and falls back to the scheme's own accent when Spotify's colour service is unavailable. It measures the frame rate once at startup and drops to cheaper effects by itself on a machine that cannot keep up, and reduced-motion users get the flat version straight away. Everything is in one dialog in the profile menu. Nothing in it touches ads, Premium state, telemetry, or any binary, and removing the theme puts everything back.
 
@@ -12,9 +18,15 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Concurrent profile and settings saves now take turns replacing the same destination. Each write still uses its own temporary file, but Windows can no longer reject two simultaneous final moves with an intermittent access-denied error.
+- Health no longer reports a broken Marketplace route when Marketplace is not selected. It shows the optional route as inactive and keeps an otherwise healthy LibreSpot setup green.
+- Store switches to its horizontal navigation before Spotify's own side panels can squeeze the center column. At compact desktop sizes the heading, catalog summary, search, and theme preview stay readable without horizontal overflow, and the scrollable rail no longer shows a scrollbar track.
+
 - Bundled assets were invisible to the install that needed them. The script hands the install work to a background runspace seeded with a fixed list of variables, and the folder the script is running from was not on it, so the lookup for a bundled copy fell through to whatever folder `powershell.exe` itself lives in and never found one. The custom app hid this by downloading instead; a bundled theme has nothing to fall back on. The folder is now published and handed to the runspace with the rest.
 
 ### Changed
+
+- New configurations install LibreSpot Store with Prism and the Dark scheme, while the separate Spicetify Marketplace is off by default. Existing configurations that selected Marketplace still work. The former Extensions and Marketplace paths now redirect into Store.
 
 - Every reviewed extension, theme and app now records whether it talks to Spotify's Web API, and the catalog page shows it. Since February 2026 an add-on that calls that API under its own developer registration works for five people and then stops working for everyone after them, so this is the difference between an add-on that keeps working and one that quietly dies. None of the reviewed assets is in that position: they either stay inside the Spotify app's own interfaces or make no Spotify call at all.
 

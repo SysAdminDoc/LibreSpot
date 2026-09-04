@@ -1,10 +1,16 @@
 import "./app.css";
+import bookmarkIcon from "lucide-static/icons/bookmark.svg";
+import heartPulseIcon from "lucide-static/icons/heart-pulse.svg";
+import paletteIcon from "lucide-static/icons/palette.svg";
+import slidersHorizontalIcon from "lucide-static/icons/sliders-horizontal.svg";
+import storeIcon from "lucide-static/icons/store.svg";
+import toggleLeftIcon from "lucide-static/icons/toggle-left.svg";
 import brandIconSource from "./icons/librespot.generated.txt";
-import { ExtensionsPanel } from "./panels/extensions.ts";
 import { FeaturesPanel } from "./panels/features.ts";
 import { HealthPanel } from "./panels/health.ts";
 import { LookPanel } from "./panels/look.ts";
 import { PresetsPanel } from "./panels/presets.ts";
+import { StorePanel } from "./panels/store.ts";
 import { TweaksPanel } from "./panels/tweaks.ts";
 import type {
   LibreSpotRuntimeApi,
@@ -15,6 +21,7 @@ import {
   PANEL_DEFINITIONS,
   panelFromPath,
   panelPath,
+  type PanelDefinition,
   type PanelId,
 } from "./surface/navigation.ts";
 import type {
@@ -24,13 +31,30 @@ import type {
 import { h } from "./surface/ui.ts";
 
 const PANELS: Record<PanelId, PanelComponent> = {
+  store: StorePanel,
   look: LookPanel,
   tweaks: TweaksPanel,
   features: FeaturesPanel,
-  extensions: ExtensionsPanel,
   presets: PresetsPanel,
   health: HealthPanel,
 };
+
+const PANEL_ICONS: Record<PanelDefinition["icon"], string> = {
+  store: storeIcon,
+  look: paletteIcon,
+  tweaks: slidersHorizontalIcon,
+  features: toggleLeftIcon,
+  presets: bookmarkIcon,
+  health: heartPulseIcon,
+};
+
+function PanelIcon(properties: { icon: PanelDefinition["icon"] }): UiNode {
+  return h("span", {
+    className: "librespot-rail__icon",
+    "aria-hidden": "true",
+    dangerouslySetInnerHTML: { __html: PANEL_ICONS[properties.icon] },
+  });
+}
 
 function useRuntime(): LibreSpotRuntimeApi | null {
   const React = Spicetify.React;
@@ -170,20 +194,29 @@ function AppShell(properties: PanelProperties & { activePanel: PanelId }): UiNod
             },
             h(
               "span",
-              { className: "librespot-rail__label" },
-              panel.label,
-              panel.id === "health" && problemCount > 0
-                ? h(
-                    "span",
-                    {
-                      className: "librespot-rail__count",
-                      "aria-label": `${problemCount} health warnings`,
-                    },
-                    String(problemCount),
-                  )
-                : null,
+              { className: "librespot-rail__icon-wrap", "aria-hidden": "true" },
+              h(PanelIcon, { icon: panel.icon }),
             ),
-            h("span", { className: "librespot-rail__description" }, panel.description),
+            h(
+              "span",
+              { className: "librespot-rail__copy" },
+              h(
+                "span",
+                { className: "librespot-rail__label" },
+                panel.label,
+                panel.id === "health" && problemCount > 0
+                  ? h(
+                      "span",
+                      {
+                        className: "librespot-rail__count",
+                        "aria-label": `${problemCount} health warnings`,
+                      },
+                      String(problemCount),
+                    )
+                  : null,
+              ),
+              h("span", { className: "librespot-rail__description" }, panel.description),
+            ),
           ),
         ),
       ),
@@ -232,7 +265,11 @@ export default function LibreSpotApp(): UiNode {
     return h(LoadingSurface);
   }
   const normalizedPath = panelPath(activePanel);
-  if (Spicetify.Platform.History.location.pathname === "/librespot") {
+  if (
+    Spicetify.Platform.History.location.pathname === "/librespot" ||
+    Spicetify.Platform.History.location.pathname.startsWith("/librespot/extensions") ||
+    Spicetify.Platform.History.location.pathname.startsWith("/librespot/marketplace")
+  ) {
     window.setTimeout(() => {
       Spicetify.Platform.History.push(normalizedPath);
     }, 0);

@@ -174,9 +174,11 @@ What the sandbox cannot do: no raw audio (playback is native; JS never sees PCM)
 
 Custom apps: a folder with `manifest.json` (`name`, `icon`, `active-icon`, `subfiles`, `subfiles_extension`, `assets`) and an `index.js` defining `render()` returning a React element. The route is `/<folder-name>/*`. Navigation entries are rendered by `_renderNavLinks` as either a Library X sidebar item or a global-nav `ButtonTertiary` (capped by `--max-custom-navlink-count: 4`); if the required React components are not found the link renders nothing, which is the classic "Marketplace not in the sidebar" symptom. LibreSpot ships `Install-MarketplaceNavFallbackExtension.ps1` and the `librespot-marketplace-button.js` extension for that case.
 
-### LibreSpot's live engine
+### LibreSpot Store and live engine
 
-LibreSpot 4.2.0 installs `CustomApps\librespot` plus the `librespot-engine.js` companion through the same reviewed custom-app path used by the other catalog apps. The custom app supplies the six-panel `/librespot/*` surface. The companion runs on every route, owns the live state in Spicetify local storage, and adds a guarded top-bar entry if Spotify does not render the normal custom-app navigation link.
+LibreSpot 4.3.0 installs `CustomApps\librespot` plus the `librespot-engine.js` companion through the same reviewed custom-app path used by the other catalog apps. The custom app supplies the six-panel `/librespot/*` surface, with Store first. Store combines theme discovery, extensions, and apps in one searchable page. The companion runs on every route, owns the live state in Spicetify local storage, and adds a guarded **LibreSpot Store** menu entry if Spotify does not render the normal custom-app navigation link. The old `/librespot/extensions` and `/librespot/marketplace` paths redirect to Store.
+
+Prism, Compact, and Accessibility include real previews and can be tried live without writing a saved setting. Ending a preview restores the previous runtime state. A community theme, extension, or app sends a validated `librespot://store` request to the desktop app, which opens the matching setup control for review instead of changing the installation from Spotify's browser process.
 
 Palette changes never call the CLI. `ManagedRuntimeStyles` parses `color.ini`, derives missing Spicetify keys, writes `--spice-*` and `--spice-rgb-*` variables into one managed `:root.librespot-layer-palette` rule, and removes stale values before the next write. The extra root class gives the managed rule enough specificity to win when `colors.css` and `user.css` load later. Layout, effects, palette, and accessibility stay independent through classes on `<html>`. Glass uses blur only in its explicit tier, eco keeps translucent surfaces without blur, and flat removes blur and transitions. Reduced-motion state forces the flat behavior.
 
@@ -208,6 +210,8 @@ Coexistence with v2 is not workable: after a v3 apply the `Apps` folder has `xpu
 ## 11. Marketplace
 
 Marketplace is a custom app (`spicetify/marketplace`, 1.0.11 pinned). Discovery: GitHub search on the topics `spicetify-extensions`, `spicetify-themes`, `spicetify-apps`, filtered by `resources/blacklist.json`, then each repo's `manifest.json` validated against a zod schema (`name`, `description`, `main`, `usercss`, `authors`, `preview`, `readme`, `tags`, `branch`, `schemes`, `include`). `main` present means extension, `usercss` present means theme, neither means app (listed, not installable). Snippets are one-line CSS entries in `resources/snippets.json` (93 on 2026-09-01, PR-only).
+
+Marketplace remains available for an existing or explicitly selected setup, but it is no longer part of LibreSpot's default configuration. LibreSpot Store is the default discovery and setup surface, backed by the reviewed, pinned catalog shared with the desktop app.
 
 Runtime: installed extensions are re-fetched every launch as `<script defer src="https://cdn.jsdelivr.net/gh/<user>/<repo>@<branch>/<main>?time=...">`; themes inject `<style class="marketplaceCSS marketplaceScheme">` with `--spice-*` variables and `<style class="marketplaceCSS marketplaceUserCSS">` with the fetched `user.css`, remove the `user.css` link, and require `current_theme` to be `marketplace` or refuse to load (that is why LibreSpot's Marketplace-only setup installs the placeholder theme and keeps `inject_css` on). Scheme switching is instant because it is runtime injection, not a re-apply.
 

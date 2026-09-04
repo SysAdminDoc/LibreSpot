@@ -36,7 +36,7 @@ try {
     platform: "browser",
     target: "es2020",
     legalComments: "none",
-    loader: { ".txt": "text", ".svg": "text" },
+    loader: { ".txt": "text", ".svg": "text", ".png": "dataurl" },
     // Spicetify calls this global to mount the app.
     footer: { js: `let render=()=>${settings.nameId}.default();` },
   });
@@ -50,7 +50,7 @@ try {
     platform: "browser",
     target: "es2020",
     legalComments: "none",
-    loader: { ".txt": "text", ".svg": "text" },
+    loader: { ".txt": "text", ".svg": "text", ".png": "dataurl" },
   });
 } finally {
   rmSync(generatedBrandIcon, { force: true });

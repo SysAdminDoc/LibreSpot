@@ -128,7 +128,7 @@ BeforeAll {
         SpotX_SpotifyVersionId="auto"
         SpotX_Language=""
         SpotX_CustomPatchesEnabled=$false; SpotX_CustomPatchesJson=""
-        Spicetify_Theme="(None - Marketplace Only)"; Spicetify_Scheme="Default"; Spicetify_Marketplace=$true
+        Spicetify_Theme="Prism"; Spicetify_Scheme="Dark"; Spicetify_Marketplace=$false
         Spicetify_Extensions=@("fullAppDisplay.js","shuffle+.js","trashbin.js")
         Spicetify_CustomApps=@('librespot')
         LibreSpot_EngineProfileJson=''
@@ -147,6 +147,7 @@ BeforeAll {
 
     $global:ThemeData = [ordered]@{
         "(None - Marketplace Only)" = @{ Schemes = @("Default"); Preview = @{} }
+        "Prism" = @{ Schemes = @("Dark","Light","OLED","HighContrast"); Preview = @{} }
         "Sleek" = @{ Schemes = @("Wealthy","Cherry","Coral","Deep","Greener","Deeper","Psycho","UltraBlack","Nord","Futura","Elementary","BladeRunner","Dracula","VantaBlack","RosePine","Eldritch","Catppuccin","AyuDark","TokyoNight"); Preview = @{} }
     }
 

@@ -6,7 +6,11 @@ import {
   readableText,
   validateSchemeContrast,
 } from "../src/core/index.ts";
-import { countInstalledManagedAssets } from "../src/panels/extensions.ts";
+import {
+  countInstalledManagedAssets,
+  STORE_THEMES,
+  themeDescription,
+} from "../src/panels/store.ts";
 import {
   countCustomizedFeatures,
   isCustomizedFeature,
@@ -30,19 +34,21 @@ import {
 } from "../src/surface/ui.ts";
 
 describe("LibreSpot surface contract", () => {
-  it("keeps the six panels in the requested mental order", () => {
+  it("makes the Store the first of six focused panels", () => {
     expect(PANEL_DEFINITIONS.map((panel) => panel.id)).toEqual([
+      "store",
       "look",
       "tweaks",
       "features",
-      "extensions",
       "presets",
       "health",
     ]);
     for (const panel of PANEL_DEFINITIONS) {
       expect(panelFromPath(panelPath(panel.id))).toBe(panel.id);
     }
-    expect(panelFromPath("/librespot")).toBe("look");
+    expect(panelFromPath("/librespot")).toBe("store");
+    expect(panelFromPath("/librespot/extensions")).toBe("store");
+    expect(panelFromPath("/librespot/marketplace")).toBe("store");
   });
 
   it("ships all four Prism schemes with readable text and controls", () => {
@@ -112,7 +118,7 @@ describe("LibreSpot surface contract", () => {
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain("@media (forced-colors: active)");
     expect(css).toContain("@media (max-width: 900px)");
-    expect(css).toContain("@media (max-width: 780px)");
+    expect(css).toContain("@media (max-width: 1200px)");
     expect(css).not.toContain(":has(");
     expect(css).not.toContain("backdrop-filter");
     expect(css).not.toContain("border-radius: 999px");
@@ -184,7 +190,7 @@ describe("LibreSpot surface contract", () => {
 
   it("keeps the long Spicetify configuration catalog disclosed on demand", () => {
     const source = readFileSync(
-      resolve(import.meta.dirname, "../src/panels/extensions.ts"),
+      resolve(import.meta.dirname, "../src/panels/store.ts"),
       "utf8",
     );
     const css = readFileSync(resolve(import.meta.dirname, "../src/app.css"), "utf8");
@@ -216,6 +222,17 @@ describe("LibreSpot surface contract", () => {
     ).toBe(1);
   });
 
+  it("shows every supported theme once with useful copy and a real preview", () => {
+    expect(STORE_THEMES).toHaveLength(24);
+    expect(new Set(STORE_THEMES.map((theme) => theme.id)).size).toBe(STORE_THEMES.length);
+    expect(STORE_THEMES.some((theme) => theme.marketplaceOnly)).toBe(false);
+    for (const theme of STORE_THEMES) {
+      expect(themeDescription(theme).length).toBeGreaterThan(24);
+      expect(theme.preview?.status).toBe("available");
+      expect(theme.preview?.url).toBeTruthy();
+    }
+  });
+
   it("keeps the source free of JSX and keyboard shortcut handlers", () => {
     const app = readFileSync(resolve(import.meta.dirname, "../src/app.ts"), "utf8");
     expect(app).not.toMatch(/return\s*\([^)]*<[A-Za-z]/s);
@@ -223,5 +240,16 @@ describe("LibreSpot surface contract", () => {
     expect(app).not.toContain("keyup");
     expect(app).toContain("brandIconSource");
     expect(app).not.toContain('h("i")');
+  });
+
+  it("keeps Store in the profile menu and opens Look from the main settings button", () => {
+    const extension = readFileSync(
+      resolve(import.meta.dirname, "../src/extensions/librespot-engine.ts"),
+      "utf8",
+    );
+    expect(extension).toContain('new MenuItem("LibreSpot Store"');
+    expect(extension).toContain('new TopbarButton("LibreSpot Settings"');
+    expect(extension).toContain('Spicetify.Platform.History.push(panelPath("look"))');
+    expect(extension).toContain('lucide-static/icons/settings.svg');
   });
 });

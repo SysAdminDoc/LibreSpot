@@ -50,9 +50,9 @@ public sealed class InstallConfiguration
     public int SpotX_CustomPatchesSourceByteCount { get; set; }
     public string SpotX_CustomPatchesSourceSha256 { get; set; } = string.Empty;
 
-    public string Spicetify_Theme { get; set; } = "(None - Marketplace Only)";
-    public string Spicetify_Scheme { get; set; } = "Default";
-    public bool Spicetify_Marketplace { get; set; } = true;
+    public string Spicetify_Theme { get; set; } = "Prism";
+    public string Spicetify_Scheme { get; set; } = "Dark";
+    public bool Spicetify_Marketplace { get; set; }
     public List<string> Spicetify_Extensions { get; set; } = new() { "fullAppDisplay.js", "shuffle+.js", "trashbin.js" };
     public List<string> Spicetify_CustomApps { get; set; } = new() { "librespot" };
     public string LibreSpot_EngineProfileJson { get; set; } = string.Empty;
@@ -1313,7 +1313,7 @@ public static class AppCatalog
         // into a KeyNotFoundException.
         var validSchemes = ThemeSchemes.TryGetValue(normalized.Spicetify_Theme, out var schemes)
             ? schemes
-            : ThemeSchemes["(None - Marketplace Only)"];
+            : ThemeSchemes["Prism"];
 
         normalized.Spicetify_Scheme = validSchemes.Contains(source.Spicetify_Scheme)
             ? source.Spicetify_Scheme

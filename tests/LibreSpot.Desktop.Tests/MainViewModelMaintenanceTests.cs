@@ -605,6 +605,33 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task StoreSelection_OpensTheMatchingDesktopSetupControl() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            Assert.True(viewModel.ApplyStoreSelection("librespot://store?kind=theme&id=Catppuccin&scheme=mocha"));
+            Assert.Equal(1, viewModel.SelectedWorkspaceIndex);
+            Assert.Equal("Catppuccin", viewModel.SelectedTheme);
+            Assert.Equal("mocha", viewModel.SelectedScheme);
+            Assert.Equal("Catppuccin", viewModel.ThemeSearchText);
+
+            Assert.True(viewModel.ApplyStoreSelection("librespot://store?kind=extension&id=shuffle%2B.js"));
+            var shuffleExtension = viewModel.Extensions.Single(item => item.Key == "shuffle+.js");
+            Assert.True(shuffleExtension.IsSelected);
+            Assert.Equal(shuffleExtension.Title, viewModel.SettingsSearchText);
+            Assert.True(viewModel.IsExtensionsExpanded);
+
+            Assert.True(viewModel.ApplyStoreSelection("librespot://store?kind=app&id=stats"));
+            Assert.True(viewModel.CustomApps.Single(item => item.Key == "stats").IsSelected);
+            Assert.Equal("Stats", viewModel.SettingsSearchText);
+            Assert.True(viewModel.IsCustomAppsExpanded);
+
+            Assert.False(viewModel.ApplyStoreSelection("librespot://store?kind=extension&id=unknown.js"));
+        });
+
+    [Fact]
     public Task LocalProfiles_LoadPreviewCreateRenameAndDeleteProfiles() =>
         RunStaAsync(async () =>
         {

@@ -197,6 +197,20 @@ export class LibreSpotEngine extends EventTarget {
     this.#styles.applyPalette(scheme, this.#state.layers.palette);
   }
 
+  public applyPreviewTheme(themeName: string, schemeName?: string): boolean {
+    const theme = this.#themeStyles[themeName];
+    if (!theme) return false;
+    this.#styles.applyTheme(theme.className, theme.css);
+    const scheme = schemeName ? this.#state.schemes[schemeName] : undefined;
+    if (scheme) {
+      this.#styles.applyPalette(scheme, this.#state.layers.palette);
+      this.#styles.setHighContrast(
+        this.#state.layers.accessibility && Boolean(schemeName?.toLowerCase().includes("contrast")),
+      );
+    }
+    return true;
+  }
+
   public clearPreview(): void {
     this.apply();
   }

@@ -7,8 +7,8 @@ namespace LibreSpot.Desktop.ViewModels;
 
 public sealed class CustomOptionEditorStateViewModel : ObservableObject
 {
-    private string _selectedTheme = "(None - Marketplace Only)";
-    private string _selectedScheme = "Default";
+    private string _selectedTheme = "Prism";
+    private string _selectedScheme = "Dark";
     private string _selectedLyricsTheme = "spotify";
     private string _selectedSpotifyVersionId = "auto";
     private string _selectedDownloadMethod = string.Empty;

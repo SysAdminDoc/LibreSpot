@@ -11,7 +11,8 @@ public enum ShellActivationKind
     ImportProfile,
     OpenLibreSpotFolder,
     ProfileFile,
-    ProfileShareUri
+    ProfileShareUri,
+    StoreSelection
 }
 
 public sealed record ShellActivationRequest(ShellActivationKind Kind, string? Value = null)
@@ -27,6 +28,7 @@ public static class ShellActivationService
     public const string ProfileFileArgumentPrefix = "--profile-file=";
     public const string ProfileFileArgument = "--profile-file";
     public const string ProfileUriPrefix = "librespot://profile";
+    public const string StoreUriPrefix = StoreSelectionService.StoreUriPrefix;
     public const string ProfileExtension = ".librespot";
 
     public static ShellActivationRequest Parse(IEnumerable<string> args)
@@ -73,6 +75,13 @@ public static class ShellActivationService
             if (arg.StartsWith(ProfileUriPrefix, StringComparison.OrdinalIgnoreCase))
             {
                 return new ShellActivationRequest(ShellActivationKind.ProfileShareUri, arg);
+            }
+
+            if (arg.StartsWith(StoreUriPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return StoreSelectionService.TryParse(arg, out _)
+                    ? new ShellActivationRequest(ShellActivationKind.StoreSelection, arg)
+                    : ShellActivationRequest.None;
             }
 
             if (string.Equals(Path.GetExtension(arg), ProfileExtension, StringComparison.OrdinalIgnoreCase))

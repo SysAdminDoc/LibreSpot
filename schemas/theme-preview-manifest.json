@@ -1,7 +1,7 @@
 {
   "$comment": "Shared theme preview manifest for both PowerShell and WPF shells.",
   "schemaVersion": 1,
-  "description": "Single source of truth for theme preview metadata. Runtime code in both shells consumes this manifest. CI validates preview URLs and SHA256 hashes.",
+  "description": "Single source of truth for theme preview metadata. Runtime code in both shells consumes this manifest, and local checks validate each preview before release.",
   "officialThemesRepo": "spicetify/spicetify-themes",
   "officialThemesCommit": "df033493a7dae30ca6e371de9cec1897871dbb0c",
   "themes": [
@@ -34,13 +34,51 @@
       "marketplaceOnly": false,
       "supportState": "active",
       "preview": {
-        "url": null,
+        "url": "https://raw.githubusercontent.com/SysAdminDoc/LibreSpot/1f4cebb561d3f8e9159108f059330ed53cae2a34/assets/screenshots/spotify-librespot-look.png",
         "sha256": null,
-        "contentType": null,
+        "contentType": "image/png",
         "maxBytes": 3145728,
         "fallbackLabel": "Prism theme preview",
-        "lastVerified": null,
-        "status": "placeholder"
+        "lastVerified": "2026-09-03",
+        "status": "available"
+      }
+    },
+    {
+      "id": "Compact",
+      "source": "bundled",
+      "sourceRepo": "SysAdminDoc/LibreSpot",
+      "commitSha": null,
+      "schemes": ["Dark", "Light", "OLED", "HighContrast"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/SysAdminDoc/LibreSpot/main/src/LibreSpot.App/src/assets/theme-previews/compact.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Compact theme preview",
+        "lastVerified": "2026-09-03",
+        "status": "available"
+      }
+    },
+    {
+      "id": "Accessibility",
+      "source": "bundled",
+      "sourceRepo": "SysAdminDoc/LibreSpot",
+      "commitSha": null,
+      "schemes": ["Light", "HighContrast", "Dark", "OLED"],
+      "requiresJs": false,
+      "marketplaceOnly": false,
+      "supportState": "active",
+      "preview": {
+        "url": "https://raw.githubusercontent.com/SysAdminDoc/LibreSpot/main/src/LibreSpot.App/src/assets/theme-previews/accessibility.png",
+        "sha256": null,
+        "contentType": "image/png",
+        "maxBytes": 3145728,
+        "fallbackLabel": "Accessibility theme preview",
+        "lastVerified": "2026-09-03",
+        "status": "available"
       }
     },
     {
@@ -167,7 +205,7 @@
       "marketplaceOnly": false,
       "supportState": "active",
       "preview": {
-        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Blackout/images/home.png",
+        "url": "https://raw.githubusercontent.com/spicetify/spicetify-themes/df033493a7dae30ca6e371de9cec1897871dbb0c/Blackout/images/album_page.png",
         "sha256": null,
         "contentType": "image/png",
         "maxBytes": 3145728,
@@ -357,13 +395,13 @@
       "marketplaceOnly": false,
       "supportState": "active",
       "preview": {
-        "url": "https://raw.githubusercontent.com/catppuccin/spicetify/1ec645c4cf7f42f9792b9eeb1bb7930f94593277/assets/mocha.webp",
+        "url": "https://raw.githubusercontent.com/catppuccin/spicetify/1ec645c4cf7f42f9792b9eeb1bb7930f94593277/assets/preview.webp",
         "sha256": null,
         "contentType": "image/webp",
         "maxBytes": 3145728,
         "fallbackLabel": "Catppuccin theme preview",
-        "lastVerified": null,
-        "status": "unavailable"
+        "lastVerified": "2026-09-03",
+        "status": "available"
       }
     },
     {
@@ -376,13 +414,13 @@
       "marketplaceOnly": false,
       "supportState": "active",
       "preview": {
-        "url": "https://raw.githubusercontent.com/Comfy-Themes/Spicetify/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0/screenshots/Comfy.png",
+        "url": "https://raw.githubusercontent.com/Comfy-Themes/Spicetify/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0/images/pages/home.png",
         "sha256": null,
         "contentType": "image/png",
         "maxBytes": 3145728,
         "fallbackLabel": "Comfy theme preview",
-        "lastVerified": null,
-        "status": "unavailable"
+        "lastVerified": "2026-09-03",
+        "status": "available"
       }
     },
     {
@@ -395,13 +433,13 @@
       "marketplaceOnly": false,
       "supportState": "active",
       "preview": {
-        "url": "https://raw.githubusercontent.com/nimsandu/spicetify-bloom/654cfed682b94613b0029997ffafc1eadccc5bef/screenshots/dark.png",
+        "url": "https://raw.githubusercontent.com/nimsandu/spicetify-bloom/654cfed682b94613b0029997ffafc1eadccc5bef/images/main-cover.png",
         "sha256": null,
         "contentType": "image/png",
         "maxBytes": 3145728,
         "fallbackLabel": "Bloom theme preview",
-        "lastVerified": null,
-        "status": "unavailable"
+        "lastVerified": "2026-09-03",
+        "status": "available"
       }
     },
     {
@@ -412,15 +450,15 @@
       "schemes": ["dark", "light", "dark-green", "coffee", "comfy", "dark-fluent", "greenland", "biscuit", "macos", "rosepine", "dracula", "dracula-pro"],
       "requiresJs": true,
       "marketplaceOnly": false,
-      "supportState": "active",
+      "supportState": "degraded",
       "preview": {
-        "url": "https://raw.githubusercontent.com/sanoojes/Spicetify-Lucid/5c28e9f955d5ca84a82d06084cc6652e5655ea2d/screenshots/dark.webp",
+        "url": "https://raw.githubusercontent.com/sanoojes/Spicetify-Lucid/5c28e9f955d5ca84a82d06084cc6652e5655ea2d/docs/public/images/base.png",
         "sha256": null,
-        "contentType": "image/webp",
+        "contentType": "image/png",
         "maxBytes": 3145728,
         "fallbackLabel": "Lucid theme preview",
-        "lastVerified": null,
-        "status": "unavailable"
+        "lastVerified": "2026-09-03",
+        "status": "available"
       }
     },
     {
@@ -433,13 +471,13 @@
       "marketplaceOnly": false,
       "supportState": "active",
       "preview": {
-        "url": "https://raw.githubusercontent.com/Astromations/Hazy/1926d9db3e0313b68ca6e2193c2b278e733ac3c4/screenshots/dark.png",
+        "url": "https://raw.githubusercontent.com/Astromations/Hazy/1926d9db3e0313b68ca6e2193c2b278e733ac3c4/hazy_home.png",
         "sha256": null,
         "contentType": "image/png",
         "maxBytes": 3145728,
         "fallbackLabel": "Hazy theme preview",
-        "lastVerified": null,
-        "status": "unavailable"
+        "lastVerified": "2026-09-03",
+        "status": "available"
       }
     }
   ]

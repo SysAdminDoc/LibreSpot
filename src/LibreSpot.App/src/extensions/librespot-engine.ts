@@ -28,6 +28,8 @@ import {
   BUILTIN_SCHEMES,
   SURFACE_SNIPPET_CSS,
 } from "../surface/builtins.ts";
+import settingsIconSource from "lucide-static/icons/settings.svg";
+import brandIconSource from "../icons/librespot.generated.txt";
 import { panelPath, type PanelId } from "../surface/navigation.ts";
 
 const DESKTOP_BOOTSTRAP_REVISION_KEY = "librespot:desktop-bootstrap-revision";
@@ -212,6 +214,9 @@ function routeFromWindow(app: "librespot" | "marketplace"): RouteState {
   ) {
     return "wired";
   }
+  if (app === "marketplace" && !installedList(Spicetify.Config?.custom_apps).includes(app)) {
+    return "inactive";
+  }
   return "unknown";
 }
 
@@ -235,7 +240,7 @@ async function probeBundleRoute(app: "librespot" | "marketplace"): Promise<Route
   }
   const configured = installedList(Spicetify.Config?.custom_apps).includes(app);
   if (!configured) {
-    return "not-wired";
+    return app === "marketplace" ? "inactive" : "not-wired";
   }
   try {
     const response = await fetch(
@@ -308,17 +313,19 @@ function notify(message: string, error = false): void {
   Spicetify.showNotification?.(message, error, error ? 4_000 : 2_200);
 }
 
-function navEntryPresent(): boolean {
+function settingsEntryPresent(): boolean {
   return Boolean(
     document.querySelector(
-      'a[href="/librespot"], a[href^="/librespot/"], [aria-label="LibreSpot"], [title="LibreSpot"]',
+      '[aria-label="LibreSpot Settings"], [title="LibreSpot Settings"]',
     ),
   );
 }
 
 function registerAccessEntries(): void {
-  const icon = Spicetify.SVGIcons?.brightness ?? Spicetify.SVGIcons?.edit ?? "";
-  const open = () => {
+  const openStore = () => {
+    Spicetify.Platform.History.push(panelPath("store"));
+  };
+  const openSettings = () => {
     Spicetify.Platform.History.push(panelPath("look"));
   };
   try {
@@ -326,12 +333,12 @@ function registerAccessEntries(): void {
     if (!MenuItem) {
       throw new Error("Menu API unavailable.");
     }
-    new MenuItem("LibreSpot", false, open, icon).register();
+    new MenuItem("LibreSpot Store", false, openStore, brandIconSource).register();
   } catch {
     console.warn("[LibreSpot] Profile-menu entry could not be registered.");
   }
   window.setTimeout(() => {
-    if (navEntryPresent()) {
+    if (settingsEntryPresent()) {
       return;
     }
     try {
@@ -339,7 +346,7 @@ function registerAccessEntries(): void {
       if (!TopbarButton) {
         throw new Error("Topbar API unavailable.");
       }
-      new TopbarButton("LibreSpot", icon, open);
+      new TopbarButton("LibreSpot Settings", settingsIconSource, openSettings);
     } catch {
       console.warn("[LibreSpot] Topbar fallback could not be registered.");
     }
@@ -372,6 +379,7 @@ async function bootstrap(): Promise<void> {
   window.__libreSpotEngineLoaded = true;
   try {
     await waitForApi();
+    registerAccessEntries();
     const store = new EngineStore(storageAdapter());
     const stored = store.load();
     let initial = applyDesktopBootstrap(store) ?? stored;
@@ -540,6 +548,7 @@ async function bootstrap(): Promise<void> {
           engine.applyPreviewScheme(scheme);
         }
       },
+      previewTheme: (name, scheme) => engine.applyPreviewTheme(name, scheme),
       clearPreview: () => {
         engine.clearPreview();
       },
@@ -645,6 +654,18 @@ async function bootstrap(): Promise<void> {
       openPanel: (panel) => {
         Spicetify.Platform.History.push(panelPath(panel as PanelId));
       },
+      openDesktopStore: (kind, id, scheme) => {
+        const parameters = new URLSearchParams({ kind, id });
+        if (scheme) parameters.set("scheme", scheme);
+        const anchor = document.createElement("a");
+        anchor.href = `librespot://store?${parameters.toString()}`;
+        anchor.target = "_self";
+        anchor.hidden = true;
+        document.body.append(anchor);
+        anchor.click();
+        anchor.remove();
+        notify(`Opening ${id} in LibreSpot Desktop.`);
+      },
     };
 
     window.LibreSpot = runtime;
@@ -686,7 +707,6 @@ async function bootstrap(): Promise<void> {
       refreshArrangements();
       emit();
     }, 60_000);
-    registerAccessEntries();
     await refreshRoutes();
     console.info("[LibreSpot] live engine ready");
   } catch (error) {

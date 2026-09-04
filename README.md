@@ -2,14 +2,14 @@
 
 # LibreSpot
 
-**SpotX + Spicetify Unified Installer**
+**SpotX + Spicetify Customization**
 
-Installs, configures, and maintains ad-free Spotify with themes, extensions, custom apps, and the Spicetify Marketplace. No command-line knowledge required. v4 ships a Windows desktop app and a fleet CLI alongside the original single-file PowerShell script, so you can run whichever suits the machine in front of you.
+Installs, configures, and maintains Spotify with themes, extensions, custom apps, and the LibreSpot Store inside the client. No command-line knowledge required. v4 ships a Windows desktop app and a fleet CLI alongside the original single-file PowerShell script, so you can run whichever suits the machine in front of you.
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.2.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
-[![Stable](https://img.shields.io/badge/Stable-4.1.2-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
+[![Version](https://img.shields.io/badge/Version-4.3.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Stable](https://img.shields.io/badge/Stable-4.3.0-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
 </div>
 
@@ -70,7 +70,7 @@ LibreSpot is published in exactly one place: `https://github.com/SysAdminDoc/Lib
 A release asset can prove where it came from, which no amount of presentation can fake:
 
 ```powershell
-gh release verify-asset v4.1.2 .\LibreSpot-Desktop.exe
+gh release verify-asset v4.3.0 .\LibreSpot-Desktop.exe
 ```
 
 That checks GitHub's signed attestation for the asset against this repository. If it fails, or if the asset did not come from a release page here, delete the download.
@@ -85,7 +85,7 @@ Get-Content .\checksums.txt
 If the GitHub CLI is installed, the release attestation check confirms the asset was uploaded to that published release:
 
 ```powershell
-gh release verify-asset -R SysAdminDoc/LibreSpot v4.1.2 .\LibreSpot-Desktop.exe
+gh release verify-asset -R SysAdminDoc/LibreSpot v4.3.0 .\LibreSpot-Desktop.exe
 ```
 
 Do not use Telegram links, rehosted files, or builds copied to another site. Never paste commands from videos, social posts, or chat messages. If a command asks you to disable Defender or add an exclusion, close it. A hash mismatch means the file must be deleted and not run.
@@ -103,6 +103,16 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 </div>
 
 ---
+
+## What's New in v4.3.0
+
+LibreSpot is now the store inside Spotify. The old Extensions inventory and the separate Marketplace entry have been replaced by one Store at the top of LibreSpot's rail. The profile menu keeps a Store entry, while the compact settings button in Spotify's top bar opens LibreSpot's Look panel directly.
+
+The Store presents 24 supported themes with screenshots, plain descriptions, source details, compatibility notes, and every available color scheme. Prism, Compact, and Accessibility can be previewed live before they are applied. Community themes open the exact matching setup control in LibreSpot Desktop. Extensions and apps have their own searchable tabs with installed state and trust details.
+
+New installs use Prism with its Dark scheme and install LibreSpot by default. The separate Spicetify Marketplace is off by default, while existing setups that chose it remain supported. The old LibreSpot Extensions and Marketplace routes redirect into the Store instead of leaving stale pages behind.
+
+The release was exercised inside the pinned Spotify 1.2.93.667 client with Spicetify 2.44.0. Theme selection, live preview and restore, search, category tabs, advanced settings, legacy route redirects, and the desktop setup handoff were checked without taking over the active desktop.
 
 ## What's New in v4.2.0
 
@@ -205,17 +215,23 @@ The desktop shell keeps each workspace in a named UserControl. The Custom worksp
 
 ## Live customization inside Spotify
 
-Choose **LibreSpot** in Spotify's navigation after installing the LibreSpot custom app from the desktop app. The companion extension keeps the selected state active while you move through Home, Search, Library, playlists, Marketplace, and Spotify settings.
+Choose **LibreSpot** in Spotify's navigation after installing the LibreSpot custom app from the desktop app. Store is the first page. The companion extension keeps the selected state active while you move through Home, Search, Library, playlists, and Spotify settings.
+
+<div align="center">
+
+<img width="1150" alt="LibreSpot Store inside Spotify" src="assets/screenshots/spotify-librespot-store.png" />
+
+</div>
 
 | Look | Tweaks |
 |---|---|
 | Live theme, scheme, layer, accent, type, scale, corner, schedule, and effects controls. | Twelve reviewed CSS snippets with source and Spotify-version evidence. |
 | ![LibreSpot Look panel](assets/screenshots/spotify-librespot-look.png) | ![LibreSpot Tweaks panel](assets/screenshots/spotify-librespot-tweaks.png) |
 
-| Features | Extensions |
+| Features | Store |
 |---|---|
-| All 348 client flags and all 31 SpotX controls, grouped and searchable. | Installed state, enabled state, source, last verification, and known issues. |
-| ![LibreSpot Features panel](assets/screenshots/spotify-librespot-features.png) | ![LibreSpot Extensions panel](assets/screenshots/spotify-librespot-extensions.png) |
+| All 348 client flags and all 31 SpotX controls, grouped and searchable. | Theme previews plus searchable extension and app catalogs, with source and compatibility details. |
+| ![LibreSpot Features panel](assets/screenshots/spotify-librespot-features.png) | ![LibreSpot Store panel](assets/screenshots/spotify-librespot-store.png) |
 
 | Presets | Health |
 |---|---|
@@ -240,7 +256,7 @@ Scheme previews, layers, effects tiers, client-side flags, snippets, and presets
 >
 > If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch. The WPF Maintenance dashboard also flags **After Spotify update** drift and recommends targeted recovery steps before a full reset.
 
-Current source script version: **v3.9.0**. Current desktop and CLI release: **v4.2.0**. Public latest stable release: **v4.1.2**.
+Current source script version: **v3.10.0**. Current desktop and CLI release: **v4.3.0**. Public latest stable release: **v4.3.0**.
 
 **Pinned dependency versions in the current source script:**
 
@@ -263,9 +279,9 @@ SpotX has no release tag for the pinned commit; upstream's newest tag is 1.9 (20
 
 ### Three Modes
 
-**Recommended setup**, one click, sensible defaults. Removes any existing installation, applies SpotX ad-blocking with the new UI theme, installs Spicetify CLI with Marketplace, and enables Full App Display, True Shuffle, and Trash Bin extensions.
+**Recommended setup**, one click, sensible defaults. Removes any existing installation, applies SpotX ad-blocking, installs Spicetify CLI with LibreSpot Store and Prism, then enables Full App Display, True Shuffle, and Trash Bin.
 
-**Custom Install**, full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), author reviewed SpotX `patches.json` custom patches with JSON formatting, regex safety checks, dry-run feedback, and HTTPS import, browse 22 themes (16 official, 5 community, and the bundled Prism) through a searchable gallery with per-theme color schemes, select from 15 extensions (10 built-in + 5 community) plus the verified Stats custom app, save and preview named local profiles, and choose between clean or overlay install.
+**Custom Install**, full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), author reviewed SpotX `patches.json` custom patches with JSON formatting, regex safety checks, dry-run feedback, and HTTPS import, browse 24 supported themes through a searchable gallery with per-theme color schemes, select from 16 extensions plus the verified Stats custom app, save and preview named local profiles, and choose between clean or overlay install.
 
 **Maintenance**, manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, inspect and clear verified download-cache health, preview and explicitly undo eligible low-risk PATH changes from the latest operation receipt, export a validated Marketplace state archive for missing-file recovery, export a redacted local support bundle, remove active Spicetify customizations while keeping SpotX in place, uninstall Spicetify, check for dependency updates, or perform a full system reset. Marketplace 1.0.11 stores saved state in the embedded browser's IndexedDB database. LibreSpot detects that boundary but does not back it up. Use Marketplace's own export/import controls before a repair or reset.
 
@@ -540,7 +556,7 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 
 Releases ship unsigned by design. LibreSpot is not code-signed and is not waiting on a certificate: [SignPath Foundation](https://signpath.org/) OSS signing was evaluated and set aside, so there is no "once the cert arrives" milestone. `LibreSpot.exe`, `LibreSpot-Desktop.exe`, and `LibreSpot.Cli.exe` are published as unsigned artifacts, and Windows SmartScreen may warn about them. Verify identity with the SHA256 `checksums.txt` published alongside each release. A matching hash proves that the file is the release artifact, but it does not prove that the file is safe.
 
-The public latest stable release, v4.1.2, ships seven assets: `LibreSpot.ps1`, `LibreSpot.exe`, the .NET 10 `LibreSpot-Desktop.exe` and `LibreSpot.Cli.exe`, the CycloneDX SBOM, `checksums.txt`, and `librespot-release-manifest.json`. Releases after it add `librespot-engine.zip`, the live customization engine the desktop app also carries inside itself, so the script lane can install that app from a file next to `LibreSpot.ps1` instead of a download. The repository itself does not track build artifacts. `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. v4.1.2 uses source script v3.8.2.
+The public latest stable release, v4.3.0, ships eight assets: `LibreSpot.ps1`, `LibreSpot.exe`, the .NET 10 `LibreSpot-Desktop.exe` and `LibreSpot.Cli.exe`, `librespot-engine.zip`, the CycloneDX SBOM, `checksums.txt`, and `librespot-release-manifest.json`. The engine archive is the same live customization app the desktop executable carries inside itself, so the script lane can install it from a file next to `LibreSpot.ps1` instead of downloading it. The repository itself does not track build artifacts. `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. v4.3.0 uses source script v3.10.0.
 
 The .NET 10 desktop and CLI artifacts publish self-contained and compressed, which embeds the runtime, so they only receive .NET servicing security fixes when rebuilt against a patched runtime. Compression takes the desktop download from about 176 MB to about 76 MB and, measured on 2026-09-03, makes the first launch faster rather than slower because the file the host reads is less than half the size; later launches cost roughly a quarter of a second more. The numbers and the method are recorded in `schemas/publish-footprint-budget.json`. Both projects set `TargetLatestRuntimePatch`, and `Build-Scripts.ps1 -DependencyHealth` records the resolved `Microsoft.NETCore.App` / `Microsoft.WindowsDesktop.App` patch level and fails the release preflight when the build host is below the documented 10.0.11 floor (`schemas/dependency-health-allowlist.json` → `dotnetRuntimeFloor`). Build release artifacts on an up-to-date .NET 10 SDK.
 
@@ -591,7 +607,7 @@ CycloneDX SBOM, write SHA256 `checksums.txt`, then create the release manifest:
 .\Build-Scripts.ps1 -PublishRelease
 .\Build-Scripts.ps1 -CompileStableExe
 .\Build-Scripts.ps1 -GenerateSbom
-.\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.2.0 -ReleaseChannel stable
+.\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.3.0 -ReleaseChannel stable
 ```
 
 `-PublishRelease` empties `publish`, publishes the desktop and CLI projects as

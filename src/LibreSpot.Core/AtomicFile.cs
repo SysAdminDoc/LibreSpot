@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 
 namespace LibreSpot.Desktop.Services;
@@ -9,6 +10,9 @@ namespace LibreSpot.Desktop.Services;
 /// </summary>
 public static class AtomicFile
 {
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> DestinationGates =
+        new(StringComparer.OrdinalIgnoreCase);
+
     public static string CreateTempPath(string destinationPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
@@ -39,31 +43,42 @@ public static class AtomicFile
 
     public static void Write(string path, Action<FileStream> write)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(write);
-        var tempPath = CreateTempPath(path);
+        var destinationPath = Path.GetFullPath(path);
+        var gate = DestinationGates.GetOrAdd(destinationPath, static _ => new SemaphoreSlim(1, 1));
+        gate.Wait();
+        string? tempPath = null;
         try
         {
+            tempPath = CreateTempPath(destinationPath);
             using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             {
                 write(stream);
                 stream.Flush(flushToDisk: true);
             }
 
-            File.Move(tempPath, path, overwrite: true);
+            File.Move(tempPath, destinationPath, overwrite: true);
             tempPath = null;
         }
         finally
         {
             TryDelete(tempPath);
+            gate.Release();
         }
     }
 
     public static async Task WriteAsync(string path, Func<FileStream, CancellationToken, Task> write, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(write);
-        var tempPath = CreateTempPath(path);
+        var destinationPath = Path.GetFullPath(path);
+        var gate = DestinationGates.GetOrAdd(destinationPath, static _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken);
+        string? tempPath = null;
         try
         {
+            tempPath = CreateTempPath(destinationPath);
             await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             {
                 await write(stream, cancellationToken);
@@ -71,12 +86,13 @@ public static class AtomicFile
                 stream.Flush(flushToDisk: true);
             }
 
-            File.Move(tempPath, path, overwrite: true);
+            File.Move(tempPath, destinationPath, overwrite: true);
             tempPath = null;
         }
         finally
         {
             TryDelete(tempPath);
+            gate.Release();
         }
     }
 

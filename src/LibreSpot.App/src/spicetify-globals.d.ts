@@ -162,6 +162,7 @@ export type LibreSpotRuntimeApi = {
     notice?: string,
   ): Promise<EngineState>;
   previewScheme(name: string): void;
+  previewTheme(name: string, scheme?: string): boolean;
   clearPreview(): void;
   refreshHealth(): HealthReport;
   copyProfile(): Promise<void>;
@@ -170,6 +171,11 @@ export type LibreSpotRuntimeApi = {
   restoreState(source: string): Promise<void>;
   reportError(message: string): void;
   openPanel(panel: string): void;
+  openDesktopStore(
+    kind: "theme" | "extension" | "app",
+    id: string,
+    scheme?: string,
+  ): void;
 };
 
 declare global {
@@ -184,8 +190,8 @@ declare global {
       revision: string;
     };
     __libreSpotRouteWiring?: {
-      librespot?: "wired" | "not-wired" | "unknown";
-      marketplace?: "wired" | "not-wired" | "unknown";
+      librespot?: "wired" | "not-wired" | "unknown" | "inactive";
+      marketplace?: "wired" | "not-wired" | "unknown" | "inactive";
     };
   }
 }

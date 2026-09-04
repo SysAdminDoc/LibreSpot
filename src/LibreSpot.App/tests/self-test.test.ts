@@ -66,6 +66,24 @@ describe("engine self-test", () => {
     );
   });
 
+  it("keeps an optional Marketplace route quiet when it is not selected", () => {
+    loadHealthyFixture();
+    const report = runSelfTest({
+      document,
+      spotifyVersion: "1.2.93",
+      librespotRoute: "wired",
+      marketplaceRoute: "inactive",
+    });
+
+    expect(report.healthy).toBe(true);
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({
+        id: "route:marketplace",
+        status: "inactive",
+      }),
+    );
+  });
+
   it("accepts a changed selector through the declared anchor contract", () => {
     document.body.innerHTML = '<main id="future-main"></main>';
     const anchors: AnchorDefinition[] = [

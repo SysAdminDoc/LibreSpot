@@ -562,6 +562,9 @@ public partial class MainWindow : Window
                 _viewModel.SelectedWorkspaceIndex = 1;
                 await _viewModel.PreviewSharedProfileUriAsync(activation.Value);
                 break;
+            case ShellActivationKind.StoreSelection when !string.IsNullOrWhiteSpace(activation.Value):
+                _viewModel.ApplyStoreSelection(activation.Value);
+                break;
         }
     }
 

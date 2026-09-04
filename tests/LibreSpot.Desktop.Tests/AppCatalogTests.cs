@@ -99,8 +99,8 @@ public sealed class AppCatalogTests
         var normalized = AppCatalog.NormalizeConfiguration(configuration);
 
         Assert.Equal("spotify", normalized.SpotX_LyricsTheme);
-        Assert.Equal("(None - Marketplace Only)", normalized.Spicetify_Theme);
-        Assert.Equal("Default", normalized.Spicetify_Scheme);
+        Assert.Equal("Prism", normalized.Spicetify_Theme);
+        Assert.Equal("Dark", normalized.Spicetify_Scheme);
         Assert.Equal(["fullAppDisplay.js", "trashbin.js"], normalized.Spicetify_Extensions);
     }
 
@@ -140,8 +140,8 @@ public sealed class AppCatalogTests
 
         Assert.Equal(50_000, normalized.SpotX_CacheLimit);
         Assert.Equal("spotify", normalized.SpotX_LyricsTheme);
-        Assert.Equal("(None - Marketplace Only)", normalized.Spicetify_Theme);
-        Assert.Equal("Default", normalized.Spicetify_Scheme);
+        Assert.Equal("Prism", normalized.Spicetify_Theme);
+        Assert.Equal("Dark", normalized.Spicetify_Scheme);
         Assert.NotNull(normalized.Spicetify_Extensions);
         Assert.Empty(normalized.Spicetify_Extensions);
     }

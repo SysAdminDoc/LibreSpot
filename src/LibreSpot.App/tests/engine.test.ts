@@ -89,4 +89,35 @@ describe("LibreSpot engine", () => {
       "#000000",
     );
   });
+
+  it("previews a bundled theme without replacing the saved choice", async () => {
+    const state = createDefaultState();
+    state.theme = "Prism";
+    state.schemes = {
+      Dark: { main: "000000", text: "FFFFFF" },
+      HighContrast: { main: "010101", text: "FFFFFF" },
+    };
+    const engine = new LibreSpotEngine({
+      document,
+      window,
+      store: new EngineStore(memoryStorage()),
+      initialState: state,
+      themeStyles: {
+        Prism: { className: "librespot-theme-prism", css: ".prism { color: white; }" },
+        Accessibility: { className: "librespot-theme-accessibility", css: ".accessible { outline: 2px solid; }" },
+      },
+    });
+    await engine.start({ probePerformance: false });
+
+    expect(engine.applyPreviewTheme("Accessibility", "HighContrast")).toBe(true);
+    expect(document.documentElement.classList).toContain("librespot-theme-accessibility");
+    expect(document.getElementById("librespot-engine-theme")?.textContent).toContain("outline");
+    expect(document.getElementById("librespot-engine-palette")?.textContent).toContain("#010101");
+    expect(engine.state.theme).toBe("Prism");
+    expect(engine.applyPreviewTheme("Unknown")).toBe(false);
+
+    engine.clearPreview();
+    expect(document.documentElement.classList).toContain("librespot-theme-prism");
+    expect(document.getElementById("librespot-engine-theme")?.textContent).toContain(".prism");
+  });
 });

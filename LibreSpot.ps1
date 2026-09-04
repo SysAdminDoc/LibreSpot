@@ -102,7 +102,7 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 } catch {}
 
-$global:VERSION = '3.9.0'
+$global:VERSION = '3.10.0'
 $global:CONFIG_SCHEMA_VERSION = 2
 
 
@@ -1510,14 +1510,14 @@ $global:CommunityCustomApps = [ordered]@{
         BundledFileName = 'librespot-engine.zip'
         DisplayName = 'LibreSpot'
         Description = 'Live themes, snippets, feature flags, presets, and health checks inside Spotify.'
-        Url         = 'https://github.com/SysAdminDoc/LibreSpot/releases/download/v4.2.0/librespot-engine.zip'
+        Url         = 'https://github.com/SysAdminDoc/LibreSpot/releases/download/v4.3.0/librespot-engine.zip'
         Source      = 'SysAdminDoc/LibreSpot'
-        Version     = '4.2.0'
-        ReleaseTag  = 'v4.2.0'
+        Version     = '4.3.0'
+        ReleaseTag  = 'v4.3.0'
         AssetPath   = 'librespot'
         RequiredFiles = @('manifest.json', 'index.js', 'style.css', 'librespot-engine.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md')
         CompanionExtension = 'librespot-engine.js'
-        SHA256      = 'bc616c814cc9318a6e2b9f2198a2fdaecb875f3eda1aa744fb6be0a4901b4baa'
+        SHA256      = '0889beccd77c9afd00b46a724b907d61a177d6a6d7e85f53365886d317f9ac4b'
     }
 }
 
@@ -1533,7 +1533,7 @@ $global:EasyDefaults = @{
     SpotX_SpotifyVersionId="auto"
     SpotX_Language=""
     SpotX_CustomPatchesEnabled=$false; SpotX_CustomPatchesJson=""
-    Spicetify_Theme="(None - Marketplace Only)"; Spicetify_Scheme="Default"; Spicetify_Marketplace=$true
+    Spicetify_Theme="Prism"; Spicetify_Scheme="Dark"; Spicetify_Marketplace=$false
     Spicetify_Extensions=@("fullAppDisplay.js","shuffle+.js","trashbin.js")
     Spicetify_CustomApps=@("librespot")
     LibreSpot_EngineProfileJson=""

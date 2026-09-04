@@ -1,5 +1,5 @@
 export type HealthStatus = "healthy" | "warning" | "broken" | "inactive";
-export type RouteState = "wired" | "not-wired" | "unknown";
+export type RouteState = "wired" | "not-wired" | "unknown" | "inactive";
 
 export type AnchorDefinition = {
   id: string;
@@ -102,6 +102,14 @@ function checkAnchor(document: Document, anchor: AnchorDefinition): HealthCheck 
 }
 
 function checkRoute(label: string, id: string, state: RouteState): HealthCheck {
+  if (state === "inactive") {
+    return {
+      id: `route:${id}`,
+      label,
+      status: "inactive",
+      detail: `/${id} is not selected in this Spotify configuration.`,
+    };
+  }
   if (state === "wired") {
     return {
       id: `route:${id}`,

@@ -46,6 +46,46 @@ public sealed class WindowsShellIntegrationTests
         Assert.Equal(uri, activation.Value);
     }
 
+    [Fact]
+    public void Activation_ParsesStoreSelectionUri()
+    {
+        const string uri = "librespot://store?kind=theme&id=Catppuccin&scheme=Mocha";
+
+        var activation = ShellActivationService.Parse([uri]);
+
+        Assert.Equal(ShellActivationKind.StoreSelection, activation.Kind);
+        Assert.Equal(uri, activation.Value);
+    }
+
+    [Theory]
+    [InlineData("librespot://store?kind=theme&id=BurntSienna&scheme=Burnt%20Sienna", StoreAssetKind.Theme, "BurntSienna", "Burnt Sienna")]
+    [InlineData("librespot://store?kind=extension&id=shuffle%2B.js", StoreAssetKind.Extension, "shuffle+.js", null)]
+    [InlineData("librespot://store?kind=app&id=stats", StoreAssetKind.App, "stats", null)]
+    public void StoreSelection_DecodesSupportedItems(string uri, StoreAssetKind kind, string id, string? scheme)
+    {
+        var parsed = StoreSelectionService.TryParse(uri, out var request);
+
+        Assert.True(parsed);
+        Assert.NotNull(request);
+        Assert.Equal(kind, request.Kind);
+        Assert.Equal(id, request.Id);
+        Assert.Equal(scheme, request.Scheme);
+    }
+
+    [Theory]
+    [InlineData("librespot://profile?data=abc")]
+    [InlineData("https://example.com/?kind=theme&id=Prism")]
+    [InlineData("librespot://store?kind=unknown&id=Prism")]
+    [InlineData("librespot://store?kind=theme&id=")]
+    [InlineData("librespot://store?kind=app&id=stats&scheme=Dark")]
+    [InlineData("librespot://store?kind=theme&id=Prism&id=Compact")]
+    [InlineData("librespot://store/path?kind=theme&id=Prism")]
+    public void StoreSelection_RejectsMalformedOrUntrustedUris(string uri)
+    {
+        Assert.False(StoreSelectionService.TryParse(uri, out var request));
+        Assert.Null(request);
+    }
+
     [Theory]
     [InlineData("--shell-action=recommended", ShellActivationKind.NavigateRecommended)]
     [InlineData("--shell-action=custom", ShellActivationKind.NavigateCustom)]
