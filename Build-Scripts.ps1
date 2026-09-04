@@ -2768,6 +2768,157 @@ function Get-SpotifyVersionCore {
     return $Version.Trim()
 }
 
+function Get-LibreSpotUpstreamSpotifyBounds {
+    # Fetches the three bounds. Every failure is reported as unknown rather
+    # than guessed, because a bound invented from two of three sources is the
+    # thing this check exists to stop.
+    [CmdletBinding()]
+    param(
+        [string]$SpotXRunUrl = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/main/run.ps1',
+        [string]$ClassmapsApiUrl = 'https://api.github.com/repos/spicetify/classmaps/contents'
+    )
+
+    $spotXTarget = ''
+    $newestClassmap = ''
+
+    $savedPP = $ProgressPreference
+    $ProgressPreference = 'SilentlyContinue'
+    try {
+        try {
+            $runPs1 = (Invoke-WebRequest -Uri $SpotXRunUrl -UseBasicParsing -TimeoutSec 20 -ErrorAction Stop).Content
+            # SpotX declares its default target as $latest_full. run.ps1 mentions
+            # dozens of other 1.2.x literals for legacy and per-feature branches,
+            # so a loose match reports one of those as the target: the first
+            # attempt at this read 1.2.35 while the real default was 1.2.99.
+            $match = [regex]::Match($runPs1, '\$latest_full\s*=\s*"(?<v>\d+\.\d+\.\d+(?:\.\d+)?)"')
+            if ($match.Success) { $spotXTarget = $match.Groups['v'].Value }
+        } catch {
+            Write-Host "  Could not read SpotX run.ps1: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+
+        try {
+            $headers = @{ 'User-Agent' = 'LibreSpot-Build-Scripts' }
+            $listing = (Invoke-WebRequest -Uri $ClassmapsApiUrl -UseBasicParsing -TimeoutSec 20 -Headers $headers -ErrorAction Stop).Content | ConvertFrom-Json
+            # Classmap keys are the Spotify build as 10200NN / 1020NNN.
+            $keys = @($listing | Where-Object { $_.name -match '^10(?<n>\d{5})' } | ForEach-Object { [int]$Matches['n'] })
+            if ($keys.Count -gt 0) {
+                $highest = ($keys | Sort-Object -Descending | Select-Object -First 1)
+                # 20097 -> 1.2.97
+                $newestClassmap = '1.{0}.{1}' -f [int]([string]$highest).Substring(0, 1), [int]([string]$highest).Substring(1)
+            }
+        } catch {
+            Write-Host "  Could not list spicetify/classmaps: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    } finally {
+        $ProgressPreference = $savedPP
+    }
+
+    return [pscustomobject]@{
+        SpotXTarget    = $spotXTarget
+        NewestClassmap = $newestClassmap
+    }
+}
+function Get-LibreSpotReviewableSpotifyBound {
+    <#
+        The highest Spotify build every part of the pinned tuple can cover.
+
+        Three upstream sources bound it and they move independently: SpotX's
+        own default target, the newest published classmap, and the Windows
+        range Spicetify's pinned release declares. The tuple can only advance
+        to the lowest of the three, so a decision taken from the highest one,
+        or from a headline about the newest Spotify, picks a build that some
+        part of the stack has never seen.
+
+        Pure so Pester can exercise every ordering without a network.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$SpotXTarget,
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$NewestClassmap,
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$SpicetifyDeclaredMax,
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$PinnedVersion,
+        [Parameter(Mandatory = $false)][AllowEmptyString()][string]$PublicVersion = ''
+    )
+
+    $sources = @(
+        @{ Name = 'SpotX target'; Value = $SpotXTarget; Source = 'https://github.com/SpotX-Official/SpotX/blob/main/run.ps1' }
+        @{ Name = 'published classmap'; Value = $NewestClassmap; Source = 'https://github.com/spicetify/classmaps' }
+        @{ Name = 'Spicetify declared range'; Value = $SpicetifyDeclaredMax; Source = 'schemas/compatibility-baseline.json' }
+    )
+
+    $known = @($sources | Where-Object { -not [string]::IsNullOrWhiteSpace($_.Value) })
+    if ($known.Count -ne $sources.Count) {
+        $missing = @($sources | Where-Object { [string]::IsNullOrWhiteSpace($_.Value) } | ForEach-Object { $_.Name })
+        return [pscustomobject]@{
+            Determinate    = $false
+            Bound          = $null
+            BoundedBy      = $null
+            BoundSource    = $null
+            AbovePin       = $false
+            PublicIsAhead  = $false
+            MissingSources = $missing
+            Sources        = $sources
+        }
+    }
+
+    $lowest = $null
+    foreach ($entry in $known) {
+        $core = Get-SpotifyVersionCore -Version $entry.Value
+        $parsed = [Version]$core
+        if ($null -eq $lowest -or $parsed -lt $lowest.Parsed) {
+            $lowest = [pscustomobject]@{ Entry = $entry; Parsed = $parsed; Core = $core }
+        }
+    }
+
+    $pinnedCore = Get-SpotifyVersionCore -Version $PinnedVersion
+    $abovePin = $false
+    if (-not [string]::IsNullOrWhiteSpace($pinnedCore)) {
+        $abovePin = $lowest.Parsed -gt [Version]$pinnedCore
+    }
+
+    $publicAhead = $false
+    if (-not [string]::IsNullOrWhiteSpace($PublicVersion)) {
+        $publicAhead = ([Version](Get-SpotifyVersionCore -Version $PublicVersion)) -gt $lowest.Parsed
+    }
+
+    return [pscustomobject]@{
+        Determinate    = $true
+        Bound          = $lowest.Core
+        BoundedBy      = $lowest.Entry.Name
+        BoundSource    = $lowest.Entry.Source
+        AbovePin       = $abovePin
+        PublicIsAhead  = $publicAhead
+        MissingSources = @()
+        Sources        = $sources
+    }
+}
+
+function Write-LibreSpotReviewableSpotifyBound {
+    # Prints the bound the drift report ends with. Separated from the decision
+    # so the decision stays testable.
+    [CmdletBinding()]
+    param([Parameter(Mandatory = $true)][psobject]$Decision, [AllowEmptyString()][string]$PinnedVersion)
+
+    Write-Host ''
+    Write-Host 'Next reviewable Spotify build' -ForegroundColor Cyan
+    foreach ($entry in $Decision.Sources) {
+        $value = if ([string]::IsNullOrWhiteSpace($entry.Value)) { 'unknown' } else { $entry.Value }
+        Write-Host ('  {0,-26} {1,-12} {2}' -f $entry.Name, $value, $entry.Source)
+    }
+
+    if (-not $Decision.Determinate) {
+        Write-Host ('  Bound is indeterminate; unknown: ' + ($Decision.MissingSources -join ', ')) -ForegroundColor Yellow
+        return
+    }
+
+    Write-Host ('  Highest build all three cover: {0} (bounded by the {1})' -f $Decision.Bound, $Decision.BoundedBy) -ForegroundColor Green
+    if (-not $Decision.AbovePin) {
+        Write-Host ('  No reviewable build above the pin ({0}).' -f $PinnedVersion) -ForegroundColor Green
+    }
+    if ($Decision.PublicIsAhead) {
+        Write-Host '  Public Spotify is ahead of that bound. Advancing to it would leave part of the stack unverified.' -ForegroundColor Yellow
+    }
+}
 function Test-SpotifyVersionDrift {
     # Report-only drift check: compares LibreSpot's pinned Spotify target (the
     # "current pinned" entry in $global:SpotifyVersionManifest) against the
@@ -2814,6 +2965,22 @@ function Test-SpotifyVersionDrift {
     $upstreamCore = Get-SpotifyVersionCore -Version $upstream
     Write-Host "  SpotX-Bash buildVer: $upstream (core $upstreamCore)"
     Write-Host ""
+
+    $baselinePath = Join-Path $PSScriptRoot 'schemas/compatibility-baseline.json'
+    $declaredMax = ''
+    try {
+        $declaredMax = [string]((Get-JsonFile -Path $baselinePath).spicetifyCli.windowsDeclaredMaxSpotify)
+    } catch {
+        Write-Host "  Could not read the declared Spicetify range: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+    $upstreamBounds = Get-LibreSpotUpstreamSpotifyBounds
+    $boundDecision = Get-LibreSpotReviewableSpotifyBound `
+        -SpotXTarget $upstreamBounds.SpotXTarget `
+        -NewestClassmap $upstreamBounds.NewestClassmap `
+        -SpicetifyDeclaredMax $declaredMax `
+        -PinnedVersion $pinnedCore `
+        -PublicVersion $upstreamCore
+    Write-LibreSpotReviewableSpotifyBound -Decision $boundDecision -PinnedVersion $pinnedCore
 
     if ($pinnedCore -eq $upstreamCore) {
         Write-Host "Pinned Spotify target is current with SpotX-Bash ($upstreamCore)." -ForegroundColor Green

@@ -20,13 +20,6 @@ Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the la
   Acceptance: WHEN Settings opens, the theme gallery SHALL render every card without an inner scrollbar and the page SHALL have one scrollbar; an offscreen capture at the 1080x720 minimum window SHALL reach the last card through page scroll alone; the fixed-width `TextBlock`s in live views SHALL either trim with a tooltip or wrap; the README screenshot SHALL be recaptured.
   Complexity: M
 
-- [ ] P2: RD-189: Compute the next reviewable Spotify build from SpotX, the classmaps and Spicetify's declared range in the drift check
-  Why: three upstream sources bound the next pin (SpotX `patches.json` reaches 1.2.99, the newest classmap is 1020097 by inheritance from 1020096, Spicetify 2.44.0 declares 1.2.96) and public Spotify is 1.2.98.301 with 1.2.99 staged, but `-CheckSpotifyVersionDrift` reports drift without computing the highest build all three cover, so every tuple decision starts from headlines.
-  Evidence: https://raw.githubusercontent.com/SpotX-Official/SpotX/main/run.ps1; https://github.com/spicetify/classmaps/commits/main; `schemas/spicetify-supported-versions-v2.json` `cli_declared_windows_range`; https://github.com/spicetify/spicetify-themes/issues/1290 (1.2.98 breaks Text); https://spotify.en.uptodown.com/windows/versions.
-  Touches: `Build-Scripts.ps1` (`-CheckSpotifyVersionDrift`), `src/LibreSpot.Core/UpstreamDriftService.cs`, `schemas/compatibility-baseline.json`, `%LOCALAPPDATA%\LibreSpot\upstream-drift-cache.json` shape, Pester.
-  Acceptance: the drift report SHALL name the highest Spotify build covered by all three sources with the URL each bound came from, SHALL warn when public Spotify exceeds it, and SHALL say "no reviewable build above the pin" when the bound equals the pin; Pester SHALL cover a fixture where the classmap bound is lowest.
-  Complexity: M
-
 - [ ] P3: RD-190: Correct the README numbers that drifted and add them to the lane-truth gate
   Why: "16 extensions" against ten built-in plus five community, "45 tests" for the Spotify surface against 62, a `gh release verify v4.1.2` example two releases old, "eight assets" beside "six contract-covered artifacts", and What's New sections for v4.1.0 and v4.2.0 that were never tagged.
   Evidence: `README.md:304`, `:157`, `:616`, `:594`, `:675`, `:107-160`; `LibreSpot.ps1:1435` and `:1452`; `git tag` shows v4.1.2, v4.3.0, v4.4.0 only after v4.0.0; 62 `it(` blocks under `src/LibreSpot.App/tests`.

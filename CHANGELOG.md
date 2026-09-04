@@ -13,6 +13,7 @@ All notable changes to LibreSpot will be documented in this file.
 - A hold on the auto-reapply watcher now clears when Spotify moves to a different build, and a manual reapply clears it too, so the Reapply action the warning offers actually retires it. The hold also names the step that failed.
 - The release build now pins the PowerShell script compiler to one version and records it in the release manifest, so a published LibreSpot.exe says what produced it.
 - Maintenance now shows which Chromium version the installed Spotify runs, and the trust disclosure explains that pinning Spotify pins that browser engine.
+- The Spotify drift check now works out the highest build that SpotX, a published classmap and Spicetify's declared range all cover, and says which of the three set that ceiling.
 
 ### Added
 
