@@ -19,6 +19,10 @@ public sealed class ThirdPartyNoticesTests
         var ns = csproj.Root!.GetDefaultNamespace();
 
         var nugetPackages = csproj.Descendants(ns + "PackageReference")
+            .Where(e => !string.Equals(
+                e.Attribute("PrivateAssets")?.Value,
+                "all",
+                StringComparison.OrdinalIgnoreCase))
             .Select(e => e.Attribute("Include")!.Value)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -28,6 +32,29 @@ public sealed class ThirdPartyNoticesTests
         Assert.True(
             missing.Count == 0,
             $"NuGet runtime packages missing from third-party notices: {string.Join(", ", missing)}");
+    }
+
+    [Fact]
+    public void Notices_CoversPrivateBuildNuGetPackages()
+    {
+        var csproj = XDocument.Load(
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "LibreSpot.Desktop.csproj"));
+        var ns = csproj.Root!.GetDefaultNamespace();
+
+        var buildOnlyPackages = csproj.Descendants(ns + "PackageReference")
+            .Where(e => string.Equals(
+                e.Attribute("PrivateAssets")?.Value,
+                "all",
+                StringComparison.OrdinalIgnoreCase))
+            .Select(e => e.Attribute("Include")!.Value)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var noticeNames = GetDependencyNames("build");
+        var missing = buildOnlyPackages.Except(noticeNames, StringComparer.OrdinalIgnoreCase).ToList();
+
+        Assert.True(
+            missing.Count == 0,
+            $"Private build packages missing from third-party notices: {string.Join(", ", missing)}");
     }
 
     [Fact]

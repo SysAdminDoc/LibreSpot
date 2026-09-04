@@ -32,7 +32,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 - JavaScript advisory requests now have a bounded 30-second network timeout and one retry, so a registry outage fails the gate instead of hanging it.
 
-- Desktop release restores now run in locked mode, including the SDK's single-file linker task, so publishing and SBOM generation cannot rewrite reviewed dependency state.
+- Desktop release restores now run in locked mode, including the SDK's single-file linker task, so publishing and SBOM generation cannot rewrite reviewed dependency state. The linker task is recorded as a build-only dependency in the third-party notices.
 
 - Stable executable builds now load the pinned local PS2EXE module when the current user's PowerShell execution policy blocks unsigned module scripts.
 
