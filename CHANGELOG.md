@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Community extensions are explicitly opt-in. Beautiful Lyrics remains available in Custom Install, but its small pinned file downloads the code that actually runs from a third-party server, so it can never be part of Recommended Setup. The catalog and CLI defaults now have a test that keeps this decision aligned.
+
 ## [v4.4.0] (2026-09-04)
 
 ### Added

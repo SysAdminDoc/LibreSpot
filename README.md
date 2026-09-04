@@ -433,6 +433,8 @@ Each theme ships with its full set of color schemes. **Live theme previews** loa
 
 **Community** (downloaded from GitHub during install):
 
+Every community extension is opt-in. Recommended Setup installs only Full App Display, True Shuffle, and Trash Bin from Spicetify's built-in set.
+
 | Extension | Description |
 |---|---|
 | [Hide Podcasts](https://github.com/theRealPadster/spicetify-hide-podcasts) | Remove podcast, episode, and audiobook UI elements |

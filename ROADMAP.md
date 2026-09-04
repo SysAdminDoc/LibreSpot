@@ -39,13 +39,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: WHEN the Axe.Windows scan runs on the recommended state, no `NameNotNull` violation SHALL be reported, its baseline entry SHALL be deleted, and the name SHALL come from the localized resources rather than a literal so every shipped culture announces it.
   Complexity: S
 
-- [ ] P2: RD-169: Decide whether a remote loader belongs in Recommended Setup at all
-  Why: the RD-158 audit established that `beautiful-lyrics.mjs` is a 4.6 KB loader whose entire body is fetched from a third-party host at load time, and it is an easy-mode default, so Recommended Setup installs code that no pin covers on every machine. The eligibility rule now recognises `remote-loader` and requires disclosure, which is the honest description of what ships, but it is not an answer to whether it should ship by default. The same question applies to any future asset in that category. This is a product and risk decision, not a defect, and it is deliberately not being taken silently inside an audit commit.
-  Evidence: `schemas/community-assets.json` (`beautiful-lyrics.mjs`, `networkBehavior: remote-loader`, `easyModeDefault: true`); the pinned file fetches `https://extensions.socalifornian.live/version/beautiful-lyrics` at line 154 and dynamically imports `https://extensions-storage.socalifornian.live/beautiful-lyrics@<version>.mjs` at line 91, both verified against the pinned commit on 2026-09-03; `src/LibreSpot.Cli/Program.cs:59` and `src/LibreSpot.Core/AppCatalog.cs:1068` carry the easy-mode extension set; `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1:192` and the monolith carry the pin.
-  Touches: `schemas/community-assets.json`, `src/LibreSpot.Cli/Program.cs`, `src/LibreSpot.Core/AppCatalog.cs`, both composed hosts, `README.md` extension copy, `tests/LibreSpot.Desktop.Tests/CommunityAssetsManifestTests.cs`.
-  Acceptance: WHEN the decision is recorded, either `beautiful-lyrics.mjs` SHALL stop being an easy-mode default and be removed from every hard-coded recommended set so the catalog and the installed set agree, or the catalog SHALL carry a written rationale for shipping unpinned third-party code by default; a test SHALL fail if the easy-mode set in `Program.cs` and the `easyModeDefault` flags in the manifest ever disagree, whichever way the decision goes.
-  Complexity: M
-
 - [ ] P3: RD-176: Assert the rate-limit message carries the status code it was given
   Why: `TryGetLatestStableAsync` puts its message into `ReleaseNotice.Reason`, which reaches the user, but the new
   mapping tests assert only `Status`. Replacing `RateLimited($"HTTP {(int)response.StatusCode} ...")` with a

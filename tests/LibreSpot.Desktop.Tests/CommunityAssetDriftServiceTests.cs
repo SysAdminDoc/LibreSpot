@@ -130,11 +130,11 @@ public sealed class CommunityAssetDriftServiceTests
     {
         var pins = CommunityAssetDriftService.LoadPinsFromManifest();
 
-        Assert.Contains(pins, pin => pin.Id == "extension:beautiful-lyrics.mjs" && pin.Branch == "main" && pin.RequiresTrustReview);
+        Assert.Contains(pins, pin => pin.Id == "extension:beautiful-lyrics.mjs" && pin.Branch == "main" && pin.RequiresTrustReview && !pin.EasyModeDefault);
         Assert.Contains(pins, pin => pin.Id == "extension:volumePercentage.js" && pin.Branch == "master");
         Assert.Contains(pins, pin => pin.Id == "theme:Hazy" && pin.RequiresTrustReview);
         Assert.Contains(pins, pin => pin.Id == "theme:Bloom" && pin.CatalogReview.Decision == "defer" && !pin.CatalogReview.IsEasyModeEligible);
-        Assert.Contains(pins, pin => pin.Id == "extension:hidePodcasts.js" && pin.CatalogReview.IsEasyModeEligible);
+        Assert.Contains(pins, pin => pin.Id == "extension:hidePodcasts.js" && !pin.CatalogReview.IsEasyModeEligible);
         Assert.Contains(pins, pin => pin.Id == "custom-app:stats" && pin.NetworkBehavior == "third-party-service");
         Assert.All(pins, pin =>
         {

@@ -765,6 +765,30 @@ public sealed class CommunityAssetsManifestTests
     }
 
     [Fact]
+    public void Manifest_EasyModeExtensionFlagsMatchCliRecommendedConfiguration()
+    {
+        var extensions = Manifest.RootElement.GetProperty("extensions").EnumerateArray().ToArray();
+        var communityNames = extensions
+            .Select(extension => extension.GetProperty("filename").GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
+        var manifestDefaults = extensions
+            .Where(extension => extension.GetProperty("easyModeDefault").GetBoolean())
+            .Select(extension => extension.GetProperty("filename").GetString()!)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        var recommendedDefaults = AppCatalog.CreateRecommendedConfiguration().Spicetify_Extensions
+            .Where(communityNames.Contains)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(recommendedDefaults, manifestDefaults);
+        Assert.Contains(
+            "AppCatalog.CreateRecommendedConfiguration()",
+            ReadFile("src", "LibreSpot.Cli", "Program.cs"),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CatalogPolicy_BlocksStaleArchivedMissingEvidenceAndUnknownNetworkFixtures()
     {
         var asOfUtc = new DateTimeOffset(2026, 8, 11, 0, 0, 0, TimeSpan.Zero);
@@ -796,6 +820,24 @@ public sealed class CommunityAssetsManifestTests
         Assert.False(EvaluateFixture(archived: true).IsEasyModeEligible);
         Assert.False(EvaluateFixture(evidenceUrls: Array.Empty<string>()).IsEasyModeEligible);
         Assert.False(EvaluateFixture(networkBehavior: "unknown").IsEasyModeEligible);
+
+        var remoteLoader = CommunityAssetCatalogPolicy.Evaluate(
+            "accept",
+            "fixture review",
+            currentReview,
+            currentPush,
+            currentReview,
+            archived: false,
+            evidence,
+            "active",
+            "remote-loader",
+            "Loads runtime code that the pinned local file does not cover.",
+            easyModeDefault: true,
+            asOfUtc);
+        Assert.False(remoteLoader.IsEasyModeEligible);
+        Assert.Contains(
+            remoteLoader.EligibilityIssues,
+            issue => issue.Contains("not eligible for Recommended Setup", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -908,29 +950,19 @@ public sealed class CommunityAssetsManifestTests
     }
 
     /// <summary>
-    /// Beautiful Lyrics has NOASSERTION + easyModeDefault=true. It must carry a valid
-    /// operator policyOverride to satisfy the unknownLicensePolicy.
+    /// Beautiful Lyrics remains available as an explicit opt-in, but the installed
+    /// file is a remote loader and cannot be part of Recommended Setup.
     /// </summary>
     [Fact]
-    public void Manifest_BeautifulLyricsHasOperatorOverride()
+    public void Manifest_BeautifulLyricsIsOptional()
     {
         var bl = Manifest.RootElement.GetProperty("extensions").EnumerateArray()
             .First(e => e.GetProperty("filename").GetString() == "beautiful-lyrics.mjs");
 
         Assert.Equal("NOASSERTION", bl.GetProperty("spdxLicense").GetString());
-        Assert.True(bl.GetProperty("easyModeDefault").GetBoolean());
-
-        Assert.True(
-            bl.TryGetProperty("policyOverride", out var po) && po.ValueKind == JsonValueKind.Object,
-            "Beautiful Lyrics (NOASSERTION + easyModeDefault) must have a policyOverride.");
-
-        Assert.Equal("operator", po.GetProperty("approvedBy").GetString());
-        Assert.True(
-            !string.IsNullOrWhiteSpace(po.GetProperty("reason").GetString()),
-            "Beautiful Lyrics policyOverride must include a non-empty reason.");
-        Assert.True(
-            Regex.IsMatch(po.GetProperty("approvedDate").GetString()!, @"^\d{4}-\d{2}-\d{2}$"),
-            "Beautiful Lyrics policyOverride approvedDate must be YYYY-MM-DD.");
+        Assert.Equal("remote-loader", bl.GetProperty("networkBehavior").GetString());
+        Assert.False(bl.GetProperty("easyModeDefault").GetBoolean());
+        Assert.Contains("never eligible for Recommended Setup", bl.GetProperty("notes").GetString(), StringComparison.Ordinal);
     }
 
     /// <summary>

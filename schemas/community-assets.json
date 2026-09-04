@@ -36,13 +36,8 @@
       },
       "fallbackBehavior": "skip-with-warning",
       "legacyAliases": [],
-      "easyModeDefault": true,
-      "notes": null,
-      "policyOverride": {
-        "reason": "GPL-3.0-only is review-required — operator approved as easyModeDefault because the extension is download-only (not redistributed) and no copyleft obligations attach to the host application.",
-        "approvedBy": "operator",
-        "approvedDate": "2026-06-17"
-      }
+      "easyModeDefault": false,
+      "notes": null
     },
     {
       "filename": "beautiful-lyrics.mjs",
@@ -78,13 +73,8 @@
       },
       "fallbackBehavior": "skip-with-warning",
       "legacyAliases": ["beautifulLyrics.js"],
-      "easyModeDefault": true,
-      "notes": "Migrated from beautifulLyrics.js to .mjs build",
-      "policyOverride": {
-        "reason": "NOASSERTION license — operator approved as easyModeDefault because the extension is widely used and download-only (not redistributed). License status should be re-evaluated when the upstream adds a LICENSE file.",
-        "approvedBy": "operator",
-        "approvedDate": "2026-06-17"
-      }
+      "easyModeDefault": false,
+      "notes": "Optional only. The pinned file is a remote loader whose downloaded runtime code is not covered by LibreSpot's hash, so it is never eligible for Recommended Setup."
     },
     {
       "filename": "playlist-icons.js",
@@ -120,7 +110,7 @@
       },
       "fallbackBehavior": "skip-with-warning",
       "legacyAliases": ["playlistIcons.js"],
-      "easyModeDefault": true,
+      "easyModeDefault": false,
       "notes": "Migrated from playlistIcons.js to playlist-icons.js"
     },
     {
@@ -157,7 +147,7 @@
       },
       "fallbackBehavior": "skip-with-warning",
       "legacyAliases": [],
-      "easyModeDefault": true,
+      "easyModeDefault": false,
       "notes": null
     },
     {

@@ -244,10 +244,6 @@ public static class CommunityAssetCatalogPolicy
         {
             "local-only",
             "third-party-service",
-            // Added to the manifest for the themes on 2026-09-03 and missed here,
-            // because no theme goes through easy-mode eligibility. The omission
-            // read as "a remote loader can never be an easy-mode default", which
-            // was never a decision anybody took.
             "remote-loader"
         };
 
@@ -344,14 +340,20 @@ public static class CommunityAssetCatalogPolicy
         {
             issues.Add($"network behavior '{networkBehavior}' is not recognized");
         }
-        else if ((string.Equals(networkBehavior, "third-party-service", StringComparison.OrdinalIgnoreCase) ||
-                  string.Equals(networkBehavior, "remote-loader", StringComparison.OrdinalIgnoreCase)) &&
-                 string.IsNullOrWhiteSpace(networkDetail))
+        else
         {
-            // A remote loader needs disclosure at least as much as a third-party
-            // service does: the pinned hash covers the loader and none of the code
-            // it fetches, so the detail is the only record of what actually runs.
-            issues.Add("third-party network behavior is not disclosed");
+            if ((string.Equals(networkBehavior, "third-party-service", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(networkBehavior, "remote-loader", StringComparison.OrdinalIgnoreCase)) &&
+                string.IsNullOrWhiteSpace(networkDetail))
+            {
+                issues.Add("third-party network behavior is not disclosed");
+            }
+
+            if (easyModeDefault &&
+                string.Equals(networkBehavior, "remote-loader", StringComparison.OrdinalIgnoreCase))
+            {
+                issues.Add("remote loaders are not eligible for Recommended Setup");
+            }
         }
 
         var readOnlyIssues = new ReadOnlyCollection<string>(issues);
