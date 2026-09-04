@@ -27,7 +27,7 @@ function Download-CommunityExtensions { param($Config)
             $head = Get-Content -LiteralPath $tempFile -TotalCount 5 -ErrorAction SilentlyContinue
             $headStr = ($head -join "`n").TrimStart()
             if ($headStr -match '^<(!DOCTYPE|html)' -or $headStr -match '^404:') {
-                Write-Log "Community extension '$ext' downloaded but appears to be an HTML error page, not JavaScript. The URL may have changed. Skipping." -Level 'WARN'
+                Add-LibreSpotAssetInstallFailure -Kind 'Extension' -Name $ext -Reason 'The download was an HTML error page, not JavaScript. The URL may have changed.'
                 continue
             }
             Confirm-FileHash -Path $tempFile -ExpectedHash $extHash -Label "Community extension $ext"
@@ -38,7 +38,7 @@ function Download-CommunityExtensions { param($Config)
             Write-Log "Community extension '$ext' saved to $destFile"
             $verifiedPaths += $destFile
         } catch {
-            Write-Log "Could not download community extension '$ext': $($_.Exception.Message). Skipping." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Extension' -Name $ext -Reason "The download failed: $($_.Exception.Message)."
         } finally {
             Remove-Item -LiteralPath $tempFile -Force -ErrorAction SilentlyContinue
         }

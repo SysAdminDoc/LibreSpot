@@ -3096,6 +3096,122 @@ Describe 'Wait-SpotifyChangeSignal' {
     }
 }
 
+Describe 'Worker runspace function closure' {
+    BeforeAll {
+        $script:monolithPath = (Resolve-Path (Join-Path $PSScriptRoot '..\..\LibreSpot.ps1')).Path
+        $script:monolithText = [System.IO.File]::ReadAllText($script:monolithPath)
+        $tokens = $null; $parseErrors = $null
+        $script:monolithAst = [System.Management.Automation.Language.Parser]::ParseInput(
+            $script:monolithText, [ref]$tokens, [ref]$parseErrors)
+        $script:monolithFunctions = @{}
+        foreach ($fn in $script:monolithAst.FindAll({
+                param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)) {
+            $script:monolithFunctions[$fn.Name] = $fn
+        }
+
+        $assignment = $script:monolithAst.FindAll({
+                param($n)
+                $n -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+                $n.Left.Extent.Text -eq '$functionNamesForWorker' }, $true) | Select-Object -First 1
+        $script:workerFunctionNames = @(& ([scriptblock]::Create($assignment.Right.Extent.Text)))
+
+        function Get-CalledHostFunctions {
+            param([System.Management.Automation.Language.Ast]$Body)
+            $called = New-Object System.Collections.Generic.HashSet[string]
+            foreach ($cmd in $Body.FindAll({
+                    param($n) $n -is [System.Management.Automation.Language.CommandAst] }, $true)) {
+                $name = $cmd.GetCommandName()
+                if ($name -and $script:monolithFunctions.ContainsKey($name)) { $null = $called.Add($name) }
+            }
+            return $called
+        }
+    }
+
+    It 'adds no new call the worker runspace cannot resolve' {
+        # The install and maintenance runspaces are built from this list alone.
+        # A function called from an exported one but missing here fails at
+        # neither compose, lint, nor any test that dot-sources the shared file:
+        # it fails at runtime with CommandNotFoundException. That is how the
+        # asset-failure summary, sitting in the install block's try, turned
+        # every healthy install into a FATAL run.
+        #
+        # The pairs below already existed when this check was written. They are
+        # recorded rather than passed over so a new one cannot hide among them,
+        # and are tracked as RD-177. Shrink this list, never grow it.
+        $known = @(
+            'Get-MarketplaceHealth -> Test-SpicetifyCustomAppRouteWiring',
+            'Get-SpicetifyDiagnosticSnapshot -> Get-InstalledSpicetifyCliVersion',
+            'Get-SpicetifyDiagnosticSnapshot -> Get-InstalledSpotifyVersion',
+            'Get-SpicetifyDiagnosticSnapshot -> Get-SpicetifyV3SupportContract',
+            'Get-SpicetifyDiagnosticSnapshot -> Test-SpicetifyCliVersionSupported',
+            'Get-SpicetifyV3Conflict -> Get-InstalledSpicetifyCliVersion',
+            'Get-SpicetifyV3Conflict -> Get-SpicetifyCliMajorVersion',
+            'Module-ApplySpicetify -> Get-SpicetifyApplyPlan',
+            'Module-ApplySpicetify -> Repair-LibreSpotManagedCustomAppRoutes',
+            'Module-InstallCustomApps -> New-LibreSpotEngineBootstrap',
+            'Module-InstallMarketplace -> Install-MarketplaceNavFallbackExtension',
+            'Module-InstallMarketplace -> Install-MarketplacePlaceholderTheme',
+            'Reapply-SavedSpicetifySetup -> Invoke-WithSpicetifyStatePreservation',
+            'Repair-Marketplace -> Invoke-WithSpicetifyStatePreservation'
+        )
+
+        $found = @()
+        foreach ($exported in $script:workerFunctionNames) {
+            $definition = $script:monolithFunctions[$exported]
+            if ($null -eq $definition) {
+                $found += "$exported is exported to the worker but not defined"
+                continue
+            }
+            foreach ($callee in (Get-CalledHostFunctions -Body $definition.Body)) {
+                if ($script:workerFunctionNames -notcontains $callee) {
+                    $found += "$exported -> $callee"
+                }
+            }
+        }
+
+        $unexpected = @($found | Sort-Object -Unique | Where-Object { $known -notcontains $_ })
+        $unexpected | Should -BeNullOrEmpty
+
+        # A pair that has been fixed must leave the list, or the list stops
+        # describing anything and absorbs the next real one.
+        $stale = @($known | Where-Object { $found -notcontains $_ })
+        $stale | Should -BeNullOrEmpty
+    }
+
+    It 'reaches the asset-failure helpers from inside a real runspace' {
+        # Builds the session state the way the host does and calls the two
+        # functions in it, so an unset global is exercised the way a fresh
+        # install runspace really sees it.
+        $iss = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+        foreach ($name in $script:workerFunctionNames) {
+            $definition = $script:monolithFunctions[$name]
+            $entry = New-Object System.Management.Automation.Runspaces.SessionStateFunctionEntry(
+                $name, $definition.Body.Extent.Text.Trim('{', '}'))
+            $null = $iss.Commands.Add($entry)
+        }
+
+        $runspace = [runspacefactory]::CreateRunspace($iss)
+        $runspace.Open()
+        $ps = [powershell]::Create()
+        $ps.Runspace = $runspace
+        try {
+            $null = $ps.AddScript(@'
+$ErrorActionPreference = 'Stop'
+$unset = Get-LibreSpotAssetInstallFailureSummary
+$global:LibreSpotAssetInstallFailures = [System.Collections.Generic.List[object]]::new()
+Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name 'Catppuccin' -Reason 'copy failed.'
+[pscustomobject]@{ Unset = $unset; Recorded = (Get-LibreSpotAssetInstallFailureSummary) }
+'@)
+            $result = $ps.Invoke()
+            $ps.Streams.Error | Should -BeNullOrEmpty
+            $result[0].Unset | Should -BeNullOrEmpty
+            $result[0].Recorded | Should -Match "Theme 'Catppuccin'"
+        } finally {
+            $ps.Dispose(); $runspace.Dispose()
+        }
+    }
+}
+
 Describe 'Module-InstallThemes bundled theme resolution' {
     BeforeAll {
         $sharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'

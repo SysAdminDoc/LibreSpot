@@ -895,6 +895,7 @@ public static class CliApplication
         }
 
         var finalExitCode = Success;
+        var assetWarnings = new List<string>();
         foreach (var action in actions)
         {
             var result = runner(
@@ -930,27 +931,43 @@ public static class CliApplication
 
             if (result.ExitCode is 3010 or 1641)
             {
+                // A reboot signal outranks an asset warning: the admin tool has to
+                // reboot either way, and the warning is on stderr regardless.
                 finalExitCode = result.ExitCode.Value;
             }
             else if (result.ExitCode == AssetsNotInstalled)
             {
                 // The run is not a failure, so it does not take the branch above,
                 // but an admin tool has to be able to tell it from a clean one.
-                finalExitCode = AssetsNotInstalled;
-                stderr.WriteLine(result.WarningMessage
+                if (finalExitCode is not (3010 or 1641))
+                {
+                    finalExitCode = AssetsNotInstalled;
+                }
+
+                assetWarnings.Add(result.WarningMessage
                     ?? "The run finished but a selected asset was not installed.");
+                stderr.WriteLine(assetWarnings[^1]);
             }
         }
 
         if (ndjson)
         {
+            // A fleet consumer keying on severity must not read a run with a
+            // missing asset as clean just because the run itself finished.
             WriteNdjson(stdout, NdjsonEvent(
                     "LS1002",
-                    "success",
+                    assetWarnings.Count > 0 ? "warning" : "success",
                     "lifecycle",
-                    "LibreSpot backend run completed.",
+                    assetWarnings.Count > 0
+                        ? "LibreSpot backend run completed with assets not installed."
+                        : "LibreSpot backend run completed.",
                     operation,
-                    new { actionCount = actions.Count, logPath = ndjsonLog?.Path },
+                    new
+                    {
+                        actionCount = actions.Count,
+                        logPath = ndjsonLog?.Path,
+                        assetsNotInstalled = assetWarnings.Count > 0 ? assetWarnings.ToArray() : null
+                    },
                     options,
                     operationId,
                     exitCode: finalExitCode),
@@ -958,7 +975,9 @@ public static class CliApplication
         }
         else if (!quiet)
         {
-            stdout.WriteLine($"LibreSpot {operation} completed.");
+            stdout.WriteLine(assetWarnings.Count > 0
+                ? $"LibreSpot {operation} completed, but not everything selected was installed."
+                : $"LibreSpot {operation} completed.");
         }
 
         return finalExitCode;

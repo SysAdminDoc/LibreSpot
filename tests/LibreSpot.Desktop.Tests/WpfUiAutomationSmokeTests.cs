@@ -270,26 +270,6 @@ public sealed class WpfUiAutomationSmokeTests
         });
     }
 
-    [Fact]
-    public void DecorativeSymbolIcon_AutomationPeerHidesItselfAndTheGlyphBeneathIt()
-    {
-        RunOnSta(() =>
-        {
-            var icon = new DecorativeSymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.Home24 };
-            var peer = UIElementAutomationPeer.CreatePeerForElement(icon)
-                ?? throw new InvalidOperationException("Could not create the decorative icon automation peer.");
-
-            // No children is what keeps the glyph TextBlock out of the tree:
-            // Wpf.Ui adds it as a raw visual child and TextBlock creates a peer
-            // of its own, so the walk has to stop here.
-            Assert.Empty(peer.GetChildren());
-
-            // And the icon must not take the glyph's place as an unnamed element.
-            Assert.False(peer.IsControlElement());
-            Assert.False(peer.IsContentElement());
-        });
-    }
-
     [Theory]
     [InlineData("recommended", "Home")]
     [InlineData("custom", "Settings")]
@@ -309,6 +289,14 @@ public sealed class WpfUiAutomationSmokeTests
         Assert.True(
             scan.WindowsScanned > 0,
             "Axe.Windows scanned no windows, so this state proved nothing. The shell was probably gone or never charted.");
+
+        // The element count is what lets a state with no recorded violations tell
+        // a half-drawn window from a finished one. If the walk ever degrades to
+        // the root alone, settling silently goes back to agreeing immediately.
+        Assert.True(
+            scan.ElementsCharted > 1,
+            $"The window walk charted {scan.ElementsCharted} elements, so the settle rule has no signal left for a "
+                + "state with an empty baseline and would accept the first pair of scans.");
 
         var observed = scan.Violations
             .GroupBy(violation => violation.Key, StringComparer.Ordinal)

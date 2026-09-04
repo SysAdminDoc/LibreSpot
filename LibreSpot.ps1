@@ -10065,6 +10065,9 @@ function Add-LibreSpotAssetInstallFailure {
 function Get-LibreSpotAssetInstallFailureSummary {
     # One line naming everything the run was asked to install and did not. Empty
     # when nothing failed, so callers can test it to decide the run's outcome.
+    # @($null).Count is 1, not 0, so an unset global would report one failure
+    # with no name. The install runspace starts with it unset every time.
+    if ($null -eq $global:LibreSpotAssetInstallFailures) { return '' }
     $failures = @($global:LibreSpotAssetInstallFailures)
     if ($failures.Count -eq 0) { return '' }
 
@@ -10299,7 +10302,7 @@ function Download-CommunityExtensions { param($Config)
             $head = Get-Content -LiteralPath $tempFile -TotalCount 5 -ErrorAction SilentlyContinue
             $headStr = ($head -join "`n").TrimStart()
             if ($headStr -match '^<(!DOCTYPE|html)' -or $headStr -match '^404:') {
-                Write-Log "Community extension '$ext' downloaded but appears to be an HTML error page, not JavaScript. The URL may have changed. Skipping." -Level 'WARN'
+                Add-LibreSpotAssetInstallFailure -Kind 'Extension' -Name $ext -Reason 'The download was an HTML error page, not JavaScript. The URL may have changed.'
                 continue
             }
             Confirm-FileHash -Path $tempFile -ExpectedHash $extHash -Label "Community extension $ext"
@@ -10310,7 +10313,7 @@ function Download-CommunityExtensions { param($Config)
             Write-Log "Community extension '$ext' saved to $destFile"
             $verifiedPaths += $destFile
         } catch {
-            Write-Log "Could not download community extension '$ext': $($_.Exception.Message). Skipping." -Level 'WARN'
+            Add-LibreSpotAssetInstallFailure -Kind 'Extension' -Name $ext -Reason "The download failed: $($_.Exception.Message)."
         } finally {
             Remove-Item -LiteralPath $tempFile -Force -ErrorAction SilentlyContinue
         }
@@ -11725,6 +11728,10 @@ public class Win32W {
 }
 
 $installBlock = { param($sh,$cfg)
+    # Assets that could not be installed are collected here and decide the run's
+    # outcome at the end. It has to be reset inside the worker: the runspace has
+    # its own globals, so clearing it on the UI thread would clear nothing.
+    $global:LibreSpotAssetInstallFailures = [System.Collections.Generic.List[object]]::new()
     $script:syncHash = $sh
     $ErrorActionPreference = 'Stop'
     try {
@@ -12002,6 +12009,7 @@ $functionNamesForWorker = @(
     'Get-NormalizedPathString','Get-PathEntries','Set-PathEntries','Add-PathEntry','Remove-PathEntry',
     'Get-SpotXPatchVerification','Test-SpotifySessionStability',
     'Module-NukeSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
+    'Add-LibreSpotAssetInstallFailure','Get-LibreSpotAssetInstallFailureSummary',
     'Module-InstallThemes','Download-CommunityExtensions','Module-InstallExtensions',
     'Module-InstallMarketplace','Module-InstallCustomApps','Open-SpicetifyMarketplace','Repair-Marketplace','Module-ApplySpicetify',
     'Write-MarketplaceVisibilityEvidence','Optimize-OperationJournalRetention',
@@ -12047,8 +12055,6 @@ function New-SyncHash {
 }
 
 function Start-InstallJob { param($Config)
-    # Cleared per run so a theme that failed last time does not colour this one.
-    $global:LibreSpotAssetInstallFailures = [System.Collections.Generic.List[object]]::new()
     Clear-CompletedRunspaceResources | Out-Null
     try {
         $script:installStartTime = Get-Date; $timer.Start()

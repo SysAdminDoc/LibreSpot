@@ -2090,7 +2090,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             }
         }
 
-        if (ExitAfterSuccessfulSetup && runSucceeded && ShouldExitAfterSuccessfulRun(action, configuration))
+        // A run that could not install something the user selected has to be
+        // read before the window goes away, so the auto-exit does not apply to it.
+        if (ExitAfterSuccessfulSetup
+            && runSucceeded
+            && _activityOutcome != ActivityOutcome.Warning
+            && ShouldExitAfterSuccessfulRun(action, configuration))
         {
             ScheduleApplicationExit();
         }
@@ -2173,8 +2178,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         AppendLog(result.Message, result.Reopened ? "INFO" : "WARN");
-        ActivityStatus = Strings.RunComplete;
-        ActivityStep = result.Reopened ? L("Vm_SpotifyReopened") : L("Vm_SpotifyRestartSkipped");
+
+        // Restarting Spotify is the last thing a successful run does, and it used
+        // to declare the run complete on its way out. That overwrote the warning
+        // naming an asset the user picked and did not get, which arrives earlier
+        // on the result line. Spotify still restarts; the verdict is not reset.
+        if (_activityOutcome != ActivityOutcome.Warning)
+        {
+            ActivityStatus = Strings.RunComplete;
+            ActivityStep = result.Reopened ? L("Vm_SpotifyReopened") : L("Vm_SpotifyRestartSkipped");
+        }
+
         ProgressValue = 100;
     }
 

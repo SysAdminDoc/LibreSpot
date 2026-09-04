@@ -1,5 +1,7 @@
 using System.IO;
+using System.Windows.Automation.Peers;
 using System.Xml.Linq;
+using LibreSpot.Desktop.Controls;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -110,6 +112,42 @@ public sealed class AutomationNameContractTests
                 + "tree. Use controls:DecorativeSymbolIcon instead:"
                 + Environment.NewLine
                 + string.Join(Environment.NewLine, offenders.Select(path => "  " + path)));
+    }
+
+    [Fact]
+    public void DecorativeSymbolIcon_AutomationPeerHidesItselfAndTheGlyphBeneathIt()
+    {
+        // Needs no window, so it belongs in the fast lane rather than beside
+        // the tests that launch the shell. Wpf.Ui builds the glyph TextBlock
+        // lazily on the first visual-child access, which the peer walk does,
+        // so an unmeasured icon still has a real child to hide here.
+        RunOnSta(() =>
+        {
+            var icon = new DecorativeSymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.Home24 };
+            var peer = UIElementAutomationPeer.CreatePeerForElement(icon)
+                ?? throw new InvalidOperationException("Could not create the decorative icon automation peer.");
+
+            Assert.Empty(peer.GetChildren());
+            Assert.False(peer.IsControlElement());
+            Assert.False(peer.IsContentElement());
+        });
+    }
+
+    private static void RunOnSta(Action action)
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try { action(); }
+            catch (Exception ex) { failure = ex; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (failure is not null)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+        }
     }
 
     [Fact]
