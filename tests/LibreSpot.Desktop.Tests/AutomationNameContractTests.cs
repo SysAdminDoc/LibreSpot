@@ -96,22 +96,61 @@ public sealed class AutomationNameContractTests
     public void NoXamlUsesAnIconThatWouldPutItsGlyphBackInTheAutomationTree()
     {
         // The fix for the glyphs is a per-usage rename, so nothing stops the
-        // next icon being added as a plain ui:SymbolIcon. The offscreen scan
+        // next icon being added as a plain Wpf.Ui SymbolIcon. The offscreen scan
         // would only catch that if the icon landed in one of the three states
         // it visits, and there are more states than that.
-        var offenders = Directory
-            .EnumerateFiles(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop"), "*.xaml", SearchOption.AllDirectories)
-            .Where(path => File.ReadAllText(path).Contains("ui:SymbolIcon", StringComparison.Ordinal))
-            .Select(path => Path.GetRelativePath(RepoRoot, path))
-            .OrderBy(path => path, StringComparer.Ordinal)
-            .ToArray();
+        //
+        // Matching the literal "ui:" would miss a file that binds the Wpf.Ui
+        // namespace to any other prefix, so the prefix is read from each file's
+        // own xmlns declarations. An Icon attribute is caught too: Wpf.Ui's
+        // IconElementConverter turns Icon="Home24" into a plain SymbolIcon at
+        // runtime, and no amount of searching for a tag name would see it.
+        const string WpfUiNamespace = "http://schemas.lepo.co/wpfui/2022/xaml";
+        var offenders = new List<string>();
+
+        foreach (var path in EnumerateTrackedXaml())
+        {
+            var document = XDocument.Load(path, LoadOptions.SetLineInfo);
+            var prefixes = document.Root?
+                .Attributes()
+                .Where(attribute => attribute.IsNamespaceDeclaration &&
+                    (attribute.Value == WpfUiNamespace ||
+                     attribute.Value.StartsWith("clr-namespace:Wpf.Ui.Controls", StringComparison.Ordinal)))
+                .Select(attribute => attribute.Name.LocalName)
+                .ToArray() ?? [];
+            if (prefixes.Length == 0)
+            {
+                continue;
+            }
+
+            var relative = Path.GetRelativePath(RepoRoot, path);
+            foreach (var element in document.Descendants())
+            {
+                // Exact local name, so ui:SymbolIconSource is not a false hit.
+                if (element.Name.LocalName == "SymbolIcon" &&
+                    prefixes.Contains(document.Root!.GetPrefixOfNamespace(element.Name.Namespace)))
+                {
+                    offenders.Add($"{relative}: <{element.Name.LocalName}> element");
+                }
+
+                foreach (var attribute in element.Attributes())
+                {
+                    if (attribute.Name.LocalName == "Icon" &&
+                        !attribute.Value.StartsWith("{", StringComparison.Ordinal) &&
+                        prefixes.Contains(document.Root!.GetPrefixOfNamespace(element.Name.Namespace)))
+                    {
+                        offenders.Add($"{relative}: Icon=\"{attribute.Value}\" on <{element.Name.LocalName}>");
+                    }
+                }
+            }
+        }
 
         Assert.True(
-            offenders.Length == 0,
-            "These files use ui:SymbolIcon directly, which puts an unreadable glyph back into the automation "
-                + "tree. Use controls:DecorativeSymbolIcon instead:"
+            offenders.Count == 0,
+            "These put an unreadable glyph back into the automation tree. Use "
+                + "controls:DecorativeSymbolIcon, and give an icon-only control its own name:"
                 + Environment.NewLine
-                + string.Join(Environment.NewLine, offenders.Select(path => "  " + path)));
+                + string.Join(Environment.NewLine, offenders.Order(StringComparer.Ordinal).Select(entry => "  " + entry)));
     }
 
     [Fact]
@@ -132,6 +171,12 @@ public sealed class AutomationNameContractTests
             Assert.False(peer.IsContentElement());
         });
     }
+
+    private static IEnumerable<string> EnumerateTrackedXaml() =>
+        Directory
+            .EnumerateFiles(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop"), "*.xaml", SearchOption.AllDirectories)
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
 
     private static void RunOnSta(Action action)
     {
