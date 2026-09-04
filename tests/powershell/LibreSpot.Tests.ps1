@@ -3571,3 +3571,54 @@ Describe 'Auto-reapply watcher hold' {
         }
     }
 }
+
+Describe 'Silenced failure-path writes' {
+    BeforeAll {
+        $sharedDir = (Resolve-Path (Join-Path $PSScriptRoot '..\..\src\powershell\shared')).Path
+        $script:CompleteRunSource = [System.IO.File]::ReadAllText((Join-Path $sharedDir 'Complete-OperationJournalRun.ps1'))
+        $script:StagedConfigSource = [System.IO.File]::ReadAllText((Join-Path $sharedDir 'Install-LibreSpotStagedConfig.ps1'))
+        . (Join-Path $sharedDir 'Install-LibreSpotStagedConfig.ps1')
+        . (Join-Path $sharedDir 'Copy-LibreSpotFileDurable.ps1')
+    }
+
+    It 'names the receipt path and says undo is unavailable when the receipt cannot be written' {
+        # The old message was 'Run receipt write failed: <exception>', which
+        # told a user nothing about what they had lost.
+        $script:CompleteRunSource | Should -Match 'Run receipt could not be written to'
+        $script:CompleteRunSource | Should -Match 'cannot be undone from'
+        $script:CompleteRunSource | Should -Match "-Level 'WARN'"
+    }
+
+    It 'names the rescue copy when a config rollback fails' {
+        $script:StagedConfigSource | Should -Match 'has to be moved back to'
+        # The rollback move must not be silenced: that is what hid the loss.
+        $rollback = [regex]::Match($script:StagedConfigSource, '(?ms)Move-Item -LiteralPath \$rescuePath[^
+]*').Value
+        $rollback | Should -Not -BeNullOrEmpty
+        $rollback | Should -Not -Match 'SilentlyContinue'
+        $rollback | Should -Match 'ErrorAction Stop'
+    }
+
+    It 'reports the rescue path from a real failed rollback' {
+        $root = Join-Path ([System.IO.Path]::GetTempPath()) ('LibreSpot.Rollback.' + [Guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $root -Force | Out-Null
+        try {
+            $stage = Join-Path $root 'staged.json'
+            $destination = Join-Path $root 'config.json'
+            Set-Content -LiteralPath $stage -Value '{"a":1}' -Encoding UTF8
+            Set-Content -LiteralPath $destination -Value '{"a":0}' -Encoding UTF8
+
+            # Hold the destination open so Replace and the forward Move both
+            # fail, which is the branch that used to swallow its own recovery.
+            $handle = [System.IO.File]::Open($destination, 'Open', 'ReadWrite', 'None')
+            try {
+                { Install-LibreSpotStagedConfig -StagePath $stage -DestinationPath $destination } |
+                    Should -Throw
+            } finally {
+                $handle.Dispose()
+            }
+        } finally {
+            Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}

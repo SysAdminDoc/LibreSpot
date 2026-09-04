@@ -342,9 +342,8 @@ public sealed class OperationJournalUndoService
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             var message = $"Undo could not start safely: {ex.Message} The captured state was not removed.";
-            try { await WriteJournalEntryAsync(configDirectory, operationId, item, "Failed", message, cancellationToken); } catch { }
-            try { await WriteReceiptAsync(configDirectory, operationId, item, "failed", "failed", message, cancellationToken); } catch { }
-            return new OperationUndoExecutionResult(false, false, false, operationId, "failed", message);
+            var reported = await RecordFailureAsync(configDirectory, operationId, item, message, cancellationToken);
+            return new OperationUndoExecutionResult(false, false, false, operationId, "failed", reported);
         }
     }
 
@@ -451,10 +450,46 @@ public sealed class OperationJournalUndoService
             }
 
             var message = $"Undo failed: {ex.Message} {recovery}";
-            try { await WriteJournalEntryAsync(configDirectory, operationId, item, "Failed", message, cancellationToken); } catch { }
-            try { await WriteReceiptAsync(configDirectory, operationId, item, "failed", "failed", message, cancellationToken); } catch { }
-            return new OperationUndoExecutionResult(false, false, false, operationId, "failed", message);
+            var reported = await RecordFailureAsync(configDirectory, operationId, item, message, cancellationToken);
+            return new OperationUndoExecutionResult(false, false, false, operationId, "failed", reported);
         }
+    }
+
+    /// <summary>
+    /// Records a failed undo and reports whether the record itself survived.
+    /// Both writes used to be wrapped in an empty catch, so an undo that
+    /// failed on a machine where the journal could not be written left no
+    /// trace at all and the user was told only that it failed.
+    /// </summary>
+    private async Task<string> RecordFailureAsync(
+        string configDirectory,
+        string operationId,
+        OperationJournalUndoItem item,
+        string message,
+        CancellationToken cancellationToken)
+    {
+        var unrecorded = false;
+        try
+        {
+            await WriteJournalEntryAsync(configDirectory, operationId, item, "Failed", message, cancellationToken);
+        }
+        catch
+        {
+            unrecorded = true;
+        }
+
+        try
+        {
+            await WriteReceiptAsync(configDirectory, operationId, item, "failed", "failed", message, cancellationToken);
+        }
+        catch
+        {
+            unrecorded = true;
+        }
+
+        return unrecorded
+            ? message + " This failure could not be written to the operation journal, so it will not appear in a support bundle."
+            : message;
     }
 
     private static string UndoPolicyRefusal(OperationTokenMetadata token, string risk)

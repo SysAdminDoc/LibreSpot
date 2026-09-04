@@ -20,8 +20,19 @@ function Install-LibreSpotStagedConfig {
                     [System.IO.File]::Move($tempPath, $DestinationPath)
                     Remove-Item -LiteralPath $rescuePath -Force -ErrorAction SilentlyContinue
                 } catch {
-                    Move-Item -LiteralPath $rescuePath -Destination $DestinationPath -Force -ErrorAction SilentlyContinue
-                    throw
+                    $moveError = $_
+                    try {
+                        Move-Item -LiteralPath $rescuePath -Destination $DestinationPath -Force -ErrorAction Stop
+                    } catch {
+                        # Silencing this left no config file and no clue where the
+                        # old one went. Name the rescue copy so it can be put back
+                        # by hand.
+                        throw ("Could not install the staged config, and restoring the previous one failed. " +
+                            "Your previous configuration is at $rescuePath and has to be moved back to " +
+                            "$DestinationPath by hand. Install error: $($moveError.Exception.Message) " +
+                            "Restore error: $($_.Exception.Message)")
+                    }
+                    throw $moveError
                 }
             }
         } else {

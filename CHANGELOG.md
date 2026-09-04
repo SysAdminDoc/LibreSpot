@@ -17,6 +17,7 @@ All notable changes to LibreSpot will be documented in this file.
 - The theme gallery in Settings no longer scrolls inside the page. At the smallest window it showed a second scrollbar beside the page's own and one and a half cards; it now grows with the page.
 - The dependency gate now refuses an installed JavaScript package that runs an install script without being on the reviewed allowlist, which is the boundary a compromised package crosses first.
 - Diagnostic timestamps are the same on every machine now. On a Thai or Arabic Windows the health output was showing a Buddhist or Hijri year, and crash filenames used local time so two an hour apart could collide across a clock change.
+- A run that changes your system and then cannot write its receipt now says so, and names the file, instead of finishing quietly with nothing for undo to offer. A failed config rollback names the rescue copy, and a failed undo says when it could not be recorded.
 
 ### Added
 

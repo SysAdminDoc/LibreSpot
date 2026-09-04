@@ -20,13 +20,6 @@ Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the la
   Acceptance: WHEN Settings opens, the theme gallery SHALL render every card without an inner scrollbar and the page SHALL have one scrollbar; an offscreen capture at the 1080x720 minimum window SHALL reach the last card through page scroll alone; the fixed-width `TextBlock`s in live views SHALL either trim with a tooltip or wrap; the README screenshot SHALL be recaptured.
   Complexity: M
 
-- [ ] P3: RD-191: Report a failed run-receipt write and a failed config rollback instead of silencing them
-  Why: a run that mutated the machine can leave the undo surface empty because the receipt write failure is only WARN-logged; a config rollback that fails moves the rescue file back with `-ErrorAction SilentlyContinue` and throws the original error, leaving a `.rescue` file and no `config.json` with no message naming it; the undo service's own failure-path journal and receipt writes are each wrapped in an empty catch.
-  Evidence: `src/powershell/shared/Complete-OperationJournalRun.ps1:63-66`; `src/powershell/shared/Install-LibreSpotStagedConfig.ps1:23`; `src/LibreSpot.Core/OperationJournalUndoService.cs:345-346` and `:454-455`.
-  Touches: those three files, the backend result payload (`Write-EventLine` WARN path), `src/LibreSpot.Desktop/ViewModels/MainViewModel.BackendMessages.cs`, Pester and `OperationJournalUndoServiceTests`.
-  Acceptance: WHEN the receipt cannot be written after a mutating run, the run SHALL finish as a warning that names the receipt path and says undo is unavailable for it; WHEN a rollback fails, the error SHALL name the rescue file; WHEN the undo failure-path writes fail, the result message SHALL say the journal was not updated; tests SHALL plant an unwritable path for each.
-  Complexity: M
-
 - [ ] P3: RD-193: Fail the offscreen UIA scan on invokable elements smaller than 24 by 24 device-independent pixels
   Why: WCAG2ICT (2025-12-11) applies success criterion 2.5.8 Target Size Minimum to desktop software and Axe.Windows 2.4.2 has no rule for it, so the current scan cannot catch a shrunken button or a tiny disclosure chevron.
   Evidence: https://www.w3.org/TR/wcag2ict-22/; https://github.com/microsoft/axe-windows/blob/main/docs/RulesDescription.md (rule set unchanged since 2.4.2); `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs` `Walk`.

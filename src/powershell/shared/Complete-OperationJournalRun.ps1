@@ -62,6 +62,15 @@ function Complete-OperationJournalRun {
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::WriteAllText($global:RUN_RECEIPT_PATH, ($receipt | ConvertTo-Json -Depth 6), $utf8NoBom)
     } catch {
-        try { Write-Log "Run receipt write failed: $($_.Exception.Message)" -Level 'WARN' } catch {}
+        # The receipt is what the undo surface reads. A run that changed the
+        # machine and left no receipt has to say so: without this the run
+        # reported success and undo simply had nothing to offer, with no
+        # explanation anywhere the user looks. Write-Log at WARN reaches the
+        # desktop as a warning event, not just the log file.
+        try {
+            Write-Log ("Run receipt could not be written to $($global:RUN_RECEIPT_PATH): " +
+                "$($_.Exception.Message) This run changed your system but cannot be undone from " +
+                "the receipt; the operation journal still records what happened.") -Level 'WARN'
+        } catch {}
     }
 }
