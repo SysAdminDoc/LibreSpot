@@ -134,6 +134,22 @@ public sealed class CommunityAssetsManifestTests
         Assert.Contains("buildInputs", script, StringComparison.Ordinal);
         Assert.Contains("sdkVersion", script, StringComparison.Ordinal);
         Assert.Contains("nonDeterministicNotes", script, StringComparison.Ordinal);
+
+        // The script compiler is part of the artifact: 1.0.16 through 1.0.18
+        // each changed what the produced exe does. An unpinned import makes the
+        // bytes depend on whatever the build machine holds, and the manifest
+        // would not say which one ran.
+        var pin = Regex.Match(script, @"function Get-LibreSpotPs2ExeVersion[\s\S]{0,400}?\[Version\]'(?<version>[\d.]+)'");
+        Assert.True(pin.Success, "Build-Scripts.ps1 must declare one pinned ps2exe version.");
+        Assert.Contains(
+            $"Import-Module ps2exe -RequiredVersion '$requiredPs2ExeVersion' -ErrorAction Stop;",
+            script,
+            StringComparison.Ordinal);
+        Assert.Contains("ps2exeVersion         = [string](Get-LibreSpotPs2ExeVersion)", script, StringComparison.Ordinal);
+        Assert.Contains(
+            $"Install-Module -Name ps2exe -RequiredVersion $requiredPs2ExeVersion -Scope CurrentUser",
+            script,
+            StringComparison.Ordinal);
         Assert.Contains("& $pwsh.Source -NoProfile -ExecutionPolicy Bypass -Command $command", script, StringComparison.Ordinal);
         Assert.Contains("--disable-package-restore", script, StringComparison.Ordinal);
 

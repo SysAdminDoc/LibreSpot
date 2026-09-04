@@ -27,13 +27,6 @@ Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the la
   Acceptance: WHEN Settings opens, the theme gallery SHALL render every card without an inner scrollbar and the page SHALL have one scrollbar; an offscreen capture at the 1080x720 minimum window SHALL reach the last card through page scroll alone; the fixed-width `TextBlock`s in live views SHALL either trim with a tooltip or wrap; the README screenshot SHALL be recaptured.
   Complexity: M
 
-- [ ] P2: RD-187: Pin the PS2EXE module version in the release build and record it in the manifest
-  Why: `-CompileStableExe` imports `ps2exe` with no version, so the bytes of the `LibreSpot.exe` release asset depend on whichever module the build machine holds; 1.0.18 (2026-06-07) changed emitted behaviour by adding `$ScriptRoot`, and 1.0.16 and 1.0.17 changed host and embedding options. The reproducible-build work in RD-146 stops at the .NET assets.
-  Evidence: `Build-Scripts.ps1:1971` (`Import-Module ps2exe -ErrorAction Stop`); https://www.powershellgallery.com/packages/ps2exe; https://github.com/MScholtes/PS2EXE; `schemas/release-artifact-contract.json`.
-  Touches: `Build-Scripts.ps1` (`Invoke-LibreSpotStableExeCompile`), `schemas/release-artifact-contract.json`, the release manifest generator, `README.md` local release procedure, `tests/LibreSpot.Desktop.Tests/ReleaseArtifactContractTests.cs`.
-  Acceptance: the compile step SHALL import `ps2exe -RequiredVersion <pinned>` and fail with a message naming the install command when it is absent; the release manifest SHALL record the compiler version; a test SHALL fail when the pinned version in the script and the contract disagree.
-  Complexity: S
-
 - [ ] P2: RD-189: Compute the next reviewable Spotify build from SpotX, the classmaps and Spicetify's declared range in the drift check
   Why: three upstream sources bound the next pin (SpotX `patches.json` reaches 1.2.99, the newest classmap is 1020097 by inheritance from 1020096, Spicetify 2.44.0 declares 1.2.96) and public Spotify is 1.2.98.301 with 1.2.99 staged, but `-CheckSpotifyVersionDrift` reports drift without computing the highest build all three cover, so every tuple decision starts from headlines.
   Evidence: https://raw.githubusercontent.com/SpotX-Official/SpotX/main/run.ps1; https://github.com/spicetify/classmaps/commits/main; `schemas/spicetify-supported-versions-v2.json` `cli_declared_windows_range`; https://github.com/spicetify/spicetify-themes/issues/1290 (1.2.98 breaks Text); https://spotify.en.uptodown.com/windows/versions.

@@ -1967,8 +1967,19 @@ function Invoke-LibreSpotStableExeCompile {
         throw "Cannot compile the stable executable; pwsh was not found on PATH."
     }
 
+    # The compiler version is part of the artifact. 1.0.16 through 1.0.18 each
+    # changed what the produced exe does (console host handling, embedded files,
+    # $ScriptRoot), so an unpinned import means the bytes of LibreSpot.exe depend
+    # on whatever the build machine happens to hold.
+    $requiredPs2ExeVersion = Get-LibreSpotPs2ExeVersion
+    $availablePs2Exe = @(Get-Module -ListAvailable -Name 'ps2exe' | Where-Object { $_.Version -eq $requiredPs2ExeVersion })
+    if ($availablePs2Exe.Count -eq 0) {
+        throw ("ps2exe $requiredPs2ExeVersion is required for the stable executable. " +
+            "Install it with: Install-Module -Name ps2exe -RequiredVersion $requiredPs2ExeVersion -Scope CurrentUser")
+    }
+
     $command = @(
-        "Import-Module ps2exe -ErrorAction Stop;",
+        "Import-Module ps2exe -RequiredVersion '$requiredPs2ExeVersion' -ErrorAction Stop;",
         "Invoke-ps2exe",
         "-inputFile '$mainScript'",
         "-outputFile '$OutputPath'",
@@ -1992,6 +2003,12 @@ function Invoke-LibreSpotStableExeCompile {
 
     Test-LibreSpotStableExeIdentity -Path $OutputPath
     Write-Host "Stable script executable written: $OutputPath" -ForegroundColor Green
+}
+
+function Get-LibreSpotPs2ExeVersion {
+    # One declaration, read by the compile step and recorded in the release
+    # manifest so a published LibreSpot.exe says what produced it.
+    return [Version]'1.0.18'
 }
 
 function Get-LibreSpotCycloneDxToolVersion {
@@ -2198,6 +2215,7 @@ function New-LibreSpotReleaseManifest {
         # inputs differed, and these are the inputs.
         buildInputs      = [ordered]@{
             sdkVersion            = (& dotnet --version 2>$null | Select-Object -First 1)
+            ps2exeVersion         = [string](Get-LibreSpotPs2ExeVersion)
             commit                = (& git -C $PSScriptRoot rev-parse HEAD 2>$null | Select-Object -First 1)
             # A commit only identifies the build when the tree matched it. Say so
             # rather than let the manifest imply a rebuild will reproduce this.

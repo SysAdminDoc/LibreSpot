@@ -11,6 +11,7 @@ All notable changes to LibreSpot will be documented in this file.
 - The fleet return-code table in the README now lists all fifteen exit codes with the Intune behaviour each one carries, including the retry and reboot classes that were missing. A test keeps the table and the shared schema in step.
 - The four schemas describing files LibreSpot writes now have tests that check a real output against the contract. The run-receipt schema was missing two fields the installer has always written.
 - A hold on the auto-reapply watcher now clears when Spotify moves to a different build, and a manual reapply clears it too, so the Reapply action the warning offers actually retires it. The hold also names the step that failed.
+- The release build now pins the PowerShell script compiler to one version and records it in the release manifest, so a published LibreSpot.exe says what produced it.
 
 ### Added
 
