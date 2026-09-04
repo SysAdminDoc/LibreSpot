@@ -130,7 +130,7 @@ v4.2.0 makes the desktop app the front door and tidies what sits behind it. Quic
 
 Settings opens with the four choices most people change: the Spotify build, the theme, the Marketplace, and whether Spotify opens when the run finishes. Everything else is one click away in labeled groups, the page has a single scrollbar, and the apply button lives in a footer that never scrolls out of reach. Searching for a hidden option opens its group and scrolls it into view. Clearing the search puts the groups back the way you left them.
 
-Home shows a quiet Update LibreSpot link when a newer stable release exists. The check runs in the background once a day, never downloads anything, and never interrupts you.
+Home shows a quiet Update LibreSpot link when a newer stable release exists. The check runs in the background once a day, never downloads anything, and never interrupts you. When GitHub publishes a digest for the desktop asset, a Verify the download disclosure shows that SHA256 value and the exact `gh release verify-asset` command with a copy button. Releases without a digest keep the original link-only notice.
 
 Closing Spotify is polite now. Both the desktop restart and the script ask each Spotify window to close, wait up to five seconds, and only then force whatever is still running. The run log names each process, its PID, the wait, and the reason.
 

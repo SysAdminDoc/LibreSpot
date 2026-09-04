@@ -2689,4 +2689,16 @@
   <data name="MinidumpUpdateFailedTitle" xml:space="preserve"><value>No se guardó el ajuste del volcado</value></data>
   <data name="MinidumpUpdateFailedLogFormat" xml:space="preserve"><value>LibreSpot no pudo actualizar el ajuste del volcado local: {0}</value></data>
   <data name="MinidumpUpdateFailedDetail" xml:space="preserve"><value>Revisa el registro de actividad y vuelve a probar el interruptor.</value></data>
+  <data name="Vm_LibreSpotUpdateVerificationDisclosure" xml:space="preserve"><value>Verificar la descarga</value></data>
+  <data name="Vm_LibreSpotUpdateVerificationDisclosureHint" xml:space="preserve"><value>Muestra el resumen SHA256 publicado y un comando de GitHub CLI para comprobar LibreSpot-Desktop.exe antes de ejecutarlo.</value></data>
+  <data name="Vm_LibreSpotUpdateDigestLabel" xml:space="preserve"><value>Resumen publicado del archivo</value></data>
+  <data name="Vm_LibreSpotUpdateDigestAutomationName" xml:space="preserve"><value>Resumen SHA256 publicado de LibreSpot-Desktop.exe</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandLabel" xml:space="preserve"><value>Comando de verificación de GitHub</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandAutomationName" xml:space="preserve"><value>Comando de verificación de GitHub para LibreSpot-Desktop.exe</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandHint" xml:space="preserve"><value>Ejecuta este comando en la carpeta que contiene el archivo LibreSpot-Desktop.exe descargado.</value></data>
+  <data name="Vm_LibreSpotUpdateCopyCommand" xml:space="preserve"><value>Copiar comando</value></data>
+  <data name="Vm_LibreSpotUpdateCopyCommandName" xml:space="preserve"><value>Copiar el comando de verificación de GitHub</value></data>
+  <data name="Vm_LibreSpotUpdateCopyCommandHint" xml:space="preserve"><value>Copia en el portapapeles el comando de verificación de la versión de GitHub.</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCopied" xml:space="preserve"><value>Comando de verificación copiado.</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyClipboardUnavailable" xml:space="preserve"><value>El portapapeles no está disponible. Selecciona y copia el comando manualmente.</value></data>
 </root>

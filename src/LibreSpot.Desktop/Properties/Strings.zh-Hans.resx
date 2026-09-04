@@ -2689,4 +2689,16 @@
   <data name="MinidumpUpdateFailedTitle" xml:space="preserve"><value>未保存崩溃转储设置</value></data>
   <data name="MinidumpUpdateFailedLogFormat" xml:space="preserve"><value>LibreSpot 无法更新本地崩溃转储设置：{0}</value></data>
   <data name="MinidumpUpdateFailedDetail" xml:space="preserve"><value>请检查活动日志，然后再次使用此开关。</value></data>
+  <data name="Vm_LibreSpotUpdateVerificationDisclosure" xml:space="preserve"><value>验证下载文件</value></data>
+  <data name="Vm_LibreSpotUpdateVerificationDisclosureHint" xml:space="preserve"><value>显示已发布的 SHA256 摘要和 GitHub CLI 命令，用于在运行 LibreSpot-Desktop.exe 前进行检查。</value></data>
+  <data name="Vm_LibreSpotUpdateDigestLabel" xml:space="preserve"><value>已发布的文件摘要</value></data>
+  <data name="Vm_LibreSpotUpdateDigestAutomationName" xml:space="preserve"><value>LibreSpot-Desktop.exe 已发布的 SHA256 摘要</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandLabel" xml:space="preserve"><value>GitHub 验证命令</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandAutomationName" xml:space="preserve"><value>LibreSpot-Desktop.exe 的 GitHub 验证命令</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandHint" xml:space="preserve"><value>请在包含已下载 LibreSpot-Desktop.exe 文件的文件夹中运行此命令。</value></data>
+  <data name="Vm_LibreSpotUpdateCopyCommand" xml:space="preserve"><value>复制命令</value></data>
+  <data name="Vm_LibreSpotUpdateCopyCommandName" xml:space="preserve"><value>复制 GitHub 验证命令</value></data>
+  <data name="Vm_LibreSpotUpdateCopyCommandHint" xml:space="preserve"><value>将 GitHub 发布验证命令复制到剪贴板。</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCopied" xml:space="preserve"><value>验证命令已复制。</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyClipboardUnavailable" xml:space="preserve"><value>剪贴板不可用。请手动选择并复制命令。</value></data>
 </root>

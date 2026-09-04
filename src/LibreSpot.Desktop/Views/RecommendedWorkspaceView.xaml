@@ -178,6 +178,37 @@
       </Grid>
     </DataTemplate>
 
+    <Style x:Key="SimpleDetailsToggleStyle" TargetType="ToggleButton">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <Border x:Name="HeaderSurface"
+                    Padding="{TemplateBinding Padding}"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{StaticResource RadiusSm}">
+              <ContentPresenter HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="HeaderSurface" Property="Background" Value="{DynamicResource Surface1Brush}" />
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="HeaderSurface" Property="Background" Value="{DynamicResource Surface2Brush}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <Style x:Key="SimpleDetailsExpanderStyle" TargetType="Expander">
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="Template">
@@ -201,12 +232,8 @@
                         Margin="0,0,24,0" />
                 <ToggleButton x:Name="HeaderButton"
                               Grid.Column="1"
-                              Style="{x:Null}"
-                              Background="Transparent"
-                              BorderBrush="Transparent"
-                              BorderThickness="0"
+                              Style="{StaticResource SimpleDetailsToggleStyle}"
                               Cursor="Hand"
-                              FocusVisualStyle="{x:Null}"
                               AutomationProperties.Name="{TemplateBinding Header}"
                               IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
                   <StackPanel Orientation="Horizontal">
@@ -406,28 +433,94 @@
       </StackPanel>
 
       <StackPanel Grid.Row="6"
-                  Orientation="Horizontal"
-                  HorizontalAlignment="Center"
+                  MaxWidth="820"
+                  HorizontalAlignment="Stretch"
                   Margin="0,18,0,0"
                   Visibility="{Binding HasLibreSpotUpdateNotice, Converter={StaticResource BoolToVisibilityConverter}}"
                   AutomationProperties.AutomationId="HomeUpdateNotice"
                   AutomationProperties.Name="{Binding LibreSpotUpdateNoticeAutomationName}">
-        <controls:DecorativeSymbolIcon Symbol="ArrowSync20"
-                       FontSize="18"
-                       Foreground="{DynamicResource MutedTextBrush}"
-                       VerticalAlignment="Center" />
-        <TextBlock Text="{Binding LibreSpotUpdateNoticeText}"
-                   FontSize="16"
-                   Foreground="{DynamicResource MutedTextBrush}"
-                   Margin="8,0,0,0"
-                   VerticalAlignment="Center" />
-        <Button Content="{Binding LibreSpotUpdateNoticeLinkLabel}"
-                Command="{Binding OpenLibreSpotUpdateCommand}"
-                Style="{StaticResource ShellQuickLinkButtonStyle}"
-                Margin="6,0,0,0"
-                VerticalAlignment="Center"
-                AutomationProperties.AutomationId="HomeUpdateLibreSpotLink"
-                AutomationProperties.Name="{Binding LibreSpotUpdateNoticeLinkLabel}" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+          <controls:DecorativeSymbolIcon Symbol="ArrowSync20"
+                                         FontSize="18"
+                                         Foreground="{DynamicResource MutedTextBrush}"
+                                         VerticalAlignment="Center" />
+          <TextBlock Text="{Binding LibreSpotUpdateNoticeText}"
+                     FontSize="16"
+                     Foreground="{DynamicResource MutedTextBrush}"
+                     Margin="8,0,0,0"
+                     VerticalAlignment="Center" />
+          <Button Content="{Binding LibreSpotUpdateNoticeLinkLabel}"
+                  Command="{Binding OpenLibreSpotUpdateCommand}"
+                  Style="{StaticResource ShellQuickLinkButtonStyle}"
+                  Margin="6,0,0,0"
+                  VerticalAlignment="Center"
+                  AutomationProperties.AutomationId="HomeUpdateLibreSpotLink"
+                  AutomationProperties.Name="{Binding LibreSpotUpdateNoticeLinkLabel}" />
+        </StackPanel>
+
+        <Expander Header="{services:Loc Vm_LibreSpotUpdateVerificationDisclosure}"
+                  Margin="0,10,0,0"
+                  Style="{StaticResource SimpleDetailsExpanderStyle}"
+                  IsExpanded="{Binding IsLibreSpotUpdateVerificationExpanded, Mode=TwoWay}"
+                  Visibility="{Binding HasLibreSpotUpdateVerification, Converter={StaticResource BoolToVisibilityConverter}}"
+                  AutomationProperties.AutomationId="HomeUpdateVerificationDisclosure"
+                  AutomationProperties.Name="{services:Loc Vm_LibreSpotUpdateVerificationDisclosure}"
+                  AutomationProperties.HelpText="{services:Loc Vm_LibreSpotUpdateVerificationDisclosureHint}">
+          <Border Style="{StaticResource SubtleCardStyle}"
+                  Background="{DynamicResource Surface1Brush}"
+                  Margin="0,8,0,0"
+                  Padding="18">
+            <StackPanel>
+              <TextBlock Text="{services:Loc Vm_LibreSpotUpdateDigestLabel}"
+                         Style="{StaticResource SectionEyebrowTextStyle}" />
+              <TextBlock Text="{Binding LibreSpotUpdateDigest}"
+                         Margin="0,6,0,0"
+                         FontFamily="{StaticResource MonoFont}"
+                         FontSize="12"
+                         Foreground="{DynamicResource TextBrush}"
+                         TextWrapping="Wrap"
+                         AutomationProperties.Name="{services:Loc Vm_LibreSpotUpdateDigestAutomationName}" />
+
+              <TextBlock Text="{services:Loc Vm_LibreSpotUpdateVerifyCommandLabel}"
+                         Style="{StaticResource SectionEyebrowTextStyle}"
+                         Margin="0,16,0,0" />
+              <Grid Margin="0,6,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Text="{Binding LibreSpotUpdateVerificationCommandText, Mode=OneWay}"
+                         Style="{StaticResource TextBoxStylePremium}"
+                         IsReadOnly="True"
+                         Height="40"
+                         Padding="12,0"
+                         FontFamily="{StaticResource MonoFont}"
+                         FontSize="12"
+                         VerticalContentAlignment="Center"
+                         AutomationProperties.AutomationId="HomeUpdateVerifyCommandText"
+                         AutomationProperties.Name="{services:Loc Vm_LibreSpotUpdateVerifyCommandAutomationName}"
+                         AutomationProperties.HelpText="{services:Loc Vm_LibreSpotUpdateVerifyCommandHint}" />
+                <Button Grid.Column="1"
+                        Content="{services:Loc Vm_LibreSpotUpdateCopyCommand}"
+                        Command="{Binding CopyLibreSpotUpdateVerificationCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        MinWidth="126"
+                        Height="40"
+                        Padding="14,0"
+                        Margin="10,0,0,0"
+                        AutomationProperties.AutomationId="HomeUpdateCopyVerifyCommandButton"
+                        AutomationProperties.Name="{services:Loc Vm_LibreSpotUpdateCopyCommandName}"
+                        AutomationProperties.HelpText="{services:Loc Vm_LibreSpotUpdateCopyCommandHint}" />
+              </Grid>
+              <TextBlock Text="{Binding LibreSpotUpdateVerificationStatus}"
+                         Style="{StaticResource CaptionTextStyle}"
+                         Foreground="{DynamicResource AccentBrush}"
+                         Margin="0,8,0,0"
+                         TextWrapping="Wrap"
+                         AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
+          </Border>
+        </Expander>
       </StackPanel>
 
       <Expander Grid.Row="7"

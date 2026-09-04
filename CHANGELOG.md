@@ -11,6 +11,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Fleet admins can export a complete, reverified asset cache to a portable ZIP and import it on an offline endpoint. The bundle keeps source and verification metadata, rejects undeclared or tampered ZIP content before mutation, and identifies Spotify's vendor installer as the remaining external dependency.
 - The standalone and desktop PowerShell hosts carry the same asset-cache export and import functions. The offline regression now covers SpotX, Spicetify, an official theme, a community theme, a community extension, Marketplace, and a custom app without making a network request.
 - Maintenance has an opt-in local crash dump switch. LibreSpot arms only its next process for a privacy-filtered .NET Triage dump, keeps the two newest files, and adds only the newest dump to a support bundle while the switch remains on.
+- Home's update notice now shows the published `LibreSpot-Desktop.exe` SHA256 digest and a copyable GitHub verification command behind a small disclosure. The extra panel stays hidden when GitHub does not provide a valid digest.
 
 ### Fixed
 

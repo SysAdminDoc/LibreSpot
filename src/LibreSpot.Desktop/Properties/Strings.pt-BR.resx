@@ -2689,4 +2689,16 @@
   <data name="MinidumpUpdateFailedTitle" xml:space="preserve"><value>A configuração de despejo não foi salva</value></data>
   <data name="MinidumpUpdateFailedLogFormat" xml:space="preserve"><value>O LibreSpot não conseguiu atualizar a configuração de despejo local: {0}</value></data>
   <data name="MinidumpUpdateFailedDetail" xml:space="preserve"><value>Confira o log de atividades e tente usar o controle novamente.</value></data>
+  <data name="Vm_LibreSpotUpdateVerificationDisclosure" xml:space="preserve"><value>Verificar o download</value></data>
+  <data name="Vm_LibreSpotUpdateVerificationDisclosureHint" xml:space="preserve"><value>Mostra o resumo SHA256 publicado e um comando da GitHub CLI para conferir o LibreSpot-Desktop.exe antes de executá-lo.</value></data>
+  <data name="Vm_LibreSpotUpdateDigestLabel" xml:space="preserve"><value>Resumo publicado do arquivo</value></data>
+  <data name="Vm_LibreSpotUpdateDigestAutomationName" xml:space="preserve"><value>Resumo SHA256 publicado do LibreSpot-Desktop.exe</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandLabel" xml:space="preserve"><value>Comando de verificação do GitHub</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandAutomationName" xml:space="preserve"><value>Comando de verificação do GitHub para o LibreSpot-Desktop.exe</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandHint" xml:space="preserve"><value>Execute este comando na pasta que contém o arquivo LibreSpot-Desktop.exe baixado.</value></data>
+  <data name="Vm_LibreSpotUpdateCopyCommand" xml:space="preserve"><value>Copiar comando</value></data>
+  <data name="Vm_LibreSpotUpdateCopyCommandName" xml:space="preserve"><value>Copiar o comando de verificação do GitHub</value></data>
+  <data name="Vm_LibreSpotUpdateCopyCommandHint" xml:space="preserve"><value>Copia o comando de verificação da versão do GitHub para a área de transferência.</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCopied" xml:space="preserve"><value>Comando de verificação copiado.</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyClipboardUnavailable" xml:space="preserve"><value>A área de transferência não está disponível. Selecione e copie o comando manualmente.</value></data>
 </root>

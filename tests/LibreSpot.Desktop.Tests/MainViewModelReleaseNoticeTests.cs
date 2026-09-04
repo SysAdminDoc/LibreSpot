@@ -15,6 +15,8 @@ namespace LibreSpot.Desktop.Tests;
 [Collection("Localization")]
 public sealed class MainViewModelReleaseNoticeTests
 {
+    private static readonly string DesktopDigest = $"sha256:{new string('a', 64)}";
+
     [Fact]
     public Task Home_ShowsTheQuietLinkOnlyWhenANewerStableReleaseExists() => RunStaAsync(async () =>
     {
@@ -39,13 +41,25 @@ public sealed class MainViewModelReleaseNoticeTests
         Assert.False(viewModel.OpenLibreSpotUpdateCommand.CanExecute(null));
         var actionBefore = viewModel.HomeAction.ActionId;
 
-        release.SetResult(new ReleaseNotice(true, "9.9.9", "https://github.com/SysAdminDoc/LibreSpot/releases/tag/v9.9.9", "live", "test"));
+        release.SetResult(new ReleaseNotice(
+            true,
+            "9.9.9",
+            "https://github.com/SysAdminDoc/LibreSpot/releases/tag/v9.9.9",
+            "live",
+            "test",
+            DesktopDigest));
         await viewModel.LibreSpotUpdateCheck;
 
         Assert.True(viewModel.HasLibreSpotUpdateNotice);
         Assert.Contains("9.9.9", viewModel.LibreSpotUpdateNoticeText, StringComparison.Ordinal);
         Assert.Equal("Update LibreSpot", viewModel.LibreSpotUpdateNoticeLinkLabel);
         Assert.Contains("9.9.9", viewModel.LibreSpotUpdateNoticeAutomationName, StringComparison.Ordinal);
+        Assert.True(viewModel.HasLibreSpotUpdateVerification);
+        Assert.Equal(DesktopDigest, viewModel.LibreSpotUpdateDigest);
+        Assert.Equal(
+            "gh release verify-asset -R SysAdminDoc/LibreSpot v9.9.9 .\\LibreSpot-Desktop.exe",
+            viewModel.LibreSpotUpdateVerificationCommandText);
+        Assert.True(viewModel.CopyLibreSpotUpdateVerificationCommand.CanExecute(null));
         Assert.True(viewModel.OpenLibreSpotUpdateCommand.CanExecute(null));
         Assert.Equal(actionBefore, viewModel.HomeAction.ActionId);
         Assert.False(viewModel.IsPromptVisible);
@@ -59,6 +73,7 @@ public sealed class MainViewModelReleaseNoticeTests
         await silent.InitializeAsync();
         await silent.LibreSpotUpdateCheck;
         Assert.False(silent.HasLibreSpotUpdateNotice);
+        Assert.False(silent.HasLibreSpotUpdateVerification);
 
         using var throwing = fixture.Create((_, _) => throw new InvalidOperationException("boom"));
         await throwing.InitializeAsync();
@@ -69,6 +84,7 @@ public sealed class MainViewModelReleaseNoticeTests
         await absent.InitializeAsync();
         await absent.LibreSpotUpdateCheck;
         Assert.False(absent.HasLibreSpotUpdateNotice);
+        Assert.False(absent.CopyLibreSpotUpdateVerificationCommand.CanExecute(null));
     });
 
     [Fact]
@@ -78,6 +94,9 @@ public sealed class MainViewModelReleaseNoticeTests
         using var viewModel = fixture.Create((_, _) => Task.FromResult(new ReleaseNotice(true, "9.9.9", null, "live", "test")));
         await viewModel.InitializeAsync();
         await viewModel.LibreSpotUpdateCheck;
+        Assert.False(viewModel.HasLibreSpotUpdateVerification);
+        Assert.Equal(string.Empty, viewModel.LibreSpotUpdateDigest);
+        Assert.Equal(string.Empty, viewModel.LibreSpotUpdateVerificationCommandText);
 
         var seen = new Dictionary<string, string>(StringComparer.Ordinal);
         try
@@ -106,7 +125,23 @@ public sealed class MainViewModelReleaseNoticeTests
         foreach (var file in Directory.EnumerateFiles(propertiesDirectory, "Strings*.resx"))
         {
             var document = XDocument.Load(file);
-            foreach (var key in new[] { "Vm_LibreSpotUpdateNoticeFormat", "Vm_LibreSpotUpdateNoticeLink" })
+            foreach (var key in new[]
+                     {
+                         "Vm_LibreSpotUpdateNoticeFormat",
+                         "Vm_LibreSpotUpdateNoticeLink",
+                         "Vm_LibreSpotUpdateVerificationDisclosure",
+                         "Vm_LibreSpotUpdateVerificationDisclosureHint",
+                         "Vm_LibreSpotUpdateDigestLabel",
+                         "Vm_LibreSpotUpdateDigestAutomationName",
+                         "Vm_LibreSpotUpdateVerifyCommandLabel",
+                         "Vm_LibreSpotUpdateVerifyCommandAutomationName",
+                         "Vm_LibreSpotUpdateVerifyCommandHint",
+                         "Vm_LibreSpotUpdateCopyCommand",
+                         "Vm_LibreSpotUpdateCopyCommandName",
+                         "Vm_LibreSpotUpdateCopyCommandHint",
+                         "Vm_LibreSpotUpdateVerifyCopied",
+                         "Vm_LibreSpotUpdateVerifyClipboardUnavailable"
+                     })
             {
                 var value = document.Root!.Elements("data")
                     .Single(element => (string?)element.Attribute("name") == key)
@@ -132,6 +167,13 @@ public sealed class MainViewModelReleaseNoticeTests
         Assert.Contains("Command=\"{Binding OpenLibreSpotUpdateCommand}\"", xaml, StringComparison.Ordinal);
         Assert.Matches(new Regex(@"HomeUpdateLibreSpotLink""[\s\S]{0,400}AutomationProperties\.Name=""\{Binding LibreSpotUpdateNoticeLinkLabel\}"""), xaml);
         Assert.Contains("AutomationProperties.Name=\"{Binding LibreSpotUpdateNoticeAutomationName}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Visibility=\"{Binding HasLibreSpotUpdateVerification", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsExpanded=\"{Binding IsLibreSpotUpdateVerificationExpanded, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AutomationId=\"HomeUpdateVerificationDisclosure\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AutomationId=\"HomeUpdateVerifyCommandText\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding LibreSpotUpdateVerificationCommandText, Mode=OneWay}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AutomationId=\"HomeUpdateCopyVerifyCommandButton\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding CopyLibreSpotUpdateVerificationCommand}\"", xaml, StringComparison.Ordinal);
     }
 
     private static string RepoRoot

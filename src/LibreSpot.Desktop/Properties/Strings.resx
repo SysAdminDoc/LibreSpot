@@ -1430,4 +1430,16 @@
   <data name="MinidumpUpdateFailedTitle" xml:space="preserve"><value>Crash dump setting wasn't saved</value><comment>Error notice title when the local crash dump setting cannot be saved.</comment></data>
   <data name="MinidumpUpdateFailedLogFormat" xml:space="preserve"><value>LibreSpot couldn't update the local crash dump setting: {0}</value><comment>Format parameter: {0} is the settings write error.</comment></data>
   <data name="MinidumpUpdateFailedDetail" xml:space="preserve"><value>Check the activity log, then try the switch again.</value><comment>Error notice next step when the local crash dump setting cannot be saved.</comment></data>
+  <data name="Vm_LibreSpotUpdateVerificationDisclosure" xml:space="preserve"><value>Verify the download</value><comment>Header for the update asset verification disclosure.</comment></data>
+  <data name="Vm_LibreSpotUpdateVerificationDisclosureHint" xml:space="preserve"><value>Shows the published SHA256 digest and a GitHub CLI command for checking LibreSpot-Desktop.exe before it runs.</value><comment>Accessible help for the update asset verification disclosure.</comment></data>
+  <data name="Vm_LibreSpotUpdateDigestLabel" xml:space="preserve"><value>Published asset digest</value><comment>Label above the update asset SHA256 digest.</comment></data>
+  <data name="Vm_LibreSpotUpdateDigestAutomationName" xml:space="preserve"><value>Published SHA256 digest for LibreSpot-Desktop.exe</value><comment>Accessible name for the update asset digest.</comment></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandLabel" xml:space="preserve"><value>GitHub verification command</value><comment>Label above the update asset verification command.</comment></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandAutomationName" xml:space="preserve"><value>GitHub verification command for LibreSpot-Desktop.exe</value><comment>Accessible name for the update asset verification command.</comment></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandHint" xml:space="preserve"><value>Run this command in the folder that contains the downloaded LibreSpot-Desktop.exe file.</value><comment>Accessible help for the update asset verification command.</comment></data>
+  <data name="Vm_LibreSpotUpdateCopyCommand" xml:space="preserve"><value>Copy command</value><comment>Button text for copying the update verification command.</comment></data>
+  <data name="Vm_LibreSpotUpdateCopyCommandName" xml:space="preserve"><value>Copy GitHub verification command</value><comment>Accessible name for the update verification copy button.</comment></data>
+  <data name="Vm_LibreSpotUpdateCopyCommandHint" xml:space="preserve"><value>Copies the GitHub release verification command to the clipboard.</value><comment>Accessible help for the update verification copy button.</comment></data>
+  <data name="Vm_LibreSpotUpdateVerifyCopied" xml:space="preserve"><value>Verification command copied.</value><comment>Inline feedback after copying the update verification command.</comment></data>
+  <data name="Vm_LibreSpotUpdateVerifyClipboardUnavailable" xml:space="preserve"><value>Clipboard unavailable. Select and copy the command manually.</value><comment>Inline error after the update verification command could not be copied.</comment></data>
 </root>

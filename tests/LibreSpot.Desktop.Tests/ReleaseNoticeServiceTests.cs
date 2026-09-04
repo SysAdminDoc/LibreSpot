@@ -9,6 +9,7 @@ namespace LibreSpot.Desktop.Tests;
 public sealed class ReleaseNoticeServiceTests
 {
     private static readonly DateTimeOffset Now = DateTimeOffset.Parse("2026-09-02T12:00:00Z");
+    private static readonly string DesktopDigest = $"sha256:{new string('a', 64)}";
 
     [Theory]
     [InlineData("4.1.2", "4.1.3", true)]
@@ -47,7 +48,12 @@ public sealed class ReleaseNoticeServiceTests
     public async Task NewerStableRelease_ProducesNoticeAndWritesCache()
     {
         using var root = new TempRoot();
-        var client = new FakeClient(ReleaseNoticeLookup.Found("v4.2.0", "https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.2.0", false, "\"etag-1\""));
+        var client = new FakeClient(ReleaseNoticeLookup.Found(
+            "v4.2.0",
+            "https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.2.0",
+            false,
+            "\"etag-1\"",
+            DesktopDigest));
         var service = Create(root, client);
 
         var notice = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
@@ -55,11 +61,13 @@ public sealed class ReleaseNoticeServiceTests
         Assert.True(notice.UpdateAvailable);
         Assert.Equal("4.2.0", notice.LatestVersion);
         Assert.Equal("https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.2.0", notice.ReleaseUrl);
+        Assert.Equal(DesktopDigest, notice.DesktopAssetDigest);
         Assert.Equal("live", notice.Source);
         Assert.True(File.Exists(root.CachePath));
         using var cache = JsonDocument.Parse(File.ReadAllText(root.CachePath));
         Assert.Equal("\"etag-1\"", cache.RootElement.GetProperty("eTag").GetString());
         Assert.Equal("v4.2.0", cache.RootElement.GetProperty("tagName").GetString());
+        Assert.Equal(DesktopDigest, cache.RootElement.GetProperty("desktopAssetDigest").GetString());
     }
 
     [Theory]
@@ -128,6 +136,21 @@ public sealed class ReleaseNoticeServiceTests
         Assert.True(notice.UpdateAvailable);
         Assert.Equal("4.3.0", notice.LatestVersion);
         Assert.Equal("cache", notice.Source);
+        Assert.Equal(0, client.Calls);
+    }
+
+    [Fact]
+    public async Task FreshCache_PreservesTheDesktopAssetDigest()
+    {
+        using var root = new TempRoot();
+        var client = new FakeClient(ReleaseNoticeLookup.Offline("should not be called"));
+        WriteCache(root, Now.AddHours(-1), "v4.3.0", "\"etag-cached\"", DesktopDigest);
+        var service = Create(root, client);
+
+        var notice = await service.GetNoticeAsync("4.1.2", CancellationToken.None);
+
+        Assert.True(notice.UpdateAvailable);
+        Assert.Equal(DesktopDigest, notice.DesktopAssetDigest);
         Assert.Equal(0, client.Calls);
     }
 
@@ -414,7 +437,18 @@ public sealed class ReleaseNoticeServiceTests
     [Fact]
     public async Task TryGetLatestStableAsync_ASuccessfulBodyIsMappedByTheRealClient()
     {
-        const string body = "{\"tag_name\":\"v4.5.0\",\"html_url\":\"https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.5.0\",\"prerelease\":false,\"draft\":false}";
+        var body = JsonSerializer.Serialize(new
+        {
+            tag_name = "v4.5.0",
+            html_url = "https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.5.0",
+            prerelease = false,
+            draft = false,
+            assets = new[]
+            {
+                new { name = ReleaseNoticeService.DesktopAssetName, digest = DesktopDigest.ToUpperInvariant() },
+                new { name = "checksums.txt", digest = $"sha256:{new string('b', 64)}" }
+            }
+        });
         using var http = StubResponse(HttpStatusCode.OK, body, "\"etag-release\"");
 
         var lookup = await new GitHubReleaseNoticeClient(http).TryGetLatestStableAsync(null, CancellationToken.None);
@@ -424,6 +458,35 @@ public sealed class ReleaseNoticeServiceTests
         Assert.Equal("https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.5.0", lookup.HtmlUrl);
         Assert.False(lookup.IsPrerelease);
         Assert.Equal("\"etag-release\"", lookup.ETag);
+        Assert.Equal(DesktopDigest, lookup.DesktopAssetDigest);
+    }
+
+    [Fact]
+    public async Task TryGetLatestStableAsync_MissingMalformedOrDuplicateDesktopDigestFailsClosed()
+    {
+        var bodies = new[]
+        {
+            JsonSerializer.Serialize(new { tag_name = "v4.5.0", assets = Array.Empty<object>() }),
+            JsonSerializer.Serialize(new { tag_name = "v4.5.0", assets = new[] { new { name = ReleaseNoticeService.DesktopAssetName, digest = "sha256:not-a-hash" } } }),
+            JsonSerializer.Serialize(new
+            {
+                tag_name = "v4.5.0",
+                assets = new[]
+                {
+                    new { name = ReleaseNoticeService.DesktopAssetName, digest = DesktopDigest },
+                    new { name = ReleaseNoticeService.DesktopAssetName, digest = DesktopDigest }
+                }
+            })
+        };
+
+        foreach (var body in bodies)
+        {
+            using var http = StubResponse(HttpStatusCode.OK, body);
+            var lookup = await new GitHubReleaseNoticeClient(http).TryGetLatestStableAsync(null, CancellationToken.None);
+
+            Assert.Equal(ReleaseNoticeLookupStatus.Found, lookup.Status);
+            Assert.Null(lookup.DesktopAssetDigest);
+        }
     }
 
     [Fact]
@@ -447,19 +510,25 @@ public sealed class ReleaseNoticeServiceTests
     private static ReleaseNoticeService Create(TempRoot root, FakeClient client) =>
         new(client, root.CachePath, () => Now);
 
-    private static void WriteCache(TempRoot root, DateTimeOffset checkedAtUtc, string tag, string? etag)
+    private static void WriteCache(
+        TempRoot root,
+        DateTimeOffset checkedAtUtc,
+        string tag,
+        string? etag,
+        string? desktopAssetDigest = null)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(root.CachePath)!);
         File.WriteAllText(root.CachePath, JsonSerializer.Serialize(new
         {
-            schemaVersion = 2,
+            schemaVersion = 3,
             checkedAtUtc,
             // A hand-written cache stands for one that was genuinely fetched then,
             // which is what makes the staleness assertions mean anything.
             fetchedAtUtc = checkedAtUtc,
             tagName = tag,
             htmlUrl = (string?)null,
-            eTag = etag
+            eTag = etag,
+            desktopAssetDigest
         }));
     }
 

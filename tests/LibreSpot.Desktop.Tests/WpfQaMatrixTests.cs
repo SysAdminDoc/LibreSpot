@@ -60,7 +60,7 @@ public sealed class WpfQaMatrixTests
             ("home-healthy", "Vm_HomeOpenSpotifyAction", "HomePrimaryActionButton"),
             ("home-repair", "Maintenance_RepairMarketplace_ButtonText", "HomePrimaryActionButton"),
             ("home-destructive", "Vm_HomeOpenMaintenanceAction", "HomePrimaryActionButton"),
-            ("home-update", "Vm_LibreSpotUpdateNoticeLink", "HomeUpdateLibreSpotLink"),
+            ("home-update", "Vm_LibreSpotUpdateDigestAutomationName", "HomeUpdateCopyVerifyCommandButton"),
             ("snapshot-loading", "Vm_SimpleHomeCheckingTitle", "WorkspaceNavRecommended"),
             ("snapshot-error", "Vm_SimpleHomeUnavailableTitle", "HomePrimaryActionButton"),
             ("activity-error", "RunNeedsAttention", "ActivityExportFailureBundleButton"),

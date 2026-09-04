@@ -30,10 +30,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly CustomPatchService _customPatchService;
     private readonly LocalizationService _localizationService;
     private readonly ISpotifyProcessService _spotifyProcessService;
-    private readonly Func<string, CancellationToken, Task<ReleaseNotice>>? _releaseNoticeProbe;
-    private readonly CancellationTokenSource _releaseNoticeCts = new();
-    private ReleaseNotice? _libreSpotUpdateNotice;
-    private Task? _libreSpotUpdateCheck;
     private readonly ActivityRunStateViewModel _activityState = new();
     private ActivityOutcome _activityOutcome = ActivityOutcome.None;
     private readonly CustomOptionEditorStateViewModel _customOptions;
@@ -198,6 +194,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ImportCustomPatchesFromUrlCommand = CreateAsyncCommand(ImportCustomPatchesFromUrlAsync, () => !IsRunning && !string.IsNullOrWhiteSpace(CustomPatchesImportUrl));
         OpenRepositoryCommand = new RelayCommand(() => OpenExternalUri("https://github.com/SysAdminDoc/LibreSpot"));
         OpenLibreSpotUpdateCommand = new RelayCommand(OpenLibreSpotUpdate, () => HasLibreSpotUpdateNotice);
+        CopyLibreSpotUpdateVerificationCommand = new RelayCommand(
+            CopyLibreSpotUpdateVerification,
+            () => HasLibreSpotUpdateVerification);
         OpenSpicetifyCommunityCommand = new RelayCommand(() => OpenExternalUri("https://spicetify.app/docs/advanced-usage/extensions"));
         OpenThemeCatalogCommand = new RelayCommand(() => OpenExternalUri("https://github.com/spicetify/spicetify-themes"));
         ShowRecommendedWorkspaceCommand = new RelayCommand(() => SelectedWorkspaceIndex = 0);
@@ -532,18 +531,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ?? "unknown";
     public string ShellDisplayVersion => $"v{ProductVersion}";
 
-    // A newer stable release shows one quiet inline link under the primary
-    // action. It never replaces the action, raises a toast, or takes focus.
-    public bool HasLibreSpotUpdateNotice => _libreSpotUpdateNotice is { UpdateAvailable: true };
-    public string LibreSpotUpdateNoticeText => _libreSpotUpdateNotice is { UpdateAvailable: true } notice
-        ? LF("Vm_LibreSpotUpdateNoticeFormat", notice.LatestVersion)
-        : string.Empty;
-    public string LibreSpotUpdateNoticeLinkLabel => L("Vm_LibreSpotUpdateNoticeLink");
-    public string LibreSpotUpdateNoticeAutomationName => HasLibreSpotUpdateNotice
-        ? $"{LibreSpotUpdateNoticeLinkLabel}. {LibreSpotUpdateNoticeText}"
-        : string.Empty;
-    public ICommand OpenLibreSpotUpdateCommand { get; }
-    public Task LibreSpotUpdateCheck => _libreSpotUpdateCheck ?? Task.CompletedTask;
     public string ShellStackStatusTitle => Snapshot.SpicetifyInstalled || Snapshot.SpotifyInstalled
         ? L("Vm_ShellStackDetectedTitle")
         : L("Vm_ShellStackNotDetectedTitle");
@@ -1863,54 +1850,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         await RefreshSnapshotAsync();
     }
 
-    private async Task CheckForLibreSpotUpdateAsync()
-    {
-        if (_releaseNoticeProbe is null)
-        {
-            return;
-        }
-
-        try
-        {
-            var notice = await _releaseNoticeProbe(ProductVersion, _releaseNoticeCts.Token);
-            if (_releaseNoticeCts.IsCancellationRequested)
-            {
-                return;
-            }
-
-            _libreSpotUpdateNotice = notice;
-            RaiseLibreSpotUpdateNoticeChanged();
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception ex)
-        {
-            Serilog.Log.Debug(ex, "LibreSpot release notice check failed");
-        }
-    }
-
-    private void RaiseLibreSpotUpdateNoticeChanged()
-    {
-        OnPropertyChanged(nameof(HasLibreSpotUpdateNotice));
-        OnPropertyChanged(nameof(LibreSpotUpdateNoticeText));
-        OnPropertyChanged(nameof(LibreSpotUpdateNoticeLinkLabel));
-        OnPropertyChanged(nameof(LibreSpotUpdateNoticeAutomationName));
-        (OpenLibreSpotUpdateCommand as RelayCommand)?.NotifyCanExecuteChanged();
-    }
-
-    private void OpenLibreSpotUpdate()
-    {
-        if (_libreSpotUpdateNotice is { UpdateAvailable: true })
-        {
-            // The link only ever opens the GitHub release page; anything else
-            // (including a tampered cache) falls back to the releases page.
-            OpenExternalUri(ReleaseNoticeService.IsTrustedReleaseUrl(_libreSpotUpdateNotice.ReleaseUrl)
-                ? _libreSpotUpdateNotice.ReleaseUrl!
-                : ReleaseNoticeService.LatestStableReleasePage);
-        }
-    }
-
     public void ApplyInitializationFailure()
     {
         Interlocked.Increment(ref _snapshotRequestVersion);
@@ -2659,6 +2598,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public void ApplyUiAutomationSmokeState(string state)
     {
         var normalizedState = state.Trim().ToLowerInvariant();
+        IsLibreSpotUpdateVerificationExpanded = false;
         _uiAutomationSafeModeRestoreAvailable = normalizedState == "maintenance-safe-mode";
         _uiAutomationMinidumpEnabled = normalizedState == "maintenance-minidump";
         OnPropertyChanged(nameof(IsSafeModeRestoreAvailable));
@@ -2691,7 +2631,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         else if (normalizedState == "home-update")
         {
             ApplyUiAutomationHomeSnapshot("home-healthy");
-            _libreSpotUpdateNotice = new ReleaseNotice(true, "9.9.9", ReleaseNoticeService.LatestStableReleasePage, "smoke", "UI automation smoke state");
+            _libreSpotUpdateNotice = new ReleaseNotice(
+                true,
+                "9.9.9",
+                ReleaseNoticeService.LatestStableReleasePage,
+                "smoke",
+                "UI automation smoke state",
+                $"sha256:{new string('a', 64)}");
+            _libreSpotUpdateVerificationCopySucceeded = null;
+            IsLibreSpotUpdateVerificationExpanded = true;
             RaiseLibreSpotUpdateNoticeChanged();
         }
 

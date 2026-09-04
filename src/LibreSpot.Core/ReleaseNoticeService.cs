@@ -22,10 +22,16 @@ public sealed record ReleaseNoticeLookup(
     string? HtmlUrl,
     bool IsPrerelease,
     string? ETag,
-    string Message)
+    string Message,
+    string? DesktopAssetDigest = null)
 {
-    public static ReleaseNoticeLookup Found(string tagName, string? htmlUrl, bool isPrerelease, string? etag) =>
-        new(ReleaseNoticeLookupStatus.Found, tagName, htmlUrl, isPrerelease, etag, "Latest release read from GitHub.");
+    public static ReleaseNoticeLookup Found(
+        string tagName,
+        string? htmlUrl,
+        bool isPrerelease,
+        string? etag,
+        string? desktopAssetDigest = null) =>
+        new(ReleaseNoticeLookupStatus.Found, tagName, htmlUrl, isPrerelease, etag, "Latest release read from GitHub.", desktopAssetDigest);
 
     public static ReleaseNoticeLookup NotModified(string? etag) =>
         new(ReleaseNoticeLookupStatus.NotModified, null, null, false, etag, "GitHub reported the cached release is still current.");
@@ -57,7 +63,13 @@ public interface IReleaseNoticeClient
 }
 
 /// <summary>What Home shows: nothing, or one quiet link to a newer stable release.</summary>
-public sealed record ReleaseNotice(bool UpdateAvailable, string? LatestVersion, string? ReleaseUrl, string Source, string Reason)
+public sealed record ReleaseNotice(
+    bool UpdateAvailable,
+    string? LatestVersion,
+    string? ReleaseUrl,
+    string Source,
+    string Reason,
+    string? DesktopAssetDigest = null)
 {
     public static ReleaseNotice Silent(string source, string reason) => new(false, null, null, source, reason);
 }
@@ -173,9 +185,10 @@ public sealed class ReleaseNoticeService
 {
     public const string LatestStableReleaseApi = "https://api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest";
     public const string LatestStableReleasePage = "https://github.com/SysAdminDoc/LibreSpot/releases/latest";
+    public const string DesktopAssetName = "LibreSpot-Desktop.exe";
     public static readonly TimeSpan DefaultCacheLifetime = TimeSpan.FromHours(24);
 
-    private const int CacheSchemaVersion = 2;
+    private const int CacheSchemaVersion = 3;
     private static readonly JsonSerializerOptions CacheJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -230,7 +243,7 @@ public sealed class ReleaseNoticeService
             var reason = now - fetchedAt < _cacheLifetime
                 ? "The cached release is less than a day old."
                 : $"The cached release was last confirmed {FormatAge(now - fetchedAt)} ago; checks since then were refused.";
-            return Evaluate(current, cache.TagName, cache.HtmlUrl, "cache", reason);
+            return Evaluate(current, cache.TagName, cache.HtmlUrl, "cache", reason, cache.DesktopAssetDigest);
         }
 
         ReleaseNoticeLookup lookup;
@@ -251,8 +264,15 @@ public sealed class ReleaseNoticeService
         switch (lookup.Status)
         {
             case ReleaseNoticeLookupStatus.Found when !lookup.IsPrerelease && !string.IsNullOrWhiteSpace(lookup.TagName):
-                WriteCache(new CacheDocument(CacheSchemaVersion, now, lookup.TagName, lookup.HtmlUrl, lookup.ETag, now));
-                return Evaluate(current, lookup.TagName, lookup.HtmlUrl, "live", lookup.Message);
+                WriteCache(new CacheDocument(
+                    CacheSchemaVersion,
+                    now,
+                    lookup.TagName,
+                    lookup.HtmlUrl,
+                    lookup.ETag,
+                    now,
+                    NormalizeDesktopAssetDigest(lookup.DesktopAssetDigest)));
+                return Evaluate(current, lookup.TagName, lookup.HtmlUrl, "live", lookup.Message, lookup.DesktopAssetDigest);
 
             case ReleaseNoticeLookupStatus.Found:
                 // A prerelease or an empty tag is never offered; fall back like any other miss.
@@ -260,7 +280,7 @@ public sealed class ReleaseNoticeService
 
             case ReleaseNoticeLookupStatus.NotModified when cache is not null:
                 WriteCache(cache with { CheckedAtUtc = now, ETag = lookup.ETag ?? cache.ETag, FetchedAtUtc = now });
-                return Evaluate(current, cache.TagName, cache.HtmlUrl, "live-conditional", lookup.Message);
+                return Evaluate(current, cache.TagName, cache.HtmlUrl, "live-conditional", lookup.Message, cache.DesktopAssetDigest);
 
             case ReleaseNoticeLookupStatus.RateLimited:
                 // Being told to slow down and then retrying on the next launch is
@@ -274,7 +294,7 @@ public sealed class ReleaseNoticeService
                     : cache with { CheckedAtUtc = now });
                 return cache is null
                     ? ReleaseNotice.Silent("rate-limited", lookup.Message)
-                    : Evaluate(current, cache.TagName, cache.HtmlUrl, "cache-stale", lookup.Message);
+                    : Evaluate(current, cache.TagName, cache.HtmlUrl, "cache-stale", lookup.Message, cache.DesktopAssetDigest);
 
             default:
                 return FallBack(current, cache, lookup.Status.ToString().ToLowerInvariant(), lookup.Message);
@@ -284,7 +304,7 @@ public sealed class ReleaseNoticeService
     private static ReleaseNotice FallBack(ReleaseVersion current, CacheDocument? cache, string source, string reason) =>
         cache is null
             ? ReleaseNotice.Silent(source, reason)
-            : Evaluate(current, cache.TagName, cache.HtmlUrl, "cache-stale", reason);
+            : Evaluate(current, cache.TagName, cache.HtmlUrl, "cache-stale", reason, cache.DesktopAssetDigest);
 
     private static string FormatAge(TimeSpan age) =>
         age.TotalDays >= 2
@@ -293,7 +313,13 @@ public sealed class ReleaseNoticeService
                 ? $"{(int)age.TotalHours} hours"
                 : "under an hour";
 
-    private static ReleaseNotice Evaluate(ReleaseVersion current, string? tagName, string? htmlUrl, string source, string reason)
+    private static ReleaseNotice Evaluate(
+        ReleaseVersion current,
+        string? tagName,
+        string? htmlUrl,
+        string source,
+        string reason,
+        string? desktopAssetDigest = null)
     {
         if (!ReleaseVersion.TryParse(tagName, out var latest))
         {
@@ -306,8 +332,26 @@ public sealed class ReleaseNoticeService
         }
 
         return latest.CompareTo(current) > 0
-            ? new ReleaseNotice(true, latest.ToString(), IsTrustedReleaseUrl(htmlUrl) ? htmlUrl! : LatestStableReleasePage, source, reason)
+            ? new ReleaseNotice(
+                true,
+                latest.ToString(),
+                IsTrustedReleaseUrl(htmlUrl) ? htmlUrl! : LatestStableReleasePage,
+                source,
+                reason,
+                NormalizeDesktopAssetDigest(desktopAssetDigest))
             : ReleaseNotice.Silent(source, $"Version {current} is current; latest stable is {latest}.");
+    }
+
+    public static string? NormalizeDesktopAssetDigest(string? value)
+    {
+        var text = value?.Trim();
+        if (text is null || text.Length != 71 || !text.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) ||
+            text.AsSpan(7).ContainsAnyExcept("0123456789abcdefABCDEF"))
+        {
+            return null;
+        }
+
+        return $"sha256:{text[7..].ToLowerInvariant()}";
     }
 
     /// <summary>Only an https GitHub page for this repository may be opened from the notice.</summary>
@@ -363,7 +407,8 @@ public sealed class ReleaseNoticeService
         string? TagName,
         string? HtmlUrl,
         string? ETag,
-        DateTimeOffset? FetchedAtUtc = null);
+        DateTimeOffset? FetchedAtUtc = null,
+        string? DesktopAssetDigest = null);
 }
 
 public sealed class GitHubReleaseNoticeClient : IReleaseNoticeClient
@@ -423,7 +468,12 @@ public sealed class GitHubReleaseNoticeClient : IReleaseNoticeClient
             var htmlUrl = root.TryGetProperty("html_url", out var url) && url.ValueKind == JsonValueKind.String ? url.GetString() : null;
             var isPrerelease = (root.TryGetProperty("prerelease", out var prerelease) && prerelease.ValueKind == JsonValueKind.True)
                 || (root.TryGetProperty("draft", out var draft) && draft.ValueKind == JsonValueKind.True);
-            return ReleaseNoticeLookup.Found(tag.GetString()!, htmlUrl, isPrerelease, etag);
+            return ReleaseNoticeLookup.Found(
+                tag.GetString()!,
+                htmlUrl,
+                isPrerelease,
+                etag,
+                ReadDesktopAssetDigest(root));
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -437,5 +487,33 @@ public sealed class GitHubReleaseNoticeClient : IReleaseNoticeClient
         {
             return ReleaseNoticeLookup.Malformed($"Invalid release JSON: {ex.Message}");
         }
+    }
+
+    private static string? ReadDesktopAssetDigest(JsonElement root)
+    {
+        if (!root.TryGetProperty("assets", out var assets) || assets.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        string? digest = null;
+        var matchingAssets = 0;
+        foreach (var asset in assets.EnumerateArray())
+        {
+            if (asset.ValueKind != JsonValueKind.Object ||
+                !asset.TryGetProperty("name", out var name) ||
+                name.ValueKind != JsonValueKind.String ||
+                !string.Equals(name.GetString(), ReleaseNoticeService.DesktopAssetName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            matchingAssets++;
+            digest = asset.TryGetProperty("digest", out var value) && value.ValueKind == JsonValueKind.String
+                ? ReleaseNoticeService.NormalizeDesktopAssetDigest(value.GetString())
+                : null;
+        }
+
+        return matchingAssets == 1 ? digest : null;
     }
 }

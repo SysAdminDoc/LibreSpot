@@ -2689,4 +2689,16 @@
   <data name="MinidumpUpdateFailedTitle" xml:space="preserve"><value>Не удалось сохранить настройку дампа</value></data>
   <data name="MinidumpUpdateFailedLogFormat" xml:space="preserve"><value>LibreSpot не удалось обновить настройку локального дампа: {0}</value></data>
   <data name="MinidumpUpdateFailedDetail" xml:space="preserve"><value>Проверьте журнал действий и снова переключите этот параметр.</value></data>
+  <data name="Vm_LibreSpotUpdateVerificationDisclosure" xml:space="preserve"><value>Проверить загрузку</value></data>
+  <data name="Vm_LibreSpotUpdateVerificationDisclosureHint" xml:space="preserve"><value>Показывает опубликованный дайджест SHA256 и команду GitHub CLI для проверки LibreSpot-Desktop.exe перед запуском.</value></data>
+  <data name="Vm_LibreSpotUpdateDigestLabel" xml:space="preserve"><value>Опубликованный дайджест файла</value></data>
+  <data name="Vm_LibreSpotUpdateDigestAutomationName" xml:space="preserve"><value>Опубликованный дайджест SHA256 для LibreSpot-Desktop.exe</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandLabel" xml:space="preserve"><value>Команда проверки GitHub</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandAutomationName" xml:space="preserve"><value>Команда проверки GitHub для LibreSpot-Desktop.exe</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCommandHint" xml:space="preserve"><value>Запустите эту команду в папке со скачанным файлом LibreSpot-Desktop.exe.</value></data>
+  <data name="Vm_LibreSpotUpdateCopyCommand" xml:space="preserve"><value>Копировать команду</value></data>
+  <data name="Vm_LibreSpotUpdateCopyCommandName" xml:space="preserve"><value>Копировать команду проверки GitHub</value></data>
+  <data name="Vm_LibreSpotUpdateCopyCommandHint" xml:space="preserve"><value>Копирует команду проверки выпуска GitHub в буфер обмена.</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyCopied" xml:space="preserve"><value>Команда проверки скопирована.</value></data>
+  <data name="Vm_LibreSpotUpdateVerifyClipboardUnavailable" xml:space="preserve"><value>Буфер обмена недоступен. Выделите и скопируйте команду вручную.</value></data>
 </root>
