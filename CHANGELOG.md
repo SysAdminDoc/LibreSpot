@@ -32,6 +32,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 - JavaScript advisory requests now have a bounded 30-second network timeout and one retry, so a registry outage fails the gate instead of hanging it.
 
+- Desktop release restores now run in locked mode, including the SDK's single-file linker task, so a publish cannot rewrite reviewed dependency state.
+
 - Cold Spotify reloads now let both companion script copies converge on one ready runtime, so Settings won't remain stuck on its loading screen.
 - Tweak cards no longer squeeze their title between the category label and switch. Categories now sit with the version and source metadata, matching the visual hierarchy used by the reference design.
 - Stable keys are used for arrangement rows, removing the duplicate-key warning that appeared when Spotify rendered two items with the same label.

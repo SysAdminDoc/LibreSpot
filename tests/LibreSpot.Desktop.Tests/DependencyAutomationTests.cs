@@ -156,6 +156,7 @@ public sealed class DependencyAutomationTests
         var props = ReadRepoFile("Directory.Build.props");
 
         Assert.Contains("<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>", props);
+        Assert.Contains("<RestoreLockedMode Condition=\"'$(LibreSpotReleaseBuild)' == 'true'\">true</RestoreLockedMode>", props);
         Assert.Contains("<NuGetAudit>true</NuGetAudit>", props);
         Assert.Contains("<NuGetAuditMode>all</NuGetAuditMode>", props);
         Assert.Contains("<NuGetAuditLevel>moderate</NuGetAuditLevel>", props);
