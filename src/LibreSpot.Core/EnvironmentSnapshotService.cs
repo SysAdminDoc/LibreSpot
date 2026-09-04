@@ -676,6 +676,16 @@ public sealed class EnvironmentSnapshotService
                 "Install");
         }
 
+        // Pinning Spotify pins the browser engine inside it. Chromium ships
+        // security fixes on its own cadence and CEF does not backport them, so
+        // the age of that engine is part of what the pin costs and it was
+        // nowhere in the product.
+        var engine = ReadEmbeddedBrowserEngine();
+        var evidence = engine is null
+            ? L("HealthEvidenceSpotifyDetected")
+            : L("HealthEvidenceSpotifyDetected") + " " + F("HealthEvidenceSpotifyEngineFormat", engine)
+        ;
+
         return Component(
             "spotify",
             L("HealthNameSpotify"),
@@ -684,7 +694,48 @@ public sealed class EnvironmentSnapshotService
             _spotifyVersionProbe(),
             _spotifyPath,
             GetLastChanged(_spotifyPath),
-            L("HealthEvidenceSpotifyDetected"));
+            evidence);
+    }
+
+    /// <summary>
+    /// The Chromium major the installed Spotify embeds, read from libcef.dll
+    /// beside Spotify.exe. Returns null when Spotify is not laid out the way
+    /// the desktop client is, which is not a failure worth reporting.
+    /// </summary>
+    private string? ReadEmbeddedBrowserEngine()
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(_spotifyPath);
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                return null;
+            }
+
+            var libcef = Path.Combine(directory, "libcef.dll");
+            if (!File.Exists(libcef))
+            {
+                return null;
+            }
+
+            // The product version reads like
+            // "146.0.10+g8219561+chromium-146.0.7680.179"; the Chromium build
+            // after the marker is the part a reader can compare with Chrome.
+            var product = FileVersionInfo.GetVersionInfo(libcef).ProductVersion;
+            if (string.IsNullOrWhiteSpace(product))
+            {
+                return null;
+            }
+
+            var marker = product.IndexOf("chromium-", StringComparison.OrdinalIgnoreCase);
+            return marker >= 0
+                ? product[(marker + "chromium-".Length)..]
+                : product;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return null;
+        }
     }
 
     private StackHealthComponent BuildSpotXComponent(bool spotifyInstalled)

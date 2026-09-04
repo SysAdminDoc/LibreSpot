@@ -2472,6 +2472,7 @@
   <data name="HealthEvidenceCommunityAssetFormat" xml:space="preserve"><value>固定提交：{0}；最新：{1}；漂移：{2}；来源：{3}；许可证：{4}；网络行为：{5}。</value><comment>Structured community asset health evidence.</comment></data>
   <data name="HealthEvidenceSpotifyMissing" xml:space="preserve"><value>在预期的每用户安装路径中找不到 Spotify.exe。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotifyDetected" xml:space="preserve"><value>Spotify.exe 存在并且可以用作补丁目标。</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpotifyEngineFormat" xml:space="preserve"><value>它使用 Chromium {0} 浏览器内核，该内核与此 Spotify 版本绑定。</value><comment>{0} is the embedded Chromium version read from libcef.dll.</comment></data>
   <data name="HealthEvidenceSpotXNotChecked" xml:space="preserve"><value>SpotX 补丁标记仅在安装 Spotify 后才有意义。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotXVerified" xml:space="preserve"><value>Spotify 应用程序包和 SpotX 备份存在，匹配成功补丁标记。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotXUnverified" xml:space="preserve"><value>Spotify 的应用程序包存在，但未找到 SpotX 备份标记。</value><comment>Health evidence.</comment></data>

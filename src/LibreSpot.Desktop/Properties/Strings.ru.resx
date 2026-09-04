@@ -2472,6 +2472,7 @@
   <data name="HealthEvidenceCommunityAssetFormat" xml:space="preserve"><value>Закрепленный коммит: {0}; последний: {1}; дрейф: {2}; источник: {3}; лицензия: {4}; поведение сети: {5}.</value><comment>Structured community asset health evidence.</comment></data>
   <data name="HealthEvidenceSpotifyMissing" xml:space="preserve"><value>Spotify.exe не найден в ожидаемом пути установки для каждого пользователя.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotifyDetected" xml:space="preserve"><value>Spotify.exe существует и может использоваться в качестве целевого объекта исправления.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpotifyEngineFormat" xml:space="preserve"><value>On ispolzuet brauzernyy dvizhok Chromium {0}, privyazannyy k etoy sborke Spotify.</value><comment>{0} is the embedded Chromium version read from libcef.dll.</comment></data>
   <data name="HealthEvidenceSpotXNotChecked" xml:space="preserve"><value>Маркеры исправлений SpotX имеют смысл только после установки Spotify.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotXVerified" xml:space="preserve"><value>Пакет приложений Spotify и резервная копия SpotX присутствуют, что соответствует маркерам успешного исправления.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotXUnverified" xml:space="preserve"><value>Пакет приложений Spotify существует, но резервный маркер SpotX не найден.</value><comment>Health evidence.</comment></data>

@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.IO;
 using System.Text.Json;
 using LibreSpot.Desktop.Models;
 using Xunit;
@@ -32,6 +34,28 @@ public sealed class CompatibilityBaselineTests
         var spotify = root.GetProperty("spotify").GetProperty("version").GetString();
         Assert.Equal(AppCatalog.PinnedSpotXSpotifyVersionId, spotify);
         Assert.Equal(AppCatalog.PinnedSpotXSpotifyVersion, spotify);
+
+        // Pinning Spotify pins the Chromium inside it, and CEF does not backport
+        // security fixes, so the recorded engine and the disclosure that quotes
+        // it have to move together with the pin.
+        var spotifyEntry = root.GetProperty("spotify");
+        var engine = spotifyEntry.GetProperty("embeddedChromium").GetString()!;
+        var engineMajor = spotifyEntry.GetProperty("embeddedChromiumMajor").GetInt32();
+        Assert.Matches(@"^\d+\.\d+\.\d+\.\d+$", engine);
+        Assert.Equal(
+            engineMajor.ToString(CultureInfo.InvariantCulture),
+            engine.Split('.')[0]);
+        Assert.True(
+            DateTimeOffset.TryParse(
+                spotifyEntry.GetProperty("embeddedChromiumReadAtUtc").GetString(),
+                out _),
+            "embeddedChromiumReadAtUtc must say when the engine was read.");
+
+        var readme = File.ReadAllText(Path.Combine(RepoRoot, "README.md"));
+        Assert.Contains(
+            $"ships **Chromium {engineMajor}**",
+            readme,
+            StringComparison.Ordinal);
 
         var spicetify = root.GetProperty("spicetifyCli");
         Assert.Equal(AppCatalog.PinnedSpicetifyCliVersion, spicetify.GetProperty("version").GetString());

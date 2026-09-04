@@ -13,8 +13,11 @@
   },
   "spotify": {
     "version": "1.2.93",
-    "$comment": "releasedDate is the publication date of the pinned Windows build (1.2.93.667). Community assets reviewed before it are treated as stale by Build-Scripts.ps1 -Validate.",
-    "releasedDate": "2026-07-03"
+    "$comment": "releasedDate is the publication date of the pinned Windows build (1.2.93.667). Community assets reviewed before it are treated as stale by Build-Scripts.ps1 -Validate. embeddedChromium is the browser engine that build ships, read from libcef.dll on 2026-09-04; pinning Spotify pins that engine, and CEF does not backport Chromium security fixes, so it only moves when the tuple moves.",
+    "releasedDate": "2026-07-03",
+    "embeddedChromium": "146.0.7680.179",
+    "embeddedChromiumMajor": 146,
+    "embeddedChromiumReadAtUtc": "2026-09-04T00:00:00Z"
   },
   "spicetifyCli": {
     "version": "2.44.0",

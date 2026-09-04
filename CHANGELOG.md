@@ -12,6 +12,7 @@ All notable changes to LibreSpot will be documented in this file.
 - The four schemas describing files LibreSpot writes now have tests that check a real output against the contract. The run-receipt schema was missing two fields the installer has always written.
 - A hold on the auto-reapply watcher now clears when Spotify moves to a different build, and a manual reapply clears it too, so the Reapply action the warning offers actually retires it. The hold also names the step that failed.
 - The release build now pins the PowerShell script compiler to one version and records it in the release manifest, so a published LibreSpot.exe says what produced it.
+- Maintenance now shows which Chromium version the installed Spotify runs, and the trust disclosure explains that pinning Spotify pins that browser engine.
 
 ### Added
 

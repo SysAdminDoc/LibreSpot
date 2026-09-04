@@ -2472,6 +2472,7 @@
   <data name="HealthEvidenceCommunityAssetFormat" xml:space="preserve"><value>Commit fixado: {0}; mais recente: {1}; deriva: {2}; fonte: {3}; licença: {4}; comportamento de rede: {5}.</value><comment>Structured community asset health evidence.</comment></data>
   <data name="HealthEvidenceSpotifyMissing" xml:space="preserve"><value>Spotify.exe não foi encontrado no caminho de instalação esperado por usuário.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotifyDetected" xml:space="preserve"><value>Spotify.exe existe e pode ser usado como destino do patch.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpotifyEngineFormat" xml:space="preserve"><value>Ele usa o motor de navegador Chromium {0}, que esta preso a esta versao do Spotify.</value><comment>{0} is the embedded Chromium version read from libcef.dll.</comment></data>
   <data name="HealthEvidenceSpotXNotChecked" xml:space="preserve"><value>Os marcadores de patch do SpotX só são significativos após a instalação do Spotify.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotXVerified" xml:space="preserve"><value>O pacote de aplicativos Spotify e um backup do SpotX estão presentes, correspondendo ao patch bem-sucedido. marcadores.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotXUnverified" xml:space="preserve"><value>O pacote de aplicativos do Spotify existe, mas nenhum marcador de backup do SpotX foi encontrado.</value><comment>Health evidence.</comment></data>

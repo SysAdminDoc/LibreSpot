@@ -1219,6 +1219,7 @@
   <data name="HealthEvidenceCommunityAssetFormat" xml:space="preserve"><value>Pinned commit: {0}; latest: {1}; drift: {2}; source: {3}; license: {4}; network behavior: {5}.</value><comment>{0} is the pinned commit; {1} the latest commit; {2} the drift state; {3} the metadata source; {4} the SPDX license; {5} the network behavior.</comment></data>
   <data name="HealthEvidenceSpotifyMissing" xml:space="preserve"><value>Spotify.exe was not found in the expected per-user install path.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotifyDetected" xml:space="preserve"><value>Spotify.exe exists and can be used as the patch target.</value><comment>Health evidence.</comment></data>
+  <data name="HealthEvidenceSpotifyEngineFormat" xml:space="preserve"><value>It runs the Chromium {0} browser engine, which is fixed to this Spotify version.</value><comment>{0} is the embedded Chromium version read from libcef.dll.</comment></data>
   <data name="HealthEvidenceSpotXNotChecked" xml:space="preserve"><value>SpotX patch markers are only meaningful after Spotify is installed.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotXVerified" xml:space="preserve"><value>The Spotify app bundle and a SpotX backup are present, matching successful patch markers.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceSpotXUnverified" xml:space="preserve"><value>Spotify's app bundle exists, but no SpotX backup marker was found.</value><comment>Health evidence.</comment></data>
