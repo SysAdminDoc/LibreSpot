@@ -52,19 +52,19 @@
         <TextBlock Text="{services:Loc ThemePackLabel}"
                    Style="{StaticResource LabelTextStyle}"
                    Margin="0,0,0,8" />
-        <!-- Cards vary in height, so the gallery viewport cannot be sized to
-             whole cards. A bottom fade makes a partial card read as scrollable
-             instead of as a title cut in half. -->
+        <!-- The gallery grows to its content and the page scrolls it. A
+             bounded viewport here put a second scroll thumb beside the
+             page's own at the minimum window size and showed one and a
+             half cards, which is the opposite of a settings page with one
+             scrollbar. -->
         <Grid Margin="0,0,0,6">
         <ListBox ItemsSource="{Binding FilteredThemeGalleryItems}"
                  SelectedItem="{Binding SelectedThemeGalleryItem, Mode=TwoWay}"
                  Background="Transparent"
                  BorderThickness="0"
                  Padding="0"
-                 MaxHeight="340"
-                 PreviewMouseWheel="NestedScrollRegion_OnPreviewMouseWheel"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
                  KeyboardNavigation.DirectionalNavigation="Contained"
                  AutomationProperties.Name="{services:Loc ThemePackLabel}"
                  AutomationProperties.HelpText="{services:Loc ThemePackHint}"
@@ -162,11 +162,6 @@
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
-          <Border Height="28"
-                  VerticalAlignment="Bottom"
-                  Margin="0,0,10,10"
-                  Background="{DynamicResource ScrollFadeBrush}"
-                  IsHitTestVisible="False" />
         </Grid>
 
         <TextBlock Text="{Binding ThemeGalleryEmptyText}"

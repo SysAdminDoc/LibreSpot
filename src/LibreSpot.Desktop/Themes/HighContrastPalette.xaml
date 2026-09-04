@@ -170,9 +170,6 @@
   <SolidColorBrush x:Key="RailGlowBrush" Color="Transparent" />
   <SolidColorBrush x:Key="SurfaceSheenBrush" Color="Transparent" />
 
-  <!-- No soft edges in high contrast: the scrollbar is the affordance. -->
-  <Color x:Key="ScrollFadeStartColor">#00000000</Color>
-  <SolidColorBrush x:Key="ScrollFadeBrush" Color="Transparent" />
   <SolidColorBrush x:Key="AccentGradientBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
   <SolidColorBrush x:Key="HeroPanelBrush" Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}" />
   <SolidColorBrush x:Key="HeroRingBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />

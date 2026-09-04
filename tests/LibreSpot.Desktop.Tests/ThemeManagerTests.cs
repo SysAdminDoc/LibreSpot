@@ -108,30 +108,37 @@ public sealed class ThemeManagerTests
     }
 
     [Fact]
-    public void ScrollingCardListsFadeTheirBottomEdgeExceptInHighContrast()
+    public void SettingsCardListsFlowWithThePageInsteadOfScrollingThemselves()
     {
-        // The theme gallery is the one card list that still scrolls inside the
-        // page; the profile list flows with the page since the Settings recomposition.
-        var view = ReadFile("src", "LibreSpot.Desktop", "Views", "CustomAppearanceSection.xaml");
-        Assert.Contains("ScrollFadeBrush", view);
-        Assert.Contains("IsHitTestVisible=\"False\"", view);
-
-        RunSta(() =>
+        // This replaces a fade-edge contract. The theme gallery used to be the
+        // one card list that scrolled inside the page, and the fade existed to
+        // make a half-shown card read as scrollable. At the 1080 by 720 minimum
+        // window that put a second scroll thumb beside the page's own and showed
+        // one and a half cards, which contradicts README's "the page has a
+        // single scrollbar". The gallery now grows to its content, so the fade
+        // and its palette brush are gone and this guards the replacement.
+        foreach (var section in new[]
+                 {
+                     "CustomAppearanceSection.xaml",
+                     "CustomProfileSummarySection.xaml",
+                 })
         {
-            var host = new Border();
-            host.Resources.MergedDictionaries.Add(LoadPalette("Palette.xaml"));
-            var fade = new Border();
-            host.Child = fade;
-            fade.SetResourceReference(Border.BackgroundProperty, "ScrollFadeBrush");
+            var view = ReadFile("src", "LibreSpot.Desktop", "Views", section);
+            Assert.DoesNotContain("ScrollFadeBrush", view);
+            Assert.DoesNotContain("ScrollViewer.VerticalScrollBarVisibility=\"Auto\"", view);
+        }
 
-            var gradient = Assert.IsType<LinearGradientBrush>(fade.Background);
-            Assert.Equal(0, gradient.GradientStops[0].Color.A);
-            Assert.Equal(255, gradient.GradientStops[^1].Color.A);
+        var gallery = ReadFile("src", "LibreSpot.Desktop", "Views", "CustomAppearanceSection.xaml");
+        Assert.DoesNotContain("MaxHeight=\"340\"", gallery);
+        Assert.Contains("ScrollViewer.VerticalScrollBarVisibility=\"Disabled\"", gallery);
 
-            // High contrast has no soft edges; the scrollbar is the affordance.
-            host.Resources.MergedDictionaries[0] = LoadPalette("HighContrastPalette.xaml");
-            Assert.Equal(0, Assert.IsType<SolidColorBrush>(fade.Background).Color.A);
-        });
+        // The brush has no consumer left, so it must not linger in either palette.
+        foreach (var palette in new[] { "Palette.xaml", "HighContrastPalette.xaml" })
+        {
+            Assert.DoesNotContain(
+                "ScrollFadeBrush",
+                ReadFile("src", "LibreSpot.Desktop", "Themes", palette));
+        }
     }
 
     [Fact]

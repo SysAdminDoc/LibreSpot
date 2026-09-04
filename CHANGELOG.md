@@ -14,6 +14,7 @@ All notable changes to LibreSpot will be documented in this file.
 - The release build now pins the PowerShell script compiler to one version and records it in the release manifest, so a published LibreSpot.exe says what produced it.
 - Maintenance now shows which Chromium version the installed Spotify runs, and the trust disclosure explains that pinning Spotify pins that browser engine.
 - The Spotify drift check now works out the highest build that SpotX, a published classmap and Spicetify's declared range all cover, and says which of the three set that ceiling.
+- The theme gallery in Settings no longer scrolls inside the page. At the smallest window it showed a second scrollbar beside the page's own and one and a half cards; it now grows with the page.
 
 ### Added
 
