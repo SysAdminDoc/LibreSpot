@@ -1981,7 +1981,7 @@ function Invoke-LibreSpotStableExeCompile {
     ) -join ' '
 
     Write-Host "Compiling LibreSpot.ps1 v$scriptVersion with PS2EXE..." -ForegroundColor Cyan
-    & $pwsh.Source -NoProfile -Command $command
+    & $pwsh.Source -NoProfile -ExecutionPolicy Bypass -Command $command
     if ($LASTEXITCODE -ne 0) {
         throw "PS2EXE compilation failed with exit code $LASTEXITCODE."
     }

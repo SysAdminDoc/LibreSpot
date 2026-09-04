@@ -134,6 +134,7 @@ public sealed class CommunityAssetsManifestTests
         Assert.Contains("buildInputs", script, StringComparison.Ordinal);
         Assert.Contains("sdkVersion", script, StringComparison.Ordinal);
         Assert.Contains("nonDeterministicNotes", script, StringComparison.Ordinal);
+        Assert.Contains("& $pwsh.Source -NoProfile -ExecutionPolicy Bypass -Command $command", script, StringComparison.Ordinal);
 
         var props = ReadFile("Directory.Build.props");
         Assert.Contains("<Deterministic>true</Deterministic>", props, StringComparison.Ordinal);

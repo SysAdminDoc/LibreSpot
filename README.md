@@ -637,7 +637,9 @@ exception: ps2exe does not build reproducibly, so verify that one against the
 
 `-CompileStableExe` writes `publish\LibreSpot.exe` with the pinned PS2EXE flags
 (icon, admin manifest, no console, and the file version taken from
-`LibreSpot.ps1`) and needs the `ps2exe` module available to `pwsh`.
+`LibreSpot.ps1`) and needs the `ps2exe` module available to `pwsh`. Its child
+PowerShell process permits that reviewed local module to load even when the
+current user's execution policy blocks unsigned module scripts.
 `-GenerateSbom` restores the pinned CycloneDX 6.2.0 local tool and writes
 `publish\LibreSpot.sbom.cdx.json` for the desktop project. Manifest
 generation then re-checks that file version against the script, checks the
