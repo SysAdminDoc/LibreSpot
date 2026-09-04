@@ -121,6 +121,62 @@ describe("engine state quarantine", () => {
     expect(store.load().schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
 
     expect(map.get(ENGINE_STORAGE_KEY)).toBe("{ broken");
+    // Health must still offer the bytes back. Reporting nothing here is how a
+    // refused copy becomes a silent loss on the next save.
+    expect(store.readQuarantine()?.raw).toBe("{ broken");
+  });
+
+  it("re-tries the refused copy on the next save, and keeps offering it meanwhile", () => {
+    const map = new Map<string, string>();
+    map.set(ENGINE_STORAGE_KEY, "{ broken");
+    let refuse = true;
+    const storage: StorageAdapter = {
+      get: (key) => map.get(key) ?? null,
+      set: (key, value) => {
+        if (refuse && key.startsWith(QUARANTINE_KEY_PREFIX)) {
+          throw new Error("QuotaExceededError");
+        }
+        map.set(key, value);
+      },
+      remove: (key) => {
+        map.delete(key);
+      },
+    };
+
+    const store = storeAt(storage);
+    const state = store.load();
+    expect(store.readQuarantine()?.raw).toBe("{ broken");
+
+    // Whatever filled the profile has been freed by the time the user saves.
+    refuse = false;
+    store.save(state);
+
+    expect(map.get(QUARANTINE_POINTER_KEY)).toBe(
+      `${QUARANTINE_KEY_PREFIX}${QUARANTINED_AT}`,
+    );
+    expect(store.readQuarantine()?.raw).toBe("{ broken");
+    expect(map.get(ENGINE_STORAGE_KEY)).not.toBe("{ broken");
+  });
+
+  it("stops offering a refused copy once it is discarded", () => {
+    const map = new Map<string, string>();
+    map.set(ENGINE_STORAGE_KEY, "{ broken");
+    const full: StorageAdapter = {
+      get: (key) => map.get(key) ?? null,
+      set: () => {
+        throw new Error("QuotaExceededError");
+      },
+      remove: (key) => {
+        map.delete(key);
+      },
+    };
+
+    const store = storeAt(full);
+    store.load();
+    expect(store.readQuarantine()).not.toBeNull();
+
+    store.discardQuarantine();
+
     expect(store.readQuarantine()).toBeNull();
   });
 

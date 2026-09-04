@@ -3411,6 +3411,8 @@ Describe 'Module-InstallThemes bundled theme resolution' {
 Describe 'Auto-reapply watcher hold' {
     BeforeAll {
         $sharedDir = (Resolve-Path (Join-Path $PSScriptRoot '..\..\src\powershell\shared')).Path
+        $script:LaneRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\src\powershell')).Path
+        $script:BackendHostPath = (Resolve-Path (Join-Path $PSScriptRoot '..\..\src\LibreSpot.Desktop\Backend\LibreSpot.Backend.ps1')).Path
         foreach ($name in @(
                 'Get-LibreSpotWatcherHoldDecision',
                 'Get-LibreSpotWatcherFailureState',
@@ -3488,8 +3490,7 @@ Describe 'Auto-reapply watcher hold' {
 
     It 'names the step that failed, not just the exception text' {
         foreach ($lane in @('gui', 'backend')) {
-            $path = Join-Path $PSScriptRoot "..\..\src\powershell\$lane\lane-functions.ps1"
-            $text = [System.IO.File]::ReadAllText((Resolve-Path $path).Path)
+            $text = [System.IO.File]::ReadAllText((Join-Path $script:LaneRoot "$lane\lane-functions.ps1"))
             $reapply = [regex]::Match($text, '(?ms)^function Invoke-HeadlessReapply\s*\{.+?^\}').Value
             foreach ($step in @('SpotX download', 'SpotX patch', 'Spicetify reapply')) {
                 $reapply | Should -Match ([regex]::Escape($step)) -Because "$lane must record the $step step"
@@ -3503,11 +3504,33 @@ Describe 'Auto-reapply watcher hold' {
         # Update-ApplyState is the backend writer behind the Reapply action the
         # held Maintenance row offers. If it does not retire the hold, that
         # action is a no-op and the row never clears.
-        $host_ = (Resolve-Path (Join-Path $PSScriptRoot '..\..\src\LibreSpot.Desktop\Backend\LibreSpot.Backend.ps1')).Path
-        $text = [System.IO.File]::ReadAllText($host_)
+        $text = [System.IO.File]::ReadAllText($script:BackendHostPath)
         $fn = [regex]::Match($text, '(?ms)^function Update-ApplyState\s*\{.+?^\}').Value
         $fn | Should -Not -BeNullOrEmpty
         $fn | Should -Match 'Get-LibreSpotWatcherClearedHoldState'
+    }
+
+    It 'only promises a manual clear in the host that can do one' {
+        # The standalone script host has no Update-ApplyState: its manual apply
+        # runs in the worker runspace, which resolves only the exported set, so
+        # it cannot write watcher state. Its hold message must not tell the user
+        # to run a reapply that would not clear anything.
+        $gui = [System.IO.File]::ReadAllText((Join-Path $script:LaneRoot 'gui\lane-functions.ps1'))
+        $backend = [System.IO.File]::ReadAllText((Join-Path $script:LaneRoot 'backend\lane-functions.ps1'))
+
+        $gui | Should -Not -Match 'Run a reapply from LibreSpot to clear it'
+        $gui | Should -Match 'the next automatic reapply succeeds'
+        $backend | Should -Match 'Run a reapply from LibreSpot to clear it'
+    }
+
+    It 'does not carry a step marker across ticks' {
+        foreach ($lane in @('gui', 'backend')) {
+            $text = [System.IO.File]::ReadAllText((Join-Path $script:LaneRoot "$lane\lane-functions.ps1"))
+            $reapply = [regex]::Match($text, '(?ms)^function Invoke-HeadlessReapply\s*\{.+?^\}').Value
+            # A tick that fails before reaching the reapply would otherwise
+            # report the step the previous tick stopped at.
+            $reapply | Should -Match '\$global:LibreSpotReapplyStep = \$null' -Because "$lane must clear the marker on exit"
+        }
     }
 
     It 'clears the hold and the count after a successful reapply' {
@@ -3539,8 +3562,7 @@ Describe 'Auto-reapply watcher hold' {
 
     It 'both lanes gate the reapply on the shared decision' {
         foreach ($lane in @('gui', 'backend')) {
-            $path = Join-Path $PSScriptRoot "..\..\src\powershell\$lane\lane-functions.ps1"
-            $text = [System.IO.File]::ReadAllText((Resolve-Path $path).Path)
+            $text = [System.IO.File]::ReadAllText((Join-Path $script:LaneRoot "$lane\lane-functions.ps1"))
             $watcher = [regex]::Match($text, '(?ms)^function Invoke-AutoReapplyWatcher\s*\{.+?^\}').Value
             $watcher | Should -Not -BeNullOrEmpty -Because "$lane must define the watcher"
             $watcher | Should -Match 'Get-LibreSpotWatcherHoldDecision' -Because "$lane must consult the hold before reapplying"

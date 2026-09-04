@@ -1,6 +1,10 @@
 {
   "$comment": "Release artifact contract — defines expected assets, checksums, signing, and local verification state per release channel. The local post-upload audit should verify the published release matches this contract.",
   "schemaVersion": 1,
+  "buildTooling": {
+    "$comment": "Versions that change what a release artifact contains. ps2exe 1.0.16 through 1.0.18 each altered the produced executable, so the compiler is part of the artifact and Build-Scripts.ps1 must import exactly this version.",
+    "ps2exeVersion": "1.0.18"
+  },
   "tagPatterns": {
     "stable": "^v\\d+\\.\\d+\\.\\d+$",
     "preview": "^v\\d+\\.\\d+\\.\\d+-preview\\.\\d+$",

@@ -324,6 +324,9 @@ function Invoke-HeadlessReapply {
         Reapply-SavedSpicetifySetup -Config $Config
         Write-WatcherLog "Spicetify assets and managed routes reapplied" -Level 'SUCCESS'
     } finally {
+        # Cleared on exit so a later tick that fails before reaching this
+        # function cannot report the step an earlier one stopped at.
+        $global:LibreSpotReapplyStep = $null
         if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
             Remove-Item -LiteralPath $customPatchesPath -Force -ErrorAction SilentlyContinue
         }
@@ -364,7 +367,7 @@ function Invoke-AutoReapplyWatcher {
     # that build and waits for a new Spotify version or a manual reapply.
     $holdDecision = Get-LibreSpotWatcherHoldDecision -State $state -CurrentVersion $currentVersion
     if ($holdDecision.IsHeld) {
-        Write-WatcherLog "Reapply is on hold for Spotify $currentVersion after $($holdDecision.Threshold) failed attempts. Run a reapply from LibreSpot to clear it." -Level 'WARN'
+        Write-WatcherLog "Reapply is on hold for Spotify $currentVersion after $($holdDecision.Threshold) failed attempts. It clears when Spotify updates again or the next automatic reapply succeeds." -Level 'WARN'
         Set-WatcherState -State @{ LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'HeldAfterRepeatedFailures' }
         return 0
     }

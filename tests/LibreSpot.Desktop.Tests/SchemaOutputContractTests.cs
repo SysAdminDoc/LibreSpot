@@ -148,9 +148,19 @@ public sealed class SchemaOutputContractTests
         foreach (var file in ProductionSources())
         {
             var text = File.ReadAllText(file);
-            foreach (Match match in Regex.Matches(text, @"tokenKind\s*[:=]\s*[""']([A-Za-z]+)[""']"))
+            // Two forms carry a kind: a hashtable literal and the -TokenKind
+            // parameter. Matching only the first saw one kind out of sixteen,
+            // because production overwhelmingly passes it as a parameter.
+            foreach (var pattern in new[]
+                     {
+                         @"tokenKind\s*[:=]\s*[""']([A-Za-z]+)[""']",
+                         @"-TokenKind\s+[""']([A-Za-z]+)[""']",
+                     })
             {
-                used.Add(match.Groups[1].Value);
+                foreach (Match match in Regex.Matches(text, pattern))
+                {
+                    used.Add(match.Groups[1].Value);
+                }
             }
         }
 
@@ -176,18 +186,57 @@ public sealed class SchemaOutputContractTests
             .Select(status => status.GetProperty("value").GetString()!)
             .ToHashSet(StringComparer.Ordinal);
 
-        // Complete-OperationJournalRun is the writer both PowerShell hosts use.
-        var writer = File.ReadAllText(
-            Path.Combine(RepoRoot, "src", "powershell", "shared", "Complete-OperationJournalRun.ps1"));
-        var receiptBody = Regex.Match(
-            writer,
-            @"(?sm)^\s*\$receipt = \[ordered\]@\{(.+?)^\s*\}").Groups[1].Value;
-        Assert.False(string.IsNullOrWhiteSpace(receiptBody), "Could not locate the receipt hashtable.");
+        // The shared module is the canonical writer, but each host carries its
+        // own composed copy and a hand edit to one of those would not touch the
+        // shared file. All three have to satisfy the contract.
+        var writers = new[]
+        {
+            Path.Combine(RepoRoot, "src", "powershell", "shared", "Complete-OperationJournalRun.ps1"),
+            Path.Combine(RepoRoot, "LibreSpot.ps1"),
+            Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1"),
+        };
 
-        var written = Regex.Matches(receiptBody, @"(?m)^\s+([A-Za-z]+)\s*=")
-            .Select(match => match.Groups[1].Value)
-            .ToHashSet(StringComparer.Ordinal);
+        var written = new HashSet<string>(StringComparer.Ordinal);
+        var statuses = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var path in writers)
+        {
+            // Scoped to the writer. Scanning a whole 12,000 line host for
+            // `status = '...'` picks up unrelated code and fails for the wrong
+            // reason.
+            var file = File.ReadAllText(path);
+            var function = Regex.Match(
+                file,
+                @"(?sm)^function Complete-OperationJournalRun\b.+?^\}").Value;
+            Assert.False(
+                string.IsNullOrWhiteSpace(function),
+                $"Could not locate Complete-OperationJournalRun in {Path.GetFileName(path)}.");
+
+            var receiptBody = Regex.Match(
+                function,
+                @"(?sm)^\s*\$receipt = \[ordered\]@\{(.+?)^\s*\}").Groups[1].Value;
+            Assert.False(
+                string.IsNullOrWhiteSpace(receiptBody),
+                $"Could not locate the receipt hashtable in {Path.GetFileName(path)}.");
+
+            foreach (Match match in Regex.Matches(receiptBody, @"(?m)^\s+([A-Za-z]+)\s*="))
+            {
+                written.Add(match.Groups[1].Value);
+            }
+
+            foreach (Match match in Regex.Matches(function, @"(?m)^\s+'[A-Za-z]+'\s*\{\s*'([a-zA-Z]+)'\s*\}"))
+            {
+                statuses.Add(match.Groups[1].Value);
+            }
+
+            foreach (Match match in Regex.Matches(function, @"default\s*\{\s*'([a-zA-Z]+)'\s*\}"))
+            {
+                statuses.Add(match.Groups[1].Value);
+            }
+        }
+
         Assert.NotEmpty(written);
+        // Without this the status loop below can pass by matching nothing.
+        Assert.NotEmpty(statuses);
 
         var undeclared = written.Where(name => !receiptFields.Contains(name))
             .OrderBy(name => name, StringComparer.Ordinal)
@@ -211,7 +260,7 @@ public sealed class SchemaOutputContractTests
             "schemas/run-receipt-format.json requires receipt fields that Complete-OperationJournalRun never "
                 + "writes: " + string.Join(", ", missing));
 
-        foreach (var status in Regex.Matches(writer, @"status\s*=\s*'([a-zA-Z]+)'").Select(m => m.Groups[1].Value))
+        foreach (var status in statuses)
         {
             Assert.True(
                 statusValues.Contains(status),
@@ -268,7 +317,35 @@ public sealed class SchemaOutputContractTests
 
             if (propertySchema.TryGetProperty("const", out var expected))
             {
+                // Compare the kind too: through ToString() alone the number 1
+                // and the string "1" are the same value.
+                Assert.Equal(expected.ValueKind, actual.ValueKind);
                 Assert.Equal(expected.ToString(), actual.ToString());
+            }
+
+            if (propertySchema.TryGetProperty("type", out var declaredType))
+            {
+                var allowed = declaredType.ValueKind == JsonValueKind.Array
+                    ? StringArray(declaredType)
+                    : [declaredType.GetString()!];
+                Assert.True(
+                    allowed.Any(name => MatchesJsonType(actual, name)),
+                    $"{childPath} is {actual.ValueKind}, which none of [{string.Join(", ", allowed)}] allows.");
+            }
+
+            if (propertySchema.TryGetProperty("enum", out var declaredEnum))
+            {
+                Assert.Contains(actual.ToString(), StringArray(declaredEnum));
+            }
+
+            if (propertySchema.TryGetProperty("contains", out var contains)
+                && actual.ValueKind == JsonValueKind.Array)
+            {
+                // The bundle's externalRequirements exists to carry the Spotify
+                // installer disclosure. Dropping it must not pass.
+                Assert.True(
+                    actual.EnumerateArray().Any(item => Satisfies(item, contains, root)),
+                    $"{childPath} does not contain the element the schema requires.");
             }
 
             if (propertySchema.TryGetProperty("pattern", out var pattern)
@@ -312,6 +389,56 @@ public sealed class SchemaOutputContractTests
                 AssertMatchesObjectSchema(actual, propertySchema, root, childPath);
             }
         }
+    }
+
+    private static bool MatchesJsonType(JsonElement value, string declared) => declared switch
+    {
+        "string" => value.ValueKind == JsonValueKind.String,
+        "integer" or "number" => value.ValueKind == JsonValueKind.Number,
+        "boolean" => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
+        "object" => value.ValueKind == JsonValueKind.Object,
+        "array" => value.ValueKind == JsonValueKind.Array,
+        "null" => value.ValueKind == JsonValueKind.Null,
+        _ => true,
+    };
+
+    /// <summary>Whether one array element satisfies a `contains` sub-schema.</summary>
+    private static bool Satisfies(JsonElement value, JsonElement schema, JsonElement root)
+    {
+        schema = Resolve(schema, root);
+
+        if (schema.TryGetProperty("required", out var required))
+        {
+            foreach (var name in StringArray(required))
+            {
+                if (!value.TryGetProperty(name, out _))
+                {
+                    return false;
+                }
+            }
+        }
+
+        if (!schema.TryGetProperty("properties", out var properties))
+        {
+            return true;
+        }
+
+        foreach (var property in properties.EnumerateObject())
+        {
+            if (!value.TryGetProperty(property.Name, out var actual))
+            {
+                continue;
+            }
+
+            var propertySchema = Resolve(property.Value, root);
+            if (propertySchema.TryGetProperty("const", out var expected)
+                && (expected.ValueKind != actual.ValueKind || expected.ToString() != actual.ToString()))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static JsonElement Resolve(JsonElement schema, JsonElement root)

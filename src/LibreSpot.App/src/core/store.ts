@@ -41,6 +41,14 @@ export function browserStorage(storage: Storage): StorageAdapter {
 }
 
 export class EngineStore {
+  /**
+   * The unreadable value from this session's load when it could not be copied
+   * anywhere. Keeping it in memory is what stops a full profile turning into a
+   * silent loss: storage refused the copy, so nothing on disk points at it, and
+   * the next save would overwrite the original with no one ever told it existed.
+   */
+  private unrecovered: QuarantinedState | null = null;
+
   public constructor(
     private readonly storage: StorageAdapter,
     private readonly now: () => Date = () => new Date(),
@@ -69,6 +77,11 @@ export class EngineStore {
 
   /** The unreadable state kept from the last failed load, if there is one. */
   public readQuarantine(): QuarantinedState | null {
+    // The in-memory copy wins: it exists only when storage refused to hold one,
+    // and it is the sole remaining route to those bytes.
+    if (this.unrecovered !== null) {
+      return this.unrecovered;
+    }
     const key = this.storage.get(QUARANTINE_POINTER_KEY);
     if (key?.startsWith(QUARANTINE_KEY_PREFIX) !== true) {
       return null;
@@ -106,6 +119,7 @@ export class EngineStore {
 
   /** Drops the kept copy once the user has exported it or decided against it. */
   public discardQuarantine(): void {
+    this.unrecovered = null;
     const key = this.storage.get(QUARANTINE_POINTER_KEY);
     // Only ever remove a key this class owns. A pointer left by some other
     // scheme could otherwise name the live state and Discard would delete it.
@@ -117,8 +131,30 @@ export class EngineStore {
 
   /** True when the raw value is safely stored and the original can be dropped. */
   private quarantine(raw: string, error: unknown): boolean {
-    const quarantinedAt = this.now().toISOString();
-    const key = `${QUARANTINE_KEY_PREFIX}${quarantinedAt}`;
+    const candidate: QuarantinedState = {
+      key: "",
+      quarantinedAt: this.now().toISOString(),
+      reason:
+        error instanceof Error
+          ? error.message
+          : "The saved state could not be read.",
+      raw,
+    };
+
+    if (this.writeQuarantine(candidate)) {
+      this.unrecovered = null;
+      return true;
+    }
+
+    // Storage refused the copy. Hold it for this session so Health can still
+    // offer Export; the original stays on disk untouched behind it.
+    this.unrecovered = candidate;
+    return false;
+  }
+
+  /** Writes one quarantine record and its pointer. False when storage refuses. */
+  private writeQuarantine(record: QuarantinedState): boolean {
+    const key = `${QUARANTINE_KEY_PREFIX}${record.quarantinedAt}`;
     const previous = (() => {
       try {
         return this.storage.get(QUARANTINE_POINTER_KEY);
@@ -131,18 +167,13 @@ export class EngineStore {
       this.storage.set(
         key,
         JSON.stringify({
-          quarantinedAt,
-          reason:
-            error instanceof Error
-              ? error.message
-              : "The saved state could not be read.",
-          raw,
+          quarantinedAt: record.quarantinedAt,
+          reason: record.reason,
+          raw: record.raw,
         }),
       );
       this.storage.set(QUARANTINE_POINTER_KEY, key);
     } catch {
-      // A full or unavailable store must not stop the engine from starting,
-      // and must not cost the user the state either.
       return false;
     }
 
@@ -160,6 +191,13 @@ export class EngineStore {
   }
 
   public save(state: EngineState): EngineState {
+    // A save is what would overwrite an unreadable original that storage
+    // refused to copy. Try the copy once more first, so the recovery survives
+    // if whatever filled the profile has since been freed.
+    if (this.unrecovered !== null && this.writeQuarantine(this.unrecovered)) {
+      this.unrecovered = null;
+    }
+
     const next = structuredClone(state);
     next.schemaVersion = PROFILE_SCHEMA_VERSION;
     next.updatedAt = this.now().toISOString();

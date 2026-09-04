@@ -141,6 +141,17 @@ public sealed class CommunityAssetsManifestTests
         // would not say which one ran.
         var pin = Regex.Match(script, @"function Get-LibreSpotPs2ExeVersion[\s\S]{0,400}?\[Version\]'(?<version>[\d.]+)'");
         Assert.True(pin.Success, "Build-Scripts.ps1 must declare one pinned ps2exe version.");
+
+        // The captured version has to be compared with something, or the pin can
+        // be moved to any value and every assertion below still passes.
+        var contract = ReadFile("schemas", "release-artifact-contract.json");
+        using var contractDocument = JsonDocument.Parse(contract);
+        Assert.Equal(
+            pin.Groups["version"].Value,
+            contractDocument.RootElement
+                .GetProperty("buildTooling")
+                .GetProperty("ps2exeVersion")
+                .GetString());
         Assert.Contains(
             $"Import-Module ps2exe -RequiredVersion '$requiredPs2ExeVersion' -ErrorAction Stop;",
             script,

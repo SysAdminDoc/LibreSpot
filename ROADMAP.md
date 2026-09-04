@@ -82,3 +82,17 @@ Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the la
   Touches: `resources/custom-apps/librespot-engine.zip`, `src/powershell/data/CommunityCustomApps.ps1`, `LibreSpot.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `schemas/parity-manifest.json`.
   Acceptance: WHEN the archive is rebuilt from current app source, its SHA256 SHALL match all three installer pins and `BundledLibreSpotArchive_MatchesEveryPinAndShipsItsPackageVersion` SHALL pass; a test SHALL fail when the archive's embedded engine bundle does not contain the current `QUARANTINE_POINTER_KEY` string, so source-to-archive drift is caught rather than assumed.
   Complexity: S
+
+- [ ] P2: RD-199: Let the standalone script host clear a watcher hold after a manual reapply
+  Why: the WPF backend clears the hold from `Update-ApplyState`, but the standalone `LibreSpot.ps1` host has no equivalent: its manual apply runs in the worker runspace, which resolves only the names in `$functionNamesForWorker`, and neither `Set-WatcherState` nor the hold helpers are in that set. Calling them from `Module-ApplySpicetify` would be a `CommandNotFoundException` on a live install path, the exact class of failure RD-177 fixed. The hold message in that host now says what actually clears it there, so nothing is misleading, but a user who reapplies by hand still waits for the next Spotify update.
+  Evidence: `grep -rn "function Update-ApplyState"` matches only `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`; `LibreSpot.ps1` writes watcher state only inside `Invoke-AutoReapplyWatcher`; `tests/powershell/LibreSpot.Tests.ps1` "only promises a manual clear in the host that can do one" pins the current split; `CLAUDE.md` 2026-09-03 note on the worker runspace.
+  Touches: `LibreSpot.ps1` `$functionNamesForWorker`, `src/powershell/gui/lane-functions.ps1`, the hold message, `tests/powershell/LibreSpot.Tests.ps1`.
+  Acceptance: WHEN a manual apply succeeds in the standalone host, the hold SHALL clear; the worker-runspace closure test SHALL stay green with an empty baseline, proving every function the new path calls is exported; and the host-promise test SHALL be updated to require the same message in both hosts.
+  Complexity: M
+
+- [ ] P3: RD-200: Give the Spotify engine evidence one format resource instead of two joined strings
+  Why: the compatibility evidence is assembled in code as `L("HealthEvidenceSpotifyDetected") + " " + F("HealthEvidenceSpotifyEngineFormat", engine)`. A translator cannot reorder the two sentences and cannot remove the space, which is wrong for zh-Hans where sentences are not space separated. The engine version also reaches no machine-readable snapshot field, so nothing can compare what the machine actually runs against `embeddedChromiumMajor` in the baseline.
+  Evidence: `src/LibreSpot.Core/EnvironmentSnapshotService.cs` `BuildSpotifyComponent`; `schemas/compatibility-baseline.json` `spotify.embeddedChromiumMajor`; raised by an adversarial review on 2026-09-04.
+  Touches: `src/LibreSpot.Core/EnvironmentSnapshotService.cs`, all six `Strings*.resx`, the snapshot model, `tests/LibreSpot.Desktop.Tests/EnvironmentSnapshotServiceTests.cs`.
+  Acceptance: the evidence SHALL come from one format resource carrying both sentences; the snapshot SHALL expose the engine version as its own field; and a test SHALL fail when the field's major differs from the baseline's recorded major on a machine where Spotify is installed.
+  Complexity: S

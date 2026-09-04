@@ -351,6 +351,9 @@ function Invoke-HeadlessReapply {
         Reapply-SavedSpicetifySetup -Config $Config
         Write-WatcherLog 'Auto-reapply completed successfully.' -Level 'SUCCESS'
     } finally {
+        # Cleared on exit so a later tick that fails before reaching this
+        # function cannot report the step an earlier one stopped at.
+        $global:LibreSpotReapplyStep = $null
         Stop-SpotifyWindowWatcher -Watcher $watcher
         if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
             Remove-Item -LiteralPath $customPatchesPath -Force -ErrorAction SilentlyContinue
