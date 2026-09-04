@@ -12009,7 +12009,7 @@ $functionNamesForWorker = @(
     'Get-NormalizedPathString','Get-PathEntries','Set-PathEntries','Add-PathEntry','Remove-PathEntry',
     'Get-SpotXPatchVerification','Test-SpotifySessionStability',
     'Module-NukeSpotify','Module-InstallSpotX','Module-InstallSpicetifyCLI',
-    'Add-LibreSpotAssetInstallFailure','Get-LibreSpotAssetInstallFailureSummary',
+    'Add-LibreSpotAssetInstallFailure','Get-LibreSpotAssetInstallFailureSummary','Get-InstalledSpotifyVersion',
     'Module-InstallThemes','Download-CommunityExtensions','Module-InstallExtensions',
     'Module-InstallMarketplace','Module-InstallCustomApps','Open-SpicetifyMarketplace','Repair-Marketplace','Module-ApplySpicetify',
     'Write-MarketplaceVisibilityEvidence','Optimize-OperationJournalRetention',

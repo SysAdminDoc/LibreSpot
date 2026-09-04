@@ -3141,12 +3141,10 @@ Describe 'Worker runspace function closure' {
         $known = @(
             'Get-MarketplaceHealth -> Test-SpicetifyCustomAppRouteWiring',
             'Get-SpicetifyDiagnosticSnapshot -> Get-InstalledSpicetifyCliVersion',
-            'Get-SpicetifyDiagnosticSnapshot -> Get-InstalledSpotifyVersion',
             'Get-SpicetifyDiagnosticSnapshot -> Get-SpicetifyV3SupportContract',
             'Get-SpicetifyDiagnosticSnapshot -> Test-SpicetifyCliVersionSupported',
             'Get-SpicetifyV3Conflict -> Get-InstalledSpicetifyCliVersion',
             'Get-SpicetifyV3Conflict -> Get-SpicetifyCliMajorVersion',
-            'Module-ApplySpicetify -> Get-SpicetifyApplyPlan',
             'Module-ApplySpicetify -> Repair-LibreSpotManagedCustomAppRoutes',
             'Module-InstallCustomApps -> New-LibreSpotEngineBootstrap',
             'Module-InstallMarketplace -> Install-MarketplaceNavFallbackExtension',
