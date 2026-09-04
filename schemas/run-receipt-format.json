@@ -3,6 +3,12 @@
   "schemaVersion": 1,
   "receiptFields": [
     {
+      "name": "schemaVersion",
+      "type": "integer",
+      "description": "Receipt format version. Always 1 for this format.",
+      "required": true
+    },
+    {
       "name": "receiptId",
       "type": "string",
       "format": "uuid",
@@ -73,6 +79,12 @@
       "type": "string",
       "description": "Reference path or identifier to the sanitized log file for this operation.",
       "required": false
+    },
+    {
+      "name": "operations",
+      "type": "array",
+      "description": "The operations this run performed, each shaped by operationEntryFields.",
+      "required": true
     }
   ],
   "operationEntryFields": [

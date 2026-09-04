@@ -34,13 +34,6 @@ Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the la
   Acceptance: the compile step SHALL import `ps2exe -RequiredVersion <pinned>` and fail with a message naming the install command when it is absent; the release manifest SHALL record the compiler version; a test SHALL fail when the pinned version in the script and the contract disagree.
   Complexity: S
 
-- [ ] P2: RD-188: Validate production outputs against the four schemas no test reads
-  Why: `asset-cache-bundle.json`, `ndjson-log-format.json`, `operation-token-types.json` and `run-receipt-format.json` are user-data and fleet contracts; the last two are embedded into Core and consumed by the undo path, and none has a test that loads the schema file and validates a real output against it.
-  Evidence: no test file under `tests/` references those four filenames; `src/LibreSpot.Core/LibreSpot.Core.csproj:30-31` embeds two of them; `src/powershell/shared/Complete-OperationJournalRun.ps1:55-64` writes the receipt; `README.md:337` names the bundle contract.
-  Touches: `tests/LibreSpot.Core.Tests/` (new schema-validation tests), `tests/powershell/AssetCacheBundle.Tests.ps1`. No JSON-schema library is in any lockfile; validate the way `tests/LibreSpot.Desktop.Tests/FleetSchemaTests.cs` and `ProfileSchemaTests.cs` already do (read the schema with `System.Text.Json`, check required properties, types and enums by hand) rather than adding a dependency.
-  Acceptance: WHEN production code writes a receipt, an NDJSON log line, an undo token and a bundle manifest, a test SHALL validate each against its schema file; planting an extra required field in the schema or removing a field from the writer SHALL turn the test red.
-  Complexity: M
-
 - [ ] P2: RD-189: Compute the next reviewable Spotify build from SpotX, the classmaps and Spicetify's declared range in the drift check
   Why: three upstream sources bound the next pin (SpotX `patches.json` reaches 1.2.99, the newest classmap is 1020097 by inheritance from 1020096, Spicetify 2.44.0 declares 1.2.96) and public Spotify is 1.2.98.301 with 1.2.99 staged, but `-CheckSpotifyVersionDrift` reports drift without computing the highest build all three cover, so every tuple decision starts from headlines.
   Evidence: https://raw.githubusercontent.com/SpotX-Official/SpotX/main/run.ps1; https://github.com/spicetify/classmaps/commits/main; `schemas/spicetify-supported-versions-v2.json` `cli_declared_windows_range`; https://github.com/spicetify/spicetify-themes/issues/1290 (1.2.98 breaks Text); https://spotify.en.uptodown.com/windows/versions.
