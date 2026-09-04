@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Linq;
 using System.IO;
 using System.Text.Json;
 using Xunit;
@@ -115,6 +117,37 @@ public sealed class FleetSchemaTests
         Assert.Contains("Configure exit 13 as success in Intune", readme);
     }
 
+    [Fact]
+    public void ExitCodes_ReadmeTableCoversEveryCodeWithTheSchemasIntuneBehaviour()
+    {
+        // The README table is what an endpoint admin configures from. Seven
+        // codes were missing from it, including the retry and reboot classes
+        // Intune has to treat differently from a plain failure.
+        using var doc = LoadJson("fleet-exit-codes.json");
+        var readme = File.ReadAllText(Path.Combine(RepoRoot, "README.md"));
+
+        var rows = readme
+            .Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => line.StartsWith("| `", StringComparison.Ordinal))
+            .Select(line => line.Split('|', StringSplitOptions.None))
+            .Where(cells => cells.Length >= 5)
+            .ToDictionary(
+                cells => cells[1].Trim().Trim('`'),
+                cells => cells[3].Trim().Trim('`'),
+                StringComparer.Ordinal);
+
+        foreach (var entry in doc.RootElement.GetProperty("exitCodes").EnumerateArray())
+        {
+            var code = entry.GetProperty("code").GetInt32().ToString(CultureInfo.InvariantCulture);
+            var behaviour = entry.GetProperty("intuneBehavior").GetString()!;
+
+            Assert.True(
+                rows.ContainsKey(code),
+                $"README's return-code table has no row for exit code {code}. Endpoint tooling configured from the README alone would mishandle it.");
+            Assert.Equal(behaviour, rows[code]);
+        }
+    }
     [Fact]
     public void AnswerSchema_IsValidJsonSchema()
     {

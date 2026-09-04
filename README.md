@@ -370,16 +370,27 @@ ssh admin@PC-42 "C:\ProgramData\LibreSpot\LibreSpot.Cli.exe detect --json"
 
 Endpoint return-code handling:
 
-| Code | Meaning | Endpoint handling |
-|---:|---|---|
-| `0` | Success or compliant | Treat as success. |
-| `2` | Validation or configuration error | Fail the deployment and review stderr/JSON. |
-| `10` | LibreSpot target state not installed | Intune detection should mark app absent. |
-| `11` | Drift detected | Run the documented repair or reapply command. |
-| `12` | Repair needed | Run a health-report repair ID such as `RepairMarketplace`. |
-| `13` | Completed with selected assets missing | Configure exit 13 as success in Intune, then review stderr or NDJSON for each missing asset. |
-| `20` | Blocked by local state, such as Spotify running | Retry after closing Spotify or during a maintenance window. |
-| `1` | Unexpected backend failure | Collect the NDJSON log and support bundle. |
+| Code | Meaning | Intune behaviour | Endpoint handling |
+|---:|---|---|---|
+| `0` | Success or compliant | `success` | Treat as success. |
+| `1` | Unexpected backend failure | `failure` | Collect the NDJSON log and support bundle. |
+| `2` | Validation or configuration error | `failure` | Fail the deployment and review stderr/JSON. |
+| `10` | LibreSpot target state not installed | `failure` | Intune detection should mark app absent. |
+| `11` | Drift detected | `failure` | Run the documented repair or reapply command. |
+| `12` | Repair needed | `failure` | Run a health-report repair ID such as `RepairMarketplace`. |
+| `13` | Completed with selected assets missing | `success` | Configure exit 13 as success in Intune, then review stderr or NDJSON for each missing asset. |
+| `20` | Blocked by local state, such as Spotify running | `retry` | Retry after closing Spotify or during a maintenance window. |
+| `30` | Network or rate-limit failure | `retry` | Retry later. A download, API call, or connectivity check failed transiently. |
+| `40` | Hash or signature trust failure | `failure` | Stop and investigate. A download did not match its pinned SHA256 or signature. |
+| `50` | Insufficient permissions | `failure` | Check that the run context owns the per-user Spotify and LibreSpot folders. |
+| `60` | Canceled | `failure` | The caller or user stopped the run. Nothing partial is left behind. |
+| `1618` | Another install is in progress | `retry` | Retry after the other installer or LibreSpot run finishes. |
+| `3010` | Success, reboot recommended | `softReboot` | Treat as success and let the endpoint tool schedule a restart. |
+| `1641` | Reboot initiated | `hardReboot` | LibreSpot started the restart. Expect the session to end. |
+
+Every code above is defined in `schemas/fleet-exit-codes.json`, which is the
+contract endpoint tooling should read. The Intune column repeats that file's
+`intuneBehavior` value verbatim, and a test fails when the two disagree.
 
 Mutating examples above write rotating NDJSON logs under
 `%ProgramData%\LibreSpot\logs`; add `--log-dir <path>` to redirect logs into an

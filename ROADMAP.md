@@ -6,13 +6,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the last used.
 
-- [ ] P2: RD-184: Document all fifteen fleet exit codes in the README and gate the table against the schema
-  Why: README's endpoint table lists eight codes; `schemas/fleet-exit-codes.json` defines fifteen, and the seven missing ones (30, 40, 50, 60, 1618, 3010, 1641) are exactly the retry and reboot classes an Intune detection or remediation script must treat differently from failure.
-  Evidence: `README.md:383-392`; `schemas/fleet-exit-codes.json` codes 0, 1, 2, 10, 11, 12, 13, 20, 30, 40, 50, 60, 1618, 3010, 1641; https://learn.microsoft.com/en-us/intune/intune-service/apps/apps-win32-add.
-  Touches: `README.md` fleet section, `tests/LibreSpot.Desktop.Tests/FleetSchemaTests.cs` or `ReadmeContract` test.
-  Acceptance: WHEN the schema defines a code, the README table SHALL have a row with the same meaning and `intuneBehavior`, and a test SHALL fail when any schema code has no README row or a row's behaviour word differs from the schema.
-  Complexity: S
-
 - [ ] P2: RD-183: Advance the SpotX pin to a reviewed post-`9d344658` commit for the manifest-aware mirror and download fallbacks, holding Spotify at 1.2.93
   Why: users in regions where Cloudflare classifies SpotX's worker or `raw.githubusercontent.com` is blocked cannot install at all, and the pinned `550bc72c` predates the fixes: `-mirror` now also rewrites the LoaderSpot manifest URL, `-download_method curl|webclient` adds a second transport with a 429 fallback, and the full-build `-v 1.2.93.667.g7b5cc0ce` form skips the manifest fetch. `patches.json` changes since the pin only cap entries at 1.2.93 or 1.2.94 or add `fr >= 1.2.94` rules, so patch behaviour on 1.2.93 is unchanged.
   Evidence: https://github.com/SpotX-Official/SpotX/issues/891; https://github.com/SpotX-Official/SpotX/issues/836 (403 report on 2026-09-04 while the same URL served HTTP 206 from another region); https://github.com/SpotX-Official/SpotX/compare/550bc72c...main; `src/powershell/shared/Module-InstallSpotX.ps1:40-60` already retries through `-mirror`; `src/powershell/shared/Test-SpotXPinAdvanceSecurityPolicy.ps1`.
