@@ -393,6 +393,8 @@ async function bootstrap(): Promise<void> {
     registerAccessEntries();
     const store = new EngineStore(storageAdapter());
     const stored = store.load();
+    // Read after load(), which is what puts an unreadable state into quarantine.
+    let quarantined = store.readQuarantine();
     let initial = applyDesktopBootstrap(store) ?? stored;
     if (Object.keys(initial.schemes).length === 0) {
       initial = store.save(defaultEngineState());
@@ -491,6 +493,13 @@ async function bootstrap(): Promise<void> {
         installedCustomApps: installedList(Spicetify.Config?.custom_apps),
         availableHomeSections,
         availableSidebarItems,
+        quarantine:
+          quarantined === null
+            ? null
+            : {
+                quarantinedAt: quarantined.quarantinedAt,
+                reason: quarantined.reason,
+              },
       };
     }
 
@@ -627,6 +636,29 @@ async function bootstrap(): Promise<void> {
             error instanceof Error ? error.message : "Backup failed.";
           notify(message, true);
         }
+      },
+      exportQuarantine: async () => {
+        const kept = store.readQuarantine();
+        if (kept === null) {
+          notify("There is no recovered state to export.", true);
+          return;
+        }
+        try {
+          await copyThroughPlatform(kept.raw);
+          notify(
+            "Recovered state copied. Paste it into a file, then use Restore from the clipboard if it can be repaired.",
+          );
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Export failed.";
+          notify(message, true);
+        }
+      },
+      discardQuarantine: () => {
+        store.discardQuarantine();
+        quarantined = null;
+        emit();
+        notify("Recovered state discarded.");
       },
       restoreState: async (source) => {
         let engineRestored = false;

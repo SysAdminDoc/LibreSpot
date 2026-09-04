@@ -208,6 +208,38 @@ export function HealthPanel(properties: PanelProperties): UiNode {
           ),
         })
       : null,
+    properties.snapshot.quarantine
+      ? Section({
+          title: "Recovered state available",
+          description: `The saved profile could not be read on ${new Date(properties.snapshot.quarantine.quarantinedAt).toLocaleString()}, so LibreSpot started from defaults and kept the original instead of deleting it. Reason: ${properties.snapshot.quarantine.reason}`,
+          children: h(
+            "div",
+            { className: "librespot-repair-callout" },
+            h(
+              "p",
+              null,
+              "Export copies the kept text to the clipboard. Save it before you discard it: it is the only copy of the look you had.",
+            ),
+            h(
+              "div",
+              { className: "librespot-health-actions" },
+              ActionButton({
+                label: "Export recovered state",
+                onClick: () => {
+                  void properties.runtime.exportQuarantine();
+                },
+              }),
+              ActionButton({
+                label: "Discard",
+                secondary: true,
+                onClick: () => {
+                  properties.runtime.discardQuarantine();
+                },
+              }),
+            ),
+          ),
+        })
+      : null,
     Section({
       title: "Back up and restore",
       description:

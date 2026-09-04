@@ -152,6 +152,8 @@ export type LibreSpotRuntimeSnapshot = {
   installedCustomApps: string[];
   availableHomeSections: ArrangementItem[];
   availableSidebarItems: ArrangementItem[];
+  /** Set when the last load found a saved state it could not read. */
+  quarantine: { quarantinedAt: string; reason: string } | null;
 };
 
 export type LibreSpotRuntimeApi = {
@@ -169,6 +171,8 @@ export type LibreSpotRuntimeApi = {
   copyDiagnostics(): Promise<void>;
   backupState(): Promise<void>;
   restoreState(source: string): Promise<void>;
+  exportQuarantine(): Promise<void>;
+  discardQuarantine(): void;
   reportError(message: string): void;
   openPanel(panel: string): void;
   openDesktopStore(

@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- An in-Spotify profile that cannot be read is now kept instead of deleted. LibreSpot starts from defaults, and Health offers the original back so a truncated write or a future format change no longer takes every saved theme, tweak and preset with it.
+
 ### Added
 
 - Maintenance can start Spotify once without Spicetify extensions or custom apps. LibreSpot verifies an exact `config-xpui.ini` and `CustomApps` snapshot before changing anything, keeps the window open while safe mode is active, and offers one Restore my setup action that verifies, restores, and reapplies the saved files.

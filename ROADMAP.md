@@ -6,13 +6,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the last used.
 
-- [ ] P1: RD-181: Quarantine an unreadable in-Spotify engine state instead of deleting it
-  Why: `EngineStore.load` catches every `parseProfile` failure, removes `librespot:engine-state` and returns defaults, so a corrupt write, a future `PROFILE_SCHEMA_VERSION` bump, or a profile shape change destroys the user's saved theme, tweaks and presets with nothing left to recover. This is LibreSpot's own copy of the wipe that fills the Spicetify tracker.
-  Evidence: `src/LibreSpot.App/src/core/store.ts:34-45`; `src/LibreSpot.App/src/core/profile.ts:59-63` throws on any schema mismatch; https://github.com/spicetify/cli/issues/3861; no `migrat` match anywhere under `src/LibreSpot.App/src`.
-  Touches: `src/LibreSpot.App/src/core/store.ts`, `src/LibreSpot.App/src/core/backup.ts`, `src/LibreSpot.App/src/panels/health.ts`, `src/LibreSpot.App/tests/profile.test.ts` (or a new store test), `src/LibreSpot.App/src/core/state.ts` if a version-2 migrator is added.
-  Acceptance: WHEN the stored state fails to parse for any reason, the engine SHALL copy the raw value to a dated quarantine key before loading defaults, Health SHALL show a "recovered state available" row with Export and Discard, and a vitest that plants a `schemaVersion: 99` payload and a truncated JSON payload SHALL prove both survive under the quarantine key with defaults loaded.
-  Complexity: S
-
 - [ ] P1: RD-182: Hold the auto-reapply watcher after repeated failures on one Spotify build
   Why: after "Reapply failed" the watcher keeps `LastKnownVersion` so it retries on the next tick, every 30 minutes, forever, with no failure count, no hold state, and nothing in Maintenance naming the build or the step that failed. A Spotify build the tuple does not support turns into an endless stop-and-apply loop plus a growing watcher log.
   Evidence: `LibreSpot.ps1:1025-1030` ("Keep LastKnownVersion unchanged so we'll retry next tick"); `Get-WatcherState` at `LibreSpot.ps1:538` stores only a `LastOutcome` string; SpiceManager's "compatibility hold mode" (https://github.com/EliasOnsihuay/SpiceManager); Spicetify v3's `update_policy` that remembers a block (https://github.com/spicetify/cli/tree/v3-beta); https://reddit.com/r/spicetify/comments/1vw95y7/.
@@ -123,4 +116,11 @@ Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the la
   Evidence: https://www.elastic.co/security-labs/shai-hulud-chaindrop-npm-supply-chain; `src/LibreSpot.App/pnpm-workspace.yaml:4-6` (`allowBuilds` lists only `@parcel/watcher` and `esbuild`); `CLAUDE.md` "pnpm's dependency build allowlist now names only esbuild and Parcel's file watcher".
   Touches: `tests/powershell/DependencyHealth.Tests.ps1` or a vitest under `src/LibreSpot.App/tests`, `Build-Scripts.ps1 -DependencyHealth`.
   Acceptance: a test SHALL read the allowlist and fail when it contains anything beyond `esbuild` and `@parcel/watcher`; `-DependencyHealth` SHALL fail when any package under `node_modules` declares a `preinstall` script outside the allowlist.
+  Complexity: S
+
+- [ ] P1: RD-198: Rebuild the live-engine archive and re-pin it once the in-flight release lands
+  Why: RD-181 changed `src/LibreSpot.App/src/core/store.ts`, `src/panels/health.ts`, `src/spicetify-globals.d.ts` and `src/extensions/librespot-engine.ts`, but `resources/custom-apps/librespot-engine.zip` was not rebuilt because a parallel session holds an uncommitted rebuilt archive and its three SHA256 pins for the v4.5.0 release. Nothing gates archive-against-source drift (the tests only check archive against pins), so the shipped custom app will not carry the quarantine recovery until the archive is rebuilt.
+  Evidence: `git status` on 2026-09-04 showed `resources/custom-apps/librespot-engine.zip`, `src/powershell/data/CommunityCustomApps.ps1`, `LibreSpot.ps1` and `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1` modified by another session; the Desktop non-WPF suite passed 1218 tests with the app source changed and the archive stale; `CLAUDE.md` "Rebuilding the live-engine ZIP changes its installer pin".
+  Touches: `resources/custom-apps/librespot-engine.zip`, `src/powershell/data/CommunityCustomApps.ps1`, `LibreSpot.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `schemas/parity-manifest.json`.
+  Acceptance: WHEN the archive is rebuilt from current app source, its SHA256 SHALL match all three installer pins and `BundledLibreSpotArchive_MatchesEveryPinAndShipsItsPackageVersion` SHALL pass; a test SHALL fail when the archive's embedded engine bundle does not contain the current `QUARANTINE_POINTER_KEY` string, so source-to-archive drift is caught rather than assumed.
   Complexity: S
