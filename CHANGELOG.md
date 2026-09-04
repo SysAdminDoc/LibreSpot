@@ -22,6 +22,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- The documented local release sequence now generates `checksums.txt` before the release manifest consumes it.
+
 - Cold Spotify reloads now let both companion script copies converge on one ready runtime, so Settings won't remain stuck on its loading screen.
 - Tweak cards no longer squeeze their title between the category label and switch. Categories now sit with the version and source metadata, matching the visual hierarchy used by the reference design.
 - Stable keys are used for arrangement rows, removing the duplicate-key warning that appeared when Spotify rendered two items with the same label.

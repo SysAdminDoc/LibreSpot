@@ -144,7 +144,7 @@ public sealed class CommunityAssetsManifestTests
         // The documented procedure must lead with the command that builds the root.
         var readme = ReadFile("README.md");
         Assert.Contains(".\\Build-Scripts.ps1 -PublishRelease", readme, StringComparison.Ordinal);
-        Assert.Matches(@"-PublishRelease[\s\S]{0,400}-CompileStableExe[\s\S]{0,200}-GenerateSbom[\s\S]{0,200}-GenerateReleaseManifest", readme);
+        Assert.Matches(@"-PublishRelease[\s\S]{0,400}-CompileStableExe[\s\S]{0,200}-GenerateSbom[\s\S]{0,200}-GenerateChecksums[\s\S]{0,200}-GenerateReleaseManifest", readme);
     }
 
     [Fact]

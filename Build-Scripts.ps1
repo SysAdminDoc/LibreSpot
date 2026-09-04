@@ -56,6 +56,7 @@ param(
     [string]$StableExeOutputPath,
     [switch]$GenerateSbom,
     [string]$SbomOutputPath,
+    [switch]$GenerateChecksums,
     [switch]$SkipStableExeIdentity,
     [switch]$ReleaseTruth,
     [switch]$CatalogTruth,
@@ -1414,6 +1415,41 @@ function Get-FileSha256Lower {
         $stream.Dispose()
         $sha.Dispose()
     }
+}
+
+function Write-LibreSpotReleaseChecksums {
+    param([Parameter(Mandatory)][string]$Root)
+
+    $Root = [System.IO.Path]::GetFullPath($Root)
+    $contract = Get-JsonFile -Path $releaseContractPath
+    $coveredAssets = @($contract.checksumContract.coveredAssets | ForEach-Object { [string]$_ })
+    if ($coveredAssets.Count -lt 1) {
+        throw 'Release artifact contract has no checksum-covered assets.'
+    }
+
+    $lines = foreach ($name in $coveredAssets) {
+        $path = Join-Path $Root $name
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Cannot generate checksums; release artifact not found: $path"
+        }
+
+        '{0}  {1}' -f (Get-FileSha256Lower -Path $path), $name
+    }
+
+    $checksumsPath = Join-Path $Root 'checksums.txt'
+    [System.IO.File]::WriteAllText(
+        $checksumsPath,
+        (($lines -join [Environment]::NewLine) + [Environment]::NewLine),
+        $utf8NoBom)
+
+    $checksumMap = Get-ReleaseChecksumMap -ChecksumsPath $checksumsPath
+    foreach ($name in $coveredAssets) {
+        if (-not $checksumMap.ContainsKey($name)) {
+            throw "Generated checksums.txt is missing $name."
+        }
+    }
+
+    Write-Host "Release checksums written: $checksumsPath" -ForegroundColor Green
 }
 
 function Get-PinnedSpotXSecurityMetadata {
@@ -2787,6 +2823,11 @@ if ($CompileStableExe) {
 
 if ($GenerateSbom) {
     Invoke-LibreSpotSbomGenerate -OutputPath $SbomOutputPath
+    exit 0
+}
+
+if ($GenerateChecksums) {
+    Write-LibreSpotReleaseChecksums -Root $ReleaseRoot
     exit 0
 }
 

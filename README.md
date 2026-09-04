@@ -617,6 +617,7 @@ CycloneDX SBOM, write SHA256 `checksums.txt`, then create the release manifest:
 .\Build-Scripts.ps1 -PublishRelease
 .\Build-Scripts.ps1 -CompileStableExe
 .\Build-Scripts.ps1 -GenerateSbom
+.\Build-Scripts.ps1 -GenerateChecksums
 .\Build-Scripts.ps1 -GenerateReleaseManifest -ReleaseRoot .\publish -ReleaseVersion 4.4.0 -ReleaseChannel stable
 ```
 
@@ -643,6 +644,8 @@ generation then re-checks that file version against the script, checks the
 SBOM is CycloneDX 1.7 from that tool with per-component hashes and licenses,
 and measures the desktop executable against the publish footprint budget, so a
 mismatched or oversized artifact fails before the release is uploaded.
+`-GenerateChecksums` hashes the six contract-covered artifacts and writes the
+`checksums.txt` file consumed by manifest generation.
 
 Create and push the version tag, create a draft GitHub release, upload every
 file in `publish`, and publish the draft only after the asset list is complete.

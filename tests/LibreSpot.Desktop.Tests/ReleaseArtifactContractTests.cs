@@ -341,6 +341,52 @@ public sealed class ReleaseArtifactContractTests
     }
 
     [Fact]
+    public void BuildScripts_GeneratesChecksumsForEveryCoveredReleaseAsset()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), "LibreSpot.ReleaseChecksums.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+
+        try
+        {
+            var coveredAssets = Contract.RootElement
+                .GetProperty("checksumContract")
+                .GetProperty("coveredAssets").EnumerateArray()
+                .Select(value => value.GetString()!)
+                .ToArray();
+
+            foreach (var name in coveredAssets)
+            {
+                File.WriteAllText(Path.Combine(tempRoot, name), $"checksum fixture: {name}", Encoding.UTF8);
+            }
+
+            StartPowerShell(
+                "-NoProfile",
+                "-ExecutionPolicy", "Bypass",
+                "-File", Path.Combine(RepoRoot, "Build-Scripts.ps1"),
+                "-GenerateChecksums",
+                "-ReleaseRoot", tempRoot);
+
+            var checksumPath = Path.Combine(tempRoot, "checksums.txt");
+            Assert.True(File.Exists(checksumPath), "checksums.txt should be generated.");
+
+            var entries = File.ReadAllLines(checksumPath)
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                .ToDictionary(parts => parts[1], parts => parts[0], StringComparer.Ordinal);
+
+            Assert.Equal(coveredAssets.Length, entries.Count);
+            foreach (var name in coveredAssets)
+            {
+                Assert.Equal(Sha256File(Path.Combine(tempRoot, name)), entries[name]);
+            }
+        }
+        finally
+        {
+            TryDeleteDirectory(tempRoot);
+        }
+    }
+
+    [Fact]
     public void Contract_PostUploadAuditIsManualLocal()
     {
         var status = Contract.RootElement
