@@ -782,10 +782,6 @@ public sealed class CommunityAssetsManifestTests
             .ToArray();
 
         Assert.Equal(recommendedDefaults, manifestDefaults);
-        Assert.Contains(
-            "AppCatalog.CreateRecommendedConfiguration()",
-            ReadFile("src", "LibreSpot.Cli", "Program.cs"),
-            StringComparison.Ordinal);
     }
 
     [Fact]

@@ -884,6 +884,89 @@ public sealed class CliApplicationTests
         }
     }
 
+    [Theory]
+    [InlineData("install")]
+    [InlineData("reapply")]
+    [InlineData("repair")]
+    public void RecommendedSetupEntryPoints_PersistCatalogExtensionDefaults(string verb)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
+        var answerFile = Path.Combine(root, "answer.json");
+        var configPath = Path.Combine(root, "config.json");
+        var logDir = Path.Combine(root, "logs");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(
+            answerFile,
+            """
+            {
+              "schemaVersion": 1,
+              "installMode": "recommended",
+              "eulaAccepted": true,
+              "riskAcknowledged": true
+            }
+            """);
+
+        try
+        {
+            var args = verb == "repair"
+                ? new[] { "repair", "--repair-id", "Install", "--answer-file", answerFile, "--config-path", configPath, "--log-dir", logDir, "--silent" }
+                : new[] { verb, "--answer-file", answerFile, "--config-path", configPath, "--log-dir", logDir, "--silent" };
+            var result = Run(
+                args,
+                _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+                (_, _, _, _) => Task.FromResult(new CliBackendRunResult(true)));
+
+            Assert.Equal(0, result.ExitCode);
+            using var config = JsonDocument.Parse(File.ReadAllText(configPath));
+            var actual = config.RootElement.GetProperty("Spicetify_Extensions").EnumerateArray()
+                .Select(item => item.GetString()!)
+                .ToArray();
+            Assert.Equal(
+                LibreSpot.Desktop.Models.AppCatalog.CreateRecommendedConfiguration().Spicetify_Extensions,
+                actual);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void RepairWithoutSavedConfig_PersistsCatalogExtensionDefaults()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Tests", Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(root, "config.json");
+        var logDir = Path.Combine(root, "logs");
+        Directory.CreateDirectory(root);
+
+        try
+        {
+            var result = Run(
+                new[] { "repair", "--repair-id", "RepairMarketplace", "--config-path", configPath, "--log-dir", logDir, "--silent" },
+                _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+                (_, _, _, _) => Task.FromResult(new CliBackendRunResult(true)));
+
+            Assert.Equal(0, result.ExitCode);
+            using var config = JsonDocument.Parse(File.ReadAllText(configPath));
+            var actual = config.RootElement.GetProperty("Spicetify_Extensions").EnumerateArray()
+                .Select(item => item.GetString()!)
+                .ToArray();
+            Assert.Equal(
+                LibreSpot.Desktop.Models.AppCatalog.CreateRecommendedConfiguration().Spicetify_Extensions,
+                actual);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
     [Fact]
     public void MutatingInstall_UsesSelectedAnswerFileProfile()
     {

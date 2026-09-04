@@ -10,6 +10,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Changed
 
+- CLI Recommended Setup regression coverage now runs install, reapply, repair-install, and missing-config repair paths, then compares the configuration each path writes with the shared catalog defaults.
 - Release-notice regression coverage now drives the actual HTTP client through refused, conditional, successful, and malformed responses. It verifies that a refusal reports the status code GitHub returned.
 - Community extensions are explicitly opt-in. Beautiful Lyrics remains available in Custom Install, but its small pinned file downloads the code that actually runs from a third-party server, so it can never be part of Recommended Setup. The catalog and CLI defaults now have a test that keeps this decision aligned.
 

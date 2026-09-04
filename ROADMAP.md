@@ -38,3 +38,10 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Touches: the Home workspace list in `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml`, six resx files for the name, `schemas/axe-windows-baseline.json`.
   Acceptance: WHEN the Axe.Windows scan runs on the recommended state, no `NameNotNull` violation SHALL be reported, its baseline entry SHALL be deleted, and the name SHALL come from the localized resources rather than a literal so every shipped culture announces it.
   Complexity: S
+
+- [ ] P3: RD-179: Lock the canonical catalog writer to the reviewed PowerShell 7 byte format
+  Why: comparing Windows PowerShell output only with current PowerShell 7 output proves edition parity but allows a shared formatter regression to alter both streams identically. The catalog truth gate parses JSON, so it is not a byte-format oracle.
+  Evidence: adversarial review of commit `ec8a25c`; reviewed fixed-date `catalog.json` SHA256 `a1ca4c1fcba4c1231bceedffb24ceb207093e8e664d937b5858f096692818162`.
+  Touches: `tests/powershell/CommunityCatalog.Tests.ps1` and catalog maintenance documentation.
+  Acceptance: WHEN the generator runs against the reviewed schemas with date `2026-09-04`, both engines SHALL match the reviewed catalog byte hash in addition to matching each other; an intentional schema or format change SHALL require an explicit oracle update.
+  Complexity: S
