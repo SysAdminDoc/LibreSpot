@@ -1147,7 +1147,7 @@ function Invoke-AutoReapplyWatcher {
     # that build and waits for a new Spotify version or a manual reapply.
     $holdDecision = Get-LibreSpotWatcherHoldDecision -State $state -CurrentVersion $currentVersion
     if ($holdDecision.IsHeld) {
-        Write-WatcherLog "Reapply is on hold for Spotify $currentVersion after $($holdDecision.Threshold) failed attempts. It clears when Spotify updates again or the next automatic reapply succeeds." -Level 'WARN'
+        Write-WatcherLog "Reapply is on hold for Spotify $currentVersion after $($holdDecision.Threshold) failed attempts. Run a reapply from LibreSpot to clear it." -Level 'WARN'
         Set-WatcherState -State @{ LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'HeldAfterRepeatedFailures' }
         return 0
     }
@@ -12154,6 +12154,16 @@ $installBlock = { param($sh,$cfg)
             $sh.Dispatcher.Invoke([Action]{ $sh.StepLabel.Text="Verifying Spotify session stability" })
             Test-SpotifySessionStability -WaitSeconds 20 | Out-Null
         }
+        # A manual run that succeeded is the escape the held Maintenance row
+        # offers. Without this the hold outlived it and the watcher kept
+        # skipping until Spotify shipped a different build.
+        try {
+            $clearedHold = @{}
+            foreach ($entry in (Get-LibreSpotWatcherClearedHoldState).GetEnumerator()) { $clearedHold[$entry.Key] = $entry.Value }
+            Set-WatcherState -State $clearedHold
+        } catch {
+            Write-Log "Could not clear the auto-reapply hold: $($_.Exception.Message)" -Level 'WARN'
+        }
         $assetFailureSummary = Get-LibreSpotAssetInstallFailureSummary
         $installHadAssetFailures = -not [string]::IsNullOrWhiteSpace($assetFailureSummary)
         if ($installHadAssetFailures) { Write-Log $assetFailureSummary -Level 'WARN' }
@@ -12366,7 +12376,11 @@ $functionNamesForWorker = @(
     'Merge-DirectorySnapshotMissingFiles','New-LibreSpotEngineBootstrap',
     'New-SpicetifyStatePreservationSnapshot','Repair-LibreSpotManagedCustomAppRoutes',
     'Repair-SpicetifyCustomAppWiring','Restore-SpicetifyStatePreservationSnapshot',
-    'Test-SpicetifyCliVersionSupported','Test-SpicetifyCustomAppRouteWiring'
+    'Test-SpicetifyCliVersionSupported','Test-SpicetifyCustomAppRouteWiring',
+    # A successful manual run retires a watcher hold, so the install block
+    # needs the state writer and the hold helper. Set-WatcherState logs
+    # through Write-WatcherLog when a save fails, so that comes too.
+    'Set-WatcherState','Write-WatcherLog','Get-LibreSpotWatcherClearedHoldState'
 )
 
 $issMain = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
@@ -12380,7 +12394,7 @@ foreach ($fname in $functionNamesForWorker) {
 $varNamesForWorker = @(
     'URL_SPOTX','URL_MARKETPLACE','URL_THEMES_REPO','URL_SPICETIFY_FMT','PinnedReleases',
     'TEMP_DIR','SPOTIFY_EXE_PATH','SPICETIFY_DIR','SPICETIFY_CONFIG_DIR','SPICETIFY_INTEGRATION_VERSION',
-    'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH','OPERATION_JOURNAL_PATH','OPERATION_JOURNAL_MAX_BYTES','OPERATION_JOURNAL_RETAIN_BYTES','RUN_RECEIPT_PATH','CURRENT_OPERATION_ID','CURRENT_OPERATION_ACTION','CACHE_DIR',
+    'BACKUP_ROOT','CONFIG_DIR','CONFIG_PATH','LOG_PATH','WATCHER_STATE_PATH','OPERATION_JOURNAL_PATH','OPERATION_JOURNAL_MAX_BYTES','OPERATION_JOURNAL_RETAIN_BYTES','RUN_RECEIPT_PATH','CURRENT_OPERATION_ID','CURRENT_OPERATION_ACTION','CACHE_DIR',
     'BrushGreen','BrushRed','BrushMuted','BrushError',
     'EasyDefaults','ThemeData','BuiltInExtensions','CommunityExtensions','CommunityExtensionAliases','DeprecatedCommunityExtensionNames','CommunityCustomApps','CommunityThemeRepos','BundledThemes','ThemesNeedingJS','SpotXLyricsThemes','SpotifyVersionManifest','SpotifyVersionIds','VERSION','CONFIG_SCHEMA_VERSION','LibreSpotScriptRoot'
 )

@@ -3510,17 +3510,26 @@ Describe 'Auto-reapply watcher hold' {
         $fn | Should -Match 'Get-LibreSpotWatcherClearedHoldState'
     }
 
-    It 'only promises a manual clear in the host that can do one' {
-        # The standalone script host has no Update-ApplyState: its manual apply
-        # runs in the worker runspace, which resolves only the exported set, so
-        # it cannot write watcher state. Its hold message must not tell the user
-        # to run a reapply that would not clear anything.
+    It 'clears the hold from a manual run in both hosts' {
+        # The standalone host could not do this at first: its manual apply runs
+        # in the worker runspace, which resolves only the exported names, so
+        # reaching for Set-WatcherState there was a CommandNotFoundException.
+        # The three names it needs are exported now and a real runspace proves
+        # they resolve, so both hosts may promise the same thing.
         $gui = [System.IO.File]::ReadAllText((Join-Path $script:LaneRoot 'gui\lane-functions.ps1'))
         $backend = [System.IO.File]::ReadAllText((Join-Path $script:LaneRoot 'backend\lane-functions.ps1'))
-
-        $gui | Should -Not -Match 'Run a reapply from LibreSpot to clear it'
-        $gui | Should -Match 'the next automatic reapply succeeds'
+        $gui | Should -Match 'Run a reapply from LibreSpot to clear it'
         $backend | Should -Match 'Run a reapply from LibreSpot to clear it'
+
+        $monolith = [System.IO.File]::ReadAllText((Resolve-Path (Join-Path $PSScriptRoot '..\..\LibreSpot.ps1')).Path)
+        $exported = [regex]::Match($monolith, '(?ms)\$functionNamesForWorker = @\(.+?^\)').Value
+        foreach ($name in @('Set-WatcherState', 'Write-WatcherLog', 'Get-LibreSpotWatcherClearedHoldState')) {
+            $exported | Should -Match ([regex]::Escape($name)) -Because 'the worker runspace resolves only what is named there'
+        }
+        $monolith | Should -Match "'WATCHER_STATE_PATH'"
+
+        $installBlock = [regex]::Match($monolith, '(?ms)\$installBlock = \{.+?^\}').Value
+        $installBlock | Should -Match 'Get-LibreSpotWatcherClearedHoldState'
     }
 
     It 'does not carry a step marker across ticks' {
