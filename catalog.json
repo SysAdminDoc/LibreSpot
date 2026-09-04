@@ -8,7 +8,7 @@
   ],
   "sourceDigests": {
     "schemas/community-assets.json": "63de2cac70435020eaf40c8f7dc0fc967cbb420b2dcd9aaba81c2e98a1620a34",
-    "schemas/theme-preview-manifest.json": "46899c244c0d4877e6bc1473a8885320722e613236b051e47b91b733f2d84497"
+    "schemas/theme-preview-manifest.json": "544a7637bdab607521a70b766d8c62fa44ee3d38e40ff415d5df06827378f722"
   },
   "counts": {
     "extensions": 5,
@@ -530,7 +530,7 @@
       "preview": {
         "url": "https://raw.githubusercontent.com/sanoojes/Spicetify-Lucid/5c28e9f955d5ca84a82d06084cc6652e5655ea2d/docs/public/images/base.png",
         "status": "available",
-        "contentType": "image/webp",
+        "contentType": "image/png",
         "fallbackLabel": "Lucid theme preview"
       }
     },
