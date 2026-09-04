@@ -598,6 +598,14 @@ function Get-LibreSpotWatcherFailureState {
         $result['HoldSpotifyVersion'] = $CurrentVersion
         $result['HoldSince'] = $Timestamp
         $result['HoldReason'] = $Reason
+    } else {
+        # Below the threshold there is no hold. Writing the fields back as null
+        # matters when Spotify has moved on: a hold left over from the previous
+        # build would otherwise keep Maintenance reporting the old version and
+        # the old reason while hiding the failure actually happening now.
+        $result['HoldSpotifyVersion'] = $null
+        $result['HoldSince'] = $null
+        $result['HoldReason'] = $null
     }
 
     return $result
@@ -933,6 +941,10 @@ function Invoke-HeadlessReapply {
     # any UI / runspace plumbing. Caller runs on the main thread from -Watch.
     param([hashtable]$Config)
     if (-not $Config) { throw 'Invoke-HeadlessReapply: missing config' }
+    # The hold records which step failed, not just the exception text, so
+    # Maintenance can say whether the download, the patch or the reapply is
+    # what a build is stuck on.
+    $global:LibreSpotReapplyStep = 'Spicetify v3 conflict check'
     $v3Conflict = Get-SpicetifyV3Conflict
     if ($v3Conflict.IsConflict) {
         throw $v3Conflict.Message
@@ -950,6 +962,7 @@ function Invoke-HeadlessReapply {
         if (-not (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $spotxRun -Label 'SpotX run.ps1 (watcher)')) {
             $downloadFailed = $false
             try {
+                $global:LibreSpotReapplyStep = 'SpotX download'
                 Write-WatcherLog "Downloading SpotX run.ps1"
                 Download-FileSafe -Uri $global:URL_SPOTX -OutFile $spotxRun
             } catch {
@@ -968,12 +981,14 @@ function Invoke-HeadlessReapply {
             }
         }
 
+        $global:LibreSpotReapplyStep = 'SpotX parameter build'
         $spotxArgs = Build-SpotXParams -Config $Config
         $customPatchesPath = New-SpotXCustomPatchesFile -Config $Config
         if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
             $spotxArgs = "$spotxArgs -CustomPatchesPath `"$customPatchesPath`""
             Write-WatcherLog "Custom SpotX patches staged at $customPatchesPath"
         }
+        $global:LibreSpotReapplyStep = 'SpotX patch'
         Write-WatcherLog "Invoking SpotX with: $spotxArgs"
 
         # Use powershell.exe isolation so SpotX can't leak runtime state into our
@@ -1012,6 +1027,7 @@ function Invoke-HeadlessReapply {
 
         # Restore every saved Spicetify asset after Spotify replaces xpui. This
         # reinstalls custom apps and finishes with the managed route repair.
+        $global:LibreSpotReapplyStep = 'Spicetify reapply'
         Reapply-SavedSpicetifySetup -Config $Config
         Write-WatcherLog "Spicetify assets and managed routes reapplied" -Level 'SUCCESS'
     } finally {
@@ -1167,7 +1183,8 @@ function Invoke-AutoReapplyWatcher {
         # Keep LastKnownVersion unchanged so we'll retry next tick, until
         # the failure count for this build reaches the hold threshold.
         $failed = @{ LastKnownVersion = $state.LastKnownVersion; LastRunAt = $now; LastOutcome = "Error: $message" }
-        $counters = Get-LibreSpotWatcherFailureState -State $state -CurrentVersion $currentVersion -Reason $message -Timestamp $now
+        $failedStep = if ([string]::IsNullOrWhiteSpace($global:LibreSpotReapplyStep)) { 'reapply' } else { $global:LibreSpotReapplyStep }
+        $counters = Get-LibreSpotWatcherFailureState -State $state -CurrentVersion $currentVersion -Reason "$failedStep`: $message" -Timestamp $now
         foreach ($entry in $counters.GetEnumerator()) { $failed[$entry.Key] = $entry.Value }
         Set-WatcherState -State $failed
         return 1

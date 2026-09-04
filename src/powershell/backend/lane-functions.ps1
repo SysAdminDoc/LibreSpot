@@ -310,6 +310,10 @@ function Save-LibreSpotConfig {
 function Invoke-HeadlessReapply {
     param([hashtable]$Config)
     if (-not $Config) { throw 'Invoke-HeadlessReapply: missing config.' }
+    # The hold records which step failed, not just the exception text, so
+    # Maintenance can say whether the download, the patch or the reapply is
+    # what a build is stuck on.
+    $global:LibreSpotReapplyStep = 'Spicetify v3 conflict check'
     $v3Conflict = Get-SpicetifyV3Conflict
     if ($v3Conflict.IsConflict) {
         throw $v3Conflict.Message
@@ -319,6 +323,7 @@ function Invoke-HeadlessReapply {
     $customPatchesPath = ''
     $watcher = Start-SpotifyWindowWatcher
     try {
+        $global:LibreSpotReapplyStep = 'SpotX download'
         Write-WatcherLog 'Downloading pinned SpotX for watcher reapply'
         $spotxHash = $global:PinnedReleases.SpotX.SHA256
         if (-not (Get-FromAssetCache -SHA256Hash $spotxHash -DestinationPath $destination -Label 'SpotX run.ps1')) {
@@ -332,14 +337,17 @@ function Invoke-HeadlessReapply {
             Confirm-FileHash -Path $destination -ExpectedHash $spotxHash -Label 'SpotX run.ps1'
             Save-ToAssetCache -SourcePath $destination -SHA256Hash $spotxHash -Label 'SpotX run.ps1' -SourceUrl $global:URL_SPOTX
         }
+        $global:LibreSpotReapplyStep = 'SpotX parameter build'
         $params = Build-SpotXParams -Config $Config
         $customPatchesPath = New-SpotXCustomPatchesFile -Config $Config
         if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
             $params = "$params -CustomPatchesPath `"$customPatchesPath`""
             Write-WatcherLog "Custom SpotX patches staged at $customPatchesPath"
         }
+        $global:LibreSpotReapplyStep = 'SpotX patch'
         Write-WatcherLog "Invoking SpotX with: $params"
         Invoke-ExternalScriptIsolated -FilePath $destination -Arguments $params -ExpectedHash $spotxHash -Label 'SpotX run.ps1'
+        $global:LibreSpotReapplyStep = 'Spicetify reapply'
         Reapply-SavedSpicetifySetup -Config $Config
         Write-WatcherLog 'Auto-reapply completed successfully.' -Level 'SUCCESS'
     } finally {
@@ -433,7 +441,8 @@ function Invoke-AutoReapplyWatcher {
             LastApplyOutcome = 'WatcherFailed'
             LastApplyError = $message
         }
-        $counters = Get-LibreSpotWatcherFailureState -State $state -CurrentVersion $currentVersion -Reason $message -Timestamp $now
+        $failedStep = if ([string]::IsNullOrWhiteSpace($global:LibreSpotReapplyStep)) { 'reapply' } else { $global:LibreSpotReapplyStep }
+        $counters = Get-LibreSpotWatcherFailureState -State $state -CurrentVersion $currentVersion -Reason "$failedStep`: $message" -Timestamp $now
         foreach ($entry in $counters.GetEnumerator()) { $failed[$entry.Key] = $entry.Value }
         Set-WatcherState -State $failed
         return 1

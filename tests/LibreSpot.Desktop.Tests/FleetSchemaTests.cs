@@ -126,9 +126,18 @@ public sealed class FleetSchemaTests
         using var doc = LoadJson("fleet-exit-codes.json");
         var readme = File.ReadAllText(Path.Combine(RepoRoot, "README.md"));
 
-        var rows = readme
-            .Split('\n')
-            .Select(line => line.Trim())
+        // Scoped to this one table. Reading every backtick-leading row in the
+        // file would let a future table inject a wrong mapping or collide on a
+        // duplicate key, and the failure would name the wrong thing.
+        var all = readme.Split('\n').Select(line => line.TrimEnd('\r')).ToArray();
+        var header = Array.FindIndex(
+            all,
+            line => line.StartsWith("| Code | Meaning | Intune behaviour |", StringComparison.Ordinal));
+        Assert.True(header >= 0, "README has no return-code table header.");
+
+        var rows = all
+            .Skip(header)
+            .TakeWhile(line => line.StartsWith("|", StringComparison.Ordinal))
             .Where(line => line.StartsWith("| `", StringComparison.Ordinal))
             .Select(line => line.Split('|', StringSplitOptions.None))
             .Where(cells => cells.Length >= 5)

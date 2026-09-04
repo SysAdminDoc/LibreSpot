@@ -25,6 +25,14 @@ function Get-LibreSpotWatcherFailureState {
         $result['HoldSpotifyVersion'] = $CurrentVersion
         $result['HoldSince'] = $Timestamp
         $result['HoldReason'] = $Reason
+    } else {
+        # Below the threshold there is no hold. Writing the fields back as null
+        # matters when Spotify has moved on: a hold left over from the previous
+        # build would otherwise keep Maintenance reporting the old version and
+        # the old reason while hiding the failure actually happening now.
+        $result['HoldSpotifyVersion'] = $null
+        $result['HoldSince'] = $null
+        $result['HoldReason'] = $null
     }
 
     return $result

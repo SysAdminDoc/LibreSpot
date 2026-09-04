@@ -3441,12 +3441,14 @@ Describe 'Auto-reapply watcher hold' {
         $first = Invoke-WatcherTick -State $state -Version '1.2.99.317'
         $first.Attempted | Should -BeTrue
         $first.State.ReapplyFailureCount | Should -Be 1
-        $first.State.ContainsKey('HoldSpotifyVersion') | Should -BeFalse
+        # Below the threshold the hold fields are written back as null rather
+        # than left absent, so a stale hold from a previous build cannot survive.
+        $first.State.HoldSpotifyVersion | Should -BeNullOrEmpty
 
         $second = Invoke-WatcherTick -State $first.State -Version '1.2.99.317'
         $second.Attempted | Should -BeTrue
         $second.State.ReapplyFailureCount | Should -Be 2
-        $second.State.ContainsKey('HoldSpotifyVersion') | Should -BeFalse
+        $second.State.HoldSpotifyVersion | Should -BeNullOrEmpty
     }
 
     It 'holds the build after three consecutive failures and stops attempting' {
@@ -3476,6 +3478,36 @@ Describe 'Auto-reapply watcher hold' {
         # The count restarts rather than inheriting the held build's total.
         $next.State.ReapplyFailureCount | Should -Be 1
         $next.State.ReapplyFailureVersion | Should -Be '1.2.100.100'
+        # And the stale hold is gone, not merely bypassed. Leaving it set
+        # made Maintenance report a hold on the old build with the old
+        # reason while hiding the failure happening now.
+        $next.State.HoldSpotifyVersion | Should -BeNullOrEmpty
+        $next.State.HoldSince | Should -BeNullOrEmpty
+        $next.State.HoldReason | Should -BeNullOrEmpty
+    }
+
+    It 'names the step that failed, not just the exception text' {
+        foreach ($lane in @('gui', 'backend')) {
+            $path = Join-Path $PSScriptRoot "..\..\src\powershell\$lane\lane-functions.ps1"
+            $text = [System.IO.File]::ReadAllText((Resolve-Path $path).Path)
+            $reapply = [regex]::Match($text, '(?ms)^function Invoke-HeadlessReapply\s*\{.+?^\}').Value
+            foreach ($step in @('SpotX download', 'SpotX patch', 'Spicetify reapply')) {
+                $reapply | Should -Match ([regex]::Escape($step)) -Because "$lane must record the $step step"
+            }
+            $watcher = [regex]::Match($text, '(?ms)^function Invoke-AutoReapplyWatcher\s*\{.+?^\}').Value
+            $watcher | Should -Match 'LibreSpotReapplyStep' -Because "$lane must put the step into the hold reason"
+        }
+    }
+
+    It 'clears the hold when a manual reapply succeeds' {
+        # Update-ApplyState is the backend writer behind the Reapply action the
+        # held Maintenance row offers. If it does not retire the hold, that
+        # action is a no-op and the row never clears.
+        $host_ = (Resolve-Path (Join-Path $PSScriptRoot '..\..\src\LibreSpot.Desktop\Backend\LibreSpot.Backend.ps1')).Path
+        $text = [System.IO.File]::ReadAllText($host_)
+        $fn = [regex]::Match($text, '(?ms)^function Update-ApplyState\s*\{.+?^\}').Value
+        $fn | Should -Not -BeNullOrEmpty
+        $fn | Should -Match 'Get-LibreSpotWatcherClearedHoldState'
     }
 
     It 'clears the hold and the count after a successful reapply' {

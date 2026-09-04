@@ -56,9 +56,13 @@ export class EngineStore {
     } catch (error) {
       // Deleting the only copy is how a truncated write or a schema bump turns
       // into "every theme, tweak and preset I saved is gone". Keep the bytes
-      // and let Health hand them back.
-      this.quarantine(raw, error);
-      this.storage.remove(ENGINE_STORAGE_KEY);
+      // and let Health hand them back. If the copy could not be written, for
+      // instance because the profile's storage is full, the original stays
+      // exactly where it is: an unreadable state the user still has beats a
+      // readable default they cannot undo.
+      if (this.quarantine(raw, error)) {
+        this.storage.remove(ENGINE_STORAGE_KEY);
+      }
       return createDefaultState(this.now());
     }
   }
@@ -103,22 +107,27 @@ export class EngineStore {
   /** Drops the kept copy once the user has exported it or decided against it. */
   public discardQuarantine(): void {
     const key = this.storage.get(QUARANTINE_POINTER_KEY);
-    if (key !== null) {
+    // Only ever remove a key this class owns. A pointer left by some other
+    // scheme could otherwise name the live state and Discard would delete it.
+    if (key?.startsWith(QUARANTINE_KEY_PREFIX) === true) {
       this.storage.remove(key);
     }
     this.storage.remove(QUARANTINE_POINTER_KEY);
   }
 
-  private quarantine(raw: string, error: unknown): void {
+  /** True when the raw value is safely stored and the original can be dropped. */
+  private quarantine(raw: string, error: unknown): boolean {
     const quarantinedAt = this.now().toISOString();
     const key = `${QUARANTINE_KEY_PREFIX}${quarantinedAt}`;
-    try {
-      // One retained copy. A profile that fails to parse on every load would
-      // otherwise stack a new dated key each time and fill the storage quota.
-      const previous = this.storage.get(QUARANTINE_POINTER_KEY);
-      if (previous !== null && previous !== key) {
-        this.storage.remove(previous);
+    const previous = (() => {
+      try {
+        return this.storage.get(QUARANTINE_POINTER_KEY);
+      } catch {
+        return null;
       }
+    })();
+
+    try {
       this.storage.set(
         key,
         JSON.stringify({
@@ -132,8 +141,22 @@ export class EngineStore {
       );
       this.storage.set(QUARANTINE_POINTER_KEY, key);
     } catch {
-      // A full or unavailable store must not stop the engine from starting.
+      // A full or unavailable store must not stop the engine from starting,
+      // and must not cost the user the state either.
+      return false;
     }
+
+    // Only once the new copy is readable does the older one go. Removing it
+    // first would leave nothing at all if the write above failed.
+    if (previous !== null && previous !== key && previous.startsWith(QUARANTINE_KEY_PREFIX)) {
+      try {
+        this.storage.remove(previous);
+      } catch {
+        // An orphan costs space, not data.
+      }
+    }
+
+    return true;
   }
 
   public save(state: EngineState): EngineState {
