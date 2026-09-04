@@ -637,6 +637,38 @@ async function bootstrap(): Promise<void> {
           notify(message, true);
         }
       },
+      resetMarketplaceStorage: async () => {
+        // Stale records from an older install survive a full Spicetify
+        // reinstall and can put back themes the user removed. Upstream closed
+        // that report as not planned, so the reset lives here.
+        try {
+          // The backup goes first and a failure stops the reset: wiping the
+          // database with nothing saved is the one outcome nobody wants.
+          const marketplace = await marketplaceStore.readAll();
+          if (!marketplace.available) {
+            notify(
+              "Marketplace's settings could not be read, so nothing was reset. Close any other Spotify window and try again.",
+              true,
+            );
+            return;
+          }
+
+          const file = serializeBackup(
+            createBackup(engine.state, marketplace.entries, new Date()),
+          );
+          await copyThroughPlatform(file);
+
+          await marketplaceStore.deleteAll();
+          const count = Object.keys(marketplace.entries).length;
+          notify(
+            `Marketplace storage reset. A backup of this profile and ${count} Marketplace settings is on the clipboard; paste it into a file before reloading Spotify.`,
+          );
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Marketplace reset failed.";
+          notify(message, true);
+        }
+      },
       exportQuarantine: async () => {
         const kept = store.readQuarantine();
         if (kept === null) {

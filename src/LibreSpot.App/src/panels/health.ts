@@ -253,6 +253,11 @@ export function HealthPanel(properties: PanelProperties): UiNode {
           "Back up copies the file to the clipboard. Paste it into a text file and keep it somewhere safe. Restore reads that text back from the clipboard.",
         ),
         h(
+          "p",
+          null,
+          "Reset Marketplace storage takes that same backup first, then clears Marketplace's own database. Use it when a theme you removed keeps coming back, or when Marketplace refuses to uninstall one.",
+        ),
+        h(
           "div",
           { className: "librespot-health-actions" },
           ActionButton({
@@ -274,6 +279,13 @@ export function HealthPanel(properties: PanelProperties): UiNode {
                   );
                 }
               })();
+            },
+          }),
+          ActionButton({
+            label: "Reset Marketplace storage",
+            secondary: true,
+            onClick: () => {
+              void properties.runtime.resetMarketplaceStorage();
             },
           }),
         ),

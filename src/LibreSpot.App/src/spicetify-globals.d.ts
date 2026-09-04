@@ -173,6 +173,7 @@ export type LibreSpotRuntimeApi = {
   restoreState(source: string): Promise<void>;
   exportQuarantine(): Promise<void>;
   discardQuarantine(): void;
+  resetMarketplaceStorage(): Promise<void>;
   reportError(message: string): void;
   openPanel(panel: string): void;
   openDesktopStore(

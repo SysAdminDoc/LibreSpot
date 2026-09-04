@@ -20,9 +20,10 @@ describe("pnpm build-script allowlist", () => {
       throw new Error("pnpm-workspace.yaml must declare allowBuilds.");
     }
 
-    const allowed = [...section[1].matchAll(/^\s+'?([^':\s]+)'?\s*:\s*(\S+)/gm)]
-      .filter(([, , value]) => value.replace(/,$/, "") === "true")
-      .map(([, name]) => name)
+    const body = section[1] ?? "";
+    const allowed = [...body.matchAll(/^\s+'?([^':\s]+)'?\s*:\s*(\S+)/gm)]
+      .filter((match) => (match[2] ?? "").replace(/,$/, "") === "true")
+      .map((match) => match[1] ?? "")
       .sort();
 
     expect(allowed).toEqual([...REVIEWED].sort());

@@ -37,6 +37,10 @@ function memoryMarketplace(seed: MarketplaceEntries = {}): MarketplaceStore & {
       state.entries = { ...state.entries, ...entries };
       return Promise.resolve();
     },
+    deleteAll: () => {
+      state.entries = {};
+      return Promise.resolve();
+    },
   };
 }
 
@@ -170,6 +174,47 @@ describe("backup", () => {
     expect(puts).toEqual([{ key: "marketplace:active-tab", value: "Extensions" }]);
   });
 
+  it("reports a blocked delete instead of hanging the reset", async () => {
+    // deleteDatabase never completes while another connection is open, and an
+    // unbounded wait would leave the Health button spinning forever.
+    const blocked: IDBFactory = {
+      deleteDatabase: () => {
+        const request = { onsuccess: null, onerror: null, onblocked: null };
+        queueMicrotask(() => {
+          (request.onblocked as unknown as () => void)();
+        });
+        return request as unknown as IDBOpenDBRequest;
+      },
+    } as unknown as IDBFactory;
+
+    await expect(indexedDbMarketplaceStore(blocked, 200).deleteAll()).rejects.toThrow(
+      /open in another Spotify window/,
+    );
+  });
+
+  it("gives up on a delete that never answers", async () => {
+    const stalledDelete: IDBFactory = {
+      deleteDatabase: () => ({ onsuccess: null, onerror: null, onblocked: null }) as unknown as IDBOpenDBRequest,
+    } as unknown as IDBFactory;
+
+    await expect(indexedDbMarketplaceStore(stalledDelete, 50).deleteAll()).rejects.toThrow(
+      /still open somewhere/,
+    );
+  });
+
+  it("resolves once the delete succeeds", async () => {
+    const succeeding: IDBFactory = {
+      deleteDatabase: () => {
+        const request = { onsuccess: null, onerror: null, onblocked: null };
+        queueMicrotask(() => {
+          (request.onsuccess as unknown as () => void)();
+        });
+        return request as unknown as IDBOpenDBRequest;
+      },
+    } as unknown as IDBFactory;
+
+    await expect(indexedDbMarketplaceStore(succeeding, 200).deleteAll()).resolves.toBeUndefined();
+  });
   it("gives up on a Marketplace database that never opens", async () => {
     // A blocked or stalled open used to hang the panel button forever.
     const stalled: IDBFactory = {

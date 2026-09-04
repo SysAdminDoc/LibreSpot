@@ -20,6 +20,7 @@ All notable changes to LibreSpot will be documented in this file.
 - A run that changes your system and then cannot write its receipt now says so, and names the file, instead of finishing quietly with nothing for undo to offer. A failed config rollback names the rescue copy, and a failed undo says when it could not be recorded.
 - The offscreen accessibility scan now also checks that anything you click is at least 24 by 24 points, which is what WCAG 2.2 asks for and what Axe.Windows does not check.
 - Running a setup by hand from the standalone LibreSpot window now clears an auto-reapply hold, the same as the desktop app already did.
+- Health has a Reset Marketplace storage action for the case where a removed theme keeps coming back. It copies a backup to the clipboard first and stops if that fails, then clears Marketplace's own database.
 
 ### Added
 

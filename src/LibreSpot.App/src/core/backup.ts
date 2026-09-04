@@ -118,6 +118,12 @@ export type MarketplaceReadResult = {
 export type MarketplaceStore = {
   readAll(): Promise<MarketplaceReadResult>;
   writeAll(entries: MarketplaceEntries): Promise<void>;
+  /**
+   * Removes Marketplace's whole database. Stale records from an older
+   * install survive a full Spicetify reinstall and can put back themes the
+   * user removed, which upstream closed as not planned.
+   */
+  deleteAll(): Promise<void>;
 };
 
 /**
@@ -253,5 +259,51 @@ export function indexedDbMarketplaceStore(
         database.close();
       }
     },
+    deleteAll: () =>
+      new Promise<void>((resolve, reject) => {
+        // Bounded like open(): a delete blocks while any other connection
+        // holds the database, and an unbounded wait would hang the button.
+        let settled = false;
+        const finish = (error?: Error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          if (error) reject(error);
+          else resolve();
+        };
+        const timer = setTimeout(() => {
+          finish(
+            new Error(
+              "Marketplace's database is still open somewhere, so it was not reset. Close other Spotify windows and try again.",
+            ),
+          );
+        }, timeoutMs);
+
+        let request: IDBOpenDBRequest;
+        try {
+          request = factory.deleteDatabase(MARKETPLACE_DATABASE);
+        } catch (error) {
+          finish(
+            error instanceof Error
+              ? error
+              : new Error("Marketplace's database could not be reset."),
+          );
+          return;
+        }
+
+        request.onsuccess = () => {
+          finish();
+        };
+        request.onerror = () => {
+          finish(new Error("Marketplace's database could not be reset."));
+        };
+        request.onblocked = () => {
+          finish(
+            new Error(
+              "Marketplace's database is open in another Spotify window, so it was not reset.",
+            ),
+          );
+        };
+      }),
   };
 }
