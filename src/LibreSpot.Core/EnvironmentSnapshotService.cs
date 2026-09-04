@@ -176,6 +176,7 @@ public sealed class EnvironmentSnapshotService
             AssetCacheInventory = assetCacheInventory,
             PatcherOwnershipReport = patcherOwnershipReport,
             MarketplaceVisibilityEvidence = marketplaceEvidence,
+            EmbeddedBrowserEngine = ReadEmbeddedBrowserEngine(),
             HostArchitecture = GetHostArchitecture(),
             ProcessArchitecture = GetProcessArchitecture()
         };
@@ -683,8 +684,7 @@ public sealed class EnvironmentSnapshotService
         var engine = ReadEmbeddedBrowserEngine();
         var evidence = engine is null
             ? L("HealthEvidenceSpotifyDetected")
-            : L("HealthEvidenceSpotifyDetected") + " " + F("HealthEvidenceSpotifyEngineFormat", engine)
-        ;
+            : F("HealthEvidenceSpotifyDetectedWithEngineFormat", engine);
 
         return Component(
             "spotify",

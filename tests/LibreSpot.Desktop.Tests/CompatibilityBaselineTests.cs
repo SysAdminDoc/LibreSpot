@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
@@ -56,6 +57,23 @@ public sealed class CompatibilityBaselineTests
             $"ships **Chromium {engineMajor}**",
             readme,
             StringComparison.Ordinal);
+
+        // On a machine that has the pinned Spotify, the recorded engine has to
+        // agree with the one actually installed. Skipped elsewhere rather than
+        // asserted against nothing: a machine without Spotify proves neither.
+        var libcefPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Spotify",
+            "libcef.dll");
+        if (File.Exists(libcefPath))
+        {
+            var product = FileVersionInfo.GetVersionInfo(libcefPath).ProductVersion ?? string.Empty;
+            var marker = product.IndexOf("chromium-", StringComparison.OrdinalIgnoreCase);
+            var installed = marker >= 0 ? product[(marker + "chromium-".Length)..] : product;
+            Assert.Equal(
+                engineMajor.ToString(CultureInfo.InvariantCulture),
+                installed.Split('.')[0]);
+        }
 
         var spicetify = root.GetProperty("spicetifyCli");
         Assert.Equal(AppCatalog.PinnedSpicetifyCliVersion, spicetify.GetProperty("version").GetString());

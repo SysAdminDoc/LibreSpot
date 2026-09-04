@@ -816,6 +816,13 @@ public sealed class EnvironmentSnapshot
     public AssetCacheInventoryReport AssetCacheInventory { get; init; } = AssetCacheInventoryReport.Empty;
     public PatcherOwnershipReport PatcherOwnershipReport { get; init; } = PatcherOwnershipReport.Empty;
     public MarketplaceVisibilityEvidence? MarketplaceVisibilityEvidence { get; init; }
+    /// <summary>
+    /// Chromium version the installed Spotify embeds, read from libcef.dll.
+    /// Null when Spotify is absent or not laid out like the desktop client.
+    /// A prose sentence cannot be compared with the pinned baseline; this
+    /// can.
+    /// </summary>
+    public string? EmbeddedBrowserEngine { get; init; }
     public string HostArchitecture { get; init; } = "Unknown";
     public string ProcessArchitecture { get; init; } = "Unknown";
     public bool MarketplaceReady => MarketplaceFilesPresent && MarketplaceRegistered;

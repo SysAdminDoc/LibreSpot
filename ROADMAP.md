@@ -33,10 +33,3 @@ Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the la
   Touches: `resources/custom-apps/librespot-engine.zip`, `src/powershell/data/CommunityCustomApps.ps1`, `LibreSpot.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `schemas/parity-manifest.json`.
   Acceptance: WHEN the archive is rebuilt from current app source, its SHA256 SHALL match all three installer pins and `BundledLibreSpotArchive_MatchesEveryPinAndShipsItsPackageVersion` SHALL pass; a test SHALL fail when the archive's embedded engine bundle does not contain the current `QUARANTINE_POINTER_KEY` string, so source-to-archive drift is caught rather than assumed.
   Complexity: S
-
-- [ ] P3: RD-200: Give the Spotify engine evidence one format resource instead of two joined strings
-  Why: the compatibility evidence is assembled in code as `L("HealthEvidenceSpotifyDetected") + " " + F("HealthEvidenceSpotifyEngineFormat", engine)`. A translator cannot reorder the two sentences and cannot remove the space, which is wrong for zh-Hans where sentences are not space separated. The engine version also reaches no machine-readable snapshot field, so nothing can compare what the machine actually runs against `embeddedChromiumMajor` in the baseline.
-  Evidence: `src/LibreSpot.Core/EnvironmentSnapshotService.cs` `BuildSpotifyComponent`; `schemas/compatibility-baseline.json` `spotify.embeddedChromiumMajor`; raised by an adversarial review on 2026-09-04.
-  Touches: `src/LibreSpot.Core/EnvironmentSnapshotService.cs`, all six `Strings*.resx`, the snapshot model, `tests/LibreSpot.Desktop.Tests/EnvironmentSnapshotServiceTests.cs`.
-  Acceptance: the evidence SHALL come from one format resource carrying both sentences; the snapshot SHALL expose the engine version as its own field; and a test SHALL fail when the field's major differs from the baseline's recorded major on a machine where Spotify is installed.
-  Complexity: S
