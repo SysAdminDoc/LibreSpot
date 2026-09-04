@@ -11,6 +11,27 @@ function Reapply-SavedSpicetifySetup {
     $statePath = Join-Path $global:CONFIG_DIR 'safe-mode-session.json'
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
+    $writeSafeModeMarker = {
+        param(
+            [Parameter(Mandatory = $true)][string]$Status,
+            [Parameter(Mandatory = $true)][string]$SnapshotPath,
+            [Parameter(Mandatory = $true)][string]$ManifestSha256
+        )
+
+        $marker = [ordered]@{
+            schemaVersion = 2
+            status = $Status
+            snapshotPath = $SnapshotPath
+            manifestSha256 = $ManifestSha256
+        }
+        if (-not (Test-Path -LiteralPath $global:CONFIG_DIR -PathType Container)) {
+            New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force -ErrorAction Stop | Out-Null
+        }
+        $markerTempPath = "$statePath.tmp-$PID-$([Guid]::NewGuid().ToString('N'))"
+        [System.IO.File]::WriteAllText($markerTempPath, ($marker | ConvertTo-Json -Depth 3), $utf8NoBom)
+        Move-Item -LiteralPath $markerTempPath -Destination $statePath -Force -ErrorAction Stop
+    }
+
     if ($RestoreSafeMode) {
         if (-not (Test-Path -LiteralPath $statePath -PathType Leaf)) {
             throw 'No recoverable LibreSpot safe-mode session was found.'
@@ -20,18 +41,69 @@ function Reapply-SavedSpicetifySetup {
             throw 'The safe-mode recovery marker is unexpectedly large. LibreSpot left it untouched for manual review.'
         }
         try {
-            $state = Get-Content -LiteralPath $statePath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+            $markerJson = Get-Content -LiteralPath $statePath -Raw -ErrorAction Stop
+            $marker = $markerJson | ConvertFrom-Json -ErrorAction Stop
         } catch {
             throw "The safe-mode recovery marker is unreadable. LibreSpot left it untouched for manual review. $($_.Exception.Message)"
         }
-        if ([int]$state.schemaVersion -ne 1) {
-            throw "Unsupported safe-mode recovery schema version '$($state.schemaVersion)'."
+        $markerSchemaVersion = [int]$marker.schemaVersion
+        if ($markerSchemaVersion -notin @(1, 2)) {
+            throw "Unsupported safe-mode recovery schema version '$($marker.schemaVersion)'."
+        }
+        if ($markerSchemaVersion -eq 2) {
+            $allowedMarkerProperties = @('schemaVersion', 'status', 'snapshotPath', 'manifestSha256')
+            $unexpectedMarkerProperties = @($marker.PSObject.Properties.Name | Where-Object { $allowedMarkerProperties -notcontains $_ })
+            if ($unexpectedMarkerProperties.Count -ne 0 -or
+                ([string]$marker.status) -notin @('ReadyToEnter', 'Active') -or
+                [string]::IsNullOrWhiteSpace([string]$marker.snapshotPath) -or
+                [string]$marker.manifestSha256 -notmatch '^[0-9a-fA-F]{64}$') {
+                throw 'The safe-mode recovery marker has unexpected or invalid fields. Recovery was refused before mutation.'
+            }
+        } elseif (([string]$marker.status) -notin @('ReadyToEnter', 'Active') -or
+            [string]::IsNullOrWhiteSpace([string]$marker.snapshotPath)) {
+            throw 'The legacy safe-mode recovery marker has invalid fields. Recovery was refused before mutation.'
         }
 
         $expectedRoot = [System.IO.Path]::GetFullPath($safeModeRoot).TrimEnd('\') + '\'
-        $snapshotPath = [System.IO.Path]::GetFullPath([string]$state.snapshotPath).TrimEnd('\')
+        $snapshotPath = [System.IO.Path]::GetFullPath([string]$marker.snapshotPath).TrimEnd('\')
         if (-not $snapshotPath.StartsWith($expectedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
             throw 'The safe-mode snapshot path is outside LibreSpot backups. Recovery was refused before mutation.'
+        }
+        $manifestPath = Join-Path $snapshotPath 'safe-mode-manifest.json'
+        if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+            throw 'The safe-mode snapshot manifest is missing. Recovery was refused before mutation.'
+        }
+        $manifestFile = Get-Item -LiteralPath $manifestPath -Force -ErrorAction Stop
+        if ($manifestFile.Length -le 0 -or $manifestFile.Length -gt 4194304) {
+            throw 'The safe-mode snapshot manifest has an invalid size. Recovery was refused before mutation.'
+        }
+        $actualManifestSha256 = Get-FileSha256Lower -Path $manifestPath
+        $expectedManifestSha256 = if ($markerSchemaVersion -eq 2) {
+            ([string]$marker.manifestSha256).ToLowerInvariant()
+        } else {
+            Get-FileSha256Lower -Path $statePath
+        }
+        if ($actualManifestSha256 -ne $expectedManifestSha256) {
+            throw 'The safe-mode snapshot manifest failed SHA256 verification. Recovery was refused before mutation.'
+        }
+        try {
+            $state = Get-Content -LiteralPath $manifestPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        } catch {
+            throw "The safe-mode snapshot manifest is unreadable. Recovery was refused before mutation. $($_.Exception.Message)"
+        }
+        $allowedManifestProperties = @(
+            'schemaVersion', 'operationId', 'createdAtUtc', 'snapshotPath', 'configSha256',
+            'customAppsExisted', 'customAppsFileCount', 'customAppsBytes', 'customAppsFiles'
+        )
+        if ($markerSchemaVersion -eq 1) {
+            $allowedManifestProperties += @('status', 'activatedAtUtc')
+        }
+        $unexpectedManifestProperties = @($state.PSObject.Properties.Name | Where-Object { $allowedManifestProperties -notcontains $_ })
+        if ([int]$state.schemaVersion -ne $markerSchemaVersion -or $unexpectedManifestProperties.Count -ne 0 -or
+            [System.IO.Path]::GetFullPath([string]$state.snapshotPath).TrimEnd('\') -ne $snapshotPath -or
+            [string]$state.configSha256 -notmatch '^[0-9a-fA-F]{64}$' -or
+            ($markerSchemaVersion -eq 1 -and ([string]$state.status) -ne ([string]$marker.status))) {
+            throw 'The safe-mode snapshot manifest has unexpected or invalid fields. Recovery was refused before mutation.'
         }
         $configBackupPath = Join-Path $snapshotPath 'config-xpui.ini'
         $customAppsBackupPath = Join-Path $snapshotPath 'CustomApps'
@@ -43,20 +115,37 @@ function Reapply-SavedSpicetifySetup {
         if ([string]::IsNullOrWhiteSpace($expectedConfigHash) -or $actualConfigHash -ne $expectedConfigHash) {
             throw 'The safe-mode config snapshot failed SHA256 verification. Recovery was refused before mutation.'
         }
-
         $snapshotFiles = @($state.customAppsFiles)
+        if ([int]$state.customAppsFileCount -ne $snapshotFiles.Count -or
+            ([long]$state.customAppsBytes -lt 0) -or
+            (-not [bool]$state.customAppsExisted -and $snapshotFiles.Count -ne 0) -or
+            ([bool]$state.customAppsExisted -and -not (Test-Path -LiteralPath $customAppsBackupPath -PathType Container))) {
+            throw 'The safe-mode CustomApps manifest is inconsistent. Recovery was refused before mutation.'
+        }
+        $seenRelativePaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        [long]$verifiedCustomAppsBytes = 0
         foreach ($file in $snapshotFiles) {
             $relativePath = [string]$file.path
-            if ([string]::IsNullOrWhiteSpace($relativePath) -or [System.IO.Path]::IsPathRooted($relativePath) -or $relativePath -match '(^|[\\/])\.\.([\\/]|$)') {
+            if ([string]::IsNullOrWhiteSpace($relativePath) -or [System.IO.Path]::IsPathRooted($relativePath) -or
+                $relativePath -match '(^|[\\/])\.\.([\\/]|$)' -or -not $seenRelativePaths.Add($relativePath) -or
+                [string]$file.sha256 -notmatch '^[0-9a-fA-F]{64}$' -or [long]$file.bytes -lt 0) {
                 throw 'The safe-mode CustomApps manifest contains an unsafe relative path. Recovery was refused before mutation.'
             }
             $sourceFile = [System.IO.Path]::GetFullPath((Join-Path $customAppsBackupPath $relativePath))
             $expectedCustomAppsRoot = [System.IO.Path]::GetFullPath($customAppsBackupPath).TrimEnd('\') + '\'
             if (-not $sourceFile.StartsWith($expectedCustomAppsRoot, [System.StringComparison]::OrdinalIgnoreCase) -or
                 -not (Test-Path -LiteralPath $sourceFile -PathType Leaf) -or
+                (Get-Item -LiteralPath $sourceFile -Force -ErrorAction Stop).Length -ne [long]$file.bytes -or
                 (Get-FileSha256Lower -Path $sourceFile) -ne ([string]$file.sha256).ToLowerInvariant()) {
                 throw "The safe-mode CustomApps snapshot failed verification for '$relativePath'. Recovery was refused before mutation."
             }
+            $verifiedCustomAppsBytes += [long]$file.bytes
+        }
+        $actualSnapshotFileCount = if (Test-Path -LiteralPath $customAppsBackupPath -PathType Container) {
+            @(Get-ChildItem -LiteralPath $customAppsBackupPath -File -Recurse -Force -ErrorAction Stop).Count
+        } else { 0 }
+        if ($actualSnapshotFileCount -ne $snapshotFiles.Count -or $verifiedCustomAppsBytes -ne [long]$state.customAppsBytes) {
+            throw 'The safe-mode CustomApps snapshot contains unverified content. Recovery was refused before mutation.'
         }
 
         if (-not (Test-SpicetifyCliInstalled)) {
@@ -152,8 +241,7 @@ function Reapply-SavedSpicetifySetup {
             }
 
             $state = [ordered]@{
-                schemaVersion = 1
-                status = 'ReadyToEnter'
+                schemaVersion = 2
                 operationId = $operationId
                 createdAtUtc = (Get-Date).ToUniversalTime().ToString('o')
                 snapshotPath = $snapshotPath
@@ -164,13 +252,12 @@ function Reapply-SavedSpicetifySetup {
                 customAppsFiles = $customAppsFiles
             }
             $stateJson = $state | ConvertTo-Json -Depth 7
-            [System.IO.File]::WriteAllText((Join-Path $snapshotPath 'safe-mode-manifest.json'), $stateJson, $utf8NoBom)
-            if (-not (Test-Path -LiteralPath $global:CONFIG_DIR -PathType Container)) {
-                New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force -ErrorAction Stop | Out-Null
-            }
-            $stateTempPath = "$statePath.tmp-$PID-$([Guid]::NewGuid().ToString('N'))"
-            [System.IO.File]::WriteAllText($stateTempPath, $stateJson, $utf8NoBom)
-            Move-Item -LiteralPath $stateTempPath -Destination $statePath -Force -ErrorAction Stop
+            $manifestPath = Join-Path $snapshotPath 'safe-mode-manifest.json'
+            $manifestTempPath = "$manifestPath.tmp-$PID-$([Guid]::NewGuid().ToString('N'))"
+            [System.IO.File]::WriteAllText($manifestTempPath, $stateJson, $utf8NoBom)
+            Move-Item -LiteralPath $manifestTempPath -Destination $manifestPath -Force -ErrorAction Stop
+            $manifestSha256 = Get-FileSha256Lower -Path $manifestPath
+            & $writeSafeModeMarker -Status 'ReadyToEnter' -SnapshotPath $snapshotPath -ManifestSha256 $manifestSha256
             $mutationStarted = $true
 
             Stop-SpotifyProcesses -MaxAttempts 3
@@ -190,13 +277,7 @@ function Reapply-SavedSpicetifySetup {
 
             $applyPlan = Get-SpicetifyApplyPlan
             Invoke-SpicetifyCli -Arguments @($applyPlan.Arguments) -FailureMessage 'Could not apply the temporary safe-mode Spicetify configuration.'
-            $state.status = 'Active'
-            $state.activatedAtUtc = (Get-Date).ToUniversalTime().ToString('o')
-            $stateJson = $state | ConvertTo-Json -Depth 7
-            [System.IO.File]::WriteAllText((Join-Path $snapshotPath 'safe-mode-manifest.json'), $stateJson, $utf8NoBom)
-            $stateTempPath = "$statePath.tmp-$PID-$([Guid]::NewGuid().ToString('N'))"
-            [System.IO.File]::WriteAllText($stateTempPath, $stateJson, $utf8NoBom)
-            Move-Item -LiteralPath $stateTempPath -Destination $statePath -Force -ErrorAction Stop
+            & $writeSafeModeMarker -Status 'Active' -SnapshotPath $snapshotPath -ManifestSha256 $manifestSha256
 
             Write-OperationJournalEntry -Phase 'safe-mode' -Target $snapshotPath -SafetyDecision 'Allowed' -Result 'Active' -WouldChange $true -Reversible $true -RollbackHint 'Use Restore my setup in Maintenance to restore and reapply this exact snapshot.' -TokenKind 'safeModeSession' -PreviousStateRef $snapshotPath -NewState 'extensions=; custom_apps=' -UndoAction 'Restore config-xpui.ini and CustomApps from the verified safe-mode snapshot, then reapply Spicetify.' -Risk 'low' -Data @{
                 configSha256 = [string]$state.configSha256

@@ -1202,7 +1202,7 @@ public sealed class MainViewModelMaintenanceTests
         public void WriteSafeModeMarker(string status) =>
             WriteFile(
                 Path.Combine(ConfigDirectory, "safe-mode-session.json"),
-                JsonSerializer.Serialize(new { schemaVersion = 1, status }));
+                JsonSerializer.Serialize(new { schemaVersion = 2, status }));
 
         public void WriteInstallLog(string content) =>
             WriteFile(Path.Combine(ConfigDirectory, "install.log"), content);

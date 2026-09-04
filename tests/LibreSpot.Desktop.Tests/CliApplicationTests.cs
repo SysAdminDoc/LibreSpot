@@ -19,6 +19,7 @@ using CliCommunityAssetState = LibreSpot.Desktop.Models.CommunityAssetState;
 using CliEnvironmentSnapshot = LibreSpot.Desktop.Models.EnvironmentSnapshot;
 using CliHealthSeverity = LibreSpot.Desktop.Models.HealthSeverity;
 using CliMarketplaceVisibilityEvidence = LibreSpot.Desktop.Models.MarketplaceVisibilityEvidence;
+using CliSpotifyOpenResult = Cli::LibreSpot.Cli.CliSpotifyOpenResult;
 using CliStackHealthComponent = LibreSpot.Desktop.Models.StackHealthComponent;
 using CliStackHealthReport = LibreSpot.Desktop.Models.StackHealthReport;
 using CliUpstreamDependencyState = LibreSpot.Desktop.Models.UpstreamDependencyState;
@@ -1416,6 +1417,7 @@ public sealed class CliApplicationTests
     public void RepairSafeMode_MapsToSafeModeBackendAction()
     {
         var actions = new List<string>();
+        var launchCount = 0;
         var result = Run(
             new[] { "repair", "--safe-mode", "--silent", "--yes" },
             _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
@@ -1423,10 +1425,48 @@ public sealed class CliApplicationTests
             {
                 actions.Add(action);
                 return Task.FromResult(new CliBackendRunResult(true));
+            },
+            _ =>
+            {
+                launchCount++;
+                return Task.FromResult(new CliSpotifyOpenResult(true, "opened"));
             });
 
         Assert.Equal(0, result.ExitCode);
         Assert.Equal(new[] { "SafeMode" }, actions);
+        Assert.Equal(1, launchCount);
+    }
+
+    [Fact]
+    public void RepairSafeMode_WhenSpotifyCannotOpen_ReturnsFailureAndKeepsRecoveryMessage()
+    {
+        var result = Run(
+            new[] { "repair", "--safe-mode", "--silent", "--yes" },
+            _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+            (_, _, _, _) => Task.FromResult(new CliBackendRunResult(true)),
+            _ => Task.FromResult(new CliSpotifyOpenResult(false, "Spotify.exe was not found.")));
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("Safe mode is active", result.Stderr);
+        Assert.Contains("Spotify.exe was not found", result.Stderr);
+    }
+
+    [Fact]
+    public void RepairSafeMode_NoRestartSkipsSpotifyLaunch()
+    {
+        var launchCount = 0;
+        var result = Run(
+            new[] { "repair", "--safe-mode", "--silent", "--yes", "--no-restart" },
+            _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+            (_, _, _, _) => Task.FromResult(new CliBackendRunResult(true)),
+            _ =>
+            {
+                launchCount++;
+                return Task.FromResult(new CliSpotifyOpenResult(true, "opened"));
+            });
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(0, launchCount);
     }
 
     [Fact]
@@ -1660,11 +1700,12 @@ public sealed class CliApplicationTests
     private static CliRunResult Run(
         string[] args,
         Func<string, CliEnvironmentSnapshot> snapshotFactory,
-        Func<string, string, Action<CliBackendMessage>, CancellationToken, Task<CliBackendRunResult>>? backendRunner = null)
+        Func<string, string, Action<CliBackendMessage>, CancellationToken, Task<CliBackendRunResult>>? backendRunner = null,
+        Func<CancellationToken, Task<CliSpotifyOpenResult>>? spotifyLauncher = null)
     {
         using var stdout = new StringWriter();
         using var stderr = new StringWriter();
-        var exitCode = CliApp.Run(args, stdout, stderr, snapshotFactory, backendRunner);
+        var exitCode = CliApp.Run(args, stdout, stderr, snapshotFactory, backendRunner, spotifyLauncher);
         return new CliRunResult(exitCode, stdout.ToString(), stderr.ToString());
     }
 

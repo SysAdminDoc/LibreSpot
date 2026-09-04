@@ -104,8 +104,11 @@ Describe 'One-session Spotify safe mode' {
         $script:InvokeCount | Should -Be 1
         $markerPath = Join-Path $global:CONFIG_DIR 'safe-mode-session.json'
         $marker = Get-Content -LiteralPath $markerPath -Raw | ConvertFrom-Json
+        $manifest = Get-Content -LiteralPath (Join-Path $marker.snapshotPath 'safe-mode-manifest.json') -Raw | ConvertFrom-Json
+        $marker.schemaVersion | Should -Be 2
         $marker.status | Should -Be 'Active'
-        $marker.customAppsFileCount | Should -Be 2
+        $marker.manifestSha256 | Should -Match '^[0-9a-f]{64}$'
+        $manifest.customAppsFileCount | Should -Be 2
         $activeEntry = $script:Journal | Where-Object Result -EQ 'Active' | Select-Object -Last 1
         $activeEntry.Reversible | Should -BeTrue
         $activeEntry.TokenKind | Should -Be 'safeModeSession'
@@ -141,5 +144,59 @@ Describe 'One-session Spotify safe mode' {
         (Test-Path -LiteralPath $markerPath -PathType Leaf) | Should -BeTrue
         $script:ClearCount | Should -Be 0
         $script:ApplyCount | Should -Be 0
+    }
+
+    It 'refuses recovery fields injected into the minimal marker before touching the live setup' {
+        $null = Reapply-SavedSpicetifySetup -Config @{} -SafeMode
+        $markerPath = Join-Path $global:CONFIG_DIR 'safe-mode-session.json'
+        $marker = Get-Content -LiteralPath $markerPath -Raw | ConvertFrom-Json
+        $marker | Add-Member -NotePropertyName customAppsExisted -NotePropertyValue $false
+        $marker | Add-Member -NotePropertyName customAppsFiles -NotePropertyValue @()
+        [System.IO.File]::WriteAllText($markerPath, ($marker | ConvertTo-Json -Depth 5))
+        $liveBefore = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($script:Integration.ConfigPath))
+
+        { Reapply-SavedSpicetifySetup -Config @{} -RestoreSafeMode } | Should -Throw -ExpectedMessage '*unexpected or invalid fields*'
+
+        [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($script:Integration.ConfigPath)) | Should -Be $liveBefore
+        $script:ClearCount | Should -Be 0
+        $script:ApplyCount | Should -Be 0
+    }
+
+    It 'refuses a tampered recovery manifest before touching the live setup' {
+        $null = Reapply-SavedSpicetifySetup -Config @{} -SafeMode
+        $markerPath = Join-Path $global:CONFIG_DIR 'safe-mode-session.json'
+        $marker = Get-Content -LiteralPath $markerPath -Raw | ConvertFrom-Json
+        $manifestPath = Join-Path $marker.snapshotPath 'safe-mode-manifest.json'
+        $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+        $manifest.customAppsExisted = $false
+        $manifest.customAppsFileCount = 0
+        $manifest.customAppsFiles = @()
+        [System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 7))
+        $liveBefore = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($script:Integration.ConfigPath))
+
+        { Reapply-SavedSpicetifySetup -Config @{} -RestoreSafeMode } | Should -Throw -ExpectedMessage '*manifest failed SHA256 verification*'
+
+        [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($script:Integration.ConfigPath)) | Should -Be $liveBefore
+        $script:ClearCount | Should -Be 0
+        $script:ApplyCount | Should -Be 0
+    }
+
+    It 'restores a verified legacy session created before the hashed marker format' {
+        $null = Reapply-SavedSpicetifySetup -Config @{} -SafeMode
+        $markerPath = Join-Path $global:CONFIG_DIR 'safe-mode-session.json'
+        $marker = Get-Content -LiteralPath $markerPath -Raw | ConvertFrom-Json
+        $manifestPath = Join-Path $marker.snapshotPath 'safe-mode-manifest.json'
+        $legacy = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+        $legacy.schemaVersion = 1
+        $legacy | Add-Member -NotePropertyName status -NotePropertyValue 'Active'
+        $legacyJson = $legacy | ConvertTo-Json -Depth 7
+        [System.IO.File]::WriteAllText($manifestPath, $legacyJson)
+        [System.IO.File]::WriteAllText($markerPath, $legacyJson)
+
+        $restored = Reapply-SavedSpicetifySetup -Config @{} -RestoreSafeMode
+
+        $restored.Status | Should -Be 'Restored'
+        [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($script:Integration.ConfigPath)) | Should -Be $script:OriginalConfigBase64
+        $script:ApplyCount | Should -Be 1
     }
 }

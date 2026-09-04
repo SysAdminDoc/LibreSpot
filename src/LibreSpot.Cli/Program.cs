@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
@@ -8,6 +9,8 @@ using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Services;
 
 namespace LibreSpot.Cli;
+
+public sealed record CliSpotifyOpenResult(bool Opened, string Message);
 
 [SupportedOSPlatform("windows")]
 public static class Program
@@ -119,7 +122,8 @@ public static class CliApplication
         TextWriter stdout,
         TextWriter stderr,
         Func<string, EnvironmentSnapshot>? snapshotFactory = null,
-        Func<string, string, Action<BackendMessage>, CancellationToken, Task<BackendRunResult>>? backendRunner = null)
+        Func<string, string, Action<BackendMessage>, CancellationToken, Task<BackendRunResult>>? backendRunner = null,
+        Func<CancellationToken, Task<CliSpotifyOpenResult>>? spotifyLauncher = null)
     {
         try
         {
@@ -158,7 +162,7 @@ public static class CliApplication
                 "install" => RunPlannedOperation("install", options, stdout, stderr, backendRunner),
                 "reapply" => RunPlannedOperation("reapply", options, stdout, stderr, backendRunner),
                 "uninstall" => RunPlannedOperation("uninstall", options, stdout, stderr, backendRunner),
-                "repair" => RunPlannedOperation("repair", options, stdout, stderr, backendRunner),
+                "repair" => RunPlannedOperation("repair", options, stdout, stderr, backendRunner, spotifyLauncher: spotifyLauncher),
                 "undo" => RunUndo(options, stdout, stderr),
                 "plan" => RunPlannedOperation("install", options, stdout, stderr, planVerb: true),
                 "cache export" => RunCacheBundle("export", options, stdout, stderr),
@@ -633,7 +637,8 @@ public static class CliApplication
         TextWriter stdout,
         TextWriter stderr,
         Func<string, string, Action<BackendMessage>, CancellationToken, Task<BackendRunResult>>? backendRunner = null,
-        bool planVerb = false)
+        bool planVerb = false,
+        Func<CancellationToken, Task<CliSpotifyOpenResult>>? spotifyLauncher = null)
     {
         if (!options.OnlyContains(
                 "--answer-file",
@@ -755,7 +760,7 @@ public static class CliApplication
 
         if (!planVerb && !options.HasFlag("--dry-run"))
         {
-            return RunBackendOperation(operation, options, stdout, stderr, validation, repairAction, operationId, backendRunner);
+            return RunBackendOperation(operation, options, stdout, stderr, validation, repairAction, operationId, backendRunner, spotifyLauncher);
         }
 
         var plan = BuildPlan(operation, options, validation, configPath, operationId, repairAction);
@@ -825,7 +830,8 @@ public static class CliApplication
         ValidationDocument? validation,
         string? repairAction,
         Guid operationId,
-        Func<string, string, Action<BackendMessage>, CancellationToken, Task<BackendRunResult>>? backendRunner)
+        Func<string, string, Action<BackendMessage>, CancellationToken, Task<BackendRunResult>>? backendRunner,
+        Func<CancellationToken, Task<CliSpotifyOpenResult>>? spotifyLauncher)
     {
         if ((operation == "uninstall" || operation == "repair") && !options.HasFlag("--yes") && !options.HasFlag("--silent"))
         {
@@ -950,6 +956,38 @@ public static class CliApplication
             }
         }
 
+        if (string.Equals(repairAction, "SafeMode", StringComparison.Ordinal) && !options.HasFlag("--no-restart"))
+        {
+            var launch = spotifyLauncher ?? OpenSpotifyAsync;
+            var launchResult = launch(CancellationToken.None).GetAwaiter().GetResult();
+            if (!launchResult.Opened)
+            {
+                var message = $"Safe mode is active, but Spotify could not be opened. {launchResult.Message}";
+                if (ndjson)
+                {
+                    WriteNdjson(stdout, NdjsonEvent(
+                            "LS1003",
+                            "error",
+                            "lifecycle",
+                            "LibreSpot could not launch Spotify in safe mode.",
+                            operation,
+                            new { action = repairAction, error = message, logPath = ndjsonLog?.Path },
+                            options,
+                            operationId,
+                            exitCode: UnhandledFailure),
+                        ndjsonLog);
+                }
+
+                stderr.WriteLine(message);
+                return UnhandledFailure;
+            }
+
+            if (!quiet)
+            {
+                stdout.WriteLine("Spotify opened in safe mode.");
+            }
+        }
+
         if (ndjson)
         {
             // A fleet consumer keying on severity must not read a run with a
@@ -981,6 +1019,42 @@ public static class CliApplication
         }
 
         return finalExitCode;
+    }
+
+    private static Task<CliSpotifyOpenResult> OpenSpotifyAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var candidates = new List<string>
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Spotify", "Spotify.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Spotify", "Spotify.exe")
+        };
+        var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        if (!string.IsNullOrWhiteSpace(programFilesX86))
+        {
+            candidates.Add(Path.Combine(programFilesX86, "Spotify", "Spotify.exe"));
+        }
+
+        var spotifyPath = candidates.FirstOrDefault(File.Exists);
+        if (spotifyPath is null)
+        {
+            return Task.FromResult(new CliSpotifyOpenResult(false, "LibreSpot could not find Spotify.exe to open it."));
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = '"' + spotifyPath.Replace("\"", "\\\"", StringComparison.Ordinal) + '"',
+                UseShellExecute = true
+            })?.Dispose();
+            return Task.FromResult(new CliSpotifyOpenResult(true, "Spotify opened in safe mode."));
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(new CliSpotifyOpenResult(false, $"LibreSpot could not open Spotify: {ex.Message}"));
+        }
     }
 
     private static IReadOnlyList<string> BackendActionsFor(string operation, CliOptions options, string? repairAction = null) =>

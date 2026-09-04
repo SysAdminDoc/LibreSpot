@@ -48,7 +48,7 @@ public sealed partial class MainViewModel
                 var root = document.RootElement;
                 var status = root.TryGetProperty("status", out var statusValue) ? statusValue.GetString() : null;
                 return root.TryGetProperty("schemaVersion", out var schemaVersion) &&
-                    schemaVersion.GetInt32() == 1 &&
+                    schemaVersion.GetInt32() is 1 or 2 &&
                     status is "ReadyToEnter" or "Active";
             }
             catch

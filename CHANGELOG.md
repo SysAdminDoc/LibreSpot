@@ -14,6 +14,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Safe-mode recovery now treats its snapshot manifest as the only source of restore data. The small UI marker carries a SHA256 for that manifest, unexpected fields are refused, and every listed CustomApps file is checked before the live setup changes. The fleet CLI now opens Spotify after a successful `repair --safe-mode` run unless `--no-restart` was supplied.
 - Home's readiness list now has a translated accessibility name in every shipped interface language. Screen readers can identify the list before announcing its four checks, and the former Axe.Windows exception is gone.
 - Community catalog generation now resolves the repository correctly when launched as a script in Windows PowerShell 5.1. Both supported PowerShell editions use the same JSON formatter, so a given source commit produces the same publishable bytes.
 
