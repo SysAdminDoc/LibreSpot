@@ -194,6 +194,8 @@ Verify: compatibility matrix and diagnostics report the same labels; WPF
 and PowerShell startup warnings do not contradict README/package metadata;
 release checklist requires one manual smoke test on each supported host OS.
 
+Research note (2026-09-04): Microsoft extended consumer ESU for Windows 10 to 2027-10-12 on 2026-06-25, free with settings sync or 1,000 Rewards points, or $30, for up to ten devices per account (https://www.bleepingcomputer.com/news/microsoft/microsoft-quietly-extends-free-windows-10-esu-support-to-october-2027/). A "best-effort on Windows 10 with ESU" label now has a defined end date to cite. KB5079391 (2026-03-27) also lets Windows 11 24H2/25H2 turn Smart App Control off without a reinstall; RD-195 in ROADMAP.md updates the FAQ.
+
 ## P1 - Build an alternative-client capability and compliance matrix before adding cards
 
 | Field | Value |

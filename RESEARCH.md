@@ -1,255 +1,243 @@
 # Research: LibreSpot
 
-Date: 2026-09-03. Replaces all prior research.
+Date: 2026-09-04. Replaces all prior research.
 
 ## Executive Summary
 
-LibreSpot v4.2.0 (local candidate; v4.1.2 is the public latest release, 2026-09-02) is a finished-feeling Windows product: a WPF desktop app, a fleet CLI, and a composed PowerShell script that install a hash-pinned tuple of Spotify 1.2.93, SpotX at commit `550bc72c`, Spicetify 2.44.0, and Marketplace 1.0.9, plus an AGPL live customization app that runs inside Spotify. The 2026-08-23 plan (RD-127 through RD-134) and the 2026-09-01 customization plan (RD-135 through RD-141) both shipped in full, the tracker has no open issues, and every local gate is green at `09238af` (`CHANGELOG.md`; `ROADMAP.md`; `git log`).
+LibreSpot v4.4.0 is the latest tagged release (2026-09-04) and a v4.5.0 bump is staged uncommitted in the working tree. It is a Windows WPF desktop app, a fleet CLI, and a composed PowerShell script that install a hash-pinned tuple of Spotify 1.2.93.667, SpotX commit `550bc72c`, Spicetify 2.44.0, and Marketplace 1.0.11, plus an AGPL live customization app that runs inside Spotify. Every research item from 2026-09-03 (RD-142 through RD-180) shipped, the tracker has zero open issues and zero pull requests, and every local gate was green at `5789733` (`CHANGELOG.md`; `CLAUDE.md`; [tracker](https://github.com/SysAdminDoc/LibreSpot/issues?q=is%3Aissue)).
 
-The strongest current shape is the trust story: immutable releases with checksums, SBOM, release manifest, and a GitHub attestation, unsigned by design and documented as such (`SECURITY.md`; `SIGNPATH.md`; [v4.1.2 release](https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.1.2)). The highest-value direction is to make that story true at the edges the last two release cycles created. One edge is already broken in production: the bundled live engine downloads from a mutable `main` URL, so the public v4.1.2 release now fails its own SHA256 check on a fresh install (`src/powershell/data/CommunityCustomApps.ps1:17-25`; see Security). The other edges are drift: the reviewed community catalog was last verified on 2026-06-15, before the 1.2.93 pin existed; Marketplace is two releases behind the fix for the "settings vanish" complaint; Spotify is on 1.2.98 with 1.2.99 staged while Spicetify 2.44.0 declares support only to 1.2.96; and several README claims describe the script lane as if they were product-wide.
+The strongest current shape is the trust and recovery story: immutable releases with checksums, SBOM, manifest and attestation, journal-backed undo, DPAPI-sealed safe mode, verified offline cache bundles, and a 24-theme in-client Store. The highest-value direction now is durability at the edges that story has not reached: the in-Spotify engine deletes its own saved state on any parse failure, the auto-reapply watcher retries a failing reapply every 30 minutes forever, and the README documents eight of the fifteen exit codes the fleet schema defines. Upstream, the pinned tuple still works and still downloads (SpotX's worker served the 1.2.93 installer on 2026-09-04), but Spicetify v2 is frozen at 2.44.0 while v3 betas ship every few days with a live module store, and public Spotify is five minors ahead at 1.2.98.301 with 1.2.99 staged on the CDN.
 
 | Rank | Opportunity | Timing | User impact | Effort | Confidence |
-|---|---|---|---:|---:|---|
-| 1 | RD-142: Pin the live engine download to an immutable per-release source | Now, P0 | 5/5 | M | Verified |
-| 2 | RD-143: Advance Marketplace to 1.0.11 with a live persistence proof | Now, P1 | 4/5 | M | Verified |
-| 3 | RD-144: Make README feature claims lane-accurate and test the phase count | Now, P1 | 3/5 | S | Verified |
-| 4 | RD-145: Re-verify the reviewed community catalog against Spotify 1.2.93 | Now, P1 | 4/5 | M | Verified |
-| 5 | RD-146: Script the release publish and make the build reproducible | Now, P1 | 3/5 | M | Verified |
-| 6 | RD-147: One-click backup file for engine and Marketplace state | Next, P1 | 4/5 | M | Likely |
-| 7 | RD-148: Compress the single-file executable and measure cold start | Next, P2 | 3/5 | S | Verified |
-| 8 | RD-149: Trigger reapply from a file change instead of a 30-minute poll | Next, P2 | 4/5 | M | Likely |
-| 9 | RD-151: Audit the engine's JavaScript dependencies and retire spicetify-creator | Next, P2 | 2/5 | M | Verified |
-| 10 | RD-152: Run Axe.Windows inside the UIA smoke suite | Later, P2 | 2/5 | M | Likely |
+|---|---|---|---|---|---|
+| 1 | RD-181: Quarantine unreadable engine state instead of deleting it | Now, P1 | 5/5 | S | Verified |
+| 2 | RD-182: Hold the watcher after repeated reapply failures on one build | Now, P1 | 4/5 | M | Verified |
+| 3 | RD-184: Document all fifteen fleet exit codes and gate the README table | Now, P2 | 3/5 | S | Verified |
+| 4 | RD-183: Advance the SpotX pin for the manifest-aware mirror and download fallback | Next, P2 | 4/5 | L | Verified |
+| 5 | RD-185: Show the pinned build's embedded Chromium version and age | Next, P2 | 3/5 | M | Verified |
+| 6 | RD-186: One scrollbar in Settings, no clipped theme gallery | Next, P2 | 3/5 | M | Verified |
+| 7 | RD-187: Pin the PS2EXE compiler version in the release build | Next, P2 | 2/5 | S | Verified |
+| 8 | RD-188: Validate runtime outputs against the four untested schemas | Next, P2 | 3/5 | M | Verified |
+| 9 | RD-189: Compute the next reviewable Spotify tuple from all three upstream sources | Next, P2 | 3/5 | M | Verified |
+| 10 | RD-196: Reset Marketplace storage from the engine's Health panel with a pre-export | Later, P3 | 3/5 | M | Likely |
 
-Direct NuGet dependencies are current as of 2026-09-03 (WPF-UI 4.3.0, CommunityToolkit.Mvvm 8.4.2, xunit.v3 4.0.0, FlaUI 5.0.0, Serilog 4.4.0). The .NET floor of 10.0.11 already carries the July WPF XAML RCE fixes and the August runtime fixes. The only dependency gap worth roadmap time is on the JavaScript side, where `spicetify-creator` 1.0.17 is unmaintained and drags in esbuild 0.14.54, and no JavaScript audit runs in `Build-Scripts.ps1 -DependencyHealth` (`src/LibreSpot.App/package.json`; `Build-Scripts.ps1`).
+Direct dependencies are current: every NuGet pin equals the latest listed version on 2026-09-04 (WPF-UI 4.3.0, CommunityToolkit.Mvvm 8.4.2, Serilog 4.4.0, FlaUI 5.0.0, Axe.Windows 2.4.2, xunit.v3 4.0.0, FsCheck.Xunit.v3 3.4.0), PSScriptAnalyzer 1.25.0 and Pester 5.9.1 are the latest of their lines, and pnpm 11.25.0 is still `latest` ([nuget.org](https://www.nuget.org/packages/CommunityToolkit.Mvvm); [PSGallery](https://www.powershellgallery.com/packages/PSScriptAnalyzer); [pnpm 12 blog](https://pnpm.io/blog/releases/12.0)). .NET 10.0.11 (2026-08-11) is the latest runtime; the next Patch Tuesday is 2026-09-08 ([release metadata](https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json)).
 
 ## Product Map
 
 ### Core workflows
 
-- **Recommended setup.** Snapshot the machine, choose one Home action from health state, install the reviewed tuple, open Spotify (`src/LibreSpot.Desktop/ViewModels/MainViewModel.Maintenance.cs:76-121`; `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml`).
-- **Settings and profiles.** Four essentials first, eight one-level groups behind them, `.librespot` files, `librespot://` links, share cards, and global search (the last of which is unreachable in the simplified shell; see Reported Issues) (`src/LibreSpot.Desktop/Views/CustomWorkspaceView.xaml`; `src/LibreSpot.Desktop/ViewModels/MainViewModel.CustomInstall.cs`).
-- **Maintenance and recovery.** Overall status, one safe repair, diagnostics under disclosure, a separate danger tier, journal-backed undo, redacted support bundles (`src/LibreSpot.Desktop/Views/MaintenanceWorkspaceView.xaml`; `src/LibreSpot.Core/OperationJournalUndoService.cs`; `src/LibreSpot.Core/SupportBundleService.cs`).
-- **Live customization inside Spotify.** Look, Tweaks, Features, Extensions, Presets, and Health panels at `/librespot/*`, with a companion extension that keeps the engine present on every route; state lives in browser localStorage under `librespot:engine-state` (`src/LibreSpot.App/src/surface/navigation.ts`; `src/LibreSpot.App/src/core/store.ts:8`).
-- **Managed deployment.** `status`, `detect`, `validate`, `install`, `reapply`, `uninstall`, `repair`, `undo`, `plan`, `export-support`, `version`, and `watcher` verbs with JSON and NDJSON contracts, answer files, dry run, and Intune detection guidance (`src/LibreSpot.Cli/Program.cs:153-166`; `schemas/fleet-cli-contract.json`; `README.md:291-329`).
+- **Recommended setup.** One state-derived Home action installs the reviewed tuple, then opens Spotify (`src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml`; `assets/screenshots/wpf-recommended.png`).
+- **Settings and profiles.** Four essentials, eight disclosed groups, `.librespot` files, `librespot://` links, share cards (`src/LibreSpot.Desktop/Views/CustomWorkspaceView.xaml`; `src/LibreSpot.Desktop/Views/CustomAppearanceSection.xaml`).
+- **Maintenance and recovery.** One safe repair first, diagnostics and reset behind disclosures, journal-backed undo, reversible safe mode, redacted support bundles with opt-in Triage dumps (`src/LibreSpot.Desktop/Views/MaintenanceWorkspaceView.xaml`; `src/powershell/shared/Reapply-SavedSpicetifySetup.ps1`; `src/LibreSpot.Core/SupportBundleService.cs`).
+- **Live customization inside Spotify.** Store, Look, Tweaks, Features, Presets and Health panels at `/librespot/*`; state in `localStorage["librespot:engine-state"]` with schema version 1 (`src/LibreSpot.App/src/core/store.ts:8`; `src/LibreSpot.App/src/core/state.ts:3`).
+- **Managed deployment.** `status`, `detect`, `validate`, `install`, `reapply`, `uninstall`, `repair`, `undo`, `plan`, `export-support`, `version`, `watcher`, `cache` verbs with JSON and NDJSON contracts (`src/LibreSpot.Cli/Program.cs:159-196`; `schemas/fleet-cli-contract.json`).
 
 ### Users
 
-- A common Windows user who wants one download, one action, and a client that keeps working after Spotify updates.
-- A customization user who wants live control over colour, layout, feature flags, and extensions, and who is afraid of losing that setup.
-- An operator who needs unattended runs, receipts, and detection scripts.
-- The maintainer, who keeps a four-part compatibility tuple honest with local gates and immutable evidence.
+- A Windows user who wants one download and a client that survives Spotify updates.
+- A customization user who is afraid of losing a saved look.
+- An operator who needs unattended runs, receipts, exit codes and offline bundles.
+- The maintainer, who keeps a four-part tuple honest with local gates.
 
 ### Platform and distribution
 
-- Desktop and CLI are `net10.0-windows`, `win-x64` only, self-contained single-file (175.7 MiB desktop, 72.2 MiB CLI), uncompressed, no trimming, no ReadyToRun, no deterministic-build properties (`src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:8-17`; `schemas/publish-footprint-budget.json`; [v4.1.2 assets](https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.1.2)).
-- The script lane self-elevates, uses runspaces, falls back to BITS, and verifies x64 and ARM64 hashes for Spicetify. The desktop and CLI lanes do none of that, yet `README.md:418-436` lists these as product-wide features.
-- Releases are local builds uploaded to immutable GitHub releases with `checksums.txt`, a CycloneDX SBOM, a release manifest, and a Sigstore release attestation. Smart App Control blocks unsigned executables with no per-app bypass, and SmartScreen reputation restarts at zero for every unsigned file ([Smart App Control FAQ](https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-frequently-asked-questions); [SmartScreen reputation](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation)).
-- Windows on ARM runs the x64 build under emulation. SpotX gained ARM64 binary patches on 2026-09-01 and Spicetify ships an arm64 archive, so the ARM lane is now technically possible; the decision remains in `Roadmap_Blocked.md` ([SpotX #888](https://github.com/SpotX-Official/SpotX/issues/888); [Spicetify 2.44.0 assets](https://github.com/spicetify/cli/releases/tag/v2.44.0)).
+- Desktop and CLI are `net10.0-windows`, `win-x64`, self-contained single-file; ARM64 runs under emulation with a warning (`src/LibreSpot.Core/AppCatalog.cs:1173`). Releases are local builds uploaded as immutable GitHub releases with eight assets; 12 stars, 0 forks, and single-digit downloads per release ([releases](https://github.com/SysAdminDoc/LibreSpot/releases)). The name still collides with the Rust `librespot` library and LibreSpot has zero mentions on Reddit, Hacker News or Lobsters; the rebrand stays a blocked decision (`Roadmap_Blocked.md`).
+- Version strings live in three `.csproj` files, `src/LibreSpot.App/package.json`, `LibreSpot.ps1:105` and the README badge; `-Validate` checks that they agree, but there is no single source of truth (`Directory.Build.props` carries no version).
+- README "What's New" sections exist for v4.1.0 and v4.2.0 though no such tags exist; only v4.1.2, v4.3.0 and v4.4.0 were tagged after v4.0.0 (`git tag`; `README.md:107-160`).
 
-### Upstream state on 2026-09-03
+### Upstream state on 2026-09-04
 
 | Component | LibreSpot pin | Upstream now | Gap |
 |---|---|---|---|
-| Spotify (Windows) | 1.2.93.667 | 1.2.98.301 public; SpotX `run.ps1` recommends 1.2.99 since 2026-08-31 | Five to six minors ([Uptodown history](https://spotify.en.uptodown.com/windows/versions); [SpotX commit](https://github.com/SpotX-Official/SpotX/commit/1d19a68f58abbb298d8095c310aa81e45055c833)) |
-| SpotX | commit `550bc72c`, labelled "2.0" | `main` at `fd064f54` (2026-09-01); last release tag is 1.9 (2025-01-03) | Pin lacks the 1.2.94+ ad-slot binary patch (#876), ARM64 patches (#888), and the crossfade DLL patch; the "2.0" label does not match any upstream tag ([SpotX releases](https://github.com/SpotX-Official/SpotX/releases); `%LOCALAPPDATA%\LibreSpot\upstream-drift-cache.json`) |
-| Spicetify | 2.44.0 | 2.44.0 is the last v2; v3.0.0-beta.11 (2026-09-02) refuses Spotify older than 1.2.80 and replaces custom apps with modules | Declared v2 support ends at Spotify 1.2.96 ([v2.44.0](https://github.com/spicetify/cli/releases/tag/v2.44.0); [v3 architecture](https://github.com/spicetify/cli/issues/3038)) |
-| Marketplace | 1.0.9 | 1.0.11 (2026-09-02) | 1.0.10 added manifest validation and persistence before reload; 1.0.11 "properly migrate keys" ([releases](https://github.com/spicetify/marketplace/releases)) |
-| Community catalog | verified 2026-06-15 | Comfy last pushed 2026-01-04 with an open playbar regression; Stats last released 2025-12 | Never re-verified against the 1.2.93 pin (`schemas/community-assets.json`; [Comfy #256](https://github.com/Comfy-Themes/Spicetify/issues/256)) |
+| Spotify (Windows) | 1.2.93.667 (libcef 146.0.10, Chromium 146.0.7680.179) | 1.2.98.301 public (2026-09-02); six 1.2.99 builds staged on the CDN up to 1.2.99.317 (2026-09-02) | Five to six minors; 1.2.98 restyled the playback timestamp spans and later builds put classes on `<body>` ([Uptodown](https://spotify.en.uptodown.com/windows/versions); [LoaderSpot manifest](https://raw.githubusercontent.com/LoaderSpot/table/refs/heads/main/table/versions.json); [spicetify-themes #1291](https://github.com/spicetify/spicetify-themes/pull/1291); [spicetify ffaa9ef6](https://github.com/spicetify/cli/commit/ffaa9ef6)) |
+| SpotX | `550bc72c` (2026-07-06) | `9d344658` (2026-09-03): `-mirror` now rewrites the LoaderSpot manifest URL; `fd064f54` (2026-09-01) ARM binary patches; `-download_method curl\|webclient`; full-build `-v` skips the manifest | `patches.json` changes since the pin only cap entries at 1.2.93/1.2.94 or add `fr >= 1.2.94`, so patch behaviour on 1.2.93 is unchanged; the download plumbing is what moved ([commits](https://github.com/SpotX-Official/SpotX/commits/main); [#891](https://github.com/SpotX-Official/SpotX/issues/891)) |
+| Spicetify | 2.44.0 (2026-07-04) | No v2 release since; v3.0.0-beta.12 (2026-09-03), Rust rewrite, refuses Spotify older than 1.2.80, module store live (`store@1.7.2`, `stdlib@1.10.3`), fourteen classic themes already published as modules, empty release notes, no stable date | `supported-versions.json` on `v3-beta` still ends at 1.2.94 (updated 2026-07-21); `main` has none ([releases](https://github.com/spicetify/cli/releases); [modules](https://github.com/spicetify/modules); [supported-versions](https://raw.githubusercontent.com/spicetify/cli/v3-beta/supported-versions.json)) |
+| Classmaps | n/a | 1020097 inherits 1020096 (2026-08-24); no 1020098 or 1020099; `expose.json` (2026-09-03) makes v3 exposure regexes data-driven | The highest build covered by SpotX, a classmap and Spicetify's declared range is 1.2.96 or 1.2.97 ([classmaps](https://github.com/spicetify/classmaps/commits/main)) |
+| Marketplace | 1.0.11 | 1.0.11 is newest (2026-09-02); #1231 (2026-09-02) shows stale storage restoring themes after a full reinstall, closed not planned | None to advance; a storage reset is the remaining user need ([#1231](https://github.com/spicetify/marketplace/issues/1231)) |
+| Community catalog | re-verified 2026-09-03 | Lucid fixed styles for 1.2.96 on 2026-08-29; Comfy last pushed 2026-01-04; Catppuccin 2025-10-22; Bloom 2025-05-20 | None at 1.2.93 ([Lucid](https://github.com/sanoojes/spicetify-lucid); [Comfy](https://github.com/Comfy-Themes/Spicetify)) |
 
 ### Integrations and data
 
-- Every download is tied to reviewed metadata and a SHA256, with an asset cache, quarantine, bounded extraction, and a `mirror` option that SpotX honours (`src/LibreSpot.Core/AppCatalog.cs:824-842`; `src/powershell/shared/Download-FileSafe.ps1`; `src/powershell/shared/Module-InstallCustomApps.ps1:40-50`).
-- Upstream drift is checked with `git ls-remote` and cached locally; the cache on this machine already reports SpotX "behind" (`src/LibreSpot.Core/UpstreamDriftService.cs`; `%LOCALAPPDATA%\LibreSpot\upstream-drift-cache.json`).
-- The Home update notice reads the latest stable release with an ETag and a 24-hour cache. The code comment says a 304 costs no rate limit; for anonymous calls it costs one of sixty per hour, so the cache is the real protection (`src/LibreSpot.Core/ReleaseNoticeService.cs:50`; [GitHub rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api)).
-- The auto-reapply watcher is a logon-triggered scheduled task that repeats every 30 minutes with battery flags off and `StartWhenAvailable` on (`src/powershell/gui/lane-functions.ps1:106-186`).
-- How SpotX and Spicetify alter the client, including the 1.2.70 signature wall, the 1.2.86 class-name shortening, and the route collision LibreSpot repairs, is documented in `docs/how-spotx-and-spicetify-alter-spotify.md`. The 2026-09-01 customization deep-dive that produced RD-135 through RD-141 lives in the vault note "Spotify Customization & Patching 2026-09-01"; all seven of those items shipped in v4.1.1 and v4.1.2.
+- Every download is tied to a SHA256, an asset cache, quarantine and bounded extraction; SpotX's `-mirror` is passed on a classified download failure (`src/powershell/shared/Module-InstallSpotX.ps1:40-60`).
+- The 1.2.93 installer is downloadable today: a range request to SpotX's worker returned HTTP 206 for `spotify_installer-1.2.93.667.g7b5cc0ce-x64.exe` on 2026-09-04, and no `fauth` token exists in the chain. A SpotX #836 comment the same morning got a 403 on the same worker from another region, so the failure is regional Cloudflare classification, not a dead source ([#836](https://github.com/SpotX-Official/SpotX/issues/836)).
+- The auto-reapply task is a logon trigger repeating every 30 minutes plus the event trigger RD-149 added; on a failed reapply the watcher keeps `LastKnownVersion` and retries every tick with no hold (`LibreSpot.ps1:667-785`; `LibreSpot.ps1:971-1030`).
+- Engine state is loaded with `parseProfile`; any exception, including a schema-version mismatch or corrupt JSON, removes the key and returns defaults, with no copy kept (`src/LibreSpot.App/src/core/store.ts:34-45`; `src/LibreSpot.App/src/core/profile.ts:59-63`). The desktop config has a real 1 to 2 migration (`src/powershell/shared/Normalize-LibreSpotConfig.ps1:136`); the engine has none.
 
 ## Competitive Landscape
 
-- **[Spicetify CLI](https://github.com/spicetify/cli) and [Marketplace](https://github.com/spicetify/marketplace).** The ceiling for customization. v3 is a Rust rewrite with an in-client module store, side-by-side module versions, and a daemon that repairs an unapplied client; it has empty release notes, refuses clients older than 1.2.80, and its `supported-versions.json` still ends at 1.2.94 (last touched 2026-07-21). Learn: per-build classmaps as an auditable ABI ([classmaps](https://github.com/spicetify/classmaps)), "say which part is degraded". Avoid: chasing v3 before it has release notes and a support ceiling newer than what LibreSpot pins.
-- **[SpotX](https://github.com/SpotX-Official/SpotX).** Ships a `patches.json` bump within days of every Spotify release and now does real binary patching (ad slots, crossfade, ARM64). Learn: nothing new; LibreSpot already exposes Premium mode, cache limit, mirror, `sendversion` and custom patches (`src/powershell/shared/Build-SpotXParams.ps1`). Avoid: its self-added Defender exclusions and the `raw.githack` distribution that Cloudflare flags as phishing ([#836](https://github.com/SpotX-Official/SpotX/issues/836)).
-- **[BlockTheSpot-Resilient](https://github.com/thomas-quant/BlockTheSpot-Resilient)** and [Nuzair46/BlockTheSpot-Installer](https://github.com/Nuzair46/BlockTheSpot-Installer). mrpond's original is archived. Learn: the "degrade to ads-not-blocked, never a dead client" contract and a per-release signature match report. Avoid: `chrome_elf.dll` sideloading and daily generated releases.
-- **[WMPotify](https://github.com/Ingan121/WMPotify) and the Windhawk CEF/Spotify Tweaks mod.** The only working path to native frames, transparency, and forced-dark-mode removal. Avoid: it requires Windhawk and CEF hooks with their own update treadmill; the earlier rejection stands.
-- **[spicetify-easyinstall](https://github.com/ohitstom/spicetify-easyinstall) and [SpicetifyManager](https://github.com/Israleche/SpicetifyManager).** Three separate "SpicetifyManager" repos appeared between June and August 2026, and a Reddit post for one drew 188 points; the demand for a GUI over the CLI is real and LibreSpot already meets it ([r/spicetify thread](https://www.reddit.com/r/spicetify/comments/1uk6vs7/)). Learn: easyinstall's installer fallback chain (CDN, mirror, Wayback) after Spotify's direct links died in March 2026 ([easyinstall 3.7](https://github.com/ohitstom/spicetify-easyinstall/releases/tag/3.7); [Soggfy #159](https://github.com/Rafiuth/Soggfy/issues/159)).
-- **Themes and apps that overlap the live engine.** [Lucid](https://github.com/sanoojes/spicetify-lucid) (AGPL, active) and [DefaultDynamic](https://github.com/JulienMaille/spicetify-dynamic-theme) cover artwork palettes and auto light/dark; [Comfy](https://github.com/Comfy-Themes/Spicetify) is effectively unmaintained; [Xndr2/listening-stats](https://github.com/Xndr2/listening-stats) is the active local-only successor to the pinned Stats app. Presets, health checks, and a fixture-backed compatibility tuple remain unique to LibreSpot.
-- **Decoys.** `NeedChandlerMonitor/spicetify-elite` (317 stars) and `SecretBarber/spotify-adblock-studio` (290) are star-farmed repos with nonsense READMEs and off-GitHub downloads that outrank LibreSpot in search. Likely malware droppers; worth a sentence in the verification section.
-- **[BetterDiscord Installer 2.0](https://github.com/BetterDiscord/Installer/releases/tag/v2.0.0), [Vesktop](https://github.com/Vencord/Vesktop), [ReVanced Manager](https://github.com/ReVanced/revanced-manager), [Windhawk 2.0](https://github.com/ramensoftware/windhawk/releases), [Vortex 2.6](https://github.com/Nexus-Mods/Vortex/releases/tag/v2.6.0).** The patterns worth copying: a loader that survives the host's update (BD), a one-word `--repair` (Vesktop, which LibreSpot has as the `repair` verb), a recommended version by default with "other supported" behind a toggle (ReVanced), a non-default marker with per-row revert (Windhawk 2.0), and a health page that never reads green while offline (Vortex). Avoid: cloud sync, short-lived share codes through a relay, premium-gated fixes, rolling channels as the default, and analytics.
-- **Fleet conventions.** PSADT reserves 69000 to 69999 for custom exit codes; Intune detection is exit 0 plus STDOUT and anything on STDERR means "not installed"; Chocolatey and Scoop pin by hash and support offline internalized packages ([PSADT exit codes](https://github.com/PSAppDeployToolkit/website/blob/main/docs/reference/exit-codes.mdx); [Intune Win32](https://learn.microsoft.com/en-us/intune/intune-service/apps/apps-win32-add); [Chocolatey internalizer](https://docs.chocolatey.org/en-us/features/package-internalizer/)). LibreSpot already documents the detection command and receipt; its custom codes (10 to 60) collide with common Windows error numbers but changing them would break the published contract, so that stays rejected.
+- **[Spicetify v3 beta](https://github.com/spicetify/cli/tree/v3-beta) and the [module vault](https://github.com/spicetify/modules).** The direction of the whole ecosystem: modules replace custom apps, a daemon repairs an unapplied client in the background, an `update_policy` of `gate|block|allow` "remembers the block so a Spotify update cannot erase it" (2026-08-24), checksummed self-update, and side-by-side module versions for rollback. Learn: the hold-and-report behaviour, and the fact that fourteen of LibreSpot's official themes already exist as v3 modules. Avoid: switching before there are release notes, a stable tag and a supported-versions file past 1.2.94.
+- **[SpotX](https://github.com/SpotX-Official/SpotX).** Ships the same patch set on 1.2.93 as the pin, but its download chain gained a manifest-aware mirror, curl and WebClient retries and a full-build `-v` form after regional blocks (#891, #836). Learn: expose those escape hatches by advancing the pin. Avoid: its self-added Defender exclusions; `Test-SpotXPinAdvanceSecurityPolicy` already enforces that boundary.
+- **[SpiceManager](https://github.com/EliasOnsihuay/SpiceManager) (Rust/Tauri, 2026-08-12).** Has a "compatibility hold mode" that stores the last-known-good Spotify plus Spicetify state and stops re-running `apply` after repeated failures. Learn: that exact behaviour for the watcher (RD-182). Avoid: its self-updater; LibreSpot's update notice is deliberate.
+- **[interceptify](https://github.com/mattebin/interceptify) (2026-08-05).** Unelevated tray ad-blocker with self-heal tasks at logon and twice daily, a status dot inside Spotify, and a "corroboration guard" so short real tracks are never blocked. LibreSpot already runs unelevated, at logon, every 30 minutes and on the update event; nothing to copy.
+- **[spicetify-pm](https://github.com/KamilWachnicki/spicetify-pm) 0.4.0 (2026-08-23).** Lockfile that restores an exact Marketplace set anywhere, with local-drift detection. LibreSpot's profiles and `validate` verb cover the managed set; the unmanaged Marketplace set stays a blocked decision.
+- **[Dalbouh02/SpicetifyManager](https://github.com/Dalbouh02/SpicetifyManager) (2026-08-26), [FIREPAWER07/SpicetifyInstaller](https://github.com/FIREPAWER07/SpicetifyInstaller) 2.0.5 (2026-08-25), [itourboy-OG/Spicetify-Manager](https://github.com/itourboy-OG/Spicetify-Manager) 2.4.0.** Four GUI managers appeared or updated between July and August 2026. None has health checks, undo, offline bundles or a fleet lane; the demand for a GUI is real and LibreSpot already exceeds them. Avoid: nothing to copy beyond itourboy's Large Text mode, which WPF already provides through system scaling.
+- **[spotivoid](https://github.com/qiraxyz/spotivoid) (2026-08-18).** C++ patcher that NOPs the native ad-slot branch and refuses unknown builds by exact bytes. Learn: the refuse-unknown-build posture, which SpotX's binary patches and LibreSpot's pin already embody. Avoid: a second native patcher.
+- **[Vortex 2.6](https://github.com/Nexus-Mods/Vortex/releases) (2026-08-25).** Health Check that tells the user when a service is down "instead of pretending everything's normal." LibreSpot's release notice reports 403 and 429 (RD-176) and drift lookups have `offline` and `unavailable` states (`src/LibreSpot.Core/UpstreamDriftService.cs:36-43`); already covered.
+- **[Windhawk 2.0 alpha.3](https://github.com/ramensoftware/windhawk/releases) (2026-08-07).** Per-row non-default marker and revert; shipped in LibreSpot as RD-150 (`fd6217f`).
+- **[r2modmanPlus 3.2.19](https://github.com/ebkr/r2modmanPlus/releases) and [PrismLauncher 11.1.0](https://github.com/PrismLauncher/PrismLauncher/releases).** Both added "package of concern" warnings in August 2026. LibreSpot's remote-loader policy (RD-169) is the same idea for Beautiful Lyrics.
+- **Native clients ([fastpotify](https://github.com/crmne/fastpotify), 2,900 stars in a month).** "Leave the official client" is the other answer to ads. Rejected again: Widevine and the licence path.
+- **Decoys.** `NeedChandlerMonitor/spicetify-elite` (231 stars, off-GitHub download) is still up and pushed 2026-09-03; `demonclimberrouse/spotx-works` (created 2026-08-06, 42 stars) is new; `spotify-adblock-studio` is gone. RD-157 shipped the README lookalike section; keep it current.
 
 ## Reported Issues
 
-The tracker has zero open issues and zero open pull requests. The five closed issues are the old script-era failures (#3 GitHub 403 on the Spicetify download, #4 `Expand-Archive` in a runspace, #5 blank screen from a bypassed SpotX version check), each with a direct test and recovery path today. Discussions #20 and #21 are owner announcements with no replies. Fourteen Dependabot pull requests are closed and Dependabot alerts are disabled on the repository ([issues](https://github.com/SysAdminDoc/LibreSpot/issues?q=is%3Aissue); [#5](https://github.com/SysAdminDoc/LibreSpot/issues/5); `gh api repos/SysAdminDoc/LibreSpot/vulnerability-alerts` returns 404). Repository traffic is 21 views in 14 days with a 377-clone spike on 2026-08-31 that looks like scanner traffic, so an empty tracker is no data.
+The tracker has zero open issues and zero open pull requests. The one new closed issue since 2026-09-03 is #22 "Make LibreSpot the in-client store", owner-filed and closed with v4.3.0 on 2026-09-04. Discussions #20 and #21 have no replies. Fourteen-day traffic is 27 views from 18 visitors; the 377-clone spike on 2026-08-31 has no matching views and reads as crawler traffic ([issue #22](https://github.com/SysAdminDoc/LibreSpot/issues/22); `gh api traffic`). An empty tracker at this adoption is not evidence of an absence of problems.
 
-Defects found in this pass by reading the code and the release:
+Defects found in this pass by reading the code, the release and the screenshots:
 
-- **Fresh v4.1.2 installs cannot install the live engine.** The custom-app pin points at `raw.githubusercontent.com/.../main/resources/custom-apps/librespot-engine.zip` with `ReleaseTag = 'main'`, `Bundled = $true` is set but never read, and the installer downloads that URL and checks it against the pinned SHA256. v4.1.2 pins `c30ea64c...`; `main` now serves the 4.2.0 build `e280fbdf...`. Any machine without the archive already in its asset cache fails the hash check (`src/powershell/data/CommunityCustomApps.ps1:17-25`; `src/powershell/shared/Module-InstallCustomApps.ps1:40-50`; `git show v4.1.2:src/powershell/data/CommunityCustomApps.ps1`; `sha256sum resources/custom-apps/librespot-engine.zip`). RD-142.
-- **README claims that only the script lane fulfils.** "8-phase uninstaller" (the script logs seven phases since the native phase was removed in `2a0b2ee`), "Spotify and installer windows are automatically hidden" and "LibreSpot stays on top" (`Hide-SpotifyWindows` is a no-op stub in the backend lane and the desktop has no `Topmost`), "x64 and ARM64", "Self-elevating", "Dual download methods", and "Threaded UI, runspaces" (`README.md:347,418-436`; `LibreSpot.ps1:9134`; `src/powershell/backend/lane-functions.ps1:415`; `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:8`). The lyrics list and the catalog agree at 27 (`src/LibreSpot.Core/AppCatalog.cs:962-968`). RD-144.
-- **The 4.2.0 changelog describes opening a profile "from global search", but global search is unreachable.** The only search box lives inside `ShellWorkspaceHost`, which is `Visibility="Collapsed"` (`src/LibreSpot.Desktop/MainWindow.xaml:1408-1410,3046`). The view-model path is real and tested; the user path is not. This belongs to the P0 decision already in `Roadmap_Blocked.md`; the changelog line should say the file and link paths only. Folded into RD-144.
-- **The release-notice comment is wrong about rate limits.** An anonymous conditional request that returns 304 still counts against the 60-per-hour budget (`src/LibreSpot.Core/ReleaseNoticeService.cs:50`; [best practices](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api)). RD-154.
-- **The "SpotX 2.0" label has no upstream referent.** SpotX's last release tag is 1.9; the pinned commit is what matters and is already recorded (`src/powershell/data/PinnedReleases.ps1:3-4`; [SpotX releases](https://github.com/SpotX-Official/SpotX/releases)). Folded into RD-144.
+- **Engine state is deleted on any load failure, Verified.** `EngineStore.load` catches every exception from `parseProfile`, removes `librespot:engine-state` and returns defaults. A corrupt write, a future schema bump, or a profile shape change destroys the user's saved theme, tweaks and presets with nothing to recover (`src/LibreSpot.App/src/core/store.ts:34-45`; `src/LibreSpot.App/src/core/profile.ts:59-63`). This is the same wipe the Spicetify tracker fills up with, reproduced by LibreSpot's own code path ([spicetify #3861](https://github.com/spicetify/cli/issues/3861)). RD-181.
+- **The watcher never holds, Verified.** After "Reapply failed" it keeps the old version so it retries on the next tick, forever, with no counter, no hold state and no Maintenance surface naming the failing step (`LibreSpot.ps1:1025-1030`). RD-182.
+- **The README exit-code table is incomplete, Verified.** README lists 0, 1, 2, 10, 11, 12, 13 and 20; `schemas/fleet-exit-codes.json` also defines 30, 40, 50, 60, 1618, 3010 and 1641, including the retry and reboot classes Intune has to handle differently (`README.md:383-392`). RD-184.
+- **Settings still has two scroll regions, Verified.** The theme gallery is capped at `MaxHeight="340"` with its own vertical scrollbar inside the page scroll, and the shipped screenshot shows the Prism card cut mid-content (`src/LibreSpot.Desktop/Views/CustomAppearanceSection.xaml:64-67`; `assets/screenshots/wpf-custom.png`; README:141 claims one scrollbar). RD-186.
+- **The PS2EXE compiler is unpinned, Verified.** `-CompileStableExe` runs `Import-Module ps2exe -ErrorAction Stop` with no version, so the bytes of the `LibreSpot.exe` release asset depend on whatever module version the build machine holds; 1.0.18 (2026-06-07) changed behaviour by adding `$ScriptRoot` (`Build-Scripts.ps1:1971`; [PSGallery](https://www.powershellgallery.com/packages/ps2exe)). RD-187.
+- **README counts drifted, Verified.** "16 extensions" (README:304) against ten built-in plus five community (`LibreSpot.ps1:1435`, `:1452`, README:438); "45 tests" for the Spotify surface (README:157) against 62 `it(` blocks in `src/LibreSpot.App/tests`; a `gh release verify v4.1.2` example two releases old (README:616); "eight assets" (README:594) beside "six contract-covered artifacts" (README:675). RD-190.
+- **Four schemas have no test that reads them by name, Verified.** `asset-cache-bundle.json`, `ndjson-log-format.json`, `operation-token-types.json` and `run-receipt-format.json` are user-data and fleet contracts; the last two are embedded into Core and consumed by undo (`src/LibreSpot.Core/LibreSpot.Core.csproj:30-31`). RD-188.
+- **Failure-path writes are silenced, Verified.** A run-receipt write failure is only WARN-logged, so a run that mutated the machine can leave the undo surface empty (`src/powershell/shared/Complete-OperationJournalRun.ps1:63-66`); a failed config rollback moves the rescue file back with `-ErrorAction SilentlyContinue` (`src/powershell/shared/Install-LibreSpotStagedConfig.ps1:23`); the undo service's failure-path journal and receipt writes are each `catch { }` (`src/LibreSpot.Core/OperationJournalUndoService.cs:345-346`). RD-191.
+- **Culture-sensitive timestamps in diagnostics, Verified.** `ToString("yyyy-MM-dd HH:mm")` with no culture at `src/LibreSpot.Core/AppCatalog.cs:693` and `src/LibreSpot.Core/EnvironmentSnapshotService.cs:2504`; local-time crash filenames at `src/LibreSpot.Desktop/Services/CrashReporter.cs:171`. RD-192.
+- **`design-qa.md` is tracked while ignored, Verified.** It matches `.gitignore:34` and is outside the root document set `AGENTS.md` permits (`git ls-files -v design-qa.md`). RD-194.
 
-What the wider community reports, ranked by how often it appears, with the LibreSpot answer:
+Claims from the reconnaissance that did not survive verification: the profile activation lock has a 30-second deadline (`src/powershell/shared/Enter-LibreSpotProfileActivationLock.ps1:6`); the SpotX retry loop is bounded by its attempt counter (`src/powershell/shared/Module-InstallSpotX.ps1:44-60`); the PATH undo temp name carries a GUID (`src/powershell/shared/Set-PathEntries.ps1:69-70`); the config schema 1 to 2 migration exists (`Normalize-LibreSpotConfig.ps1:136`); the undo Preview and Execute buttons get their UIA name from string `Content` (`src/LibreSpot.Desktop/MainWindow.xaml:3596-3604`).
 
-1. **A Spotify update breaks the mod stack** ([r/spicetify, 716 points](https://www.reddit.com/r/spicetify/comments/1p29rqh/); [spicetify #3873](https://github.com/spicetify/cli/issues/3873); [#3914](https://github.com/spicetify/cli/issues/3914)). LibreSpot blocks updates with SpotX's binary patch by default and runs a 30-minute reapply poll; the poll can be event-driven (RD-149).
-2. **Update blocking is unreliable and the reapply chore is manual** ([spicetify #3869](https://github.com/spicetify/cli/issues/3869), maintainer: "Won't be fixed"; [r/Piracy](https://www.reddit.com/r/Piracy/comments/1qjpwmg/)). Same answer.
-3. **Extensions and themes vanish on startup** ([spicetify #3861](https://github.com/spicetify/cli/issues/3861); [marketplace #1201](https://github.com/spicetify/marketplace/issues/1201); [r/spicetify 2026-08-22](https://www.reddit.com/r/spicetify/comments/1vvklzn/)). Marketplace 1.0.11 is the upstream fix attempt (RD-143); the engine's own state has the same exposure (RD-147).
-4. **Defender flags SpotX and leaves installs half done** ([SpotX #873](https://github.com/SpotX-Official/SpotX/discussions/873); [#846](https://github.com/SpotX-Official/SpotX/issues/846); [Soggfy #152](https://github.com/Rafiuth/Soggfy/issues/152)). LibreSpot's pinned commit predates SpotX's self-exclusion policy and the README already handles detections honestly; the Smart App Control FAQ still talks only about the script (RD-153).
-5. **Marketplace missing from the sidebar** ([spicetify #3816](https://github.com/spicetify/cli/issues/3816); [marketplace #1194](https://github.com/spicetify/marketplace/issues/1194)). Already covered by the route repair and the "Store page not wired" health state.
-6. **Installer plumbing: blocked CDNs, Cloudflare, ISP filters** ([SpotX #829](https://github.com/SpotX-Official/SpotX/issues/829); [#836](https://github.com/SpotX-Official/SpotX/issues/836); [#870](https://github.com/SpotX-Official/SpotX/issues/870)). LibreSpot lets SpotX fetch Spotify and passes `mirror`; the pinned 1.2.93 installer link is a single point of failure that no gate watches (Open Questions).
-7. **PowerShell, admin, and opaque errors** ([spicetify #3846](https://github.com/spicetify/cli/issues/3846); [#3854](https://github.com/spicetify/cli/issues/3854)). Already answered by the desktop lane.
-8. **Ban fear** ([r/spicetify 2026-08-19](https://www.reddit.com/r/spicetify/comments/1vsllxg/); [spicetify #3841](https://github.com/spicetify/cli/issues/3841)). No verified 2026 desktop suspension wave exists; LibreSpot's Premium mode and capability-boundary copy already address it.
-9. **"Which version do I need, how do I update"** ([SpotX #879](https://github.com/SpotX-Official/SpotX/discussions/879); [#889](https://github.com/SpotX-Official/SpotX/discussions/889)). Maintenance's compatibility card exists; no new item.
-10. **Microsoft Store build silently incompatible** ([Spicetify FAQ](https://spicetify.app/docs/faq)). Already a named health component (`Strings.resx:1110`).
-11. **Feature chasing** (Smart Shuffle removal in 1.2.89, Jam, Mix, lossless). Server-side; rejected.
-12. **ARM64** ([SpotX #888](https://github.com/SpotX-Official/SpotX/issues/888)). Blocked decision; evidence updated below.
+What the wider community reports since 2026-08-15, ranked by frequency, with the LibreSpot answer:
+
+1. **A Spotify update breaks the stack and users reinstall from scratch** ([r/spicetify 1vw95y7](https://reddit.com/r/spicetify/comments/1vw95y7/); [1vjr1of](https://reddit.com/r/spicetify/comments/1vjr1of/)). Update blocking, the 30-minute poll, the RD-149 event trigger and safe mode answer it; the missing piece is a hold that says which build failed (RD-182).
+2. **Ban fear** ([r/spicetify 1vsllxg](https://reddit.com/r/spicetify/comments/1vsllxg/), 11 points, 10 comments). No sourced 2026 report of desktop-mod account action exists; the last SpotX ban issue is from January 2024. README's trust disclosure covers account risk; no new item.
+3. **Ads escalating on Free** ([r/truespotify 1vz34eu](https://reddit.com/r/truespotify/comments/1vz34eu/), 228 points). Demand signal only.
+4. **Which tool on Windows** ([r/Piracy 1viok7d](https://reddit.com/r/Piracy/comments/1viok7d/), 1,408 points, 138 comments): Spicetify 17 mentions, SpotX 13, LibreSpot 0. Discovery is the rebrand decision, not a code item.
+5. **Lyrics extensions with heavy API use** ([r/spicetify 1w3vcfl](https://reddit.com/r/spicetify/comments/1w3vcfl/)). Beautiful Lyrics is already opt-in with a third-party-service label (RD-169); the specific extension in the thread was not named in a fetchable form (Open Questions).
+6. **Stale Marketplace storage** ([marketplace #1231](https://github.com/spicetify/marketplace/issues/1231)). RD-196.
+7. **Regional download blocks** ([SpotX #836](https://github.com/SpotX-Official/SpotX/issues/836); [#891](https://github.com/SpotX-Official/SpotX/issues/891)). RD-183.
+8. **Data loss in the official client** ([r/Piracy "240GB of downloads gone"](https://reddit.com/r/Piracy/), 1,471 points). Fuel for the backup story; no item.
 
 ## Security, Privacy, and Reliability
 
-- **Mutable download source for a hash-pinned asset, Verified.** Described above. Beyond breaking old releases, a `main` URL means the reviewed asset can change between the review and the install; the SHA256 catches it, but the failure lands on the user as a refused install rather than on the maintainer as a release gate. The fix is a per-tag release asset URL or installing from the tracked archive, plus a test that the URL cannot change after tagging (RD-142). Related: `resources/custom-apps/librespot-engine.zip` is not among the seven release assets, so the release manifest does not cover the one file the installer fetches at run time (`schemas/release-artifact-contract.json`; [v4.1.2 assets](https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.1.2)).
-- **Runtime servicing, Verified.** The 10.0.11 floor carries the fixes for the WPF XAML RCEs CVE-2026-50646 and CVE-2026-50649 (fixed 10.0.10) and the August runtime set including two RCEs. Self-contained executables only receive these fixes when rebuilt, which the README states; a release is due whenever the floor moves ([announcement 418](https://github.com/dotnet/announcements/issues/418); [10.0.11 notes](https://github.com/dotnet/core/blob/main/release-notes/10.0/10.0.11/10.0.11.md); `README.md:520`).
-- **JavaScript toolchain, Verified.** `spicetify-creator` 1.0.17 has no GitHub releases, depends on esbuild `^0.14`, and the lockfile resolves esbuild 0.14.54 beside the direct 0.28.2. The old version sits inside GHSA-67mh-4wv8-2f99 (dev server only, so no shipped exposure), but no JavaScript audit runs anywhere in the local gates, so the next real advisory would also go unseen (`src/LibreSpot.App/pnpm-lock.yaml`; `Build-Scripts.ps1`; [advisory](https://github.com/vitejs/vite/issues/19428)). RD-151.
-- **Application control copy, Verified.** Smart App Control has no per-app bypass and blocks unsigned executables outright; the README FAQ entry covers only the script ("Smart App Control blocks the script from running"), while the desktop executable is the recommended path (`README.md:479-480`; [SAC FAQ](https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-frequently-asked-questions)). RD-153.
-- **Reproducibility, Verified.** No `Deterministic`, `ContinuousIntegrationBuild`, `EmbedUntrackedSources`, or `PublishRepositoryUrl` property exists, and the README release procedure never states the `dotnet publish` invocation, so no second party can rebuild an asset and compare (`src/*/*.csproj`; `Directory.Build.props`; `README.md:562-570`; [reproducible builds](https://github.com/dotnet/reproducible-builds)). RD-146.
-- **State durability, Likely.** Engine state lives in the browser profile's localStorage, the same store whose wipes fill the Spicetify tracker. Profiles carry that state only when the user copies it; nothing captures it automatically (`src/LibreSpot.App/src/core/store.ts:8-23`; [spicetify #3861](https://github.com/spicetify/cli/issues/3861)). RD-147.
-- **Reapply latency, Verified.** A logon trigger with a 30-minute repetition leaves a client unpatched for up to half an hour after an update slips through; Task Scheduler power flags are already correct (`src/powershell/gui/lane-functions.ps1:130-175`). RD-149.
-- **PowerShell 5.1 parse-time execution, Verified as mitigated.** All `Invoke-WebRequest` calls in `LibreSpot.ps1` use `-UseBasicParsing` or `-OutFile`, and the script comments on the KB5074204 behaviour (`LibreSpot.ps1:7960`). No item.
-- **Privacy posture, Verified.** Local only, no telemetry, redacted bundles, data inventory (`schemas/data-inventory.json`). Every adjacent product that added cloud sync also acquired a "sync wiped my config" failure mode; the rejection stands.
+- **Pinning keeps users on an old browser engine, Verified.** Spotify 1.2.93.667 on this machine ships `libcef.dll` 146.0.10 with Chromium 146.0.7680.179; Chrome 152.0.7977.82 (2026-09-04) fixes CVE-2026-85046, a V8 bug with an exploit in the wild, and CEF does not backport. Nothing in the health model or README says which Chromium a pinned build carries ([The Hacker News, 2026-09-04](https://thehackernews.com/2026/09/google-releases-chrome-update-to-patch.html); `grep -ri libcef src/` returns nothing). RD-185 is disclosure, not a fix; the fix is the tuple advance the drift gates already govern.
+- **Runtime servicing, Verified.** .NET 10.0.11 (2026-08-11) carries ten CVE fixes and is current; 10.0.12 is expected 2026-09-08 and needs a rebuild plus a matching `Microsoft.NET.ILLink.Tasks` bump ([releases.json](https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json); `CLAUDE.md` locked-restore note).
+- **npm supply chain, Verified.** The 2026-08-04 CHAINDROP wave compromised `keyv` 6.0.0, `flat-cache` 6.1.24 and `file-entry-cache` 11.1.6 with `preinstall` payloads; the lockfile pins `keyv` 4.5.4, `flat-cache` 4.0.1 and `file-entry-cache` 8.0.0, and pnpm 11's build allowlist names only esbuild and Parcel's watcher, so install scripts cannot run ([Elastic](https://www.elastic.co/security-labs/shai-hulud-chaindrop-npm-supply-chain); `CLAUDE.md` 2026-09-04 note). No test asserts the allowlist stays exact (RD-197).
+- **PS2EXE reproducibility, Verified.** Unpinned module version (RD-187). AV false positives on PS2EXE output remain a standing upstream issue; the README's detection FAQ already refuses to call a detection harmless ([PS2EXE](https://github.com/MScholtes/PS2EXE)).
+- **Application control copy, Verified.** KB5079391 (2026-03-27) lets Windows 11 24H2 and 25H2 users turn Smart App Control off without a clean install; the README FAQ still says to "run LibreSpot on a device where Smart App Control is off or still in evaluation mode" without naming that path (`README.md:553-556`; [BleepingComputer](https://www.bleepingcomputer.com/news/microsoft/windows-11-kb5079391-update-rolls-out-smart-app-control-improvements/)). RD-195.
+- **Windows 10 lifecycle, Verified.** Consumer ESU now runs to 2027-10-12 at no cost with settings sync or 1,000 Rewards points ([BleepingComputer, 2026-06-25](https://www.bleepingcomputer.com/news/microsoft/microsoft-quietly-extends-free-windows-10-esu-support-to-october-2027/)). Recorded as a note on the blocked support-lifecycle item.
+- **State durability, Verified.** The engine wipe (RD-181), the watcher retry loop (RD-182) and the silenced receipt write (RD-191) are the three places a user can lose something without being told.
+- **Privacy posture, Verified.** Local only, no telemetry, DPAPI-sealed safe mode, opt-in dumps excluded from bundles by default (`schemas/data-inventory.json`; `CLAUDE.md`). Unchanged.
 
 ## Architecture Assessment
 
-- **Release-time ownership of run-time downloads.** Whatever the installer fetches after the release is published must be frozen at tag time. The custom-app catalog needs a per-version URL (`https://github.com/SysAdminDoc/LibreSpot/releases/download/v{version}/librespot-engine.zip` or the embedded resource), the release manifest should list the archive, and a Core test should fail when any catalog entry's URL contains `/main/` (`src/powershell/data/CommunityCustomApps.ps1`; `src/LibreSpot.Core/AppCatalog.cs`; `tests/LibreSpot.Desktop.Tests/CommunityAssetsManifestTests.cs`).
-- **Catalog verification date must move with the pin.** `schemas/community-assets.json` records `supportState` and `lastVerifiedDate` per asset; every date is 2026-06-15 or earlier while the Spotify pin moved to 1.2.93 on 2026-07-04. A validate-time gate should refuse a pin advance when any active asset's verification predates the pinned Spotify release, and the catalog page should show the date.
-- **Publish belongs in `Build-Scripts.ps1`.** The script already compiles the PS2EXE artifact, generates the SBOM, and measures the footprint. Adding `-PublishRelease` that runs `dotnet publish` for both projects with recorded properties closes the last undocumented step and lets the manifest record them (`Build-Scripts.ps1:27-59`; `schemas/publish-footprint-budget.json`).
-- **Single-file compression is an unrecorded decision.** The budget file documents trimming, ReadyToRun, self-contained, single-file, and native extraction, but not `EnableCompressionInSingleFile`; the desktop executable sits at 175.7 MiB against a 180 MiB warning line. Cold-start metrics are recorded as never measured with a rationale that still mentions GitHub Actions runners ([single-file docs](https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview)).
-- **The watcher can react instead of poll.** A second trigger on a change to `%APPDATA%\Spotify\Spotify.exe` or `%LOCALAPPDATA%\Spotify\Update` (Task Scheduler cannot watch files, so this is a lightweight logon-started watcher process or a `FileSystemWatcher` in the existing task body) keeps the 30-minute poll as a backstop. RD-23's live verification blocker still applies to the scheduler path, so the new trigger needs a Pester test that simulates the version change without the scheduler.
-- **The legacy shell still ships.** About 1,600 lines of collapsed XAML, two orphan smoke states (`provenance`, `global-search`), and live view-model members wait on the P0 decision in `Roadmap_Blocked.md`. Until then, changelog and README text must not describe those paths as reachable.
-- **Accessibility gates exist; automated rule scanning does not.** 341 `AutomationProperties` uses, contract tests, offscreen captures, and a 116-row matrix are strong. Axe.Windows can scan the same offscreen shell for UIA rule violations and fail on new ones ([axe-windows](https://github.com/microsoft/axe-windows)). WCAG2ICT applies 2.4.11 (focus not obscured) to desktop software, which matters with the new sticky Settings footer ([WCAG2ICT](https://www.w3.org/TR/wcag2ict-22/)).
-- **Smaller items and where their evidence sits.** RD-150 (per-flag revert) comes from the Windhawk 2.0 settings pattern and the single reset action in `src/LibreSpot.App/src/panels/features.ts:300-307`; RD-155 (asset digest beside the update link) from GitHub's per-asset digests; RD-156 (opt-in Triage minidumps) from the runtime dump variables and the log-only `CrashReporter.cs`; RD-157 (decoy repositories) from the Competitive Landscape; RD-158 (Web API client-ID audit) from Spotify's 2026-02-06 developer-access change; RD-159 (safe-mode launch) from BetterDiscord's most-requested recovery feature; RD-160 (asset-cache bundle) from the SpotX download blocks and Chocolatey's internalizer.
-- **Test and documentation gaps.** No JavaScript dependency audit; no test that README's uninstaller phase count matches the script; the release procedure lacks a literal publish command; `docs/prompts/` is an empty tracked directory; `THIRD_PARTY_NOTICES.md` for the engine records a GPL-3.0 versus MIT mismatch for `spicetify-hide-podcasts` that should be resolved with the upstream author or by dropping the pattern (`src/LibreSpot.App/THIRD_PARTY_NOTICES.md:12`).
+- **The worker export list is the load-bearing invariant.** Three of the last six commits fixed functions missing from `$functionNamesForWorker`; the list is a hand-maintained string array and the closure test now guards it with an empty baseline (`LibreSpot.ps1:12158-12196`; `tests/powershell/LibreSpot.Tests.ps1` "Worker runspace function closure"). Any new shared function that the install or maintenance path calls must be added there first.
+- **Engine state needs a migration seam.** `PROFILE_SCHEMA_VERSION` is 1 with no upgrade path and a delete-on-mismatch loader; the desktop lane already has the pattern (`Normalize-LibreSpotConfig.ps1`). RD-181 adds quarantine now; a version-2 migrator is the follow-on when the schema first moves.
+- **The watcher has no memory of failure.** `Get-WatcherState` records `LastOutcome` as a string; a hold needs a failure count keyed by Spotify version and a surface in `Update-AutoReapplyStatusLabel` (`LibreSpot.ps1:538-560`, `:7254`). RD-182.
+- **The legacy shell still ships and still binds.** The collapsed `TabControl` at `src/LibreSpot.Desktop/MainWindow.xaml:2168-2192` hosts the same three workspace types as the live shell, so the selected legacy view is constructed and bound on every launch with duplicate automation ids. This is the P0 decision in `Roadmap_Blocked.md`; nothing here changes it.
+- **Core is tested through Desktop.** `tests/LibreSpot.Core.Tests` has 14 tests in two files; the other ~900 reach Core through the Desktop project. The Stryker pilot's 24.32% baseline reflects that. Not a roadmap item on its own; RD-188 adds Core-level schema tests where the contracts live.
+- **Next reviewable tuple.** Three sources bound the next pin: SpotX `patches.json` (1.2.99), a published classmap (1020097 by inheritance) and Spicetify's declared range (1.2.96). `-CheckSpotifyVersionDrift` reports drift but does not compute that bound (`Build-Scripts.ps1`; `src/LibreSpot.Core/UpstreamDriftService.cs`). RD-189.
+- **Test and documentation gaps.** README exit table (RD-184); README counts (RD-190); four unreferenced schemas (RD-188); `docs/backend-event-protocol.json` is not linked from README though `BackendEventProtocolTests.cs` covers it; `design-qa.md` tracked while ignored (RD-194); `docs/archive/research/RESEARCH.md` is a second research file that `.gitignore:35` half-ignores.
+- **Screens inspected.** The four WPF captures and seven in-Spotify captures render cleanly in dark; contrast, type scale and hard-coded colours are gated by tests (`ColorLintTests.cs`; `WpfTypography` gate). The only visible defect is the clipped theme gallery (RD-186). Eight fixed-width `TextBlock`s without `TextTrimming` are a clipping risk under Russian and Portuguese expansion (`MaintenanceWorkspaceView.xaml:240,524,603`; `RecommendedWorkspaceView.xaml:370`; `CustomWorkspaceView.xaml:54`); folded into RD-186's acceptance.
 
 ## Rejected Ideas
 
-- **Adopt Spicetify v3 or prototype the engine as a v3 module now.** beta.11 has empty release notes, refuses clients older than 1.2.80, and its support file has not moved since 2026-07-21; the module model will replace custom apps, so the spike is worth doing only once a stable v3 exists ([releases](https://github.com/spicetify/cli/releases); [#3038](https://github.com/spicetify/cli/issues/3038)).
-- **Advance the Spotify and SpotX pins from headlines.** SpotX targets 1.2.99 and Spicetify 2.44.0 declares 1.2.96 as its ceiling, so the next reviewed tuple is at most 1.2.96; the existing drift and security-policy gates own that move, and it needs live validation the way 1.2.93 got it (`Build-Scripts.ps1 -CheckSpotifyVersionDrift`; `src/powershell/shared/Test-SpotXPinAdvanceSecurityPolicy.ps1`).
-- **Copy Marketplace IndexedDB files.** Still unproven; the blocked entry stands. The new fact is that Marketplace's own Backup modal exports a JSON file, which RD-147 uses instead ([BackupModal](https://github.com/spicetify/marketplace/blob/main/src/components/Modals/BackupModal/index.tsx)).
-- **Self-updating executable, Velopack, NetSparkle.** The notice ships; Velopack has a blocked design entry; NetSparkle's Ed25519 app cast is the better fit for an unsigned app if that decision ever reopens, and that is a note for the blocked entry, not a roadmap item ([NetSparkle](https://github.com/NetSparkleUpdater/NetSparkle)).
-- **Windhawk or CEF hooks for native frames and transparency.** Same rejection as 2026-09-01; WMPotify proves it works and proves the maintenance cost ([WMPotify](https://github.com/Ingan121/WMPotify)).
-- **Move custom exit codes into 69000 to 69999.** PSADT's convention is sound, but the published contract and every Intune example use 10 to 60; the break is not worth it (`schemas/fleet-exit-codes.json`).
-- **Cloud sync, share codes through a relay, telemetry, analytics.** All conflict with local-only state; every adjacent product that added them acquired a wipe or privacy failure ([Vivaldi forum, Stylus sync wipe](https://forum.vivaldi.net/topic/83187/sync-wiped-out-all-my-stylus-csses/7)).
-- **Alternative client or WebView2 wrapper.** Widevine and the DRM licence path make it dead on arrival (vault note "Spotify Customization & Patching 2026-09-01").
-- **Chase server-side features (lossless, Jam, Mix, Smart Shuffle).** Server gated; SpotX says so itself ([#775](https://github.com/SpotX-Official/SpotX/discussions/775)).
-- **TypeScript 7, Vitest 5, pnpm 12, Pester 6 upgrades.** TS 7 has no stable programmatic API for typescript-eslint until 7.1, Vitest 5 is a release candidate, pnpm 12 rewrites the lockfile, Pester 5.9.1 is still serviced; none fixes a defect here ([TS 7](https://github.com/microsoft/TypeScript/releases/tag/v7.0.2); [pnpm 12](https://github.com/pnpm/pnpm/releases/tag/v12.0.0)).
-- **Port to macOS, Linux, Android.** Same as before; SpotX-Bash and the Android requests are real demand for a different product ([spicetify #3741](https://github.com/spicetify/cli/issues/3741)).
+- **Adopt Spicetify v3 or ship the engine as a v3 module now.** beta.12 (2026-09-03) still has empty release notes, no stable date, a supported-versions file ending at 1.2.94, and Comfy, Lucid, Catppuccin and Bloom are absent from the vault. The blocked RD-41 residual covers runtime detection ([releases](https://github.com/spicetify/cli/releases); [supported-versions](https://raw.githubusercontent.com/spicetify/cli/v3-beta/supported-versions.json)).
+- **Advance the Spotify pin from headlines.** 1.2.98 breaks Text's progress bar and later builds changed `<body>`; the next reviewed tuple is bounded at 1.2.96 or 1.2.97 by the three sources above, and needs the live validation 1.2.93 got. RD-189 makes the bound visible; the move itself stays with the drift and security-policy gates ([spicetify-themes #1290](https://github.com/spicetify/spicetify-themes/issues/1290)).
+- **Vitest 5.0.0 (2026-09-03), TypeScript 7, pnpm 12, Pester 6, FlaUI 6, MTP 2.4.0.** Vitest 5 flips `clearMocks` and moves reporter output under `.vitest/`; TypeScript 7 has no programmatic API until 7.1, which typescript-eslint needs; pnpm 12 errors on unknown workspace keys; Pester 5.9.1 is still serviced; FlaUI 6.0.0 is in the changelog but not on NuGet; xunit.v3 4.0.0 targets MTP 2.3.3. None fixes a defect here ([Vitest 5](https://vitest.dev/blog/vitest-5.html); [TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/); [pnpm 12](https://pnpm.io/blog/releases/12.0); [FlaUI changelog](https://github.com/FlaUI/FlaUI/blob/main/CHANGELOG.md); [MTP changelog](https://github.com/microsoft/testfx/blob/main/docs/Changelog-Platform.md)).
+- **cosign keyless bundles for local builds.** `gh attestation verify` expects the Actions OIDC issuer and repository certificate extensions, so a personal-identity bundle would not pass it; immutable releases already produce a Sigstore-verifiable release attestation that `gh release verify` accepts ([attestation REST](https://docs.github.com/en/rest/repos/attestations); [gh attestation verify](https://cli.github.com/manual/gh_attestation_verify); `README.md:616`).
+- **Lockfile-style export of the unmanaged Marketplace set, self-updater, compatibility hold as a separate mode switch, self-heal schedules.** Profiles plus `validate` cover the managed set; the Marketplace boundary is a blocked policy item; the update notice is deliberate; the watcher already runs at logon, every 30 minutes and on the update event ([spice-pm](https://github.com/KamilWachnicki/spicetify-pm); [interceptify](https://github.com/mattebin/interceptify)).
+- **Native ad-slot patcher, Windhawk or CEF hooks, native clients, WebView2 wrapper.** SpotX's binary patches already cover the ad slot; the rest are the same rejections as 2026-09-03 ([spotivoid](https://github.com/qiraxyz/spotivoid); [WMPotify](https://github.com/Ingan121/WMPotify); [fastpotify](https://github.com/crmne/fastpotify)).
+- **A "which tool" or "will I be banned" marketing section.** The FAQ already answers Premium use and links account risk from the trust disclosure; the discovery problem is the blocked rebrand ([r/Piracy 1viok7d](https://reddit.com/r/Piracy/comments/1viok7d/)).
+- **Cloud sync, share relays, telemetry, ports to other platforms, server-side features, exit codes in 69000 to 69999.** Unchanged from 2026-09-03.
 
 ## Sources
 
 ### Repository and releases
 
 - https://github.com/SysAdminDoc/LibreSpot
-- https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.1.2
+- https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.4.0
+- https://github.com/SysAdminDoc/LibreSpot/issues/22
 - https://github.com/SysAdminDoc/LibreSpot/issues?q=is%3Aissue
-- https://github.com/SysAdminDoc/LibreSpot/issues/5
-- https://github.com/SysAdminDoc/LibreSpot/discussions/21
 
 ### Upstream projects
 
-- https://github.com/spicetify/cli/releases/tag/v2.44.0
-- https://github.com/spicetify/cli/releases
-- https://github.com/spicetify/cli/issues/3038
-- https://github.com/spicetify/cli/issues/3861
-- https://github.com/spicetify/cli/issues/3869
-- https://github.com/spicetify/cli/issues/3873
-- https://github.com/spicetify/cli/issues/3816
-- https://github.com/spicetify/cli/issues/3914
-- https://github.com/spicetify/classmaps
-- https://raw.githubusercontent.com/spicetify/cli/v3-beta/supported-versions.json
-- https://github.com/spicetify/marketplace/releases
-- https://github.com/spicetify/marketplace/issues/1201
-- https://github.com/spicetify/marketplace/issues/1194
-- https://github.com/spicetify/marketplace/blob/main/src/components/Modals/BackupModal/index.tsx
-- https://github.com/SpotX-Official/SpotX
-- https://github.com/SpotX-Official/SpotX/releases
-- https://github.com/SpotX-Official/SpotX/commit/1d19a68f58abbb298d8095c310aa81e45055c833
-- https://github.com/SpotX-Official/SpotX/issues/876
-- https://github.com/SpotX-Official/SpotX/issues/888
-- https://github.com/SpotX-Official/SpotX/issues/836
-- https://github.com/SpotX-Official/SpotX/issues/829
-- https://github.com/SpotX-Official/SpotX/discussions/873
-- https://github.com/SpotX-Official/SpotX/discussions/879
 - https://spotify.en.uptodown.com/windows/versions
-- https://spicetify.app/docs/faq
+- https://raw.githubusercontent.com/LoaderSpot/table/refs/heads/main/table/versions.json
+- https://raw.githubusercontent.com/SpotX-Official/SpotX/main/run.ps1
+- https://github.com/SpotX-Official/SpotX/commits/main
+- https://github.com/SpotX-Official/SpotX/compare/550bc72c...main
+- https://github.com/SpotX-Official/SpotX/issues/836
+- https://github.com/SpotX-Official/SpotX/issues/888
+- https://github.com/SpotX-Official/SpotX/issues/891
+- https://github.com/spicetify/cli/releases
+- https://github.com/spicetify/cli/tree/v3-beta
+- https://github.com/spicetify/cli/issues/3038
+- https://github.com/spicetify/cli/commit/ffaa9ef6
+- https://raw.githubusercontent.com/spicetify/cli/v3-beta/supported-versions.json
+- https://github.com/spicetify/modules
+- https://github.com/spicetify/classmaps/commits/main
+- https://github.com/spicetify/marketplace/releases/tag/v1.0.11
+- https://github.com/spicetify/marketplace/issues/1231
+- https://github.com/spicetify/spicetify-themes/issues/1290
+- https://github.com/spicetify/spicetify-themes/pull/1291
+- https://github.com/sanoojes/spicetify-lucid
+- https://github.com/thomas-quant/BlockTheSpot-Resilient
+- https://github.com/Ingan121/WMPotify
 
 ### Competitors and adjacent products
 
-- https://github.com/thomas-quant/BlockTheSpot-Resilient
-- https://github.com/Nuzair46/BlockTheSpot-Installer/releases/tag/v0.3.0
-- https://github.com/mrpond/BlockTheSpot
-- https://github.com/Ingan121/WMPotify
-- https://github.com/ohitstom/spicetify-easyinstall/releases/tag/3.7
-- https://github.com/Israleche/SpicetifyManager
-- https://github.com/sanoojes/spicetify-lucid
-- https://github.com/Comfy-Themes/Spicetify/issues/256
-- https://github.com/Xndr2/listening-stats
-- https://github.com/wSoltani/syncify
-- https://github.com/BetterDiscord/Installer
-- https://github.com/BetterDiscord/Installer/releases/tag/v2.0.0
-- https://github.com/Vencord/Vesktop/releases/tag/v1.6.7
-- https://github.com/ReVanced/revanced-manager/releases
+- https://github.com/EliasOnsihuay/SpiceManager
+- https://github.com/mattebin/interceptify
+- https://github.com/KamilWachnicki/spicetify-pm
+- https://github.com/Dalbouh02/SpicetifyManager
+- https://github.com/FIREPAWER07/SpicetifyInstaller
+- https://github.com/itourboy-OG/Spicetify-Manager
+- https://github.com/qiraxyz/spotivoid
+- https://github.com/crmne/fastpotify
 - https://github.com/ramensoftware/windhawk/releases
-- https://github.com/Nexus-Mods/Vortex/releases/tag/v2.6.0
-- https://github.com/ebkr/r2modmanPlus/blob/develop/src/model/exports/ExportMod.ts
-- https://github.com/PrismLauncher/PrismLauncher/releases/tag/11.0.3
+- https://github.com/Nexus-Mods/Vortex/releases
+- https://github.com/BetterDiscord/Installer/releases
+- https://github.com/Vencord/Vesktop/releases
+- https://github.com/ebkr/r2modmanPlus/releases
+- https://github.com/PrismLauncher/PrismLauncher/releases
+- https://github.com/NeedChandlerMonitor/spicetify-elite
 
 ### Community signal
 
-- https://www.reddit.com/r/spicetify/comments/1p29rqh/
-- https://www.reddit.com/r/spicetify/comments/1umtw10/
-- https://www.reddit.com/r/spicetify/comments/1sot0tx/
-- https://www.reddit.com/r/spicetify/comments/1vvklzn/
-- https://www.reddit.com/r/spicetify/comments/1vsllxg/
-- https://www.reddit.com/r/spicetify/comments/1uk6vs7/
-- https://www.reddit.com/r/Piracy/comments/1qjpwmg/
-- https://github.com/Rafiuth/Soggfy/issues/159
-- https://github.com/Rafiuth/Soggfy/issues/152
-- https://community.spotify.com/t5/Live-Ideas/Desktop-An-option-to-disable-automatic-updates/idi-p/5208626
-- https://www.spotify.com/us/legal/user-guidelines/plain/
-- https://developer.spotify.com/blog/2026-02-06-update-on-developer-access-and-platform-security
+- https://reddit.com/r/spicetify/comments/1vw95y7/
+- https://reddit.com/r/spicetify/comments/1vjr1of/
+- https://reddit.com/r/spicetify/comments/1vsllxg/
+- https://reddit.com/r/spicetify/comments/1w3vcfl/
+- https://reddit.com/r/truespotify/comments/1vz34eu/
+- https://reddit.com/r/Piracy/comments/1viok7d/
+- https://news.ycombinator.com/item?id=47428391
+- https://www.spotify.com/us/legal/user-guidelines/
+- https://musictech.com/news/industry/spotify-premium-price-hike-2026/
 
 ### Platform, security, and supply chain
 
-- https://github.com/dotnet/announcements/issues/418
-- https://github.com/dotnet/announcements/issues/420
-- https://github.com/dotnet/core/blob/main/release-notes/10.0/10.0.11/10.0.11.md
-- https://learn.microsoft.com/en-us/dotnet/desktop/wpf/whats-new/net100
+- https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json
+- https://learn.microsoft.com/en-us/dotnet/desktop/wpf/whats-new/net110
 - https://github.com/lepoco/wpfui/releases
 - https://xunit.net/releases/v3/4.0.0
-- https://registry.npmjs.org/spicetify-creator/latest
-- https://github.com/vitest-dev/vitest/security/advisories
-- https://github.com/vitejs/vite/issues/19428
-- https://github.com/PowerShell/Announcements/issues/82
-- https://support.microsoft.com/en-us/topic/kb5074204-security-update-for-windows-powershell-os-builds-26100-7392-and-26200-7392-05eec772-59fd-484d-a7e6-45e0a84580ab
-- https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-frequently-asked-questions
-- https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation
-- https://learn.microsoft.com/en-us/azure/artifact-signing/quickstart
-- https://github.blog/changelog/2025-10-28-immutable-releases-are-now-generally-available/
-- https://github.blog/changelog/2025-06-03-releases-now-expose-digests-for-release-assets/
+- https://github.com/microsoft/testfx/blob/main/docs/Changelog-Platform.md
+- https://github.com/FlaUI/FlaUI/blob/main/CHANGELOG.md
+- https://www.powershellgallery.com/packages/ps2exe
+- https://github.com/MScholtes/PS2EXE
+- https://www.powershellgallery.com/packages/PSScriptAnalyzer
+- https://github.com/pester/Pester/releases
+- https://vitest.dev/blog/vitest-5.html
+- https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/
+- https://pnpm.io/blog/releases/12.0
+- https://github.com/advisories/GHSA-g7r4-m6w7-qqqr
+- https://www.elastic.co/security-labs/shai-hulud-chaindrop-npm-supply-chain
+- https://nodejs.org/en/blog/vulnerability/july-2026-security-releases
+- https://github.com/PowerShell/PowerShell/releases/tag/v7.6.5
+- https://thehackernews.com/2026/09/google-releases-chrome-update-to-patch.html
+- https://www.bleepingcomputer.com/news/microsoft/windows-11-kb5079391-update-rolls-out-smart-app-control-improvements/
+- https://www.bleepingcomputer.com/news/microsoft/microsoft-quietly-extends-free-windows-10-esu-support-to-october-2027/
+- https://learn.microsoft.com/en-us/windows/security/application-security/application-control/administrator-protection
+- https://docs.github.com/en/rest/repos/attestations
 - https://cli.github.com/manual/gh_attestation_verify
-- https://github.com/dotnet/reproducible-builds
-- https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview
-- https://learn.microsoft.com/en-us/dotnet/core/diagnostics/collect-dumps-crash
-- https://github.com/microsoft/axe-windows
-- https://www.w3.org/TR/wcag2ict-22/
 - https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api
-- https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api
-- https://github.com/NetSparkleUpdater/NetSparkle
-- https://github.com/PSAppDeployToolkit/website/blob/main/docs/reference/exit-codes.mdx
-- https://learn.microsoft.com/en-us/intune/intune-service/apps/apps-win32-add
-- https://learn.microsoft.com/en-us/dotnet/communitytoolkit/windows/settingscontrols/settingsexpander
+- https://www.w3.org/TR/wcag2ict-22/
+- https://github.com/microsoft/axe-windows/blob/main/docs/RulesDescription.md
 
 ## Open Questions
 
-- **Is the pinned Spotify 1.2.93 installer still downloadable through SpotX's chain, and for how long?** Spotify gated direct installer links with an `fauth` token in March 2026 and Cloudflare flags SpotX's worker. No LibreSpot gate probes the 1.2.93 source, and the answer decides whether the next tuple move is optional or urgent ([SpotX #829](https://github.com/SpotX-Official/SpotX/issues/829); [#836](https://github.com/SpotX-Official/SpotX/issues/836)).
-- **When does the public release that fixes the engine pin ship?** RD-142 fixes future releases; v4.1.2 users can only be helped by publishing v4.2.0 (or a v4.1.3) promptly, which is the operator's release call.
-- **Does the localStorage wipe reported upstream also hit `librespot:engine-state` on real machines?** The cause upstream is disputed (cleaners versus a Spicetify bug). A machine that reproduces it would decide whether RD-147's user-driven export is enough or an automatic guard is needed ([spicetify #3861](https://github.com/spicetify/cli/issues/3861)).
-- **Will the ARM64 lane be built now that SpotX and Spicetify both support it?** The architecture support matrix entry in `Roadmap_Blocked.md` is the only blocker left; the technical one is gone ([SpotX #888](https://github.com/SpotX-Official/SpotX/issues/888)).
+- **Which lyrics extension does the 2026-09-01 r/spicetify API-abuse post name?** Reddit is not fetchable from this machine's search tools; if it is one of the five pinned community extensions, RD-169's policy needs a rate-limit clause ([thread](https://reddit.com/r/spicetify/comments/1w3vcfl/)).
+- **When will Spicetify v3 have a stable tag and a supported-versions file past 1.2.94?** That date decides whether the next tuple move is a v2 pin advance to 1.2.96 or a v3 migration; nothing public states it ([releases](https://github.com/spicetify/cli/releases)).
+- **Does stale Marketplace storage on real machines block uninstall the way #1231 describes?** A reproduction would decide whether RD-196 needs the full IndexedDB delete or only a settings-key reset ([#1231](https://github.com/spicetify/marketplace/issues/1231)).
+- **Will the peer session's v4.5.0 bump land before or after these items are picked up?** The version strings, engine pin and screenshots are staged uncommitted in the tree on 2026-09-04; RD-190's README fixes should be made against the committed v4.5.0 README, not the v4.4.0 one.
